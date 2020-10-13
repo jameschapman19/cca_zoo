@@ -58,8 +58,6 @@ class ALS_inner_loop:
             self.update_function = self.elastic_jc_update
         elif self.method == 'tree_jc':
             self.update_function = self.tree_update
-        elif self.method == 'tree_jc2':
-            self.update_function = self.tree_update2
         elif self.method == 'constrained_scca':
             self.update_function = self.constrained_update
 

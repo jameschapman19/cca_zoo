@@ -1,6 +1,7 @@
 import copy
 import shutil
 
+import torch.nn.functional as F
 import torch.utils.data
 from sklearn.cross_decomposition import CCA
 from torch import optim
@@ -8,6 +9,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from torch_geometric.data import Data
 from torch_geometric.data import InMemoryDataset
 
+from CCA_methods import DGCCAE
 from CCA_methods.plot_utils import *
 
 

@@ -118,7 +118,7 @@ def p_rule(y_pred, z_values, threshold=0.5):
 
 
 def plot_distributions(y_true, Z_true, y_pred, Z_pred=None, epoch=None):
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
 
     subplot_df = (
         Z_true

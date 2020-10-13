@@ -13,7 +13,8 @@ from pyro.nn.module import PyroParam, pyro_method
 from torch.distributions import constraints
 from torch.nn import Parameter
 
-from James.CCA_methods_2 import generate_candola
+from CCA_methods import linear
+from CCA_methods.generate_data import generate_candola
 
 smoke_test = ('CI' in os.environ)  # ignore; used to check code integrity in the Pyro repo
 pyro.enable_validation(True)  # can help with debugging
@@ -58,7 +59,7 @@ class Wrapper:
 
         # we setup the mean of our prior over X
         # shape: 437 x 2
-        warm_start_cca = James.CCA_methods_2.linear.Wrapper(outdim_size=self.outdim_size).fit(X_train, Y_train)
+        warm_start_cca = linear.Wrapper(outdim_size=self.outdim_size).fit(X_train, Y_train)
 
         X_prior_mean = torch.tensor(((warm_start_cca.U + warm_start_cca.V) / 2).T, dtype=torch.float64)
 
@@ -477,7 +478,7 @@ def main():
     Z_test, Y_test = Z[:n], Y[:n]
     Z, Y = Z[n:], Y[n:]
 
-    lincca = James.CCA_methods_2.linear.Wrapper().fit(Z, Y)
+    lincca = linear.Wrapper().fit(Z, Y)
 
     pred_corr_lin = lincca.predict_corr(Z_test, Y_test)
 

@@ -142,7 +142,7 @@ class Wrapper:
         if self.method == 'DCCAE':
             self.train_correlations = self.predict_corr(X_train, Y_train, train=True)
 
-        self.train_recon_loss_x, self.train_recon_loss_y = self.predict_recon(X_train, Y_train)
+        self.train_recon_loss_x, self.train_recon_loss_y = self.recon_loss(X_train, Y_train)
 
         return self
 
