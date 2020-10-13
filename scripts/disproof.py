@@ -150,7 +150,6 @@ def lagrange_elastic_archive(X, y, l1_ratio_star, alpha_star):
 
     alphas_enet, coefs_enet, _ = enet_path(
         X, y, l1_ratio=l1_ratio, fit_intercept=False)
-
     mu = np.linalg.norm(X @ coefs_enet, axis=0) - 1
 
     l1_ratios_eff = l1_ratio / (1 + mu - mu * l1_ratio)
