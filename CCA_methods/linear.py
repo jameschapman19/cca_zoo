@@ -96,12 +96,11 @@ class Wrapper:
         self.train_correlations = self.predict_corr(*args)
         return self
 
-    def cv_fit(self, *args, param_candidates, folds: int = 5, verbose: bool = False):
-        self.params.update(
-            cross_validate(*args, max_iter=self.max_iter, outdim_size=self.outdim_size, method=self.method,
-                           param_candidates=param_candidates, folds=folds,
-                           verbose=verbose))
-        self.fit(*args)
+    def cv_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False):
+        best_params = cross_validate(*args, max_iter=self.max_iter, outdim_size=self.outdim_size, method=self.method,
+                                     param_candidates=param_candidates, folds=folds,
+                                     verbose=verbose)
+        self.fit(*args, params=best_params)
         return self
 
     def predict_corr(self, *args):
@@ -238,17 +237,17 @@ class Wrapper:
 
     def fit_gcca(self, *args):
         Q = []
-        for view in args:
-            Q.append(view @ np.linalg.inv(view.T @ view) @ view.T)
+        for i, view in enumerate(args):
+            view_cov = view.T @ view
+            view_cov[np.diag_indices_from(view_cov)] = view_cov.diagonal() + self.params['c'][i]
+            Q.append(view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
-        Q[np.diag_indices_from(Q)] = Q.diagonal() + self.params['c'][0]
-
         [eigvals, eigvecs] = np.linalg.eig(Q)
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         eigvals = eigvals[idx].real
 
-        self.weights_list = [np.linalg.inv(view.T @ view) @ view.T @ eigvecs[:, :self.outdim_size] for view in args]
+        self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.outdim_size] for view in args]
         self.rotation_list = self.weights_list
         self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
 
@@ -261,8 +260,8 @@ def permutation_test(train_set_1, train_set_2, outdim_size=5,
 
     for _ in range(n_reps):
         print('permutation test rep: ', _ / n_reps, flush=True)
-        results = Wrapper(outdim_size=outdim_size, method=method, params=params).fit(train_set_1,
-                                                                                     train_set_2).train_correlations
+        results = Wrapper(outdim_size=outdim_size, method=method).fit(train_set_1, train_set_2,
+                                                                      params=params).train_correlations
         np.random.shuffle(train_set_1)
         rho_train[_, :] = results
 
@@ -341,105 +340,3 @@ def cross_validate(*args, max_iter: int = 100, outdim_size: int = 5, method: str
     elif not method == 'elastic':
         cv_plot(hyperparameter_scores_avg, param_candidates, method)
     return best_params
-
-
-def main():
-    # X1 = np.random.rand(100, 10)
-    # X2 = np.random.rand(100, 11)
-    # X3 = np.random.rand(100, 5)
-    n = 100
-
-    # X, Y, _, _ = generate_mai(n * 2, 1, 50, 50, sparse_variables_1=20,
-    #                          sparse_variables_2=20, structure='toeplitz', sigma=0.95)
-
-    X = np.random.rand(1000, 200)
-    Y = np.random.rand(1000, 200)
-    Z = np.random.rand(1000, 200)
-
-    x_test = X[:n, :]
-    y_test = Y[:n, :]
-    z_test = Z[:n, :]
-    x_train = X[n:, :]
-    y_train = Y[n:, :]
-    z_train = Z[n:, :]
-
-    x_test -= x_train.mean(axis=0)
-    y_test -= y_train.mean(axis=0)
-    z_test -= z_train.mean(axis=0)
-    x_train -= x_train.mean(axis=0)
-    y_train -= y_train.mean(axis=0)
-    z_train -= z_train.mean(axis=0)
-    x_test /= x_train.std(axis=0)
-    y_test /= y_train.std(axis=0)
-    z_test /= z_train.std(axis=0)
-    x_train /= x_train.std(axis=0)
-    y_train /= y_train.std(axis=0)
-    z_train /= z_train.std(axis=0)
-    params = {'c': [0, 0]}
-
-    z_pinv = np.linalg.pinv(z_train)
-
-    x_train_d = x_train - z_train @ z_pinv @ x_train
-    y_train_d = y_train - z_train @ z_pinv @ y_train
-
-    cca1 = CCA(tol=1e-20).fit(y_train_d, z_train)
-    a1 = np.corrcoef(cca1.x_scores_, cca1.y_scores_, rowvar=False)[2:, :2]
-
-    cca2 = CCA(tol=1e-20).fit(x_train_d, z_train)
-    a2 = np.corrcoef(cca2.x_scores_, cca2.y_scores_, rowvar=False)[2:, :2]
-
-    cca3 = CCA(tol=1e-20).fit(x_train_d, y_train)
-    a3 = np.corrcoef(cca3.x_scores_, cca3.y_scores_, rowvar=False)[2:, :2]
-
-    cca4 = CCA(tol=1e-20).fit(x_train, y_train_d)
-    a4 = np.corrcoef(cca4.x_scores_, cca4.y_scores_, rowvar=False)[2:, :2]
-
-    cca5 = CCA(tol=1e-20).fit(x_train_d, y_train_d)
-    a5 = np.corrcoef(cca5.x_scores_, cca5.y_scores_, rowvar=False)[2:, :2]
-
-    cca6 = CCA(tol=1e-20).fit(x_train, y_train)
-    a6 = np.corrcoef(cca6.x_scores_, cca6.y_scores_, rowvar=False)[2:, :2]
-
-    cca7 = CCA(tol=1e-20).fit(y_train, z_train)
-    a7 = np.corrcoef(cca7.x_scores_, cca7.y_scores_, rowvar=False)[2:, :2]
-
-    cca8 = CCA(tol=1e-20).fit(y_train_d, z_train)
-    a8 = np.corrcoef(cca8.x_scores_, cca8.y_scores_, rowvar=False)[2:, :2]
-
-    bbb1 = Wrapper(method='l2').fit(x_train, y_train_d, z_train)
-    bbb2 = Wrapper(method='l2').fit(x_train_d, y_train, z_train)
-    bbb3 = Wrapper(method='l2').fit(x_train_d, y_train_d, z_train)
-    bbb4 = Wrapper(method='l2').fit(x_train, y_train, z_train)
-
-    partial = Wrapper(method='scikit', outdim_size=5, max_iter=1000).fit(x_train_d, y_train, params=params)
-
-    part = Wrapper(method='scikit', outdim_size=5, max_iter=1000).fit(x_train_d, y_train_d, params=params)
-
-    gcca = Wrapper(method='gcca', outdim_size=5, max_iter=1).fit(x_train, y_train, params=params)
-
-    mcca = Wrapper(method='mcca', outdim_size=5, max_iter=1).fit(x_train, y_train, params=params)
-
-    c1 = [4, 5, 6]
-    c2 = [4, 5, 6]
-    param_candidates = {'c': list(itertools.product(c1, c2))}
-
-    abc1 = Wrapper(method='tree_jc', outdim_size=1, max_iter=1).cv_fit(x_train, y_train,
-                                                                       param_candidates=param_candidates, verbose=True)
-
-    abc2 = Wrapper(method='tree_jc2', outdim_size=1, max_iter=1).cv_fit(x_train, y_train,
-                                                                        param_candidates=param_candidates,
-                                                                        verbose=True)
-
-    params = {'c': [0.001, 0.001], 'ratio': [0.5, 0.5]}
-
-    abc3 = Wrapper(method='elastic_jc', params=params, outdim_size=1, max_iter=100).fit(x_train, y_train)
-
-    abc4 = Wrapper(method='elastic', params=params, outdim_size=1, max_iter=100).fit(x_train, y_train)
-    bbb1 = abc1.predict_corr(x_test, y_test)
-    bbb2 = abc2.predict_corr(x_test, y_test)
-    bbb3 = abc3.predict_corr(x_test, y_test)
-    print('here')
-
-
-if __name__ == "__main__":
-    main()

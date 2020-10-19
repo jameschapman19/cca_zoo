@@ -42,45 +42,47 @@ def bin_search(current, previous, current_val, previous_val, min_, max_):
 
 def elastic_search(X, y, l1_ratio, alpha, n_tries=100):
     # Grid search for lam_1 and lam_2. Hmm.
-    success=False
-    tries=0
-    tol=1e-5
-    mu = -1+tol
+    success = False
+    tries = 0
+    tol = 1e-5
+    mu = -1 + tol
     mu_old = mu
-    length_old=0
-    mu_min=-1
-    mu_max=0
+    length_old = 0
+    mu_min = -1
+    mu_max = 0
     coef = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(np.sqrt(1 + mu) * X,
                                                                                y / np.sqrt(1 + mu)).coef_
     length_old = np.linalg.norm(X @ coef)
     while not success and tries < n_tries:
         tries += 1
-        coef = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(np.sqrt(1+mu)*X, y/np.sqrt(1+mu)).coef_
+        coef = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(np.sqrt(1 + mu) * X,
+                                                                                   y / np.sqrt(1 + mu)).coef_
 
         length = np.linalg.norm(X @ coef)
 
-        if np.abs(length-1)<tol:
-            success=True
+        if np.abs(length - 1) < tol:
+            success = True
         if not success:
-            mu, mu_old, mu_min, mu_max = bin_search(mu, mu_old,1-length,1-length_old, mu_min,mu_max)
-            length_old=length
+            mu, mu_old, mu_min, mu_max = bin_search(mu, mu_old, 1 - length, 1 - length_old, mu_min, mu_max)
+            length_old = length
     return coef, success
+
 
 def lagrange_elastic(X, y, l1_ratio_star, alpha_star, n_tries=100):
     # Grid search for lam_1 and lam_2. Hmm.
     l1_ratio = 1
     l1_ratio_old = l1_ratio
     l1_ratio_min = 0.01
-    tol=1e-5
+    tol = 1e-5
     l1_ratio_max = 1
     tol = 0.01
     alpha_high = 0
     alpha_high_old = alpha_high
     success = False
     tries = 0
-    lower=0
-    upper=0
-    alpha_low=0
+    lower = 0
+    upper = 0
+    alpha_low = 0
     while not success and tries < n_tries:
         tries += 1
         alphas_enet, coefs_enet, _ = enet_path(
@@ -104,12 +106,12 @@ def lagrange_elastic(X, y, l1_ratio_star, alpha_star, n_tries=100):
                                                                             alpha_star - alpha_high_old, l1_ratio_min,
                                                                             l1_ratio_max)
             alpha_high_old = alpha_high
-            if l1_ratio-0.01<tol:
+            if l1_ratio - 0.01 < tol:
                 break
 
-    coefs=coefs_enet/np.linalg.norm(X@coefs_enet[:,upper])
+    coefs = coefs_enet / np.linalg.norm(X @ coefs_enet[:, upper])
 
-    return success, coefs, l1_ratios_eff[upper],alpha_high
+    return success, coefs, l1_ratios_eff[upper], alpha_high
 
 
 def constrained_elastic_regression(X, y, p, ratio=0.1):
@@ -141,6 +143,7 @@ def constrained_elastic_regression(X, y, p, ratio=0.1):
     coef = coef_star / np.linalg.norm(proj_star)
     return coef
 
+
 def lagrange_elastic_archive(X, y, l1_ratio_star, alpha_star):
     # Grid search for lam_1 and lam_2. Hmm.
     l1_ratio = 0.1
@@ -164,6 +167,7 @@ def lagrange_elastic_archive(X, y, l1_ratio_star, alpha_star):
     return grid
 
 
-coef,success=elastic_search(X, y, 0.5, 0.00001, n_tries=100)
+coef, success = elastic_search(X, y, 0.5, 0.00001, n_tries=100)
 
 print('here')
+here

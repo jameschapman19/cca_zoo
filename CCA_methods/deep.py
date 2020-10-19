@@ -69,9 +69,9 @@ class Wrapper:
         Y_val -= self.Y_mean
 
         # transform to a torch tensor dataset
-        train_dataset = TensorDataset(X_train, Y_train)  # create your datset
+        train_dataset = TensorDataset(torch.tensor(X_train), torch.tensor(Y_train))  # create your datset
         train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size)
-        val_dataset = TensorDataset(X_val, Y_val)  # create your datset
+        val_dataset = TensorDataset(torch.tensor(X_val), torch.tensor(Y_val))  # create your datset
         val_dataloader = DataLoader(val_dataset, batch_size=self.batch_size)
 
         # For CCA loss functions, we require that the number of samples in each batch is greater than the number of
@@ -175,7 +175,7 @@ class Wrapper:
     def predict_corr(self, X_test, Y_test, train=False):
         X_test -= self.X_mean
         Y_test -= self.Y_mean
-        test_dataset = TensorDataset(X_test, Y_test)  # create your datset
+        test_dataset = TensorDataset(torch.tensor(X_test), torch.tensor(Y_test))  # create your datset
         test_dataloader = DataLoader(test_dataset, batch_size=100)
         z_x = np.empty((0, self.outdim_size))
         z_y = np.empty((0, self.outdim_size))
@@ -246,7 +246,7 @@ class Wrapper:
     def recon_loss(self, X_new, Y_new):
         X_new -= self.X_mean
         Y_new -= self.Y_mean
-        test_dataset = TensorDataset(X_new, Y_new)  # create your datset
+        test_dataset = TensorDataset(torch.tensor(X_new), torch.tensor(Y_new))  # create your datset
         test_dataloader = DataLoader(test_dataset, batch_size=100)
         with torch.no_grad():
             recon_loss_x = 0

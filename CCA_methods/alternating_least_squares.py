@@ -37,7 +37,8 @@ class ALS_inner_loop:
 
         self.old_weights = [np.random.rand(dataset.shape[1]) for dataset in self.datasets]
         # initialize with first column
-        self.targets = np.array([dataset[:, 0] / np.linalg.norm(dataset[:, 0]) for dataset in self.datasets])
+        self.targets = np.array([dataset[:, 0] / np.linalg.norm(dataset[:, 0]) if np.linalg.norm(
+            dataset[:, 0]) != 0 else np.random.rand(dataset.shape[0]) for dataset in self.datasets])
 
         self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in self.datasets]
         self.corrs = []
