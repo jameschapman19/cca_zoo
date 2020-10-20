@@ -337,7 +337,6 @@ class ALS_inner_loop:
 
     @ignore_warnings(category=ConvergenceWarning)
     def constrained_elastic(self, X, y, alpha=0.1, l1_ratio=0.5, init=0):
-
         if alpha == 0:
             coef = LinearRegression(fit_intercept=False).fit(X, y).coef_
         converged = False
@@ -411,27 +410,6 @@ class ALS_inner_loop:
                 multiplier = 0.5
             lyuponov += 1 / (2 * self.datasets[i].shape[0]) * multiplier * np.linalg.norm(
                 self.datasets[i] @ self.weights[i] - lyuponov_target) + l1[i] * np.linalg.norm(self.weights[i], ord=1) + \
-                        l2[i] * np.linalg.norm(self.weights[i], ord=2)
-        return lyuponov
-
-    def elastic_lyuponov(self):
-        views = len(self.datasets)
-        c = np.array(self.params.get('c', [0] * views))
-        ratio = np.array(self.params.get('ratio', [1] * views))
-        l1 = c * ratio
-        l2 = c * (1 - ratio)
-        lyuponov = 0
-        for i in range(views):
-            if self.generalized:
-                lyuponov_target = self.targets.mean(axis=0)
-                multiplier = views
-            else:
-                lyuponov_target = self.targets[i - 1]
-                multiplier = 0.5
-            distance = np.linalg.norm(
-                self.datasets[i] @ self.weights[i] - lyuponov_target)
-            lyuponov += 1 / (2 * self.datasets[i].shape[0]) * multiplier * distance ** 2 + l1[i] * np.linalg.norm(
-                self.weights[i], ord=1) + \
                         l2[i] * np.linalg.norm(self.weights[i], ord=2)
         return lyuponov
 

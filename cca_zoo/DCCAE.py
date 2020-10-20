@@ -1,3 +1,5 @@
+from abc import ABC
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -17,7 +19,8 @@ This allows me to wrap them all up in the deep wrapper. Obviously this isn't req
 for standardising the pipeline for comparison
 """
 
-class DCCAE(nn.Module):
+
+class DCCAE(nn.Module, ABC):
 
     def __init__(self, input_size_1, input_size_2, hidden_layer_sizes_1=None, hidden_layer_sizes_2=None, latent_dims=2,
                  lam=0, loss_type='cca', model_1='fcn', model_2='fcn'):
@@ -82,7 +85,7 @@ class DCCAE(nn.Module):
         return self.lam * recon_1 + self.lam * recon_2 + self.cca_objective.loss(z_1, z_2)
 
 
-class DGCCAE(nn.Module):
+class DGCCAE(nn.Module, ABC):
     def __init__(self, *args, hidden_layer_sizes=None, latent_dims=2, lam=0, loss_type='cca'):
         super(DGCCAE, self).__init__()
 

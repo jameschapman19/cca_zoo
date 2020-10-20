@@ -1,3 +1,5 @@
+from abc import ABC
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -15,7 +17,8 @@ This allows me to wrap them all up in the deep wrapper. Obviously this isn't req
 for standardising the pipeline for comparison
 """
 
-class DVCCA(nn.Module):
+
+class DVCCA(nn.Module, ABC):
     """
     https: // arxiv.org / pdf / 1610.03454.pdf
     With pieces borrowed from the variational autoencoder implementation @
@@ -26,6 +29,7 @@ class DVCCA(nn.Module):
     Private is as described in the paper and adds another encoder for private information for each view.
     For this reason the hidden dimensions passed to the decoders is 3*latent_dims as we concanate shared,private_1 and private_2
     """
+
     def __init__(self, input_size_1, input_size_2, hidden_layer_sizes_1=None, hidden_layer_sizes_2=None, latent_dims=2,
                  mu=0.5, both_encoders=True, private=False):
         super(DVCCA, self).__init__()
@@ -41,14 +45,12 @@ class DVCCA(nn.Module):
         self.private_encoder_1 = Encoder(hidden_layer_sizes_1, input_size_1, latent_dims).double()
         self.private_encoder_2 = Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
 
-
         if self.private:
-            self.decoder_1 = Decoder(hidden_layer_sizes_1*3, latent_dims, input_size_1).double()
-            self.decoder_2 = Decoder(hidden_layer_sizes_2*3, latent_dims, input_size_2).double()
+            self.decoder_1 = Decoder(hidden_layer_sizes_1 * 3, latent_dims, input_size_1).double()
+            self.decoder_2 = Decoder(hidden_layer_sizes_2 * 3, latent_dims, input_size_2).double()
         else:
             self.decoder_1 = Decoder(hidden_layer_sizes_1, latent_dims, input_size_1).double()
             self.decoder_2 = Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
-
 
     def encode_1(self, x):
         # 2*latent_dims
