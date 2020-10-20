@@ -2,10 +2,10 @@ import itertools
 
 from scipy.linalg import pinv2, block_diag, cholesky
 from sklearn.cross_decomposition import CCA, PLSCanonical
-
-from cca_zoo.KCCA import *
+import numpy as np
+import cca_zoo.KCCA
 from cca_zoo.alternating_least_squares import ALS_inner_loop
-from cca_zoo.generate_data import *
+import cca_zoo.generate_data
 from cca_zoo.plot_utils import cv_plot
 
 
@@ -69,9 +69,9 @@ class Wrapper:
             self.dataset_list.append(dataset - dataset.mean(axis=0))
 
         if self.method == 'kernel':
-            self.KCCA = KCCA(self.dataset_list[0], self.dataset_list[1], params=self.params,
+            self.fit_kcca = cca_zoo.KCCA.KCCA(self.dataset_list[0], self.dataset_list[1], params=self.params,
                              latent_dims=self.latent_dims)
-            self.score_list = [self.KCCA.U, self.KCCA.V]
+            self.score_list = [self.fit_kcca.U, self.fit_kcca.V]
         elif self.method == 'pls':
             self.fit_scikit_pls(self.dataset_list[0], self.dataset_list[1])
         elif self.method == 'scikit':
@@ -139,7 +139,7 @@ class Wrapper:
                 new_views.append(new_view - self.dataset_means[i])
 
         if self.method == 'kernel':
-            transformed_views = list(self.KCCA.transform(new_views[0], new_views[1]))
+            transformed_views = list(self.fit_kcca.transform(new_views[0], new_views[1]))
         elif self.method == 'pls':
             transformed_views = list(self.PLS.transform(new_views[0], new_views[1]))
         elif self.method[:4] == 'tree':

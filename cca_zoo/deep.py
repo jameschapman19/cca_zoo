@@ -5,10 +5,10 @@ from sklearn.cross_decomposition import CCA
 from torch import optim
 from torch.nn import functional as F
 from torch.utils.data import TensorDataset, DataLoader
-
+import numpy as np
 from cca_zoo.DCCAE import DCCAE, DGCCAE
 from cca_zoo.DVCCA import DVCCA
-from cca_zoo.plot_utils import *
+import cca_zoo.plot_utils
 
 
 class Wrapper:
@@ -137,7 +137,7 @@ class Wrapper:
 
                 all_train_loss.append(epoch_train_loss)
                 all_val_loss.append(epoch_val_loss)
-        plot_training_loss(all_train_loss, all_val_loss)
+        cca_zoo.plot_utils.plot_training_loss(all_train_loss, all_val_loss)
 
         if self.method == 'DCCAE':
             self.train_correlations = self.predict_corr(X_train, Y_train, train=True)
