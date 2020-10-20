@@ -2,9 +2,9 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from CCA_methods.deep_models import Encoder, Decoder, CNN_Encoder, CNN_Decoder, BrainNetCNN_Encoder, \
+from pyCCA.deep_models import Encoder, Decoder, CNN_Encoder, CNN_Decoder, BrainNetCNN_Encoder, \
     BrainNetCNN_Decoder
-from CCA_methods.objectives import cca, mcca, gcca
+from pyCCA.objectives import cca, mcca, gcca
 
 """
 All of my deep architectures have forward methods inherited from pytorch as well as a method:
