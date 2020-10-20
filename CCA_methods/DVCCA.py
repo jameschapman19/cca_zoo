@@ -24,9 +24,9 @@ class DVCCA(nn.Module):
     A couple of important variables here, both_encoders and private.
     Both_encoders is something I added so that we could potentially compare the effect of using
     Private is as described in the paper and adds another encoder for private information for each view.
-    For this reason the hidden dimensions passed to the decoders is 3*outdim_size as we concanate shared,private_1 and private_2
+    For this reason the hidden dimensions passed to the decoders is 3*latent_dims as we concanate shared,private_1 and private_2
     """
-    def __init__(self, input_size_1, input_size_2, hidden_layer_sizes_1=None, hidden_layer_sizes_2=None, outdim_size=2,
+    def __init__(self, input_size_1, input_size_2, hidden_layer_sizes_1=None, hidden_layer_sizes_2=None, latent_dims=2,
                  mu=0.5, both_encoders=True, private=False):
         super(DVCCA, self).__init__()
 
@@ -34,50 +34,50 @@ class DVCCA(nn.Module):
         self.both_encoders = both_encoders
         self.mu = mu
 
-        self.encoder_1 = Encoder(hidden_layer_sizes_1, input_size_1, outdim_size).double()
+        self.encoder_1 = Encoder(hidden_layer_sizes_1, input_size_1, latent_dims).double()
         if self.both_encoders:
-            self.encoder_2 = Encoder(hidden_layer_sizes_2, input_size_2, outdim_size).double()
+            self.encoder_2 = Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
 
-        self.private_encoder_1 = Encoder(hidden_layer_sizes_1, input_size_1, outdim_size).double()
-        self.private_encoder_2 = Encoder(hidden_layer_sizes_2, input_size_2, outdim_size).double()
+        self.private_encoder_1 = Encoder(hidden_layer_sizes_1, input_size_1, latent_dims).double()
+        self.private_encoder_2 = Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
 
 
         if self.private:
-            self.decoder_1 = Decoder(hidden_layer_sizes_1*3, outdim_size, input_size_1).double()
-            self.decoder_2 = Decoder(hidden_layer_sizes_2*3, outdim_size, input_size_2).double()
+            self.decoder_1 = Decoder(hidden_layer_sizes_1*3, latent_dims, input_size_1).double()
+            self.decoder_2 = Decoder(hidden_layer_sizes_2*3, latent_dims, input_size_2).double()
         else:
-            self.decoder_1 = Decoder(hidden_layer_sizes_1, outdim_size, input_size_1).double()
-            self.decoder_2 = Decoder(hidden_layer_sizes_2, outdim_size, input_size_2).double()
+            self.decoder_1 = Decoder(hidden_layer_sizes_1, latent_dims, input_size_1).double()
+            self.decoder_2 = Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
 
 
     def encode_1(self, x):
-        # 2*outdim_size
+        # 2*latent_dims
         z = self.encoder_1(x)
-        z = z.reshape((2, -1, self.outdim_size))
+        z = z.reshape((2, -1, self.latent_dims))
         mu = z[0]
         logvar = z[0]
         return mu, logvar
 
     def encode_2(self, x):
-        # 2*outdim_size
+        # 2*latent_dims
         z = self.encoder_2(x)
-        z = z.reshape((2, -1, self.outdim_size))
+        z = z.reshape((2, -1, self.latent_dims))
         mu = z[0]
         logvar = z[0]
         return mu, logvar
 
     def encode_private_1(self, x):
-        # 2*outdim_size
+        # 2*latent_dims
         z = self.private_encoder_1(x)
-        z = z.reshape((2, -1, self.outdim_size))
+        z = z.reshape((2, -1, self.latent_dims))
         mu = z[0]
         logvar = z[0]
         return mu, logvar
 
     def encode_private_2(self, x):
-        # 2*outdim_size
+        # 2*latent_dims
         z = self.private_encoder_2(x)
-        z = z.reshape((2, -1, self.outdim_size))
+        z = z.reshape((2, -1, self.latent_dims))
         mu = z[0]
         logvar = z[0]
         return mu, logvar
@@ -91,12 +91,12 @@ class DVCCA(nn.Module):
         return mu + eps * std
 
     def decode_1(self, z):
-        # 2*outdim_size
+        # 2*latent_dims
         x = self.decoder_1(z)
         return x
 
     def decode_2(self, z):
-        # 2*outdim_size
+        # 2*latent_dims
         x = self.decoder_2(z)
         return x
 

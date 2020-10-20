@@ -13,10 +13,10 @@ class KCCA:
 
     transform(): which allows us to find the latent variable space for out of sample data
     """
-    def __init__(self, X: np.array, Y: np.array, params: dict = None, outdim_size: int = 2):
+    def __init__(self, X: np.array, Y: np.array, params: dict = None, latent_dims: int = 2):
         self.X = X
         self.Y = Y
-        self.outdim_size = outdim_size
+        self.latent_dims = latent_dims
         self.ktype = params.get('kernel')
         self.sigma = params.get('sigma')
         self.degree = params.get('degree')
@@ -36,7 +36,7 @@ class KCCA:
         ind = np.argsort(betas)
 
         alphas = alphas[:, ind]
-        alpha = alphas[:, :outdim_size]
+        alpha = alphas[:, :latent_dims]
         # making unit vectors
         alpha = alpha / (np.sum(np.abs(alpha) ** 2, axis=0) ** (1. / 2))
         alpha1 = alpha[:N, :]

@@ -15,8 +15,8 @@ from CCA_methods.plot_utils import cv_plot
 
 class Wrapper:
     # The idea is that this can take some data and run one of my many CCA_archive methods
-    def __init__(self, outdim_size=2, method='l2', generalized=True, max_iter=50, tol=1e-5):
-        self.outdim_size = outdim_size
+    def __init__(self, latent_dims=2, method='l2', generalized=True, max_iter=50, tol=1e-5):
+        self.latent_dims = latent_dims
         self.method = method
         self.generalized = generalized
         self.max_iter = max_iter
@@ -62,7 +62,7 @@ class Wrapper:
 
     def cv_fit(self, *args, param_candidates, folds=5, verbose=False):
         self.params.update(
-            cross_validate(*args, max_iter=self.max_iter, outdim_size=self.outdim_size, method=self.method,
+            cross_validate(*args, max_iter=self.max_iter, latent_dims=self.latent_dims, method=self.method,
                            param_candidates=param_candidates, folds=folds,
                            verbose=verbose))
         self.fit(*args)
@@ -73,8 +73,8 @@ class Wrapper:
         transformed_views = self.transform_view(*args)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
-            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.outdim_size, self.outdim_size:]))
-        all_corrs = np.array(all_corrs).reshape((len(args), len(args), self.outdim_size))
+            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
+        all_corrs = np.array(all_corrs).reshape((len(args), len(args), self.latent_dims))
         return all_corrs
 
     def predict_view(self, *args):
@@ -126,11 +126,11 @@ class Wrapper:
 
     def outer_loop(self, *args):
         # list of d: p x k
-        self.weights_list = [np.zeros((args[i].shape[1], self.outdim_size)) for i in range(len(args))]
+        self.weights_list = [np.zeros((args[i].shape[1], self.latent_dims)) for i in range(len(args))]
         # list of d: n x k
-        self.score_list = [np.zeros((args[i].shape[0], self.outdim_size)) for i in range(len(args))]
+        self.score_list = [np.zeros((args[i].shape[0], self.latent_dims)) for i in range(len(args))]
         # list of d:
-        self.loading_list = [np.zeros((args[i].shape[1], self.outdim_size)) for i in range(len(args))]
+        self.loading_list = [np.zeros((args[i].shape[1], self.latent_dims)) for i in range(len(args))]
 
         if len(args) == 2:
             C_train = args[0].T @ args[1]
@@ -140,7 +140,7 @@ class Wrapper:
 
         residuals = list(args)
         # For each of the dimensions
-        for k in range(self.outdim_size):
+        for k in range(self.latent_dims):
             self.inner_loop = ALS_inner_loop(*residuals, C=C_train_res, generalized=self.generalized,
                                              params=self.params,
                                              method=self.method, max_iter=self.max_iter)
@@ -180,7 +180,7 @@ class Wrapper:
         eigvecs = np.linalg.inv(R) @ eigvecs
 
         splits = np.cumsum([0] + [view.shape[1] for view in args])
-        self.weights_list = [eigvecs[splits[i]:splits[i + 1], :self.outdim_size] for i in range(len(args))]
+        self.weights_list = [eigvecs[splits[i]:splits[i + 1], :self.latent_dims] for i in range(len(args))]
         self.rotation_list = self.weights_list
         self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
 
@@ -198,7 +198,7 @@ class Wrapper:
         eigvecs = eigvecs[:, idx].real
         eigvals = eigvals[idx].real
 
-        self.weights_list = [np.linalg.inv(view.T @ view) @ view.T @ eigvecs[:, :self.outdim_size] for view in args]
+        self.weights_list = [np.linalg.inv(view.T @ view) @ view.T @ eigvecs[:, :self.latent_dims] for view in args]
         self.rotation_list = self.weights_list
         self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
 
@@ -640,22 +640,22 @@ class ALS_inner_loop:
         return lyuponov
 
 
-def permutation_test(train_set_1, train_set_2, outdim_size=5,
+def permutation_test(train_set_1, train_set_2, latent_dims=5,
                      method='als', params=None, n_reps=100, level=0.05):
     if params is None:
         params = {}
-    rho_train = np.zeros((n_reps, outdim_size))
+    rho_train = np.zeros((n_reps, latent_dims))
 
     for _ in range(n_reps):
         print('permutation test rep: ', _ / n_reps, flush=True)
-        results = Wrapper(outdim_size=outdim_size, method=method, params=params).fit(train_set_1,
+        results = Wrapper(latent_dims=latent_dims, method=method, params=params).fit(train_set_1,
                                                                                      train_set_2).train_correlations
         np.random.shuffle(train_set_1)
         rho_train[_, :] = results
 
-    p_vals = np.zeros(outdim_size)
+    p_vals = np.zeros(latent_dims)
     # FWE Adjusted
-    for i in range(outdim_size):
+    for i in range(latent_dims):
         p_vals[i] = (1 + (rho_train[:, 0] > rho_train[0, i]).sum()) / n_reps
     hypothesis_test = False
     significant_dims = 0
@@ -672,7 +672,7 @@ def permutation_test(train_set_1, train_set_2, outdim_size=5,
     return p_vals, significant_dims
 
 
-def cross_validate(*args, max_iter=100, outdim_size=5, method='l2', param_candidates=None, folds=5,
+def cross_validate(*args, max_iter=100, latent_dims=5, method='l2', param_candidates=None, folds=5,
                    verbose=False):
     print('cross validation with ', method, flush=True)
     print('number of folds: ', folds, flush=True)
@@ -703,7 +703,7 @@ def cross_validate(*args, max_iter=100, outdim_size=5, method='l2', param_candid
             train_sets = [np.delete(data, fold_inds[fold], axis=0) for data in args]
             val_sets = [data[fold_inds[fold], :] for data in args]
             hyperparameter_scores[(fold,) + index] = \
-                Wrapper(outdim_size=outdim_size, method=method, max_iter=max_iter).fit(
+                Wrapper(latent_dims=latent_dims, method=method, max_iter=max_iter).fit(
                     *train_sets, params=params).predict_corr(
                     *val_sets).sum(axis=-1)[np.triu_indices(len(args), 1)].sum()
         if verbose:
@@ -789,30 +789,30 @@ def main():
     g_s = np.linspace(start=0,stop=10000000,num=100)
     for g in g_s:
         print(g)
-        gcca = Wrapper(method='gcca', outdim_size=5, max_iter=1).fit(x_train, y_train, z_train, gamma=[1, 1, -g],
+        gcca = Wrapper(method='gcca', latent_dims=5, max_iter=1).fit(x_train, y_train, z_train, gamma=[1, 1, -g],
                                                                      params=params)
         print(gcca.train_correlations[2])
 
-    l2 = Wrapper(method='l2', outdim_size=5, max_iter=1000).fit(x_train, y_train, params=params)
+    l2 = Wrapper(method='l2', latent_dims=5, max_iter=1000).fit(x_train, y_train, params=params)
 
-    mcca = Wrapper(method='mcca', outdim_size=5, max_iter=1).fit(x_train, y_train, params=params)
+    mcca = Wrapper(method='mcca', latent_dims=5, max_iter=1).fit(x_train, y_train, params=params)
 
     c1 = [4, 5, 6]
     c2 = [4, 5, 6]
     param_candidates = {'c': list(itertools.product(c1, c2))}
 
-    abc1 = Wrapper(method='tree_jc', outdim_size=1, max_iter=1).cv_fit(x_train, y_train,
+    abc1 = Wrapper(method='tree_jc', latent_dims=1, max_iter=1).cv_fit(x_train, y_train,
                                                                        param_candidates=param_candidates, verbose=True)
 
-    abc2 = Wrapper(method='tree_jc2', outdim_size=1, max_iter=1).cv_fit(x_train, y_train,
+    abc2 = Wrapper(method='tree_jc2', latent_dims=1, max_iter=1).cv_fit(x_train, y_train,
                                                                         param_candidates=param_candidates,
                                                                         verbose=True)
 
     params = {'c': [0.001, 0.001], 'ratio': [0.5, 0.5]}
 
-    abc3 = Wrapper(method='elastic_jc', params=params, outdim_size=1, max_iter=100).fit(x_train, y_train)
+    abc3 = Wrapper(method='elastic_jc', params=params, latent_dims=1, max_iter=100).fit(x_train, y_train)
 
-    abc4 = Wrapper(method='elastic', params=params, outdim_size=1, max_iter=100).fit(x_train, y_train)
+    abc4 = Wrapper(method='elastic', params=params, latent_dims=1, max_iter=100).fit(x_train, y_train)
     bbb1 = abc1.predict_corr(x_test, y_test)
     bbb2 = abc2.predict_corr(x_test, y_test)
     bbb3 = abc3.predict_corr(x_test, y_test)

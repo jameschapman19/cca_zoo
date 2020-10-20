@@ -32,9 +32,9 @@ class Wrapper:
     remaining methods are used to
     """
 
-    def __init__(self, outdim_size: int = 2, method: str = 'l2', generalized: bool = True, max_iter: int = 50,
+    def __init__(self, latent_dims: int = 2, method: str = 'l2', generalized: bool = True, max_iter: int = 50,
                  tol=1e-5):
-        self.outdim_size = outdim_size
+        self.latent_dims = latent_dims
         self.method = method
         self.generalized = generalized
         self.max_iter = max_iter
@@ -70,7 +70,7 @@ class Wrapper:
 
         if self.method == 'kernel':
             self.KCCA = KCCA(self.dataset_list[0], self.dataset_list[1], params=self.params,
-                             outdim_size=self.outdim_size)
+                             latent_dims=self.latent_dims)
             self.score_list = [self.KCCA.U, self.KCCA.V]
         elif self.method == 'pls':
             self.fit_scikit_pls(self.dataset_list[0], self.dataset_list[1])
@@ -97,7 +97,7 @@ class Wrapper:
         return self
 
     def cv_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False):
-        best_params = cross_validate(*args, max_iter=self.max_iter, outdim_size=self.outdim_size, method=self.method,
+        best_params = cross_validate(*args, max_iter=self.max_iter, latent_dims=self.latent_dims, method=self.method,
                                      param_candidates=param_candidates, folds=folds,
                                      verbose=verbose)
         self.fit(*args, params=best_params)
@@ -108,8 +108,8 @@ class Wrapper:
         transformed_views = self.transform_view(*args)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
-            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.outdim_size, self.outdim_size:]))
-        all_corrs = np.array(all_corrs).reshape((len(args), len(args), self.outdim_size))
+            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
+        all_corrs = np.array(all_corrs).reshape((len(args), len(args), self.latent_dims))
         return all_corrs
 
     def predict_view(self, *args):
@@ -161,11 +161,11 @@ class Wrapper:
 
     def outer_loop(self, *args):
         # list of d: p x k
-        self.weights_list = [np.zeros((args[i].shape[1], self.outdim_size)) for i in range(len(args))]
+        self.weights_list = [np.zeros((args[i].shape[1], self.latent_dims)) for i in range(len(args))]
         # list of d: n x k
-        self.score_list = [np.zeros((args[i].shape[0], self.outdim_size)) for i in range(len(args))]
+        self.score_list = [np.zeros((args[i].shape[0], self.latent_dims)) for i in range(len(args))]
         # list of d:
-        self.loading_list = [np.zeros((args[i].shape[1], self.outdim_size)) for i in range(len(args))]
+        self.loading_list = [np.zeros((args[i].shape[1], self.latent_dims)) for i in range(len(args))]
 
         if len(args) == 2:
             C_train = args[0].T @ args[1]
@@ -175,7 +175,7 @@ class Wrapper:
 
         residuals = list(args)
         # For each of the dimensions
-        for k in range(self.outdim_size):
+        for k in range(self.latent_dims):
             self.inner_loop = ALS_inner_loop(*residuals, C=C_train_res, generalized=self.generalized,
                                              params=self.params,
                                              method=self.method, max_iter=self.max_iter)
@@ -192,7 +192,7 @@ class Wrapper:
         return self
 
     def fit_scikit_cca(self, train_set_1, train_set_2):
-        self.cca = CCA(n_components=self.outdim_size, scale=False)
+        self.cca = CCA(n_components=self.latent_dims, scale=False)
         self.cca.fit(train_set_1, train_set_2)
         self.score_list = [self.cca.x_scores_, self.cca.y_scores_]
         self.weights_list = [self.cca.x_weights_, self.cca.y_weights_]
@@ -201,7 +201,7 @@ class Wrapper:
         return self
 
     def fit_scikit_pls(self, train_set_1, train_set_2):
-        self.PLS = PLSCanonical(n_components=self.outdim_size, scale=False)
+        self.PLS = PLSCanonical(n_components=self.latent_dims, scale=False)
         self.PLS.fit(train_set_1, train_set_2)
         self.score_list = [self.PLS.x_scores_, self.PLS.y_scores_]
         self.weights_list = [self.PLS.x_weights_, self.PLS.y_weights_]
@@ -231,7 +231,7 @@ class Wrapper:
         eigvecs = np.linalg.inv(R) @ eigvecs
 
         splits = np.cumsum([0] + [view.shape[1] for view in args])
-        self.weights_list = [eigvecs[splits[i]:splits[i + 1], :self.outdim_size] for i in range(len(args))]
+        self.weights_list = [eigvecs[splits[i]:splits[i + 1], :self.latent_dims] for i in range(len(args))]
         self.rotation_list = self.weights_list
         self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
 
@@ -247,27 +247,27 @@ class Wrapper:
         eigvecs = eigvecs[:, idx].real
         eigvals = eigvals[idx].real
 
-        self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.outdim_size] for view in args]
+        self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in args]
         self.rotation_list = self.weights_list
         self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
 
 
-def permutation_test(train_set_1, train_set_2, outdim_size=5,
+def permutation_test(train_set_1, train_set_2, latent_dims=5,
                      method='als', params=None, n_reps=100, level=0.05):
     if params is None:
         params = {}
-    rho_train = np.zeros((n_reps, outdim_size))
+    rho_train = np.zeros((n_reps, latent_dims))
 
     for _ in range(n_reps):
         print('permutation test rep: ', _ / n_reps, flush=True)
-        results = Wrapper(outdim_size=outdim_size, method=method).fit(train_set_1, train_set_2,
+        results = Wrapper(latent_dims=latent_dims, method=method).fit(train_set_1, train_set_2,
                                                                       params=params).train_correlations
         np.random.shuffle(train_set_1)
         rho_train[_, :] = results
 
-    p_vals = np.zeros(outdim_size)
+    p_vals = np.zeros(latent_dims)
     # FWE Adjusted
-    for i in range(outdim_size):
+    for i in range(latent_dims):
         p_vals[i] = (1 + (rho_train[:, 0] > rho_train[0, i]).sum()) / n_reps
     hypothesis_test = False
     significant_dims = 0
@@ -284,7 +284,7 @@ def permutation_test(train_set_1, train_set_2, outdim_size=5,
     return p_vals, significant_dims
 
 
-def cross_validate(*args, max_iter: int = 100, outdim_size: int = 5, method: str = 'l2', param_candidates=None,
+def cross_validate(*args, max_iter: int = 100, latent_dims: int = 5, method: str = 'l2', param_candidates=None,
                    folds: int = 5,
                    verbose=False):
     print('cross validation with ', method, flush=True)
@@ -316,7 +316,7 @@ def cross_validate(*args, max_iter: int = 100, outdim_size: int = 5, method: str
             train_sets = [np.delete(data, fold_inds[fold], axis=0) for data in args]
             val_sets = [data[fold_inds[fold], :] for data in args]
             hyperparameter_scores[(fold,) + index] = \
-                Wrapper(outdim_size=outdim_size, method=method, max_iter=max_iter).fit(
+                Wrapper(latent_dims=latent_dims, method=method, max_iter=max_iter).fit(
                     *train_sets, params=params).predict_corr(
                     *val_sets).sum(axis=-1)[np.triu_indices(len(args), 1)].sum()
         if verbose:

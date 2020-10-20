@@ -19,46 +19,46 @@ for standardising the pipeline for comparison
 
 class DCCAE(nn.Module):
 
-    def __init__(self, input_size_1, input_size_2, hidden_layer_sizes_1=None, hidden_layer_sizes_2=None, outdim_size=2,
+    def __init__(self, input_size_1, input_size_2, hidden_layer_sizes_1=None, hidden_layer_sizes_2=None, latent_dims=2,
                  lam=0, loss_type='cca', model_1='fcn', model_2='fcn'):
         super(DCCAE, self).__init__()
 
         if model_1 == 'fcn':
             if hidden_layer_sizes_1 is None:
                 hidden_layer_sizes_1 = [128]
-            self.encoder_1 = Encoder(hidden_layer_sizes_1, input_size_1, outdim_size).double()
-            self.decoder_1 = Decoder(hidden_layer_sizes_1, outdim_size, input_size_1).double()
+            self.encoder_1 = Encoder(hidden_layer_sizes_1, input_size_1, latent_dims).double()
+            self.decoder_1 = Decoder(hidden_layer_sizes_1, latent_dims, input_size_1).double()
         elif model_1 == 'cnn':
             if hidden_layer_sizes_1 is None:
                 hidden_layer_sizes_1 = [1, 1, 1]
-            self.encoder_1 = CNN_Encoder(hidden_layer_sizes_1, input_size_1, outdim_size).double()
-            self.decoder_1 = CNN_Decoder(hidden_layer_sizes_1, outdim_size, input_size_1).double()
+            self.encoder_1 = CNN_Encoder(hidden_layer_sizes_1, input_size_1, latent_dims).double()
+            self.decoder_1 = CNN_Decoder(hidden_layer_sizes_1, latent_dims, input_size_1).double()
         elif model_1 == 'brainnet':
-            self.encoder_1 = BrainNetCNN_Encoder(input_size_1, outdim_size).double()
-            self.decoder_1 = BrainNetCNN_Decoder(outdim_size, input_size_1).double()
+            self.encoder_1 = BrainNetCNN_Encoder(input_size_1, latent_dims).double()
+            self.decoder_1 = BrainNetCNN_Decoder(latent_dims, input_size_1).double()
 
         if model_2 == 'fcn':
             if hidden_layer_sizes_2 is None:
                 hidden_layer_sizes_2 = [128]
-            self.encoder_2 = Encoder(hidden_layer_sizes_2, input_size_2, outdim_size).double()
-            self.decoder_2 = Decoder(hidden_layer_sizes_2, outdim_size, input_size_2).double()
+            self.encoder_2 = Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
+            self.decoder_2 = Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
         if model_2 == 'cnn':
             if hidden_layer_sizes_2 is None:
                 hidden_layer_sizes_2 = [1, 1, 1]
-            self.encoder_2 = CNN_Encoder(hidden_layer_sizes_2, input_size_2, outdim_size).double()
-            self.decoder_2 = CNN_Decoder(hidden_layer_sizes_2, outdim_size, input_size_2).double()
+            self.encoder_2 = CNN_Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
+            self.decoder_2 = CNN_Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
         if model_2 == 'brainnet':
-            self.encoder_2 = BrainNetCNN_Encoder(input_size_2, outdim_size).double()
-            self.decoder_2 = BrainNetCNN_Decoder(outdim_size, input_size_2).double()
+            self.encoder_2 = BrainNetCNN_Encoder(input_size_2, latent_dims).double()
+            self.decoder_2 = BrainNetCNN_Decoder(latent_dims, input_size_2).double()
 
-        self.outdim_size = outdim_size
+        self.latent_dims = latent_dims
 
         if loss_type == 'cca':
-            self.cca_objective = cca(self.outdim_size)
+            self.cca_objective = cca(self.latent_dims)
         if loss_type == 'gcca':
-            self.cca_objective = gcca(self.outdim_size)
+            self.cca_objective = gcca(self.latent_dims)
         if loss_type == 'mcca':
-            self.cca_objective = mcca(self.outdim_size)
+            self.cca_objective = mcca(self.latent_dims)
         self.lam = lam
 
     def encode(self, x_1, x_2):
@@ -83,27 +83,27 @@ class DCCAE(nn.Module):
 
 
 class DGCCAE(nn.Module):
-    def __init__(self, *args, hidden_layer_sizes=None, outdim_size=2, lam=0, loss_type='cca'):
+    def __init__(self, *args, hidden_layer_sizes=None, latent_dims=2, lam=0, loss_type='cca'):
         super(DGCCAE, self).__init__()
 
         if hidden_layer_sizes is None:
             hidden_layer_sizes = [[128] for arg in args]
 
         self.encoders = nn.ModuleList(
-            [Encoder(hidden_layer_sizes[i], arg, outdim_size).double() for i, arg in enumerate(args)])
+            [Encoder(hidden_layer_sizes[i], arg, latent_dims).double() for i, arg in enumerate(args)])
 
         self.decoders = nn.ModuleList(
-            [Decoder(hidden_layer_sizes[i], outdim_size, arg).double() for i, arg in enumerate(args)])
+            [Decoder(hidden_layer_sizes[i], latent_dims, arg).double() for i, arg in enumerate(args)])
 
-        self.outdim_size = outdim_size
+        self.latent_dims = latent_dims
 
         if loss_type == 'cca':
             assert len(args) == 2
-            self.cca_objective = cca(self.outdim_size)
+            self.cca_objective = cca(self.latent_dims)
         if loss_type == 'gcca':
-            self.cca_objective = gcca(self.outdim_size)
+            self.cca_objective = gcca(self.latent_dims)
         if loss_type == 'mcca':
-            self.cca_objective = mcca(self.outdim_size)
+            self.cca_objective = mcca(self.latent_dims)
         self.lam = lam
 
     def encode(self, *args):

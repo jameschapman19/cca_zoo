@@ -35,10 +35,10 @@ class Wrapper:
     predict_corr(): allows us to predict the out of sample correlation for supplied views
     """
 
-    def __init__(self, outdim_size=2, sparse_x=True, sparse_y=True, noise=1e-3, jitter=1e-3, steps_gpcca=500,
+    def __init__(self, latent_dims=2, sparse_x=True, sparse_y=True, noise=1e-3, jitter=1e-3, steps_gpcca=500,
                  steps_gp_y=500,
                  steps_gp_z=500, tol=1e-5):
-        self.outdim_size = outdim_size
+        self.latent_dims = latent_dims
         self.jitter = jitter
         self.sparse_x = sparse_x
         self.sparse_y = sparse_y
@@ -59,11 +59,11 @@ class Wrapper:
 
         # we setup the mean of our prior over X
         # shape: 437 x 2
-        warm_start_cca = linear.Wrapper(outdim_size=self.outdim_size).fit(X_train, Y_train)
+        warm_start_cca = linear.Wrapper(latent_dims=self.latent_dims).fit(X_train, Y_train)
 
         X_prior_mean = torch.tensor(((warm_start_cca.U + warm_start_cca.V) / 2).T, dtype=torch.float64)
 
-        kernel = gp.kernels.RBF(input_dim=self.outdim_size, lengthscale=torch.ones(self.outdim_size))
+        kernel = gp.kernels.RBF(input_dim=self.latent_dims, lengthscale=torch.ones(self.latent_dims))
 
         # we clone here so that we don't change our prior during the course of training
         X = Parameter(X_prior_mean.clone())
@@ -109,7 +109,7 @@ class Wrapper:
 
         self.U /= np.linalg.norm(self.U, axis=1, keepdims=True)
         self.V /= np.linalg.norm(self.V, axis=1, keepdims=True)
-        self.train_correlations = np.diag(np.corrcoef(self.U, self.V)[:self.outdim_size, self.outdim_size:])
+        self.train_correlations = np.diag(np.corrcoef(self.U, self.V)[:self.latent_dims, self.latent_dims:])
         return self
 
     def predict_corr(self, X_test, Y_test):
@@ -129,7 +129,7 @@ class Wrapper:
         #
         U_test /= np.linalg.norm(U_test, axis=1, keepdims=True)
         V_test /= np.linalg.norm(V_test, axis=1, keepdims=True)
-        correlations = np.diag(np.corrcoef(U_test, V_test)[:self.outdim_size, self.outdim_size:])
+        correlations = np.diag(np.corrcoef(U_test, V_test)[:self.latent_dims, self.latent_dims:])
 
         """
         plt.figure()
@@ -482,7 +482,7 @@ def main():
 
     pred_corr_lin = lincca.predict_corr(Z_test, Y_test)
 
-    gpwrapped = Wrapper(outdim_size=latent_dims, sparse_x=True, sparse_y=True, jitter=1e-3)
+    gpwrapped = Wrapper(latent_dims=latent_dims, sparse_x=True, sparse_y=True, jitter=1e-3)
 
     gpwrapped.fit(Z, Y)
 

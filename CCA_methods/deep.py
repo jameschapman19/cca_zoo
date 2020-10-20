@@ -29,10 +29,10 @@ class Wrapper:
 
     recon_loss(): gets the reconstruction loss for out of sample data - if the model has an autoencoder piece
     """
-    def __init__(self, outdim_size: int = 2, learning_rate=1e-3, epoch_num: int = 1, batch_size: int = 16,
+    def __init__(self, latent_dims: int = 2, learning_rate=1e-3, epoch_num: int = 1, batch_size: int = 16,
                  method: str = 'DCCAE', loss_type: str = 'cca', lam=0, private: bool = False,
                  patience: int = 10, both_encoders: bool = True):
-        self.outdim_size = outdim_size
+        self.latent_dims = latent_dims
         self.learning_rate = learning_rate
         self.epoch_num = epoch_num
         # Default - may change during training due to needing batch size greater than 1
@@ -76,7 +76,7 @@ class Wrapper:
 
         # For CCA loss functions, we require that the number of samples in each batch is greater than the number of
         # latent dimensions. This attempts to alter the batch size to fulfil this condition
-        while X_train.shape[0] % self.batch_size < self.outdim_size:
+        while X_train.shape[0] % self.batch_size < self.latent_dims:
             self.batch_size += 1
 
         # First we get the model class.
@@ -85,28 +85,28 @@ class Wrapper:
         # a_loss_function(model(data))
         if self.method == 'DCCAE':
             self.model = DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1], lam=self.lam,
-                               outdim_size=self.outdim_size, loss_type=self.loss_type).double().to(self.device)
+                               latent_dims=self.latent_dims, loss_type=self.loss_type).double().to(self.device)
         elif self.method == 'DCCAE_conv':
             self.model = DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1], lam=self.lam,
-                               outdim_size=self.outdim_size, loss_type=self.loss_type, model_1='cnn').double().to(
+                               latent_dims=self.latent_dims, loss_type=self.loss_type, model_1='cnn').double().to(
                 self.device)
         elif self.method == 'DCCAE_brainnet':
             self.model = DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1], lam=self.lam,
-                               outdim_size=self.outdim_size, loss_type=self.loss_type, model_1='brainnet').double().to(
+                               latent_dims=self.latent_dims, loss_type=self.loss_type, model_1='brainnet').double().to(
                 self.device)
         elif self.method == 'DGCCAE':
             self.model = DGCCAE(X_train.shape[-1], Y_train.shape[-1], lam=self.lam,
-                                outdim_size=self.outdim_size).double().to(self.device)
+                                latent_dims=self.latent_dims).double().to(self.device)
         elif self.method == 'DVCCA':
             self.model = DVCCA(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1],
-                               both_encoders=self.both_encoders, outdim_size=self.outdim_size,
+                               both_encoders=self.both_encoders, latent_dims=self.latent_dims,
                                private=self.private).double().to(self.device)
         model_params = sum(p.numel() for p in self.model.parameters())
         best_model = copy.deepcopy(self.model.state_dict())
         print("Number of model parameters {}".format(model_params))
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        min_val_loss = self.outdim_size
+        min_val_loss = self.latent_dims
         epochs_no_improve = 0
         early_stop = False
         all_train_loss = []
@@ -177,8 +177,8 @@ class Wrapper:
         Y_test -= self.Y_mean
         test_dataset = TensorDataset(torch.tensor(X_test), torch.tensor(Y_test))  # create your datset
         test_dataloader = DataLoader(test_dataset, batch_size=100)
-        z_x = np.empty((0, self.outdim_size))
-        z_y = np.empty((0, self.outdim_size))
+        z_x = np.empty((0, self.latent_dims))
+        z_y = np.empty((0, self.latent_dims))
         with torch.no_grad():
             for batch_idx, (x, y) in enumerate(test_dataloader):
                 x, y = x.to(self.device), y.to(self.device)
@@ -193,11 +193,11 @@ class Wrapper:
                 z_x = np.append(z_x, z_x_batch.detach().cpu().numpy(), axis=0)
                 z_y = np.append(z_y, z_y_batch.detach().cpu().numpy(), axis=0)
         if train:
-            self.cca = CCA(n_components=self.outdim_size)
+            self.cca = CCA(n_components=self.latent_dims)
             view_1, view_2 = self.cca.fit_transform(z_x, z_y)
         else:
             view_1, view_2 = self.cca.transform(np.array(z_x), np.array(z_y))
-        correlations = np.diag(np.corrcoef(view_1, view_2, rowvar=False)[:self.outdim_size, self.outdim_size:])
+        correlations = np.diag(np.corrcoef(view_1, view_2, rowvar=False)[:self.latent_dims, self.latent_dims:])
         return correlations
 
     def transform_view(self, X_new=None, Y_new=None):

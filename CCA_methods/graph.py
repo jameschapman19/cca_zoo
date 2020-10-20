@@ -15,10 +15,10 @@ from CCA_methods.plot_utils import *
 
 class GraphWrapper:
 
-    def __init__(self, outdim_size=2, learning_rate=1e-3, epoch_num=1, batch_size=100,
+    def __init__(self, latent_dims=2, learning_rate=1e-3, epoch_num=1, batch_size=100,
                  reg_par=1e-5, use_all_singular_values=True, method='DGCCAE', lam=0, both_encoders=False,
                  print_batch=False, patience=10):
-        self.outdim_size = outdim_size
+        self.latent_dims = latent_dims
         self.learning_rate = learning_rate
         self.epoch_num = epoch_num
         # Default - may change during training due to needing batch size greater than 1
@@ -39,7 +39,7 @@ class GraphWrapper:
 
         if self.method == 'DGCCAE':
             self.model = DGCCAE(input_size_1=X_train.shape[1], input_size_2=Y_train.shape[1], lam=self.lam,
-                                outdim_size=self.outdim_size).double().to(self.device)
+                                latent_dims=self.latent_dims).double().to(self.device)
 
         num_subjects = X_train.shape[0]
         all_inds = np.arange(num_subjects)
@@ -92,8 +92,8 @@ class GraphWrapper:
                     val_loss = 0
                     for batch_idx,data in enumerate(val_dataloader):
                         model_outputs = self.model(data.to(self.device))
-                        # a = CCA(n_components=self.outdim_size).fit(model_outputs[0].detach().numpy(), model_outputs[1].detach().numpy())
-                        # np.sum(np.diag(np.corrcoef(a.y_scores_.T,a.x_scores_.T)[:self.outdim_size, self.outdim_size:]))
+                        # a = CCA(n_components=self.latent_dims).fit(model_outputs[0].detach().numpy(), model_outputs[1].detach().numpy())
+                        # np.sum(np.diag(np.corrcoef(a.y_scores_.T,a.x_scores_.T)[:self.latent_dims, self.latent_dims:]))
                         loss = self.model.loss(data.edge_attr, data.behaviour, *model_outputs)
                         val_loss += loss.item()
 
@@ -130,19 +130,19 @@ class GraphWrapper:
         Y_test -= self.Y_mean
         test_dataset = TensorDataset(X_test, Y_test)  # create your datset
         test_dataloader = DataLoader(test_dataset, batch_size=100)
-        z_x = np.empty((0, self.outdim_size))
-        z_y = np.empty((0, self.outdim_size))
+        z_x = np.empty((0, self.latent_dims))
+        z_y = np.empty((0, self.latent_dims))
         with torch.no_grad():
             for batch_idx, data in enumerate(test_dataloader):
                 z_x_batch, z_y_batch, recon_x_batch, recon_y_batch = self.model(data.to(self.device))
                 z_x = np.append(z_x, z_x_batch.detach().cpu().numpy(), axis=0)
                 z_y = np.append(z_y, z_y_batch.detach().cpu().numpy(), axis=0)
         if train:
-            self.cca = CCA(n_components=self.outdim_size)
+            self.cca = CCA(n_components=self.latent_dims)
             view_1, view_2 = self.cca.fit_transform(z_x, z_y)
         else:
             view_1, view_2 = self.cca.transform(np.array(z_x), np.array(z_y))
-        correlations = np.diag(np.corrcoef(view_1, view_2, rowvar=False)[:self.outdim_size, self.outdim_size:])
+        correlations = np.diag(np.corrcoef(view_1, view_2, rowvar=False)[:self.latent_dims, self.latent_dims:])
         return correlations
 
     def predict_recon(self, X_new, Y_new):
