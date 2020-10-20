@@ -21,4 +21,5 @@ setup(
                         'scipy>=1.4.1',
                         'seaborn>=0.10.1',
                         'torch>=1.5.0',
-                        'tqdm>=4.47.0'])
+                        'tqdm>=4.47.0',
+                      'torchvision >=0.7.0'])
