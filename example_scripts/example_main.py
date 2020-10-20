@@ -1,6 +1,6 @@
 """
 # CCA_methods: Examples
-In this notebook I demonstrate the general pipeline I use in the CCA_methods package.
+In this script I demonstrate the general pipeline I use in the CCA_methods package.
 """
 
 ### Imports
