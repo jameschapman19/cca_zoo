@@ -1,12 +1,12 @@
 """
-# pyCCA: Examples
-In this script I demonstrate the general pipeline I use in the pyCCA package.
+# cca_zoo: Examples
+In this script I demonstrate the general pipeline I use in the cca_zoo package.
 """
 
 ### Imports
 
 import numpy as np
-import pyCCA
+import cca_zoo
 import itertools
 import os
 import matplotlib
@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt
 ### Load MNIST Data
 
 os.chdir('..')
-train_set_1, val_set_1, test_set_1 = pyCCA.mnist_utils.load_data('Data/noisymnist_view1.gz')
-train_set_2, val_set_2, test_set_2 = pyCCA.mnist_utils.load_data('Data/noisymnist_view2.gz')
+train_set_1, val_set_1, test_set_1 = cca_zoo.mnist_utils.load_data('Data/noisymnist_view1.gz')
+train_set_2, val_set_2, test_set_2 = cca_zoo.mnist_utils.load_data('Data/noisymnist_view2.gz')
 
 train_set_1 = train_set_1[0][:1000]
 train_set_2 = train_set_2[0][:1000]
@@ -54,21 +54,21 @@ both alternating least squares and NIPALS find least squares solutions
 and therefore this problem is avoided)
 """
 # %%
-linear_cca = pyCCA.linear.Wrapper(latent_dims=latent_dims)
+linear_cca = cca_zoo.linear.Wrapper(latent_dims=latent_dims)
 
 linear_cca.fit(train_set_1, train_set_2)
 
 linear_cca_results = np.stack(
     (linear_cca.train_correlations[0, 1], linear_cca.predict_corr(test_set_1, test_set_2)[0, 1]))
 
-scikit_cca = pyCCA.linear.Wrapper(latent_dims=latent_dims, method='scikit')
+scikit_cca = cca_zoo.linear.Wrapper(latent_dims=latent_dims, method='scikit')
 
 scikit_cca.fit(train_set_1, train_set_2)
 
 scikit_cca_results = np.stack(
     (scikit_cca.train_correlations[0, 1], scikit_cca.predict_corr(test_set_1, test_set_2)[0, 1]))
 
-gcca = pyCCA.linear.Wrapper(latent_dims=latent_dims, method='gcca')
+gcca = cca_zoo.linear.Wrapper(latent_dims=latent_dims, method='gcca')
 
 # small ammount of regularisation added since data is not full rank
 params = {'c': [1, 1]}
@@ -93,8 +93,8 @@ c1 = [1, 3, 7, 9]
 c2 = [1, 3, 7, 9]
 param_candidates = {'c': list(itertools.product(c1, c2))}
 
-pmd = pyCCA.linear.Wrapper(latent_dims=latent_dims, method='pmd',
-                           max_iter=max_als_iter).cv_fit(train_set_1, train_set_2,
+pmd = cca_zoo.linear.Wrapper(latent_dims=latent_dims, method='pmd',
+                             max_iter=max_als_iter).cv_fit(train_set_1, train_set_2,
                                                                param_candidates=param_candidates,
                                                                folds=cv_folds, verbose=True)
 
@@ -107,8 +107,8 @@ l1_1 = [0.01, 0.01, 0.1]
 l1_2 = [0.01, 0.01, 0.1]
 param_candidates = {'c': list(itertools.product(c1, c2)), 'ratio': list(itertools.product(l1_1, l1_2))}
 
-elastic = pyCCA.linear.Wrapper(latent_dims=latent_dims, method='elastic',
-                               max_iter=max_als_iter).cv_fit(train_set_1, train_set_2,
+elastic = cca_zoo.linear.Wrapper(latent_dims=latent_dims, method='elastic',
+                                 max_iter=max_als_iter).cv_fit(train_set_1, train_set_2,
                                                                    param_candidates=param_candidates,
                                                                    folds=cv_folds, verbose=True)
 
@@ -125,8 +125,8 @@ Similarly, we can use kernel CCA methods:
 # %%
 # r-kernel cca
 param_candidates = {'kernel': ['linear'], 'reg': [1e+4, 1e+5, 1e+6]}
-kernel_reg = pyCCA.linear.Wrapper(latent_dims=latent_dims, method='kernel',
-                                  max_iter=max_als_iter).cv_fit(train_set_1, train_set_2,
+kernel_reg = cca_zoo.linear.Wrapper(latent_dims=latent_dims, method='kernel',
+                                    max_iter=max_als_iter).cv_fit(train_set_1, train_set_2,
                                                                       folds=cv_folds,
                                                                       param_candidates=param_candidates,
                                                                       verbose=True)
@@ -137,8 +137,8 @@ kernel_reg_results = np.stack((
 # kernel cca (poly)
 param_candidates = {'kernel': ['poly'], 'degree': [2, 3, 4], 'reg': [1e+6, 1e+7, 1e+8]}
 
-kernel_poly = pyCCA.linear.Wrapper(latent_dims=latent_dims, method='kernel',
-                                   max_iter=max_als_iter).cv_fit(train_set_1, train_set_2,
+kernel_poly = cca_zoo.linear.Wrapper(latent_dims=latent_dims, method='kernel',
+                                     max_iter=max_als_iter).cv_fit(train_set_1, train_set_2,
                                                                        folds=cv_folds,
                                                                        param_candidates=param_candidates,
                                                                        verbose=True)
@@ -150,8 +150,8 @@ kernel_poly_results = np.stack((
 # kernel cca (gaussian)
 param_candidates = {'kernel': ['gaussian'], 'sigma': [1e+2, 1e+3], 'reg': [1e+6, 1e+7, 1e+8]}
 
-kernel_gaussian = pyCCA.linear.Wrapper(latent_dims=latent_dims, method='kernel',
-                                       max_iter=max_als_iter).cv_fit(train_set_1, train_set_2,
+kernel_gaussian = cca_zoo.linear.Wrapper(latent_dims=latent_dims, method='kernel',
+                                         max_iter=max_als_iter).cv_fit(train_set_1, train_set_2,
                                                                            folds=cv_folds,
                                                                            param_candidates=param_candidates,
                                                                            verbose=True)
@@ -173,15 +173,15 @@ Both of the CCA loss and the GCCA loss can be used for DCCA/DCCAE since they are
 To implement DCCA use DCCAE class with lam=0 (default). This multiplies the reconstruction loss term by 0.
 """
 # %%
-dcca = pyCCA.deep.Wrapper(latent_dims=latent_dims, epoch_num=epoch_num, method='DCCAE',
-                          loss_type='cca')
+dcca = cca_zoo.deep.Wrapper(latent_dims=latent_dims, epoch_num=epoch_num, method='DCCAE',
+                            loss_type='cca')
 
 dcca.fit(train_set_1, train_set_2)
 
 dcca_results = np.stack((dcca.train_correlations, dcca.predict_corr(test_set_1, test_set_2)))
 
-dgcca = pyCCA.deep.Wrapper(latent_dims=latent_dims, epoch_num=epoch_num, method='DCCAE',
-                           loss_type='gcca')
+dgcca = cca_zoo.deep.Wrapper(latent_dims=latent_dims, epoch_num=epoch_num, method='DCCAE',
+                             loss_type='gcca')
 
 dgcca.fit(train_set_1, train_set_2)
 
@@ -198,13 +198,13 @@ the encoder to the shared information Q(z_shared|x) is modelled for both x_1 and
 it is modelled for x_1 as in the paper
 """
 # %%
-dvcca = pyCCA.deep.Wrapper(latent_dims=latent_dims, epoch_num=epoch_num, method='DVCCA', private=False)
+dvcca = cca_zoo.deep.Wrapper(latent_dims=latent_dims, epoch_num=epoch_num, method='DVCCA', private=False)
 
 dvcca.fit(train_set_1, train_set_2)
 
 dvcca_results = np.stack((dvcca.train_correlations, dvcca.predict_corr(test_set_1, test_set_2)))
 
-dvcca_p = pyCCA.deep.Wrapper(latent_dims=latent_dims, epoch_num=epoch_num, method='DVCCA', private=True)
+dvcca_p = cca_zoo.deep.Wrapper(latent_dims=latent_dims, epoch_num=epoch_num, method='DVCCA', private=True)
 
 dvcca_p.fit(train_set_1, train_set_2)
 
@@ -225,5 +225,5 @@ all_results = np.stack(
 all_labels = ['linear', 'pmd', 'elastic', 'linear kernel', 'polynomial kernel',
               'gaussian kernel', 'deep CCA', 'deep generalized CCA']
 
-pyCCA.plot_utils.plot_results(all_results, all_labels)
+cca_zoo.plot_utils.plot_results(all_results, all_labels)
 plt.show()

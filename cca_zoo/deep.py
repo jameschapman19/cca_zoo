@@ -6,9 +6,9 @@ from torch import optim
 from torch.nn import functional as F
 from torch.utils.data import TensorDataset, DataLoader
 
-from pyCCA.DCCAE import DCCAE, DGCCAE
-from pyCCA.DVCCA import DVCCA
-from pyCCA.plot_utils import *
+from cca_zoo.DCCAE import DCCAE, DGCCAE
+from cca_zoo.DVCCA import DVCCA
+from cca_zoo.plot_utils import *
 
 
 class Wrapper:

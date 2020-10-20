@@ -3,10 +3,10 @@ import itertools
 from scipy.linalg import pinv2, block_diag, cholesky
 from sklearn.cross_decomposition import CCA, PLSCanonical
 
-from pyCCA.KCCA import *
-from pyCCA.alternating_least_squares import ALS_inner_loop
-from pyCCA.generate_data import *
-from pyCCA.plot_utils import cv_plot
+from cca_zoo.KCCA import *
+from cca_zoo.alternating_least_squares import ALS_inner_loop
+from cca_zoo.generate_data import *
+from cca_zoo.plot_utils import cv_plot
 
 
 class Wrapper:

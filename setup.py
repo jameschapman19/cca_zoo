@@ -4,10 +4,10 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
-    name='pyCCA',
+    name='cca_zoo',
     version='1.0.0',
     packages=find_packages(),
-    url='https://github.com/jameschapman19/CCA_methods',
+    url='https://github.com/jameschapman19/cca_zoo',
     license='MIT',
     author='jameschapman',
     long_description = long_description,
