@@ -4,9 +4,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from cca_zoo.deep_models import Encoder, Decoder, CNN_Encoder, CNN_Decoder, BrainNetCNN_Encoder, \
-    BrainNetCNN_Decoder
-from cca_zoo.objectives import cca, mcca, gcca
+import cca_zoo.deep_models
+import cca_zoo.objectives
 
 """
 All of my deep architectures have forward methods inherited from pytorch as well as a method:
@@ -29,39 +28,39 @@ class DCCAE(nn.Module, ABC):
         if model_1 == 'fcn':
             if hidden_layer_sizes_1 is None:
                 hidden_layer_sizes_1 = [128]
-            self.encoder_1 = Encoder(hidden_layer_sizes_1, input_size_1, latent_dims).double()
-            self.decoder_1 = Decoder(hidden_layer_sizes_1, latent_dims, input_size_1).double()
+            self.encoder_1 = cca_zoo.deep_models.Encoder(hidden_layer_sizes_1, input_size_1, latent_dims).double()
+            self.decoder_1 = cca_zoo.deep_models.Decoder(hidden_layer_sizes_1, latent_dims, input_size_1).double()
         elif model_1 == 'cnn':
             if hidden_layer_sizes_1 is None:
                 hidden_layer_sizes_1 = [1, 1, 1]
-            self.encoder_1 = CNN_Encoder(hidden_layer_sizes_1, input_size_1, latent_dims).double()
-            self.decoder_1 = CNN_Decoder(hidden_layer_sizes_1, latent_dims, input_size_1).double()
+            self.encoder_1 = cca_zoo.deep_models.CNN_Encoder(hidden_layer_sizes_1, input_size_1, latent_dims).double()
+            self.decoder_1 = cca_zoo.deep_models.CNN_Decoder(hidden_layer_sizes_1, latent_dims, input_size_1).double()
         elif model_1 == 'brainnet':
-            self.encoder_1 = BrainNetCNN_Encoder(input_size_1, latent_dims).double()
-            self.decoder_1 = BrainNetCNN_Decoder(latent_dims, input_size_1).double()
+            self.encoder_1 = cca_zoo.deep_models.BrainNetCNN_Encoder(input_size_1, latent_dims).double()
+            self.decoder_1 = cca_zoo.deep_models.BrainNetCNN_Decoder(latent_dims, input_size_1).double()
 
         if model_2 == 'fcn':
             if hidden_layer_sizes_2 is None:
                 hidden_layer_sizes_2 = [128]
-            self.encoder_2 = Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
-            self.decoder_2 = Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
+            self.encoder_2 = cca_zoo.deep_models.Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
+            self.decoder_2 = cca_zoo.deep_models.Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
         if model_2 == 'cnn':
             if hidden_layer_sizes_2 is None:
                 hidden_layer_sizes_2 = [1, 1, 1]
-            self.encoder_2 = CNN_Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
-            self.decoder_2 = CNN_Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
+            self.encoder_2 = cca_zoo.deep_models.CNN_Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
+            self.decoder_2 = cca_zoo.deep_models.CNN_Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
         if model_2 == 'brainnet':
-            self.encoder_2 = BrainNetCNN_Encoder(input_size_2, latent_dims).double()
-            self.decoder_2 = BrainNetCNN_Decoder(latent_dims, input_size_2).double()
+            self.encoder_2 = cca_zoo.deep_models.BrainNetCNN_Encoder(input_size_2, latent_dims).double()
+            self.decoder_2 = cca_zoo.deep_models.BrainNetCNN_Decoder(latent_dims, input_size_2).double()
 
         self.latent_dims = latent_dims
 
         if loss_type == 'cca':
-            self.cca_objective = cca(self.latent_dims)
+            self.cca_objective = cca_zoo.objectives.cca(self.latent_dims)
         if loss_type == 'gcca':
-            self.cca_objective = gcca(self.latent_dims)
+            self.cca_objective = cca_zoo.objectives.gcca(self.latent_dims)
         if loss_type == 'mcca':
-            self.cca_objective = mcca(self.latent_dims)
+            self.cca_objective = cca_zoo.objectives.mcca(self.latent_dims)
         self.lam = lam
 
     def encode(self, x_1, x_2):
@@ -93,20 +92,20 @@ class DGCCAE(nn.Module, ABC):
             hidden_layer_sizes = [[128] for arg in args]
 
         self.encoders = nn.ModuleList(
-            [Encoder(hidden_layer_sizes[i], arg, latent_dims).double() for i, arg in enumerate(args)])
+            [cca_zoo.deep_models.Encoder(hidden_layer_sizes[i], arg, latent_dims).double() for i, arg in enumerate(args)])
 
         self.decoders = nn.ModuleList(
-            [Decoder(hidden_layer_sizes[i], latent_dims, arg).double() for i, arg in enumerate(args)])
+            [cca_zoo.deep_models.Decoder(hidden_layer_sizes[i], latent_dims, arg).double() for i, arg in enumerate(args)])
 
         self.latent_dims = latent_dims
 
         if loss_type == 'cca':
             assert len(args) == 2
-            self.cca_objective = cca(self.latent_dims)
+            self.cca_objective = cca_zoo.objectives.cca(self.latent_dims)
         if loss_type == 'gcca':
-            self.cca_objective = gcca(self.latent_dims)
+            self.cca_objective = cca_zoo.objectives.gcca(self.latent_dims)
         if loss_type == 'mcca':
-            self.cca_objective = mcca(self.latent_dims)
+            self.cca_objective = cca_zoo.objectives.mcca(self.latent_dims)
         self.lam = lam
 
     def encode(self, *args):

@@ -6,8 +6,9 @@ from torch import optim
 from torch.nn import functional as F
 from torch.utils.data import TensorDataset, DataLoader
 import numpy as np
-from cca_zoo.DCCAE import DCCAE, DGCCAE
-from cca_zoo.DVCCA import DVCCA
+
+import cca_zoo.DCCAE
+import cca_zoo.DVCCA
 import cca_zoo.plot_utils
 
 
@@ -84,21 +85,21 @@ class Wrapper:
         # respective loss. The models also have loss functions as methods but we can also customise the loss by calling
         # a_loss_function(model(data))
         if self.method == 'DCCAE':
-            self.model = DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1], lam=self.lam,
+            self.model = cca_zoo.DCCAE.DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1], lam=self.lam,
                                latent_dims=self.latent_dims, loss_type=self.loss_type).double().to(self.device)
         elif self.method == 'DCCAE_conv':
-            self.model = DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1], lam=self.lam,
+            self.model = cca_zoo.DCCAE.DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1], lam=self.lam,
                                latent_dims=self.latent_dims, loss_type=self.loss_type, model_1='cnn').double().to(
                 self.device)
         elif self.method == 'DCCAE_brainnet':
-            self.model = DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1], lam=self.lam,
+            self.model = cca_zoo.DCCAE.DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1], lam=self.lam,
                                latent_dims=self.latent_dims, loss_type=self.loss_type, model_1='brainnet').double().to(
                 self.device)
         elif self.method == 'DGCCAE':
-            self.model = DGCCAE(X_train.shape[-1], Y_train.shape[-1], lam=self.lam,
+            self.model = cca_zoo.DCCAE.DGCCAE(X_train.shape[-1], Y_train.shape[-1], lam=self.lam,
                                 latent_dims=self.latent_dims).double().to(self.device)
         elif self.method == 'DVCCA':
-            self.model = DVCCA(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1],
+            self.model = cca_zoo.DVCCA.DVCCA(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1],
                                both_encoders=self.both_encoders, latent_dims=self.latent_dims,
                                private=self.private).double().to(self.device)
         model_params = sum(p.numel() for p in self.model.parameters())

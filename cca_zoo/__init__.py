@@ -10,4 +10,3 @@ import cca_zoo.generate_data
 import cca_zoo.DCCAE
 import cca_zoo.DVCCA
 
-__all__ = ["cca_zoo"]

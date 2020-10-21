@@ -4,9 +4,9 @@ from scipy.linalg import pinv2, block_diag, cholesky
 from sklearn.cross_decomposition import CCA, PLSCanonical
 import numpy as np
 import cca_zoo.KCCA
-from cca_zoo.alternating_least_squares import ALS_inner_loop
+import cca_zoo.alternating_least_squares
 import cca_zoo.generate_data
-from cca_zoo.plot_utils import cv_plot
+import cca_zoo.plot_utils
 
 
 class Wrapper:
@@ -70,7 +70,7 @@ class Wrapper:
 
         if self.method == 'kernel':
             self.fit_kcca = cca_zoo.KCCA.KCCA(self.dataset_list[0], self.dataset_list[1], params=self.params,
-                             latent_dims=self.latent_dims)
+                                              latent_dims=self.latent_dims)
             self.score_list = [self.fit_kcca.U, self.fit_kcca.V]
         elif self.method == 'pls':
             self.fit_scikit_pls(self.dataset_list[0], self.dataset_list[1])
@@ -176,7 +176,7 @@ class Wrapper:
         residuals = list(args)
         # For each of the dimensions
         for k in range(self.latent_dims):
-            self.inner_loop = ALS_inner_loop(*residuals, C=C_train_res, generalized=self.generalized,
+            self.inner_loop = cca_zoo.alternating_least_squares.ALS_inner_loop(*residuals, C=C_train_res, generalized=self.generalized,
                                              params=self.params,
                                              method=self.method, max_iter=self.max_iter)
             for i in range(len(args)):
@@ -336,7 +336,7 @@ def cross_validate(*args, max_iter: int = 100, latent_dims: int = 5, method: str
     print(best_params, flush=True)
     if method == 'kernel':
         kernel_type = param_candidates.pop('kernel')[0]
-        cv_plot(hyperparameter_scores_avg[0], param_candidates, method + ":" + kernel_type)
+        cca_zoo.plot_utils.cv_plot(hyperparameter_scores_avg[0], param_candidates, method + ":" + kernel_type)
     elif not method == 'elastic':
-        cv_plot(hyperparameter_scores_avg, param_candidates, method)
+        cca_zoo.plot_utils.cv_plot(hyperparameter_scores_avg, param_candidates, method)
     return best_params

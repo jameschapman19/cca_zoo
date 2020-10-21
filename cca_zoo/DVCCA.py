@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from cca_zoo.deep_models import Encoder, Decoder
+import cca_zoo.deep_models
 
 """
 All of my deep architectures have forward methods inherited from pytorch as well as a method:
@@ -38,19 +38,19 @@ class DVCCA(nn.Module, ABC):
         self.both_encoders = both_encoders
         self.mu = mu
 
-        self.encoder_1 = Encoder(hidden_layer_sizes_1, input_size_1, latent_dims).double()
+        self.encoder_1 = cca_zoo.deep_models.Encoder(hidden_layer_sizes_1, input_size_1, latent_dims).double()
         if self.both_encoders:
-            self.encoder_2 = Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
+            self.encoder_2 = cca_zoo.deep_models.Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
 
-        self.private_encoder_1 = Encoder(hidden_layer_sizes_1, input_size_1, latent_dims).double()
-        self.private_encoder_2 = Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
+        self.private_encoder_1 = cca_zoo.deep_models.Encoder(hidden_layer_sizes_1, input_size_1, latent_dims).double()
+        self.private_encoder_2 = cca_zoo.deep_models.Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
 
         if self.private:
-            self.decoder_1 = Decoder(hidden_layer_sizes_1 * 3, latent_dims, input_size_1).double()
-            self.decoder_2 = Decoder(hidden_layer_sizes_2 * 3, latent_dims, input_size_2).double()
+            self.decoder_1 = cca_zoo.deep_models.Decoder(hidden_layer_sizes_1 * 3, latent_dims, input_size_1).double()
+            self.decoder_2 = cca_zoo.deep_models.Decoder(hidden_layer_sizes_2 * 3, latent_dims, input_size_2).double()
         else:
-            self.decoder_1 = Decoder(hidden_layer_sizes_1, latent_dims, input_size_1).double()
-            self.decoder_2 = Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
+            self.decoder_1 = cca_zoo.deep_models.Decoder(hidden_layer_sizes_1, latent_dims, input_size_1).double()
+            self.decoder_2 = cca_zoo.deep_models.Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
 
     def encode_1(self, x):
         # 2*latent_dims
