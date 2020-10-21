@@ -11,7 +11,7 @@ import itertools
 import os
 import matplotlib
 
-matplotlib.use('TKAgg', warn=False, force=True)
+matplotlib.use('TKAgg', force=True)
 import matplotlib.pyplot as plt
 
 ### Load MNIST Data
