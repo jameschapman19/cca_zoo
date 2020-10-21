@@ -1,4 +1,8 @@
-Canonical Correlation Analysis: Linear, Kernel, Deep and Generative
+# Canonical Correlation Analysis: cca-zoo
+## CCA, GCCA, MCCA, DCCA, DGCCA, DVCCA, DCCAE, KCCA and regularised variants
+
+Can now be installed using pip install cca-zoo
+
 This is a compilation of methods for CCA including linear (ALS/scikit-learn), rCCA (ridge penalty), sparseCCA (Witten/Parkhomenko), elasticCCA(waaijenborg), kernel methods (pyrcca), Deep CCA (Andrew), Deep Canonically Correlated Autoencoders(), Deep Variational CCA () and Deep Variational CCA_private ().
 
 All models are evaluated on a noisy version of MNIST dataset with thanks to @VahidooX, @MichaelVll @Arminarj. The train/validation/test split is the original split of MNIST.
