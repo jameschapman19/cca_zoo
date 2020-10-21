@@ -32,8 +32,8 @@ class Wrapper:
     remaining methods are used to
     """
 
-    def __init__(self, latent_dims: int = 2, method: str = 'l2', generalized: bool = True, max_iter: int = 50,
-                 tol=1e-5):
+    def __init__(self, latent_dims: int = 2, method: str = 'l2', generalized: bool = False, max_iter: int = 500,
+                 tol=1e-6):
         self.latent_dims = latent_dims
         self.method = method
         self.generalized = generalized
@@ -41,11 +41,12 @@ class Wrapper:
         self.tol = tol
 
     def fit(self, *args, params: dict = None):
-
         self.params = params
-
+        if len(args) > 2:
+            self.generalized = True
+            print('more than 2 views therefore switched to generalized')
         if params is None:
-            self.params = {}
+            self.params = {'c': [0] * len(args)}
         if self.method == 'l2':
             if params is None:
                 self.params = {'c': [0] * len(args)}
@@ -99,7 +100,7 @@ class Wrapper:
     def cv_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False):
         best_params = cross_validate(*args, max_iter=self.max_iter, latent_dims=self.latent_dims, method=self.method,
                                      param_candidates=param_candidates, folds=folds,
-                                     verbose=verbose)
+                                     verbose=verbose, tol=self.tol)
         self.fit(*args, params=best_params)
         return self
 
@@ -176,9 +177,11 @@ class Wrapper:
         residuals = list(args)
         # For each of the dimensions
         for k in range(self.latent_dims):
-            self.inner_loop = cca_zoo.alternating_least_squares.ALS_inner_loop(*residuals, C=C_train_res, generalized=self.generalized,
-                                             params=self.params,
-                                             method=self.method, max_iter=self.max_iter)
+            self.inner_loop = cca_zoo.alternating_least_squares.ALS_inner_loop(*residuals, C=C_train_res,
+                                                                               generalized=self.generalized,
+                                                                               params=self.params,
+                                                                               method=self.method,
+                                                                               max_iter=self.max_iter)
             for i in range(len(args)):
                 if self.method[:4] == 'tree':
                     self.tree_list = self.inner_loop.weights
@@ -286,7 +289,7 @@ def permutation_test(train_set_1, train_set_2, latent_dims=5,
 
 def cross_validate(*args, max_iter: int = 100, latent_dims: int = 5, method: str = 'l2', param_candidates=None,
                    folds: int = 5,
-                   verbose=False):
+                   verbose=False, tol=1e-6):
     print('cross validation with ', method, flush=True)
     print('number of folds: ', folds, flush=True)
 
@@ -316,7 +319,7 @@ def cross_validate(*args, max_iter: int = 100, latent_dims: int = 5, method: str
             train_sets = [np.delete(data, fold_inds[fold], axis=0) for data in args]
             val_sets = [data[fold_inds[fold], :] for data in args]
             hyperparameter_scores[(fold,) + index] = \
-                Wrapper(latent_dims=latent_dims, method=method, max_iter=max_iter).fit(
+                Wrapper(latent_dims=latent_dims, method=method, max_iter=max_iter, tol=tol).fit(
                     *train_sets, params=params).predict_corr(
                     *val_sets).sum(axis=-1)[np.triu_indices(len(args), 1)].sum()
         if verbose:

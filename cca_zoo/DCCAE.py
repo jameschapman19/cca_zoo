@@ -21,8 +21,9 @@ for standardising the pipeline for comparison
 
 class DCCAE(nn.Module, ABC):
 
-    def __init__(self, input_size_1, input_size_2, hidden_layer_sizes_1=None, hidden_layer_sizes_2=None, latent_dims=2,
-                 lam=0, loss_type='cca', model_1='fcn', model_2='fcn'):
+    def __init__(self, input_size_1: int, input_size_2: int, hidden_layer_sizes_1: list = None,
+                 hidden_layer_sizes_2: list = None, latent_dims: int = 2,
+                 lam=0, loss_type: str = 'cca', model_1: str = 'fcn', model_2: str = 'fcn'):
         super(DCCAE, self).__init__()
 
         if model_1 == 'fcn':
@@ -92,10 +93,12 @@ class DGCCAE(nn.Module, ABC):
             hidden_layer_sizes = [[128] for arg in args]
 
         self.encoders = nn.ModuleList(
-            [cca_zoo.deep_models.Encoder(hidden_layer_sizes[i], arg, latent_dims).double() for i, arg in enumerate(args)])
+            [cca_zoo.deep_models.Encoder(hidden_layer_sizes[i], arg, latent_dims).double() for i, arg in
+             enumerate(args)])
 
         self.decoders = nn.ModuleList(
-            [cca_zoo.deep_models.Decoder(hidden_layer_sizes[i], latent_dims, arg).double() for i, arg in enumerate(args)])
+            [cca_zoo.deep_models.Decoder(hidden_layer_sizes[i], latent_dims, arg).double() for i, arg in
+             enumerate(args)])
 
         self.latent_dims = latent_dims
 

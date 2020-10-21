@@ -30,9 +30,12 @@ class Wrapper:
 
     recon_loss(): gets the reconstruction loss for out of sample data - if the model has an autoencoder piece
     """
+
     def __init__(self, latent_dims: int = 2, learning_rate=1e-3, epoch_num: int = 1, batch_size: int = 16,
                  method: str = 'DCCAE', loss_type: str = 'cca', lam=0, private: bool = False,
-                 patience: int = 10, both_encoders: bool = True):
+                 patience: int = 10, both_encoders: bool = True, hidden_layer_sizes_1: list = None,
+                 hidden_layer_sizes_2: list = None,
+                 model_1='fcn', model_2='fcn'):
         self.latent_dims = latent_dims
         self.learning_rate = learning_rate
         self.epoch_num = epoch_num
@@ -47,8 +50,11 @@ class Wrapper:
         self.patience = patience
         self.loss_type = loss_type
         self.batch_size = batch_size
-
+        self.hidden_layer_sizes_1 = hidden_layer_sizes_1
+        self.hidden_layer_sizes_2 = hidden_layer_sizes_2
         self.lam = lam
+        self.model_1 = model_1
+        self.model_2 = model_2
 
     def fit(self, X_train, Y_train):
 
@@ -85,27 +91,21 @@ class Wrapper:
         # respective loss. The models also have loss functions as methods but we can also customise the loss by calling
         # a_loss_function(model(data))
         if self.method == 'DCCAE':
-            self.model = cca_zoo.DCCAE.DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1], lam=self.lam,
-                               latent_dims=self.latent_dims, loss_type=self.loss_type).double().to(self.device)
-        elif self.method == 'DCCAE_conv':
-            self.model = cca_zoo.DCCAE.DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1], lam=self.lam,
-                               latent_dims=self.latent_dims, loss_type=self.loss_type, model_1='cnn').double().to(
-                self.device)
-        elif self.method == 'DCCAE_brainnet':
-            self.model = cca_zoo.DCCAE.DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1], lam=self.lam,
-                               latent_dims=self.latent_dims, loss_type=self.loss_type, model_1='brainnet').double().to(
-                self.device)
-        elif self.method == 'DGCCAE':
-            self.model = cca_zoo.DCCAE.DGCCAE(X_train.shape[-1], Y_train.shape[-1], lam=self.lam,
-                                latent_dims=self.latent_dims).double().to(self.device)
+            self.model = cca_zoo.DCCAE.DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1],
+                                             hidden_layer_sizes_1=self.hidden_layer_sizes_1,
+                                             hidden_layer_sizes_2=self.hidden_layer_sizes_2, lam=self.lam,
+                                             latent_dims=self.latent_dims, loss_type=self.loss_type,
+                                             model_1=self.model_1, model_2=self.model_2)
         elif self.method == 'DVCCA':
             self.model = cca_zoo.DVCCA.DVCCA(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1],
-                               both_encoders=self.both_encoders, latent_dims=self.latent_dims,
-                               private=self.private).double().to(self.device)
+                                             hidden_layer_sizes_1=self.hidden_layer_sizes_1,
+                                             hidden_layer_sizes_2=self.hidden_layer_sizes_2,
+                                             both_encoders=self.both_encoders, latent_dims=self.latent_dims,
+                                             private=self.private)
         model_params = sum(p.numel() for p in self.model.parameters())
         best_model = copy.deepcopy(self.model.state_dict())
         print("Number of model parameters {}".format(model_params))
-
+        self.model.double().to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         min_val_loss = self.latent_dims
         epochs_no_improve = 0
@@ -120,7 +120,7 @@ class Wrapper:
                     epoch, epoch_train_loss))
                 epoch_val_loss = self.val_epoch(val_dataloader)
                 print('====> Epoch: {} Average val loss: {:.4f}'.format(
-                    epoch, epoch_val_loss / len(val_dataloader)))
+                    epoch, epoch_val_loss))
 
                 if epoch_val_loss < min_val_loss:
                     min_val_loss = epoch_val_loss
@@ -142,6 +142,9 @@ class Wrapper:
 
         if self.method == 'DCCAE':
             self.train_correlations = self.predict_corr(X_train, Y_train, train=True)
+        elif self.method =='DVCCA':
+            if self.both_encoders:
+                self.train_correlations = self.predict_corr(X_train, Y_train, train=True)
 
         self.train_recon_loss_x, self.train_recon_loss_y = self.recon_loss(X_train, Y_train)
 
@@ -171,7 +174,7 @@ class Wrapper:
                 model_outputs = self.model(x, y)
                 loss = self.model.loss(x, y, *model_outputs)
                 total_val_loss += loss.item()
-        return total_val_loss
+        return total_val_loss / len(val_dataloader)
 
     def predict_corr(self, X_test, Y_test, train=False):
         X_test -= self.X_mean
@@ -187,7 +190,10 @@ class Wrapper:
                     z_x_batch, z_y_batch, recon_x_batch, recon_y_batch = self.model(x, y)
                 elif self.method == 'DVCCA':
                     if self.both_encoders:
-                        recon_batch_1, recon_batch_2, z_x_batch, logvar_x, z_y_batch, logvar_y = self.model(x,y)
+                        if self.private:
+                            recon_batch_1, recon_batch_2, z_x_batch, logvar_x, z_y_batch, logvar_y, _, _, _, _ = self.model(x, y)
+                        else:
+                            recon_batch_1, recon_batch_2, z_x_batch, logvar_x, z_y_batch, logvar_y = self.model(x, y)
                     else:
                         print('No correlation method for single encoding')
                         return
@@ -259,11 +265,9 @@ class Wrapper:
                 if self.method == 'DGCCAE':
                     z_x, z_y, recon_x, recon_y = self.model(x, y)
                 elif self.method == 'DVCCA':
-                    if self.both_encoders:
-                        recon_x, recon_y, mu_x, logvar_x, mu_y, logvar_y = self.model(x, y)
-                    else:
-                        recon_x, recon_y, mu_x, logvar_x = self.model(x, y)
-
+                    model_outputs = self.model(x, y)
+                    recon_x = model_outputs[0]
+                    recon_y=model_outputs[1]
                 recon_loss_x += F.mse_loss(recon_x, x, reduction='sum').detach().cpu().numpy() / x.shape[0]
                 recon_loss_y += F.mse_loss(recon_y, y, reduction='sum').detach().cpu().numpy() / y.shape[0]
         return recon_loss_x, recon_loss_y

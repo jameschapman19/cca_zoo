@@ -14,7 +14,7 @@ class ALS_inner_loop:
     This is a wrapper class for alternating least squares based solutions to CCA
     """
 
-    def __init__(self, *args, C=None, max_iter: int = 100, tol=1e-5, generalized: bool = True,
+    def __init__(self, *args, C=None, max_iter: int = 500, tol=1e-6, generalized: bool = True,
                  initialization: str = 'random', params=None,
                  method: str = 'l2'):
         self.initialization = initialization
@@ -36,6 +36,8 @@ class ALS_inner_loop:
         self.weights = [np.random.rand(dataset.shape[1]) for dataset in self.datasets]
 
         self.old_weights = [np.random.rand(dataset.shape[1]) for dataset in self.datasets]
+
+
         # initialize with first column
         self.targets = np.array([dataset[:, 0] / np.linalg.norm(dataset[:, 0]) if np.linalg.norm(
             dataset[:, 0]) != 0 else np.random.rand(dataset.shape[0]) for dataset in self.datasets])

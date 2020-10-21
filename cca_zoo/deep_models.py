@@ -14,7 +14,7 @@ https://github.com/Michaelvll/DeepCCA/blob/master/DeepCCAModels.py
 
 
 class Encoder(nn.Module, ABC):
-    def __init__(self, layer_sizes, input_size, output_size):
+    def __init__(self, layer_sizes, input_size: int, output_size: int):
         super(Encoder, self).__init__()
         layers = []
         layer_sizes = [input_size] + layer_sizes + [output_size]
@@ -39,7 +39,7 @@ class Encoder(nn.Module, ABC):
 
 
 class Decoder(nn.Module, ABC):
-    def __init__(self, layer_sizes, input_size, output_size):
+    def __init__(self, layer_sizes, input_size: int, output_size: int):
         super(Decoder, self).__init__()
         layers = []
         layer_sizes = [input_size] + layer_sizes + [output_size]
@@ -64,7 +64,7 @@ class Decoder(nn.Module, ABC):
 
 
 class CNN_Encoder(nn.Module, ABC):
-    def __init__(self, layer_sizes, input_size, output_size, kernel_sizes=None, stride=None, padding=None):
+    def __init__(self, layer_sizes, input_size: int, output_size: int, kernel_sizes=None, stride=None, padding=None):
         super(CNN_Encoder, self).__init__()
         # assume square input
         layers = []
@@ -113,7 +113,7 @@ class CNN_Encoder(nn.Module, ABC):
 
 
 class CNN_Decoder(nn.Module, ABC):
-    def __init__(self, layer_sizes, input_size, output_size, kernel_sizes=None, stride=None, padding=None):
+    def __init__(self, layer_sizes, input_size: int, output_size: int, kernel_sizes=None, stride=None, padding=None):
         super(CNN_Decoder, self).__init__()
         layers = []
         layer_sizes = [input_size] + layer_sizes + [output_size]
@@ -191,7 +191,7 @@ class E2EBlock_reverse(nn.Module, ABC):
 
 # BrainNetCNN Network for fitting Gold-MSI on LSD dataset
 class BrainNetCNN_Encoder(nn.Module, ABC):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size: int, output_size: int):
         super(BrainNetCNN_Encoder, self).__init__()
         self.d = input_size
         self.e2econv1 = E2EBlock(1, 32, self.d, bias=True)
@@ -215,7 +215,7 @@ class BrainNetCNN_Encoder(nn.Module, ABC):
 
 
 class BrainNetCNN_Decoder(nn.Module, ABC):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size: int, output_size: int):
         super(BrainNetCNN_Decoder, self).__init__()
         self.d = output_size
         self.e2econv1 = E2EBlock(32, 1, self.d, bias=True)
