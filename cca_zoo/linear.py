@@ -7,7 +7,8 @@ import cca_zoo.KCCA
 import cca_zoo.alternating_least_squares
 import cca_zoo.generate_data
 import cca_zoo.plot_utils
-
+from hyperopt import tpe, hp, fmin, STATUS_OK,Trials
+from hyperopt.pyll.base import scope
 
 class Wrapper:
     """
@@ -32,7 +33,7 @@ class Wrapper:
     remaining methods are used to
     """
 
-    def __init__(self, latent_dims: int = 2, method: str = 'l2', generalized: bool = False, max_iter: int = 500,
+    def __init__(self, latent_dims: int = 1, method: str = 'l2', generalized: bool = False, max_iter: int = 500,
                  tol=1e-6):
         self.latent_dims = latent_dims
         self.method = method
@@ -40,27 +41,25 @@ class Wrapper:
         self.max_iter = max_iter
         self.tol = tol
 
-    def fit(self, *args, params: dict = None):
+    def fit(self, *args, params=None):
+        if params is None:
+            params = {}
         self.params = params
         if len(args) > 2:
             self.generalized = True
             print('more than 2 views therefore switched to generalized')
-        if params is None:
+        if 'c' not in self.params:
             self.params = {'c': [0] * len(args)}
-        if self.method == 'l2':
-            if params is None:
-                self.params = {'c': [0] * len(args)}
         if self.method == 'kernel':
+            #Linear kernel by default
             if 'kernel' not in self.params:
                 self.params['kernel'] = 'linear'
+            #First order polynomial by default
             if 'degree' not in self.params:
-                self.params['degree'] = 0
+                self.params['degree'] = 1
+            # First order polynomial by default
             if 'sigma' not in self.params:
                 self.params['sigma'] = 1.0
-            if 'reg' not in self.params:
-                self.params['reg'] = 100
-            if 'c' not in self.params:
-                self.params['c'] = 1
 
         # Fit returns in-sample score vectors and correlations as well as models with transform functionality
         self.dataset_list = []
@@ -78,22 +77,19 @@ class Wrapper:
         elif self.method == 'scikit':
             self.fit_scikit_cca(self.dataset_list[0], self.dataset_list[1])
         elif self.method == 'mcca':
-            assert all([view.shape[1] <= view.shape[0] for view in self.dataset_list])
             self.fit_mcca(*self.dataset_list)
         elif self.method == 'gcca':
-            assert all([view.shape[1] <= view.shape[0] for view in self.dataset_list])
             self.fit_gcca(*self.dataset_list)
         else:
             self.outer_loop(*self.dataset_list)
-            # have to do list comphrehension due to different dimensions in views
             if self.method[:4] == 'tree':
                 self.tree_list = [self.tree_list[i] for i in range(len(args))]
                 self.weights_list = [np.expand_dims(tree.feature_importances_, axis=1) for tree in self.tree_list]
             else:
-                self.rotation_list = [
-                    self.weights_list[i] @ pinv2(self.loading_list[i].T @ self.weights_list[i], check_finite=False) for
-                    i in
-                    range(len(args))]
+                self.rotation_list = []
+                for i in range(len(args)):
+                    self.rotation_list.append(
+                        self.weights_list[i] @ pinv2(self.loading_list[i].T @ self.weights_list[i], check_finite=False))
         self.train_correlations = self.predict_corr(*args)
         return self
 
@@ -101,6 +97,25 @@ class Wrapper:
         best_params = cross_validate(*args, max_iter=self.max_iter, latent_dims=self.latent_dims, method=self.method,
                                      param_candidates=param_candidates, folds=folds,
                                      verbose=verbose, tol=self.tol)
+        self.fit(*args, params=best_params)
+        return self
+
+    def bayes_cv_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False):
+        space = {
+            "n_estimators": hp.choice("n_estimators", [100, 200, 300, 400, 500, 600]),
+            "max_depth": hp.quniform("max_depth", 1, 15, 1),
+            "criterion": hp.choice("criterion", ["gini", "entropy"]),
+        }
+
+        trials = Trials()
+
+        best_params = fmin(
+            fn=Wrapper(),
+            space=space,
+            algo=tpe.suggest,
+            max_evals=100,
+            trials=trials
+            )
         self.fit(*args, params=best_params)
         return self
 
@@ -211,28 +226,18 @@ class Wrapper:
         return self
 
     def fit_mcca(self, *args):
-
         all_views = np.concatenate(args, axis=1)
         C = all_views.T @ all_views
-
         # Can regularise by adding to diagonal
-        D = block_diag(*[m.T @ m for m in args])
-
-        C -= D
-
-        D[np.diag_indices_from(D)] = D.diagonal() + self.params['c'][0]
+        D = block_diag(*[(1 - self.params['c'][i]) * m.T @ m + self.params['c'][i] * np.eye(m.shape[1]) for i, m in
+                         enumerate(args)])
         R = cholesky(D, lower=False)
-
         whitened = np.linalg.inv(R.T) @ C @ np.linalg.inv(R)
-
         [eigvals, eigvecs] = np.linalg.eig(whitened)
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         eigvals = eigvals[idx].real
-
-        # sum p_i * sum p_i
         eigvecs = np.linalg.inv(R) @ eigvecs
-
         splits = np.cumsum([0] + [view.shape[1] for view in args])
         self.weights_list = [eigvecs[splits[i]:splits[i + 1], :self.latent_dims] for i in range(len(args))]
         self.rotation_list = self.weights_list
@@ -242,14 +247,13 @@ class Wrapper:
         Q = []
         for i, view in enumerate(args):
             view_cov = view.T @ view
-            view_cov[np.diag_indices_from(view_cov)] = view_cov.diagonal() + self.params['c'][i]
+            view_cov = (1 - self.params['c'][i]) * view_cov + self.params['c'][i] * np.eye(view_cov.shape[0])
             Q.append(view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
         [eigvals, eigvecs] = np.linalg.eig(Q)
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         eigvals = eigvals[idx].real
-
         self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in args]
         self.rotation_list = self.weights_list
         self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]

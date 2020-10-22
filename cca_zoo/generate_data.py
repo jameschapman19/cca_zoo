@@ -6,11 +6,13 @@ def gaussian(x, mu, sig, dn):
     return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.))) * dn / (np.sqrt(2 * np.pi) * sig)
 
 
-def generate_mai(m, k, N, M, sparse_variables_1=None, sparse_variables_2=None, structure='identity', sigma=0.1):
+def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: int = None, sparse_variables_2: int = None,
+                 signal: float = None,
+                 structure='identity', sigma=0.1, decay=0.5):
     mean = np.zeros(N + M)
     cov = np.zeros((N + M, N + M))
     p = np.arange(0, k)
-    p = 0.9 ** p
+    p = decay ** p
     # Covariance Bit
     if structure == 'identity':
         cov_1 = np.eye(N)
@@ -32,34 +34,48 @@ def generate_mai(m, k, N, M, sparse_variables_1=None, sparse_variables_2=None, s
         c = np.arange(0, N)
         c = sigma ** c
         cov_1 = toeplitz(c, c)
-        c=np.arange(0, M)
+        c = np.arange(0, M)
         c = sigma ** c
-        cov_2=toeplitz(c,c)
+        cov_2 = toeplitz(c, c)
 
     cov[:N, :N] = cov_1
     cov[N:, N:] = cov_2
 
     # Sparse Bits
+    res_cov_1 = np.copy(cov_1)
     up = np.random.rand(N, k)
-    if sparse_variables_1 is not None:
-        for _ in range(k):
-            first = np.random.randint(N - 10)
+    for _ in range(k):
+        if sparse_variables_1 is not None:
+            first = np.random.randint(N - sparse_variables_1)
             up[:first, _] = 0
-            up[(first + 10):, _] = 0
-            up /= np.sqrt((up.T @ cov_1 @ up)[_, _])
+            up[(first + sparse_variables_1):, _] = 0
+        up[:, _] /= np.sqrt((up[:, _].T @ res_cov_1 @ up[:, _]))
+        res_cov_1 -= np.outer(up[:, _], up[:, _]) @ res_cov_1 @ np.outer(up[:, _], up[:, _])
 
+    # Elimination step:
+    for _ in range(k):
+        mat_1 = up.T @ cov_1 @ up
+        up[:, (_ + 1):] -= np.outer(up[:, _], np.diag(mat_1[_, (_ + 1):]))
+
+    # TODO this is where we could fix to work out how to have more than one orthogonal. Think we should be able to deflate
+
+    res_cov_2 = np.copy(cov_2)
     vp = np.random.rand(M, k)
-    if sparse_variables_2 is not None:
-        for _ in range(k):
-            first = np.random.randint(N - 10)
+    for _ in range(k):
+        if sparse_variables_2 is not None:
+            first = np.random.randint(N - sparse_variables_2)
             vp[:first, _] = 0
-            vp[(first + 10):, _] = 0
-            vp /= np.sqrt((vp.T @ cov_2 @ vp)[_, _])
-            # vp[np.random.choice(vp.shape[0], vp.shape[0]-sparse_variables_1, replace=False),_]=0
+            vp[(first + sparse_variables_2):, _] = 0
+        vp[:, _] /= np.sqrt((vp[:, _].T @ res_cov_2 @ vp[:, _]))
+        res_cov_2 -= np.outer(vp[:, _], vp[:, _]) @ res_cov_2 @ np.outer(vp[:, _], vp[:, _])
+
+    for _ in range(k):
+        mat_2 = vp.T @ cov_2 @ vp
+        vp[:, (_ + 1):] -= np.outer(vp[:, _], np.diag(mat_2[_, (_ + 1):]))
 
     sparse_vec = np.zeros((N, M))
     for _ in range(k):
-        sparse_vec += 0.9 * p[_] * np.outer(up[:, _], vp[:, _])
+        sparse_vec += signal * p[_] * np.outer(up[:, _], vp[:, _])
     # Cross Bit
     cross = cov[:N, :N] @ sparse_vec @ cov[N:, N:]
 
@@ -69,7 +85,8 @@ def generate_mai(m, k, N, M, sparse_variables_1=None, sparse_variables_2=None, s
     X = np.random.multivariate_normal(mean, cov, m)
     Y = X[:, N:]
     X = X[:, :N]
-    return X, Y, up, vp
+
+    return X, Y, up, vp, cov
 
 
 def generate_witten(m, k, N, M, sigma, tau, sparse_variables_1=2, sparse_variables_2=2):

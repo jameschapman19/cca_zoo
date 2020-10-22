@@ -20,7 +20,7 @@ class KCCA:
         self.ktype = params.get('kernel')
         self.sigma = params.get('sigma')
         self.degree = params.get('degree')
-        self.reg = params.get('reg')
+        self.c = params.get('c')
         self.K1 = self.make_kernel(X, X)
         self.K2 = self.make_kernel(Y, Y)
         # remove the mean in features space
@@ -64,10 +64,9 @@ class KCCA:
         R2 = np.c_[np.dot(self.K2, self.K1), Z]
         R = np.r_[R1, R2]
 
-        D1 = np.c_[np.dot(self.K1, self.K1) + self.reg * I, Z]
-        D2 = np.c_[Z, np.dot(self.K2, self.K2) + self.reg * I]
+        D1 = np.c_[(1-self.c)*np.dot(self.K1, self.K1) + self.c * I, Z]
+        D2 = np.c_[Z, (1-self.c)*np.dot(self.K2, self.K2) + self.c * I]
         D = 0.5 * np.r_[D1, D2]
-        # http://www.squobble.com/academic/kcca_wiener/node4.html
         return R, D
 
     def transform(self, X_test: np.array = None, Y_test: np.array = None):
