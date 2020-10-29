@@ -59,7 +59,8 @@ class mcca:
         D = block_diag([torch.matmul(view.T, view) for view in views])
 
         # In MCCA our eigenvalue problem Cv = lambda Dv
-        C = C - D
+        # TODO Not sure whether to do this
+        # C = C - D
 
         # Use the cholesky method to whiten the matrix C R^{-1}CRv = lambda v
         R = torch.cholesky(D, upper=True)
@@ -130,9 +131,11 @@ class cca:
 
         SigmaHat12 = (1.0 / (m - 1)) * torch.matmul(H1bar, H2bar.t())
         SigmaHat11 = (1.0 / (m - 1)) * torch.matmul(H1bar,
-                                                    H1bar.t()) + self.r * torch.eye(o1, dtype=torch.double)
+                                                    H1bar.t()) + self.r * torch.eye(o1, dtype=torch.double,
+                                                                                    device=H1.device)
         SigmaHat22 = (1.0 / (m - 1)) * torch.matmul(H2bar,
-                                                    H2bar.t()) + self.r * torch.eye(o2, dtype=torch.double)
+                                                    H2bar.t()) + self.r * torch.eye(o2, dtype=torch.double,
+                                                                                    device=H2.device)
 
         [D1, V1] = torch.symeig(SigmaHat11, eigenvectors=True)
         [D2, V2] = torch.symeig(SigmaHat22, eigenvectors=True)
@@ -160,5 +163,4 @@ class cca:
         U_inds = torch.gt(D1, self.eps).nonzero()[:, 0]
         U = U[U_inds]
         corr = torch.sum(torch.sqrt(U))
-
         return -corr

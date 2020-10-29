@@ -7,8 +7,7 @@ import cca_zoo.KCCA
 import cca_zoo.alternating_least_squares
 import cca_zoo.generate_data
 import cca_zoo.plot_utils
-from hyperopt import tpe, hp, fmin, STATUS_OK,Trials
-from hyperopt.pyll.base import scope
+from hyperopt import tpe, hp, fmin, STATUS_OK, Trials
 
 class Wrapper:
     """
@@ -42,24 +41,35 @@ class Wrapper:
         self.tol = tol
 
     def fit(self, *args, params=None):
+        self.params = {}
         if params is None:
             params = {}
-        self.params = params
         if len(args) > 2:
             self.generalized = True
             print('more than 2 views therefore switched to generalized')
-        if 'c' not in self.params:
-            self.params = {'c': [0] * len(args)}
+        if 'c' not in params:
+            c_dict = slicedict(params, 'c')
+            if c_dict:
+                self.params['c'] = list(c_dict.values())
+            else:
+                self.params['c'] = [0] * len(args)
+        else:
+            self.params['c'] = params['c']
+        if 'l1_ratio' not in params:
+            l1_dict = slicedict(params, 'l1_ratio')
+            if l1_dict:
+                self.params['l1_ratio'] = list(l1_dict.values())
+            else:
+                self.params['l1_ratio'] = [0] * len(args)
+        else:
+            self.params['l1_ratio'] = params['l1_ratio']
         if self.method == 'kernel':
-            #Linear kernel by default
-            if 'kernel' not in self.params:
-                self.params['kernel'] = 'linear'
-            #First order polynomial by default
-            if 'degree' not in self.params:
-                self.params['degree'] = 1
+            # Linear kernel by default
+            self.params['kernel'] = params.get('kernel', 'linear')
             # First order polynomial by default
-            if 'sigma' not in self.params:
-                self.params['sigma'] = 1.0
+            self.params['degree'] = params.get('degree', 1)
+            # First order polynomial by default
+            self.params['sigma'] = params.get('sigma', 1.0)
 
         # Fit returns in-sample score vectors and correlations as well as models with transform functionality
         self.dataset_list = []
@@ -80,6 +90,8 @@ class Wrapper:
             self.fit_mcca(*self.dataset_list)
         elif self.method == 'gcca':
             self.fit_gcca(*self.dataset_list)
+        elif self.method == 'gep':
+            self.fit_gep(*self.dataset_list)
         else:
             self.outer_loop(*self.dataset_list)
             if self.method[:4] == 'tree':
@@ -93,29 +105,25 @@ class Wrapper:
         self.train_correlations = self.predict_corr(*args)
         return self
 
-    def cv_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False):
-        best_params = cross_validate(*args, max_iter=self.max_iter, latent_dims=self.latent_dims, method=self.method,
-                                     param_candidates=param_candidates, folds=folds,
-                                     verbose=verbose, tol=self.tol)
+    def gridsearch_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False):
+        best_params = grid_search(*args, max_iter=self.max_iter, latent_dims=self.latent_dims, method=self.method,
+                                  param_candidates=param_candidates, folds=folds,
+                                  verbose=verbose, tol=self.tol)
         self.fit(*args, params=best_params)
         return self
 
-    def bayes_cv_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False):
-        space = {
-            "n_estimators": hp.choice("n_estimators", [100, 200, 300, 400, 500, 600]),
-            "max_depth": hp.quniform("max_depth", 1, 15, 1),
-            "criterion": hp.choice("criterion", ["gini", "entropy"]),
-        }
+    def bayes_fit(self, *args, space=None, folds: int = 5, verbose=True):
 
         trials = Trials()
 
         best_params = fmin(
-            fn=Wrapper(),
+            fn=cross_validate(*args, method=self.method, latent_dims=self.latent_dims, folds=folds,
+                              verbose=verbose, max_iter=self.max_iter, tol=self.tol).score,
             space=space,
             algo=tpe.suggest,
             max_evals=100,
-            trials=trials
-            )
+            trials=trials,
+        )
         self.fit(*args, params=best_params)
         return self
 
@@ -231,6 +239,30 @@ class Wrapper:
         # Can regularise by adding to diagonal
         D = block_diag(*[(1 - self.params['c'][i]) * m.T @ m + self.params['c'][i] * np.eye(m.shape[1]) for i, m in
                          enumerate(args)])
+
+        # TODO Not sure whether to do this
+        # C-=D
+        R = cholesky(D, lower=False)
+        whitened = np.linalg.inv(R.T) @ C @ np.linalg.inv(R)
+        [eigvals, eigvecs] = np.linalg.eig(whitened)
+        idx = np.argsort(eigvals, axis=0)[::-1]
+        eigvecs = eigvecs[:, idx].real
+        eigvals = eigvals[idx].real
+        eigvecs = np.linalg.inv(R) @ eigvecs
+        splits = np.cumsum([0] + [view.shape[1] for view in args])
+        self.weights_list = [eigvecs[splits[i]:splits[i + 1], :self.latent_dims] for i in range(len(args))]
+        self.rotation_list = self.weights_list
+        self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
+
+    def fit_gep(self, *args):
+        all_views = np.concatenate(args, axis=1)
+        C = all_views.T @ all_views
+        # Can regularise by adding to diagonal
+        D = block_diag(*[(1 - self.params['c'][i]) * m.T @ m + self.params['c'][i] * np.eye(m.shape[1]) for i, m in
+                         enumerate(args)])
+
+        C -= block_diag(*[m.T @ m for i, m in
+                          enumerate(args)])
         R = cholesky(D, lower=False)
         whitened = np.linalg.inv(R.T) @ C @ np.linalg.inv(R)
         [eigvals, eigvecs] = np.linalg.eig(whitened)
@@ -291,59 +323,82 @@ def permutation_test(train_set_1, train_set_2, latent_dims=5,
     return p_vals, significant_dims
 
 
-def cross_validate(*args, max_iter: int = 100, latent_dims: int = 5, method: str = 'l2', param_candidates=None,
-                   folds: int = 5,
-                   verbose=False, tol=1e-6):
+def slicedict(d, s):
+    return {k: v for k, v in d.items() if k.startswith(s)}
+
+
+def grid_search(*args, max_iter: int = 100, latent_dims: int = 5, method: str = 'l2', param_candidates=None,
+                folds: int = 5,
+                verbose=False, tol=1e-6):
     print('cross validation with ', method, flush=True)
     print('number of folds: ', folds, flush=True)
 
-    # Set up an array for each set of hyperparameters (perhaps could construct this automatically in the future?)
+    # Set up an array for each set of hyperparameters
     assert (len(param_candidates) > 0)
     hyperparameter_grid_shape = [len(v) for k, v in param_candidates.items()]
-    hyperparameter_scores = np.zeros(tuple([folds] + hyperparameter_grid_shape))
+    hyperparameter_scores = np.zeros(hyperparameter_grid_shape)
 
-    # set up fold array. Suspect will need a function for this in future due to family/twins etc.
-    inds = np.arange(args[0].shape[0])
-    np.random.shuffle(inds)
-    if folds == 1:
-        # If 1 fold do an 80:20 split
-        fold_inds = np.array_split(inds, 5)
-    else:
-        fold_inds = np.array_split(inds, folds)
-
-    for index, x in np.ndenumerate(hyperparameter_scores[0]):
+    for index, x in np.ndenumerate(hyperparameter_scores):
         params = {}
         p_num = 0
         for key in param_candidates.keys():
             params[key] = param_candidates[key][index[p_num]]
             p_num += 1
-        if verbose:
-            print(params)
-        for fold in range(folds):
-            train_sets = [np.delete(data, fold_inds[fold], axis=0) for data in args]
-            val_sets = [data[fold_inds[fold], :] for data in args]
-            hyperparameter_scores[(fold,) + index] = \
-                Wrapper(latent_dims=latent_dims, method=method, max_iter=max_iter, tol=tol).fit(
-                    *train_sets, params=params).predict_corr(
-                    *val_sets).sum(axis=-1)[np.triu_indices(len(args), 1)].sum()
-        if verbose:
-            print(hyperparameter_scores.sum(axis=0)[index] / folds)
+        hyperparameter_scores[index] = -cross_validate(*args, method=method, latent_dims=latent_dims, folds=folds,
+                                                      verbose=verbose, max_iter=max_iter, tol=tol).score(params)
 
-    hyperparameter_scores_avg = hyperparameter_scores.sum(axis=0) / folds
-    hyperparameter_scores_avg[np.isnan(hyperparameter_scores_avg)] = 0
     # Find index of maximum value from 2D numpy array
-    result = np.where(hyperparameter_scores_avg == np.amax(hyperparameter_scores_avg))
+    result = np.where(hyperparameter_scores == np.amax(hyperparameter_scores))
     # Return the 1st
     best_params = {}
     p_num = 0
     for key in param_candidates.keys():
         best_params[key] = param_candidates[key][result[p_num][0].item()]
         p_num += 1
-    print('Best score : ', np.amax(hyperparameter_scores_avg), flush=True)
+    print('Best score : ', np.amax(hyperparameter_scores), flush=True)
     print(best_params, flush=True)
     if method == 'kernel':
         kernel_type = param_candidates.pop('kernel')[0]
-        cca_zoo.plot_utils.cv_plot(hyperparameter_scores_avg[0], param_candidates, method + ":" + kernel_type)
+        cca_zoo.plot_utils.cv_plot(hyperparameter_scores[0], param_candidates, method + ":" + kernel_type)
     elif not method == 'elastic':
-        cca_zoo.plot_utils.cv_plot(hyperparameter_scores_avg, param_candidates, method)
+        cca_zoo.plot_utils.cv_plot(hyperparameter_scores, param_candidates, method)
     return best_params
+
+
+class cross_validate:
+    def __init__(self, *args, latent_dims: int = 1, method: str = 'l2', generalized: bool = False, folds=5,
+                 verbose=False, max_iter: int = 500,
+                 tol=1e-6):
+        self.latent_dims = latent_dims
+        self.method = method
+        self.generalized = generalized
+        self.folds = folds
+        self.verbose = verbose
+        self.data = args
+        self.max_iter = max_iter
+        self.tol = tol
+
+    def score(self, params):
+
+        scores = np.zeros(self.folds)
+        inds = np.arange(self.data[0].shape[0])
+        np.random.shuffle(inds)
+        if self.folds == 1:
+            # If 1 fold do an 80:20 split
+            fold_inds = np.array_split(inds, 5)
+        else:
+            fold_inds = np.array_split(inds, self.folds)
+        for fold in range(self.folds):
+            train_sets = [np.delete(data, fold_inds[fold], axis=0) for data in self.data]
+            val_sets = [data[fold_inds[fold], :] for data in self.data]
+            scores[fold] = \
+                Wrapper(latent_dims=self.latent_dims, method=self.method, max_iter=self.max_iter, tol=self.tol).fit(
+                    *train_sets, params=params).predict_corr(
+                    *val_sets).sum(axis=-1)[np.triu_indices(len(self.data), 1)].sum()
+        metric = scores.sum(axis=0) / self.folds
+        if np.isnan(metric):
+            metric = 0
+        if self.verbose:
+            print(params)
+            print(metric)
+        return -metric

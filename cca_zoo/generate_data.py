@@ -1,14 +1,17 @@
 import numpy as np
 from scipy.linalg import toeplitz
+from scipy.sparse import csr_matrix, identity
+from scipy.stats import multivariate_normal
+import torch.distributions
 
 
 def gaussian(x, mu, sig, dn):
     return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.))) * dn / (np.sqrt(2 * np.pi) * sig)
 
 
-def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: int = None, sparse_variables_2: int = None,
+def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0, sparse_variables_2: float = 0,
                  signal: float = None,
-                 structure='identity', sigma=0.1, decay=0.5):
+                 structure: str = 'identity', sigma: float = 0.9, decay: float = 0.5):
     mean = np.zeros(N + M)
     cov = np.zeros((N + M, N + M))
     p = np.arange(0, k)
@@ -42,36 +45,50 @@ def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: int = None,
     cov[N:, N:] = cov_2
 
     # Sparse Bits
-    res_cov_1 = np.copy(cov_1)
-    up = np.random.rand(N, k)
+    if sparse_variables_1 > 0:
+        sparse_cov_1 = csr_matrix(cov_1)
+        cov_1 = sparse_cov_1.copy()
+    else:
+        sparse_cov_1 = cov_1.copy()
+    up = np.random.rand(N, k) - 1
     for _ in range(k):
-        if sparse_variables_1 is not None:
+        if sparse_variables_1 > 0:
+            if sparse_variables_1 < 1:
+                sparse_variables_1 = np.ceil(sparse_variables_1 * N).astype('int')
             first = np.random.randint(N - sparse_variables_1)
             up[:first, _] = 0
             up[(first + sparse_variables_1):, _] = 0
-        up[:, _] /= np.sqrt((up[:, _].T @ res_cov_1 @ up[:, _]))
-        res_cov_1 -= np.outer(up[:, _], up[:, _]) @ res_cov_1 @ np.outer(up[:, _], up[:, _])
+        up[:, _] /= np.sqrt((up[:, _].T @ cov_1 @ up[:, _]))
+        if _ < (k - 1) and sparse_variables_1 == 0:
+            proj = csr_matrix(up[:, _]).T @ csr_matrix(up[:, _])
+            cov_1 = (identity(up[:, _].shape[0]) - proj) @ cov_1 @ (identity(up[:, _].shape[0]) - proj)
 
     # Elimination step:
     for _ in range(k):
-        mat_1 = up.T @ cov_1 @ up
-        up[:, (_ + 1):] -= np.outer(up[:, _], np.diag(mat_1[_, (_ + 1):]))
+        mat_1 = up.T @ sparse_cov_1 @ up
+        up[:, (_ + 1):] -= np.outer(up[:, _], mat_1[_, (_ + 1):])
 
-    # TODO this is where we could fix to work out how to have more than one orthogonal. Think we should be able to deflate
-
-    res_cov_2 = np.copy(cov_2)
-    vp = np.random.rand(M, k)
+    if sparse_variables_2 > 0:
+        sparse_cov_2 = csr_matrix(cov_2)
+        cov_2 = sparse_cov_2.copy()
+    else:
+        sparse_cov_2 = cov_2.copy()
+    vp = np.random.rand(M, k) - 1
     for _ in range(k):
-        if sparse_variables_2 is not None:
-            first = np.random.randint(N - sparse_variables_2)
+        if sparse_variables_2 > 0:
+            if sparse_variables_2 < 1:
+                sparse_variables_2 = np.ceil(sparse_variables_2 * M).astype('int')
+            first = np.random.randint(M - sparse_variables_2)
             vp[:first, _] = 0
             vp[(first + sparse_variables_2):, _] = 0
-        vp[:, _] /= np.sqrt((vp[:, _].T @ res_cov_2 @ vp[:, _]))
-        res_cov_2 -= np.outer(vp[:, _], vp[:, _]) @ res_cov_2 @ np.outer(vp[:, _], vp[:, _])
+        vp[:, _] /= np.sqrt((vp[:, _].T @ cov_2 @ vp[:, _]))
+        if _ < (k - 1) and sparse_variables_2 == 0:
+            proj = csr_matrix(vp[:, _]).T @ csr_matrix(vp[:, _])
+            cov_2 = (identity(vp[:, _].shape[0]) - proj) @ cov_2 @ (identity(vp[:, _].shape[0]) - proj)
 
     for _ in range(k):
-        mat_2 = vp.T @ cov_2 @ vp
-        vp[:, (_ + 1):] -= np.outer(vp[:, _], np.diag(mat_2[_, (_ + 1):]))
+        mat_2 = vp.T @ sparse_cov_2 @ vp
+        vp[:, (_ + 1):] -= np.outer(vp[:, _], mat_2[_, (_ + 1):])
 
     sparse_vec = np.zeros((N, M))
     for _ in range(k):
@@ -82,65 +99,13 @@ def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: int = None,
     cov[N:, :N] = cross.T
     cov[:N, N:] = cross
 
-    X = np.random.multivariate_normal(mean, cov, m)
+    if cov.shape[0] > 1000:
+        X = torch.distributions.multivariate_normal.MultivariateNormal(loc=torch.tensor(mean),
+                                                                       covariance_matrix=torch.tensor(cov)).sample(
+            torch.Size((m,))).numpy()
+    else:
+        X = np.random.multivariate_normal(mean, cov, m)
     Y = X[:, N:]
     X = X[:, :N]
 
     return X, Y, up, vp, cov
-
-
-def generate_witten(m, k, N, M, sigma, tau, sparse_variables_1=2, sparse_variables_2=2):
-    z = np.random.rand(m, k)
-
-    up = np.random.rand(k, N)
-    vp = np.random.rand(k, M)
-
-    up[:, sparse_variables_1:] = 0
-    vp[:, sparse_variables_2:] = 0
-
-    X = z @ up + sigma * np.random.normal(0, 1, (m, N))
-    Y = z @ vp + tau * np.random.normal(0, 1, (m, M))
-
-    return X, Y, up.T, vp.T
-
-
-def generate_candola(m, k, N, M, sigma, tau, sparse_variables_1=None, sparse_variables_2=None):
-    # m data points
-    # k dimensions
-    # N unitary matrix size U
-    # M unitary matrix size V
-    X = np.random.rand(N, N)
-    # in QR decomposition Q is orthogonal, R is upper triangular
-    q, r = np.linalg.qr(X)
-    # turns r into random 1s and -1s
-    r = np.diag(np.diag(r) / np.abs(np.diag(r)))
-    # returns a pxp matrix
-    u = q @ r
-
-    # check np.linalg.norm(u.T@u - np.linalg.eye(N))
-    X = np.random.rand(M, M)
-    q, r = np.linalg.qr(X)
-    r = np.diag(np.diag(r) / np.abs(np.diag(r)))
-    # returns a qxq matrix
-    v = q @ r
-
-    # returns mxk the latent space
-    Z = np.random.rand(m, k)
-
-    # extract first k columns from the
-    up = u[:, : k]
-    vp = v[:, : k]
-    lam = np.zeros(N)
-    for i in range(N):
-        lam[i] = (((3 * N + 2) - 2 * i) / (2 * N))
-    mu = np.zeros(M)
-    for i in range(M):
-        mu[i] = np.sqrt(((3 * M + 2) - 2 * i) / (2 * M))
-
-    dL = np.diag(lam)
-    dM = np.diag(mu)
-    # NxN, Nxk (orthogonal columns), kxm
-    X = (dL @ up @ Z.T) + (sigma * np.random.rand(N, m))
-    # MxM, Mxk (orthogonal columns), kxm
-    Y = (dM @ vp @ Z.T) + (tau * np.random.rand(M, m))
-    return X.T, Y.T, up.T, vp.T
