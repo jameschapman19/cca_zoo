@@ -1,5 +1,5 @@
 # Canonical Correlation Analysis: cca-zoo
-## CCA, GCCA, MCCA, DCCA, DGCCA, DVCCA, DCCAE, KCCA and regularised variants
+## CCA, GCCA, MCCA, DCCA, DGCCA, DVCCA, DCCAE, KCCA and regularised variants using alternating least squares
 
 Can now be installed using pip install cca-zoo
 
