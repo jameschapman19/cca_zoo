@@ -9,6 +9,7 @@ import cca_zoo.generate_data
 import cca_zoo.plot_utils
 from hyperopt import tpe, hp, fmin, STATUS_OK, Trials
 
+
 class Wrapper:
     """
     This is a wrapper class for linear, regularised and kernel  CCA, Multiset CCA and Generalized CCA.
@@ -240,8 +241,6 @@ class Wrapper:
         D = block_diag(*[(1 - self.params['c'][i]) * m.T @ m + self.params['c'][i] * np.eye(m.shape[1]) for i, m in
                          enumerate(args)])
 
-        # TODO Not sure whether to do this
-        # C-=D
         R = cholesky(D, lower=False)
         whitened = np.linalg.inv(R.T) @ C @ np.linalg.inv(R)
         [eigvals, eigvecs] = np.linalg.eig(whitened)
@@ -345,7 +344,7 @@ def grid_search(*args, max_iter: int = 100, latent_dims: int = 5, method: str = 
             params[key] = param_candidates[key][index[p_num]]
             p_num += 1
         hyperparameter_scores[index] = -cross_validate(*args, method=method, latent_dims=latent_dims, folds=folds,
-                                                      verbose=verbose, max_iter=max_iter, tol=tol).score(params)
+                                                       verbose=verbose, max_iter=max_iter, tol=tol).score(params)
 
     # Find index of maximum value from 2D numpy array
     result = np.where(hyperparameter_scores == np.amax(hyperparameter_scores))

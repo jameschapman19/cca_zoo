@@ -16,7 +16,7 @@ class ALS_inner_loop:
 
     def __init__(self, *args, C=None, max_iter: int = 500, tol=1e-6, generalized: bool = True,
                  initialization: str = 'random', params=None,
-                 method: str = 'l2'):
+                 method: str = 'l2', auxiliary: bool = True):
         self.initialization = initialization
         self.C = C
         self.max_iter = max_iter
@@ -29,24 +29,26 @@ class ALS_inner_loop:
         self.datasets = list(args)
         self.track_lyuponov = []
         self.track_correlation = []
+        self.auxiliary = auxiliary
         self.iterate()
 
     def iterate(self):
         # Weight vectors for y (normalized to 1)
         self.weights = [np.random.rand(dataset.shape[1]) for dataset in self.datasets]
 
-        self.old_weights = [np.random.rand(dataset.shape[1]) for dataset in self.datasets]
-
-
         # initialize with first column
-        self.targets = np.array([dataset[:, 0] / np.linalg.norm(dataset[:, 0]) if np.linalg.norm(
+        self.scores = np.array([dataset[:, 0] / np.linalg.norm(dataset[:, 0]) if np.linalg.norm(
             dataset[:, 0]) != 0 else np.random.rand(dataset.shape[0]) for dataset in self.datasets])
+
+        if self.auxiliary:
+            self.target = self.scores.mean(axis=0)
 
         self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in self.datasets]
         self.corrs = []
         self.bin_search_init = np.zeros(len(self.datasets))
 
         # select update function: needs to return new weights and update the target matrix as appropriate
+        #might deprecate l2 and push it through elastic instead
         if self.method == 'l2':
             self.update_function = self.ridge_update
         elif self.method == 'pmd':
@@ -55,47 +57,54 @@ class ALS_inner_loop:
             self.update_function = self.parkhomenko_update
         elif self.method == 'elastic':
             self.update_function = self.elastic_update
+        elif self.method == 'elastic_constrained':
+            self.update_function = self.elastic_constrained_update
+        # implement scca by rescaling unconstrained solution
         elif self.method == 'scca':
-            self.update_function = self.sparse_update
-        elif self.method == 'elastic_jc':
-            self.update_function = self.elastic_jc_update
-        elif self.method == 'tree_jc':
+            self.update_function = self.scca_update
+        elif self.method == 'scca_constrained':
+            self.update_function = self.scca_constrained_update
+        elif self.method == 'tree':
             self.update_function = self.tree_update
-        elif self.method == 'constrained_scca':
-            self.update_function = self.constrained_update
 
         # This loops through each view and udpates both the weights and targets where relevant
         for _ in range(self.max_iter):
             for i, view in enumerate(self.datasets):
+                if self.auxiliary:
+                    self.target = self.scores.mean(axis=0)
                 self.weights[i] = self.update_function(i)
+
+            # tree doesn't have the lyuponov function
             if self.method[:4] != 'tree':
-                self.track_lyuponov.append(self.elastic_lyuponov())
+                self.track_lyuponov.append(self.lyuponov())
             # Some kind of early stopping
             if _ > 0:
-                if all(np.linalg.norm(self.targets[n] - self.old_targets[n]) < self.tol for n, view in
-                       enumerate(self.targets)):
+                if all(np.linalg.norm(self.scores[n] - self.old_scores[n]) < self.tol for n, view in
+                       enumerate(self.scores)):
                     break
-                # if all(np.linalg.norm(self.weights[n] - self.old_weights[n]) < self.tol for n, view in
-                # enumerate(self.datasets)):
-                # break
-            self.old_targets = self.targets.copy()
+
+            self.old_scores = self.scores.copy()
             # Sum all pairs
-            self.corrs.append(np.corrcoef(self.targets)[np.triu_indices(self.targets.shape[0], 1)].sum())
+            self.corrs.append(np.corrcoef(self.scores)[np.triu_indices(self.scores.shape[0], 1)].sum())
         return self
 
     def ridge_update(self, view_index):
         if self.generalized:
-            w = self.ridge_solver(self.datasets[view_index], self.targets.mean(axis=0), self.inverses[view_index],
+            if self.auxiliary:
+                target = self.target
+            else:
+                target = self.scores.mean(axis=0)
+            w = self.ridge_solver(self.datasets[view_index], target, self.inverses[view_index],
                                   alpha=self.params['c'][view_index] / len(self.datasets))
         else:
-            w = self.ridge_solver(self.datasets[view_index], self.targets[view_index - 1], self.inverses[view_index],
+            w = self.ridge_solver(self.datasets[view_index], self.scores[view_index - 1], self.inverses[view_index],
                                   alpha=self.params['c'][view_index])
         w /= np.linalg.norm(self.datasets[view_index] @ w)
-        self.targets[view_index] = self.datasets[view_index] @ w
+        self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
     def pmd_update(self, view_index):
-        targets = np.ma.array(self.targets, mask=False)
+        targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         w = self.datasets[view_index].T @ targets.sum(axis=0).filled()
         w, w_success = self.delta_search(w, self.params['c'][view_index])
@@ -103,11 +112,11 @@ class ALS_inner_loop:
             w = self.datasets[view_index].T @ targets.sum(axis=0).filled()
             if np.linalg.norm(w) == 0:
                 print('here')
-        self.targets[view_index] = self.datasets[view_index] @ w
+        self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
     def parkhomenko_update(self, view_index):
-        targets = np.ma.array(self.targets, mask=False)
+        targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         w = self.datasets[view_index].T @ targets.sum().filled()
         if np.linalg.norm(w) == 0:
@@ -117,78 +126,91 @@ class ALS_inner_loop:
         if np.linalg.norm(w) == 0:
             w = self.datasets[view_index].T @ targets.sum()
         w /= np.linalg.norm(w)
-        self.targets[view_index] = self.datasets[view_index] @ w
+        self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
     def elastic_update(self, view_index):
         if self.generalized:
-            w = self.elastic_solver(self.datasets[view_index], self.targets.mean(axis=0),
+            if self.auxiliary:
+                target = self.target
+            else:
+                target = self.scores.mean(axis=0)
+            w = self.elastic_solver(self.datasets[view_index], target,
                                     alpha=self.params['c'][view_index] / len(self.datasets),
-                                    l1_ratio=self.params['ratio'][view_index])
+                                    l1_ratio=self.params['l1_ratio'][view_index])
         else:
-            w = self.elastic_solver(self.datasets[view_index], self.targets[view_index - 1],
+            w = self.elastic_solver(self.datasets[view_index], self.scores[view_index - 1],
                                     alpha=self.params['c'][view_index],
-                                    l1_ratio=self.params['ratio'][view_index])
+                                    l1_ratio=self.params['l1_ratio'][view_index])
         w /= np.linalg.norm(self.datasets[view_index] @ w)
-        self.targets[view_index] = self.datasets[view_index] @ w
+        self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
-    def sparse_update(self, view_index):
+    def scca_update(self, view_index):
         if self.generalized:
-            w = self.lasso_solver(self.datasets[view_index], self.targets.mean(axis=0), self.inverses[view_index],
+            if self.auxiliary:
+                target = self.target
+            else:
+                target = self.scores.mean(axis=0)
+            w = self.lasso_solver(self.datasets[view_index], target, self.inverses[view_index],
                                   alpha=self.params['c'][view_index] / len(self.datasets))
         else:
-            w = self.lasso_solver(self.datasets[view_index], self.targets[view_index - 1], self.inverses[view_index],
+            w = self.lasso_solver(self.datasets[view_index], self.scores[view_index - 1], self.inverses[view_index],
                                   alpha=self.params['c'][view_index])
         if np.linalg.norm(self.datasets[view_index] @ w) == 0:
             print('here')
         w /= np.linalg.norm(self.datasets[view_index] @ w)
-        self.targets[view_index] = self.datasets[view_index] @ w
+        self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
-    def elastic_jc_update(self, view_index):
+    def elastic_constrained_update(self, view_index):
         if self.generalized:
+            if self.auxiliary:
+                target = self.target
+            else:
+                target = self.scores.mean(axis=0)
             w, self.bin_search_init[view_index] = self.constrained_elastic(self.datasets[view_index],
-                                                                           self.targets.mean(axis=0),
+                                                                           self.target,
                                                                            self.params['c'][view_index] / len(
                                                                                self.datasets),
-                                                                           self.params['ratio'][view_index],
+                                                                           self.params['l1_ratio'][view_index],
                                                                            init=self.bin_search_init[view_index])
         else:
             w, self.bin_search_init[view_index] = self.constrained_elastic(self.datasets[view_index],
-                                                                           self.targets[view_index - 1],
+                                                                           self.scores[view_index - 1],
                                                                            self.params['c'][view_index],
-                                                                           self.params['ratio'][view_index],
+                                                                           self.params['l1_ratio'][view_index],
                                                                            init=self.bin_search_init[view_index])
-        self.targets[view_index] = self.datasets[view_index] @ w
+        self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
     def tree_update(self, view_index):
         if self.generalized:
-            w, self.bin_search_init[view_index] = self.constrained_tree(self.datasets[view_index],
-                                                                        self.targets.mean(axis=0),
-                                                                        dpeth=self.params['c'][view_index],
-                                                                        init=self.bin_search_init[view_index])
+            if self.auxiliary:
+                target = self.target
+            else:
+                target = self.scores.mean(axis=0)
         else:
-            w, self.bin_search_init[view_index] = self.constrained_tree(self.datasets[view_index],
-                                                                        self.targets[view_index - 1],
-                                                                        depth=self.params['c'][view_index],
-                                                                        init=self.bin_search_init[view_index])
-        self.targets[view_index] = w.predict(self.datasets[view_index])
+            target = self.scores[view_index - 1]
+        w, self.bin_search_init[view_index] = self.constrained_tree(self.datasets[view_index],
+                                                                    target,
+                                                                    depth=self.params['c'][view_index],
+                                                                    init=self.bin_search_init[view_index])
+        self.scores[view_index] = w.predict(self.datasets[view_index])
         return w
 
-    def constrained_update(self, view_index):
+    def scca_constrained_update(self, view_index):
         if self.generalized:
             w, self.bin_search_init[view_index] = self.constrained_regression(self.datasets[view_index],
-                                                                              self.targets.mean(axis=0),
+                                                                              self.scores.mean(axis=0),
                                                                               self.params['c'][view_index],
                                                                               init=self.bin_search_init[view_index])
         else:
             w, self.bin_search_init[view_index] = self.constrained_regression(self.datasets[view_index],
-                                                                              self.targets[view_index - 1],
+                                                                              self.scores[view_index - 1],
                                                                               self.params['c'][view_index],
                                                                               init=self.bin_search_init[view_index])
-        self.targets[view_index] = self.datasets[view_index] @ w
+        self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
     def soft_threshold(self, x, delta):
@@ -396,22 +418,22 @@ class ALS_inner_loop:
         coef = coef / np.linalg.norm(X @ coef)
         return coef, current
 
-    def elastic_lyuponov(self):
+    def lyuponov(self):
         views = len(self.datasets)
         c = np.array(self.params.get('c', [0] * views))
-        ratio = np.array(self.params.get('ratio', [1] * views))
+        ratio = np.array(self.params.get('l1_ratio', [0] * views))
         l1 = c * ratio
         l2 = c * (1 - ratio)
         lyuponov = 0
         for i in range(views):
             if self.generalized:
-                lyuponov_target = self.targets.mean(axis=0)
+                lyuponov_target = self.scores.mean(axis=0)
                 multiplier = views
             else:
-                lyuponov_target = self.targets[i - 1]
+                lyuponov_target = self.scores[i - 1]
                 multiplier = 0.5
             lyuponov += 1 / (2 * self.datasets[i].shape[0]) * multiplier * np.linalg.norm(
-                self.datasets[i] @ self.weights[i] - lyuponov_target) + l1[i] * np.linalg.norm(self.weights[i], ord=1) + \
+                self.datasets[i] @ self.weights[i] - lyuponov_target)**2 + l1[i] * np.linalg.norm(self.weights[i], ord=1) + \
                         l2[i] * np.linalg.norm(self.weights[i], ord=2)
         return lyuponov
 

@@ -17,7 +17,7 @@ class KCCA:
     def __init__(self, X: np.array, Y: np.array, params: dict = None, latent_dims: int = 2):
         self.X = X
         self.Y = Y
-        self.eps=1e-9
+        self.eps = 1e-10
         self.latent_dims = latent_dims
         self.ktype = params.get('kernel')
         self.sigma = params.get('sigma')
@@ -32,7 +32,7 @@ class KCCA:
         self.K2 = np.dot(np.dot(N0, self.K2), N0)
 
         R, D = self.hardoon_method()
-        betas, alphas = eigh(R, D+self.eps*np.eye(D.shape[0]))
+        betas, alphas = eigh(R, D)
         # sorting according to eigenvalue
         betas = np.real(betas)
         ind = np.argsort(betas)
@@ -67,10 +67,11 @@ class KCCA:
         R2 = np.c_[np.dot(self.K2, self.K1), Z]
         R = np.r_[R1, R2]
 
-        D1 = np.c_[(1 - self.c[0]) * self.K1@self.K1.T + self.c[0] * self.K1, Z]
-        D2 = np.c_[Z, (1 - self.c[1]) * self.K2@self.K2.T + self.c[1] * self.K2]
+        D1 = np.c_[self.K1 @ self.K1.T + self.c[0] * np.eye(self.K1.shape[0]), Z]
+        D2 = np.c_[Z, self.K2 @ self.K2.T + self.c[1] * np.eye(self.K2.shape[0])]
         D = np.r_[D1, D2]
         return R, D
+
 
     def transform(self, X_test: np.array = None, Y_test: np.array = None):
         n_dims = self.alpha1.shape[1]
