@@ -28,7 +28,7 @@ class ALS_inner_loop:
             self.params['l1_ratio'] = [1 for _ in args]
         self.method = method
         if len(args) > 2:
-            self.generalized=True
+            self.generalized = True
         else:
             self.generalized = generalized
         self.datasets = list(args)

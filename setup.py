@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='cca_zoo',
-    version='1.0.11',
+    version='1.0.12',
     packages=find_packages(),
     url='https://github.com/jameschapman19/cca_zoo',
     license='MIT',

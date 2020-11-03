@@ -62,6 +62,7 @@ We can do this via a few different methods
 both alternating least squares and NIPALS find least squares solutions
 and therefore this problem is avoided)
 """
+
 # %%
 linear_cca = cca_zoo.linear.Wrapper(latent_dims=latent_dims)
 

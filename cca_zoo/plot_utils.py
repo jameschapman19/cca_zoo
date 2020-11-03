@@ -1,4 +1,5 @@
 import matplotlib
+
 matplotlib.use('agg')
 import numpy as np
 from sklearn import metrics
@@ -17,6 +18,7 @@ plot_results() used to generate comparison plots for HCP data
 
 
 """
+
 
 def cv_plot(scores, param_dict, reg):
     # First see if 1 dimensional

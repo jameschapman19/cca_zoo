@@ -1,8 +1,6 @@
 from abc import ABC
 
-import torch
 from torch import nn
-from torch.nn import functional as F
 from torch import optim
 
 import cca_zoo.deep_models
@@ -42,11 +40,11 @@ class DCCA(nn.Module, ABC):
             if hidden_layer_sizes_2 is None:
                 hidden_layer_sizes_2 = [128]
             self.encoder_2 = cca_zoo.deep_models.Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
-        if model_2 == 'cnn':
+        elif model_2 == 'cnn':
             if hidden_layer_sizes_2 is None:
                 hidden_layer_sizes_2 = [1, 1, 1]
             self.encoder_2 = cca_zoo.deep_models.CNN_Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
-        if model_2 == 'brainnet':
+        elif model_2 == 'brainnet':
             self.encoder_2 = cca_zoo.deep_models.BrainNetCNN_Encoder(input_size_2, latent_dims).double()
 
         self.latent_dims = latent_dims
@@ -58,33 +56,27 @@ class DCCA(nn.Module, ABC):
         elif loss_type == 'mcca':
             self.cca_objective = cca_zoo.objectives.mcca(self.latent_dims)
 
-        self.lam = lam
         self.learning_rate = learning_rate
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def encode(self, x_1, x_2):
         z_1 = self.encoder_1(x_1)
         z_2 = self.encoder_2(x_2)
         return z_1, z_2
 
-    def decode(self, z_1, z_2):
-        x_1_recon = self.decoder_1(z_1)
-        x_2_recon = self.decoder_2(z_2)
-        return x_1_recon, x_2_recon
-
     def forward(self, x_1, x_2):
         z_1, z_2 = self.encode(x_1, x_2)
-        x_1_recon, x_2_recon = self.decode(z_1, z_2)
-        return z_1, z_2, x_1_recon, x_2_recon
+        return z_1, z_2
 
     def update_weights(self, x_1, x_2):
         self.optimizer.zero_grad()
-        loss = self.model.loss(self.model(x_1, x_2))
+        loss = self.loss(x_1, x_2)
         loss.backward()
         self.optimizer.step()
         return loss
 
-    def loss(self, z_1, z_2):
+    def loss(self, x_1, x_2):
+        z_1, z_2 = self(x_1, x_2)
         return self.cca_objective.loss(z_1, z_2)
 
 
@@ -121,10 +113,11 @@ class DGCCA(nn.Module, ABC):
 
     def update_weights(self, x_1, x_2):
         self.optimizer.zero_grad()
-        loss = self.model.loss(self.model(x_1, x_2))
+        loss = self.loss(*self(x_1, x_2))
         loss.backward()
         self.optimizer.step()
         return loss
 
     def loss(self, *args):
-        return self.cca_objective.loss(*args)
+        z = self(args)
+        return self.cca_objective.loss(*z)

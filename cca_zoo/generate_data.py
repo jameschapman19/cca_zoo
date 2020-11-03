@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.linalg import toeplitz
 
+
 def gaussian(x, mu, sig, dn):
     return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.))) * dn / (np.sqrt(2 * np.pi) * sig)
 
@@ -38,11 +39,11 @@ def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0, 
         cov_2 = toeplitz(c, c)
     elif structure == 'random':
         cov_1 = np.random.rand(N, N)
-        #cov_1=cov_1@cov_1.T
+        # cov_1=cov_1@cov_1.T
         U, S, V = np.linalg.svd(cov_1.T @ cov_1)
         cov_1 = U @ (1.0 + np.diag(np.random.rand(N))) @ V
         cov_2 = np.random.rand(M, M)
-        #cov_2=cov_2@cov_2.T
+        # cov_2=cov_2@cov_2.T
         U, S, V = np.linalg.svd(cov_2.T @ cov_2)
         cov_2 = U @ (1.0 + np.diag(np.random.rand(M))) @ V
 
@@ -59,7 +60,7 @@ def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0, 
     else:
         sparse_cov_1 = cov_1.copy()
     """
-    up = np.random.rand(N, k)-0.5
+    up = np.random.rand(N, k) - 0.5
     for _ in range(k):
         if sparse_variables_1 > 0:
             if sparse_variables_1 < 1:
@@ -88,7 +89,7 @@ def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0, 
     else:
         sparse_cov_2 = cov_2.copy()
     """
-    vp = np.random.rand(M, k)-0.5
+    vp = np.random.rand(M, k) - 0.5
     for _ in range(k):
         if sparse_variables_2 > 0:
             if sparse_variables_2 < 1:

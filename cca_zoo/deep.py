@@ -1,11 +1,11 @@
 import copy
 
+import numpy as np
 import torch
-from sklearn.cross_decomposition import CCA
 from torch.nn import functional as F
 from torch.utils.data import TensorDataset, DataLoader
-import numpy as np
 
+import cca_zoo.DCCA
 import cca_zoo.DCCAE
 import cca_zoo.DVCCA
 import cca_zoo.plot_utils
@@ -64,10 +64,10 @@ class Wrapper:
         self.dataset_list_train = []
         self.dataset_list_val = []
         self.dataset_means = []
-        for dataset in args:
+        for i, dataset in enumerate(args):
             self.dataset_means.append(dataset[train_inds].mean(axis=0))
-            self.dataset_list_train.append(dataset[train_inds] - dataset.mean(axis=0))
-            self.dataset_list_val.append(dataset[val_inds] - dataset.mean(axis=0))
+            self.dataset_list_train.append(dataset[train_inds] - self.dataset_means[i])
+            self.dataset_list_val.append(dataset[val_inds] - self.dataset_means[i])
 
         # For CCA loss functions, we require that the number of samples in each batch is greater than the number of
         # latent dimensions. This attempts to alter the batch size to fulfil this condition
@@ -102,8 +102,13 @@ class Wrapper:
                                              hidden_layer_sizes_2=self.hidden_layer_sizes_2,
                                              both_encoders=self.both_encoders, latent_dims=self.latent_dims,
                                              private=self.private)
-        elif self.method == 'DGCCA':
-            self.model = cca_zoo.DCCA.DGCCA()
+        elif self.method == 'DCCA':
+            self.model = cca_zoo.DCCA.DCCA(input_size_1=self.dataset_list_train[0].shape[-1],
+                                           input_size_2=self.dataset_list_train[1].shape[-1],
+                                           hidden_layer_sizes_1=self.hidden_layer_sizes_1,
+                                           hidden_layer_sizes_2=self.hidden_layer_sizes_2, lam=self.lam,
+                                           latent_dims=self.latent_dims, loss_type=self.loss_type,
+                                           model_1=self.model_1, model_2=self.model_2)
 
         model_params = sum(p.numel() for p in self.model.parameters())
         best_model = copy.deepcopy(self.model.state_dict())
@@ -115,7 +120,7 @@ class Wrapper:
         all_train_loss = []
         all_val_loss = []
 
-        for epoch in range(self.epoch_num):
+        for epoch in range(1, self.epoch_num):
             if early_stop == False:
                 epoch_train_loss = self.train_epoch(train_dataloader)
                 print('====> Epoch: {} Average train loss: {:.4f}'.format(
@@ -124,7 +129,7 @@ class Wrapper:
                 print('====> Epoch: {} Average val loss: {:.4f}'.format(
                     epoch, epoch_val_loss))
 
-                if epoch_val_loss < min_val_loss:
+                if epoch_val_loss < min_val_loss or epoch == 1:
                     min_val_loss = epoch_val_loss
                     best_model = copy.deepcopy(self.model.state_dict())
                     print('Min loss %0.2f' % min_val_loss)
@@ -142,20 +147,24 @@ class Wrapper:
                 all_val_loss.append(epoch_val_loss)
         cca_zoo.plot_utils.plot_training_loss(all_train_loss, all_val_loss)
 
-        if self.method == 'DCCAE':
-            self.train_correlations = self.predict_corr(*args, train=True)
+        if self.method == 'DCCA':
+            self.train_correlations = self.predict_corr(*self.dataset_list_train, train=True)
+            self.val_correlations = self.predict_corr(*self.dataset_list_val, train=True)
+        elif self.method == 'DCCAE':
+            self.train_correlations = self.predict_corr(*self.dataset_list_train, train=True)
+            self.val_correlations = self.predict_corr(*self.dataset_list_val, train=True)
         elif self.method == 'DVCCA':
             if self.both_encoders:
-                self.train_correlations = self.predict_corr(*args, train=True)
-
+                self.train_correlations = self.predict_corr(*self.dataset_list_train, train=True)
+                self.val_correlations = self.predict_corr(*self.dataset_list_val, train=True)
         return self
 
     def train_epoch(self, train_dataloader: torch.utils.data.DataLoader):
         self.model.train()
         train_loss = 0
-        for batch_idx, (x, y) in enumerate(train_dataloader):
-            x, y = x.to(self.device), y.to(self.device)
-            loss = self.model.update_weights(x, y)
+        for batch_idx, data in enumerate(train_dataloader):
+            data = [d.to(self.device) for d in list(data)]
+            loss = self.model.update_weights(*data)
             train_loss += loss.item()
         return train_loss / len(train_dataloader)
 
@@ -163,42 +172,37 @@ class Wrapper:
         self.model.eval()
         with torch.no_grad():
             total_val_loss = 0
-            for batch_idx, (x, y) in enumerate(val_dataloader):
-                x, y = x.to(self.device), y.to(self.device)
-                model_outputs = self.model(x, y)
-                loss = self.model.loss(x, y, *model_outputs)
+            for batch_idx, data in enumerate(val_dataloader):
+                data = [d.to(self.device) for d in list(data)]
+                loss = self.model.loss(*data)
                 total_val_loss += loss.item()
         return total_val_loss / len(val_dataloader)
 
     def predict_corr(self, *args, train=False):
-        dataset_list_test = [arg - self.dataset_means[i] for i, arg in enumerate(args)]
-        test_dataset = TensorDataset(*[torch.tensor(dataset) for dataset in self.dataset_list_train])
+        dataset_list_test = [arg if train else arg - self.dataset_means[i] for i, arg in enumerate(args)]
+        test_dataset = TensorDataset(*[torch.tensor(dataset) for dataset in dataset_list_test])
         test_dataloader = DataLoader(test_dataset, batch_size=self.batch_size)
-        z_x = np.empty((0, self.latent_dims))
-        z_y = np.empty((0, self.latent_dims))
+        z_list = [np.empty((0, self.latent_dims)) for _ in range(len(args))]
         with torch.no_grad():
-            for batch_idx, (x, y) in enumerate(test_dataloader):
-                x, y = x.to(self.device), y.to(self.device)
-                if self.method == 'DCCAE':
-                    z_x_batch, z_y_batch, recon_x_batch, recon_y_batch = self.model(x, y)
+            for batch_idx, data in enumerate(test_dataloader):
+                data = [d.to(self.device) for d in list(data)]
+                if self.method in ['DCCA', 'DCCAE', 'DGCCA', 'DGCCAE']:
+                    z = self.model.encode(*data)
                 elif self.method == 'DVCCA':
                     if self.both_encoders:
-                        if self.private:
-                            recon_batch_1, recon_batch_2, z_x_batch, logvar_x, z_y_batch, logvar_y, _, _, _, _ = self.model(
-                                x, y)
-                        else:
-                            recon_batch_1, recon_batch_2, z_x_batch, logvar_x, z_y_batch, logvar_y = self.model(x, y)
+                        z_1 = self.model.reparameterize(*self.model.encode_1(data[0]))
+                        z_2 = self.model.reparameterize(*self.model.encode_2(data[1]))
+                        z = (z_1, z_2)
                     else:
                         print('No correlation method for single encoding')
                         return
-                z_x = np.append(z_x, z_x_batch.detach().cpu().numpy(), axis=0)
-                z_y = np.append(z_y, z_y_batch.detach().cpu().numpy(), axis=0)
-        if train:
-            self.cca = CCA(n_components=self.latent_dims)
-            view_1, view_2 = self.cca.fit_transform(z_x, z_y)
-        else:
-            view_1, view_2 = self.cca.transform(np.array(z_x), np.array(z_y))
-        correlations = np.diag(np.corrcoef(view_1, view_2, rowvar=False)[:self.latent_dims, self.latent_dims:])
+                z_list = [np.append(z_i, z[i].detach().cpu().numpy(), axis=0) for i, z_i in enumerate(z_list)]
+        # if train:
+        #    self.cca = CCA(n_components=self.latent_dims)
+        #    view_1, view_2 = self.cca.fit_transform(z_x, z_y)
+        # else:
+        #    view_1, view_2 = self.cca.transform(np.array(z_x), np.array(z_y))
+        correlations = np.diag(np.corrcoef(z_list[0], z_list[1], rowvar=False)[:self.latent_dims, self.latent_dims:])
         return correlations
 
     def transform_view(self, X_new=None, Y_new=None):

@@ -2,8 +2,8 @@ from abc import ABC
 
 import torch
 from torch import nn
-from torch.nn import functional as F
 from torch import optim
+from torch.nn import functional as F
 
 import cca_zoo.deep_models
 import cca_zoo.objectives
@@ -24,7 +24,7 @@ class DCCAE(nn.Module, ABC):
 
     def __init__(self, input_size_1: int, input_size_2: int, hidden_layer_sizes_1: list = None,
                  hidden_layer_sizes_2: list = None, latent_dims: int = 2,
-                 lam=0, loss_type: str = 'cca', model_1: str = 'fcn', model_2: str = 'fcn',learning_rate=1e-3):
+                 lam=0, loss_type: str = 'cca', model_1: str = 'fcn', model_2: str = 'fcn', learning_rate=1e-3):
         super(DCCAE, self).__init__()
 
         if model_1 == 'fcn':
@@ -46,12 +46,12 @@ class DCCAE(nn.Module, ABC):
                 hidden_layer_sizes_2 = [128]
             self.encoder_2 = cca_zoo.deep_models.Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
             self.decoder_2 = cca_zoo.deep_models.Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
-        if model_2 == 'cnn':
+        elif model_2 == 'cnn':
             if hidden_layer_sizes_2 is None:
                 hidden_layer_sizes_2 = [1, 1, 1]
             self.encoder_2 = cca_zoo.deep_models.CNN_Encoder(hidden_layer_sizes_2, input_size_2, latent_dims).double()
             self.decoder_2 = cca_zoo.deep_models.CNN_Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
-        if model_2 == 'brainnet':
+        elif model_2 == 'brainnet':
             self.encoder_2 = cca_zoo.deep_models.BrainNetCNN_Encoder(input_size_2, latent_dims).double()
             self.decoder_2 = cca_zoo.deep_models.BrainNetCNN_Decoder(latent_dims, input_size_2).double()
 
@@ -65,7 +65,7 @@ class DCCAE(nn.Module, ABC):
             self.cca_objective = cca_zoo.objectives.mcca(self.latent_dims)
         self.lam = lam
         self.learning_rate = learning_rate
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def encode(self, x_1, x_2):
         z_1 = self.encoder_1(x_1)
@@ -78,25 +78,31 @@ class DCCAE(nn.Module, ABC):
         return x_1_recon, x_2_recon
 
     def forward(self, x_1, x_2):
-        z_1, z_2 = self.encode(x_1, x_2)
-        x_1_recon, x_2_recon = self.decode(z_1, z_2)
-        return z_1, z_2, x_1_recon, x_2_recon
+        z = self.encode(x_1, x_2)
+        recon = self.decode(*z)
+        return z, recon
 
     def update_weights(self, x_1, x_2):
         self.optimizer.zero_grad()
-        loss = self.model.loss(self.model(x_1, x_2))
+        loss = self.loss(x_1, x_2)
         loss.backward()
         self.optimizer.step()
         return loss
 
-    def loss(self, x_1, x_2, z_1, z_2, x_1_recon, x_2_recon):
+    def loss(self, x_1, x_2):
+        z = self.encode(x_1, x_2)
+        recon = self.decode(*z)
+        recon_loss = self.recon_loss(x_1, x_2, *recon)
+        return self.lam * recon_loss + self.cca_objective.loss(*z)
+
+    def recon_loss(self, x_1, x_2, x_1_recon, x_2_recon):
         recon_1 = F.mse_loss(x_1_recon, x_1, reduction='sum')
         recon_2 = F.mse_loss(x_2_recon, x_2, reduction='sum')
-        return self.lam * recon_1 + self.lam * recon_2 + self.cca_objective.loss(z_1, z_2)
+        return recon_1 + recon_2
 
 
 class DGCCAE(nn.Module, ABC):
-    def __init__(self, *args, hidden_layer_sizes=None, latent_dims=2, lam=0, loss_type='gcca',learning_rate=1e-3):
+    def __init__(self, *args, hidden_layer_sizes=None, latent_dims=2, lam=0, loss_type='gcca', learning_rate=1e-3):
         super(DGCCAE, self).__init__()
 
         if hidden_layer_sizes is None:
@@ -118,8 +124,8 @@ class DGCCAE(nn.Module, ABC):
             self.cca_objective = cca_zoo.objectives.mcca(self.latent_dims)
         self.lam = lam
 
-        self.learning_rate=learning_rate
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.learning_rate = learning_rate
+        self.optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def encode(self, *args):
         z = []
@@ -135,18 +141,20 @@ class DGCCAE(nn.Module, ABC):
 
     def forward(self, *args):
         z = self.encode(*args)
-        x_recon = self.decode(*z)
-        return z + x_recon
+        recon = self.decode(*z)
+        return z, recon
 
-    def update_weights(self, x_1, x_2):
+    def update_weights(self, *args):
         self.optimizer.zero_grad()
-        loss = self.model.loss(self.model(x_1, x_2))
+        loss = self.loss(*args)
         loss.backward()
         self.optimizer.step()
         return loss
 
     def loss(self, *args):
-        return self.recon_loss(*args)+self.cca_objective.loss(*args)
+        z = self.encode(*args)
+        recon = self.decode(*z)
+        return self.lam * self.recon_loss(args, recon) + self.cca_objective.loss(*z)
 
-    def recon_loss(self, *args):
-        return self.lam * torch.sum(torch.stack([F.mse_loss(arg, arg, reduction='sum') for arg in args]))
+    def recon_loss(self, views, recons):
+        return torch.sum(torch.stack([F.mse_loss(view, recons[i], reduction='sum') for i, view in enumerate(views)]))

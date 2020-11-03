@@ -1,13 +1,14 @@
 import itertools
 
+import numpy as np
+from hyperopt import tpe, fmin, Trials
 from scipy.linalg import pinv2, block_diag, cholesky
 from sklearn.cross_decomposition import CCA, PLSCanonical
-import numpy as np
+
 import cca_zoo.KCCA
 import cca_zoo.alternating_least_squares
 import cca_zoo.generate_data
 import cca_zoo.plot_utils
-from hyperopt import tpe, hp, fmin, STATUS_OK, Trials
 
 
 class Wrapper:

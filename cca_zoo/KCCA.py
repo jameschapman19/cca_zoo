@@ -72,7 +72,6 @@ class KCCA:
         D = np.r_[D1, D2]
         return R, D
 
-
     def transform(self, X_test: np.array = None, Y_test: np.array = None):
         n_dims = self.alpha1.shape[1]
         if X_test is not None:
