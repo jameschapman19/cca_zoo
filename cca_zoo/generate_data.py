@@ -59,7 +59,7 @@ def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0, 
     else:
         sparse_cov_1 = cov_1.copy()
     """
-    up = np.random.rand(N, k) - 1
+    up = np.random.rand(N, k)-0.5
     for _ in range(k):
         if sparse_variables_1 > 0:
             if sparse_variables_1 < 1:
@@ -88,7 +88,7 @@ def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0, 
     else:
         sparse_cov_2 = cov_2.copy()
     """
-    vp = np.random.rand(M, k) - 1
+    vp = np.random.rand(M, k)-0.5
     for _ in range(k):
         if sparse_variables_2 > 0:
             if sparse_variables_2 < 1:
@@ -117,11 +117,7 @@ def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0, 
     cov[N:, :N] = cross.T
     cov[:N, N:] = cross
     del cross
-    #if cov.shape[0] > 10000:
-    #    X = torch.distributions.multivariate_normal.MultivariateNormal(loc=torch.tensor(mean),
-    #                                                                   covariance_matrix=torch.tensor(cov)).sample(
-    #        torch.Size((m,))).numpy()
-    #else:
+
     X = np.random.multivariate_normal(mean, cov, m)
     Y = X[:, N:]
     X = X[:, :N]

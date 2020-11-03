@@ -2,7 +2,6 @@ import copy
 
 import torch
 from sklearn.cross_decomposition import CCA
-from torch import optim
 from torch.nn import functional as F
 from torch.utils.data import TensorDataset, DataLoader
 import numpy as np
@@ -56,57 +55,60 @@ class Wrapper:
         self.model_1 = model_1
         self.model_2 = model_2
 
-    def fit(self, X_train, Y_train):
-
+    def process_training_data(self, *args):
         # Split the subjects randomly into train and validation
-        num_subjects = X_train.shape[0]
+        num_subjects = args[0].shape[0]
         all_inds = np.arange(num_subjects)
         np.random.shuffle(all_inds)
         train_inds, val_inds = np.split(all_inds, [int(round(0.8 * num_subjects, 0))])
-        X_val = X_train[val_inds]
-        Y_val = Y_train[val_inds]
-        X_train = X_train[train_inds]
-        Y_train = Y_train[train_inds]
-        # Remove the training mean from train and validation to avoid leakage
-        self.X_mean = X_train.mean(axis=0)
-        self.Y_mean = Y_train.mean(axis=0)
-        X_train -= self.X_mean
-        Y_train -= self.Y_mean
-        X_val -= self.X_mean
-        Y_val -= self.Y_mean
-
-        # transform to a torch tensor dataset
-        train_dataset = TensorDataset(torch.tensor(X_train), torch.tensor(Y_train))  # create your datset
-        train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size)
-        val_dataset = TensorDataset(torch.tensor(X_val), torch.tensor(Y_val))  # create your datset
-        val_dataloader = DataLoader(val_dataset, batch_size=self.batch_size)
+        self.dataset_list_train = []
+        self.dataset_list_val = []
+        self.dataset_means = []
+        for dataset in args:
+            self.dataset_means.append(dataset[train_inds].mean(axis=0))
+            self.dataset_list_train.append(dataset[train_inds] - dataset.mean(axis=0))
+            self.dataset_list_val.append(dataset[val_inds] - dataset.mean(axis=0))
 
         # For CCA loss functions, we require that the number of samples in each batch is greater than the number of
         # latent dimensions. This attempts to alter the batch size to fulfil this condition
-        while X_train.shape[0] % self.batch_size < self.latent_dims:
+        while num_subjects % self.batch_size < self.latent_dims:
             self.batch_size += 1
+
+    def fit(self, *args):
+        self.process_training_data(*args)
+
+        # transform to a torch tensor dataset
+        train_dataset = TensorDataset(
+            *[torch.tensor(dataset) for dataset in self.dataset_list_train])  # create your datset
+        train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size)
+        val_dataset = TensorDataset(*[torch.tensor(dataset) for dataset in self.dataset_list_val])
+        val_dataloader = DataLoader(val_dataset, batch_size=self.batch_size)
 
         # First we get the model class.
         # These have a forward method which takes data inputs and outputs the variables needed to calculate their
         # respective loss. The models also have loss functions as methods but we can also customise the loss by calling
         # a_loss_function(model(data))
         if self.method == 'DCCAE':
-            self.model = cca_zoo.DCCAE.DCCAE(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1],
+            self.model = cca_zoo.DCCAE.DCCAE(input_size_1=self.dataset_list_train[0].shape[-1],
+                                             input_size_2=self.dataset_list_train[1].shape[-1],
                                              hidden_layer_sizes_1=self.hidden_layer_sizes_1,
                                              hidden_layer_sizes_2=self.hidden_layer_sizes_2, lam=self.lam,
                                              latent_dims=self.latent_dims, loss_type=self.loss_type,
                                              model_1=self.model_1, model_2=self.model_2)
         elif self.method == 'DVCCA':
-            self.model = cca_zoo.DVCCA.DVCCA(input_size_1=X_train.shape[-1], input_size_2=Y_train.shape[-1],
+            self.model = cca_zoo.DVCCA.DVCCA(input_size_1=self.dataset_list_train[0].shape[-1],
+                                             input_size_2=self.dataset_list_train[1].shape[-1],
                                              hidden_layer_sizes_1=self.hidden_layer_sizes_1,
                                              hidden_layer_sizes_2=self.hidden_layer_sizes_2,
                                              both_encoders=self.both_encoders, latent_dims=self.latent_dims,
                                              private=self.private)
+        elif self.method == 'DGCCA':
+            self.model = cca_zoo.DCCA.DGCCA()
+
         model_params = sum(p.numel() for p in self.model.parameters())
         best_model = copy.deepcopy(self.model.state_dict())
         print("Number of model parameters {}".format(model_params))
         self.model.double().to(self.device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         min_val_loss = self.latent_dims
         epochs_no_improve = 0
         early_stop = False
@@ -141,12 +143,10 @@ class Wrapper:
         cca_zoo.plot_utils.plot_training_loss(all_train_loss, all_val_loss)
 
         if self.method == 'DCCAE':
-            self.train_correlations = self.predict_corr(X_train, Y_train, train=True)
-        elif self.method =='DVCCA':
+            self.train_correlations = self.predict_corr(*args, train=True)
+        elif self.method == 'DVCCA':
             if self.both_encoders:
-                self.train_correlations = self.predict_corr(X_train, Y_train, train=True)
-
-        self.train_recon_loss_x, self.train_recon_loss_y = self.recon_loss(X_train, Y_train)
+                self.train_correlations = self.predict_corr(*args, train=True)
 
         return self
 
@@ -154,15 +154,9 @@ class Wrapper:
         self.model.train()
         train_loss = 0
         for batch_idx, (x, y) in enumerate(train_dataloader):
-            self.optimizer.zero_grad()
             x, y = x.to(self.device), y.to(self.device)
-            self.optimizer.zero_grad()
-            model_outputs = self.model(x, y)
-            loss = self.model.loss(x, y, *model_outputs)
-            loss.backward()
+            loss = self.model.update_weights(x, y)
             train_loss += loss.item()
-            self.optimizer.step()
-
         return train_loss / len(train_dataloader)
 
     def val_epoch(self, val_dataloader: torch.utils.data.DataLoader):
@@ -176,11 +170,10 @@ class Wrapper:
                 total_val_loss += loss.item()
         return total_val_loss / len(val_dataloader)
 
-    def predict_corr(self, X_test, Y_test, train=False):
-        X_test -= self.X_mean
-        Y_test -= self.Y_mean
-        test_dataset = TensorDataset(torch.tensor(X_test), torch.tensor(Y_test))  # create your datset
-        test_dataloader = DataLoader(test_dataset, batch_size=100)
+    def predict_corr(self, *args, train=False):
+        dataset_list_test = [arg - self.dataset_means[i] for i, arg in enumerate(args)]
+        test_dataset = TensorDataset(*[torch.tensor(dataset) for dataset in self.dataset_list_train])
+        test_dataloader = DataLoader(test_dataset, batch_size=self.batch_size)
         z_x = np.empty((0, self.latent_dims))
         z_y = np.empty((0, self.latent_dims))
         with torch.no_grad():
@@ -191,7 +184,8 @@ class Wrapper:
                 elif self.method == 'DVCCA':
                     if self.both_encoders:
                         if self.private:
-                            recon_batch_1, recon_batch_2, z_x_batch, logvar_x, z_y_batch, logvar_y, _, _, _, _ = self.model(x, y)
+                            recon_batch_1, recon_batch_2, z_x_batch, logvar_x, z_y_batch, logvar_y, _, _, _, _ = self.model(
+                                x, y)
                         else:
                             recon_batch_1, recon_batch_2, z_x_batch, logvar_x, z_y_batch, logvar_y = self.model(x, y)
                     else:
@@ -267,7 +261,7 @@ class Wrapper:
                 elif self.method == 'DVCCA':
                     model_outputs = self.model(x, y)
                     recon_x = model_outputs[0]
-                    recon_y=model_outputs[1]
+                    recon_y = model_outputs[1]
                 recon_loss_x += F.mse_loss(recon_x, x, reduction='sum').detach().cpu().numpy() / x.shape[0]
                 recon_loss_y += F.mse_loss(recon_y, y, reduction='sum').detach().cpu().numpy() / y.shape[0]
         return recon_loss_x, recon_loss_y

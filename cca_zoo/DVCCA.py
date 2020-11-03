@@ -3,6 +3,7 @@ from abc import ABC
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torch import optim
 
 import cca_zoo.deep_models
 
@@ -33,7 +34,7 @@ class DVCCA(nn.Module, ABC):
     def __init__(self, input_size_1: int, input_size_2: int, hidden_layer_sizes_1: list = None,
                  hidden_layer_sizes_2: list = None,
                  latent_dims: int = 2,
-                 mu=0.5, both_encoders: bool = True, private: bool = False):
+                 mu=0.5, both_encoders: bool = True, private: bool = False,learning_rate=1e-3):
         super(DVCCA, self).__init__()
 
         self.private = private
@@ -58,8 +59,9 @@ class DVCCA(nn.Module, ABC):
         else:
             self.decoder_1 = cca_zoo.deep_models.Decoder(hidden_layer_sizes_1, latent_dims, input_size_1).double()
             self.decoder_2 = cca_zoo.deep_models.Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
-
+        self.learning_rate = learning_rate
         self.latent_dims = latent_dims
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
     def encode_1(self, x):
         # 2*latent_dims
@@ -132,6 +134,13 @@ class DVCCA(nn.Module, ABC):
             return self.decode_1(z_1), self.decode_2(z_2), mu_1, logvar_1, mu_2, logvar_2, mu_p1, logvar_p1, mu_p2, logvar_p2
         else:
             return self.decode_1(z_1), self.decode_2(z_2), mu_1, logvar_1, mu_2, logvar_2
+
+    def update_weights(self, x_1, x_2=None):
+        self.optimizer.zero_grad()
+        loss = self.model.loss(self.model(x_1, x_2))
+        loss.backward()
+        self.optimizer.step()
+        return loss
 
     def loss(self, x_1, x_2, recon_1, recon_2, mu_1, logvar_1, mu_2=None, logvar_2=None, mu_p1=None, logvar_p1=None, mu_p2=None,
              logvar_p2=None):

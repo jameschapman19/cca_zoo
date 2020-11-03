@@ -9,4 +9,5 @@ import cca_zoo.KCCA
 import cca_zoo.generate_data
 import cca_zoo.DCCAE
 import cca_zoo.DVCCA
+import cca_zoo.DCCA
 

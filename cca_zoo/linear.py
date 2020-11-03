@@ -33,7 +33,7 @@ class Wrapper:
     remaining methods are used to
     """
 
-    def __init__(self, latent_dims: int = 1, method: str = 'l2', generalized: bool = False, max_iter: int = 500,
+    def __init__(self, latent_dims: int = 1, method: str = 'l2', generalized: bool = False, max_iter: int = 200,
                  tol=1e-6):
         self.latent_dims = latent_dims
         self.method = method
@@ -211,7 +211,7 @@ class Wrapper:
                     self.tree_list = self.inner_loop.weights
                 else:
                     self.weights_list[i][:, k] = self.inner_loop.weights[i]
-                    self.score_list[i][:, k] = self.inner_loop.targets[i, :]
+                    self.score_list[i][:, k] = self.inner_loop.scores[i, :]
                     self.loading_list[i][:, k] = residuals[i].T @ self.score_list[i][:, k] / np.linalg.norm(
                         self.score_list[i][:, k])
                     residuals[i] -= np.outer(self.score_list[i][:, k] / np.linalg.norm(self.score_list[i][:, k]),

@@ -14,18 +14,23 @@ class ALS_inner_loop:
     This is a wrapper class for alternating least squares based solutions to CCA
     """
 
-    def __init__(self, *args, C=None, max_iter: int = 500, tol=1e-6, generalized: bool = True,
-                 initialization: str = 'random', params=None,
-                 method: str = 'l2', auxiliary: bool = True):
+    def __init__(self, *args, C=None, max_iter: int = 200, tol=1e-5, generalized: bool = False,
+                 initialization: str = 'unregularized', params=None,
+                 method: str = 'elastic', auxiliary: bool = True):
         self.initialization = initialization
         self.C = C
         self.max_iter = max_iter
         self.tol = tol
         self.params = params
         if params is None:
-            self.params = {'c': [0 for _ in args]}
+            self.params = {'c': [0 for _ in args], 'l1_ratio': [0 for _ in args]}
+        if method in ['scca']:
+            self.params['l1_ratio'] = [1 for _ in args]
         self.method = method
-        self.generalized = generalized
+        if len(args) > 2:
+            self.generalized=True
+        else:
+            self.generalized = generalized
         self.datasets = list(args)
         self.track_lyuponov = []
         self.track_correlation = []
@@ -37,8 +42,12 @@ class ALS_inner_loop:
         self.weights = [np.random.rand(dataset.shape[1]) for dataset in self.datasets]
 
         # initialize with first column
-        self.scores = np.array([dataset[:, 0] / np.linalg.norm(dataset[:, 0]) if np.linalg.norm(
-            dataset[:, 0]) != 0 else np.random.rand(dataset.shape[0]) for dataset in self.datasets])
+        if self.initialization == 'random':
+            self.scores = np.array([np.random.rand(dataset.shape[0]) for dataset in self.datasets])
+        elif self.initialization == 'first_column':
+            self.scores = np.array([dataset[:, 0] / np.linalg.norm(dataset[:, 0]) for dataset in self.datasets])
+        elif self.initialization == 'unregularized':
+            self.scores = ALS_inner_loop(*self.datasets, initialization='random').scores
 
         if self.auxiliary:
             self.target = self.scores.mean(axis=0)
@@ -48,10 +57,8 @@ class ALS_inner_loop:
         self.bin_search_init = np.zeros(len(self.datasets))
 
         # select update function: needs to return new weights and update the target matrix as appropriate
-        #might deprecate l2 and push it through elastic instead
-        if self.method == 'l2':
-            self.update_function = self.ridge_update
-        elif self.method == 'pmd':
+        # might deprecate l2 and push it through elastic instead
+        if self.method == 'pmd':
             self.update_function = self.pmd_update
         elif self.method == 'parkhomenko':
             self.update_function = self.parkhomenko_update
@@ -59,11 +66,8 @@ class ALS_inner_loop:
             self.update_function = self.elastic_update
         elif self.method == 'elastic_constrained':
             self.update_function = self.elastic_constrained_update
-        # implement scca by rescaling unconstrained solution
         elif self.method == 'scca':
             self.update_function = self.scca_update
-        elif self.method == 'scca_constrained':
-            self.update_function = self.scca_constrained_update
         elif self.method == 'tree':
             self.update_function = self.tree_update
 
@@ -88,21 +92,6 @@ class ALS_inner_loop:
             self.corrs.append(np.corrcoef(self.scores)[np.triu_indices(self.scores.shape[0], 1)].sum())
         return self
 
-    def ridge_update(self, view_index):
-        if self.generalized:
-            if self.auxiliary:
-                target = self.target
-            else:
-                target = self.scores.mean(axis=0)
-            w = self.ridge_solver(self.datasets[view_index], target, self.inverses[view_index],
-                                  alpha=self.params['c'][view_index] / len(self.datasets))
-        else:
-            w = self.ridge_solver(self.datasets[view_index], self.scores[view_index - 1], self.inverses[view_index],
-                                  alpha=self.params['c'][view_index])
-        w /= np.linalg.norm(self.datasets[view_index] @ w)
-        self.scores[view_index] = self.datasets[view_index] @ w
-        return w
-
     def pmd_update(self, view_index):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
@@ -111,7 +100,7 @@ class ALS_inner_loop:
         if not w_success:
             w = self.datasets[view_index].T @ targets.sum(axis=0).filled()
             if np.linalg.norm(w) == 0:
-                print('here')
+                print('failed')
         self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
@@ -158,7 +147,7 @@ class ALS_inner_loop:
             w = self.lasso_solver(self.datasets[view_index], self.scores[view_index - 1], self.inverses[view_index],
                                   alpha=self.params['c'][view_index])
         if np.linalg.norm(self.datasets[view_index] @ w) == 0:
-            print('here')
+            print('failed')
         w /= np.linalg.norm(self.datasets[view_index] @ w)
         self.scores[view_index] = self.datasets[view_index] @ w
         return w
@@ -170,7 +159,7 @@ class ALS_inner_loop:
             else:
                 target = self.scores.mean(axis=0)
             w, self.bin_search_init[view_index] = self.constrained_elastic(self.datasets[view_index],
-                                                                           self.target,
+                                                                           target,
                                                                            self.params['c'][view_index] / len(
                                                                                self.datasets),
                                                                            self.params['l1_ratio'][view_index],
@@ -197,20 +186,6 @@ class ALS_inner_loop:
                                                                     depth=self.params['c'][view_index],
                                                                     init=self.bin_search_init[view_index])
         self.scores[view_index] = w.predict(self.datasets[view_index])
-        return w
-
-    def scca_constrained_update(self, view_index):
-        if self.generalized:
-            w, self.bin_search_init[view_index] = self.constrained_regression(self.datasets[view_index],
-                                                                              self.scores.mean(axis=0),
-                                                                              self.params['c'][view_index],
-                                                                              init=self.bin_search_init[view_index])
-        else:
-            w, self.bin_search_init[view_index] = self.constrained_regression(self.datasets[view_index],
-                                                                              self.scores[view_index - 1],
-                                                                              self.params['c'][view_index],
-                                                                              init=self.bin_search_init[view_index])
-        self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
     def soft_threshold(self, x, delta):
@@ -314,7 +289,7 @@ class ALS_inner_loop:
         return beta
 
     @ignore_warnings(category=ConvergenceWarning)
-    def ridge_solver(self, X, y, X_inv=None, alpha=0.1):
+    def elastic_solver(self, X, y, X_inv=None, alpha=0.1, l1_ratio=0.5):
         if alpha == 0:
             if X_inv is not None:
                 beta = np.dot(X_inv, y)
@@ -322,17 +297,14 @@ class ALS_inner_loop:
                 clf = LinearRegression(fit_intercept=False)
                 clf.fit(X, y)
                 beta = clf.coef_
-        else:
+        elif l1_ratio == 0:
             clf = Ridge(alpha=alpha, fit_intercept=False)
             clf.fit(X, y)
             beta = clf.coef_
-        return beta
-
-    @ignore_warnings(category=ConvergenceWarning)
-    def elastic_solver(self, X, y, alpha=0.1, l1_ratio=0.5):
-        clf = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False)
-        clf.fit(X, y)
-        beta = clf.coef_
+        else:
+            clf = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False)
+            clf.fit(X, y)
+            beta = clf.coef_
         if not np.any(beta):
             beta = np.ones(beta.shape)
         return beta
@@ -361,8 +333,7 @@ class ALS_inner_loop:
 
     @ignore_warnings(category=ConvergenceWarning)
     def constrained_elastic(self, X, y, alpha=0.1, l1_ratio=0.5, init=0):
-        if alpha == 0:
-            coef = LinearRegression(fit_intercept=False).fit(X, y).coef_
+        coef = self.elastic_solver(X, y, alpha=0.1, l1_ratio=0.5)
         converged = False
         min_ = -1
         max_ = 10
@@ -372,9 +343,8 @@ class ALS_inner_loop:
         i = 0
         while not converged:
             i += 1
-            # coef = Lasso(alpha=current, selection='cyclic', max_iter=10000).fit(X, y).coef_
-            coef = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(np.sqrt(current + 1) * X,
-                                                                                       y / np.sqrt(current + 1)).coef_
+            coef = self.elastic_solver(np.sqrt(current + 1) * X, y / np.sqrt(current + 1), alpha=alpha,
+                                       l1_ratio=l1_ratio)
             current_val = 1 - np.linalg.norm(X @ coef)
             current, previous, min_, max_ = bin_search(current, previous, current_val, previous_val, min_, max_)
             previous_val = current_val
@@ -382,40 +352,7 @@ class ALS_inner_loop:
                 converged = True
             elif np.abs(max_ - min_) < 1e-30 or i == 50:
                 converged = True
-                coef = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(np.sqrt(current + 1) * X,
-                                                                                           y / np.sqrt(
-                                                                                               current + 1)).coef_
-        return coef, current
-
-    @ignore_warnings(category=ConvergenceWarning)
-    def constrained_regression(self, X, y, p, init=1):
-        if p == 0:
-            coef = LinearRegression(fit_intercept=False).fit(X, y).coef_
-        converged = False
-        min_ = 0
-        max_ = 1
-        current = init
-        previous = current
-        previous_val = None
-        i = 0
-        while not converged:
-            i += 1
-            # coef = Lasso(alpha=current, selection='cyclic', max_iter=10000).fit(X, y).coef_
-            coef = Lasso(alpha=current, selection='cyclic', fit_intercept=False).fit(X, y).coef_
-            if np.linalg.norm(X @ coef) > 0:
-                current_val = p - np.linalg.norm(coef / np.linalg.norm(X @ coef), ord=1)
-            else:
-                current_val = p
-            current, previous, min_, max_ = bin_search(current, previous, current_val, previous_val, min_, max_)
-            previous_val = current_val
-            if np.abs(current_val) < 1e-5:
-                converged = True
-            elif current < 1e-15:
-                converged = True
-            elif np.abs(max_ - min_) < 1e-30 or i == 50:
-                converged = True
-                coef = Lasso(alpha=min_, selection='cyclic', fit_intercept=False).fit(X, y).coef_
-        coef = coef / np.linalg.norm(X @ coef)
+                print('warning: failed to converge')
         return coef, current
 
     def lyuponov(self):
@@ -433,7 +370,8 @@ class ALS_inner_loop:
                 lyuponov_target = self.scores[i - 1]
                 multiplier = 0.5
             lyuponov += 1 / (2 * self.datasets[i].shape[0]) * multiplier * np.linalg.norm(
-                self.datasets[i] @ self.weights[i] - lyuponov_target)**2 + l1[i] * np.linalg.norm(self.weights[i], ord=1) + \
+                self.datasets[i] @ self.weights[i] - lyuponov_target) ** 2 + l1[i] * np.linalg.norm(self.weights[i],
+                                                                                                    ord=1) + \
                         l2[i] * np.linalg.norm(self.weights[i], ord=2)
         return lyuponov
 
