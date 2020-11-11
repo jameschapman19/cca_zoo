@@ -118,27 +118,22 @@ class DVCCA(nn.Module, ABC):
         return x
 
     def forward(self, x_1, x_2=None):
+        # Used when we get reconstructions
         mu_1, logvar_1 = self.encode_1(x_1)
-        z_1 = self.reparameterize(mu_1, logvar_1)
+        z_1 = mu_1
         if self.both_encoders:
             mu_2, logvar_2 = self.encode_2(x_2)
-            z_2 = self.reparameterize(mu_2, logvar_2)
+            z_2 = mu_2
         else:
-            mu_2 = torch.zeros_like(mu_1)
-            logvar_2 = torch.zeros_like(logvar_1)
-            z_2 = torch.zeros_like(z_1)
-
+            z_2 = z_1.clone()
         if self.private:
             mu_p1, logvar_p1 = self.encode_private_1(x_1)
-            z_p1 = self.reparameterize(mu_p1, logvar_p1)
+            z_p1 = mu_p1
             mu_p2, logvar_p2 = self.encode_private_2(x_2)
-            z_p2 = self.reparameterize(mu_p2, logvar_p2)
+            z_p2 = mu_p2
             z_1 = torch.cat([z_1, z_p1, z_p2], dim=-1)
             z_2 = torch.cat([z_2, z_p1, z_p2], dim=-1)
-            return self.decode_1(z_1), self.decode_2(
-                z_2), mu_1, logvar_1, mu_2, logvar_2, mu_p1, logvar_p1, mu_p2, logvar_p2
-        else:
-            return self.decode_1(z_1), self.decode_2(z_2), mu_1, logvar_1, mu_2, logvar_2
+        return self.decode_1(z_1), self.decode_2(z_2)
 
     def update_weights(self, x_1, x_2=None):
         self.optimizer.zero_grad()

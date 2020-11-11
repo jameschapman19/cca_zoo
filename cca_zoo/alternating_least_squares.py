@@ -70,6 +70,8 @@ class ALS_inner_loop:
             self.update_function = self.scca_update
         elif self.method == 'tree':
             self.update_function = self.tree_update
+        elif self.method == 'no_normalize':
+            self.update_function = self.no_normalize_update
 
         # This loops through each view and udpates both the weights and targets where relevant
         for _ in range(self.max_iter):
@@ -80,14 +82,17 @@ class ALS_inner_loop:
 
             # tree doesn't have the lyuponov function
             if self.method[:4] != 'tree':
-                self.track_lyuponov.append(self.lyuponov())
+                if self.method == 'no_normalize':
+                    self.track_lyuponov.append(self.lyuponov_exp())
+                else:
+                    self.track_lyuponov.append(self.lyuponov())
             # Some kind of early stopping
             if _ > 0:
-                if all(np.linalg.norm(self.scores[n] - self.old_scores[n]) < self.tol for n, view in
+                if all(np.linalg.norm(self.weights[n] - self.old_weights[n]) < self.tol for n, view in
                        enumerate(self.scores)):
                     break
 
-            self.old_scores = self.scores.copy()
+            self.old_weights = self.weights.copy()
             # Sum all pairs
             self.corrs.append(np.corrcoef(self.scores)[np.triu_indices(self.scores.shape[0], 1)].sum())
         return self
@@ -186,6 +191,18 @@ class ALS_inner_loop:
                                                                     depth=self.params['c'][view_index],
                                                                     init=self.bin_search_init[view_index])
         self.scores[view_index] = w.predict(self.datasets[view_index])
+        return w
+
+    def no_normalize_update(self, view_index):
+        if self.generalized:
+            if self.auxiliary:
+                target = self.target
+            else:
+                target = self.scores.mean(axis=0)
+            w = self.elastic_solver(self.datasets[view_index], target / np.linalg.norm(target),
+                                    alpha=self.params['c'][view_index] / len(self.datasets),
+                                    l1_ratio=self.params['l1_ratio'][view_index])
+        self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
     def soft_threshold(self, x, delta):
@@ -305,8 +322,8 @@ class ALS_inner_loop:
             clf = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False)
             clf.fit(X, y)
             beta = clf.coef_
-        if not np.any(beta):
-            beta = np.ones(beta.shape)
+            if not np.any(beta):
+                beta = np.ones(beta.shape)
         return beta
 
     @ignore_warnings(category=ConvergenceWarning)
@@ -333,10 +350,9 @@ class ALS_inner_loop:
 
     @ignore_warnings(category=ConvergenceWarning)
     def constrained_elastic(self, X, y, alpha=0.1, l1_ratio=0.5, init=0):
-        coef = self.elastic_solver(X, y, alpha=0.1, l1_ratio=0.5)
         converged = False
         min_ = -1
-        max_ = 10
+        max_ = 0
         current = init
         previous = current
         previous_val = None
@@ -353,7 +369,7 @@ class ALS_inner_loop:
             elif np.abs(max_ - min_) < 1e-30 or i == 50:
                 converged = True
                 print('warning: failed to converge')
-        return coef, current
+        return coef, previous
 
     def lyuponov(self):
         views = len(self.datasets)
@@ -369,6 +385,23 @@ class ALS_inner_loop:
             else:
                 lyuponov_target = self.scores[i - 1]
                 multiplier = 0.5
+            lyuponov += 1 / (2 * self.datasets[i].shape[0]) * multiplier * np.linalg.norm(
+                self.datasets[i] @ self.weights[i] - lyuponov_target) ** 2 + l1[i] * np.linalg.norm(self.weights[i],
+                                                                                                    ord=1) + \
+                        l2[i] * np.linalg.norm(self.weights[i], ord=2)
+        return lyuponov
+
+    def lyuponov_exp(self):
+        views = len(self.datasets)
+        c = np.array(self.params.get('c', [0] * views))
+        ratio = np.array(self.params.get('l1_ratio', [0] * views))
+        l1 = c * ratio
+        l2 = c * (1 - ratio)
+        lyuponov = 0
+        for i in range(views):
+            lyuponov_target = self.scores.mean(axis=0)
+            lyuponov_target /= np.linalg.norm(lyuponov_target)
+            multiplier = 1
             lyuponov += 1 / (2 * self.datasets[i].shape[0]) * multiplier * np.linalg.norm(
                 self.datasets[i] @ self.weights[i] - lyuponov_target) ** 2 + l1[i] * np.linalg.norm(self.weights[i],
                                                                                                     ord=1) + \

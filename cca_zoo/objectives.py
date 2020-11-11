@@ -59,8 +59,6 @@ class mcca:
         D = block_diag([torch.matmul(view.T, view) for view in views])
 
         # In MCCA our eigenvalue problem Cv = lambda Dv
-        # TODO Not sure whether to do this
-        # C = C - D
 
         # Use the cholesky method to whiten the matrix C R^{-1}CRv = lambda v
         R = torch.cholesky(D, upper=True)

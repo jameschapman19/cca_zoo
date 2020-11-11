@@ -142,7 +142,7 @@ class DGCCAE(nn.Module, ABC):
     def forward(self, *args):
         z = self.encode(*args)
         recon = self.decode(*z)
-        return z, recon
+        return recon
 
     def update_weights(self, *args):
         self.optimizer.zero_grad()

@@ -34,7 +34,7 @@ class Wrapper:
     remaining methods are used to
     """
 
-    def __init__(self, latent_dims: int = 1, method: str = 'l2', generalized: bool = False, max_iter: int = 200,
+    def __init__(self, latent_dims: int = 1, method: str = 'elastic', generalized: bool = False, max_iter: int = 200,
                  tol=1e-6):
         self.latent_dims = latent_dims
         self.method = method
@@ -241,7 +241,8 @@ class Wrapper:
         # Can regularise by adding to diagonal
         D = block_diag(*[(1 - self.params['c'][i]) * m.T @ m + self.params['c'][i] * np.eye(m.shape[1]) for i, m in
                          enumerate(args)])
-
+        C -= block_diag(*[m.T @ m for i, m in
+                          enumerate(args)]) - D
         R = cholesky(D, lower=False)
         whitened = np.linalg.inv(R.T) @ C @ np.linalg.inv(R)
         [eigvals, eigvecs] = np.linalg.eig(whitened)
