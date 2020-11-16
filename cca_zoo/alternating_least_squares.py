@@ -16,7 +16,7 @@ class ALS_inner_loop:
 
     def __init__(self, *args, C=None, max_iter: int = 200, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', params=None,
-                 method: str = 'elastic', auxiliary: bool = True):
+                 method: str = 'elastic'):
         self.initialization = initialization
         self.C = C
         self.max_iter = max_iter
@@ -34,7 +34,6 @@ class ALS_inner_loop:
         self.datasets = list(args)
         self.track_lyuponov = []
         self.track_correlation = []
-        self.auxiliary = auxiliary
         self.iterate()
 
     def iterate(self):
@@ -48,9 +47,6 @@ class ALS_inner_loop:
             self.scores = np.array([dataset[:, 0] / np.linalg.norm(dataset[:, 0]) for dataset in self.datasets])
         elif self.initialization == 'unregularized':
             self.scores = ALS_inner_loop(*self.datasets, initialization='random').scores
-
-        if self.auxiliary:
-            self.target = self.scores.mean(axis=0)
 
         self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in self.datasets]
         self.corrs = []
@@ -70,8 +66,6 @@ class ALS_inner_loop:
         # This loops through each view and udpates both the weights and targets where relevant
         for _ in range(self.max_iter):
             for i, view in enumerate(self.datasets):
-                if self.auxiliary:
-                    self.target = self.scores.mean(axis=0)
                 self.weights[i] = self.update_function(i)
 
             # Some kind of early stopping
@@ -113,10 +107,7 @@ class ALS_inner_loop:
 
     def elastic_update(self, view_index):
         if self.generalized:
-            if self.auxiliary:
-                target = self.target
-            else:
-                target = self.scores.mean(axis=0)
+            target = self.scores.mean(axis=0)
             w = self.elastic_solver(self.datasets[view_index], target,
                                     alpha=self.params['c'][view_index] / len(self.datasets),
                                     l1_ratio=self.params['l1_ratio'][view_index])
@@ -130,10 +121,7 @@ class ALS_inner_loop:
 
     def scca_update(self, view_index):
         if self.generalized:
-            if self.auxiliary:
-                target = self.target
-            else:
-                target = self.scores.mean(axis=0)
+            target = self.scores.mean(axis=0)
             w = self.lasso_solver(self.datasets[view_index], target, self.inverses[view_index],
                                   alpha=self.params['c'][view_index] / len(self.datasets))
         else:
