@@ -12,6 +12,9 @@ import cca_zoo.DCCAE
 import cca_zoo.DVCCA
 import cca_zoo.plot_utils
 import DeCCA
+import DeLCCA
+import DeCCAl
+import DeCCAnl
 
 
 class Wrapper:
@@ -33,7 +36,7 @@ class Wrapper:
     recon_loss(): gets the reconstruction loss for out of sample data - if the model has an autoencoder piece
     """
 
-    def __init__(self, latent_dims: int = 2, learning_rate=1e-3, epoch_num: int = 1, batch_size: int = 16,
+    def __init__(self, latent_dims: int = 2, learning_rate=1e-3, epoch_num: int = 1, batch_size: int = 0,
                  method: str = 'DCCAE', loss_type: str = 'cca', lam=0, private: bool = False,
                  patience: int = 0, both_encoders: bool = True, hidden_layer_sizes_1: list = None,
                  hidden_layer_sizes_2: list = None,
@@ -72,20 +75,23 @@ class Wrapper:
             self.dataset_list_train.append(dataset[train_inds] - self.dataset_means[i])
             self.dataset_list_val.append(dataset[val_inds] - self.dataset_means[i])
 
-        # For CCA loss functions, we require that the number of samples in each batch is greater than the number of
-        # latent dimensions. This attempts to alter the batch size to fulfil this condition
-        while num_subjects % self.batch_size < self.latent_dims:
-            self.batch_size += 1
-
     def fit(self, *args):
         self.process_training_data(*args)
 
         # transform to a torch tensor dataset
         train_dataset = TensorDataset(
             *[torch.tensor(dataset) for dataset in self.dataset_list_train])  # create your datset
-        train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size)
         val_dataset = TensorDataset(*[torch.tensor(dataset) for dataset in self.dataset_list_val])
-        val_dataloader = DataLoader(val_dataset, batch_size=self.batch_size)
+        if self.batch_size == 0:
+            train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset))
+            val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
+        else:
+            # For CCA loss functions, we require that the number of samples in each batch is greater than the number of
+            # latent dimensions. This attempts to alter the batch size to fulfil this condition
+            while len(train_dataset) % self.batch_size < self.latent_dims:
+                self.batch_size += 1
+            train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size)
+            val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
 
         # First we get the model class.
         # These have a forward method which takes data inputs and outputs the variables needed to calculate their
@@ -121,7 +127,23 @@ class Wrapper:
                                      latent_dims=self.latent_dims, loss_type=self.loss_type,
                                      model_1=self.model_1, model_2=self.model_2)
         elif self.method == 'DeLCCA':
-            self.model = DeCCA.DeCCA(input_size_1=self.dataset_list_train[0].shape[-1],
+            self.model = DeLCCA.DeLCCA(input_size_1=self.dataset_list_train[0].shape[-1],
+                                     input_size_2=self.dataset_list_train[1].shape[-1],
+                                     input_size_c=self.dataset_list_train[2].shape[-1],
+                                     hidden_layer_sizes_1=self.hidden_layer_sizes_1,
+                                     hidden_layer_sizes_2=self.hidden_layer_sizes_2,
+                                     latent_dims=self.latent_dims, loss_type=self.loss_type,
+                                     model_1=self.model_1, model_2=self.model_2)
+        elif self.method == 'DeCCAnl':
+            self.model = DeCCAnl.DeCCAnl(input_size_1=self.dataset_list_train[0].shape[-1],
+                                     input_size_2=self.dataset_list_train[1].shape[-1],
+                                     input_size_c=self.dataset_list_train[2].shape[-1],
+                                     hidden_layer_sizes_1=self.hidden_layer_sizes_1,
+                                     hidden_layer_sizes_2=self.hidden_layer_sizes_2,
+                                     latent_dims=self.latent_dims, loss_type=self.loss_type,
+                                     model_1=self.model_1, model_2=self.model_2)
+        elif self.method == 'DeCCAl':
+            self.model = DeCCAl.DeCCAl(input_size_1=self.dataset_list_train[0].shape[-1],
                                      input_size_2=self.dataset_list_train[1].shape[-1],
                                      input_size_c=self.dataset_list_train[2].shape[-1],
                                      hidden_layer_sizes_1=self.hidden_layer_sizes_1,
@@ -166,7 +188,7 @@ class Wrapper:
                 all_val_loss.append(epoch_val_loss)
         cca_zoo.plot_utils.plot_training_loss(all_train_loss, all_val_loss)
 
-        if self.method in ['DCCA', 'DCCAE', 'DGCCA', 'DGCCAE', 'DeCCA', 'DeLCCA']:
+        if self.method in ['DCCA', 'DCCAE', 'DGCCA', 'DGCCAE', 'DeCCA', 'DeLCCA','DeCCAl', 'DeCCAnl']:
             self.train_correlations = self.predict_corr(*self.dataset_list_train, train=True)
         elif self.method == 'DVCCA':
             if self.both_encoders:
@@ -205,12 +227,12 @@ class Wrapper:
     def transform_view(self, *args, train=False):
         dataset_list_test = [arg if train else arg - self.dataset_means[i] for i, arg in enumerate(args)]
         test_dataset = TensorDataset(*[torch.tensor(dataset) for dataset in dataset_list_test])
-        test_dataloader = DataLoader(test_dataset, batch_size=self.batch_size)
+        test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
         z_list = [np.empty((0, self.latent_dims)) for _ in range(len(args))]
         with torch.no_grad():
             for batch_idx, data in enumerate(test_dataloader):
                 data = [d.to(self.device) for d in list(data)]
-                if self.method in ['DCCA', 'DCCAE', 'DGCCA', 'DGCCAE', 'DeCCA', 'DeLCCA']:
+                if self.method in ['DCCA', 'DCCAE', 'DGCCA', 'DGCCAE', 'DeCCA', 'DeLCCA','DeCCAl', 'DeCCAnl']:
                     z = self.model.encode(*data)
                 elif self.method == 'DVCCA':
                     if self.both_encoders:

@@ -1,29 +1,5 @@
 import torch
-
-
-def block_diag(m):
-    """
-    Make a block diagonal matrix along dim=-3
-    EXAMPLE:
-    block_diag(torch.ones(4,3,2))
-    should give a 12 x 8 matrix with blocks of 3 x 2 ones.
-    Prepend batch dimensions if needed.
-    You can also give a list of matrices.
-    :type m: torch.Tensor, list
-    :rtype: torch.Tensor
-    """
-    if type(m) is list:
-        m = torch.cat([m1.unsqueeze(-3) for m1 in m], -3)
-
-    d = m.dim()
-    n = m.shape[-3]
-    siz0 = m.shape[:-3]
-    siz1 = m.shape[-2:]
-    m2 = m.unsqueeze(-2)
-    eye = attach_dim(torch.eye(n, device=m.device).unsqueeze(-2), d - 3, 1)
-    return (m2 * eye).reshape(
-        siz0 + torch.Size(torch.tensor(siz1) * n)
-    )
+import numpy as np
 
 
 def attach_dim(v, n_dim_to_prepend=0, n_dim_to_append=0):
@@ -39,7 +15,7 @@ class mcca:
     Loss() method takes the outputs of each view's network and solves the multiset eigenvalue problem
     """
 
-    def __init__(self, outdim_size: int, r=1e-3, eps=1e-9):
+    def __init__(self, outdim_size: int, r=1e-3, eps=0):
         self.outdim_size = outdim_size
         self.r = r
         self.eps = eps
@@ -56,7 +32,7 @@ class mcca:
         C = torch.matmul(all_views.T, all_views)
 
         # Get the block covariance matrix placing Xi^TX_i on the diagonal
-        D = block_diag([torch.matmul(view.T, view) for view in views])
+        D = torch.block_diag(*[torch.matmul(view.T, view) for view in views])
 
         # In MCCA our eigenvalue problem Cv = lambda Dv
 
@@ -82,7 +58,7 @@ class gcca:
     Loss() method takes the outputs of each view's network and solves the multiset eigenvalue problem
     """
 
-    def __init__(self, outdim_size: int, r=1e-3, eps=1e-9):
+    def __init__(self, outdim_size: int, r=1e-3, eps=0):
         self.outdim_size = outdim_size
         self.r = r
         self.eps = eps
@@ -112,7 +88,7 @@ class cca:
     Loss() method takes the outputs of each view's network and solves the multiset eigenvalue problem
     """
 
-    def __init__(self, outdim_size: int, r=1e-3, eps=1e-9):
+    def __init__(self, outdim_size: int, r=1e-3, eps=0):
         self.outdim_size = outdim_size
         self.r = r
         self.eps = eps
@@ -120,7 +96,8 @@ class cca:
     def loss(self, H1, H2):
         H1, H2 = H1.t(), H2.t()
 
-        o1 = o2 = H1.size(0)
+        o1 = H1.size(0)
+        o2 = H2.size(0)
 
         m = H1.size(1)
 
@@ -157,8 +134,11 @@ class cca:
         # just the top self.outdim_size singular values are used
         trace_TT = torch.matmul(Tval.t(), Tval)
         # ensures positive definite
-        U, V = torch.symeig(trace_TT, eigenvectors=True)
-        U_inds = torch.gt(D1, self.eps).nonzero()[:, 0]
+        try:
+            U, V = torch.symeig(trace_TT, eigenvectors=True)
+        except:
+            print('here')
+        U_inds = torch.gt(U, self.eps).nonzero()[:, 0]
         U = U[U_inds]
         corr = torch.sum(torch.sqrt(U))
         return -corr
