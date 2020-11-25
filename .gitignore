@@ -141,4 +141,10 @@ dmypy.json
 # profiling data
 .prof
 
-# End of https://www.toptal.com/developers/gitignore/api/python
+/DeCCA
+/DeLCCA.py
+/DeCCAl
+/DeCCAnl.py
+/DeCCAl_reg.py
+/DeCCAnl_reg.py
+/DeVCCA.py
