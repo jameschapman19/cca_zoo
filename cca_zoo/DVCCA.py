@@ -4,8 +4,7 @@ import torch
 from torch import nn
 from torch import optim
 from torch.nn import functional as F
-
-import cca_zoo.deep_models
+from cca_zoo.configuration import Config
 
 """
 All of my deep architectures have forward methods inherited from pytorch as well as a method:
@@ -19,7 +18,24 @@ for standardising the pipeline for comparison
 """
 
 
-class DVCCA(nn.Module, ABC):
+def create_encoder(config, i):
+    encoder = config.encoder_models[i](config.hidden_layer_sizes[i], config.input_sizes[i],
+                                       config.latent_dims * 2).double()
+    return encoder
+
+
+def create_decoder(config, i):
+    decoder = config.decoder_models[i](config.hidden_layer_sizes[i], config.input_sizes[i], config.latent_dims).double()
+    return decoder
+
+
+def create_private_decoder(config, i):
+    decoder = config.decoder_models[i](config.hidden_layer_sizes[i], config.input_sizes[i],
+                                       config.latent_dims * 2).double()
+    return decoder
+
+
+class DVCCA(nn.Module):
     """
     https: // arxiv.org / pdf / 1610.03454.pdf
     With pieces borrowed from the variational autoencoder implementation @
@@ -31,75 +47,49 @@ class DVCCA(nn.Module, ABC):
     For this reason the hidden dimensions passed to the decoders is 3*latent_dims as we concanate shared,private_1 and private_2
     """
 
-    def __init__(self, input_size_1: int, input_size_2: int, hidden_layer_sizes_1: list = None,
-                 hidden_layer_sizes_2: list = None,
-                 latent_dims: int = 2,
-                 mu=0.5, both_encoders: bool = True, private: bool = False, learning_rate=1e-3):
+    def __init__(self, config: Config = Config):
         super(DVCCA, self).__init__()
+        views = len(config.decoder_models)
+        self.private = config.private
+        self.both_encoders = config.both_encoders
+        self.mu = config.mu
+        self.latent_dims = config.latent_dims
+        self.encoders = [create_encoder(config, i) for i in range(views)]
+        if config.private:
+            self.private_encoders = [create_encoder(config, i) for i in range(views)]
 
-        self.private = private
-        self.both_encoders = both_encoders
-        self.mu = mu
-
-        if hidden_layer_sizes_1 is None:
-            hidden_layer_sizes_1 = [128]
-        if hidden_layer_sizes_2 is None:
-            hidden_layer_sizes_2 = [128]
-
-        self.encoder_1 = cca_zoo.deep_models.Encoder(hidden_layer_sizes_1, input_size_1, 2 * latent_dims).double()
-        if self.both_encoders:
-            self.encoder_2 = cca_zoo.deep_models.Encoder(hidden_layer_sizes_2, input_size_2, 2 * latent_dims).double()
-
-        self.private_encoder_1 = cca_zoo.deep_models.Encoder(hidden_layer_sizes_1, input_size_1,
-                                                             2 * latent_dims).double()
-        self.private_encoder_2 = cca_zoo.deep_models.Encoder(hidden_layer_sizes_2, input_size_2,
-                                                             2 * latent_dims).double()
-
-        if self.private:
-            self.decoder_1 = cca_zoo.deep_models.Decoder(hidden_layer_sizes_1 * 3, latent_dims, input_size_1).double()
-            self.decoder_2 = cca_zoo.deep_models.Decoder(hidden_layer_sizes_2 * 3, latent_dims, input_size_2).double()
+        if config.private:
+            self.decoders = [create_private_decoder(config, i) for i in range(views)]
         else:
-            self.decoder_1 = cca_zoo.deep_models.Decoder(hidden_layer_sizes_1, latent_dims, input_size_1).double()
-            self.decoder_2 = cca_zoo.deep_models.Decoder(hidden_layer_sizes_2, latent_dims, input_size_2).double()
+            self.decoders = [create_decoder(config, i) for i in range(views)]
 
-        self.learning_rate = learning_rate
-        self.latent_dims = latent_dims
-        self.cca_objective = cca_zoo.objectives.cca(self.latent_dims)
-        self.optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
+        self.encoder_optimizers = [optim.Adam(list(encoder.parameters()), lr=config.learning_rate) for encoder in self.encoders]
+        self.decoder_optimizers = [optim.Adam(list(decoder.parameters()), lr=config.learning_rate) for decoder in self.decoders]
+        if self.private:
+            self.private_encoder_optimizers = [optim.Adam(list(encoder.parameters()), lr=config.learning_rate) for encoder in self.private_encoders]
 
-    def encode_1(self, x):
-        # 2*latent_dims
-        z = self.encoder_1(x)
-        z = z.reshape((2, -1, self.latent_dims))
-        mu = z[0]
-        logvar = z[1]
+    def encode(self, *args):
+        mu = []
+        logvar = []
+        for i, encoder in enumerate(self.encoders):
+            z = encoder(args[i])
+            z = z.reshape((2, -1, self.latent_dims))
+            mu.append(z[0])
+            logvar.append(z[1])
         return mu, logvar
 
-    def encode_2(self, x):
-        # 2*latent_dims
-        z = self.encoder_2(x)
-        z = z.reshape((2, -1, self.latent_dims))
-        mu = z[0]
-        logvar = z[1]
+    def encode_private(self, *args):
+        mu = []
+        logvar = []
+        for i, private_encoder in enumerate(self.private_encoders):
+            z = private_encoder(args[i])
+            z = z.reshape((2, -1, self.latent_dims))
+            mu.append(z[0])
+            logvar.append(z[1])
         return mu, logvar
 
-    def encode_private_1(self, x):
-        # 2*latent_dims
-        z = self.private_encoder_1(x)
-        z = z.reshape((2, -1, self.latent_dims))
-        mu = z[0]
-        logvar = z[1]
-        return mu, logvar
-
-    def encode_private_2(self, x):
-        # 2*latent_dims
-        z = self.private_encoder_2(x)
-        z = z.reshape((2, -1, self.latent_dims))
-        mu = z[0]
-        logvar = z[1]
-        return mu, logvar
-
-    def reparameterize(self, mu, logvar):
+    @staticmethod
+    def reparameterize(mu, logvar):
         # Use the standard deviation from the encoder
         std = torch.exp(0.5 * logvar)
         # Mutliply with additive noise (assumed gaussian observation model)
@@ -107,82 +97,65 @@ class DVCCA(nn.Module, ABC):
         # Generate random sample
         return mu + eps * std
 
-    def decode_1(self, z):
-        # 2*latent_dims
-        x = self.decoder_1(z)
-        return x
+    def decode(self, *args):
+        x = []
+        for i, decoder in enumerate(self.decoders):
+            x_i = decoder(args[i])
+            x.append(x_i)
+        return tuple(x)
 
-    def decode_2(self, z):
-        # 2*latent_dims
-        x = self.decoder_2(z)
-        return x
-
-    def forward(self, x_1, x_2=None):
+    def forward(self, *args):
         # Used when we get reconstructions
-        mu_1, logvar_1 = self.encode_1(x_1)
-        z_1 = mu_1
-        if self.both_encoders:
-            mu_2, logvar_2 = self.encode_2(x_2)
-            z_2 = mu_2
-        else:
-            z_2 = z_1.clone()
-        if self.private:
-            mu_p1, logvar_p1 = self.encode_private_1(x_1)
-            z_p1 = mu_p1
-            mu_p2, logvar_p2 = self.encode_private_2(x_2)
-            z_p2 = mu_p2
-            z_1 = torch.cat([z_1, z_p1, z_p2], dim=-1)
-            z_2 = torch.cat([z_2, z_p1, z_p2], dim=-1)
-        return self.decode_1(z_1), self.decode_2(z_2)
+        mu, logvar = self.encode(*args)
+        z = mu
+        return z
 
-    def update_weights(self, x_1, x_2=None):
-        self.optimizer.zero_grad()
-        loss = self.loss(x_1, x_2)
+    def recon(self, *args):
+        # Used when we get reconstructions
+        mu, logvar = self.encode(*args)
+        z = mu
+        # If using single encoder repeat representation n times
+        if len(self.encoders) == 1:
+            z = z * len(args)
+        if self.private:
+            mu_p, logvar_p = self.encode_private(*args)
+            z_p = mu_p
+            z = [torch.cat([z[i], z_p[i]], dim=-1) for i, _ in enumerate(args)]
+        return self.decode(z)
+
+    def update_weights(self, *args):
+        [optimizer.zero_grad() for optimizer in self.encoder_optimizers]
+        [optimizer.zero_grad() for optimizer in self.decoder_optimizers]
+        if self.private:
+            [optimizer.zero_grad() for optimizer in self.private_encoder_optimizers]
+        loss = self.loss(*args)
         loss.backward()
-        self.optimizer.step()
+        [optimizer.step() for optimizer in self.encoder_optimizers]
+        [optimizer.step() for optimizer in self.decoder_optimizers]
+        if self.private:
+            [optimizer.step() for optimizer in self.private_encoder_optimizers]
         return loss
 
-    def loss(self, x_1, x_2):
-        mu_1, logvar_1 = self.encode_1(x_1)
-        z_1 = self.reparameterize(mu_1, logvar_1)
-        if self.both_encoders:
-            mu_2, logvar_2 = self.encode_2(x_2)
-            z_2 = self.reparameterize(mu_2, logvar_2)
-        else:
-            mu_2 = torch.zeros_like(mu_1)
-            logvar_2 = torch.zeros_like(logvar_1)
-            z_2 = torch.zeros_like(z_1)
+    def loss(self, *args):
+        mu, logvar = self.encode(*args)
+        z = [self.reparameterize(mu[i], logvar[i]) for i, _ in enumerate(self.encoders)]
+        kl = torch.stack([-0.5 * torch.sum(1 + logvar[i] - logvar[i].exp() - mu[i].pow(2)) for i, _ in
+                          enumerate(self.encoders)]).sum(dim=0)
+        if len(self.encoders) == 1:
+            z = z * len(args)
+        if self.private:
+            mu_p, logvar_p = self.encode_private(*args)
+            z_p = [self.reparameterize(mu_p[i], logvar_p[i]) for i, _ in enumerate(self.private_encoders)]
+            z = [torch.cat([z[i], z_p[i]], dim=-1) for i, _ in enumerate(args)]
+
+        recon = self.decode(*z)
+
+        # LOSS
+        bce = torch.stack([F.mse_loss(recon[i], x, reduction='sum') for i, x in enumerate(args)]).sum(dim=0)/len(args)
 
         if self.private:
-            mu_p1, logvar_p1 = self.encode_private_1(x_1)
-            z_p1 = self.reparameterize(mu_p1, logvar_p1)
-            mu_p2, logvar_p2 = self.encode_private_2(x_2)
-            z_p2 = self.reparameterize(mu_p2, logvar_p2)
-            z_1 = torch.cat([z_1, z_p1, z_p2], dim=-1)
-            z_2 = torch.cat([z_2, z_p1, z_p2], dim=-1)
-
-        recon_1 = self.decode_1(z_1)
-        recon_2 = self.decode_2(z_2)
-
-        #LOSS
-
-        BCE_1 = F.mse_loss(recon_1, x_1, reduction='sum')
-        BCE_2 = F.mse_loss(recon_2, x_2, reduction='sum')
-
-        # KL bit - we have assumed logvar diagonal
-        KL_1 = -0.5 * torch.sum(1 + logvar_1 - logvar_1.exp() - mu_1.pow(2))
-        if self.both_encoders:
-            KL_2 = -0.5 * torch.sum(1 + logvar_2 - logvar_2.exp() - mu_2.pow(2))
-
-        if self.private:
-            KL_p1 = -0.5 * torch.sum(1 + logvar_p1 - logvar_p1.exp() - mu_p1.pow(2))
-            KL_p2 = -0.5 * torch.sum(1 + logvar_p2 - logvar_p2.exp() - mu_p2.pow(2))
-            if self.both_encoders:
-                return self.mu * KL_1 + (1 - self.mu) * KL_2 + BCE_1 + BCE_2 + KL_p1 + KL_p2
-            else:
-                return KL_1 + BCE_1 + BCE_2 + KL_p1
+            kl_p = torch.stack([-0.5 * torch.sum(1 + logvar_p[i] - logvar_p[i].exp() - mu_p[i].pow(2)) for i, _ in
+                                enumerate(self.private_encoders)]).sum(dim=0)
+            return (kl + kl_p + bce)/args[0].shape[0]
         else:
-            if self.both_encoders:
-                return self.mu * KL_1 + (1 - self.mu) * KL_2 + BCE_1 + BCE_2
-            else:
-                return KL_1 + BCE_1 + BCE_2
+            return (kl + bce)/args[0].shape[0]

@@ -16,7 +16,7 @@ class ALS_inner_loop:
 
     def __init__(self, *args, C=None, max_iter: int = 200, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', params=None,
-                 method: str = 'elastic'):
+                 method: str = 'elastic', auxiliary: bool = True):
         self.initialization = initialization
         self.C = C
         self.max_iter = max_iter
@@ -34,6 +34,7 @@ class ALS_inner_loop:
         self.datasets = list(args)
         self.track_lyuponov = []
         self.track_correlation = []
+        self.auxiliary = auxiliary
         self.iterate()
 
     def iterate(self):
@@ -48,6 +49,9 @@ class ALS_inner_loop:
         elif self.initialization == 'unregularized':
             self.scores = ALS_inner_loop(*self.datasets, initialization='random').scores
 
+        if self.auxiliary:
+            self.target = self.scores.mean(axis=0)
+
         self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in self.datasets]
         self.corrs = []
         self.bin_search_init = np.zeros(len(self.datasets))
@@ -60,14 +64,28 @@ class ALS_inner_loop:
             self.update_function = self.parkhomenko_update
         elif self.method == 'elastic':
             self.update_function = self.elastic_update
+        elif self.method == 'elastic_constrained':
+            self.update_function = self.elastic_constrained_update
         elif self.method == 'scca':
             self.update_function = self.scca_update
+        elif self.method == 'tree':
+            self.update_function = self.tree_update
+        elif self.method == 'no_normalize':
+            self.update_function = self.no_normalize_update
 
         # This loops through each view and udpates both the weights and targets where relevant
         for _ in range(self.max_iter):
             for i, view in enumerate(self.datasets):
+                if self.auxiliary:
+                    self.target = self.scores.mean(axis=0)
                 self.weights[i] = self.update_function(i)
 
+            # tree doesn't have the lyuponov function
+            if self.method[:4] != 'tree':
+                if self.method == 'no_normalize':
+                    self.track_lyuponov.append(self.lyuponov_exp())
+                else:
+                    self.track_lyuponov.append(self.lyuponov())
             # Some kind of early stopping
             if _ > 0:
                 if all(np.linalg.norm(self.weights[n] - self.old_weights[n]) < self.tol for n, view in
@@ -107,12 +125,15 @@ class ALS_inner_loop:
 
     def elastic_update(self, view_index):
         if self.generalized:
-            target = self.scores.mean(axis=0)
+            if self.auxiliary:
+                target = self.target
+            else:
+                target = self.scores.mean(axis=0)
             w = self.elastic_solver(self.datasets[view_index], target,
                                     alpha=self.params['c'][view_index] / len(self.datasets),
                                     l1_ratio=self.params['l1_ratio'][view_index])
         else:
-            w = self.elastic_solver(self.datasets[view_index], self.scores[view_index - 1],self.inverses[view_index],
+            w = self.elastic_solver(self.datasets[view_index], self.scores[view_index - 1],
                                     alpha=self.params['c'][view_index],
                                     l1_ratio=self.params['l1_ratio'][view_index])
         w /= np.linalg.norm(self.datasets[view_index] @ w)
@@ -121,7 +142,10 @@ class ALS_inner_loop:
 
     def scca_update(self, view_index):
         if self.generalized:
-            target = self.scores.mean(axis=0)
+            if self.auxiliary:
+                target = self.target
+            else:
+                target = self.scores.mean(axis=0)
             w = self.lasso_solver(self.datasets[view_index], target, self.inverses[view_index],
                                   alpha=self.params['c'][view_index] / len(self.datasets))
         else:
@@ -130,6 +154,54 @@ class ALS_inner_loop:
         if np.linalg.norm(self.datasets[view_index] @ w) == 0:
             print('failed')
         w /= np.linalg.norm(self.datasets[view_index] @ w)
+        self.scores[view_index] = self.datasets[view_index] @ w
+        return w
+
+    def elastic_constrained_update(self, view_index):
+        if self.generalized:
+            if self.auxiliary:
+                target = self.target
+            else:
+                target = self.scores.mean(axis=0)
+            w, self.bin_search_init[view_index] = self.constrained_elastic(self.datasets[view_index],
+                                                                           target,
+                                                                           self.params['c'][view_index] / len(
+                                                                               self.datasets),
+                                                                           self.params['l1_ratio'][view_index],
+                                                                           init=self.bin_search_init[view_index])
+        else:
+            w, self.bin_search_init[view_index] = self.constrained_elastic(self.datasets[view_index],
+                                                                           self.scores[view_index - 1],
+                                                                           self.params['c'][view_index],
+                                                                           self.params['l1_ratio'][view_index],
+                                                                           init=self.bin_search_init[view_index])
+        self.scores[view_index] = self.datasets[view_index] @ w
+        return w
+
+    def tree_update(self, view_index):
+        if self.generalized:
+            if self.auxiliary:
+                target = self.target
+            else:
+                target = self.scores.mean(axis=0)
+        else:
+            target = self.scores[view_index - 1]
+        w, self.bin_search_init[view_index] = self.constrained_tree(self.datasets[view_index],
+                                                                    target,
+                                                                    depth=self.params['c'][view_index],
+                                                                    init=self.bin_search_init[view_index])
+        self.scores[view_index] = w.predict(self.datasets[view_index])
+        return w
+
+    def no_normalize_update(self, view_index):
+        if self.generalized:
+            if self.auxiliary:
+                target = self.target
+            else:
+                target = self.scores.mean(axis=0)
+            w = self.elastic_solver(self.datasets[view_index], target / np.linalg.norm(target),
+                                    alpha=self.params['c'][view_index] / len(self.datasets),
+                                    l1_ratio=self.params['l1_ratio'][view_index])
         self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
@@ -254,6 +326,51 @@ class ALS_inner_loop:
                 beta = np.ones(beta.shape)
         return beta
 
+    @ignore_warnings(category=ConvergenceWarning)
+    def constrained_tree(self, X, y, depth=2, init=0):
+        converged = False
+        min_ = -1
+        max_ = 10
+        current = init
+        previous = current
+        previous_val = None
+        i = 0
+        while not converged:
+            i += 1
+            tree = DecisionTreeRegressor(max_depth=depth).fit(np.sqrt(current + 1) * X, y / np.sqrt(current + 1))
+            current_val = 1 - np.linalg.norm(tree.predict(X))
+            current, previous, min_, max_ = bin_search(current, previous, current_val, previous_val, min_, max_)
+            previous_val = current_val
+            if np.abs(current_val) < 1e-5:
+                converged = True
+            elif np.abs(max_ - min_) < 1e-5 or i == 50:
+                converged = True
+                tree = DecisionTreeRegressor(max_depth=depth).fit(np.sqrt(min_ + 1) * X, y / np.sqrt(min_ + 1))
+        return tree, current
+
+    @ignore_warnings(category=ConvergenceWarning)
+    def constrained_elastic(self, X, y, alpha=0.1, l1_ratio=0.5, init=0):
+        converged = False
+        min_ = -1
+        max_ = 0
+        current = init
+        previous = current
+        previous_val = None
+        i = 0
+        while not converged:
+            i += 1
+            coef = self.elastic_solver(np.sqrt(current + 1) * X, y / np.sqrt(current + 1), alpha=alpha,
+                                       l1_ratio=l1_ratio)
+            current_val = 1 - np.linalg.norm(X @ coef)
+            current, previous, min_, max_ = bin_search(current, previous, current_val, previous_val, min_, max_)
+            previous_val = current_val
+            if np.abs(current_val) < 1e-5:
+                converged = True
+            elif np.abs(max_ - min_) < 1e-30 or i == 50:
+                converged = True
+                print('warning: failed to converge')
+        return coef, previous
+
     def lyuponov(self):
         views = len(self.datasets)
         c = np.array(self.params.get('c', [0] * views))
@@ -268,6 +385,23 @@ class ALS_inner_loop:
             else:
                 lyuponov_target = self.scores[i - 1]
                 multiplier = 0.5
+            lyuponov += 1 / (2 * self.datasets[i].shape[0]) * multiplier * np.linalg.norm(
+                self.datasets[i] @ self.weights[i] - lyuponov_target) ** 2 + l1[i] * np.linalg.norm(self.weights[i],
+                                                                                                    ord=1) + \
+                        l2[i] * np.linalg.norm(self.weights[i], ord=2)
+        return lyuponov
+
+    def lyuponov_exp(self):
+        views = len(self.datasets)
+        c = np.array(self.params.get('c', [0] * views))
+        ratio = np.array(self.params.get('l1_ratio', [0] * views))
+        l1 = c * ratio
+        l2 = c * (1 - ratio)
+        lyuponov = 0
+        for i in range(views):
+            lyuponov_target = self.scores.mean(axis=0)
+            lyuponov_target /= np.linalg.norm(lyuponov_target)
+            multiplier = 1
             lyuponov += 1 / (2 * self.datasets[i].shape[0]) * multiplier * np.linalg.norm(
                 self.datasets[i] @ self.weights[i] - lyuponov_target) ** 2 + l1[i] * np.linalg.norm(self.weights[i],
                                                                                                     ord=1) + \

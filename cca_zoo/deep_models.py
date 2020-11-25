@@ -13,11 +13,11 @@ https://github.com/Michaelvll/DeepCCA/blob/master/DeepCCAModels.py
 '''
 
 
-class Encoder(nn.Module, ABC):
-    def __init__(self, layer_sizes, input_size: int, output_size: int):
+class Encoder(nn.Module):
+    def __init__(self, layer_sizes, input_size: int, latent_size: int):
         super(Encoder, self).__init__()
         layers = []
-        layer_sizes = [input_size] + layer_sizes + [output_size]
+        layer_sizes = [input_size] + layer_sizes + [latent_size]
         for l_id in range(len(layer_sizes) - 1):
             if l_id == len(layer_sizes) - 2:
                 layers.append(nn.Sequential(
@@ -38,11 +38,11 @@ class Encoder(nn.Module, ABC):
         return x
 
 
-class Decoder(nn.Module, ABC):
-    def __init__(self, layer_sizes, input_size: int, output_size: int):
+class Decoder(nn.Module):
+    def __init__(self, layer_sizes, input_size: int, latent_size: int):
         super(Decoder, self).__init__()
         layers = []
-        layer_sizes = [input_size] + layer_sizes + [output_size]
+        layer_sizes = [latent_size] + layer_sizes + [input_size]
         for l_id in range(len(layer_sizes) - 1):
             if l_id == len(layer_sizes) - 2:
                 layers.append(nn.Sequential(
@@ -64,11 +64,11 @@ class Decoder(nn.Module, ABC):
 
 
 class CNN_Encoder(nn.Module, ABC):
-    def __init__(self, layer_sizes, input_size: int, output_size: int, kernel_sizes=None, stride=None, padding=None):
+    def __init__(self, layer_sizes, input_size: int, latent_size: int, kernel_sizes=None, stride=None, padding=None):
         super(CNN_Encoder, self).__init__()
         # assume square input
         layers = []
-        layer_sizes = layer_sizes + [output_size]
+        layer_sizes = layer_sizes + [latent_size]
 
         if kernel_sizes is None:
             kernel_sizes = [5] * (len(layer_sizes) - 1)
@@ -112,11 +112,11 @@ class CNN_Encoder(nn.Module, ABC):
         return x
 
 
-class CNN_Decoder(nn.Module, ABC):
-    def __init__(self, layer_sizes, input_size: int, output_size: int, kernel_sizes=None, stride=None, padding=None):
+class CNN_Decoder(nn.Module):
+    def __init__(self, layer_sizes, input_size: int, latent_size: int, kernel_sizes=None, stride=None, padding=None):
         super(CNN_Decoder, self).__init__()
         layers = []
-        layer_sizes = [input_size] + layer_sizes + [output_size]
+        layer_sizes = [latent_size] + layer_sizes + [input_size]
 
         if kernel_sizes is None:
             kernel_sizes = [4] * (len(layer_sizes) - 1)
@@ -125,7 +125,7 @@ class CNN_Decoder(nn.Module, ABC):
         if padding is None:
             padding = [1] * (len(layer_sizes) - 1)
 
-        current_size = output_size
+        current_size = latent_size
         current_channels = 1
         for l_id in range(len(layer_sizes) - 1):
             if l_id == len(layer_sizes) - 2:
@@ -161,7 +161,7 @@ class CNN_Decoder(nn.Module, ABC):
 
 
 # https://github.com/nicofarr/brainnetcnnVis_pytorch/blob/master/BrainNetCnnGoldMSI.py
-class E2EBlock(nn.Module, ABC):
+class E2EBlock(nn.Module):
     def __init__(self, in_planes, planes, size, bias=False):
         super(E2EBlock, self).__init__()
 
@@ -175,7 +175,7 @@ class E2EBlock(nn.Module, ABC):
         return torch.cat([a] * self.d, 3) + torch.cat([b] * self.d, 2)
 
 
-class E2EBlock_reverse(nn.Module, ABC):
+class E2EBlock_reverse(nn.Module):
     def __init__(self, in_planes, planes, size, bias=False):
         super(E2EBlock_reverse, self).__init__()
 
@@ -190,8 +190,8 @@ class E2EBlock_reverse(nn.Module, ABC):
 
 
 # BrainNetCNN Network for fitting Gold-MSI on LSD dataset
-class BrainNetCNN_Encoder(nn.Module, ABC):
-    def __init__(self, input_size: int, output_size: int):
+class BrainNetCNN_Encoder(nn.Module):
+    def __init__(self, input_size: int, latent_size: int):
         super(BrainNetCNN_Encoder, self).__init__()
         self.d = input_size
         self.e2econv1 = E2EBlock(1, 32, self.d, bias=True)
@@ -200,7 +200,7 @@ class BrainNetCNN_Encoder(nn.Module, ABC):
         self.N2G = torch.nn.Conv2d(1, 256, (self.d, 1))
         self.dense1 = torch.nn.Linear(256, 128)
         self.dense2 = torch.nn.Linear(128, 30)
-        self.dense3 = torch.nn.Linear(30, output_size)
+        self.dense3 = torch.nn.Linear(30, latent_size)
 
     def forward(self, x):  # 16,1,200,200
         out = F.leaky_relu(self.e2econv1(x), negative_slope=0.33)  # 16,32,200,200
@@ -214,17 +214,17 @@ class BrainNetCNN_Encoder(nn.Module, ABC):
         return out
 
 
-class BrainNetCNN_Decoder(nn.Module, ABC):
-    def __init__(self, input_size: int, output_size: int):
+class BrainNetCNN_Decoder(nn.Module):
+    def __init__(self, input_size: int, latent_size: int):
         super(BrainNetCNN_Decoder, self).__init__()
-        self.d = output_size
+        self.d = input_size
         self.e2econv1 = E2EBlock(32, 1, self.d, bias=True)
         self.e2econv2 = E2EBlock(64, 32, self.d, bias=True)
         self.E2N = torch.nn.ConvTranspose2d(1, 64, (1, self.d))
         self.N2G = torch.nn.ConvTranspose2d(256, 1, (self.d, 1))
         self.dense1 = torch.nn.Linear(128, 256)
         self.dense2 = torch.nn.Linear(30, 128)
-        self.dense3 = torch.nn.Linear(input_size, 30)
+        self.dense3 = torch.nn.Linear(latent_size, 30)
 
     def forward(self, x):
         out = F.dropout(F.leaky_relu(self.dense3(x), negative_slope=0.33), p=0.5)

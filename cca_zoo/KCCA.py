@@ -55,6 +55,8 @@ class KCCA:
             kernel = rbf_kernel(X, Y=Y, gamma=(1 / (2 * self.sigma)))
         elif self.ktype == 'poly':
             kernel = polynomial_kernel(X, Y=Y, degree=self.degree)
+        else:
+            print('invalid kernel: choose linear, rbf, poly')
         if normalize:
             kernel = kernel / np.linalg.svd(kernel)[1].max()
         return kernel

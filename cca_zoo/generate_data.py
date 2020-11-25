@@ -1,5 +1,8 @@
 import numpy as np
-from scipy.linalg import toeplitz
+from scipy import linalg, sparse
+
+def chol_sample(mean, chol):
+    return mean + chol @ np.random.standard_normal(mean.size)
 
 
 def gaussian(x, mu, sig, dn):
@@ -33,19 +36,25 @@ def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0, 
     elif structure == 'toeplitz':
         c = np.arange(0, N)
         c = sigma ** c
-        cov_1 = toeplitz(c, c)
+        cov_1 = linalg.toeplitz(c, c)
         c = np.arange(0, M)
         c = sigma ** c
-        cov_2 = toeplitz(c, c)
+        cov_2 = linalg.toeplitz(c, c)
     elif structure == 'random':
-        cov_1 = np.random.rand(N, N)
-        # cov_1=cov_1@cov_1.T
-        U, S, V = np.linalg.svd(cov_1.T @ cov_1)
-        cov_1 = U @ (1.0 + np.diag(np.random.rand(N))) @ V
-        cov_2 = np.random.rand(M, M)
-        # cov_2=cov_2@cov_2.T
-        U, S, V = np.linalg.svd(cov_2.T @ cov_2)
-        cov_2 = U @ (1.0 + np.diag(np.random.rand(M))) @ V
+        if N<2000:
+            cov_1 = np.random.rand(N, N)
+            U, S, V = np.linalg.svd(cov_1.T @ cov_1)
+            cov_1 = U @ (1.0 + np.diag(np.random.rand(N))) @ V
+        else:
+            cov_1 = np.random.rand(N, N)
+            cov_1 = cov_1.T @ cov_1
+        if M < 2000:
+            cov_2 = np.random.rand(M, M)
+            U, S, V = np.linalg.svd(cov_2.T @ cov_2)
+            cov_2 = U @ (1.0 + np.diag(np.random.rand(M))) @ V
+        else:
+            cov_2 = np.random.rand(M, M)
+            cov_2 = cov_2.T @ cov_2
 
     cov[:N, :N] = cov_1
     cov[N:, N:] = cov_2
@@ -119,8 +128,14 @@ def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0, 
     cov[:N, N:] = cross
     del cross
 
-    X = np.random.multivariate_normal(mean, cov, m)
+    if cov.shape[0] < 2000:
+        X = np.random.multivariate_normal(mean, cov, m)
+    else:
+        X = np.zeros((m, N + M))
+        chol = np.linalg.cholesky(cov)
+        for _ in range(m):
+            X[_, :] = chol_sample(mean, chol)
     Y = X[:, N:]
     X = X[:, :N]
 
-    return X, Y, up, vp
+    return X, Y, up, vp, cov
