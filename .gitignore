@@ -141,9 +141,9 @@ dmypy.json
 # profiling data
 .prof
 
-/DeCCA
+/DeCCA.py
 /DeLCCA.py
-/DeCCAl
+/DeCCAl.py
 /DeCCAnl.py
 /DeCCAl_reg.py
 /DeCCAnl_reg.py
