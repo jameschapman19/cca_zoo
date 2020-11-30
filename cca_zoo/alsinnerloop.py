@@ -5,11 +5,10 @@ from sklearn.linear_model import ElasticNet
 from sklearn.linear_model import Lasso
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import Ridge
-from sklearn.tree import DecisionTreeRegressor
 from sklearn.utils.testing import ignore_warnings
 
 
-class ALS_inner_loop:
+class AlsInnerLoop:
     """
     This is a wrapper class for alternating least squares based solutions to CCA
     """
@@ -34,6 +33,7 @@ class ALS_inner_loop:
         self.datasets = list(args)
         self.track_lyuponov = []
         self.track_correlation = []
+        self.stochastic_p = 0.5
         self.iterate()
 
     def iterate(self):
@@ -46,7 +46,7 @@ class ALS_inner_loop:
         elif self.initialization == 'first_column':
             self.scores = np.array([dataset[:, 0] / np.linalg.norm(dataset[:, 0]) for dataset in self.datasets])
         elif self.initialization == 'unregularized':
-            self.scores = ALS_inner_loop(*self.datasets, initialization='random').scores
+            self.scores = AlsInnerLoop(*self.datasets, initialization='random').scores
 
         self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in self.datasets]
         self.corrs = []
@@ -65,21 +65,21 @@ class ALS_inner_loop:
 
         # This loops through each view and udpates both the weights and targets where relevant
         for _ in range(self.max_iter):
+            i: int
             for i, view in enumerate(self.datasets):
                 self.weights[i] = self.update_function(i)
 
             # Some kind of early stopping
-            if _ > 0:
-                if all(np.linalg.norm(self.weights[n] - self.old_weights[n]) < self.tol for n, view in
-                       enumerate(self.scores)):
-                    break
+            if _ > 0 and all(np.linalg.norm(self.weights[n] - self.old_weights[n]) < self.tol for n, view in
+                             enumerate(self.scores)):
+                break
 
             self.old_weights = self.weights.copy()
             # Sum all pairs
             self.corrs.append(np.corrcoef(self.scores)[np.triu_indices(self.scores.shape[0], 1)].sum())
         return self
 
-    def pmd_update(self, view_index):
+    def pmd_update(self, view_index: int):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         w = self.datasets[view_index].T @ targets.sum(axis=0).filled()
@@ -91,7 +91,7 @@ class ALS_inner_loop:
         self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
-    def parkhomenko_update(self, view_index):
+    def parkhomenko_update(self, view_index: int):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         w = self.datasets[view_index].T @ targets.sum().filled()
@@ -105,21 +105,21 @@ class ALS_inner_loop:
         self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
-    def elastic_update(self, view_index):
+    def elastic_update(self, view_index: int):
         if self.generalized:
             target = self.scores.mean(axis=0)
             w = self.elastic_solver(self.datasets[view_index], target,
                                     alpha=self.params['c'][view_index] / len(self.datasets),
                                     l1_ratio=self.params['l1_ratio'][view_index])
         else:
-            w = self.elastic_solver(self.datasets[view_index], self.scores[view_index - 1],self.inverses[view_index],
+            w = self.elastic_solver(self.datasets[view_index], self.scores[view_index - 1], self.inverses[view_index],
                                     alpha=self.params['c'][view_index],
                                     l1_ratio=self.params['l1_ratio'][view_index])
         w /= np.linalg.norm(self.datasets[view_index] @ w)
         self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
-    def scca_update(self, view_index):
+    def scca_update(self, view_index: int):
         if self.generalized:
             target = self.scores.mean(axis=0)
             w = self.lasso_solver(self.datasets[view_index], target, self.inverses[view_index],
@@ -133,7 +133,8 @@ class ALS_inner_loop:
         self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
-    def soft_threshold(self, x, delta):
+    @staticmethod
+    def soft_threshold(x, delta):
         diff = abs(x) - delta
         diff[diff < 0] = 0
         out = np.sign(x) * diff
@@ -253,6 +254,65 @@ class ALS_inner_loop:
             if not np.any(beta):
                 beta = np.ones(beta.shape)
         return beta
+
+    @ignore_warnings(category=ConvergenceWarning)
+    def constrained_elastic(self, X, y, alpha=0.1, l1_ratio=0.5, init=0):
+        if alpha == 0:
+            coef = LinearRegression(fit_intercept=False).fit(X, y).coef_
+        converged = False
+        min_ = -1
+        max_ = 10
+        current = init
+        previous = current
+        previous_val = None
+        i = 0
+        while not converged:
+            i += 1
+            # coef = Lasso(alpha=current, selection='cyclic', max_iter=10000).fit(X, y).coef_
+            coef = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(np.sqrt(current + 1) * X,
+                                                                                       y / np.sqrt(current + 1)).coef_
+            current_val = 1 - np.linalg.norm(X @ coef)
+            current, previous, min_, max_ = bin_search(current, previous, current_val, previous_val, min_, max_)
+            previous_val = current_val
+            if np.abs(current_val) < 1e-5:
+                converged = True
+            elif np.abs(max_ - min_) < 1e-30 or i == 50:
+                converged = True
+                coef = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(np.sqrt(current + 1) * X,
+                                                                                           y / np.sqrt(
+                                                                                               current + 1)).coef_
+        return coef, current
+
+    @ignore_warnings(category=ConvergenceWarning)
+    def constrained_regression(self, X, y, p, init=1):
+        if p == 0:
+            coef = LinearRegression(fit_intercept=False).fit(X, y).coef_
+        converged = False
+        min_ = 0
+        max_ = 1
+        current = init
+        previous = current
+        previous_val = None
+        i = 0
+        while not converged:
+            i += 1
+            # coef = Lasso(alpha=current, selection='cyclic', max_iter=10000).fit(X, y).coef_
+            coef = Lasso(alpha=current, selection='cyclic', fit_intercept=False).fit(X, y).coef_
+            if np.linalg.norm(X @ coef) > 0:
+                current_val = p - np.linalg.norm(coef / np.linalg.norm(X @ coef), ord=1)
+            else:
+                current_val = p
+            current, previous, min_, max_ = bin_search(current, previous, current_val, previous_val, min_, max_)
+            previous_val = current_val
+            if np.abs(current_val) < 1e-5:
+                converged = True
+            elif current < 1e-15:
+                converged = True
+            elif np.abs(max_ - min_) < 1e-30 or i == 50:
+                converged = True
+                coef = Lasso(alpha=min_, selection='cyclic', fit_intercept=False).fit(X, y).coef_
+        coef = coef / np.linalg.norm(X @ coef)
+        return coef, current
 
     def lyuponov(self):
         views = len(self.datasets)

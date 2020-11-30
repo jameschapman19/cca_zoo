@@ -2,13 +2,14 @@ import copy
 
 import numpy as np
 import torch
-from torch.utils.data import TensorDataset, DataLoader
-import cca_zoo.plot_utils
 from sklearn.cross_decomposition import CCA
+from torch.utils.data import TensorDataset, DataLoader
+
+import cca_zoo.plot_utils
 from cca_zoo.configuration import Config
 
 
-class Wrapper:
+class DeepWrapper:
     """
     This is a wrapper class for Deep CCA
     We create an instance with a method and number of latent dimensions.
@@ -52,7 +53,10 @@ class Wrapper:
         train_dataset = TensorDataset(
             *[torch.tensor(dataset) for dataset in self.dataset_list_train])  # create your datset
         val_dataset = TensorDataset(*[torch.tensor(dataset) for dataset in self.dataset_list_val])
-        train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset))
+        if self.config.batch_size == 0:
+            train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset), drop_last=True)
+        else:
+            train_dataloader = DataLoader(train_dataset, batch_size=self.config.batch_size, drop_last=True)
         val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
 
         self.config.input_sizes = [dataset.shape[-1] for dataset in self.dataset_list_train]
@@ -71,7 +75,7 @@ class Wrapper:
         all_val_loss = []
 
         for epoch in range(1, self.config.epoch_num + 1):
-            if early_stop == False:
+            if not early_stop:
                 epoch_train_loss = self.train_epoch(train_dataloader)
                 print('====> Epoch: {} Average train loss: {:.4f}'.format(
                     epoch, epoch_train_loss))
@@ -121,13 +125,8 @@ class Wrapper:
 
     def predict_corr(self, *args, train=False):
         z_list = self.transform_view(*args, train=train)
-        if train:
-            self.cca = CCA(n_components=self.config.latent_dims)
-            view_1, view_2 = self.cca.fit_transform(z_list[0], z_list[1])
-        else:
-            view_1, view_2 = self.cca.transform(np.array(z_list[0]), np.array(z_list[1]))
         correlations = np.diag(
-            np.corrcoef(view_1, view_2, rowvar=False)[:self.config.latent_dims, self.config.latent_dims:])
+            np.corrcoef(z_list[0], z_list[1], rowvar=False)[:self.config.latent_dims, self.config.latent_dims:])
         return correlations
 
     def transform_view(self, *args, train=False):
@@ -139,8 +138,17 @@ class Wrapper:
                 data = [d.to(self.device) for d in list(data)]
                 z = self.model(*data)
                 if batch_idx == 0:
-                    z_list = [np.empty((0, self.config.latent_dims)) for _ in range(len(z))]
-                z_list = [np.append(z_list[i], z_i.detach().cpu().numpy(), axis=0) for i, z_i in enumerate(z)]
+                    z_list = [z_i.detach().cpu().numpy() for i, z_i in enumerate(z)]
+                else:
+                    z_list = [np.append(z_list[i], z_i.detach().cpu().numpy(), axis=0) for
+                              i, z_i in enumerate(z)]
+        # For trace-norm objective models we need to apply a linear CCA to outputs
+        if self.config.als:
+            if train:
+                self.cca = CCA(n_components=self.config.latent_dims)
+                z_list = self.cca.fit_transform(z_list[0], z_list[1])
+            else:
+                z_list = self.cca.transform(np.array(z_list[0]), np.array(z_list[1]))
         return z_list
 
     def predict_view(self, *args, train=False):

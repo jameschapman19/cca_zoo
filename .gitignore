@@ -141,10 +141,10 @@ dmypy.json
 # profiling data
 .prof
 
-/DeCCA.py
-/DeLCCA.py
-/DeCCAl.py
-/DeCCAnl.py
-/DeCCAl_reg.py
+/DeCCA_nonlinear.py
+/DeCCA_linear.py
+/DeCCA_lagrangian_linear.py
+/DeCCA_lagrangian_nonlinear.py
+/DeCCA_lagrangian_recon.py
 /DeCCAnl_reg.py
 /DeVCCA.py

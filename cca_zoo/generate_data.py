@@ -1,5 +1,6 @@
 import numpy as np
-from scipy import linalg, sparse
+from scipy import linalg
+
 
 def chol_sample(mean, chol):
     return mean + chol @ np.random.standard_normal(mean.size)
@@ -11,7 +12,8 @@ def gaussian(x, mu, sig, dn):
 
 def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0, sparse_variables_2: float = 0,
                  signal: float = 1,
-                 structure: str = 'identity', sigma: float = 0.9, decay: float = 0.5):
+                 structure: str = 'identity', sigma: float = 0.9, decay: float = 0.5, rand_eigs_1: bool = False,
+                 rand_eigs_2: bool = False):
     mean = np.zeros(N + M)
     cov = np.zeros((N + M, N + M))
     p = np.arange(0, k)
@@ -41,21 +43,22 @@ def generate_mai(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0, 
         c = sigma ** c
         cov_2 = linalg.toeplitz(c, c)
     elif structure == 'random':
-        if N<2000:
+        if rand_eigs_1:
             cov_1 = np.random.rand(N, N)
             U, S, V = np.linalg.svd(cov_1.T @ cov_1)
-            cov_1 = U @ (1.0 + np.diag(np.random.rand(N))) @ V
+            cov_1 = U @ (np.diag(np.random.rand(N))) @ V
         else:
             cov_1 = np.random.rand(N, N)
             cov_1 = cov_1.T @ cov_1
-        if M < 2000:
+            # cov_1 = make_sparse_spd_matrix(N, alpha=0.7)
+        if rand_eigs_2:
             cov_2 = np.random.rand(M, M)
             U, S, V = np.linalg.svd(cov_2.T @ cov_2)
-            cov_2 = U @ (1.0 + np.diag(np.random.rand(M))) @ V
+            cov_2 = U @ (np.diag(np.random.rand(M))) @ V
         else:
             cov_2 = np.random.rand(M, M)
             cov_2 = cov_2.T @ cov_2
-
+            # cov_2 = make_sparse_spd_matrix(M, alpha=0.7)
     cov[:N, :N] = cov_1
     cov[N:, N:] = cov_2
     del cov_1

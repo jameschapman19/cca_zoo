@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 
 
 def attach_dim(v, n_dim_to_prepend=0, n_dim_to_append=0):
@@ -9,7 +8,18 @@ def attach_dim(v, n_dim_to_prepend=0, n_dim_to_append=0):
         + torch.Size([1] * n_dim_to_append))
 
 
-class mcca:
+def compute_matrix_power(M, p, eps):
+    [D, V] = torch.symeig(M, eigenvectors=True)
+    # Added to increase stability
+    posInd1 = torch.gt(D, eps).nonzero()[:, 0]
+    D = D[posInd1]
+    V = V[:, posInd1]
+    M_p = torch.matmul(
+        torch.matmul(V, torch.diag(torch.pow(D, p))), V.t())
+    return M_p
+
+
+class MCCA:
     """
     Differentiable MCCA Loss.
     Loss() method takes the outputs of each view's network and solves the multiset eigenvalue problem
@@ -52,7 +62,7 @@ class mcca:
         return -corr
 
 
-class gcca:
+class GCCA:
     """
     Differentiable GCCA Loss.
     Loss() method takes the outputs of each view's network and solves the multiset eigenvalue problem
@@ -82,13 +92,13 @@ class gcca:
         return -corr
 
 
-class cca:
+class CCA:
     """
     Differentiable CCA Loss.
     Loss() method takes the outputs of each view's network and solves the multiset eigenvalue problem
     """
 
-    def __init__(self, outdim_size: int, r=1e-3, eps=0):
+    def __init__(self, outdim_size: int, r=0, eps=0):
         self.outdim_size = outdim_size
         self.r = r
         self.eps = eps
@@ -112,21 +122,8 @@ class cca:
                                                     H2bar.t()) + self.r * torch.eye(o2, dtype=torch.double,
                                                                                     device=H2.device)
 
-        [D1, V1] = torch.symeig(SigmaHat11, eigenvectors=True)
-        [D2, V2] = torch.symeig(SigmaHat22, eigenvectors=True)
-
-        # Added to increase stability
-        posInd1 = torch.gt(D1, self.eps).nonzero()[:, 0]
-        D1 = D1[posInd1]
-        V1 = V1[:, posInd1]
-        posInd2 = torch.gt(D2, self.eps).nonzero()[:, 0]
-        D2 = D2[posInd2]
-        V2 = V2[:, posInd2]
-
-        SigmaHat11RootInv = torch.matmul(
-            torch.matmul(V1, torch.diag(torch.pow(D1, -0.5))), V1.t())
-        SigmaHat22RootInv = torch.matmul(
-            torch.matmul(V2, torch.diag(torch.pow(D2, -0.5))), V2.t())
+        SigmaHat11RootInv = compute_matrix_power(SigmaHat11, -0.5, self.eps)
+        SigmaHat22RootInv = compute_matrix_power(SigmaHat22, -0.5, self.eps)
 
         Tval = torch.matmul(torch.matmul(SigmaHat11RootInv,
                                          SigmaHat12), SigmaHat22RootInv)

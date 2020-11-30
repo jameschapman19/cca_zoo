@@ -63,9 +63,9 @@ class Decoder(nn.Module):
         return x
 
 
-class CNN_Encoder(nn.Module, ABC):
+class CNNEncoder(nn.Module, ABC):
     def __init__(self, layer_sizes, input_size: int, latent_size: int, kernel_sizes=None, stride=None, padding=None):
-        super(CNN_Encoder, self).__init__()
+        super(CNNEncoder, self).__init__()
         # assume square input
         layers = []
         layer_sizes = layer_sizes + [latent_size]
@@ -112,9 +112,9 @@ class CNN_Encoder(nn.Module, ABC):
         return x
 
 
-class CNN_Decoder(nn.Module):
+class CNNDecoder(nn.Module):
     def __init__(self, layer_sizes, input_size: int, latent_size: int, kernel_sizes=None, stride=None, padding=None):
-        super(CNN_Decoder, self).__init__()
+        super(CNNDecoder, self).__init__()
         layers = []
         layer_sizes = [latent_size] + layer_sizes + [input_size]
 
@@ -175,9 +175,9 @@ class E2EBlock(nn.Module):
         return torch.cat([a] * self.d, 3) + torch.cat([b] * self.d, 2)
 
 
-class E2EBlock_reverse(nn.Module):
+class E2EBlockReverse(nn.Module):
     def __init__(self, in_planes, planes, size, bias=False):
-        super(E2EBlock_reverse, self).__init__()
+        super(E2EBlockReverse, self).__init__()
 
         self.d = size
         self.cnn1 = torch.nn.ConvTranspose2d(in_planes, planes, (1, self.d), bias=bias)
@@ -190,9 +190,9 @@ class E2EBlock_reverse(nn.Module):
 
 
 # BrainNetCNN Network for fitting Gold-MSI on LSD dataset
-class BrainNetCNN_Encoder(nn.Module):
+class BrainNetEncoder(nn.Module):
     def __init__(self, input_size: int, latent_size: int):
-        super(BrainNetCNN_Encoder, self).__init__()
+        super(BrainNetEncoder, self).__init__()
         self.d = input_size
         self.e2econv1 = E2EBlock(1, 32, self.d, bias=True)
         self.e2econv2 = E2EBlock(32, 64, self.d, bias=True)
@@ -207,16 +207,16 @@ class BrainNetCNN_Encoder(nn.Module):
         out = F.leaky_relu(self.e2econv2(out), negative_slope=0.33)  # 16,64,200,200
         out = F.leaky_relu(self.E2N(out), negative_slope=0.33)  # 16,1,200,1
         out = F.dropout(F.leaky_relu(self.N2G(out), negative_slope=0.33), p=0.5)  # 16,256,1,1
-        out = out.view(out.size(0), -1)  # 16,256
+        out = out.view(out.size(), -1)  # 16,256
         out = F.dropout(F.leaky_relu(self.dense1(out), negative_slope=0.33), p=0.5)
         out = F.dropout(F.leaky_relu(self.dense2(out), negative_slope=0.33), p=0.5)
         out = F.leaky_relu(self.dense3(out), negative_slope=0.33)
         return out
 
 
-class BrainNetCNN_Decoder(nn.Module):
+class BrainNetDecoder(nn.Module):
     def __init__(self, input_size: int, latent_size: int):
-        super(BrainNetCNN_Decoder, self).__init__()
+        super(BrainNetDecoder, self).__init__()
         self.d = input_size
         self.e2econv1 = E2EBlock(32, 1, self.d, bias=True)
         self.e2econv2 = E2EBlock(64, 32, self.d, bias=True)
@@ -235,4 +235,14 @@ class BrainNetCNN_Decoder(nn.Module):
         out = F.leaky_relu(self.E2N(out), negative_slope=0.33)
         out = F.leaky_relu(self.e2econv2(out), negative_slope=0.33)
         out = F.leaky_relu(self.e2econv1(out), negative_slope=0.33)
+        return out
+
+
+class LinearDecoder(nn.Module):
+    def __init__(self, layer_sizes, input_size: int, latent_size: int):
+        super(LinearDecoder, self).__init__()
+        self.linear = nn.Linear(latent_size, input_size)
+
+    def forward(self, x):
+        out = self.linear(x)
         return out

@@ -5,8 +5,8 @@ from hyperopt import tpe, fmin, Trials
 from scipy.linalg import pinv2, block_diag, cholesky
 from sklearn.cross_decomposition import CCA, PLSCanonical
 
-import cca_zoo.KCCA
-import cca_zoo.alternating_least_squares
+import cca_zoo.kcca
+import cca_zoo.alsinnerloop
 import cca_zoo.generate_data
 import cca_zoo.plot_utils
 
@@ -81,7 +81,7 @@ class Wrapper:
             self.dataset_list.append(dataset - dataset.mean(axis=0))
 
         if self.method == 'kernel':
-            self.fit_kcca = cca_zoo.KCCA.KCCA(self.dataset_list[0], self.dataset_list[1], params=self.params,
+            self.fit_kcca = cca_zoo.kcca.KCCA(self.dataset_list[0], self.dataset_list[1], params=self.params,
                                               latent_dims=self.latent_dims)
             self.score_list = [self.fit_kcca.U, self.fit_kcca.V]
         elif self.method == 'pls':
@@ -119,8 +119,8 @@ class Wrapper:
         trials = Trials()
 
         best_params = fmin(
-            fn=cross_validate(*args, method=self.method, latent_dims=self.latent_dims, folds=folds,
-                              verbose=verbose, max_iter=self.max_iter, tol=self.tol).score,
+            fn=CrossValidate(*args, method=self.method, latent_dims=self.latent_dims, folds=folds,
+                             verbose=verbose, max_iter=self.max_iter, tol=self.tol).score,
             space=space,
             algo=tpe.suggest,
             max_evals=100,
@@ -202,11 +202,11 @@ class Wrapper:
         residuals = list(args)
         # For each of the dimensions
         for k in range(self.latent_dims):
-            self.inner_loop = cca_zoo.alternating_least_squares.ALS_inner_loop(*residuals, C=C_train_res,
-                                                                               generalized=self.generalized,
-                                                                               params=self.params,
-                                                                               method=self.method,
-                                                                               max_iter=self.max_iter)
+            self.inner_loop = cca_zoo.alsinnerloop.AlsInnerLoop(*residuals, C=C_train_res,
+                                                                generalized=self.generalized,
+                                                                params=self.params,
+                                                                method=self.method,
+                                                                max_iter=self.max_iter)
             for i in range(len(args)):
                 if self.method[:4] == 'tree':
                     self.tree_list = self.inner_loop.weights
@@ -292,6 +292,7 @@ class Wrapper:
         self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
 
 
+"""
 def permutation_test(train_set_1, train_set_2, latent_dims=5,
                      method='als', params=None, n_reps=100, level=0.05):
     if params is None:
@@ -322,6 +323,7 @@ def permutation_test(train_set_1, train_set_2, latent_dims=5,
     print('significant dims at level: ', str(level * 100), '%:', str(significant_dims), flush=True)
     print(p_vals, flush=True)
     return p_vals, significant_dims
+"""
 
 
 def slicedict(d, s):
@@ -345,8 +347,8 @@ def grid_search(*args, max_iter: int = 100, latent_dims: int = 5, method: str = 
         for key in param_candidates.keys():
             params[key] = param_candidates[key][index[p_num]]
             p_num += 1
-        hyperparameter_scores[index] = -cross_validate(*args, method=method, latent_dims=latent_dims, folds=folds,
-                                                       verbose=verbose, max_iter=max_iter, tol=tol).score(params)
+        hyperparameter_scores[index] = -CrossValidate(*args, method=method, latent_dims=latent_dims, folds=folds,
+                                                      verbose=verbose, max_iter=max_iter, tol=tol).score(params)
 
     # Find index of maximum value from 2D numpy array
     result = np.where(hyperparameter_scores == np.amax(hyperparameter_scores))
@@ -366,7 +368,7 @@ def grid_search(*args, max_iter: int = 100, latent_dims: int = 5, method: str = 
     return best_params
 
 
-class cross_validate:
+class CrossValidate:
     def __init__(self, *args, latent_dims: int = 1, method: str = 'l2', generalized: bool = False, folds=5,
                  verbose=False, max_iter: int = 500,
                  tol=1e-6):
