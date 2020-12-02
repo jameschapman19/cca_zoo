@@ -26,6 +26,7 @@ class TestAlsInnerLoop(TestCase):
                                            np.linalg.norm(generalized_als.scores[2]), 1))
 
     def test_regularized(self):
+
         params = {'c': [0.0001, 0.0001]}
         scca = cca_zoo.alsinnerloop.AlsInnerLoop(self.X, self.Y, method='scca', params=params)
         scca_gen = cca_zoo.alsinnerloop.AlsInnerLoop(self.X, self.Y, method='scca', params=params, generalized=True)
