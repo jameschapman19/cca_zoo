@@ -27,9 +27,6 @@ class KCCA:
         self.K2 = self.make_kernel(Y, Y)
 
         N = self.K1.shape[0]
-        # N0 = np.eye(N) - 1. / N * np.ones(N)
-        # self.K1 = np.dot(np.dot(N0, self.K1), N0)
-        # self.K2 = np.dot(np.dot(N0, self.K2), N0)
 
         R, D = self.hardoon_method()
         betas, alphas = eigh(R, D+self.eps*np.eye(D.shape[0]))
@@ -68,12 +65,11 @@ class KCCA:
         R = np.r_[R1, R2]
 
         D1 = np.c_[(1 - self.c[0]) * self.K1 @ self.K1.T + self.c[0] * self.K1, Z]
-        D2 = np.c_[Z, (1 - self.c[1]) * self.K2 @ self.K2.T + self.c[1] * self.c[1] * self.K2]
+        D2 = np.c_[Z, (1 - self.c[1]) * self.K2 @ self.K2.T + self.c[1] * self.K2]
         D = np.r_[D1, D2]
         return R, D
 
     def transform(self, X_test: np.array = None, Y_test: np.array = None):
-        n_dims = self.alpha1.shape[1]
         if X_test is not None:
             Ktest = self.make_kernel(X_test, self.X)
             U_test = np.dot(Ktest, self.alpha1)

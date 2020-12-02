@@ -193,12 +193,6 @@ class Wrapper:
         # list of d:
         self.loading_list = [np.zeros((args[i].shape[1], self.latent_dims)) for i in range(len(args))]
 
-        if len(args) == 2:
-            C_train = args[0].T @ args[1]
-            C_train_res = C_train.copy()
-        else:
-            C_train_res = None
-
         residuals = list(args)
         # For each of the dimensions
         for k in range(self.latent_dims):

@@ -89,8 +89,7 @@ class AlsInnerLoop:
         w, w_success = self.delta_search(w, self.params['c'][view_index])
         if not w_success:
             w = self.datasets[view_index].T @ targets.sum(axis=0).filled()
-            if np.linalg.norm(w) == 0:
-                print('failed')
+        w /= np.linalg.norm(w)
         self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
@@ -271,7 +270,6 @@ class AlsInnerLoop:
         i = 0
         while not converged:
             i += 1
-            # coef = Lasso(alpha=current, selection='cyclic', max_iter=10000).fit(X, y).coef_
             coef = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(np.sqrt(current + 1) * X,
                                                                                        y / np.sqrt(current + 1)).coef_
             current_val = 1 - np.linalg.norm(X @ coef)
