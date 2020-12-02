@@ -143,7 +143,7 @@ class DeepWrapper:
                     z_list = [np.append(z_list[i], z_i.detach().cpu().numpy(), axis=0) for
                               i, z_i in enumerate(z)]
         # For trace-norm objective models we need to apply a linear CCA to outputs
-        if self.config.als:
+        if not self.config.als:
             if train:
                 self.cca = CCA(n_components=self.config.latent_dims)
                 z_list = self.cca.fit_transform(z_list[0], z_list[1])

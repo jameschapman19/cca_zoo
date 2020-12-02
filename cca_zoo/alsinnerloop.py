@@ -6,6 +6,7 @@ from sklearn.linear_model import Lasso
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import Ridge
 from sklearn.utils.testing import ignore_warnings
+from itertools import combinations
 
 
 class AlsInnerLoop:
@@ -13,11 +14,10 @@ class AlsInnerLoop:
     This is a wrapper class for alternating least squares based solutions to CCA
     """
 
-    def __init__(self, *args, C=None, max_iter: int = 200, tol=1e-5, generalized: bool = False,
+    def __init__(self, *args, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', params=None,
                  method: str = 'elastic'):
         self.initialization = initialization
-        self.C = C
         self.max_iter = max_iter
         self.tol = tol
         self.params = params
@@ -33,7 +33,7 @@ class AlsInnerLoop:
         self.datasets = list(args)
         self.track_lyuponov = []
         self.track_correlation = []
-        self.stochastic_p = 0.5
+        self.lyuponov = self.cca_lyuponov
         self.iterate()
 
     def iterate(self):
@@ -56,6 +56,7 @@ class AlsInnerLoop:
         # might deprecate l2 and push it through elastic instead
         if self.method == 'pmd':
             self.update_function = self.pmd_update
+            self.lyuponov = self.pls_lyuponov
         elif self.method == 'parkhomenko':
             self.update_function = self.parkhomenko_update
         elif self.method == 'elastic':
@@ -68,6 +69,8 @@ class AlsInnerLoop:
             i: int
             for i, view in enumerate(self.datasets):
                 self.weights[i] = self.update_function(i)
+
+            self.track_lyuponov.append(self.lyuponov())
 
             # Some kind of early stopping
             if _ > 0 and all(np.linalg.norm(self.weights[n] - self.old_weights[n]) < self.tol for n, view in
@@ -94,7 +97,7 @@ class AlsInnerLoop:
     def parkhomenko_update(self, view_index: int):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
-        w = self.datasets[view_index].T @ targets.sum().filled()
+        w = self.datasets[view_index].T @ targets.sum(axis=0).filled()
         if np.linalg.norm(w) == 0:
             w = self.datasets[view_index].T @ targets.sum().filled()
         w /= np.linalg.norm(w)
@@ -314,7 +317,7 @@ class AlsInnerLoop:
         coef = coef / np.linalg.norm(X @ coef)
         return coef, current
 
-    def lyuponov(self):
+    def cca_lyuponov(self):
         views = len(self.datasets)
         c = np.array(self.params.get('c', [0] * views))
         ratio = np.array(self.params.get('l1_ratio', [0] * views))
@@ -333,6 +336,12 @@ class AlsInnerLoop:
                                                                                                     ord=1) + \
                         l2[i] * np.linalg.norm(self.weights[i], ord=2)
         return lyuponov
+
+    def pls_lyuponov(self):
+        cov = 0
+        for (score_i, score_j) in combinations(self.scores, 2):
+            cov += score_i.T @ score_j
+        return cov
 
 
 def bin_search(current, previous, current_val, previous_val, min_, max_):

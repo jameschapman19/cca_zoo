@@ -202,7 +202,7 @@ class Wrapper:
         residuals = list(args)
         # For each of the dimensions
         for k in range(self.latent_dims):
-            self.inner_loop = cca_zoo.alsinnerloop.AlsInnerLoop(*residuals, C=C_train_res,
+            self.inner_loop = cca_zoo.alsinnerloop.AlsInnerLoop(*residuals,
                                                                 generalized=self.generalized,
                                                                 params=self.params,
                                                                 method=self.method,
