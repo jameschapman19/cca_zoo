@@ -1,7 +1,7 @@
 # Canonical Correlation Analysis Methods: cca-zoo
 ## CCA, GCCA (Generalized CCA), MCCA (Multiset CCA), DCCA (Deep CCA), DGCCA (Deep Generalized CCA), DMCCA (Deep Multiset CCA), DVCCA (Deep Variational CCA), DCCAE (Deep Canonically Correlated Autoencoders), KCCA (Kernel CCA) and regularised variants using alternating least squares
 
-Can now be installed using pip install cca-zoo
+### Can now be installed using pip install cca-zoo : DOCS to follow soon
 
 *If you believe that I have copied any code without giving credit do let me know
 
