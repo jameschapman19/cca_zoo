@@ -10,6 +10,9 @@ Welcome to cca-zoo's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   linear
+   deep
+
 cca-zoo
 ========
 

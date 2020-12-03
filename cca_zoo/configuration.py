@@ -11,24 +11,39 @@ encoder/decoder models in the DCCA. I think I will do something similar for the 
 
 class Config:
     def __init__(self):
-        self.rho = 0.75
-        self.als = False
-        self.eps = 1e-9
-        self.lamda = 100
+        #Defines the basic architecture DCCA, DCCAE, DVCCA
         self.method = cca_zoo.dcca.DCCA
-        self.mu = 0.5
-        self.objective = cca_zoo.objectives.CCA
+        #The number of encoding dimensions
         self.latent_dims = 2
         self.learning_rate = 1e-3
         self.epoch_num = 1
-        self.batch_size = 0
-        self.both_encoders = True
-        self.private = False
         self.patience = 0
-        self.loss_type = 'cca'
-        self.lam = 0
-        self.encoder_models = [cca_zoo.deep_models.Encoder, cca_zoo.deep_models.Encoder]
-        self.decoder_models = [cca_zoo.deep_models.Decoder, cca_zoo.deep_models.Decoder]
-        self.confound_encoder_models = [cca_zoo.deep_models.Encoder]
-        self.hidden_layer_sizes = [[128], [128]]
+        self.batch_size = 0
+        #Updated automatically when using deepwrapper.DeepWrapper
         self.input_sizes = None
+        #These control the encoder architectures. We need one for each view. Fully connected models provided by default
+        self.encoder_models = [cca_zoo.deep_models.Encoder, cca_zoo.deep_models.Encoder]
+        # These control the decoder architectures. We need one for each view if using DCCAE or DVCCA. Fully connected models provided by default
+        self.decoder_models = [cca_zoo.deep_models.Decoder, cca_zoo.deep_models.Decoder]
+        #These are parameters used by cca_zoo.deep_models.Encoder
+        self.hidden_layer_sizes = [[128], [128]]
+        # We can choose to use cca_zoo.objectives.CCA, cca_zoo.objectives.MCCA, cca_zoo.objectives.GCCA
+        self.objective = cca_zoo.objectives.CCA
+        # We also implement DCCA by non-linear orthogonal iterations (alternating least squares).
+        self.als = False
+        self.eps = 1e-9
+
+        #Used for DCCAE:
+        # Weighting of reconstruction vs correlation loss
+        self.lam = 0
+
+        # Used for DVCCA:
+        # True gives bi-DVCCA, False gives DVCCA
+        self.both_encoders = True
+        # True gives DVCCA_private, False gives DVCCA
+        self.private = False
+        # mu from the original paper controls the weighting of each encoder
+        self.mu = 0.5
+
+        #Not used yet
+        self.confound_encoder_models = [cca_zoo.deep_models.Encoder]
