@@ -4,22 +4,18 @@
    contain the root `toctree` directive.
 
 Linear Models
-===================================
+=============
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
 Intro
-========
+-----
 
 
-CCA
-========
-
-cca-zoo is a collection of linear, kernel, and deep methods for canonical correlation analysis of multiview data.
-
-Look how easy it is to use:
+Linear CCA
+----------
 
 .. sourcecode:: python
 
@@ -28,8 +24,15 @@ Look how easy it is to use:
    linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims)
    linear_cca.fit(train_set_1, train_set_2)
 
+.. sourcecode:: python
+
+   import cca_zoo
+   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
+   linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims,method='scikit)
+   linear_cca.fit(train_set_1, train_set_2)
+
 Sparse CCA
-========
+----------
 
 .. sourcecode:: python
 
@@ -54,7 +57,7 @@ Sparse CCA
 
 
 Kernel CCA
-========
+----------
 
 .. sourcecode:: python
 
@@ -78,7 +81,7 @@ Kernel CCA
    linear_cca.fit(train_set_1, train_set_2)
 
 Multiple view CCA
-========
+-----------------
 
 .. sourcecode:: python
 
@@ -109,7 +112,7 @@ Multiple view CCA
    linear_cca.fit(train_set_1, train_set_2, train_set_3)
 
 Grid search cross-validation
-========
+----------------------------
 
 .. sourcecode:: python
 

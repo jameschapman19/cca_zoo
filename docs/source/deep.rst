@@ -4,14 +4,14 @@
    contain the root `toctree` directive.
 
 Deep Models
-===================================
+===========
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
 Intro
-========
+-----
 
 The main difference between running linear models and deep learning based models is the Config class from configuration.py.
 
@@ -61,7 +61,7 @@ how one might change these defaults.
 
 
 Deep CCA
-========
+--------
 
 .. sourcecode:: python
 
@@ -72,7 +72,7 @@ Deep CCA
    dcca.fit(train_set_1, train_set_2)
 
 Deep Canonically Correlated Autoencoders
-========
+----------------------------------------
 
 .. sourcecode:: python
 
@@ -84,7 +84,7 @@ Deep Canonically Correlated Autoencoders
    dcca.fit(train_set_1, train_set_2)
 
 Deep Variational CCA
-========
+--------------------
 
 .. sourcecode:: python
 
