@@ -1,3 +1,24 @@
+"""
+This is a wrapper class for linear, regularised and kernel  CCA, Multiset CCA and Generalized CCA.
+We create an instance with a method and number of latent dimensions.
+If we have more than 2 views we need to use generalized methods, but we can override in the 2 view case also with
+the generalized parameter.
+
+The class has a number of methods:
+
+fit(): gives us train correlations and stores the variables needed for out of sample prediction as well as some
+method-specific variables
+
+cv_fit(): allows us to perform a hyperparameter search and then fit the model using the optimal hyperparameters
+
+predict_corr(): allows us to predict the out of sample correlation for supplied views
+
+predict_view(): allows us to predict a reconstruction of missing views from the supplied views
+
+transform_view(): allows us to transform given views to the latent variable space
+
+"""
+
 import itertools
 
 import numpy as np
@@ -12,30 +33,16 @@ import cca_zoo.plot_utils
 
 
 class Wrapper:
-    """
-    This is a wrapper class for linear, regularised and kernel  CCA, Multiset CCA and Generalized CCA.
-    We create an instance with a method and number of latent dimensions.
-    If we have more than 2 views we need to use generalized methods, but we can override in the 2 view case also with
-    the generalized parameter.
-
-    The class has a number of methods:
-
-    fit(): gives us train correlations and stores the variables needed for out of sample prediction as well as some
-    method-specific variables
-
-    cv_fit(): allows us to perform a hyperparameter search and then fit the model using the optimal hyperparameters
-
-    predict_corr(): allows us to predict the out of sample correlation for supplied views
-
-    predict_view(): allows us to predict a reconstruction of missing views from the supplied views
-
-    transform_view(): allows us to transform given views to the latent variable space
-
-    remaining methods are used to
-    """
-
     def __init__(self, latent_dims: int = 1, method: str = 'elastic', generalized: bool = False, max_iter: int = 200,
                  tol=1e-6):
+        """
+        :param latent_dims: number of latent dimensions to find
+        :param method: 'elastic', 'pmd', 'scca', 'gcca', 'mcca', 'gep', 'scikit', 'pls', 'kernel'
+        :param generalized: boolean. Required when number of views >2. If True and 2 views only affects alternating
+         least squares based algorithms.
+        :param max_iter: maximum number of iterations for ALS inner loop
+        :param tol: tolerance value used throughout.
+        """
         self.latent_dims = latent_dims
         self.method = method
         self.generalized = generalized
@@ -43,6 +50,11 @@ class Wrapper:
         self.tol = tol
 
     def fit(self, *args, params=None):
+        """
+        :param args: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
+        :param params: a dictionary containing the. If None use defaults
+        :return: training data correlations and the parameters required to call other functions in the class.
+        """
         self.params = {}
         if params is None:
             params = {}
@@ -108,6 +120,13 @@ class Wrapper:
         return self
 
     def gridsearch_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False):
+        """
+        :param args: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
+        :param param_candidates: 
+        :param folds: number of folds used for cross validation
+        :param verbose: whether to return scores for each set of parameters
+        :return: fit model with best parameters
+        """""
         best_params = grid_search(*args, max_iter=self.max_iter, latent_dims=self.latent_dims, method=self.method,
                                   param_candidates=param_candidates, folds=folds,
                                   verbose=verbose, tol=self.tol)
@@ -115,7 +134,13 @@ class Wrapper:
         return self
 
     def bayes_fit(self, *args, space=None, folds: int = 5, verbose=True):
-
+        """
+        :param args: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
+        :param space:
+        :param folds: number of folds used for cross validation
+        :param verbose: whether to return scores for each set of parameters
+        :return:
+        """
         trials = Trials()
 
         best_params = fmin(
@@ -130,6 +155,11 @@ class Wrapper:
         return self
 
     def predict_corr(self, *args):
+        """
+        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+         corresponding view in the training data
+        :return: numpy arraay containing correlations between each pair of views
+        """
         # Takes two datasets and predicts their out of sample correlation using trained model
         transformed_views = self.transform_view(*args)
         all_corrs = []
@@ -139,6 +169,11 @@ class Wrapper:
         return all_corrs
 
     def predict_view(self, *args):
+        """
+        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+         corresponding view in the training data
+        :return: list of numpy arrays with same dimensions as the inputs
+        """
         # Regress original given views onto target
         transformed_views = self.transform_view(*args)
 
@@ -156,7 +191,11 @@ class Wrapper:
         return predicted_views
 
     def transform_view(self, *args):
-        # Demeaning
+        """
+        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+         corresponding view in the training data
+        :return: list of numpy arrays with the same number of samples as the inputs and number of features equal to latent_dims
+        """
         new_views = []
         for i, new_view in enumerate(args):
             if new_view is None:
@@ -186,6 +225,11 @@ class Wrapper:
         return transformed_views
 
     def outer_loop(self, *args):
+        """
+        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+         corresponding view in the training data
+        :return:
+        """
         # list of d: p x k
         self.weights_list = [np.zeros((args[i].shape[1], self.latent_dims)) for i in range(len(args))]
         # list of d: n x k
@@ -214,6 +258,11 @@ class Wrapper:
         return self
 
     def fit_scikit_cca(self, train_set_1, train_set_2):
+        """
+        :param train_set_1:
+        :param train_set_2:
+        :return:
+        """
         self.cca = CCA(n_components=self.latent_dims, scale=False)
         self.cca.fit(train_set_1, train_set_2)
         self.score_list = [self.cca.x_scores_, self.cca.y_scores_]
@@ -223,6 +272,11 @@ class Wrapper:
         return self
 
     def fit_scikit_pls(self, train_set_1, train_set_2):
+        """
+        :param train_set_1:
+        :param train_set_2:
+        :return:
+        """
         self.PLS = PLSCanonical(n_components=self.latent_dims, scale=False)
         self.PLS.fit(train_set_1, train_set_2)
         self.score_list = [self.PLS.x_scores_, self.PLS.y_scores_]
@@ -230,6 +284,11 @@ class Wrapper:
         return self
 
     def fit_mcca(self, *args):
+        """
+        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+         corresponding view in the training data
+        :return:
+        """
         all_views = np.concatenate(args, axis=1)
         C = all_views.T @ all_views
         # Can regularise by adding to diagonal
@@ -250,6 +309,11 @@ class Wrapper:
         self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
 
     def fit_gep(self, *args):
+        """
+        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+         corresponding view in the training data
+        :return:
+        """
         all_views = np.concatenate(args, axis=1)
         C = all_views.T @ all_views
         # Can regularise by adding to diagonal
@@ -271,6 +335,11 @@ class Wrapper:
         self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
 
     def fit_gcca(self, *args):
+        """
+        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+         corresponding view in the training data
+        :return:
+        """
         Q = []
         for i, view in enumerate(args):
             view_cov = view.T @ view
@@ -285,50 +354,34 @@ class Wrapper:
         self.rotation_list = self.weights_list
         self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
 
-
-"""
-def permutation_test(train_set_1, train_set_2, latent_dims=5,
-                     method='als', params=None, n_reps=100, level=0.05):
-    if params is None:
-        params = {}
-    rho_train = np.zeros((n_reps, latent_dims))
-
-    for _ in range(n_reps):
-        print('permutation test rep: ', _ / n_reps, flush=True)
-        results = Wrapper(latent_dims=latent_dims, method=method).fit(train_set_1, train_set_2,
-                                                                      params=params).train_correlations
-        np.random.shuffle(train_set_1)
-        rho_train[_, :] = results
-
-    p_vals = np.zeros(latent_dims)
-    # FWE Adjusted
-    for i in range(latent_dims):
-        p_vals[i] = (1 + (rho_train[:, 0] > rho_train[0, i]).sum()) / n_reps
-    hypothesis_test = False
-    significant_dims = 0
-    while not hypothesis_test:
-        if p_vals[significant_dims] > level:
-            hypothesis_test = True
-        else:
-            significant_dims += 1
-        if significant_dims == len(p_vals):
-            hypothesis_test = True
-
-    print('significant dims at level: ', str(level * 100), '%:', str(significant_dims), flush=True)
-    print(p_vals, flush=True)
-    return p_vals, significant_dims
-"""
-
-
 def slicedict(d, s):
+    """
+    :param d: dictionary containing
+    :param s:
+    :return:
+    """
     return {k: v for k, v in d.items() if k.startswith(s)}
 
 
 def grid_search(*args, max_iter: int = 100, latent_dims: int = 5, method: str = 'l2', param_candidates=None,
                 folds: int = 5,
                 verbose=False, tol=1e-6):
-    print('cross validation with ', method, flush=True)
-    print('number of folds: ', folds, flush=True)
+    """
+    :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+         corresponding view in the training data
+    :param max_iter:
+    :param latent_dims:
+    :param method:
+    :param param_candidates:
+    :param folds:
+    :param verbose:
+    :param tol:
+    :return:
+    """
+
+    if verbose:
+        print('cross validation with ', method, flush=True)
+        print('number of folds: ', folds, flush=True)
 
     # Set up an array for each set of hyperparameters
     assert (len(param_candidates) > 0)
@@ -366,6 +419,17 @@ class CrossValidate:
     def __init__(self, *args, latent_dims: int = 1, method: str = 'l2', generalized: bool = False, folds=5,
                  verbose=False, max_iter: int = 500,
                  tol=1e-6):
+        """
+        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+         corresponding view in the training data
+        :param latent_dims:
+        :param method:
+        :param generalized:
+        :param folds:
+        :param verbose:
+        :param max_iter:
+        :param tol:
+        """
         self.latent_dims = latent_dims
         self.method = method
         self.generalized = generalized
@@ -376,7 +440,10 @@ class CrossValidate:
         self.tol = tol
 
     def score(self, params):
-
+        """
+        :param params:
+        :return:
+        """
         scores = np.zeros(self.folds)
         inds = np.arange(self.data[0].shape[0])
         np.random.shuffle(inds)

@@ -13,6 +13,15 @@ Deep Models
 Intro
 -----
 
+DeepWrapper
+-----------
+
+.. automodule:: cca_zoo.deepwrapper
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :member-order: bysource
+
 The main difference between running linear models and deep learning based models is the Config class from configuration.py.
 
 I introduced Config in order to allow better flexibility of encoder and decoder architectures within broader model architectures

@@ -13,6 +13,14 @@ Linear Models
 Intro
 -----
 
+Wrapper
+-------
+
+.. automodule:: cca_zoo.wrapper
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :member-order: bysource
 
 Linear CCA
 ----------

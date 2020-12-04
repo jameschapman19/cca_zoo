@@ -1,3 +1,21 @@
+"""
+This is a wrapper class for Deep CCA
+We create an instance with a method and number of latent dimensions.
+
+The class has a number of methods intended to align roughly with the linear Wrapper:
+
+fit(): gives us train correlations and stores the variables needed for out of sample prediction as well as some
+method-specific variables
+
+predict_corr(): allows us to predict the out of sample correlation for supplied views
+
+predict_view(): allows us to predict a reconstruction of missing views from the supplied views
+
+transform_view(): allows us to transform given views to the latent variable space
+
+recon_loss(): gets the reconstruction loss for out of sample data - if the model has an autoencoder piece
+"""
+
 import copy
 
 import numpy as np
@@ -10,23 +28,6 @@ from cca_zoo.configuration import Config
 
 
 class DeepWrapper:
-    """
-    This is a wrapper class for Deep CCA
-    We create an instance with a method and number of latent dimensions.
-
-    The class has a number of methods intended to align roughly with the linear Wrapper:
-
-    fit(): gives us train correlations and stores the variables needed for out of sample prediction as well as some
-    method-specific variables
-
-    predict_corr(): allows us to predict the out of sample correlation for supplied views
-
-    predict_view(): allows us to predict a reconstruction of missing views from the supplied views
-
-    transform_view(): allows us to transform given views to the latent variable space
-
-    recon_loss(): gets the reconstruction loss for out of sample data - if the model has an autoencoder piece
-    """
 
     def __init__(self, config: Config = Config):
         self.config = config

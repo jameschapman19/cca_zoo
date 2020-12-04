@@ -13,7 +13,6 @@ class AlsInnerLoop:
     """
     This is a wrapper class for alternating least squares based solutions to CCA
     """
-
     def __init__(self, *args, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', params=None,
                  method: str = 'elastic'):

@@ -57,7 +57,7 @@ class MCCA:
         idx = torch.argsort(eigvals, descending=True)
 
         # Sum the first #outdim_size values (after subtracting 1).
-        corr = (eigvals[idx][:self.outdim_size] - 1).sum()
+        corr = (eigvals[idx][:self.outdim_size]).sum()-1
 
         return -corr
 
@@ -87,7 +87,7 @@ class GCCA:
         idx = torch.argsort(eigvals, descending=True)
         eigvecs = eigvecs[:, idx]
 
-        corr = (eigvals[idx][:self.outdim_size] - 1).sum()
+        corr = (eigvals[idx][:self.outdim_size]).sum()-1
 
         return -corr
 
