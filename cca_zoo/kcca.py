@@ -15,6 +15,12 @@ class KCCA:
     """
 
     def __init__(self, X: np.array, Y: np.array, params: dict = None, latent_dims: int = 2):
+        """
+        :param X:
+        :param Y:
+        :param params: a dictionary containing the relevant parameters required for the model. If None use defaults
+        :param latent_dims: number of latent dimensions to find
+        """
         self.X = X
         self.Y = Y
         self.eps = 1e-10
@@ -46,6 +52,11 @@ class KCCA:
         self.alpha2 = alpha2
 
     def make_kernel(self, X: np.array, Y: np.array):
+        """
+        :param X:
+        :param Y:
+        :return: Kernel matrix
+        """
         if self.ktype == 'linear':
             kernel = X @ Y.T
         elif self.ktype == 'rbf':
@@ -70,6 +81,11 @@ class KCCA:
         return R, D
 
     def transform(self, X_test: np.array = None, Y_test: np.array = None):
+        """
+        :param X_test:
+        :param Y_test:
+        :return: Test data transformed into kernel feature space
+        """
         if X_test is not None:
             Ktest = self.make_kernel(X_test, self.X)
             U_test = np.dot(Ktest, self.alpha1)

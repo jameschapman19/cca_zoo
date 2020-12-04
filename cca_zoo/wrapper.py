@@ -52,7 +52,7 @@ class Wrapper:
     def fit(self, *args, params=None):
         """
         :param args: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
-        :param params: a dictionary containing the. If None use defaults
+        :param params: a dictionary containing the relevant parameters required for the model. If None use defaults
         :return: training data correlations and the parameters required to call other functions in the class.
         """
         self.params = {}
@@ -139,7 +139,7 @@ class Wrapper:
         :param space:
         :param folds: number of folds used for cross validation
         :param verbose: whether to return scores for each set of parameters
-        :return:
+        :return: fit model with best parameters
         """
         trials = Trials()
 
@@ -228,7 +228,8 @@ class Wrapper:
         """
         :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
-        :return:
+        :return: complete set of weights and scores required to calcuate train correlations of latent dimensions and
+         transformations of out of sample data
         """
         # list of d: p x k
         self.weights_list = [np.zeros((args[i].shape[1], self.latent_dims)) for i in range(len(args))]
@@ -259,8 +260,8 @@ class Wrapper:
 
     def fit_scikit_cca(self, train_set_1, train_set_2):
         """
-        :param train_set_1:
-        :param train_set_2:
+        :param train_set_1: numpy array
+        :param train_set_2: numpy array with same number of samples as train_set_1
         :return:
         """
         self.cca = CCA(n_components=self.latent_dims, scale=False)
