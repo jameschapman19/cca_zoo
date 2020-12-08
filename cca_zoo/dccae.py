@@ -57,7 +57,7 @@ class DCCAE(nn.Module):
 
     def update_weights(self, *args):
         [optimizer.zero_grad() for optimizer in self.optimizers]
-        loss = self.loss(*self(*args))
+        loss = self.loss(*args)
         loss.backward()
         [optimizer.step() for optimizer in self.optimizers]
         return loss
@@ -66,7 +66,7 @@ class DCCAE(nn.Module):
         z = self.encode(*args)
         recon = self.decode(*z)
         recon_loss = self.recon_loss(args, recon)
-        return self.lam * recon_loss + self.cca_objective.loss(*z)
+        return self.lam * recon_loss + self.objective.loss(*z)
 
     @staticmethod
     def recon_loss(x, recon):

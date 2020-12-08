@@ -101,8 +101,8 @@ class DeepWrapper:
                 all_train_loss.append(epoch_train_loss)
                 all_val_loss.append(epoch_val_loss)
         cca_zoo.plot_utils.plot_training_loss(all_train_loss, all_val_loss)
-
-        self.train_correlations = self.predict_corr(*self.dataset_list_train, train=True)
+        if not self.config.autoencoder:
+            self.train_correlations = self.predict_corr(*self.dataset_list_train, train=True)
         return self
 
     def train_epoch(self, train_dataloader: torch.utils.data.DataLoader):
@@ -144,7 +144,7 @@ class DeepWrapper:
                     z_list = [np.append(z_list[i], z_i.detach().cpu().numpy(), axis=0) for
                               i, z_i in enumerate(z)]
         # For trace-norm objective models we need to apply a linear CCA to outputs
-        if not self.config.als:
+        if self.config.post_transform:
             if train:
                 self.cca = CCA(n_components=self.config.latent_dims)
                 z_list = self.cca.fit_transform(z_list[0], z_list[1])

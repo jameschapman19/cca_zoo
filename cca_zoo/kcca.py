@@ -1,9 +1,10 @@
 import numpy as np
 from scipy.linalg import eigh
-from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel, linear_kernel
+from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel
 
 
 # https://github.com/lorenzoriano/PyKCCA/blob/master/kcca.py
+# Also some adaptation of pyrcca package.
 
 class KCCA:
     """

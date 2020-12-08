@@ -23,9 +23,15 @@ class MCCA:
     """
     Differentiable MCCA Loss.
     Loss() method takes the outputs of each view's network and solves the multiset eigenvalue problem
+    as in e.g. https://arxiv.org/pdf/2005.11914.pdf
     """
-
     def __init__(self, outdim_size: int, r=1e-3, eps=0):
+        """
+        :param outdim_size: the number of latent dimensions
+        :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to
+        the number of latent dimensions
+        :param eps: an epsilon parameter used in some operations
+        """
         self.outdim_size = outdim_size
         self.r = r
         self.eps = eps
@@ -35,7 +41,8 @@ class MCCA:
         # H is n_views * n_samples * k
 
         # Subtract the mean from each output
-        views = [view - view.mean(dim=0) for view in args]
+        #views = [view - view.mean(dim=0) for view in args]
+        views = [view for view in args]
 
         # Concatenate all views and from this get the cross-covariance matrix
         all_views = torch.cat(views, dim=1)
@@ -57,7 +64,7 @@ class MCCA:
         idx = torch.argsort(eigvals, descending=True)
 
         # Sum the first #outdim_size values (after subtracting 1).
-        corr = (eigvals[idx][:self.outdim_size]).sum()-1
+        corr = (eigvals[idx][:self.outdim_size] - 1).sum()
 
         return -corr
 
@@ -65,10 +72,17 @@ class MCCA:
 class GCCA:
     """
     Differentiable GCCA Loss.
-    Loss() method takes the outputs of each view's network and solves the multiset eigenvalue problem
+    Loss() method takes the outputs of each view's network and solves the generalized CCA eigenproblem
+    as in https://arxiv.org/pdf/2005.11914.pdf
     """
 
     def __init__(self, outdim_size: int, r=1e-3, eps=0):
+        """
+        :param outdim_size: the number of latent dimensions
+        :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to
+        the number of latent dimensions
+        :param eps: an epsilon parameter used in some operations
+        """
         self.outdim_size = outdim_size
         self.r = r
         self.eps = eps
@@ -87,7 +101,7 @@ class GCCA:
         idx = torch.argsort(eigvals, descending=True)
         eigvecs = eigvecs[:, idx]
 
-        corr = (eigvals[idx][:self.outdim_size]).sum()-1
+        corr = (eigvals[idx][:self.outdim_size]-1).sum()
 
         return -corr
 
@@ -95,10 +109,16 @@ class GCCA:
 class CCA:
     """
     Differentiable CCA Loss.
-    Loss() method takes the outputs of each view's network and solves the multiset eigenvalue problem
+    Loss() method takes the outputs of each view's network and solves the CCA problem as in Andrew's original paper
     """
 
-    def __init__(self, outdim_size: int, r=0, eps=0):
+    def __init__(self, outdim_size: int, r: float =0, eps: float =0):
+        """
+        :param outdim_size: the number of latent dimensions
+        :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to
+        the number of latent dimensions
+        :param eps: an epsilon parameter used in some operations
+        """
         self.outdim_size = outdim_size
         self.r = r
         self.eps = eps
@@ -130,11 +150,7 @@ class CCA:
 
         # just the top self.outdim_size singular values are used
         trace_TT = torch.matmul(Tval.t(), Tval)
-        # ensures positive definite
-        try:
-            U, V = torch.symeig(trace_TT, eigenvectors=True)
-        except:
-            print('here')
+        U, V = torch.symeig(trace_TT, eigenvectors=True)
         U_inds = torch.gt(U, self.eps).nonzero()[:, 0]
         U = U[U_inds]
         corr = torch.sum(torch.sqrt(U))

@@ -2,8 +2,16 @@
 ## CCA, GCCA (Generalized CCA), MCCA (Multiset CCA), DCCA (Deep CCA), DGCCA (Deep Generalized CCA), DMCCA (Deep Multiset CCA), DVCCA (Deep Variational CCA), DCCAE (Deep Canonically Correlated Autoencoders), KCCA (Kernel CCA) and regularised variants using alternating least squares
 ### Documentation at https://cca-zoo.readthedocs.io/en/latest/
 ### Can be installed using pip install cca-zoo
+### Recently added DCCA by non-linear orthogonal iterations (https://arxiv.org/pdf/1510.02054.pdf)
 
-This is a compilation of methods for CCA including linear (ALS/scikit-learn), rCCA (ridge penalty), sparseCCA (Witten/Parkhomenko), elasticCCA(waaijenborg), kernel methods (pyrcca), Deep CCA (Andrew), Deep Canonically Correlated Autoencoders(), Deep Variational CCA () and Deep Variational CCA_private ().
+This is a compilation of methods for: 
+-CCA (various implementations) 
+-RCCA (ridge penalty)
+-Sparse CCA (Witten/Parkhomenko,Waaijenborg)
+-Kernel CCA (e.g. Hardoon)
+-Deep CCA (Andrew) and DCCA by non-linear orthogonal iterations (Wang)
+-Deep Canonically Correlated Autoencoders (Wang)
+-Deep Variational CCA and Deep Variational CCA_private (Wang)
 
 All models are evaluated on a noisy version of MNIST dataset with thanks to @VahidooX, @MichaelVll @Arminarj. The train/validation/test split is the original split of MNIST.
 
