@@ -19,6 +19,8 @@ class Config:
         self.epoch_num = 1
         self.patience = 0
         self.batch_size = 0
+        self.eps = 1e-9
+        self.c = 1e-5
         # Updated automatically when using deepwrapper.DeepWrapper
         self.input_sizes = None
         # These control the encoder architectures. We need one for each view. Fully connected models provided by default
@@ -32,18 +34,16 @@ class Config:
         # We also implement DCCA by non-linear orthogonal iterations (alternating least squares).
         self.als = False
         self.rho = 0.2
-        self.eps = 1e-9
 
         # Learn linear CCA to transform data mapped by tracenorm objective
         self.post_transform = True
 
         # Used for DCCAE:
         # Weighting of reconstruction vs correlation loss
-        self.lam = 0
+        self.lam = 0.5
 
         # Used for DVCCA:
-        # True gives bi-DVCCA, False gives DVCCA
-        self.both_encoders = True
+        self.private_encoder_models = [cca_zoo.deep_models.Encoder, cca_zoo.deep_models.Encoder]
         # True gives DVCCA_private, False gives DVCCA
         self.private = False
         # mu from the original paper controls the weighting of each encoder

@@ -14,46 +14,52 @@ https://github.com/Michaelvll/DeepCCA/blob/master/DeepCCAModels.py
 
 
 class Encoder(nn.Module):
-    def __init__(self, layer_sizes, input_size: int, latent_size: int):
+    def __init__(self, layer_sizes, input_size: int, output_size: int, variational: bool = False):
         super(Encoder, self).__init__()
+        self.variational = variational
         layers = []
-        layer_sizes = [input_size] + layer_sizes + [latent_size]
-        for l_id in range(len(layer_sizes) - 1):
-            if l_id == len(layer_sizes) - 2:
+        layer_sizes = [input_size] + layer_sizes
+        for l_id in range(len(layer_sizes)):
+            if l_id == len(layer_sizes) - 1:
                 layers.append(nn.Sequential(
-                    nn.BatchNorm1d(num_features=layer_sizes[l_id]),
-                    nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
+                    nn.Linear(layer_sizes[l_id], output_size),
                 ))
             else:
                 layers.append(nn.Sequential(
                     nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
-                    nn.ReLU(),
-                    nn.BatchNorm1d(num_features=layer_sizes[l_id + 1]),
+                    nn.ReLU()
                 ))
         self.layers = nn.ModuleList(layers)
+        if self.variational:
+            self.fc_mu = nn.Linear(layer_sizes[-1], output_size)
+            self.fc_var = nn.Linear(layer_sizes[-1], output_size)
 
     def forward(self, x):
-        for layer in self.layers:
+        for layer in self.layers[:-1]:
             x = layer(x)
-        return x
+        if self.variational:
+            mu = self.fc_mu(x)
+            logvar = self.fc_var(x)
+            return mu, logvar
+        else:
+            x = self.layers[-1](x)
+            return x
 
 
 class Decoder(nn.Module):
-    def __init__(self, layer_sizes, input_size: int, latent_size: int):
+    def __init__(self, layer_sizes, input_size: int, output_size: int):
         super(Decoder, self).__init__()
         layers = []
-        layer_sizes = [latent_size] + layer_sizes + [input_size]
-        for l_id in range(len(layer_sizes) - 1):
-            if l_id == len(layer_sizes) - 2:
+        layer_sizes = [input_size] + layer_sizes
+        for l_id in range(len(layer_sizes)):
+            if l_id == len(layer_sizes) - 1:
                 layers.append(nn.Sequential(
-                    nn.BatchNorm1d(num_features=layer_sizes[l_id]),
-                    nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
+                    nn.Linear(layer_sizes[l_id], output_size),
                 ))
             else:
                 layers.append(nn.Sequential(
                     nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
-                    nn.ReLU(),
-                    nn.BatchNorm1d(num_features=layer_sizes[l_id + 1]),
+                    nn.ReLU()
                 ))
         self.layers = nn.ModuleList(layers)
 
@@ -131,6 +137,7 @@ class CNNDecoder(nn.Module):
             if l_id == len(layer_sizes) - 2:
                 layers.append(nn.Sequential(
                     nn.Linear(input_size, int(current_size * current_size * current_channels)),
+                    nn.Sigmoid()
                 ))
             else:
                 layers.append(nn.Sequential(

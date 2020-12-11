@@ -41,11 +41,16 @@ class DeepWrapper:
         train_inds, val_inds = np.split(all_inds, [int(round(0.8 * num_subjects, 0))])
         self.dataset_list_train = []
         self.dataset_list_val = []
+        """
         self.dataset_means = []
         for i, dataset in enumerate(args):
             self.dataset_means.append(dataset[train_inds].mean(axis=0))
             self.dataset_list_train.append(dataset[train_inds] - self.dataset_means[i])
             self.dataset_list_val.append(dataset[val_inds] - self.dataset_means[i])
+        """
+        for i, dataset in enumerate(args):
+            self.dataset_list_train.append(dataset[train_inds])
+            self.dataset_list_val.append(dataset[val_inds])
 
     def fit(self, *args):
         self.process_training_data(*args)
@@ -67,6 +72,8 @@ class DeepWrapper:
         # respective loss. The models also have loss functions as methods but we can also customise the loss by calling
         # a_loss_function(model(data))
         self.model = self.config.method(self.config)
+        num_params=sum(p.numel() for p in self.model.parameters())
+        print('total parameters: ', num_params)
         best_model = copy.deepcopy(self.model.state_dict())
         self.model.double().to(self.device)
         min_val_loss = torch.tensor(np.inf)
@@ -131,7 +138,10 @@ class DeepWrapper:
         return correlations
 
     def transform_view(self, *args, train=False):
+        """
         dataset_list_test = [arg if train else arg - self.dataset_means[i] for i, arg in enumerate(args)]
+        """
+        dataset_list_test = list(args)
         test_dataset = TensorDataset(*[torch.tensor(dataset) for dataset in dataset_list_test])
         test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
         with torch.no_grad():
@@ -152,14 +162,20 @@ class DeepWrapper:
                 z_list = self.cca.transform(np.array(z_list[0]), np.array(z_list[1]))
         return z_list
 
-    def predict_view(self, *args, train=False):
-        dataset_list_test = [arg if train else arg - self.dataset_means[i] for i, arg in enumerate(args)]
+    def predict_view(self, *args):
+        """
+        dataset_list_test = [arg - self.dataset_means[i] for i, arg in enumerate(args)]
+        """
+        dataset_list_test = list(args)
         test_dataset = TensorDataset(*[torch.tensor(dataset) for dataset in dataset_list_test])
         test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
-        x_list = [np.empty((0, arg.shape[1:])) for i, arg in enumerate(args)]
         with torch.no_grad():
             for batch_idx, data in enumerate(test_dataloader):
                 data = [d.to(self.device) for d in list(data)]
                 x = self.model.recon(*data)
-                x_list = [np.append(x_i, x[i].detach().cpu().numpy(), axis=0) for i, x_i in enumerate(x_list)]
+                if batch_idx == 0:
+                    x_list = [x_i.detach().cpu().numpy() for i, x_i in enumerate(x)]
+                else:
+                    x_list = [np.append(x_list[i], x_i.detach().cpu().numpy(), axis=0) for
+                              i, x_i in enumerate(x)]
         return x_list

@@ -28,7 +28,7 @@ class DCCA(nn.Module):
         super(DCCA, self).__init__()
         views = len(config.encoder_models)
         self.config = config
-        self.encoders = [create_encoder(config, i) for i in range(views)]
+        self.encoders = nn.ModuleList([create_encoder(config, i) for i in range(views)])
         self.objective = config.objective(config.latent_dims)
         self.optimizers = [optim.Adam(list(encoder.parameters()), lr=config.learning_rate) for encoder in self.encoders]
         self.covs = None

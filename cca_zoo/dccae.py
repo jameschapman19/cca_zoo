@@ -23,7 +23,7 @@ def create_encoder(config, i):
 
 
 def create_decoder(config, i):
-    decoder = config.decoder_models[i](config.hidden_layer_sizes[i], config.input_sizes[i], config.latent_dims).double()
+    decoder = config.decoder_models[i](config.hidden_layer_sizes[i], config.latent_dims, config.input_sizes[i]).double()
     return decoder
 
 
@@ -32,8 +32,8 @@ class DCCAE(nn.Module):
     def __init__(self, config: Config = Config):
         super(DCCAE, self).__init__()
         views = len(config.encoder_models)
-        self.encoders = [create_encoder(config, i) for i in range(views)]
-        self.decoders = [create_decoder(config, i) for i in range(views)]
+        self.encoders = torch.nn.ModuleList([create_encoder(config, i) for i in range(views)])
+        self.decoders = torch.nn.ModuleList([create_decoder(config, i) for i in range(views)])
         self.lam = config.lam
         self.objective = config.objective(config.latent_dims)
         self.optimizers = [optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),

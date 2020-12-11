@@ -9,10 +9,8 @@ import numpy as np
 import cca_zoo
 import itertools
 import os
-import matplotlib
 from cca_zoo.configuration import Config
-
-matplotlib.use('TKAgg', force=True)
+from sklearn import preprocessing
 import matplotlib.pyplot as plt
 
 ### Load MNIST Data
@@ -39,8 +37,11 @@ except:
     test_set_1 = data_1[2000:3000]
     test_set_2 = data_2[2000:3000]
 
-print(train_set_1.shape)
-print(train_set_2.shape)
+min_max_scaler = preprocessing.MinMaxScaler()
+train_set_1 = min_max_scaler.fit_transform(train_set_1)
+train_set_2 = min_max_scaler.fit_transform(train_set_2)
+test_set_1 = min_max_scaler.fit_transform(test_set_1)
+test_set_2 = min_max_scaler.fit_transform(test_set_2)
 
 ### Settings
 
