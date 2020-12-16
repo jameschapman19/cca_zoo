@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='cca_zoo',
-    version='1.1.4',
+    version='1.1.5',
     packages=find_packages(),
     url='https://github.com/jameschapman19/cca_zoo',
     license='MIT',
@@ -14,13 +14,14 @@ setup(
     long_description_content_type="text/markdown",
     author_email='james.chapman.19@ucl.ac.uk',
     description='',
-    install_requires=['torch>=1.7.0',
-                        'numpy>=1.17.4',
-                        'scikit-learn>=0.22.1',
-                        'scipy>=1.4.1',
-                        'hyperopt>=0.2.5',
-                        'matplotlib>=3.3.2',
-                        'seaborn>=0.10.1',
-                        'torchvision>=0.8.1',
-                        'pandas>=1.0.3',
-                        'mvlearn>=0.3.0'])
+    install_requires=['numpy~=1.19.3',
+                        'torch~=1.7.1',
+                        'scikit-learn~=0.23.2',
+                        'scipy~=1.5.4',
+                        'matplotlib~=3.3.3',
+                        'seaborn~=0.11.0',
+                        'Pillow~=8.0.1',
+                        'torchvision~=0.8.2+cu110',
+                        'pandas~=1.1.5',
+                        'mvlearn~=0.4.1',
+                        'setuptools~=51.0.0'])
