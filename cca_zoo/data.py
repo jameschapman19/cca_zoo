@@ -1,3 +1,8 @@
+"""
+Helped by https://github.com/bcdutton/AdversarialCanonicalCorrelationAnalysis (hopefully I will have my own implementation of their work soon)
+Check out their paper at https://arxiv.org/abs/2005.10349
+"""
+
 import PIL
 import numpy as np
 import torch
