@@ -1,3 +1,5 @@
+from itertools import combinations
+
 import numpy as np
 from scipy.linalg import pinv2
 from sklearn.exceptions import ConvergenceWarning
@@ -6,13 +8,13 @@ from sklearn.linear_model import Lasso
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import Ridge
 from sklearn.utils.testing import ignore_warnings
-from itertools import combinations
 
 
 class AlsInnerLoop:
     """
     This is a wrapper class for alternating least squares based solutions to CCA
     """
+
     def __init__(self, *args, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', params=None,
                  method: str = 'elastic'):

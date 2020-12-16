@@ -3,8 +3,6 @@ import matplotlib
 matplotlib.use('agg')
 import numpy as np
 from sklearn import metrics
-import pylab
-import scipy.cluster.hierarchy as spc
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import linregress
@@ -182,6 +180,7 @@ def plot_weights(w, c):
     plt.savefig('weight')
 
 
+"""
 def plot_connectome_correlations(ordered_connectivity, cca_connectivity, linkage):
     # Compute and plot first dendrogram.
     fig = pylab.figure(figsize=(8, 8))
@@ -202,6 +201,7 @@ def plot_connectome_correlations(ordered_connectivity, cca_connectivity, linkage
     axmatrix.set_xticks([])
     axmatrix.set_yticks([])
     fig.savefig('connectivity_correlation.png')
+"""
 
 
 def plot_latent_space(z_x, z_y, conf=None, conf_labels=None):

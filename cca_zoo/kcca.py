@@ -24,7 +24,7 @@ class KCCA:
         """
         self.X = X
         self.Y = Y
-        self.eps = 1e-10
+        self.eps = 1e-9
         self.latent_dims = latent_dims
         self.ktype = params.get('kernel')
         self.sigma = params.get('sigma')
@@ -36,7 +36,7 @@ class KCCA:
         N = self.K1.shape[0]
 
         R, D = self.hardoon_method()
-        betas, alphas = eigh(R, D+self.eps*np.eye(D.shape[0]))
+        betas, alphas = eigh(R, D + self.eps * np.eye(D.shape[0]))
         # sorting according to eigenvalue
         betas = np.real(betas)
         ind = np.argsort(betas)

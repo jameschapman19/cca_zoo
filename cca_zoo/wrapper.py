@@ -22,18 +22,17 @@ transform_view(): allows us to transform given views to the latent variable spac
 import itertools
 
 import numpy as np
-from hyperopt import tpe, fmin, Trials
 from scipy.linalg import pinv2, block_diag, cholesky
 from sklearn.cross_decomposition import CCA, PLSCanonical
 
-import cca_zoo.kcca
 import cca_zoo.alsinnerloop
-import cca_zoo.generate_data
+import cca_zoo.data
+import cca_zoo.kcca
 import cca_zoo.plot_utils
 
 
 class Wrapper:
-    def __init__(self, latent_dims: int = 1, method: str = 'elastic', generalized: bool = False, max_iter: int = 200,
+    def __init__(self, latent_dims: int = 1, method: str = 'elastic', generalized: bool = False, max_iter: int = 100,
                  tol=1e-6):
         """
         :param latent_dims: number of latent dimensions to find
@@ -133,14 +132,13 @@ class Wrapper:
         self.fit(*args, params=best_params)
         return self
 
+    """
     def bayes_fit(self, *args, space=None, folds: int = 5, verbose=True):
-        """
         :param args: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
         :param space:
         :param folds: number of folds used for cross validation
         :param verbose: whether to return scores for each set of parameters
         :return: fit model with best parameters
-        """
         trials = Trials()
 
         best_params = fmin(
@@ -153,6 +151,7 @@ class Wrapper:
         )
         self.fit(*args, params=best_params)
         return self
+    """
 
     def predict_corr(self, *args):
         """
@@ -354,6 +353,7 @@ class Wrapper:
         self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in args]
         self.rotation_list = self.weights_list
         self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
+
 
 def slicedict(d, s):
     """

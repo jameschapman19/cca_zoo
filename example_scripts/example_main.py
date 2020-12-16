@@ -3,47 +3,26 @@
 In this script I demonstrate the general pipeline I use in the cca_zoo package.
 """
 
-### Imports
-
+# Imports
 import numpy as np
 import cca_zoo
 import itertools
 import os
 from cca_zoo.configuration import Config
-from sklearn import preprocessing
 import matplotlib.pyplot as plt
 
-### Load MNIST Data
+# Load MNIST Data
 os.chdir('..')
+N = 5000
+train_dataset = cca_zoo.data.Noisy_MNIST_Dataset(mnist_type='MNIST', train=True)
+ids = np.arange(min(2 * N, len(train_dataset)))
+np.random.shuffle(ids)
+train_ids, val_ids = np.array_split(ids, 2)
+test_dataset = cca_zoo.data.Noisy_MNIST_Dataset(mnist_type='MNIST', train=False)
+train_view_1, train_view_2, train_rotations, train_OH_labels, train_labels = train_dataset.to_numpy()
+test_view_1, test_view_2, test_rotations, test_OH_labels, test_labels = test_dataset.to_numpy()
 
-# if user has noisymnist_view1.gz in current directory
-try:
-    train_set_1, val_set_1, test_set_1 = cca_zoo.mnist_utils.load_data('noisymnist_view1.gz')
-    train_set_2, val_set_2, test_set_2 = cca_zoo.mnist_utils.load_data('noisymnist_view2.gz')
-    train_set_1 = train_set_1[0][:1000]
-    train_set_2 = train_set_2[0][:1000]
-    val_set_1 = val_set_1[0][:1000]
-    val_set_2 = val_set_2[0][:1000]
-    test_set_1 = test_set_1[0][:1000]
-    test_set_2 = test_set_2[0][:1000]
-except:
-    # data_1, data_2, _, _ = cca_zoo.generate_data.generate_mai(3000, 1, 784, 784)
-    data_1 = np.random.rand(3000, 700)
-    data_2 = np.random.rand(3000, 700)
-    train_set_1 = data_1[:1000]
-    train_set_2 = data_2[:1000]
-    val_set_1 = data_1[1000:2000]
-    val_set_2 = data_2[1000:2000]
-    test_set_1 = data_1[2000:3000]
-    test_set_2 = data_2[2000:3000]
-
-min_max_scaler = preprocessing.MinMaxScaler()
-train_set_1 = min_max_scaler.fit_transform(train_set_1)
-train_set_2 = min_max_scaler.fit_transform(train_set_2)
-test_set_1 = min_max_scaler.fit_transform(test_set_1)
-test_set_2 = min_max_scaler.fit_transform(test_set_2)
-
-### Settings
+# Settings
 
 # The number of latent dimensions across models
 latent_dims = 2
@@ -67,26 +46,26 @@ and therefore this problem is avoided)
 # %%
 linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims)
 
-linear_cca.fit(train_set_1, train_set_2)
+linear_cca.fit(train_view_1, train_view_2)
 
 linear_cca_results = np.stack(
-    (linear_cca.train_correlations[0, 1], linear_cca.predict_corr(test_set_1, test_set_2)[0, 1]))
+    (linear_cca.train_correlations[0, 1], linear_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 scikit_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='scikit')
 
-scikit_cca.fit(train_set_1, train_set_2)
+scikit_cca.fit(train_view_1, train_view_2)
 
 scikit_cca_results = np.stack(
-    (scikit_cca.train_correlations[0, 1], scikit_cca.predict_corr(test_set_1, test_set_2)[0, 1]))
+    (scikit_cca.train_correlations[0, 1], scikit_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 gcca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='gcca')
 
 # small ammount of regularisation added since data is not full rank
 params = {'c': [1, 1]}
 
-gcca.fit(train_set_1, train_set_2, params=params)
+gcca.fit(train_view_1, train_view_2, params=params)
 
-gcca_results = np.stack((scikit_cca.train_correlations[0, 1], scikit_cca.predict_corr(test_set_1, test_set_2)[0, 1]))
+gcca_results = np.stack((scikit_cca.train_correlations[0, 1], scikit_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 """
 ### Regularized CCA with hyperparameter tuning
@@ -100,33 +79,35 @@ where param_candidates is a dictionary of params with a list of lists for each v
 
 parameter candidates for cross validation are given as a list of lists as shown in the examples
 """
-# %%
+
 # PMD
 c1 = [3, 7, 9]
 c2 = [3, 7, 9]
 param_candidates = {'c': list(itertools.product(c1, c2))}
 
-pmd = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='pmd', tol=1e-5).gridsearch_fit(train_set_1, train_set_2,
+pmd = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='pmd', tol=1e-5).gridsearch_fit(train_view_1,
+                                                                                              train_view_2,
                                                                                               param_candidates=param_candidates,
                                                                                               folds=cv_folds,
                                                                                               verbose=True)
 
-pmd_results = np.stack((pmd.train_correlations[0, 1, :], pmd.predict_corr(test_set_1, test_set_2)[0, 1, :]))
+pmd_results = np.stack((pmd.train_correlations[0, 1, :], pmd.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 
 # Elastic
-c1 = [0.1, 1]
-c2 = [0.1, 1]
+c1 = [0.01, 0.1]
+c2 = [0.01, 0.1]
 l1_1 = [0.01, 0.1]
 l1_2 = [0.01, 0.1]
 param_candidates = {'c': list(itertools.product(c1, c2)), 'l1_ratio': list(itertools.product(l1_1, l1_2))}
 
-elastic = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='elastic', tol=1e-5).gridsearch_fit(train_set_1,
-                                                                                                      train_set_2,
+elastic = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='elastic', tol=1e-5).gridsearch_fit(train_view_1,
+                                                                                                      train_view_2,
                                                                                                       param_candidates=param_candidates,
                                                                                                       folds=cv_folds,
                                                                                                       verbose=True)
 
-elastic_results = np.stack((elastic.train_correlations[0, 1, :], elastic.predict_corr(test_set_1, test_set_2)[0, 1, :]))
+elastic_results = np.stack(
+    (elastic.train_correlations[0, 1, :], elastic.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 
 """
 ### Kernel CCA
@@ -140,43 +121,45 @@ We can use different kernels and their associated parameters in a similar manner
 """
 # %%
 # r-kernel cca
-c1 = [0.5, 0.9]
-c2 = [0.5, 0.9]
+c1 = [0.9, 0.99]
+c2 = [0.9, 0.99]
 
 param_candidates = {'kernel': ['linear'], 'c': list(itertools.product(c1, c2))}
 
-kernel_reg = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').gridsearch_fit(train_set_1, train_set_2,
+kernel_reg = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').gridsearch_fit(train_view_1,
+                                                                                              train_view_2,
                                                                                               folds=cv_folds,
                                                                                               param_candidates=param_candidates,
                                                                                               verbose=True)
 kernel_reg_results = np.stack((
     kernel_reg.train_correlations[0, 1, :],
-    kernel_reg.predict_corr(test_set_1, test_set_2)[0, 1, :]))
+    kernel_reg.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 
 # kernel cca (poly)
 param_candidates = {'kernel': ['poly'], 'degree': [2, 3], 'c': list(itertools.product(c1, c2))}
 
-kernel_poly = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').gridsearch_fit(train_set_1, train_set_2,
+kernel_poly = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').gridsearch_fit(train_view_1,
+                                                                                               train_view_2,
                                                                                                folds=cv_folds,
                                                                                                param_candidates=param_candidates,
                                                                                                verbose=True)
 
 kernel_poly_results = np.stack((
     kernel_poly.train_correlations[0, 1, :],
-    kernel_poly.predict_corr(test_set_1, test_set_2)[0, 1, :]))
+    kernel_poly.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 
 # kernel cca (gaussian)
-param_candidates = {'kernel': ['rbf'], 'sigma': [1e+2, 1e+3], 'c': list(itertools.product(c1, c2))}
+param_candidates = {'kernel': ['rbf'], 'sigma': [1e+1, 1e+2, 1e+3], 'c': list(itertools.product(c1, c2))}
 
-kernel_gaussian = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').gridsearch_fit(train_set_1,
-                                                                                                   train_set_2,
+kernel_gaussian = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').gridsearch_fit(train_view_1,
+                                                                                                   train_view_2,
                                                                                                    folds=cv_folds,
                                                                                                    param_candidates=param_candidates,
                                                                                                    verbose=True)
 
 kernel_gaussian_results = np.stack((
     kernel_gaussian.train_correlations[0, 1, :],
-    kernel_gaussian.predict_corr(test_set_1, test_set_2)[0, 1, :]))
+    kernel_gaussian.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 
 """
 ### Deep Learning
@@ -189,27 +172,27 @@ We introduce a Config class from configuration.py. This contains a number of def
 
 """
 # %%
-#DCCA
+# DCCA
 cfg = Config()
 cfg.epoch_num = 100
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
 dcca = cca_zoo.deepwrapper.DeepWrapper(cfg)
 
-dcca.fit(train_set_1, train_set_2)
+dcca.fit(train_view_1, train_view_2)
 
-dcca_results = np.stack((dcca.train_correlations, dcca.predict_corr(test_set_1, test_set_2)))
+dcca_results = np.stack((dcca.train_correlations, dcca.predict_corr(test_view_1, test_view_2)))
 
-#DGCCA
-#cfg.loss_type = cca_zoo.objectives.mcca
+# DGCCA
+# cfg.loss_type = cca_zoo.objectives.mcca
 cfg.loss_type = cca_zoo.objectives.GCCA
 
 # Note the different loss function
 dgcca = cca_zoo.deepwrapper.DeepWrapper(cfg)
 
-dgcca.fit(train_set_1, train_set_2)
+dgcca.fit(train_view_1, train_view_2)
 
-dgcca_results = np.stack((dgcca.train_correlations, dgcca.predict_corr(test_set_1, test_set_2)))
+dgcca_results = np.stack((dgcca.train_correlations, dgcca.predict_corr(test_view_1, test_view_2)))
 
 """
 ### Deep Variational Learning
@@ -228,42 +211,40 @@ cfg.method = cca_zoo.dvcca.DVCCA
 cfg.epoch_num = 100
 dvcca = cca_zoo.deepwrapper.DeepWrapper(cfg)
 
-dvcca.fit(train_set_1, train_set_2)
+dvcca.fit(train_view_1, train_view_2)
 
-dvcca_results = np.stack((dvcca.train_correlations, dvcca.predict_corr(test_set_1, test_set_2)))
-
+dvcca_results = np.stack((dvcca.train_correlations, dvcca.predict_corr(test_view_1, test_view_2)))
 
 # DVCCA_private (technically bi-DVCCA_private)
-#switch private=False default to private=True
+# switch private=False default to private=True
 cfg.private = True
 
 dvcca_p = cca_zoo.deepwrapper.DeepWrapper(cfg)
 
-dvcca_p.fit(train_set_1, train_set_2)
+dvcca_p.fit(train_view_1, train_view_2)
 
-dvcca_p_results = np.stack((dvcca_p.train_correlations, dvcca_p.predict_corr(test_set_1, test_set_2)))
+dvcca_p_results = np.stack((dvcca_p.train_correlations, dvcca_p.predict_corr(test_view_1, test_view_2)))
 
 """
 ### Convolutional Deep Learning
 
 We can vary the encoder architecture from the default fcn to encoder/decoder based on the brainnetcnn architecture or a simple cnn
 """
-# TODO Reshape the data to demonstrate CNN.
-
 # %%
-# cfg = Config()
+cfg = Config()
+cfg.epoch_num = 100
+cfg.encoder_models = [cca_zoo.deep_models.CNNEncoder, cca_zoo.deep_models.CNNEncoder]
+cfg.hidden_layer_sizes = [[3, 3], [3, 3]]
 # to change the models used change the cfg.encoder_models. We implement a CNN_Encoder and CNN_decoder as well
 # as some based on brainnet architecture in cca_zoo.deep_models. Equally you could pass your own encoder/decoder models
 
-# cfg.encoder_models = [cca_zoo.deep_models.CNN_Encoder, cca_zoo.deep_models.CNN_Encoder]
-# cfg.hidden_layer_sizes = [[1, 1], [1, 1]]
+dcca_conv = cca_zoo.deepwrapper.DeepWrapper(cfg)
 
-# dcca_conv = cca_zoo.deep.Wrapper(cfg)
+dcca_conv.fit(train_view_1.reshape((-1, 1, 28, 28)), train_view_2.reshape((-1, 1, 28, 28)))
 
-# dcca_conv.fit(train_set_1, train_set_2)
-
-# dcca_conv_results = np.stack((dcca_conv.train_correlations, dcca_conv.predict_corr(test_set_1, test_set_2)))
-
+dcca_conv_results = np.stack((dcca_conv.train_correlations, dcca_conv.predict_corr(test_view_1.reshape((-1, 1, 28, 28)),
+                                                                                   test_view_2.reshape(
+                                                                                       (-1, 1, 28, 28)))))
 
 """
 ### Make results plot to compare methods
@@ -271,11 +252,12 @@ We can vary the encoder architecture from the default fcn to encoder/decoder bas
 # %%
 
 all_results = np.stack(
-    [linear_cca_results, pmd_results, elastic_results, kernel_reg_results, kernel_poly_results,
-     kernel_gaussian_results, dcca_results, dgcca_results],
+    [linear_cca_results, scikit_cca_results, gcca_results, pmd_results, elastic_results, kernel_reg_results,
+     kernel_poly_results,
+     kernel_gaussian_results, dcca_results, dgcca_results, dcca_conv_results],
     axis=0)
-all_labels = ['linear', 'pmd', 'elastic', 'linear kernel', 'polynomial kernel',
-              'gaussian kernel', 'deep CCA', 'deep generalized CCA']
+all_labels = ['linear', 'scikit', 'gcca', 'pmd', 'elastic', 'linear kernel', 'polynomial kernel',
+              'gaussian kernel', 'deep CCA', 'deep generalized CCA', 'deep convolutional cca']
 
 cca_zoo.plot_utils.plot_results(all_results, all_labels)
 plt.show()

@@ -25,6 +25,7 @@ class MCCA:
     Loss() method takes the outputs of each view's network and solves the multiset eigenvalue problem
     as in e.g. https://arxiv.org/pdf/2005.11914.pdf
     """
+
     def __init__(self, outdim_size: int, r=1e-3, eps=0):
         """
         :param outdim_size: the number of latent dimensions
@@ -41,7 +42,7 @@ class MCCA:
         # H is n_views * n_samples * k
 
         # Subtract the mean from each output
-        #views = [view - view.mean(dim=0) for view in args]
+        # views = [view - view.mean(dim=0) for view in args]
         views = [view for view in args]
 
         # Concatenate all views and from this get the cross-covariance matrix
@@ -101,7 +102,7 @@ class GCCA:
         idx = torch.argsort(eigvals, descending=True)
         eigvecs = eigvecs[:, idx]
 
-        corr = (eigvals[idx][:self.outdim_size]-1).sum()
+        corr = (eigvals[idx][:self.outdim_size] - 1).sum()
 
         return -corr
 
@@ -112,7 +113,7 @@ class CCA:
     Loss() method takes the outputs of each view's network and solves the CCA problem as in Andrew's original paper
     """
 
-    def __init__(self, outdim_size: int, r: float =0, eps: float =0):
+    def __init__(self, outdim_size: int, r: float = 0, eps: float = 0):
         """
         :param outdim_size: the number of latent dimensions
         :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to

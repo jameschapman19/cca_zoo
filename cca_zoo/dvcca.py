@@ -148,12 +148,13 @@ class DVCCA(nn.Module):
         return torch.stack(losses).mean()
 
     def vcca_loss(self, *args, mu, logvar):
-        batch_n=mu.shape[0]
+        batch_n = mu.shape[0]
         z = self.reparameterize(mu, logvar)
         kl = torch.mean(-0.5 * torch.sum(1 + logvar - logvar.exp() - mu.pow(2), dim=1), dim=0)
         recon = self.decode(z)
         bces = torch.stack(
-            [F.binary_cross_entropy(recon[i], args[i], reduction='sum')/batch_n for i, _ in enumerate(self.decoders)]).sum()
+            [F.binary_cross_entropy(recon[i], args[i], reduction='sum') / batch_n for i, _ in
+             enumerate(self.decoders)]).sum()
         return kl + bces
 
     def vcca_private_loss(self, *args, mu, logvar):
@@ -168,5 +169,6 @@ class DVCCA(nn.Module):
         z_combined = torch.cat([z] + z_p, dim=-1)
         recon = self.decode(z_combined)
         bces = torch.stack(
-            [F.binary_cross_entropy(recon[i], args[i], reduction='sum')/batch_n for i, _ in enumerate(self.decoders)]).sum()
+            [F.binary_cross_entropy(recon[i], args[i], reduction='sum') / batch_n for i, _ in
+             enumerate(self.decoders)]).sum()
         return kl + kl_p + bces

@@ -85,10 +85,10 @@ class CNNEncoder(nn.Module, ABC):
 
         current_size = input_size
         current_channels = 1
-        for l_id in range(len(layer_sizes) - 1):
-            if l_id == len(layer_sizes) - 2:
+        for l_id in range(len(layer_sizes)):
+            if l_id == len(layer_sizes) - 1:
                 layers.append(nn.Sequential(
-                    nn.Linear(int(current_size * current_size * current_channels), layer_sizes[l_id + 1]),
+                    nn.Linear(int(current_size * current_size * current_channels), layer_sizes[l_id]),
                 ))
             else:
                 layers.append(nn.Sequential(  # input shape (1, current_size, current_size)
@@ -131,10 +131,10 @@ class CNNDecoder(nn.Module):
         if padding is None:
             padding = [1] * (len(layer_sizes) - 1)
 
-        current_size = latent_size
+        current_size = input_size
         current_channels = 1
-        for l_id in range(len(layer_sizes) - 1):
-            if l_id == len(layer_sizes) - 2:
+        for l_id in range(len(layer_sizes)):
+            if l_id == len(layer_sizes) - 1:
                 layers.append(nn.Sequential(
                     nn.Linear(input_size, int(current_size * current_size * current_channels)),
                     nn.Sigmoid()
@@ -198,7 +198,7 @@ class E2EBlockReverse(nn.Module):
 
 # BrainNetCNN Network for fitting Gold-MSI on LSD dataset
 class BrainNetEncoder(nn.Module):
-    def __init__(self, input_size: int, latent_size: int):
+    def __init__(self, layer_sizes, input_size: int, latent_size: int):
         super(BrainNetEncoder, self).__init__()
         self.d = input_size
         self.e2econv1 = E2EBlock(1, 32, self.d, bias=True)
@@ -222,7 +222,7 @@ class BrainNetEncoder(nn.Module):
 
 
 class BrainNetDecoder(nn.Module):
-    def __init__(self, input_size: int, latent_size: int):
+    def __init__(self, layer_sizes, input_size: int, latent_size: int):
         super(BrainNetDecoder, self).__init__()
         self.d = input_size
         self.e2econv1 = E2EBlock(32, 1, self.d, bias=True)
