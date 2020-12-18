@@ -21,7 +21,7 @@ import copy
 import numpy as np
 import torch
 from sklearn.cross_decomposition import CCA
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from archive import cca_datasets
 import cca_zoo.plot_utils
@@ -40,8 +40,11 @@ class DeepWrapper:
     def fit(self, *args, labels=None, val_split=0.2):
         if type(args[0]) is np.ndarray:
             dataset = cca_datasets.CCA_Dataset(*args, labels=labels)
-            lengths = [len(dataset) - int(len(dataset) * val_split), int(len(dataset) * val_split)]
-            train_dataset, val_dataset = torch.utils.data.random_split(dataset, lengths)
+            ids = np.arange(len(dataset))
+            np.random.shuffle(ids)
+            train_ids, val_ids = np.array_split(ids, 2)
+            val_dataset = Subset(dataset, val_ids)
+            train_dataset = Subset(dataset, train_ids)
         elif isinstance(args[0], torch.utils.data.Dataset):
             if len(args) == 2:
                 assert (isinstance(args[0], torch.utils.data.Subset))
@@ -58,7 +61,7 @@ class DeepWrapper:
             train_dataloader = DataLoader(train_dataset, batch_size=self.config.batch_size, drop_last=True)
         val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
 
-        self.config.input_sizes = [view.shape[-1] if view.shape.__len__() > 0 else 1 for view in dataset.dataset[0][0]]
+        self.config.input_sizes = [view.shape[-1] if view.shape.__len__() > 0 else 1 for view in train_dataset[0][0]]
 
         # First we get the model class.
         # These have a forward method which takes data inputs and outputs the variables needed to calculate their
