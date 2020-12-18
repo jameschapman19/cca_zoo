@@ -14,7 +14,7 @@ from torch.utils.data import Subset
 
 # Load MNIST Data
 os.chdir('..')
-N = 5000
+N = 2000
 dataset = cca_zoo.data.Noisy_MNIST_Dataset(mnist_type='MNIST', train=True)
 ids = np.arange(min(2 * N, len(dataset)))
 np.random.shuffle(ids)
@@ -75,6 +75,14 @@ params = {'c': [1, 1]}
 gcca.fit(train_view_1, train_view_2, params=params)
 
 gcca_results = np.stack((scikit_cca.train_correlations[0, 1], scikit_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
+
+# %%
+pls = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='pls')
+
+pls.fit(train_view_1, train_view_2)
+
+pls_results = np.stack(
+    (pls.train_correlations[0, 1], pls.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 """
 ### Regularized CCA with hyperparameter tuning

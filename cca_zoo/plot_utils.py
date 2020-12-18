@@ -31,11 +31,11 @@ def cv_plot(scores, param_dict, reg):
         return
     elif dimensions > 2:
         if dimensions == 4:
-            plt.subplots(n_uniques[0], n_uniques[1])
+            fig,axs=plt.subplots(n_uniques[0], n_uniques[1])
         elif dimensions == 3:
-            plt.subplots(n_uniques[0], n_uniques[1])
+            fig,axs=plt.subplots(n_uniques[0], n_uniques[1])
         elif dimensions < 3:
-            plt.subplots(1)
+            fig,axs=plt.subplots(1)
 
         lineObjects = plt.plot(np.array(sorted(list(x1_vals))),
                                np.squeeze(scores.reshape((len(x1_vals), len(x2_vals), -1)).mean(axis=-1)))

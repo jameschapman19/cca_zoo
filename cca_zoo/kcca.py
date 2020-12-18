@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.linalg import eigh
+from scipy.sparse.linalg import eigs, eigsh
 from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel
 
 
@@ -36,7 +37,7 @@ class KCCA:
         N = self.K1.shape[0]
 
         R, D = self.hardoon_method()
-        betas, alphas = eigh(R, D + self.eps * np.eye(D.shape[0]))
+        betas, alphas = eigsh(R, k=2 * self.latent_dims, M=D + self.eps * np.eye(D.shape[0]))
         # sorting according to eigenvalue
         betas = np.real(betas)
         ind = np.argsort(betas)
