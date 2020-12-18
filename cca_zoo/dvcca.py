@@ -19,24 +19,24 @@ for standardising the pipeline for comparison
 
 def create_encoder(config, i):
     encoder = config.encoder_models[i](config.hidden_layer_sizes[i], config.input_sizes[i],
-                                       config.latent_dims, variational=True).double()
+                                       config.latent_dims, variational=True)
     return encoder
 
 
 def create_private_encoder(config, i):
     encoder = config.private_encoder_models[i](config.hidden_layer_sizes[i], config.input_sizes[i],
-                                               config.latent_dims, variational=True).double()
+                                               config.latent_dims, variational=True)
     return encoder
 
 
 def create_decoder(config, i):
-    decoder = config.decoder_models[i](config.hidden_layer_sizes[i], config.latent_dims, config.input_sizes[i]).double()
+    decoder = config.decoder_models[i](config.hidden_layer_sizes[i], config.latent_dims, config.input_sizes[i])
     return decoder
 
 
 def create_private_decoder(config, i):
     decoder = config.decoder_models[i](config.hidden_layer_sizes[i], config.latent_dims * 3,
-                                       config.input_sizes[i]).double()
+                                       config.input_sizes[i])
     return decoder
 
 

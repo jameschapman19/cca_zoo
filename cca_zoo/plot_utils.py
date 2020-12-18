@@ -2,10 +2,12 @@ import matplotlib
 
 matplotlib.use('agg')
 import numpy as np
+import pandas as pd
 from sklearn import metrics
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import linregress
+from mpl_toolkits.mplot3d import Axes3D
 
 """
 A bunch of methods I have added to help me do plotting when needed
@@ -19,35 +21,41 @@ plot_results() used to generate comparison plots for HCP data
 
 
 def cv_plot(scores, param_dict, reg):
-    # First see if 1 dimensional
-    plt.figure()
-    dims = isinstance(next(iter(param_dict.values()))[0], tuple)
-    if dims == 0:
-        x1_name = list(param_dict.keys())[0]
-        x1_vals = list(param_dict.values())[0]
-        lineObjects = plt.plot(np.array(x1_vals), scores)
-    elif len(param_dict) == 1:
-        parameter_name = list(param_dict.keys())[0]
-        x1_vals = set([pair[0] if (isinstance(pair, tuple)) else pair for pair in list(param_dict.values())[0]])
-        x2_vals = set([pair[1] if (isinstance(pair, tuple)) else pair for pair in list(param_dict.values())[0]])
-        x1_name = parameter_name + '_1'
-        x2_name = parameter_name + '_2'
-        lineObjects = plt.plot(np.array(sorted(list(x1_vals))),
-                               np.squeeze(scores.reshape((len(x1_vals), len(x2_vals), -1)).mean(axis=-1)))
-        plt.legend(lineObjects, sorted(list(x2_vals)), title=x2_name)
-    else:
-        x1_name = list(param_dict.keys())[0]
-        x1_vals = list(param_dict.values())[0]
-        x2_name = list(param_dict.keys())[1]
-        x2_vals = list(param_dict.values())[1]
+    hyper_df = pd.DataFrame(param_dict)
+    hyper_df = split_columns(hyper_df)
+    hyper_df = hyper_df[[i for i in hyper_df if len(set(hyper_df[i])) > 1]]
+    # Check dimensions
+    dimensions = len(hyper_df.columns)
+    n_uniques = hyper_df.nunique()
+    if dimensions > 4:
+        print('not implemented')
+        return
+    elif dimensions > 2:
+        if dimensions == 4:
+            plt.subplots(n_uniques[0], n_uniques[1])
+        elif dimensions == 3:
+            plt.subplots(n_uniques[0], n_uniques[1])
+        elif dimensions < 3:
+            plt.subplots(1)
+
         lineObjects = plt.plot(np.array(sorted(list(x1_vals))),
                                np.squeeze(scores.reshape((len(x1_vals), len(x2_vals), -1)).mean(axis=-1)))
         plt.legend(lineObjects, sorted(list(x2_vals)), title=x2_name)
 
-    plt.xlabel(x1_name)
-    plt.title('Hyperparameter plot ' + reg)
-    plt.ylabel('Score (sum of first n correlations)')
+    ax.set_title('Hyperparameter plot ' + reg)
+    plt.ax.set_zlabel('Score (sum of first n correlations)')
     plt.savefig('Hyperparameter_plot ' + reg)
+
+
+def split_columns(df):
+    cols = []
+    # check first row to see if each column contains a list or tuple
+    for (columnName, columnData) in df.iteritems():
+        if isinstance(columnData[0], tuple) or isinstance(columnData[0], list):
+            cols.append(columnName)
+    for col in cols:
+        df = df.join(pd.DataFrame(df[col].tolist()).rename(columns=lambda x: col + '_' + str(x + 1))).drop(col, 1)
+    return df
 
 
 def plot_results(data, labels):

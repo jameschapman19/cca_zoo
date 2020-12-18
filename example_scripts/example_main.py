@@ -10,17 +10,26 @@ import itertools
 import os
 from cca_zoo.configuration import Config
 import matplotlib.pyplot as plt
+from torch.utils.data import Subset
 
 # Load MNIST Data
 os.chdir('..')
 N = 5000
-train_dataset = cca_zoo.data.Noisy_MNIST_Dataset(mnist_type='MNIST', train=True)
-ids = np.arange(min(2 * N, len(train_dataset)))
+dataset = cca_zoo.data.Noisy_MNIST_Dataset(mnist_type='MNIST', train=True)
+ids = np.arange(min(2 * N, len(dataset)))
 np.random.shuffle(ids)
 train_ids, val_ids = np.array_split(ids, 2)
+val_dataset = Subset(dataset, val_ids)
+train_dataset = Subset(dataset, train_ids)
 test_dataset = cca_zoo.data.Noisy_MNIST_Dataset(mnist_type='MNIST', train=False)
-train_view_1, train_view_2, train_rotations, train_OH_labels, train_labels = train_dataset.to_numpy()
-test_view_1, test_view_2, test_rotations, test_OH_labels, test_labels = test_dataset.to_numpy()
+test_ids = np.arange(min(N, len(test_dataset)))
+np.random.shuffle(test_ids)
+test_dataset = Subset(test_dataset, test_ids)
+train_view_1, train_view_2, train_rotations, train_OH_labels, train_labels = train_dataset.dataset.to_numpy(
+    train_dataset.indices)
+val_view_1, val_view_2, val_rotations, val_OH_labels, val_labels = val_dataset.dataset.to_numpy(val_dataset.indices)
+test_view_1, test_view_2, test_rotations, test_OH_labels, test_labels = test_dataset.dataset.to_numpy(
+    test_dataset.indices)
 
 # Settings
 
@@ -89,7 +98,7 @@ pmd = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='pmd', tol=1e-5).g
                                                                                               train_view_2,
                                                                                               param_candidates=param_candidates,
                                                                                               folds=cv_folds,
-                                                                                              verbose=True)
+                                                                                              verbose=True, jobs=2)
 
 pmd_results = np.stack((pmd.train_correlations[0, 1, :], pmd.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 
@@ -104,7 +113,8 @@ elastic = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='elastic', tol
                                                                                                       train_view_2,
                                                                                                       param_candidates=param_candidates,
                                                                                                       folds=cv_folds,
-                                                                                                      verbose=True)
+                                                                                                      verbose=True,
+                                                                                                      jobs=2)
 
 elastic_results = np.stack(
     (elastic.train_correlations[0, 1, :], elastic.predict_corr(test_view_1, test_view_2)[0, 1, :]))
@@ -130,7 +140,7 @@ kernel_reg = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').g
                                                                                               train_view_2,
                                                                                               folds=cv_folds,
                                                                                               param_candidates=param_candidates,
-                                                                                              verbose=True)
+                                                                                              verbose=True, jobs=2)
 kernel_reg_results = np.stack((
     kernel_reg.train_correlations[0, 1, :],
     kernel_reg.predict_corr(test_view_1, test_view_2)[0, 1, :]))
@@ -142,7 +152,7 @@ kernel_poly = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').
                                                                                                train_view_2,
                                                                                                folds=cv_folds,
                                                                                                param_candidates=param_candidates,
-                                                                                               verbose=True)
+                                                                                               verbose=True, jobs=2)
 
 kernel_poly_results = np.stack((
     kernel_poly.train_correlations[0, 1, :],
@@ -155,7 +165,7 @@ kernel_gaussian = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kerne
                                                                                                    train_view_2,
                                                                                                    folds=cv_folds,
                                                                                                    param_candidates=param_candidates,
-                                                                                                   verbose=True)
+                                                                                                   verbose=True, jobs=2)
 
 kernel_gaussian_results = np.stack((
     kernel_gaussian.train_correlations[0, 1, :],

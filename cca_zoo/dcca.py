@@ -18,7 +18,7 @@ for standardising the pipeline for comparison
 
 
 def create_encoder(config, i):
-    encoder = config.encoder_models[i](config.hidden_layer_sizes[i], config.input_sizes[i], config.latent_dims).double()
+    encoder = config.encoder_models[i](config.hidden_layer_sizes[i], config.input_sizes[i], config.latent_dims)
     return encoder
 
 
@@ -41,8 +41,8 @@ class DCCA(nn.Module):
 
     def encode(self, *args):
         z = []
-        for i, arg in enumerate(args):
-            z.append(self.encoders[i](arg))
+        for i, encoder in enumerate(self.encoders):
+            z.append(encoder(args[i]))
         return tuple(z)
 
     def forward(self, *args):

@@ -21,6 +21,10 @@ def OH_digits(digits):
     return b
 
 
+def add_mnist_noise(x):
+    x = x + torch.rand(28, 28)
+    return x
+
 class CCA_Dataset(Dataset):
     def __init__(self, *args, labels=None, train=True):
         self.train = train
@@ -38,7 +42,7 @@ class CCA_Dataset(Dataset):
 
 
 class Noisy_MNIST_Dataset(Dataset):
-    def __init__(self, mnist_type='MNIST', train=True):
+    def __init__(self, mnist_type='MNIST', train=True, flatten=True):
 
         if mnist_type == 'MNIST':
             self.dataset = datasets.MNIST('../../data', train=train, download=True)
@@ -54,14 +58,17 @@ class Noisy_MNIST_Dataset(Dataset):
                                                #                 transforms.Normalize((self.mean,), (self.std,)) # normalize inputs
                                                ])
         self.b_transform = transforms.Compose(
-            [transforms.ToTensor(), transforms.Lambda(lambda x: x + torch.rand(28, 28)),
-             transforms.Lambda(lambda x: self.__threshold_func__(x))])
+            [transforms.ToTensor(), transforms.Lambda(add_mnist_noise),
+             transforms.Lambda(self.__threshold_func__)])
         self.targets = self.dataset.targets
+        self.OHs = OH_digits(self.targets.numpy().astype(int))
         self.filtered_classes = []
         self.filtered_nums = []
         for i in range(10):
             self.filtered_classes.append(self.data[self.targets == i])
             self.filtered_nums.append(self.filtered_classes[i].shape[0])
+
+        self.flatten = flatten
 
     def __threshold_func__(self, x):
         x[x > 1] = 1
@@ -82,25 +89,31 @@ class Noisy_MNIST_Dataset(Dataset):
         x_b = Image.fromarray(self.filtered_classes[label][random_index, :, :].numpy(), mode='L')
         x_b = self.b_transform(x_b)
 
-        return (x_a, x_b, rot_a), label
+        if self.flatten:
+            x_a = torch.flatten(x_a)
+            x_b = torch.flatten(x_b)
+        OH = self.OHs[idx]
+        return (x_a, x_b, rot_a, OH), label
 
-    def to_numpy(self, N=1000):
-        view_1 = np.zeros((N, 784))
-        view_2 = np.zeros((N, 784))
-        labels = np.zeros(N).astype(int)
-        rotations = np.zeros(N)
-        for n in range(N):
+    def to_numpy(self, indices=None):
+        if indices is None:
+            indices = np.arange(self.__len__())
+        view_1 = np.zeros((len(indices), 784))
+        view_2 = np.zeros((len(indices), 784))
+        labels = np.zeros(len(indices)).astype(int)
+        rotations = np.zeros(len(indices))
+        for i, n in enumerate(indices):
             sample = self[n]
-            view_1[n] = sample[0][0].numpy().reshape((-1, 28 * 28))
-            view_2[n] = sample[0][1].numpy().reshape((-1, 28 * 28))
-            rotations[n] = sample[0][2].numpy()
-            labels[n] = sample[1].numpy().astype(int)
+            view_1[i] = sample[0][0].numpy().reshape((-1, 28 * 28))
+            view_2[i] = sample[0][1].numpy().reshape((-1, 28 * 28))
+            rotations[i] = sample[0][2].numpy()
+            labels[i] = sample[1].numpy().astype(int)
         OH_labels = OH_digits(labels.astype(int))
         return view_1, view_2, rotations, OH_labels, labels
 
 
 class Tangled_MNIST_Dataset(Dataset):
-    def __init__(self, mnist_type='MNIST', train=True, fixed=False):
+    def __init__(self, mnist_type='MNIST', train=True, fixed=False, flatten=True):
 
         if mnist_type == 'MNIST':
             self.dataset = datasets.MNIST('../../data', train=train, download=True)
@@ -117,6 +130,7 @@ class Tangled_MNIST_Dataset(Dataset):
                                              #                 transforms.Normalize((self.mean,), (self.std,)) # normalize inputs
                                              ])
         self.targets = self.dataset.targets
+        self.OHs = OH_digits(self.targets.numpy().astype(int))
         self.fixed = fixed
         self.filtered_classes = []
         self.filtered_nums = []
@@ -127,6 +141,8 @@ class Tangled_MNIST_Dataset(Dataset):
             self.view_b_indices = []
             for i in range(10):
                 self.view_b_indices.append(np.random.permutation(np.arange(len(self.data))[self.targets == i]))
+
+        self.flatten = flatten
 
     def __len__(self):
         return len(self.data)
@@ -146,21 +162,25 @@ class Tangled_MNIST_Dataset(Dataset):
         x_a_rotate = self.transform(x_a_rotate)
         x_b_rotate = self.transform(x_b_rotate)
 
-        return (x_a_rotate, x_b_rotate, rot_a, rot_b), label
+        if self.flatten:
+            x_a_rotate = torch.flatten(x_a_rotate)
+            x_b_rotate = torch.flatten(x_b_rotate)
+        OH=self.OHs[idx]
+        return (x_a_rotate, x_b_rotate, rot_a, rot_b, OH), label
 
-    def to_numpy(self, N=1000):
-        view_1 = np.zeros((N, 784))
-        view_2 = np.zeros((N, 784))
-        labels = np.zeros(N).astype(int)
-        rotation_1 = np.zeros(N)
-        rotation_2 = np.zeros(N)
-        for n in range(N):
+    def to_numpy(self, indices):
+        view_1 = np.zeros((len(indices), 784))
+        view_2 = np.zeros((len(indices), 784))
+        labels = np.zeros(len(indices)).astype(int)
+        rotation_1 = np.zeros(len(indices))
+        rotation_2 = np.zeros(len(indices))
+        for i, n in enumerate(indices):
             sample = self[n]
-            view_1[n] = sample[0][0].numpy().reshape((-1, 28 * 28))
-            view_2[n] = sample[0][1].numpy().reshape((-1, 28 * 28))
-            rotation_1[n] = sample[0][2].numpy()
-            rotation_2[n] = sample[0][3].numpy()
-            labels[n] = sample[1].numpy().astype(int)
+            view_1[i] = sample[0][0].numpy().reshape((-1, 28 * 28))
+            view_2[i] = sample[0][1].numpy().reshape((-1, 28 * 28))
+            rotation_1[i] = sample[0][2].numpy()
+            rotation_2[i] = sample[0][3].numpy()
+            labels[i] = sample[1].numpy().astype(int)
         OH_labels = OH_digits(labels.astype(int))
         return view_1, view_2, rotation_1, rotation_2, OH_labels, labels
 

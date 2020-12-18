@@ -21,7 +21,7 @@ setup(
                         'matplotlib~=3.3.3',
                         'seaborn~=0.11.0',
                         'Pillow~=8.0.1',
-                        'torchvision~=0.8.2+cu110',
+                        'torchvision~=0.8.2',
                         'pandas~=1.1.5',
                         'mvlearn~=0.4.1',
                         'setuptools~=51.0.0'])

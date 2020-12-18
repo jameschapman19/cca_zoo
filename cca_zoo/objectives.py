@@ -138,10 +138,10 @@ class CCA:
         SigmaHat12 = (1.0 / (m - 1)) * torch.matmul(H1bar, H2bar.t())
         SigmaHat11 = (1.0 / (m - 1)) * torch.matmul(H1bar,
                                                     H1bar.t()) + self.r * torch.eye(o1, dtype=torch.double,
-                                                                                    device=H1.device)
+                                                                                    device=H1.device).float()
         SigmaHat22 = (1.0 / (m - 1)) * torch.matmul(H2bar,
                                                     H2bar.t()) + self.r * torch.eye(o2, dtype=torch.double,
-                                                                                    device=H2.device)
+                                                                                    device=H2.device).float()
 
         SigmaHat11RootInv = compute_matrix_power(SigmaHat11, -0.5, self.eps)
         SigmaHat22RootInv = compute_matrix_power(SigmaHat22, -0.5, self.eps)

@@ -29,6 +29,7 @@ import cca_zoo.alsinnerloop
 import cca_zoo.data
 import cca_zoo.kcca
 import cca_zoo.plot_utils
+from joblib import Parallel, delayed
 
 
 class Wrapper:
@@ -118,7 +119,7 @@ class Wrapper:
         self.train_correlations = self.predict_corr(*args)
         return self
 
-    def gridsearch_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False):
+    def gridsearch_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False,jobs:int=0):
         """
         :param args: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
         :param param_candidates: 
@@ -128,7 +129,7 @@ class Wrapper:
         """""
         best_params = grid_search(*args, max_iter=self.max_iter, latent_dims=self.latent_dims, method=self.method,
                                   param_candidates=param_candidates, folds=folds,
-                                  verbose=verbose, tol=self.tol)
+                                  verbose=verbose, tol=self.tol,jobs=jobs)
         self.fit(*args, params=best_params)
         return self
 
@@ -365,8 +366,9 @@ def slicedict(d, s):
 
 
 def grid_search(*args, max_iter: int = 100, latent_dims: int = 5, method: str = 'l2', param_candidates=None,
+                generalized: bool = False,
                 folds: int = 5,
-                verbose=False, tol=1e-6):
+                verbose=False, tol=1e-6, jobs=0, plot=False):
     """
     :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
@@ -386,34 +388,32 @@ def grid_search(*args, max_iter: int = 100, latent_dims: int = 5, method: str = 
 
     # Set up an array for each set of hyperparameters
     assert (len(param_candidates) > 0)
-    hyperparameter_grid_shape = [len(v) for k, v in param_candidates.items()]
-    hyperparameter_scores = np.zeros(hyperparameter_grid_shape)
+    param_names = list(param_candidates.keys())
+    param_values = list(param_candidates.values())
+    param_combinations = list(itertools.product(*param_values))
 
-    for index, x in np.ndenumerate(hyperparameter_scores):
-        params = {}
-        p_num = 0
-        for key in param_candidates.keys():
-            params[key] = param_candidates[key][index[p_num]]
-            p_num += 1
-        hyperparameter_scores[index] = -CrossValidate(*args, method=method, latent_dims=latent_dims, folds=folds,
-                                                      verbose=verbose, max_iter=max_iter, tol=tol).score(params)
+    param_sets = []
+    for param_set in param_combinations:
+        param_dict = {}
+        for i, param_name in enumerate(param_names):
+            param_dict[param_name] = param_set[i]
+        param_sets.append(param_dict)
 
-    # Find index of maximum value from 2D numpy array
-    result = np.where(hyperparameter_scores == np.amax(hyperparameter_scores))
-    # Return the 1st
-    best_params = {}
-    p_num = 0
-    for key in param_candidates.keys():
-        best_params[key] = param_candidates[key][result[p_num][0].item()]
-        p_num += 1
-    print('Best score : ', np.amax(hyperparameter_scores), flush=True)
-    print(best_params, flush=True)
-    if method == 'kernel':
-        kernel_type = param_candidates.pop('kernel')[0]
-        cca_zoo.plot_utils.cv_plot(hyperparameter_scores[0], param_candidates, method + ":" + kernel_type)
-    elif not method == 'elastic':
-        cca_zoo.plot_utils.cv_plot(hyperparameter_scores, param_candidates, method)
-    return best_params
+    cv = CrossValidate(*args, latent_dims=latent_dims, method=method, generalized=generalized, folds=folds,
+                       verbose=verbose, max_iter=max_iter,
+                       tol=tol)
+
+    if jobs > 0:
+        scores = Parallel(n_jobs=3)(delayed(cv.score)(param_set) for param_set in param_sets)
+    else:
+        scores = [cv.score(param_set) for param_set in param_sets]
+    max_index = scores.index(max(scores))
+
+    print('Best score : ', max(scores), flush=True)
+    print(param_sets[max_index], flush=True)
+    if plot:
+        cca_zoo.plot_utils.cv_plot(scores, param_sets, method)
+    return param_sets[max_index]
 
 
 class CrossValidate:
@@ -466,4 +466,4 @@ class CrossValidate:
         if self.verbose:
             print(params)
             print(metric)
-        return -metric
+        return metric

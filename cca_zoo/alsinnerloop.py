@@ -16,7 +16,7 @@ class AlsInnerLoop:
     """
 
     def __init__(self, *args, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized', params=None,
+                 initialization: str = 'random', params=None,
                  method: str = 'elastic'):
         self.initialization = initialization
         self.max_iter = max_iter
@@ -50,7 +50,6 @@ class AlsInnerLoop:
             self.scores = AlsInnerLoop(*self.datasets, initialization='random').scores
 
         self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in self.datasets]
-        self.corrs = []
         self.bin_search_init = np.zeros(len(self.datasets))
 
         # select update function: needs to return new weights and update the target matrix as appropriate
@@ -80,7 +79,7 @@ class AlsInnerLoop:
 
             self.old_weights = self.weights.copy()
             # Sum all pairs
-            self.corrs.append(np.corrcoef(self.scores)[np.triu_indices(self.scores.shape[0], 1)].sum())
+            self.track_correlation.append(np.corrcoef(self.scores)[np.triu_indices(self.scores.shape[0], 1)].sum())
         return self
 
     def pmd_update(self, view_index: int):
@@ -298,7 +297,6 @@ class AlsInnerLoop:
         i = 0
         while not converged:
             i += 1
-            # coef = Lasso(alpha=current, selection='cyclic', max_iter=10000).fit(X, y).coef_
             coef = Lasso(alpha=current, selection='cyclic', fit_intercept=False).fit(X, y).coef_
             if np.linalg.norm(X @ coef) > 0:
                 current_val = p - np.linalg.norm(coef / np.linalg.norm(X @ coef), ord=1)

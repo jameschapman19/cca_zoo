@@ -12,6 +12,7 @@ encoder/decoder models in the DCCA. I think I will do something similar for the 
 class Config:
     def __init__(self):
         # Defines the basic architecture DCCA, DCCAE, DVCCA
+        self.device = None
         self.method = cca_zoo.dcca.DCCA
         # The number of encoding dimensions
         self.latent_dims = 2

@@ -23,7 +23,7 @@ import torch
 from sklearn.cross_decomposition import CCA
 from torch.utils.data import DataLoader
 
-import cca_datasets
+from archive import cca_datasets
 import cca_zoo.plot_utils
 from cca_zoo.configuration import Config
 
@@ -32,21 +32,25 @@ class DeepWrapper:
 
     def __init__(self, config: Config = Config):
         self.config = config
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if self.config.device is None:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            self.device=self.config.device
 
     def fit(self, *args, labels=None, val_split=0.2):
         if type(args[0]) is np.ndarray:
             dataset = cca_datasets.CCA_Dataset(*args, labels=labels)
             lengths = [len(dataset) - int(len(dataset) * val_split), int(len(dataset) * val_split)]
             train_dataset, val_dataset = torch.utils.data.random_split(dataset, lengths)
-        elif type(args[0]) is torch.utils.data.dataset.Subset and len(args) == 2:
-            train_dataset, val_dataset = args[0], args[1]
-        elif type(args[0]) is torch.utils.data.Dataset or type(args[0]) is torch.utils.data.dataset.Subset:
-            dataset = args[0]
-            lengths = [len(dataset) - int(len(dataset) * val_split), int(len(dataset) * val_split)]
-            train_dataset, val_dataset = torch.utils.data.random_split(dataset, lengths)
-        else:
-            pass
+        elif isinstance(args[0], torch.utils.data.Dataset):
+            if len(args) == 2:
+                assert(isinstance(args[0], torch.utils.data.Subset))
+                assert (isinstance(args[1], torch.utils.data.Subset))
+                train_dataset, val_dataset = args[0], args[1]
+            else:
+                dataset = args[0]
+                lengths = [len(dataset) - int(len(dataset) * val_split), int(len(dataset) * val_split)]
+                train_dataset, val_dataset = torch.utils.data.random_split(dataset, lengths)
 
         if self.config.batch_size == 0:
             train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset), drop_last=True)
@@ -54,7 +58,7 @@ class DeepWrapper:
             train_dataloader = DataLoader(train_dataset, batch_size=self.config.batch_size, drop_last=True)
         val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
 
-        self.config.input_sizes = [view.shape[-1] for view in dataset[0][0]]
+        self.config.input_sizes = [view.shape[-1] if view.shape.__len__()>0 else 1 for view in dataset.dataset[0][0]]
 
         # First we get the model class.
         # These have a forward method which takes data inputs and outputs the variables needed to calculate their
@@ -64,7 +68,7 @@ class DeepWrapper:
         num_params = sum(p.numel() for p in self.model.parameters())
         print('total parameters: ', num_params)
         best_model = copy.deepcopy(self.model.state_dict())
-        self.model.double().to(self.device)
+        self.model.float().to(self.device)
         min_val_loss = torch.tensor(np.inf)
         epochs_no_improve = 0
         early_stop = False
@@ -105,7 +109,7 @@ class DeepWrapper:
         self.model.train()
         train_loss = 0
         for batch_idx, (data, label) in enumerate(train_dataloader):
-            data = [d.to(self.device) for d in list(data)]
+            data = [d.float().to(self.device) for d in list(data)]
             loss = self.model.update_weights(*data)
             train_loss += loss.item()
         return train_loss / len(train_dataloader)
@@ -115,7 +119,7 @@ class DeepWrapper:
         with torch.no_grad():
             total_val_loss = 0
             for batch_idx, (data, label) in enumerate(val_dataloader):
-                data = [d.to(self.device) for d in list(data)]
+                data = [d.float().to(self.device) for d in list(data)]
                 loss = self.model.loss(*data)
                 total_val_loss += loss.item()
         return total_val_loss / len(val_dataloader)
@@ -129,14 +133,13 @@ class DeepWrapper:
     def transform_view(self, *args, labels=None, train=False):
         if type(args[0]) is np.ndarray:
             test_dataset = cca_datasets.CCA_Dataset(*args, labels=labels)
-        elif type(args[0]) is torch.utils.data.Dataset or type(args[0]) is torch.utils.data.dataset.Subset:
+        elif isinstance(args[0], torch.utils.data.Dataset):
             test_dataset = args[0]
-        else:
-            pass
+
         test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
         with torch.no_grad():
             for batch_idx, (data, label) in enumerate(test_dataloader):
-                data = [d.to(self.device) for d in list(data)]
+                data = [d.float().to(self.device) for d in list(data)]
                 z = self.model(*data)
                 if batch_idx == 0:
                     z_list = [z_i.detach().cpu().numpy() for i, z_i in enumerate(z)]
@@ -155,14 +158,13 @@ class DeepWrapper:
     def predict_view(self, *args, labels=None):
         if type(args[0]) is np.ndarray:
             test_dataset = cca_datasets.CCA_Dataset(*args, labels=labels)
-        elif type(args[0]) is torch.utils.data.Dataset or type(args[0]) is torch.utils.data.dataset.Subset:
+        elif isinstance(args[0], torch.utils.data.Dataset):
             test_dataset = args[0]
-        else:
-            pass
+
         test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
         with torch.no_grad():
             for batch_idx, (data, label) in enumerate(test_dataloader):
-                data = [d.to(self.device) for d in list(data)]
+                data = [d.float().to(self.device) for d in list(data)]
                 x = self.model.recon(*data)
                 if batch_idx == 0:
                     x_list = [x_i.detach().cpu().numpy() for i, x_i in enumerate(x)]
