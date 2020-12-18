@@ -22,6 +22,7 @@ transform_view(): allows us to transform given views to the latent variable spac
 import itertools
 
 import numpy as np
+from joblib import Parallel, delayed
 from scipy.linalg import pinv2, block_diag, cholesky
 from sklearn.cross_decomposition import CCA, PLSCanonical
 
@@ -29,7 +30,6 @@ import cca_zoo.alsinnerloop
 import cca_zoo.data
 import cca_zoo.kcca
 import cca_zoo.plot_utils
-from joblib import Parallel, delayed
 
 
 class Wrapper:
@@ -119,7 +119,7 @@ class Wrapper:
         self.train_correlations = self.predict_corr(*args)
         return self
 
-    def gridsearch_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False,jobs:int=0):
+    def gridsearch_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False, jobs: int = 0):
         """
         :param args: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
         :param param_candidates: 
@@ -129,7 +129,7 @@ class Wrapper:
         """""
         best_params = grid_search(*args, max_iter=self.max_iter, latent_dims=self.latent_dims, method=self.method,
                                   param_candidates=param_candidates, folds=folds,
-                                  verbose=verbose, tol=self.tol,jobs=jobs)
+                                  verbose=verbose, tol=self.tol, jobs=jobs)
         self.fit(*args, params=best_params)
         return self
 

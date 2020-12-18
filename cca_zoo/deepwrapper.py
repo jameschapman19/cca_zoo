@@ -35,7 +35,7 @@ class DeepWrapper:
         if self.config.device is None:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
-            self.device=self.config.device
+            self.device = self.config.device
 
     def fit(self, *args, labels=None, val_split=0.2):
         if type(args[0]) is np.ndarray:
@@ -44,7 +44,7 @@ class DeepWrapper:
             train_dataset, val_dataset = torch.utils.data.random_split(dataset, lengths)
         elif isinstance(args[0], torch.utils.data.Dataset):
             if len(args) == 2:
-                assert(isinstance(args[0], torch.utils.data.Subset))
+                assert (isinstance(args[0], torch.utils.data.Subset))
                 assert (isinstance(args[1], torch.utils.data.Subset))
                 train_dataset, val_dataset = args[0], args[1]
             else:
@@ -58,7 +58,7 @@ class DeepWrapper:
             train_dataloader = DataLoader(train_dataset, batch_size=self.config.batch_size, drop_last=True)
         val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
 
-        self.config.input_sizes = [view.shape[-1] if view.shape.__len__()>0 else 1 for view in dataset.dataset[0][0]]
+        self.config.input_sizes = [view.shape[-1] if view.shape.__len__() > 0 else 1 for view in dataset.dataset[0][0]]
 
         # First we get the model class.
         # These have a forward method which takes data inputs and outputs the variables needed to calculate their
