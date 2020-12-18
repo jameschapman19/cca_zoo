@@ -13,15 +13,7 @@ This is a compilation of methods for:
 -Deep Canonically Correlated Autoencoders (Wang)
 -Deep Variational CCA and Deep Variational CCA_private (Wang)
 
-All models are evaluated on a noisy version of MNIST dataset with thanks to @VahidooX, @MichaelVll @Arminarj. The train/validation/test split is the original split of MNIST.
-
-You can download them from noisymnist_view1.gz and noisymnist_view2.gz
-
 The DCCAE is just a DCCA with reconstruction networks from the latent space and additional reconstruction losses. As such I implement both DCCA and DCCAE in a single model with a parameter weighting the reconstruction loss (i.e. 0 in the DCCA case)
-
-The DVCCA (in layman's terms!) can be understood as an encoder-decoder with 3 loss terms: one that ensures a good encoding (this is the K-L divergence between the encoding and a N(0,1) gaussian), and two ensuring good reconstructions from the latent variable to the original views.
-
-If you are familiar with the variational autoencoder, you will notice that 2 out of 3 of these losses are the same as the VAE set up with an additional reconstruction terms for the second view.
 
 The DVCCA_private extends the DVCCA by adding private latent variables. This gives us 2 additional loss terms ensuring a 'good' encoding of the private information from each view (the KL divergence between the encoding and a N(0,1) gaussian). 
 
