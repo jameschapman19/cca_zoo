@@ -15,7 +15,7 @@ class AlsInnerLoop:
     This is a wrapper class for alternating least squares based solutions to CCA
     """
 
-    def __init__(self, *args, max_iter: int = 100, tol=1e-5, generalized: bool = False,
+    def __init__(self, *args, max_iter: int = 100, tol=1e-3, generalized: bool = False,
                  initialization: str = 'random', params=None,
                  method: str = 'elastic'):
         self.initialization = initialization

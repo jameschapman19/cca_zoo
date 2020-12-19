@@ -35,7 +35,7 @@ def create_decoder(config, i):
 
 # SLightly different decode if private encoders are added. This is because we have the extra dimensionality of the 2 private encoders. May need extending for more than 2 views.
 def create_private_decoder(config, i):
-    decoder = config.decoder_models[i](config.latent_dims * 3, config.input_sizes[i], **config.private_decoder_args[i])
+    decoder = config.decoder_models[i](config.latent_dims * 3, config.input_sizes[i], **config.decoder_args[i])
     return decoder
 
 

@@ -34,7 +34,7 @@ import cca_zoo.plot_utils
 
 class Wrapper:
     def __init__(self, latent_dims: int = 1, method: str = 'elastic', generalized: bool = False, max_iter: int = 100,
-                 tol=1e-5):
+                 tol=1e-3):
         """
         :param latent_dims: number of latent dimensions to find
         :param method: 'elastic', 'pmd', 'scca', 'gcca', 'mcca', 'gep', 'scikit', 'pls', 'kernel'
@@ -368,7 +368,7 @@ def slicedict(d, s):
 def grid_search(*args, max_iter: int = 100, latent_dims: int = 1, method: str = 'l2', param_candidates=None,
                 generalized: bool = False,
                 folds: int = 5,
-                verbose=False, tol=1e-5, jobs=0, plot=False):
+                verbose=False, tol=1e-3, jobs=0, plot=False):
     """
     :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
@@ -419,7 +419,7 @@ def grid_search(*args, max_iter: int = 100, latent_dims: int = 1, method: str = 
 class CrossValidate:
     def __init__(self, *args, latent_dims: int = 1, method: str = 'l2', generalized: bool = False, folds=5,
                  verbose=False, max_iter: int = 500,
-                 tol=1e-5):
+                 tol=1e-3):
         """
         :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data

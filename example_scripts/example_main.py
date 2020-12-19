@@ -14,7 +14,7 @@ from torch.utils.data import Subset
 
 # Load MNIST Data
 os.chdir('..')
-N = 2000
+N = 1000
 dataset = cca_zoo.data.Noisy_MNIST_Dataset(mnist_type='FashionMNIST', train=True)
 ids = np.arange(min(2 * N, len(dataset)))
 np.random.shuffle(ids)
@@ -37,6 +37,8 @@ test_view_1, test_view_2, test_rotations, test_OH_labels, test_labels = test_dat
 latent_dims = 2
 # The number of folds used for cross-validation/hyperparameter tuning
 cv_folds = 5
+# For running hyperparameter tuning in parallel (0 if not)
+jobs = 1
 
 """
 ### Linear CCA
@@ -113,7 +115,7 @@ pmd = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='pmd', tol=1e-5).g
                                                                                               train_view_2,
                                                                                               param_candidates=param_candidates,
                                                                                               folds=cv_folds,
-                                                                                              verbose=True, jobs=1,
+                                                                                              verbose=True, jobs=jobs,
                                                                                               plot=True)
 
 pmd_results = np.stack((pmd.train_correlations[0, 1, :], pmd.predict_corr(test_view_1, test_view_2)[0, 1, :]))
@@ -130,7 +132,7 @@ elastic = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='elastic', tol
                                                                                                       param_candidates=param_candidates,
                                                                                                       folds=cv_folds,
                                                                                                       verbose=True,
-                                                                                                      jobs=1, plot=True)
+                                                                                                      jobs=jobs, plot=True)
 
 elastic_results = np.stack(
     (elastic.train_correlations[0, 1, :], elastic.predict_corr(test_view_1, test_view_2)[0, 1, :]))
@@ -145,7 +147,7 @@ scca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='scca', tol=1e-5)
                                                                                                 param_candidates=param_candidates,
                                                                                                 folds=cv_folds,
                                                                                                 verbose=True,
-                                                                                                jobs=1, plot=True)
+                                                                                                jobs=jobs, plot=True)
 
 scca_results = np.stack(
     (scca.train_correlations[0, 1, :], scca.predict_corr(test_view_1, test_view_2)[0, 1, :]))
@@ -171,7 +173,7 @@ kernel_reg = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').g
                                                                                               train_view_2,
                                                                                               folds=cv_folds,
                                                                                               param_candidates=param_candidates,
-                                                                                              verbose=True, jobs=1,
+                                                                                              verbose=True, jobs=jobs,
                                                                                               plot=True)
 kernel_reg_results = np.stack((
     kernel_reg.train_correlations[0, 1, :],
@@ -184,7 +186,7 @@ kernel_poly = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').
                                                                                                train_view_2,
                                                                                                folds=cv_folds,
                                                                                                param_candidates=param_candidates,
-                                                                                               verbose=True, jobs=1,
+                                                                                               verbose=True, jobs=jobs,
                                                                                                plot=True)
 
 kernel_poly_results = np.stack((
@@ -198,7 +200,7 @@ kernel_gaussian = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kerne
                                                                                                    train_view_2,
                                                                                                    folds=cv_folds,
                                                                                                    param_candidates=param_candidates,
-                                                                                                   verbose=True, jobs=1,
+                                                                                                   verbose=True, jobs=jobs,
                                                                                                    plot=True)
 
 kernel_gaussian_results = np.stack((
@@ -278,7 +280,7 @@ We can vary the encoder architecture from the default fcn to encoder/decoder bas
 cfg = Config()
 cfg.epoch_num = 100
 cfg.encoder_models = [cca_zoo.deep_models.CNNEncoder, cca_zoo.deep_models.CNNEncoder]
-cfg.hidden_layer_sizes = [[3, 3], [3, 3]]
+cfg.encoder_args = [{'channels':[3,3]},{'channels':[3,3]}]
 # to change the models used change the cfg.encoder_models. We implement a CNN_Encoder and CNN_decoder as well
 # as some based on brainnet architecture in cca_zoo.deep_models. Equally you could pass your own encoder/decoder models
 

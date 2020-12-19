@@ -81,11 +81,11 @@ class CNNEncoder(nn.Module, ABC):
         if channels is None:
             channels = [1]
         if kernel_sizes is None:
-            kernel_sizes = [5] * (len(channels) - 1)
+            kernel_sizes = [5] * (len(channels))
         if stride is None:
-            stride = [1] * (len(channels) - 1)
+            stride = [1] * (len(channels))
         if padding is None:
-            padding = [2] * (len(channels) - 1)
+            padding = [2] * (len(channels))
         # assume square input
         layers = []
         layer_sizes = channels + [latent_size]
