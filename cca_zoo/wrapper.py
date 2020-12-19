@@ -34,7 +34,7 @@ import cca_zoo.plot_utils
 
 class Wrapper:
     def __init__(self, latent_dims: int = 1, method: str = 'elastic', generalized: bool = False, max_iter: int = 100,
-                 tol=1e-6):
+                 tol=1e-5):
         """
         :param latent_dims: number of latent dimensions to find
         :param method: 'elastic', 'pmd', 'scca', 'gcca', 'mcca', 'gep', 'scikit', 'pls', 'kernel'
@@ -119,7 +119,7 @@ class Wrapper:
         self.train_correlations = self.predict_corr(*args)
         return self
 
-    def gridsearch_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False, jobs: int = 0):
+    def gridsearch_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False, jobs: int = 0,plot: bool=False):
         """
         :param args: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
         :param param_candidates: 
@@ -129,7 +129,7 @@ class Wrapper:
         """""
         best_params = grid_search(*args, max_iter=self.max_iter, latent_dims=self.latent_dims, method=self.method,
                                   param_candidates=param_candidates, folds=folds,
-                                  verbose=verbose, tol=self.tol, jobs=jobs)
+                                  verbose=verbose, tol=self.tol, jobs=jobs,plot=plot)
         self.fit(*args, params=best_params)
         return self
 
@@ -365,10 +365,10 @@ def slicedict(d, s):
     return {k: v for k, v in d.items() if k.startswith(s)}
 
 
-def grid_search(*args, max_iter: int = 100, latent_dims: int = 5, method: str = 'l2', param_candidates=None,
+def grid_search(*args, max_iter: int = 100, latent_dims: int = 1, method: str = 'l2', param_candidates=None,
                 generalized: bool = False,
                 folds: int = 5,
-                verbose=False, tol=1e-6, jobs=0, plot=False):
+                verbose=False, tol=1e-5, jobs=0, plot=False):
     """
     :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
@@ -419,7 +419,7 @@ def grid_search(*args, max_iter: int = 100, latent_dims: int = 5, method: str = 
 class CrossValidate:
     def __init__(self, *args, latent_dims: int = 1, method: str = 'l2', generalized: bool = False, folds=5,
                  verbose=False, max_iter: int = 500,
-                 tol=1e-6):
+                 tol=1e-5):
         """
         :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data

@@ -1,12 +1,16 @@
 import matplotlib
 
 matplotlib.use('agg')
+from mpl_toolkits.mplot3d import Axes3D
+from scipy.interpolate import griddata
+from matplotlib import cm
 import numpy as np
 import pandas as pd
 from sklearn import metrics
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import linregress
+import itertools
 
 """
 A bunch of methods I have added to help me do plotting when needed
@@ -20,30 +24,61 @@ plot_results() used to generate comparison plots for HCP data
 
 
 def cv_plot(scores, param_dict, reg):
+    scores = pd.Series(scores)
     hyper_df = pd.DataFrame(param_dict)
     hyper_df = split_columns(hyper_df)
     hyper_df = hyper_df[[i for i in hyper_df if len(set(hyper_df[i])) > 1]]
     # Check dimensions
     dimensions = len(hyper_df.columns)
     n_uniques = hyper_df.nunique()
+    sub_dfs = []
+    sub_scores = []
     if dimensions > 4:
-        print('not implemented')
+        print('plot not implemented for more than 4 hyperparameters')
         return
-    elif dimensions > 2:
-        if dimensions == 4:
-            fig,axs=plt.subplots(n_uniques[0], n_uniques[1])
-        elif dimensions == 3:
-            fig,axs=plt.subplots(n_uniques[0], n_uniques[1])
-        elif dimensions < 3:
-            fig,axs=plt.subplots(1)
+    elif dimensions == 4:
+        fig, axs = plt.subplots(n_uniques[-2], n_uniques[-1], subplot_kw={'projection': '3d'})
+        unique_x = hyper_df[hyper_df.columns[-2]].unique()
+        unique_y = hyper_df[hyper_df.columns[-1]].unique()
+        param_pairs = list(itertools.product(unique_x, unique_y))
+        for pair in param_pairs:
+            mask = (hyper_df[hyper_df.columns[-2]] == pair[0]) & (hyper_df[hyper_df.columns[-1]] == pair[1])
+            sub_dfs.append(hyper_df.loc[mask].iloc[:, :-2])
+            sub_scores.append(scores[mask])
+    elif dimensions == 3:
+        fig, axs = plt.subplots(1, n_uniques[-1], subplot_kw={'projection': '3d'})
+        unique_x = hyper_df[hyper_df.columns[-1]].unique()
+        for x in unique_x:
+            mask = (hyper_df[hyper_df.columns[-1]] == x)
+            sub_dfs.append(hyper_df.loc[mask].iloc[:, :-1])
+            sub_scores.append(scores[mask])
+    else:
+        sub_dfs.append(hyper_df)
+        sub_scores.append(scores)
+        if dimensions == 2:
+            fig, axs = plt.subplots(1, subplot_kw={'projection': '3d'})
+        else:
+            fig, axs = plt.subplots(1)
+        axs = np.array([axs])
+    axs = axs.flatten()
+    for i, (ax, sub_df, sub_score) in enumerate(zip(axs, sub_dfs, sub_scores)):
+        if len(sub_df.shape) > 1:
+            ax.plot_trisurf(np.log(sub_df.iloc[:, 0]), np.log(sub_df.iloc[:, 1]), sub_score, cmap=cm.coolwarm,
+                            linewidth=0.2)
+            ax.set_xlabel('log ' + sub_df.columns[0])
+            ax.set_ylabel('log ' + sub_df.columns[1])
+            ax.set_zlabel('Sum of first n correlations')
+
+    """
+    for
+    sub_df=
 
         lineObjects = plt.plot(np.array(sorted(list(x1_vals))),
                                np.squeeze(scores.reshape((len(x1_vals), len(x2_vals), -1)).mean(axis=-1)))
         plt.legend(lineObjects, sorted(list(x2_vals)), title=x2_name)
-
-    ax.set_title('Hyperparameter plot ' + reg)
-    plt.ax.set_zlabel('Score (sum of first n correlations)')
-    plt.savefig('Hyperparameter_plot ' + reg)
+    """
+    fig.suptitle('Hyperparameter plot ' + reg)
+    plt.savefig('Hyperparameter_plot_' + reg)
 
 
 def split_columns(df):

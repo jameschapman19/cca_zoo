@@ -73,7 +73,7 @@ class AlsInnerLoop:
             self.track_lyuponov.append(self.lyuponov())
 
             # Some kind of early stopping
-            if _ > 0 and all(np.linalg.norm(self.weights[n] - self.old_weights[n]) < self.tol for n, view in
+            if _ > 0 and all(cosine_similarity(self.weights[n], self.old_weights[n]) > (1 - self.tol) for n, view in
                              enumerate(self.scores)):
                 break
 
@@ -131,6 +131,7 @@ class AlsInnerLoop:
                                   alpha=self.params['c'][view_index])
         if np.linalg.norm(self.datasets[view_index] @ w) == 0:
             print('failed')
+            w = np.random.rand(*w.shape)
         w /= np.linalg.norm(self.datasets[view_index] @ w)
         self.scores[view_index] = self.datasets[view_index] @ w
         return w
@@ -368,3 +369,8 @@ def bin_search(current, previous, current_val, previous_val, min_, max_):
         if current < max_:
             max_ = current
     return new, current, min_, max_
+
+
+def cosine_similarity(a, b):
+    # https: // www.statology.org / cosine - similarity - python /
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))

@@ -13,9 +13,7 @@ This is a compilation of methods for:
 -Deep Canonically Correlated Autoencoders (Wang)
 -Deep Variational CCA and Deep Variational CCA_private (Wang)
 
-The DCCAE is just a DCCA with reconstruction networks from the latent space and additional reconstruction losses. As such I implement both DCCA and DCCAE in a single model with a parameter weighting the reconstruction loss (i.e. 0 in the DCCA case)
-
-The DVCCA_private extends the DVCCA by adding private latent variables. This gives us 2 additional loss terms ensuring a 'good' encoding of the private information from each view (the KL divergence between the encoding and a N(0,1) gaussian). 
+Models can be tested on data from MNIST datasets provided by the torch package (https://pytorch.org/) and the UCI dataset provided by mvlearn package (https://mvlearn.github.io/)
 
 Other Implementations of DCCA/DCCAE:
 

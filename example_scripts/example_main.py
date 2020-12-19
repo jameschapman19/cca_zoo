@@ -14,14 +14,14 @@ from torch.utils.data import Subset
 
 # Load MNIST Data
 os.chdir('..')
-N = 2000
-dataset = cca_zoo.data.Noisy_MNIST_Dataset(mnist_type='MNIST', train=True)
+N = 5000
+dataset = cca_zoo.data.Noisy_MNIST_Dataset(mnist_type='FashionMNIST', train=True)
 ids = np.arange(min(2 * N, len(dataset)))
 np.random.shuffle(ids)
 train_ids, val_ids = np.array_split(ids, 2)
 val_dataset = Subset(dataset, val_ids)
 train_dataset = Subset(dataset, train_ids)
-test_dataset = cca_zoo.data.Noisy_MNIST_Dataset(mnist_type='MNIST', train=False)
+test_dataset = cca_zoo.data.Noisy_MNIST_Dataset(mnist_type='FashionMNIST', train=False)
 test_ids = np.arange(min(N, len(test_dataset)))
 np.random.shuffle(test_ids)
 test_dataset = Subset(test_dataset, test_ids)
@@ -68,13 +68,20 @@ scikit_cca_results = np.stack(
     (scikit_cca.train_correlations[0, 1], scikit_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 gcca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='gcca')
-
 # small ammount of regularisation added since data is not full rank
 params = {'c': [1, 1]}
 
 gcca.fit(train_view_1, train_view_2, params=params)
 
-gcca_results = np.stack((scikit_cca.train_correlations[0, 1], scikit_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
+gcca_results = np.stack((gcca.train_correlations[0, 1], gcca.predict_corr(test_view_1, test_view_2)[0, 1]))
+
+mcca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='mcca')
+# small ammount of regularisation added since data is not full rank
+params = {'c': [0.5, 0.5]}
+
+mcca.fit(train_view_1, train_view_2, params=params)
+
+mcca_results = np.stack((mcca.train_correlations[0, 1], mcca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 # %%
 pls = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='pls')
@@ -98,21 +105,22 @@ parameter candidates for cross validation are given as a list of lists as shown 
 """
 
 # PMD
-c1 = [3, 7, 9]
-c2 = [3, 7, 9]
+c1 = [1, 3, 7, 9]
+c2 = [1, 3, 7, 9]
 param_candidates = {'c': list(itertools.product(c1, c2))}
 
 pmd = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='pmd', tol=1e-5).gridsearch_fit(train_view_1,
                                                                                               train_view_2,
                                                                                               param_candidates=param_candidates,
                                                                                               folds=cv_folds,
-                                                                                              verbose=True, jobs=2)
+                                                                                              verbose=True, jobs=1,
+                                                                                              plot=True)
 
 pmd_results = np.stack((pmd.train_correlations[0, 1, :], pmd.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 
-# Elastic
-c1 = [0.01, 0.1]
-c2 = [0.01, 0.1]
+# Elastic CCA
+c1 = [0.0001, 0.001]
+c2 = [0.0001, 0.001]
 l1_1 = [0.01, 0.1]
 l1_2 = [0.01, 0.1]
 param_candidates = {'c': list(itertools.product(c1, c2)), 'l1_ratio': list(itertools.product(l1_1, l1_2))}
@@ -122,10 +130,25 @@ elastic = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='elastic', tol
                                                                                                       param_candidates=param_candidates,
                                                                                                       folds=cv_folds,
                                                                                                       verbose=True,
-                                                                                                      jobs=2)
+                                                                                                      jobs=1, plot=True)
 
 elastic_results = np.stack(
     (elastic.train_correlations[0, 1, :], elastic.predict_corr(test_view_1, test_view_2)[0, 1, :]))
+
+# Sparse CCA
+c1 = [0.0001, 0.001]
+c2 = [0.0001, 0.001]
+param_candidates = {'c': list(itertools.product(c1, c2))}
+
+scca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='scca', tol=1e-5).gridsearch_fit(train_view_1,
+                                                                                                train_view_2,
+                                                                                                param_candidates=param_candidates,
+                                                                                                folds=cv_folds,
+                                                                                                verbose=True,
+                                                                                                jobs=1, plot=True)
+
+scca_results = np.stack(
+    (scca.train_correlations[0, 1, :], scca.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 
 """
 ### Kernel CCA
@@ -148,7 +171,8 @@ kernel_reg = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').g
                                                                                               train_view_2,
                                                                                               folds=cv_folds,
                                                                                               param_candidates=param_candidates,
-                                                                                              verbose=True, jobs=2)
+                                                                                              verbose=True, jobs=1,
+                                                                                              plot=True)
 kernel_reg_results = np.stack((
     kernel_reg.train_correlations[0, 1, :],
     kernel_reg.predict_corr(test_view_1, test_view_2)[0, 1, :]))
@@ -160,7 +184,8 @@ kernel_poly = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').
                                                                                                train_view_2,
                                                                                                folds=cv_folds,
                                                                                                param_candidates=param_candidates,
-                                                                                               verbose=True, jobs=2)
+                                                                                               verbose=True, jobs=1,
+                                                                                               plot=True)
 
 kernel_poly_results = np.stack((
     kernel_poly.train_correlations[0, 1, :],
@@ -173,7 +198,8 @@ kernel_gaussian = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kerne
                                                                                                    train_view_2,
                                                                                                    folds=cv_folds,
                                                                                                    param_candidates=param_candidates,
-                                                                                                   verbose=True, jobs=2)
+                                                                                                   verbose=True, jobs=1,
+                                                                                                   plot=True)
 
 kernel_gaussian_results = np.stack((
     kernel_gaussian.train_correlations[0, 1, :],
@@ -270,11 +296,12 @@ dcca_conv_results = np.stack((dcca_conv.train_correlations, dcca_conv.predict_co
 # %%
 
 all_results = np.stack(
-    [linear_cca_results, scikit_cca_results, gcca_results, pmd_results, elastic_results, kernel_reg_results,
+    [linear_cca_results, scikit_cca_results, gcca_results,mcca_results, pls_results, scca_results, pmd_results, elastic_results,
+     kernel_reg_results,
      kernel_poly_results,
      kernel_gaussian_results, dcca_results, dgcca_results, dcca_conv_results],
     axis=0)
-all_labels = ['linear', 'scikit', 'gcca', 'pmd', 'elastic', 'linear kernel', 'polynomial kernel',
+all_labels = ['linear', 'scikit', 'gcca', 'mcca','pls', 'pmd', 'elastic', 'scca', 'linear kernel', 'polynomial kernel',
               'gaussian kernel', 'deep CCA', 'deep generalized CCA', 'deep convolutional cca']
 
 cca_zoo.plot_utils.plot_results(all_results, all_labels)

@@ -58,3 +58,7 @@ class TestWrapper(TestCase):
 
     def test_methods(self):
         pass
+
+    #TODO
+    def test_gridsearchfit(self):
+        pass
