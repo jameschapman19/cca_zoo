@@ -18,25 +18,24 @@ for standardising the pipeline for comparison
 
 
 def create_encoder(config, i):
-    encoder = config.encoder_models[i](config.hidden_layer_sizes[i], config.input_sizes[i],
-                                       config.latent_dims, variational=True)
+    encoder = config.encoder_models[i](config.input_sizes[i], config.latent_dims, variational=True,
+                                       **config.encoder_args[i])
     return encoder
 
 
 def create_private_encoder(config, i):
-    encoder = config.private_encoder_models[i](config.hidden_layer_sizes[i], config.input_sizes[i],
-                                               config.latent_dims, variational=True)
+    encoder = config.private_encoder_models[i](config.input_sizes[i], config.latent_dims, variational=True,
+                                               **config.private_encoder_args[i])
     return encoder
 
 
 def create_decoder(config, i):
-    decoder = config.decoder_models[i](config.hidden_layer_sizes[i], config.latent_dims, config.input_sizes[i])
+    decoder = config.decoder_models[i](config.latent_dims, config.input_sizes[i], **config.decoder_args[i])
     return decoder
 
-
+# SLightly different decode if private encoders are added. This is because we have the extra dimensionality of the 2 private encoders. May need extending for more than 2 views.
 def create_private_decoder(config, i):
-    decoder = config.decoder_models[i](config.hidden_layer_sizes[i], config.latent_dims * 3,
-                                       config.input_sizes[i])
+    decoder = config.decoder_models[i](config.latent_dims * 3, config.input_sizes[i], **config.private_decoder_args[i])
     return decoder
 
 

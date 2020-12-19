@@ -14,9 +14,11 @@ https://github.com/Michaelvll/DeepCCA/blob/master/DeepCCAModels.py
 
 
 class Encoder(nn.Module):
-    def __init__(self, layer_sizes, input_size: int, output_size: int, variational: bool = False):
+    def __init__(self, input_size: int, output_size: int, layer_sizes: list = None, variational: bool = False):
         super(Encoder, self).__init__()
         self.variational = variational
+        if layer_sizes is None:
+            layer_sizes = [128]
         layers = []
         layer_sizes = [input_size] + layer_sizes
         for l_id in range(len(layer_sizes)):
@@ -47,8 +49,10 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, layer_sizes, input_size: int, output_size: int):
+    def __init__(self, input_size: int, output_size: int, layer_sizes: list = None):
         super(Decoder, self).__init__()
+        if layer_sizes is None:
+            layer_sizes = [128]
         layers = []
         layer_sizes = [input_size] + layer_sizes
         for l_id in range(len(layer_sizes)):
@@ -70,19 +74,21 @@ class Decoder(nn.Module):
 
 
 class CNNEncoder(nn.Module, ABC):
-    def __init__(self, layer_sizes, input_size: int, latent_size: int, kernel_sizes=None, stride=None, padding=None):
+    def __init__(self, input_size: int, latent_size: int, channels: list = None, kernel_sizes: list = None,
+                 stride: list = None,
+                 padding: list = None):
         super(CNNEncoder, self).__init__()
+        if channels is None:
+            channels = [1]
+        if kernel_sizes is None:
+            kernel_sizes = [5] * (len(channels) - 1)
+        if stride is None:
+            stride = [1] * (len(channels) - 1)
+        if padding is None:
+            padding = [2] * (len(channels) - 1)
         # assume square input
         layers = []
-        layer_sizes = layer_sizes + [latent_size]
-
-        if kernel_sizes is None:
-            kernel_sizes = [5] * (len(layer_sizes) - 1)
-        if stride is None:
-            stride = [1] * (len(layer_sizes) - 1)
-        if padding is None:
-            padding = [2] * (len(layer_sizes) - 1)
-
+        layer_sizes = channels + [latent_size]
         current_size = input_size
         current_channels = 1
         for l_id in range(len(layer_sizes)):
@@ -119,18 +125,19 @@ class CNNEncoder(nn.Module, ABC):
 
 
 class CNNDecoder(nn.Module):
-    def __init__(self, layer_sizes, input_size: int, latent_size: int, kernel_sizes=None, stride=None, padding=None):
+    def __init__(self, input_size: int, latent_size: int, channels: list = None, kernel_sizes=None, stride=None, padding=None):
         super(CNNDecoder, self).__init__()
-        layers = []
-        layer_sizes = [latent_size] + layer_sizes + [input_size]
-
+        if channels is None:
+            channels = [1]
         if kernel_sizes is None:
-            kernel_sizes = [4] * (len(layer_sizes) - 1)
+            kernel_sizes = [5] * (len(channels) - 1)
         if stride is None:
-            stride = [2] * (len(layer_sizes) - 1)
+            stride = [1] * (len(channels) - 1)
         if padding is None:
-            padding = [1] * (len(layer_sizes) - 1)
+            padding = [2] * (len(channels) - 1)
 
+        layers = []
+        layer_sizes = channels + [latent_size]
         current_size = input_size
         current_channels = 1
         for l_id in range(len(layer_sizes)):
@@ -198,7 +205,7 @@ class E2EBlockReverse(nn.Module):
 
 # BrainNetCNN Network for fitting Gold-MSI on LSD dataset
 class BrainNetEncoder(nn.Module):
-    def __init__(self, layer_sizes, input_size: int, latent_size: int):
+    def __init__(self, input_size: int, latent_size: int):
         super(BrainNetEncoder, self).__init__()
         self.d = input_size
         self.e2econv1 = E2EBlock(1, 32, self.d, bias=True)
@@ -222,7 +229,7 @@ class BrainNetEncoder(nn.Module):
 
 
 class BrainNetDecoder(nn.Module):
-    def __init__(self, layer_sizes, input_size: int, latent_size: int):
+    def __init__(self, input_size: int, latent_size: int):
         super(BrainNetDecoder, self).__init__()
         self.d = input_size
         self.e2econv1 = E2EBlock(32, 1, self.d, bias=True)
@@ -245,8 +252,17 @@ class BrainNetDecoder(nn.Module):
         return out
 
 
+class LinearEncoder(nn.Module):
+    def __init__(self, input_size: int, latent_size: int):
+        super(LinearEncoder, self).__init__()
+        self.linear = nn.Linear(latent_size, input_size)
+
+    def forward(self, x):
+        out = self.linear(x)
+        return out
+
 class LinearDecoder(nn.Module):
-    def __init__(self, layer_sizes, input_size: int, latent_size: int):
+    def __init__(self, input_size: int, latent_size: int):
         super(LinearDecoder, self).__init__()
         self.linear = nn.Linear(latent_size, input_size)
 

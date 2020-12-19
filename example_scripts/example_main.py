@@ -14,7 +14,7 @@ from torch.utils.data import Subset
 
 # Load MNIST Data
 os.chdir('..')
-N = 5000
+N = 2000
 dataset = cca_zoo.data.Noisy_MNIST_Dataset(mnist_type='FashionMNIST', train=True)
 ids = np.arange(min(2 * N, len(dataset)))
 np.random.shuffle(ids)

@@ -37,7 +37,7 @@ class TestDeepWrapper(TestCase):
         self.cfg.epoch_num = 20
         self.cfg.encoder_models = [cca_zoo.deep_models.Encoder, cca_zoo.deep_models.Encoder,
                                    cca_zoo.deep_models.Encoder]
-        self.cfg.hidden_layer_sizes = [[128], [128], [128]]
+        self.cfg.encoder_args.append({'layer_sizes': [64]})
         self.cfg.objective = cca_zoo.objectives.MCCA
         dmcca = cca_zoo.deepwrapper.DeepWrapper(self.cfg)
         dmcca.fit(self.X, self.Y, self.Z)
@@ -81,7 +81,7 @@ class TestDeepWrapper(TestCase):
         self.cfg.epoch_num = 20
         self.cfg.encoder_models = [cca_zoo.deep_models.Encoder, cca_zoo.deep_models.Encoder,
                                    cca_zoo.deep_models.Encoder]
-        self.cfg.hidden_layer_sizes = [[128], [128], [128]]
+        self.cfg.encoder_args.append({'layer_sizes': [64]})
         self.cfg.objective = cca_zoo.objectives.MCCA
         dmcca = cca_zoo.deepwrapper.DeepWrapper(self.cfg)
         dmcca.fit(self.X, self.Y, self.Z)

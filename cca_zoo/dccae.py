@@ -18,12 +18,12 @@ for standardising the pipeline for comparison
 
 
 def create_encoder(config, i):
-    encoder = config.encoder_models[i](config.hidden_layer_sizes[i], config.input_sizes[i], config.latent_dims)
+    encoder = config.encoder_models[i](config.input_sizes[i], config.latent_dims, **config.encoder_args[i])
     return encoder
 
 
 def create_decoder(config, i):
-    decoder = config.decoder_models[i](config.hidden_layer_sizes[i], config.latent_dims, config.input_sizes[i])
+    decoder = config.decoder_models[i](config.latent_dims, config.input_sizes[i], **config.decoder_args[i])
     return decoder
 
 
@@ -31,13 +31,13 @@ class DCCAE(nn.Module):
 
     def __init__(self, config: Config = Config):
         super(DCCAE, self).__init__()
-        views = len(config.encoder_models)
-        self.encoders = torch.nn.ModuleList([create_encoder(config, i) for i in range(views)])
-        self.decoders = torch.nn.ModuleList([create_decoder(config, i) for i in range(views)])
+        self.encoders = torch.nn.ModuleList(
+            [create_encoder(config, i) for i, model in enumerate(config.encoder_models)])
+        self.decoders = torch.nn.ModuleList(
+            [create_decoder(config, i) for i, model in enumerate(config.decoder_models)])
         self.lam = config.lam
         self.objective = config.objective(config.latent_dims)
-        self.optimizers = [optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),
-                                      lr=config.learning_rate) for i in range(views)]
+        self.optimizer = optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),lr=config.learning_rate)
 
     def encode(self, *args):
         z = []
@@ -56,10 +56,10 @@ class DCCAE(nn.Module):
         return tuple(recon)
 
     def update_weights(self, *args):
-        [optimizer.zero_grad() for optimizer in self.optimizers]
+        self.optimizer.zero_grad()
         loss = self.loss(*args)
         loss.backward()
-        [optimizer.step() for optimizer in self.optimizers]
+        self.optimizer.step()
         return loss
 
     def loss(self, *args):
