@@ -14,7 +14,6 @@
   doi          = {10.5281/zenodo.4382740},
   url          = {https://doi.org/10.5281/zenodo.4382740}
 }
-*I've given *
 
 This is a compilation of methods for: 
 -CCA (various implementations) 
