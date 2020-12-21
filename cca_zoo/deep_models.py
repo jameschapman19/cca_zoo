@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC,abstractmethod
 from math import sqrt
 
 import torch
@@ -11,7 +11,6 @@ We have a FCN, CNN and GNN which we can compare.
 Particular thanks for the basic structure to:
 https://github.com/Michaelvll/DeepCCA/blob/master/DeepCCAModels.py
 '''
-
 
 class Encoder(nn.Module):
     def __init__(self, input_size: int, output_size: int, layer_sizes: list = None, variational: bool = False):
