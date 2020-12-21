@@ -37,21 +37,21 @@ class DeepWrapper:
         else:
             self.device = self.config.device
 
-    def fit(self, *args, labels=None, val_split=0.2):
-        if type(args[0]) is np.ndarray:
-            dataset = cca_datasets.CCA_Dataset(*args, labels=labels)
+    def fit(self, *views, labels=None, val_split=0.2):
+        if type(views[0]) is np.ndarray:
+            dataset = cca_datasets.CCA_Dataset(*views, labels=labels)
             ids = np.arange(len(dataset))
             np.random.shuffle(ids)
             train_ids, val_ids = np.array_split(ids, 2)
             val_dataset = Subset(dataset, val_ids)
             train_dataset = Subset(dataset, train_ids)
-        elif isinstance(args[0], torch.utils.data.Dataset):
-            if len(args) == 2:
-                assert (isinstance(args[0], torch.utils.data.Subset))
-                assert (isinstance(args[1], torch.utils.data.Subset))
-                train_dataset, val_dataset = args[0], args[1]
+        elif isinstance(views[0], torch.utils.data.Dataset):
+            if len(views) == 2:
+                assert (isinstance(views[0], torch.utils.data.Subset))
+                assert (isinstance(views[1], torch.utils.data.Subset))
+                train_dataset, val_dataset = views[0], views[1]
             else:
-                dataset = args[0]
+                dataset = views[0]
                 lengths = [len(dataset) - int(len(dataset) * val_split), int(len(dataset) * val_split)]
                 train_dataset, val_dataset = torch.utils.data.random_split(dataset, lengths)
 
@@ -127,17 +127,17 @@ class DeepWrapper:
                 total_val_loss += loss.item()
         return total_val_loss / len(val_dataloader)
 
-    def predict_corr(self, *args, train=False):
-        z_list = self.transform_view(*args, train=train)
+    def predict_corr(self, *views, train=False):
+        z_list = self.transform_view(*views, train=train)
         correlations = np.diag(
             np.corrcoef(z_list[0], z_list[1], rowvar=False)[:self.config.latent_dims, self.config.latent_dims:])
         return correlations
 
-    def transform_view(self, *args, labels=None, train=False):
-        if type(args[0]) is np.ndarray:
-            test_dataset = cca_datasets.CCA_Dataset(*args, labels=labels)
-        elif isinstance(args[0], torch.utils.data.Dataset):
-            test_dataset = args[0]
+    def transform_view(self, *views, labels=None, train=False):
+        if type(views[0]) is np.ndarray:
+            test_dataset = cca_datasets.CCA_Dataset(*views, labels=labels)
+        elif isinstance(views[0], torch.utils.data.Dataset):
+            test_dataset = views[0]
 
         test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
         with torch.no_grad():
@@ -158,11 +158,11 @@ class DeepWrapper:
                 z_list = self.cca.transform(np.array(z_list[0]), np.array(z_list[1]))
         return z_list
 
-    def predict_view(self, *args, labels=None):
-        if type(args[0]) is np.ndarray:
-            test_dataset = cca_datasets.CCA_Dataset(*args, labels=labels)
-        elif isinstance(args[0], torch.utils.data.Dataset):
-            test_dataset = args[0]
+    def predict_view(self, *views, labels=None):
+        if type(views[0]) is np.ndarray:
+            test_dataset = cca_datasets.CCA_Dataset(*views, labels=labels)
+        elif isinstance(views[0], torch.utils.data.Dataset):
+            test_dataset = views[0]
 
         test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
         with torch.no_grad():

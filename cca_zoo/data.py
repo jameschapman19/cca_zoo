@@ -94,7 +94,7 @@ class Noisy_MNIST_Dataset(Dataset):
             x_a = torch.flatten(x_a)
             x_b = torch.flatten(x_b)
         OH = self.OHs[idx]
-        return (x_a, x_b, rot_a, OH), label
+        return (x_b, x_a, rot_a, OH), label
 
     def to_numpy(self, indices=None):
         if indices is None:

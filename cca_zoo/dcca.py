@@ -16,18 +16,12 @@ This allows me to wrap them all up in the deep wrapper. Obviously this isn't req
 for standardising the pipeline for comparison
 """
 
-
-def create_encoder(config, i):
-    encoder = config.encoder_models[i](config.input_sizes[i], config.latent_dims, **config.encoder_args[i])
-    return encoder
-
-
 class DCCA(nn.Module):
 
     def __init__(self, config: Config = Config):
         super(DCCA, self).__init__()
         self.config = config
-        self.encoders = nn.ModuleList([create_encoder(config, i) for i, model in enumerate(config.encoder_models)])
+        self.encoders = nn.ModuleList([model(config.input_sizes[i], config.latent_dims, **config.encoder_args[i]) for i,model in enumerate(config.encoder_models)])
         self.objective = config.objective(config.latent_dims)
         self.optimizers = [optim.Adam(list(encoder.parameters()), lr=config.learning_rate) for encoder in self.encoders]
         self.covs = None

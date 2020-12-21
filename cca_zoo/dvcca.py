@@ -17,28 +17,6 @@ for standardising the pipeline for comparison
 """
 
 
-def create_encoder(config, i):
-    encoder = config.encoder_models[i](config.input_sizes[i], config.latent_dims, variational=True,
-                                       **config.encoder_args[i])
-    return encoder
-
-
-def create_private_encoder(config, i):
-    encoder = config.private_encoder_models[i](config.input_sizes[i], config.latent_dims, variational=True,
-                                               **config.private_encoder_args[i])
-    return encoder
-
-
-def create_decoder(config, i):
-    decoder = config.decoder_models[i](config.latent_dims, config.input_sizes[i], **config.decoder_args[i])
-    return decoder
-
-# SLightly different decode if private encoders are added. This is because we have the extra dimensionality of the 2 private encoders. May need extending for more than 2 views.
-def create_private_decoder(config, i):
-    decoder = config.decoder_models[i](config.latent_dims * 3, config.input_sizes[i], **config.decoder_args[i])
-    return decoder
-
-
 class DVCCA(nn.Module):
     """
     https: // arxiv.org / pdf / 1610.03454.pdf
@@ -51,16 +29,20 @@ class DVCCA(nn.Module):
         self.private = config.private
         self.mu = config.mu
         self.latent_dims = config.latent_dims
-        self.encoders = nn.ModuleList([create_encoder(config, i) for i in range(len(config.encoder_models))])
+        self.encoders = nn.ModuleList([model(config.input_sizes[i], config.latent_dims, variational=True,
+                                             **config.encoder_args[i]) for i, model in
+                                       enumerate(config.encoder_models)])
         if config.private:
             self.private_encoders = nn.ModuleList(
-                [create_private_encoder(config, i) for i in range(len(config.private_encoder_models))])
-        if config.private:
+                [model(config.input_sizes[i], config.latent_dims, variational=True,
+                       **config.private_encoder_args[i]) for i, model in enumerate(config.private_encoder_models)])
             self.decoders = nn.ModuleList(
-                [create_private_decoder(config, i) for i in range(len(config.decoder_models))])
+                [model(config.latent_dims * 3, config.input_sizes[i],
+                       norm_output=True, **config.decoder_args[i]) for i, model in enumerate(config.decoder_models)])
         else:
-            self.decoders = nn.ModuleList([create_decoder(config, i) for i in range(len(config.decoder_models))])
-
+            self.decoders = nn.ModuleList([model(config.latent_dims, config.input_sizes[i],
+                                                 norm_output=True, **config.decoder_args[i]) for i, model in
+                                           enumerate(config.decoder_models)])
         self.encoder_optimizers = optim.Adam(self.encoders.parameters(), lr=config.learning_rate)
         self.decoder_optimizers = optim.Adam(self.decoders.parameters(), lr=config.learning_rate)
         if self.private:
@@ -96,7 +78,7 @@ class DVCCA(nn.Module):
     def decode(self, z):
         x = []
         for i, decoder in enumerate(self.decoders):
-            x_i = torch.sigmoid(decoder(z))
+            x_i = decoder(z)
             x.append(x_i)
         return tuple(x)
 

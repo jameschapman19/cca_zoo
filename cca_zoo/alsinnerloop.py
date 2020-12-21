@@ -15,7 +15,7 @@ class AlsInnerLoop:
     This is a wrapper class for alternating least squares based solutions to CCA
     """
 
-    def __init__(self, *args, max_iter: int = 100, tol=1e-3, generalized: bool = False,
+    def __init__(self, *views, max_iter: int = 100, tol=1e-3, generalized: bool = False,
                  initialization: str = 'random', params=None,
                  method: str = 'elastic'):
         self.initialization = initialization
@@ -23,15 +23,15 @@ class AlsInnerLoop:
         self.tol = tol
         self.params = params
         if params is None:
-            self.params = {'c': [0 for _ in args], 'l1_ratio': [0 for _ in args]}
+            self.params = {'c': [0 for _ in views], 'l1_ratio': [0 for _ in views]}
         if method in ['scca']:
-            self.params['l1_ratio'] = [1 for _ in args]
+            self.params['l1_ratio'] = [1 for _ in views]
         self.method = method
-        if len(args) > 2:
+        if len(views) > 2:
             self.generalized = True
         else:
             self.generalized = generalized
-        self.datasets = list(args)
+        self.datasets = list(views)
         self.track_lyuponov = []
         self.track_correlation = []
         self.lyuponov = self.cca_lyuponov
@@ -52,7 +52,7 @@ class AlsInnerLoop:
         self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in self.datasets]
         self.bin_search_init = np.zeros(len(self.datasets))
 
-        # select update function: needs to return new weights and update the target matrix as appropriate
+        # select update function: needs to return new weights and update the tviewet matrix as appropriate
         # might deprecate l2 and push it through elastic instead
         if self.method == 'pmd':
             self.update_function = self.pmd_update
@@ -64,7 +64,7 @@ class AlsInnerLoop:
         elif self.method == 'scca':
             self.update_function = self.scca_update
 
-        # This loops through each view and udpates both the weights and targets where relevant
+        # This loops through each view and udpates both the weights and tviewets where relevant
         for _ in range(self.max_iter):
             i: int
             for i, view in enumerate(self.datasets):
@@ -83,34 +83,34 @@ class AlsInnerLoop:
         return self
 
     def pmd_update(self, view_index: int):
-        targets = np.ma.array(self.scores, mask=False)
-        targets.mask[view_index] = True
-        w = self.datasets[view_index].T @ targets.sum(axis=0).filled()
+        tviewets = np.ma.array(self.scores, mask=False)
+        tviewets.mask[view_index] = True
+        w = self.datasets[view_index].T @ tviewets.sum(axis=0).filled()
         w, w_success = self.delta_search(w, self.params['c'][view_index])
         if not w_success:
-            w = self.datasets[view_index].T @ targets.sum(axis=0).filled()
+            w = self.datasets[view_index].T @ tviewets.sum(axis=0).filled()
         w /= np.linalg.norm(w)
         self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
     def parkhomenko_update(self, view_index: int):
-        targets = np.ma.array(self.scores, mask=False)
-        targets.mask[view_index] = True
-        w = self.datasets[view_index].T @ targets.sum(axis=0).filled()
+        tviewets = np.ma.array(self.scores, mask=False)
+        tviewets.mask[view_index] = True
+        w = self.datasets[view_index].T @ tviewets.sum(axis=0).filled()
         if np.linalg.norm(w) == 0:
-            w = self.datasets[view_index].T @ targets.sum().filled()
+            w = self.datasets[view_index].T @ tviewets.sum().filled()
         w /= np.linalg.norm(w)
         w = self.soft_threshold(w, self.params['c'][view_index] / 2)
         if np.linalg.norm(w) == 0:
-            w = self.datasets[view_index].T @ targets.sum()
+            w = self.datasets[view_index].T @ tviewets.sum()
         w /= np.linalg.norm(w)
         self.scores[view_index] = self.datasets[view_index] @ w
         return w
 
     def elastic_update(self, view_index: int):
         if self.generalized:
-            target = self.scores.mean(axis=0)
-            w = self.elastic_solver(self.datasets[view_index], target,
+            tviewet = self.scores.mean(axis=0)
+            w = self.elastic_solver(self.datasets[view_index], tviewet,
                                     alpha=self.params['c'][view_index] / len(self.datasets),
                                     l1_ratio=self.params['l1_ratio'][view_index])
         else:
@@ -123,8 +123,8 @@ class AlsInnerLoop:
 
     def scca_update(self, view_index: int):
         if self.generalized:
-            target = self.scores.mean(axis=0)
-            w = self.lasso_solver(self.datasets[view_index], target, self.inverses[view_index],
+            tviewet = self.scores.mean(axis=0)
+            w = self.lasso_solver(self.datasets[view_index], tviewet, self.inverses[view_index],
                                   alpha=self.params['c'][view_index] / len(self.datasets))
         else:
             w = self.lasso_solver(self.datasets[view_index], self.scores[view_index - 1], self.inverses[view_index],
@@ -324,13 +324,13 @@ class AlsInnerLoop:
         lyuponov = 0
         for i in range(views):
             if self.generalized:
-                lyuponov_target = self.scores.mean(axis=0)
+                lyuponov_tviewet = self.scores.mean(axis=0)
                 multiplier = views
             else:
-                lyuponov_target = self.scores[i - 1]
+                lyuponov_tviewet = self.scores[i - 1]
                 multiplier = 0.5
             lyuponov += 1 / (2 * self.datasets[i].shape[0]) * multiplier * np.linalg.norm(
-                self.datasets[i] @ self.weights[i] - lyuponov_target) ** 2 + l1[i] * np.linalg.norm(self.weights[i],
+                self.datasets[i] @ self.weights[i] - lyuponov_tviewet) ** 2 + l1[i] * np.linalg.norm(self.weights[i],
                                                                                                     ord=1) + \
                         l2[i] * np.linalg.norm(self.weights[i], ord=2)
         return lyuponov
@@ -350,7 +350,7 @@ def bin_search(current, previous, current_val, previous_val, min_, max_):
     previous_val: previous function values
     min_:minimum parameter value resulting in function value less than zero
     max_:maximum parameter value resulting in function value greater than zero
-    Problem needs to be set up so that greater parameter, greater target
+    Problem needs to be set up so that greater parameter, greater tviewet
     """
     if previous_val is None:
         previous_val = current_val

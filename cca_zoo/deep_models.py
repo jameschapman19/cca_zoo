@@ -49,7 +49,7 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, input_size: int, output_size: int, layer_sizes: list = None):
+    def __init__(self, input_size: int, output_size: int, layer_sizes: list = None, norm_output: bool = False):
         super(Decoder, self).__init__()
         if layer_sizes is None:
             layer_sizes = [128]
@@ -57,9 +57,15 @@ class Decoder(nn.Module):
         layer_sizes = [input_size] + layer_sizes
         for l_id in range(len(layer_sizes)):
             if l_id == len(layer_sizes) - 1:
-                layers.append(nn.Sequential(
-                    nn.Linear(layer_sizes[l_id], output_size),
-                ))
+                if norm_output:
+                    layers.append(nn.Sequential(
+                        nn.Linear(layer_sizes[l_id], output_size),
+                        nn.Sigmoid()
+                    ))
+                else:
+                    layers.append(nn.Sequential(
+                        nn.Linear(layer_sizes[l_id], output_size),
+                    ))
             else:
                 layers.append(nn.Sequential(
                     nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
@@ -125,7 +131,8 @@ class CNNEncoder(nn.Module, ABC):
 
 
 class CNNDecoder(nn.Module):
-    def __init__(self, input_size: int, latent_size: int, channels: list = None, kernel_sizes=None, stride=None, padding=None):
+    def __init__(self, input_size: int, latent_size: int, channels: list = None, kernel_sizes=None, stride=None,
+                 padding=None, norm_output: bool = False):
         super(CNNDecoder, self).__init__()
         if channels is None:
             channels = [1]
@@ -142,10 +149,15 @@ class CNNDecoder(nn.Module):
         current_channels = 1
         for l_id in range(len(layer_sizes)):
             if l_id == len(layer_sizes) - 1:
-                layers.append(nn.Sequential(
-                    nn.Linear(input_size, int(current_size * current_size * current_channels)),
-                    nn.Sigmoid()
-                ))
+                if norm_output:
+                    layers.append(nn.Sequential(
+                        nn.Linear(input_size, int(current_size * current_size * current_channels)),
+                        nn.Sigmoid()
+                    ))
+                else:
+                    layers.append(nn.Sequential(
+                        nn.Linear(input_size, int(current_size * current_size * current_channels)),
+                    ))
             else:
                 layers.append(nn.Sequential(
                     nn.ReLU(),  # input shape (1, current_size, current_size)
@@ -260,6 +272,7 @@ class LinearEncoder(nn.Module):
     def forward(self, x):
         out = self.linear(x)
         return out
+
 
 class LinearDecoder(nn.Module):
     def __init__(self, input_size: int, latent_size: int):

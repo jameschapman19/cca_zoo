@@ -37,13 +37,13 @@ class MCCA:
         self.r = r
         self.eps = eps
 
-    def loss(self, *args):
+    def loss(self, *views):
         # https: // www.uta.edu / math / _docs / preprint / 2014 / rep2014_04.pdf
         # H is n_views * n_samples * k
 
         # Subtract the mean from each output
-        # views = [view - view.mean(dim=0) for view in args]
-        views = [view for view in args]
+        # views = [view - view.mean(dim=0) for view in views]
+        views = [view for view in views]
 
         # Concatenate all views and from this get the cross-covariance matrix
         all_views = torch.cat(views, dim=1)
@@ -61,7 +61,7 @@ class MCCA:
 
         [eigvals, eigvecs] = torch.symeig(C_whitened, eigenvectors=True)
 
-        # Sort eigenvalues so largest first
+        # Sort eigenvalues so lviewest first
         idx = torch.argsort(eigvals, descending=True)
 
         # Sum the first #outdim_size values (after subtracting 1).
@@ -88,10 +88,10 @@ class GCCA:
         self.r = r
         self.eps = eps
 
-    def loss(self, *args):
+    def loss(self, *views):
         # https: // www.uta.edu / math / _docs / preprint / 2014 / rep2014_04.pdf
         # H is n_views * n_samples * k
-        all_views = [view - view.mean(dim=0) for view in args]
+        all_views = [view - view.mean(dim=0) for view in views]
 
         eigen_views = [view @ torch.inverse(view.T @ view) @ view.T for view in all_views]
 
@@ -109,7 +109,7 @@ class GCCA:
 # Original work Copyright (c) 2016 Vahid Noroozi
 # Modified work Copyright 2019 Zhanghao Wu
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
+# Permission is hereby granted, free of chviewe, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"),
 # to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense,

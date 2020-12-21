@@ -16,28 +16,18 @@ This allows me to wrap them all up in the deep wrapper. Obviously this isn't req
 for standardising the pipeline for comparison
 """
 
-
-def create_encoder(config, i):
-    encoder = config.encoder_models[i](config.input_sizes[i], config.latent_dims, **config.encoder_args[i])
-    return encoder
-
-
-def create_decoder(config, i):
-    decoder = config.decoder_models[i](config.latent_dims, config.input_sizes[i], **config.decoder_args[i])
-    return decoder
-
-
 class DCCAE(nn.Module):
 
     def __init__(self, config: Config = Config):
         super(DCCAE, self).__init__()
-        self.encoders = torch.nn.ModuleList(
-            [create_encoder(config, i) for i, model in enumerate(config.encoder_models)])
-        self.decoders = torch.nn.ModuleList(
-            [create_decoder(config, i) for i, model in enumerate(config.decoder_models)])
+        self.encoders = nn.ModuleList(
+            [model(config.input_sizes[i], config.latent_dims, **config.encoder_args[i]) for i, model in enumerate(config.encoder_models)])
+        self.decoders = nn.ModuleList(
+            [model(config.latent_dims, config.input_sizes[i], **config.decoder_args[i]) for i, model in enumerate(config.decoder_models)])
         self.lam = config.lam
         self.objective = config.objective(config.latent_dims)
-        self.optimizer = optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),lr=config.learning_rate)
+        self.optimizer = optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),
+                                    lr=config.learning_rate)
 
     def encode(self, *args):
         z = []

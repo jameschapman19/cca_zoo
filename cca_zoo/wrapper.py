@@ -49,16 +49,17 @@ class Wrapper:
         self.max_iter = max_iter
         self.tol = tol
 
-    def fit(self, *args, params=None):
+    def fit(self, *views, params=None):
         """
-        :param args: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
+        Fits the model for a given set of parameters (or use default values). Returns parameters/objects that allow out of sample transformation or prediction
+        :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
         :param params: a dictionary containing the relevant parameters required for the model. If None use defaults
         :return: training data correlations and the parameters required to call other functions in the class.
         """
         self.params = {}
         if params is None:
             params = {}
-        if len(args) > 2:
+        if len(views) > 2:
             self.generalized = True
             print('more than 2 views therefore switched to generalized')
         if 'c' not in params:
@@ -66,7 +67,7 @@ class Wrapper:
             if c_dict:
                 self.params['c'] = list(c_dict.values())
             else:
-                self.params['c'] = [0] * len(args)
+                self.params['c'] = [0] * len(views)
         else:
             self.params['c'] = params['c']
         if 'l1_ratio' not in params:
@@ -74,7 +75,7 @@ class Wrapper:
             if l1_dict:
                 self.params['l1_ratio'] = list(l1_dict.values())
             else:
-                self.params['l1_ratio'] = [0] * len(args)
+                self.params['l1_ratio'] = [0] * len(views)
         else:
             self.params['l1_ratio'] = params['l1_ratio']
         if self.method == 'kernel':
@@ -85,57 +86,57 @@ class Wrapper:
             # First order polynomial by default
             self.params['sigma'] = params.get('sigma', 1.0)
 
-        # Fit returns in-sample score vectors and correlations as well as models with transform functionality
-        self.dataset_list = []
-        self.dataset_means = []
-        for dataset in args:
-            self.dataset_means.append(dataset.mean(axis=0))
-            self.dataset_list.append(dataset - dataset.mean(axis=0))
-
+        self.view_list = []
+        self.view_means = []
+        for view in views:
+            self.view_means.append(view.mean(axis=0))
+            self.view_list.append(view - view.mean(axis=0))
         if self.method == 'kernel':
-            self.fit_kcca = cca_zoo.kcca.KCCA(self.dataset_list[0], self.dataset_list[1], params=self.params,
+            self.fit_kcca = cca_zoo.kcca.KCCA(self.view_list[0], self.view_list[1], params=self.params,
                                               latent_dims=self.latent_dims)
             self.score_list = [self.fit_kcca.U, self.fit_kcca.V]
         elif self.method == 'pls':
-            self.fit_scikit_pls(self.dataset_list[0], self.dataset_list[1])
+            self.fit_scikit_pls(self.view_list[0], self.view_list[1])
         elif self.method == 'scikit':
-            self.fit_scikit_cca(self.dataset_list[0], self.dataset_list[1])
+            self.fit_scikit_cca(self.view_list[0], self.view_list[1])
         elif self.method == 'mcca':
-            self.fit_mcca(*self.dataset_list)
+            self.fit_mcca(*self.view_list)
         elif self.method == 'gcca':
-            self.fit_gcca(*self.dataset_list)
+            self.fit_gcca(*self.view_list)
         elif self.method == 'gep':
-            self.fit_gep(*self.dataset_list)
+            self.fit_gep(*self.view_list)
         else:
-            self.outer_loop(*self.dataset_list)
+            self.outer_loop(*self.view_list)
             if self.method[:4] == 'tree':
-                self.tree_list = [self.tree_list[i] for i in range(len(args))]
+                self.tree_list = [self.tree_list[i] for i in range(len(views))]
                 self.weights_list = [np.expand_dims(tree.feature_importances_, axis=1) for tree in self.tree_list]
             else:
                 self.rotation_list = []
-                for i in range(len(args)):
+                for i in range(len(views)):
                     self.rotation_list.append(
                         self.weights_list[i] @ pinv2(self.loading_list[i].T @ self.weights_list[i], check_finite=False))
-        self.train_correlations = self.predict_corr(*args)
+        self.train_correlations = self.predict_corr(*views)
         return self
 
-    def gridsearch_fit(self, *args, param_candidates=None, folds: int = 5, verbose: bool = False, jobs: int = 0,plot: bool=False):
+    def gridsearch_fit(self, *views, param_candidates=None, folds: int = 5, verbose: bool = False, jobs: int = 0,plot: bool=False):
         """
-        :param args: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
+        Fits the model using a user defined grid search. Returns parameters/objects that allow out of sample transformation or prediction
+        Supports parallel model training with jobs>0
+        :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
         :param param_candidates: 
         :param folds: number of folds used for cross validation
         :param verbose: whether to return scores for each set of parameters
         :return: fit model with best parameters
         """""
-        best_params = grid_search(*args, max_iter=self.max_iter, latent_dims=self.latent_dims, method=self.method,
+        best_params = grid_search(*views, max_iter=self.max_iter, latent_dims=self.latent_dims, method=self.method,
                                   param_candidates=param_candidates, folds=folds,
                                   verbose=verbose, tol=self.tol, jobs=jobs,plot=plot)
-        self.fit(*args, params=best_params)
+        self.fit(*views, params=best_params)
         return self
 
     """
-    def bayes_fit(self, *args, space=None, folds: int = 5, verbose=True):
-        :param args: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
+    def bayes_fit(self, *views, space=None, folds: int = 5, verbose=True):
+        :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
         :param space:
         :param folds: number of folds used for cross validation
         :param verbose: whether to return scores for each set of parameters
@@ -143,77 +144,72 @@ class Wrapper:
         trials = Trials()
 
         best_params = fmin(
-            fn=CrossValidate(*args, method=self.method, latent_dims=self.latent_dims, folds=folds,
+            fn=CrossValidate(*views, method=self.method, latent_dims=self.latent_dims, folds=folds,
                              verbose=verbose, max_iter=self.max_iter, tol=self.tol).score,
             space=space,
             algo=tpe.suggest,
             max_evals=100,
             trials=trials,
         )
-        self.fit(*args, params=best_params)
+        self.fit(*views, params=best_params)
         return self
     """
 
-    def predict_corr(self, *args):
+    def predict_corr(self, *views):
         """
-        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+        :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
-        :return: numpy arraay containing correlations between each pair of views
+        :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
         """
-        # Takes two datasets and predicts their out of sample correlation using trained model
-        transformed_views = self.transform_view(*args)
+        # Takes two views and predicts their out of sample correlation using trained model
+        transformed_views = self.transform_view(*views)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
-        all_corrs = np.array(all_corrs).reshape((len(args), len(args), self.latent_dims))
+        all_corrs = np.array(all_corrs).reshape((len(views), len(views), self.latent_dims))
         return all_corrs
 
-    def predict_view(self, *args):
+    def predict_view(self, *views):
         """
-        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
-         corresponding view in the training data
+
+        :param views: numpy arrays or None separated by comma. Each view needs to have the same number of features as its
+         corresponding view in the training data.
         :return: list of numpy arrays with same dimensions as the inputs
         """
-        # Regress original given views onto target
-        transformed_views = self.transform_view(*args)
+        #First transform the new views to their respective latent space
+        transformed_views = self.transform_view(*views)
 
         # Get the regression from the training data with available views
-        predicted_target = np.mean([transformed_views[i] for i in range(len(args)) if args[i] is not None], axis=0)
+        predicted_target = np.mean([transformed_views[i] for i in range(len(views)) if views[i] is not None], axis=0)
 
         predicted_views = []
-        for i, view in enumerate(args):
+        for i, view in enumerate(views):
             if view is None:
                 predicted_views.append(predicted_target @ pinv2(self.weights_list[i]))
             else:
                 predicted_views.append(view)
         for i, predicted_view in enumerate(predicted_views):
-            predicted_views[i] += self.dataset_means[i]
+            predicted_views[i] += self.view_means[i]
         return predicted_views
 
-    def transform_view(self, *args):
+    def transform_view(self, *views):
         """
-        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+        Transforms views to latent space
+        :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
         :return: list of numpy arrays with the same number of samples as the inputs and number of features equal to latent_dims
         """
         new_views = []
-        for i, new_view in enumerate(args):
+        for i, new_view in enumerate(views):
             if new_view is None:
                 new_views.append(None)
             else:
-                new_views.append(new_view - self.dataset_means[i])
+                new_views.append(new_view - self.view_means[i])
 
         if self.method == 'kernel':
             transformed_views = list(self.fit_kcca.transform(new_views[0], new_views[1]))
         elif self.method == 'pls':
             transformed_views = list(self.PLS.transform(new_views[0], new_views[1]))
-        elif self.method[:4] == 'tree':
-            transformed_views = []
-            for i, new_view in enumerate(new_views):
-                if new_view is None:
-                    transformed_views.append(None)
-                else:
-                    transformed_views.append(self.tree_list[i].predict(new_view))
         else:
             transformed_views = []
             for i, new_view in enumerate(new_views):
@@ -221,24 +217,23 @@ class Wrapper:
                     transformed_views.append(None)
                 else:
                     transformed_views.append(new_view @ self.rotation_list[i])
-        # d x n x k
         return transformed_views
 
-    def outer_loop(self, *args):
+    def outer_loop(self, *views):
         """
-        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+        :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
         :return: complete set of weights and scores required to calcuate train correlations of latent dimensions and
          transformations of out of sample data
         """
         # list of d: p x k
-        self.weights_list = [np.zeros((args[i].shape[1], self.latent_dims)) for i in range(len(args))]
+        self.weights_list = [np.zeros((views[i].shape[1], self.latent_dims)) for i in range(len(views))]
         # list of d: n x k
-        self.score_list = [np.zeros((args[i].shape[0], self.latent_dims)) for i in range(len(args))]
+        self.score_list = [np.zeros((views[i].shape[0], self.latent_dims)) for i in range(len(views))]
         # list of d:
-        self.loading_list = [np.zeros((args[i].shape[1], self.latent_dims)) for i in range(len(args))]
+        self.loading_list = [np.zeros((views[i].shape[1], self.latent_dims)) for i in range(len(views))]
 
-        residuals = list(args)
+        residuals = list(views)
         # For each of the dimensions
         for k in range(self.latent_dims):
             self.inner_loop = cca_zoo.alsinnerloop.AlsInnerLoop(*residuals,
@@ -246,7 +241,7 @@ class Wrapper:
                                                                 params=self.params,
                                                                 method=self.method,
                                                                 max_iter=self.max_iter)
-            for i in range(len(args)):
+            for i in range(len(views)):
                 if self.method[:4] == 'tree':
                     self.tree_list = self.inner_loop.weights
                 else:
@@ -284,19 +279,19 @@ class Wrapper:
         self.weights_list = [self.PLS.x_weights_, self.PLS.y_weights_]
         return self
 
-    def fit_mcca(self, *args):
+    def fit_mcca(self, *views):
         """
-        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+        :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
         :return:
         """
-        all_views = np.concatenate(args, axis=1)
+        all_views = np.concatenate(views, axis=1)
         C = all_views.T @ all_views
         # Can regularise by adding to diagonal
         D = block_diag(*[(1 - self.params['c'][i]) * m.T @ m + self.params['c'][i] * np.eye(m.shape[1]) for i, m in
-                         enumerate(args)])
+                         enumerate(views)])
         C -= block_diag(*[m.T @ m for i, m in
-                          enumerate(args)]) - D
+                          enumerate(views)]) - D
         R = cholesky(D, lower=False)
         whitened = np.linalg.inv(R.T) @ C @ np.linalg.inv(R)
         [eigvals, eigvecs] = np.linalg.eig(whitened)
@@ -304,25 +299,25 @@ class Wrapper:
         eigvecs = eigvecs[:, idx].real
         eigvals = eigvals[idx].real
         eigvecs = np.linalg.inv(R) @ eigvecs
-        splits = np.cumsum([0] + [view.shape[1] for view in args])
-        self.weights_list = [eigvecs[splits[i]:splits[i + 1], :self.latent_dims] for i in range(len(args))]
+        splits = np.cumsum([0] + [view.shape[1] for view in views])
+        self.weights_list = [eigvecs[splits[i]:splits[i + 1], :self.latent_dims] for i in range(len(views))]
         self.rotation_list = self.weights_list
-        self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
+        self.score_list = [self.view_list[i] @ self.weights_list[i] for i in range(len(views))]
 
-    def fit_gep(self, *args):
+    def fit_gep(self, *views):
         """
-        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+        :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
         :return:
         """
-        all_views = np.concatenate(args, axis=1)
+        all_views = np.concatenate(views, axis=1)
         C = all_views.T @ all_views
         # Can regularise by adding to diagonal
         D = block_diag(*[(1 - self.params['c'][i]) * m.T @ m + self.params['c'][i] * np.eye(m.shape[1]) for i, m in
-                         enumerate(args)])
+                         enumerate(views)])
 
         C -= block_diag(*[m.T @ m for i, m in
-                          enumerate(args)])
+                          enumerate(views)])
         R = cholesky(D, lower=False)
         whitened = np.linalg.inv(R.T) @ C @ np.linalg.inv(R)
         [eigvals, eigvecs] = np.linalg.eig(whitened)
@@ -330,19 +325,19 @@ class Wrapper:
         eigvecs = eigvecs[:, idx].real
         eigvals = eigvals[idx].real
         eigvecs = np.linalg.inv(R) @ eigvecs
-        splits = np.cumsum([0] + [view.shape[1] for view in args])
-        self.weights_list = [eigvecs[splits[i]:splits[i + 1], :self.latent_dims] for i in range(len(args))]
+        splits = np.cumsum([0] + [view.shape[1] for view in views])
+        self.weights_list = [eigvecs[splits[i]:splits[i + 1], :self.latent_dims] for i in range(len(views))]
         self.rotation_list = self.weights_list
-        self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
+        self.score_list = [self.view_list[i] @ self.weights_list[i] for i in range(len(views))]
 
-    def fit_gcca(self, *args):
+    def fit_gcca(self, *views):
         """
-        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+        :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
         :return:
         """
         Q = []
-        for i, view in enumerate(args):
+        for i, view in enumerate(views):
             view_cov = view.T @ view
             view_cov = (1 - self.params['c'][i]) * view_cov + self.params['c'][i] * np.eye(view_cov.shape[0])
             Q.append(view @ np.linalg.inv(view_cov) @ view.T)
@@ -351,9 +346,9 @@ class Wrapper:
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         eigvals = eigvals[idx].real
-        self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in args]
+        self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in views]
         self.rotation_list = self.weights_list
-        self.score_list = [self.dataset_list[i] @ self.weights_list[i] for i in range(len(args))]
+        self.score_list = [self.view_list[i] @ self.weights_list[i] for i in range(len(views))]
 
 
 def slicedict(d, s):
@@ -365,12 +360,12 @@ def slicedict(d, s):
     return {k: v for k, v in d.items() if k.startswith(s)}
 
 
-def grid_search(*args, max_iter: int = 100, latent_dims: int = 1, method: str = 'l2', param_candidates=None,
+def grid_search(*views, max_iter: int = 100, latent_dims: int = 1, method: str = 'l2', param_candidates=None,
                 generalized: bool = False,
                 folds: int = 5,
                 verbose=False, tol=1e-3, jobs=0, plot=False):
     """
-    :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+    :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
     :param max_iter:
     :param latent_dims:
@@ -399,7 +394,7 @@ def grid_search(*args, max_iter: int = 100, latent_dims: int = 1, method: str = 
             param_dict[param_name] = param_set[i]
         param_sets.append(param_dict)
 
-    cv = CrossValidate(*args, latent_dims=latent_dims, method=method, generalized=generalized, folds=folds,
+    cv = CrossValidate(*views, latent_dims=latent_dims, method=method, generalized=generalized, folds=folds,
                        verbose=verbose, max_iter=max_iter,
                        tol=tol)
 
@@ -417,11 +412,11 @@ def grid_search(*args, max_iter: int = 100, latent_dims: int = 1, method: str = 
 
 
 class CrossValidate:
-    def __init__(self, *args, latent_dims: int = 1, method: str = 'l2', generalized: bool = False, folds=5,
+    def __init__(self, *views, latent_dims: int = 1, method: str = 'l2', generalized: bool = False, folds=5,
                  verbose=False, max_iter: int = 500,
                  tol=1e-3):
         """
-        :param args: numpy arrays separated by comma. Each view needs to have the same number of features as its
+        :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
         :param latent_dims:
         :param method:
@@ -436,7 +431,7 @@ class CrossValidate:
         self.generalized = generalized
         self.folds = folds
         self.verbose = verbose
-        self.data = args
+        self.data = views
         self.max_iter = max_iter
         self.tol = tol
 

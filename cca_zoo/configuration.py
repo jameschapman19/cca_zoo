@@ -26,10 +26,10 @@ class Config:
         self.input_sizes = None
         # These control the encoder architectures. We need one for each view. Fully connected models provided by default
         self.encoder_models = [cca_zoo.deep_models.Encoder, cca_zoo.deep_models.Encoder]
-        self.encoder_args = [{'layer_sizes': [128]}, {'layer_sizes': [128]}]
+        self.encoder_args = [{'layer_sizes': [256]}, {'layer_sizes': [256]}]
         # These control the decoder architectures. We need one for each view if using DCCAE or DVCCA. Fully connected models provided by default
         self.decoder_models = [cca_zoo.deep_models.Decoder, cca_zoo.deep_models.Decoder]
-        self.decoder_args = [{'layer_sizes': [128]}, {'layer_sizes': [128]}]
+        self.decoder_args = [{'layer_sizes': [256]}, {'layer_sizes': [256]}]
 
         # We can choose to use cca_zoo.objectives.CCA, cca_zoo.objectives.MCCA, cca_zoo.objectives.GCCA
         self.objective = cca_zoo.objectives.CCA
@@ -46,7 +46,7 @@ class Config:
 
         # Used for DVCCA:
         self.private_encoder_models = [cca_zoo.deep_models.Encoder, cca_zoo.deep_models.Encoder]
-        self.private_encoder_args = [{'layer_sizes': [128]}, {'layer_sizes': [128]}]
+        self.private_encoder_args = [{'layer_sizes': [256]}, {'layer_sizes': [256]}]
         # True gives DVCCA_private, False gives DVCCA
         self.private = False
         # mu from the original paper controls the weighting of each encoder
@@ -55,4 +55,4 @@ class Config:
         # Not used yet
         self.autoencoder = False
         self.confound_encoder_models = [cca_zoo.deep_models.Encoder]
-        self.confound_encoder_args = [{'layer_sizes': [128]}]
+        self.confound_encoder_args = [{'layer_sizes': [256]}]
