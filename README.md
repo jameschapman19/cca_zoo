@@ -1,19 +1,11 @@
+[![DOI](https://zenodo.org/badge/303801602.svg)](https://zenodo.org/badge/latestdoi/303801602)
+
 # Canonical Correlation Analysis Methods: cca-zoo
 ## CCA, GCCA (Generalized CCA), MCCA (Multiset CCA), DCCA (Deep CCA), DGCCA (Deep Generalized CCA), DMCCA (Deep Multiset CCA), DVCCA (Deep Variational CCA), DCCAE (Deep Canonically Correlated Autoencoders), KCCA (Kernel CCA) and regularised variants using alternating least squares
 ### Documentation at https://cca-zoo.readthedocs.io/en/latest/
 ### Can be installed using pip install cca-zoo
 ### Recently added DCCA by non-linear orthogonal iterations (https://arxiv.org/pdf/1510.02054.pdf)
 ###Cite as:
-@software{jameschapman19_2020_4382740,
-  author       = {jameschapman19},
-  title        = {jameschapman19/cca\_zoo: First pre-release},
-  month        = dec,
-  year         = 2020,
-  publisher    = {Zenodo},
-  version      = {v1.1.6},
-  doi          = {10.5281/zenodo.4382740},
-  url          = {https://doi.org/10.5281/zenodo.4382740}
-}
 
 This is a compilation of methods for: 
 -CCA (various implementations) 
