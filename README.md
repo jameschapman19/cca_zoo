@@ -6,7 +6,7 @@
 ### Can be installed using pip install cca-zoo
 ### Recently added DCCA by non-linear orthogonal iterations (https://arxiv.org/pdf/1510.02054.pdf)
   
-###Cite as:
+### Cite as:  
 @software{jameschapman19_2020_4382740,  
   author       = {jameschapman19},  
   title        = {jameschapman19/cca\_zoo: First pre-release},  
