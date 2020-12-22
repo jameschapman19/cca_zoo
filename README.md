@@ -1,7 +1,35 @@
 [![DOI](https://zenodo.org/badge/303801602.svg)](https://zenodo.org/badge/latestdoi/303801602)
 
 # Canonical Correlation Analysis Methods: cca-zoo
-## CCA, GCCA (Generalized CCA), MCCA (Multiset CCA), DCCA (Deep CCA), DGCCA (Deep Generalized CCA), DMCCA (Deep Multiset CCA), DVCCA (Deep Variational CCA), DCCAE (Deep Canonically Correlated Autoencoders), KCCA (Kernel CCA) and regularised variants using alternating least squares
+## Linear CCA/PLS:
+A variety of linear CCA and PLS methods implemented where possible as the solutions to generalized eigenvalue problems and otherwise using alternating minimization methods for non-convex optimisation based on least squares
+### CCA (Canonical Correlation Analysis)
+Solutions based on either alternating least squares or as the solution to genrralized eigenvalue problem
+### GCCA (Generalized CCA)  
+### MCCA (Multiset CCA)
+### SCCA (Sparse CCA) :
+Mai's sparse CCA
+### SPLS (Sparse PLS/Penalized Matrix Decomposition)  :
+Witten's sparse CCA
+### PCCA (Penalized CCA - elastic net)
+Waiijenborg's elastic penalized CCA
+## Deep CCA:
+A variety of Deep CCA and related methods. All allow for user to pass their own model architectures. Recently added solutions to DCCA using nob-linear orthogonal iterations (or alternating least squares)
+### DCCA (Deep CCA) : 
+Using either Andrew's original Tracenorm Objective or Wang's alternating least squares solution
+### DGCCA (Deep Generalized CCA)  :
+An alternative objective based on the linear GCCA solution. Can be extended to more than 2 views
+### DMCCA (Deep Multiset CCA) :
+An alternative objective based on the linear MCCA solution. Can be extended to more than 2 views
+### DCCAE (Deep Canonically Correlated Autoencoders)
+### DVCCA/DVCCA Private (Deep variational CCA):
+Wang's DVCCA and DVCCA Private
+## Kernel CCA:
+### Linear Kernel  
+### RBF Kernel  
+### Polynomial Kernels  
+
+
 ### Documentation at https://cca-zoo.readthedocs.io/en/latest/
 ### Can be installed using pip install cca-zoo
 ### Recently added DCCA by non-linear orthogonal iterations (https://arxiv.org/pdf/1510.02054.pdf)
@@ -18,15 +46,6 @@
   url          = {https://doi.org/10.5281/zenodo.4382740}  
 }
 
-
-This is a compilation of methods for: 
--CCA (various implementations) 
--RCCA (ridge penalty)
--Sparse CCA (Witten/Parkhomenko,Waaijenborg)
--Kernel CCA (e.g. Hardoon)
--Deep CCA (Andrew) and DCCA by non-linear orthogonal iterations (Wang)
--Deep Canonically Correlated Autoencoders (Wang)
--Deep Variational CCA and Deep Variational CCA_private (Wang)
 
 Models can be tested on data from MNIST datasets provided by the torch package (https://pytorch.org/) and the UCI dataset provided by mvlearn package (https://mvlearn.github.io/)
 
