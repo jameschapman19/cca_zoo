@@ -1,10 +1,3 @@
-import torch
-from torch import nn
-from torch import optim
-from torch.nn import functional as F
-
-from cca_zoo.configuration import Config
-
 """
 All of my deep architectures have forward methods inherited from pytorch as well as a method:
 
@@ -15,6 +8,13 @@ loss(inputs,model(inputs))
 This allows me to wrap them all up in the deep wrapper. Obviously this isn't required but it is helpful
 for standardising the pipeline for comparison
 """
+
+import torch
+from torch import nn
+from torch import optim
+from torch.nn import functional as F
+
+from cca_zoo.configuration import Config
 
 
 class DVCCA(nn.Module):

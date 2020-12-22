@@ -68,7 +68,6 @@ how one might change these defaults.
            # mu from the original paper controls the weighting of each encoder
            self.mu = 0.5
 
-
 Deep CCA
 --------
 
@@ -103,3 +102,10 @@ Deep Variational CCA
    # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
    dcca = cca_zoo.deepwrapper.DeepWrapper(cfg)
    dcca.fit(train_set_1, train_set_2)
+
+.. toctree::
+   :maxdepth: 3
+
+   deepcca.rst
+   deepccae.rst
+   deepvcca.rst
