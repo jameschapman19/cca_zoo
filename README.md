@@ -36,7 +36,7 @@ Wang's DVCCA and DVCCA Private
 ### Can be installed using pip install cca-zoo
 ### Recently added DCCA by non-linear orthogonal iterations (https://arxiv.org/pdf/1510.02054.pdf)
   
-## Credits:
+# Credits:
 If this repository was helpful please do give a star
 
 In case this work is used as part of research I attach a bibtex entry:
@@ -54,12 +54,12 @@ In case this work is used as part of research I attach a bibtex entry:
 }
 ```
 
-## Issues/Feedback
+# Issues/Feedback
 I've translated my work building baselines for my own research into a pytohn package for the experience of doing so. 
 With that in mind if you have either suggestions for improvements/additions do let me know using the issues tab.
 The intention is to give flexibility to build new algorithms and substitute model architectures but there is a tradeoff between robustness and flexibility.
 
-## Sources
+# Sources
 I've added this section to give due credit to the repositories that helped me in addition to their copyright notices in the code where relevant.
 
 Models can be tested on data from MNIST datasets provided by the torch package (https://pytorch.org/) and the UCI dataset provided by mvlearn package (https://mvlearn.github.io/)
