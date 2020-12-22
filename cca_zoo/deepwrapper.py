@@ -23,7 +23,6 @@ import torch
 from sklearn.cross_decomposition import CCA
 from torch.utils.data import DataLoader, Subset
 
-from archive import cca_datasets
 import cca_zoo.plot_utils
 from cca_zoo.configuration import Config
 
@@ -39,7 +38,7 @@ class DeepWrapper:
 
     def fit(self, *views, labels=None, val_split=0.2):
         if type(views[0]) is np.ndarray:
-            dataset = cca_datasets.CCA_Dataset(*views, labels=labels)
+            dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
             ids = np.arange(len(dataset))
             np.random.shuffle(ids)
             train_ids, val_ids = np.array_split(ids, 2)
@@ -135,7 +134,7 @@ class DeepWrapper:
 
     def transform_view(self, *views, labels=None, train=False):
         if type(views[0]) is np.ndarray:
-            test_dataset = cca_datasets.CCA_Dataset(*views, labels=labels)
+            test_dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
         elif isinstance(views[0], torch.utils.data.Dataset):
             test_dataset = views[0]
 
@@ -160,7 +159,7 @@ class DeepWrapper:
 
     def predict_view(self, *views, labels=None):
         if type(views[0]) is np.ndarray:
-            test_dataset = cca_datasets.CCA_Dataset(*views, labels=labels)
+            test_dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
         elif isinstance(views[0], torch.utils.data.Dataset):
             test_dataset = views[0]
 
