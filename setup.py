@@ -16,7 +16,7 @@ requirements=['numpy',
 
 setup(
     name='cca_zoo',
-    version='1.1.6',
+    version='1.1.7',
     packages=find_packages(),
     url='https://github.com/jameschapman19/cca_zoo',
     license='MIT',
