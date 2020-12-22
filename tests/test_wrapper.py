@@ -33,10 +33,10 @@ class TestWrapper(TestCase):
         self.assertTrue(wrap_als.score_list[0].shape == (self.X.shape[0], latent_dims))
         self.assertTrue(wrap_als.score_list[0].shape == (self.X.shape[0], latent_dims))
         # Check the correlations from each unregularized method are the same
-        self.assertIsNone(np.testing.assert_array_almost_equal(corr_als, corr_scikit, decimal=3))
-        self.assertIsNone(np.testing.assert_array_almost_equal(corr_als, corr_gep, decimal=3))
-        self.assertIsNone(np.testing.assert_array_almost_equal(corr_als, corr_gcca, decimal=3))
-        self.assertIsNone(np.testing.assert_array_almost_equal(corr_als, corr_mcca, decimal=3))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_als, corr_scikit, decimal=2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_als, corr_gep, decimal=2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_als, corr_gcca, decimal=2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_als, corr_mcca, decimal=2))
 
     def test_regularized_methods(self):
         # Test that linear regularized methods match PLS solution when using maximum regularisation
@@ -52,9 +52,9 @@ class TestWrapper(TestCase):
         corr_kernel = wrap_kernel.train_correlations[0, 1]
         corr_pls = wrap_pls.train_correlations[0, 1]
         # Check the correlations from each unregularized method are the same
-        self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_gep, decimal=3))
-        self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_mcca, decimal=3))
-        self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_kernel, decimal=3))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_gep, decimal=2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_mcca, decimal=2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_kernel, decimal=2))
 
     def test_methods(self):
         pass
