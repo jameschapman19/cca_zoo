@@ -25,4 +25,7 @@ setup(
     long_description_content_type="text/markdown",
     author_email='james.chapman.19@ucl.ac.uk',
     description='',
-    install_requires=requirements)
+    install_requires=requirements,
+    test_suite='tests',
+    tests_require=[],
+)
