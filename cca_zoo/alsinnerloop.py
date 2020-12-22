@@ -82,7 +82,6 @@ class AlsInnerLoop:
 
         # This loops through each view and udpates both the weights and targets where relevant
         for _ in range(self.max_iter):
-            i: int
             for i, view in enumerate(self.datasets):
                 self.weights[i] = self.update_function(i)
 
