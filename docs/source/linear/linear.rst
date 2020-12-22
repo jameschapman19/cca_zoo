@@ -132,5 +132,10 @@ Grid search cross-validation
 
    pmd = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='pmd').gridsearch_fit(train_set_1, train_set_2,
                                                                                               param_candidates=param_candidates,
-                                                                                              folds=cv_folds,
-                                                                                              verbose=True)
+Alternating Least Squares
+-------------------------                                                                                             folds=cv_folds,
+.. automodule:: cca_zoo.alsinnerloop
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :member-order: bysource                                                                                              verbose=True)

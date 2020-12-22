@@ -6,6 +6,15 @@
 Deep Canonically Correlated Autoencoders
 ===========
 
+.. sourcecode:: python
+
+   import cca_zoo
+   cfg = Config()
+   cfg.method = cca_zoo.dvcca.DCCAE
+   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
+   dcca = cca_zoo.deepwrapper.DeepWrapper(cfg)
+   dcca.fit(train_set_1, train_set_2)
+
 Intro
 -----
 
