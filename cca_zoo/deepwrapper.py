@@ -35,6 +35,8 @@ class DeepWrapper:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             self.device = self.config.device
+            if not torch.cuda.is_available() and self.device == 'cuda':
+                self.device = 'cpu'
 
     def fit(self, *views, labels=None, val_split=0.2):
         if type(views[0]) is np.ndarray:
