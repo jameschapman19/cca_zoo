@@ -15,6 +15,6 @@ before_install:
 install:
   - pip install -r requirements.txt
 script:
-  - pytest
+  - Unittests
 after_success:
   - codecov # submit coverage
