@@ -8,4 +8,4 @@ import cca_zoo.dvcca
 import cca_zoo.kcca
 import cca_zoo.objectives
 import cca_zoo.plot_utils
-import cca_zoo.wrapper
+import cca_zoo.wrappers

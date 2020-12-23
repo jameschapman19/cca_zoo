@@ -38,6 +38,8 @@ class AlsInnerLoop:
         self.params = params
         if params is None:
             self.params = {'c': [0 for _ in views], 'l1_ratio': [0 for _ in views]}
+            self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in
+                             self.datasets]
         if method in ['scca']:
             self.params['l1_ratio'] = [1 for _ in views]
         self.method = method
@@ -63,9 +65,7 @@ class AlsInnerLoop:
         elif self.initialization == 'unregularized':
             self.scores = AlsInnerLoop(*self.datasets, initialization='random').scores
 
-        self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in self.datasets]
         self.bin_search_init = np.zeros(len(self.datasets))
-
         # select update function: needs to return new weights and update the target matrix as appropriate
         # might deprecate l2 and push it through elastic instead
         if self.method == 'pmd':
@@ -75,8 +75,12 @@ class AlsInnerLoop:
             self.update_function = self.parkhomenko_update
         elif self.method == 'elastic':
             self.update_function = self.elastic_update
+            self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in
+                             self.datasets]
         elif self.method == 'scca':
             self.update_function = self.scca_update
+            self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in
+                             self.datasets]
         else:
             self.update_function = self.method
 
@@ -218,7 +222,7 @@ class AlsInnerLoop:
                 clf.fit(X, y)
                 beta = clf.coef_
         else:
-            lassoreg = Lasso(alpha=alpha, selection='cyclic', fit_intercept=False)
+            lassoreg = Lasso(alpha=alpha, selection='random', fit_intercept=False)
             lassoreg.fit(X, y)
             beta = lassoreg.coef_
         return beta
@@ -246,8 +250,6 @@ class AlsInnerLoop:
 
     @ignore_warnings(category=ConvergenceWarning)
     def constrained_elastic(self, X, y, alpha=0.1, l1_ratio=0.5, init=0):
-        if alpha == 0:
-            coef = LinearRegression(fit_intercept=False).fit(X, y).coef_
         converged = False
         min_ = -1
         max_ = 10

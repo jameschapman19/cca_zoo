@@ -39,37 +39,37 @@ latent_dims = 2
 cv_folds = 5
 # For running hyperparameter tuning in parallel (0 if not)
 jobs = 1
+# Number of iterations for iterative algorithms
+max_iter = 2
 
 """
-### Linear CCA
-We can do this via a few different but equivalent methods when unregularized
-- alternating least squares (default) [method='elastic']
-- generalized cca (equivalent to SVD/Eigendecomposition) [method='gcca']
-- multiset cca (equivalent to SVD/Eigendecomposition) [method='mcca']
-- scikit learn (NIPALS) [method='scikit']
-- generalized eigenvalue problem [method='gep']
-
-(Note that although the MNIST data here is not full rank,
-both alternating least squares and NIPALS find least squares solutions
-and therefore this problem is avoided)
+### Linear CCA via alternating least squares (can pass more than 2 views)
 """
 
 # %%
-linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims)
+linear_cca = cca_zoo.wrappers.CCA_ALS(latent_dims=latent_dims)
 
 linear_cca.fit(train_view_1, train_view_2)
 
 linear_cca_results = np.stack(
     (linear_cca.train_correlations[0, 1], linear_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
-scikit_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='scikit')
+"""
+### Linear CCA with scikit-learn (only permits 2 views)
+"""
+
+scikit_cca = cca_zoo.wrappers.CCA_scikit(latent_dims=latent_dims)
 
 scikit_cca.fit(train_view_1, train_view_2)
 
 scikit_cca_results = np.stack(
     (scikit_cca.train_correlations[0, 1], scikit_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
-gcca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='gcca')
+"""
+### (Regularized) Generalized CCA via alternating least squares (can pass more than 2 views)
+"""
+
+gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims)
 # small ammount of regularisation added since data is not full rank
 params = {'c': [1, 1]}
 
@@ -77,7 +77,11 @@ gcca.fit(train_view_1, train_view_2, params=params)
 
 gcca_results = np.stack((gcca.train_correlations[0, 1], gcca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
-mcca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='mcca')
+"""
+### (Regularized) Multiset CCA via alternating least squares (can pass more than 2 views)
+"""
+
+mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims)
 # small ammount of regularisation added since data is not full rank
 params = {'c': [0.5, 0.5]}
 
@@ -85,8 +89,12 @@ mcca.fit(train_view_1, train_view_2, params=params)
 
 mcca_results = np.stack((mcca.train_correlations[0, 1], mcca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
+"""
+### PLS with scikit-learn (only permits 2 views)
+"""
+
 # %%
-pls = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='pls')
+pls = cca_zoo.wrappers.PLS_scikit(latent_dims=latent_dims)
 
 pls.fit(train_view_1, train_view_2)
 
@@ -94,16 +102,7 @@ pls_results = np.stack(
     (pls.train_correlations[0, 1], pls.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 """
-### Regularized CCA with hyperparameter tuning
-- penalized matrix decomposition [method='pmd'] : parameters: 1<'c'<sqrt(features)
-- sparse cca/alternating lasso regression [method='scca'] : parameters: 'c'
-- ridge cca/alternating ridge regression [method='elastic'] : parameters: 'c' 0<'l1_ratio'<1
-- parkhomenko sparse cca [method='parkhomenko'] : parameters: 'c'
-
-We can either fit a model with fixed parameters or use gridsearch_fit() to search over param_candidates,
-where param_candidates is a dictionary of params with a list of lists for each view.
-
-parameter candidates for cross validation are given as a list of lists as shown in the examples
+### Sparse CCA (Penalized Matrix Decomposition) (can pass more than 2 views)
 """
 
 # PMD
@@ -111,14 +110,19 @@ c1 = [1, 3, 7, 9]
 c2 = [1, 3, 7, 9]
 param_candidates = {'c': list(itertools.product(c1, c2))}
 
-pmd = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='pmd', tol=1e-5).gridsearch_fit(train_view_1,
-                                                                                              train_view_2,
-                                                                                              param_candidates=param_candidates,
-                                                                                              folds=cv_folds,
-                                                                                              verbose=True, jobs=jobs,
-                                                                                              plot=True)
+pmd = cca_zoo.wrappers.CCA_ALS(latent_dims=latent_dims, method='pmd', tol=1e-5, max_iter=max_iter).gridsearch_fit(
+    train_view_1,
+    train_view_2,
+    param_candidates=param_candidates,
+    folds=cv_folds,
+    verbose=True, jobs=jobs,
+    plot=True)
 
 pmd_results = np.stack((pmd.train_correlations[0, 1, :], pmd.predict_corr(test_view_1, test_view_2)[0, 1, :]))
+
+"""
+### Elastic CCA (can pass more than 2 views)
+"""
 
 # Elastic CCA
 c1 = [0.0001, 0.001]
@@ -127,27 +131,34 @@ l1_1 = [0.01, 0.1]
 l1_2 = [0.01, 0.1]
 param_candidates = {'c': list(itertools.product(c1, c2)), 'l1_ratio': list(itertools.product(l1_1, l1_2))}
 
-elastic = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='elastic', tol=1e-5).gridsearch_fit(train_view_1,
-                                                                                                      train_view_2,
-                                                                                                      param_candidates=param_candidates,
-                                                                                                      folds=cv_folds,
-                                                                                                      verbose=True,
-                                                                                                      jobs=jobs, plot=True)
+elastic = cca_zoo.wrappers.CCA_ALS(latent_dims=latent_dims, method='elastic', tol=1e-5,
+                                   max_iter=max_iter).gridsearch_fit(train_view_1,
+                                                                    train_view_2,
+                                                                    param_candidates=param_candidates,
+                                                                    folds=cv_folds,
+                                                                    verbose=True,
+                                                                    jobs=jobs,
+                                                                    plot=True)
 
 elastic_results = np.stack(
     (elastic.train_correlations[0, 1, :], elastic.predict_corr(test_view_1, test_view_2)[0, 1, :]))
+
+"""
+### Sparse CCA (can pass more than 2 views)
+"""
 
 # Sparse CCA
 c1 = [0.0001, 0.001]
 c2 = [0.0001, 0.001]
 param_candidates = {'c': list(itertools.product(c1, c2))}
 
-scca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='scca', tol=1e-5).gridsearch_fit(train_view_1,
-                                                                                                train_view_2,
-                                                                                                param_candidates=param_candidates,
-                                                                                                folds=cv_folds,
-                                                                                                verbose=True,
-                                                                                                jobs=jobs, plot=True)
+scca = cca_zoo.wrappers.CCA_ALS(latent_dims=latent_dims, method='scca', tol=1e-5, max_iter=max_iter).gridsearch_fit(
+    train_view_1,
+    train_view_2,
+    param_candidates=param_candidates,
+    folds=cv_folds,
+    verbose=True,
+    jobs=jobs, plot=True)
 
 scca_results = np.stack(
     (scca.train_correlations[0, 1, :], scca.predict_corr(test_view_1, test_view_2)[0, 1, :]))
@@ -169,12 +180,11 @@ c2 = [0.9, 0.99]
 
 param_candidates = {'kernel': ['linear'], 'c': list(itertools.product(c1, c2))}
 
-kernel_reg = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').gridsearch_fit(train_view_1,
-                                                                                              train_view_2,
-                                                                                              folds=cv_folds,
-                                                                                              param_candidates=param_candidates,
-                                                                                              verbose=True, jobs=jobs,
-                                                                                              plot=True)
+kernel_reg = cca_zoo.wrappers.KCCA(latent_dims=latent_dims).gridsearch_fit(train_view_1, train_view_2,
+                                                                           folds=cv_folds,
+                                                                           param_candidates=param_candidates,
+                                                                           verbose=True, jobs=jobs,
+                                                                           plot=True)
 kernel_reg_results = np.stack((
     kernel_reg.train_correlations[0, 1, :],
     kernel_reg.predict_corr(test_view_1, test_view_2)[0, 1, :]))
@@ -182,12 +192,11 @@ kernel_reg_results = np.stack((
 # kernel cca (poly)
 param_candidates = {'kernel': ['poly'], 'degree': [2, 3], 'c': list(itertools.product(c1, c2))}
 
-kernel_poly = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').gridsearch_fit(train_view_1,
-                                                                                               train_view_2,
-                                                                                               folds=cv_folds,
-                                                                                               param_candidates=param_candidates,
-                                                                                               verbose=True, jobs=jobs,
-                                                                                               plot=True)
+kernel_poly = cca_zoo.wrappers.KCCA(latent_dims=latent_dims).gridsearch_fit(train_view_1, train_view_2,
+                                                                            folds=cv_folds,
+                                                                            param_candidates=param_candidates,
+                                                                            verbose=True, jobs=jobs,
+                                                                            plot=True)
 
 kernel_poly_results = np.stack((
     kernel_poly.train_correlations[0, 1, :],
@@ -196,12 +205,11 @@ kernel_poly_results = np.stack((
 # kernel cca (gaussian)
 param_candidates = {'kernel': ['rbf'], 'sigma': [1e+1, 1e+2, 1e+3], 'c': list(itertools.product(c1, c2))}
 
-kernel_gaussian = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='kernel').gridsearch_fit(train_view_1,
-                                                                                                   train_view_2,
-                                                                                                   folds=cv_folds,
-                                                                                                   param_candidates=param_candidates,
-                                                                                                   verbose=True, jobs=jobs,
-                                                                                                   plot=True)
+kernel_gaussian = cca_zoo.wrappers.KCCA(latent_dims=latent_dims).gridsearch_fit(train_view_1, train_view_2,
+                                                                                folds=cv_folds,
+                                                                                param_candidates=param_candidates,
+                                                                                verbose=True, jobs=jobs,
+                                                                                plot=True)
 
 kernel_gaussian_results = np.stack((
     kernel_gaussian.train_correlations[0, 1, :],
@@ -280,7 +288,7 @@ We can vary the encoder architecture from the default fcn to encoder/decoder bas
 cfg = Config()
 cfg.epoch_num = 100
 cfg.encoder_models = [cca_zoo.deep_models.CNNEncoder, cca_zoo.deep_models.CNNEncoder]
-cfg.encoder_args = [{'channels':[3,3]},{'channels':[3,3]}]
+cfg.encoder_args = [{'channels': [3, 3]}, {'channels': [3, 3]}]
 # to change the models used change the cfg.encoder_models. We implement a CNN_Encoder and CNN_decoder as well
 # as some based on brainnet architecture in cca_zoo.deep_models. Equally you could pass your own encoder/decoder models
 
@@ -298,12 +306,13 @@ dcca_conv_results = np.stack((dcca_conv.train_correlations, dcca_conv.predict_co
 # %%
 
 all_results = np.stack(
-    [linear_cca_results, scikit_cca_results, gcca_results,mcca_results, pls_results, scca_results, pmd_results, elastic_results,
+    [linear_cca_results, scikit_cca_results, gcca_results, mcca_results, pls_results, scca_results, pmd_results,
+     elastic_results,
      kernel_reg_results,
      kernel_poly_results,
      kernel_gaussian_results, dcca_results, dgcca_results, dcca_conv_results],
     axis=0)
-all_labels = ['linear', 'scikit', 'gcca', 'mcca','pls', 'pmd', 'elastic', 'scca', 'linear kernel', 'polynomial kernel',
+all_labels = ['linear', 'scikit', 'gcca', 'mcca', 'pls', 'pmd', 'elastic', 'scca', 'linear kernel', 'polynomial kernel',
               'gaussian kernel', 'deep CCA', 'deep generalized CCA', 'deep convolutional cca']
 
 cca_zoo.plot_utils.plot_results(all_results, all_labels)

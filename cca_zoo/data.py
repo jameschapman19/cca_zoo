@@ -29,9 +29,11 @@ def add_mnist_noise(x):
 class CCA_Dataset(Dataset):
     def __init__(self, *args, labels=None, train=True):
         self.train = train
-        self.views = [MinMaxScaler().fit_transform(view) for view in args]
+        self.views = [view for view in args]
         if labels is None:
             self.labels = np.zeros(len(self.views[0]))
+        else:
+            self.labels=labels
 
     def __len__(self):
         return len(self.labels)
