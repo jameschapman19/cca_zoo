@@ -13,111 +13,50 @@ Linear Models
 Intro
 -----
 
-Wrapper
--------
+Base
+----
 
-.. automodule:: cca_zoo.wrapper
+.. automodule:: cca_zoo.wrappers.CCA_Base
     :members:
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
 
-Linear CCA
+Alternating Least Squares Methods
 ----------
 
-.. sourcecode:: python
-
-   import cca_zoo
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims)
-   linear_cca.fit(train_set_1, train_set_2)
-
-.. sourcecode:: python
-
-   import cca_zoo
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims,method='scikit)
-   linear_cca.fit(train_set_1, train_set_2)
-
-Sparse CCA
-----------
-
-.. sourcecode:: python
-
-   import cca_zoo
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims,method='pmd')
-   linear_cca.fit(train_set_1, train_set_2)
-
- .. sourcecode:: python
-
-   import cca_zoo
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims,method='parkhomenko')
-   linear_cca.fit(train_set_1, train_set_2)
-
- .. sourcecode:: python
-
-   import cca_zoo
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='scca')
-   linear_cca.fit(train_set_1, train_set_2)
-
+.. automodule:: cca_zoo.wrappers.CCA_ALS
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :member-order: bysource
 
 Kernel CCA
 ----------
 
-.. sourcecode:: python
+.. automodule:: cca_zoo.wrappers.KCCA
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :member-order: bysource
 
-   import cca_zoo
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method'kernel')
-   linear_cca.fit(train_set_1, train_set_2)
-
-.. sourcecode:: python
-
-   import cca_zoo
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method'kernel')
-   linear_cca.fit(train_set_1, train_set_2)
-
-.. sourcecode:: python
-
-   import cca_zoo
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method'kernel')
-   linear_cca.fit(train_set_1, train_set_2)
-
-Multiple view CCA
+Multiset CCA
 -----------------
 
-.. sourcecode:: python
+.. automodule:: cca_zoo.wrappers.MCCA
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :member-order: bysource
 
-   import cca_zoo
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims)
-   linear_cca.fit(train_set_1, train_set_2, train_set_3)
+Generalized CCA
+-----------------
 
-.. sourcecode:: python
-
-   import cca_zoo
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='gep')
-   linear_cca.fit(train_set_1, train_set_2, train_set_3)
-
-.. sourcecode:: python
-
-   import cca_zoo
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='mcca')
-   linear_cca.fit(train_set_1, train_set_2, train_set_3)
-
-.. sourcecode:: python
-
-   import cca_zoo
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   linear_cca = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='gcca')
-   linear_cca.fit(train_set_1, train_set_2, train_set_3)
+.. automodule:: cca_zoo.wrappers.GCCA
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :member-order: bysource
 
 Grid search cross-validation
 ----------------------------
@@ -130,12 +69,5 @@ Grid search cross-validation
    c2 = [3, 7, 9]
    param_candidates = {'c': list(itertools.product(c1, c2))}
 
-   pmd = cca_zoo.wrapper.Wrapper(latent_dims=latent_dims, method='pmd').gridsearch_fit(train_set_1, train_set_2,
-                                                                                              param_candidates=param_candidates,
-Alternating Least Squares
--------------------------                                                                                             folds=cv_folds,
-.. automodule:: cca_zoo.alsinnerloop
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :member-order: bysource                                                                                              verbose=True)
+   pmd = cca_zoo.wrappers.CCA_ALS(latent_dims=latent_dims, method='pmd').gridsearch_fit(train_set_1, train_set_2,
+                                                                                              param_candidates=param_candidates,folds=cv_folds,verbose=True)
