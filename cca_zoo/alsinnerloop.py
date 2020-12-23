@@ -38,8 +38,6 @@ class AlsInnerLoop:
         self.params = params
         if params is None:
             self.params = {'c': [0 for _ in views], 'l1_ratio': [0 for _ in views]}
-            self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in
-                             self.datasets]
         if method in ['scca']:
             self.params['l1_ratio'] = [1 for _ in views]
         self.method = method
@@ -56,7 +54,6 @@ class AlsInnerLoop:
     def iterate(self):
         # Weight vectors for y (normalized to 1)
         self.weights = [np.random.rand(dataset.shape[1]) for dataset in self.datasets]
-
         # initialize with first column
         if self.initialization == 'random':
             self.scores = np.array([np.random.rand(dataset.shape[0]) for dataset in self.datasets])

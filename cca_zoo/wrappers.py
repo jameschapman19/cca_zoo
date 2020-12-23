@@ -20,7 +20,7 @@ transform_view(): allows us to transform given views to the latent variable spac
 """
 
 import itertools
-
+import copy
 import numpy as np
 from joblib import Parallel, delayed
 from scipy.linalg import pinv2, block_diag, cholesky
@@ -184,7 +184,10 @@ class MCCA(CCA_Base):
          corresponding view in the training data
         :return:
         """
-        self.params = params
+        if params is None:
+            self.params = {'c': [0 for _ in views]}
+        else:
+            self.params = params
         views = self.demean_data(*views)
         all_views = np.concatenate(views, axis=1)
         C = all_views.T @ all_views
@@ -224,7 +227,10 @@ class GCCA(CCA_Base):
          corresponding view in the training data
         :return:
         """
-        self.params = params
+        if params is None:
+            self.params = {'c': [0 for _ in views]}
+        else:
+            self.params = params
         views = self.demean_data(*views)
         Q = []
         for i, view in enumerate(views):
@@ -259,7 +265,6 @@ class CCA_scikit(CCA_Base):
         :param train_set_2: numpy array with same number of samples as train_set_1
         :return:
         """
-        self.params = params
         views = self.demean_data(*views)
         self.cca = CCA(n_components=self.latent_dims, scale=False)
         self.cca.fit(*views)
@@ -287,7 +292,6 @@ class PLS_scikit(CCA_Base):
         :param train_set_2:
         :return:
         """
-        self.params = params
         views = self.demean_data(*views)
         self.PLS = PLSCanonical(n_components=self.latent_dims, scale=False)
         self.PLS.fit(*views)
@@ -316,7 +320,6 @@ class CCA_ALS(CCA_Base):
         :return: training data correlations and the parameters required to call other functions in the class.
         """
         views = self.demean_data(*views)
-
         self.params = {}
         if params is None:
             params = {}
@@ -375,7 +378,7 @@ class CCA_ALS(CCA_Base):
         # list of d:
         self.loading_list = [np.zeros((views[i].shape[1], self.latent_dims)) for i in range(len(views))]
 
-        residuals = list(views)
+        residuals = copy.deepcopy(list(views))
         # For each of the dimensions
         for k in range(self.latent_dims):
             self.inner_loop = cca_zoo.alsinnerloop.AlsInnerLoop(*residuals,
@@ -383,16 +386,13 @@ class CCA_ALS(CCA_Base):
                                                                 params=self.params,
                                                                 method=self.method,
                                                                 max_iter=self.max_iter)
-            for i in range(len(views)):
-                if self.method[:4] == 'tree':
-                    self.tree_list = self.inner_loop.weights
-                else:
-                    self.weights_list[i][:, k] = self.inner_loop.weights[i]
-                    self.score_list[i][:, k] = self.inner_loop.scores[i, :]
-                    self.loading_list[i][:, k] = residuals[i].T @ self.score_list[i][:, k] / np.linalg.norm(
-                        self.score_list[i][:, k])
-                    residuals[i] -= np.outer(self.score_list[i][:, k] / np.linalg.norm(self.score_list[i][:, k]),
-                                             self.loading_list[i][:, k])
+            for i in range(len(residuals)):
+                self.weights_list[i][:, k] = self.inner_loop.weights[i]
+                self.score_list[i][:, k] = self.inner_loop.scores[i, :]
+                self.loading_list[i][:, k] = residuals[i].T @ self.score_list[i][:, k] / np.linalg.norm(
+                    self.score_list[i][:, k])
+                residuals[i] -= np.outer(self.score_list[i][:, k] / np.linalg.norm(self.score_list[i][:, k]),
+                                         self.loading_list[i][:, k])
         return self
 
 

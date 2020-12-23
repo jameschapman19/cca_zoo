@@ -43,7 +43,7 @@ class TestWrapper(TestCase):
         wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).fit(self.X, self.Y, params=params)
         wrap_kernel = cca_zoo.wrappers.KCCA(latent_dims=latent_dims).fit(self.X, self.Y, params=params)
         wrap_pls = cca_zoo.wrappers.PLS_scikit(latent_dims=latent_dims).fit(self.X, self.Y)
-        corr_gcca = wrap_mcca.train_correlations[0, 1]
+        corr_gcca = wrap_gcca.train_correlations[0, 1]
         corr_mcca = wrap_mcca.train_correlations[0, 1]
         corr_kernel = wrap_kernel.train_correlations[0, 1]
         corr_pls = wrap_pls.train_correlations[0, 1]
