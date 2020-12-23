@@ -1,24 +1,3 @@
-"""
-This is a wrapper class for linear, regularised and kernel  CCA, Multiset CCA and Generalized CCA.
-We create an instance with a method and number of latent dimensions.
-If we have more than 2 views we need to use generalized methods, but we can override in the 2 view case also with
-the generalized parameter.
-
-The class has a number of methods:
-
-fit(): gives us train correlations and stores the variables needed for out of sample prediction as well as some
-method-specific variables
-
-cv_fit(): allows us to perform a hyperparameter search and then fit the model using the optimal hyperparameters
-
-predict_corr(): allows us to predict the out of sample correlation for supplied views
-
-predict_view(): allows us to predict a reconstruction of missing views from the supplied views
-
-transform_view(): allows us to transform given views to the latent variable space
-
-"""
-
 import itertools
 import copy
 import numpy as np
@@ -34,7 +13,26 @@ import cca_zoo.plot_utils
 
 
 class CCA_Base(metaclass=ABCMeta):
+    """
+    This is a base class for linear, regularised and kernel  CCA, Multiset CCA and Generalized CCA.
+    We create an instance with a method and number of latent dimensions.
+    If we have more than 2 views we need to use generalized methods, but we can override in the 2 view case also with
+    the generalized parameter.
 
+    The class has a number of methods:
+
+    fit(): gives us train correlations and stores the variables needed for out of sample prediction as well as some
+    method-specific variables
+
+    cv_fit(): allows us to perform a hyperparameter search and then fit the model using the optimal hyperparameters
+
+    predict_corr(): allows us to predict the out of sample correlation for supplied views
+
+    predict_view(): allows us to predict a reconstruction of missing views from the supplied views
+
+    transform_view(): allows us to transform given views to the latent variable space
+
+    """
     @abstractmethod
     def __init__(self, latent_dims: int = 1, tol=1e-3):
         self.train_correlations = None
