@@ -25,6 +25,9 @@ class DVCCA(nn.Module):
     """
 
     def __init__(self, config: Config = Config):
+        """
+        :param config:
+        """
         super(DVCCA, self).__init__()
         self.private = config.private
         self.mu = config.mu
@@ -49,6 +52,10 @@ class DVCCA(nn.Module):
             self.private_encoder_optimizers = optim.Adam(self.private_encoders.parameters(), lr=config.learning_rate)
 
     def encode(self, *args):
+        """
+        :param args:
+        :return:
+        """
         mu = []
         logvar = []
         for i, encoder in enumerate(self.encoders):
@@ -58,6 +65,10 @@ class DVCCA(nn.Module):
         return mu, logvar
 
     def encode_private(self, *args):
+        """
+        :param args:
+        :return:
+        """
         mu = []
         logvar = []
         for i, private_encoder in enumerate(self.private_encoders):
@@ -68,6 +79,11 @@ class DVCCA(nn.Module):
 
     @staticmethod
     def reparameterize(mu, logvar):
+        """
+        :param mu:
+        :param logvar:
+        :return:
+        """
         # Use the standard deviation from the encoder
         std = torch.exp(0.5 * logvar)
         # Mutliply with additive noise (assumed gaussian observation model)
@@ -76,6 +92,10 @@ class DVCCA(nn.Module):
         return mu + eps * std
 
     def decode(self, z):
+        """
+        :param z:
+        :return:
+        """
         x = []
         for i, decoder in enumerate(self.decoders):
             x_i = decoder(z)
@@ -83,6 +103,11 @@ class DVCCA(nn.Module):
         return tuple(x)
 
     def forward(self, *args, mle=True):
+        """
+        :param args:
+        :param mle:
+        :return:
+        """
         # Used when we get reconstructions
         mu, logvar = self.encode(*args)
         if mle:
@@ -102,10 +127,18 @@ class DVCCA(nn.Module):
         return z
 
     def recon(self, *args):
+        """
+        :param args:
+        :return:
+        """
         z = self(*args)
         return [self.decode(z_i) for z_i in z][0]
 
     def update_weights(self, *args):
+        """
+        :param args:
+        :return:
+        """
         self.encoder_optimizers.zero_grad()
         self.decoder_optimizers.zero_grad()
         if self.private:
@@ -119,6 +152,10 @@ class DVCCA(nn.Module):
         return loss
 
     def loss(self, *args):
+        """
+        :param args:
+        :return:
+        """
         mu, logvar = self.encode(*args)
         if self.private:
             losses = [self.vcca_private_loss(*args, mu=mu, logvar=logvar[i]) for i, mu in
@@ -129,6 +166,12 @@ class DVCCA(nn.Module):
         return torch.stack(losses).mean()
 
     def vcca_loss(self, *args, mu, logvar):
+        """
+        :param args:
+        :param mu:
+        :param logvar:
+        :return:
+        """
         batch_n = mu.shape[0]
         z = self.reparameterize(mu, logvar)
         kl = torch.mean(-0.5 * torch.sum(1 + logvar - logvar.exp() - mu.pow(2), dim=1), dim=0)
@@ -139,6 +182,12 @@ class DVCCA(nn.Module):
         return kl + bces
 
     def vcca_private_loss(self, *args, mu, logvar):
+        """
+        :param args:
+        :param mu:
+        :param logvar:
+        :return:
+        """
         batch_n = mu.shape[0]
         z = self.reparameterize(mu, logvar)
         mu_p, logvar_p = self.encode_private(*args)

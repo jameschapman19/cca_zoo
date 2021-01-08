@@ -161,7 +161,7 @@ class KCCA(CCA_Base):
         # First order polynomial by default
         params['sigma'] = params.get('sigma', 1.0)
         views = self.demean_data(*views)
-        self.fit_kcca = cca_zoo.kcca.KCCA(views[0], views[1], params=params,
+        self.fit_kcca = cca_zoo.kcca.KCCA(*views, params=params,
                                           latent_dims=self.latent_dims)
         self.score_list = [self.fit_kcca.U, self.fit_kcca.V]
         self.train_correlations = self.predict_corr(*views)

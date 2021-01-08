@@ -17,6 +17,7 @@ recon_loss(): gets the reconstruction loss for out of sample data - if the model
 """
 
 import copy
+import itertools
 
 import numpy as np
 import torch
@@ -129,10 +130,12 @@ class DeepWrapper:
         return total_val_loss / len(val_dataloader)
 
     def predict_corr(self, *views, train=False):
-        z_list = self.transform_view(*views, train=train)
-        correlations = np.diag(
-            np.corrcoef(z_list[0], z_list[1], rowvar=False)[:self.config.latent_dims, self.config.latent_dims:])
-        return correlations
+        transformed_views = self.transform_view(*views, train=train)
+        all_corrs = []
+        for x, y in itertools.product(transformed_views, repeat=2):
+            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.config.latent_dims, self.config.latent_dims:]))
+        all_corrs = np.array(all_corrs).reshape((len(transformed_views), len(transformed_views), self.config.latent_dims))
+        return all_corrs
 
     def transform_view(self, *views, labels=None, train=False):
         if type(views[0]) is np.ndarray:
@@ -153,10 +156,12 @@ class DeepWrapper:
         # For trace-norm objective models we need to apply a linear CCA to outputs
         if self.config.post_transform:
             if train:
-                self.cca = CCA(n_components=self.config.latent_dims)
-                z_list = self.cca.fit_transform(z_list[0], z_list[1])
+                self.cca = cca_zoo.wrappers.MCCA(latent_dims=self.config.latent_dims)
+                self.cca.fit(*z_list)
+                z_list = self.cca.transform_view(*z_list)
+
             else:
-                z_list = self.cca.transform(np.array(z_list[0]), np.array(z_list[1]))
+                z_list = self.cca.transform_view(*z_list)
         return z_list
 
     def predict_view(self, *views, labels=None):

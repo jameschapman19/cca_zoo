@@ -43,6 +43,23 @@ jobs = 1
 # Number of iterations for iterative algorithms
 max_iter = 2
 
+# Sparse CCA
+c1 = [0.0001, 0.001]
+c2 = [0.0001, 0.001]
+param_candidates = {'c': list(itertools.product(c1, c2))}
+
+scca = wrappers.CCA_ALS(latent_dims=latent_dims, method='scca', tol=1e-5, max_iter=max_iter).gridsearch_fit(
+    train_view_1,
+    train_view_2,
+    param_candidates=param_candidates,
+    folds=cv_folds,
+    verbose=True,
+    jobs=jobs, plot=True)
+
+scca_results = np.stack(
+    (scca.train_correlations[0, 1, :], scca.predict_corr(test_view_1, test_view_2)[0, 1, :]))
+
+
 """
 ### Linear CCA via alternating least squares (can pass more than 2 views)
 """

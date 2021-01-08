@@ -1,10 +1,3 @@
-from torch import nn
-from torch import optim, matmul
-from torch.nn import functional as F
-
-from cca_zoo.configuration import Config
-from cca_zoo.objectives import compute_matrix_power
-
 """
 All of my deep architectures have forward methods inherited from pytorch as well as a method:
 
@@ -16,12 +9,26 @@ This allows me to wrap them all up in the deep wrapper. Obviously this isn't req
 for standardising the pipeline for comparison
 """
 
+from torch import nn
+from torch.linalg import norm
+from torch import optim, matmul
+from torch.nn import functional as F
+
+from cca_zoo.configuration import Config
+from cca_zoo.objectives import compute_matrix_power
+
+
 class DCCA(nn.Module):
 
     def __init__(self, config: Config = Config):
+        """
+        :param config:
+        """
         super(DCCA, self).__init__()
         self.config = config
-        self.encoders = nn.ModuleList([model(config.input_sizes[i], config.latent_dims, **config.encoder_args[i]) for i,model in enumerate(config.encoder_models)])
+        self.encoders = nn.ModuleList(
+            [model(config.input_sizes[i], config.latent_dims, **config.encoder_args[i]) for i, model in
+             enumerate(config.encoder_models)])
         self.objective = config.objective(config.latent_dims)
         self.optimizers = [optim.Adam(list(encoder.parameters()), lr=config.learning_rate) for encoder in self.encoders]
         self.covs = None
@@ -33,16 +40,28 @@ class DCCA(nn.Module):
             self.loss = self.tn_loss
 
     def encode(self, *args):
+        """
+        :param args:
+        :return:
+        """
         z = []
         for i, encoder in enumerate(self.encoders):
             z.append(encoder(args[i]))
         return tuple(z)
 
     def forward(self, *args):
+        """
+        :param args:
+        :return:
+        """
         z = self.encode(*args)
         return z
 
     def update_weights_tn(self, *args):
+        """
+        :param args:
+        :return:
+        """
         [optimizer.zero_grad() for optimizer in self.optimizers]
         loss = self.tn_loss(*args)
         loss.backward()
@@ -50,10 +69,18 @@ class DCCA(nn.Module):
         return loss
 
     def tn_loss(self, *args):
+        """
+        :param args:
+        :return:
+        """
         z = self(*args)
         return self.objective.loss(*z)
 
     def update_weights_als(self, *args):
+        """
+        :param args:
+        :return:
+        """
         loss_1, loss_2 = self.als_loss(*args)
         self.optimizers[0].zero_grad()
         loss_1.backward()
@@ -64,6 +91,10 @@ class DCCA(nn.Module):
         return (loss_1 + loss_2) / 2 - self.config.latent_dims
 
     def als_loss(self, *args):
+        """
+        :param args:
+        :return:
+        """
         z = self(*args)
         self.update_covariances(*z)
         covariance_inv = [compute_matrix_power(cov, -0.5, self.config.eps) for cov in self.covs]
@@ -74,17 +105,27 @@ class DCCA(nn.Module):
         return losses
 
     def als_loss_validation(self, *args):
+        """
+        :param args:
+        :return:
+        """
         z = self(*args)
-        SigmaHat11RootInv = compute_matrix_power(self.covs[0], -0.5, self.config.eps)
-        SigmaHat22RootInv = compute_matrix_power(self.covs[1], -0.5, self.config.eps)
-        pred_1 = (z[0] @ SigmaHat11RootInv).detach()
-        pred_2 = (z[1] @ SigmaHat22RootInv).detach()
+        #z = [z_i/norm(z_i,dim=0) for z_i in z]
+        # SigmaHat11RootInv = compute_matrix_power(self.covs[0], -0.5, self.config.eps)
+        # SigmaHat22RootInv = compute_matrix_power(self.covs[1], -0.5, self.config.eps)
+        # pred_1 = (z[0] @ SigmaHat11RootInv).detach()
+        # pred_2 = (z[1] @ SigmaHat22RootInv).detach()
         # Least squares for each projection in same manner as linear from before
-        loss_1 = F.mse_loss(pred_1, z[1])
-        loss_2 = F.mse_loss(pred_2, z[0])
-        return (loss_1 + loss_2) / 2 - self.config.latent_dims
+        # loss_1 = F.mse_loss(pred_1, z[1])
+        # loss_2 = F.mse_loss(pred_2, z[0])
+        loss = self.objective.loss(*z)
+        return loss
 
     def update_covariances(self, *args):
+        """
+        :param args:
+        :return:
+        """
         b = args[0].shape[0]
         batch_covs = [z_i.T @ z_i / b for i, z_i in enumerate(args)]
         if self.covs is not None:

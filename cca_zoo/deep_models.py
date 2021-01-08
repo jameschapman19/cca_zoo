@@ -1,4 +1,4 @@
-from abc import ABC,abstractmethod
+from abc import ABCMeta, abstractmethod
 from math import sqrt
 
 import torch
@@ -12,10 +12,35 @@ Particular thanks for the basic structure to:
 https://github.com/Michaelvll/DeepCCA/blob/master/DeepCCAModels.py
 '''
 
-class Encoder(nn.Module):
-    def __init__(self, input_size: int, output_size: int, layer_sizes: list = None, variational: bool = False):
-        super(Encoder, self).__init__()
+
+class BaseEncoder(nn.Module, metaclass=ABCMeta):
+    @abstractmethod
+    def __init__(self, input_size: int, output_size: int, variational: bool = False):
+        super(BaseEncoder, self).__init__()
         self.variational = variational
+        self.input_size = input_size
+        self.output_size = output_size
+
+    @abstractmethod
+    def forward(self, x):
+        pass
+
+
+class BaseDecoder(nn.Module, metaclass=ABCMeta):
+    @abstractmethod
+    def __init__(self, input_size: int, output_size: int):
+        super(BaseDecoder, self).__init__()
+        self.input_size = input_size
+        self.output_size = output_size
+
+    @abstractmethod
+    def forward(self, x):
+        pass
+
+
+class Encoder(BaseEncoder):
+    def __init__(self, input_size: int, output_size: int, layer_sizes: list = None, variational: bool = False):
+        super(Encoder, self).__init__(input_size, output_size, variational=variational)
         if layer_sizes is None:
             layer_sizes = [128]
         layers = []
@@ -47,9 +72,9 @@ class Encoder(nn.Module):
             return x
 
 
-class Decoder(nn.Module):
+class Decoder(BaseDecoder):
     def __init__(self, input_size: int, output_size: int, layer_sizes: list = None, norm_output: bool = False):
-        super(Decoder, self).__init__()
+        super(Decoder, self).__init__(input_size, output_size)
         if layer_sizes is None:
             layer_sizes = [128]
         layers = []
@@ -78,11 +103,12 @@ class Decoder(nn.Module):
         return x
 
 
-class CNNEncoder(nn.Module, ABC):
-    def __init__(self, input_size: int, latent_size: int, channels: list = None, kernel_sizes: list = None,
+class CNNEncoder(BaseEncoder):
+    def __init__(self, input_size: int, output_size: int, channels: list = None, kernel_sizes: list = None,
                  stride: list = None,
-                 padding: list = None):
-        super(CNNEncoder, self).__init__()
+                 padding: list = None,
+                 variational: bool = False):
+        super(CNNEncoder, self).__init__(input_size, output_size, variational=variational)
         if channels is None:
             channels = [1]
         if kernel_sizes is None:
@@ -93,7 +119,7 @@ class CNNEncoder(nn.Module, ABC):
             padding = [2] * (len(channels))
         # assume square input
         layers = []
-        layer_sizes = channels + [latent_size]
+        layer_sizes = channels + [output_size]
         current_size = input_size
         current_channels = 1
         for l_id in range(len(layer_sizes)):
@@ -129,10 +155,10 @@ class CNNEncoder(nn.Module, ABC):
         return x
 
 
-class CNNDecoder(nn.Module):
-    def __init__(self, input_size: int, latent_size: int, channels: list = None, kernel_sizes=None, stride=None,
+class CNNDecoder(BaseDecoder):
+    def __init__(self, input_size: int, output_size: int, channels: list = None, kernel_sizes=None, stride=None,
                  padding=None, norm_output: bool = False):
-        super(CNNDecoder, self).__init__()
+        super(CNNDecoder, self).__init__(input_size, output_size)
         if channels is None:
             channels = [1]
         if kernel_sizes is None:
@@ -143,7 +169,7 @@ class CNNDecoder(nn.Module):
             padding = [2] * (len(channels) - 1)
 
         layers = []
-        layer_sizes = channels + [latent_size]
+        layer_sizes = channels + [output_size]
         current_size = input_size
         current_channels = 1
         for l_id in range(len(layer_sizes)):
@@ -215,9 +241,9 @@ class E2EBlockReverse(nn.Module):
 
 
 # BrainNetCNN Network for fitting Gold-MSI on LSD dataset
-class BrainNetEncoder(nn.Module):
-    def __init__(self, input_size: int, latent_size: int):
-        super(BrainNetEncoder, self).__init__()
+class BrainNetEncoder(BaseEncoder):
+    def __init__(self, input_size: int, output_size: int, variational: bool = False):
+        super(BrainNetEncoder, self).__init__(input_size, output_size, variational=variational)
         self.d = input_size
         self.e2econv1 = E2EBlock(1, 32, self.d, bias=True)
         self.e2econv2 = E2EBlock(32, 64, self.d, bias=True)
@@ -225,7 +251,7 @@ class BrainNetEncoder(nn.Module):
         self.N2G = torch.nn.Conv2d(1, 256, (self.d, 1))
         self.dense1 = torch.nn.Linear(256, 128)
         self.dense2 = torch.nn.Linear(128, 30)
-        self.dense3 = torch.nn.Linear(30, latent_size)
+        self.dense3 = torch.nn.Linear(30, output_size)
 
     def forward(self, x):  # 16,1,200,200
         out = F.leaky_relu(self.e2econv1(x), negative_slope=0.33)  # 16,32,200,200
@@ -239,9 +265,9 @@ class BrainNetEncoder(nn.Module):
         return out
 
 
-class BrainNetDecoder(nn.Module):
-    def __init__(self, input_size: int, latent_size: int):
-        super(BrainNetDecoder, self).__init__()
+class BrainNetDecoder(BaseDecoder):
+    def __init__(self, input_size: int, output_size: int):
+        super(BrainNetDecoder, self).__init__(input_size, output_size)
         self.d = input_size
         self.e2econv1 = E2EBlock(32, 1, self.d, bias=True)
         self.e2econv2 = E2EBlock(64, 32, self.d, bias=True)
@@ -249,7 +275,7 @@ class BrainNetDecoder(nn.Module):
         self.N2G = torch.nn.ConvTranspose2d(256, 1, (self.d, 1))
         self.dense1 = torch.nn.Linear(128, 256)
         self.dense2 = torch.nn.Linear(30, 128)
-        self.dense3 = torch.nn.Linear(latent_size, 30)
+        self.dense3 = torch.nn.Linear(output_size, 30)
 
     def forward(self, x):
         out = F.dropout(F.leaky_relu(self.dense3(x), negative_slope=0.33), p=0.5)
@@ -263,20 +289,20 @@ class BrainNetDecoder(nn.Module):
         return out
 
 
-class LinearEncoder(nn.Module):
-    def __init__(self, input_size: int, latent_size: int):
-        super(LinearEncoder, self).__init__()
-        self.linear = nn.Linear(latent_size, input_size)
+class LinearEncoder(BaseEncoder):
+    def __init__(self, input_size: int, output_size: int, variational: bool = False):
+        super(LinearEncoder, self).__init__(input_size, output_size, variational=variational)
+        self.linear = nn.Linear(output_size, input_size)
 
     def forward(self, x):
         out = self.linear(x)
         return out
 
 
-class LinearDecoder(nn.Module):
-    def __init__(self, input_size: int, latent_size: int):
-        super(LinearDecoder, self).__init__()
-        self.linear = nn.Linear(latent_size, input_size)
+class LinearDecoder(BaseDecoder):
+    def __init__(self, input_size: int, output_size: int):
+        super(LinearDecoder, self).__init__(input_size, output_size)
+        self.linear = nn.Linear(output_size, input_size)
 
     def forward(self, x):
         out = self.linear(x)
