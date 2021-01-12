@@ -11,7 +11,7 @@ for standardising the pipeline for comparison
 
 from torch import nn
 from torch.linalg import norm
-from torch import optim, matmul
+from torch import optim, matmul, mean
 from torch.nn import functional as F
 
 from cca_zoo.configuration import Config
@@ -81,14 +81,14 @@ class DCCA(nn.Module):
         :param args:
         :return:
         """
-        loss_1, loss_2 = self.als_loss(*args)
+        losses, obj = self.als_loss(*args)
         self.optimizers[0].zero_grad()
-        loss_1.backward()
+        losses[0].backward()
         self.optimizers[0].step()
         self.optimizers[1].zero_grad()
-        loss_2.backward()
+        losses[1].backward()
         self.optimizers[1].step()
-        return (loss_1 + loss_2) / 2 - self.config.latent_dims
+        return obj  # sum(losses) / 2 - self.config.latent_dims
 
     def als_loss(self, *args):
         """
@@ -101,8 +101,9 @@ class DCCA(nn.Module):
         preds = [matmul(z, covariance_inv[i]).detach() for i, z in enumerate(z)]
         # Least squares for each projection in same manner as linear from before
         # Currently 2 view case
-        losses = [F.mse_loss(preds[-i], z) for i, z in enumerate(z)]
-        return losses
+        losses = [mean(norm(z - preds[-i],dim=0)) for i, z in enumerate(z, start=1)]
+        obj = self.objective.loss(*z)
+        return losses, obj
 
     def als_loss_validation(self, *args):
         """
@@ -110,14 +111,6 @@ class DCCA(nn.Module):
         :return:
         """
         z = self(*args)
-        #z = [z_i/norm(z_i,dim=0) for z_i in z]
-        # SigmaHat11RootInv = compute_matrix_power(self.covs[0], -0.5, self.config.eps)
-        # SigmaHat22RootInv = compute_matrix_power(self.covs[1], -0.5, self.config.eps)
-        # pred_1 = (z[0] @ SigmaHat11RootInv).detach()
-        # pred_2 = (z[1] @ SigmaHat22RootInv).detach()
-        # Least squares for each projection in same manner as linear from before
-        # loss_1 = F.mse_loss(pred_1, z[1])
-        # loss_2 = F.mse_loss(pred_2, z[0])
         loss = self.objective.loss(*z)
         return loss
 
@@ -127,7 +120,7 @@ class DCCA(nn.Module):
         :return:
         """
         b = args[0].shape[0]
-        batch_covs = [z_i.T @ z_i / b for i, z_i in enumerate(args)]
+        batch_covs = [z_i.T @ z_i for i, z_i in enumerate(args)]
         if self.covs is not None:
             self.covs = [(self.config.rho * self.covs[i]).detach() + (1 - self.config.rho) * batch_cov for i, batch_cov
                          in

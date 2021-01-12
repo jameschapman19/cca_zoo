@@ -8,14 +8,13 @@ def attach_dim(v, n_dim_to_prepend=0, n_dim_to_append=0):
         + torch.Size([1] * n_dim_to_append))
 
 
-def compute_matrix_power(M, p, eps):
+def compute_matrix_power(M, p, eps, order=True):
     [D, V] = torch.symeig(M, eigenvectors=True)
-    # Added to increase stability
-    posInd1 = torch.gt(D, eps).nonzero()[:, 0]
-    D = D[posInd1]
-    V = V[:, posInd1]
-    M_p = torch.matmul(
-        torch.matmul(V, torch.diag(torch.pow(D, p))), V.t())
+    if order:
+        posInd1 = torch.gt(D, eps).nonzero()[:, 0]
+        D = D[posInd1]
+        V = V[:, posInd1]
+    M_p = torch.matmul(torch.matmul(V, torch.diag(torch.pow(D, p))), V.t())
     return M_p
 
 
@@ -105,6 +104,7 @@ class GCCA:
         corr = (eigvals[idx][:self.outdim_size] - 1).sum()
 
         return -corr
+
 
 # Original work Copyright (c) 2016 Vahid Noroozi
 # Modified work Copyright 2019 Zhanghao Wu
