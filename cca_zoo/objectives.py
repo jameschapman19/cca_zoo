@@ -41,8 +41,7 @@ class MCCA:
         # H is n_views * n_samples * k
 
         # Subtract the mean from each output
-        # views = [view - view.mean(dim=0) for view in views]
-        views = [view for view in views]
+        views = [view - view.mean(dim=0) for view in views]
 
         # Concatenate all views and from this get the cross-covariance matrix
         all_views = torch.cat(views, dim=1)

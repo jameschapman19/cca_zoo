@@ -11,7 +11,7 @@ for standardising the pipeline for comparison
 
 from torch import nn
 from torch.linalg import norm
-from torch import optim, matmul, mean
+from torch import optim, matmul, mean, stack
 from torch.nn import functional as F
 
 from cca_zoo.configuration import Config
@@ -99,9 +99,8 @@ class DCCA(nn.Module):
         self.update_covariances(*z)
         covariance_inv = [compute_matrix_power(cov, -0.5, self.config.eps) for cov in self.covs]
         preds = [matmul(z, covariance_inv[i]).detach() for i, z in enumerate(z)]
-        # Least squares for each projection in same manner as linear from before
-        # Currently 2 view case
-        losses = [mean(norm(z - preds[-i],dim=0)) for i, z in enumerate(z, start=1)]
+        pred_avg = mean(stack(preds), dim=0)
+        losses = [mean(norm(z - pred_avg, dim=0)) for i, z in enumerate(z, start=1)]
         obj = self.objective.loss(*z)
         return losses, obj
 

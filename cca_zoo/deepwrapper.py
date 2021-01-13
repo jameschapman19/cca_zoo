@@ -130,14 +130,14 @@ class DeepWrapper:
         return total_val_loss / len(val_dataloader)
 
     def predict_corr(self, *views, train=False):
-        transformed_views = self.transform_view(*views, train=train)
+        transformed_views = self.transform(*views, train=train)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.config.latent_dims, self.config.latent_dims:]))
         all_corrs = np.array(all_corrs).reshape((len(transformed_views), len(transformed_views), self.config.latent_dims))
         return all_corrs
 
-    def transform_view(self, *views, labels=None, train=False):
+    def transform(self, *views, labels=None, train=False):
         if type(views[0]) is np.ndarray:
             test_dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
         elif isinstance(views[0], torch.utils.data.Dataset):
@@ -158,10 +158,9 @@ class DeepWrapper:
             if train:
                 self.cca = cca_zoo.wrappers.MCCA(latent_dims=self.config.latent_dims)
                 self.cca.fit(*z_list)
-                z_list = self.cca.transform_view(*z_list)
-
+                z_list = self.cca.transform(*z_list)
             else:
-                z_list = self.cca.transform_view(*z_list)
+                z_list = self.cca.transform(*z_list)
         return z_list
 
     def predict_view(self, *views, labels=None):

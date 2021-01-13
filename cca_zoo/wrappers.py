@@ -30,9 +30,10 @@ class CCA_Base(metaclass=ABCMeta):
 
     predict_view(): allows us to predict a reconstruction of missing views from the supplied views
 
-    transform_view(): allows us to transform given views to the latent variable space
+    transform(): allows us to transform given views to the latent variable space
 
     """
+
     @abstractmethod
     def __init__(self, latent_dims: int = 1, tol=1e-3):
         self.train_correlations = None
@@ -44,12 +45,16 @@ class CCA_Base(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def transform_view(self, *views):
+    def transform(self, *views):
+        pass
+
+    def fit_transform(self, *views, params=None):
+        self.fit(*views, params=params)
+        self.transform(*views)
         pass
 
     def predict_view(self, *views):
         """
-
         :param views: numpy arrays or None separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data.
         :return: list of numpy arrays with same dimensions as the inputs
@@ -63,7 +68,7 @@ class CCA_Base(metaclass=ABCMeta):
         :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
         """
         # Takes two views and predicts their out of sample correlation using trained model
-        transformed_views = self.transform_view(*views)
+        transformed_views = self.transform(*views)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
@@ -167,8 +172,8 @@ class KCCA(CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def transform_view(self, *views):
-        transformed_views = list(self.fit_kcca.transform(views[0], views[1]))
+    def transform(self, *views):
+        transformed_views = list(self.fit_kcca.transform(views[0]-self.view_means[0], views[1]-self.view_means[1]))
         return transformed_views
 
 
@@ -199,8 +204,7 @@ class MCCA(CCA_Base):
         [eigvals, eigvecs] = np.linalg.eig(whitened)
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
-        eigvals = eigvals[idx].real
-        eigvecs = np.linalg.inv(R) @ eigvecs
+        eigvecs = len(views) * np.linalg.inv(R) @ eigvecs
         splits = np.cumsum([0] + [view.shape[1] for view in views])
         self.weights_list = [eigvecs[splits[i]:splits[i + 1], :self.latent_dims] for i in range(len(views))]
         self.rotation_list = self.weights_list
@@ -208,10 +212,10 @@ class MCCA(CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def transform_view(self, *views):
+    def transform(self, *views):
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_views.append(view @ self.rotation_list[i])
+            transformed_views.append((view-self.view_means[0]) @ self.rotation_list[i])
         return transformed_views
 
 
@@ -246,10 +250,10 @@ class GCCA(CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def transform_view(self, *views):
+    def transform(self, *views):
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_views.append(view @ self.rotation_list[i])
+            transformed_views.append((view-self.view_means[i]) @ self.rotation_list[i])
         return transformed_views
 
 
@@ -273,10 +277,10 @@ class CCA_scikit(CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def transform_view(self, *views):
+    def transform(self, *views):
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_views.append(view @ self.rotation_list[i])
+            transformed_views.append((view-self.view_means[i]) @ self.rotation_list[i])
         return transformed_views
 
 
@@ -298,7 +302,7 @@ class PLS_scikit(CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def transform_view(self, *views):
+    def transform(self, *views):
         transformed_views = list(self.PLS.transform(views[0], views[1]))
         return transformed_views
 
@@ -356,10 +360,10 @@ class CCA_ALS(CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def transform_view(self, *views):
+    def transform(self, *views):
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_views.append(view @ self.rotation_list[i])
+            transformed_views.append((view-self.view_means[i]) @ self.rotation_list[i])
         return transformed_views
 
     def outer_loop(self, *views):
