@@ -322,41 +322,24 @@ class CCA_ALS(CCA_Base):
         :return: training data correlations and the parameters required to call other functions in the class.
         """
         views = self.demean_data(*views)
-        self.params = {}
-        if params is None:
-            params = {}
+        self.params = params
+
+        if self.params is None:
+            self.params = {}
+        if 'c' not in self.params:
+            self.params['c'] = [0] * len(views)
+        if 'l1_ratio' not in self.params:
+            self.params['l1_ratio'] = [0] * len(views)
+
         if len(views) > 2:
             self.generalized = True
             print('more than 2 views therefore switched to generalized')
-        if 'c' not in params:
-            c_dict = slicedict(params, 'c')
-            if c_dict:
-                self.params['c'] = list(c_dict.values())
-            else:
-                self.params['c'] = [0] * len(views)
-        else:
-            self.params['c'] = params['c']
-        if 'l1_ratio' not in params:
-            l1_dict = slicedict(params, 'l1_ratio')
-            if l1_dict:
-                self.params['l1_ratio'] = list(l1_dict.values())
-            else:
-                self.params['l1_ratio'] = [0] * len(views)
-        else:
-            self.params['l1_ratio'] = params['l1_ratio']
 
         self.outer_loop(*views)
-        if self.method[:4] == 'tree':
-            pass
-            """
-            self.tree_list = [self.tree_list[i] for i in range(len(views))]
-            self.weights_list = [np.expand_dims(tree.feature_importances_, axis=1) for tree in self.tree_list]
-            """
-        else:
-            self.rotation_list = []
-            for i in range(len(views)):
-                self.rotation_list.append(
-                    self.weights_list[i] @ pinv2(self.loading_list[i].T @ self.weights_list[i], check_finite=False))
+        self.rotation_list = []
+        for i in range(len(views)):
+            self.rotation_list.append(
+                self.weights_list[i] @ pinv2(self.loading_list[i].T @ self.weights_list[i], check_finite=False))
         self.train_correlations = self.predict_corr(*views)
         return self
 
@@ -400,7 +383,7 @@ class CCA_ALS(CCA_Base):
 
 def slicedict(d, s):
     """
-    :param d: dictionary containing
+    :param d: dictionary containing e.g. c_1, c_2
     :param s:
     :return:
     """

@@ -32,8 +32,8 @@ class TestWrapper(TestCase):
         self.assertTrue(wrap_scikit.score_list[0].shape == (self.X.shape[0], latent_dims))
         # Check the correlations from each unregularized method are the same
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_als, corr_scikit, decimal=2))
-        self.assertIsNone(np.testing.assert_array_almost_equal(corr_als, corr_gcca, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_als, corr_mcca, decimal=2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_als, corr_gcca, decimal=2))
 
     def test_regularized_methods(self):
         # Test that linear regularized methods match PLS solution when using maximum regularisation

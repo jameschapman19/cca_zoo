@@ -16,13 +16,13 @@ from torch.utils.data import Subset
 # Load MNIST Data
 os.chdir('..')
 N = 1000
-dataset = data.Noisy_MNIST_Dataset(mnist_type='FashionMNIST', train=True)
+dataset = data.Noisy_MNIST_Dataset(mnist_type='MNIST', train=True)
 ids = np.arange(min(2 * N, len(dataset)))
 np.random.shuffle(ids)
 train_ids, val_ids = np.array_split(ids, 2)
 val_dataset = Subset(dataset, val_ids)
 train_dataset = Subset(dataset, train_ids)
-test_dataset = data.Noisy_MNIST_Dataset(mnist_type='FashionMNIST', train=False)
+test_dataset = data.Noisy_MNIST_Dataset(mnist_type='MNIST', train=False)
 test_ids = np.arange(min(N, len(test_dataset)))
 np.random.shuffle(test_ids)
 test_dataset = Subset(test_dataset, test_ids)
@@ -37,19 +37,18 @@ test_view_1, test_view_2, test_rotations, test_OH_labels, test_labels = test_dat
 # The number of latent dimensions across models
 latent_dims = 2
 # The number of folds used for cross-validation/hyperparameter tuning
-cv_folds = 5
+cv_folds = 2
 # For running hyperparameter tuning in parallel (0 if not)
-jobs = 1
+jobs = 2
 # Number of iterations for iterative algorithms
-max_iter = 2
-
+max_iter = 1
 
 """
 ### Linear CCA via alternating least squares (can pass more than 2 views)
 """
 
 # %%
-linear_cca = wrappers.CCA_ALS(latent_dims=latent_dims)
+linear_cca = wrappers.CCA_ALS(latent_dims=latent_dims,max_iter=max_iter)
 
 linear_cca.fit(train_view_1, train_view_2)
 
@@ -123,35 +122,12 @@ pmd = wrappers.CCA_ALS(latent_dims=latent_dims, method='pmd', tol=1e-5, max_iter
 pmd_results = np.stack((pmd.train_correlations[0, 1, :], pmd.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 
 """
-### Elastic CCA (can pass more than 2 views)
-"""
-
-# Elastic CCA
-c1 = [0.0001, 0.001]
-c2 = [0.0001, 0.001]
-l1_1 = [0.01, 0.1]
-l1_2 = [0.01, 0.1]
-param_candidates = {'c': list(itertools.product(c1, c2)), 'l1_ratio': list(itertools.product(l1_1, l1_2))}
-
-elastic = wrappers.CCA_ALS(latent_dims=latent_dims, method='elastic', tol=1e-5,
-                                   max_iter=max_iter).gridsearch_fit(train_view_1,
-                                                                    train_view_2,
-                                                                    param_candidates=param_candidates,
-                                                                    folds=cv_folds,
-                                                                    verbose=True,
-                                                                    jobs=jobs,
-                                                                    plot=True)
-
-elastic_results = np.stack(
-    (elastic.train_correlations[0, 1, :], elastic.predict_corr(test_view_1, test_view_2)[0, 1, :]))
-
-"""
 ### Sparse CCA (can pass more than 2 views)
 """
 
 # Sparse CCA
-c1 = [0.0001, 0.001]
-c2 = [0.0001, 0.001]
+c1 = [0.00001, 0.0001]
+c2 = [0.00001, 0.0001]
 param_candidates = {'c': list(itertools.product(c1, c2))}
 
 scca = wrappers.CCA_ALS(latent_dims=latent_dims, method='scca', tol=1e-5, max_iter=max_iter).gridsearch_fit(
@@ -164,6 +140,29 @@ scca = wrappers.CCA_ALS(latent_dims=latent_dims, method='scca', tol=1e-5, max_it
 
 scca_results = np.stack(
     (scca.train_correlations[0, 1, :], scca.predict_corr(test_view_1, test_view_2)[0, 1, :]))
+
+"""
+### Elastic CCA (can pass more than 2 views)
+"""
+
+# Elastic CCA
+c1 = [0.001, 0.0001]
+c2 = [0.001, 0.0001]
+l1_1 = [0.01, 0.1]
+l1_2 = [0.01, 0.1]
+param_candidates = {'c': list(itertools.product(c1, c2)), 'l1_ratio': list(itertools.product(l1_1, l1_2))}
+
+elastic = wrappers.CCA_ALS(latent_dims=latent_dims, method='elastic', tol=1e-5,
+                           max_iter=max_iter).gridsearch_fit(train_view_1,
+                                                             train_view_2,
+                                                             param_candidates=param_candidates,
+                                                             folds=cv_folds,
+                                                             verbose=True,
+                                                             jobs=jobs,
+                                                             plot=True)
+
+elastic_results = np.stack(
+    (elastic.train_correlations[0, 1, :], elastic.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 
 """
 ### Kernel CCA
@@ -183,10 +182,10 @@ c2 = [0.9, 0.99]
 param_candidates = {'kernel': ['linear'], 'c': list(itertools.product(c1, c2))}
 
 kernel_reg = wrappers.KCCA(latent_dims=latent_dims).gridsearch_fit(train_view_1, train_view_2,
-                                                                           folds=cv_folds,
-                                                                           param_candidates=param_candidates,
-                                                                           verbose=True, jobs=jobs,
-                                                                           plot=True)
+                                                                   folds=cv_folds,
+                                                                   param_candidates=param_candidates,
+                                                                   verbose=True, jobs=jobs,
+                                                                   plot=True)
 kernel_reg_results = np.stack((
     kernel_reg.train_correlations[0, 1, :],
     kernel_reg.predict_corr(test_view_1, test_view_2)[0, 1, :]))
@@ -195,10 +194,10 @@ kernel_reg_results = np.stack((
 param_candidates = {'kernel': ['poly'], 'degree': [2, 3], 'c': list(itertools.product(c1, c2))}
 
 kernel_poly = wrappers.KCCA(latent_dims=latent_dims).gridsearch_fit(train_view_1, train_view_2,
-                                                                            folds=cv_folds,
-                                                                            param_candidates=param_candidates,
-                                                                            verbose=True, jobs=jobs,
-                                                                            plot=True)
+                                                                    folds=cv_folds,
+                                                                    param_candidates=param_candidates,
+                                                                    verbose=True, jobs=jobs,
+                                                                    plot=True)
 
 kernel_poly_results = np.stack((
     kernel_poly.train_correlations[0, 1, :],
@@ -208,10 +207,10 @@ kernel_poly_results = np.stack((
 param_candidates = {'kernel': ['rbf'], 'sigma': [1e+1, 1e+2, 1e+3], 'c': list(itertools.product(c1, c2))}
 
 kernel_gaussian = wrappers.KCCA(latent_dims=latent_dims).gridsearch_fit(train_view_1, train_view_2,
-                                                                                folds=cv_folds,
-                                                                                param_candidates=param_candidates,
-                                                                                verbose=True, jobs=jobs,
-                                                                                plot=True)
+                                                                        folds=cv_folds,
+                                                                        param_candidates=param_candidates,
+                                                                        verbose=True, jobs=jobs,
+                                                                        plot=True)
 
 kernel_gaussian_results = np.stack((
     kernel_gaussian.train_correlations[0, 1, :],
@@ -227,7 +226,8 @@ We also have deep CCA methods (and autoencoder variants)
 We introduce a Config class from configuration.py. This contains a number of default settings for running DCCA.
 
 """
-from cca_zoo import deepwrapper,objectives
+from cca_zoo import deepwrapper, objectives
+
 # %%
 # DCCA
 cfg = Config()
@@ -238,7 +238,7 @@ dcca = deepwrapper.DeepWrapper(cfg)
 
 dcca.fit(train_view_1, train_view_2)
 
-dcca_results = np.stack((dcca.train_correlations, dcca.predict_corr(test_view_1, test_view_2)))
+dcca_results = np.stack((dcca.train_correlations[0, 1], dcca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 # DGCCA
 # cfg.loss_type = cca_zoo.objectives.mcca
@@ -249,7 +249,7 @@ dgcca = deepwrapper.DeepWrapper(cfg)
 
 dgcca.fit(train_view_1, train_view_2)
 
-dgcca_results = np.stack((dgcca.train_correlations, dgcca.predict_corr(test_view_1, test_view_2)))
+dgcca_results = np.stack((dgcca.train_correlations[0, 1], dgcca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 """
 ### Deep Variational Learning
@@ -262,6 +262,7 @@ the encoder to the shared information Q(z_shared|x) is modelled for both x_1 and
 it is modelled for x_1 as in the paper
 """
 from cca_zoo import dvcca
+
 # %%
 # DVCCA (technically bi-DVCCA)
 cfg = Config()
@@ -271,7 +272,7 @@ dvcca = deepwrapper.DeepWrapper(cfg)
 
 dvcca.fit(train_view_1, train_view_2)
 
-dvcca_results = np.stack((dvcca.train_correlations, dvcca.predict_corr(test_view_1, test_view_2)))
+dvcca_results = np.stack((dvcca.train_correlations[0, 1], dvcca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 # DVCCA_private (technically bi-DVCCA_private)
 # switch private=False default to private=True
@@ -281,7 +282,7 @@ dvcca_p = deepwrapper.DeepWrapper(cfg)
 
 dvcca_p.fit(train_view_1, train_view_2)
 
-dvcca_p_results = np.stack((dvcca_p.train_correlations, dvcca_p.predict_corr(test_view_1, test_view_2)))
+dvcca_p_results = np.stack((dvcca_p.train_correlations[0, 1], dvcca_p.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 """
 ### Convolutional Deep Learning
@@ -289,6 +290,7 @@ dvcca_p_results = np.stack((dvcca_p.train_correlations, dvcca_p.predict_corr(tes
 We can vary the encoder architecture from the default fcn to encoder/decoder based on the brainnetcnn architecture or a simple cnn
 """
 from cca_zoo import deep_models
+
 # %%
 cfg = Config()
 cfg.epoch_num = 100
@@ -301,9 +303,9 @@ dcca_conv = deepwrapper.DeepWrapper(cfg)
 
 dcca_conv.fit(train_view_1.reshape((-1, 1, 28, 28)), train_view_2.reshape((-1, 1, 28, 28)))
 
-dcca_conv_results = np.stack((dcca_conv.train_correlations, dcca_conv.predict_corr(test_view_1.reshape((-1, 1, 28, 28)),
+dcca_conv_results = np.stack((dcca_conv.train_correlations[0, 1], dcca_conv.predict_corr(test_view_1.reshape((-1, 1, 28, 28)),
                                                                                    test_view_2.reshape(
-                                                                                       (-1, 1, 28, 28)))))
+                                                                                       (-1, 1, 28, 28)))[0, 1]))
 
 """
 ### Make results plot to compare methods
@@ -321,5 +323,6 @@ all_labels = ['linear', 'scikit', 'gcca', 'mcca', 'pls', 'pmd', 'elastic', 'scca
               'gaussian kernel', 'deep CCA', 'deep generalized CCA', 'deep convolutional cca']
 
 from cca_zoo import plot_utils
+
 plot_utils.plot_results(all_results, all_labels)
 plt.show()

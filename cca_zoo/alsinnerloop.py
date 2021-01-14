@@ -16,7 +16,7 @@ class AlsInnerLoop:
     """
 
     def __init__(self, *views, max_iter: int = 100, tol=1e-3, generalized: bool = False,
-                 initialization: str = 'random', params=None,
+                 initialization: str = 'unregularized', params=None,
                  method: str = 'elastic'):
         """
         :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
@@ -38,14 +38,12 @@ class AlsInnerLoop:
         self.params = params
         if params is None:
             self.params = {'c': [0 for _ in views], 'l1_ratio': [0 for _ in views]}
-        if method in ['scca']:
-            self.params['l1_ratio'] = [1 for _ in views]
         self.method = method
         if len(views) > 2:
             self.generalized = True
         else:
             self.generalized = generalized
-        self.datasets = list(views)
+        self.views = views
         self.track_lyuponov = []
         self.track_correlation = []
         self.lyuponov = self.cca_lyuponov
@@ -53,16 +51,16 @@ class AlsInnerLoop:
 
     def iterate(self):
         # Weight vectors for y (normalized to 1)
-        self.weights = [np.random.rand(dataset.shape[1]) for dataset in self.datasets]
+        self.weights = [np.random.rand(dataset.shape[1]) for dataset in self.views]
         # initialize with first column
         if self.initialization == 'random':
-            self.scores = np.array([np.random.rand(dataset.shape[0]) for dataset in self.datasets])
+            self.scores = np.array([np.random.rand(dataset.shape[0]) for dataset in self.views])
         elif self.initialization == 'first_column':
-            self.scores = np.array([dataset[:, 0] / np.linalg.norm(dataset[:, 0]) for dataset in self.datasets])
+            self.scores = np.array([dataset[:, 0] / np.linalg.norm(dataset[:, 0]) for dataset in self.views])
         elif self.initialization == 'unregularized':
-            self.scores = AlsInnerLoop(*self.datasets, initialization='random').scores
+            self.scores = AlsInnerLoop(*self.views, initialization='random').scores
 
-        self.bin_search_init = np.zeros(len(self.datasets))
+        self.bin_search_init = np.zeros(len(self.views))
         # select update function: needs to return new weights and update the target matrix as appropriate
         # might deprecate l2 and push it through elastic instead
         if self.method == 'pmd':
@@ -70,32 +68,41 @@ class AlsInnerLoop:
             self.lyuponov = self.pls_lyuponov
         elif self.method == 'parkhomenko':
             self.update_function = self.parkhomenko_update
+        elif self.method == 'admm':
+            assert (all([mu > 0 for mu in self.params['mu']])), "at least one mu is less than zero"
+            assert (all([mu < lam / np.linalg.norm(view) for mu, lam, view in
+                         zip(self.params['mu'], self.params['lam'], self.views)])), "Condition from Parikh 2014"
+            self.update_function = self.admm_update
+            self.eta = [np.zeros(z.shape) for z in self.scores]
+            self.params['l1_ratio'] = [1 for _ in self.views]
+            self.lyuponov = self.cca_lyuponov
         elif self.method == 'elastic':
             self.update_function = self.elastic_update
             self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in
-                             self.datasets]
+                             self.views]
         elif self.method == 'scca':
             self.update_function = self.scca_update
             self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in
-                             self.datasets]
+                             self.views]
+            # This is only used to calculate lyuponov function convergence
+            self.params['l1_ratio'] = [1 for _ in self.views]
         else:
             self.update_function = self.method
 
         # This loops through each view and udpates both the weights and targets where relevant
         for _ in range(self.max_iter):
-            for i, view in enumerate(self.datasets):
+            for i, view in enumerate(self.views):
                 self.weights[i] = self.update_function(i)
 
             self.track_lyuponov.append(self.lyuponov())
-
+            # Sum all pairwise correlations
+            self.track_correlation.append(np.corrcoef(self.scores)[np.triu_indices(self.scores.shape[0], 1)].sum())
             # Some kind of early stopping
             if _ > 0 and all(cosine_similarity(self.weights[n], self.old_weights[n]) > (1 - self.tol) for n, view in
                              enumerate(self.scores)):
                 break
-
             self.old_weights = self.weights.copy()
-            # Sum all pairs
-            self.track_correlation.append(np.corrcoef(self.scores)[np.triu_indices(self.scores.shape[0], 1)].sum())
+
         return self
 
     def pmd_update(self, view_index: int):
@@ -105,12 +112,11 @@ class AlsInnerLoop:
         """
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
-        w = self.datasets[view_index].T @ targets.sum(axis=0).filled()
+        w = self.views[view_index].T @ targets.sum(axis=0).filled()
         w, w_success = self.delta_search(w, self.params['c'][view_index])
-        if not w_success:
-            w = self.datasets[view_index].T @ targets.sum(axis=0).filled()
+        assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
         w /= np.linalg.norm(w)
-        self.scores[view_index] = self.datasets[view_index] @ w
+        self.scores[view_index] = self.views[view_index] @ w
         return w
 
     def parkhomenko_update(self, view_index: int):
@@ -120,16 +126,44 @@ class AlsInnerLoop:
         """
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
-        w = self.datasets[view_index].T @ targets.sum(axis=0).filled()
-        if np.linalg.norm(w) == 0:
-            w = self.datasets[view_index].T @ targets.sum().filled()
+        w = self.views[view_index].T @ targets.sum(axis=0).filled()
+        assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
         w /= np.linalg.norm(w)
         w = self.soft_threshold(w, self.params['c'][view_index] / 2)
-        if np.linalg.norm(w) == 0:
-            w = self.datasets[view_index].T @ targets.sum()
+        assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
         w /= np.linalg.norm(w)
-        self.scores[view_index] = self.datasets[view_index] @ w
+        self.scores[view_index] = self.views[view_index] @ w
         return w
+
+    def admm_update(self, view_index: int):
+        targets = np.ma.array(self.scores, mask=False)
+        targets.mask[view_index] = True
+        # Suo uses parameter tau whereas we use parameter c to penalize the 1-norm of the weights.
+        # Suo uses c to refer to the gradient where we now use gradient
+        gradient = self.views[view_index].T @ targets.sum(axis=0).filled()
+        # reset eta each loop?
+        # self.eta[view_index][:] = 0
+        mu = self.params['mu'][view_index]
+        lam = self.params['lam'][view_index]
+        N = self.views[view_index].shape[0]
+        last_scores = self.scores[view_index].copy()
+        for _ in range(self.max_iter):
+            # We multiply 'c' by N in order to make regularisation match across the different sparse cca methods
+            self.weights[view_index] = self.prox_mu_f(self.weights[view_index] - mu / lam * self.views[view_index].T @ (
+                    self.views[view_index] @ self.weights[view_index] - self.scores[view_index] + self.eta[view_index]),
+                                                      mu,
+                                                      gradient, N * self.params['c'][view_index])
+            self.scores[view_index] = self.prox_lam_g(
+                self.views[view_index] @ self.weights[view_index] + self.eta[view_index])
+            self.eta[view_index] = self.eta[view_index] + self.views[view_index] @ self.weights[view_index] - \
+                                   self.scores[
+                                       view_index]
+            if np.abs(np.linalg.norm(self.scores) - 1) < self.tol:
+                break
+        b = np.linalg.norm(self.views[view_index] @ self.weights[view_index])
+        assert (np.linalg.norm(
+            self.weights[view_index]) > 0), 'all weights zero. try less regularisation or another initialisation'
+        return self.weights[view_index]
 
     def elastic_update(self, view_index: int):
         """
@@ -138,15 +172,16 @@ class AlsInnerLoop:
         """
         if self.generalized:
             target = self.scores.mean(axis=0)
-            w = self.elastic_solver(self.datasets[view_index], target,
-                                    alpha=self.params['c'][view_index] / len(self.datasets),
+            w = self.elastic_solver(self.views[view_index], target,
+                                    alpha=self.params['c'][view_index] / len(self.views),
                                     l1_ratio=self.params['l1_ratio'][view_index])
         else:
-            w = self.elastic_solver(self.datasets[view_index], self.scores[view_index - 1], self.inverses[view_index],
+            w = self.elastic_solver(self.views[view_index], self.scores[view_index - 1], self.inverses[view_index],
                                     alpha=self.params['c'][view_index],
                                     l1_ratio=self.params['l1_ratio'][view_index])
-        w /= np.linalg.norm(self.datasets[view_index] @ w)
-        self.scores[view_index] = self.datasets[view_index] @ w
+        assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
+        w /= np.linalg.norm(self.views[view_index] @ w)
+        self.scores[view_index] = self.views[view_index] @ w
         return w
 
     def scca_update(self, view_index: int):
@@ -156,16 +191,14 @@ class AlsInnerLoop:
         """
         if self.generalized:
             target = self.scores.mean(axis=0)
-            w = self.lasso_solver(self.datasets[view_index], target, self.inverses[view_index],
-                                  alpha=self.params['c'][view_index] / len(self.datasets))
+            w = self.lasso_solver(self.views[view_index], target, self.inverses[view_index],
+                                  alpha=self.params['c'][view_index] / len(self.views))
         else:
-            w = self.lasso_solver(self.datasets[view_index], self.scores[view_index - 1], self.inverses[view_index],
+            w = self.lasso_solver(self.views[view_index], self.scores[view_index - 1], self.inverses[view_index],
                                   alpha=self.params['c'][view_index])
-        if np.linalg.norm(self.datasets[view_index] @ w) == 0:
-            print('failed')
-            w = np.random.rand(*w.shape)
-        w /= np.linalg.norm(self.datasets[view_index] @ w)
-        self.scores[view_index] = self.datasets[view_index] @ w
+        assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
+        w /= np.linalg.norm(self.views[view_index] @ w)
+        self.scores[view_index] = self.views[view_index] @ w
         return w
 
     @staticmethod
@@ -241,8 +274,6 @@ class AlsInnerLoop:
             clf = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False)
             clf.fit(X, y)
             beta = clf.coef_
-            if not np.any(beta):
-                beta = np.ones(beta.shape)
         return beta
 
     @ignore_warnings(category=ConvergenceWarning)
@@ -270,8 +301,24 @@ class AlsInnerLoop:
                                                                                                current + 1)).coef_
         return coef, current
 
+    def prox_mu_f(self, x, mu, c, tau):
+        u_update = x.copy()
+        mask_1 = (x + (mu * c) > mu * tau)
+        # if mask_1.sum()>0:
+        u_update[mask_1] = x[mask_1] + mu * (c[mask_1] - tau)
+        mask_2 = (x + (mu * c) < - mu * tau)
+        # if mask_2.sum() > 0:
+        u_update[mask_2] = x[mask_2] + mu * (c[mask_2] + tau)
+        mask_3 = ~(mask_1 | mask_2)
+        u_update[mask_3] = 0
+        return u_update
+
+    def prox_lam_g(self, x):
+        norm = np.linalg.norm(x)
+        return x / max(1, norm)
+
     def cca_lyuponov(self):
-        views = len(self.datasets)
+        views = len(self.views)
         c = np.array(self.params.get('c', [0] * views))
         ratio = np.array(self.params.get('l1_ratio', [0] * views))
         l1 = c * ratio
@@ -284,9 +331,9 @@ class AlsInnerLoop:
             else:
                 lyuponov_target = self.scores[i - 1]
                 multiplier = 0.5
-            lyuponov += 1 / (2 * self.datasets[i].shape[0]) * multiplier * np.linalg.norm(
-                self.datasets[i] @ self.weights[i] - lyuponov_target) ** 2 + l1[i] * np.linalg.norm(self.weights[i],
-                                                                                                    ord=1) + \
+            lyuponov += 1 / (2 * self.views[i].shape[0]) * multiplier * np.linalg.norm(
+                self.views[i] @ self.weights[i] - lyuponov_target) ** 2 + l1[i] * np.linalg.norm(self.weights[i],
+                                                                                                 ord=1) + \
                         l2[i] * np.linalg.norm(self.weights[i], ord=2)
         return lyuponov
 
