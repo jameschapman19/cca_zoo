@@ -33,7 +33,7 @@ class CCA_Dataset(Dataset):
         if labels is None:
             self.labels = np.zeros(len(self.views[0]))
         else:
-            self.labels=labels
+            self.labels = labels
 
     def __len__(self):
         return len(self.labels)
@@ -57,9 +57,7 @@ class Noisy_MNIST_Dataset(Dataset):
         self.data = self.dataset.data
         self.base_transform = transforms.ToTensor()
         self.a_transform = transforms.Compose([transforms.ToTensor(),  # first, convert image to PyTorch tensor
-                                               transforms.ToPILImage()
-                                               #                 transforms.Normalize((self.mean,), (self.std,)) # normalize inputs
-                                               ])
+                                               transforms.ToPILImage()])
         self.b_transform = transforms.Compose(
             [transforms.ToTensor(), transforms.Lambda(add_mnist_noise),
              transforms.Lambda(self.__threshold_func__)])
@@ -128,10 +126,7 @@ class Tangled_MNIST_Dataset(Dataset):
         self.data = self.dataset.data
         self.mean = torch.mean(self.data.float())
         self.std = torch.std(self.data.float())
-        self.transform = transforms.Compose([transforms.ToTensor(),  # first, convert image to PyTorch tensor
-                                             #                     transforms.Lambda(lambda x: x/255.),
-                                             #                 transforms.Normalize((self.mean,), (self.std,)) # normalize inputs
-                                             ])
+        self.transform = transforms.Compose([transforms.ToTensor()])
         self.targets = self.dataset.targets
         self.OHs = OH_digits(self.targets.numpy().astype(int))
         self.fixed = fixed
@@ -187,17 +182,18 @@ class Tangled_MNIST_Dataset(Dataset):
         OH_labels = OH_digits(labels.astype(int))
         return view_1, view_2, rotation_1, rotation_2, OH_labels, labels
 
-#Copyright (c) 2020 The mvlearn developers.
 
-#Permission is hereby granted, free of charge, to any person obtaining a copy
-#of this software and associated documentation files (the "Software"), to deal
-#in the Software without restriction, including without limitation the rights
-#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#copies of the Software, and to permit persons to whom the Software is
-#furnished to do so, subject to the following conditions:
+# Copyright (c) 2020 The mvlearn developers.
 
-#The above copyright notice and this permission notice shall be included in
-#all copies or substantial portions of the Software.
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 
 class UCI_Dataset(Dataset):
     def __init__(self, train=True):

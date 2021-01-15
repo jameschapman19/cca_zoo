@@ -37,11 +37,11 @@ test_view_1, test_view_2, test_rotations, test_OH_labels, test_labels = test_dat
 # The number of latent dimensions across models
 latent_dims = 2
 # The number of folds used for cross-validation/hyperparameter tuning
-cv_folds = 2
+cv_folds = 3
 # For running hyperparameter tuning in parallel (0 if not)
 jobs = 2
 # Number of iterations for iterative algorithms
-max_iter = 1
+max_iter = 10
 
 """
 ### Linear CCA via alternating least squares (can pass more than 2 views)
