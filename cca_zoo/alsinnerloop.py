@@ -8,16 +8,18 @@ from sklearn.linear_model import Lasso
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import Ridge
 from sklearn.utils._testing import ignore_warnings
+from typing import Union
 
+#alpha_max for lasso regression = np.max(np.abs(X.T@y))
 
 class AlsInnerLoop:
     """
     This class implements solutions to regularized CCA and PLS by alternating least squares.
     """
 
-    def __init__(self, *views, max_iter: int = 100, tol=1e-3, generalized: bool = False,
+    def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', params=None,
-                 method: str = 'elastic'):
+                 method: Union[callable, str] = 'elastic'):
         """
         :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3, params=params)
         :param max_iter: maximum number of updates
@@ -47,20 +49,6 @@ class AlsInnerLoop:
         self.track_lyuponov = []
         self.track_correlation = []
         self.lyuponov = self.cca_lyuponov
-        self.iterate()
-
-    def iterate(self):
-        # Weight vectors for y (normalized to 1)
-        self.weights = [np.random.rand(dataset.shape[1]) for dataset in self.views]
-        # initialize with first column
-        if self.initialization == 'random':
-            self.scores = np.array([np.random.rand(dataset.shape[0]) for dataset in self.views])
-        elif self.initialization == 'first_column':
-            self.scores = np.array([dataset[:, 0] / np.linalg.norm(dataset[:, 0]) for dataset in self.views])
-        elif self.initialization == 'unregularized':
-            self.scores = AlsInnerLoop(*self.views, initialization='random').scores
-
-        self.bin_search_init = np.zeros(len(self.views))
         # select update function: needs to return new weights and update the target matrix as appropriate
         # might deprecate l2 and push it through elastic instead
         if self.method == 'pmd':
@@ -73,26 +61,42 @@ class AlsInnerLoop:
             assert (all([mu < lam / np.linalg.norm(view) for mu, lam, view in
                          zip(self.params['mu'], self.params['lam'], self.views)])), "Condition from Parikh 2014"
             self.update_function = self.admm_update
-            self.eta = [np.zeros(z.shape) for z in self.scores]
+            self.eta = [np.zeros(view.shape[0]) for view in self.views]
+            self.z = [np.zeros(view.shape[0]) for view in self.views]
             self.params['l1_ratio'] = [1 for _ in self.views]
             self.lyuponov = self.cca_lyuponov
         elif self.method == 'elastic':
             self.update_function = self.elastic_update
-            self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in
+            self.inverses = [pinv2(view) if view.shape[0] > view.shape[1] else None for view in
                              self.views]
         elif self.method == 'scca':
             self.update_function = self.scca_update
-            self.inverses = [pinv2(dataset) if dataset.shape[0] > dataset.shape[1] else None for dataset in
+            self.inverses = [pinv2(view) if view.shape[0] > view.shape[1] else None for view in
                              self.views]
             # This is only used to calculate lyuponov function convergence
             self.params['l1_ratio'] = [1 for _ in self.views]
         else:
             self.update_function = self.method
+        if self.initialization == 'random':
+            self.scores = np.array([np.random.rand(view.shape[0]) for view in self.views])
+        elif self.initialization == 'first_column':
+            self.scores = np.array([view[:, 0] / np.linalg.norm(view[:, 0]) for view in self.views])
+        elif self.initialization == 'unregularized':
+            self.scores = AlsInnerLoop(*self.views, initialization='random').scores
 
+        self.iterate()
+
+    def iterate(self):
+        # Weight vectors for y (normalized to 1)
+        self.weights = [np.random.rand(view.shape[1]) for view in self.views]
+        # initialize with first column
+        self.bin_search_init = np.zeros(len(self.views))
+        norm_track = np.zeros((len(self.views), self.max_iter))
         # This loops through each view and udpates both the weights and targets where relevant
         for _ in range(self.max_iter):
             for i, view in enumerate(self.views):
                 self.weights[i] = self.update_function(i)
+                norm_track[i,_]=np.linalg.norm(view@self.weights[i])
 
             self.track_lyuponov.append(self.lyuponov())
             # Sum all pairwise correlations
@@ -146,23 +150,22 @@ class AlsInnerLoop:
         mu = self.params['mu'][view_index]
         lam = self.params['lam'][view_index]
         N = self.views[view_index].shape[0]
-        last_scores = self.scores[view_index].copy()
         for _ in range(self.max_iter):
             # We multiply 'c' by N in order to make regularisation match across the different sparse cca methods
             self.weights[view_index] = self.prox_mu_f(self.weights[view_index] - mu / lam * self.views[view_index].T @ (
                     self.views[view_index] @ self.weights[view_index] - self.scores[view_index] + self.eta[view_index]),
                                                       mu,
                                                       gradient, N * self.params['c'][view_index])
-            self.scores[view_index] = self.prox_lam_g(
+            self.z[view_index] = self.prox_lam_g(
                 self.views[view_index] @ self.weights[view_index] + self.eta[view_index])
             self.eta[view_index] = self.eta[view_index] + self.views[view_index] @ self.weights[view_index] - \
                                    self.scores[
                                        view_index]
             if np.abs(np.linalg.norm(self.scores) - 1) < self.tol:
                 break
-        b = np.linalg.norm(self.views[view_index] @ self.weights[view_index])
         assert (np.linalg.norm(
             self.weights[view_index]) > 0), 'all weights zero. try less regularisation or another initialisation'
+        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
         return self.weights[view_index]
 
     def elastic_update(self, view_index: int):

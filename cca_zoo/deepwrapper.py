@@ -21,7 +21,6 @@ import itertools
 
 import numpy as np
 import torch
-from sklearn.cross_decomposition import CCA
 from torch.utils.data import DataLoader, Subset
 
 import cca_zoo.plot_utils

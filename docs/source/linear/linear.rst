@@ -13,6 +13,11 @@ Linear (and Kernel) Models
 Intro
 -----
 
+Within cca-zoo, linear and kernel methods inherit a common base structure. This gives shared functionality and a standard
+API that is somewhat similar to the cross_decomposition module in scikit-learn with familiar methods fit(), transform()
+and fit_transform().
+
+
 Base
 ----
 The base class defines the shared structure of each of the models implemented in wrappers.py.
@@ -23,10 +28,12 @@ The base class defines the shared structure of each of the models implemented in
     :show-inheritance:
     :member-order: bysource
 
-Alternating Least Squares Methods
-----------
+Iterative Methods
+-----------------
 
-.. autoclass:: cca_zoo.wrappers.CCA_ALS
+The CCA_Iter class gives further flexibility to use iterative optimization methods.
+
+.. autoclass:: cca_zoo.wrappers.CCA_ITER
     :members:
     :undoc-members:
     :show-inheritance:
@@ -34,6 +41,8 @@ Alternating Least Squares Methods
 
 Kernel CCA
 ----------
+
+The KCCA class allows the use of linear, polynomial and rbf kernels (and their associated parameters).
 
 .. autoclass:: cca_zoo.wrappers.KCCA
     :members:
@@ -44,6 +53,8 @@ Kernel CCA
 Multiset CCA
 -----------------
 
+Multiset CCA is implemented as a generalized eigenvalue problem.
+
 .. autoclass:: cca_zoo.wrappers.MCCA
     :members:
     :undoc-members:
@@ -53,6 +64,8 @@ Multiset CCA
 Generalized CCA
 -----------------
 
+Generalized CCA is implemented as a generalized eigenvalue problem.
+
 .. autoclass:: cca_zoo.wrappers.GCCA
     :members:
     :undoc-members:
@@ -61,6 +74,10 @@ Generalized CCA
 
 Grid search cross-validation
 ----------------------------
+
+All of the models inherit gridsearch_fit() from the base class. This can be used to select from a user defined parameter grid.
+
+We give an example
 
 .. sourcecode:: python
 

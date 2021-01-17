@@ -3,44 +3,14 @@
 [![Build Status](https://www.travis-ci.com/jameschapman19/cca_zoo.svg?branch=master)](https://www.travis-ci.com/jameschapman19/cca_zoo)
 [![Documentation Status](https://readthedocs.org/projects/cca-zoo/badge/?version=latest)](https://cca-zoo.readthedocs.io/en/latest/?badge=latest)
 
-# Canonical Correlation Analysis Methods: cca-zoo
-## Linear CCA/PLS:
-A variety of linear CCA and PLS methods implemented where possible as the solutions to generalized eigenvalue problems and otherwise using alternating minimization methods for non-convex optimisation based on least squares
-### CCA (Canonical Correlation Analysis)
-Solutions based on either alternating least squares or as the solution to genrralized eigenvalue problem
-### GCCA (Generalized CCA)  
-### MCCA (Multiset CCA)
-### SCCA (Sparse CCA) :
-Mai's sparse CCA
-### SPLS (Sparse PLS/Penalized Matrix Decomposition)  :
-Witten's sparse CCA
-### PCCA (Penalized CCA - elastic net)
-Waiijenborg's elastic penalized CCA
-## Deep CCA:
-A variety of Deep CCA and related methods. All allow for user to pass their own model architectures. Recently added solutions to DCCA using nob-linear orthogonal iterations (or alternating least squares)
-### DCCA (Deep CCA) : 
-Using either Andrew's original Tracenorm Objective or Wang's alternating least squares solution
-### DGCCA (Deep Generalized CCA)  :
-An alternative objective based on the linear GCCA solution. Can be extended to more than 2 views
-### DMCCA (Deep Multiset CCA) :
-An alternative objective based on the linear MCCA solution. Can be extended to more than 2 views
-### DCCAE (Deep Canonically Correlated Autoencoders)
-### DVCCA/DVCCA Private (Deep variational CCA):
-Wang's DVCCA and DVCCA Private
-## Kernel CCA:
-### Linear Kernel  
-### RBF Kernel  
-### Polynomial Kernels  
-
-
 ### Documentation at https://cca-zoo.readthedocs.io/en/latest/
 ### Can be installed using pip install cca-zoo
 ### Recently added DCCA by non-linear orthogonal iterations (https://arxiv.org/pdf/1510.02054.pdf)
   
 # Credits:
-If this repository was helpful please do give a star
+If this repository was helpful to you please do give a star.
 
-In case this work is used as part of research I attach a bibtex entry:
+In case this work is used as part of research I attach a DOI bibtex entry:
 
 ```bibtex
 @software{jameschapman19_2020_4382740,  
@@ -55,9 +25,47 @@ In case this work is used as part of research I attach a bibtex entry:
 }
 ```
 
+# Canonical Correlation Analysis Methods: cca-zoo
+## Linear CCA/PLS:
+A variety of linear CCA and PLS methods implemented where possible as the solutions to generalized eigenvalue problems and otherwise using alternating minimization methods for non-convex optimisation based on least squares
+### CCA (Canonical Correlation Analysis)
+Solutions based on either alternating least squares or as the solution to genrralized eigenvalue problem
+### GCCA (Generalized CCA)  :
+https://academic.oup.com/biomet/article-abstract/58/3/433/233349?redirectedFrom=fulltext
+### MCCA (Multiset CCA)
+### SCCA (Sparse CCA) :
+Mai's sparse CCA
+### SPLS (Sparse PLS/Penalized Matrix Decomposition)  :
+Witten's sparse CCA
+### PCCA (Penalized CCA - elastic net)
+Waiijenborg's elastic penalized CCA
+## Deep CCA:
+A variety of Deep CCA and related methods. All allow for user to pass their own model architectures. Recently added solutions to DCCA using nob-linear orthogonal iterations (or alternating least squares)
+### DCCA (Deep CCA) : 
+https://ttic.uchicago.edu/~klivescu/papers/andrew_icml2013.pdf
+https://arxiv.org/pdf/1510.02054v1.pdf
+Using either Andrew's original Tracenorm Objective or Wang's alternating least squares solution
+### DGCCA (Deep Generalized CCA)  :
+https://www.aclweb.org/anthology/W19-4301.pdf
+An alternative objective based on the linear GCCA solution. Can be extended to more than 2 views
+### DMCCA (Deep Multiset CCA) :
+https://arxiv.org/abs/1904.01775
+An alternative objective based on the linear MCCA solution. Can be extended to more than 2 views
+### DCCAE (Deep Canonically Correlated Autoencoders) :
+http://proceedings.mlr.press/v37/wangb15.pdf
+### DVCCA/DVCCA Private (Deep variational CCA):
+https://arxiv.org/pdf/1610.03454.pdf
+Wang's DVCCA and DVCCA Private
+## Kernel CCA:
+### Linear Kernel  
+### RBF Kernel  
+### Polynomial Kernels  
+
+
+
 # Issues/Feedback
-I've translated my work building baselines for my own research into a pytohn package for the experience of doing so. 
-With that in mind if you have either suggestions for improvements/additions do let me know using the issues tab.
+I've translated my work building baselines for my own research into a python package for my own experience but also, I hope,
+to help others. With that in mind if you have either suggestions for improvements/additions do let me know using the issues tab.
 The intention is to give flexibility to build new algorithms and substitute model architectures but there is a tradeoff between robustness and flexibility.
 
 # Sources

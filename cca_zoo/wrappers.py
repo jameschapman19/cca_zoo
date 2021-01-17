@@ -4,15 +4,15 @@ import numpy as np
 from joblib import Parallel, delayed
 from scipy.linalg import pinv2, block_diag, cholesky
 from sklearn.cross_decomposition import CCA, PLSCanonical
-from abc import ABCMeta, abstractmethod
-
+from abc import abstractmethod
+from sklearn.base import BaseEstimator
 import cca_zoo.alsinnerloop
 import cca_zoo.data
 import cca_zoo.kcca
 import cca_zoo.plot_utils
 
 
-class CCA_Base(metaclass=ABCMeta):
+class CCA_Base(BaseEstimator):
     """
     This is a base class for linear, regularised and kernel  CCA, Multiset CCA and Generalized CCA.
     We create an instance with a method and number of latent dimensions.
@@ -35,7 +35,7 @@ class CCA_Base(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def __init__(self, latent_dims: int = 1, tol=1e-3):
+    def __init__(self, latent_dims: int = 1, tol=1e-5):
         self.train_correlations = None
         self.latent_dims = latent_dims
         self.tol = tol
@@ -43,15 +43,15 @@ class CCA_Base(metaclass=ABCMeta):
     @abstractmethod
     def fit(self, *views, params=None):
         pass
+        return self
 
     @abstractmethod
     def transform(self, *views):
         pass
+        return self
 
     def fit_transform(self, *views, params=None):
-        self.fit(*views, params=params)
-        self.transform(*views)
-        pass
+        self.fit(*views, params=params).transform(*views)
 
     def predict_view(self, *views):
         """
@@ -150,7 +150,7 @@ class CCA_Base(metaclass=ABCMeta):
 
 
 class KCCA(CCA_Base):
-    def __init__(self, latent_dims: int = 1, tol=1e-3):
+    def __init__(self, latent_dims: int = 1, tol=1e-5):
         super().__init__(latent_dims=latent_dims, tol=tol)
 
     def fit(self, *views, params=None):
@@ -173,12 +173,12 @@ class KCCA(CCA_Base):
         return self
 
     def transform(self, *views):
-        transformed_views = list(self.fit_kcca.transform(views[0]-self.view_means[0], views[1]-self.view_means[1]))
+        transformed_views = list(self.fit_kcca.transform(views[0] - self.view_means[0], views[1] - self.view_means[1]))
         return transformed_views
 
 
 class MCCA(CCA_Base):
-    def __init__(self, latent_dims: int = 1, tol=1e-3):
+    def __init__(self, latent_dims: int = 1, tol=1e-5):
         super().__init__(latent_dims=latent_dims, tol=tol)
 
     def fit(self, *views, params=None):
@@ -206,21 +206,21 @@ class MCCA(CCA_Base):
         eigvecs = eigvecs[:, idx].real
         eigvecs = len(views) * np.linalg.inv(R) @ eigvecs
         splits = np.cumsum([0] + [view.shape[1] for view in views])
-        self.weights_list = [eigvecs[splits[i]:splits[i + 1], :self.latent_dims] for i in range(len(views))]
+        self.weights_list = [eigvecs[split:splits[i + 1], :self.latent_dims] for i, split in enumerate(splits)]
         self.rotation_list = self.weights_list
-        self.score_list = [views[i] @ self.weights_list[i] for i in range(len(views))]
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views)]
         self.train_correlations = self.predict_corr(*views)
         return self
 
     def transform(self, *views):
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_views.append((view-self.view_means[0]) @ self.rotation_list[i])
+            transformed_views.append((view - self.view_means[0]) @ self.rotation_list[i])
         return transformed_views
 
 
 class GCCA(CCA_Base):
-    def __init__(self, latent_dims: int = 1, tol=1e-3):
+    def __init__(self, latent_dims: int = 1, tol=1e-5):
         super().__init__(latent_dims=latent_dims, tol=tol)
 
     def fit(self, *views, params=None):
@@ -246,19 +246,19 @@ class GCCA(CCA_Base):
         eigvals = eigvals[idx].real
         self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in views]
         self.rotation_list = self.weights_list
-        self.score_list = [views[i] @ self.weights_list[i] for i in range(len(views))]
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views)]
         self.train_correlations = self.predict_corr(*views)
         return self
 
     def transform(self, *views):
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_views.append((view-self.view_means[i]) @ self.rotation_list[i])
+            transformed_views.append((view - self.view_means[i]) @ self.rotation_list[i])
         return transformed_views
 
 
 class CCA_scikit(CCA_Base):
-    def __init__(self, latent_dims: int = 1, tol=1e-3):
+    def __init__(self, latent_dims: int = 1, tol=1e-5):
         super().__init__(latent_dims=latent_dims, tol=tol)
 
     def fit(self, *views, params=None):
@@ -280,12 +280,12 @@ class CCA_scikit(CCA_Base):
     def transform(self, *views):
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_views.append((view-self.view_means[i]) @ self.rotation_list[i])
+            transformed_views.append((view - self.view_means[i]) @ self.rotation_list[i])
         return transformed_views
 
 
 class PLS_scikit(CCA_Base):
-    def __init__(self, latent_dims: int = 1, tol=1e-3):
+    def __init__(self, latent_dims: int = 1, tol=1e-5):
         super().__init__(latent_dims=latent_dims, tol=tol)
 
     def fit(self, *views, params=None):
@@ -307,8 +307,8 @@ class PLS_scikit(CCA_Base):
         return transformed_views
 
 
-class CCA_ALS(CCA_Base):
-    def __init__(self, latent_dims: int = 1, tol=1e-3, method='elastic', max_iter=100, generalized=False):
+class CCA_ITER(CCA_Base):
+    def __init__(self, latent_dims: int = 1, tol=1e-5, method='elastic', max_iter=100, generalized=False):
         super().__init__(latent_dims=latent_dims, tol=tol)
         self.method = method
         self.max_iter = max_iter
@@ -346,7 +346,7 @@ class CCA_ALS(CCA_Base):
     def transform(self, *views):
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_views.append((view-self.view_means[i]) @ self.rotation_list[i])
+            transformed_views.append((view - self.view_means[i]) @ self.rotation_list[i])
         return transformed_views
 
     def outer_loop(self, *views):
@@ -357,11 +357,11 @@ class CCA_ALS(CCA_Base):
          transformations of out of sample data
         """
         # list of d: p x k
-        self.weights_list = [np.zeros((views[i].shape[1], self.latent_dims)) for i in range(len(views))]
+        self.weights_list = [np.zeros((view.shape[1], self.latent_dims)) for view in views]
         # list of d: n x k
-        self.score_list = [np.zeros((views[i].shape[0], self.latent_dims)) for i in range(len(views))]
+        self.score_list = [np.zeros((view.shape[0], self.latent_dims)) for view in views]
         # list of d:
-        self.loading_list = [np.zeros((views[i].shape[1], self.latent_dims)) for i in range(len(views))]
+        self.loading_list = [np.zeros((view.shape[1], self.latent_dims)) for view in views]
 
         residuals = copy.deepcopy(list(views))
         # For each of the dimensions
@@ -370,14 +370,14 @@ class CCA_ALS(CCA_Base):
                                                                 generalized=self.generalized,
                                                                 params=self.params,
                                                                 method=self.method,
-                                                                max_iter=self.max_iter)
-            for i in range(len(residuals)):
+                                                                max_iter=self.max_iter, tol=self.tol)
+            for i, residual in enumerate(residuals):
                 self.weights_list[i][:, k] = self.inner_loop.weights[i]
                 self.score_list[i][:, k] = self.inner_loop.scores[i, :]
-                self.loading_list[i][:, k] = residuals[i].T @ self.score_list[i][:, k] / np.linalg.norm(
+                self.loading_list[i][:, k] = residual.T @ self.score_list[i][:, k] / np.linalg.norm(
                     self.score_list[i][:, k])
-                residuals[i] -= np.outer(self.score_list[i][:, k] / np.linalg.norm(self.score_list[i][:, k]),
-                                         self.loading_list[i][:, k])
+                residual -= np.outer(self.score_list[i][:, k] / np.linalg.norm(self.score_list[i][:, k]),
+                                     self.loading_list[i][:, k])
         return self
 
 
