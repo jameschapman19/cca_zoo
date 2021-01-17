@@ -10,7 +10,7 @@ import cca_zoo.alsinnerloop
 import cca_zoo.data
 import cca_zoo.kcca
 import cca_zoo.plot_utils
-
+#from hyperopt import fmin, tpe, Trials
 
 class CCA_Base(BaseEstimator):
     """
@@ -42,15 +42,34 @@ class CCA_Base(BaseEstimator):
 
     @abstractmethod
     def fit(self, *views, params=None):
+        """
+        The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
+        Returns a fit model object which can be used to predict correlations or transform out of sample data.
+        :param views: 2D numpy arrays for each view with the same number of rows (nxp)
+        :param params:
+        :return:
+        """
         pass
         return self
 
     @abstractmethod
     def transform(self, *views):
+        """
+        The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
+        Returns a fit model object which can be used to predict correlations or transform out of sample data.
+        :param views: 2D numpy arrays for each view with the same number of rows as well as the same number of columns as the data used in the most recent fit()
+        :return:
+        """
         pass
         return self
 
     def fit_transform(self, *views, params=None):
+        """
+        Apply fit and immediately transform the same data
+        :param views:
+        :param params:
+        :return:
+        """
         self.fit(*views, params=params).transform(*views)
 
     def predict_view(self, *views):
@@ -76,6 +95,12 @@ class CCA_Base(BaseEstimator):
         return all_corrs
 
     def demean_data(self, *views):
+        """
+        Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
+        demeaning transformation to out of sample data
+        :param views:
+        :return:
+        """
         views_demeaned = []
         self.view_means = []
         for view in views:
@@ -136,9 +161,10 @@ class CCA_Base(BaseEstimator):
         :return: fit model with best parameters
         trials = Trials()
 
+        cv = CrossValidate(self, folds=folds, verbose=verbose)
+
         best_params = fmin(
-            fn=CrossValidate(*views, method=self.method, latent_dims=self.latent_dims, folds=folds,
-                             verbose=verbose, max_iter=self.max_iter, tol=self.tol).score,
+            fn=cv.score(*views),
             space=space,
             algo=tpe.suggest,
             max_evals=100,

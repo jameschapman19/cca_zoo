@@ -16,6 +16,8 @@ Intro
 DeepWrapper
 -----------
 
+The deepwrapper provides a general training scheme.
+
 .. automodule:: cca_zoo.deepwrapper
     :members:
     :undoc-members:
@@ -82,7 +84,10 @@ Models Implemented
    deepvcca.rst
 
 Architecture Options
-------------------
+--------------------
+
+We provide a base encoder and decoder class which can be inherited in order to build custom architectures which can be
+used
 
 .. automodule:: cca_zoo.deep_models
     :members:

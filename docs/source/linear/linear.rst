@@ -41,6 +41,17 @@ The CCA_Iter class gives further flexibility to use iterative optimization metho
     :show-inheritance:
     :member-order: bysource
 
+.. sourcecode:: python
+
+   from cca_zoo import wrappers
+   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
+   linear_cca = wrappers.CCA_ITER(latent_dims=latent_dims,max_iter=max_iter)
+
+   linear_cca.fit(train_view_1, train_view_2)
+
+   linear_cca_results = np.stack(
+       (linear_cca.train_correlations[0, 1], linear_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
+
 Kernel CCA
 ----------
 
@@ -52,8 +63,23 @@ The KCCA class allows the use of linear, polynomial and rbf kernels (and their a
     :show-inheritance:
     :member-order: bysource
 
+Example
+~~~~~~~
+
+.. sourcecode:: python
+
+   from cca_zoo import wrappers
+   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
+   kcca = wrappers.KCCA(latent_dims=latent_dims)
+   # small ammount of regularisation added since data is not full rank
+   params = {'kernel': 'linear','c': [0.5, 0.5]}
+
+   kcca.fit(train_view_1, train_view_2, params=params)
+
+   kcca_results = np.stack((kcca.train_correlations[0, 1], kcca.predict_corr(test_view_1, test_view_2)[0, 1]))
+
 Multiset CCA
------------------
+-------------
 
 Multiset CCA is implemented as a generalized eigenvalue problem.
 
@@ -62,6 +88,21 @@ Multiset CCA is implemented as a generalized eigenvalue problem.
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
+
+Example
+~~~~~~~
+
+.. sourcecode:: python
+
+   from cca_zoo import wrappers
+   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
+   mcca = wrappers.MCCA(latent_dims=latent_dims)
+   # small ammount of regularisation added since data is not full rank
+   params = {'c': [0.5, 0.5]}
+
+   mcca.fit(train_view_1, train_view_2, params=params)
+
+   mcca_results = np.stack((mcca.train_correlations[0, 1], mcca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 Generalized CCA
 -----------------
@@ -74,12 +115,28 @@ Generalized CCA is implemented as a generalized eigenvalue problem.
     :show-inheritance:
     :member-order: bysource
 
+Example
+~~~~~~~
+
+.. sourcecode:: python
+
+   from cca_zoo import wrappers
+   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
+   gcca = wrappers.GCCA(latent_dims=latent_dims)
+   # regularisation from 0<'c'<1 for each view
+   params = {'c': [1, 1]}
+
+   gcca.fit(train_view_1, train_view_2, params=params)
+
+   gcca_results = np.stack((gcca.train_correlations[0, 1], gcca.predict_corr(test_view_1, test_view_2)[0, 1]))
+
 Grid search cross-validation
 ----------------------------
 
 All of the models inherit gridsearch_fit() from the base class. This can be used to select from a user defined parameter grid.
 
-We give an example
+Example
+~~~~~~~
 
 .. sourcecode:: python
 
