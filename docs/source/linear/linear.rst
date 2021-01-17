@@ -22,6 +22,8 @@ Base
 ----
 The base class defines the shared structure of each of the models implemented in wrappers.py.
 
+The idea is that new methods which inherit the base class can benefit from general functions such as demean_data and gridsearch_fit provided that
+
 .. autoclass:: cca_zoo.wrappers.CCA_Base
     :members:
     :undoc-members:

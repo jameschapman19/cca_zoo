@@ -206,7 +206,7 @@ class MCCA(CCA_Base):
         eigvecs = eigvecs[:, idx].real
         eigvecs = len(views) * np.linalg.inv(R) @ eigvecs
         splits = np.cumsum([0] + [view.shape[1] for view in views])
-        self.weights_list = [eigvecs[split:splits[i + 1], :self.latent_dims] for i, split in enumerate(splits)]
+        self.weights_list = [eigvecs[split:splits[i + 1], :self.latent_dims] for i, split in enumerate(splits[:-1])]
         self.rotation_list = self.weights_list
         self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views)]
         self.train_correlations = self.predict_corr(*views)
