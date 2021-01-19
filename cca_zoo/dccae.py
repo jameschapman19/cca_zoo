@@ -13,15 +13,16 @@ import torch
 from torch import nn
 from torch import optim
 from torch.nn import functional as F
+
 from cca_zoo.dcca import DCCA
 
 
 class DCCAE(DCCA):
 
-    def __init__(self, objective=None, input_sizes=None, latent_dims=1, encoder_models=None, encoder_args=None,
+    def __init__(self, latent_dims: int, input_sizes: list, objective=None, encoder_models=None, encoder_args=None,
                  decoder_models=None, decoder_args=None,
                  learning_rate=1e-3, lam=0.5):
-        super(DCCAE, self).__init__()
+        super(DCCAE, self).__init__(latent_dims, input_sizes)
         self.encoders = nn.ModuleList(
             [model(input_sizes[i], latent_dims, **encoder_args[i]) for i, model in
              enumerate(encoder_models)])

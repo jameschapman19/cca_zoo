@@ -1,15 +1,19 @@
-import itertools
 import copy
+import itertools
+from abc import abstractmethod
+from typing import Type
+
 import numpy as np
 from joblib import Parallel, delayed
 from scipy.linalg import pinv2, block_diag, cholesky
-from abc import abstractmethod
 from sklearn.base import BaseEstimator
-import cca_zoo.innerloop
+
 import cca_zoo.data
+import cca_zoo.innerloop
 import cca_zoo.kcca
 import cca_zoo.plot_utils
-from typing import Type
+
+
 # from hyperopt import fmin, tpe, Trials
 
 class CCA_Base(BaseEstimator):

@@ -13,6 +13,7 @@ import torch
 from torch import nn
 from torch import optim
 from torch.nn import functional as F
+
 from cca_zoo.dcca import DCCA
 
 
@@ -23,10 +24,11 @@ class DVCCA(DCCA):
     # https: // github.com / pytorch / examples / blob / master / vae / main.py
     """
 
-    def __init__(self, input_sizes=None, latent_dims=1, encoder_models=None, encoder_args=None,private_encoder_models=None, private_encoder_args=None,
+    def __init__(self, latent_dims: int, input_sizes: list, encoder_models=None, encoder_args=None,
+                 private_encoder_models=None, private_encoder_args=None,
                  decoder_models=None, decoder_args=None,
                  learning_rate=1e-3, private=False, mu=0.5):
-        super(DVCCA, self).__init__()
+        super(DVCCA, self).__init__(latent_dims, input_sizes)
         self.private = private
         self.mu = mu
         self.latent_dims = latent_dims

@@ -1,6 +1,5 @@
 import numpy as np
-from scipy.linalg import eigh
-from scipy.sparse.linalg import eigs, eigsh
+from scipy.sparse.linalg import eigsh
 from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel
 
 

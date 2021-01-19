@@ -1,8 +1,6 @@
 import matplotlib
 
 matplotlib.use('agg')
-from mpl_toolkits.mplot3d import Axes3D
-from scipy.interpolate import griddata
 from matplotlib import cm
 import numpy as np
 import pandas as pd

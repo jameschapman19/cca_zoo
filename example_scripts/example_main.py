@@ -43,6 +43,20 @@ jobs = 2
 # Number of iterations for iterative algorithms
 max_iter = 10
 
+
+from cca_zoo import deepwrapper, objectives, dcca
+
+# %%
+# DCCA
+model_type=dcca.DCCA
+# hidden_layer_sizes are shown explicitly but these are also the defaults
+dcca_model = deepwrapper.DeepWrapper(dcca.DCCA)
+
+dcca_model.fit(train_view_1, train_view_2)
+
+dcca_results = np.stack((dcca_model.train_correlations[0, 1], dcca_model.predict_corr(test_view_1, test_view_2)[0, 1]))
+
+
 """
 ### Linear CCA via alternating least squares (can pass more than 2 views)
 """

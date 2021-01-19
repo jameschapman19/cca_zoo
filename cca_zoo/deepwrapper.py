@@ -18,27 +18,27 @@ recon_loss(): gets the reconstruction loss for out of sample data - if the model
 
 import copy
 import itertools
+from typing import Type
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Subset
 
 import cca_zoo.plot_utils
-from cca_zoo.configuration import Config
+from cca_zoo.dcca import DCCA
 
 
 class DeepWrapper:
 
-    def __init__(self, config: Config = Config):
-        self.config = config
-        if self.config.device is None:
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        else:
-            self.device = self.config.device
-            if not torch.cuda.is_available() and self.device == 'cuda':
-                self.device = 'cpu'
+    def __init__(self, model_type: Type[DCCA], latent_dims=1, **kwargs):
+        self.model_type = model_type
+        self.device = kwargs.get('device', torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        if not torch.cuda.is_available() and self.device == 'cuda':
+            self.device = 'cpu'
+        self.latent_dims = latent_dims
+        self.model_kwargs = kwargs
 
-    def fit(self, *views, labels=None, val_split=0.2):
+    def fit(self, *views, labels=None, val_split=0.2, batch_size=0, patience=0, epochs=1):
         if type(views[0]) is np.ndarray:
             dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
             ids = np.arange(len(dataset))
@@ -56,19 +56,19 @@ class DeepWrapper:
                 lengths = [len(dataset) - int(len(dataset) * val_split), int(len(dataset) * val_split)]
                 train_dataset, val_dataset = torch.utils.data.random_split(dataset, lengths)
 
-        if self.config.batch_size == 0:
+        if batch_size == 0:
             train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset), drop_last=True)
         else:
-            train_dataloader = DataLoader(train_dataset, batch_size=self.config.batch_size, drop_last=True)
+            train_dataloader = DataLoader(train_dataset, batch_size=batch_size, drop_last=True)
         val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
 
-        self.config.input_sizes = [view.shape[-1] if view.shape.__len__() > 0 else 1 for view in train_dataset[0][0]]
+        self.input_sizes = [view.shape[-1] if view.shape.__len__() > 0 else 1 for view in train_dataset[0][0]]
 
         # First we get the model class.
         # These have a forward method which takes data inputs and outputs the variables needed to calculate their
         # respective loss. The models also have loss functions as methods but we can also customise the loss by calling
         # a_loss_function(model(data))
-        self.model = self.config.method(self.config)
+        self.model = self.model_type(self.latent_dims, **self.model_kwargs)
         num_params = sum(p.numel() for p in self.model.parameters())
         print('total parameters: ', num_params)
         best_model = copy.deepcopy(self.model.state_dict())
@@ -79,7 +79,7 @@ class DeepWrapper:
         all_train_loss = []
         all_val_loss = []
 
-        for epoch in range(1, self.config.epoch_num + 1):
+        for epoch in range(1, epochs + 1):
             if not early_stop:
                 epoch_train_loss = self.train_epoch(train_dataloader)
                 print('====> Epoch: {} Average train loss: {:.4f}'.format(
@@ -97,7 +97,7 @@ class DeepWrapper:
                 else:
                     epochs_no_improve += 1
                     # Check early stopping condition
-                    if epochs_no_improve == self.config.patience and self.config.patience > 0:
+                    if epochs_no_improve == patience and patience > 0:
                         print('Early stopping!')
                         early_stop = True
                         self.model.load_state_dict(best_model)
@@ -105,7 +105,7 @@ class DeepWrapper:
                 all_train_loss.append(epoch_train_loss)
                 all_val_loss.append(epoch_val_loss)
         cca_zoo.plot_utils.plot_training_loss(all_train_loss, all_val_loss)
-        if not self.config.autoencoder:
+        if self.model_kwargs.get('autoencoder') is None:
             self.train_correlations = self.predict_corr(train_dataset, train=True)
         return self
 
@@ -132,8 +132,9 @@ class DeepWrapper:
         transformed_views = self.transform(*views, train=train)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
-            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.config.latent_dims, self.config.latent_dims:]))
-        all_corrs = np.array(all_corrs).reshape((len(transformed_views), len(transformed_views), self.config.latent_dims))
+            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
+        all_corrs = np.array(all_corrs).reshape(
+            (len(transformed_views), len(transformed_views), self.latent_dims))
         return all_corrs
 
     def transform(self, *views, labels=None, train=False):
@@ -153,9 +154,9 @@ class DeepWrapper:
                     z_list = [np.append(z_list[i], z_i.detach().cpu().numpy(), axis=0) for
                               i, z_i in enumerate(z)]
         # For trace-norm objective models we need to apply a linear CCA to outputs
-        if self.config.post_transform:
+        if self.model_kwargs.get('post_transform', False):
             if train:
-                self.cca = cca_zoo.wrappers.MCCA(latent_dims=self.config.latent_dims)
+                self.cca = cca_zoo.wrappers.MCCA(latent_dims=self.latent_dims)
                 self.cca.fit(*z_list)
                 z_list = self.cca.transform(*z_list)
             else:

@@ -9,16 +9,17 @@ This allows me to wrap them all up in the deep wrapper. Obviously this isn't req
 for standardising the pipeline for comparison
 """
 
-from torch import nn
-from torch.linalg import norm
-from torch import optim, matmul, mean, stack
-from torch.nn import functional as F
-from cca_zoo.objectives import compute_matrix_power
 from abc import abstractmethod
+
+from torch import nn
+from torch import optim, matmul, mean, stack
+from torch.linalg import norm
+
+from cca_zoo.objectives import compute_matrix_power
 
 
 class DCCA(nn.Module):
-    def __init__(self, objective=None, input_sizes=None, latent_dims=1, encoder_models=None, encoder_args=None,
+    def __init__(self, latent_dims: int, input_sizes: list, objective=None, encoder_models=None, encoder_args=None,
                  learning_rate=1e-3, als=False):
         super(DCCA, self).__init__()
         self.encoders = nn.ModuleList(
@@ -120,5 +121,3 @@ class DCCA(nn.Module):
                          enumerate(batch_covs)]
         else:
             self.covs = batch_covs
-
-
