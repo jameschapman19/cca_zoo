@@ -1,4 +1,4 @@
-import cca_zoo.alsinnerloop
+import cca_zoo.innerloop
 import cca_zoo.data
 import cca_zoo.dcca
 import cca_zoo.dccae

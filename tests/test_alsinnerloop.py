@@ -2,7 +2,7 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
 from unittest import TestCase
-import cca_zoo.alsinnerloop
+import cca_zoo.innerloop
 
 
 class TestAlsInnerLoop(TestCase):
@@ -16,23 +16,28 @@ class TestAlsInnerLoop(TestCase):
         pass
 
     def test_iterate(self):
-        als = cca_zoo.alsinnerloop.AlsInnerLoop(self.X, self.Y)
-        generalized_als = cca_zoo.alsinnerloop.AlsInnerLoop(self.X, self.Y, self.Z)
+        pls = cca_zoo.innerloop.InnerLoop(self.X, self.Y)
+        generalized_pls = cca_zoo.innerloop.InnerLoop(self.X, self.Y, self.Z)
+        als = cca_zoo.innerloop.CCAInnerLoop(self.X, self.Y)
+        generalized_als = cca_zoo.innerloop.CCAInnerLoop(self.X, self.Y, self.Z)
+        self.assertIsNone(
+            np.testing.assert_almost_equal(np.linalg.norm(pls.weights[0]), np.linalg.norm(pls.weights[1]), 1))
         self.assertIsNone(
             np.testing.assert_almost_equal(np.linalg.norm(als.scores[0]), np.linalg.norm(als.scores[1]), 1))
+        self.assertIsNone(
+            np.testing.assert_almost_equal(np.linalg.norm(generalized_pls.weights[0]),
+                                           np.linalg.norm(generalized_pls.weights[1]),
+                                           np.linalg.norm(generalized_pls.weights[2]), 1))
         self.assertIsNone(
             np.testing.assert_almost_equal(np.linalg.norm(generalized_als.scores[0]),
                                            np.linalg.norm(generalized_als.scores[1]),
                                            np.linalg.norm(generalized_als.scores[2]), 1))
 
     def test_regularized(self):
-
-        params = {'c': [0.0001, 0.0001]}
-        scca = cca_zoo.alsinnerloop.AlsInnerLoop(self.X, self.Y, method='scca', params=params)
-        scca_gen = cca_zoo.alsinnerloop.AlsInnerLoop(self.X, self.Y, method='scca', params=params, generalized=True)
-        park = cca_zoo.alsinnerloop.AlsInnerLoop(self.X, self.Y, method='parkhomenko', params=params)
-        park_gen = cca_zoo.alsinnerloop.AlsInnerLoop(self.X, self.Y, method='parkhomenko', params=params,
-                                                     generalized=True)
+        scca = cca_zoo.innerloop.SCCAInnerLoop(self.X, self.Y, c=[0.0001, 0.0001])
+        scca_gen = cca_zoo.innerloop.SCCAInnerLoop(self.X, self.Y, c=[0.0001, 0.0001], generalized=True)
+        park = cca_zoo.innerloop.ParkhomenkoInnerLoop(self.X, self.Y,c=[0.0001, 0.0001])
+        park_gen = cca_zoo.innerloop.ParkhomenkoInnerLoop(self.X, self.Y,c=[0.0001, 0.0001], generalized=True)
         params = {'c': [2, 2]}
-        pmd = cca_zoo.alsinnerloop.AlsInnerLoop(self.X, self.Y, method='pmd', params=params)
-        pmd_gen = cca_zoo.alsinnerloop.AlsInnerLoop(self.X, self.Y, method='pmd', params=params, generalized=True)
+        pmd = cca_zoo.innerloop.PMDInnerLoop(self.X, self.Y, c=[2,2])
+        pmd_gen = cca_zoo.innerloop.PMDInnerLoop(self.X, self.Y, c=[2,2], generalized=True)

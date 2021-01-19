@@ -13,43 +13,82 @@ import torch
 from torch import nn
 from torch import optim
 from torch.nn import functional as F
+from cca_zoo.dcca import DCCA
 
-from cca_zoo.configuration import Config
 
-
-class DVCCA(nn.Module):
+class DVCCA(DCCA):
     """
     https: // arxiv.org / pdf / 1610.03454.pdf
     With pieces borrowed from the variational autoencoder implementation @
     # https: // github.com / pytorch / examples / blob / master / vae / main.py
     """
 
-    def __init__(self, config: Config = Config):
-        """
-        :param config:
-        """
+    def __init__(self, input_sizes=None, latent_dims=1, encoder_models=None, encoder_args=None,private_encoder_models=None, private_encoder_args=None,
+                 decoder_models=None, decoder_args=None,
+                 learning_rate=1e-3, private=False, mu=0.5):
         super(DVCCA, self).__init__()
-        self.private = config.private
-        self.mu = config.mu
-        self.latent_dims = config.latent_dims
-        self.encoders = nn.ModuleList([model(config.input_sizes[i], config.latent_dims, variational=True,
-                                             **config.encoder_args[i]) for i, model in
-                                       enumerate(config.encoder_models)])
-        if config.private:
+        self.private = private
+        self.mu = mu
+        self.latent_dims = latent_dims
+        self.encoders = nn.ModuleList([model(input_sizes[i], latent_dims, variational=True,
+                                             **encoder_args[i]) for i, model in
+                                       enumerate(encoder_models)])
+        if private:
             self.private_encoders = nn.ModuleList(
-                [model(config.input_sizes[i], config.latent_dims, variational=True,
-                       **config.private_encoder_args[i]) for i, model in enumerate(config.private_encoder_models)])
+                [model(input_sizes[i], latent_dims, variational=True,
+                       **private_encoder_args[i]) for i, model in enumerate(private_encoder_models)])
             self.decoders = nn.ModuleList(
-                [model(config.latent_dims * 3, config.input_sizes[i],
-                       norm_output=True, **config.decoder_args[i]) for i, model in enumerate(config.decoder_models)])
+                [model(latent_dims * 3, input_sizes[i],
+                       norm_output=True, **decoder_args[i]) for i, model in enumerate(decoder_models)])
         else:
-            self.decoders = nn.ModuleList([model(config.latent_dims, config.input_sizes[i],
-                                                 norm_output=True, **config.decoder_args[i]) for i, model in
-                                           enumerate(config.decoder_models)])
-        self.encoder_optimizers = optim.Adam(self.encoders.parameters(), lr=config.learning_rate)
-        self.decoder_optimizers = optim.Adam(self.decoders.parameters(), lr=config.learning_rate)
+            self.decoders = nn.ModuleList([model(latent_dims, input_sizes[i],
+                                                 norm_output=True, **decoder_args[i]) for i, model in
+                                           enumerate(decoder_models)])
+        self.encoder_optimizers = optim.Adam(self.encoders.parameters(), lr=learning_rate)
+        self.decoder_optimizers = optim.Adam(self.decoders.parameters(), lr=learning_rate)
         if self.private:
-            self.private_encoder_optimizers = optim.Adam(self.private_encoders.parameters(), lr=config.learning_rate)
+            self.private_encoder_optimizers = optim.Adam(self.private_encoders.parameters(), lr=learning_rate)
+
+    def update_weights(self, *args):
+        """
+        :param args:
+        :return:
+        """
+        self.encoder_optimizers.zero_grad()
+        self.decoder_optimizers.zero_grad()
+        if self.private:
+            self.private_encoder_optimizers.zero_grad()
+        loss = self.loss(*args)
+        loss.backward()
+        self.encoder_optimizers.step()
+        self.decoder_optimizers.step()
+        if self.private:
+            self.private_encoder_optimizers.step()
+        return loss
+
+    def forward(self, *args, mle=True):
+        """
+        :param args:
+        :param mle:
+        :return:
+        """
+        # Used when we get reconstructions
+        mu, logvar = self.encode(*args)
+        if mle:
+            z = mu
+        else:
+            z = self.reparameterize(mu, logvar)
+        # If using single encoder repeat representation n times
+        if len(self.encoders) == 1:
+            z = z * len(args)
+        if self.private:
+            mu_p, logvar_p = self.encode_private(*args)
+            if mle:
+                z_p = mu_p
+            else:
+                z_p = self.reparameterize(mu_p, logvar_p)
+            z = [torch.cat([z_] + z_p, dim=-1) for z_ in z]
+        return z
 
     def encode(self, *args):
         """
@@ -102,30 +141,6 @@ class DVCCA(nn.Module):
             x.append(x_i)
         return tuple(x)
 
-    def forward(self, *args, mle=True):
-        """
-        :param args:
-        :param mle:
-        :return:
-        """
-        # Used when we get reconstructions
-        mu, logvar = self.encode(*args)
-        if mle:
-            z = mu
-        else:
-            z = self.reparameterize(mu, logvar)
-        # If using single encoder repeat representation n times
-        if len(self.encoders) == 1:
-            z = z * len(args)
-        if self.private:
-            mu_p, logvar_p = self.encode_private(*args)
-            if mle:
-                z_p = mu_p
-            else:
-                z_p = self.reparameterize(mu_p, logvar_p)
-            z = [torch.cat([z_] + z_p, dim=-1) for z_ in z]
-        return z
-
     def recon(self, *args):
         """
         :param args:
@@ -133,23 +148,6 @@ class DVCCA(nn.Module):
         """
         z = self(*args)
         return [self.decode(z_i) for z_i in z][0]
-
-    def update_weights(self, *args):
-        """
-        :param args:
-        :return:
-        """
-        self.encoder_optimizers.zero_grad()
-        self.decoder_optimizers.zero_grad()
-        if self.private:
-            self.private_encoder_optimizers.zero_grad()
-        loss = self.loss(*args)
-        loss.backward()
-        self.encoder_optimizers.step()
-        self.decoder_optimizers.step()
-        if self.private:
-            self.private_encoder_optimizers.step()
-        return loss
 
     def loss(self, *args):
         """

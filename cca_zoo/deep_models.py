@@ -13,7 +13,7 @@ https://github.com/Michaelvll/DeepCCA/blob/master/DeepCCAModels.py
 '''
 
 
-class BaseEncoder(nn.Module, metaclass=ABCMeta):
+class BaseEncoder(nn.Module):
     @abstractmethod
     def __init__(self, input_size: int, output_size: int, variational: bool = False):
         super(BaseEncoder, self).__init__()
@@ -26,7 +26,7 @@ class BaseEncoder(nn.Module, metaclass=ABCMeta):
         pass
 
 
-class BaseDecoder(nn.Module, metaclass=ABCMeta):
+class BaseDecoder(nn.Module):
     @abstractmethod
     def __init__(self, input_size: int, output_size: int):
         super(BaseDecoder, self).__init__()

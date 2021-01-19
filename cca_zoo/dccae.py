@@ -13,52 +13,25 @@ import torch
 from torch import nn
 from torch import optim
 from torch.nn import functional as F
+from cca_zoo.dcca import DCCA
 
-from cca_zoo.configuration import Config
 
-class DCCAE(nn.Module):
+class DCCAE(DCCA):
 
-    def __init__(self, config: Config = Config):
-        """
-        :param config:
-        """
+    def __init__(self, objective=None, input_sizes=None, latent_dims=1, encoder_models=None, encoder_args=None,
+                 decoder_models=None, decoder_args=None,
+                 learning_rate=1e-3, lam=0.5):
         super(DCCAE, self).__init__()
         self.encoders = nn.ModuleList(
-            [model(config.input_sizes[i], config.latent_dims, **config.encoder_args[i]) for i, model in enumerate(config.encoder_models)])
+            [model(input_sizes[i], latent_dims, **encoder_args[i]) for i, model in
+             enumerate(encoder_models)])
         self.decoders = nn.ModuleList(
-            [model(config.latent_dims, config.input_sizes[i], **config.decoder_args[i]) for i, model in enumerate(config.decoder_models)])
-        self.lam = config.lam
-        self.objective = config.objective(config.latent_dims)
+            [model(latent_dims, input_sizes[i], **decoder_args[i]) for i, model in
+             enumerate(decoder_models)])
+        self.lam = lam
+        self.objective = objective(latent_dims)
         self.optimizer = optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),
-                                    lr=config.learning_rate)
-
-    def encode(self, *args):
-        """
-        :param args:
-        :return:
-        """
-        z = []
-        for i, encoder in enumerate(self.encoders):
-            z.append(encoder(args[i]))
-        return tuple(z)
-
-    def forward(self, *args):
-        """
-        :param args:
-        :return:
-        """
-        z = self.encode(*args)
-        return z
-
-    def decode(self, *args):
-        """
-        :param args:
-        :return:
-        """
-        recon = []
-        for i, decoder in enumerate(self.decoders):
-            recon.append(decoder(args[i]))
-        return tuple(recon)
+                                    lr=learning_rate)
 
     def update_weights(self, *args):
         """
@@ -70,6 +43,26 @@ class DCCAE(nn.Module):
         loss.backward()
         self.optimizer.step()
         return loss
+
+    def forward(self, *args):
+        z = self.encode(*args)
+        return z
+
+    def encode(self, *args):
+        z = []
+        for i, encoder in enumerate(self.encoders):
+            z.append(encoder(args[i]))
+        return tuple(z)
+
+    def decode(self, *args):
+        """
+        :param args:
+        :return:
+        """
+        recon = []
+        for i, decoder in enumerate(self.decoders):
+            recon.append(decoder(args[i]))
+        return tuple(recon)
 
     def loss(self, *args):
         """

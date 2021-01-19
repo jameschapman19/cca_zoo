@@ -3,22 +3,23 @@ from scipy.linalg import eigh
 from scipy.sparse.linalg import eigs, eigsh
 from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel
 
+
 # Mostly adapted from:
 # https://github.com/lorenzoriano/PyKCCA/blob/master/kcca.py
 # With additional inspiration from:
-#Copyright (c) 2015, The Regents of the University of California (Regents).
-#All rights reserved.
+# Copyright (c) 2015, The Regents of the University of California (Regents).
+# All rights reserved.
 
-#Permission to use, copy, modify, and distribute this software and its documentation for educational,
-#research, and not-for-profit purposes, without fee and without a signed licensing agreement, is hereby granted,
-#provided that the above copyright notice, this paragraph and the following two paragraphs appear in all copies,
-#modifications, and distributions. Contact The Office of Technology Licensing, UC Berkeley,
-#2150 Shattuck Avenue, Suite 510, Berkeley, CA 94720-1620, (510) 643-7201, for commercial licensing opportunities.
+# Permission to use, copy, modify, and distribute this software and its documentation for educational,
+# research, and not-for-profit purposes, without fee and without a signed licensing agreement, is hereby granted,
+# provided that the above copyright notice, this paragraph and the following two paragraphs appear in all copies,
+# modifications, and distributions. Contact The Office of Technology Licensing, UC Berkeley,
+# 2150 Shattuck Avenue, Suite 510, Berkeley, CA 94720-1620, (510) 643-7201, for commercial licensing opportunities.
 
-#Created by Natalia Bilenko, University of California, Berkeley.
+# Created by Natalia Bilenko, University of California, Berkeley.
 
-#IN NO EVENT SHALL REGENTS BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS, ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF REGENTS HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#REGENTS SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED "AS IS". REGENTS HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+# IN NO EVENT SHALL REGENTS BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS, ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF REGENTS HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# REGENTS SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED "AS IS". REGENTS HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
 
 class KCCA:
@@ -30,7 +31,7 @@ class KCCA:
     transform(): which allows us to find the latent variable space for out of sample data
     """
 
-    def __init__(self, X: np.array, Y: np.array, params: dict = None, latent_dims: int = 2):
+    def __init__(self, X: np.array, Y: np.array, latent_dims: int = 2, **kwargs):
         """
         :param X:
         :param Y:
@@ -41,10 +42,10 @@ class KCCA:
         self.Y = Y
         self.eps = 1e-9
         self.latent_dims = latent_dims
-        self.ktype = params.get('kernel')
-        self.sigma = params.get('sigma')
-        self.degree = params.get('degree')
-        self.c = params.get('c')
+        self.ktype = kwargs.get('kernel', 'linear')
+        self.sigma = kwargs.get('sigma', 1.0)
+        self.degree = kwargs.get('degree', 1)
+        self.c = kwargs.get('c', self.eps)
         self.K1 = self.make_kernel(X, X)
         self.K2 = self.make_kernel(Y, Y)
 

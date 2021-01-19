@@ -13,31 +13,42 @@ from torch import nn
 from torch.linalg import norm
 from torch import optim, matmul, mean, stack
 from torch.nn import functional as F
-
-from cca_zoo.configuration import Config
 from cca_zoo.objectives import compute_matrix_power
+from abc import abstractmethod
 
 
 class DCCA(nn.Module):
-
-    def __init__(self, config: Config = Config):
-        """
-        :param config:
-        """
+    def __init__(self, objective=None, input_sizes=None, latent_dims=1, encoder_models=None, encoder_args=None,
+                 learning_rate=1e-3, als=False):
         super(DCCA, self).__init__()
-        self.config = config
         self.encoders = nn.ModuleList(
-            [model(config.input_sizes[i], config.latent_dims, **config.encoder_args[i]) for i, model in
-             enumerate(config.encoder_models)])
-        self.objective = config.objective(config.latent_dims)
-        self.optimizers = [optim.Adam(list(encoder.parameters()), lr=config.learning_rate) for encoder in self.encoders]
+            [model(input_sizes[i], latent_dims, **encoder_args[i]) for i, model in
+             enumerate(encoder_models)])
+        self.objective = objective(latent_dims)
+        self.optimizers = [optim.Adam(list(encoder.parameters()), lr=learning_rate) for encoder in self.encoders]
         self.covs = None
-        if config.als:
+        if als:
             self.update_weights = self.update_weights_als
-            self.loss = self.als_loss_validation
         else:
             self.update_weights = self.update_weights_tn
             self.loss = self.tn_loss
+
+    @abstractmethod
+    def update_weights(self, *args):
+        if self.als:
+            loss = self.update_weights_als(*args)
+        else:
+            loss = self.update_weights_tn(*args)
+        return loss
+
+    @abstractmethod
+    def forward(self, *args):
+        """
+        :param args:
+        :return:
+        """
+        z = self.encode(*args)
+        return z
 
     def encode(self, *args):
         """
@@ -48,14 +59,6 @@ class DCCA(nn.Module):
         for i, encoder in enumerate(self.encoders):
             z.append(encoder(args[i]))
         return tuple(z)
-
-    def forward(self, *args):
-        """
-        :param args:
-        :return:
-        """
-        z = self.encode(*args)
-        return z
 
     def update_weights_tn(self, *args):
         """
@@ -104,15 +107,6 @@ class DCCA(nn.Module):
         obj = self.objective.loss(*z)
         return losses, obj
 
-    def als_loss_validation(self, *args):
-        """
-        :param args:
-        :return:
-        """
-        z = self(*args)
-        loss = self.objective.loss(*z)
-        return loss
-
     def update_covariances(self, *args):
         """
         :param args:
@@ -126,3 +120,5 @@ class DCCA(nn.Module):
                          enumerate(batch_covs)]
         else:
             self.covs = batch_covs
+
+

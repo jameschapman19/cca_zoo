@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Linear (and Kernel) Models
-=============
+==========================
 
 .. toctree::
    :maxdepth: 2
