@@ -24,7 +24,8 @@ class DCCA_base(nn.Module):
     def __init__(self, latent_dims: int, post_transform=False):
         super(DCCA_base, self).__init__()
         self.latent_dims = latent_dims
-        self.post_transform=post_transform
+        self.post_transform = post_transform
+
     @abstractmethod
     def update_weights(self, *args):
         pass
@@ -37,8 +38,8 @@ class DCCA_base(nn.Module):
 class DCCA(DCCA_base):
     def __init__(self, latent_dims: int, objective=CCA,
                  encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
-                 learning_rate=1e-3, als=False, rho: float = 0.2, eps: float = 1e-9,post_transform=True):
-        super().__init__(latent_dims,post_transform=post_transform)
+                 learning_rate=1e-3, als=False, rho: float = 0.2, eps: float = 1e-9, post_transform=True):
+        super().__init__(latent_dims, post_transform=post_transform)
         self.latent_dims = latent_dims
         self.encoders = nn.ModuleList(encoders)
         self.objective = objective(latent_dims)

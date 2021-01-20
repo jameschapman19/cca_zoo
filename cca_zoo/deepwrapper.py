@@ -29,14 +29,14 @@ from cca_zoo.dcca import DCCA_base
 
 class DeepWrapper:
 
-    def __init__(self, model: DCCA_base, latent_dims=1, **kwargs):
+    def __init__(self, model: DCCA_base, device: str = 'cuda'):
         self.model = model
-        self.device = kwargs.get('device', torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        self.device = device
         if not torch.cuda.is_available() and self.device == 'cuda':
             self.device = 'cpu'
-        self.latent_dims = latent_dims
+        self.latent_dims = model.latent_dims
 
-    def fit(self, *views, labels=None, val_split=0.2, batch_size=0, patience=0, epochs=1,train_correlations=True):
+    def fit(self, *views, labels=None, val_split=0.2, batch_size=0, patience=0, epochs=1, train_correlations=True):
         if type(views[0]) is np.ndarray:
             dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
             ids = np.arange(len(dataset))

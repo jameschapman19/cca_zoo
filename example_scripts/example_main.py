@@ -242,7 +242,7 @@ encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
 dcca_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dcca_model = deepwrapper.DeepWrapper(dcca_model,latent_dims=latent_dims)
+dcca_model = deepwrapper.DeepWrapper(dcca_model)
 
 dcca_model.fit(train_view_1, train_view_2, epochs=epochs)
 
@@ -255,7 +255,7 @@ encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
 dgcca_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=objectives.GCCA)
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dgcca_model = deepwrapper.DeepWrapper(dgcca_model,latent_dims=latent_dims)
+dgcca_model = deepwrapper.DeepWrapper(dgcca_model)
 
 dgcca_model.fit(train_view_1, train_view_2, epochs=epochs)
 
@@ -269,7 +269,7 @@ encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
 dmcca_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=objectives.MCCA)
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dmcca_model = deepwrapper.DeepWrapper(dmcca_model,latent_dims=latent_dims)
+dmcca_model = deepwrapper.DeepWrapper(dmcca_model)
 
 dmcca_model.fit(train_view_1, train_view_2, epochs=epochs)
 
@@ -283,7 +283,7 @@ encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
 dcca_noi_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], als=True)
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dcca_noi_model = deepwrapper.DeepWrapper(dcca_noi_model,latent_dims=latent_dims)
+dcca_noi_model = deepwrapper.DeepWrapper(dcca_noi_model)
 
 dcca_noi_model.fit(train_view_1, train_view_2, epochs=epochs)
 
@@ -301,7 +301,7 @@ decoder_2 = deep_models.Decoder(latent_dims=latent_dims, feature_size=784)
 dccae_model = dccae.DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2])
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dccae_model = deepwrapper.DeepWrapper(dccae_model, latent_dims=latent_dims)
+dccae_model = deepwrapper.DeepWrapper(dccae_model)
 
 dccae_model.fit(train_view_1, train_view_2, epochs=epochs)
 
@@ -331,7 +331,7 @@ dvcca_model = dvcca.DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_
                           private=False)
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dvcca_model = deepwrapper.DeepWrapper(dvcca_model,latent_dims=latent_dims)
+dvcca_model = deepwrapper.DeepWrapper(dvcca_model)
 
 dvcca_model.fit(train_view_1, train_view_2, epochs=epochs)
 
@@ -350,7 +350,7 @@ dvccap_model = dvcca.DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder
                            private_encoders=[private_encoder_1, private_encoder_2], private=True)
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dvccap_model = deepwrapper.DeepWrapper(dvccap_model,latent_dims=latent_dims)
+dvccap_model = deepwrapper.DeepWrapper(dvccap_model)
 
 dvccap_model.fit(train_view_1, train_view_2, epochs=epochs)
 
@@ -368,7 +368,7 @@ encoder_1 = deep_models.CNNEncoder(latent_dims=latent_dims, channels=[3, 3])
 encoder_2 = deep_models.CNNEncoder(latent_dims=latent_dims, channels=[3, 3])
 dcca_conv_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
 
-dcca_conv_model = deepwrapper.DeepWrapper(dcca_conv_model,latent_dims=latent_dims)
+dcca_conv_model = deepwrapper.DeepWrapper(dcca_conv_model)
 
 # to change the models used change the cfg.encoder_models. We implement a CNN_Encoder and CNN_decoder as well
 # as some based on brainnet architecture in cca_zoo.deep_models. Equally you could pass your own encoder/decoder models
@@ -388,7 +388,8 @@ dcca_conv_results = np.stack(
 all_results = np.stack(
     [linear_cca_results, gcca_results, mcca_results, pls_results, pmd_results, elastic_results,
      scca_results, kernel_reg_results, kernel_poly_results,
-     kernel_gaussian_results, dcca_results, dgcca_results, dmcca_results, dccae_results, dvcca_model_results,dcca_conv_results],
+     kernel_gaussian_results, dcca_results, dgcca_results, dmcca_results, dccae_results, dvcca_model_results,
+     dcca_conv_results],
     axis=0)
 all_labels = ['linear', 'gcca', 'mcca', 'pls', 'pmd', 'elastic', 'scca', 'linear kernel', 'polynomial kernel',
               'gaussian kernel', 'deep CCA', 'deep generalized CCA', 'deep multiset CCA', 'deep CCAE', 'deep VCCA',
