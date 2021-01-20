@@ -30,6 +30,20 @@ The idea is that new methods which inherit the base class can benefit from gener
     :show-inheritance:
     :member-order: bysource
 
+Iterative Methods
+-----------------
+
+The CCA_Iterative class gives further flexibility to use iterative optimization methods.
+
+In it's basic form, CCA_Iterative performs unregularized PLS but by inheriting this class
+and changing its inner_loop argument.
+
+.. autoclass:: cca_zoo.wrappers.CCA_Iterative
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :member-order: bysource
+
 .. toctree::
    :maxdepth: 3
 

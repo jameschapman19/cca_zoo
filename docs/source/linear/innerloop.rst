@@ -3,19 +3,6 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Iterative Methods
-=================
-
-The CCA_Iterative class gives further flexibility to use iterative optimization methods.
-
-In it's basic form, CCA_Iterative performs unregularized PLS but by inheriting this class
-and changing its inner_loop argument.
-
-.. autoclass:: cca_zoo.wrappers.CCA_Iterative
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :member-order: bysource
 
 
 .. toctree::
