@@ -29,10 +29,13 @@ Look how easy it is to use:
 .. sourcecode:: python
 
    from cca_zoo import wrappers
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
    # %%
-   linear_cca = wrappers.CCA_ITER(latent_dims=latent_dims,max_iter=max_iter)
+   linear_cca = wrappers.CCA(latent_dims=latent_dims, max_iter=max_iter)
+
    linear_cca.fit(train_view_1, train_view_2)
+
+   linear_cca_results = np.stack(
+       (linear_cca.train_correlations[0, 1], linear_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 Features
 --------

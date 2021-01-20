@@ -30,27 +30,12 @@ The idea is that new methods which inherit the base class can benefit from gener
     :show-inheritance:
     :member-order: bysource
 
-Iterative Methods
------------------
+.. toctree::
+   :maxdepth: 3
 
-The CCA_Iter class gives further flexibility to use iterative optimization methods.
+   innerloop.rst
 
-.. autoclass:: cca_zoo.wrappers.CCA_ITER
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :member-order: bysource
 
-.. sourcecode:: python
-
-   from cca_zoo import wrappers
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   linear_cca = wrappers.CCA_ITER(latent_dims=latent_dims,max_iter=max_iter)
-
-   linear_cca.fit(train_view_1, train_view_2)
-
-   linear_cca_results = np.stack(
-       (linear_cca.train_correlations[0, 1], linear_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 Kernel CCA
 ----------
@@ -141,10 +126,17 @@ Example
 .. sourcecode:: python
 
    from cca_zoo import wrappers
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   c1 = [3, 7, 9]
-   c2 = [3, 7, 9]
+   # PMD
+   c1 = [1, 3, 7, 9]
+   c2 = [1, 3, 7, 9]
    param_candidates = {'c': list(itertools.product(c1, c2))}
 
-   pmd = wrappers.CCA_ALS(latent_dims=latent_dims, method='pmd').gridsearch_fit(train_set_1, train_set_2,
-                                                                                              param_candidates=param_candidates,folds=cv_folds,verbose=True)
+   pmd = wrappers.PMD(latent_dims=latent_dims, tol=1e-5, max_iter=max_iter).gridsearch_fit(
+       train_view_1,
+       train_view_2,
+       param_candidates=param_candidates,
+       folds=cv_folds,
+       verbose=True, jobs=jobs,
+       plot=True)
+
+   pmd_results = np.stack((pmd.train_correlations[0, 1, :], pmd.predict_corr(test_view_1, test_view_2)[0, 1, :]))
