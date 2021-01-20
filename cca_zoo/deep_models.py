@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from math import sqrt
+from typing import Iterable, Tuple
 
 import torch
 import torch.nn as nn
@@ -15,11 +16,10 @@ https://github.com/Michaelvll/DeepCCA/blob/master/DeepCCAModels.py
 
 class BaseEncoder(nn.Module):
     @abstractmethod
-    def __init__(self, input_size: int, output_size: int, variational: bool = False):
+    def __init__(self, latent_dims: int, variational: bool = False):
         super(BaseEncoder, self).__init__()
         self.variational = variational
-        self.input_size = input_size
-        self.output_size = output_size
+        self.latent_dims = latent_dims
 
     @abstractmethod
     def forward(self, x):
@@ -28,10 +28,9 @@ class BaseEncoder(nn.Module):
 
 class BaseDecoder(nn.Module):
     @abstractmethod
-    def __init__(self, input_size: int, output_size: int):
+    def __init__(self, latent_dims: int):
         super(BaseDecoder, self).__init__()
-        self.input_size = input_size
-        self.output_size = output_size
+        self.latent_dims = latent_dims
 
     @abstractmethod
     def forward(self, x):
@@ -39,16 +38,21 @@ class BaseDecoder(nn.Module):
 
 
 class Encoder(BaseEncoder):
-    def __init__(self, input_size: int, output_size: int, layer_sizes: list = None, variational: bool = False):
-        super(Encoder, self).__init__(input_size, output_size, variational=variational)
+    def __init__(self, latent_dims: int, variational: bool = False, feature_size: int = 784,
+                 layer_sizes: Iterable = None):
+        super(Encoder, self).__init__(latent_dims, variational=variational)
         if layer_sizes is None:
             layer_sizes = [128]
         layers = []
-        layer_sizes = [input_size] + layer_sizes
+
+        layers.append(nn.Sequential(
+            nn.Linear(feature_size, layer_sizes[0]),
+        ))
+
         for l_id in range(len(layer_sizes)):
             if l_id == len(layer_sizes) - 1:
                 layers.append(nn.Sequential(
-                    nn.Linear(layer_sizes[l_id], output_size),
+                    nn.Linear(layer_sizes[l_id], latent_dims),
                 ))
             else:
                 layers.append(nn.Sequential(
@@ -57,8 +61,8 @@ class Encoder(BaseEncoder):
                 ))
         self.layers = nn.ModuleList(layers)
         if self.variational:
-            self.fc_mu = nn.Linear(layer_sizes[-1], output_size)
-            self.fc_var = nn.Linear(layer_sizes[-1], output_size)
+            self.fc_mu = nn.Linear(layer_sizes[-1], latent_dims)
+            self.fc_var = nn.Linear(layer_sizes[-1], latent_dims)
 
     def forward(self, x):
         for layer in self.layers[:-1]:
@@ -73,22 +77,27 @@ class Encoder(BaseEncoder):
 
 
 class Decoder(BaseDecoder):
-    def __init__(self, input_size: int, output_size: int, layer_sizes: list = None, norm_output: bool = False):
-        super(Decoder, self).__init__(input_size, output_size)
+    def __init__(self, latent_dims: int, feature_size: int = 784, layer_sizes: list = None, norm_output: bool = False):
+        super(Decoder, self).__init__(latent_dims)
         if layer_sizes is None:
             layer_sizes = [128]
         layers = []
-        layer_sizes = [input_size] + layer_sizes
+
+        layers.append(nn.Sequential(
+            nn.Linear(latent_dims, layer_sizes[0]),
+            nn.Sigmoid()
+        ))
+
         for l_id in range(len(layer_sizes)):
             if l_id == len(layer_sizes) - 1:
                 if norm_output:
                     layers.append(nn.Sequential(
-                        nn.Linear(layer_sizes[l_id], output_size),
+                        nn.Linear(layer_sizes[l_id], feature_size),
                         nn.Sigmoid()
                     ))
                 else:
                     layers.append(nn.Sequential(
-                        nn.Linear(layer_sizes[l_id], output_size),
+                        nn.Linear(layer_sizes[l_id], feature_size),
                     ))
             else:
                 layers.append(nn.Sequential(
@@ -104,13 +113,13 @@ class Decoder(BaseDecoder):
 
 
 class CNNEncoder(BaseEncoder):
-    def __init__(self, input_size: int, output_size: int, channels: list = None, kernel_sizes: list = None,
+    def __init__(self, latent_dims: int, variational: bool = False, feature_size: Tuple[int] = (28, 28),
+                 channels: list = None, kernel_sizes: list = None,
                  stride: list = None,
-                 padding: list = None,
-                 variational: bool = False):
-        super(CNNEncoder, self).__init__(input_size, output_size, variational=variational)
+                 padding: list = None):
+        super(CNNEncoder, self).__init__(latent_dims, variational=variational)
         if channels is None:
-            channels = [1]
+            channels = [1, 1]
         if kernel_sizes is None:
             kernel_sizes = [5] * (len(channels))
         if stride is None:
@@ -119,19 +128,18 @@ class CNNEncoder(BaseEncoder):
             padding = [2] * (len(channels))
         # assume square input
         layers = []
-        layer_sizes = channels + [output_size]
-        current_size = input_size
+        current_size = feature_size[0]
         current_channels = 1
-        for l_id in range(len(layer_sizes)):
-            if l_id == len(layer_sizes) - 1:
+        for l_id in range(len(channels)):
+            if l_id == len(channels) - 1:
                 layers.append(nn.Sequential(
-                    nn.Linear(int(current_size * current_size * current_channels), layer_sizes[l_id]),
+                    nn.Linear(int(current_size * current_size * current_channels), latent_dims),
                 ))
             else:
                 layers.append(nn.Sequential(  # input shape (1, current_size, current_size)
                     nn.Conv2d(
                         in_channels=current_channels,  # input height
-                        out_channels=layer_sizes[l_id],  # n_filters
+                        out_channels=channels[l_id],  # n_filters
                         kernel_size=kernel_sizes[l_id],  # filter size
                         stride=stride[l_id],  # filter movement/step
                         padding=padding[l_id],
@@ -142,7 +150,7 @@ class CNNEncoder(BaseEncoder):
                     nn.MaxPool2d(kernel_size=2),  # choose max value in 2x2 area, output shape (16, 14, 14)
                 ))
                 current_size = current_size / 2
-                current_channels = layer_sizes[l_id]
+                current_channels = channels[l_id]
         self.layers = nn.ModuleList(layers)
 
     def forward(self, x):
@@ -156,47 +164,44 @@ class CNNEncoder(BaseEncoder):
 
 
 class CNNDecoder(BaseDecoder):
-    def __init__(self, input_size: int, output_size: int, channels: list = None, kernel_sizes=None, stride=None,
+    def __init__(self, latent_dims: int, feature_size: Tuple[int] = (28, 28), channels: list = None, kernel_sizes=None,
+                 stride=None,
                  padding=None, norm_output: bool = False):
-        super(CNNDecoder, self).__init__(input_size, output_size)
+        super(CNNDecoder, self).__init__(latent_dims)
         if channels is None:
-            channels = [1]
+            channels = [1, 1]
         if kernel_sizes is None:
-            kernel_sizes = [5] * (len(channels) - 1)
+            kernel_sizes = [5] * len(channels)
         if stride is None:
-            stride = [1] * (len(channels) - 1)
+            stride = [1] * len(channels)
         if padding is None:
-            padding = [2] * (len(channels) - 1)
+            padding = [2] * len(channels)
 
         layers = []
-        layer_sizes = channels + [output_size]
-        current_size = input_size
         current_channels = 1
-        for l_id in range(len(layer_sizes)):
-            if l_id == len(layer_sizes) - 1:
-                if norm_output:
-                    layers.append(nn.Sequential(
-                        nn.Linear(input_size, int(current_size * current_size * current_channels)),
-                        nn.Sigmoid()
-                    ))
-                else:
-                    layers.append(nn.Sequential(
-                        nn.Linear(input_size, int(current_size * current_size * current_channels)),
-                    ))
+        current_size = feature_size[0]
+        #Loop backward through decoding layers in order to work out the dimensions at each layer - in particular the first
+        # linear layer needs to know B*current_size*current_size*channels
+        for l_id in range(len(channels)):
+            if l_id == len(channels) - 1:
+                layers.append(nn.Sequential(
+                    nn.Linear(latent_dims, int(current_size * current_size * current_channels)),
+                ))
             else:
                 layers.append(nn.Sequential(
-                    nn.ReLU(),  # input shape (1, current_size, current_size)
                     nn.ConvTranspose2d(
-                        in_channels=layer_sizes[l_id],  # input height
+                        in_channels=channels[l_id],  # input height
                         out_channels=current_channels,
                         kernel_size=kernel_sizes[l_id],
                         stride=stride[l_id],  # filter movement/step
                         padding=padding[l_id],
                         # if want same width and length of this image after Conv2d, padding=(kernel_size-1)/2 if
                         # stride=1
-                    )))
+                    ),
+                    nn.Sigmoid(),  # input shape (1, current_size, current_size)
+                ))
                 current_size = current_size / 2
-                current_channels = layer_sizes[l_id]
+                current_channels = channels[l_id]
         self.layers = nn.ModuleList(layers[::-1])
 
     def forward(self, x):
@@ -215,7 +220,6 @@ class CNNDecoder(BaseDecoder):
 class E2EBlock(nn.Module):
     def __init__(self, in_planes, planes, size, bias=False):
         super(E2EBlock, self).__init__()
-
         self.d = size
         self.cnn1 = torch.nn.Conv2d(in_planes, planes, (1, self.d), bias=bias)
         self.cnn2 = torch.nn.Conv2d(in_planes, planes, (self.d, 1), bias=bias)
@@ -242,16 +246,17 @@ class E2EBlockReverse(nn.Module):
 
 # BrainNetCNN Network for fitting Gold-MSI on LSD dataset
 class BrainNetEncoder(BaseEncoder):
-    def __init__(self, input_size: int, output_size: int, variational: bool = False):
-        super(BrainNetEncoder, self).__init__(input_size, output_size, variational=variational)
-        self.d = input_size
+    def __init__(self, latent_dims: int, variational: bool = False, feature_size: Tuple[int] = (200, 200)):
+        super(BrainNetEncoder, self).__init__(latent_dims, variational=variational)
+        assert (feature_size[0] == feature_size[1])
+        self.d = feature_size[0]
         self.e2econv1 = E2EBlock(1, 32, self.d, bias=True)
         self.e2econv2 = E2EBlock(32, 64, self.d, bias=True)
         self.E2N = torch.nn.Conv2d(64, 1, (1, self.d))
         self.N2G = torch.nn.Conv2d(1, 256, (self.d, 1))
         self.dense1 = torch.nn.Linear(256, 128)
         self.dense2 = torch.nn.Linear(128, 30)
-        self.dense3 = torch.nn.Linear(30, output_size)
+        self.dense3 = torch.nn.Linear(30, latent_dims)
 
     def forward(self, x):  # 16,1,200,200
         out = F.leaky_relu(self.e2econv1(x), negative_slope=0.33)  # 16,32,200,200
@@ -266,16 +271,17 @@ class BrainNetEncoder(BaseEncoder):
 
 
 class BrainNetDecoder(BaseDecoder):
-    def __init__(self, input_size: int, output_size: int):
-        super(BrainNetDecoder, self).__init__(input_size, output_size)
-        self.d = input_size
+    def __init__(self, latent_dims: int, feature_size: Tuple[int] = (200, 200)):
+        super(BrainNetDecoder, self).__init__(latent_dims)
+        assert (feature_size[0] == feature_size[1])
+        self.d = feature_size[0]
         self.e2econv1 = E2EBlock(32, 1, self.d, bias=True)
         self.e2econv2 = E2EBlock(64, 32, self.d, bias=True)
         self.E2N = torch.nn.ConvTranspose2d(1, 64, (1, self.d))
         self.N2G = torch.nn.ConvTranspose2d(256, 1, (self.d, 1))
         self.dense1 = torch.nn.Linear(128, 256)
         self.dense2 = torch.nn.Linear(30, 128)
-        self.dense3 = torch.nn.Linear(output_size, 30)
+        self.dense3 = torch.nn.Linear(latent_dims, 30)
 
     def forward(self, x):
         out = F.dropout(F.leaky_relu(self.dense3(x), negative_slope=0.33), p=0.5)

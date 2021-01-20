@@ -9,36 +9,33 @@ This allows me to wrap them all up in the deep wrapper. Obviously this isn't req
 for standardising the pipeline for comparison
 """
 
+from typing import Iterable
+
 import torch
 from torch import nn
 from torch import optim
 from torch.nn import functional as F
 
-from cca_zoo.dcca import DCCA
+from cca_zoo.dcca import DCCA_base
+from cca_zoo.deep_models import BaseEncoder, Encoder, BaseDecoder, Decoder
+from cca_zoo.objectives import CCA
 
 
-class DCCAE(DCCA):
+class DCCAE(DCCA_base):
 
-    def __init__(self, latent_dims: int, input_sizes: list, objective=None, encoder_models=None, encoder_args=None,
-                 decoder_models=None, decoder_args=None,
-                 learning_rate=1e-3, lam=0.5):
-        super(DCCAE, self).__init__(latent_dims, input_sizes)
-        self.encoders = nn.ModuleList(
-            [model(input_sizes[i], latent_dims, **encoder_args[i]) for i, model in
-             enumerate(encoder_models)])
-        self.decoders = nn.ModuleList(
-            [model(latent_dims, input_sizes[i], **decoder_args[i]) for i, model in
-             enumerate(decoder_models)])
+    def __init__(self, latent_dims: int, objective=CCA, encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
+                 decoders: Iterable[BaseDecoder] = (Decoder, Decoder), learning_rate=1e-3, lam=0.5,
+                 post_transform=True):
+        super().__init__(latent_dims, post_transform=post_transform)
+        self.encoders = nn.ModuleList(encoders)
+        self.decoders = nn.ModuleList(decoders)
         self.lam = lam
         self.objective = objective(latent_dims)
         self.optimizer = optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),
                                     lr=learning_rate)
+        assert (0 <= self.lam <= 1), "lam between 0 and 1"
 
     def update_weights(self, *args):
-        """
-        :param args:
-        :return:
-        """
         self.optimizer.zero_grad()
         loss = self.loss(*args)
         loss.backward()
@@ -56,20 +53,12 @@ class DCCAE(DCCA):
         return tuple(z)
 
     def decode(self, *args):
-        """
-        :param args:
-        :return:
-        """
         recon = []
         for i, decoder in enumerate(self.decoders):
             recon.append(decoder(args[i]))
         return tuple(recon)
 
     def loss(self, *args):
-        """
-        :param args:
-        :return:
-        """
         z = self.encode(*args)
         recon = self.decode(*z)
         recon_loss = self.recon_loss(args, recon)
@@ -77,10 +66,5 @@ class DCCAE(DCCA):
 
     @staticmethod
     def recon_loss(x, recon):
-        """
-        :param x:
-        :param recon:
-        :return:
-        """
         recons = [F.mse_loss(recon[i], x[i], reduction='sum') for i in range(len(x))]
         return torch.stack(recons).sum(dim=0)

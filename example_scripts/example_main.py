@@ -9,7 +9,6 @@ from cca_zoo import wrappers
 from cca_zoo import data
 import itertools
 import os
-from cca_zoo.configuration import Config
 import matplotlib.pyplot as plt
 from torch.utils.data import Subset
 
@@ -42,20 +41,8 @@ cv_folds = 3
 jobs = 2
 # Number of iterations for iterative algorithms
 max_iter = 10
-
-
-from cca_zoo import deepwrapper, objectives, dcca
-
-# %%
-# DCCA
-model_type=dcca.DCCA
-# hidden_layer_sizes are shown explicitly but these are also the defaults
-dcca_model = deepwrapper.DeepWrapper(dcca.DCCA)
-
-dcca_model.fit(train_view_1, train_view_2)
-
-dcca_results = np.stack((dcca_model.train_correlations[0, 1], dcca_model.predict_corr(test_view_1, test_view_2)[0, 1]))
-
+# number of epochs for deep models
+epochs = 50
 
 """
 ### Linear CCA via alternating least squares (can pass more than 2 views)
@@ -160,7 +147,6 @@ scca_admm_results = np.stack(
     (scca_admm.train_correlations[0, 1, :], scca_admm.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 """
 
-
 """
 ### Elastic CCA (can pass more than 2 views)
 """
@@ -173,13 +159,13 @@ l1_2 = [0.01, 0.1]
 param_candidates = {'c': list(itertools.product(c1, c2)), 'l1_ratio': list(itertools.product(l1_1, l1_2))}
 
 elastic = wrappers.ElasticCCA(latent_dims=latent_dims, tol=1e-5,
-                            max_iter=max_iter).gridsearch_fit(train_view_1,
-                                                              train_view_2,
-                                                              param_candidates=param_candidates,
-                                                              folds=cv_folds,
-                                                              verbose=True,
-                                                              jobs=jobs,
-                                                              plot=True)
+                              max_iter=max_iter).gridsearch_fit(train_view_1,
+                                                                train_view_2,
+                                                                param_candidates=param_candidates,
+                                                                folds=cv_folds,
+                                                                verbose=True,
+                                                                jobs=jobs,
+                                                                plot=True)
 
 elastic_results = np.stack(
     (elastic.train_correlations[0, 1, :], elastic.predict_corr(test_view_1, test_view_2)[0, 1, :]))
@@ -246,30 +232,81 @@ We also have deep CCA methods (and autoencoder variants)
 We introduce a Config class from configuration.py. This contains a number of default settings for running DCCA.
 
 """
-from cca_zoo import deepwrapper, objectives
+from cca_zoo import deepwrapper, objectives, dcca, deep_models
 
 # %%
 # DCCA
-cfg = Config()
-cfg.epoch_num = 100
+print('DCCA')
+encoder_1 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+dcca_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dcca = deepwrapper.DeepWrapper(cfg)
+dcca_model = deepwrapper.DeepWrapper(dcca_model,latent_dims=latent_dims)
 
-dcca.fit(train_view_1, train_view_2)
+dcca_model.fit(train_view_1, train_view_2, epochs=epochs)
 
-dcca_results = np.stack((dcca.train_correlations[0, 1], dcca.predict_corr(test_view_1, test_view_2)[0, 1]))
+dcca_results = np.stack((dcca_model.train_correlations[0, 1], dcca_model.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 # DGCCA
-# cfg.loss_type = cca_zoo.objectives.mcca
-cfg.loss_type = objectives.GCCA
+print('DGCCA')
+encoder_1 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+dgcca_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=objectives.GCCA)
 
-# Note the different loss function
-dgcca = deepwrapper.DeepWrapper(cfg)
+# hidden_layer_sizes are shown explicitly but these are also the defaults
+dgcca_model = deepwrapper.DeepWrapper(dgcca_model,latent_dims=latent_dims)
 
-dgcca.fit(train_view_1, train_view_2)
+dgcca_model.fit(train_view_1, train_view_2, epochs=epochs)
 
-dgcca_results = np.stack((dgcca.train_correlations[0, 1], dgcca.predict_corr(test_view_1, test_view_2)[0, 1]))
+dgcca_results = np.stack(
+    (dgcca_model.train_correlations[0, 1], dgcca_model.predict_corr(test_view_1, test_view_2)[0, 1]))
+
+# DMCCA
+print('DMCCA')
+encoder_1 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+dmcca_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=objectives.MCCA)
+
+# hidden_layer_sizes are shown explicitly but these are also the defaults
+dmcca_model = deepwrapper.DeepWrapper(dmcca_model,latent_dims=latent_dims)
+
+dmcca_model.fit(train_view_1, train_view_2, epochs=epochs)
+
+dmcca_results = np.stack(
+    (dmcca_model.train_correlations[0, 1], dmcca_model.predict_corr(test_view_1, test_view_2)[0, 1]))
+
+# DCCA_NOI
+print('DCCA by non-linear orthogonal iterations')
+encoder_1 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+dcca_noi_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], als=True)
+
+# hidden_layer_sizes are shown explicitly but these are also the defaults
+dcca_noi_model = deepwrapper.DeepWrapper(dcca_noi_model,latent_dims=latent_dims)
+
+dcca_noi_model.fit(train_view_1, train_view_2, epochs=epochs)
+
+dcca_noi_results = np.stack(
+    (dcca_noi_model.train_correlations[0, 1], dcca_noi_model.predict_corr(test_view_1, test_view_2)[0, 1]))
+
+from cca_zoo import dccae
+
+# DCCAE
+print('DCCAE')
+encoder_1 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+decoder_1 = deep_models.Decoder(latent_dims=latent_dims, feature_size=784)
+decoder_2 = deep_models.Decoder(latent_dims=latent_dims, feature_size=784)
+dccae_model = dccae.DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2])
+
+# hidden_layer_sizes are shown explicitly but these are also the defaults
+dccae_model = deepwrapper.DeepWrapper(dccae_model, latent_dims=latent_dims)
+
+dccae_model.fit(train_view_1, train_view_2, epochs=epochs)
+
+dccae_results = np.stack(
+    (dccae_model.train_correlations[0, 1], dccae_model.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 """
 ### Deep Variational Learning
@@ -285,48 +322,63 @@ from cca_zoo import dvcca
 
 # %%
 # DVCCA (technically bi-DVCCA)
-cfg = Config()
-cfg.method = dvcca.DVCCA
-cfg.epoch_num = 100
-dvcca = deepwrapper.DeepWrapper(cfg)
+print('DVCCA')
+encoder_1 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784, variational=True)
+encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784, variational=True)
+decoder_1 = deep_models.Decoder(latent_dims=latent_dims, feature_size=784, norm_output=True)
+decoder_2 = deep_models.Decoder(latent_dims=latent_dims, feature_size=784, norm_output=True)
+dvcca_model = dvcca.DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2],
+                          private=False)
 
-dvcca.fit(train_view_1, train_view_2)
+# hidden_layer_sizes are shown explicitly but these are also the defaults
+dvcca_model = deepwrapper.DeepWrapper(dvcca_model,latent_dims=latent_dims)
 
-dvcca_results = np.stack((dvcca.train_correlations[0, 1], dvcca.predict_corr(test_view_1, test_view_2)[0, 1]))
+dvcca_model.fit(train_view_1, train_view_2, epochs=epochs)
+
+dvcca_model_results = np.stack(
+    (dvcca_model.train_correlations[0, 1], dvcca_model.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 # DVCCA_private (technically bi-DVCCA_private)
-# switch private=False default to private=True
-cfg.private = True
+print('DVCCA_private')
+encoder_1 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784, variational=True)
+encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784, variational=True)
+private_encoder_1 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784, variational=True)
+private_encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784, variational=True)
+decoder_1 = deep_models.Decoder(latent_dims=latent_dims * 3, feature_size=784, norm_output=True)
+decoder_2 = deep_models.Decoder(latent_dims=latent_dims * 3, feature_size=784, norm_output=True)
+dvccap_model = dvcca.DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2],
+                           private_encoders=[private_encoder_1, private_encoder_2], private=True)
 
-dvcca_p = deepwrapper.DeepWrapper(cfg)
+# hidden_layer_sizes are shown explicitly but these are also the defaults
+dvccap_model = deepwrapper.DeepWrapper(dvccap_model,latent_dims=latent_dims)
 
-dvcca_p.fit(train_view_1, train_view_2)
+dvccap_model.fit(train_view_1, train_view_2, epochs=epochs)
 
-dvcca_p_results = np.stack((dvcca_p.train_correlations[0, 1], dvcca_p.predict_corr(test_view_1, test_view_2)[0, 1]))
+dvccap_model_results = np.stack(
+    (dvccap_model.train_correlations[0, 1], dvccap_model.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 """
 ### Convolutional Deep Learning
 
 We can vary the encoder architecture from the default fcn to encoder/decoder based on the brainnetcnn architecture or a simple cnn
 """
-from cca_zoo import deep_models
 
-# %%
-cfg = Config()
-cfg.epoch_num = 100
-cfg.encoder_models = [deep_models.CNNEncoder, deep_models.CNNEncoder]
-cfg.encoder_args = [{'channels': [3, 3]}, {'channels': [3, 3]}]
+print('Convolutional DCCA')
+encoder_1 = deep_models.CNNEncoder(latent_dims=latent_dims, channels=[3, 3])
+encoder_2 = deep_models.CNNEncoder(latent_dims=latent_dims, channels=[3, 3])
+dcca_conv_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
+
+dcca_conv_model = deepwrapper.DeepWrapper(dcca_conv_model,latent_dims=latent_dims)
+
 # to change the models used change the cfg.encoder_models. We implement a CNN_Encoder and CNN_decoder as well
 # as some based on brainnet architecture in cca_zoo.deep_models. Equally you could pass your own encoder/decoder models
 
-dcca_conv = deepwrapper.DeepWrapper(cfg)
-
-dcca_conv.fit(train_view_1.reshape((-1, 1, 28, 28)), train_view_2.reshape((-1, 1, 28, 28)))
+dcca_conv_model.fit(train_view_1.reshape((-1, 1, 28, 28)), train_view_2.reshape((-1, 1, 28, 28)), epochs=epochs)
 
 dcca_conv_results = np.stack(
-    (dcca_conv.train_correlations[0, 1], dcca_conv.predict_corr(test_view_1.reshape((-1, 1, 28, 28)),
-                                                                test_view_2.reshape(
-                                                                    (-1, 1, 28, 28)))[0, 1]))
+    (dcca_conv_model.train_correlations[0, 1], dcca_conv_model.predict_corr(test_view_1.reshape((-1, 1, 28, 28)),
+                                                                            test_view_2.reshape(
+                                                                                (-1, 1, 28, 28)))[0, 1]))
 
 """
 ### Make results plot to compare methods
@@ -334,14 +386,13 @@ dcca_conv_results = np.stack(
 # %%
 
 all_results = np.stack(
-    [linear_cca_results, gcca_results, mcca_results, pls_results, scca_results, pmd_results,
-     elastic_results,
-     kernel_reg_results,
-     kernel_poly_results,
-     kernel_gaussian_results, dcca_results, dgcca_results, dcca_conv_results],
+    [linear_cca_results, gcca_results, mcca_results, pls_results, pmd_results, elastic_results,
+     scca_results, kernel_reg_results, kernel_poly_results,
+     kernel_gaussian_results, dcca_results, dgcca_results, dmcca_results, dccae_results, dvcca_model_results,dcca_conv_results],
     axis=0)
 all_labels = ['linear', 'gcca', 'mcca', 'pls', 'pmd', 'elastic', 'scca', 'linear kernel', 'polynomial kernel',
-              'gaussian kernel', 'deep CCA', 'deep generalized CCA', 'deep convolutional cca']
+              'gaussian kernel', 'deep CCA', 'deep generalized CCA', 'deep multiset CCA', 'deep CCAE', 'deep VCCA',
+              'deep convolutional cca']
 
 from cca_zoo import plot_utils
 
