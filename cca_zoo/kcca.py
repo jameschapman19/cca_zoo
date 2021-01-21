@@ -30,26 +30,29 @@ class KCCA:
     transform(): which allows us to find the latent variable space for out of sample data
     """
 
-    def __init__(self, X: np.array, Y: np.array, latent_dims: int = 2, **kwargs):
+    def __init__(self, X: np.array, Y: np.array, latent_dims: int = 2, kernel='linear', sigma=1.0, degree=1, c=None):
         """
         :param X:
         :param Y:
-        :param params: a dictionary containing the relevant parameters required for the model. If None use defaults
         :param latent_dims: number of latent dimensions to find
+        :param kernel: the kernel type 'linear', 'rbf', 'poly'
+        :param sigma: sigma parameter used by sklearn rbf kernel
+        :param degree: polynomial order parameter used by sklearn polynomial kernel
+        :param c: regularisation between 0 (CCA) and 1 (PLS)
         """
         self.X = X
         self.Y = Y
         self.eps = 1e-9
         self.latent_dims = latent_dims
-        self.ktype = kwargs.get('kernel', 'linear')
-        self.sigma = kwargs.get('sigma', 1.0)
-        self.degree = kwargs.get('degree', 1)
-        self.c = kwargs.get('c', self.eps)
+        self.kernel = kernel
+        self.sigma = sigma
+        self.degree = degree
+        self.c = c
+        if c is None:
+            self.c = [0, 0]
         self.K1 = self.make_kernel(X, X)
         self.K2 = self.make_kernel(Y, Y)
-
         N = self.K1.shape[0]
-
         R, D = self.hardoon_method()
         betas, alphas = eigsh(R, k=2 * self.latent_dims, M=D + self.eps * np.eye(D.shape[0]))
         # sorting according to eigenvalue
@@ -73,11 +76,11 @@ class KCCA:
         :param Y:
         :return: Kernel matrix
         """
-        if self.ktype == 'linear':
+        if self.kernel == 'linear':
             kernel = X @ Y.T
-        elif self.ktype == 'rbf':
+        elif self.kernel == 'rbf':
             kernel = rbf_kernel(X, Y=Y, gamma=(1 / (2 * self.sigma)))
-        elif self.ktype == 'poly':
+        elif self.kernel == 'poly':
             kernel = polynomial_kernel(X, Y=Y, degree=self.degree)
         else:
             print('invalid kernel: choose linear, rbf, poly')
