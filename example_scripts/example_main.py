@@ -99,7 +99,7 @@ c1 = [1, 3, 7, 9]
 c2 = [1, 3, 7, 9]
 param_candidates = {'c': list(itertools.product(c1, c2))}
 
-pmd = wrappers.PMD(latent_dims=latent_dims, tol=1e-5, max_iter=max_iter).gridsearch_fit(
+pmd = wrappers.PMD(latent_dims=latent_dims, max_iter=max_iter).gridsearch_fit(
     train_view_1,
     train_view_2,
     param_candidates=param_candidates,
@@ -118,7 +118,7 @@ c1 = [0.00001, 0.0001]
 c2 = [0.00001, 0.0001]
 param_candidates = {'c': list(itertools.product(c1, c2))}
 
-scca = wrappers.SCCA(latent_dims=latent_dims, tol=1e-5, max_iter=max_iter).gridsearch_fit(
+scca = wrappers.SCCA(latent_dims=latent_dims, max_iter=max_iter).gridsearch_fit(
     train_view_1,
     train_view_2,
     param_candidates=param_candidates,
@@ -158,7 +158,7 @@ l1_1 = [0.01, 0.1]
 l1_2 = [0.01, 0.1]
 param_candidates = {'c': list(itertools.product(c1, c2)), 'l1_ratio': list(itertools.product(l1_1, l1_2))}
 
-elastic = wrappers.ElasticCCA(latent_dims=latent_dims, tol=1e-5,
+elastic = wrappers.ElasticCCA(latent_dims=latent_dims,
                               max_iter=max_iter).gridsearch_fit(train_view_1,
                                                                 train_view_2,
                                                                 param_candidates=param_candidates,

@@ -265,7 +265,7 @@ class GCCA(CCA_Base):
 
 class CCA_Iterative(CCA_Base):
     def __init__(self, inner_loop: Type[cca_zoo.innerloop.InnerLoop] = cca_zoo.innerloop.InnerLoop,
-                 latent_dims: int = 1, tol=1e-5, max_iter=100):
+                 latent_dims: int = 1, max_iter=100):
         super().__init__(latent_dims=latent_dims)
         self.inner_loop = inner_loop
         self.max_iter = max_iter
@@ -322,38 +322,38 @@ class CCA_Iterative(CCA_Base):
 
 
 class PLS(CCA_Iterative):
-    def __init__(self, latent_dims: int = 1, tol=1e-5, max_iter=100, generalized=False):
-        super().__init__(cca_zoo.innerloop.PLSInnerLoop, latent_dims, tol, max_iter)
+    def __init__(self, latent_dims: int = 1, max_iter=100):
+        super().__init__(cca_zoo.innerloop.PLSInnerLoop, latent_dims, max_iter)
 
 
 class CCA(CCA_Iterative):
-    def __init__(self, latent_dims: int = 1, tol=1e-5, max_iter=100, generalized=False):
-        super().__init__(cca_zoo.innerloop.CCAInnerLoop, latent_dims, tol, max_iter)
+    def __init__(self, latent_dims: int = 1, max_iter=100):
+        super().__init__(cca_zoo.innerloop.CCAInnerLoop, latent_dims, max_iter)
 
 
 class PMD(CCA_Iterative):
-    def __init__(self, latent_dims: int = 1, tol=1e-5, max_iter=100, generalized=False):
-        super().__init__(cca_zoo.innerloop.PMDInnerLoop, latent_dims, tol, max_iter)
+    def __init__(self, latent_dims: int = 1,  max_iter=100):
+        super().__init__(cca_zoo.innerloop.PMDInnerLoop, latent_dims, max_iter)
 
 
 class ParkhomenkoCCA(CCA_Iterative):
-    def __init__(self, latent_dims: int = 1, tol=1e-5, max_iter=100, generalized=False):
-        super().__init__(cca_zoo.innerloop.ParkhomenkoInnerLoop, latent_dims, tol, max_iter)
+    def __init__(self, latent_dims: int = 1, max_iter=100):
+        super().__init__(cca_zoo.innerloop.ParkhomenkoInnerLoop, latent_dims, max_iter)
 
 
 class SCCA(CCA_Iterative):
-    def __init__(self, latent_dims: int = 1, tol=1e-5, max_iter=100, generalized=False):
-        super().__init__(cca_zoo.innerloop.SCCAInnerLoop, latent_dims, tol, max_iter)
+    def __init__(self, latent_dims: int = 1, max_iter=100):
+        super().__init__(cca_zoo.innerloop.SCCAInnerLoop, latent_dims, max_iter)
 
 
 class SCCA_ADMM(CCA_Iterative):
-    def __init__(self, latent_dims: int = 1, tol=1e-5, max_iter=100, generalized=False):
-        super().__init__(cca_zoo.innerloop.ADMMInnerLoop, latent_dims, tol, max_iter)
+    def __init__(self, latent_dims: int = 1, max_iter=100):
+        super().__init__(cca_zoo.innerloop.ADMMInnerLoop, latent_dims, max_iter)
 
 
 class ElasticCCA(CCA_Iterative):
-    def __init__(self, latent_dims: int = 1, tol=1e-5, max_iter=100, generalized=False):
-        super().__init__(cca_zoo.innerloop.CCAInnerLoop, latent_dims, tol, max_iter)
+    def __init__(self, latent_dims: int = 1, max_iter=100):
+        super().__init__(cca_zoo.innerloop.CCAInnerLoop, latent_dims, max_iter)
 
 
 def slicedict(d, s):
