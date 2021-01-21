@@ -51,7 +51,6 @@ and changing its inner_loop argument.
    innerloop.rst
 
 
-
 Kernel CCA
 ----------
 
