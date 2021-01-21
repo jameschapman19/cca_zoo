@@ -1,9 +1,11 @@
-import numpy as np
 from unittest import TestCase
-import cca_zoo.deepwrapper
-import cca_zoo.deep_models
+
+import numpy as np
+
 import cca_zoo.dcca
 import cca_zoo.dccae
+import cca_zoo.deep_models
+import cca_zoo.deepwrapper
 import cca_zoo.dvcca
 
 
