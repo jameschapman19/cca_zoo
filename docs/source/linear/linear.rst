@@ -46,6 +46,7 @@ and changing its inner_loop argument.
 
 .. toctree::
    :maxdepth: 3
+   :caption: Contents:
 
    innerloop.rst
 
