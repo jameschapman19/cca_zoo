@@ -28,10 +28,19 @@ class DCCA_base(nn.Module):
 
     @abstractmethod
     def update_weights(self, *args):
+        """
+        A complete update of the weights used every batch
+        :param args: batches for each view separated by commas
+        :return:
+        """
         pass
 
     @abstractmethod
     def forward(self, *args):
+        """
+        :param args: batches for each view separated by commas
+        :return: views encoded to latent dimensions
+        """
         pass
 
 

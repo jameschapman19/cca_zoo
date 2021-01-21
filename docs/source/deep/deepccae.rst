@@ -8,12 +8,21 @@ Deep Canonically Correlated Autoencoders
 
 .. sourcecode:: python
 
-   import cca_zoo
-   cfg = Config()
-   cfg.method = cca_zoo.dvcca.DCCAE
-   # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   dcca = cca_zoo.deepwrapper.DeepWrapper(cfg)
-   dcca.fit(train_set_1, train_set_2)
+   from cca_zoo import dccae
+
+   encoder_1 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+   encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+   decoder_1 = deep_models.Decoder(latent_dims=latent_dims, feature_size=784)
+   decoder_2 = deep_models.Decoder(latent_dims=latent_dims, feature_size=784)
+   dccae_model = dccae.DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2])
+
+   # hidden_layer_sizes are shown explicitly but these are also the defaults
+   dccae_model = deepwrapper.DeepWrapper(dccae_model)
+
+   dccae_model.fit(train_view_1, train_view_2, epochs=epochs)
+
+   dccae_results = np.stack(
+       (dccae_model.train_correlations[0, 1], dccae_model.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 Intro
 -----

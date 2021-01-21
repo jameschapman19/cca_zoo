@@ -24,12 +24,20 @@ The deepwrapper provides a general training scheme.
     :show-inheritance:
     :member-order: bysource
 
+DCCA_Base
+---------
+
+Models passed to DeepWrapper objects need to be of type DCCA_Base. They require both a 'forward' and an 'update_weights'
+method.
+
+.. autoclass:: cca_zoo.dcca.DCCA_Base
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :member-order: bysource
+
 Models Implemented
 ------------------
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Contents:
 
    deepcca.rst
    deepccae.rst

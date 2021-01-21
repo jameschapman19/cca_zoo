@@ -18,10 +18,9 @@ import cca_zoo.plot_utils
 
 class CCA_Base(BaseEstimator):
     @abstractmethod
-    def __init__(self, latent_dims: int = 1, tol=1e-5):
+    def __init__(self, latent_dims: int = 1):
         self.train_correlations = None
         self.latent_dims = latent_dims
-        self.tol = tol
 
     @abstractmethod
     def fit(self, *views, **kwargs):
@@ -154,7 +153,7 @@ class CCA_Base(BaseEstimator):
 
 class KCCA(CCA_Base):
     def __init__(self, latent_dims: int = 1, tol=1e-5):
-        super().__init__(latent_dims=latent_dims, tol=tol)
+        super().__init__(latent_dims=latent_dims)
 
     def fit(self, *views, kernel: str = 'linear', sigma: float = 1.0, degree: int = 1, c=None):
         """
@@ -182,7 +181,7 @@ class KCCA(CCA_Base):
 
 class MCCA(CCA_Base):
     def __init__(self, latent_dims: int = 1, tol=1e-5):
-        super().__init__(latent_dims=latent_dims, tol=tol)
+        super().__init__(latent_dims=latent_dims)
 
     def fit(self, *views, c=None):
         """
@@ -226,7 +225,7 @@ class MCCA(CCA_Base):
 
 class GCCA(CCA_Base):
     def __init__(self, latent_dims: int = 1, tol=1e-5):
-        super().__init__(latent_dims=latent_dims, tol=tol)
+        super().__init__(latent_dims=latent_dims)
 
     def fit(self, *views, c=None):
         """
@@ -267,7 +266,7 @@ class GCCA(CCA_Base):
 class CCA_Iterative(CCA_Base):
     def __init__(self, inner_loop: Type[cca_zoo.innerloop.InnerLoop] = cca_zoo.innerloop.InnerLoop,
                  latent_dims: int = 1, tol=1e-5, max_iter=100):
-        super().__init__(latent_dims=latent_dims, tol=tol)
+        super().__init__(latent_dims=latent_dims)
         self.inner_loop = inner_loop
         self.max_iter = max_iter
 

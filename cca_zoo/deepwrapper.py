@@ -1,19 +1,8 @@
 """
-This is a wrapper class for Deep CCA
-We create an instance with a method and number of latent dimensions.
+This is a wrapper class for DCCA_base models.
 
-The class has a number of methods intended to align roughly with the linear Wrapper:
-
-fit(): gives us train correlations and stores the variables needed for out of sample prediction as well as some
-method-specific variables
-
-predict_corr(): allows us to predict the out of sample correlation for supplied views
-
-predict_view(): allows us to predict a reconstruction of missing views from the supplied views
-
-transform_view(): allows us to transform given views to the latent variable space
-
-recon_loss(): gets the reconstruction loss for out of sample data - if the model has an autoencoder piece
+It inherits from the CCA_Base class which allows us to borrow some of the functionality. In particular,
+we could borrow the gridsearch_fit method to search the hyperparameter space.
 """
 
 import copy
@@ -25,11 +14,13 @@ from torch.utils.data import DataLoader, Subset
 
 import cca_zoo.plot_utils
 from cca_zoo.dcca import DCCA_base
+from cca_zoo.wrappers import CCA_Base
 
 
-class DeepWrapper:
+class DeepWrapper(CCA_Base):
 
     def __init__(self, model: DCCA_base, device: str = 'cuda'):
+        super().__init__(latent_dims=model.latent_dims)
         self.model = model
         self.device = device
         if not torch.cuda.is_available() and self.device == 'cuda':
@@ -37,6 +28,19 @@ class DeepWrapper:
         self.latent_dims = model.latent_dims
 
     def fit(self, *views, labels=None, val_split=0.2, batch_size=0, patience=0, epochs=1, train_correlations=True):
+        """
+
+        :param views: EITHER 2D numpy arrays for each view separated by comma with the same number of rows (nxp)
+                        OR torch.torch.utils.data.Dataset
+                        OR 2 or more torch.utils.data.Subset separated by commas
+        :param labels:
+        :param val_split: the ammount of data used for validation
+        :param batch_size: the minibatch size
+        :param patience: if 0 train to num_epochs, else if validation score doesn't improve after patience epochs stop training
+        :param epochs: maximum number of epochs to train
+        :param train_correlations: if True generate training correlations
+        :return:
+        """
         if type(views[0]) is np.ndarray:
             dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
             ids = np.arange(len(dataset))
@@ -105,6 +109,11 @@ class DeepWrapper:
         return self
 
     def train_epoch(self, train_dataloader: torch.utils.data.DataLoader):
+        """
+        Train a single epoch
+        :param train_dataloader: a dataloader for training data
+        :return: average loss over the epoch
+        """
         self.model.train()
         train_loss = 0
         for batch_idx, (data, label) in enumerate(train_dataloader):
@@ -114,6 +123,11 @@ class DeepWrapper:
         return train_loss / len(train_dataloader)
 
     def val_epoch(self, val_dataloader: torch.utils.data.DataLoader):
+        """
+        Validate a single epoch
+        :param val_dataloader: a dataloder for validation data
+        :return: average validation loss over the epoch
+        """
         self.model.eval()
         with torch.no_grad():
             total_val_loss = 0
@@ -124,6 +138,13 @@ class DeepWrapper:
         return total_val_loss / len(val_dataloader)
 
     def predict_corr(self, *views, train=False):
+        """
+        :param views: EITHER numpy arrays separated by comma. Each view needs to have the same number of features as its
+         corresponding view in the training data
+                        OR torch.torch.utils.data.Dataset
+                        OR 2 or more torch.utils.data.Subset separated by commas
+        :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
+        """
         transformed_views = self.transform(*views, train=train)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
