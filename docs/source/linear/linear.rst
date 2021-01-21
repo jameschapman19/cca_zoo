@@ -56,6 +56,7 @@ PLS
     :member-order: bysource
 
 .. sourcecode:: python
+
    from cca_zoo import wrappers
    # %%
    pls = wrappers.PLS(latent_dims=latent_dims, max_iter=max_iter)
@@ -75,6 +76,7 @@ CCA
     :member-order: bysource
 
 .. sourcecode:: python
+
    from cca_zoo import wrappers
       # %%
       cca = wrappers.CCA(latent_dims=latent_dims, max_iter=max_iter)
@@ -96,6 +98,7 @@ https://academic.oup.com/biostatistics/article/10/3/515/293026
     :member-order: bysource
 
 .. sourcecode:: python
+
    from cca_zoo import wrappers
    # %%
    pmd = wrappers.PMD(latent_dims=latent_dims, max_iter=max_iter)
@@ -104,7 +107,6 @@ https://academic.oup.com/biostatistics/article/10/3/515/293026
 
    pmd_results = np.stack(
        (pmd.train_correlations[0, 1], pmd.predict_corr(test_view_1, test_view_2)[0, 1]))
-
 
 Sparse CCA by Penalization (Parkhomenko)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,6 +118,7 @@ Sparse CCA by Penalization (Parkhomenko)
     :member-order: bysource
 
 .. sourcecode:: python
+
    from cca_zoo import wrappers
    # %%
    parkhomenko = wrappers.Parkhomenko(latent_dims=latent_dims, max_iter=max_iter)
@@ -137,6 +140,7 @@ https://onlinelibrary.wiley.com/doi/abs/10.1111/biom.13043?casa_token=pw8OSPmNkz
     :member-order: bysource
 
 .. sourcecode:: python
+
    from cca_zoo import wrappers
    # %%
    scca = wrappers.SCCA(latent_dims=latent_dims, max_iter=max_iter)
@@ -158,6 +162,7 @@ https://arxiv.org/abs/1705.10865
     :member-order: bysource
 
 .. sourcecode:: python
+
    from cca_zoo import wrappers
    # %%
    scca_admm = wrappers.SCCA_ADMM(latent_dims=latent_dims, max_iter=max_iter)
@@ -179,6 +184,7 @@ https://pubmed.ncbi.nlm.nih.gov/19689958/
     :member-order: bysource
 
 .. sourcecode:: python
+
    from cca_zoo import wrappers
    # %%
    elastic_cca = wrappers.ElasticCCA(latent_dims=latent_dims, max_iter=max_iter)

@@ -89,7 +89,7 @@ class InnerLoop:
 
 class PLSInnerLoop(InnerLoop):
     def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized', **kwargs):
+                 initialization: str = 'unregularized'):
         super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
         self.iterate()
@@ -97,7 +97,7 @@ class PLSInnerLoop(InnerLoop):
 
 class CCAInnerLoop(InnerLoop):
     def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized', **kwargs):
+                 initialization: str = 'unregularized'):
         super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
         self.inverses = [pinv2(view) for view in self.views]
@@ -124,10 +124,12 @@ class CCAInnerLoop(InnerLoop):
 
 class PMDInnerLoop(InnerLoop):
     def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized', **kwargs):
+                 initialization: str = 'unregularized', c=None):
         super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
-        self.c = kwargs['c']
+        self.c = c
+        if self.c is None:
+            self.c = [1] * len(views)
         assert (all([c >= 1 for c in self.c]))
         assert (all([c < np.sqrt(view.shape[1]) for c, view in zip(self.c, views)]))
         self.iterate()
@@ -177,11 +179,12 @@ class PMDInnerLoop(InnerLoop):
 
 class ParkhomenkoInnerLoop(InnerLoop):
     def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized', **kwargs):
+                 initialization: str = 'unregularized', c=None):
         super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
-
-        self.c = kwargs.get('c', [1] * len(views))
+        self.c = c
+        if self.c is None:
+            self.c = [0.0001] * len(views)
         assert (all([c > 0 for c in self.c]))
         self.iterate()
 
@@ -203,13 +206,17 @@ class ParkhomenkoInnerLoop(InnerLoop):
 
 class ElasticInnerLoop(InnerLoop):
     def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized', **kwargs):
+                 initialization: str = 'unregularized', c=None, l1_ratio=None, constrained=False):
         super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
 
-        self.constrained = kwargs.get('constrained', False)
-        self.c = kwargs.get('c', [0] * len(views))
-        self.l1_ratio = kwargs.get('l1_ratio', [0] * len(self.views))
+        self.constrained = constrained
+        self.c = c
+        if self.c is None:
+            self.c = [0] * len(views)
+        self.l1_ratio = l1_ratio
+        if self.l1_ratio is None:
+            self.l1_ratio = [0] * len(views)
         self.iterate()
 
     def update_view(self, view_index: int):
@@ -286,12 +293,14 @@ class ElasticInnerLoop(InnerLoop):
 
 class SCCAInnerLoop(InnerLoop):
     def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized', **kwargs):
+                 initialization: str = 'unregularized', c=None):
         super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
         self.inverses = [pinv2(view) if view.shape[0] > view.shape[1] else None for view in
                          self.views]
-        self.c = kwargs.get('c', [0] * len(self.views))
+        self.c = c
+        if self.c is None:
+            self.c = [0] * len(views)
         self.l1_ratio = [1 for _ in self.views]
         self.iterate()
 
@@ -333,12 +342,19 @@ class SCCAInnerLoop(InnerLoop):
 
 class ADMMInnerLoop(InnerLoop):
     def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized', **kwargs):
+                 initialization: str = 'unregularized', mu=None, lam=None, c=None):
         super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
+        self.c = c
+        self.lam = lam
+        self.mu = mu
+        if self.c is None:
+            self.c = [0] * len(self.views)
+        if self.lam is None:
+            self.lam = [1] * len(self.views)
+        if self.mu is None:
+            self.mu = [lam / np.linalg.norm(view) ** 2 for lam, view in zip(self.lam, self.views)]
 
-        self.lam = kwargs.get('lam', [1] * len(self.views))
-        self.mu = kwargs.get('mu', [lam / np.linalg.norm(view) ** 2 for lam, view in zip(self.lam, self.views)])
         assert (all([mu > 0 for mu in self.mu])), "at least one mu is less than zero"
         assert (all([mu <= lam / np.linalg.norm(view) ** 2 for mu, lam, view in
                      zip(self.mu, self.lam,
