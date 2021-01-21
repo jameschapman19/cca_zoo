@@ -12,12 +12,16 @@ from sklearn.utils._testing import ignore_warnings
 
 
 class InnerLoop:
-    """
-    This class implements solutions to regularized CCA and PLS by alternating least squares.
-    """
-
     def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized'):
+        """
+        :param views: 2D numpy arrays for each view separated by comma with the same number of rows (nxp)
+        :param max_iter: maximum number of iterations to perform if tol is not reached
+        :param tol: tolerance value used for stopping criteria
+        :param generalized: use an auxiliary variable to
+        :param initialization: initialise the optimisation with either the 'unregularized' (CCA/PLS) solution, or
+         a 'random' initialisation
+        """
         self.l1_ratio = [0] * len(views)
         self.c = [0] * len(views)
         self.initialization = initialization
@@ -60,6 +64,8 @@ class InnerLoop:
     @abstractmethod
     def update_view(self, view_index: int):
         """
+        Function used to update the parameters in each view within the loop. By changing this function, we can change
+         the optimisation
         :param view_index: index of view being updated
         :return: self with updated weights
         """
@@ -70,6 +76,11 @@ class InnerLoop:
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
     def objective(self):
+        """
+        Function used to calculate the objective function for the given. If we do not override then returns the covariance
+         between projections
+        :return:
+        """
         obj = 0
         for (score_i, score_j) in combinations(self.scores, 2):
             obj += score_i.T @ score_j
@@ -383,6 +394,11 @@ class ADMMInnerLoop(InnerLoop):
 
 
 def sparse_cca_lyuponov(loop: InnerLoop):
+    """
+    General objective function for sparse CCA |X_1w_1-X_2w_2|_2^2 + c_1|w_1|_1 + c_2|w_2|_1
+    :param loop: an inner loop
+    :return:
+    """
     views = len(loop.views)
     c = np.array(loop.c)
     ratio = np.array(loop.l1_ratio)
@@ -446,5 +462,11 @@ def soft_threshold(x, threshold):
 
 
 def cosine_similarity(a, b):
+    """
+    Calculates the cosine similarity between vectors
+    :param a: 1d numpy array
+    :param b: 1d numpy array
+    :return: cosine similarity
+    """
     # https: // www.statology.org / cosine - similarity - python /
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))

@@ -28,7 +28,7 @@ class CCA_Base(BaseEstimator):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
-        :param views: 2D numpy arrays for each view with the same number of rows (nxp)
+        :param views: 2D numpy arrays for each view separated by comma with the same number of rows (nxp)
         :param kwargs: parameters associated with the method.
         :return: training data correlations and the parameters required to call other functions in the class.
         """
