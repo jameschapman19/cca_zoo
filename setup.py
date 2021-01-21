@@ -3,20 +3,20 @@ from setuptools import setup, find_packages
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-requirements=['numpy',
- 'torch',
-'scikit-learn',
- 'scipy',
- 'matplotlib',
- 'seaborn',
- 'Pillow',
- 'torchvision',
- 'pandas',
- 'mvlearn']
+requirements = ['numpy',
+                'torch',
+                'scikit-learn',
+                'scipy',
+                'matplotlib',
+                'seaborn',
+                'Pillow',
+                'torchvision',
+                'pandas',
+                'mvlearn']
 
 setup(
     name='cca_zoo',
-    version='1.1.8',
+    version='1.1.9',
     packages=find_packages(),
     url='https://github.com/jameschapman19/cca_zoo',
     license='MIT',

@@ -336,6 +336,9 @@ class PMD(CCA_Iterative):
     def __init__(self, latent_dims: int = 1, tol=1e-5, max_iter=100, generalized=False):
         super().__init__(cca_zoo.innerloop.PMDInnerLoop, latent_dims, tol, max_iter)
 
+class ParkhomenkoCCA(CCA_Iterative):
+    def __init__(self, latent_dims: int = 1, tol=1e-5, max_iter=100, generalized=False):
+        super().__init__(cca_zoo.innerloop.ParkhomenkoInnerLoop, latent_dims, tol, max_iter)
 
 class SCCA(CCA_Iterative):
     def __init__(self, latent_dims: int = 1, tol=1e-5, max_iter=100, generalized=False):
