@@ -55,17 +55,17 @@ class InnerLoop:
             # Sum all pairwise correlations
             self.track_correlation.append(np.corrcoef(self.scores)[np.triu_indices(self.scores.shape[0], 1)].sum())
             # Some kind of early stopping
-            if _ > 0 and all(cosine_similarity(self.weights[n], self.old_weights[n]) > (1 - self.tol) for n, view in
+            if _ > 0 and all(cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol) for n, view in
                              enumerate(self.scores)):
                 break
-            self.old_weights = self.weights.copy()
+            self.old_scores = self.scores.copy()
         return self
 
     @abstractmethod
     def update_view(self, view_index: int):
         """
         Function used to update the parameters in each view within the loop. By changing this function, we can change
-         the optimisation
+         the optimisation. This method NEEDS to update self.scores[view_inex]
         :param view_index: index of view being updated
         :return: self with updated weights
         """

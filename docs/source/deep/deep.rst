@@ -39,9 +39,9 @@ method.
 Models Implemented
 ------------------
 
-   deepcca.rst
-   deepccae.rst
-   deepvcca.rst
+.. include:: deepcca.rst
+.. include:: deepccae.rst
+.. include:: deepvcca.rst
 
 Architecture Options
 --------------------
