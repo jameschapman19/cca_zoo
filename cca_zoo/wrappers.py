@@ -180,7 +180,7 @@ class KCCA(CCA_Base):
 
 
 class MCCA(CCA_Base):
-    def __init__(self, latent_dims: int = 1, tol=1e-5):
+    def __init__(self, latent_dims: int = 1):
         super().__init__(latent_dims=latent_dims)
 
     def fit(self, *views, c=None):
@@ -219,7 +219,7 @@ class MCCA(CCA_Base):
     def transform(self, *views):
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_views.append((view - self.view_means[0]) @ self.rotation_list[i])
+            transformed_views.append((view - self.view_means[i]) @ self.rotation_list[i])
         return transformed_views
 
 
