@@ -323,36 +323,71 @@ class CCA_Iterative(CCA_Base):
 
 class PLS(CCA_Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
+        """
+        Fits a partial least squares model with CCA deflation by NIPALS algorithm
+        :param latent_dims: Number of latent dimensions
+        :param max_iter: Maximum number of iterations
+        """
         super().__init__(cca_zoo.innerloop.PLSInnerLoop, latent_dims, max_iter)
 
 
 class CCA(CCA_Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
+        """
+        Fits a CCA model with CCA deflation by NIPALS algorithm
+        :param latent_dims: Number of latent dimensions
+        :param max_iter: Maximum number of iterations
+        """
         super().__init__(cca_zoo.innerloop.CCAInnerLoop, latent_dims, max_iter)
 
 
 class PMD(CCA_Iterative):
     def __init__(self, latent_dims: int = 1,  max_iter=100):
+        """
+        Fits a sparse CCA model by penalized matrix decomposition
+        :param latent_dims: Number of latent dimensions
+        :param max_iter: Maximum number of iterations
+        """
         super().__init__(cca_zoo.innerloop.PMDInnerLoop, latent_dims, max_iter)
 
 
 class ParkhomenkoCCA(CCA_Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
+        """
+        Fits a sparse CCA model by penalization
+        :param latent_dims: Number of latent dimensions
+        :param max_iter: Maximum number of iterations
+        """
         super().__init__(cca_zoo.innerloop.ParkhomenkoInnerLoop, latent_dims, max_iter)
 
 
 class SCCA(CCA_Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
+        """
+        Fits a sparse CCA model by iterative rescaled lasso regression
+        :param latent_dims: Number of latent dimensions
+        :param max_iter: Maximum number of iterations
+        """
         super().__init__(cca_zoo.innerloop.SCCAInnerLoop, latent_dims, max_iter)
 
 
 class SCCA_ADMM(CCA_Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
+        """
+        Fits a sparse CCA model by alternating ADMM
+        :param latent_dims: Number of latent dimensions
+        :param max_iter: Maximum number of iterations
+        """
         super().__init__(cca_zoo.innerloop.ADMMInnerLoop, latent_dims, max_iter)
 
 
 class ElasticCCA(CCA_Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
+        """
+        Fits an elastic CCA by iterative rescaled elastic net regression
+        :param latent_dims: Number of latent dimensions
+        :param max_iter: Maximum number of iterations
+        """
         super().__init__(cca_zoo.innerloop.CCAInnerLoop, latent_dims, max_iter)
 
 
