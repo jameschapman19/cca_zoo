@@ -211,7 +211,6 @@ class MCCA(CCA_Base):
         eigvecs = len(views) * np.linalg.inv(R) @ eigvecs
         splits = np.cumsum([0] + [view.shape[1] for view in views])
         self.weights_list = [eigvecs[split:splits[i + 1], :self.latent_dims] for i, split in enumerate(splits[:-1])]
-        self.rotation_list = self.weights_list
         self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views)]
         self.train_correlations = self.predict_corr(*views)
         return self
@@ -219,7 +218,7 @@ class MCCA(CCA_Base):
     def transform(self, *views):
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_views.append((view - self.view_means[i]) @ self.rotation_list[i])
+            transformed_views.append((view - self.view_means[i]) @ self.weights_list[i])
         return transformed_views
 
 
@@ -251,7 +250,6 @@ class GCCA(CCA_Base):
         eigvecs = eigvecs[:, idx].real
         eigvals = eigvals[idx].real
         self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in views]
-        self.rotation_list = self.weights_list
         self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views)]
         self.train_correlations = self.predict_corr(*views)
         return self
@@ -259,7 +257,7 @@ class GCCA(CCA_Base):
     def transform(self, *views):
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_views.append((view - self.view_means[i]) @ self.rotation_list[i])
+            transformed_views.append((view - self.view_means[i]) @ self.weights_list[i])
         return transformed_views
 
 
@@ -280,17 +278,13 @@ class CCA_Iterative(CCA_Base):
         views = self.demean_data(*views)
 
         self.outer_loop(*views, **kwargs)
-        self.rotation_list = []
-        for i in range(len(views)):
-            self.rotation_list.append(
-                self.weights_list[i] @ pinv2(self.loading_list[i].T @ self.weights_list[i], check_finite=False))
         self.train_correlations = self.predict_corr(*views)
         return self
 
     def transform(self, *views):
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_views.append((view - self.view_means[i]) @ self.rotation_list[i])
+            transformed_views.append((view - self.view_means[i]) @ self.weights_list[i])
         return transformed_views
 
     def outer_loop(self, *views, **kwargs):
@@ -304,8 +298,6 @@ class CCA_Iterative(CCA_Base):
         self.weights_list = [np.zeros((view.shape[1], self.latent_dims)) for view in views]
         # list of d: n x k
         self.score_list = [np.zeros((view.shape[0], self.latent_dims)) for view in views]
-        # list of d:
-        self.loading_list = [np.zeros((view.shape[1], self.latent_dims)) for view in views]
 
         residuals = copy.deepcopy(list(views))
         # For each of the dimensions
@@ -314,10 +306,9 @@ class CCA_Iterative(CCA_Base):
             for i, residual in enumerate(residuals):
                 self.weights_list[i][:, k] = self.loop.weights[i]
                 self.score_list[i][:, k] = self.loop.scores[i, :]
-                self.loading_list[i][:, k] = residual.T @ self.score_list[i][:, k] / np.linalg.norm(
-                    self.score_list[i][:, k])
-                residual -= np.outer(self.score_list[i][:, k] / np.linalg.norm(self.score_list[i][:, k]),
-                                     self.loading_list[i][:, k])
+                #TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
+                # but in principle we could apply any form of deflation here
+                residual -= residual@np.outer(self.weights_list[i][:, k], self.weights_list[i][:, k])@ views[i].T@views[i]
         return self
 
 
@@ -342,7 +333,7 @@ class CCA(CCA_Iterative):
 
 
 class PMD(CCA_Iterative):
-    def __init__(self, latent_dims: int = 1,  max_iter=100):
+    def __init__(self, latent_dims: int = 1, max_iter=100):
         """
         Fits a sparse CCA model by penalized matrix decomposition
         :param latent_dims: Number of latent dimensions
