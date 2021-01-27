@@ -201,7 +201,7 @@ class ParkhomenkoInnerLoop(InnerLoop):
         w = soft_threshold(w, self.c[view_index] / 2)
         assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
         self.weights[view_index] = w / np.linalg.norm(w)
-        self.scores[view_index] = self.views[view_index] @ w
+        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
 
 class ElasticInnerLoop(InnerLoop):
@@ -245,7 +245,7 @@ class ElasticInnerLoop(InnerLoop):
                                         l1_ratio=self.l1_ratio[view_index])
         assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
         self.weights[view_index] = w / np.linalg.norm(self.views[view_index] @ w)
-        self.scores[view_index] = self.views[view_index] @ w
+        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
         return w
 
     @ignore_warnings(category=ConvergenceWarning)
@@ -316,11 +316,9 @@ class SCCAInnerLoop(InnerLoop):
         else:
             w = self.lasso_solver(self.views[view_index], self.scores[view_index - 1], self.inverses[view_index],
                                   alpha=self.c[view_index])
-        if np.linalg.norm(w) == 0:
-            print('debug')
         assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
         self.weights[view_index] = w / np.linalg.norm(self.views[view_index] @ w)
-        self.scores[view_index] = self.views[view_index] @ w
+        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
     def objective(self):
         return sparse_cca_lyuponov(self)
@@ -422,18 +420,14 @@ def sparse_cca_lyuponov(loop: InnerLoop):
     ratio = np.array(loop.l1_ratio)
     l1 = c * ratio
     l2 = c * (1 - ratio)
-    lyuponov = 0
+    objective = 0
     for i in range(views):
-        #TODO this looks like it could be tidied up. In particular can we make the generalized objective correspond to the 2 view
-        if loop.generalized:
-            lyuponov_target = loop.scores.mean(axis=0)
-        else:
-            lyuponov_target = loop.scores[i - 1]
-        lyuponov += 1 / (2 * loop.views[i].shape[0]) * np.linalg.norm(
-            loop.views[i] @ loop.weights[i] - lyuponov_target) ** 2 + l1[i] * np.linalg.norm(loop.weights[i],
-                                                                                             ord=1) + \
-                    l2[i] * np.linalg.norm(loop.weights[i], ord=2)
-    return lyuponov
+        # TODO this looks like it could be tidied up. In particular can we make the generalized objective correspond to the 2 view
+        target = loop.scores.mean(axis=0)
+        objective += 2 * 1 / (2 * loop.views[i].shape[0]) * np.linalg.norm(
+            loop.views[i] @ loop.weights[i] - target) ** 2 + l1[i] * np.linalg.norm(loop.weights[i], ord=1) + \
+                     l2[i] * np.linalg.norm(loop.weights[i], ord=2)
+    return objective
 
 
 def bin_search(current, previous, current_val, previous_val, min_, max_):
