@@ -380,7 +380,7 @@ class ElasticCCA(CCA_Iterative):
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
-        super().__init__(cca_zoo.innerloop.CCAInnerLoop, latent_dims, max_iter)
+        super().__init__(cca_zoo.innerloop.ElasticInnerLoop, latent_dims, max_iter)
 
 
 def slicedict(d, s):
