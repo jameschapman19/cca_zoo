@@ -275,9 +275,7 @@ class CCA_Iterative(CCA_Base):
         :param kwargs: a dictionary containing the relevant parameters required for the model. If None use defaults.
         :return: training data correlations and the parameters required to call other functions in the class.
         """
-        views = self.demean_data(*views)
-
-        self.outer_loop(*views, **kwargs)
+        self.outer_loop(*self.demean_data(*views), **kwargs)
         self.train_correlations = self.predict_corr(*views)
         return self
 
@@ -308,8 +306,8 @@ class CCA_Iterative(CCA_Base):
                 self.score_list[i][:, k] = self.loop.scores[i, :]
                 # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
                 # but in principle we could apply any form of deflation here
-                residual -= residual @ np.outer(self.weights_list[i][:, k], self.weights_list[i][:, k]) @ views[i].T @ \
-                            views[i]
+                residuals[i] =residual - (residual @ np.outer(self.weights_list[i][:, k], self.weights_list[i][:, k]) @ views[i].T @ \
+                            views[i])
         return self
 
 

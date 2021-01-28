@@ -3,7 +3,7 @@ from unittest import TestCase
 import numpy as np
 
 import cca_zoo.wrappers
-np.random.seed(42)
+np.random.seed(123)
 
 class TestWrapper(TestCase):
 
@@ -16,7 +16,7 @@ class TestWrapper(TestCase):
         pass
 
     def test_unregularized_methods(self):
-        latent_dims = 1
+        latent_dims = 2
         wrap_iter = cca_zoo.wrappers.CCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).fit(self.X, self.Y)
@@ -33,7 +33,7 @@ class TestWrapper(TestCase):
 
     def test_regularized_methods(self):
         # Test that linear regularized methods match PLS solution when using maximum regularisation
-        latent_dims = 1
+        latent_dims = 2
         wrap_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[1, 1])
         wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[1, 1])
         wrap_kernel = cca_zoo.wrappers.KCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[1, 1], kernel='linear')
