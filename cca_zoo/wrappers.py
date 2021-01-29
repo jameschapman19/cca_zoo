@@ -293,21 +293,22 @@ class CCA_Iterative(CCA_Base):
          transformations of out of sample data
         """
         # list of d: p x k
-        self.weights_list = [np.zeros((view.shape[1], self.latent_dims)) for view in views]
+        self.weights_list = [[] for view in views]
         # list of d: n x k
-        self.score_list = [np.zeros((view.shape[0], self.latent_dims)) for view in views]
+        self.score_list = [[] for view in views]
 
         residuals = copy.deepcopy(list(views))
         # For each of the dimensions
         for k in range(self.latent_dims):
             self.loop = self.inner_loop(*residuals, max_iter=self.max_iter, **kwargs)
             for i, residual in enumerate(residuals):
-                self.weights_list[i][:, k] = self.loop.weights[i]
-                self.score_list[i][:, k] = self.loop.scores[i, :]
+                self.weights_list[i].append(self.loop.weights[i][:, np.newaxis])
+                self.score_list[i].append(self.loop.scores[i, :, np.newaxis])
                 # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
                 # but in principle we could apply any form of deflation here
-                residuals[i] =residual - (residual @ np.outer(self.weights_list[i][:, k], self.weights_list[i][:, k]) @ views[i].T @ \
-                            views[i])
+                residuals[i] = views[i] - (self.score_list[i][k] @ self.score_list[i][k].T)@views[i]/(self.score_list[i][k].T @ self.score_list[i][k])
+        self.weights_list = [np.hstack(weights) for weights in self.weights_list]
+        self.score_list = [np.hstack(scores) for scores in self.score_list]
         return self
 
 
