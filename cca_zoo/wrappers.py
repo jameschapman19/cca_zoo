@@ -5,7 +5,7 @@ from typing import Type
 
 import numpy as np
 from joblib import Parallel, delayed
-from scipy.linalg import pinv2, block_diag, cholesky
+from scipy.linalg import block_diag, cholesky
 from sklearn.base import BaseEstimator
 
 import cca_zoo.data
@@ -152,7 +152,7 @@ class CCA_Base(BaseEstimator):
 
 
 class KCCA(CCA_Base):
-    def __init__(self, latent_dims: int = 1, tol=1e-5):
+    def __init__(self, latent_dims: int = 1):
         super().__init__(latent_dims=latent_dims)
 
     def fit(self, *views, kernel: str = 'linear', sigma: float = 1.0, degree: int = 1, c=None):
@@ -223,7 +223,7 @@ class MCCA(CCA_Base):
 
 
 class GCCA(CCA_Base):
-    def __init__(self, latent_dims: int = 1, tol=1e-5):
+    def __init__(self, latent_dims: int = 1):
         super().__init__(latent_dims=latent_dims)
 
     def fit(self, *views, c=None):
