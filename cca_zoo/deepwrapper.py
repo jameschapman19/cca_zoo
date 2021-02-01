@@ -60,9 +60,10 @@ class DeepWrapper(CCA_Base):
 
         if batch_size == 0:
             train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset), drop_last=True)
+            val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
         else:
             train_dataloader = DataLoader(train_dataset, batch_size=batch_size, drop_last=True)
-        val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
+            val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
         # First we get the model class.
         # These have a forward method which takes data inputs and outputs the variables needed to calculate their

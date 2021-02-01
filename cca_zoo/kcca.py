@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.sparse.linalg import eigsh
+from scipy.linalg import eigh
 from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel
 
 
@@ -42,7 +43,7 @@ class KCCA:
         """
         self.X = X
         self.Y = Y
-        self.eps = 1e-9
+        self.eps = 1e-7
         self.latent_dims = latent_dims
         self.kernel = kernel
         self.sigma = sigma
@@ -54,17 +55,17 @@ class KCCA:
         self.K2 = self.make_kernel(Y, Y)
         N = self.K1.shape[0]
         R, D = self.hardoon_method()
-        betas, alphas = eigsh(R, k=2 * self.latent_dims, M=D + self.eps * np.eye(D.shape[0]))
+        betas, alphas = eigh(a=R, b=D+self.eps*np.eye(2*N), subset_by_index=[2 * N - latent_dims, 2 * N - 1])
         # sorting according to eigenvalue
         betas = np.real(betas)
-        ind = np.argsort(betas)
+        ind = np.argsort(betas)[::-1]
 
         alphas = alphas[:, ind]
         alpha = alphas[:, :latent_dims]
         # making unit vectors
         alpha = alpha / (np.sum(np.abs(alpha) ** 2, axis=0) ** (1. / 2))
         alpha1 = alpha[:N, :]
-        alpha2 = -alpha[N:, :]
+        alpha2 = alpha[N:, :]
         self.U = np.dot(self.K1, alpha1).T
         self.V = np.dot(self.K2, alpha2).T
         self.alpha1 = alpha1

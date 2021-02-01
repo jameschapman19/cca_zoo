@@ -30,8 +30,8 @@ class DVCCA(DCCA_base):
     def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
                  decoders: Iterable[BaseDecoder] = (Decoder, Decoder),
                  private_encoders: Iterable[BaseEncoder] = (Encoder, Encoder), learning_rate=1e-3, private=False,
-                 mu=0.5,post_transform=True):
-        super().__init__(latent_dims,post_transform=post_transform)
+                 mu=0.5, post_transform=True):
+        super().__init__(latent_dims, post_transform=post_transform)
         self.private = private
         self.mu = mu
         self.latent_dims = latent_dims

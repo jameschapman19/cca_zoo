@@ -166,11 +166,13 @@ class KCCA(CCA_Base):
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         :return: training data correlations and the parameters required to call other functions in the class.
         """
-        assert (len(c) == len(views)), 'c requires as many values as #views'
-        views = self.demean_data(*views)
-        self.fit_kcca = cca_zoo.kcca.KCCA(*views, latent_dims=self.latent_dims, kernel=kernel, sigma=sigma,
+        self.c = c
+        if self.c is None:
+            self.c = [0] * len(views)
+        assert (len(self.c) == len(views)), 'c requires as many values as #views'
+        self.fit_kcca = cca_zoo.kcca.KCCA(*self.demean_data(*views), latent_dims=self.latent_dims, kernel=kernel, sigma=sigma,
                                           degree=degree, c=c)
-        self.score_list = [self.fit_kcca.U, self.fit_kcca.V]
+        self.score_list = [self.fit_kcca.U.T, self.fit_kcca.V.T]
         self.train_correlations = self.predict_corr(*views)
         return self
 
@@ -306,7 +308,8 @@ class CCA_Iterative(CCA_Base):
                 self.score_list[i].append(self.loop.scores[i, :, np.newaxis])
                 # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
                 # but in principle we could apply any form of deflation here
-                residuals[i] = views[i] - (self.score_list[i][k] @ self.score_list[i][k].T)@views[i]/(self.score_list[i][k].T @ self.score_list[i][k])
+                residuals[i] = views[i] - (self.score_list[i][k] @ self.score_list[i][k].T) @ views[i] / (
+                            self.score_list[i][k].T @ self.score_list[i][k])
         self.weights_list = [np.hstack(weights) for weights in self.weights_list]
         self.score_list = [np.hstack(scores) for scores in self.score_list]
         return self

@@ -180,7 +180,7 @@ class CNNDecoder(BaseDecoder):
         layers = []
         current_channels = 1
         current_size = feature_size[0]
-        #Loop backward through decoding layers in order to work out the dimensions at each layer - in particular the first
+        # Loop backward through decoding layers in order to work out the dimensions at each layer - in particular the first
         # linear layer needs to know B*current_size*current_size*channels
         for l_id in range(len(channels)):
             if l_id == len(channels) - 1:
@@ -258,12 +258,12 @@ class BrainNetEncoder(BaseEncoder):
         self.dense2 = torch.nn.Linear(128, 30)
         self.dense3 = torch.nn.Linear(30, latent_dims)
 
-    def forward(self, x):  # 16,1,200,200
-        out = F.leaky_relu(self.e2econv1(x), negative_slope=0.33)  # 16,32,200,200
-        out = F.leaky_relu(self.e2econv2(out), negative_slope=0.33)  # 16,64,200,200
-        out = F.leaky_relu(self.E2N(out), negative_slope=0.33)  # 16,1,200,1
-        out = F.dropout(F.leaky_relu(self.N2G(out), negative_slope=0.33), p=0.5)  # 16,256,1,1
-        out = out.view(out.size(), -1)  # 16,256
+    def forward(self, x):
+        out = F.leaky_relu(self.e2econv1(x), negative_slope=0.33)  # B,32,200,200
+        out = F.leaky_relu(self.e2econv2(out), negative_slope=0.33)  # B,64,200,200
+        out = F.leaky_relu(self.E2N(out), negative_slope=0.33)  # B,1,200,1
+        out = F.dropout(F.leaky_relu(self.N2G(out), negative_slope=0.33), p=0.5)  # B,256,1,1
+        out = out.view(out.shape[0], -1)  # B,256
         out = F.dropout(F.leaky_relu(self.dense1(out), negative_slope=0.33), p=0.5)
         out = F.dropout(F.leaky_relu(self.dense2(out), negative_slope=0.33), p=0.5)
         out = F.leaky_relu(self.dense3(out), negative_slope=0.33)
