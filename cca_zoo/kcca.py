@@ -43,7 +43,7 @@ class KCCA:
         """
         self.X = X
         self.Y = Y
-        self.eps = 1e-7
+        self.eps = 1e-10
         self.latent_dims = latent_dims
         self.kernel = kernel
         self.sigma = sigma
@@ -55,7 +55,9 @@ class KCCA:
         self.K2 = self.make_kernel(Y, Y)
         N = self.K1.shape[0]
         R, D = self.hardoon_method()
-        betas, alphas = eigh(a=R, b=D+self.eps*np.eye(2*N), subset_by_index=[2 * N - latent_dims, 2 * N - 1])
+        #find what we need to add to D to ensure PSD
+        D_smallest_eig=min(0,eigh(a=D)[0].min())-self.eps
+        betas, alphas = eigh(a=R, b=D-D_smallest_eig*np.eye(D.shape[0]), subset_by_index=[2 * N - latent_dims, 2 * N - 1])
         # sorting according to eigenvalue
         betas = np.real(betas)
         ind = np.argsort(betas)[::-1]
@@ -86,6 +88,12 @@ class KCCA:
         else:
             print('invalid kernel: choose linear, rbf, poly')
         return kernel
+
+    def cholesky_method(self):
+        self.R1 = np.linalg.cholesky(self.K1)
+        self.R2 = np.linalg.cholesky(self.K2)
+        self.R1 = (1 - self.c[0]) * self.R1 @ self.R1.T + self.c[0] * np.eye(self.R1.shape[0])
+        self.R2 = (1 - self.c[1]) * self.R2 @ self.R2.T + self.c[1] * np.eye(self.R2.shape[0])
 
     def hardoon_method(self):
         N = self.K1.shape[0]

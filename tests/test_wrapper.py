@@ -26,7 +26,7 @@ class TestWrapper(TestCase):
         corr_iter = wrap_iter.train_correlations[0, 1]
         corr_gcca = wrap_gcca.train_correlations[0, 1]
         corr_mcca = wrap_mcca.train_correlations[0, 1]
-        corr_kcca = wrap_kcca.train_correlations[0,1]
+        corr_kcca = wrap_kcca.train_correlations[0, 1]
         # Check the score outputs are the right shape
         self.assertTrue(wrap_iter.score_list[0].shape == (self.X.shape[0], latent_dims))
         self.assertTrue(wrap_gcca.score_list[0].shape == (self.X.shape[0], latent_dims))
