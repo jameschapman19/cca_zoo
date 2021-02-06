@@ -43,7 +43,7 @@ class KCCA:
         """
         self.X = X
         self.Y = Y
-        self.eps = 1e-10
+        self.eps = 1e-7
         self.latent_dims = latent_dims
         self.kernel = kernel
         self.sigma = sigma
@@ -55,13 +55,13 @@ class KCCA:
         self.K2 = self.make_kernel(Y, Y)
         N = self.K1.shape[0]
         R, D = self.hardoon_method()
-        #find what we need to add to D to ensure PSD
-        D_smallest_eig=min(0,eigh(a=D)[0].min())-self.eps
-        betas, alphas = eigh(a=R, b=D-D_smallest_eig*np.eye(D.shape[0]), subset_by_index=[2 * N - latent_dims, 2 * N - 1])
+        # find what we need to add to D to ensure PSD
+        D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
+        betas, alphas = eigh(a=R, b=D - D_smallest_eig * np.eye(D.shape[0]),
+                             subset_by_index=[2 * N - latent_dims, 2 * N - 1])
         # sorting according to eigenvalue
         betas = np.real(betas)
         ind = np.argsort(betas)[::-1]
-
         alphas = alphas[:, ind]
         alpha = alphas[:, :latent_dims]
         # making unit vectors

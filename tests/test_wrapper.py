@@ -10,9 +10,9 @@ np.random.seed(123)
 class TestWrapper(TestCase):
 
     def setUp(self):
-        self.X = np.random.rand(50, 40)
-        self.Y = np.random.rand(50, 40)
-        self.Z = np.random.rand(50, 40)
+        self.X = np.random.rand(50, 40000)
+        self.Y = np.random.rand(50, 40000)
+        self.Z = np.random.rand(50, 4000)
 
     def tearDown(self):
         pass
@@ -40,10 +40,10 @@ class TestWrapper(TestCase):
     def test_regularized_methods(self):
         # Test that linear regularized methods match PLS solution when using maximum regularisation
         latent_dims = 5
-        c = 1
+        c = 0.5
+        wrap_kernel = cca_zoo.wrappers.KCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c], kernel='linear')
         wrap_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c])
         wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c])
-        wrap_kernel = cca_zoo.wrappers.KCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c], kernel='linear')
         wrap_pls = cca_zoo.wrappers.PLS(latent_dims=latent_dims).fit(self.X, self.Y)
         corr_gcca = wrap_gcca.train_correlations[0, 1]
         corr_mcca = wrap_mcca.train_correlations[0, 1]
