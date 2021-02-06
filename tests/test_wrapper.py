@@ -10,9 +10,9 @@ np.random.seed(123)
 class TestWrapper(TestCase):
 
     def setUp(self):
-        self.X = np.random.rand(50, 40000)
-        self.Y = np.random.rand(50, 40000)
-        self.Z = np.random.rand(50, 4000)
+        self.X = np.random.rand(50, 40)
+        self.Y = np.random.rand(50, 40)
+        self.Z = np.random.rand(50, 40)
 
     def tearDown(self):
         pass
