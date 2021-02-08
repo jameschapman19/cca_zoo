@@ -40,7 +40,7 @@ class TestWrapper(TestCase):
     def test_regularized_methods(self):
         # Test that linear regularized methods match PLS solution when using maximum regularisation
         latent_dims = 5
-        c = 0.5
+        c = 1
         wrap_kernel = cca_zoo.wrappers.KCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c], kernel='linear')
         wrap_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c])
         wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c])
