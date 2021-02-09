@@ -170,14 +170,20 @@ class KCCA(CCA_Base):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
-        self.fit_kcca = cca_zoo.kcca.KCCA(*self.demean_data(*views), latent_dims=self.latent_dims, kernel=kernel, sigma=sigma,
-                                          degree=degree, c=c)
-        self.score_list = [self.fit_kcca.U.T, self.fit_kcca.V.T]
+        self.model = cca_zoo.kcca.KCCA(*self.demean_data(*views), latent_dims=self.latent_dims, kernel=kernel,
+                                       sigma=sigma,
+                                       degree=degree, c=c)
+        self.score_list=self.model.score_list
         self.train_correlations = self.predict_corr(*views)
         return self
 
     def transform(self, *views):
-        transformed_views = list(self.fit_kcca.transform(views[0] - self.view_means[0], views[1] - self.view_means[1]))
+        # transformed_views = list(self.fit_kcca.transform(views[0] - self.view_means[0], views[1] - self.view_means[1]))
+        # return transformed_views
+        transformed_views = []
+        for i, view in enumerate(views):
+            transformed_views.append(
+                self.model.make_kernel(view - self.view_means[i], self.model.views[i]) @ self.model.alphas[i])
         return transformed_views
 
 
@@ -197,12 +203,12 @@ class MCCA(CCA_Base):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
-        views = self.demean_data(*views)
-        all_views = np.concatenate(views, axis=1)
+        views_demeaned = self.demean_data(*views)
+        all_views = np.concatenate(views_demeaned, axis=1)
         C = all_views.T @ all_views
         # Can regularise by adding to diagonal
         D = block_diag(*[(1 - self.c[i]) * m.T @ m + self.c[i] * np.eye(m.shape[1]) for i, m in
-                         enumerate(views)])
+                         enumerate(views_demeaned)])
         C -= block_diag(*[m.T @ m for i, m in
                           enumerate(views)]) - D
         R = cholesky(D, lower=False)
@@ -240,9 +246,9 @@ class GCCA(CCA_Base):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
-        views = self.demean_data(*views)
+        views_demeaned = self.demean_data(*views)
         Q = []
-        for i, view in enumerate(views):
+        for i, view in enumerate(views_demeaned):
             view_cov = view.T @ view
             view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(view_cov.shape[0])
             Q.append(view @ np.linalg.inv(view_cov) @ view.T)
@@ -309,7 +315,7 @@ class CCA_Iterative(CCA_Base):
                 # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
                 # but in principle we could apply any form of deflation here
                 residuals[i] = views[i] - (self.score_list[i][k] @ self.score_list[i][k].T) @ views[i] / (
-                            self.score_list[i][k].T @ self.score_list[i][k])
+                        self.score_list[i][k].T @ self.score_list[i][k])
         self.weights_list = [np.hstack(weights) for weights in self.weights_list]
         self.score_list = [np.hstack(scores) for scores in self.score_list]
         return self

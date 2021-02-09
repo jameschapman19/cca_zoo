@@ -42,9 +42,9 @@ class TestWrapper(TestCase):
         latent_dims = 5
         c = 1
         wrap_kernel = cca_zoo.wrappers.KCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c], kernel='linear')
+        wrap_pls = cca_zoo.wrappers.PLS(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c])
         wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c])
-        wrap_pls = cca_zoo.wrappers.PLS(latent_dims=latent_dims).fit(self.X, self.Y)
         corr_gcca = wrap_gcca.train_correlations[0, 1]
         corr_mcca = wrap_mcca.train_correlations[0, 1]
         corr_kernel = wrap_kernel.train_correlations[0, 1]

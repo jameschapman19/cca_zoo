@@ -2,6 +2,8 @@ import numpy as np
 from scipy.sparse.linalg import eigsh
 from scipy.linalg import eigh
 from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel
+from sklearn.decomposition import PCA
+from scipy.linalg import block_diag
 
 
 # Mostly adapted from:
@@ -31,7 +33,7 @@ class KCCA:
     transform(): which allows us to find the latent variable space for out of sample data
     """
 
-    def __init__(self, X: np.array, Y: np.array, latent_dims: int = 2, kernel='linear', sigma=1.0, degree=1, c=None):
+    def __init__(self, *views, latent_dims: int = 2, kernel='linear', sigma=1.0, degree=1, c=None):
         """
         :param X:
         :param Y:
@@ -41,24 +43,22 @@ class KCCA:
         :param degree: polynomial order parameter used by sklearn polynomial kernel
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         """
-        self.X = X
-        self.Y = Y
-        self.eps = 1e-7
+        self.views = views
+        self.eps = 1e-3
         self.latent_dims = latent_dims
         self.kernel = kernel
+        self.kernels = [self.make_kernel(view, view) for view in views]
         self.sigma = sigma
         self.degree = degree
         self.c = c
         if c is None:
-            self.c = [0, 0]
-        self.K1 = self.make_kernel(X, X)
-        self.K2 = self.make_kernel(Y, Y)
-        N = self.K1.shape[0]
+            self.c = [0] * len(views)
+        self.N = self.kernels[0].shape[0]
         R, D = self.hardoon_method()
         # find what we need to add to D to ensure PSD
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         betas, alphas = eigh(a=R, b=D - D_smallest_eig * np.eye(D.shape[0]),
-                             subset_by_index=[2 * N - latent_dims, 2 * N - 1])
+                             subset_by_index=[2 * self.N - latent_dims, 2 * self.N - 1])
         # sorting according to eigenvalue
         betas = np.real(betas)
         ind = np.argsort(betas)[::-1]
@@ -66,12 +66,8 @@ class KCCA:
         alpha = alphas[:, :latent_dims]
         # making unit vectors
         alpha = alpha / (np.sum(np.abs(alpha) ** 2, axis=0) ** (1. / 2))
-        alpha1 = alpha[:N, :]
-        alpha2 = alpha[N:, :]
-        self.U = np.dot(self.K1, alpha1).T
-        self.V = np.dot(self.K2, alpha2).T
-        self.alpha1 = alpha1
-        self.alpha2 = alpha2
+        self.alphas = np.split(alpha, len(views))
+        self.score_list = [kernel @ alpha for kernel, alpha in zip(self.kernels, self.alphas)]
 
     def make_kernel(self, X: np.array, Y: np.array):
         """
@@ -89,35 +85,21 @@ class KCCA:
             print('invalid kernel: choose linear, rbf, poly')
         return kernel
 
-    def cholesky_method(self):
-        self.R1 = np.linalg.cholesky(self.K1)
-        self.R2 = np.linalg.cholesky(self.K2)
-        self.R1 = (1 - self.c[0]) * self.R1 @ self.R1.T + self.c[0] * np.eye(self.R1.shape[0])
-        self.R2 = (1 - self.c[1]) * self.R2 @ self.R2.T + self.c[1] * np.eye(self.R2.shape[0])
-
     def hardoon_method(self):
-        N = self.K1.shape[0]
-        Z = np.zeros((N, N))
-
-        R1 = np.c_[Z, np.dot(self.K1, self.K2)]
-        R2 = np.c_[np.dot(self.K2, self.K1), Z]
-        R = np.r_[R1, R2]
-
-        D1 = np.c_[(1 - self.c[0]) * self.K1 @ self.K1.T + self.c[0] * self.K1, Z]
-        D2 = np.c_[Z, (1 - self.c[1]) * self.K2 @ self.K2.T + self.c[1] * self.K2]
-        D = np.r_[D1, D2]
+        R = np.hstack(self.kernels).T @ np.hstack(self.kernels)
+        # Can regularise by adding to diagonal
+        D = block_diag(*self.kernels)
+        R -= D@D
+        D = block_diag(
+            *[(1 - self.c[i]) * kernel @ kernel.T + self.c[i] * kernel for i, kernel in enumerate(self.kernels)])
         return R, D
 
-    def transform(self, X_test: np.array = None, Y_test: np.array = None):
+    def transform(self, *views):
         """
         :param X_test:
         :param Y_test:
         :return: Test data transformed into kernel feature space
         """
-        if X_test is not None:
-            Ktest = self.make_kernel(X_test, self.X)
-            U_test = np.dot(Ktest, self.alpha1)
-        if Y_test is not None:
-            Ktest = self.make_kernel(Y_test, self.Y)
-            V_test = np.dot(Ktest, self.alpha2)
-        return U_test, V_test
+        Ktest = [self.make_kernel(view, self.views[i]) for i, view in enumerate(views)]
+        U_test = [test_kernel @ self.alphas[i] for i, test_kernel in enumerate(Ktest)]
+        return U_test
