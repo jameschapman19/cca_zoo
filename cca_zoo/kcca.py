@@ -47,12 +47,12 @@ class KCCA:
         self.eps = 1e-3
         self.latent_dims = latent_dims
         self.kernel = kernel
-        self.kernels = [self.make_kernel(view, view) for view in views]
         self.sigma = sigma
         self.degree = degree
         self.c = c
         if c is None:
             self.c = [0] * len(views)
+        self.kernels = [self.make_kernel(view, view) for view in views]
         self.N = self.kernels[0].shape[0]
         R, D = self.hardoon_method()
         # find what we need to add to D to ensure PSD
