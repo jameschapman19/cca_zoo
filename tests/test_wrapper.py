@@ -10,15 +10,15 @@ np.random.seed(123)
 class TestWrapper(TestCase):
 
     def setUp(self):
-        self.X = np.random.rand(50, 40)
-        self.Y = np.random.rand(50, 40)
-        self.Z = np.random.rand(50, 40)
+        self.X = np.random.rand(100, 30)
+        self.Y = np.random.rand(100, 30)
+        self.Z = np.random.rand(100, 30)
 
     def tearDown(self):
         pass
 
     def test_unregularized_methods(self):
-        latent_dims = 5
+        latent_dims = 2
         wrap_iter = cca_zoo.wrappers.CCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).fit(self.X, self.Y)
@@ -33,9 +33,9 @@ class TestWrapper(TestCase):
         self.assertTrue(wrap_mcca.score_list[0].shape == (self.X.shape[0], latent_dims))
         self.assertTrue(wrap_kcca.score_list[0].shape == (self.X.shape[0], latent_dims))
         # Check the correlations from each unregularized method are the same
-        self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_mcca, decimal=1))
-        self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_gcca, decimal=1))
-        self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_kcca, decimal=1))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_mcca, decimal=2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_gcca, decimal=2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_kcca, decimal=2))
 
     def test_regularized_methods(self):
         # Test that linear regularized methods match PLS solution when using maximum regularisation

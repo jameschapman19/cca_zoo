@@ -41,7 +41,7 @@ class DeepWrapper(CCA_Base):
         :param train_correlations: if True generate training correlations
         :return:
         """
-        self.batch_size=batch_size
+        self.batch_size = batch_size
         if type(views[0]) is np.ndarray:
             dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
             ids = np.arange(len(dataset))
@@ -160,7 +160,7 @@ class DeepWrapper(CCA_Base):
             test_dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
         elif isinstance(views[0], torch.utils.data.Dataset):
             test_dataset = views[0]
-        if self.batch_size>0:
+        if self.batch_size > 0:
             test_dataloader = DataLoader(test_dataset, batch_size=self.batch_size)
         else:
             test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))

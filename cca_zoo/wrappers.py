@@ -222,7 +222,7 @@ class MCCA(CCA_Base):
         D = block_diag(*[(1 - self.c[i]) * m.T @ m + self.c[i] * np.eye(m.shape[1]) for i, m in
                          enumerate(views_demeaned)])
         C -= block_diag(*[m.T @ m for i, m in
-                          enumerate(views)]) - D
+                          enumerate(views_demeaned)]) - D
         R = cholesky(D, lower=False)
         whitened = np.linalg.inv(R.T) @ C @ np.linalg.inv(R)
         [eigvals, eigvecs] = np.linalg.eig(whitened)
@@ -231,7 +231,7 @@ class MCCA(CCA_Base):
         eigvecs = len(views) * np.linalg.inv(R) @ eigvecs
         splits = np.cumsum([0] + [view.shape[1] for view in views])
         self.weights_list = [eigvecs[split:splits[i + 1], :self.latent_dims] for i, split in enumerate(splits[:-1])]
-        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views)]
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_demeaned)]
         self.train_correlations = self.predict_corr(*views)
         return self
 
@@ -269,8 +269,8 @@ class GCCA(CCA_Base):
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         eigvals = eigvals[idx].real
-        self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in views]
-        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views)]
+        self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in views_demeaned]
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_demeaned)]
         self.train_correlations = self.predict_corr(*views)
         return self
 
