@@ -281,7 +281,7 @@ class GCCA(CCA_Base):
         return transformed_views
 
 
-class CCA_Iterative(CCA_Base):
+class Iterative(CCA_Base):
     def __init__(self, inner_loop: Type[cca_zoo.innerloop.InnerLoop] = cca_zoo.innerloop.InnerLoop,
                  latent_dims: int = 1, max_iter=100):
         super().__init__(latent_dims=latent_dims)
