@@ -312,28 +312,31 @@ class Iterative(CCA_Base):
         :return: complete set of weights and scores required to calcuate train correlations of latent dimensions and
          transformations of out of sample data
         """
+        n = views[0].shape[0]
+        p = [view.shape[1] for view in views]
         # list of d: p x k
-        self.weights_list = [[] for view in views]
+        self.weights_list = [np.zeros((p_, self.latent_dims)) for p_ in p]
+
         # list of d: n x k
-        self.score_list = [[] for view in views]
+        self.score_list = [np.zeros((n, self.latent_dims)) for _ in views]
 
         residuals = copy.deepcopy(list(views))
         # For each of the dimensions
         for k in range(self.latent_dims):
             self.loop = self.inner_loop(*residuals, max_iter=self.max_iter, **kwargs)
             for i, residual in enumerate(residuals):
-                self.weights_list[i].append(self.loop.weights[i][:, np.newaxis])
-                self.score_list[i].append(self.loop.scores[i, :, np.newaxis])
+                self.weights_list[i][:, k] = self.loop.weights[i]
+                self.score_list[i][:, k] = self.loop.scores[i]
                 # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
                 # but in principle we could apply any form of deflation here
-                residuals[i] = views[i] - (self.score_list[i][k] @ self.score_list[i][k].T) @ views[i] / (
-                        self.score_list[i][k].T @ self.score_list[i][k])
-        self.weights_list = [np.hstack(weights) for weights in self.weights_list]
-        self.score_list = [np.hstack(scores) for scores in self.score_list]
+                residuals[i] = residuals[i] - np.outer(self.score_list[i][:, k], self.score_list[i][:, k]) @ residuals[
+                    i] / np.dot(self.score_list[i][:, k], self.score_list[i][:, k]).item()
+        #can we fix the numerical instability problem?
+
         return self
 
 
-class PLS(CCA_Iterative):
+class PLS(Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
         """
         Fits a partial least squares model with CCA deflation by NIPALS algorithm
@@ -343,7 +346,7 @@ class PLS(CCA_Iterative):
         super().__init__(cca_zoo.innerloop.PLSInnerLoop, latent_dims, max_iter)
 
 
-class CCA(CCA_Iterative):
+class CCA(Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
         """
         Fits a CCA model with CCA deflation by NIPALS algorithm
@@ -353,7 +356,7 @@ class CCA(CCA_Iterative):
         super().__init__(cca_zoo.innerloop.CCAInnerLoop, latent_dims, max_iter)
 
 
-class PMD(CCA_Iterative):
+class PMD(Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
         """
         Fits a sparse CCA model by penalized matrix decomposition
@@ -363,7 +366,7 @@ class PMD(CCA_Iterative):
         super().__init__(cca_zoo.innerloop.PMDInnerLoop, latent_dims, max_iter)
 
 
-class ParkhomenkoCCA(CCA_Iterative):
+class ParkhomenkoCCA(Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
         """
         Fits a sparse CCA model by penalization
@@ -373,7 +376,7 @@ class ParkhomenkoCCA(CCA_Iterative):
         super().__init__(cca_zoo.innerloop.ParkhomenkoInnerLoop, latent_dims, max_iter)
 
 
-class SCCA(CCA_Iterative):
+class SCCA(Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
         """
         Fits a sparse CCA model by iterative rescaled lasso regression
@@ -383,7 +386,7 @@ class SCCA(CCA_Iterative):
         super().__init__(cca_zoo.innerloop.SCCAInnerLoop, latent_dims, max_iter)
 
 
-class SCCA_ADMM(CCA_Iterative):
+class SCCA_ADMM(Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
         """
         Fits a sparse CCA model by alternating ADMM
@@ -393,7 +396,7 @@ class SCCA_ADMM(CCA_Iterative):
         super().__init__(cca_zoo.innerloop.ADMMInnerLoop, latent_dims, max_iter)
 
 
-class ElasticCCA(CCA_Iterative):
+class ElasticCCA(Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
         """
         Fits an elastic CCA by iterative rescaled elastic net regression

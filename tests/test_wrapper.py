@@ -10,15 +10,15 @@ np.random.seed(123)
 class TestWrapper(TestCase):
 
     def setUp(self):
-        self.X = np.random.rand(100, 30)
-        self.Y = np.random.rand(100, 30)
-        self.Z = np.random.rand(100, 30)
+        self.X = np.random.rand(500, 30)
+        self.Y = np.random.rand(500, 30)
+        self.Z = np.random.rand(500, 30)
 
     def tearDown(self):
         pass
 
     def test_unregularized_methods(self):
-        latent_dims = 2
+        latent_dims = 5
         wrap_iter = cca_zoo.wrappers.CCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).fit(self.X, self.Y)
