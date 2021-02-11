@@ -56,11 +56,9 @@ class DCCA(DCCA_base):
         self.covs = None
         self.eps = eps
         self.rho = rho
-        if als:
+        self.als=als
+        if self.als:
             assert (0 <= self.rho <= 1), "rho should be between 0 and 1"
-            self.update_weights = self.update_weights_als
-        else:
-            self.update_weights = self.update_weights_tn
 
     @abstractmethod
     def update_weights(self, *args):
