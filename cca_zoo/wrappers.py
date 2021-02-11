@@ -13,6 +13,8 @@ import cca_zoo.innerloop
 import cca_zoo.kcca
 import cca_zoo.plot_utils
 
+import pandas as pd
+
 
 # from hyperopt import fmin, tpe, Trials
 
@@ -115,15 +117,22 @@ class CCA_Base(BaseEstimator):
         cv = CrossValidate(self, folds=folds, verbose=verbose)
 
         if jobs > 0:
-            scores = Parallel(n_jobs=jobs)(delayed(cv.score)(*views, **param_set) for param_set in param_sets)
+            out = Parallel(n_jobs=jobs)(delayed(cv.score)(*views, **param_set) for param_set in param_sets)
         else:
-            scores = [cv.score(*views, **param_set) for param_set in param_sets]
-        max_index = scores.index(max(scores))
+            out = [cv.score(*views, **param_set) for param_set in param_sets]
+        cv_scores, cv_stds = zip(*out)
+        max_index = cv_scores.index(max(cv_scores))
 
-        print('Best score : ', max(scores), flush=True)
+        print('Best score : ', max(cv_scores), flush=True)
+        print('Standard deviation : ', cv_stds[max_index], flush=True)
         print(param_sets[max_index], flush=True)
+
+        self.cv_results_table = pd.DataFrame(zip(param_sets, cv_scores, cv_stds), columns=['params', 'scores', 'std'])
+        self.cv_results_table = self.cv_results_table.join(pd.json_normalize(self.cv_results_table.params))
+        self.cv_results_table.drop(columns=['params'], inplace=True)
+
         if plot:
-            cca_zoo.plot_utils.cv_plot(scores, param_sets, self.__class__.__name__)
+            cca_zoo.plot_utils.cv_plot(cv_scores, param_sets, self.__class__.__name__)
 
         self.fit(*views, **param_sets[max_index])
         return self
@@ -170,10 +179,13 @@ class KCCA(CCA_Base):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
-        self.model = cca_zoo.kcca.KCCA(*self.demean_data(*views), latent_dims=self.latent_dims, kernel=kernel,
-                                       sigma=sigma,
-                                       degree=degree, c=c)
-        self.score_list=self.model.score_list
+        self.kernel = kernel
+        self.sigma = sigma
+        self.degree = degree
+        self.model = cca_zoo.kcca.KCCA(*self.demean_data(*views), latent_dims=self.latent_dims, kernel=self.kernel,
+                                       sigma=self.sigma,
+                                       degree=self.degree, c=self.c)
+        self.score_list = self.model.score_list
         self.train_correlations = self.predict_corr(*views)
         return self
 
@@ -422,9 +434,11 @@ class CrossValidate:
                 *train_sets, **kwargs).predict_corr(
                 *val_sets).sum(axis=-1)[np.triu_indices(len(views), 1)].sum()
         metric = scores.sum(axis=0) / self.folds
+        std = scores.std(axis=0)
         if np.isnan(metric):
             metric = 0
         if self.verbose:
             print(kwargs)
             print(metric)
-        return metric
+            print(std)
+        return metric, std

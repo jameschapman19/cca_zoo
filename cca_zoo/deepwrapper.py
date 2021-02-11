@@ -41,6 +41,7 @@ class DeepWrapper(CCA_Base):
         :param train_correlations: if True generate training correlations
         :return:
         """
+        self.batch_size=batch_size
         if type(views[0]) is np.ndarray:
             dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
             ids = np.arange(len(dataset))
@@ -62,8 +63,8 @@ class DeepWrapper(CCA_Base):
             train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset), drop_last=True)
             val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
         else:
-            train_dataloader = DataLoader(train_dataset, batch_size=batch_size, drop_last=True)
-            val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
+            train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size, drop_last=True)
+            val_dataloader = DataLoader(val_dataset, batch_size=self.batch_size)
 
         # First we get the model class.
         # These have a forward method which takes data inputs and outputs the variables needed to calculate their
@@ -160,7 +161,7 @@ class DeepWrapper(CCA_Base):
         elif isinstance(views[0], torch.utils.data.Dataset):
             test_dataset = views[0]
 
-        test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
+        test_dataloader = DataLoader(test_dataset, batch_size=self.batch_size)
         with torch.no_grad():
             for batch_idx, (data, label) in enumerate(test_dataloader):
                 data = [d.float().to(self.device) for d in list(data)]
