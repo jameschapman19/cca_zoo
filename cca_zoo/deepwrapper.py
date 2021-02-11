@@ -160,8 +160,10 @@ class DeepWrapper(CCA_Base):
             test_dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
         elif isinstance(views[0], torch.utils.data.Dataset):
             test_dataset = views[0]
-
-        test_dataloader = DataLoader(test_dataset, batch_size=self.batch_size)
+        if self.batch_size>0:
+            test_dataloader = DataLoader(test_dataset, batch_size=self.batch_size)
+        else:
+            test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
         with torch.no_grad():
             for batch_idx, (data, label) in enumerate(test_dataloader):
                 data = [d.float().to(self.device) for d in list(data)]
