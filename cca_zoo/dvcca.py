@@ -53,8 +53,6 @@ class DVCCA(DCCA_base):
             if private_encoder_optimizers is None:
                 self.private_encoder_optimizers = optim.Adam(self.private_encoders.parameters(), lr=learning_rate)
             self.schedulers.append(private_encoder_schedulers)
-
-    def setup_schedulers(self):
         self.schedulers = list(filter(None, self.schedulers))
 
     def update_weights(self, *args):

@@ -36,10 +36,8 @@ class DCCAE(DCCA_base):
             self.optimizer = optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),
                                         lr=learning_rate)
         self.schedulers = list([scheduler])
-        assert (0 <= self.lam <= 1), "lam between 0 and 1"
-
-    def setup_schedulers(self):
         self.schedulers = filter(None, self.schedulers)
+        assert (0 <= self.lam <= 1), "lam between 0 and 1"
 
     def update_weights(self, *args):
         self.optimizer.zero_grad()
