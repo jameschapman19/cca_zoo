@@ -45,15 +45,15 @@ class DVCCA(DCCA_base):
         if decoder_schedulers:
             self.schedulers.extend(decoder_schedulers)
         self.encoder_optimizers = encoder_optimizers
-        if encoder_optimizers is None:
+        if self.encoder_optimizers is None:
             self.encoder_optimizers = optim.Adam(self.encoders.parameters(), lr=learning_rate)
         self.decoder_optimizers = decoder_optimizers
-        if decoder_optimizers is None:
+        if self.decoder_optimizers is None:
             self.decoder_optimizers = optim.Adam(self.decoders.parameters(), lr=learning_rate)
         if private:
             self.private_encoders = nn.ModuleList(private_encoders)
             self.private_encoder_optimizers = private_encoder_optimizers
-            if private_encoder_optimizers is None:
+            if self.private_encoder_optimizers is None:
                 self.private_encoder_optimizers = optim.Adam(self.private_encoders.parameters(), lr=learning_rate)
             if private_encoder_schedulers:
                 self.schedulers.extend(private_encoder_schedulers)

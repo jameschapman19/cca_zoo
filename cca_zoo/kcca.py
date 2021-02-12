@@ -1,9 +1,7 @@
 import numpy as np
-from scipy.sparse.linalg import eigsh
+from scipy.linalg import block_diag
 from scipy.linalg import eigh
 from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel
-from sklearn.decomposition import PCA
-from scipy.linalg import block_diag
 
 
 # Mostly adapted from:

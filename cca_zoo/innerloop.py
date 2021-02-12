@@ -12,7 +12,7 @@ from sklearn.utils._testing import ignore_warnings
 
 
 class InnerLoop:
-    def __init__(self, *views, max_iter: int = 100, tol=1e-9, generalized: bool = False,
+    def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized'):
         """
         :param views: 2D numpy arrays for each view separated by comma with the same number of rows (nxp)

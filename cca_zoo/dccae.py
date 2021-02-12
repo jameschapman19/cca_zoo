@@ -31,20 +31,21 @@ class DCCAE(DCCA_base):
         self.decoders = nn.ModuleList(decoders)
         self.lam = lam
         self.objective = objective(latent_dims)
-        self.optimizers = optimizers
-        if self.optimizers is None:
-            self.optimizer = optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),
-                                        lr=learning_rate)
+        if optimizers is None:
+            self.optimizers = optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),
+                                         lr=learning_rate)
+        else:
+            self.optimizers = optimizers
         assert (0 <= self.lam <= 1), "lam between 0 and 1"
-        self.schedulers=[]
+        self.schedulers = []
         if schedulers:
             self.schedulers.extend(schedulers)
 
     def update_weights(self, *args):
-        self.optimizer.zero_grad()
+        self.optimizers.zero_grad()
         loss = self.loss(*args)
         loss.backward()
-        self.optimizer.step()
+        self.optimizers.step()
         return loss
 
     def forward(self, *args):

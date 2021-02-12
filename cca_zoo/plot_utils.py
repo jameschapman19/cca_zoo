@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import linregress
 import itertools
-from mpl_toolkits.mplot3d import Axes3D
 
 """
 A bunch of methods I have added to help me do plotting when needed

@@ -13,8 +13,9 @@ from abc import abstractmethod
 from typing import Iterable
 
 from torch import nn
-from torch import optim, matmul, mean, stack
+from torch import optim, matmul, mean
 from torch.linalg import norm
+
 from cca_zoo.deep_models import BaseEncoder, Encoder
 from cca_zoo.objectives import compute_matrix_power, CCA
 
@@ -70,7 +71,7 @@ class DCCA(DCCA_base, nn.Module):
             self.optimizers = [optim.Adam(list(encoder.parameters()), lr=learning_rate) for encoder in self.encoders]
         else:
             self.optimizers = optimizers
-        self.schedulers=[]
+        self.schedulers = []
         if schedulers:
             self.schedulers.extend(schedulers)
         self.covs = None

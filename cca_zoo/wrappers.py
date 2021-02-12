@@ -4,6 +4,7 @@ from abc import abstractmethod
 from typing import Type
 
 import numpy as np
+import pandas as pd
 from joblib import Parallel, delayed
 from scipy.linalg import block_diag, cholesky
 from sklearn.base import BaseEstimator
@@ -12,8 +13,6 @@ import cca_zoo.data
 import cca_zoo.innerloop
 import cca_zoo.kcca
 import cca_zoo.plot_utils
-
-import pandas as pd
 
 
 # from hyperopt import fmin, tpe, Trials
