@@ -67,10 +67,10 @@ class DCCAE(DCCA_base):
     def loss(self, *args):
         z = self.encode(*args)
         recon = self.decode(*z)
-        recon_loss = self.recon_loss(args, recon)
+        recon_loss = self.recon_loss(args[:len(recon)], recon)
         return self.lam * recon_loss + self.objective.loss(*z)
 
     @staticmethod
     def recon_loss(x, recon):
-        recons = [F.mse_loss(recon[i], x[i], reduction='sum') for i in range(len(x))]
+        recons = [F.mse_loss(recon_, x_, reduction='sum') for recon_, x_ in zip(recon,x)]
         return torch.stack(recons).sum(dim=0)

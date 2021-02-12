@@ -4,9 +4,9 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requirements = ['numpy',
-                'torch',
+                'torch>=1.7.0',
                 'scikit-learn',
-                'scipy',
+                'scipy>=1.5',
                 'matplotlib',
                 'seaborn',
                 'Pillow',
