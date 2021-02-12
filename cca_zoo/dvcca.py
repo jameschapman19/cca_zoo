@@ -30,18 +30,32 @@ class DVCCA(DCCA_base):
     def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
                  decoders: Iterable[BaseDecoder] = (Decoder, Decoder),
                  private_encoders: Iterable[BaseEncoder] = (Encoder, Encoder), learning_rate=1e-3, private=False,
-                 mu=0.5, post_transform=True):
+                 mu=0.5, post_transform=True, encoder_optimizers=None, decoder_optimizers=None,
+                 private_encoder_optimizers=None,
+                 encoder_schedulers=None, decoder_schedulers=None, private_encoder_schedulers=None):
         super().__init__(latent_dims, post_transform=post_transform)
         self.private = private
         self.mu = mu
         self.latent_dims = latent_dims
         self.encoders = nn.ModuleList(encoders)
         self.decoders = nn.ModuleList(decoders)
-        self.encoder_optimizers = optim.Adam(self.encoders.parameters(), lr=learning_rate)
-        self.decoder_optimizers = optim.Adam(self.decoders.parameters(), lr=learning_rate)
+        self.schedulers = [encoder_schedulers]
+        self.schedulers.append(decoder_schedulers)
+        self.encoder_optimizers = encoder_optimizers
+        if encoder_optimizers is None:
+            self.encoder_optimizers = optim.Adam(self.encoders.parameters(), lr=learning_rate)
+        self.decoder_optimizers = decoder_optimizers
+        if decoder_optimizers is None:
+            self.decoder_optimizers = optim.Adam(self.decoders.parameters(), lr=learning_rate)
         if private:
             self.private_encoders = nn.ModuleList(private_encoders)
-            self.private_encoder_optimizers = optim.Adam(self.private_encoders.parameters(), lr=learning_rate)
+            self.private_encoder_optimizers = private_encoder_optimizers
+            if private_encoder_optimizers is None:
+                self.private_encoder_optimizers = optim.Adam(self.private_encoders.parameters(), lr=learning_rate)
+            self.schedulers.append(private_encoder_schedulers)
+
+    def setup_schedulers(self):
+        self.schedulers = list(filter(None, self.schedulers))
 
     def update_weights(self, *args):
         """

@@ -1,5 +1,5 @@
 from unittest import TestCase
-
+from torch import optim
 import numpy as np
 
 import cca_zoo.dcca
@@ -47,6 +47,21 @@ class TestDeepWrapper(TestCase):
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dcca_noi_model = cca_zoo.deepwrapper.DeepWrapper(dcca_noi_model, device=device)
         dcca_noi_model.fit(self.X, self.Y)
+
+    def test_schedulers(self):
+        latent_dims = 2
+        device = 'cpu'
+        encoder_1 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10)
+        encoder_2 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10)
+        # DCCA
+        optimizers = [optim.Adam(encoder_1.parameters(), lr=1e-4), optim.Adam(encoder_2.parameters(), lr=1e-4)]
+        schedulers = [optim.lr_scheduler.CosineAnnealingLR(optimizers[0], 1),
+                      optim.lr_scheduler.ReduceLROnPlateau(optimizers[1])]
+        dcca_model = cca_zoo.dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
+                                       objective=cca_zoo.objectives.CCA, optimizers=optimizers, schedulers=schedulers)
+        # hidden_layer_sizes are shown explicitly but these are also the defaults
+        dcca_model = cca_zoo.deepwrapper.DeepWrapper(dcca_model, device=device)
+        dcca_model.fit(self.X, self.Y,epochs=20)
 
     def test_DGCCA_methods_cpu(self):
         latent_dims = 2

@@ -16,6 +16,7 @@ import cca_zoo.plot_utils
 from cca_zoo.dcca import DCCA_base
 from cca_zoo.wrappers import CCA_Base
 
+
 class DeepWrapper(CCA_Base):
 
     def __init__(self, model: DCCA_base, device: str = 'cuda'):
@@ -59,11 +60,11 @@ class DeepWrapper(CCA_Base):
                 train_dataset, val_dataset = torch.utils.data.random_split(dataset, lengths)
 
         if batch_size == 0:
-            train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset), drop_last=True)
+            train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset))
             val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
         else:
             train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size, drop_last=True)
-            val_dataloader = DataLoader(val_dataset, batch_size=self.batch_size)
+            val_dataloader = DataLoader(val_dataset, batch_size=self.batch_size, drop_last=True)
 
         # First we get the model class.
         # These have a forward method which takes data inputs and outputs the variables needed to calculate their
@@ -87,13 +88,17 @@ class DeepWrapper(CCA_Base):
                 epoch_val_loss = self.val_epoch(val_dataloader)
                 print('====> Epoch: {} Average val loss: {:.4f}'.format(
                     epoch, epoch_val_loss))
-
                 if epoch_val_loss < min_val_loss or epoch == 1:
                     min_val_loss = epoch_val_loss
                     best_model = copy.deepcopy(self.model.state_dict())
                     print('Min loss %0.2f' % min_val_loss)
                     epochs_no_improve = 0
-
+                if any(self.model.schedulers):
+                    for scheduler in self.model.schedulers:
+                        try:
+                            scheduler.step()
+                        except:
+                            scheduler.step(epoch_train_loss)
                 else:
                     epochs_no_improve += 1
                     # Check early stopping condition
