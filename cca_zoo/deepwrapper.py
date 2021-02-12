@@ -16,7 +16,6 @@ import cca_zoo.plot_utils
 from cca_zoo.dcca import DCCA_base
 from cca_zoo.wrappers import CCA_Base
 
-
 class DeepWrapper(CCA_Base):
 
     def __init__(self, model: DCCA_base, device: str = 'cuda'):

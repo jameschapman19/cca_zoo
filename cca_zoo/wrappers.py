@@ -223,7 +223,7 @@ class MCCA(CCA_Base):
                          enumerate(views_demeaned)])
         C -= block_diag(*[m.T @ m for i, m in
                           enumerate(views_demeaned)]) - D
-        R = cholesky(D, lower=False)
+        R = cholesky(D)
         whitened = np.linalg.inv(R.T) @ C @ np.linalg.inv(R)
         [eigvals, eigvecs] = np.linalg.eig(whitened)
         idx = np.argsort(eigvals, axis=0)[::-1]
