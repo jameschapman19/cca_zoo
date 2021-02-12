@@ -39,8 +39,11 @@ class DVCCA(DCCA_base):
         self.latent_dims = latent_dims
         self.encoders = nn.ModuleList(encoders)
         self.decoders = nn.ModuleList(decoders)
-        self.schedulers = [encoder_schedulers]
-        self.schedulers.append(decoder_schedulers)
+        self.schedulers = []
+        if encoder_schedulers:
+            self.schedulers.extend(encoder_schedulers)
+        if decoder_schedulers:
+            self.schedulers.extend(decoder_schedulers)
         self.encoder_optimizers = encoder_optimizers
         if encoder_optimizers is None:
             self.encoder_optimizers = optim.Adam(self.encoders.parameters(), lr=learning_rate)
@@ -52,8 +55,8 @@ class DVCCA(DCCA_base):
             self.private_encoder_optimizers = private_encoder_optimizers
             if private_encoder_optimizers is None:
                 self.private_encoder_optimizers = optim.Adam(self.private_encoders.parameters(), lr=learning_rate)
-            self.schedulers.append(private_encoder_schedulers)
-        self.schedulers = list(filter(None, self.schedulers))
+            if private_encoder_schedulers:
+                self.schedulers.extend(private_encoder_schedulers)
 
     def update_weights(self, *args):
         """

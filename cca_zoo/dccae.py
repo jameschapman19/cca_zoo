@@ -25,19 +25,20 @@ class DCCAE(DCCA_base):
 
     def __init__(self, latent_dims: int, objective=CCA, encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
                  decoders: Iterable[BaseDecoder] = (Decoder, Decoder), learning_rate=1e-3, lam=0.5,
-                 post_transform=True, scheduler=None, optimizer=None):
+                 post_transform=True, schedulers: Iterable = None, optimizers: Iterable = None):
         super().__init__(latent_dims, post_transform=post_transform)
         self.encoders = nn.ModuleList(encoders)
         self.decoders = nn.ModuleList(decoders)
         self.lam = lam
         self.objective = objective(latent_dims)
-        self.optimizer=list(optimizer)
-        if optimizer is None:
+        self.optimizers = optimizers
+        if self.optimizers is None:
             self.optimizer = optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),
                                         lr=learning_rate)
-        self.schedulers = list([scheduler])
-        self.schedulers = filter(None, self.schedulers)
         assert (0 <= self.lam <= 1), "lam between 0 and 1"
+        self.schedulers=[]
+        if schedulers:
+            self.schedulers.extend(schedulers)
 
     def update_weights(self, *args):
         self.optimizer.zero_grad()

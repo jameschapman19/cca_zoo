@@ -24,7 +24,7 @@ class DCCA_base(nn.Module):
         super(DCCA_base, self).__init__()
         self.latent_dims = latent_dims
         self.post_transform = post_transform
-        self.schedulers=[None]
+        self.schedulers = [None]
 
     @abstractmethod
     def update_weights(self, *args):
@@ -48,7 +48,7 @@ class DCCA(DCCA_base, nn.Module):
     def __init__(self, latent_dims: int, objective=CCA,
                  encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
                  learning_rate=1e-3, als=False, rho: float = 0.2, eps: float = 1e-9, post_transform=True,
-                 shared_target=False, schedulers=None, optimizers=None):
+                 shared_target=False, schedulers: Iterable = None, optimizers: Iterable = None):
         """
         :param latent_dims:
         :param objective:
@@ -69,9 +69,10 @@ class DCCA(DCCA_base, nn.Module):
         if optimizers is None:
             self.optimizers = [optim.Adam(list(encoder.parameters()), lr=learning_rate) for encoder in self.encoders]
         else:
-            self.optimizers = list(optimizers)
-        self.schedulers = list(schedulers)
-        self.schedulers=filter(None, self.schedulers)
+            self.optimizers = optimizers
+        self.schedulers=[]
+        if schedulers:
+            self.schedulers.extend(schedulers)
         self.covs = None
         self.eps = eps
         self.rho = rho
