@@ -112,6 +112,8 @@ class TestDeepWrapper(TestCase):
 
         private_encoder_1 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10, variational=True)
         private_encoder_2 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10, variational=True)
+        decoder_1 = cca_zoo.deep_models.Decoder(latent_dims=2*latent_dims, feature_size=10, norm_output=True)
+        decoder_2 = cca_zoo.deep_models.Decoder(latent_dims=2*latent_dims, feature_size=10, norm_output=True)
         # DVCCA
         dvcca_model = cca_zoo.dvcca.DVCCA(latent_dims=latent_dims, private=True, encoders=[encoder_1, encoder_2],
                                           decoders=[decoder_1, decoder_2],
