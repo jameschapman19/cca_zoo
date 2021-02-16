@@ -46,7 +46,6 @@ class CCA_Dataset(Dataset):
 
 class Noisy_MNIST_Dataset(Dataset):
     def __init__(self, mnist_type='MNIST', train=True, flatten=True):
-
         if mnist_type == 'MNIST':
             self.dataset = datasets.MNIST('../../data', train=train, download=True)
         elif mnist_type == 'FashionMNIST':

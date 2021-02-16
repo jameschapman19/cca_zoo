@@ -24,13 +24,13 @@ from cca_zoo.objectives import CCA
 class DCCAE(DCCA_base):
 
     def __init__(self, latent_dims: int, objective=CCA, encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
-                 decoders: Iterable[BaseDecoder] = (Decoder, Decoder), learning_rate=1e-3, lam=0.5,
+                 decoders: Iterable[BaseDecoder] = (Decoder, Decoder), r:float=1e-3,learning_rate=1e-3, lam=0.5,
                  post_transform=True, schedulers: Iterable = None, optimizers: Iterable = None):
         super().__init__(latent_dims, post_transform=post_transform)
         self.encoders = nn.ModuleList(encoders)
         self.decoders = nn.ModuleList(decoders)
         self.lam = lam
-        self.objective = objective(latent_dims)
+        self.objective = objective(latent_dims,r=r)
         if optimizers is None:
             self.optimizers = optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),
                                          lr=learning_rate)
@@ -42,10 +42,10 @@ class DCCAE(DCCA_base):
             self.schedulers.extend(schedulers)
 
     def update_weights(self, *args):
-        self.optimizers.zero_grad()
+        [optimizer.zero_grad() for optimizer in self.optimizers]
         loss = self.loss(*args)
         loss.backward()
-        self.optimizers.step()
+        [optimizer.step() for optimizer in self.optimizers]
         return loss
 
     def forward(self, *args):
@@ -72,5 +72,5 @@ class DCCAE(DCCA_base):
 
     @staticmethod
     def recon_loss(x, recon):
-        recons = [F.mse_loss(recon_, x_, reduction='sum') for recon_, x_ in zip(recon,x)]
+        recons = [F.mse_loss(recon_, x_, reduction='sum') for recon_, x_ in zip(recon, x)]
         return torch.stack(recons).sum(dim=0)

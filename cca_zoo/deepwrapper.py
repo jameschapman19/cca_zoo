@@ -135,12 +135,13 @@ class DeepWrapper(CCA_Base):
         :return: average validation loss over the epoch
         """
         self.model.eval()
-        with torch.no_grad():
-            total_val_loss = 0
-            for batch_idx, (data, label) in enumerate(val_dataloader):
-                data = [d.float().to(self.device) for d in list(data)]
-                loss = self.model.loss(*data)
-                total_val_loss += loss.item()
+        for param in self.model.parameters():
+            param.grad = None
+        total_val_loss = 0
+        for batch_idx, (data, label) in enumerate(val_dataloader):
+            data = [d.float().to(self.device) for d in list(data)]
+            loss = self.model.loss(*data)
+            total_val_loss += loss.item()
         return total_val_loss / len(val_dataloader)
 
     def predict_corr(self, *views, train=False):
