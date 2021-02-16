@@ -29,7 +29,7 @@ class TestDeepWrapper(TestCase):
                                        objective=cca_zoo.objectives.CCA)
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dcca_model = cca_zoo.deepwrapper.DeepWrapper(dcca_model, device=device)
-        dcca_model.fit(self.X, self.Y)
+        dcca_model.fit(self.X, self.Y,epochs=3)
         # DGCCA
         dgcca_model = cca_zoo.dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                                         objective=cca_zoo.objectives.GCCA)
@@ -61,7 +61,7 @@ class TestDeepWrapper(TestCase):
                                        objective=cca_zoo.objectives.CCA, optimizers=optimizers, schedulers=schedulers)
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dcca_model = cca_zoo.deepwrapper.DeepWrapper(dcca_model, device=device)
-        dcca_model.fit(self.X, self.Y,epochs=20)
+        dcca_model.fit(self.X, self.Y, epochs=20)
 
     def test_DGCCA_methods_cpu(self):
         latent_dims = 2
@@ -113,8 +113,9 @@ class TestDeepWrapper(TestCase):
         private_encoder_1 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10, variational=True)
         private_encoder_2 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10, variational=True)
         # DVCCA
-        dvcca_model = cca_zoo.dvcca.DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
-                                          decoders=[decoder_1, decoder_2],private_encoders=[private_encoder_1,private_encoder_2])
+        dvcca_model = cca_zoo.dvcca.DVCCA(latent_dims=latent_dims, private=True, encoders=[encoder_1, encoder_2],
+                                          decoders=[decoder_1, decoder_2],
+                                          private_encoders=[private_encoder_1, private_encoder_2])
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dvcca_model = cca_zoo.deepwrapper.DeepWrapper(dvcca_model, device=device)
         dvcca_model.fit(self.X, self.Y)
