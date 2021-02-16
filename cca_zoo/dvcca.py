@@ -165,8 +165,9 @@ class DVCCA(DCCA_base):
         """
         mus, logvars = self.encode(*args)
         if self.private:
-            losses = [self.vcca_private_loss(*args, mu=mu, logvar=logvar) for (mu, logvar) in
-                      zip(mus, logvars)]
+            mus_p, logvars_p = self.encode_private(*args)
+            losses = [self.vcca_private_loss(*args, mu=mu, logvar=logvar, mu_p=mu_p,logvar_p=logvar_p) for (mu, logvar, mu_p, logvar_p) in
+                      zip(mus, logvars, mus_p, logvars_p)]
         else:
             losses = [self.vcca_loss(*args, mu=mu, logvar=logvar) for (mu, logvar) in
                       zip(mus, logvars)]
@@ -188,7 +189,7 @@ class DVCCA(DCCA_base):
              zip(recons, args)]).sum()
         return kl + bces
 
-    def vcca_private_loss(self, *args, mu, logvar):
+    def vcca_private_loss(self, *args, mu, logvar, mu_p, logvar_p):
         """
         :param args:
         :param mu:
@@ -197,13 +198,12 @@ class DVCCA(DCCA_base):
         """
         batch_n = mu.shape[0]
         z = self.reparameterize(mu, logvar)
-        mu_p, logvar_p = self.encode_private(*args)
-        z_p = [self.reparameterize(mu_p[i], logvar_p[i]) for i, _ in enumerate(self.private_encoders)]
+        z_p = self.reparameterize(mu_p, logvar_p)
         kl_p = torch.stack(
-            [torch.mean(-0.5 * torch.sum(1 + logvar_p[i] - logvar_p[i].exp() - mu_p[i].pow(2), dim=1), dim=0) for
+            [torch.mean(-0.5 * torch.sum(1 + logvar_p - logvar_p.exp() - mu_p.pow(2), dim=1), dim=0) for
              i, _ in enumerate(self.private_encoders)]).sum()
         kl = torch.mean(-0.5 * torch.sum(1 + logvar - logvar.exp() - mu.pow(2), dim=1), dim=0)
-        z_combined = torch.cat([z] + z_p, dim=-1)
+        z_combined = torch.cat([z,z_p], dim=-1)
         recon = self.decode(z_combined)
         bces = torch.stack(
             [F.binary_cross_entropy(recon[i], args[i], reduction='sum') / batch_n for i, _ in
