@@ -12,9 +12,11 @@ import cca_zoo.dvcca
 class TestDeepWrapper(TestCase):
 
     def setUp(self):
-        self.X = np.random.rand(30, 10)
-        self.Y = np.random.rand(30, 10)
-        self.Z = np.random.rand(30, 10)
+        self.X = np.random.rand(200, 10)
+        self.Y = np.random.rand(200, 10)
+        self.Z = np.random.rand(200, 10)
+        self.X_conv = np.random.rand(100, 1, 16, 16)
+        self.Y_conv = np.random.rand(100, 1, 16, 16)
 
     def tearDown(self):
         pass
@@ -29,7 +31,7 @@ class TestDeepWrapper(TestCase):
                                        objective=cca_zoo.objectives.CCA)
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dcca_model = cca_zoo.deepwrapper.DeepWrapper(dcca_model, device=device)
-        dcca_model.fit(self.X, self.Y,epochs=3)
+        dcca_model.fit(self.X, self.Y, epochs=3)
         # DGCCA
         dgcca_model = cca_zoo.dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                                         objective=cca_zoo.objectives.GCCA)
@@ -96,6 +98,20 @@ class TestDeepWrapper(TestCase):
         dccae_model = cca_zoo.deepwrapper.DeepWrapper(dccae_model, device=device)
         dccae_model.fit(self.X, self.Y)
 
+    def test_DCCAEconv_methods_cpu(self):
+        latent_dims = 2
+        device = 'cpu'
+        encoder_1 = cca_zoo.deep_models.CNNEncoder(latent_dims=latent_dims, feature_size=[16, 16])
+        encoder_2 = cca_zoo.deep_models.CNNEncoder(latent_dims=latent_dims, feature_size=[16, 16])
+        decoder_1 = cca_zoo.deep_models.CNNDecoder(latent_dims=latent_dims, feature_size=[16, 16])
+        decoder_2 = cca_zoo.deep_models.CNNDecoder(latent_dims=latent_dims, feature_size=[16, 16])
+        # DCCAE
+        dccae_model = cca_zoo.dccae.DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
+                                          decoders=[decoder_1, decoder_2], objective=cca_zoo.objectives.CCA)
+        # hidden_layer_sizes are shown explicitly but these are also the defaults
+        dccae_model = cca_zoo.deepwrapper.DeepWrapper(dccae_model, device=device)
+        dccae_model.fit(self.X_conv, self.Y_conv)
+
     def test_DVCCA_methods_cpu(self):
         latent_dims = 2
         device = 'cpu'
@@ -112,8 +128,8 @@ class TestDeepWrapper(TestCase):
 
         private_encoder_1 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10, variational=True)
         private_encoder_2 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10, variational=True)
-        decoder_1 = cca_zoo.deep_models.Decoder(latent_dims=2*latent_dims, feature_size=10, norm_output=True)
-        decoder_2 = cca_zoo.deep_models.Decoder(latent_dims=2*latent_dims, feature_size=10, norm_output=True)
+        decoder_1 = cca_zoo.deep_models.Decoder(latent_dims=2 * latent_dims, feature_size=10, norm_output=True)
+        decoder_2 = cca_zoo.deep_models.Decoder(latent_dims=2 * latent_dims, feature_size=10, norm_output=True)
         # DVCCA
         dvcca_model = cca_zoo.dvcca.DVCCA(latent_dims=latent_dims, private=True, encoders=[encoder_1, encoder_2],
                                           decoders=[decoder_1, decoder_2],

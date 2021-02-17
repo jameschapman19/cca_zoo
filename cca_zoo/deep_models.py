@@ -56,9 +56,8 @@ class Encoder(BaseEncoder):
                 nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
                 nn.ReLU()
             ))
-        self.layers = nn.ModuleList(layers)
+        self.layers = nn.Sequential(*layers)
 
-        # final layer
         if self.variational:
             self.fc_mu = nn.Linear(layer_sizes[-1], latent_dims)
             self.fc_var = nn.Linear(layer_sizes[-1], latent_dims)
@@ -104,16 +103,15 @@ class Decoder(BaseDecoder):
                     nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
                     nn.ReLU()
                 ))
-        self.layers = nn.ModuleList(layers)
+        self.layers = nn.Sequential(*layers)
 
     def forward(self, x):
-        for layer in self.layers:
-            x = layer(x)
+        x = self.layers(x)
         return x
 
 
 class CNNEncoder(BaseEncoder):
-    def __init__(self, latent_dims: int, variational: bool = False, feature_size: Tuple[int] = (28, 28),
+    def __init__(self, latent_dims: int, variational: bool = False, feature_size: Iterable = (28, 28),
                  channels: list = None, kernel_sizes: list = None,
                  stride: list = None,
                  padding: list = None):
@@ -127,92 +125,102 @@ class CNNEncoder(BaseEncoder):
         if padding is None:
             padding = [2] * (len(channels))
         # assume square input
-        layers = []
+        conv_layers = []
         current_size = feature_size[0]
         current_channels = 1
-        for l_id in range(len(channels)):
-            if l_id == len(channels) - 1:
-                layers.append(nn.Sequential(
-                    nn.Linear(int(current_size * current_size * current_channels), latent_dims),
-                ))
-            else:
-                layers.append(nn.Sequential(  # input shape (1, current_size, current_size)
-                    nn.Conv2d(
-                        in_channels=current_channels,  # input height
-                        out_channels=channels[l_id],  # n_filters
-                        kernel_size=kernel_sizes[l_id],  # filter size
-                        stride=stride[l_id],  # filter movement/step
-                        padding=padding[l_id],
-                        # if want same width and length of this image after Conv2d, padding=(kernel_size-1)/2 if
-                        # stride=1
-                    ),  # output shape (out_channels, current_size, current_size)
-                    nn.ReLU(),  # activation
-                    nn.MaxPool2d(kernel_size=2),  # choose max value in 2x2 area, output shape (16, 14, 14)
-                ))
-                current_size = current_size / 2
-                current_channels = channels[l_id]
-        self.layers = nn.ModuleList(layers)
+        for l_id in range(len(channels) - 1):
+            conv_layers.append(nn.Sequential(  # input shape (1, current_size, current_size)
+                nn.Conv2d(
+                    in_channels=current_channels,  # input height
+                    out_channels=channels[l_id],  # n_filters
+                    kernel_size=kernel_sizes[l_id],  # filter size
+                    stride=stride[l_id],  # filter movement/step
+                    padding=padding[l_id],
+                    # if want same width and length of this image after Conv2d, padding=(kernel_size-1)/2 if
+                    # stride=1
+                ),  # output shape (out_channels, current_size, current_size)
+                nn.ReLU(),  # activation
+            ))
+            current_size = current_size
+            current_channels = channels[l_id]
+
+        if self.variational:
+            self.fc_mu = nn.Sequential(
+                nn.Linear(int(current_size * current_size * current_channels), latent_dims),
+            )
+            self.fc_var = nn.Sequential(
+                nn.Linear(int(current_size * current_size * current_channels), latent_dims),
+            )
+        else:
+            self.fc = nn.Sequential(
+                nn.Linear(int(current_size * current_size * current_channels), latent_dims),
+            )
+        self.conv_layers = nn.Sequential(*conv_layers)
 
     def forward(self, x):
-        for i, layer in enumerate(self.layers):
-            if i == len(self.layers) - 1:
-                x = x.reshape((x.shape[0], -1))
-                x = layer(x)
-            else:
-                x = layer(x)
-        return x
+        x = self.conv_layers(x)
+        x = x.reshape((x.shape[0], -1))
+        if self.variational:
+            mu = self.fc_mu(x)
+            logvar = self.fc_var(x)
+            return mu, logvar
+        else:
+            x = self.fc(x)
+            return x
 
 
 class CNNDecoder(BaseDecoder):
-    def __init__(self, latent_dims: int, feature_size: Tuple[int] = (28, 28), channels: list = None, kernel_sizes=None,
-                 stride=None,
-                 padding=None, norm_output: bool = False):
+    def __init__(self, latent_dims: int, feature_size: Iterable = (28, 28), channels: list = None, kernel_sizes=None,
+                 strides=None,
+                 paddings=None, norm_output: bool = False):
         super(CNNDecoder, self).__init__(latent_dims)
         if channels is None:
             channels = [1, 1]
         if kernel_sizes is None:
             kernel_sizes = [5] * len(channels)
-        if stride is None:
-            stride = [1] * len(channels)
-        if padding is None:
-            padding = [2] * len(channels)
+        if strides is None:
+            strides = [1] * len(channels)
+        if paddings is None:
+            paddings = [2] * len(channels)
 
-        layers = []
+        if norm_output:
+            activation = nn.Sigmoid()
+        else:
+            activation = nn.ReLU()
+
+        conv_layers = []
         current_channels = 1
         current_size = feature_size[0]
         # Loop backward through decoding layers in order to work out the dimensions at each layer - in particular the first
         # linear layer needs to know B*current_size*current_size*channels
-        for l_id in range(len(channels)):
-            if l_id == len(channels) - 1:
-                layers.append(nn.Sequential(
-                    nn.Linear(latent_dims, int(current_size * current_size * current_channels)),
-                ))
-            else:
-                layers.append(nn.Sequential(
-                    nn.ConvTranspose2d(
-                        in_channels=channels[l_id],  # input height
-                        out_channels=current_channels,
-                        kernel_size=kernel_sizes[l_id],
-                        stride=stride[l_id],  # filter movement/step
-                        padding=padding[l_id],
-                        # if want same width and length of this image after Conv2d, padding=(kernel_size-1)/2 if
-                        # stride=1
-                    ),
-                    nn.Sigmoid(),  # input shape (1, current_size, current_size)
-                ))
-                current_size = current_size / 2
-                current_channels = channels[l_id]
-        self.layers = nn.ModuleList(layers[::-1])
+        for l_id, (channel, kernel, stride, padding) in reversed(list(enumerate(zip(channels, kernel_sizes, strides, paddings)))):
+            conv_layers.append(nn.Sequential(
+                nn.ConvTranspose2d(
+                    in_channels=channel,  # input height
+                    out_channels=current_channels,
+                    kernel_size=kernel_sizes[l_id],
+                    stride=strides[l_id],  # filter movement/step
+                    padding=paddings[l_id],
+                    # if want same width and length of this image after Conv2d, padding=(kernel_size-1)/2 if
+                    # stride=1
+                ),
+                activation,
+            ))
+            current_size = current_size
+            current_channels = channel
+
+        # reverse layers as constructed in reverse
+        self.conv_layers = nn.Sequential(*conv_layers[::-1])
+        self.fc_layer = nn.Sequential(
+            nn.Linear(latent_dims, int(current_size * current_size * current_channels)),
+        )
 
     def forward(self, x):
-        for i, layer in enumerate(self.layers):
-            if i == 0:
-                x = layer(x)
-                x = x.reshape((x.shape[0], self.layers[i + 1][1].in_channels, -1))
-                x = x.reshape(
-                    (x.shape[0], self.layers[i + 1][1].in_channels, int(sqrt(x.shape[-1])), int(sqrt(x.shape[-1]))))
-            else:
-                x = layer(x)
+        x = self.fc_layer(x)
+        x = x.reshape((x.shape[0], self.conv_layers[0][0].in_channels, -1))
+        x = x.reshape(
+            (x.shape[0], self.conv_layers[0][0].in_channels, int(sqrt(x.shape[-1])), int(sqrt(x.shape[-1]))))
+        x = self.conv_layers(x)
         return x
 
 
