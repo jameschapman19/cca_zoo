@@ -59,7 +59,6 @@ class Encoder(BaseEncoder):
         self.layers = nn.ModuleList(layers)
 
         # final layer
-        self.apply(init_weights)
         if self.variational:
             self.fc_mu = nn.Linear(layer_sizes[-1], latent_dims)
             self.fc_var = nn.Linear(layer_sizes[-1], latent_dims)
