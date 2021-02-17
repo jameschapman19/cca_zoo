@@ -19,14 +19,14 @@ from cca_zoo.wrappers import CCA_Base
 
 class DeepWrapper(CCA_Base):
 
-    def __init__(self, model: DCCA_base, device: str = 'cuda',tensorboard=False, tensorboard_tag=''):
+    def __init__(self, model: DCCA_base, device: str = 'cuda', tensorboard=False, tensorboard_tag=''):
         super().__init__(latent_dims=model.latent_dims)
         self.model = model
         self.device = device
         if not torch.cuda.is_available() and self.device == 'cuda':
             self.device = 'cpu'
         self.latent_dims = model.latent_dims
-        self.tensorboard=tensorboard
+        self.tensorboard = tensorboard
         if tensorboard:
             self.writer = SummaryWriter(tensorboard_tag)
 
@@ -82,7 +82,6 @@ class DeepWrapper(CCA_Base):
         all_train_loss = []
         all_val_loss = []
 
-
         for epoch in range(1, epochs + 1):
             if not early_stop:
                 epoch_train_loss = self.train_epoch(train_dataloader)
@@ -110,14 +109,14 @@ class DeepWrapper(CCA_Base):
                         early_stop = True
                         self.model.load_state_dict(best_model)
 
-                #all_train_loss.append(epoch_train_loss)
-                #all_val_loss.append(epoch_val_loss)
+                # all_train_loss.append(epoch_train_loss)
+                # all_val_loss.append(epoch_val_loss)
                 if self.tensorboard:
                     self.writer.add_scalar('Loss/train', epoch_train_loss, epoch)
                     self.writer.add_scalar('Loss/test', epoch_val_loss, epoch)
         if self.tensorboard:
             self.writer.close()
-        #cca_zoo.plot_utils.plot_training_loss(all_train_loss, all_val_loss)
+        # cca_zoo.plot_utils.plot_training_loss(all_train_loss, all_val_loss)
         if train_correlations:
             self.train_correlations = self.predict_corr(train_dataset, train=True)
         return self

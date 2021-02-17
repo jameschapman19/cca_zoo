@@ -45,34 +45,35 @@ class Encoder(BaseEncoder):
             layer_sizes = [128]
         layers = []
 
+        # first layer
         layers.append(nn.Sequential(
             nn.Linear(feature_size, layer_sizes[0]),
         ))
 
-        for l_id in range(len(layer_sizes)):
-            if l_id == len(layer_sizes) - 1:
-                layers.append(nn.Sequential(
-                    nn.Linear(layer_sizes[l_id], latent_dims),
-                ))
-            else:
-                layers.append(nn.Sequential(
-                    nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
-                    nn.ReLU()
-                ))
+        # other layers
+        for l_id in range(len(layer_sizes) - 1):
+            layers.append(nn.Sequential(
+                nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
+                nn.ReLU()
+            ))
         self.layers = nn.ModuleList(layers)
+
+        # final layer
+        self.apply(init_weights)
         if self.variational:
             self.fc_mu = nn.Linear(layer_sizes[-1], latent_dims)
             self.fc_var = nn.Linear(layer_sizes[-1], latent_dims)
+        else:
+            self.fc = nn.Linear(layer_sizes[-1], latent_dims)
 
     def forward(self, x):
-        for layer in self.layers[:-1]:
-            x = layer(x)
+        x = self.layers(x)
         if self.variational:
             mu = self.fc_mu(x)
             logvar = self.fc_var(x)
             return mu, logvar
         else:
-            x = self.layers[-1](x)
+            x = self.fc(x)
             return x
 
 
