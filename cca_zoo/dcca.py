@@ -51,17 +51,18 @@ class DCCA(DCCA_base, nn.Module):
                  learning_rate=1e-3, als=False,r:float=1e-3, rho: float = 0.2, eps: float = 1e-9, post_transform=True,
                  shared_target=False, schedulers: Iterable = None, optimizers: Iterable = None):
         """
-        :param latent_dims:
-        :param objective:
-        :param encoders:
-        :param learning_rate:
-        :param als:
-        :param rho:
-        :param eps:
-        :param post_transform:
-        :param shared_target:
-        :param schedulers: list of pytorch.optim optimizer classes
-        :param optimizers: list of pytorch.optim scheduler classes
+        :param latent_dims: # latent dimensions
+        :param objective: # CCA objective: normal tracenorm CCA by default
+        :param encoders: list of encoder networks
+        :param learning_rate: learning rate if no encoders passed
+        :param als: whether to use ALS form of CCA in training
+        :param r: regularisation parameter of tracenorm CCA like ridge CCA
+        :param rho: covariance memory like DCCA non-linear orthogonal iterations paper
+        :param eps: epsilon used throughout
+        :param post_transform: whether to learn a linear transformation after training
+        :param shared_target: not used
+        :param schedulers: list of schedulers for each optimizer
+        :param optimizers: list of optimizers for each encoder
         """
         super().__init__(latent_dims, post_transform=post_transform)
         self.latent_dims = latent_dims

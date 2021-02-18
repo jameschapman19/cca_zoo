@@ -48,6 +48,7 @@ class Encoder(BaseEncoder):
         # first layer
         layers.append(nn.Sequential(
             nn.Linear(feature_size, layer_sizes[0]),
+            nn.ReLU()
         ))
 
         # other layers
