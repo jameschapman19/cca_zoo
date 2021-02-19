@@ -167,9 +167,3 @@ class CCA:
         corr = torch.sum(torch.sqrt(U))
         return -corr
 
-
-a = CCA(latent_dims=1, eps=0)
-b = torch.ones(100, 1) + 0.0000001 * torch.rand(100, 1)
-c = torch.rand(100, 1)
-m = a.loss(b, c)
-print('here')
