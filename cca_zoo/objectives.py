@@ -11,7 +11,7 @@ def attach_dim(v, n_dim_to_prepend=0, n_dim_to_append=0):
 def compute_matrix_power(M, p, eps, order=True):
     [D, V] = torch.symeig(M, eigenvectors=True)
     if order:
-        posInd1 = torch.gt(D, eps).nonzero()[:, 0]
+        posInd1 = torch.nonzero(torch.gt(D, eps))[:, 0]
         D = D[posInd1]
         V = V[:, posInd1]
     M_p = torch.matmul(torch.matmul(V, torch.diag(torch.pow(D, p))), V.t())
@@ -25,14 +25,14 @@ class MCCA:
     as in e.g. https://arxiv.org/pdf/2005.11914.pdf
     """
 
-    def __init__(self, outdim_size: int, r: float = 1e-3, eps: float = 1e-9):
+    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 0):
         """
-        :param outdim_size: the number of latent dimensions
+        :param latent_dims: the number of latent dimensions
         :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to
         the number of latent dimensions
         :param eps: an epsilon parameter used in some operations
         """
-        self.outdim_size = outdim_size
+        self.latent_dims = latent_dims
         self.r = r
         self.eps = eps
 
@@ -62,8 +62,8 @@ class MCCA:
         # Sort eigenvalues so lviewest first
         idx = torch.argsort(eigvals, descending=True)
 
-        # Sum the first #outdim_size values (after subtracting 1).
-        corr = (eigvals[idx][:self.outdim_size] - 1).sum()
+        # Sum the first #latent_dims values (after subtracting 1).
+        corr = (eigvals[idx][:self.latent_dims] - 1).sum()
 
         return -corr
 
@@ -75,14 +75,14 @@ class GCCA:
     as in https://arxiv.org/pdf/2005.11914.pdf
     """
 
-    def __init__(self, outdim_size: int, r: float = 1e-3, eps: float = 1e-9):
+    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 0):
         """
-        :param outdim_size: the number of latent dimensions
+        :param latent_dims: the number of latent dimensions
         :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to
         the number of latent dimensions
         :param eps: an epsilon parameter used in some operations
         """
-        self.outdim_size = outdim_size
+        self.latent_dims = latent_dims
         self.r = r
         self.eps = eps
 
@@ -100,7 +100,7 @@ class GCCA:
         idx = torch.argsort(eigvals, descending=True)
         eigvecs = eigvecs[:, idx]
 
-        corr = (eigvals[idx][:self.outdim_size] - 1).sum()
+        corr = (eigvals[idx][:self.latent_dims] - 1).sum()
 
         return -corr
 
@@ -123,14 +123,14 @@ class CCA:
     Loss() method takes the outputs of each view's network and solves the CCA problem as in Andrew's original paper
     """
 
-    def __init__(self, outdim_size: int, r: float = 1e-3, eps: float = 1e-9):
+    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 0):
         """
-        :param outdim_size: the number of latent dimensions
+        :param latent_dims: the number of latent dimensions
         :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to
         the number of latent dimensions
         :param eps: an epsilon parameter used in some operations
         """
-        self.outdim_size = outdim_size
+        self.latent_dims = latent_dims
         self.r = r
         self.eps = eps
 
@@ -159,10 +159,17 @@ class CCA:
         Tval = torch.matmul(torch.matmul(SigmaHat11RootInv,
                                          SigmaHat12), SigmaHat22RootInv)
 
-        # just the top self.outdim_size singular values are used
+        # just the top self.latent_dims singular values are used
         trace_TT = torch.matmul(Tval.t(), Tval)
         U, V = torch.symeig(trace_TT, eigenvectors=True)
-        U_inds = torch.gt(U, self.eps).nonzero()[:, 0]
+        U_inds = torch.nonzero(torch.gt(U, self.eps))[:, 0]
         U = U[U_inds]
         corr = torch.sum(torch.sqrt(U))
         return -corr
+
+
+a = CCA(latent_dims=1, eps=0)
+b = torch.ones(100, 1) + 0.0000001 * torch.rand(100, 1)
+c = torch.rand(100, 1)
+m = a.loss(b, c)
+print('here')
