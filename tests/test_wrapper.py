@@ -57,14 +57,18 @@ class TestWrapper(TestCase):
     def test_weighted_GCCA_methods(self):
         # Test that linear regularized methods match PLS solution when using maximum regularisation
         latent_dims = 5
-        c = 0.5
+        c = 0
         wrap_unweighted_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c])
         wrap_deweighted_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c],
-                                                                                 view_weights=[0.5, 0.5])
+                                                                                  view_weights=[0.5, 0.5])
         corr_unweighted_gcca = wrap_unweighted_gcca.train_correlations[0, 1]
         corr_deweighted_gcca = wrap_deweighted_gcca.train_correlations[0, 1]
         # Check the correlations from each unregularized method are the same
+        K = np.ones((2, self.X.shape[0]))
+        K[0, 200:] = 0
+        wrap_unobserved_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c], K=K)
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_unweighted_gcca, corr_deweighted_gcca, decimal=1))
+
     def test_methods(self):
         pass
 

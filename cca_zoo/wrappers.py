@@ -242,12 +242,15 @@ class GCCA(CCA_Base):
     def __init__(self, latent_dims: int = 1):
         super().__init__(latent_dims=latent_dims)
 
-    def fit(self, *views, c=None, view_weights=None):
+    def fit(self, *views, c=None, view_weights=None, K=None):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
         :param views: 2D numpy arrays for each view with the same number of rows (nxp)
         :param c: regularisation between 0 (CCA) and 1 (PLS)
+        :param view_weights: weights for each view as in Learning Multiview Embeddings of Twitter Users http://www.cs.jhu.edu/~mdredze/publications/2016_acl_multiview.pdf
+        :param K: "row selection matrix" as in Multiview LSA: Representation Learning via Generalized CCA https://www.aclweb.org/anthology/N15-1058.pdf
+            binary numpy array with dimensions (#views,#rows) with one for observed and zero for not observed for that view.
         :return: training data correlations and the parameters required to call other functions in the class.
         """
         self.c = c
@@ -257,13 +260,19 @@ class GCCA(CCA_Base):
         self.view_weights = view_weights
         if self.view_weights is None:
             self.view_weights = [1] * len(views)
-        views_demeaned = self.demean_data(*views)
+        self.K = K
+        if self.K is None:
+            # just use identity when all rows are observed in all views.
+            self.K = np.ones((len(views), views[0].shape[0]))
+        views_demeaned = self.demean_observed_data(*views, self.K)
         Q = []
         for i, (view, view_weight) in enumerate(zip(views_demeaned, self.view_weights)):
             view_cov = view.T @ view
             view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(view_cov.shape[0])
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
+        self.K = np.sqrt(np.sum(self.K, axis=0))
+        Q = np.diag(self.K) @ Q @ np.diag(self.K)
         [eigvals, eigvecs] = np.linalg.eig(Q)
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
@@ -278,6 +287,22 @@ class GCCA(CCA_Base):
         for i, view in enumerate(views):
             transformed_views.append((view - self.view_means[i]) @ self.weights_list[i])
         return transformed_views
+
+    def demean_observed_data(self, *views):
+        """
+        Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
+        demeaning transformation to out of sample data
+        :param views:
+        :return:
+        """
+        views_demeaned = []
+        self.view_means = []
+        for i, (observations, view) in enumerate(zip(self.K, views)):
+            observed = np.where(observations == 1)[0]
+            self.view_means.append(view[observed].mean(axis=0))
+            view[observed] = view[observed] - self.view_means[i]
+            views_demeaned.append(np.diag(observations)@view)
+        return views_demeaned
 
 
 class Iterative(CCA_Base):
