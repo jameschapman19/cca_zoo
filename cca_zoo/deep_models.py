@@ -194,7 +194,8 @@ class CNNDecoder(BaseDecoder):
         current_size = feature_size[0]
         # Loop backward through decoding layers in order to work out the dimensions at each layer - in particular the first
         # linear layer needs to know B*current_size*current_size*channels
-        for l_id, (channel, kernel, stride, padding) in reversed(list(enumerate(zip(channels, kernel_sizes, strides, paddings)))):
+        for l_id, (channel, kernel, stride, padding) in reversed(
+                list(enumerate(zip(channels, kernel_sizes, strides, paddings)))):
             conv_layers.append(nn.Sequential(
                 nn.ConvTranspose2d(
                     in_channels=channel,  # input height

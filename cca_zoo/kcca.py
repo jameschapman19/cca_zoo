@@ -87,7 +87,7 @@ class KCCA:
         R = np.hstack(self.kernels).T @ np.hstack(self.kernels)
         # Can regularise by adding to diagonal
         D = block_diag(*self.kernels)
-        R -= D@D
+        R -= D @ D
         D = block_diag(
             *[(1 - self.c[i]) * kernel @ kernel.T + self.c[i] * kernel for i, kernel in enumerate(self.kernels)])
         return R, D

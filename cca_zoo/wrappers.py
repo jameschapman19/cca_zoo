@@ -6,7 +6,7 @@ from typing import Type
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from scipy.linalg import block_diag, cholesky, sqrtm, eigh
+from scipy.linalg import block_diag, eigh
 from sklearn.base import BaseEstimator
 
 import cca_zoo.data
@@ -301,7 +301,7 @@ class GCCA(CCA_Base):
             observed = np.where(observations == 1)[0]
             self.view_means.append(view[observed].mean(axis=0))
             view[observed] = view[observed] - self.view_means[i]
-            views_demeaned.append(np.diag(observations)@view)
+            views_demeaned.append(np.diag(observations) @ view)
         return views_demeaned
 
 

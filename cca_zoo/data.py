@@ -348,6 +348,6 @@ def generate_simulated_data(m: int, k: int, N: int, M: int, sparse_variables_1: 
 def decorrelate_dims(up, cov):
     A = up.T @ cov @ up
     for k in range(1, A.shape[0]):
-        up[:, k:] -= np.outer(up[:, k-1], A[k-1, k:]/A[k-1, k-1])
+        up[:, k:] -= np.outer(up[:, k - 1], A[k - 1, k:] / A[k - 1, k - 1])
         A = up.T @ cov @ up
     return up

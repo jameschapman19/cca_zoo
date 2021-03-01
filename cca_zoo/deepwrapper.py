@@ -12,6 +12,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, Subset
 from torch.utils.tensorboard import SummaryWriter
+
 import cca_zoo.plot_utils
 from cca_zoo.dcca import DCCA_base
 from cca_zoo.wrappers import CCA_Base
@@ -76,7 +77,7 @@ class DeepWrapper(CCA_Base):
         print('total parameters: ', num_params)
         best_model = copy.deepcopy(self.model.state_dict())
         self.model.float().to(self.device)
-        #if self.tensorboard:
+        # if self.tensorboard:
         #    example_input = [torch.tensor(d).float().to(self.device) for d in list(train_dataset[0][0])]
         #    self.writer.add_graph(self.model, input_to_model=example_input)
         min_val_loss = torch.tensor(np.inf)

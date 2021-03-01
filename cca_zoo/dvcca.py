@@ -12,10 +12,11 @@ for standardising the pipeline for comparison
 from typing import Iterable
 
 import torch
+import torch.distributions as dist
 from torch import nn
 from torch import optim
 from torch.nn import functional as F
-import torch.distributions as dist
+
 from cca_zoo.dcca import DCCA_base
 from cca_zoo.deep_models import BaseEncoder, Encoder, BaseDecoder, Decoder
 

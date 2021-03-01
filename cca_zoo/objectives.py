@@ -166,4 +166,3 @@ class CCA:
         U = U[U_inds]
         corr = torch.sum(torch.sqrt(U))
         return -corr
-

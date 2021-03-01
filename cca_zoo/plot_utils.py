@@ -242,7 +242,6 @@ def plot_connectome_correlations(ordered_connectivity, cca_connectivity, linkage
     fig.savefig('connectivity_correlation.png')
 
 
-
 def plot_latent_space(z_x, z_y, conf=None, conf_labels=None):
     # Maybe we can make a confounds more opaque at some point
     assert (z_x.shape == z_y.shape)
