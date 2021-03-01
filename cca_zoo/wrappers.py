@@ -6,7 +6,7 @@ from typing import Type
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from scipy.linalg import block_diag, cholesky
+from scipy.linalg import block_diag, cholesky, sqrtm, eigh
 from sklearn.base import BaseEstimator
 
 import cca_zoo.data
@@ -222,12 +222,9 @@ class MCCA(CCA_Base):
                          enumerate(views_demeaned)])
         C -= block_diag(*[m.T @ m for i, m in
                           enumerate(views_demeaned)]) - D
-        R = cholesky(D)
-        whitened = np.linalg.inv(R.T) @ C @ np.linalg.inv(R)
-        [eigvals, eigvecs] = np.linalg.eig(whitened)
+        [eigvals, eigvecs] = eigh(C, D)
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
-        eigvecs = len(views) * np.linalg.inv(R) @ eigvecs
         splits = np.cumsum([0] + [view.shape[1] for view in views])
         self.weights_list = [eigvecs[split:splits[i + 1], :self.latent_dims] for i, split in enumerate(splits[:-1])]
         self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_demeaned)]
@@ -245,7 +242,7 @@ class GCCA(CCA_Base):
     def __init__(self, latent_dims: int = 1):
         super().__init__(latent_dims=latent_dims)
 
-    def fit(self, *views, c=None):
+    def fit(self, *views, c=None, view_weights=None):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
@@ -257,12 +254,15 @@ class GCCA(CCA_Base):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
+        self.view_weights = view_weights
+        if self.view_weights is None:
+            self.view_weights = [1] * len(views)
         views_demeaned = self.demean_data(*views)
         Q = []
-        for i, view in enumerate(views_demeaned):
+        for i, (view, view_weight) in enumerate(zip(views_demeaned, self.view_weights)):
             view_cov = view.T @ view
             view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(view_cov.shape[0])
-            Q.append(view @ np.linalg.inv(view_cov) @ view.T)
+            Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
         [eigvals, eigvecs] = np.linalg.eig(Q)
         idx = np.argsort(eigvals, axis=0)[::-1]
@@ -282,7 +282,7 @@ class GCCA(CCA_Base):
 
 class Iterative(CCA_Base):
     def __init__(self, inner_loop: Type[cca_zoo.innerloop.InnerLoop] = cca_zoo.innerloop.InnerLoop,
-                 latent_dims: int = 1, max_iter=100):
+                 latent_dims: int = 1, max_iter=100, deflation='cca'):
         super().__init__(latent_dims=latent_dims)
         self.inner_loop = inner_loop
         self.max_iter = max_iter
@@ -330,9 +330,11 @@ class Iterative(CCA_Base):
                 # but in principle we could apply any form of deflation here
                 residuals[i] = residuals[i] - np.outer(self.score_list[i][:, k], self.score_list[i][:, k]) @ residuals[
                     i] / np.dot(self.score_list[i][:, k], self.score_list[i][:, k]).item()
-        #can we fix the numerical instability problem?
-
+        # can we fix the numerical instability problem?
         return self
+
+    def deflate(self, view, residual, score):
+        pass
 
 
 class PLS(Iterative):

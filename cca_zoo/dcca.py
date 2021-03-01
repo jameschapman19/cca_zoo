@@ -48,7 +48,8 @@ class DCCA_base(nn.Module):
 class DCCA(DCCA_base, nn.Module):
     def __init__(self, latent_dims: int, objective=CCA,
                  encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
-                 learning_rate=1e-3, als=False,r:float=1e-3, rho: float = 0.2, eps: float = 1e-9, post_transform=True,
+                 learning_rate=1e-3, als=False, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-9,
+                 post_transform=True,
                  shared_target=False, schedulers: Iterable = None, optimizers: Iterable = None):
         """
         :param latent_dims: # latent dimensions
@@ -67,7 +68,7 @@ class DCCA(DCCA_base, nn.Module):
         super().__init__(latent_dims, post_transform=post_transform)
         self.latent_dims = latent_dims
         self.encoders = nn.ModuleList(encoders)
-        self.objective = objective(latent_dims,r=r)
+        self.objective = objective(latent_dims, r=r)
         if optimizers is None:
             self.optimizers = [optim.Adam(list(encoder.parameters()), lr=learning_rate) for encoder in self.encoders]
         else:
@@ -108,7 +109,8 @@ class DCCA(DCCA_base, nn.Module):
 
     def update_weights_tn(self, *args):
         [optimizer.zero_grad() for optimizer in self.optimizers]
-        loss = self.loss(*args)
+        z = self(*args)
+        loss = self.objective.loss(*z)
         loss.backward()
         [optimizer.step() for optimizer in self.optimizers]
         return loss

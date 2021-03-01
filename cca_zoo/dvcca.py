@@ -15,7 +15,7 @@ import torch
 from torch import nn
 from torch import optim
 from torch.nn import functional as F
-
+import torch.distributions as dist
 from cca_zoo.dcca import DCCA_base
 from cca_zoo.deep_models import BaseEncoder, Encoder, BaseDecoder, Decoder
 
@@ -86,7 +86,8 @@ class DVCCA(DCCA_base):
         if mle:
             z = mu
         else:
-            z = self.reparameterize(mu, logvar)
+            z_dist = dist.Normal(mu, torch.exp(0.5 * logvar))
+            z = z_dist.rsample()
         # If using single encoder repeat representation n times
         if len(self.encoders) == 1:
             z = z * len(args)
@@ -95,7 +96,8 @@ class DVCCA(DCCA_base):
             if mle:
                 z_p = mu_p
             else:
-                z_p = self.reparameterize(mu_p, logvar_p)
+                z_dist = dist.Normal(mu_p, torch.exp(0.5 * logvar_p))
+                z = z_dist.rsample()
             z = [torch.cat([z_] + z_p, dim=-1) for z_ in z]
         return z
 
@@ -125,20 +127,6 @@ class DVCCA(DCCA_base):
             logvar.append(logvar_i)
         return mu, logvar
 
-    @staticmethod
-    def reparameterize(mu, logvar):
-        """
-        :param mu:
-        :param logvar:
-        :return:
-        """
-        # Use the standard deviation from the encoder
-        std = torch.exp(0.5 * logvar)
-        # Mutliply with additive noise (assumed gaussian observation model)
-        eps = torch.randn_like(std)
-        # Generate random sample
-        return mu + eps * std
-
     def decode(self, z):
         """
         :param z:
@@ -166,7 +154,8 @@ class DVCCA(DCCA_base):
         mus, logvars = self.encode(*args)
         if self.private:
             mus_p, logvars_p = self.encode_private(*args)
-            losses = [self.vcca_private_loss(*args, mu=mu, logvar=logvar, mu_p=mu_p,logvar_p=logvar_p) for (mu, logvar, mu_p, logvar_p) in
+            losses = [self.vcca_private_loss(*args, mu=mu, logvar=logvar, mu_p=mu_p, logvar_p=logvar_p) for
+                      (mu, logvar, mu_p, logvar_p) in
                       zip(mus, logvars, mus_p, logvars_p)]
         else:
             losses = [self.vcca_loss(*args, mu=mu, logvar=logvar) for (mu, logvar) in
@@ -181,7 +170,8 @@ class DVCCA(DCCA_base):
         :return:
         """
         batch_n = mu.shape[0]
-        z = self.reparameterize(mu, logvar)
+        z_dist = dist.Normal(mu, torch.exp(0.5 * logvar))
+        z = z_dist.rsample()
         kl = torch.mean(-0.5 * torch.sum(1 + logvar - logvar.exp() - mu.pow(2), dim=1), dim=0)
         recons = self.decode(z)
         bces = torch.stack(
@@ -197,13 +187,15 @@ class DVCCA(DCCA_base):
         :return:
         """
         batch_n = mu.shape[0]
-        z = self.reparameterize(mu, logvar)
-        z_p = self.reparameterize(mu_p, logvar_p)
+        z_dist = dist.Normal(mu, torch.exp(0.5 * logvar))
+        z = z_dist.rsample()
+        z_p_dist = dist.Normal(mu_p, torch.exp(0.5 * logvar_p))
+        z_p = z_p_dist.rsample()
         kl_p = torch.stack(
             [torch.mean(-0.5 * torch.sum(1 + logvar_p - logvar_p.exp() - mu_p.pow(2), dim=1), dim=0) for
              i, _ in enumerate(self.private_encoders)]).sum()
         kl = torch.mean(-0.5 * torch.sum(1 + logvar - logvar.exp() - mu.pow(2), dim=1), dim=0)
-        z_combined = torch.cat([z,z_p], dim=-1)
+        z_combined = torch.cat([z, z_p], dim=-1)
         recon = self.decode(z_combined)
         bces = torch.stack(
             [F.binary_cross_entropy(recon[i], args[i], reduction='sum') / batch_n for i, _ in
