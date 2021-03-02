@@ -6,9 +6,8 @@ from typing import Type
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from scipy.linalg import block_diag, eigh
+from scipy.linalg import block_diag, eigh, sqrtm, eig
 from sklearn.base import BaseEstimator
-
 import cca_zoo.data
 import cca_zoo.innerloop
 import cca_zoo.kcca
@@ -20,6 +19,7 @@ import cca_zoo.plot_utils
 class CCA_Base(BaseEstimator):
     @abstractmethod
     def __init__(self, latent_dims: int = 1):
+        self.weights_list = None
         self.train_correlations = None
         self.latent_dims = latent_dims
 
@@ -45,8 +45,10 @@ class CCA_Base(BaseEstimator):
          corresponding view in the training data
         :return: tuple of transformed numpy arrays
         """
-        pass
-        return self
+        transformed_views = []
+        for i, view in enumerate(views):
+            transformed_views.append((view - self.view_means[i]) @ self.weights_list[i])
+        return transformed_views
 
     def fit_transform(self, *views, **kwargs):
         """
@@ -78,12 +80,12 @@ class CCA_Base(BaseEstimator):
         :param views:
         :return:
         """
-        views_demeaned = []
+        views_input = []
         self.view_means = []
         for view in views:
             self.view_means.append(view.mean(axis=0))
-            views_demeaned.append(view - view.mean(axis=0))
-        return views_demeaned
+            views_input.append(view - view.mean(axis=0))
+        return views_input
 
     def gridsearch_fit(self, *views, param_candidates=None, folds: int = 5, verbose: bool = False, jobs: int = 0,
                        plot: bool = False):
@@ -189,8 +191,6 @@ class KCCA(CCA_Base):
         return self
 
     def transform(self, *views):
-        # transformed_views = list(self.fit_kcca.transform(views[0] - self.view_means[0], views[1] - self.view_means[1]))
-        # return transformed_views
         transformed_views = []
         for i, view in enumerate(views):
             transformed_views.append(
@@ -214,28 +214,22 @@ class MCCA(CCA_Base):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
-        views_demeaned = self.demean_data(*views)
-        all_views = np.concatenate(views_demeaned, axis=1)
+        views_input = self.demean_data(*views)
+        all_views = np.concatenate(views_input, axis=1)
         C = all_views.T @ all_views
         # Can regularise by adding to diagonal
         D = block_diag(*[(1 - self.c[i]) * m.T @ m + self.c[i] * np.eye(m.shape[1]) for i, m in
-                         enumerate(views_demeaned)])
+                         enumerate(views_input)])
         C -= block_diag(*[m.T @ m for i, m in
-                          enumerate(views_demeaned)]) - D
+                          enumerate(views_input)]) - D
         [eigvals, eigvecs] = eigh(C, D)
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         splits = np.cumsum([0] + [view.shape[1] for view in views])
         self.weights_list = [eigvecs[split:splits[i + 1], :self.latent_dims] for i, split in enumerate(splits[:-1])]
-        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_demeaned)]
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
         self.train_correlations = self.predict_corr(*views)
         return self
-
-    def transform(self, *views):
-        transformed_views = []
-        for i, view in enumerate(views):
-            transformed_views.append((view - self.view_means[i]) @ self.weights_list[i])
-        return transformed_views
 
 
 class GCCA(CCA_Base):
@@ -264,9 +258,9 @@ class GCCA(CCA_Base):
         if self.K is None:
             # just use identity when all rows are observed in all views.
             self.K = np.ones((len(views), views[0].shape[0]))
-        views_demeaned = self.demean_observed_data(*views, self.K)
+        views_input = self.demean_observed_data(*views, self.K)
         Q = []
-        for i, (view, view_weight) in enumerate(zip(views_demeaned, self.view_weights)):
+        for i, (view, view_weight) in enumerate(zip(views_input, self.view_weights)):
             view_cov = view.T @ view
             view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(view_cov.shape[0])
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
@@ -277,16 +271,10 @@ class GCCA(CCA_Base):
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         eigvals = eigvals[idx].real
-        self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in views_demeaned]
-        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_demeaned)]
+        self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in views_input]
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
         self.train_correlations = self.predict_corr(*views)
         return self
-
-    def transform(self, *views):
-        transformed_views = []
-        for i, view in enumerate(views):
-            transformed_views.append((view - self.view_means[i]) @ self.weights_list[i])
-        return transformed_views
 
     def demean_observed_data(self, *views):
         """
@@ -295,14 +283,81 @@ class GCCA(CCA_Base):
         :param views:
         :return:
         """
-        views_demeaned = []
+        views_input = []
         self.view_means = []
         for i, (observations, view) in enumerate(zip(self.K, views)):
             observed = np.where(observations == 1)[0]
             self.view_means.append(view[observed].mean(axis=0))
             view[observed] = view[observed] - self.view_means[i]
-            views_demeaned.append(np.diag(observations) @ view)
-        return views_demeaned
+            views_input.append(np.diag(observations) @ view)
+        return views_input
+
+
+def pca_data(*views):
+    """
+    Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
+    demeaning transformation to out of sample data
+    :param views:
+    :return:
+    """
+    views_U = []
+    views_S = []
+    views_Vt = []
+    for i, view in enumerate(views):
+        U, S, Vt = np.linalg.svd(view, full_matrices=False)
+        views_U.append(U)
+        views_S.append(S)
+        views_Vt.append(Vt)
+    return views_U, views_S, views_Vt
+
+
+class rCCA(CCA_Base):
+    def __init__(self, latent_dims: int = 1):
+        super().__init__(latent_dims=latent_dims)
+
+    def fit(self, *views, c=None):
+        self.c = c
+        if self.c is None:
+            self.c = [0] * len(views)
+        assert (len(self.c) == len(views)), 'c requires as many values as #views'
+        views_input = self.demean_data(*views)
+        U_list, S_list, Vt_list = pca_data(*views_input)
+        if len(views) == 2:
+            self.two_view_fit(U_list, S_list, Vt_list)
+        else:
+            self.multi_view_fit(U_list, S_list, Vt_list)
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
+        self.train_correlations = self.predict_corr(*views)
+        return self
+
+    def two_view_fit(self, U_list, S_list, Vt_list):
+        B_list = [(1 - self.c[i]) * S * S + self.c[i] for i, S in
+                  enumerate(S_list)]
+        R_list = [U @ np.diag(S) for U, S in zip(U_list, S_list)]
+        R_12 = R_list[0].T @ R_list[1]
+        M = np.diag(1 / np.sqrt(B_list[1])) @ R_12.T @ np.diag(1 / B_list[0]) @ R_12 @ np.diag(1 / np.sqrt(B_list[1]))
+        [eigvals, eigvecs] = eig(M)
+        idx = np.argsort(eigvals, axis=0)[::-1]
+        eigvecs = eigvecs[:, idx].real
+        eigvals = np.real(np.sqrt(eigvals))[:self.latent_dims]
+        w_y = Vt_list[1].T @ np.diag(1 / np.sqrt(B_list[1])) @ eigvecs[:, :self.latent_dims].real
+        w_x = Vt_list[0].T @ np.diag(1 / B_list[0]) @ R_12 @ eigvecs[:, :self.latent_dims].real / eigvals
+        self.weights_list = [w_x, w_y]
+
+    def multi_view_fit(self, U_list, S_list, Vt_list):
+        B_list = [(1 - self.c[i]) * S * S + self.c[i] for i, S in
+                  enumerate(S_list)]
+        D = block_diag(*[np.diag((1 - self.c[i]) * S * S + self.c[i]) for i, S in
+                         enumerate(S_list)])
+        C = np.concatenate([U @ np.diag(S) for U, S in zip(U_list, S_list)], axis=1)
+        C = C.T @ C
+        C -= block_diag(*[np.diag(S ** 2) for U, S in zip(U_list, S_list)]) - D
+        [eigvals, eigvecs] = eigh(C, D)
+        idx = np.argsort(eigvals, axis=0)[::-1]
+        eigvecs = eigvecs[:, idx].real
+        splits = np.cumsum([0] + [U.shape[1] for U in U_list])
+        self.weights_list = [Vt.T @ np.diag(1 / np.sqrt(B)) @ eigvecs[split:splits[i + 1], :self.latent_dims] for
+                             i, (split, Vt, B) in enumerate(zip(splits[:-1], Vt_list, B_list))]
 
 
 class Iterative(CCA_Base):
@@ -322,12 +377,6 @@ class Iterative(CCA_Base):
         self.outer_loop(*self.demean_data(*views), **kwargs)
         self.train_correlations = self.predict_corr(*views)
         return self
-
-    def transform(self, *views):
-        transformed_views = []
-        for i, view in enumerate(views):
-            transformed_views.append((view - self.view_means[i]) @ self.weights_list[i])
-        return transformed_views
 
     def outer_loop(self, *views, **kwargs):
         """
@@ -372,7 +421,7 @@ class PLS(Iterative):
         super().__init__(cca_zoo.innerloop.PLSInnerLoop, latent_dims, max_iter)
 
 
-class CCA(Iterative):
+class CCA_ALS(Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
         """
         Fits a CCA model with CCA deflation by NIPALS algorithm

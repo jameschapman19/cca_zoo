@@ -11,15 +11,15 @@ class TestWrapper(TestCase):
 
     def setUp(self):
         self.X = np.random.rand(500, 30)
-        self.Y = np.random.rand(500, 30)
-        self.Z = np.random.rand(500, 30)
+        self.Y = np.random.rand(500, 25)
+        self.Z = np.random.rand(500, 20)
 
     def tearDown(self):
         pass
 
     def test_unregularized_methods(self):
         latent_dims = 5
-        wrap_iter = cca_zoo.wrappers.CCA(latent_dims=latent_dims).fit(self.X, self.Y)
+        wrap_iter = cca_zoo.wrappers.CCA_ALS(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_kcca = cca_zoo.wrappers.KCCA(latent_dims=latent_dims).fit(self.X, self.Y)
@@ -45,14 +45,17 @@ class TestWrapper(TestCase):
         wrap_pls = cca_zoo.wrappers.PLS(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c])
         wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c])
+        wrap_rCCA = cca_zoo.wrappers.rCCA(latent_dims=latent_dims).fit(self.X, self.Y, c=[c, c])
         corr_gcca = wrap_gcca.train_correlations[0, 1]
         corr_mcca = wrap_mcca.train_correlations[0, 1]
         corr_kernel = wrap_kernel.train_correlations[0, 1]
         corr_pls = wrap_pls.train_correlations[0, 1]
+        corr_rcca = wrap_rCCA.train_correlations[0, 1]
         # Check the correlations from each unregularized method are the same
         # self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_gcca, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_mcca, decimal=1))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_kernel, decimal=1))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_rcca, decimal=1))
 
     def test_weighted_GCCA_methods(self):
         # Test that linear regularized methods match PLS solution when using maximum regularisation
