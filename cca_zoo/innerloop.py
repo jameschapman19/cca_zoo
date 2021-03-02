@@ -12,43 +12,43 @@ from sklearn.utils._testing import ignore_warnings
 
 
 class InnerLoop:
-    def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
+    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized'):
         """
-        :param views: 2D numpy arrays for each view separated by comma with the same number of rows (nxp)
         :param max_iter: maximum number of iterations to perform if tol is not reached
         :param tol: tolerance value used for stopping criteria
         :param generalized: use an auxiliary variable to
         :param initialization: initialise the optimisation with either the 'unregularized' (CCA/PLS) solution, or
          a 'random' initialisation
         """
-        self.l1_ratio = [0] * len(views)
-        self.c = [0] * len(views)
+        self.track_objective = []
+        self.track_correlation = []
+        self.generalized = generalized
         self.initialization = initialization
         self.max_iter = max_iter
         self.tol = tol
-        if len(views) > 2:
-            self.generalized = True
-        else:
-            self.generalized = generalized
-        self.views = views
-        self.track_objective = []
-        self.track_correlation = []
 
+    def check_params(self):
+        self.l1_ratio = [0] * len(self.views)
+        self.c = [0] * len(self.views)
+        if len(self.views) > 2:
+            self.generalized = True
+
+    def fit(self, *views):
+        self.views = views
+        self.check_params()
         if self.initialization == 'random':
             self.scores = np.array([np.random.rand(view.shape[0]) for view in self.views])
             self.weights = [np.random.rand(view.shape[1]) for view in self.views]
             self.weights = [weights / np.linalg.norm(view @ weights) for (weights, view) in
                             zip(self.weights, self.views)]
         elif self.initialization == 'unregularized':
-            unregularized = InnerLoop(*self.views, initialization='random').iterate()
+            unregularized = InnerLoop(initialization='random').fit(*self.views)
             self.scores = unregularized.scores
             # Weight vectors for y (normalized to 1)
             self.weights = unregularized.weights
-
-    def iterate(self):
         for _ in range(self.max_iter):
-            for i, view in enumerate(self.views):
+            for i, view in enumerate(views):
                 self.update_view(i)
 
             self.track_objective.append(self.objective())
@@ -88,22 +88,22 @@ class InnerLoop:
 
 
 class PLSInnerLoop(InnerLoop):
-    def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
+    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized'):
-        super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
+        super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
-        self.iterate()
 
 
 class CCAInnerLoop(InnerLoop):
-    def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
+    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized'):
-        super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
+        super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
+
+    def check_params(self):
         self.inverses = [pinv2(view) for view in self.views]
-        self.c = [0 for _ in views]
-        self.l1_ratio = [0 for _ in views]
-        self.iterate()
+        self.c = [0 for _ in self.views]
+        self.l1_ratio = [0 for _ in self.views]
 
     def update_view(self, view_index: int):
         """
@@ -123,16 +123,17 @@ class CCAInnerLoop(InnerLoop):
 
 
 class PMDInnerLoop(InnerLoop):
-    def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
+    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', c=None):
-        super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
+        super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
         self.c = c
+
+    def check_params(self):
         if self.c is None:
-            self.c = [1] * len(views)
+            self.c = [1] * len(self.views)
         assert (all([c >= 1 for c in self.c]))
-        assert (all([c < np.sqrt(view.shape[1]) for c, view in zip(self.c, views)]))
-        self.iterate()
+        assert (all([c <= np.sqrt(view.shape[1]) for c, view in zip(self.c, self.views)]))
 
     def update_view(self, view_index: int):
         """
@@ -183,10 +184,11 @@ class ParkhomenkoInnerLoop(InnerLoop):
         super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
         self.c = c
+
+    def check_params(self):
         if self.c is None:
-            self.c = [0.0001] * len(views)
+            self.c = [0.0001] * len(self.views)
         assert (all([c > 0 for c in self.c]))
-        self.iterate()
 
     def update_view(self, view_index: int):
         """
@@ -205,19 +207,20 @@ class ParkhomenkoInnerLoop(InnerLoop):
 
 
 class ElasticInnerLoop(InnerLoop):
-    def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
+    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', c=None, l1_ratio=None, constrained=False):
-        super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
+        super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
 
         self.constrained = constrained
         self.c = c
-        if self.c is None:
-            self.c = [0] * len(views)
         self.l1_ratio = l1_ratio
+
+    def check_params(self):
+        if self.c is None:
+            self.c = [0] * len(self.views)
         if self.l1_ratio is None:
-            self.l1_ratio = [0] * len(views)
-        self.iterate()
+            self.l1_ratio = [0] * len(self.views)
 
     def update_view(self, view_index: int):
         """
@@ -292,17 +295,18 @@ class ElasticInnerLoop(InnerLoop):
 
 
 class SCCAInnerLoop(InnerLoop):
-    def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
+    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', c=None):
-        super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
+        super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
+        self.c = c
+
+    def check_params(self):
+        if self.c is None:
+            self.c = [0] * len(self.views)
+        self.l1_ratio = [1 for _ in self.views]
         self.inverses = [pinv2(view) if view.shape[0] > view.shape[1] else None for view in
                          self.views]
-        self.c = c
-        if self.c is None:
-            self.c = [0] * len(views)
-        self.l1_ratio = [1 for _ in self.views]
-        self.iterate()
 
     def update_view(self, view_index: int):
         """
@@ -348,6 +352,8 @@ class ADMMInnerLoop(InnerLoop):
         self.c = c
         self.lam = lam
         self.mu = mu
+
+    def check_params(self):
         if self.c is None:
             self.c = [0] * len(self.views)
         if self.lam is None:
@@ -362,7 +368,6 @@ class ADMMInnerLoop(InnerLoop):
         self.eta = [np.zeros(view.shape[0]) for view in self.views]
         self.z = [np.zeros(view.shape[0]) for view in self.views]
         self.l1_ratio = [1] * len(self.views)
-        self.iterate()
 
     def update_view(self, view_index: int):
         targets = np.ma.array(self.scores, mask=False)

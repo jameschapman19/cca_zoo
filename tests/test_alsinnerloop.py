@@ -16,10 +16,10 @@ class TestAlsInnerLoop(TestCase):
         pass
 
     def test_iterate(self):
-        pls = cca_zoo.innerloop.InnerLoop(self.X, self.Y)
-        generalized_pls = cca_zoo.innerloop.InnerLoop(self.X, self.Y, self.Z)
-        als = cca_zoo.innerloop.CCAInnerLoop(self.X, self.Y)
-        generalized_als = cca_zoo.innerloop.CCAInnerLoop(self.X, self.Y, self.Z)
+        pls = cca_zoo.innerloop.InnerLoop().fit(self.X, self.Y)
+        generalized_pls = cca_zoo.innerloop.InnerLoop().fit(self.X, self.Y, self.Z)
+        als = cca_zoo.innerloop.CCAInnerLoop().fit(self.X, self.Y)
+        generalized_als = cca_zoo.innerloop.CCAInnerLoop().fit(self.X, self.Y, self.Z)
         self.assertIsNone(
             np.testing.assert_almost_equal(np.linalg.norm(pls.weights[0]), np.linalg.norm(pls.weights[1]), 1))
         self.assertIsNone(
@@ -34,10 +34,10 @@ class TestAlsInnerLoop(TestCase):
                                            np.linalg.norm(generalized_als.scores[2]), 1))
 
     def test_regularized(self):
-        scca = cca_zoo.innerloop.SCCAInnerLoop(self.X, self.Y, c=[0.0001, 0.0001])
-        scca_gen = cca_zoo.innerloop.SCCAInnerLoop(self.X, self.Y, c=[0.0001, 0.0001], generalized=True)
-        park = cca_zoo.innerloop.ParkhomenkoInnerLoop(self.X, self.Y,c=[0.0001, 0.0001])
-        park_gen = cca_zoo.innerloop.ParkhomenkoInnerLoop(self.X, self.Y,c=[0.0001, 0.0001], generalized=True)
+        scca = cca_zoo.innerloop.SCCAInnerLoop(c=[0.0001, 0.0001]).fit(self.X, self.Y)
+        scca_gen = cca_zoo.innerloop.SCCAInnerLoop(c=[0.0001, 0.0001], generalized=True).fit(self.X, self.Y)
+        park = cca_zoo.innerloop.ParkhomenkoInnerLoop(c=[0.0001, 0.0001]).fit(self.X, self.Y)
+        park_gen = cca_zoo.innerloop.ParkhomenkoInnerLoop(c=[0.0001, 0.0001], generalized=True).fit(self.X, self.Y)
         params = {'c': [2, 2]}
-        pmd = cca_zoo.innerloop.PMDInnerLoop(self.X, self.Y, c=[2,2])
-        pmd_gen = cca_zoo.innerloop.PMDInnerLoop(self.X, self.Y, c=[2,2], generalized=True)
+        pmd = cca_zoo.innerloop.PMDInnerLoop(c=[2, 2]).fit(self.X, self.Y)
+        pmd_gen = cca_zoo.innerloop.PMDInnerLoop(c=[2, 2], generalized=True).fit(self.X, self.Y)

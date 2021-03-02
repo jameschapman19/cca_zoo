@@ -6,8 +6,9 @@ from typing import Type
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from scipy.linalg import block_diag, eigh, sqrtm, eig
+from scipy.linalg import block_diag, eigh, eig
 from sklearn.base import BaseEstimator
+
 import cca_zoo.data
 import cca_zoo.innerloop
 import cca_zoo.kcca
@@ -24,18 +25,16 @@ class CCA_Base(BaseEstimator):
         self.latent_dims = latent_dims
 
     @abstractmethod
-    def fit(self, *views, **kwargs):
+    def fit(self, *views):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
         :param views: 2D numpy arrays for each view separated by comma with the same number of rows (nxp)
-        :param kwargs: parameters associated with the method.
         :return: training data correlations and the parameters required to call other functions in the class.
         """
         pass
         return self
 
-    @abstractmethod
     def transform(self, *views):
         """
         The transform method takes any number of views as a numpy array. Need to have the same number of features as
@@ -50,14 +49,14 @@ class CCA_Base(BaseEstimator):
             transformed_views.append((view - self.view_means[i]) @ self.weights_list[i])
         return transformed_views
 
-    def fit_transform(self, *views, **kwargs):
+    def fit_transform(self, *views):
         """
         Apply fit and immediately transform the same data
         :param views:
         :param kwargs: parameters associated with the method
         :return: tuple of transformed numpy arrays
         """
-        self.fit(*views, **kwargs).transform(*views)
+        self.fit(*views).transform(*views)
 
     def predict_corr(self, *views):
         """
@@ -135,7 +134,8 @@ class CCA_Base(BaseEstimator):
         if plot:
             cca_zoo.plot_utils.cv_plot(cv_scores, param_sets, self.__class__.__name__)
 
-        self.fit(*views, **param_sets[max_index])
+        self.set_params(**param_sets[max_index])
+        self.fit(*views)
         return self
 
     """
@@ -161,11 +161,15 @@ class CCA_Base(BaseEstimator):
     """
 
 
-class KCCA(CCA_Base):
-    def __init__(self, latent_dims: int = 1):
+class KCCA(CCA_Base, BaseEstimator):
+    def __init__(self, latent_dims: int = 1, kernel: str = 'linear', sigma: float = 1.0, degree: int = 1, c=None):
         super().__init__(latent_dims=latent_dims)
+        self.c = c
+        self.kernel = kernel
+        self.sigma = sigma
+        self.degree = degree
 
-    def fit(self, *views, kernel: str = 'linear', sigma: float = 1.0, degree: int = 1, c=None):
+    def fit(self, *views):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
@@ -176,13 +180,9 @@ class KCCA(CCA_Base):
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         :return: training data correlations and the parameters required to call other functions in the class.
         """
-        self.c = c
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
-        self.kernel = kernel
-        self.sigma = sigma
-        self.degree = degree
         self.model = cca_zoo.kcca.KCCA(*self.demean_data(*views), latent_dims=self.latent_dims, kernel=self.kernel,
                                        sigma=self.sigma,
                                        degree=self.degree, c=self.c)
@@ -198,11 +198,12 @@ class KCCA(CCA_Base):
         return transformed_views
 
 
-class MCCA(CCA_Base):
-    def __init__(self, latent_dims: int = 1):
+class MCCA(CCA_Base, BaseEstimator):
+    def __init__(self, latent_dims: int = 1, c=None):
         super().__init__(latent_dims=latent_dims)
+        self.c = c
 
-    def fit(self, *views, c=None):
+    def fit(self, *views):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
@@ -210,7 +211,6 @@ class MCCA(CCA_Base):
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         :return: training data correlations and the parameters required to call other functions in the class.
         """
-        self.c = c
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
@@ -232,11 +232,14 @@ class MCCA(CCA_Base):
         return self
 
 
-class GCCA(CCA_Base):
-    def __init__(self, latent_dims: int = 1):
+class GCCA(CCA_Base, BaseEstimator):
+    def __init__(self, latent_dims: int = 1, c=None, view_weights=None, K=None):
         super().__init__(latent_dims=latent_dims)
+        self.c = c
+        self.view_weights = view_weights
+        self.K = K
 
-    def fit(self, *views, c=None, view_weights=None, K=None):
+    def fit(self, *views):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
@@ -247,14 +250,11 @@ class GCCA(CCA_Base):
             binary numpy array with dimensions (#views,#rows) with one for observed and zero for not observed for that view.
         :return: training data correlations and the parameters required to call other functions in the class.
         """
-        self.c = c
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
-        self.view_weights = view_weights
         if self.view_weights is None:
             self.view_weights = [1] * len(views)
-        self.K = K
         if self.K is None:
             # just use identity when all rows are observed in all views.
             self.K = np.ones((len(views), views[0].shape[0]))
@@ -311,12 +311,12 @@ def pca_data(*views):
     return views_U, views_S, views_Vt
 
 
-class rCCA(CCA_Base):
-    def __init__(self, latent_dims: int = 1):
+class rCCA(CCA_Base, BaseEstimator):
+    def __init__(self, latent_dims: int = 1, c=None):
         super().__init__(latent_dims=latent_dims)
-
-    def fit(self, *views, c=None):
         self.c = c
+
+    def fit(self, *views):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
@@ -361,24 +361,22 @@ class rCCA(CCA_Base):
 
 
 class Iterative(CCA_Base):
-    def __init__(self, inner_loop: Type[cca_zoo.innerloop.InnerLoop] = cca_zoo.innerloop.InnerLoop,
-                 latent_dims: int = 1, max_iter=100, deflation='cca'):
+    def __init__(self, latent_dims: int = 1, deflation='cca', max_iter=50):
         super().__init__(latent_dims=latent_dims)
-        self.inner_loop = inner_loop
         self.max_iter = max_iter
 
-    def fit(self, *views, **kwargs):
+    def fit(self, *views):
         """
         Fits the model for a given set of parameters (or use default values). Returns parameters/objects that allow out of sample transformation or prediction
         :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3)
-        :param kwargs: a dictionary containing the relevant parameters required for the model. If None use defaults.
         :return: training data correlations and the parameters required to call other functions in the class.
         """
-        self.outer_loop(*self.demean_data(*views), **kwargs)
+        self.set_loop_params()
+        self.outer_loop(*self.demean_data(*views))
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def outer_loop(self, *views, **kwargs):
+    def outer_loop(self, *views):
         """
         :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
@@ -396,7 +394,7 @@ class Iterative(CCA_Base):
         residuals = copy.deepcopy(list(views))
         # For each of the dimensions
         for k in range(self.latent_dims):
-            self.loop = self.inner_loop(*residuals, max_iter=self.max_iter, **kwargs)
+            self.loop = self.loop.fit(*residuals)
             for i, residual in enumerate(residuals):
                 self.weights_list[i][:, k] = self.loop.weights[i]
                 self.score_list[i][:, k] = self.loop.scores[i]
@@ -410,6 +408,10 @@ class Iterative(CCA_Base):
     def deflate(self, view, residual, score):
         pass
 
+    @abstractmethod
+    def set_loop_params(self):
+        self.loop = cca_zoo.innerloop.PLSInnerLoop(max_iter=self.max_iter)
+
 
 class PLS(Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100):
@@ -418,7 +420,11 @@ class PLS(Iterative):
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
-        super().__init__(cca_zoo.innerloop.PLSInnerLoop, latent_dims, max_iter)
+        self.max_iter = max_iter
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+
+    def set_loop_params(self):
+        self.loop = cca_zoo.innerloop.PLSInnerLoop(max_iter=self.max_iter)
 
 
 class CCA_ALS(Iterative):
@@ -428,57 +434,87 @@ class CCA_ALS(Iterative):
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
-        super().__init__(cca_zoo.innerloop.CCAInnerLoop, latent_dims, max_iter)
+        self.max_iter = max_iter
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+
+    def set_loop_params(self):
+        self.loop = cca_zoo.innerloop.CCAInnerLoop(max_iter=self.max_iter)
 
 
-class PMD(Iterative):
-    def __init__(self, latent_dims: int = 1, max_iter=100):
+class PMD(Iterative, BaseEstimator):
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None):
         """
         Fits a sparse CCA model by penalized matrix decomposition
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
-        super().__init__(cca_zoo.innerloop.PMDInnerLoop, latent_dims, max_iter)
+        self.c = c
+        self.max_iter = max_iter
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+
+    def set_loop_params(self):
+        self.loop = cca_zoo.innerloop.PMDInnerLoop(max_iter=self.max_iter, c=self.c)
 
 
-class ParkhomenkoCCA(Iterative):
-    def __init__(self, latent_dims: int = 1, max_iter=100):
+class ParkhomenkoCCA(Iterative, BaseEstimator):
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None):
         """
         Fits a sparse CCA model by penalization
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
-        super().__init__(cca_zoo.innerloop.ParkhomenkoInnerLoop, latent_dims, max_iter)
+        self.c = c
+        self.max_iter = max_iter
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+
+    def set_loop_params(self):
+        self.loop = cca_zoo.innerloop.ParkhomenkoInnerLoop(max_iter=self.max_iter, c=self.c)
 
 
-class SCCA(Iterative):
-    def __init__(self, latent_dims: int = 1, max_iter=100):
+class SCCA(Iterative, BaseEstimator):
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None):
         """
         Fits a sparse CCA model by iterative rescaled lasso regression
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
-        super().__init__(cca_zoo.innerloop.SCCAInnerLoop, latent_dims, max_iter)
+        self.c = c
+        self.max_iter = max_iter
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+
+    def set_loop_params(self):
+        self.loop = cca_zoo.innerloop.SCCAInnerLoop(max_iter=self.max_iter, c=self.c)
 
 
-class SCCA_ADMM(Iterative):
-    def __init__(self, latent_dims: int = 1, max_iter=100):
+class SCCA_ADMM(Iterative, BaseEstimator):
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None):
         """
         Fits a sparse CCA model by alternating ADMM
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
-        super().__init__(cca_zoo.innerloop.ADMMInnerLoop, latent_dims, max_iter)
+        self.c = c
+        self.max_iter = max_iter
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+
+    def set_loop_params(self):
+        self.loop = cca_zoo.innerloop.ADMMInnerLoop(max_iter=self.max_iter, c=self.c)
 
 
-class ElasticCCA(Iterative):
-    def __init__(self, latent_dims: int = 1, max_iter=100):
+class ElasticCCA(Iterative, BaseEstimator):
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, l1_ratio=None):
         """
         Fits an elastic CCA by iterative rescaled elastic net regression
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
-        super().__init__(cca_zoo.innerloop.ElasticInnerLoop, latent_dims, max_iter)
+        self.c = c
+        self.l1_ratio = l1_ratio
+        self.max_iter = max_iter
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+
+    def set_loop_params(self):
+        self.loop = cca_zoo.innerloop.ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio)
 
 
 def slicedict(d, s):
@@ -491,12 +527,12 @@ def slicedict(d, s):
 
 
 class CrossValidate:
-    def __init__(self, model: CCA_Base, folds: int = 5, verbose: bool = True):
+    def __init__(self, model, folds: int = 5, verbose: bool = True):
         self.folds = folds
         self.verbose = verbose
         self.model = model
 
-    def score(self, *views, **kwargs):
+    def score(self, *views, **cvparams):
         scores = np.zeros(self.folds)
         inds = np.arange(views[0].shape[0])
         np.random.shuffle(inds)
@@ -508,15 +544,15 @@ class CrossValidate:
         for fold in range(self.folds):
             train_sets = [np.delete(view, fold_inds[fold], axis=0) for view in views]
             val_sets = [view[fold_inds[fold], :] for view in views]
-            scores[fold] = self.model.fit(
-                *train_sets, **kwargs).predict_corr(
+            scores[fold] = self.model.set_params(**cvparams).fit(
+                *train_sets).predict_corr(
                 *val_sets).sum(axis=-1)[np.triu_indices(len(views), 1)].sum()
         metric = scores.sum(axis=0) / self.folds
         std = scores.std(axis=0)
         if np.isnan(metric):
             metric = 0
         if self.verbose:
-            print(kwargs)
+            print(cvparams)
             print(metric)
             print(std)
         return metric, std

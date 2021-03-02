@@ -101,9 +101,9 @@ https://academic.oup.com/biostatistics/article/10/3/515/293026
 
    from cca_zoo import wrappers
    # %%
-   pmd = wrappers.PMD(latent_dims=latent_dims, max_iter=max_iter)
+   pmd = wrappers.PMD(latent_dims=latent_dims, max_iter=max_iter,c=[2,2])
 
-   pmd.fit(train_view_1, train_view_2,c=[2,2])
+   pmd.fit(train_view_1, train_view_2)
 
    pmd_results = np.stack(
        (pmd.train_correlations[0, 1], pmd.predict_corr(test_view_1, test_view_2)[0, 1]))
@@ -121,9 +121,9 @@ Sparse CCA by Penalization (Parkhomenko)
 
    from cca_zoo import wrappers
    # %%
-   parkhomenko = wrappers.Parkhomenko(latent_dims=latent_dims, max_iter=max_iter)
+   parkhomenko = wrappers.Parkhomenko(latent_dims=latent_dims, max_iter=max_iter,c=[0.0001,0.0001])
 
-   parkhomenko.fit(train_view_1, train_view_2,c=[0.0001,0.0001])
+   parkhomenko.fit(train_view_1, train_view_2)
 
    parkhomenko_results = np.stack(
        (parkhomenko.train_correlations[0, 1], parkhomenko.predict_corr(test_view_1, test_view_2)[0, 1]))
@@ -143,9 +143,9 @@ https://onlinelibrary.wiley.com/doi/abs/10.1111/biom.13043?casa_token=pw8OSPmNkz
 
    from cca_zoo import wrappers
    # %%
-   scca = wrappers.SCCA(latent_dims=latent_dims, max_iter=max_iter)
+   scca = wrappers.SCCA(latent_dims=latent_dims, max_iter=max_iter,c=[0.0001,0.0001])
 
-   scca.fit(train_view_1, train_view_2,c=[0.0001,0.0001])
+   scca.fit(train_view_1, train_view_2)
 
    scca_results = np.stack(
        (scca.train_correlations[0, 1], scca.predict_corr(test_view_1, test_view_2)[0, 1]))
@@ -165,9 +165,9 @@ https://arxiv.org/abs/1705.10865
 
    from cca_zoo import wrappers
    # %%
-   scca_admm = wrappers.SCCA_ADMM(latent_dims=latent_dims, max_iter=max_iter)
+   scca_admm = wrappers.SCCA_ADMM(latent_dims=latent_dims, max_iter=max_iter,c=[0.0001,0.0001])
 
-   scca_admm.fit(train_view_1, train_view_2,c=[0.0001,0.0001])
+   scca_admm.fit(train_view_1, train_view_2)
 
    scca_admm_results = np.stack(
        (scca_admm.train_correlations[0, 1], scca_admm.predict_corr(test_view_1, test_view_2)[0, 1]))
@@ -187,9 +187,9 @@ https://pubmed.ncbi.nlm.nih.gov/19689958/
 
    from cca_zoo import wrappers
    # %%
-   elastic_cca = wrappers.ElasticCCA(latent_dims=latent_dims, max_iter=max_iter)
+   elastic_cca = wrappers.ElasticCCA(latent_dims=latent_dims, max_iter=max_iter,c=[0.0001,0.0001],l1_ratio=[0.1,0.1])
 
-   elastic_cca.fit(train_view_1, train_view_2,c=[0.0001,0.0001],l1_ratio=[0.1,0.1])
+   elastic_cca.fit(train_view_1, train_view_2)
 
    elastic_cca_results = np.stack(
        (elastic_cca.train_correlations[0, 1], elastic_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
@@ -222,9 +222,9 @@ Example
 
    from cca_zoo import wrappers
    # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   kcca = wrappers.KCCA(latent_dims=latent_dims)
+   kcca = wrappers.KCCA(latent_dims=latent_dims, kernel='linear', c=[0.5,0.5])
 
-   kcca.fit(train_view_1, train_view_2, kernel='linear', c=[0.5,0.5])
+   kcca.fit(train_view_1, train_view_2)
 
    kcca_results = np.stack((kcca.train_correlations[0, 1], kcca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
@@ -246,9 +246,9 @@ Example
 
    from cca_zoo import wrappers
    # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   mcca = wrappers.MCCA(latent_dims=latent_dims)
+   mcca = wrappers.MCCA(latent_dims=latent_dims,c=[0.5,0.5])
 
-   mcca.fit(train_view_1, train_view_2, c=[0.5,0.5])
+   mcca.fit(train_view_1, train_view_2)
 
    mcca_results = np.stack((mcca.train_correlations[0, 1], mcca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
@@ -270,9 +270,9 @@ Example
 
    from cca_zoo import wrappers
    # train_set_1 and train_set_2 are 2 numpy arrays with the same number of samples but potentially different numbers of features
-   gcca = wrappers.GCCA(latent_dims=latent_dims)
+   gcca = wrappers.GCCA(latent_dims=latent_dims,c=[0.5,0.5])
 
-   gcca.fit(train_view_1, train_view_2, c=[0.5,0.5])
+   gcca.fit(train_view_1, train_view_2)
 
    gcca_results = np.stack((gcca.train_correlations[0, 1], gcca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
