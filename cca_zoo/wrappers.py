@@ -360,6 +360,11 @@ class rCCA(CCA_Base, BaseEstimator):
                              i, (split, Vt, B) in enumerate(zip(splits[:-1], Vt_list, B_list))]
 
 
+class CCA(rCCA):
+    def __init__(self, latent_dims: int = 1):
+        super().__init__(latent_dims=latent_dims)
+
+
 class Iterative(CCA_Base):
     def __init__(self, latent_dims: int = 1, deflation='cca', max_iter=50):
         super().__init__(latent_dims=latent_dims)
