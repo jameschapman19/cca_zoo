@@ -19,10 +19,12 @@ class TestWrapper(TestCase):
 
     def test_unregularized_methods(self):
         latent_dims = 5
+        wrap_cca = cca_zoo.wrappers.CCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_iter = cca_zoo.wrappers.CCA_ALS(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_kcca = cca_zoo.wrappers.KCCA(latent_dims=latent_dims).fit(self.X, self.Y)
+        corr_cca = wrap_iter.train_correlations[0, 1]
         corr_iter = wrap_iter.train_correlations[0, 1]
         corr_gcca = wrap_gcca.train_correlations[0, 1]
         corr_mcca = wrap_mcca.train_correlations[0, 1]
@@ -33,6 +35,7 @@ class TestWrapper(TestCase):
         self.assertTrue(wrap_mcca.score_list[0].shape == (self.X.shape[0], latent_dims))
         self.assertTrue(wrap_kcca.score_list[0].shape == (self.X.shape[0], latent_dims))
         # Check the correlations from each unregularized method are the same
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_iter, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_mcca, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_gcca, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_kcca, decimal=2))
