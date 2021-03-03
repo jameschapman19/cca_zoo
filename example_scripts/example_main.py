@@ -49,7 +49,7 @@ epochs = 50
 """
 
 # %%
-linear_cca = wrappers.CCA(latent_dims=latent_dims, max_iter=max_iter)
+linear_cca = wrappers.CCA(latent_dims=latent_dims)
 
 linear_cca.fit(train_view_1, train_view_2)
 
@@ -60,9 +60,9 @@ linear_cca_results = np.stack(
 ### (Regularized) Generalized CCA via alternating least squares (can pass more than 2 views)
 """
 
-gcca = wrappers.GCCA(latent_dims=latent_dims)
+gcca = wrappers.GCCA(latent_dims=latent_dims, c=[1, 1])
 
-gcca.fit(train_view_1, train_view_2, c=[1, 1])
+gcca.fit(train_view_1, train_view_2)
 
 gcca_results = np.stack((gcca.train_correlations[0, 1], gcca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
@@ -70,11 +70,11 @@ gcca_results = np.stack((gcca.train_correlations[0, 1], gcca.predict_corr(test_v
 ### (Regularized) Multiset CCA via alternating least squares (can pass more than 2 views)
 """
 
-mcca = wrappers.MCCA(latent_dims=latent_dims)
+mcca = wrappers.MCCA(latent_dims=latent_dims, c=[0.5, 0.5])
 # small ammount of regularisation added since data is not full rank
 params = {'c': [0.5, 0.5]}
 
-mcca.fit(train_view_1, train_view_2, c=[0.5, 0.5])
+mcca.fit(train_view_1, train_view_2)
 
 mcca_results = np.stack((mcca.train_correlations[0, 1], mcca.predict_corr(test_view_1, test_view_2)[0, 1]))
 

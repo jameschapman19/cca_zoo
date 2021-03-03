@@ -17,7 +17,7 @@ requirements = ['numpy',
 
 setup(
     name='cca_zoo',
-    version='1.1.21',
+    version='1.1.22',
     include_package_data=True,
     keywords='cca',
     packages=find_packages(),
