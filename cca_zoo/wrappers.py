@@ -123,9 +123,10 @@ class CCA_Base(BaseEstimator):
         cv_scores, cv_stds = zip(*out)
         max_index = cv_scores.index(max(cv_scores))
 
-        print('Best score : ', max(cv_scores), flush=True)
-        print('Standard deviation : ', cv_stds[max_index], flush=True)
-        print(param_sets[max_index], flush=True)
+        if verbose:
+            print('Best score : ', max(cv_scores), flush=True)
+            print('Standard deviation : ', cv_stds[max_index], flush=True)
+            print(param_sets[max_index], flush=True)
 
         self.cv_results_table = pd.DataFrame(zip(param_sets, cv_scores, cv_stds), columns=['params', 'scores', 'std'])
         self.cv_results_table = self.cv_results_table.join(pd.json_normalize(self.cv_results_table.params))
@@ -226,6 +227,7 @@ class MCCA(CCA_Base, BaseEstimator):
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         splits = np.cumsum([0] + [view.shape[1] for view in views])
+        self.eigvals = eigvals[idx].real
         self.weights_list = [eigvecs[split:splits[i + 1], :self.latent_dims] for i, split in enumerate(splits[:-1])]
         self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
         self.train_correlations = self.predict_corr(*views)
@@ -270,7 +272,7 @@ class GCCA(CCA_Base, BaseEstimator):
         [eigvals, eigvecs] = np.linalg.eig(Q)
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
-        eigvals = eigvals[idx].real
+        self.eigvals = eigvals[idx].real
         self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in views_input]
         self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
         self.train_correlations = self.predict_corr(*views)
@@ -492,18 +494,24 @@ class SCCA(Iterative, BaseEstimator):
 
 
 class SCCA_ADMM(Iterative, BaseEstimator):
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None):
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, mu=None, lam=None, eta=None):
         """
         Fits a sparse CCA model by alternating ADMM
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
+        :param c:
+        :param mu:
+        :param lam:
         """
         self.c = c
+        self.mu = mu
+        self.lam = lam
+        self.eta=eta
         self.max_iter = max_iter
         super().__init__(latent_dims=latent_dims, max_iter=max_iter)
 
     def set_loop_params(self):
-        self.loop = cca_zoo.innerloop.ADMMInnerLoop(max_iter=self.max_iter, c=self.c)
+        self.loop = cca_zoo.innerloop.ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,eta=self.eta)
 
 
 class ElasticCCA(Iterative, BaseEstimator):

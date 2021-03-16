@@ -345,13 +345,14 @@ class SCCAInnerLoop(InnerLoop):
 
 
 class ADMMInnerLoop(InnerLoop):
-    def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized', mu=None, lam=None, c=None):
-        super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
+    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
+                 initialization: str = 'unregularized', mu=None, lam=None, c=None, eta=None):
+        super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
         self.c = c
         self.lam = lam
         self.mu = mu
+        self.eta = eta
 
     def check_params(self):
         if self.c is None:
@@ -360,12 +361,13 @@ class ADMMInnerLoop(InnerLoop):
             self.lam = [1] * len(self.views)
         if self.mu is None:
             self.mu = [lam / np.linalg.norm(view) ** 2 for lam, view in zip(self.lam, self.views)]
-
+        if self.eta is None:
+            self.eta = [0] * len(self.views)
         assert (all([mu > 0 for mu in self.mu])), "at least one mu is less than zero"
         assert (all([mu <= lam / np.linalg.norm(view) ** 2 for mu, lam, view in
                      zip(self.mu, self.lam,
                          self.views)])), "Condition from Parikh 2014 mu<lam/frobenius(X)**2"
-        self.eta = [np.zeros(view.shape[0]) for view in self.views]
+        self.eta = [np.ones(view.shape[0]) * eta for view, eta in zip(self.views, self.eta)]
         self.z = [np.zeros(view.shape[0]) for view in self.views]
         self.l1_ratio = [1] * len(self.views)
 
@@ -380,18 +382,29 @@ class ADMMInnerLoop(InnerLoop):
         mu = self.mu[view_index]
         lam = self.lam[view_index]
         N = self.views[view_index].shape[0]
+        unnorm_z = []
+        norm_eta = []
+        norm_weights = []
+        norm_proj = []
         for _ in range(self.max_iter):
             # We multiply 'c' by N in order to make regularisation match across the different sparse cca methods
             self.weights[view_index] = self.prox_mu_f(self.weights[view_index] - mu / lam * self.views[view_index].T @ (
                     self.views[view_index] @ self.weights[view_index] - self.z[view_index] + self.eta[view_index]),
                                                       mu,
                                                       gradient, N * self.c[view_index])
+            unnorm_z.append(np.linalg.norm(self.views[view_index] @ self.weights[view_index] + self.eta[view_index]))
             self.z[view_index] = self.prox_lam_g(
                 self.views[view_index] @ self.weights[view_index] + self.eta[view_index])
             self.eta[view_index] = self.eta[view_index] + self.views[view_index] @ self.weights[view_index] - self.z[
                 view_index]
+            if np.linalg.norm(self.eta[view_index]) < 0.00000001:
+                print('here')
+            norm_eta.append(np.linalg.norm(self.eta[view_index]))
+            norm_proj.append(np.linalg.norm(self.views[view_index] @ self.weights[view_index]))
+            norm_weights.append(np.linalg.norm(self.weights[view_index], 1))
         assert (np.linalg.norm(
             self.weights[view_index]) > 0), 'all weights zero. try less regularisation or another initialisation'
+
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
     def objective(self):
@@ -411,7 +424,10 @@ class ADMMInnerLoop(InnerLoop):
 
     def prox_lam_g(self, x):
         norm = np.linalg.norm(x)
-        return x / max(1, norm)
+        if norm < 1:
+            return x
+        else:
+            return x / max(1, norm)
 
 
 def sparse_cca_lyuponov(loop: InnerLoop):

@@ -243,8 +243,7 @@ def generate_simulated_data(m: int, k: int, N: int, M: int, sparse_variables_1: 
                             sparse_variables_2: float = 0,
                             signal: float = 1,
                             structure: str = 'identity', sigma: float = 0.9, decay: float = 0.5,
-                            rand_eigs_1: bool = False,
-                            rand_eigs_2: bool = False):
+                            equal_weight=False):
     """
     :param m: number of samples
     :param k: number of latent dimensions
@@ -260,6 +259,8 @@ def generate_simulated_data(m: int, k: int, N: int, M: int, sparse_variables_1: 
     :param rand_eigs_2:
     :return: tuple of numpy arrays: view_1, view_2, true weights from view 1, true weights from view 2, overall covariance structure
     """
+    if equal_weight:
+        assert (k==1), "you cannot have equal weights and more than 1 latent dimension"
     mean = np.zeros(N + M)
     cov = np.zeros((N + M, N + M))
     p = np.arange(0, k)
@@ -300,26 +301,34 @@ def generate_simulated_data(m: int, k: int, N: int, M: int, sparse_variables_1: 
     del cov_1
     del cov_2
 
-    up = np.random.rand(N, k) - 0.5
+    if equal_weight:
+        up = np.ones((N, k))#np.random.rand(N, k) - 0.5
+    else:
+        up = np.random.rand(N, k)
     for _ in range(k):
         if sparse_variables_1 > 0:
             if sparse_variables_1 < 1:
                 sparse_variables_1 = np.ceil(sparse_variables_1 * N).astype('int')
-            first = np.random.randint(N - sparse_variables_1)
-            up[:first, _] = 0
-            up[(first + sparse_variables_1):, _] = 0
+            #first = np.random.randint(N - sparse_variables_1)
+            #up[:first, _] = 0
+            #up[(first + sparse_variables_1):, _] = 0
+            up[np.random.choice(np.arange(N), N-sparse_variables_1)] = 0
 
     up = decorrelate_dims(up, cov[:N, :N])
     up /= np.sqrt(np.diag((up.T @ cov[:N, :N] @ up)))
 
-    vp = np.random.rand(M, k) - 0.5
+    if equal_weight:
+        vp = np.ones((M, k))#np.random.rand(M, k) - 0.5
+    else:
+        vp = np.random.rand(M, k)
     for _ in range(k):
         if sparse_variables_2 > 0:
             if sparse_variables_2 < 1:
                 sparse_variables_2 = np.ceil(sparse_variables_2 * M).astype('int')
-            first = np.random.randint(M - sparse_variables_2)
-            vp[:first, _] = 0
-            vp[(first + sparse_variables_2):, _] = 0
+            #first = np.random.randint(M - sparse_variables_2)
+            #vp[:first, _] = 0
+            #vp[(first + sparse_variables_2):, _] = 0
+            vp[~np.random.choice(np.arange(M), M-sparse_variables_2)] = 0
 
     vp = decorrelate_dims(vp, cov[N:, N:])
     vp /= np.sqrt(np.diag((vp.T @ cov[N:, N:] @ vp)))
@@ -333,16 +342,13 @@ def generate_simulated_data(m: int, k: int, N: int, M: int, sparse_variables_1: 
     cov[N:, :N] = cross.T
     cov[:N, N:] = cross
 
-    if cov.shape[0] < 2000:
-        X = np.random.multivariate_normal(mean, cov, m)
-    else:
-        X = np.zeros((m, N + M))
-        chol = np.linalg.cholesky(cov)
-        for _ in range(m):
-            X[_, :] = chol_sample(mean, chol)
+    X = np.zeros((m, N + M))
+    chol = np.linalg.cholesky(cov)
+    for _ in range(m):
+        X[_, :] = chol_sample(mean, chol)
     Y = X[:, N:]
     X = X[:, :N]
-    return X, Y, up, vp, cov
+    return X, Y, up, vp
 
 
 def decorrelate_dims(up, cov):
