@@ -255,18 +255,19 @@ def generate_simulated_data(m: int, k: int, N: int, M: int, sparse_variables_1: 
     :param structure: within view covariance structure
     :param sigma: gaussian sigma
     :param decay: ratio of second signal to first signal
-    :param rand_eigs_1:
-    :param rand_eigs_2:
     :return: tuple of numpy arrays: view_1, view_2, true weights from view 1, true weights from view 2, overall covariance structure
     """
     if equal_weight:
-        assert (k==1), "you cannot have equal weights and more than 1 latent dimension"
+        assert (k == 1), "you cannot have equal weights and more than 1 latent dimension"
     mean = np.zeros(N + M)
     cov = np.zeros((N + M, N + M))
     p = np.arange(0, k)
     p = decay ** p
     # Covariance Bit
     if structure == 'identity':
+        cov_1 = np.eye(N)
+        cov_2 = np.eye(M)
+    if structure == 'pls':
         cov_1 = np.eye(N)
         cov_2 = np.eye(M)
     elif structure == 'gaussian':
@@ -296,39 +297,43 @@ def generate_simulated_data(m: int, k: int, N: int, M: int, sparse_variables_1: 
         cov_2 = np.random.rand(M, M)
         U, S, V = np.linalg.svd(cov_2.T @ cov_2)
         cov_2 = U @ (1.0 + np.diag(np.random.rand(M))) @ V
+    elif structure == 'simple':
+        return generate_simple_data(m, k, N, M, sparse_variables_1,
+                                    sparse_variables_2,
+                                    sigma)
     cov[:N, :N] = cov_1
     cov[N:, N:] = cov_2
     del cov_1
     del cov_2
 
     if equal_weight:
-        up = np.ones((N, k))#np.random.rand(N, k) - 0.5
+        up = np.ones((N, k))  # np.random.rand(N, k) - 0.5
     else:
         up = np.random.rand(N, k)
     for _ in range(k):
         if sparse_variables_1 > 0:
             if sparse_variables_1 < 1:
                 sparse_variables_1 = np.ceil(sparse_variables_1 * N).astype('int')
-            #first = np.random.randint(N - sparse_variables_1)
-            #up[:first, _] = 0
-            #up[(first + sparse_variables_1):, _] = 0
-            up[np.random.choice(np.arange(N), N-sparse_variables_1)] = 0
+            # first = np.random.randint(N - sparse_variables_1)
+            # up[:first, _] = 0
+            # up[(first + sparse_variables_1):, _] = 0
+            up[np.random.choice(np.arange(N), N - sparse_variables_1, replace=False)] = 0
 
     up = decorrelate_dims(up, cov[:N, :N])
     up /= np.sqrt(np.diag((up.T @ cov[:N, :N] @ up)))
 
     if equal_weight:
-        vp = np.ones((M, k))#np.random.rand(M, k) - 0.5
+        vp = np.ones((M, k))  # np.random.rand(M, k) - 0.5
     else:
         vp = np.random.rand(M, k)
     for _ in range(k):
         if sparse_variables_2 > 0:
             if sparse_variables_2 < 1:
                 sparse_variables_2 = np.ceil(sparse_variables_2 * M).astype('int')
-            #first = np.random.randint(M - sparse_variables_2)
-            #vp[:first, _] = 0
-            #vp[(first + sparse_variables_2):, _] = 0
-            vp[~np.random.choice(np.arange(M), M-sparse_variables_2)] = 0
+            # first = np.random.randint(M - sparse_variables_2)
+            # vp[:first, _] = 0
+            # vp[(first + sparse_variables_2):, _] = 0
+            vp[~np.random.choice(np.arange(M), M - sparse_variables_2, replace=False)] = 0
 
     vp = decorrelate_dims(vp, cov[N:, N:])
     vp /= np.sqrt(np.diag((vp.T @ cov[N:, N:] @ vp)))
@@ -348,6 +353,33 @@ def generate_simulated_data(m: int, k: int, N: int, M: int, sparse_variables_1: 
         X[_, :] = chol_sample(mean, chol)
     Y = X[:, N:]
     X = X[:, :N]
+    return X, Y, up, vp
+
+
+def generate_simple_data(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0,
+                         sparse_variables_2: float = 0,
+                         eps: float = 0):
+    z = np.random.normal(0, 1, m)
+
+    up = np.random.rand(N, 1)
+    if sparse_variables_1 > 0:
+        if sparse_variables_1 < 1:
+            sparse_variables_1 = np.ceil(sparse_variables_1 * N).astype('int')
+        up[np.random.choice(np.arange(N), N - sparse_variables_1, replace=False)] = 0
+    vp = np.random.rand(M, 1)
+    if sparse_variables_2 > 0:
+        if sparse_variables_2 < 1:
+            sparse_variables_2 = np.ceil(sparse_variables_2 * M).astype('int')
+        vp[np.random.choice(np.arange(M), M - sparse_variables_2, replace=False)] = 0
+    gaussian_x = np.random.normal(0, eps, (m, N))
+    gaussian_y = np.random.normal(0, eps, (m, M))
+
+    X = np.outer(z, up)
+    Y = np.outer(z, vp)
+
+    X += gaussian_x
+    Y += gaussian_y
+
     return X, Y, up, vp
 
 

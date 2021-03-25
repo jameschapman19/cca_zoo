@@ -56,7 +56,7 @@ class CCA_Base(BaseEstimator):
         :param kwargs: parameters associated with the method
         :return: tuple of transformed numpy arrays
         """
-        self.fit(*views).transform(*views)
+        return self.fit(*views).transform(*views)
 
     def predict_corr(self, *views):
         """
@@ -364,7 +364,7 @@ class rCCA(CCA_Base, BaseEstimator):
 
 class CCA(rCCA):
     def __init__(self, latent_dims: int = 1):
-        super().__init__(latent_dims=latent_dims)
+        super().__init__(latent_dims=latent_dims, c=[0,0])
 
 
 class Iterative(CCA_Base):
