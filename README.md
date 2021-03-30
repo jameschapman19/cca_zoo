@@ -13,15 +13,15 @@ If this repository was helpful to you please do give a star.
 In case this work is used as part of research I attach a DOI bibtex entry:
 
 ```bibtex
-@software{jameschapman19_2020_4382740,  
-  author       = {jameschapman19},  
-  title        = {jameschapman19/cca\_zoo: First pre-release},  
-  month        = dec,  
-  year         = 2020,  
-  publisher    = {Zenodo},  
-  version      = {v1.1.6},  
-  doi          = {10.5281/zenodo.4382740},  
-  url          = {https://doi.org/10.5281/zenodo.4382740}  
+@software{james_chapman_2021_4586389,
+  author       = {James Chapman},
+  title        = {jameschapman19/cca\_zoo: v1.1.22},
+  month        = mar,
+  year         = 2021,
+  publisher    = {Zenodo},
+  version      = {v1.1.22},
+  doi          = {10.5281/zenodo.4586389},
+  url          = {https://doi.org/10.5281/zenodo.4586389}
 }
 ```
 
