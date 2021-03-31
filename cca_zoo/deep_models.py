@@ -256,7 +256,7 @@ class E2EBlockReverse(nn.Module):
 
 # BrainNetCNN Network for fitting Gold-MSI on LSD dataset
 class BrainNetEncoder(BaseEncoder):
-    def __init__(self, latent_dims: int, variational: bool = False, feature_size: Tuple[int] = (200, 200)):
+    def __init__(self, latent_dims: int, variational: bool = False, feature_size: Tuple[int] = (200, ...)):
         super(BrainNetEncoder, self).__init__(latent_dims, variational=variational)
         assert (feature_size[0] == feature_size[1])
         self.d = feature_size[0]
@@ -281,7 +281,7 @@ class BrainNetEncoder(BaseEncoder):
 
 
 class BrainNetDecoder(BaseDecoder):
-    def __init__(self, latent_dims: int, feature_size: Tuple[int] = (200, 200)):
+    def __init__(self, latent_dims: int, feature_size: Tuple[int] = (200, ...)):
         super(BrainNetDecoder, self).__init__(latent_dims)
         assert (feature_size[0] == feature_size[1])
         self.d = feature_size[0]
@@ -306,19 +306,30 @@ class BrainNetDecoder(BaseDecoder):
 
 
 class LinearEncoder(BaseEncoder):
-    def __init__(self, input_size: int, output_size: int, variational: bool = False):
-        super(LinearEncoder, self).__init__(input_size, output_size, variational=variational)
-        self.linear = nn.Linear(output_size, input_size)
+    def __init__(self, latent_dims: int, feature_size: int, variational: bool = False):
+        super(LinearEncoder, self).__init__(latent_dims, variational=variational)
+        self.variational = variational
+
+        if self.variational:
+            self.fc_mu = nn.Linear(feature_size, latent_dims)
+            self.fc_var = nn.Linear(feature_size, latent_dims)
+        else:
+            self.fc = nn.Linear(feature_size, latent_dims)
 
     def forward(self, x):
-        out = self.linear(x)
-        return out
+        if self.variational:
+            mu = self.fc_mu(x)
+            logvar = self.fc_var(x)
+            return mu, logvar
+        else:
+            x = self.fc(x)
+            return x
 
 
 class LinearDecoder(BaseDecoder):
-    def __init__(self, input_size: int, output_size: int):
-        super(LinearDecoder, self).__init__(input_size, output_size)
-        self.linear = nn.Linear(output_size, input_size)
+    def __init__(self, latent_dims: int, feature_size: int):
+        super(LinearDecoder, self).__init__(latent_dims)
+        self.linear = nn.Linear(latent_dims, feature_size)
 
     def forward(self, x):
         out = self.linear(x)

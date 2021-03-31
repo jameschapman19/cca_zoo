@@ -344,8 +344,8 @@ encoder_1 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784, varia
 encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784, variational=True)
 private_encoder_1 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784, variational=True)
 private_encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784, variational=True)
-decoder_1 = deep_models.Decoder(latent_dims=latent_dims * 3, feature_size=784, norm_output=True)
-decoder_2 = deep_models.Decoder(latent_dims=latent_dims * 3, feature_size=784, norm_output=True)
+decoder_1 = deep_models.Decoder(latent_dims=latent_dims * 2, feature_size=784, norm_output=True)
+decoder_2 = deep_models.Decoder(latent_dims=latent_dims * 2, feature_size=784, norm_output=True)
 dvccap_model = dvcca.DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2],
                            private_encoders=[private_encoder_1, private_encoder_2], private=True)
 

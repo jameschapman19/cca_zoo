@@ -3,18 +3,6 @@ from setuptools import setup, find_packages
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-requirements = ['numpy',
-                'torch>=1.7.0',
-                'scikit-learn',
-                'scipy>=1.5',
-                'matplotlib',
-                'seaborn',
-                'Pillow',
-                'torchvision',
-                'pandas',
-                'mvlearn',
-                'tensorboard']
-
 with open("./requirements/basic.txt", "r") as f:
     REQUIRED_PACKAGES = f.read()
 with open("./requirements/deep.txt", "r") as f:

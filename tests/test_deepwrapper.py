@@ -38,18 +38,18 @@ class TestDeepWrapper(TestCase):
                                         objective=cca_zoo.objectives.GCCA)
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dgcca_model = cca_zoo.deepwrapper.DeepWrapper(dgcca_model, device=device)
-        dgcca_model.fit(self.X, self.Y)
+        dgcca_model.fit(self.X, self.Y, epochs=3)
         # DMCCA
         dmcca_model = cca_zoo.dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                                         objective=cca_zoo.objectives.MCCA)
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dmcca_model = cca_zoo.deepwrapper.DeepWrapper(dmcca_model, device=device)
-        dmcca_model.fit(self.X, self.Y)
+        dmcca_model.fit(self.X, self.Y, epochs=3)
         # DCCA_NOI
         dcca_noi_model = cca_zoo.dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], als=True)
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dcca_noi_model = cca_zoo.deepwrapper.DeepWrapper(dcca_noi_model, device=device)
-        dcca_noi_model.fit(self.X, self.Y)
+        dcca_noi_model.fit(self.X, self.Y, epochs=30)
 
     def test_schedulers(self):
         latent_dims = 2
