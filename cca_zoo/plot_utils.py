@@ -4,10 +4,7 @@ matplotlib.use('agg')
 from matplotlib import cm
 import numpy as np
 import pandas as pd
-from sklearn import metrics
 import matplotlib.pyplot as plt
-import seaborn as sns
-from scipy.stats import linregress
 import itertools
 
 """
@@ -148,117 +145,6 @@ def plot_results(data, labels):
     plt.ylabel('Correlation')
     plt.tight_layout()
     plt.savefig('test_dims')
-
-
-def p_rule(y_pred, z_values, threshold=0.5):
-    y_z_1 = y_pred[z_values == 1] > threshold if threshold else y_pred[z_values == 1]
-    y_z_0 = y_pred[z_values == 0] > threshold if threshold else y_pred[z_values == 0]
-    odds = y_z_1.mean() / y_z_0.mean()
-    return np.min([odds, 1 / odds]) * 100
-
-
-def plot_distributions(y_true, Z_true, y_pred, Z_pred=None, epoch=None):
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-
-    subplot_df = (
-        Z_true
-            .assign(race=lambda x: x['race'].map({1: 'white', 0: 'black'}))
-            .assign(sex=lambda x: x['sex'].map({1: 'male', 0: 'female'}))
-            .assign(y_pred=y_pred)
-    )
-    _subplot(subplot_df, 'race', ax=axes[0])
-    _subplot(subplot_df, 'sex', ax=axes[1])
-    _performance_text(fig, y_true, Z_true, y_pred, Z_pred, epoch)
-    fig.tight_layout()
-    return fig
-
-
-def _subplot(subplot_df, col, ax):
-    for label, df in subplot_df.groupby(col):
-        sns.kdeplot(df['y_pred'], ax=ax, label=label, shade=True)
-    ax.set_title(f'Sensitive attribute: {col}')
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 7)
-    ax.set_yticks([])
-    ax.set_ylabel('Prediction distribution')
-    ax.set_xlabel(r'$P({{income>50K}}|z_{{{}}})$'.format(col))
-
-
-def _performance_text(fig, y_test, Z_test, y_pred, Z_pred=None, epoch=None):
-    if epoch is not None:
-        fig.text(1.0, 0.9, f"Training epoch #{epoch}", fontsize='16')
-
-    clf_roc_auc = metrics.roc_auc_score(y_test, y_pred)
-    clf_accuracy = metrics.accuracy_score(y_test, y_pred > 0.5) * 100
-    p_rules = {'race': p_rule(y_pred, Z_test['race']),
-               'sex': p_rule(y_pred, Z_test['sex']), }
-    fig.text(1.0, 0.65, '\n'.join(["Classifier performance:",
-                                   f"- ROC AUC: {clf_roc_auc:.2f}",
-                                   f"- Accuracy: {clf_accuracy:.1f}"]),
-             fontsize='16')
-    fig.text(1.0, 0.4, '\n'.join(["Satisfied p%-rules:"] +
-                                 [f"- {attr}: {p_rules[attr]:.0f}%-rule"
-                                  for attr in p_rules.keys()]),
-             fontsize='16')
-    if Z_pred is not None:
-        adv_roc_auc = metrics.roc_auc_score(Z_test, Z_pred)
-        fig.text(1.0, 0.20, '\n'.join(["Adversary performance:",
-                                       f"- ROC AUC: {adv_roc_auc:.2f}"]),
-                 fontsize='16')
-
-
-def plot_weights(w, c):
-    # Train dimensions
-    fig, ax = plt.subplots()
-    ax.plot(w[:, 0], label='brain weights', color="blue")
-    ax.set_xlabel('PCA component')
-    ax.set_ylabel('CCA_archive weights across input PCA components (brain)')
-    ax2 = ax.twinx()
-    ax2.plot(c[:, 0], label='behaviour weights', color="red")
-    ax2.set_ylabel('CCA_archive weights across input PCA components (behaviour)')
-    plt.tight_layout()
-    plt.savefig('weight')
-
-
-def plot_connectome_correlations(ordered_connectivity, cca_connectivity, linkage):
-    # Compute and plot first dendrogram.
-    fig = pylab.figure(figsize=(8, 8))
-    ax1 = fig.add_axes([0.01, 0.7, 0.3, 0.3])
-    Z1 = spc.dendrogram(linkage)
-    ax1.set_xticks([])
-    ax1.set_yticks([])
-
-    # Plot distance matrix.
-    axmatrix = fig.add_axes([0.01, 0.4, 0.3, 0.3])
-    im = axmatrix.matshow(ordered_connectivity, aspect='auto', cmap=pylab.cm.YlGnBu)
-    axmatrix.set_xticks([])
-    axmatrix.set_yticks([])
-
-    # Plot distance matrix.
-    axmatrix = fig.add_axes([0.01, 0.1, 0.3, 0.3])
-    im2 = axmatrix.matshow(cca_connectivity, aspect='auto', cmap=pylab.cm.YlGnBu)
-    axmatrix.set_xticks([])
-    axmatrix.set_yticks([])
-    fig.savefig('connectivity_correlation.png')
-
-
-def plot_latent_space(z_x, z_y, conf=None, conf_labels=None):
-    # Maybe we can make a confounds more opaque at some point
-    assert (z_x.shape == z_y.shape)
-    outdims = z_x.shape[1]
-    if conf is not None:
-        outdims += 1
-    fig, axs = plt.subplots(1, outdims)
-    for p in range(outdims - 1):
-        axs[p].plot(z_x[:, p], z_y[:, p], 'o')
-        slope, intercept, r_value, p_value, std_err = linregress(z_x[:, p], z_y[:, p])
-        axs[p].plot(np.unique(z_x[:, p]), slope * np.unique(z_x[:, p]) + intercept)
-        axs[p].text(0, 0, '$R^2 = %0.2f$' % r_value ** 2)
-        axs[p].set_title('Dimension: ' + str(p))
-    if conf is not None:
-        axs[outdims - 1].bar(np.arange(conf.shape[1]), conf.mean(axis=0))
-        axs[outdims - 1].axhline(conf.mean(axis=0).mean(), color='blue', linewidth=2)
-    fig.suptitle('Plot of Latent Space')
 
 
 def plot_training_loss(train, val):

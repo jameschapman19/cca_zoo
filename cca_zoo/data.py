@@ -1,7 +1,5 @@
-"""
-Helped by https://github.com/bcdutton/AdversarialCanonicalCorrelationAnalysis (hopefully I will have my own implementation of their work soon)
-Check out their paper at https://arxiv.org/abs/2005.10349
-"""
+"""Helped by https://github.com/bcdutton/AdversarialCanonicalCorrelationAnalysis (hopefully I will have my own
+implementation of their work soon) Check out their paper at https://arxiv.org/abs/2005.10349 """
 
 import PIL
 import numpy as np
@@ -180,19 +178,6 @@ class Tangled_MNIST_Dataset(Dataset):
         return view_1, view_2, rotation_1, rotation_2, OH_labels, labels
 
 
-# Copyright (c) 2020 The mvlearn developers.
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-
-
 def chol_sample(mean, chol):
     return mean + chol @ np.random.standard_normal(mean.size)
 
@@ -260,7 +245,7 @@ def generate_simulated_data(m: int, k: int, N: int, M: int, sparse_variables_1: 
         U, S, V = np.linalg.svd(cov_2.T @ cov_2)
         cov_2 = U @ (1.0 + np.diag(np.random.rand(M))) @ V
     elif structure == 'simple':
-        return generate_simple_data(m, k, N, M, sparse_variables_1,
+        return generate_simple_data(m, N, M, sparse_variables_1,
                                     sparse_variables_2,
                                     sigma)
     cov[:N, :N] = cov_1
@@ -318,7 +303,7 @@ def generate_simulated_data(m: int, k: int, N: int, M: int, sparse_variables_1: 
     return X, Y, up, vp
 
 
-def generate_simple_data(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0,
+def generate_simple_data(m: int, N: int, M: int, sparse_variables_1: float = 0,
                          sparse_variables_2: float = 0,
                          eps: float = 0):
     z = np.random.normal(0, 1, m)
