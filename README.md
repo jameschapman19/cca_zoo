@@ -3,9 +3,15 @@
 [![Build Status](https://www.travis-ci.com/jameschapman19/cca_zoo.svg?branch=master)](https://www.travis-ci.com/jameschapman19/cca_zoo)
 [![Documentation Status](https://readthedocs.org/projects/cca-zoo/badge/?version=latest)](https://cca-zoo.readthedocs.io/en/latest/?badge=latest)
 
-### Documentation at https://cca-zoo.readthedocs.io/en/latest/
-### Can be installed using pip install cca-zoo
-### Recently added DCCA by non-linear orthogonal iterations (https://arxiv.org/pdf/1510.02054.pdf)
+# Installation
+For everything except the deep learning based models use: 
+pip install cca-zoo
+
+For deep learning elements use:
+pip install cca-zoo[deep]
+
+# Documentation
+Available at https://cca-zoo.readthedocs.io/en/latest/
   
 # Credits:
 If this repository was helpful to you please do give a star.
