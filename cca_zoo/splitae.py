@@ -51,20 +51,18 @@ class SplitAE(DCCA_base):
         return z
 
     def encode(self, *args):
-        z = []
-        for i, encoder in enumerate(self.encoders):
-            z.append(encoder(args[i]))
-        return tuple(z)
+        z = self.encoder(args[0])
+        return z
 
-    def decode(self, *args):
+    def decode(self, z):
         recon = []
         for i, decoder in enumerate(self.decoders):
-            recon.append(decoder(args[i]))
+            recon.append(decoder(z))
         return tuple(recon)
 
     def loss(self, *args):
         z = self.encode(*args)
-        recon = self.decode(*z)
+        recon = self.decode(z)
         recon_loss = self.recon_loss(args, recon)
         return recon_loss
 

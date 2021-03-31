@@ -68,7 +68,7 @@ class TestWrapper(TestCase):
         param_candidates = {'c': list(itertools.product(c1, c2))}
         wrap_pmd = cca_zoo.wrappers.PMD(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y,
                                                                                 param_candidates=param_candidates,
-                                                                                verbose=True)
+                                                                                verbose=True, plot=True)
         c1 = [1e-4, 1e-5]
         c2 = [1e-4, 1e-5]
         param_candidates = {'c': list(itertools.product(c1, c2))}

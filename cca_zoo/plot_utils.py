@@ -145,14 +145,3 @@ def plot_results(data, labels):
     plt.ylabel('Correlation')
     plt.tight_layout()
     plt.savefig('test_dims')
-
-
-def plot_training_loss(train, val):
-    plt.figure()
-    plt.plot(train, label='Train')
-    plt.plot(val, label='Val')
-    plt.title('Model Training Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss (Negative correlation sum)')
-    plt.legend()
-    plt.savefig('training_loss')

@@ -7,6 +7,7 @@ import cca_zoo.dccae
 import cca_zoo.deep_models
 import cca_zoo.deepwrapper
 import cca_zoo.dvcca
+import cca_zoo.splitae
 
 
 class TestDeepWrapper(TestCase):
@@ -97,6 +98,12 @@ class TestDeepWrapper(TestCase):
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dccae_model = cca_zoo.deepwrapper.DeepWrapper(dccae_model, device=device)
         dccae_model.fit(self.X, self.Y)
+        # SplitAE
+        splitae_model = cca_zoo.splitae.SplitAE(latent_dims=latent_dims, encoder=encoder_1,
+                                                decoders=[decoder_1, decoder_2])
+        # hidden_layer_sizes are shown explicitly but these are also the defaults
+        splitae_model = cca_zoo.deepwrapper.DeepWrapper(splitae_model, device=device)
+        splitae_model.fit(self.X, self.Y, train_correlations=False)
 
     def test_DCCAEconv_methods_cpu(self):
         latent_dims = 2
