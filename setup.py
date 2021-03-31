@@ -15,9 +15,14 @@ requirements = ['numpy',
                 'mvlearn',
                 'tensorboard']
 
+with open("./requirements/basic.txt", "r") as f:
+    REQUIRED_PACKAGES = f.read()
+with open("./requirements/deep.txt", "r") as f:
+    DEEP_PACKAGES = {'deep': f.read()}
+
 setup(
     name='cca_zoo',
-    version='1.1.23',
+    version='1.1.24',
     include_package_data=True,
     keywords='cca',
     packages=find_packages(),
@@ -25,13 +30,14 @@ setup(
     license='MIT',
     author='jameschapman',
     description=(
-            'Canonical Correlation Analysis Zoo: CCA, GCCA, MCCA, DCCA, DGCCA, DVCCA, DCCAE, KCCA and regularised variants including sparse CCA , ridge CCA and elastic CCA'
-        ),
+        'Canonical Correlation Analysis Zoo: CCA, GCCA, MCCA, DCCA, DGCCA, DVCCA, DCCAE, KCCA and regularised variants including sparse CCA , ridge CCA and elastic CCA'
+    ),
     long_description=long_description,
     long_description_content_type="text/markdown",
     author_email='james.chapman.19@ucl.ac.uk',
     python_requires='>=3.6',
-    install_requires=requirements,
+    install_requires=REQUIRED_PACKAGES,
+    extras_require=DEEP_PACKAGES,
     test_suite='tests',
     tests_require=[],
 )

@@ -8,9 +8,7 @@ import numpy as np
 import torch
 import torch.utils.data
 from PIL import Image
-from mvlearn.datasets import load_UCImultifeature
 from scipy import linalg
-from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 
@@ -193,42 +191,6 @@ class Tangled_MNIST_Dataset(Dataset):
 
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-
-class UCI_Dataset(Dataset):
-    def __init__(self, train=True):
-        full_data, self.labels = load_UCImultifeature()
-        self.train = train
-        self.view_1, self.view_2, self.view_3, self.view_4, self.view_5, self.view_6 = full_data
-        self.view_1 = MinMaxScaler().fit_transform(self.view_1)
-        self.view_2 = MinMaxScaler().fit_transform(self.view_2)
-        self.view_3 = MinMaxScaler().fit_transform(self.view_3)
-        self.view_4 = MinMaxScaler().fit_transform(self.view_4)
-        self.view_5 = MinMaxScaler().fit_transform(self.view_5)
-        self.view_6 = MinMaxScaler().fit_transform(self.view_6)
-
-    def __len__(self):
-        return len(self.labels)
-
-    def __getitem__(self, idx):
-        label = self.labels[idx]
-        view_1 = self.view_1[idx]
-        view_2 = self.view_2[idx]
-        view_3 = self.view_3[idx]
-        view_4 = self.view_4[idx]
-        view_5 = self.view_5[idx]
-        view_6 = self.view_6[idx]
-        return (view_1, view_2, view_3, view_4, view_5, view_6), label
-
-    def to_numpy(self, indices):
-        labels = self.labels[indices]
-        view_1 = self.view_1[indices]
-        view_2 = self.view_2[indices]
-        view_3 = self.view_3[indices]
-        view_4 = self.view_4[indices]
-        view_5 = self.view_5[indices]
-        view_6 = self.view_6[indices]
-        OH_labels = OH_digits(labels.astype(int))
-        return view_1, view_2, view_3, view_4, view_5, view_6, OH_labels, labels
 
 
 def chol_sample(mean, chol):

@@ -10,7 +10,8 @@ before_install:
   - pip install -U pip
   - pip install codecov
 install:
-  - pip install -r requirements.txt
+  - pip install -r requirements/basic.txt
+  - pip install -r requirements/deep.txt
 script:
   - coverage run -m unittest discover
 after_success:

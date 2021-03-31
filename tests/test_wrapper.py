@@ -10,9 +10,9 @@ np.random.seed(123)
 class TestWrapper(TestCase):
 
     def setUp(self):
-        self.X = np.random.rand(500, 30)
-        self.Y = np.random.rand(500, 25)
-        self.Z = np.random.rand(500, 20)
+        self.X = np.random.rand(500, 20)
+        self.Y = np.random.rand(500, 21)
+        self.Z = np.random.rand(500, 22)
 
     def tearDown(self):
         pass
@@ -24,7 +24,7 @@ class TestWrapper(TestCase):
         wrap_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_kcca = cca_zoo.wrappers.KCCA(latent_dims=latent_dims).fit(self.X, self.Y)
-        corr_cca = wrap_iter.train_correlations[0, 1]
+        corr_cca = wrap_cca.train_correlations[0, 1]
         corr_iter = wrap_iter.train_correlations[0, 1]
         corr_gcca = wrap_gcca.train_correlations[0, 1]
         corr_mcca = wrap_mcca.train_correlations[0, 1]
@@ -69,8 +69,8 @@ class TestWrapper(TestCase):
         wrap_pmd = cca_zoo.wrappers.PMD(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y,
                                                                                 param_candidates=param_candidates,
                                                                                 verbose=True)
-        c1 = [1e-3, 1e-4]
-        c2 = [1e-3, 1e-4]
+        c1 = [1e-4, 1e-5]
+        c2 = [1e-4, 1e-5]
         param_candidates = {'c': list(itertools.product(c1, c2))}
         wrap_scca = cca_zoo.wrappers.SCCA(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y,
                                                                                   param_candidates=param_candidates,
@@ -94,8 +94,20 @@ class TestWrapper(TestCase):
         # Check the correlations from each unregularized method are the same
         K = np.ones((2, self.X.shape[0]))
         K[0, 200:] = 0
-        wrap_unobserved_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims, c=[c, c], K=K).fit(self.X, self.Y)
+        wrap_unobserved_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims, c=[c, c]).fit(self.X, self.Y, K=K)
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_unweighted_gcca, corr_deweighted_gcca, decimal=1))
+
+    def test_cv_fit(self):
+        latent_dims = 5
+        c1 = [0.1, 0.2]
+        c2 = [0.1, 0.2]
+        param_candidates = {'c': list(itertools.product(c1, c2))}
+        wrap_unweighted_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y, folds=2,
+                                                                                             param_candidates=param_candidates)
+        wrap_deweighted_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims, view_weights=[0.5, 0.5]).gridsearch_fit(
+            self.X, self.Y, folds=2, param_candidates=param_candidates)
+        wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).gridsearch_fit(
+            self.X, self.Y, folds=2, param_candidates=param_candidates)
 
     def test_methods(self):
         pass

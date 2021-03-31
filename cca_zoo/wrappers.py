@@ -1,9 +1,9 @@
 import copy
 import itertools
 from abc import abstractmethod
-from typing import Type
 
 import numpy as np
+import numpy.ma as ma
 import pandas as pd
 from joblib import Parallel, delayed
 from scipy.linalg import block_diag, eigh, eig
@@ -35,7 +35,7 @@ class CCA_Base(BaseEstimator):
         pass
         return self
 
-    def transform(self, *views):
+    def transform(self, *views, **kwargs):
         """
         The transform method takes any number of views as a numpy array. Need to have the same number of features as
         those in the views used to train the model.
@@ -46,29 +46,29 @@ class CCA_Base(BaseEstimator):
         """
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_views.append((view - self.view_means[i]) @ self.weights_list[i])
+            transformed_view = np.ma.array((view - self.view_means[i]) @ self.weights_list[i])
+            transformed_views.append(transformed_view)
         return transformed_views
 
-    def fit_transform(self, *views):
+    def fit_transform(self, *views, **kwargs):
         """
         Apply fit and immediately transform the same data
         :param views:
-        :param kwargs: parameters associated with the method
         :return: tuple of transformed numpy arrays
         """
-        return self.fit(*views).transform(*views)
+        return self.fit(*views).transform(*views, **kwargs)
 
-    def predict_corr(self, *views):
+    def predict_corr(self, *views, **kwargs):
         """
         :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
         :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
         """
         # Takes two views and predicts their out of sample correlation using trained model
-        transformed_views = self.transform(*views)
+        transformed_views = self.transform(*views, **kwargs)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
-            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
+            all_corrs.append(np.diag(ma.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
         all_corrs = np.array(all_corrs).reshape((len(views), len(views), self.latent_dims))
         return all_corrs
 
@@ -86,7 +86,8 @@ class CCA_Base(BaseEstimator):
             views_input.append(view - view.mean(axis=0))
         return views_input
 
-    def gridsearch_fit(self, *views, param_candidates=None, folds: int = 5, verbose: bool = False, jobs: int = 0,
+    def gridsearch_fit(self, *views, K=None, param_candidates=None, folds: int = 5, verbose: bool = False,
+                       jobs: int = 0,
                        plot: bool = False):
         """
         Fits the model using a user defined grid search. Returns parameters/objects that allow out of sample transformation or prediction
@@ -117,7 +118,7 @@ class CCA_Base(BaseEstimator):
         cv = CrossValidate(self, folds=folds, verbose=verbose)
 
         if jobs > 0:
-            out = Parallel(n_jobs=jobs)(delayed(cv.score)(*views, **param_set) for param_set in param_sets)
+            out = Parallel(n_jobs=jobs)(delayed(cv.score)(*views, **param_set, K=K) for param_set in param_sets)
         else:
             out = [cv.score(*views, **param_set) for param_set in param_sets]
         cv_scores, cv_stds = zip(*out)
@@ -164,6 +165,12 @@ class CCA_Base(BaseEstimator):
 
 class KCCA(CCA_Base, BaseEstimator):
     def __init__(self, latent_dims: int = 1, kernel: str = 'linear', sigma: float = 1.0, degree: int = 1, c=None):
+        """
+        :param kernel: the kernel type 'linear', 'rbf', 'poly'
+        :param sigma: sigma parameter used by sklearn rbf kernel
+        :param degree: polynomial order parameter used by sklearn polynomial kernel
+        :param c: regularisation between 0 (CCA) and 1 (PLS)
+        """
         super().__init__(latent_dims=latent_dims)
         self.c = c
         self.kernel = kernel
@@ -175,10 +182,6 @@ class KCCA(CCA_Base, BaseEstimator):
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
         :param views: 2D numpy arrays for each view with the same number of rows (nxp)
-        :param kernel: the kernel type 'linear', 'rbf', 'poly'
-        :param sigma: sigma parameter used by sklearn rbf kernel
-        :param degree: polynomial order parameter used by sklearn polynomial kernel
-        :param c: regularisation between 0 (CCA) and 1 (PLS)
         :return: training data correlations and the parameters required to call other functions in the class.
         """
         if self.c is None:
@@ -235,19 +238,17 @@ class MCCA(CCA_Base, BaseEstimator):
 
 
 class GCCA(CCA_Base, BaseEstimator):
-    def __init__(self, latent_dims: int = 1, c=None, view_weights=None, K=None):
+    def __init__(self, latent_dims: int = 1, c=None, view_weights=None):
         super().__init__(latent_dims=latent_dims)
         self.c = c
         self.view_weights = view_weights
-        self.K = K
+        # self.K = K
 
-    def fit(self, *views):
+    def fit(self, *views, K=None):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
         :param views: 2D numpy arrays for each view with the same number of rows (nxp)
-        :param c: regularisation between 0 (CCA) and 1 (PLS)
-        :param view_weights: weights for each view as in Learning Multiview Embeddings of Twitter Users http://www.cs.jhu.edu/~mdredze/publications/2016_acl_multiview.pdf
         :param K: "row selection matrix" as in Multiview LSA: Representation Learning via Generalized CCA https://www.aclweb.org/anthology/N15-1058.pdf
             binary numpy array with dimensions (#views,#rows) with one for observed and zero for not observed for that view.
         :return: training data correlations and the parameters required to call other functions in the class.
@@ -257,18 +258,17 @@ class GCCA(CCA_Base, BaseEstimator):
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
         if self.view_weights is None:
             self.view_weights = [1] * len(views)
-        if self.K is None:
+        if K is None:
             # just use identity when all rows are observed in all views.
-            self.K = np.ones((len(views), views[0].shape[0]))
-        views_input = self.demean_observed_data(*views, self.K)
+            K = np.ones((len(views), views[0].shape[0]))
+        views_input = self.demean_observed_data(*views, K=K)
         Q = []
         for i, (view, view_weight) in enumerate(zip(views_input, self.view_weights)):
             view_cov = view.T @ view
             view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(view_cov.shape[0])
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
-        self.K = np.sqrt(np.sum(self.K, axis=0))
-        Q = np.diag(self.K) @ Q @ np.diag(self.K)
+        Q = np.diag(np.sqrt(np.sum(K, axis=0))) @ Q @ np.diag(np.sqrt(np.sum(K, axis=0)))
         [eigvals, eigvecs] = np.linalg.eig(Q)
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
@@ -278,7 +278,7 @@ class GCCA(CCA_Base, BaseEstimator):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def demean_observed_data(self, *views):
+    def demean_observed_data(self, *views, K):
         """
         Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
         demeaning transformation to out of sample data
@@ -287,12 +287,29 @@ class GCCA(CCA_Base, BaseEstimator):
         """
         views_input = []
         self.view_means = []
-        for i, (observations, view) in enumerate(zip(self.K, views)):
+        for i, (observations, view) in enumerate(zip(K, views)):
             observed = np.where(observations == 1)[0]
             self.view_means.append(view[observed].mean(axis=0))
             view[observed] = view[observed] - self.view_means[i]
             views_input.append(np.diag(observations) @ view)
         return views_input
+
+    def transform(self, *views, K=None):
+        """
+        The transform method takes any number of views as a numpy array. Need to have the same number of features as
+        those in the views used to train the model.
+        Returns the views transformed into the learnt latent space.
+        :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
+         corresponding view in the training data
+        :return: tuple of transformed numpy arrays
+        """
+        transformed_views = []
+        for i, view in enumerate(views):
+            transformed_view = np.ma.array((view - self.view_means[i]) @ self.weights_list[i])
+            if K is not None:
+                transformed_view.mask[np.where(K[i]) == 1] = True
+            transformed_views.append(transformed_view)
+        return transformed_views
 
 
 def pca_data(*views):
@@ -364,7 +381,7 @@ class rCCA(CCA_Base, BaseEstimator):
 
 class CCA(rCCA):
     def __init__(self, latent_dims: int = 1):
-        super().__init__(latent_dims=latent_dims, c=[0,0])
+        super().__init__(latent_dims=latent_dims, c=[0, 0])
 
 
 class Iterative(CCA_Base):
@@ -506,12 +523,13 @@ class SCCA_ADMM(Iterative, BaseEstimator):
         self.c = c
         self.mu = mu
         self.lam = lam
-        self.eta=eta
+        self.eta = eta
         self.max_iter = max_iter
         super().__init__(latent_dims=latent_dims, max_iter=max_iter)
 
     def set_loop_params(self):
-        self.loop = cca_zoo.innerloop.ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,eta=self.eta)
+        self.loop = cca_zoo.innerloop.ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,
+                                                    eta=self.eta)
 
 
 class ElasticCCA(Iterative, BaseEstimator):
@@ -545,7 +563,7 @@ class CrossValidate:
         self.verbose = verbose
         self.model = model
 
-    def score(self, *views, **cvparams):
+    def score(self, *views, K=None, **cvparams):
         scores = np.zeros(self.folds)
         inds = np.arange(views[0].shape[0])
         np.random.shuffle(inds)
@@ -557,9 +575,16 @@ class CrossValidate:
         for fold in range(self.folds):
             train_sets = [np.delete(view, fold_inds[fold], axis=0) for view in views]
             val_sets = [view[fold_inds[fold], :] for view in views]
-            scores[fold] = self.model.set_params(**cvparams).fit(
-                *train_sets).predict_corr(
-                *val_sets).sum(axis=-1)[np.triu_indices(len(views), 1)].sum()
+            if K is not None:
+                train_obs = np.delete(K, fold_inds[fold], axis=1)
+                val_obs = K[:, fold_inds[fold]]
+                scores[fold] = self.model.set_params(**cvparams).fit(
+                    *train_sets, K=train_obs).predict_corr(
+                    *val_sets).sum(axis=-1)[np.triu_indices(len(views), 1)].sum()
+            else:
+                scores[fold] = self.model.set_params(**cvparams).fit(
+                    *train_sets).predict_corr(
+                    *val_sets).sum(axis=-1)[np.triu_indices(len(views), 1)].sum()
         metric = scores.sum(axis=0) / self.folds
         std = scores.std(axis=0)
         if np.isnan(metric):

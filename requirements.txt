@@ -1,11 +1,1 @@
-numpy
-torch>=1.7.0
-scikit-learn
-scipy
-matplotlib
-seaborn
-Pillow
-torchvision
-pandas
-mvlearn
-tensorboard
+
