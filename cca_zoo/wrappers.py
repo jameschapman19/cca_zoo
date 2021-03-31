@@ -8,7 +8,6 @@ import pandas as pd
 from joblib import Parallel, delayed
 from scipy.linalg import block_diag, eigh, eig
 from sklearn.base import BaseEstimator
-
 import cca_zoo.data
 import cca_zoo.innerloop
 import cca_zoo.kcca
@@ -226,7 +225,8 @@ class MCCA(CCA_Base, BaseEstimator):
                          enumerate(views_input)])
         C -= block_diag(*[m.T @ m for i, m in
                           enumerate(views_input)]) - D
-        [eigvals, eigvecs] = eigh(C, D)
+        n = D.shape[0]
+        [eigvals, eigvecs] = eigh(C, D, subset_by_index=[n - self.latent_dims, n - 1])
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         splits = np.cumsum([0] + [view.shape[1] for view in views])
@@ -269,7 +269,8 @@ class GCCA(CCA_Base, BaseEstimator):
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
         Q = np.diag(np.sqrt(np.sum(K, axis=0))) @ Q @ np.diag(np.sqrt(np.sum(K, axis=0)))
-        [eigvals, eigvecs] = np.linalg.eig(Q)
+        n = Q.shape[0]
+        [eigvals, eigvecs] = eigh(Q, subset_by_index=[n - self.latent_dims, n - 1])
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         self.eigvals = eigvals[idx].real
@@ -355,7 +356,8 @@ class rCCA(CCA_Base, BaseEstimator):
         R_list = [U @ np.diag(S) for U, S in zip(U_list, S_list)]
         R_12 = R_list[0].T @ R_list[1]
         M = np.diag(1 / np.sqrt(B_list[1])) @ R_12.T @ np.diag(1 / B_list[0]) @ R_12 @ np.diag(1 / np.sqrt(B_list[1]))
-        [eigvals, eigvecs] = eig(M)
+        n = M.shape[0]
+        [eigvals, eigvecs] = eigh(M, subset_by_index=[n - self.latent_dims, n - 1])
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         eigvals = np.real(np.sqrt(eigvals))[:self.latent_dims]
@@ -371,7 +373,8 @@ class rCCA(CCA_Base, BaseEstimator):
         C = np.concatenate([U @ np.diag(S) for U, S in zip(U_list, S_list)], axis=1)
         C = C.T @ C
         C -= block_diag(*[np.diag(S ** 2) for U, S in zip(U_list, S_list)]) - D
-        [eigvals, eigvecs] = eigh(C, D)
+        n = C.shape[0]
+        [eigvals, eigvecs] = eigh(C, D, subset_by_index=[n - self.latent_dims, n - 1])
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         splits = np.cumsum([0] + [U.shape[1] for U in U_list])
