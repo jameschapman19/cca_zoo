@@ -4,11 +4,13 @@
 [![Documentation Status](https://readthedocs.org/projects/cca-zoo/badge/?version=latest)](https://cca-zoo.readthedocs.io/en/latest/?badge=latest)
 
 # Installation
-For everything except the deep learning based models use: 
+Note: for everything except the deep learning based models use: 
 pip install cca-zoo
 
 For deep learning elements use:
 pip install cca-zoo[deep]
+
+This means that there is no need to install the large pytorch package to run cca-zoo unless you wish to use deep learning
 
 # Documentation
 Available at https://cca-zoo.readthedocs.io/en/latest/
