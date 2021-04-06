@@ -31,8 +31,10 @@ class DeepWrapper(CCA_Base):
         if tensorboard:
             self.writer = SummaryWriter(tensorboard_tag)
 
-    def fit(self, *views, labels=None, val_split=0.2, batch_size=0, patience=0, epochs=1, train_correlations=True):
+    def fit(self, *train_dataset, val_dataset=None, labels=None, val_split=0.2, batch_size=0, patience=0, epochs=1,
+            train_correlations=True):
         """
+        :param val_dataset:
         :param views: EITHER 2D numpy arrays for each view separated by comma with the same number of rows (nxp)
                         OR torch.torch.utils.data.Dataset
                         OR 2 or more torch.utils.data.Subset separated by commas
@@ -45,22 +47,11 @@ class DeepWrapper(CCA_Base):
         :return:
         """
         self.batch_size = batch_size
-        if type(views[0]) is np.ndarray:
-            dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
-            ids = np.arange(len(dataset))
-            np.random.shuffle(ids)
-            train_ids, val_ids = np.array_split(ids, 2)
-            val_dataset = Subset(dataset, val_ids)
-            train_dataset = Subset(dataset, train_ids)
-        elif isinstance(views[0], torch.utils.data.Dataset):
-            if len(views) == 2:
-                assert (isinstance(views[0], torch.utils.data.Subset))
-                assert (isinstance(views[1], torch.utils.data.Subset))
-                train_dataset, val_dataset = views[0], views[1]
-            else:
-                dataset = views[0]
-                lengths = [len(dataset) - int(len(dataset) * val_split), int(len(dataset) * val_split)]
-                train_dataset, val_dataset = torch.utils.data.random_split(dataset, lengths)
+        if isinstance(train_dataset[0],np.ndarray):
+            train_dataset = cca_zoo.data.CCA_Dataset(*train_dataset, labels=labels)
+        if val_dataset is None:
+            lengths = [len(train_dataset) - int(len(train_dataset) * val_split), int(len(train_dataset) * val_split)]
+            train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, lengths)
 
         if batch_size == 0:
             train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset))
@@ -83,8 +74,6 @@ class DeepWrapper(CCA_Base):
         min_val_loss = torch.tensor(np.inf)
         epochs_no_improve = 0
         early_stop = False
-        all_train_loss = []
-        all_val_loss = []
 
         for epoch in range(1, epochs + 1):
             if not early_stop:
