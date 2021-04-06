@@ -161,11 +161,9 @@ class DeepWrapper(CCA_Base):
             (len(transformed_views), len(transformed_views), self.latent_dims))
         return all_corrs
 
-    def transform(self, *views, labels=None, train=False):
-        if type(views[0]) is np.ndarray:
-            test_dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
-        elif isinstance(views[0], torch.utils.data.Dataset):
-            test_dataset = views[0]
+    def transform(self, test_dataset, labels=None, train=False):
+        if type(test_dataset[0]) is np.ndarray:
+            test_dataset = cca_zoo.data.CCA_Dataset(*test_dataset, labels=labels)
         if self.batch_size > 0:
             test_dataloader = DataLoader(test_dataset, batch_size=self.batch_size)
         else:
@@ -189,11 +187,9 @@ class DeepWrapper(CCA_Base):
                 z_list = self.cca.transform(*z_list)
         return z_list
 
-    def predict_view(self, *views, labels=None):
-        if type(views[0]) is np.ndarray:
-            test_dataset = cca_zoo.data.CCA_Dataset(*views, labels=labels)
-        elif isinstance(views[0], torch.utils.data.Dataset):
-            test_dataset = views[0]
+    def predict_view(self, test_dataset, labels=None):
+        if type(test_dataset[0]) is np.ndarray:
+            test_dataset = cca_zoo.data.CCA_Dataset(*test_dataset, labels=labels)
 
         test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
         with torch.no_grad():
