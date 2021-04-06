@@ -158,7 +158,8 @@ class CCA_Base(BaseEstimator):
             max_evals=100,
             trials=trials,
         )
-        self.fit(*views, params=best_params)
+        self.set_params(**param_sets[max_index])
+        self.fit(*views)
         return self
     """
 
