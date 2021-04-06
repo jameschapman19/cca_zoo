@@ -181,12 +181,11 @@ class Tangled_MNIST_Dataset(Dataset):
 def chol_sample(mean, chol):
     return mean + chol @ np.random.standard_normal(mean.size)
 
-
 def gaussian(x, mu, sig, dn):
     return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.))) * dn / (np.sqrt(2 * np.pi) * sig)
 
 
-def generate_simulated_data(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0,
+def generate_covariance_data(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0,
                             sparse_variables_2: float = 0,
                             signal: float = 1,
                             structure: str = 'identity', sigma: float = 0.9, decay: float = 0.5,
@@ -306,6 +305,15 @@ def generate_simulated_data(m: int, k: int, N: int, M: int, sparse_variables_1: 
 def generate_simple_data(m: int, N: int, M: int, sparse_variables_1: float = 0,
                          sparse_variables_2: float = 0,
                          eps: float = 0):
+    """
+    :param m: number of samples
+    :param N: number of features view 1
+    :param M: number of features view 2
+    :param sparse_variables_1: either integer number of active variables or float fraction
+    :param sparse_variables_2: either integer number of active variables or float fraction
+    :param eps: gaussian noise std
+    :return: view1 matrix, view2 matrix, true weights view 1, true weights view 2
+    """
     z = np.random.normal(0, 1, m)
 
     up = np.random.rand(N, 1)

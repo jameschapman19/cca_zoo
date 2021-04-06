@@ -6,8 +6,9 @@ import numpy as np
 import numpy.ma as ma
 import pandas as pd
 from joblib import Parallel, delayed
-from scipy.linalg import block_diag, eigh, eig
+from scipy.linalg import block_diag, eigh
 from sklearn.base import BaseEstimator
+
 import cca_zoo.data
 import cca_zoo.innerloop
 import cca_zoo.kcca
