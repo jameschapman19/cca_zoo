@@ -1,6 +1,6 @@
 numpy
 scikit-learn
-scipy
+scipy>=1.5
 matplotlib
 seaborn
 Pillow
