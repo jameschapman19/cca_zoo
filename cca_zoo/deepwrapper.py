@@ -31,14 +31,13 @@ class DeepWrapper(CCA_Base):
         if tensorboard:
             self.writer = SummaryWriter(tensorboard_tag)
 
-    def fit(self, *train_dataset, val_dataset=None, labels=None, val_split=0.2, batch_size=0, patience=0, epochs=1,
+    def fit(self, train_dataset, val_dataset=None, train_labels=None,val_labels=None, val_split=0.2, batch_size=0, patience=0, epochs=1,
             train_correlations=True):
         """
-        :param val_dataset:
-        :param views: EITHER 2D numpy arrays for each view separated by comma with the same number of rows (nxp)
-                        OR torch.torch.utils.data.Dataset
-                        OR 2 or more torch.utils.data.Subset separated by commas
-        :param labels:
+        :param train_dataset: either tuple of 2d numpy arrays (one for each view) or torch dataset
+        :param val_dataset: either tuple of 2d numpy arrays (one for each view) or torch dataset
+        :param train_labels:
+        :param val_labels:
         :param val_split: the ammount of data used for validation
         :param batch_size: the minibatch size
         :param patience: if 0 train to num_epochs, else if validation score doesn't improve after patience epochs stop training
@@ -47,11 +46,13 @@ class DeepWrapper(CCA_Base):
         :return:
         """
         self.batch_size = batch_size
-        if isinstance(train_dataset[0],np.ndarray):
-            train_dataset = cca_zoo.data.CCA_Dataset(*train_dataset, labels=labels)
+        if isinstance(train_dataset[0], np.ndarray):
+            train_dataset = cca_zoo.data.CCA_Dataset(*train_dataset, labels=train_labels)
         if val_dataset is None:
             lengths = [len(train_dataset) - int(len(train_dataset) * val_split), int(len(train_dataset) * val_split)]
             train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, lengths)
+        elif isinstance(val_dataset[0], np.ndarray):
+            val_dataset = cca_zoo.data.CCA_Dataset(*val_dataset, labels=val_labels)
 
         if batch_size == 0:
             train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset))
