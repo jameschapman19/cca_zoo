@@ -257,10 +257,10 @@ dgcca_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2]
 # hidden_layer_sizes are shown explicitly but these are also the defaults
 dgcca_model = deepwrapper.DeepWrapper(dgcca_model)
 
-dgcca_model.fit(train_view_1, train_view_2, epochs=epochs)
+dgcca_model.fit((train_view_1, train_view_2), epochs=epochs)
 
 dgcca_results = np.stack(
-    (dgcca_model.train_correlations[0, 1], dgcca_model.predict_corr(test_view_1, test_view_2)[0, 1]))
+    (dgcca_model.train_correlations[0, 1], dgcca_model.predict_corr((test_view_1, test_view_2))[0, 1]))
 
 # DMCCA
 print('DMCCA')
@@ -271,10 +271,10 @@ dmcca_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2]
 # hidden_layer_sizes are shown explicitly but these are also the defaults
 dmcca_model = deepwrapper.DeepWrapper(dmcca_model)
 
-dmcca_model.fit(train_view_1, train_view_2, epochs=epochs)
+dmcca_model.fit((train_view_1, train_view_2), epochs=epochs)
 
 dmcca_results = np.stack(
-    (dmcca_model.train_correlations[0, 1], dmcca_model.predict_corr(test_view_1, test_view_2)[0, 1]))
+    (dmcca_model.train_correlations[0, 1], dmcca_model.predict_corr((test_view_1, test_view_2))[0, 1]))
 
 # DCCA_NOI
 print('DCCA by non-linear orthogonal iterations')
@@ -285,7 +285,7 @@ dcca_noi_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder
 # hidden_layer_sizes are shown explicitly but these are also the defaults
 dcca_noi_model = deepwrapper.DeepWrapper(dcca_noi_model)
 
-dcca_noi_model.fit(train_view_1, train_view_2, epochs=epochs)
+dcca_noi_model.fit((train_view_1, train_view_2), epochs=epochs)
 
 dcca_noi_results = np.stack(
     (dcca_noi_model.train_correlations[0, 1], dcca_noi_model.predict_corr(test_view_1, test_view_2)[0, 1]))
@@ -303,10 +303,10 @@ dccae_model = dccae.DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_
 # hidden_layer_sizes are shown explicitly but these are also the defaults
 dccae_model = deepwrapper.DeepWrapper(dccae_model)
 
-dccae_model.fit(train_view_1, train_view_2, epochs=epochs)
+dccae_model.fit((train_view_1, train_view_2), epochs=epochs)
 
 dccae_results = np.stack(
-    (dccae_model.train_correlations[0, 1], dccae_model.predict_corr(test_view_1, test_view_2)[0, 1]))
+    (dccae_model.train_correlations[0, 1], dccae_model.predict_corr((test_view_1, test_view_2))[0, 1]))
 
 """
 ### Deep Variational Learning
@@ -333,10 +333,10 @@ dvcca_model = dvcca.DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_
 # hidden_layer_sizes are shown explicitly but these are also the defaults
 dvcca_model = deepwrapper.DeepWrapper(dvcca_model)
 
-dvcca_model.fit(train_view_1, train_view_2, epochs=epochs)
+dvcca_model.fit((train_view_1, train_view_2), epochs=epochs)
 
 dvcca_model_results = np.stack(
-    (dvcca_model.train_correlations[0, 1], dvcca_model.predict_corr(test_view_1, test_view_2)[0, 1]))
+    (dvcca_model.train_correlations[0, 1], dvcca_model.predict_corr((test_view_1, test_view_2))[0, 1]))
 
 # DVCCA_private (technically bi-DVCCA_private)
 print('DVCCA_private')
@@ -352,10 +352,10 @@ dvccap_model = dvcca.DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder
 # hidden_layer_sizes are shown explicitly but these are also the defaults
 dvccap_model = deepwrapper.DeepWrapper(dvccap_model)
 
-dvccap_model.fit(train_view_1, train_view_2, epochs=epochs)
+dvccap_model.fit((train_view_1, train_view_2), epochs=epochs)
 
 dvccap_model_results = np.stack(
-    (dvccap_model.train_correlations[0, 1], dvccap_model.predict_corr(test_view_1, test_view_2)[0, 1]))
+    (dvccap_model.train_correlations[0, 1], dvccap_model.predict_corr((test_view_1, test_view_2))[0, 1]))
 
 """
 ### Convolutional Deep Learning
@@ -373,12 +373,12 @@ dcca_conv_model = deepwrapper.DeepWrapper(dcca_conv_model)
 # to change the models used change the cfg.encoder_models. We implement a CNN_Encoder and CNN_decoder as well
 # as some based on brainnet architecture in cca_zoo.deep_models. Equally you could pass your own encoder/decoder models
 
-dcca_conv_model.fit(train_view_1.reshape((-1, 1, 28, 28)), train_view_2.reshape((-1, 1, 28, 28)), epochs=epochs)
+dcca_conv_model.fit((train_view_1.reshape((-1, 1, 28, 28)), train_view_2.reshape((-1, 1, 28, 28))), epochs=epochs)
 
 dcca_conv_results = np.stack(
-    (dcca_conv_model.train_correlations[0, 1], dcca_conv_model.predict_corr(test_view_1.reshape((-1, 1, 28, 28)),
+    (dcca_conv_model.train_correlations[0, 1], dcca_conv_model.predict_corr((test_view_1.reshape((-1, 1, 28, 28)),
                                                                             test_view_2.reshape(
-                                                                                (-1, 1, 28, 28)))[0, 1]))
+                                                                                (-1, 1, 28, 28))))[0, 1]))
 
 """
 ### Make results plot to compare methods
