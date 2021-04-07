@@ -145,7 +145,7 @@ class DeepWrapper(CCA_Base):
             total_val_loss += loss.item()
         return total_val_loss / len(val_dataloader)
 
-    def predict_corr(self, *views, train=False):
+    def predict_corr(self, test_dataset, train=False):
         """
         :param views: EITHER numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
@@ -153,7 +153,7 @@ class DeepWrapper(CCA_Base):
                         OR 2 or more torch.utils.data.Subset separated by commas
         :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
         """
-        transformed_views = self.transform(*views, train=train)
+        transformed_views = self.transform(test_dataset, train=train)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
