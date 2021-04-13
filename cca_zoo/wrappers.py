@@ -244,7 +244,6 @@ class GCCA(CCA_Base, BaseEstimator):
         super().__init__(latent_dims=latent_dims)
         self.c = c
         self.view_weights = view_weights
-        # self.K = K
 
     def fit(self, *views, K=None):
         """
@@ -421,6 +420,8 @@ class Iterative(CCA_Base):
         self.score_list = [np.zeros((n, self.latent_dims)) for _ in views]
 
         residuals = copy.deepcopy(list(views))
+
+        self.objective=[]
         # For each of the dimensions
         for k in range(self.latent_dims):
             self.loop = self.loop.fit(*residuals)
@@ -431,6 +432,7 @@ class Iterative(CCA_Base):
                 # but in principle we could apply any form of deflation here
                 residuals[i] = residuals[i] - np.outer(self.score_list[i][:, k], self.score_list[i][:, k]) @ residuals[
                     i] / np.dot(self.score_list[i][:, k], self.score_list[i][:, k]).item()
+            self.objective.append(self.loop.track_objective)
         # can we fix the numerical instability problem?
         return self
 

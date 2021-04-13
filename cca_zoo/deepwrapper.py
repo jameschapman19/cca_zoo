@@ -156,7 +156,7 @@ class DeepWrapper(CCA_Base):
         transformed_views = self.transform(test_dataset, train=train)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
-            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
+            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:x.shape[1], y.shape[1]:]))
         all_corrs = np.array(all_corrs).reshape(
             (len(transformed_views), len(transformed_views), self.latent_dims))
         return all_corrs

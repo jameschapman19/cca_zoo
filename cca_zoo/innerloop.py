@@ -2,7 +2,6 @@ from abc import abstractmethod
 from itertools import combinations
 
 import numpy as np
-from scipy.linalg import pinv2
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import ElasticNet
 from sklearn.linear_model import Lasso
@@ -21,8 +20,6 @@ class InnerLoop:
         :param initialization: initialise the optimisation with either the 'unregularized' (CCA/PLS) solution, or
          a 'random' initialisation
         """
-        self.track_objective = []
-        self.track_correlation = []
         self.generalized = generalized
         self.initialization = initialization
         self.max_iter = max_iter
@@ -31,11 +28,13 @@ class InnerLoop:
     def check_params(self):
         self.l1_ratio = [0] * len(self.views)
         self.c = [0] * len(self.views)
-        if len(self.views) > 2:
-            self.generalized = True
 
     def fit(self, *views):
         self.views = views
+        if len(self.views) > 2:
+            self.generalized = True
+        self.track_objective = []
+        self.track_correlation = []
         self.check_params()
         if self.initialization == 'random':
             self.scores = np.array([np.random.rand(view.shape[0]) for view in self.views])
@@ -92,34 +91,6 @@ class PLSInnerLoop(InnerLoop):
                  initialization: str = 'unregularized'):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
-
-
-class CCAInnerLoop(InnerLoop):
-    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized'):
-        super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
-                         initialization=initialization)
-
-    def check_params(self):
-        self.inverses = [pinv2(view) for view in self.views]
-        self.c = [0 for _ in self.views]
-        self.l1_ratio = [0 for _ in self.views]
-
-    def update_view(self, view_index: int):
-        """
-        :param view_index: index of view being updated
-        :return: updated weights
-        """
-        if self.generalized:
-            target = self.scores.mean(axis=0)
-            w = self.inverses[view_index] @ target
-        else:
-            w = self.inverses[view_index] @ self.scores[view_index - 1]
-        self.weights[view_index] = w / np.linalg.norm(self.views[view_index] @ w)
-        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
-
-    def objective(self):
-        return sparse_cca_lyuponov(self)
 
 
 class PMDInnerLoop(InnerLoop):
@@ -181,7 +152,7 @@ class PMDInnerLoop(InnerLoop):
 class ParkhomenkoInnerLoop(InnerLoop):
     def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', c=None):
-        super().__init__(*views, max_iter=max_iter, tol=tol, generalized=generalized,
+        super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
         self.c = c
 
@@ -252,9 +223,11 @@ class ElasticInnerLoop(InnerLoop):
         return w
 
     @ignore_warnings(category=ConvergenceWarning)
-    def elastic_solver(self, X, y, X_inv=None, alpha=0.1, l1_ratio=0.5):
+    def elastic_solver(self, X, y, alpha=0.1, l1_ratio=0.5):
         if alpha == 0:
-            beta = np.dot(X_inv, y)
+            clf = LinearRegression(fit_intercept=False)
+            clf.fit(X, y)
+            beta = clf.coef_
         elif l1_ratio == 0:
             clf = Ridge(alpha=alpha, fit_intercept=False)
             clf.fit(X, y)
@@ -291,7 +264,37 @@ class ElasticInnerLoop(InnerLoop):
         return coef, current
 
     def objective(self):
-        return sparse_cca_lyuponov(self)
+        return elastic_cca_objective(self)
+
+
+class CCAInnerLoop(ElasticInnerLoop):
+    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
+                 initialization: str = 'unregularized'):
+        super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
+                         initialization=initialization, c=None, l1_ratio=None)
+
+    def check_params(self):
+        if self.c is None:
+            self.c = [0] * len(self.views)
+        if self.l1_ratio is None:
+            self.l1_ratio = [0] * len(self.views)
+        self.inverses = [np.linalg.pinv(view) for view in self.views]
+
+    def update_view(self, view_index: int):
+        """
+        :param view_index: index of view being updated
+        :return: updated weights
+        """
+        if self.generalized:
+            target = self.scores.mean(axis=0)
+            w = self.inverses[view_index] @ target
+        else:
+            w = self.inverses[view_index] @ self.scores[view_index - 1]
+        self.weights[view_index] = w / np.linalg.norm(self.views[view_index] @ w)
+        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
+
+    def objective(self):
+        return elastic_cca_objective(self)
 
 
 class SCCAInnerLoop(InnerLoop):
@@ -305,8 +308,6 @@ class SCCAInnerLoop(InnerLoop):
         if self.c is None:
             self.c = [0] * len(self.views)
         self.l1_ratio = [1 for _ in self.views]
-        self.inverses = [pinv2(view) if view.shape[0] > view.shape[1] else None for view in
-                         self.views]
 
     def update_view(self, view_index: int):
         """
@@ -315,28 +316,25 @@ class SCCAInnerLoop(InnerLoop):
         """
         if self.generalized:
             target = self.scores.mean(axis=0)
-            w = self.lasso_solver(self.views[view_index], target, self.inverses[view_index],
+            w = self.lasso_solver(self.views[view_index], target,
                                   alpha=self.c[view_index] / len(self.views))
         else:
-            w = self.lasso_solver(self.views[view_index], self.scores[view_index - 1], self.inverses[view_index],
+            w = self.lasso_solver(self.views[view_index], self.scores[view_index - 1],
                                   alpha=self.c[view_index])
         assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
         self.weights[view_index] = w / np.linalg.norm(self.views[view_index] @ w)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
     def objective(self):
-        return sparse_cca_lyuponov(self)
+        return elastic_cca_objective(self)
 
     @ignore_warnings(category=ConvergenceWarning)
-    def lasso_solver(self, X, y, X_inv=None, alpha=0.1):
+    def lasso_solver(self, X, y, alpha=0.1):
         # alpha_max for lasso regression = np.max(np.abs(X.T@y))
         if alpha == 0:
-            if X_inv is not None:
-                beta = np.dot(X_inv, y)
-            else:
-                clf = LinearRegression(fit_intercept=False)
-                clf.fit(X, y)
-                beta = clf.coef_
+            clf = LinearRegression(fit_intercept=False)
+            clf.fit(X, y)
+            beta = clf.coef_
         else:
             lassoreg = Lasso(alpha=alpha, selection='random', fit_intercept=False)
             lassoreg.fit(X, y)
@@ -408,7 +406,7 @@ class ADMMInnerLoop(InnerLoop):
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
     def objective(self):
-        return sparse_cca_lyuponov(self)
+        return elastic_cca_objective(self)
 
     def prox_mu_f(self, x, mu, c, tau):
         u_update = x.copy()
@@ -430,7 +428,7 @@ class ADMMInnerLoop(InnerLoop):
             return x / max(1, norm)
 
 
-def sparse_cca_lyuponov(loop: InnerLoop):
+def elastic_cca_objective(loop: InnerLoop):
     """
     General objective function for sparse CCA |X_1w_1-X_2w_2|_2^2 + c_1|w_1|_1 + c_2|w_2|_1
     :param loop: an inner loop
@@ -441,14 +439,15 @@ def sparse_cca_lyuponov(loop: InnerLoop):
     ratio = np.array(loop.l1_ratio)
     l1 = c * ratio
     l2 = c * (1 - ratio)
-    objective = 0
+    total_objective = 0
     for i in range(views):
         # TODO this looks like it could be tidied up. In particular can we make the generalized objective correspond to the 2 view
         target = loop.scores.mean(axis=0)
-        objective += 2 * 1 / (2 * loop.views[i].shape[0]) * np.linalg.norm(
-            loop.views[i] @ loop.weights[i] - target) ** 2 + l1[i] * np.linalg.norm(loop.weights[i], ord=1) + \
-                     l2[i] * np.linalg.norm(loop.weights[i], ord=2)
-    return objective
+        objective = np.linalg.norm(loop.views[i] @ loop.weights[i] - target) ** 2 / (2 * loop.views[i].shape[0])
+        l1_pen = l1[i] * np.linalg.norm(loop.weights[i], ord=1)
+        l2_pen = l2[i] * np.linalg.norm(loop.weights[i], ord=2)
+        total_objective += objective + l1_pen + l2_pen
+    return total_objective
 
 
 def bin_search(current, previous, current_val, previous_val, min_, max_):

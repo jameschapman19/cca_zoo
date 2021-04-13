@@ -47,7 +47,7 @@ class TestDeepWrapper(TestCase):
                                        objective=cca_zoo.objectives.CCA)
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dcca_model = cca_zoo.deepwrapper.DeepWrapper(dcca_model, device=device)
-        dcca_model.fit((self.X, self.Y), epochs=3)
+        dcca_model.fit((self.X, self.Y), epochs=10)
         # DGCCA
         dgcca_model = cca_zoo.dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                                         objective=cca_zoo.objectives.GCCA)

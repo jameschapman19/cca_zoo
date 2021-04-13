@@ -44,6 +44,21 @@ max_iter = 10
 # number of epochs for deep models
 epochs = 50
 
+from cca_zoo import deepwrapper, objectives, dcca, deep_models
+# DCCA
+print('DCCA')
+encoder_1 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+encoder_2 = deep_models.Encoder(latent_dims=latent_dims, feature_size=784)
+dcca_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
+
+# hidden_layer_sizes are shown explicitly but these are also the defaults
+dcca_model = deepwrapper.DeepWrapper(dcca_model)
+
+dcca_model.fit((train_view_1, train_view_2), epochs=epochs, batch_size=8)
+
+dcca_results = np.stack((dcca_model.train_correlations[0, 1], dcca_model.predict_corr((test_view_1, test_view_2))[0, 1]))
+
+
 """
 ### Linear CCA via alternating least squares (can pass more than 2 views)
 """
