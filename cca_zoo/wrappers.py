@@ -20,6 +20,9 @@ import cca_zoo.plot_utils
 class CCA_Base(BaseEstimator):
     @abstractmethod
     def __init__(self, latent_dims: int = 1):
+        """
+        :param latent_dims: number of latent dimensions
+        """
         self.weights_list = None
         self.train_correlations = None
         self.latent_dims = latent_dims
@@ -205,6 +208,10 @@ class KCCA(CCA_Base, BaseEstimator):
 
 class MCCA(CCA_Base, BaseEstimator):
     def __init__(self, latent_dims: int = 1, c=None):
+        """
+        :param latent_dims: number of latent dimensions
+        :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
+        """
         super().__init__(latent_dims=latent_dims)
         self.c = c
 
@@ -241,6 +248,11 @@ class MCCA(CCA_Base, BaseEstimator):
 
 class GCCA(CCA_Base, BaseEstimator):
     def __init__(self, latent_dims: int = 1, c=None, view_weights=None):
+        """
+        :param latent_dims: number of latent dimensions
+        :param c: regularisation between 0 (CCA) and 1 (PLS)
+        :param view_weights: list of weights of each view
+        """
         super().__init__(latent_dims=latent_dims)
         self.c = c
         self.view_weights = view_weights
