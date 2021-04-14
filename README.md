@@ -98,6 +98,8 @@ C++ implementation of DCCA from Galen Andrew's website (https://homes.cs.washing
 
 MATLAB implementation of DCCA/DCCAE from Weiran Wang's website (http://ttic.uchicago.edu/~wwang5/dccae.html)
 
+MATLAB implementation of TCCA from https://github.com/rciszek/mdr_tcca
+
 Implementation of VAE:
 
 Torch implementation of VAE (https://github.com/pytorch/examples/tree/master/vae)
