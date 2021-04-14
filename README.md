@@ -43,7 +43,7 @@ Solutions based on either alternating least squares or as the solution to genrra
 ### GCCA (Generalized CCA)  :
 https://academic.oup.com/biomet/article-abstract/58/3/433/233349?redirectedFrom=fulltext
 ### MCCA (Multiset CCA)
-### TCCA (Multiset CCA) :
+### TCCA (Tensor CCA) :
 https://arxiv.org/pdf/1502.02330.pdf
 ### SCCA (Sparse CCA) :
 Mai's sparse CCA
@@ -63,7 +63,7 @@ An alternative objective based on the linear GCCA solution. Can be extended to m
 ### DMCCA (Deep Multiset CCA) :
 https://arxiv.org/abs/1904.01775
 An alternative objective based on the linear MCCA solution. Can be extended to more than 2 views
-### DTCCA (Multiset CCA) :
+### DTCCA (Deep Tensor CCA) :
 https://arxiv.org/pdf/2005.11914.pdf
 ### DCCAE (Deep Canonically Correlated Autoencoders) :
 http://proceedings.mlr.press/v37/wangb15.pdf
