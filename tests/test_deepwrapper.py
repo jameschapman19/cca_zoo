@@ -173,6 +173,11 @@ class TestDeepWrapper(TestCase):
         dvcca_model = cca_zoo.deepwrapper.DeepWrapper(dvcca_model, device=device)
         dvcca_model.fit((self.X, self.Y))
 
+    def test_DVCCA_p_methods_cpu(self):
+        latent_dims = 2
+        device = 'cpu'
+        encoder_1 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10, variational=True)
+        encoder_2 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10, variational=True)
         private_encoder_1 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10, variational=True)
         private_encoder_2 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10, variational=True)
         decoder_1 = cca_zoo.deep_models.Decoder(latent_dims=2 * latent_dims, feature_size=10, norm_output=True)
