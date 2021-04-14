@@ -577,6 +577,9 @@ class ElasticCCA(Iterative, BaseEstimator):
 
 
 class TCCA(CCA_Base):
+    """
+    My own port from https://github.com/rciszek/mdr_tcca
+    """
     def __init__(self, latent_dims: int = 1, c=None):
         super().__init__(latent_dims)
         self.c = c
