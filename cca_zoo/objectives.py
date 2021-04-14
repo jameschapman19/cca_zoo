@@ -1,4 +1,7 @@
 import torch
+import tensorly as tl
+from tensorly.decomposition import parafac
+from tensorly.cp_tensor import cp_to_tensor
 
 
 def attach_dim(v, n_dim_to_prepend=0, n_dim_to_append=0):
@@ -166,3 +169,42 @@ class CCA:
         U = U[U_inds]
         corr = torch.sum(torch.sqrt(U))
         return -corr
+
+
+class TCCA:
+    """
+    Differentiable CCA Loss.
+    Loss() method takes the outputs of each view's network and solves the CCA problem as in Andrew's original paper
+    """
+
+    def __init__(self, latent_dims: int, r: float = 0, eps: float = 0):
+        """
+        :param latent_dims: the number of latent dimensions
+        :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to
+        the number of latent dimensions
+        :param eps: an epsilon parameter used in some operations
+        """
+        self.latent_dims = latent_dims
+        self.r = r
+        self.eps = eps
+
+    def loss(self, *z):
+        m = z[0].size(0)
+        z = [z_ - z_.mean(dim=0).unsqueeze(dim=0) for z_ in z]
+        covs = [(1.0 / (m - 1))*torch.matmul(z_.T, z_) + self.r * torch.eye(z_.size(1), dtype=torch.double,
+                                                              device=z_.device).float() for z_ in z]
+
+        z = [z_ @ compute_matrix_power(cov, -0.5, self.eps) for z_,cov in zip(z,covs)]
+
+        for i, el in enumerate(z):
+            if i == 0:
+                curr = el
+            else:
+                for _ in range(len(curr.size()) - 1):
+                    el = torch.unsqueeze(el, 1)
+                curr = torch.unsqueeze(curr, -1) @ el
+        M = torch.mean(curr, 0)
+        tl.set_backend('pytorch')
+        M_parafac = parafac(M.detach(), self.latent_dims)
+        M_hat = cp_to_tensor(M_parafac)
+        return torch.norm(M-M_hat)

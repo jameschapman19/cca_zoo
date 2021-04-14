@@ -18,13 +18,13 @@ from torch.linalg import norm
 
 from cca_zoo.deep_models import BaseEncoder, Encoder
 from cca_zoo.objectives import compute_matrix_power, CCA
+from cca_zoo.wrappers import MCCA
 
 
 class DCCA_base(nn.Module):
-    def __init__(self, latent_dims: int, post_transform=False):
+    def __init__(self, latent_dims: int):
         super(DCCA_base, self).__init__()
         self.latent_dims = latent_dims
-        self.post_transform = post_transform
         self.schedulers = [None]
 
     @abstractmethod
@@ -44,12 +44,14 @@ class DCCA_base(nn.Module):
         """
         pass
 
+    def post_transform(self, *z_list, train=False):
+        return z_list
+
 
 class DCCA(DCCA_base, nn.Module):
     def __init__(self, latent_dims: int, objective=CCA,
                  encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
                  learning_rate=1e-3, als=False, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-9,
-                 post_transform=True,
                  shared_target=False, schedulers: Iterable = None, optimizers: Iterable = None):
         """
         :param latent_dims: # latent dimensions
@@ -65,7 +67,7 @@ class DCCA(DCCA_base, nn.Module):
         :param schedulers: list of schedulers for each optimizer
         :param optimizers: list of optimizers for each encoder
         """
-        super().__init__(latent_dims, post_transform=post_transform)
+        super().__init__(latent_dims)
         self.latent_dims = latent_dims
         self.encoders = nn.ModuleList(encoders)
         self.objective = objective(latent_dims, r=r)
@@ -143,3 +145,12 @@ class DCCA(DCCA_base, nn.Module):
                          enumerate(batch_covs)]
         else:
             self.covs = batch_covs
+
+    def post_transform(self, *z_list, train=False):
+        if train:
+            self.cca = MCCA(latent_dims=self.latent_dims)
+            self.cca.fit(*z_list)
+            z_list = self.cca.transform(*z_list)
+        else:
+            z_list = self.cca.transform(*z_list)
+        return z_list

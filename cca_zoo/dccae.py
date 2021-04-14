@@ -25,8 +25,8 @@ class DCCAE(DCCA_base):
 
     def __init__(self, latent_dims: int, objective=CCA, encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
                  decoders: Iterable[BaseDecoder] = (Decoder, Decoder), r: float = 1e-3, learning_rate=1e-3, lam=0.5,
-                 post_transform=True, schedulers: Iterable = None, optimizers: Iterable = None):
-        super().__init__(latent_dims, post_transform=post_transform)
+                 schedulers: Iterable = None, optimizers: Iterable = None):
+        super().__init__(latent_dims)
         self.encoders = nn.ModuleList(encoders)
         self.decoders = nn.ModuleList(decoders)
         self.lam = lam

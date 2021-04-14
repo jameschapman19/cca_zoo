@@ -8,7 +8,7 @@ import cca_zoo.deep_models
 import cca_zoo.deepwrapper
 import cca_zoo.dvcca
 import cca_zoo.splitae
-
+from cca_zoo.dtcca import DTCCA
 
 class TestDeepWrapper(TestCase):
 
@@ -66,6 +66,26 @@ class TestDeepWrapper(TestCase):
         dcca_noi_model = cca_zoo.deepwrapper.DeepWrapper(dcca_noi_model, device=device)
         dcca_noi_model.fit((self.X, self.Y), epochs=30)
 
+    def test_DTCCA_methods_cpu(self):
+        latent_dims = 2
+        device = 'cpu'
+        encoder_1 = cca_zoo.deep_models.Encoder(latent_dims=10, feature_size=10)
+        encoder_2 = cca_zoo.deep_models.Encoder(latent_dims=10, feature_size=10)
+        encoder_3 = cca_zoo.deep_models.Encoder(latent_dims=10, feature_size=10)
+        # DTCCA
+        dtcca_model = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
+        # hidden_layer_sizes are shown explicitly but these are also the defaults
+        dtcca_model = cca_zoo.deepwrapper.DeepWrapper(dtcca_model, device=device)
+        dtcca_model.fit((self.X, self.Y), epochs=20)
+        # DCCA
+        dcca_model = cca_zoo.dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2, encoder_3],
+                                       objective=cca_zoo.objectives.GCCA)
+        # hidden_layer_sizes are shown explicitly but these are also the defaults
+        dcca_model = cca_zoo.deepwrapper.DeepWrapper(dcca_model, device=device)
+        dcca_model.fit((self.X, self.Y, self.Z), epochs=20)
+        print('here')
+
+
     def test_schedulers(self):
         latent_dims = 2
         device = 'cpu'
@@ -87,6 +107,11 @@ class TestDeepWrapper(TestCase):
         encoder_1 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10)
         encoder_2 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10)
         encoder_3 = cca_zoo.deep_models.Encoder(latent_dims=latent_dims, feature_size=10)
+        # DTCCA
+        dtcca_model = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
+        # hidden_layer_sizes are shown explicitly but these are also the defaults
+        dtcca_model = cca_zoo.deepwrapper.DeepWrapper(dtcca_model, device=device)
+        dtcca_model.fit((self.X, self.Y, self.Z))
         # DGCCA
         dgcca_model = cca_zoo.dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2, encoder_3],
                                         objective=cca_zoo.objectives.GCCA)

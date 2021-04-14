@@ -5,9 +5,12 @@ from abc import abstractmethod
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
+import tensorly as tl
 from joblib import Parallel, delayed
 from scipy.linalg import block_diag, eigh
+from scipy.linalg import sqrtm
 from sklearn.base import BaseEstimator
+from tensorly.decomposition import parafac, CP, parafac2
 
 import cca_zoo.data
 import cca_zoo.innerloop
@@ -242,6 +245,8 @@ class MCCA(CCA_Base, BaseEstimator):
         self.eigvals = eigvals[idx].real
         self.weights_list = [eigvecs[split:splits[i + 1], :self.latent_dims] for i, split in enumerate(splits[:-1])]
         self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
+        self.weights_list = [weights/np.linalg.norm(score) for weights,score in zip(self.weights_list,self.score_list)]
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
         self.train_correlations = self.predict_corr(*views)
         return self
 
@@ -397,6 +402,10 @@ class rCCA(CCA_Base, BaseEstimator):
 
 class CCA(rCCA):
     def __init__(self, latent_dims: int = 1):
+        """
+        Implements CCA by inheriting regularised CCA with 0 regularisation
+        :param latent_dims:
+        """
         super().__init__(latent_dims=latent_dims, c=[0, 0])
 
 
@@ -433,7 +442,7 @@ class Iterative(CCA_Base):
 
         residuals = copy.deepcopy(list(views))
 
-        self.objective=[]
+        self.objective = []
         # For each of the dimensions
         for k in range(self.latent_dims):
             self.loop = self.loop.fit(*residuals)
@@ -565,6 +574,43 @@ class ElasticCCA(Iterative, BaseEstimator):
 
     def set_loop_params(self):
         self.loop = cca_zoo.innerloop.ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio)
+
+
+class TCCA(CCA_Base):
+    def __init__(self, latent_dims: int = 1, c=None):
+        super().__init__(latent_dims)
+        self.c = c
+
+    def fit(self, *views):
+        if self.c is None:
+            self.c = [0] * len(views)
+        assert (len(self.c) == len(views)), 'c requires as many values as #views'
+        z = self.demean_data(*views)
+        n = z[0].shape[0]
+        covs = [(1 - self.c[i]) * view.T @ view / (1-n) + self.c[i] * np.eye(view.shape[1]) for i, view in
+                enumerate(z)]
+        covs_invsqrt = [np.linalg.inv(sqrtm(cov)) for cov in covs]
+        z = [z_@cov_invsqrt for z_,cov_invsqrt in zip(z,covs_invsqrt)]
+        for i, el in enumerate(z):
+            if i == 0:
+                M = el
+            else:
+                for _ in range(len(M.shape) - 1):
+                    el = np.expand_dims(el, 1)
+                M = np.expand_dims(M, -1) @ el
+        M = np.mean(M, 0)
+        #for i, cov_invsqrt in enumerate(covs_invsqrt):
+        #    M = np.tensordot(M, cov_invsqrt, axes=[[0], [0]])
+        tl.set_backend('numpy')
+        M_parafac = parafac(M, self.latent_dims, verbose=True)
+        self.weights_list = [cov_invsqrt@fac for i, (view, cov_invsqrt, fac) in
+                             enumerate(zip(z, covs_invsqrt, M_parafac.factors))]
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(z)]
+        self.weights_list = [weights / np.linalg.norm(score) for weights, score in
+                             zip(self.weights_list, self.score_list)]
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(z)]
+        self.train_correlations = self.predict_corr(*views)
+        return self
 
 
 def slicedict(d, s):

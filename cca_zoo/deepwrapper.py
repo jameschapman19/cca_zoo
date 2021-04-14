@@ -31,7 +31,8 @@ class DeepWrapper(CCA_Base):
         if tensorboard:
             self.writer = SummaryWriter(tensorboard_tag)
 
-    def fit(self, train_dataset, val_dataset=None, train_labels=None,val_labels=None, val_split=0.2, batch_size=0, patience=0, epochs=1,
+    def fit(self, train_dataset, val_dataset=None, train_labels=None, val_labels=None, val_split=0.2, batch_size=0,
+            patience=0, epochs=1,
             train_correlations=True):
         """
         :param train_dataset: either tuple of 2d numpy arrays (one for each view) or torch dataset
@@ -178,13 +179,14 @@ class DeepWrapper(CCA_Base):
                     z_list = [np.append(z_list[i], z_i.detach().cpu().numpy(), axis=0) for
                               i, z_i in enumerate(z)]
         # For trace-norm objective models we need to apply a linear CCA to outputs
-        if self.model.post_transform:
-            if train:
-                self.cca = cca_zoo.wrappers.MCCA(latent_dims=self.latent_dims)
-                self.cca.fit(*z_list)
-                z_list = self.cca.transform(*z_list)
-            else:
-                z_list = self.cca.transform(*z_list)
+        z_list = self.model.post_transform(*z_list, train=train)
+        # if self.model.post_transform:
+        #   if train:
+        #        self.cca = cca_zoo.wrappers.MCCA(latent_dims=self.latent_dims)
+        #        self.cca.fit(*z_list)
+        #        z_list = self.cca.transform(*z_list)
+        #    else:
+        #        z_list = self.cca.transform(*z_list)
         return z_list
 
     def predict_view(self, test_dataset, labels=None):
