@@ -21,3 +21,10 @@ Look how easy it is to use:
 
    linear_cca_results = np.stack(
        (linear_cca.train_correlations[0, 1], linear_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
+
+Installation
+------------
+
+Install $cca-zoo by running:
+
+pip install cca-zoo

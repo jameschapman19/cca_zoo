@@ -3,10 +3,18 @@ Welcome to cca-zoo's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
-   getting started
-   tutorials
-   api
+   :caption: Documentation:
+   documentation/getting started
+   documentation/tutorials
+   documentation/api
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Developer Information
+
+   developer_info/contribute
+   developer_info/support
+   developer_info/license
 
 Features
 --------
@@ -102,33 +110,7 @@ DVCCA/DVCCA Private (Deep variational CCA):
 
 https://arxiv.org/pdf/1610.03454.pdf
 
-Installation
-------------
 
-Install $cca-zoo by running:
 
-pip install cca-zoo
 
-Contribute
-----------
 
-- Issue Tracker: github.com/jameschapman19/cca_zoo/issues
-- Source Code: github.com/jameschapman19/cca_zoo
-
-Support
--------
-
-If you are having issues, please let me know. This is my first python package so I am open to all and any feedback!
-james.chapman.19@ucl.ac.uk
-
-License
--------
-
-The project is licensed under the MIT license.
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
