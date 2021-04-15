@@ -4,6 +4,9 @@ Deep install
 cca\_zoo.dcca module
 --------------------
 
+.. autoclass:: cca_zoo.wrappers.CCA
+   :members:
+
 .. automodule:: cca_zoo.dcca
    :members:
    :undoc-members:
