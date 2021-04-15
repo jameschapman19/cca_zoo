@@ -3,9 +3,11 @@
 import copy
 import itertools
 from abc import abstractmethod
+from typing import Tuple
 
 import numpy as np
 import numpy.ma as ma
+import numpy.typing as npt
 import pandas as pd
 import tensorly as tl
 from joblib import Parallel, delayed
@@ -34,52 +36,29 @@ class _CCA_Base(BaseEstimator):
     @abstractmethod
     def __init__(self, latent_dims: int = 1):
         """
-        :param latent_dims: number of latent dimensions
+
+        :param latent_dims:
         """
         self.weights_list = None
         self.train_correlations = None
         self.latent_dims = latent_dims
 
     @abstractmethod
-    def fit(self, *views):
-        """
-        The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
-        Returns a fit model object which can be used to predict correlations or transform out of sample data.
-        :param views: 2D numpy arrays for each view separated by comma with the same number of rows (nxp)
-        :return: training data correlations and the parameters required to call other functions in the class.
-        """
+    def fit(self, *views: Tuple[npt.ArrayLike, ...]):
         pass
         return self
 
-    def transform(self, *views, **kwargs):
-        """
-        The transform method takes any number of views as a numpy array. Need to have the same number of features as
-        those in the views used to train the model.
-        Returns the views transformed into the learnt latent space.
-        :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
-         corresponding view in the training data
-        :return: tuple of transformed numpy arrays
-        """
+    def transform(self, *views: Tuple[npt.ArrayLike, ...], **kwargs):
         transformed_views = []
         for i, view in enumerate(views):
             transformed_view = np.ma.array((view - self.view_means[i]) @ self.weights_list[i])
             transformed_views.append(transformed_view)
         return transformed_views
 
-    def fit_transform(self, *views, **kwargs):
-        """
-        Apply fit and immediately transform the same data
-        :param views:
-        :return: tuple of transformed numpy arrays
-        """
+    def fit_transform(self, *views: Tuple[npt.ArrayLike, ...], **kwargs):
         return self.fit(*views).transform(*views, **kwargs)
 
-    def predict_corr(self, *views, **kwargs):
-        """
-        :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
-         corresponding view in the training data
-        :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
-        """
+    def predict_corr(self, *views: Tuple[npt.ArrayLike, ...], **kwargs):
         # Takes two views and predicts their out of sample correlation using trained model
         transformed_views = self.transform(*views, **kwargs)
         all_corrs = []
@@ -88,13 +67,7 @@ class _CCA_Base(BaseEstimator):
         all_corrs = np.array(all_corrs).reshape((len(views), len(views), self.latent_dims))
         return all_corrs
 
-    def demean_data(self, *views):
-        """
-        Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
-        demeaning transformation to out of sample data
-        :param views:
-        :return:
-        """
+    def demean_data(self, *views: Tuple[npt.ArrayLike, ...]):
         views_input = []
         self.view_means = []
         for view in views:
@@ -102,18 +75,10 @@ class _CCA_Base(BaseEstimator):
             views_input.append(view - view.mean(axis=0))
         return views_input
 
-    def gridsearch_fit(self, *views, K=None, param_candidates=None, folds: int = 5, verbose: bool = False,
+    def gridsearch_fit(self, *views: Tuple[npt.ArrayLike, ...], K=None, param_candidates=None, folds: int = 5,
+                       verbose: bool = False,
                        jobs: int = 0,
                        plot: bool = False):
-        """
-        Fits the model using a user defined grid search. Returns parameters/objects that allow out of sample transformation or prediction
-        Supports parallel model training with jobs>0
-        :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3)
-        :param param_candidates: dictionary containing a list for each parameter where all lists have the same length.
-        :param folds: number of folds used for cross validation
-        :param verbose: whether to return scores for each set of parameters
-        :return: fit model with best parameters
-        """""
         if verbose:
             print('cross validation', flush=True)
             print('number of folds: ', folds, flush=True)
@@ -157,7 +122,7 @@ class _CCA_Base(BaseEstimator):
         return self
 
     """
-    def bayes_fit(self, *views, space=None, folds: int = 5, verbose=True):
+    def bayes_fit(self, *views: Tuple[npt.ArrayLike, ...], space=None, folds: int = 5, verbose=True):
         :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3)
         :param space:
         :param folds: number of folds used for cross validation
@@ -207,7 +172,7 @@ class KCCA(_CCA_Base, BaseEstimator):
         self.sigma = sigma
         self.degree = degree
 
-    def fit(self, *views):
+    def fit(self, *views: Tuple[npt.ArrayLike, ...], ):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
@@ -224,7 +189,7 @@ class KCCA(_CCA_Base, BaseEstimator):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def transform(self, *views):
+    def transform(self, *views: Tuple[npt.ArrayLike, ...], ):
         transformed_views = []
         for i, view in enumerate(views):
             transformed_views.append(
@@ -251,7 +216,7 @@ class MCCA(_CCA_Base, BaseEstimator):
         super().__init__(latent_dims=latent_dims)
         self.c = c
 
-    def fit(self, *views):
+    def fit(self, *views: Tuple[npt.ArrayLike, ...], ):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
@@ -278,7 +243,8 @@ class MCCA(_CCA_Base, BaseEstimator):
         self.eigvals = eigvals[idx].real
         self.weights_list = [eigvecs[split:splits[i + 1], :self.latent_dims] for i, split in enumerate(splits[:-1])]
         self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
-        self.weights_list = [weights/np.linalg.norm(score) for weights,score in zip(self.weights_list,self.score_list)]
+        self.weights_list = [weights / np.linalg.norm(score) for weights, score in
+                             zip(self.weights_list, self.score_list)]
         self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
         self.train_correlations = self.predict_corr(*views)
         return self
@@ -305,7 +271,7 @@ class GCCA(_CCA_Base, BaseEstimator):
         self.c = c
         self.view_weights = view_weights
 
-    def fit(self, *views, K=None):
+    def fit(self, *views: Tuple[npt.ArrayLike, ...], K=None):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
@@ -340,7 +306,7 @@ class GCCA(_CCA_Base, BaseEstimator):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def demean_observed_data(self, *views, K):
+    def demean_observed_data(self, *views: Tuple[npt.ArrayLike, ...], K):
         """
         Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
         demeaning transformation to out of sample data
@@ -356,7 +322,7 @@ class GCCA(_CCA_Base, BaseEstimator):
             views_input.append(np.diag(observations) @ view)
         return views_input
 
-    def transform(self, *views, K=None):
+    def transform(self, *views: Tuple[npt.ArrayLike, ...], K=None):
         """
         The transform method takes any number of views as a numpy array. Need to have the same number of features as
         those in the views used to train the model.
@@ -374,7 +340,7 @@ class GCCA(_CCA_Base, BaseEstimator):
         return transformed_views
 
 
-def _pca_data(*views):
+def _pca_data(*views: Tuple[npt.ArrayLike, ...]):
     """
     Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
     demeaning transformation to out of sample data
@@ -407,7 +373,7 @@ class rCCA(_CCA_Base, BaseEstimator):
         super().__init__(latent_dims=latent_dims)
         self.c = c
 
-    def fit(self, *views):
+    def fit(self, *views: Tuple[npt.ArrayLike, ...], ):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
@@ -477,7 +443,7 @@ class _Iterative(_CCA_Base):
         super().__init__(latent_dims=latent_dims)
         self.max_iter = max_iter
 
-    def fit(self, *views):
+    def fit(self, *views: Tuple[npt.ArrayLike, ...], ):
         """
         Fits the model for a given set of parameters (or use default values). Returns parameters/objects that allow out of sample transformation or prediction
         :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3)
@@ -488,7 +454,7 @@ class _Iterative(_CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def outer_loop(self, *views):
+    def outer_loop(self, *views: Tuple[npt.ArrayLike, ...], ):
         """
         :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
@@ -721,20 +687,21 @@ class TCCA(_CCA_Base):
     >>> model = TCCA()
     >>> model.fit(X1,X2)
     """
+
     def __init__(self, latent_dims: int = 1, c=None):
         super().__init__(latent_dims)
         self.c = c
 
-    def fit(self, *views):
+    def fit(self, *views: Tuple[npt.ArrayLike, ...], ):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
         z = self.demean_data(*views)
         n = z[0].shape[0]
-        covs = [(1 - self.c[i]) * view.T @ view / (1-n) + self.c[i] * np.eye(view.shape[1]) for i, view in
+        covs = [(1 - self.c[i]) * view.T @ view / (1 - n) + self.c[i] * np.eye(view.shape[1]) for i, view in
                 enumerate(z)]
         covs_invsqrt = [np.linalg.inv(sqrtm(cov)) for cov in covs]
-        z = [z_@cov_invsqrt for z_,cov_invsqrt in zip(z,covs_invsqrt)]
+        z = [z_ @ cov_invsqrt for z_, cov_invsqrt in zip(z, covs_invsqrt)]
         for i, el in enumerate(z):
             if i == 0:
                 M = el
@@ -743,11 +710,11 @@ class TCCA(_CCA_Base):
                     el = np.expand_dims(el, 1)
                 M = np.expand_dims(M, -1) @ el
         M = np.mean(M, 0)
-        #for i, cov_invsqrt in enumerate(covs_invsqrt):
+        # for i, cov_invsqrt in enumerate(covs_invsqrt):
         #    M = np.tensordot(M, cov_invsqrt, axes=[[0], [0]])
         tl.set_backend('numpy')
         M_parafac = parafac(M, self.latent_dims, verbose=True)
-        self.weights_list = [cov_invsqrt@fac for i, (view, cov_invsqrt, fac) in
+        self.weights_list = [cov_invsqrt @ fac for i, (view, cov_invsqrt, fac) in
                              enumerate(zip(z, covs_invsqrt, M_parafac.factors))]
         self.score_list = [view @ self.weights_list[i] for i, view in enumerate(z)]
         self.weights_list = [weights / np.linalg.norm(score) for weights, score in
@@ -763,7 +730,7 @@ class _CrossValidate:
         self.verbose = verbose
         self.model = model
 
-    def score(self, *views, K=None, **cvparams):
+    def score(self, *views: Tuple[npt.ArrayLike, ...], K=None, **cvparams):
         scores = np.zeros(self.folds)
         inds = np.arange(views[0].shape[0])
         np.random.shuffle(inds)

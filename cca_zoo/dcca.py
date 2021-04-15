@@ -44,9 +44,9 @@ class DCCA(_DCCA_base, torch.nn.Module):
     """
 
     def __init__(self, latent_dims: int, objective=CCA,
-                 encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
+                 encoders: Iterable[BaseEncoder, ...] = (Encoder, Encoder),
                  learning_rate=1e-3, als=False, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-9,
-                 shared_target=False, schedulers: Iterable = None, optimizers: Iterable = None):
+                 shared_target: bool = False, schedulers: Iterable = None, optimizers: Iterable = None):
         """
         :param latent_dims: # latent dimensions
         :param objective: # CCA objective: normal tracenorm CCA by default

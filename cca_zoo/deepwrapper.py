@@ -13,7 +13,7 @@ from cca_zoo.wrappers import _CCA_Base
 
 class DeepWrapper(_CCA_Base):
 
-    def __init__(self, model: _DCCA_base, device: str = 'cuda', tensorboard=False, tensorboard_tag=''):
+    def __init__(self, model: _DCCA_base, device: str = 'cuda', tensorboard: bool = False, tensorboard_tag: str = ''):
         super().__init__(latent_dims=model.latent_dims)
         self.model = model
         self.device = device
@@ -24,9 +24,10 @@ class DeepWrapper(_CCA_Base):
         if tensorboard:
             self.writer = SummaryWriter(tensorboard_tag)
 
-    def fit(self, train_dataset, val_dataset=None, train_labels=None, val_labels=None, val_split=0.2, batch_size=0,
-            patience=0, epochs=1,
-            train_correlations=True):
+    def fit(self, train_dataset, val_dataset=None, train_labels=None, val_labels=None, val_split: float = 0.2,
+            batch_size: int = 0,
+            patience: int = 0, epochs: int = 1,
+            train_correlations: bool = True):
         """
         :param train_dataset: either tuple of 2d numpy arrays (one for each view) or torch dataset
         :param val_dataset: either tuple of 2d numpy arrays (one for each view) or torch dataset
@@ -139,7 +140,7 @@ class DeepWrapper(_CCA_Base):
             total_val_loss += loss.item()
         return total_val_loss / len(val_dataloader)
 
-    def predict_corr(self, test_dataset, train=False):
+    def predict_corr(self, test_dataset, train: bool = False):
         """
         :param views: EITHER numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
@@ -155,7 +156,7 @@ class DeepWrapper(_CCA_Base):
             (len(transformed_views), len(transformed_views), -1))
         return all_corrs
 
-    def transform(self, test_dataset, labels=None, train=False):
+    def transform(self, test_dataset, labels=None, train: bool = False):
         if type(test_dataset[0]) is np.ndarray:
             test_dataset = cca_zoo.data.CCA_Dataset(*test_dataset, labels=labels)
         if self.batch_size > 0:
