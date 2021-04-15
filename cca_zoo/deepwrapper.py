@@ -1,10 +1,3 @@
-"""
-This is a wrapper class for DCCA_base models.
-
-It inherits from the CCA_Base class which allows us to borrow some of the functionality. In particular,
-we could borrow the gridsearch_fit method to search the hyperparameter space.
-"""
-
 import copy
 import itertools
 

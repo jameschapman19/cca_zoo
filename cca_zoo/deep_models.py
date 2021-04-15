@@ -5,13 +5,6 @@ from typing import Iterable, Tuple
 import torch
 from torch.nn import functional as F
 
-'''
-I've included some standard models for the DCCA encoders and DCCAE decoders. 
-We have a FCN, CNN and GNN which we can compare.
-Particular thanks for the basic structure to:
-https://github.com/Michaelvll/DeepCCA/blob/master/DeepCCAModels.py
-'''
-
 
 class BaseEncoder(torch.nn.Module):
     @abstractmethod
