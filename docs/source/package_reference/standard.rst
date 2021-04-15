@@ -1,7 +1,7 @@
 ABC
 ===
 
-.. autoclass:: cca_zoo.wrappers.CCA
+.. autoclass:: cca_zoo.wrappers.CCA_Base
     :members:
     :undoc-members:
     :show-inheritance:
