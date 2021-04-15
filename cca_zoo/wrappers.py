@@ -626,15 +626,6 @@ class TCCA(CCA_Base):
         return self
 
 
-def slicedict(d, s):
-    """
-    :param d: dictionary containing e.g. c_1, c_2
-    :param s:
-    :return:
-    """
-    return {k: v for k, v in d.items() if k.startswith(s)}
-
-
 class CrossValidate:
     def __init__(self, model, folds: int = 5, verbose: bool = True):
         self.folds = folds

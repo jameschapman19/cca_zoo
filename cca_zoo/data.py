@@ -10,18 +10,6 @@ from scipy import linalg
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 
-
-def OH_digits(digits):
-    b = np.zeros((digits.size, digits.max() + 1))
-    b[np.arange(digits.size), digits] = 1
-    return b
-
-
-def add_mnist_noise(x):
-    x = x + torch.rand(28, 28)
-    return x
-
-
 class CCA_Dataset(Dataset):
     def __init__(self, *args, labels=None, train=True):
         self.train = train
@@ -54,10 +42,10 @@ class Noisy_MNIST_Dataset(Dataset):
         self.a_transform = transforms.Compose([transforms.ToTensor(),  # first, convert image to PyTorch tensor
                                                transforms.ToPILImage()])
         self.b_transform = transforms.Compose(
-            [transforms.ToTensor(), transforms.Lambda(add_mnist_noise),
+            [transforms.ToTensor(), transforms.Lambda(_add_mnist_noise),
              transforms.Lambda(self.__threshold_func__)])
         self.targets = self.dataset.targets
-        self.OHs = OH_digits(self.targets.numpy().astype(int))
+        self.OHs = _OH_digits(self.targets.numpy().astype(int))
         self.filtered_classes = []
         self.filtered_nums = []
         for i in range(10):
@@ -104,7 +92,7 @@ class Noisy_MNIST_Dataset(Dataset):
             view_2[i] = sample[0][1].numpy().reshape((-1, 28 * 28))
             rotations[i] = sample[0][2].numpy()
             labels[i] = sample[1].numpy().astype(int)
-        OH_labels = OH_digits(labels.astype(int))
+        OH_labels = _OH_digits(labels.astype(int))
         return view_1, view_2, rotations, OH_labels, labels
 
 
@@ -123,7 +111,7 @@ class Tangled_MNIST_Dataset(Dataset):
         self.std = torch.std(self.data.float())
         self.transform = transforms.Compose([transforms.ToTensor()])
         self.targets = self.dataset.targets
-        self.OHs = OH_digits(self.targets.numpy().astype(int))
+        self.OHs = _OH_digits(self.targets.numpy().astype(int))
         self.fixed = fixed
         self.filtered_classes = []
         self.filtered_nums = []
@@ -174,14 +162,15 @@ class Tangled_MNIST_Dataset(Dataset):
             rotation_1[i] = sample[0][2].numpy()
             rotation_2[i] = sample[0][3].numpy()
             labels[i] = sample[1].numpy().astype(int)
-        OH_labels = OH_digits(labels.astype(int))
+        OH_labels = _OH_digits(labels.astype(int))
         return view_1, view_2, rotation_1, rotation_2, OH_labels, labels
 
 
-def chol_sample(mean, chol):
+def _chol_sample(mean, chol):
     return mean + chol @ np.random.standard_normal(mean.size)
 
-def gaussian(x, mu, sig, dn):
+
+def _gaussian(x, mu, sig, dn):
     return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.))) * dn / (np.sqrt(2 * np.pi) * sig)
 
 
@@ -221,13 +210,13 @@ def generate_covariance_data(m: int, k: int, N: int, M: int, sparse_variables_1:
         x_tile = np.tile(x, (N, 1))
         mu_tile = np.transpose(x_tile)
         dn = 2 / (N - 1)
-        cov_1 = gaussian(x_tile, mu_tile, sigma, dn)
+        cov_1 = _gaussian(x_tile, mu_tile, sigma, dn)
         cov_1 /= cov_1.max()
         x = np.linspace(-1, 1, M)
         x_tile = np.tile(x, (M, 1))
         mu_tile = np.transpose(x_tile)
         dn = 2 / (M - 1)
-        cov_2 = gaussian(x_tile, mu_tile, sigma, dn)
+        cov_2 = _gaussian(x_tile, mu_tile, sigma, dn)
         cov_2 /= cov_2.max()
     elif structure == 'toeplitz':
         c = np.arange(0, N)
@@ -265,7 +254,7 @@ def generate_covariance_data(m: int, k: int, N: int, M: int, sparse_variables_1:
             # up[(first + sparse_variables_1):, _] = 0
             up[np.random.choice(np.arange(N), N - sparse_variables_1, replace=False)] = 0
 
-    up = decorrelate_dims(up, cov[:N, :N])
+    up = _decorrelate_dims(up, cov[:N, :N])
     up /= np.sqrt(np.diag((up.T @ cov[:N, :N] @ up)))
 
     if equal_weight:
@@ -281,7 +270,7 @@ def generate_covariance_data(m: int, k: int, N: int, M: int, sparse_variables_1:
             # vp[(first + sparse_variables_2):, _] = 0
             vp[~np.random.choice(np.arange(M), M - sparse_variables_2, replace=False)] = 0
 
-    vp = decorrelate_dims(vp, cov[N:, N:])
+    vp = _decorrelate_dims(vp, cov[N:, N:])
     vp /= np.sqrt(np.diag((vp.T @ cov[N:, N:] @ vp)))
 
     cross = np.zeros((N, M))
@@ -296,7 +285,7 @@ def generate_covariance_data(m: int, k: int, N: int, M: int, sparse_variables_1:
     X = np.zeros((m, N + M))
     chol = np.linalg.cholesky(cov)
     for _ in range(m):
-        X[_, :] = chol_sample(mean, chol)
+        X[_, :] = _chol_sample(mean, chol)
     Y = X[:, N:]
     X = X[:, :N]
     return X, Y, up, vp
@@ -338,7 +327,18 @@ def generate_simple_data(m: int, N: int, M: int, sparse_variables_1: float = 0,
     return X, Y, up, vp
 
 
-def decorrelate_dims(up, cov):
+def _OH_digits(digits):
+    b = np.zeros((digits.size, digits.max() + 1))
+    b[np.arange(digits.size), digits] = 1
+    return b
+
+
+def _add_mnist_noise(x):
+    x = x + torch.rand(28, 28)
+    return x
+
+
+def _decorrelate_dims(up, cov):
     A = up.T @ cov @ up
     for k in range(1, A.shape[0]):
         up[:, k:] -= np.outer(up[:, k - 1], A[k - 1, k:] / A[k - 1, k - 1])

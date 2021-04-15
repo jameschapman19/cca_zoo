@@ -54,7 +54,7 @@ class InnerLoop:
             # Sum all pairwise correlations
             self.track_correlation.append(np.corrcoef(self.scores)[np.triu_indices(self.scores.shape[0], 1)].sum())
             # Some kind of early stopping
-            if _ > 0 and all(cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol) for n, view in
+            if _ > 0 and all(_cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol) for n, view in
                              enumerate(self.scores)):
                 break
             self.old_scores = self.scores.copy()
@@ -138,11 +138,11 @@ class PMDInnerLoop(InnerLoop):
         i = 0
         while not converged:
             i += 1
-            coef = soft_threshold(w, current)
+            coef = _soft_threshold(w, current)
             if np.linalg.norm(coef) > 0:
                 coef /= np.linalg.norm(coef)
             current_val = c - np.linalg.norm(coef, 1)
-            current, previous, min_, max_ = bin_search(current, previous, current_val, previous_val, min_, max_)
+            current, previous, min_, max_ = _bin_search(current, previous, current_val, previous_val, min_, max_)
             previous_val = current_val
             if np.abs(current_val) < 1e-5 or np.abs(max_ - min_) < 1e-30 or i == 50:
                 converged = True
@@ -171,7 +171,7 @@ class ParkhomenkoInnerLoop(InnerLoop):
         w = self.views[view_index].T @ targets.sum(axis=0).filled()
         assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
         w /= np.linalg.norm(w)
-        w = soft_threshold(w, self.c[view_index] / 2)
+        w = _soft_threshold(w, self.c[view_index] / 2)
         assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
         self.weights[view_index] = w / np.linalg.norm(w)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
@@ -252,7 +252,7 @@ class ElasticInnerLoop(InnerLoop):
             coef = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(np.sqrt(current + 1) * X,
                                                                                        y / np.sqrt(current + 1)).coef_
             current_val = 1 - np.linalg.norm(X @ coef)
-            current, previous, min_, max_ = bin_search(current, previous, current_val, previous_val, min_, max_)
+            current, previous, min_, max_ = _bin_search(current, previous, current_val, previous_val, min_, max_)
             previous_val = current_val
             if np.abs(current_val) < 1e-5:
                 converged = True
@@ -450,7 +450,7 @@ def elastic_cca_objective(loop: InnerLoop):
     return total_objective
 
 
-def bin_search(current, previous, current_val, previous_val, min_, max_):
+def _bin_search(current, previous, current_val, previous_val, min_, max_):
     """Binary search helper function:
     current:current parameter value
     previous:previous parameter value
@@ -479,11 +479,10 @@ def bin_search(current, previous, current_val, previous_val, min_, max_):
     return new, current, min_, max_
 
 
-def soft_threshold(x, threshold):
+def _soft_threshold(x, threshold):
     """
     if absolute value of x less than threshold replace with zero
     :param x: input
-    :param delta: threshold
     :return: x soft-thresholded by threshold
     """
     diff = abs(x) - threshold
@@ -492,7 +491,7 @@ def soft_threshold(x, threshold):
     return out
 
 
-def cosine_similarity(a, b):
+def _cosine_similarity(a, b):
     """
     Calculates the cosine similarity between vectors
     :param a: 1d numpy array
