@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Tuple, Iterable
 
 import torch
 from torch.nn import functional as F
@@ -16,8 +16,8 @@ class DCCAE(_DCCA_base):
     >>> model = DCCAE()
     """
 
-    def __init__(self, latent_dims: int, objective=CCA, encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
-                 decoders: Iterable[BaseDecoder] = (Decoder, Decoder), r: float = 1e-3, learning_rate=1e-3, lam=0.5,
+    def __init__(self, latent_dims: int, objective=CCA, encoders: Tuple[BaseEncoder, ...] = (Encoder, Encoder),
+                 decoders: Tuple[BaseDecoder, ...] = (Decoder, Decoder), r: float = 1e-3, learning_rate=1e-3, lam=0.5,
                  schedulers: Iterable = None, optimizers: Iterable = None):
         super().__init__(latent_dims)
         self.encoders = torch.nn.ModuleList(encoders)

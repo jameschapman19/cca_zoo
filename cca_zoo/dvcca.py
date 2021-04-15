@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Tuple
 
 import torch
 import torch.distributions as dist
@@ -15,9 +15,9 @@ class DVCCA(_DCCA_base):
     # https: // github.com / pytorch / examples / blob / master / vae / main.py
     """
 
-    def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
-                 decoders: Iterable[BaseDecoder] = (Decoder, Decoder),
-                 private_encoders: Iterable[BaseEncoder] = (Encoder, Encoder), learning_rate=1e-3, private=False,
+    def __init__(self, latent_dims: int, encoders: Tuple[BaseEncoder, ...] = (Encoder, Encoder),
+                 decoders: Tuple[BaseDecoder, ...] = (Decoder, Decoder),
+                 private_encoders: Tuple[BaseEncoder, ...] = (Encoder, Encoder), learning_rate=1e-3, private=False,
                  mu=0.5, encoder_optimizers=None, decoder_optimizers=None,
                  private_encoder_optimizers=None,
                  encoder_schedulers=None, decoder_schedulers=None, private_encoder_schedulers=None):

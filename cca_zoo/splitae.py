@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -16,7 +16,7 @@ class SplitAE(_DCCA_base):
     """
 
     def __init__(self, latent_dims: int, encoder: BaseEncoder = Encoder,
-                 decoders: Iterable[BaseDecoder] = (Decoder, Decoder), learning_rate=1e-3, lam=0.5,
+                 decoders: Tuple[BaseDecoder, ...] = (Decoder, Decoder), learning_rate=1e-3, lam=0.5,
                  schedulers: Iterable = None, optimizers: Iterable = None):
         super().__init__(latent_dims)
         self.encoder = encoder
