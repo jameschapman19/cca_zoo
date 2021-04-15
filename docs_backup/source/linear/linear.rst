@@ -17,14 +17,7 @@ Within cca-zoo, linear and kernel methods inherit a common base structure. This 
 API that is somewhat similar to the cross_decomposition module in scikit-learn with familiar methods fit(), transform()
 and fit_transform().
 
-
-Base
-----
-The base class defines the shared structure of each of the models implemented in wrappers.py.
-
-The idea is that new methods which inherit the base class can benefit from general functions such as demean_data and gridsearch_fit provided that
-
-.. autoclass:: cca_zoo.wrappers.CCA_Base
+.. automodule:: cca_zoo.wrappers
     :members:
     :undoc-members:
     :show-inheritance:

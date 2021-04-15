@@ -1,5 +1,5 @@
 .. cca-zoo documentation master file, created by
-sphinx-quickstart on Thu Apr 15 09:57:32 2021.
+sphinx-quickstart on Wed Dec  2 17:53:47 2020.
 You can adapt this file completely to your liking, but it should at least
 contain the root `toctree` directive.
 
@@ -9,9 +9,9 @@ Welcome to cca-zoo's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-   getting started
-   tutorials
-   api
+
+   linear/linear
+   deep/deep
 
 cca-zoo
 ========
@@ -155,10 +155,3 @@ License
 -------
 
 The project is licensed under the MIT license.
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
