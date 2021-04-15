@@ -1,12 +1,18 @@
 Welcome to cca-zoo's documentation!
 ===================================
 
+
+Documentation
+=============
+
 .. toctree::
    :maxdepth: 2
    :caption: Documentation:
-   documentation/getting started
+   
+   documentation/getting_started
    documentation/tutorials
    documentation/api
+
 
 .. toctree::
    :maxdepth: 1
@@ -15,7 +21,7 @@ Welcome to cca-zoo's documentation!
    developer_info/contribute
    developer_info/support
    developer_info/license
-
+   
 Features
 --------
 
@@ -26,7 +32,6 @@ A variety of linear CCA and PLS methods implemented using alternating minimizati
 based on the power method or alternating least squares.
 
 GCCA (Generalized MAXVAR CCA):
-~~~~~~~~~~~~~~~~~~~~~~~
 
 The generalized eigenvalue problem form of generalized MAXVAR CCA. Maximises the squared correlation between each view projection and
 a shared auxiliary vector of unit length.

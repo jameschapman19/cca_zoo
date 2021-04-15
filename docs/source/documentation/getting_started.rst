@@ -1,5 +1,5 @@
-cca-zoo
-========
+Getting Started
+---------------
 
 cca-zoo is a collection of linear, kernel, and deep methods for canonical correlation analysis of multiview data.
 
@@ -23,8 +23,10 @@ Look how easy it is to use:
        (linear_cca.train_correlations[0, 1], linear_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 Installation
-------------
+~~~~~~~~~~~~
 
-Install $cca-zoo by running:
+for everything except the deep learning based models use: pip install cca-zoo
 
-pip install cca-zoo
+For deep learning elements use: pip install cca-zoo[deep]
+
+This means that there is no need to install the large pytorch package to run cca-zoo unless you wish to use deep learning
