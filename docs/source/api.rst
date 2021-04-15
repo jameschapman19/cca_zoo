@@ -1,2 +1,7 @@
-.. automodule:: cca_zoo.cca_zoo
-   :members:
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+   standard
+   deep
+
+
