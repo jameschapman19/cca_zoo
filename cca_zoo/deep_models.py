@@ -310,10 +310,10 @@ class LinearEncoder(BaseEncoder):
         self.variational = variational
 
         if self.variational:
-            self.fc_mu = nn.Linear(feature_size, latent_dims)
-            self.fc_var = nn.Linear(feature_size, latent_dims)
+            self.fc_mu = torch.nn.Linear(feature_size, latent_dims)
+            self.fc_var = torch.nn.Linear(feature_size, latent_dims)
         else:
-            self.fc = nn.Linear(feature_size, latent_dims)
+            self.fc = torch.nn.Linear(feature_size, latent_dims)
 
     def forward(self, x):
         if self.variational:
@@ -328,7 +328,7 @@ class LinearEncoder(BaseEncoder):
 class LinearDecoder(BaseDecoder):
     def __init__(self, latent_dims: int, feature_size: int):
         super(LinearDecoder, self).__init__(latent_dims)
-        self.linear = nn.Linear(latent_dims, feature_size)
+        self.linear = torch.nn.Linear(latent_dims, feature_size)
 
     def forward(self, x):
         out = self.linear(x)
