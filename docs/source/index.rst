@@ -6,16 +6,23 @@ Documentation
 =============
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
    :caption: Documentation:
    
    documentation/getting_started
    documentation/tutorials
    documentation/api
 
+.. toctree::
+   :maxdepth: 4
+   :caption: Reference:
+
+   documentation/getting_started
+   documentation/tutorials
+   documentation/api
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 4
    :caption: Developer Information
 
    developer_info/contribute

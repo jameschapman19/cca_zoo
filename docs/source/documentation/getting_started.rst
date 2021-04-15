@@ -1,5 +1,5 @@
 Getting Started
----------------
+===============
 
 cca-zoo is a collection of linear, kernel, and deep methods for canonical correlation analysis of multiview data.
 
@@ -23,7 +23,7 @@ Look how easy it is to use:
        (linear_cca.train_correlations[0, 1], linear_cca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
 Installation
-~~~~~~~~~~~~
+------------
 
 for everything except the deep learning based models use: pip install cca-zoo
 
