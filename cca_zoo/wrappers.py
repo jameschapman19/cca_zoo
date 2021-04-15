@@ -1,3 +1,5 @@
+"""CCA Models"""
+
 import copy
 import itertools
 from abc import abstractmethod
@@ -10,7 +12,7 @@ from joblib import Parallel, delayed
 from scipy.linalg import block_diag, eigh
 from scipy.linalg import sqrtm
 from sklearn.base import BaseEstimator
-from tensorly.decomposition import parafac, CP, parafac2
+from tensorly.decomposition import parafac
 
 import cca_zoo.data
 import cca_zoo.innerloop
@@ -21,6 +23,14 @@ import cca_zoo.plot_utils
 # from hyperopt import fmin, tpe, Trials
 
 class CCA_Base(BaseEstimator):
+    """
+    This is the base class for the models in the cca-zoo package. Inheriting
+    the class gives and
+
+    Parameters:
+    :cvar latent_dims: number of latent dimensions
+    """
+
     @abstractmethod
     def __init__(self, latent_dims: int = 1):
         """
