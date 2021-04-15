@@ -19,9 +19,9 @@ from cca_zoo.objectives import compute_matrix_power, CCA
 from cca_zoo.wrappers import MCCA
 
 
-class DCCA_base(torch.nn.Module):
+class _DCCA_base(torch.nn.Module):
     def __init__(self, latent_dims: int):
-        super(DCCA_base, self).__init__()
+        super(_DCCA_base, self).__init__()
         self.latent_dims = latent_dims
         self.schedulers = [None]
 
@@ -46,7 +46,14 @@ class DCCA_base(torch.nn.Module):
         return z_list
 
 
-class DCCA(DCCA_base, torch.nn.Module):
+class DCCA(_DCCA_base, torch.nn.Module):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.dcca import DCCA
+    >>> model = DCCA()
+    """
+
     def __init__(self, latent_dims: int, objective=CCA,
                  encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
                  learning_rate=1e-3, als=False, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-9,
@@ -60,7 +67,6 @@ class DCCA(DCCA_base, torch.nn.Module):
         :param r: regularisation parameter of tracenorm CCA like ridge CCA
         :param rho: covariance memory like DCCA non-linear orthogonal iterations paper
         :param eps: epsilon used throughout
-        :param post_transform: whether to learn a linear transformation after training
         :param shared_target: not used
         :param schedulers: list of schedulers for each optimizer
         :param optimizers: list of optimizers for each encoder

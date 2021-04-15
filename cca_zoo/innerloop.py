@@ -10,7 +10,7 @@ from sklearn.linear_model import Ridge
 from sklearn.utils._testing import ignore_warnings
 
 
-class InnerLoop:
+class _InnerLoop:
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized'):
         """
@@ -42,7 +42,7 @@ class InnerLoop:
             self.weights = [weights / np.linalg.norm(view @ weights) for (weights, view) in
                             zip(self.weights, self.views)]
         elif self.initialization == 'unregularized':
-            unregularized = InnerLoop(initialization='random').fit(*self.views)
+            unregularized = _InnerLoop(initialization='random').fit(*self.views)
             self.scores = unregularized.scores
             # Weight vectors for y (normalized to 1)
             self.weights = unregularized.weights
@@ -86,14 +86,14 @@ class InnerLoop:
         return obj
 
 
-class PLSInnerLoop(InnerLoop):
+class PLSInnerLoop(_InnerLoop):
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized'):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
 
 
-class PMDInnerLoop(InnerLoop):
+class PMDInnerLoop(_InnerLoop):
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', c=None):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
@@ -149,8 +149,8 @@ class PMDInnerLoop(InnerLoop):
         return coef, current
 
 
-class ParkhomenkoInnerLoop(InnerLoop):
-    def __init__(self, *views, max_iter: int = 100, tol=1e-5, generalized: bool = False,
+class ParkhomenkoInnerLoop(_InnerLoop):
+    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', c=None):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
@@ -177,7 +177,7 @@ class ParkhomenkoInnerLoop(InnerLoop):
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
 
-class ElasticInnerLoop(InnerLoop):
+class ElasticInnerLoop(_InnerLoop):
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', c=None, l1_ratio=None, constrained=False):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
@@ -297,7 +297,7 @@ class CCAInnerLoop(ElasticInnerLoop):
         return elastic_cca_objective(self)
 
 
-class SCCAInnerLoop(InnerLoop):
+class SCCAInnerLoop(_InnerLoop):
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', c=None):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
@@ -342,7 +342,7 @@ class SCCAInnerLoop(InnerLoop):
         return beta
 
 
-class ADMMInnerLoop(InnerLoop):
+class ADMMInnerLoop(_InnerLoop):
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', mu=None, lam=None, c=None, eta=None):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
@@ -428,7 +428,7 @@ class ADMMInnerLoop(InnerLoop):
             return x / max(1, norm)
 
 
-def elastic_cca_objective(loop: InnerLoop):
+def elastic_cca_objective(loop: _InnerLoop):
     """
     General objective function for sparse CCA |X_1w_1-X_2w_2|_2^2 + c_1|w_1|_1 + c_2|w_2|_1
     :param loop: an inner loop

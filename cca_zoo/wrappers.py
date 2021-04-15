@@ -22,7 +22,7 @@ import cca_zoo.plot_utils
 
 # from hyperopt import fmin, tpe, Trials
 
-class CCA_Base(BaseEstimator):
+class _CCA_Base(BaseEstimator):
     """
     This is the base class for the models in the cca-zoo package. Inheriting
     the class gives and
@@ -131,7 +131,7 @@ class CCA_Base(BaseEstimator):
                 param_dict[param_name] = param_set[i]
             param_sets.append(param_dict)
 
-        cv = CrossValidate(self, folds=folds, verbose=verbose)
+        cv = _CrossValidate(self, folds=folds, verbose=verbose)
 
         if jobs > 0:
             out = Parallel(n_jobs=jobs)(delayed(cv.score)(*views, **param_set, K=K) for param_set in param_sets)
@@ -180,13 +180,26 @@ class CCA_Base(BaseEstimator):
     """
 
 
-class KCCA(CCA_Base, BaseEstimator):
+class KCCA(_CCA_Base, BaseEstimator):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.wrappers import KCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = KCCA()
+    >>> model.fit(X1,X2)
+    """
+
     def __init__(self, latent_dims: int = 1, kernel: str = 'linear', sigma: float = 1.0, degree: int = 1, c=None):
         """
         :param kernel: the kernel type 'linear', 'rbf', 'poly'
         :param sigma: sigma parameter used by sklearn rbf kernel
         :param degree: polynomial order parameter used by sklearn polynomial kernel
         :param c: regularisation between 0 (CCA) and 1 (PLS)
+
+
+
         """
         super().__init__(latent_dims=latent_dims)
         self.c = c
@@ -219,7 +232,17 @@ class KCCA(CCA_Base, BaseEstimator):
         return transformed_views
 
 
-class MCCA(CCA_Base, BaseEstimator):
+class MCCA(_CCA_Base, BaseEstimator):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.wrappers import MCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = MCCA()
+    >>> model.fit(X1,X2)
+    """
+
     def __init__(self, latent_dims: int = 1, c=None):
         """
         :param latent_dims: number of latent dimensions
@@ -261,7 +284,17 @@ class MCCA(CCA_Base, BaseEstimator):
         return self
 
 
-class GCCA(CCA_Base, BaseEstimator):
+class GCCA(_CCA_Base, BaseEstimator):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.wrappers import GCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = GCCA()
+    >>> model.fit(X1,X2)
+    """
+
     def __init__(self, latent_dims: int = 1, c=None, view_weights=None):
         """
         :param latent_dims: number of latent dimensions
@@ -341,7 +374,7 @@ class GCCA(CCA_Base, BaseEstimator):
         return transformed_views
 
 
-def pca_data(*views):
+def _pca_data(*views):
     """
     Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
     demeaning transformation to out of sample data
@@ -359,7 +392,17 @@ def pca_data(*views):
     return views_U, views_S, views_Vt
 
 
-class rCCA(CCA_Base, BaseEstimator):
+class rCCA(_CCA_Base, BaseEstimator):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.wrappers import rCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = rCCA()
+    >>> model.fit(X1,X2)
+    """
+
     def __init__(self, latent_dims: int = 1, c=None):
         super().__init__(latent_dims=latent_dims)
         self.c = c
@@ -369,7 +412,7 @@ class rCCA(CCA_Base, BaseEstimator):
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
         views_input = self.demean_data(*views)
-        U_list, S_list, Vt_list = pca_data(*views_input)
+        U_list, S_list, Vt_list = _pca_data(*views_input)
         if len(views) == 2:
             self.two_view_fit(U_list, S_list, Vt_list)
         else:
@@ -411,6 +454,16 @@ class rCCA(CCA_Base, BaseEstimator):
 
 
 class CCA(rCCA):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.wrappers import CCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = CCA()
+    >>> model.fit(X1,X2)
+    """
+
     def __init__(self, latent_dims: int = 1):
         """
         Implements CCA by inheriting regularised CCA with 0 regularisation
@@ -419,7 +472,7 @@ class CCA(rCCA):
         super().__init__(latent_dims=latent_dims, c=[0, 0])
 
 
-class Iterative(CCA_Base):
+class _Iterative(_CCA_Base):
     def __init__(self, latent_dims: int = 1, deflation='cca', max_iter=50):
         super().__init__(latent_dims=latent_dims)
         self.max_iter = max_iter
@@ -475,7 +528,17 @@ class Iterative(CCA_Base):
         self.loop = cca_zoo.innerloop.PLSInnerLoop(max_iter=self.max_iter)
 
 
-class PLS(Iterative):
+class PLS(_Iterative):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.wrappers import PLS
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = PLS()
+    >>> model.fit(X1,X2)
+    """
+
     def __init__(self, latent_dims: int = 1, max_iter=100):
         """
         Fits a partial least squares model with CCA deflation by NIPALS algorithm
@@ -489,7 +552,17 @@ class PLS(Iterative):
         self.loop = cca_zoo.innerloop.PLSInnerLoop(max_iter=self.max_iter)
 
 
-class CCA_ALS(Iterative):
+class CCA_ALS(_Iterative):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.wrappers import CCA_ALS
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = CCA_ALS()
+    >>> model.fit(X1,X2)
+    """
+
     def __init__(self, latent_dims: int = 1, max_iter=100):
         """
         Fits a CCA model with CCA deflation by NIPALS algorithm
@@ -503,7 +576,17 @@ class CCA_ALS(Iterative):
         self.loop = cca_zoo.innerloop.CCAInnerLoop(max_iter=self.max_iter)
 
 
-class PMD(Iterative, BaseEstimator):
+class PMD(_Iterative, BaseEstimator):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.wrappers import PMD
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = PMD()
+    >>> model.fit(X1,X2)
+    """
+
     def __init__(self, latent_dims: int = 1, max_iter=100, c=None):
         """
         Fits a sparse CCA model by penalized matrix decomposition
@@ -518,7 +601,17 @@ class PMD(Iterative, BaseEstimator):
         self.loop = cca_zoo.innerloop.PMDInnerLoop(max_iter=self.max_iter, c=self.c)
 
 
-class ParkhomenkoCCA(Iterative, BaseEstimator):
+class ParkhomenkoCCA(_Iterative, BaseEstimator):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.wrappers import ParkhomenkoCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = ParkhomenkoCCA()
+    >>> model.fit(X1,X2)
+    """
+
     def __init__(self, latent_dims: int = 1, max_iter=100, c=None):
         """
         Fits a sparse CCA model by penalization
@@ -533,7 +626,17 @@ class ParkhomenkoCCA(Iterative, BaseEstimator):
         self.loop = cca_zoo.innerloop.ParkhomenkoInnerLoop(max_iter=self.max_iter, c=self.c)
 
 
-class SCCA(Iterative, BaseEstimator):
+class SCCA(_Iterative, BaseEstimator):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.wrappers import SCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = SCCA()
+    >>> model.fit(X1,X2)
+    """
+
     def __init__(self, latent_dims: int = 1, max_iter=100, c=None):
         """
         Fits a sparse CCA model by iterative rescaled lasso regression
@@ -548,7 +651,17 @@ class SCCA(Iterative, BaseEstimator):
         self.loop = cca_zoo.innerloop.SCCAInnerLoop(max_iter=self.max_iter, c=self.c)
 
 
-class SCCA_ADMM(Iterative, BaseEstimator):
+class SCCA_ADMM(_Iterative, BaseEstimator):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.wrappers import SCCA_ADMM
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = SCCA_ADMM()
+    >>> model.fit(X1,X2)
+    """
+
     def __init__(self, latent_dims: int = 1, max_iter=100, c=None, mu=None, lam=None, eta=None):
         """
         Fits a sparse CCA model by alternating ADMM
@@ -570,7 +683,17 @@ class SCCA_ADMM(Iterative, BaseEstimator):
                                                     eta=self.eta)
 
 
-class ElasticCCA(Iterative, BaseEstimator):
+class ElasticCCA(_Iterative, BaseEstimator):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.wrappers import ElasticCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = ElasticCCA()
+    >>> model.fit(X1,X2)
+    """
+
     def __init__(self, latent_dims: int = 1, max_iter=100, c=None, l1_ratio=None):
         """
         Fits an elastic CCA by iterative rescaled elastic net regression
@@ -586,9 +709,17 @@ class ElasticCCA(Iterative, BaseEstimator):
         self.loop = cca_zoo.innerloop.ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio)
 
 
-class TCCA(CCA_Base):
+class TCCA(_CCA_Base):
     """
     My own port from https://github.com/rciszek/mdr_tcca
+
+    Examples
+    --------
+    >>> from cca_zoo.wrappers import TCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = TCCA()
+    >>> model.fit(X1,X2)
     """
     def __init__(self, latent_dims: int = 1, c=None):
         super().__init__(latent_dims)
@@ -626,7 +757,7 @@ class TCCA(CCA_Base):
         return self
 
 
-class CrossValidate:
+class _CrossValidate:
     def __init__(self, model, folds: int = 5, verbose: bool = True):
         self.folds = folds
         self.verbose = verbose

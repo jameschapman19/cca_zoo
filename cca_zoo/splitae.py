@@ -14,14 +14,21 @@ from typing import Iterable
 import torch
 import torch.nn.functional as F
 
-from cca_zoo.dcca import DCCA_base
+from cca_zoo.dcca import _DCCA_base
 from cca_zoo.deep_models import BaseEncoder, Encoder, BaseDecoder, Decoder
 
 
-class SplitAE(DCCA_base):
+class SplitAE(_DCCA_base):
+    """
+    Examples
+    --------
+    >>> from cca_zoo.splitae import SplitAE
+    >>> model = SplitAE()
+    """
+
     def __init__(self, latent_dims: int, encoder: BaseEncoder = Encoder,
                  decoders: Iterable[BaseDecoder] = (Decoder, Decoder), learning_rate=1e-3, lam=0.5,
-                 post_transform=True, schedulers: Iterable = None, optimizers: Iterable = None):
+                 schedulers: Iterable = None, optimizers: Iterable = None):
         super().__init__(latent_dims)
         self.encoder = encoder
         self.decoders = torch.nn.ModuleList(decoders)

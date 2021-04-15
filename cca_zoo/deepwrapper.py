@@ -10,17 +10,17 @@ import itertools
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 import cca_zoo.plot_utils
-from cca_zoo.dcca import DCCA_base
-from cca_zoo.wrappers import CCA_Base
+from cca_zoo.dcca import _DCCA_base
+from cca_zoo.wrappers import _CCA_Base
 
 
-class DeepWrapper(CCA_Base):
+class DeepWrapper(_CCA_Base):
 
-    def __init__(self, model: DCCA_base, device: str = 'cuda', tensorboard=False, tensorboard_tag=''):
+    def __init__(self, model: _DCCA_base, device: str = 'cuda', tensorboard=False, tensorboard_tag=''):
         super().__init__(latent_dims=model.latent_dims)
         self.model = model
         self.device = device

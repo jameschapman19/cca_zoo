@@ -15,11 +15,11 @@ import torch
 import torch.distributions as dist
 from torch.nn import functional as F
 
-from cca_zoo.dcca import DCCA_base
+from cca_zoo.dcca import _DCCA_base
 from cca_zoo.deep_models import BaseEncoder, Encoder, BaseDecoder, Decoder
 
 
-class DVCCA(DCCA_base):
+class DVCCA(_DCCA_base):
     """
     https: // arxiv.org / pdf / 1610.03454.pdf
     With pieces borrowed from the variational autoencoder implementation @

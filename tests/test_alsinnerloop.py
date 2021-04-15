@@ -16,8 +16,8 @@ class TestAlsInnerLoop(TestCase):
         pass
 
     def test_iterate(self):
-        pls = cca_zoo.innerloop.InnerLoop().fit(self.X, self.Y)
-        generalized_pls = cca_zoo.innerloop.InnerLoop().fit(self.X, self.Y, self.Z)
+        pls = cca_zoo.innerloop._InnerLoop().fit(self.X, self.Y)
+        generalized_pls = cca_zoo.innerloop._InnerLoop().fit(self.X, self.Y, self.Z)
         als = cca_zoo.innerloop.CCAInnerLoop().fit(self.X, self.Y)
         generalized_als = cca_zoo.innerloop.CCAInnerLoop().fit(self.X, self.Y, self.Z)
         self.assertIsNone(
