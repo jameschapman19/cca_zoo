@@ -1,0 +1,11 @@
+numpy
+scikit-learn
+scipy>=1.5
+matplotlib
+seaborn
+Pillow
+pandas
+tensorly
+torch>=1.7.0
+torchvision
+tensorboard
