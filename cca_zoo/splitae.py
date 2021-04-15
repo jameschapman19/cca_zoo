@@ -13,8 +13,6 @@ from typing import Iterable
 
 import torch
 import torch.nn.functional as F
-from torch import nn
-from torch import optim
 
 from cca_zoo.dcca import DCCA_base
 from cca_zoo.deep_models import BaseEncoder, Encoder, BaseDecoder, Decoder
@@ -26,18 +24,18 @@ class SplitAE(DCCA_base):
                  post_transform=True, schedulers: Iterable = None, optimizers: Iterable = None):
         super().__init__(latent_dims)
         self.encoder = encoder
-        self.decoders = nn.ModuleList(decoders)
+        self.decoders = torch.nn.ModuleList(decoders)
         self.lam = lam
         if optimizers is None:
-            self.optimizer = optim.Adam(list(self.encoder.parameters()) + list(self.decoders.parameters()),
-                                        lr=learning_rate)
+            self.optimizer = torch.optim.Adam(list(self.encoder.parameters()) + list(self.decoders.parameters()),
+                                              lr=learning_rate)
         else:
             self.optimizer = optimizers
         self.schedulers = []
         if schedulers:
             self.schedulers.extend(schedulers)
-        self.optimizer = optim.Adam(list(self.encoder.parameters()) + list(self.decoders.parameters()),
-                                    lr=learning_rate)
+        self.optimizer = torch.optim.Adam(list(self.encoder.parameters()) + list(self.decoders.parameters()),
+                                          lr=learning_rate)
 
     def update_weights(self, *args):
         self.optimizer.zero_grad()

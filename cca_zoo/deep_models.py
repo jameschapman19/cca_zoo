@@ -3,8 +3,7 @@ from math import sqrt
 from typing import Iterable, Tuple
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+from torch.nn import functional as F
 
 '''
 I've included some standard models for the DCCA encoders and DCCAE decoders. 
@@ -14,7 +13,7 @@ https://github.com/Michaelvll/DeepCCA/blob/master/DeepCCAModels.py
 '''
 
 
-class BaseEncoder(nn.Module):
+class BaseEncoder(torch.nn.Module):
     @abstractmethod
     def __init__(self, latent_dims: int, variational: bool = False):
         super(BaseEncoder, self).__init__()
@@ -26,7 +25,7 @@ class BaseEncoder(nn.Module):
         pass
 
 
-class BaseDecoder(nn.Module):
+class BaseDecoder(torch.nn.Module):
     @abstractmethod
     def __init__(self, latent_dims: int):
         super(BaseDecoder, self).__init__()
@@ -46,24 +45,24 @@ class Encoder(BaseEncoder):
         layers = []
 
         # first layer
-        layers.append(nn.Sequential(
-            nn.Linear(feature_size, layer_sizes[0]),
-            nn.ReLU()
+        layers.append(torch.nn.Sequential(
+            torch.nn.Linear(feature_size, layer_sizes[0]),
+            torch.nn.ReLU()
         ))
 
         # other layers
         for l_id in range(len(layer_sizes) - 1):
-            layers.append(nn.Sequential(
-                nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
-                nn.ReLU()
+            layers.append(torch.nn.Sequential(
+                torch.nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
+                torch.nn.ReLU()
             ))
-        self.layers = nn.Sequential(*layers)
+        self.layers = torch.nn.Sequential(*layers)
 
         if self.variational:
-            self.fc_mu = nn.Linear(layer_sizes[-1], latent_dims)
-            self.fc_var = nn.Linear(layer_sizes[-1], latent_dims)
+            self.fc_mu = torch.nn.Linear(layer_sizes[-1], latent_dims)
+            self.fc_var = torch.nn.Linear(layer_sizes[-1], latent_dims)
         else:
-            self.fc = nn.Linear(layer_sizes[-1], latent_dims)
+            self.fc = torch.nn.Linear(layer_sizes[-1], latent_dims)
 
     def forward(self, x):
         x = self.layers(x)
@@ -83,28 +82,28 @@ class Decoder(BaseDecoder):
             layer_sizes = [128]
         layers = []
 
-        layers.append(nn.Sequential(
-            nn.Linear(latent_dims, layer_sizes[0]),
-            nn.Sigmoid()
+        layers.append(torch.nn.Sequential(
+            torch.nn.Linear(latent_dims, layer_sizes[0]),
+            torch.nn.Sigmoid()
         ))
 
         for l_id in range(len(layer_sizes)):
             if l_id == len(layer_sizes) - 1:
                 if norm_output:
-                    layers.append(nn.Sequential(
-                        nn.Linear(layer_sizes[l_id], feature_size),
-                        nn.Sigmoid()
+                    layers.append(torch.nn.Sequential(
+                        torch.nn.Linear(layer_sizes[l_id], feature_size),
+                        torch.nn.Sigmoid()
                     ))
                 else:
-                    layers.append(nn.Sequential(
-                        nn.Linear(layer_sizes[l_id], feature_size),
+                    layers.append(torch.nn.Sequential(
+                        torch.nn.Linear(layer_sizes[l_id], feature_size),
                     ))
             else:
-                layers.append(nn.Sequential(
-                    nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
-                    nn.ReLU()
+                layers.append(torch.nn.Sequential(
+                    torch.nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
+                    torch.nn.ReLU()
                 ))
-        self.layers = nn.Sequential(*layers)
+        self.layers = torch.nn.Sequential(*layers)
 
     def forward(self, x):
         x = self.layers(x)
@@ -130,8 +129,8 @@ class CNNEncoder(BaseEncoder):
         current_size = feature_size[0]
         current_channels = 1
         for l_id in range(len(channels) - 1):
-            conv_layers.append(nn.Sequential(  # input shape (1, current_size, current_size)
-                nn.Conv2d(
+            conv_layers.append(torch.nn.Sequential(  # input shape (1, current_size, current_size)
+                torch.nn.Conv2d(
                     in_channels=current_channels,  # input height
                     out_channels=channels[l_id],  # n_filters
                     kernel_size=kernel_sizes[l_id],  # filter size
@@ -140,23 +139,23 @@ class CNNEncoder(BaseEncoder):
                     # if want same width and length of this image after Conv2d, padding=(kernel_size-1)/2 if
                     # stride=1
                 ),  # output shape (out_channels, current_size, current_size)
-                nn.ReLU(),  # activation
+                torch.nn.ReLU(),  # activation
             ))
             current_size = current_size
             current_channels = channels[l_id]
 
         if self.variational:
-            self.fc_mu = nn.Sequential(
-                nn.Linear(int(current_size * current_size * current_channels), latent_dims),
+            self.fc_mu = torch.nn.Sequential(
+                torch.nn.Linear(int(current_size * current_size * current_channels), latent_dims),
             )
-            self.fc_var = nn.Sequential(
-                nn.Linear(int(current_size * current_size * current_channels), latent_dims),
+            self.fc_var = torch.nn.Sequential(
+                torch.nn.Linear(int(current_size * current_size * current_channels), latent_dims),
             )
         else:
-            self.fc = nn.Sequential(
-                nn.Linear(int(current_size * current_size * current_channels), latent_dims),
+            self.fc = torch.nn.Sequential(
+                torch.nn.Linear(int(current_size * current_size * current_channels), latent_dims),
             )
-        self.conv_layers = nn.Sequential(*conv_layers)
+        self.conv_layers = torch.nn.Sequential(*conv_layers)
 
     def forward(self, x):
         x = self.conv_layers(x)
@@ -185,9 +184,9 @@ class CNNDecoder(BaseDecoder):
             paddings = [2] * len(channels)
 
         if norm_output:
-            activation = nn.Sigmoid()
+            activation = torch.nn.Sigmoid()
         else:
-            activation = nn.ReLU()
+            activation = torch.nn.ReLU()
 
         conv_layers = []
         current_channels = 1
@@ -196,8 +195,8 @@ class CNNDecoder(BaseDecoder):
         # linear layer needs to know B*current_size*current_size*channels
         for l_id, (channel, kernel, stride, padding) in reversed(
                 list(enumerate(zip(channels, kernel_sizes, strides, paddings)))):
-            conv_layers.append(nn.Sequential(
-                nn.ConvTranspose2d(
+            conv_layers.append(torch.nn.Sequential(
+                torch.nn.ConvTranspose2d(
                     in_channels=channel,  # input height
                     out_channels=current_channels,
                     kernel_size=kernel_sizes[l_id],
@@ -212,9 +211,9 @@ class CNNDecoder(BaseDecoder):
             current_channels = channel
 
         # reverse layers as constructed in reverse
-        self.conv_layers = nn.Sequential(*conv_layers[::-1])
-        self.fc_layer = nn.Sequential(
-            nn.Linear(latent_dims, int(current_size * current_size * current_channels)),
+        self.conv_layers = torch.nn.Sequential(*conv_layers[::-1])
+        self.fc_layer = torch.nn.Sequential(
+            torch.nn.Linear(latent_dims, int(current_size * current_size * current_channels)),
         )
 
     def forward(self, x):
@@ -227,7 +226,7 @@ class CNNDecoder(BaseDecoder):
 
 
 # https://github.com/nicofarr/brainnetcnnVis_pytorch/blob/master/BrainNetCnnGoldMSI.py
-class E2EBlock(nn.Module):
+class E2EBlock(torch.nn.Module):
     def __init__(self, in_planes, planes, size, bias=False):
         super(E2EBlock, self).__init__()
         self.d = size
@@ -240,7 +239,7 @@ class E2EBlock(nn.Module):
         return torch.cat([a] * self.d, 3) + torch.cat([b] * self.d, 2)
 
 
-class E2EBlockReverse(nn.Module):
+class E2EBlockReverse(torch.nn.Module):
     def __init__(self, in_planes, planes, size, bias=False):
         super(E2EBlockReverse, self).__init__()
 

@@ -12,8 +12,6 @@ for standardising the pipeline for comparison
 from typing import Iterable
 
 import torch
-from torch import nn
-from torch import optim
 from torch.nn import functional as F
 
 from cca_zoo.dcca import DCCA_base
@@ -27,13 +25,13 @@ class DCCAE(DCCA_base):
                  decoders: Iterable[BaseDecoder] = (Decoder, Decoder), r: float = 1e-3, learning_rate=1e-3, lam=0.5,
                  schedulers: Iterable = None, optimizers: Iterable = None):
         super().__init__(latent_dims)
-        self.encoders = nn.ModuleList(encoders)
-        self.decoders = nn.ModuleList(decoders)
+        self.encoders = torch.nn.ModuleList(encoders)
+        self.decoders = torch.nn.ModuleList(decoders)
         self.lam = lam
         self.objective = objective(latent_dims, r=r)
         if optimizers is None:
-            self.optimizers = [optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),
-                                          lr=learning_rate)]
+            self.optimizers = [torch.optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),
+                                                lr=learning_rate)]
         else:
             self.optimizers = optimizers
         assert (0 <= self.lam <= 1), "lam between 0 and 1"

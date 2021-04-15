@@ -11,15 +11,15 @@ for standardising the pipeline for comparison
 
 from typing import Iterable
 
-from torch import nn
+import torch
 
+from cca_zoo import wrappers
 from cca_zoo.dcca import DCCA
 from cca_zoo.deep_models import BaseEncoder, Encoder
 from cca_zoo.objectives import TCCA
-from cca_zoo import wrappers
 
 
-class DTCCA(DCCA, nn.Module):
+class DTCCA(DCCA, torch.nn.Module):
     def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
                  learning_rate=1e-3, r: float = 0,
                  schedulers: Iterable = None, optimizers: Iterable = None):

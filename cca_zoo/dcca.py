@@ -12,16 +12,14 @@ for standardising the pipeline for comparison
 from abc import abstractmethod
 from typing import Iterable
 
-from torch import nn
-from torch import optim, matmul, mean
-from torch.linalg import norm
+import torch
 
 from cca_zoo.deep_models import BaseEncoder, Encoder
 from cca_zoo.objectives import compute_matrix_power, CCA
 from cca_zoo.wrappers import MCCA
 
 
-class DCCA_base(nn.Module):
+class DCCA_base(torch.nn.Module):
     def __init__(self, latent_dims: int):
         super(DCCA_base, self).__init__()
         self.latent_dims = latent_dims
@@ -48,7 +46,7 @@ class DCCA_base(nn.Module):
         return z_list
 
 
-class DCCA(DCCA_base, nn.Module):
+class DCCA(DCCA_base, torch.nn.Module):
     def __init__(self, latent_dims: int, objective=CCA,
                  encoders: Iterable[BaseEncoder] = (Encoder, Encoder),
                  learning_rate=1e-3, als=False, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-9,
@@ -69,10 +67,11 @@ class DCCA(DCCA_base, nn.Module):
         """
         super().__init__(latent_dims)
         self.latent_dims = latent_dims
-        self.encoders = nn.ModuleList(encoders)
+        self.encoders = torch.nn.ModuleList(encoders)
         self.objective = objective(latent_dims, r=r)
         if optimizers is None:
-            self.optimizers = [optim.Adam(list(encoder.parameters()), lr=learning_rate) for encoder in self.encoders]
+            self.optimizers = [torch.optim.Adam(list(encoder.parameters()), lr=learning_rate) for encoder in
+                               self.encoders]
         else:
             self.optimizers = optimizers
         self.schedulers = []
@@ -131,8 +130,8 @@ class DCCA(DCCA_base, nn.Module):
         z = self(*args)
         self.update_covariances(*z)
         covariance_inv = [compute_matrix_power(cov, -0.5, self.eps) for cov in self.covs]
-        preds = [matmul(z, covariance_inv[i]).detach() for i, z in enumerate(z)]
-        losses = [mean(norm(z_i - preds[-i], dim=0)) for i, z_i in enumerate(z, start=1)]
+        preds = [torch.matmul(z, covariance_inv[i]).detach() for i, z in enumerate(z)]
+        losses = [torch.mean(torch.norm(z_i - preds[-i], dim=0)) for i, z_i in enumerate(z, start=1)]
         obj = self.objective.loss(*z)
         return losses, obj
 

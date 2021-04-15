@@ -13,8 +13,6 @@ from typing import Iterable
 
 import torch
 import torch.distributions as dist
-from torch import nn
-from torch import optim
 from torch.nn import functional as F
 
 from cca_zoo.dcca import DCCA_base
@@ -38,8 +36,8 @@ class DVCCA(DCCA_base):
         self.private = private
         self.mu = mu
         self.latent_dims = latent_dims
-        self.encoders = nn.ModuleList(encoders)
-        self.decoders = nn.ModuleList(decoders)
+        self.encoders = torch.nn.ModuleList(encoders)
+        self.decoders = torch.nn.ModuleList(decoders)
         self.schedulers = []
         if encoder_schedulers:
             self.schedulers.extend(encoder_schedulers)
@@ -47,15 +45,15 @@ class DVCCA(DCCA_base):
             self.schedulers.extend(decoder_schedulers)
         self.encoder_optimizers = encoder_optimizers
         if self.encoder_optimizers is None:
-            self.encoder_optimizers = optim.Adam(self.encoders.parameters(), lr=learning_rate)
+            self.encoder_optimizers = torch.optim.Adam(self.encoders.parameters(), lr=learning_rate)
         self.decoder_optimizers = decoder_optimizers
         if self.decoder_optimizers is None:
-            self.decoder_optimizers = optim.Adam(self.decoders.parameters(), lr=learning_rate)
+            self.decoder_optimizers = torch.optim.Adam(self.decoders.parameters(), lr=learning_rate)
         if private:
-            self.private_encoders = nn.ModuleList(private_encoders)
+            self.private_encoders = torch.nn.ModuleList(private_encoders)
             self.private_encoder_optimizers = private_encoder_optimizers
             if self.private_encoder_optimizers is None:
-                self.private_encoder_optimizers = optim.Adam(self.private_encoders.parameters(), lr=learning_rate)
+                self.private_encoder_optimizers = torch.optim.Adam(self.private_encoders.parameters(), lr=learning_rate)
             if private_encoder_schedulers:
                 self.schedulers.extend(private_encoder_schedulers)
 
