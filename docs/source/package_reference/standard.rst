@@ -1,16 +1,42 @@
-ABC
-===
+Standard install
+============
 
-Base
+cca\_zoo.wrappers module
+--------------------
 
-.. autoclass:: cca_zoo.wrappers.CCA_Base
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :member-order: bysource
+.. automodule:: cca_zoo.wrappers
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
+cca\_zoo.innerloop module
+---------------------
 
-.. automodule:: cca_zoo.dcca
-    :members:
-    :undoc-members:
-    :member-order: bysource
+.. automodule:: cca_zoo.innerloop
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cca\_zoo.kcca module
+----------------------------
+
+.. automodule:: cca_zoo.kcca
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cca\_zoo.data module
+----------------------------
+
+.. automodule:: cca_zoo.data
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cca\_zoo.plot_utils module
+----------------------------
+
+.. automodule:: cca_zoo.plot_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:

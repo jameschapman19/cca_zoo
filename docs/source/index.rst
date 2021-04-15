@@ -11,7 +11,6 @@ Documentation
    
    documentation/getting_started
    documentation/tutorials
-   documentation/api
 
 .. toctree::
    :maxdepth: 4
