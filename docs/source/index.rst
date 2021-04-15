@@ -15,11 +15,10 @@ Documentation
 
 .. toctree::
    :maxdepth: 4
-   :caption: Reference:
+   :caption: Package Reference:
 
-   documentation/getting_started
-   documentation/tutorials
-   documentation/api
+   package_reference/standard
+   package_reference/deep
 
 .. toctree::
    :maxdepth: 4
