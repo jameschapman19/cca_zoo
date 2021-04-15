@@ -1,14 +1,3 @@
-"""
-All of my deep architectures have forward methods inherited from pytorch as well as a method:
-
-loss(): which calculates the loss given some inputs and model outputs i.e.
-
-loss(inputs,model(inputs))
-
-This allows me to wrap them all up in the deep wrapper. Obviously this isn't required but it is helpful
-for standardising the pipeline for comparison
-"""
-
 from typing import Iterable
 
 import torch

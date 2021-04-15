@@ -7,7 +7,7 @@ cca\_zoo.dcca module
 .. automodule:: cca_zoo.dcca
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: _DCCA_Base
 
 cca\_zoo.dccae module
 ---------------------
