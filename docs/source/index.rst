@@ -18,7 +18,6 @@ Documentation
    :caption: Package Reference:
 
    package_reference/standard
-   package_reference/deep
 
 .. toctree::
    :maxdepth: 4
