@@ -15,7 +15,7 @@ cca\_zoo.dccae module
 .. automodule:: cca_zoo.dccae
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: _DCCA_Base
 
 cca\_zoo.deep\_models module
 ----------------------------
@@ -39,7 +39,7 @@ cca\_zoo.dtcca module
 .. automodule:: cca_zoo.dtcca
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: _DCCA_Base
 
 cca\_zoo.dvcca module
 ---------------------
@@ -47,7 +47,7 @@ cca\_zoo.dvcca module
 .. automodule:: cca_zoo.dvcca
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: _DCCA_Base
 
 
 
@@ -57,7 +57,7 @@ cca\_zoo.objectives module
 .. automodule:: cca_zoo.objectives
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: _DCCA_Base
 
 cca\_zoo.splitae module
 -----------------------
@@ -65,5 +65,5 @@ cca\_zoo.splitae module
 .. automodule:: cca_zoo.splitae
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: _DCCA_Base
 
