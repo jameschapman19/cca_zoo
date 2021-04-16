@@ -268,7 +268,7 @@ class MCCA(_CCA_Base, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, c=None):
+    def __init__(self, latent_dims: int = 1, c: Tuple[float, ...] = None):
         """
         Constructor for MCCA
 
@@ -327,7 +327,7 @@ class GCCA(_CCA_Base, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, c=None, view_weights=None):
+    def __init__(self, latent_dims: int = 1, c: Tuple[float, ...] = None, view_weights=None):
         """
         Constructor for GCCA
 
@@ -442,7 +442,7 @@ class rCCA(_CCA_Base, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, c=None):
+    def __init__(self, latent_dims: int = 1, c: Tuple[float, ...] = None):
         """
         Constructor for rCCA
 
@@ -542,8 +542,8 @@ class _Iterative(_CCA_Base):
 
     """
 
-    def __init__(self, latent_dims: int = 1, deflation='cca', max_iter=50, generalized=False,
-                 initialization='unregularized', tol=1e-5):
+    def __init__(self, latent_dims: int = 1, deflation='cca', max_iter: int = 100, generalized: bool = False,
+                 initialization: str = 'unregularized', tol: float = 1e-5):
         """
         Constructor for _Iterative
 
@@ -620,6 +620,13 @@ class PLS(_Iterative):
     """
     A class used to fit a PLS model
 
+    :param latent_dims: number of latent dimensions
+    :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+    :param generalized:
+    :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights)
+    or 'random'.
+    :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+
     Fits a partial least squares model with CCA deflation by NIPALS algorithm
     :Example:
 
@@ -630,12 +637,17 @@ class PLS(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, generalized=False, initialization='unregularized', tol=1e-5):
+    def __init__(self, latent_dims: int = 1, max_iter: int = 100, generalized: bool = False,
+                 initialization: str = 'unregularized', tol: float = 1e-5):
         """
         Constructor for PLS
 
-        :param latent_dims: Number of latent dimensions
-        :param max_iter: Maximum number of iterations
+        :param latent_dims: number of latent dimensions
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized:
+        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights)
+        or 'random'.
+        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol)
@@ -649,6 +661,13 @@ class CCA_ALS(_Iterative):
     """
     Fits a CCA model with CCA deflation by NIPALS algorithm
 
+    :param latent_dims: number of latent dimensions
+    :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+    :param generalized:
+    :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights)
+    or 'random'.
+    :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+
     :Example:
 
     >>> from cca_zoo.wrappers import CCA_ALS
@@ -658,11 +677,17 @@ class CCA_ALS(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, generalized=False, initialization='unregularized', tol=1e-5):
+    def __init__(self, latent_dims: int = 1, max_iter: int = 100, generalized: bool = False,
+                 initialization: str = 'unregularized', tol: float = 1e-5):
         """
         Constructor for CCA_ALS
-        :param latent_dims: Number of latent dimensions
-        :param max_iter: Maximum number of iterations
+
+        :param latent_dims: number of latent dimensions
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized:
+        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights)
+        or 'random'.
+        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol)
@@ -676,6 +701,13 @@ class PMD(_Iterative, BaseEstimator):
     """
     Fits a Sparse CCA (Penalized Matrix Decomposition) model.
 
+    :param latent_dims: number of latent dimensions
+    :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+    :param generalized:
+    :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights)
+    or 'random'.
+    :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+
     :Example:
 
     >>> from cca_zoo.wrappers import PMD
@@ -685,12 +717,18 @@ class PMD(_Iterative, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularized',
-                 tol=1e-5):
+    def __init__(self, latent_dims: int = 1, c: Tuple[float, ...] = None, max_iter: int = 100,
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-5):
         """
         Constructor for PMD
-        :param latent_dims: Number of latent dimensions
-        :param max_iter: Maximum number of iterations
+
+        :param latent_dims: number of latent dimensions
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param c: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized:
+        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights)
+        or 'random'.
+        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         self.c = c
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
@@ -714,8 +752,8 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularized',
-                 tol=1e-5):
+    def __init__(self, latent_dims: int = 1, c: Tuple[float, ...] = None, max_iter: int = 100,
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-5):
         """
         Constructor for ParkhomenkoCCA
         :param latent_dims: Number of latent dimensions
@@ -743,8 +781,9 @@ class SCCA(_Iterative, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularized',
-                 tol=1e-5):
+    def __init__(self, latent_dims: int = 1, c: Tuple[float, ...] = None, max_iter: int = 100,
+                 generalized: bool = False,
+                 initialization: str = 'unregularized', tol: float = 1e-5):
         """
         Constructor for SCCA
         :param latent_dims: Number of latent dimensions
@@ -772,8 +811,8 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, mu=None, lam=None, eta=None, generalized=False,
-                 initialization='unregularized', tol=1e-5):
+    def __init__(self, latent_dims: int = 1, c=None, mu=None, lam=None, eta=None, max_iter: int = 100,
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-5):
         """
         Constructor for SCCA_ADMM
         :param latent_dims: Number of latent dimensions
@@ -808,8 +847,9 @@ class ElasticCCA(_Iterative, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, l1_ratio=None, generalized=False,
-                 initialization='unregularized', tol=1e-5, constrained=False):
+    def __init__(self, latent_dims: int = 1, c=None, l1_ratio=None, constrained: bool = False, max_iter: int = 100,
+                 generalized: bool = False,
+                 initialization: str = 'unregularized', tol: float = 1e-5):
         """
         Constructor for ElasticCCA
         :param latent_dims: Number of latent dimensions
