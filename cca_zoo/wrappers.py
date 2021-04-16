@@ -25,10 +25,8 @@ import cca_zoo.plot_utils
 
 class _CCA_Base(BaseEstimator):
     """
-    This is the base class for the models in the cca-zoo package. Inheriting
-    the class gives and
+    A class used to represent an Animal
     """
-
     @abstractmethod
     def __init__(self, latent_dims: int = 1):
         """
@@ -41,10 +39,19 @@ class _CCA_Base(BaseEstimator):
 
     @abstractmethod
     def fit(self, *views: Tuple[np.ndarray, ...]):
+        """
+        Fits a given model
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        """
         pass
         return self
 
     def transform(self, *views: Tuple[np.ndarray, ...], **kwargs):
+        """
+        Transforms data given a fit model
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param kwargs: any additional keyword arguments required by the given model
+        """
         transformed_views = []
         for i, view in enumerate(views):
             transformed_view = np.ma.array((view - self.view_means[i]) @ self.weights_list[i])
@@ -52,9 +59,22 @@ class _CCA_Base(BaseEstimator):
         return transformed_views
 
     def fit_transform(self, *views: Tuple[np.ndarray, ...], **kwargs):
+        """
+        Fits and then transforms the training data
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param kwargs: any additional keyword arguments required by the given model
+        :rtype: Tuple[np.ndarray, ...]
+        """
         return self.fit(*views).transform(*views, **kwargs)
 
     def predict_corr(self, *views: Tuple[np.ndarray, ...], **kwargs) -> np.ndarray:
+        """
+        Predicts the correlation for the given data using the fit model
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param kwargs: any additional keyword arguments required by the given model
+        :return: all_corrs: an array of the pairwise correlations (k,k,self.latent_dims) where k is the number of views
+        :rtype: np.ndarray
+        """
         # Takes two views and predicts their out of sample correlation using trained model
         transformed_views = self.transform(*views, **kwargs)
         all_corrs = []
@@ -64,6 +84,12 @@ class _CCA_Base(BaseEstimator):
         return all_corrs
 
     def demean_data(self, *views: Tuple[np.ndarray, ...]):
+        """
+        Removes the mean of the training data for each view and stores it
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :return: views_input: the demeaned numpy arrays to be used to fit the model
+        :rtype: Tuple[np.ndarray, ...]
+        """
         views_input = []
         self.view_means = []
         for view in views:
@@ -75,6 +101,17 @@ class _CCA_Base(BaseEstimator):
                        verbose: bool = False,
                        jobs: int = 0,
                        plot: bool = False):
+        """
+        Implements a gridsearch over the parameters in param_candidates and returns a model fit with the optimal parameters
+        in cross validation (measured by sum of correlations).
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param K: observation matrix which can be used by GCCA
+        :param param_candidates:
+        :param folds: number of cross-validation folds
+        :param verbose: print results of training folds
+        :param jobs: number of jobs. If jobs>1 then the function can use parallelism
+        :param plot: produce a hyperparameter surface plot
+        """
         if verbose:
             print('cross validation', flush=True)
             print('number of folds: ', folds, flush=True)
@@ -168,10 +205,8 @@ class KCCA(_CCA_Base, BaseEstimator):
 
     def fit(self, *views: Tuple[np.ndarray, ...], ):
         """
-        The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
-        Returns a fit model object which can be used to predict correlations or transform out of sample data.
-        :param views: 2D numpy arrays for each view with the same number of rows (nxp)
-        :return: training data correlations and the parameters required to call other functions in the class.
+        Fits a KCCA model
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
         if self.c is None:
             self.c = [0] * len(views)
@@ -184,6 +219,11 @@ class KCCA(_CCA_Base, BaseEstimator):
         return self
 
     def transform(self, *views: Tuple[np.ndarray, ...], ):
+        """
+        Transforms data given a fit kCCA model
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param kwargs: any additional keyword arguments required by the given model
+        """
         transformed_views = []
         for i, view in enumerate(views):
             transformed_views.append(
@@ -213,11 +253,8 @@ class MCCA(_CCA_Base, BaseEstimator):
 
     def fit(self, *views: Tuple[np.ndarray, ...], ):
         """
-        The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
-        Returns a fit model object which can be used to predict correlations or transform out of sample data.
-        :param views: 2D numpy arrays for each view with the same number of rows (nxp)
-        :param c: regularisation between 0 (CCA) and 1 (PLS)
-        :return: training data correlations and the parameters required to call other functions in the class.
+        Fits an MCCA model
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
         if self.c is None:
             self.c = [0] * len(views)
@@ -267,14 +304,12 @@ class GCCA(_CCA_Base, BaseEstimator):
         self.c = c
         self.view_weights = view_weights
 
-    def fit(self, *views: Tuple[np.ndarray, ...], K=None):
+    def fit(self, *views: Tuple[np.ndarray, ...], K: np.ndarray = None):
         """
-        The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
-        Returns a fit model object which can be used to predict correlations or transform out of sample data.
-        :param views: 2D numpy arrays for each view with the same number of rows (nxp)
-        :param K: "row selection matrix" as in Multiview LSA: Representation Learning via Generalized CCA https://www.aclweb.org/anthology/N15-1058.pdf
-            binary numpy array with dimensions (#views,#rows) with one for observed and zero for not observed for that view.
-        :return: training data correlations and the parameters required to call other functions in the class.
+        Fits a GCCA model
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param K: observation matrix. Binary array with (k,n) dimensions where k is the number of views and n is the number of samples
+        1 means the data is observed in the corresponding view and 0 means the data is unobserved in that view.
         """
         if self.c is None:
             self.c = [0] * len(views)
@@ -306,8 +341,9 @@ class GCCA(_CCA_Base, BaseEstimator):
         """
         Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
         demeaning transformation to out of sample data
-        :param views:
-        :return:
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param K: observation matrix. Binary array with (k,n) dimensions where k is the number of views and n is the number of samples
+        1 means the data is observed in the corresponding view and 0 means the data is unobserved in that view.
         """
         views_input = []
         self.view_means = []
@@ -320,12 +356,10 @@ class GCCA(_CCA_Base, BaseEstimator):
 
     def transform(self, *views: Tuple[np.ndarray, ...], K=None):
         """
-        The transform method takes any number of views as a numpy array. Need to have the same number of features as
-        those in the views used to train the model.
-        Returns the views transformed into the learnt latent space.
-        :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
-         corresponding view in the training data
-        :return: tuple of transformed numpy arrays
+        Transforms data given a fit GCCA model
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param K: observation matrix. Binary array with (k,n) dimensions where k is the number of views and n is the number of samples
+        1 means the data is observed in the corresponding view and 0 means the data is unobserved in that view.
         """
         transformed_views = []
         for i, view in enumerate(views):
@@ -340,8 +374,7 @@ def _pca_data(*views: Tuple[np.ndarray, ...]):
     """
     Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
     demeaning transformation to out of sample data
-    :param views:
-    :return:
+    :param views: numpy arrays with the same number of rows (samples) separated by commas
     """
     views_U = []
     views_S = []
@@ -368,13 +401,17 @@ class rCCA(_CCA_Base, BaseEstimator):
     def __init__(self, latent_dims: int = 1, c=None):
         """
         Constructor for rCCA
-        :param latent_dims:
-        :param c:
+        :param latent_dims: number of latent dimensions
+        :param c: regularisation between 0 (CCA) and 1 (PLS)
         """
         super().__init__(latent_dims=latent_dims)
         self.c = c
 
     def fit(self, *views: Tuple[np.ndarray, ...]):
+        """
+        Fits a regularised CCA (canonical ridge) model
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        """
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
@@ -466,9 +503,8 @@ class _Iterative(_CCA_Base):
 
     def fit(self, *views: Tuple[np.ndarray, ...], ):
         """
-        Fits the model for a given set of parameters (or use default values). Returns parameters/objects that allow out of sample transformation or prediction
-        :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3)
-        :return: training data correlations and the parameters required to call other functions in the class.
+        Fits an iterative model with deflation
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
         self.set_loop_params()
         self.outer_loop(*self.demean_data(*views))
