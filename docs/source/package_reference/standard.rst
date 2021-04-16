@@ -3,21 +3,71 @@ Standard install
 
 Modules included in the standard pip install
 
-ABC
-----
-
-.. autoclass:: cca_zoo.wrappers.MCCA
-    :exclude-members:
-
 
 Model Wrappers
 --------------------
 
-.. automodule:: cca_zoo.wrappers
-   :members:
-   :undoc-members:
-   :private-members: _CCA_Base, _Iterative
-   :special-members: __init__
+.. currentmodule:: cca_zoo.wrappers
+
+CCA
+^^^^^^^
+
+.. autoclass:: CCA
+    :exclude-members:
+
+rCCA
+^^^^^^^
+
+.. autoclass:: rCCA
+    :exclude-members:
+
+PLS
+^^^^^^^
+
+.. autoclass:: PLS
+    :exclude-members:
+
+MCCA
+^^^^^^^
+
+.. autoclass:: MCCA
+    :exclude-members:
+
+GCCA
+^^^^^^^
+
+.. autoclass:: GCCA
+    :exclude-members:
+
+KCCA
+^^^^^^^
+
+.. autoclass:: KCCA
+    :exclude-members:
+
+CCA_ALS
+^^^^^^^
+
+.. autoclass:: CCA_ALS
+    :exclude-members:
+
+PMD
+^^^^^^^
+
+.. autoclass:: PMD
+    :exclude-members:
+
+SCCA
+^^^^^^^
+
+.. autoclass:: SCCA
+    :exclude-members:
+
+PMD
+^^^^^^^
+
+.. autoclass:: PMD
+    :exclude-members:
 
 Inner Loops for iterative optimization
 ---------------------------------------
