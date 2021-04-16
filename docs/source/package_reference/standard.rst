@@ -16,7 +16,6 @@ This is used as the base for all the models in this package. By inheriting this 
 fit_transform, and predict_corr and only differ in their fit methods (and transform where necessary).
 
 .. autoclass:: _CCA_Base
-    :exclude-members:
     :show-inheritance:
     :special-members: __init__
 
