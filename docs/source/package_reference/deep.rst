@@ -18,7 +18,6 @@ DCCA
 
 .. automodule:: cca_zoo.dcca
    :members:
-   :inherited-members:
    :show-inheritance:
 
 DCCAE
@@ -26,7 +25,6 @@ DCCAE
 
 .. automodule:: cca_zoo.dccae
    :members:
-   :inherited-members:
    :show-inheritance:
 
 DTCCA
@@ -34,16 +32,13 @@ DTCCA
 
 .. automodule:: cca_zoo.dtcca
    :members:
-   :undoc-members:
-   :show-inheritance: _DCCA_Base
-   :special-members: __init__
+   :show-inheritance:
 
 DVCCA
 ---------------------
 
 .. automodule:: cca_zoo.dvcca
    :members:
-   :inherited-members:
    :show-inheritance:
 
 Split Autoencoder
@@ -51,7 +46,6 @@ Split Autoencoder
 
 .. automodule:: cca_zoo.splitae
    :members:
-   :inherited-members:
    :show-inheritance:
 
 Encoder and Decoder Architectures + Template
@@ -59,7 +53,6 @@ Encoder and Decoder Architectures + Template
 
 .. automodule:: cca_zoo.deep_models
    :members:
-   :inherited-members:
    :show-inheritance:
 
 Objective Functions
@@ -67,7 +60,6 @@ Objective Functions
 
 .. automodule:: cca_zoo.objectives
    :members:
-   :inherited-members:
    :show-inheritance:
 
 

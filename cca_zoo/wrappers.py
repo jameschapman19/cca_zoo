@@ -25,6 +25,9 @@ class _CCA_Base(BaseEstimator):
     """
     A class used as the base for methods in the package. Allows methods to inherit fit_transform, predict_corr, and gridsearch_fit
     when only fit (and transform where it is different to the default) is provided.
+
+    :property
+
     """
 
     @abstractmethod

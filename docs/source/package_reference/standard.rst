@@ -18,6 +18,9 @@ fit_transform, and predict_corr and only differ in their fit methods (and transf
 .. autoclass:: _CCA_Base
    :members:
    :inherited-members:
+   :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 CCA
 ^^^^^^^
@@ -26,7 +29,8 @@ CCA
    :members:
    :inherited-members:
    :show-inheritance:
-
+   :undoc-members:
+   :exclude-members: get_params, set_params
 rCCA
 ^^^^^^^
 
@@ -34,6 +38,8 @@ rCCA
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 PLS
 ^^^^^^^
@@ -42,6 +48,8 @@ PLS
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 MCCA
 ^^^^^^^
@@ -50,6 +58,8 @@ MCCA
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 GCCA
 ^^^^^^^
@@ -58,6 +68,8 @@ GCCA
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 TCCA
 ^^^^^^^^^^^^^^^
@@ -66,6 +78,8 @@ TCCA
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 KCCA
 ^^^^^^^
@@ -74,6 +88,8 @@ KCCA
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 CCA_ALS
 ^^^^^^^
@@ -82,6 +98,8 @@ CCA_ALS
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 PMD
 ^^^^^^^
@@ -90,6 +108,8 @@ PMD
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 SCCA
 ^^^^^^^
@@ -98,6 +118,8 @@ SCCA
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 PMD
 ^^^^^^^
@@ -106,6 +128,8 @@ PMD
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 ParkhomenkoCCA
 ^^^^^^^^^^^^^^^
@@ -114,6 +138,8 @@ ParkhomenkoCCA
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 ElasticCCA
 ^^^^^^^^^^^^^^^
@@ -122,6 +148,8 @@ ElasticCCA
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 Inner Loops for iterative optimization
 ---------------------------------------
@@ -130,6 +158,8 @@ Inner Loops for iterative optimization
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 Kernel CCA
 ----------------------------
@@ -138,6 +168,8 @@ Kernel CCA
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 Simulated Data and Toy Datasets
 --------------------------------
@@ -146,6 +178,8 @@ Simulated Data and Toy Datasets
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 Plotting Utilities
 ----------------------------
@@ -154,3 +188,5 @@ Plotting Utilities
    :members:
    :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
