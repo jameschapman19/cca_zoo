@@ -25,7 +25,8 @@ import cca_zoo.plot_utils
 
 class _CCA_Base(BaseEstimator):
     """
-    A class used to represent an Animal
+    A class used as the base for methods in the package. Allows methods to inherit fit_transform, predict_corr, and gridsearch_fit
+    when only fit (and transform where it is different to the default) is provided.
     """
 
     @abstractmethod
@@ -188,6 +189,8 @@ class _CCA_Base(BaseEstimator):
 
 class KCCA(_CCA_Base, BaseEstimator):
     """
+    A class used to fit KCCA model.
+
     :Example:
 
     >>> from cca_zoo.wrappers import KCCA
@@ -244,6 +247,8 @@ class KCCA(_CCA_Base, BaseEstimator):
 
 class MCCA(_CCA_Base, BaseEstimator):
     """
+    A class used to fit MCCA model. For more than 2 views, MCCA optimizes the sum of pairwise correlations.
+
     :Example:
 
     >>> from cca_zoo.wrappers import MCCA
@@ -297,6 +302,8 @@ class MCCA(_CCA_Base, BaseEstimator):
 
 class GCCA(_CCA_Base, BaseEstimator):
     """
+    A class used to fit GCCA model. For more than 2 views, GCCA optimizes the sum of correlations with a shared auxiliary vector
+
     :Example:
 
     >>> from cca_zoo.wrappers import GCCA
@@ -407,6 +414,8 @@ def _pca_data(*views: Tuple[np.ndarray, ...]):
 
 class rCCA(_CCA_Base, BaseEstimator):
     """
+    A class used to fit Regularised CCA (canonical ridge) model. Uses PCA to perform the optimization efficiently for high dimensional data.
+
     :Example:
 
     >>> from cca_zoo.wrappers import rCCA
@@ -479,6 +488,8 @@ class rCCA(_CCA_Base, BaseEstimator):
 
 class CCA(rCCA):
     """
+    A class used to fit a simple CCA model
+
     Implements CCA by inheriting regularised CCA with 0 regularisation
     :Example:
 
@@ -499,23 +510,29 @@ class CCA(rCCA):
 
 
 class _Iterative(_CCA_Base):
+    """
+    A class used as the base for iterative CCA methods i.e. those that optimize for each dimension one at a time with deflation.
+    """
+
     def __init__(self, latent_dims: int = 1, deflation='cca', max_iter=50, generalized=False,
                  initialization='unregularized', tol=1e-5):
         """
         Constructor for _Iterative
 
-        :param latent_dims:
-        :param deflation:
-        :param max_iter:
+        :param latent_dims: number of latent dimensions
+        :param deflation: the type of deflation.
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized:
-        :param initialization:
-        :param tol:
+        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights)
+        or 'random'.
+        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         super().__init__(latent_dims=latent_dims)
         self.max_iter = max_iter
         self.generalized = generalized
         self.initialization = initialization
         self.tol = tol
+        self.deflation = deflation
 
     def fit(self, *views: Tuple[np.ndarray, ...], ):
         """
@@ -559,15 +576,13 @@ class _Iterative(_CCA_Base):
         :param score:
 
         """
-        return residual - np.outer(score, score) @ residual / np.dot(score, score).item()
+        if self.deflation == 'cca':
+            return residual - np.outer(score, score) @ residual / np.dot(score, score).item()
 
     @abstractmethod
     def set_loop_params(self):
         """
-        
-
-        :return:
-        :rtype:
+        Sets up the inner optimization loop for the method. By default uses the PLS inner loop.
         """
         self.loop = cca_zoo.innerloop.PLSInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
                                                    initialization=self.initialization)
@@ -575,6 +590,8 @@ class _Iterative(_CCA_Base):
 
 class PLS(_Iterative):
     """
+    A class used to fit a PLS model
+
     Fits a partial least squares model with CCA deflation by NIPALS algorithm
     :Example:
 
@@ -588,6 +605,7 @@ class PLS(_Iterative):
     def __init__(self, latent_dims: int = 1, max_iter=100, generalized=False, initialization='unregularized', tol=1e-5):
         """
         Constructor for PLS
+
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
@@ -602,6 +620,7 @@ class PLS(_Iterative):
 class CCA_ALS(_Iterative):
     """
     Fits a CCA model with CCA deflation by NIPALS algorithm
+
     :Example:
 
     >>> from cca_zoo.wrappers import CCA_ALS
@@ -627,7 +646,8 @@ class CCA_ALS(_Iterative):
 
 class PMD(_Iterative, BaseEstimator):
     """
-    Fits a sparse CCA model by penalized matrix decomposition
+    Fits a Sparse CCA (Penalized Matrix Decomposition) model.
+
     :Example:
 
     >>> from cca_zoo.wrappers import PMD
@@ -655,7 +675,8 @@ class PMD(_Iterative, BaseEstimator):
 
 class ParkhomenkoCCA(_Iterative, BaseEstimator):
     """
-    Fits a sparse CCA model by penalized power method
+    Fits a sparse CCA (penalized CCA) model
+
     :Example:
 
     >>> from cca_zoo.wrappers import ParkhomenkoCCA
@@ -713,6 +734,7 @@ class SCCA(_Iterative, BaseEstimator):
 class SCCA_ADMM(_Iterative, BaseEstimator):
     """
     Fits a sparse CCA model by alternating ADMM
+
     :Example:
 
     >>> from cca_zoo.wrappers import SCCA_ADMM
@@ -748,6 +770,7 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
 class ElasticCCA(_Iterative, BaseEstimator):
     """
     Fits an elastic CCA by iterative rescaled elastic net regression
+
     :Example:
 
     >>> from cca_zoo.wrappers import ElasticCCA
@@ -778,6 +801,8 @@ class ElasticCCA(_Iterative, BaseEstimator):
 
 class TCCA(_CCA_Base):
     """
+    Fits a Tensor CCA model. Tensor CCA maximises higher order correlations
+
     My own port from https://github.com/rciszek/mdr_tcca
 
     :Example:
@@ -832,6 +857,10 @@ class TCCA(_CCA_Base):
 
 
 class _CrossValidate:
+    """
+    Base class used for cross validation
+    """
+
     def __init__(self, model, folds: int = 5, verbose: bool = True):
         self.folds = folds
         self.verbose = verbose
