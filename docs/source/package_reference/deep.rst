@@ -6,6 +6,8 @@ Modules included using the optional pip install cca-zoo[deep]
 Deep Model Wrapper
 ---------------------------
 
+.. currentmodule:: cca_zoo.wrappers
+
 .. automodule:: cca_zoo.deepwrapper
    :members:
    :undoc-members:
