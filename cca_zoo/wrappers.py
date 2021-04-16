@@ -1,5 +1,3 @@
-"""CCA Models"""
-
 import copy
 import itertools
 from abc import abstractmethod

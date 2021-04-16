@@ -1,34 +1,7 @@
 Deep install
 ============
 
-cca\_zoo.dcca module
---------------------
-
-.. automodule:: cca_zoo.dcca
-   :members:
-   :undoc-members:
-   :show-inheritance: _DCCA_Base
-   :special-members: __init__
-
-cca\_zoo.dccae module
----------------------
-
-.. automodule:: cca_zoo.dccae
-   :members:
-   :undoc-members:
-   :show-inheritance: _DCCA_Base
-   :special-members: __init__
-
-cca\_zoo.deep\_models module
-----------------------------
-
-.. automodule:: cca_zoo.deep_models
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __init__
-
-cca\_zoo.deepwrapper module
+Deep Model Wrapper
 ---------------------------
 
 .. automodule:: cca_zoo.deepwrapper
@@ -37,7 +10,25 @@ cca\_zoo.deepwrapper module
    :show-inheritance:
    :special-members: __init__
 
-cca\_zoo.dtcca module
+DCCA
+--------------------
+
+.. automodule:: cca_zoo.dcca
+   :members:
+   :undoc-members:
+   :show-inheritance: _DCCA_Base
+   :special-members: __init__
+
+DCCAE
+---------------------
+
+.. automodule:: cca_zoo.dccae
+   :members:
+   :undoc-members:
+   :show-inheritance: _DCCA_Base
+   :special-members: __init__
+
+DTCCA
 ---------------------
 
 .. automodule:: cca_zoo.dtcca
@@ -46,7 +37,7 @@ cca\_zoo.dtcca module
    :show-inheritance: _DCCA_Base
    :special-members: __init__
 
-cca\_zoo.dvcca module
+DVCCA
 ---------------------
 
 .. automodule:: cca_zoo.dvcca
@@ -55,17 +46,7 @@ cca\_zoo.dvcca module
    :show-inheritance: _DCCA_Base
    :special-members: __init__
 
-
-
-cca\_zoo.objectives module
---------------------------
-
-.. automodule:: cca_zoo.objectives
-   :members:
-   :undoc-members:
-   :show-inheritance: _DCCA_Base
-
-cca\_zoo.splitae module
+Split Autoencoder
 -----------------------
 
 .. automodule:: cca_zoo.splitae
@@ -73,4 +54,23 @@ cca\_zoo.splitae module
    :undoc-members:
    :show-inheritance: _DCCA_Base
    :special-members: __init__
+
+Encoder and Decoder Architectures + Template
+---------------------------------------------
+
+.. automodule:: cca_zoo.deep_models
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :special-members: __init__
+
+Objective Functions
+--------------------------
+
+.. automodule:: cca_zoo.objectives
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
 

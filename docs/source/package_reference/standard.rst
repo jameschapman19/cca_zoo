@@ -1,7 +1,7 @@
 Standard install
-============
+=================
 
-cca\_zoo.wrappers module
+Model Wrappers
 --------------------
 
 .. automodule:: cca_zoo.wrappers
@@ -10,8 +10,8 @@ cca\_zoo.wrappers module
    :private-members: _CCA_Base, _Iterative
    :special-members: __init__
 
-cca\_zoo.innerloop module
----------------------
+Inner Loops for iterative optimization
+---------------------------------------
 
 .. automodule:: cca_zoo.innerloop
    :members:
@@ -20,7 +20,7 @@ cca\_zoo.innerloop module
    :private-members: _InnerLoop
    :special-members: __init__
 
-cca\_zoo.kcca module
+Kernel CCA
 ----------------------------
 
 .. automodule:: cca_zoo.kcca
@@ -29,8 +29,8 @@ cca\_zoo.kcca module
    :show-inheritance:
    :special-members: __init__
 
-cca\_zoo.data module
-----------------------------
+Simulated Data and Toy Datasets
+--------------------------------
 
 .. automodule:: cca_zoo.data
    :members:
@@ -38,7 +38,7 @@ cca\_zoo.data module
    :show-inheritance:
    :special-members: __init__
 
-cca\_zoo.plot_utils module
+Plotting Utilities
 ----------------------------
 
 .. automodule:: cca_zoo.plot_utils
