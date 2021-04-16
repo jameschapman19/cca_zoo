@@ -26,7 +26,7 @@ class _CCA_Base(BaseEstimator):
     A class used as the base for methods in the package. Allows methods to inherit fit_transform, predict_corr, and gridsearch_fit
     when only fit (and transform where it is different to the default) is provided.
 
-    :property
+    :param latent_dims: number of latent dimensions to learn
 
     """
 
@@ -35,7 +35,7 @@ class _CCA_Base(BaseEstimator):
         """
 
         Constructor for _CCA_Base
-        :param latent_dims:
+        :param latent_dims: number of latent dimensions to learn
         """
         self.weights_list = None
         self.train_correlations = None
@@ -192,6 +192,12 @@ class KCCA(_CCA_Base, BaseEstimator):
     """
     A class used to fit KCCA model.
 
+    :param latent_dims: number of latent dimensions to learn
+    :param kernel: the kernel type 'linear', 'rbf', 'poly'
+    :param sigma: sigma parameter used by sklearn rbf kernel
+    :param degree: polynomial order parameter used by sklearn polynomial kernel
+    :param c: regularisation between 0 (CCA) and 1 (PLS)
+
     :Example:
 
     >>> from cca_zoo.wrappers import KCCA
@@ -250,6 +256,9 @@ class MCCA(_CCA_Base, BaseEstimator):
     """
     A class used to fit MCCA model. For more than 2 views, MCCA optimizes the sum of pairwise correlations.
 
+    :param latent_dims: number of latent dimensions
+    :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
+
     :Example:
 
     >>> from cca_zoo.wrappers import MCCA
@@ -304,6 +313,10 @@ class MCCA(_CCA_Base, BaseEstimator):
 class GCCA(_CCA_Base, BaseEstimator):
     """
     A class used to fit GCCA model. For more than 2 views, GCCA optimizes the sum of correlations with a shared auxiliary vector
+
+    :param latent_dims: number of latent dimensions
+    :param c: regularisation between 0 (CCA) and 1 (PLS)
+    :param view_weights: list of weights of each view
 
     :Example:
 
@@ -417,6 +430,9 @@ class rCCA(_CCA_Base, BaseEstimator):
     """
     A class used to fit Regularised CCA (canonical ridge) model. Uses PCA to perform the optimization efficiently for high dimensional data.
 
+    :param latent_dims: number of latent dimensions
+    :param c: regularisation between 0 (CCA) and 1 (PLS)
+
     :Example:
 
     >>> from cca_zoo.wrappers import rCCA
@@ -491,6 +507,8 @@ class CCA(rCCA):
     """
     A class used to fit a simple CCA model
 
+    :param latent_dims: number of latent dimensions to learn
+
     Implements CCA by inheriting regularised CCA with 0 regularisation
     :Example:
 
@@ -505,7 +523,7 @@ class CCA(rCCA):
         """
         Constructor for CCA
 
-        :param latent_dims:
+        :param latent_dims: number of latent dimensions to learn
         """
         super().__init__(latent_dims=latent_dims, c=[0, 0])
 
@@ -513,6 +531,15 @@ class CCA(rCCA):
 class _Iterative(_CCA_Base):
     """
     A class used as the base for iterative CCA methods i.e. those that optimize for each dimension one at a time with deflation.
+
+    :param latent_dims: number of latent dimensions
+    :param deflation: the type of deflation.
+    :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+    :param generalized:
+    :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights)
+    or 'random'.
+    :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+
     """
 
     def __init__(self, latent_dims: int = 1, deflation='cca', max_iter=50, generalized=False,
