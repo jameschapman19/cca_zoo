@@ -69,6 +69,18 @@ PMD
 .. autoclass:: PMD
     :exclude-members:
 
+ParkhomenkoCCA
+^^^^^^^^^^^^^^^
+
+.. autoclass:: ParkhomenkoCCA
+    :exclude-members:
+
+ElasticCCA
+^^^^^^^^^^^^^^^
+
+.. autoclass:: ElasticCCA
+    :exclude-members:
+
 Inner Loops for iterative optimization
 ---------------------------------------
 
