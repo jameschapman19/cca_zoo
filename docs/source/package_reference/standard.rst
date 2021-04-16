@@ -9,6 +9,7 @@ cca\_zoo.wrappers module
    :undoc-members:
    :show-inheritance: _CCA_Base, _Iterative
    :private-members: _CCA_Base, _Iterative
+   :special-members: __init__
 
 cca\_zoo.innerloop module
 ---------------------
@@ -18,6 +19,7 @@ cca\_zoo.innerloop module
    :undoc-members:
    :show-inheritance: _InnerLoop
    :private-members: _InnerLoop
+   :special-members: __init__
 
 cca\_zoo.kcca module
 ----------------------------
@@ -26,6 +28,7 @@ cca\_zoo.kcca module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 cca\_zoo.data module
 ----------------------------
@@ -34,6 +37,7 @@ cca\_zoo.data module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 cca\_zoo.plot_utils module
 ----------------------------
@@ -42,3 +46,4 @@ cca\_zoo.plot_utils module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__

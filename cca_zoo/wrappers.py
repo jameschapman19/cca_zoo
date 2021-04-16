@@ -540,7 +540,7 @@ class _Iterative(_CCA_Base):
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
-        self.set_loop_params()
+        self._set_loop_params()
         views_input = self.demean_data(*views)
         n = views_input[0].shape[0]
         p = [view.shape[1] for view in views_input]
@@ -580,7 +580,7 @@ class _Iterative(_CCA_Base):
             return residual - np.outer(score, score) @ residual / np.dot(score, score).item()
 
     @abstractmethod
-    def set_loop_params(self):
+    def _set_loop_params(self):
         """
         Sets up the inner optimization loop for the method. By default uses the PLS inner loop.
         """
@@ -612,7 +612,7 @@ class PLS(_Iterative):
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = cca_zoo.innerloop.PLSInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
                                                    initialization=self.initialization, tol=self.tol)
 
@@ -639,7 +639,7 @@ class CCA_ALS(_Iterative):
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = cca_zoo.innerloop.CCAInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
                                                    initialization=self.initialization, tol=self.tol)
 
@@ -668,7 +668,7 @@ class PMD(_Iterative, BaseEstimator):
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = cca_zoo.innerloop.PMDInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
                                                    initialization=self.initialization, tol=self.tol)
 
@@ -697,7 +697,7 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = cca_zoo.innerloop.ParkhomenkoInnerLoop(max_iter=self.max_iter, c=self.c,
                                                            generalized=self.generalized,
                                                            initialization=self.initialization, tol=self.tol)
@@ -726,7 +726,7 @@ class SCCA(_Iterative, BaseEstimator):
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = cca_zoo.innerloop.SCCAInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
                                                     initialization=self.initialization, tol=self.tol)
 
@@ -761,7 +761,7 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = cca_zoo.innerloop.ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,
                                                     eta=self.eta, generalized=self.generalized,
                                                     initialization=self.initialization, tol=self.tol)
@@ -793,7 +793,7 @@ class ElasticCCA(_Iterative, BaseEstimator):
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = cca_zoo.innerloop.ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio,
                                                        generalized=self.generalized, initialization=self.initialization,
                                                        tol=self.tol, constrained=self.constrained)

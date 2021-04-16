@@ -8,6 +8,7 @@ cca\_zoo.dcca module
    :members:
    :undoc-members:
    :show-inheritance: _DCCA_Base
+   :special-members: __init__
 
 cca\_zoo.dccae module
 ---------------------
@@ -16,6 +17,7 @@ cca\_zoo.dccae module
    :members:
    :undoc-members:
    :show-inheritance: _DCCA_Base
+   :special-members: __init__
 
 cca\_zoo.deep\_models module
 ----------------------------
@@ -24,6 +26,7 @@ cca\_zoo.deep\_models module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 cca\_zoo.deepwrapper module
 ---------------------------
@@ -32,6 +35,7 @@ cca\_zoo.deepwrapper module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 cca\_zoo.dtcca module
 ---------------------
@@ -40,6 +44,7 @@ cca\_zoo.dtcca module
    :members:
    :undoc-members:
    :show-inheritance: _DCCA_Base
+   :special-members: __init__
 
 cca\_zoo.dvcca module
 ---------------------
@@ -48,6 +53,7 @@ cca\_zoo.dvcca module
    :members:
    :undoc-members:
    :show-inheritance: _DCCA_Base
+   :special-members: __init__
 
 
 
@@ -66,4 +72,5 @@ cca\_zoo.splitae module
    :members:
    :undoc-members:
    :show-inheritance: _DCCA_Base
+   :special-members: __init__
 
