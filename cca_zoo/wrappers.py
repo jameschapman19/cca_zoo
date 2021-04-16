@@ -443,7 +443,7 @@ class _Iterative(_CCA_Base):
         super().__init__(latent_dims=latent_dims)
         self.max_iter = max_iter
         self.generalized = generalized
-        self.intialization = initialization
+        self.initialization = initialization
         self.tol = tol
 
     def fit(self, *views: Tuple[np.ndarray], ):
@@ -495,7 +495,7 @@ class _Iterative(_CCA_Base):
     @abstractmethod
     def set_loop_params(self):
         self.loop = cca_zoo.innerloop.PLSInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
-                                                   initialization=self.intialization)
+                                                   initialization=self.initialization)
 
 
 class PLS(_Iterative):
@@ -520,7 +520,7 @@ class PLS(_Iterative):
 
     def set_loop_params(self):
         self.loop = cca_zoo.innerloop.PLSInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
-                                                   initialization=self.intialization, tol=self.tol)
+                                                   initialization=self.initialization, tol=self.tol)
 
 
 class CCA_ALS(_Iterative):
@@ -545,7 +545,7 @@ class CCA_ALS(_Iterative):
 
     def set_loop_params(self):
         self.loop = cca_zoo.innerloop.CCAInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
-                                                   initialization=self.intialization, tol=self.tol)
+                                                   initialization=self.initialization, tol=self.tol)
 
 
 class PMD(_Iterative, BaseEstimator):
@@ -572,7 +572,7 @@ class PMD(_Iterative, BaseEstimator):
 
     def set_loop_params(self):
         self.loop = cca_zoo.innerloop.PMDInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
-                                                   initialization=self.intialization, tol=self.tol)
+                                                   initialization=self.initialization, tol=self.tol)
 
 
 class ParkhomenkoCCA(_Iterative, BaseEstimator):
@@ -600,7 +600,7 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
     def set_loop_params(self):
         self.loop = cca_zoo.innerloop.ParkhomenkoInnerLoop(max_iter=self.max_iter, c=self.c,
                                                            generalized=self.generalized,
-                                                           initialization=self.intialization, tol=self.tol)
+                                                           initialization=self.initialization, tol=self.tol)
 
 
 class SCCA(_Iterative, BaseEstimator):
@@ -627,7 +627,7 @@ class SCCA(_Iterative, BaseEstimator):
 
     def set_loop_params(self):
         self.loop = cca_zoo.innerloop.SCCAInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
-                                                    initialization=self.intialization, tol=self.tol)
+                                                    initialization=self.initialization, tol=self.tol)
 
 
 class SCCA_ADMM(_Iterative, BaseEstimator):
@@ -661,7 +661,7 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
     def set_loop_params(self):
         self.loop = cca_zoo.innerloop.ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,
                                                     eta=self.eta, generalized=self.generalized,
-                                                    initialization=self.intialization, tol=self.tol)
+                                                    initialization=self.initialization, tol=self.tol)
 
 
 class ElasticCCA(_Iterative, BaseEstimator):
@@ -690,7 +690,7 @@ class ElasticCCA(_Iterative, BaseEstimator):
 
     def set_loop_params(self):
         self.loop = cca_zoo.innerloop.ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio,
-                                                       generalized=self.generalized, initialization=self.intialization,
+                                                       generalized=self.generalized, initialization=self.initialization,
                                                        tol=self.tol, constrained=self.constrained)
 
 

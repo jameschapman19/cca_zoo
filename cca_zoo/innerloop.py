@@ -193,6 +193,8 @@ class ElasticInnerLoop(_InnerLoop):
             self.c = [0] * len(self.views)
         if self.l1_ratio is None:
             self.l1_ratio = [0] * len(self.views)
+        if self.constrained:
+            self.bin_init = np.zeros(len(self.views))
 
     def update_view(self, view_index: int):
         """
@@ -204,9 +206,10 @@ class ElasticInnerLoop(_InnerLoop):
         else:
             target = self.scores[view_index - 1]
         if self.constrained:
-            w = self.elastic_solver_constrained(self.views[view_index], target,
-                                                alpha=self.c[view_index] / len(self.views),
-                                                l1_ratio=self.l1_ratio[view_index])
+            w, self.bin_init[view_index] = self.elastic_solver_constrained(self.views[view_index], target,
+                                                                           alpha=self.c[view_index] / len(self.views),
+                                                                           l1_ratio=self.l1_ratio[view_index],
+                                                                           init=self.bin_init[view_index])
         else:
             w = self.elastic_solver(self.views[view_index], target,
                                     alpha=self.c[view_index] / len(self.views),
