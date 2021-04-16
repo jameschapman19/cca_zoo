@@ -32,7 +32,7 @@ release = '1.2.1'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
-    'sphinx_autodoc_typehints'
+    'sphinx_autodoc_typehints',
     'sphinx.ext.viewcode'
 ]
 
