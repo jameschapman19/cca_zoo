@@ -28,14 +28,14 @@ class _CCA_Base(BaseEstimator):
     This is the base class for the models in the cca-zoo package. Inheriting
     the class gives and
 
-    Parameters:
-    :cvar latent_dims: number of latent dimensions
+    Attributes:
+    :
     """
 
     @abstractmethod
     def __init__(self, latent_dims: int = 1):
         """
-
+        Constructor for _CCA_Base
         :param latent_dims:
         """
         self.weights_list = None
@@ -43,21 +43,21 @@ class _CCA_Base(BaseEstimator):
         self.latent_dims = latent_dims
 
     @abstractmethod
-    def fit(self, *views: Tuple[np.ndarray]):
+    def fit(self, *views: Tuple[np.ndarray, ...]) -> _CCA_Base:
         pass
         return self
 
-    def transform(self, *views: Tuple[np.ndarray], **kwargs):
+    def transform(self, *views: Tuple[np.ndarray, ...], **kwargs):
         transformed_views = []
         for i, view in enumerate(views):
             transformed_view = np.ma.array((view - self.view_means[i]) @ self.weights_list[i])
             transformed_views.append(transformed_view)
         return transformed_views
 
-    def fit_transform(self, *views: Tuple[np.ndarray], **kwargs):
+    def fit_transform(self, *views: Tuple[np.ndarray, ...], **kwargs):
         return self.fit(*views).transform(*views, **kwargs)
 
-    def predict_corr(self, *views: Tuple[np.ndarray], **kwargs):
+    def predict_corr(self, *views: Tuple[np.ndarray, ...], **kwargs) -> np.ndarray:
         # Takes two views and predicts their out of sample correlation using trained model
         transformed_views = self.transform(*views, **kwargs)
         all_corrs = []
@@ -66,7 +66,7 @@ class _CCA_Base(BaseEstimator):
         all_corrs = np.array(all_corrs).reshape((len(views), len(views), self.latent_dims))
         return all_corrs
 
-    def demean_data(self, *views: Tuple[np.ndarray]):
+    def demean_data(self, *views: Tuple[np.ndarray, ...]):
         views_input = []
         self.view_means = []
         for view in views:
@@ -74,7 +74,7 @@ class _CCA_Base(BaseEstimator):
             views_input.append(view - view.mean(axis=0))
         return views_input
 
-    def gridsearch_fit(self, *views: Tuple[np.ndarray], K=None, param_candidates=None, folds: int = 5,
+    def gridsearch_fit(self, *views: Tuple[np.ndarray, ...], K=None, param_candidates=None, folds: int = 5,
                        verbose: bool = False,
                        jobs: int = 0,
                        plot: bool = False):
@@ -121,7 +121,7 @@ class _CCA_Base(BaseEstimator):
         return self
 
     """
-    def bayes_fit(self, *views: Tuple[np.ndarray], space=None, folds: int = 5, verbose=True):
+    def bayes_fit(self, *views: Tuple[np.ndarray, ...], space=None, folds: int = 5, verbose=True):
         :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3)
         :param space:
         :param folds: number of folds used for cross validation
@@ -157,13 +157,11 @@ class KCCA(_CCA_Base, BaseEstimator):
 
     def __init__(self, latent_dims: int = 1, kernel: str = 'linear', sigma: float = 1.0, degree: int = 1, c=None):
         """
+        Constructor for KCCA
         :param kernel: the kernel type 'linear', 'rbf', 'poly'
         :param sigma: sigma parameter used by sklearn rbf kernel
         :param degree: polynomial order parameter used by sklearn polynomial kernel
         :param c: regularisation between 0 (CCA) and 1 (PLS)
-
-
-
         """
         super().__init__(latent_dims=latent_dims)
         self.c = c
@@ -171,7 +169,7 @@ class KCCA(_CCA_Base, BaseEstimator):
         self.sigma = sigma
         self.degree = degree
 
-    def fit(self, *views: Tuple[np.ndarray], ):
+    def fit(self, *views: Tuple[np.ndarray, ...], ):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
@@ -188,7 +186,7 @@ class KCCA(_CCA_Base, BaseEstimator):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def transform(self, *views: Tuple[np.ndarray], ):
+    def transform(self, *views: Tuple[np.ndarray, ...], ):
         transformed_views = []
         for i, view in enumerate(views):
             transformed_views.append(
@@ -209,13 +207,14 @@ class MCCA(_CCA_Base, BaseEstimator):
 
     def __init__(self, latent_dims: int = 1, c=None):
         """
+        Constructor for MCCA
         :param latent_dims: number of latent dimensions
         :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
         """
         super().__init__(latent_dims=latent_dims)
         self.c = c
 
-    def fit(self, *views: Tuple[np.ndarray], ):
+    def fit(self, *views: Tuple[np.ndarray, ...], ):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
@@ -262,6 +261,7 @@ class GCCA(_CCA_Base, BaseEstimator):
 
     def __init__(self, latent_dims: int = 1, c=None, view_weights=None):
         """
+        Constructor for GCCA
         :param latent_dims: number of latent dimensions
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         :param view_weights: list of weights of each view
@@ -270,7 +270,7 @@ class GCCA(_CCA_Base, BaseEstimator):
         self.c = c
         self.view_weights = view_weights
 
-    def fit(self, *views: Tuple[np.ndarray], K=None):
+    def fit(self, *views: Tuple[np.ndarray, ...], K=None):
         """
         The fit method takes any number of views as a numpy array along with associated parameters as a dictionary.
         Returns a fit model object which can be used to predict correlations or transform out of sample data.
@@ -305,7 +305,7 @@ class GCCA(_CCA_Base, BaseEstimator):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def demean_observed_data(self, *views: Tuple[np.ndarray], K):
+    def demean_observed_data(self, *views: Tuple[np.ndarray, ...], K):
         """
         Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
         demeaning transformation to out of sample data
@@ -321,7 +321,7 @@ class GCCA(_CCA_Base, BaseEstimator):
             views_input.append(np.diag(observations) @ view)
         return views_input
 
-    def transform(self, *views: Tuple[np.ndarray], K=None):
+    def transform(self, *views: Tuple[np.ndarray, ...], K=None):
         """
         The transform method takes any number of views as a numpy array. Need to have the same number of features as
         those in the views used to train the model.
@@ -339,7 +339,7 @@ class GCCA(_CCA_Base, BaseEstimator):
         return transformed_views
 
 
-def _pca_data(*views: Tuple[np.ndarray]):
+def _pca_data(*views: Tuple[np.ndarray, ...]):
     """
     Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
     demeaning transformation to out of sample data
@@ -369,10 +369,15 @@ class rCCA(_CCA_Base, BaseEstimator):
     """
 
     def __init__(self, latent_dims: int = 1, c=None):
+        """
+        Constructor for rCCA
+        :param latent_dims:
+        :param c:
+        """
         super().__init__(latent_dims=latent_dims)
         self.c = c
 
-    def fit(self, *views: Tuple[np.ndarray], ):
+    def fit(self, *views: Tuple[np.ndarray, ...]):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
@@ -420,6 +425,7 @@ class rCCA(_CCA_Base, BaseEstimator):
 
 class CCA(rCCA):
     """
+    Implements CCA by inheriting regularised CCA with 0 regularisation
     Examples
     --------
     >>> from cca_zoo.wrappers import CCA
@@ -431,7 +437,7 @@ class CCA(rCCA):
 
     def __init__(self, latent_dims: int = 1):
         """
-        Implements CCA by inheriting regularised CCA with 0 regularisation
+        Constructor for CCA
         :param latent_dims:
         """
         super().__init__(latent_dims=latent_dims, c=[0, 0])
@@ -440,13 +446,28 @@ class CCA(rCCA):
 class _Iterative(_CCA_Base):
     def __init__(self, latent_dims: int = 1, deflation='cca', max_iter=50, generalized=False,
                  initialization='unregularized', tol=1e-5):
+        """
+        Constructor for _Iterative
+        :param latent_dims:
+        :type latent_dims:
+        :param deflation:
+        :type deflation:
+        :param max_iter:
+        :type max_iter:
+        :param generalized:
+        :type generalized:
+        :param initialization:
+        :type initialization:
+        :param tol:
+        :type tol:
+        """
         super().__init__(latent_dims=latent_dims)
         self.max_iter = max_iter
         self.generalized = generalized
         self.initialization = initialization
         self.tol = tol
 
-    def fit(self, *views: Tuple[np.ndarray], ):
+    def fit(self, *views: Tuple[np.ndarray, ...], ):
         """
         Fits the model for a given set of parameters (or use default values). Returns parameters/objects that allow out of sample transformation or prediction
         :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3)
@@ -457,7 +478,7 @@ class _Iterative(_CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def outer_loop(self, *views: Tuple[np.ndarray], ):
+    def outer_loop(self, *views: Tuple[np.ndarray, ...], ):
         """
         :param views: numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
@@ -500,6 +521,7 @@ class _Iterative(_CCA_Base):
 
 class PLS(_Iterative):
     """
+    Fits a partial least squares model with CCA deflation by NIPALS algorithm
     Examples
     --------
     >>> from cca_zoo.wrappers import PLS
@@ -511,7 +533,7 @@ class PLS(_Iterative):
 
     def __init__(self, latent_dims: int = 1, max_iter=100, generalized=False, initialization='unregularized', tol=1e-5):
         """
-        Fits a partial least squares model with CCA deflation by NIPALS algorithm
+        Constructor for PLS
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
@@ -525,6 +547,7 @@ class PLS(_Iterative):
 
 class CCA_ALS(_Iterative):
     """
+    Fits a CCA model with CCA deflation by NIPALS algorithm
     Examples
     --------
     >>> from cca_zoo.wrappers import CCA_ALS
@@ -536,7 +559,7 @@ class CCA_ALS(_Iterative):
 
     def __init__(self, latent_dims: int = 1, max_iter=100, generalized=False, initialization='unregularized', tol=1e-5):
         """
-        Fits a CCA model with CCA deflation by NIPALS algorithm
+        Constructor for CCA_ALS
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
@@ -550,19 +573,20 @@ class CCA_ALS(_Iterative):
 
 class PMD(_Iterative, BaseEstimator):
     """
+    Fits a sparse CCA model by penalized matrix decomposition
     Examples
     --------
     >>> from cca_zoo.wrappers import PMD
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
-    >>> model = PMD()
+    >>> model = PMD(c=[1,1])
     >>> model.fit(X1,X2)
     """
 
     def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularized',
                  tol=1e-5):
         """
-        Fits a sparse CCA model by penalized matrix decomposition
+        Constructor for PMD
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
@@ -577,19 +601,20 @@ class PMD(_Iterative, BaseEstimator):
 
 class ParkhomenkoCCA(_Iterative, BaseEstimator):
     """
+    Fits a sparse CCA model by penalized power method
     Examples
     --------
     >>> from cca_zoo.wrappers import ParkhomenkoCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
-    >>> model = ParkhomenkoCCA()
+    >>> model = ParkhomenkoCCA(c=[0.001,0.001])
     >>> model.fit(X1,X2)
     """
 
     def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularized',
                  tol=1e-5):
         """
-        Fits a sparse CCA model by penalization
+        Constructor for ParkhomenkoCCA
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
@@ -605,19 +630,20 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
 
 class SCCA(_Iterative, BaseEstimator):
     """
+    Fits a sparse CCA model by iterative rescaled lasso regression
     Examples
     --------
     >>> from cca_zoo.wrappers import SCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
-    >>> model = SCCA()
+    >>> model = SCCA(c=[0.001,0.001])
     >>> model.fit(X1,X2)
     """
 
     def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularized',
                  tol=1e-5):
         """
-        Fits a sparse CCA model by iterative rescaled lasso regression
+        Constructor for SCCA
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
@@ -632,6 +658,7 @@ class SCCA(_Iterative, BaseEstimator):
 
 class SCCA_ADMM(_Iterative, BaseEstimator):
     """
+    Fits a sparse CCA model by alternating ADMM
     Examples
     --------
     >>> from cca_zoo.wrappers import SCCA_ADMM
@@ -644,7 +671,7 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
     def __init__(self, latent_dims: int = 1, max_iter=100, c=None, mu=None, lam=None, eta=None, generalized=False,
                  initialization='unregularized', tol=1e-5):
         """
-        Fits a sparse CCA model by alternating ADMM
+        Constructor for SCCA_ADMM
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         :param c:
@@ -666,6 +693,7 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
 
 class ElasticCCA(_Iterative, BaseEstimator):
     """
+    Fits an elastic CCA by iterative rescaled elastic net regression
     Examples
     --------
     >>> from cca_zoo.wrappers import ElasticCCA
@@ -678,7 +706,7 @@ class ElasticCCA(_Iterative, BaseEstimator):
     def __init__(self, latent_dims: int = 1, max_iter=100, c=None, l1_ratio=None, generalized=False,
                  initialization='unregularized', tol=1e-5, constrained=False):
         """
-        Fits an elastic CCA by iterative rescaled elastic net regression
+        Constructor for ElasticCCA
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
@@ -708,10 +736,17 @@ class TCCA(_CCA_Base):
     """
 
     def __init__(self, latent_dims: int = 1, c=None):
+        """
+        Constructor for TCCA
+        :param latent_dims:
+        :type latent_dims:
+        :param c:
+        :type c:
+        """
         super().__init__(latent_dims)
         self.c = c
 
-    def fit(self, *views: Tuple[np.ndarray], ):
+    def fit(self, *views: Tuple[np.ndarray, ...], ):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
@@ -749,7 +784,7 @@ class _CrossValidate:
         self.verbose = verbose
         self.model = model
 
-    def score(self, *views: Tuple[np.ndarray], K=None, **cvparams):
+    def score(self, *views: Tuple[np.ndarray, ...], K=None, **cvparams):
         scores = np.zeros(self.folds)
         inds = np.arange(views[0].shape[0])
         np.random.shuffle(inds)
