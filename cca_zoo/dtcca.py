@@ -10,6 +10,8 @@ from cca_zoo.objectives import TCCA
 
 class DTCCA(DCCA, torch.nn.Module):
     """
+    A class used to fit a DTCCA model.
+
     Examples
     --------
     >>> from cca_zoo.dtcca import DTCCA

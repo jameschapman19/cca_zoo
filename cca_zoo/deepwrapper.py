@@ -12,6 +12,10 @@ from cca_zoo.wrappers import _CCA_Base
 
 
 class DeepWrapper(_CCA_Base):
+    """
+    This class is used as a wrapper for DCCA, DCCAE, DVCCA, DTCCA, SplitAE. It can be inherited and adapted to
+    customise the training loop. By inheriting _CCA_Base, the DeepWrapper class gives access to fit_transform.
+    """
 
     def __init__(self, model: _DCCA_base, device: str = 'cuda', tensorboard: bool = False, tensorboard_tag: str = ''):
         super().__init__(latent_dims=model.latent_dims)
@@ -172,15 +176,7 @@ class DeepWrapper(_CCA_Base):
                 else:
                     z_list = [np.append(z_list[i], z_i.detach().cpu().numpy(), axis=0) for
                               i, z_i in enumerate(z)]
-        # For trace-norm objective models we need to apply a linear CCA to outputs
         z_list = self.model.post_transform(*z_list, train=train)
-        # if self.model.post_transform:
-        #   if train:
-        #        self.cca = cca_zoo.wrappers.MCCA(latent_dims=self.latent_dims)
-        #        self.cca.fit(*z_list)
-        #        z_list = self.cca.transform(*z_list)
-        #    else:
-        #        z_list = self.cca.transform(*z_list)
         return z_list
 
     def predict_view(self, test_dataset, labels=None):

@@ -4,7 +4,7 @@ from typing import Iterable, Tuple
 import torch
 
 from cca_zoo.deep_models import BaseEncoder, Encoder
-from cca_zoo.objectives import compute_matrix_power, CCA
+from cca_zoo.objectives import _compute_matrix_power, CCA
 from cca_zoo.wrappers import MCCA
 
 
@@ -37,6 +37,8 @@ class _DCCA_base(torch.nn.Module):
 
 class DCCA(_DCCA_base, torch.nn.Module):
     """
+    A class used to fit a DCCA model.
+
     Examples
     --------
     >>> from cca_zoo.dcca import DCCA
@@ -124,7 +126,7 @@ class DCCA(_DCCA_base, torch.nn.Module):
     def als_loss(self, *args):
         z = self(*args)
         self.update_covariances(*z)
-        covariance_inv = [compute_matrix_power(cov, -0.5, self.eps) for cov in self.covs]
+        covariance_inv = [_compute_matrix_power(cov, -0.5, self.eps) for cov in self.covs]
         preds = [torch.matmul(z, covariance_inv[i]).detach() for i, z in enumerate(z)]
         losses = [torch.mean(torch.norm(z_i - preds[-i], dim=0)) for i, z_i in enumerate(z, start=1)]
         obj = self.objective.loss(*z)

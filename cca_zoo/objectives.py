@@ -1,17 +1,10 @@
-import torch
 import tensorly as tl
-from tensorly.decomposition import parafac
+import torch
 from tensorly.cp_tensor import cp_to_tensor
+from tensorly.decomposition import parafac
 
 
-def attach_dim(v, n_dim_to_prepend=0, n_dim_to_append=0):
-    return v.reshape(
-        torch.Size([1] * n_dim_to_prepend)
-        + v.shape
-        + torch.Size([1] * n_dim_to_append))
-
-
-def compute_matrix_power(M, p, eps, order=True):
+def _compute_matrix_power(M, p, eps, order=True):
     [D, V] = torch.symeig(M, eigenvectors=True)
     if order:
         posInd1 = torch.nonzero(torch.gt(D, eps))[:, 0]
@@ -156,8 +149,8 @@ class CCA:
                                                     H2bar.t()) + self.r * torch.eye(o2, dtype=torch.double,
                                                                                     device=H2.device).float()
 
-        SigmaHat11RootInv = compute_matrix_power(SigmaHat11, -0.5, self.eps)
-        SigmaHat22RootInv = compute_matrix_power(SigmaHat22, -0.5, self.eps)
+        SigmaHat11RootInv = _compute_matrix_power(SigmaHat11, -0.5, self.eps)
+        SigmaHat22RootInv = _compute_matrix_power(SigmaHat22, -0.5, self.eps)
 
         Tval = torch.matmul(torch.matmul(SigmaHat11RootInv,
                                          SigmaHat12), SigmaHat22RootInv)
@@ -194,7 +187,7 @@ class TCCA:
         covs = [(1.0 / (m - 1))*torch.matmul(z_.T, z_) + self.r * torch.eye(z_.size(1), dtype=torch.double,
                                                               device=z_.device).float() for z_ in z]
 
-        z = [z_ @ compute_matrix_power(cov, -0.5, self.eps) for z_,cov in zip(z,covs)]
+        z = [z_ @ _compute_matrix_power(cov, -0.5, self.eps) for z_, cov in zip(z, covs)]
 
         for i, el in enumerate(z):
             if i == 0:

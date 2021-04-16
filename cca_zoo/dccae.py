@@ -10,6 +10,8 @@ from cca_zoo.objectives import CCA
 
 class DCCAE(_DCCA_base):
     """
+    A class used to fit a DCCAE model.
+
     Examples
     --------
     >>> from cca_zoo.dccae import DCCAE

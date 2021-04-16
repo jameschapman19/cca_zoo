@@ -9,6 +9,8 @@ from cca_zoo.deep_models import BaseEncoder, Encoder, BaseDecoder, Decoder
 
 class SplitAE(_DCCA_base):
     """
+    A class used to fit a Split Autoencoder model.
+
     Examples
     --------
     >>> from cca_zoo.splitae import SplitAE

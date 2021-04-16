@@ -10,6 +10,8 @@ from cca_zoo.deep_models import BaseEncoder, Encoder, BaseDecoder, Decoder
 
 class DVCCA(_DCCA_base):
     """
+    A class used to fit a DVCCA model.
+
     https: // arxiv.org / pdf / 1610.03454.pdf
     With pieces borrowed from the variational autoencoder implementation @
     # https: // github.com / pytorch / examples / blob / master / vae / main.py
