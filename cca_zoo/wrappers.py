@@ -27,9 +27,6 @@ class _CCA_Base(BaseEstimator):
     """
     This is the base class for the models in the cca-zoo package. Inheriting
     the class gives and
-
-    Attributes:
-    :
     """
 
     @abstractmethod
