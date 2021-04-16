@@ -5,9 +5,6 @@ cca\_zoo.wrappers module
 --------------------
 
 .. automodule:: cca_zoo.wrappers
-   :members:
-   :undoc-members:
-   :show-inheritance: _CCA_Base, _Iterative
    :private-members: _CCA_Base, _Iterative
    :special-members: __init__
 
