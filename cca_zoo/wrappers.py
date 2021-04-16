@@ -438,9 +438,13 @@ class CCA(rCCA):
 
 
 class _Iterative(_CCA_Base):
-    def __init__(self, latent_dims: int = 1, deflation='cca', max_iter=50):
+    def __init__(self, latent_dims: int = 1, deflation='cca', max_iter=50, generalized=False,
+                 initialization='unregularised', tol=1e-5):
         super().__init__(latent_dims=latent_dims)
         self.max_iter = max_iter
+        self.generalized = generalized
+        self.intialization = initialization
+        self.tol = tol
 
     def fit(self, *views: Tuple[np.ndarray], ):
         """
@@ -490,7 +494,8 @@ class _Iterative(_CCA_Base):
 
     @abstractmethod
     def set_loop_params(self):
-        self.loop = cca_zoo.innerloop.PLSInnerLoop(max_iter=self.max_iter)
+        self.loop = cca_zoo.innerloop.PLSInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
+                                                   initialization=self.intialization)
 
 
 class PLS(_Iterative):
@@ -504,17 +509,18 @@ class PLS(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100):
+    def __init__(self, latent_dims: int = 1, max_iter=100, generalized=False, initialization='unregularised', tol=1e-5):
         """
         Fits a partial least squares model with CCA deflation by NIPALS algorithm
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
-        self.max_iter = max_iter
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
+                         initialization=initialization, tol=tol)
 
     def set_loop_params(self):
-        self.loop = cca_zoo.innerloop.PLSInnerLoop(max_iter=self.max_iter)
+        self.loop = cca_zoo.innerloop.PLSInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
+                                                   initialization=self.intialization, tol=self.tol)
 
 
 class CCA_ALS(_Iterative):
@@ -528,17 +534,18 @@ class CCA_ALS(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100):
+    def __init__(self, latent_dims: int = 1, max_iter=100, generalized=False, initialization='unregularised', tol=1e-5):
         """
         Fits a CCA model with CCA deflation by NIPALS algorithm
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
-        self.max_iter = max_iter
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
+                         initialization=initialization, tol=tol)
 
     def set_loop_params(self):
-        self.loop = cca_zoo.innerloop.CCAInnerLoop(max_iter=self.max_iter)
+        self.loop = cca_zoo.innerloop.CCAInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
+                                                   initialization=self.intialization, tol=self.tol)
 
 
 class PMD(_Iterative, BaseEstimator):
@@ -552,18 +559,20 @@ class PMD(_Iterative, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None):
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularised',
+                 tol=1e-5):
         """
         Fits a sparse CCA model by penalized matrix decomposition
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
         self.c = c
-        self.max_iter = max_iter
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
+                         initialization=initialization, tol=tol)
 
     def set_loop_params(self):
-        self.loop = cca_zoo.innerloop.PMDInnerLoop(max_iter=self.max_iter, c=self.c)
+        self.loop = cca_zoo.innerloop.PMDInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
+                                                   initialization=self.intialization, tol=self.tol)
 
 
 class ParkhomenkoCCA(_Iterative, BaseEstimator):
@@ -577,18 +586,21 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None):
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularised',
+                 tol=1e-5):
         """
         Fits a sparse CCA model by penalization
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
         self.c = c
-        self.max_iter = max_iter
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
+                         initialization=initialization, tol=tol)
 
     def set_loop_params(self):
-        self.loop = cca_zoo.innerloop.ParkhomenkoInnerLoop(max_iter=self.max_iter, c=self.c)
+        self.loop = cca_zoo.innerloop.ParkhomenkoInnerLoop(max_iter=self.max_iter, c=self.c,
+                                                           generalized=self.generalized,
+                                                           initialization=self.intialization, tol=self.tol)
 
 
 class SCCA(_Iterative, BaseEstimator):
@@ -602,18 +614,20 @@ class SCCA(_Iterative, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None):
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularised',
+                 tol=1e-5):
         """
         Fits a sparse CCA model by iterative rescaled lasso regression
         :param latent_dims: Number of latent dimensions
         :param max_iter: Maximum number of iterations
         """
         self.c = c
-        self.max_iter = max_iter
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
+                         initialization=initialization, tol=tol)
 
     def set_loop_params(self):
-        self.loop = cca_zoo.innerloop.SCCAInnerLoop(max_iter=self.max_iter, c=self.c)
+        self.loop = cca_zoo.innerloop.SCCAInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
+                                                    initialization=self.intialization, tol=self.tol)
 
 
 class SCCA_ADMM(_Iterative, BaseEstimator):
@@ -627,7 +641,8 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, mu=None, lam=None, eta=None):
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, mu=None, lam=None, eta=None, generalized=False,
+                 initialization='unregularised', tol=1e-5):
         """
         Fits a sparse CCA model by alternating ADMM
         :param latent_dims: Number of latent dimensions
@@ -640,12 +655,13 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
         self.mu = mu
         self.lam = lam
         self.eta = eta
-        self.max_iter = max_iter
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
+                         initialization=initialization, tol=tol)
 
     def set_loop_params(self):
         self.loop = cca_zoo.innerloop.ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,
-                                                    eta=self.eta)
+                                                    eta=self.eta, generalized=self.generalized,
+                                                    initialization=self.intialization, tol=self.tol)
 
 
 class ElasticCCA(_Iterative, BaseEstimator):
@@ -659,7 +675,8 @@ class ElasticCCA(_Iterative, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, l1_ratio=None):
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, l1_ratio=None, generalized=False,
+                 initialization='unregularised', tol=1e-5):
         """
         Fits an elastic CCA by iterative rescaled elastic net regression
         :param latent_dims: Number of latent dimensions
@@ -667,11 +684,13 @@ class ElasticCCA(_Iterative, BaseEstimator):
         """
         self.c = c
         self.l1_ratio = l1_ratio
-        self.max_iter = max_iter
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter)
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
+                         initialization=initialization, tol=tol)
 
     def set_loop_params(self):
-        self.loop = cca_zoo.innerloop.ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio)
+        self.loop = cca_zoo.innerloop.ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio,
+                                                       generalized=self.generalized, initialization=self.intialization,
+                                                       tol=self.tol)
 
 
 class TCCA(_CCA_Base):
