@@ -40,7 +40,7 @@ class _CCA_Base(BaseEstimator):
         self.latent_dims = latent_dims
 
     @abstractmethod
-    def fit(self, *views: Tuple[np.ndarray, ...]) -> _CCA_Base:
+    def fit(self, *views: Tuple[np.ndarray, ...]):
         pass
         return self
 
