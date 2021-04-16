@@ -33,6 +33,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx_autodoc_typehints'
+    'sphinx.ext.viewcode'
 ]
 
 # -- sphinx.ext.autodoc
