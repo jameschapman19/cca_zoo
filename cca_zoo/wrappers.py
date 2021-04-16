@@ -439,7 +439,7 @@ class CCA(rCCA):
 
 class _Iterative(_CCA_Base):
     def __init__(self, latent_dims: int = 1, deflation='cca', max_iter=50, generalized=False,
-                 initialization='unregularised', tol=1e-5):
+                 initialization='unregularized', tol=1e-5):
         super().__init__(latent_dims=latent_dims)
         self.max_iter = max_iter
         self.generalized = generalized
@@ -509,7 +509,7 @@ class PLS(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, generalized=False, initialization='unregularised', tol=1e-5):
+    def __init__(self, latent_dims: int = 1, max_iter=100, generalized=False, initialization='unregularized', tol=1e-5):
         """
         Fits a partial least squares model with CCA deflation by NIPALS algorithm
         :param latent_dims: Number of latent dimensions
@@ -534,7 +534,7 @@ class CCA_ALS(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, generalized=False, initialization='unregularised', tol=1e-5):
+    def __init__(self, latent_dims: int = 1, max_iter=100, generalized=False, initialization='unregularized', tol=1e-5):
         """
         Fits a CCA model with CCA deflation by NIPALS algorithm
         :param latent_dims: Number of latent dimensions
@@ -559,7 +559,7 @@ class PMD(_Iterative, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularised',
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularized',
                  tol=1e-5):
         """
         Fits a sparse CCA model by penalized matrix decomposition
@@ -586,7 +586,7 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularised',
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularized',
                  tol=1e-5):
         """
         Fits a sparse CCA model by penalization
@@ -614,7 +614,7 @@ class SCCA(_Iterative, BaseEstimator):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularised',
+    def __init__(self, latent_dims: int = 1, max_iter=100, c=None, generalized=False, initialization='unregularized',
                  tol=1e-5):
         """
         Fits a sparse CCA model by iterative rescaled lasso regression
@@ -642,7 +642,7 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
     """
 
     def __init__(self, latent_dims: int = 1, max_iter=100, c=None, mu=None, lam=None, eta=None, generalized=False,
-                 initialization='unregularised', tol=1e-5):
+                 initialization='unregularized', tol=1e-5):
         """
         Fits a sparse CCA model by alternating ADMM
         :param latent_dims: Number of latent dimensions
@@ -676,7 +676,7 @@ class ElasticCCA(_Iterative, BaseEstimator):
     """
 
     def __init__(self, latent_dims: int = 1, max_iter=100, c=None, l1_ratio=None, generalized=False,
-                 initialization='unregularised', tol=1e-5):
+                 initialization='unregularized', tol=1e-5, constrained=False):
         """
         Fits an elastic CCA by iterative rescaled elastic net regression
         :param latent_dims: Number of latent dimensions
@@ -684,13 +684,14 @@ class ElasticCCA(_Iterative, BaseEstimator):
         """
         self.c = c
         self.l1_ratio = l1_ratio
+        self.constrained = constrained
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol)
 
     def set_loop_params(self):
         self.loop = cca_zoo.innerloop.ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio,
                                                        generalized=self.generalized, initialization=self.intialization,
-                                                       tol=self.tol)
+                                                       tol=self.tol, constrained=self.constrained)
 
 
 class TCCA(_CCA_Base):

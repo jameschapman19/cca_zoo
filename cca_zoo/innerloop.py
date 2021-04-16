@@ -43,9 +43,10 @@ class _InnerLoop:
                             zip(self.weights, self.views)]
         elif self.initialization == 'unregularized':
             unregularized = _InnerLoop(initialization='random').fit(*self.views)
-            self.scores = unregularized.scores
+            norms = np.linalg.norm(unregularized.scores, axis=1)
+            self.scores = unregularized.scores / norms[:, np.newaxis]
             # Weight vectors for y (normalized to 1)
-            self.weights = unregularized.weights
+            self.weights = [weight / norm for weight, norm in zip(unregularized.weights, norms)]
         for _ in range(self.max_iter):
             for i, view in enumerate(views):
                 self.update_view(i)
@@ -64,7 +65,7 @@ class _InnerLoop:
     def update_view(self, view_index: int):
         """
         Function used to update the parameters in each view within the loop. By changing this function, we can change
-         the optimisation. This method NEEDS to update self.scores[view_inex]
+         the optimisation. This method NEEDS to update self.scores[view_index]
         :param view_index: index of view being updated
         :return: self with updated weights
         """
@@ -200,23 +201,16 @@ class ElasticInnerLoop(_InnerLoop):
         """
         if self.generalized:
             target = self.scores.mean(axis=0)
-            if self.constrained:
-                w = self.elastic_solver_constrained(self.views[view_index], target,
-                                                    alpha=self.c[view_index] / len(self.views),
-                                                    l1_ratio=self.l1_ratio[view_index])
-            else:
-                w = self.elastic_solver(self.views[view_index], target,
-                                        alpha=self.c[view_index] / len(self.views),
-                                        l1_ratio=self.l1_ratio[view_index])
         else:
-            if self.constrained:
-                w = self.elastic_solver_constrained(self.views[view_index], self.scores[view_index - 1],
-                                                    alpha=self.c[view_index] / len(self.views),
-                                                    l1_ratio=self.l1_ratio[view_index])
-            else:
-                w = self.elastic_solver(self.views[view_index], self.scores[view_index - 1],
-                                        alpha=self.c[view_index],
-                                        l1_ratio=self.l1_ratio[view_index])
+            target = self.scores[view_index - 1]
+        if self.constrained:
+            w = self.elastic_solver_constrained(self.views[view_index], target,
+                                                alpha=self.c[view_index] / len(self.views),
+                                                l1_ratio=self.l1_ratio[view_index])
+        else:
+            w = self.elastic_solver(self.views[view_index], target,
+                                    alpha=self.c[view_index] / len(self.views),
+                                    l1_ratio=self.l1_ratio[view_index])
         assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
         self.weights[view_index] = w / np.linalg.norm(self.views[view_index] @ w)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
