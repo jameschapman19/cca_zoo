@@ -10,27 +10,24 @@ Deep Model Wrapper
 
 .. automodule:: cca_zoo.deepwrapper
    :members:
-   :undoc-members:
+   :inherited-members:
    :show-inheritance:
-   :special-members: __init__
 
 DCCA
 --------------------
 
 .. automodule:: cca_zoo.dcca
    :members:
-   :undoc-members:
-   :show-inheritance: _DCCA_Base
-   :special-members: __init__
+   :inherited-members:
+   :show-inheritance:
 
 DCCAE
 ---------------------
 
 .. automodule:: cca_zoo.dccae
    :members:
-   :undoc-members:
-   :show-inheritance: _DCCA_Base
-   :special-members: __init__
+   :inherited-members:
+   :show-inheritance:
 
 DTCCA
 ---------------------
@@ -46,34 +43,31 @@ DVCCA
 
 .. automodule:: cca_zoo.dvcca
    :members:
-   :undoc-members:
-   :show-inheritance: _DCCA_Base
-   :special-members: __init__
+   :inherited-members:
+   :show-inheritance:
 
 Split Autoencoder
 -----------------------
 
 .. automodule:: cca_zoo.splitae
    :members:
-   :undoc-members:
-   :show-inheritance: _DCCA_Base
-   :special-members: __init__
+   :inherited-members:
+   :show-inheritance:
 
 Encoder and Decoder Architectures + Template
 ---------------------------------------------
 
 .. automodule:: cca_zoo.deep_models
    :members:
-   :undoc-members:
+   :inherited-members:
    :show-inheritance:
-   :special-members: __init__
 
 Objective Functions
 --------------------------
 
 .. automodule:: cca_zoo.objectives
    :members:
-   :undoc-members:
+   :inherited-members:
    :show-inheritance:
 
 

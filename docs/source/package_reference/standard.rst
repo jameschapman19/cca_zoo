@@ -16,144 +16,141 @@ This is used as the base for all the models in this package. By inheriting this 
 fit_transform, and predict_corr and only differ in their fit methods (and transform where necessary).
 
 .. autoclass:: _CCA_Base
-    :show-inheritance:
-    :special-members: __init__
+   :members:
+   :inherited-members:
 
 CCA
 ^^^^^^^
 
 .. autoclass:: CCA
-    :exclude-members:
-    :show-inheritance:
-    :special-members: __init__
+   :members:
+   :inherited-members:
+   :show-inheritance:
 
 rCCA
 ^^^^^^^
 
 .. autoclass:: rCCA
-    :exclude-members:
-    :show-inheritance:
-    :special-members: __init__
+   :members:
+   :inherited-members:
+   :show-inheritance:
 
 PLS
 ^^^^^^^
 
 .. autoclass:: PLS
-    :exclude-members:
-    :show-inheritance:
-    :special-members: __init__
+   :members:
+   :inherited-members:
+   :show-inheritance:
 
 MCCA
 ^^^^^^^
 
 .. autoclass:: MCCA
-    :exclude-members:
-    :show-inheritance:
-    :special-members: __init__
+   :members:
+   :inherited-members:
+   :show-inheritance:
 
 GCCA
 ^^^^^^^
 
 .. autoclass:: GCCA
-    :exclude-members:
-    :show-inheritance:
-    :special-members: __init__
+   :members:
+   :inherited-members:
+   :show-inheritance:
 
 TCCA
 ^^^^^^^^^^^^^^^
 
 .. autoclass:: TCCA
-    :exclude-members:
-    :show-inheritance:
-    :special-members: __init__
+   :members:
+   :inherited-members:
+   :show-inheritance:
 
 KCCA
 ^^^^^^^
 
 .. autoclass:: KCCA
-    :exclude-members:
-    :show-inheritance:
-    :special-members: __init__
+   :members:
+   :inherited-members:
+   :show-inheritance:
 
 CCA_ALS
 ^^^^^^^
 
 .. autoclass:: CCA_ALS
-    :exclude-members:
+   :members:
+   :inherited-members:
+   :show-inheritance:
 
 PMD
 ^^^^^^^
 
 .. autoclass:: PMD
-    :exclude-members:
-    :show-inheritance:
-    :special-members: __init__
+   :members:
+   :inherited-members:
+   :show-inheritance:
 
 SCCA
 ^^^^^^^
 
 .. autoclass:: SCCA
-    :exclude-members:
-    :show-inheritance:
-    :special-members: __init__
+   :members:
+   :inherited-members:
+   :show-inheritance:
 
 PMD
 ^^^^^^^
 
 .. autoclass:: PMD
-    :exclude-members:
-    :show-inheritance:
-    :special-members: __init__
+   :members:
+   :inherited-members:
+   :show-inheritance:
 
 ParkhomenkoCCA
 ^^^^^^^^^^^^^^^
 
 .. autoclass:: ParkhomenkoCCA
-    :exclude-members:
-    :show-inheritance:
-    :special-members: __init__
+   :members:
+   :inherited-members:
+   :show-inheritance:
 
 ElasticCCA
 ^^^^^^^^^^^^^^^
 
 .. autoclass:: ElasticCCA
-    :exclude-members:
-    :show-inheritance:
-    :special-members: __init__
+   :members:
+   :inherited-members:
+   :show-inheritance:
 
 Inner Loops for iterative optimization
 ---------------------------------------
 
 .. automodule:: cca_zoo.innerloop
    :members:
-   :undoc-members:
-   :show-inheritance: _InnerLoop
-   :private-members: _InnerLoop
-   :special-members: __init__
+   :inherited-members:
+   :show-inheritance:
 
 Kernel CCA
 ----------------------------
 
 .. automodule:: cca_zoo.kcca
    :members:
-   :undoc-members:
+   :inherited-members:
    :show-inheritance:
-   :special-members: __init__
 
 Simulated Data and Toy Datasets
 --------------------------------
 
 .. automodule:: cca_zoo.data
    :members:
-   :undoc-members:
+   :inherited-members:
    :show-inheritance:
-   :special-members: __init__
 
 Plotting Utilities
 ----------------------------
 
 .. automodule:: cca_zoo.plot_utils
    :members:
-   :undoc-members:
+   :inherited-members:
    :show-inheritance:
-   :special-members: __init__
