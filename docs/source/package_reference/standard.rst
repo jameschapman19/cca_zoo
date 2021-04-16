@@ -1,6 +1,12 @@
 Standard install
 =================
 
+ABC
+----
+.. autoclass:: cca_zoo.wrappers.MCCA
+    :exclude-members: get_params, set_params
+
+
 Model Wrappers
 --------------------
 
