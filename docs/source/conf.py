@@ -31,10 +31,14 @@ release = '1.2.1'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    "sphinx.ext.autosummary",
     'sphinx.ext.mathjax',
     'sphinx_autodoc_typehints',
     'sphinx.ext.viewcode'
 ]
+
+# -- sphinx.ext.autosummary
+autosummary_generate = True
 
 # -- sphinx.ext.autodoc
 autoclass_content = "both"
