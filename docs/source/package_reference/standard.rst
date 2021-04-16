@@ -7,8 +7,8 @@ cca\_zoo.wrappers module
 .. automodule:: cca_zoo.wrappers
    :members:
    :undoc-members:
-   :show-inheritance:
-   :private-members: _CCA_Base
+   :show-inheritance: _CCA_Base, _Iterative
+   :private-members: _CCA_Base, _Iterative
 
 cca\_zoo.innerloop module
 ---------------------
@@ -17,6 +17,7 @@ cca\_zoo.innerloop module
    :members:
    :undoc-members:
    :show-inheritance: _InnerLoop
+   :private-members: _InnerLoop
 
 cca\_zoo.kcca module
 ----------------------------
