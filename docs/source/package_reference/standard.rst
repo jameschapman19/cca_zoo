@@ -9,41 +9,72 @@ Model Wrappers
 
 .. currentmodule:: cca_zoo.wrappers
 
+Base CCA
+^^^^^^^^^
+
+This is used as the base for all the models in this package. By inheriting this class, other methods access transform,
+fit_transform, and predict_corr and only differ in their fit methods (and transform where necessary).
+
+.. autoclass:: _Base_CCA
+    :exclude-members:
+    :show-inheritance:
+    :special-members: __init__
+
 CCA
 ^^^^^^^
 
 .. autoclass:: CCA
     :exclude-members:
+    :show-inheritance:
+    :special-members: __init__
 
 rCCA
 ^^^^^^^
 
 .. autoclass:: rCCA
     :exclude-members:
+    :show-inheritance:
+    :special-members: __init__
 
 PLS
 ^^^^^^^
 
 .. autoclass:: PLS
     :exclude-members:
+    :show-inheritance:
+    :special-members: __init__
 
 MCCA
 ^^^^^^^
 
 .. autoclass:: MCCA
     :exclude-members:
+    :show-inheritance:
+    :special-members: __init__
 
 GCCA
 ^^^^^^^
 
 .. autoclass:: GCCA
     :exclude-members:
+    :show-inheritance:
+    :special-members: __init__
+
+TCCA
+^^^^^^^^^^^^^^^
+
+.. autoclass:: TCCA
+    :exclude-members:
+    :show-inheritance:
+    :special-members: __init__
 
 KCCA
 ^^^^^^^
 
 .. autoclass:: KCCA
     :exclude-members:
+    :show-inheritance:
+    :special-members: __init__
 
 CCA_ALS
 ^^^^^^^
@@ -56,30 +87,40 @@ PMD
 
 .. autoclass:: PMD
     :exclude-members:
+    :show-inheritance:
+    :special-members: __init__
 
 SCCA
 ^^^^^^^
 
 .. autoclass:: SCCA
     :exclude-members:
+    :show-inheritance:
+    :special-members: __init__
 
 PMD
 ^^^^^^^
 
 .. autoclass:: PMD
     :exclude-members:
+    :show-inheritance:
+    :special-members: __init__
 
 ParkhomenkoCCA
 ^^^^^^^^^^^^^^^
 
 .. autoclass:: ParkhomenkoCCA
     :exclude-members:
+    :show-inheritance:
+    :special-members: __init__
 
 ElasticCCA
 ^^^^^^^^^^^^^^^
 
 .. autoclass:: ElasticCCA
     :exclude-members:
+    :show-inheritance:
+    :special-members: __init__
 
 Inner Loops for iterative optimization
 ---------------------------------------
