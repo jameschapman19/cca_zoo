@@ -5,6 +5,7 @@ Modules included in the standard pip install
 
 ABC
 ----
+
 .. autoclass:: cca_zoo.wrappers.MCCA
     :exclude-members:
 
