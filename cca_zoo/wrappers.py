@@ -628,6 +628,7 @@ class PLS(_Iterative):
     :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
 
     Fits a partial least squares model with CCA deflation by NIPALS algorithm
+
     :Example:
 
     >>> from cca_zoo.wrappers import PLS
@@ -664,8 +665,7 @@ class CCA_ALS(_Iterative):
     :param latent_dims: number of latent dimensions
     :param max_iter: the maximum number of iterations to perform in the inner optimization loop
     :param generalized:
-    :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights)
-    or 'random'.
+    :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
     :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
 
     :Example:
@@ -685,8 +685,7 @@ class CCA_ALS(_Iterative):
         :param latent_dims: number of latent dimensions
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized:
-        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights)
-        or 'random'.
+        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
@@ -702,10 +701,10 @@ class PMD(_Iterative, BaseEstimator):
     Fits a Sparse CCA (Penalized Matrix Decomposition) model.
 
     :param latent_dims: number of latent dimensions
+    :param c: l1 regularisation parameter between 1 and sqrt(number of features) for each view
     :param max_iter: the maximum number of iterations to perform in the inner optimization loop
     :param generalized:
-    :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights)
-    or 'random'.
+    :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
     :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
 
     :Example:
@@ -723,11 +722,10 @@ class PMD(_Iterative, BaseEstimator):
         Constructor for PMD
 
         :param latent_dims: number of latent dimensions
+        :param c: l1 regularisation parameter between 1 and sqrt(number of features) for each view
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param c: the maximum number of iterations to perform in the inner optimization loop
         :param generalized:
-        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights)
-        or 'random'.
+        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         self.c = c
@@ -743,6 +741,13 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
     """
     Fits a sparse CCA (penalized CCA) model
 
+    :param latent_dims: number of latent dimensions
+    :param c: l1 regularisation parameter
+    :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+    :param generalized:
+    :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
+    :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+
     :Example:
 
     >>> from cca_zoo.wrappers import ParkhomenkoCCA
@@ -756,8 +761,13 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
                  generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-5):
         """
         Constructor for ParkhomenkoCCA
-        :param latent_dims: Number of latent dimensions
-        :param max_iter: Maximum number of iterations
+
+        :param latent_dims: number of latent dimensions
+        :param c: l1 regularisation parameter
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized:
+        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
+        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         self.c = c
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
@@ -772,6 +782,14 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
 class SCCA(_Iterative, BaseEstimator):
     """
     Fits a sparse CCA model by iterative rescaled lasso regression
+
+    :param latent_dims: number of latent dimensions
+    :param c: l1 regularisation parameter
+    :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+    :param generalized:
+    :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
+    :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+
     :Example:
 
     >>> from cca_zoo.wrappers import SCCA
@@ -786,8 +804,13 @@ class SCCA(_Iterative, BaseEstimator):
                  initialization: str = 'unregularized', tol: float = 1e-5):
         """
         Constructor for SCCA
-        :param latent_dims: Number of latent dimensions
-        :param max_iter: Maximum number of iterations
+
+        :param latent_dims: number of latent dimensions
+        :param c: l1 regularisation parameter 
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized:
+        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
+        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         self.c = c
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
@@ -801,6 +824,16 @@ class SCCA(_Iterative, BaseEstimator):
 class SCCA_ADMM(_Iterative, BaseEstimator):
     """
     Fits a sparse CCA model by alternating ADMM
+
+    :param latent_dims: number of latent dimensions
+    :param c: l1 regularisation parameter
+    :param mu:
+    :param lam:
+    :param: eta:
+    :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+    :param generalized:
+    :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
+    :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
 
     :Example:
 
@@ -817,11 +850,16 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
                  generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-5):
         """
         Constructor for SCCA_ADMM
-        :param latent_dims: Number of latent dimensions
-        :param max_iter: Maximum number of iterations
-        :param c:
+
+        :param latent_dims: number of latent dimensions
+        :param c: l1 regularisation parameter
         :param mu:
         :param lam:
+        :param: eta:
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized:
+        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
+        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         self.c = c
         self.mu = mu
@@ -840,6 +878,11 @@ class ElasticCCA(_Iterative, BaseEstimator):
     """
     Fits an elastic CCA by iterative rescaled elastic net regression
 
+    :param latent_dims: Number of latent dimensions
+    :param c: lasso alpha
+    :param l1_ratio: l1 ratio in lasso subproblems
+    :param max_iter: Maximum number of iterations
+
     :Example:
 
     >>> from cca_zoo.wrappers import ElasticCCA
@@ -855,7 +898,10 @@ class ElasticCCA(_Iterative, BaseEstimator):
                  initialization: str = 'unregularized', tol: float = 1e-5):
         """
         Constructor for ElasticCCA
+
         :param latent_dims: Number of latent dimensions
+        :param c: lasso alpha
+        :param l1_ratio: l1 ratio in lasso subproblems
         :param max_iter: Maximum number of iterations
         """
         self.c = c
