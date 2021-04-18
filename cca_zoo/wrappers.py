@@ -876,6 +876,9 @@ class TCCA(_CCA_Base):
 
     My own port from https://github.com/rciszek/mdr_tcca
 
+    :param latent_dims:
+    :param c: regularisation between 0 (CCA) and 1 (PLS)
+
     :Example:
 
     >>> from cca_zoo.wrappers import TCCA
@@ -890,7 +893,7 @@ class TCCA(_CCA_Base):
         Constructor for TCCA
 
         :param latent_dims:
-        :param c:
+        :param c: regularisation between 0 (CCA) and 1 (PLS)
         """
         super().__init__(latent_dims)
         self.c = c
