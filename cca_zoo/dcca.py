@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Iterable, Tuple
+from typing import Iterable
 
 import torch
 
@@ -46,7 +46,7 @@ class DCCA(_DCCA_base, torch.nn.Module):
     """
 
     def __init__(self, latent_dims: int, objective=CCA,
-                 encoders: Tuple[BaseEncoder, ...] = (Encoder, Encoder),
+                 encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, als=False, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-9,
                  shared_target: bool = False, schedulers: Iterable = None, optimizers: Iterable = None):
         """

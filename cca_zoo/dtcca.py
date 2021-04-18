@@ -1,4 +1,4 @@
-from typing import Iterable, Tuple
+from typing import Iterable
 
 import torch
 
@@ -18,7 +18,7 @@ class DTCCA(DCCA, torch.nn.Module):
     >>> model = DTCCA()
     """
 
-    def __init__(self, latent_dims: int, encoders: Tuple[BaseEncoder, ...] = (Encoder, Encoder),
+    def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, r: float = 0,
                  schedulers: Iterable = None, optimizers: Iterable = None):
         super().__init__(latent_dims, objective=TCCA, encoders=encoders, learning_rate=learning_rate, r=r,
