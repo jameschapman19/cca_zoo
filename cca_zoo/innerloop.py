@@ -11,14 +11,13 @@ from sklearn.utils._testing import ignore_warnings
 
 
 class _InnerLoop:
-    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
+    def __init__(self, max_iter: int = 100, tol: float = 1e-5, generalized: bool = False,
                  initialization: str = 'unregularized'):
         """
         :param max_iter: maximum number of iterations to perform if tol is not reached
         :param tol: tolerance value used for stopping criteria
         :param generalized: use an auxiliary variable to
-        :param initialization: initialise the optimisation with either the 'unregularized' (CCA/PLS) solution, or
-         a 'random' initialisation
+        :param initialization: initialise the optimisation with either the 'unregularized' (CCA/PLS) solution, or a 'random' initialisation
         """
         self.generalized = generalized
         self.initialization = initialization
@@ -66,6 +65,7 @@ class _InnerLoop:
         """
         Function used to update the parameters in each view within the loop. By changing this function, we can change
          the optimisation. This method NEEDS to update self.scores[view_index]
+
         :param view_index: index of view being updated
         :return: self with updated weights
         """
@@ -79,6 +79,7 @@ class _InnerLoop:
         """
         Function used to calculate the objective function for the given. If we do not override then returns the covariance
          between projections
+
         :return:
         """
         obj = 0
