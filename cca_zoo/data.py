@@ -11,9 +11,20 @@ from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 
 class CCA_Dataset(Dataset):
-    def __init__(self, *args, labels=None, train=True):
+    """
+    Class that turns numpy arrays into a torch dataset
+
+    """
+
+    def __init__(self, *views, labels=None, train=True):
+        """
+
+        :param views:
+        :param labels:
+        :param train:
+        """
         self.train = train
-        self.views = [view for view in args]
+        self.views = [view for view in views]
         if labels is None:
             self.labels = np.zeros(len(self.views[0]))
         else:
@@ -29,7 +40,17 @@ class CCA_Dataset(Dataset):
 
 
 class Noisy_MNIST_Dataset(Dataset):
-    def __init__(self, mnist_type='MNIST', train=True, flatten=True):
+    """
+    Class to generate paired noisy mnist data
+    """
+
+    def __init__(self, mnist_type: str = 'MNIST', train: bool = True, flatten: bool = True):
+        """
+
+        :param mnist_type:
+        :param train:
+        :param flatten:
+        """
         if mnist_type == 'MNIST':
             self.dataset = datasets.MNIST('../../data', train=train, download=True)
         elif mnist_type == 'FashionMNIST':
@@ -97,8 +118,18 @@ class Noisy_MNIST_Dataset(Dataset):
 
 
 class Tangled_MNIST_Dataset(Dataset):
-    def __init__(self, mnist_type='MNIST', train=True, fixed=False, flatten=True):
+    """
+    Class to generate paired tangled MNIST dataset
+    """
 
+    def __init__(self, mnist_type='MNIST', train=True, fixed=False, flatten=True):
+        """
+
+        :param mnist_type:
+        :param train:
+        :param fixed:
+        :param flatten:
+        """
         if mnist_type == 'MNIST':
             self.dataset = datasets.MNIST('../../data', train=train, download=True)
         elif mnist_type == 'FashionMNIST':
@@ -180,6 +211,8 @@ def generate_covariance_data(m: int, k: int, N: int, M: int, sparse_variables_1:
                             structure: str = 'identity', sigma: float = 0.9, decay: float = 0.5,
                             equal_weight=False):
     """
+    Function to generate CCA dataset with defined population correlation
+
     :param m: number of samples
     :param k: number of latent dimensions
     :param N: number of features in view 1
@@ -295,6 +328,7 @@ def generate_simple_data(m: int, N: int, M: int, sparse_variables_1: float = 0,
                          sparse_variables_2: float = 0,
                          eps: float = 0):
     """
+
     :param m: number of samples
     :param N: number of features view 1
     :param M: number of features view 2
