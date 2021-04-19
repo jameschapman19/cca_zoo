@@ -46,7 +46,10 @@ class _InnerLoop:
             self.scores = unregularized.scores / norms[:, np.newaxis]
             # Weight vectors for y (normalized to 1)
             self.weights = [weight / norm for weight, norm in zip(unregularized.weights, norms)]
+
+        # Iterate until convergence
         for _ in range(self.max_iter):
+            # Update each view using loop update function
             for i, view in enumerate(views):
                 self.update_view(i)
 
