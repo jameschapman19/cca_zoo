@@ -11,6 +11,7 @@ Deep Model Wrapper
 .. automodule:: cca_zoo.deepwrapper
    :members:
    :inherited-members:
+   :undoc-members:
    :show-inheritance:
 
 DCCA
@@ -18,6 +19,7 @@ DCCA
 
 .. automodule:: cca_zoo.dcca
    :members:
+   :undoc-members:
    :show-inheritance:
 
 DCCAE
@@ -25,6 +27,7 @@ DCCAE
 
 .. automodule:: cca_zoo.dccae
    :members:
+   :undoc-members:
    :show-inheritance:
 
 DTCCA
@@ -32,6 +35,7 @@ DTCCA
 
 .. automodule:: cca_zoo.dtcca
    :members:
+   :undoc-members:
    :show-inheritance:
 
 DVCCA
@@ -39,6 +43,7 @@ DVCCA
 
 .. automodule:: cca_zoo.dvcca
    :members:
+   :undoc-members:
    :show-inheritance:
 
 Split Autoencoder
@@ -53,6 +58,7 @@ Encoder and Decoder Architectures + Template
 
 .. automodule:: cca_zoo.deep_models
    :members:
+   :undoc-members:
    :show-inheritance:
 
 Objective Functions
@@ -60,6 +66,7 @@ Objective Functions
 
 .. automodule:: cca_zoo.objectives
    :members:
+   :undoc-members:
    :show-inheritance:
 
 
