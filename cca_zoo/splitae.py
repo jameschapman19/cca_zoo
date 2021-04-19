@@ -18,12 +18,20 @@ class SplitAE(_DCCA_base):
     """
 
     def __init__(self, latent_dims: int, encoder: BaseEncoder = Encoder,
-                 decoders: Iterable[BaseDecoder] = [Decoder, Decoder], learning_rate=1e-3, lam=0.5,
+                 decoders: Iterable[BaseDecoder] = [Decoder, Decoder], learning_rate=1e-3,
                  schedulers: Iterable = None, optimizers: Iterable = None):
+        """
+
+        :param latent_dims: # latent dimensions
+        :param encoders: list of encoder networks
+        :param decoders:  list of decoder networks
+        :param learning_rate: learning rate if no optimizers passed
+        :param schedulers: list of schedulers for each optimizer
+        :param optimizers: list of optimizers for each encoder
+        """
         super().__init__(latent_dims)
         self.encoder = encoder
         self.decoders = torch.nn.ModuleList(decoders)
-        self.lam = lam
         if optimizers is None:
             self.optimizer = torch.optim.Adam(list(self.encoder.parameters()) + list(self.decoders.parameters()),
                                               lr=learning_rate)
