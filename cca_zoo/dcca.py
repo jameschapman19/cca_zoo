@@ -50,10 +50,12 @@ class DCCA(_DCCA_base, torch.nn.Module):
                  learning_rate=1e-3, als=False, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-9,
                  shared_target: bool = False, schedulers: Iterable = None, optimizers: Iterable = None):
         """
+        Constructor class for DCCA
+
         :param latent_dims: # latent dimensions
         :param objective: # CCA objective: normal tracenorm CCA by default
         :param encoders: list of encoder networks
-        :param learning_rate: learning rate if no encoders passed
+        :param learning_rate: learning rate if no optimizers passed
         :param als: whether to use ALS form of CCA in training
         :param r: regularisation parameter of tracenorm CCA like ridge CCA
         :param rho: covariance memory like DCCA non-linear orthogonal iterations paper

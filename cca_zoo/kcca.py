@@ -33,8 +33,8 @@ class KCCA:
 
     def __init__(self, *views, latent_dims: int = 2, kernel='linear', sigma=1.0, degree=1, c=None):
         """
-        :param X:
-        :param Y:
+
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param latent_dims: number of latent dimensions to find
         :param kernel: the kernel type 'linear', 'rbf', 'poly'
         :param sigma: sigma parameter used by sklearn rbf kernel

@@ -16,13 +16,16 @@ def _compute_matrix_power(M, p, eps, order=True):
 
 class MCCA:
     """
+
     Differentiable MCCA Loss.
     Loss() method takes the outputs of each view's network and solves the multiset eigenvalue problem
     as in e.g. https://arxiv.org/pdf/2005.11914.pdf
+
     """
 
     def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 0):
         """
+
         :param latent_dims: the number of latent dimensions
         :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to
         the number of latent dimensions
@@ -69,10 +72,12 @@ class GCCA:
     Differentiable GCCA Loss.
     Loss() method takes the outputs of each view's network and solves the generalized CCA eigenproblem
     as in https://arxiv.org/pdf/2005.11914.pdf
+
     """
 
     def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 0):
         """
+
         :param latent_dims: the number of latent dimensions
         :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to
         the number of latent dimensions
@@ -117,13 +122,13 @@ class CCA:
     """
     Differentiable CCA Loss.
     Loss() method takes the outputs of each view's network and solves the CCA problem as in Andrew's original paper
+
     """
 
     def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 0):
         """
         :param latent_dims: the number of latent dimensions
-        :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to
-        the number of latent dimensions
+        :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to the number of latent dimensions
         :param eps: an epsilon parameter used in some operations
         """
         self.latent_dims = latent_dims
@@ -166,15 +171,15 @@ class CCA:
 
 class TCCA:
     """
-    Differentiable CCA Loss.
-    Loss() method takes the outputs of each view's network and solves the CCA problem as in Andrew's original paper
+    Differentiable TCCA Loss.
+
     """
 
     def __init__(self, latent_dims: int, r: float = 0, eps: float = 0):
         """
+
         :param latent_dims: the number of latent dimensions
-        :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to
-        the number of latent dimensions
+        :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to the number of latent dimensions
         :param eps: an epsilon parameter used in some operations
         """
         self.latent_dims = latent_dims
