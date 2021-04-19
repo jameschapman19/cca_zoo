@@ -444,7 +444,7 @@ def elastic_cca_objective(loop: _InnerLoop):
     for i in range(views):
         # TODO this looks like it could be tidied up. In particular can we make the generalized objective correspond to the 2 view
         target = loop.scores.mean(axis=0)
-        objective = np.linalg.norm(loop.views[i] @ loop.weights[i] - target) ** 2 / (2 * loop.views[i].shape[0])
+        objective = views * np.linalg.norm(loop.views[i] @ loop.weights[i] - target) ** 2 / (2 * loop.views[i].shape[0])
         l1_pen = l1[i] * np.linalg.norm(loop.weights[i], ord=1)
         l2_pen = l2[i] * np.linalg.norm(loop.weights[i], ord=2)
         total_objective += objective + l1_pen + l2_pen
