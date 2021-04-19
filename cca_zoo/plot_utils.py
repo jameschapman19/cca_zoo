@@ -7,16 +7,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import itertools
 
-"""
-A bunch of methods I have added to help me do plotting when needed
-
-cv_plot() used to automatically generate basic hyperparameter plots for linear wrapper cv_fit() method
-
-plot_results() used to generate comparison plots for HCP data
-
-
-"""
-
 
 def cv_plot(scores, param_dict, reg):
     scores = pd.Series(scores)
@@ -64,14 +54,6 @@ def cv_plot(scores, param_dict, reg):
             ax.set_ylabel('log ' + sub_df.columns[1])
             ax.set_zlabel('Sum of first n correlations')
 
-    """
-    for
-    sub_df=
-
-        lineObjects = plt.plot(np.array(sorted(list(x1_vals))),
-                               np.squeeze(scores.reshape((len(x1_vals), len(x2_vals), -1)).mean(axis=-1)))
-        plt.legend(lineObjects, sorted(list(x2_vals)), title=x2_name)
-    """
     fig.suptitle('Hyperparameter plot ' + reg)
     plt.savefig('Hyperparameter_plot_' + reg)
 
