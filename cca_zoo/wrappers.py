@@ -466,7 +466,8 @@ class rCCA(_CCA_Base, BaseEstimator):
         eigvecs = eigvecs[:, idx].real
         eigvals = np.real(np.sqrt(eigvals))[:self.latent_dims]
         w_y = Vt_list[1].T @ np.diag(1 / np.sqrt(B_list[1])) @ eigvecs[:, :self.latent_dims].real
-        w_x = Vt_list[0].T @ np.diag(1 / B_list[0]) @ R_12 @ eigvecs[:, :self.latent_dims].real / eigvals
+        w_x = Vt_list[0].T @ np.diag(1 / B_list[0]) @ R_12 @ np.diag(1 / np.sqrt(B_list[1])) @ eigvecs[:,
+                                                                                               :self.latent_dims].real / eigvals
         self.weights_list = [w_x, w_y]
 
     def multi_view_fit(self, U_list, S_list, Vt_list):
