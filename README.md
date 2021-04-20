@@ -87,7 +87,15 @@ I've added this section to give due credit to the repositories that helped me in
 
 Models can be tested on data from MNIST datasets provided by the torch package (https://pytorch.org/) and the UCI dataset provided by mvlearn package (https://mvlearn.github.io/)
 
-Other Implementations of DCCA/DCCAE:
+## Other Implementations of (regularised)CCA/PLS:
+
+MATLAB implementation https://github.com/anaston/PLS_CCA_framework
+
+## Implementation of Sparse PLS:
+
+MATLAB implementation of SPLS by @jmmonteiro (https://github.com/jmmonteiro/spls)
+
+## Other Implementations of DCCA/DCCAE:
 
 Keras implementation of DCCA from @VahidooX's github page(https://github.com/VahidooX)
 The following are the other implementations of DCCA in MATLAB and C++. These codes are written by the authors of the original paper:
@@ -100,10 +108,6 @@ MATLAB implementation of DCCA/DCCAE from Weiran Wang's website (http://ttic.uchi
 
 MATLAB implementation of TCCA from https://github.com/rciszek/mdr_tcca
 
-Implementation of VAE:
+## Implementation of VAE:
 
 Torch implementation of VAE (https://github.com/pytorch/examples/tree/master/vae)
-
-Implementation of Sparse PLS:
-
-MATLAB implementation of SPLS by @jmmonteiro (https://github.com/jmmonteiro/spls)
