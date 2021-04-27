@@ -1,14 +1,127 @@
 """Helped by https://github.com/bcdutton/AdversarialCanonicalCorrelationAnalysis (hopefully I will have my own
 implementation of their work soon) Check out their paper at https://arxiv.org/abs/2005.10349 """
 
+import itertools
+from typing import List, Union
+
 import PIL
 import numpy as np
 import torch
 import torch.utils.data
 from PIL import Image
 from scipy import linalg
+from scipy.linalg import block_diag
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
+
+
+def generate_covariance_data(n: int, k: int, view_features: List[int],
+                             view_sparsity: List[Union[int, float]] = None,
+                             signal: float = 1,
+                             structure: str = 'identity', sigma: float = 0.9, decay: float = 0.5):
+    """
+    Function to generate CCA dataset with defined population correlation
+
+    :param view_sparsity: level of sparsity in features in each view either as number of active variables or percentage active
+    :param view_features: number of features in each view
+    :param n: number of samples
+    :param k: number of latent dimensions
+    :param signal: correlation
+    :param structure: within view covariance structure
+    :param sigma: gaussian sigma
+    :param decay: ratio of second signal to first signal
+    :return: tuple of numpy arrays: view_1, view_2, true weights from view 1, true weights from view 2, overall covariance structure
+    """
+    completed = False
+    while not completed:
+        try:
+            mean = np.zeros(sum(view_features))
+            p = np.arange(0, k)
+            p = decay ** p
+            cov = []
+            true_features = []
+            for view_p, sparsity in zip(view_features, view_sparsity):
+                # Covariance Bit
+                if structure == 'identity':
+                    cov_ = np.eye(view_p)
+                elif structure == 'gaussian':
+                    cov_ = _generate_gaussian_cov(view_p, sigma)
+                elif structure == 'toeplitz':
+                    cov_ = _generate_toeplitz_cov(view_p, sigma)
+                elif structure == 'random':
+                    cov_ = _generate_random_cov(view_p)
+                elif structure == 'simple':
+                    cov_ = generate_simple_data(n, view_features, view_sparsity)
+
+                weights = np.random.rand(view_p, k)
+                for _ in range(k):
+                    if sparsity > 0:
+                        if sparsity < 1:
+                            sparsity = np.ceil(sparsity * view_p).astype('int')
+                        # first = np.random.randint(N - sparse_variables_1)
+                        # up[:first, _] = 0
+                        # up[(first + sparse_variables_1):, _] = 0
+                        mask = np.concatenate(([0] * sparsity, [1] * (view_p - sparsity))).astype(bool)
+                        np.random.shuffle(mask)
+                        weights[mask, _] = 0
+
+                weights = _decorrelate_dims(weights, cov_)
+                weights /= np.sqrt(np.diag((weights.T @ cov_ @ weights)))
+                true_features.append(weights)
+                cov.append(cov_)
+
+            cov = block_diag(*cov)
+
+            splits = np.concatenate(([0], np.cumsum(view_features)))
+
+            for i, j in itertools.combinations(range(len(splits) - 1), 2):
+                cross = np.zeros((view_features[i], view_features[j]))
+                for _ in range(k):
+                    cross += signal * p[_] * np.outer(true_features[i][:, _], true_features[j][:, _])
+                    # Cross Bit
+                    cross = cov[splits[i]:splits[i] + view_features[i], splits[i]:splits[i] + view_features[i]] @ cross \
+                            @ cov[splits[j]:splits[j] + view_features[j], splits[j]:splits[j] + view_features[j]]
+                cov[splits[i]: splits[i] + view_features[i], splits[j]: splits[j] + view_features[j]] = cross
+                cov[splits[j]: splits[j] + view_features[j], splits[i]: splits[i] + view_features[i]] = cross.T
+
+            X = np.zeros((n, sum(view_features)))
+            chol = np.linalg.cholesky(cov)
+            for _ in range(n):
+                X[_, :] = _chol_sample(mean, chol)
+            views = np.split(X, np.cumsum(view_features)[:-1], axis=1)
+            completed = True
+        except:
+            completed = False
+    return views, true_features
+
+
+def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[int] = None,
+                         eps: float = 0):
+    """
+
+    :param n: number of samples
+    :param view_features: number of features view 1
+    :param view_sparsity: number of features view 2
+    :param eps: gaussian noise std
+    :return: view1 matrix, view2 matrix, true weights view 1, true weights view 2
+    """
+    z = np.random.normal(0, 1, n)
+    views = []
+    true_features = []
+    for p, sparsity in zip(view_features, view_sparsity):
+        weights = np.random.rand(p, 1)
+        if sparsity > 0:
+            if sparsity < 1:
+                sparsity = np.ceil(sparsity * p).astype('int')
+            weights[np.random.choice(np.arange(p), p - sparsity, replace=False)] = 0
+
+        gaussian_x = np.random.normal(0, eps, (n, p))
+        view = np.outer(z, weights)
+        view += gaussian_x
+        views.append(view)
+        true_features.append(weights)
+    return views, true_features
+
 
 class CCA_Dataset(Dataset):
     """
@@ -197,170 +310,6 @@ class Tangled_MNIST_Dataset(Dataset):
         return view_1, view_2, rotation_1, rotation_2, OH_labels, labels
 
 
-def _chol_sample(mean, chol):
-    return mean + chol @ np.random.standard_normal(mean.size)
-
-
-def _gaussian(x, mu, sig, dn):
-    return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.))) * dn / (np.sqrt(2 * np.pi) * sig)
-
-
-def generate_covariance_data(m: int, k: int, N: int, M: int, sparse_variables_1: float = 0,
-                            sparse_variables_2: float = 0,
-                            signal: float = 1,
-                            structure: str = 'identity', sigma: float = 0.9, decay: float = 0.5,
-                            equal_weight=False):
-    """
-    Function to generate CCA dataset with defined population correlation
-
-    :param m: number of samples
-    :param k: number of latent dimensions
-    :param N: number of features in view 1
-    :param M: number of features in view 2
-    :param sparse_variables_1: fraction of active variables from view 1 associated with true signal
-    :param sparse_variables_2: fraction of active variables from view 2 associated with true signal
-    :param signal: correlation
-    :param structure: within view covariance structure
-    :param sigma: gaussian sigma
-    :param decay: ratio of second signal to first signal
-    :return: tuple of numpy arrays: view_1, view_2, true weights from view 1, true weights from view 2, overall covariance structure
-    """
-    if equal_weight:
-        assert (k == 1), "you cannot have equal weights and more than 1 latent dimension"
-    mean = np.zeros(N + M)
-    cov = np.zeros((N + M, N + M))
-    p = np.arange(0, k)
-    p = decay ** p
-    # Covariance Bit
-    if structure == 'identity':
-        cov_1 = np.eye(N)
-        cov_2 = np.eye(M)
-    if structure == 'pls':
-        cov_1 = np.eye(N)
-        cov_2 = np.eye(M)
-    elif structure == 'gaussian':
-        x = np.linspace(-1, 1, N)
-        x_tile = np.tile(x, (N, 1))
-        mu_tile = np.transpose(x_tile)
-        dn = 2 / (N - 1)
-        cov_1 = _gaussian(x_tile, mu_tile, sigma, dn)
-        cov_1 /= cov_1.max()
-        x = np.linspace(-1, 1, M)
-        x_tile = np.tile(x, (M, 1))
-        mu_tile = np.transpose(x_tile)
-        dn = 2 / (M - 1)
-        cov_2 = _gaussian(x_tile, mu_tile, sigma, dn)
-        cov_2 /= cov_2.max()
-    elif structure == 'toeplitz':
-        c = np.arange(0, N)
-        c = sigma ** c
-        cov_1 = linalg.toeplitz(c, c)
-        c = np.arange(0, M)
-        c = sigma ** c
-        cov_2 = linalg.toeplitz(c, c)
-    elif structure == 'random':
-        cov_1 = np.random.rand(N, N)
-        U, S, V = np.linalg.svd(cov_1.T @ cov_1)
-        cov_1 = U @ (1.0 + np.diag(np.random.rand(N))) @ V
-        cov_2 = np.random.rand(M, M)
-        U, S, V = np.linalg.svd(cov_2.T @ cov_2)
-        cov_2 = U @ (1.0 + np.diag(np.random.rand(M))) @ V
-    elif structure == 'simple':
-        return generate_simple_data(m, N, M, sparse_variables_1,
-                                    sparse_variables_2,
-                                    sigma)
-    cov[:N, :N] = cov_1
-    cov[N:, N:] = cov_2
-    del cov_1
-    del cov_2
-
-    if equal_weight:
-        up = np.ones((N, k))  # np.random.rand(N, k) - 0.5
-    else:
-        up = np.random.rand(N, k)
-    for _ in range(k):
-        if sparse_variables_1 > 0:
-            if sparse_variables_1 < 1:
-                sparse_variables_1 = np.ceil(sparse_variables_1 * N).astype('int')
-            # first = np.random.randint(N - sparse_variables_1)
-            # up[:first, _] = 0
-            # up[(first + sparse_variables_1):, _] = 0
-            up[np.random.choice(np.arange(N), N - sparse_variables_1, replace=False)] = 0
-
-    up = _decorrelate_dims(up, cov[:N, :N])
-    up /= np.sqrt(np.diag((up.T @ cov[:N, :N] @ up)))
-
-    if equal_weight:
-        vp = np.ones((M, k))  # np.random.rand(M, k) - 0.5
-    else:
-        vp = np.random.rand(M, k)
-    for _ in range(k):
-        if sparse_variables_2 > 0:
-            if sparse_variables_2 < 1:
-                sparse_variables_2 = np.ceil(sparse_variables_2 * M).astype('int')
-            # first = np.random.randint(M - sparse_variables_2)
-            # vp[:first, _] = 0
-            # vp[(first + sparse_variables_2):, _] = 0
-            vp[~np.random.choice(np.arange(M), M - sparse_variables_2, replace=False)] = 0
-
-    vp = _decorrelate_dims(vp, cov[N:, N:])
-    vp /= np.sqrt(np.diag((vp.T @ cov[N:, N:] @ vp)))
-
-    cross = np.zeros((N, M))
-    for _ in range(k):
-        cross += signal * p[_] * np.outer(up[:, _], vp[:, _])
-    # Cross Bit
-    cross = cov[:N, :N] @ cross @ cov[N:, N:]
-
-    cov[N:, :N] = cross.T
-    cov[:N, N:] = cross
-
-    X = np.zeros((m, N + M))
-    chol = np.linalg.cholesky(cov)
-    for _ in range(m):
-        X[_, :] = _chol_sample(mean, chol)
-    Y = X[:, N:]
-    X = X[:, :N]
-    return X, Y, up, vp
-
-
-def generate_simple_data(m: int, N: int, M: int, sparse_variables_1: float = 0,
-                         sparse_variables_2: float = 0,
-                         eps: float = 0):
-    """
-
-    :param m: number of samples
-    :param N: number of features view 1
-    :param M: number of features view 2
-    :param sparse_variables_1: either integer number of active variables or float fraction
-    :param sparse_variables_2: either integer number of active variables or float fraction
-    :param eps: gaussian noise std
-    :return: view1 matrix, view2 matrix, true weights view 1, true weights view 2
-    """
-    z = np.random.normal(0, 1, m)
-
-    up = np.random.rand(N, 1)
-    if sparse_variables_1 > 0:
-        if sparse_variables_1 < 1:
-            sparse_variables_1 = np.ceil(sparse_variables_1 * N).astype('int')
-        up[np.random.choice(np.arange(N), N - sparse_variables_1, replace=False)] = 0
-    vp = np.random.rand(M, 1)
-    if sparse_variables_2 > 0:
-        if sparse_variables_2 < 1:
-            sparse_variables_2 = np.ceil(sparse_variables_2 * M).astype('int')
-        vp[np.random.choice(np.arange(M), M - sparse_variables_2, replace=False)] = 0
-    gaussian_x = np.random.normal(0, eps, (m, N))
-    gaussian_y = np.random.normal(0, eps, (m, M))
-
-    X = np.outer(z, up)
-    Y = np.outer(z, vp)
-
-    X += gaussian_x
-    Y += gaussian_y
-
-    return X, Y, up, vp
-
-
 def _OH_digits(digits):
     b = np.zeros((digits.size, digits.max() + 1))
     b[np.arange(digits.size), digits] = 1
@@ -378,3 +327,35 @@ def _decorrelate_dims(up, cov):
         up[:, k:] -= np.outer(up[:, k - 1], A[k - 1, k:] / A[k - 1, k - 1])
         A = up.T @ cov @ up
     return up
+
+
+def _chol_sample(mean, chol):
+    return mean + chol @ np.random.standard_normal(mean.size)
+
+
+def _gaussian(x, mu, sig, dn):
+    return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.))) * dn / (np.sqrt(2 * np.pi) * sig)
+
+
+def _generate_gaussian_cov(p, sigma):
+    x = np.linspace(-1, 1, p)
+    x_tile = np.tile(x, (p, 1))
+    mu_tile = np.transpose(x_tile)
+    dn = 2 / (p - 1)
+    cov = _gaussian(x_tile, mu_tile, sigma, dn)
+    cov /= cov.max()
+    return cov
+
+
+def _generate_toeplitz_cov(p, sigma):
+    c = np.arange(0, p)
+    c = sigma ** c
+    cov = linalg.toeplitz(c, c)
+    return cov
+
+
+def _generate_random_cov(p):
+    cov_ = np.random.rand(p, p)
+    U, S, V = np.linalg.svd(cov_.T @ cov_)
+    cov = U @ (1.0 + np.diag(np.random.rand(p))) @ V
+    return cov
