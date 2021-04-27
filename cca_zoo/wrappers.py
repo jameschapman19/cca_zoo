@@ -672,7 +672,7 @@ class ElasticCCA(_Iterative, BaseEstimator):
 
 class CCA_ALS(ElasticCCA):
     """
-    Fits a CCA model with CCA deflation by NIPALS algorithm
+    Fits a CCA model with CCA deflation by NIPALS algorithm. Implemented by ElasticCCA with 0 regularisation
 
     :Example:
 
@@ -700,7 +700,7 @@ class CCA_ALS(ElasticCCA):
 
 class SCCA(ElasticCCA):
     """
-    Fits a sparse CCA model by iterative rescaled lasso regression
+    Fits a sparse CCA model by iterative rescaled lasso regression. Implemented by ElasticCCA with l1 ratio=1
 
     :Example:
 
