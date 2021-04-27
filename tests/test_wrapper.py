@@ -1,7 +1,8 @@
+import itertools
 from unittest import TestCase
 
 import numpy as np
-import itertools
+
 import cca_zoo.wrappers
 
 np.random.seed(123)
@@ -18,7 +19,7 @@ class TestWrapper(TestCase):
         pass
 
     def test_unregularized_methods(self):
-        latent_dims = 5
+        latent_dims = 1
         wrap_cca = cca_zoo.wrappers.CCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_iter = cca_zoo.wrappers.CCA_ALS(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y)
@@ -43,7 +44,7 @@ class TestWrapper(TestCase):
     def test_unregularized_multi(self):
         latent_dims = 5
         wrap_cca = cca_zoo.wrappers.rCCA(latent_dims=latent_dims).fit(self.X, self.Y, self.Z)
-        wrap_iter = cca_zoo.wrappers.CCA_ALS(latent_dims=latent_dims).fit(self.X, self.Y, self.Z)
+        wrap_iter = cca_zoo.wrappers.CCA_ALS(latent_dims=latent_dims, stochastic=False).fit(self.X, self.Y, self.Z)
         wrap_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims).fit(self.X, self.Y, self.Z)
         wrap_mcca = cca_zoo.wrappers.MCCA(latent_dims=latent_dims).fit(self.X, self.Y, self.Z)
         corr_cca = wrap_cca.train_correlations[:, :, 0]

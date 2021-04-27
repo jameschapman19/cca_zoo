@@ -3,14 +3,16 @@
 In this script I demonstrate the general pipeline I use in the cca_zoo package.
 """
 
-# Imports
-import numpy as np
-from cca_zoo import wrappers
-from cca_zoo import data
 import itertools
 import os
+
 import matplotlib.pyplot as plt
+# Imports
+import numpy as np
 from torch.utils.data import Subset
+
+from cca_zoo import data
+from cca_zoo import wrappers
 
 # Load MNIST Data
 os.chdir('..')
@@ -44,6 +46,20 @@ max_iter = 10
 # number of epochs for deep models
 epochs = 50
 
+# PMD
+c1 = [1, 3, 7, 9]
+c2 = [1, 3, 7, 9]
+param_candidates = {'c': list(itertools.product(c1, c2))}
+
+pmd = wrappers.PMD(latent_dims=latent_dims, max_iter=max_iter).gridsearch_fit(
+    train_view_1,
+    train_view_2,
+    param_candidates=param_candidates,
+    folds=cv_folds,
+    verbose=True, jobs=jobs,
+    plot=True)
+
+pmd_results = np.stack((pmd.train_correlations[0, 1, :], pmd.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 
 """
 ### Linear CCA via alternating least squares (can pass more than 2 views)

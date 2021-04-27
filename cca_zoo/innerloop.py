@@ -3,10 +3,7 @@ from itertools import combinations
 
 import numpy as np
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.linear_model import ElasticNet
-from sklearn.linear_model import Lasso
-from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import ElasticNet, Lasso, LinearRegression, Ridge, SGDRegressor
 from sklearn.utils._testing import ignore_warnings
 
 
@@ -35,17 +32,15 @@ class _InnerLoop:
         self.track_objective = []
         self.track_correlation = []
         self.check_params()
+        self.weights = [np.random.rand(view.shape[1], 1) for view in self.views]
+        self.weights = [weights / np.linalg.norm(view @ weights) for (weights, view) in
+                        zip(self.weights, self.views)]
         if self.initialization == 'random':
             self.scores = np.array([np.random.rand(view.shape[0]) for view in self.views])
-            self.weights = [np.random.rand(view.shape[1]) for view in self.views]
-            self.weights = [weights / np.linalg.norm(view @ weights) for (weights, view) in
-                            zip(self.weights, self.views)]
         elif self.initialization == 'unregularized':
-            unregularized = _InnerLoop(initialization='random').fit(*self.views)
+            unregularized = PLSInnerLoop(initialization='random').fit(*self.views)
             norms = np.linalg.norm(unregularized.scores, axis=1)
             self.scores = unregularized.scores / norms[:, np.newaxis]
-            # Weight vectors for y (normalized to 1)
-            self.weights = [weight / norm for weight, norm in zip(unregularized.weights, norms)]
 
         # Iterate until convergence
         for _ in range(self.max_iter):
@@ -54,8 +49,6 @@ class _InnerLoop:
                 self.update_view(i)
 
             self.track_objective.append(self.objective())
-            # Sum all pairwise correlations
-            self.track_correlation.append(np.corrcoef(self.scores)[np.triu_indices(self.scores.shape[0], 1)].sum())
             # Some kind of early stopping
             if _ > 0 and all(_cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol) for n, view in
                              enumerate(self.scores)):
@@ -184,10 +177,10 @@ class ParkhomenkoInnerLoop(_InnerLoop):
 
 class ElasticInnerLoop(_InnerLoop):
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized', c=None, l1_ratio=None, constrained=False):
+                 initialization: str = 'unregularized', c=None, l1_ratio=None, constrained=False, stochastic=True):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
-
+        self.stochastic = stochastic
         self.constrained = constrained
         self.c = c
         self.l1_ratio = l1_ratio
@@ -195,8 +188,12 @@ class ElasticInnerLoop(_InnerLoop):
     def check_params(self):
         if self.c is None:
             self.c = [0] * len(self.views)
+        elif isinstance(self.c, (float, int)):
+            self.c = [self.c] * len(self.views)
         if self.l1_ratio is None:
             self.l1_ratio = [0] * len(self.views)
+        elif isinstance(self.l1_ratio, (float, int)):
+            self.l1_ratio = [self.l1_ratio] * len(self.views)
         if self.constrained:
             self.bin_init = np.zeros(len(self.views))
 
@@ -220,23 +217,28 @@ class ElasticInnerLoop(_InnerLoop):
                                     l1_ratio=self.l1_ratio[view_index])
         assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
         self.weights[view_index] = w / np.linalg.norm(self.views[view_index] @ w)
-        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
+        self.scores[view_index] = (self.views[view_index] @ self.weights[view_index]).ravel()
         return w
 
     @ignore_warnings(category=ConvergenceWarning)
     def elastic_solver(self, X, y, alpha=0.1, l1_ratio=0.5):
-        if alpha == 0:
-            clf = LinearRegression(fit_intercept=False)
-            clf.fit(X, y)
-            beta = clf.coef_
-        elif l1_ratio == 0:
-            clf = Ridge(alpha=alpha, fit_intercept=False)
-            clf.fit(X, y)
-            beta = clf.coef_
+        if self.stochastic:
+            if l1_ratio == 0:
+                beta = SGDRegressor(penalty='l2', alpha=alpha, fit_intercept=False, max_iter=10).fit(X, y.ravel()).coef_
+            elif l1_ratio == 1:
+                beta = SGDRegressor(penalty='l1', alpha=alpha, fit_intercept=False, max_iter=10).fit(X, y.ravel()).coef_
+            else:
+                beta = SGDRegressor(penalty='elasticnet', alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False,
+                                    max_iter=10).fit(X, y.ravel()).coef_
         else:
-            clf = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False)
-            clf.fit(X, y)
-            beta = clf.coef_
+            if alpha == 0:
+                beta = LinearRegression(fit_intercept=False).fit(X, y.ravel()).coef_
+            elif l1_ratio == 0:
+                beta = Ridge(alpha=alpha, fit_intercept=False).fit(X, y.ravel()).coef_
+            elif l1_ratio == 1:
+                beta = Lasso(alpha=alpha, fit_intercept=False).fit(X, y.ravel()).coef_
+            else:
+                beta = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(X, y.ravel()).coef_
         return beta
 
     @ignore_warnings(category=ConvergenceWarning)
@@ -250,8 +252,15 @@ class ElasticInnerLoop(_InnerLoop):
         i = 0
         while not converged:
             i += 1
-            coef = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(np.sqrt(current + 1) * X,
-                                                                                       y / np.sqrt(current + 1)).coef_
+            if self.stochastic:
+                coef = SGDRegressor(penalty='elasticnet', alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(
+                    np.sqrt(current + 1) * X,
+                    y.ravel() / np.sqrt(
+                        current + 1)).coef_
+            else:
+                coef = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(np.sqrt(current + 1) * X,
+                                                                                           y.ravel() / np.sqrt(
+                                                                                               current + 1)).coef_
             current_val = 1 - np.linalg.norm(X @ coef)
             current, previous, min_, max_ = _bin_search(current, previous, current_val, previous_val, min_, max_)
             previous_val = current_val
@@ -266,81 +275,6 @@ class ElasticInnerLoop(_InnerLoop):
 
     def objective(self):
         return elastic_cca_objective(self)
-
-
-class CCAInnerLoop(ElasticInnerLoop):
-    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized'):
-        super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
-                         initialization=initialization, c=None, l1_ratio=None)
-
-    def check_params(self):
-        if self.c is None:
-            self.c = [0] * len(self.views)
-        if self.l1_ratio is None:
-            self.l1_ratio = [0] * len(self.views)
-        self.inverses = [np.linalg.pinv(view) for view in self.views]
-
-    def update_view(self, view_index: int):
-        """
-        :param view_index: index of view being updated
-        :return: updated weights
-        """
-        if self.generalized:
-            target = self.scores.mean(axis=0)
-            w = self.inverses[view_index] @ target
-        else:
-            w = self.inverses[view_index] @ self.scores[view_index - 1]
-        self.weights[view_index] = w / np.linalg.norm(self.views[view_index] @ w)
-        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
-
-    def objective(self):
-        return elastic_cca_objective(self)
-
-
-class SCCAInnerLoop(_InnerLoop):
-    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized', c=None):
-        super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
-                         initialization=initialization)
-        self.c = c
-
-    def check_params(self):
-        if self.c is None:
-            self.c = [0] * len(self.views)
-        self.l1_ratio = [1 for _ in self.views]
-
-    def update_view(self, view_index: int):
-        """
-        :param view_index: index of view being updated
-        :return: updated weights
-        """
-        if self.generalized:
-            target = self.scores.mean(axis=0)
-            w = self.lasso_solver(self.views[view_index], target,
-                                  alpha=self.c[view_index] / len(self.views))
-        else:
-            w = self.lasso_solver(self.views[view_index], self.scores[view_index - 1],
-                                  alpha=self.c[view_index])
-        assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
-        self.weights[view_index] = w / np.linalg.norm(self.views[view_index] @ w)
-        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
-
-    def objective(self):
-        return elastic_cca_objective(self)
-
-    @ignore_warnings(category=ConvergenceWarning)
-    def lasso_solver(self, X, y, alpha=0.1):
-        # alpha_max for lasso regression = np.max(np.abs(X.T@y))
-        if alpha == 0:
-            clf = LinearRegression(fit_intercept=False)
-            clf.fit(X, y)
-            beta = clf.coef_
-        else:
-            lassoreg = Lasso(alpha=alpha, selection='random', fit_intercept=False)
-            lassoreg.fit(X, y)
-            beta = lassoreg.coef_
-        return beta
 
 
 class ADMMInnerLoop(_InnerLoop):
@@ -500,4 +434,4 @@ def _cosine_similarity(a, b):
     :return: cosine similarity
     """
     # https: // www.statology.org / cosine - similarity - python /
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+    return a.T @ b / (np.linalg.norm(a) * np.linalg.norm(b))

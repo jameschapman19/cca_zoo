@@ -18,24 +18,14 @@ class TestAlsInnerLoop(TestCase):
     def test_iterate(self):
         pls = cca_zoo.innerloop._InnerLoop().fit(self.X, self.Y)
         generalized_pls = cca_zoo.innerloop._InnerLoop().fit(self.X, self.Y, self.Z)
-        als = cca_zoo.innerloop.CCAInnerLoop().fit(self.X, self.Y)
-        generalized_als = cca_zoo.innerloop.CCAInnerLoop().fit(self.X, self.Y, self.Z)
         self.assertIsNone(
             np.testing.assert_almost_equal(np.linalg.norm(pls.weights[0]), np.linalg.norm(pls.weights[1]), 1))
-        self.assertIsNone(
-            np.testing.assert_almost_equal(np.linalg.norm(als.scores[0]), np.linalg.norm(als.scores[1]), 1))
         self.assertIsNone(
             np.testing.assert_almost_equal(np.linalg.norm(generalized_pls.weights[0]),
                                            np.linalg.norm(generalized_pls.weights[1]),
                                            np.linalg.norm(generalized_pls.weights[2]), 1))
-        self.assertIsNone(
-            np.testing.assert_almost_equal(np.linalg.norm(generalized_als.scores[0]),
-                                           np.linalg.norm(generalized_als.scores[1]),
-                                           np.linalg.norm(generalized_als.scores[2]), 1))
 
     def test_regularized(self):
-        scca = cca_zoo.innerloop.SCCAInnerLoop(c=[0.0001, 0.0001]).fit(self.X, self.Y)
-        scca_gen = cca_zoo.innerloop.SCCAInnerLoop(c=[0.0001, 0.0001], generalized=True).fit(self.X, self.Y)
         park = cca_zoo.innerloop.ParkhomenkoInnerLoop(c=[0.0001, 0.0001]).fit(self.X, self.Y)
         park_gen = cca_zoo.innerloop.ParkhomenkoInnerLoop(c=[0.0001, 0.0001], generalized=True).fit(self.X, self.Y)
         params = {'c': [2, 2]}

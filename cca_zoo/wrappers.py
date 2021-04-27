@@ -1,7 +1,7 @@
 import copy
 import itertools
 from abc import abstractmethod
-from typing import Tuple, List
+from typing import Tuple, List, Union
 
 import numpy as np
 import numpy.ma as ma
@@ -450,8 +450,13 @@ class rCCA(_CCA_Base, BaseEstimator):
             self.two_view_fit(U_list, S_list, Vt_list)
         else:
             self.multi_view_fit(U_list, S_list, Vt_list)
+        if self.weights_list[0].shape[1] == 0:
+            self.two_view_fit(U_list, S_list, Vt_list)
         self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
+        if self.weights_list[0].shape[1] == 0:
+            self.two_view_fit(U_list, S_list, Vt_list)
         self.train_correlations = self.predict_corr(*views)
+        self.predict_corr(*views)
         return self
 
     def two_view_fit(self, U_list, S_list, Vt_list):
@@ -461,14 +466,13 @@ class rCCA(_CCA_Base, BaseEstimator):
         R_12 = R_list[0].T @ R_list[1]
         M = np.diag(1 / np.sqrt(B_list[1])) @ R_12.T @ np.diag(1 / B_list[0]) @ R_12 @ np.diag(1 / np.sqrt(B_list[1]))
         n = M.shape[0]
-        [eigvals, eigvecs] = eigh(M, subset_by_index=[n - self.latent_dims, n - 1])
+        [eigvals, eigvecs] = eigh(M, subset_by_index=[n - 1 - self.latent_dims, n - 1])
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
-        eigvals = np.real(np.sqrt(eigvals))[:self.latent_dims]
+        eigvals = np.real(np.sqrt(eigvals))[idx][:self.latent_dims]
         w_y = Vt_list[1].T @ np.diag(1 / np.sqrt(B_list[1])) @ eigvecs[:, :self.latent_dims].real
         w_x = Vt_list[0].T @ np.diag(1 / B_list[0]) @ R_12 @ np.diag(1 / np.sqrt(B_list[1])) @ eigvecs[:,
-                                                                                               :self.latent_dims].real / \
-              eigvals[idx]
+                                                                                               :self.latent_dims].real / eigvals
         self.weights_list = [w_x, w_y]
 
     def multi_view_fit(self, U_list, S_list, Vt_list):
@@ -626,7 +630,47 @@ class PLS(_Iterative):
                                                    initialization=self.initialization, tol=self.tol)
 
 
-class CCA_ALS(_Iterative):
+class ElasticCCA(_Iterative, BaseEstimator):
+    """
+    Fits an elastic CCA by iterative rescaled elastic net regression
+
+    :Example:
+
+    >>> from cca_zoo.wrappers import ElasticCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = ElasticCCA()
+    >>> model.fit(X1,X2)
+    """
+
+    def __init__(self, latent_dims: int = 1, c: Union[List[float], float] = None,
+                 l1_ratio: Union[List[float], float] = None,
+                 constrained: bool = False, max_iter: int = 100,
+                 generalized: bool = False,
+                 initialization: str = 'unregularized', tol: float = 1e-5, stochastic=False):
+        """
+        Constructor for ElasticCCA
+
+        :param latent_dims: Number of latent dimensions
+        :param c: lasso alpha
+        :param l1_ratio: l1 ratio in lasso subproblems
+        :param max_iter: Maximum number of iterations
+        """
+        self.c = c
+        self.l1_ratio = l1_ratio
+        self.constrained = constrained
+        self.stochastic = stochastic
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
+                         initialization=initialization, tol=tol)
+
+    def _set_loop_params(self):
+        self.loop = cca_zoo.innerloop.ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio,
+                                                       generalized=self.generalized, initialization=self.initialization,
+                                                       tol=self.tol, constrained=self.constrained,
+                                                       stochastic=self.stochastic)
+
+
+class CCA_ALS(ElasticCCA):
     """
     Fits a CCA model with CCA deflation by NIPALS algorithm
 
@@ -640,7 +684,7 @@ class CCA_ALS(_Iterative):
     """
 
     def __init__(self, latent_dims: int = 1, max_iter: int = 100, generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-5):
+                 initialization: str = 'random', tol: float = 1e-5, stochastic=True):
         """
         Constructor for CCA_ALS
 
@@ -651,11 +695,38 @@ class CCA_ALS(_Iterative):
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol)
+                         initialization=initialization, tol=tol, constrained=False, stochastic=stochastic)
 
-    def _set_loop_params(self):
-        self.loop = cca_zoo.innerloop.CCAInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
-                                                   initialization=self.initialization, tol=self.tol)
+
+class SCCA(ElasticCCA):
+    """
+    Fits a sparse CCA model by iterative rescaled lasso regression
+
+    :Example:
+
+    >>> from cca_zoo.wrappers import SCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = SCCA(c=[0.001,0.001])
+    >>> model.fit(X1,X2)
+    """
+
+    def __init__(self, latent_dims: int = 1, c: List[float] = None, max_iter: int = 100,
+                 generalized: bool = False,
+                 initialization: str = 'unregularized', tol: float = 1e-5, stochastic=False):
+        """
+        Constructor for SCCA
+
+        :param latent_dims: number of latent dimensions
+        :param c: l1 regularisation parameter
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized:
+        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
+        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        """
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
+                         initialization=initialization, tol=tol, c=c, l1_ratio=1, constrained=False,
+                         stochastic=stochastic)
 
 
 class PMD(_Iterative, BaseEstimator):
@@ -727,41 +798,6 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
                                                            initialization=self.initialization, tol=self.tol)
 
 
-class SCCA(_Iterative, BaseEstimator):
-    """
-    Fits a sparse CCA model by iterative rescaled lasso regression
-
-    :Example:
-
-    >>> from cca_zoo.wrappers import SCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = SCCA(c=[0.001,0.001])
-    >>> model.fit(X1,X2)
-    """
-
-    def __init__(self, latent_dims: int = 1, c: List[float] = None, max_iter: int = 100,
-                 generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-5):
-        """
-        Constructor for SCCA
-
-        :param latent_dims: number of latent dimensions
-        :param c: l1 regularisation parameter 
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized:
-        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
-        """
-        self.c = c
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol)
-
-    def _set_loop_params(self):
-        self.loop = cca_zoo.innerloop.SCCAInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
-                                                    initialization=self.initialization, tol=self.tol)
-
-
 class SCCA_ADMM(_Iterative, BaseEstimator):
     """
     Fits a sparse CCA model by alternating ADMM
@@ -803,43 +839,6 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
         self.loop = cca_zoo.innerloop.ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,
                                                     eta=self.eta, generalized=self.generalized,
                                                     initialization=self.initialization, tol=self.tol)
-
-
-class ElasticCCA(_Iterative, BaseEstimator):
-    """
-    Fits an elastic CCA by iterative rescaled elastic net regression
-
-    :Example:
-
-    >>> from cca_zoo.wrappers import ElasticCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = ElasticCCA()
-    >>> model.fit(X1,X2)
-    """
-
-    def __init__(self, latent_dims: int = 1, c: List[float] = None, l1_ratio: List[float] = None,
-                 constrained: bool = False, max_iter: int = 100,
-                 generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-5):
-        """
-        Constructor for ElasticCCA
-
-        :param latent_dims: Number of latent dimensions
-        :param c: lasso alpha
-        :param l1_ratio: l1 ratio in lasso subproblems
-        :param max_iter: Maximum number of iterations
-        """
-        self.c = c
-        self.l1_ratio = l1_ratio
-        self.constrained = constrained
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol)
-
-    def _set_loop_params(self):
-        self.loop = cca_zoo.innerloop.ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio,
-                                                       generalized=self.generalized, initialization=self.initialization,
-                                                       tol=self.tol, constrained=self.constrained)
 
 
 class TCCA(_CCA_Base):
@@ -931,8 +930,9 @@ class _CrossValidate:
                     *train_sets, K=train_obs).predict_corr(
                     *val_sets).sum(axis=-1)[np.triu_indices(len(views), 1)].sum()
             else:
-                scores[fold] = self.model.set_params(**cvparams).fit(
-                    *train_sets).predict_corr(
+                self.model.set_params(**cvparams).fit(
+                    *train_sets)
+                scores[fold] = self.model.predict_corr(
                     *val_sets).sum(axis=-1)[np.triu_indices(len(views), 1)].sum()
         metric = scores.sum(axis=0) / self.folds
         std = scores.std(axis=0)
