@@ -57,7 +57,7 @@ class TestWrapper(TestCase):
         self.assertTrue(wrap_gcca.score_list[0].shape == (self.X.shape[0], latent_dims))
         self.assertTrue(wrap_mcca.score_list[0].shape == (self.X.shape[0], latent_dims))
         # Check the correlations from each unregularized method are the same
-        self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_iter, decimal=2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_iter, decimal=1))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_mcca, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_gcca, decimal=2))
 
