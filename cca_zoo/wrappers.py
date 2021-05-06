@@ -966,7 +966,7 @@ class KTCCA(TCCA):
     def __init__(self, latent_dims: int = 1, c: List[float] = None, kernel: List[Union[float, callable]] = None,
                  gamma: List[float] = None,
                  degree: List[float] = None, coef0: List[float] = None,
-                 kernel_params: List[dict] = None, eps=1e-9):
+                 kernel_params: List[dict] = None, eps=1e-3):
         """
         :param latent_dims: number of latent dimensions
         :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
@@ -1015,7 +1015,7 @@ class KTCCA(TCCA):
         covs = [(1 - self.c[i]) * kernel @ kernel.T + self.c[i] * kernel for i, kernel in enumerate(train_views)]
         smallest_eigs = [min(0, np.linalg.eigvalsh(cov).min()) - self.eps for cov in covs]
         covs = [cov - smallest_eig * np.eye(cov.shape[0]) for cov, smallest_eig in zip(covs, smallest_eigs)]
-        self.covs_invsqrt = [np.linalg.inv(sqrtm(cov)) for cov in covs]
+        self.covs_invsqrt = [np.linalg.inv(sqrtm(cov)).real for cov in covs]
         train_views = [train_view @ cov_invsqrt for train_view, cov_invsqrt in zip(train_views, self.covs_invsqrt)]
         return train_views, self.covs_invsqrt
 
