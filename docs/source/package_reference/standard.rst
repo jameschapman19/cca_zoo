@@ -81,6 +81,17 @@ TCCA
    :undoc-members:
    :exclude-members: get_params, set_params
 
+
+KTCCA
+^^^^^^^^^^^^^^^
+
+.. autoclass:: KTCCA
+   :members:
+   :inherited-members:
+   :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
+
 KCCA
 ^^^^^^^
 
