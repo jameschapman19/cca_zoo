@@ -6,3 +6,4 @@ seaborn
 Pillow
 pandas
 tensorly
+joblib
