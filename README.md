@@ -74,9 +74,7 @@ http://proceedings.mlr.press/v37/wangb15.pdf
 https://arxiv.org/pdf/1610.03454.pdf
 Wang's DVCCA and DVCCA Private
 ## Kernel CCA:
-### Linear Kernel  
-### RBF Kernel  
-### Polynomial Kernels  
+Piggybacking off sklearn's kernel methods which also allow callable kernel functions
 
 
 

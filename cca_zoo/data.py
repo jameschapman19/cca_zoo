@@ -18,7 +18,7 @@ from torchvision import datasets, transforms
 def generate_covariance_data(n: int, k: int, view_features: List[int],
                              view_sparsity: List[Union[int, float]] = None,
                              signal: float = 1,
-                             structure: str = 'identity', sigma: float = 0.9, decay: float = 0.5):
+                             structure: List[str] = None, sigma: float = 0.9, decay: float = 0.5):
     """
     Function to generate CCA dataset with defined population correlation
 
@@ -32,6 +32,8 @@ def generate_covariance_data(n: int, k: int, view_features: List[int],
     :param decay: ratio of second signal to first signal
     :return: tuple of numpy arrays: view_1, view_2, true weights from view 1, true weights from view 2, overall covariance structure
     """
+    if structure is None:
+        structure = ['identity'] * len(view_features)
     if view_sparsity is None:
         view_sparsity = [0] * len(view_features)
     completed = False
@@ -42,23 +44,25 @@ def generate_covariance_data(n: int, k: int, view_features: List[int],
             p = decay ** p
             cov = []
             true_features = []
-            for view_p, sparsity in zip(view_features, view_sparsity):
+            for view_p, sparsity, view_structure in zip(view_features, view_sparsity, structure):
                 # Covariance Bit
-                if structure == 'identity':
+                if view_structure == 'identity':
                     cov_ = np.eye(view_p)
-                elif structure == 'gaussian':
+                elif view_structure == 'gaussian':
                     cov_ = _generate_gaussian_cov(view_p, sigma)
-                elif structure == 'toeplitz':
+                elif view_structure == 'toeplitz':
                     cov_ = _generate_toeplitz_cov(view_p, sigma)
-                elif structure == 'random':
+                elif view_structure == 'random':
                     cov_ = _generate_random_cov(view_p)
-                elif structure == 'simple':
+                elif view_structure == 'simple':
                     cov_ = generate_simple_data(n, view_features, view_sparsity)
-
+                else:
+                    completed = True
+                    print("invalid structure")
                 weights = np.random.rand(view_p, k)
                 if sparsity < 1:
                     sparsity = np.ceil(sparsity * view_p).astype('int')
-                mask = np.stack((np.concatenate(([0] * sparsity, [1] * (view_p - sparsity))).astype(bool),) * k,
+                mask = np.stack((np.concatenate(([0] * (view_p - sparsity), [1] * sparsity)).astype(bool),) * k,
                                 axis=0).T
                 np.random.shuffle(mask.flat)
                 while np.sum(np.unique(mask, axis=1, return_counts=True)[1] > 1) > 0 or np.sum(
