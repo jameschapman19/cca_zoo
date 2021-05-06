@@ -10,7 +10,7 @@ with open("./requirements/deep.txt", "r") as f:
 
 setup(
     name='cca_zoo',
-    version='1.2.6',
+    version='1.3.0',
     include_package_data=True,
     keywords='cca',
     packages=find_packages(),
