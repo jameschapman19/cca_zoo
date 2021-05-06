@@ -328,7 +328,7 @@ class KCCA(MCCA):
 
     def transform(self, *views: Tuple[np.ndarray, ...], ):
         """
-        Transforms data given a fit kCCA model
+        Transforms data given a fit KCCA model
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model

@@ -123,6 +123,14 @@ class TestWrapper(TestCase):
         wrap_unobserved_gcca = cca_zoo.wrappers.GCCA(latent_dims=latent_dims, c=[c, c]).fit(self.X, self.Y, K=K)
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_unweighted_gcca, corr_deweighted_gcca, decimal=1))
 
+    def test_TCCA(self):
+        latent_dims = 1
+        wrap_tcca = cca_zoo.wrappers.TCCA(latent_dims=latent_dims, c=[0.5, 0.5]).fit(self.X, self.Y)
+        wrap_ktcca = cca_zoo.wrappers.KTCCA(latent_dims=latent_dims, c=[0.5, 0.5]).fit(self.X, self.Y)
+        corr_tcca = wrap_tcca.train_correlations[0, 1]
+        corr_ktcca = wrap_ktcca.train_correlations[0, 1]
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_tcca, corr_ktcca, decimal=1))
+
     def test_cv_fit(self):
         latent_dims = 5
         c1 = [0.1, 0.2]
