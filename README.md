@@ -2,6 +2,8 @@
 [![codecov](https://codecov.io/gh/jameschapman19/cca_zoo/branch/master/graph/badge.svg?token=JHG9VUB0L8)](https://codecov.io/gh/jameschapman19/cca_zoo)
 [![Build Status](https://www.travis-ci.com/jameschapman19/cca_zoo.svg?branch=master)](https://www.travis-ci.com/jameschapman19/cca_zoo)
 [![Documentation Status](https://readthedocs.org/projects/cca-zoo/badge/?version=latest)](https://cca-zoo.readthedocs.io/en/latest/?badge=latest)
+[![version](https://img.shields.io/pypi/v/cca-zoo)](https://pypi.org/project/cca-zoo/)
+[![downloads](https://img.shields.io/pypi/dm/cca-zoo)](https://pypi.org/project/cca-zoo/)
 
 now including *tensor* and *deep tensor* cca!
 
