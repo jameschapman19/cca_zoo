@@ -94,12 +94,11 @@ mcca.fit(train_view_1, train_view_2)
 
 mcca_results = np.stack((mcca.train_correlations[0, 1], mcca.predict_corr(test_view_1, test_view_2)[0, 1]))
 
-
 """
 ### (Regularized) Tensor CCA via alternating least squares (can pass more than 2 views)
 """
 
-tcca = wrappers.TCCA(latent_dims=latent_dims, c=[0.99,0.99])
+tcca = wrappers.TCCA(latent_dims=latent_dims, c=[0.99, 0.99])
 # small ammount of regularisation added since data is not full rank
 
 tcca.fit(train_view_1, train_view_2)
@@ -213,7 +212,7 @@ We can use different kernels and their associated parameters in a similar manner
 c1 = [0.9, 0.99]
 c2 = [0.9, 0.99]
 
-param_candidates = {'kernel': ['linear'], 'c': list(itertools.product(c1, c2))}
+param_candidates = {'kernel': ['linear', 'linear'], 'c': list(itertools.product(c1, c2))}
 
 kernel_reg = wrappers.KCCA(latent_dims=latent_dims).gridsearch_fit(train_view_1, train_view_2,
                                                                    folds=cv_folds,
@@ -225,7 +224,11 @@ kernel_reg_results = np.stack((
     kernel_reg.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 
 # kernel cca (poly)
-param_candidates = {'kernel': ['poly'], 'degree': [2, 3], 'c': list(itertools.product(c1, c2))}
+degree1 = [2, 3]
+degree2 = [2, 3]
+
+param_candidates = {'kernel': ['poly', 'poly'], 'degree': list(itertools.product(degree1, degree2)),
+                    'c': list(itertools.product(c1, c2))}
 
 kernel_poly = wrappers.KCCA(latent_dims=latent_dims).gridsearch_fit(train_view_1, train_view_2,
                                                                     folds=cv_folds,
@@ -238,7 +241,11 @@ kernel_poly_results = np.stack((
     kernel_poly.predict_corr(test_view_1, test_view_2)[0, 1, :]))
 
 # kernel cca (gaussian)
-param_candidates = {'kernel': ['rbf'], 'sigma': [1e+1, 1e+2, 1e+3], 'c': list(itertools.product(c1, c2))}
+gamma1 = [1e+1, 1e+2, 1e+3]
+gamma2 = [1e+1, 1e+2, 1e+3]
+
+param_candidates = {'kernel': ['rbf', 'rbf'], 'sigma': list(itertools.product(gamma1, gamma2)),
+                    'c': list(itertools.product(c1, c2))}
 
 kernel_gaussian = wrappers.KCCA(latent_dims=latent_dims).gridsearch_fit(train_view_1, train_view_2,
                                                                         folds=cv_folds,
@@ -405,8 +412,8 @@ dcca_conv_model.fit((train_view_1.reshape((-1, 1, 28, 28)), train_view_2.reshape
 
 dcca_conv_results = np.stack(
     (dcca_conv_model.train_correlations[0, 1], dcca_conv_model.predict_corr((test_view_1.reshape((-1, 1, 28, 28)),
-                                                                            test_view_2.reshape(
-                                                                                (-1, 1, 28, 28))))[0, 1]))
+                                                                             test_view_2.reshape(
+                                                                                 (-1, 1, 28, 28))))[0, 1]))
 
 """
 ### Make results plot to compare methods

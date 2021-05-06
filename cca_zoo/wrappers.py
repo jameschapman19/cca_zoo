@@ -209,39 +209,47 @@ class MCCA(_CCA_Base, BaseEstimator):
         super().__init__(latent_dims=latent_dims)
         self.c = c
 
+    def check_params(self):
+        if self.c is None:
+            self.c = [0] * self.n_views
+
     def fit(self, *views: Tuple[np.ndarray, ...], ):
         """
         Fits an MCCA model
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
-        if self.c is None:
-            self.c = [0] * len(views)
+        self.n_views = len(views)
+        self.check_params()
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
+        train_views, C, D = self.setup_gevp(*views)
+        self.alphas = self.solve_gevp(C, D)
+        self.score_list = [train_view @ eigvecs_ for train_view, eigvecs_ in zip(train_views, self.alphas)]
+        self.weights_list = [weights / np.linalg.norm(score) for weights, score in zip(self.alphas, self.score_list)]
+        self.train_correlations = self.predict_corr(*views)
+        return self
+
+    def setup_gevp(self, *views: Tuple[np.ndarray, ...]):
         train_views = self.demean_data(*views)
         all_views = np.concatenate(train_views, axis=1)
         C = all_views.T @ all_views
         # Can regularise by adding to diagonal
-        D = block_diag(*[(1 - self.c[i]) * m.T @ m + self.c[i] * np.eye(m.shape[1]) for i, m in
-                         enumerate(train_views)])
-        C -= block_diag(*[view.T @ view for view in
-                          train_views]) - D
+        D = block_diag(*[(1 - self.c[i]) * m.T @ m + self.c[i] * np.eye(m.shape[1]) for i, m in enumerate(train_views)])
+        C -= block_diag(*[view.T @ view for view in train_views]) - D
+        self.splits = np.cumsum([0] + [view.shape[1] for view in train_views])
+        return train_views, C, D
+
+    def solve_gevp(self, C, D):
         n = D.shape[0]
         [eigvals, eigvecs] = eigh(C, D, subset_by_index=[n - self.latent_dims, n - 1])
-        idx = np.argsort(eigvals, axis=0)[::-1]
+        # sorting according to eigenvalue
+        idx = np.argsort(eigvals, axis=0)[::-1][:self.latent_dims]
         eigvecs = eigvecs[:, idx].real
-        splits = np.cumsum([0] + [view.shape[1] for view in views])
-        self.eigvals = eigvals[idx].real
-        self.weights_list = [eigvecs[split:splits[i + 1], :self.latent_dims] for i, split in enumerate(splits[:-1])]
-        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(train_views)]
-        self.weights_list = [weights / np.linalg.norm(score) for weights, score in
-                             zip(self.weights_list, self.score_list)]
-        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(train_views)]
-        self.train_correlations = self.predict_corr(*views)
-        return self
+        eigvecs = [eigvecs[split:self.splits[i + 1]] for i, split in enumerate(self.splits[:-1])]
+        return eigvecs
 
 
-class KCCA(_CCA_Base):
+class KCCA(MCCA):
     """
     A class used to fit KCCA model.
 
@@ -294,15 +302,15 @@ class KCCA(_CCA_Base):
 
     def check_params(self):
         if self.kernel is None:
-            self.kernel = ['linear'] * len(self.train_views)
+            self.kernel = ['linear'] * self.n_views
         if self.gamma is None:
-            self.gamma = [None] * len(self.train_views)
+            self.gamma = [None] * self.n_views
         if self.coef0 is None:
-            self.coef0 = [1] * len(self.train_views)
+            self.coef0 = [1] * self.n_views
         if self.degree is None:
-            self.degree = [1] * len(self.train_views)
+            self.degree = [1] * self.n_views
         if self.c is None:
-            self.c = [0] * len(self.train_views)
+            self.c = [0] * self.n_views
 
     def _get_kernel(self, view, X, Y=None):
         if callable(self.kernel):
@@ -314,47 +322,23 @@ class KCCA(_CCA_Base):
         return pairwise_kernels(X, Y, metric=self.kernel[view],
                                 filter_params=True, **params)
 
-    def fit(self, *views: Tuple[np.ndarray, ...], ):
-        """
-        Fits a KCCA model
-
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
-        """
-        self.train_views = self.demean_data(*views)
-        self.check_params()
-        kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
-        self.N = kernels[0].shape[0]
-        R, D = self.hardoon_method(*kernels)
-        # find what we need to add to D to ensure PSD
-        D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
-        n = D.shape[0]
-        betas, alphas = eigh(a=R, b=D - D_smallest_eig * np.eye(D.shape[0]),
-                             subset_by_index=[n - self.latent_dims, n - 1])
-        # sorting according to eigenvalue
-        betas = np.real(betas)
-        ind = np.argsort(betas)[::-1]
-        alphas = alphas[:, ind]
-        alpha = alphas[:, :self.latent_dims]
-        # making unit vectors
-        alpha = alpha / (np.sum(np.abs(alpha) ** 2, axis=0) ** (1. / 2))
-        self.alphas = np.split(alpha, len(views))
-        self.score_list = [kernel @ alpha for kernel, alpha in zip(kernels, self.alphas)]
-        self.train_correlations = self.predict_corr(*views)
-        return self
-
-    def hardoon_method(self, kernels: Tuple[np.ndarray, ...]):
+    def setup_gevp(self, *views: Tuple[np.ndarray, ...]):
         """
         Generates the left and right hand sides of the generalized eigenvalue problem
 
         :param kernels: list or tuple of kernel matrices one for each view
         """
-        R = np.hstack(kernels).T @ np.hstack(kernels)
+        self.train_views = self.demean_data(*views)
+        kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
+        C = np.hstack(kernels).T @ np.hstack(kernels)
         # Can regularise by adding to diagonal
         D = block_diag(
             *[(1 - self.c[i]) * kernel @ kernel.T + self.c[i] * kernel for i, kernel in enumerate(kernels)])
-        R -= block_diag(*[k.T @ k for k in
-                          kernels]) - D
-        return R, D
+        C -= block_diag(*[k.T @ k for k in kernels]) - D
+        D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
+        D = D - D_smallest_eig * np.eye(D.shape[0])
+        self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
+        return kernels, C, D
 
     def transform(self, *views: Tuple[np.ndarray, ...], ):
         """
