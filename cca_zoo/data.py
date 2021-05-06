@@ -32,6 +32,8 @@ def generate_covariance_data(n: int, k: int, view_features: List[int],
     :param decay: ratio of second signal to first signal
     :return: tuple of numpy arrays: view_1, view_2, true weights from view 1, true weights from view 2, overall covariance structure
     """
+    if view_sparsity is None:
+        view_sparsity = [0] * len(view_features)
     completed = False
     while not completed:
         try:
@@ -54,18 +56,18 @@ def generate_covariance_data(n: int, k: int, view_features: List[int],
                     cov_ = generate_simple_data(n, view_features, view_sparsity)
 
                 weights = np.random.rand(view_p, k)
-                for _ in range(k):
-                    if sparsity > 0:
-                        if sparsity < 1:
-                            sparsity = np.ceil(sparsity * view_p).astype('int')
-                        # first = np.random.randint(N - sparse_variables_1)
-                        # up[:first, _] = 0
-                        # up[(first + sparse_variables_1):, _] = 0
-                        mask = np.concatenate(([0] * sparsity, [1] * (view_p - sparsity))).astype(bool)
-                        np.random.shuffle(mask)
-                        weights[mask, _] = 0
-
+                if sparsity < 1:
+                    sparsity = np.ceil(sparsity * view_p).astype('int')
+                mask = np.stack((np.concatenate(([0] * sparsity, [1] * (view_p - sparsity))).astype(bool),) * k,
+                                axis=0).T
+                np.random.shuffle(mask.flat)
+                while np.sum(np.unique(mask, axis=1, return_counts=True)[1] > 1) > 0 or np.sum(
+                        np.sum(mask, axis=0) == 0) > 0:
+                    np.random.shuffle(mask.flat)
+                weights = weights * mask
                 weights = _decorrelate_dims(weights, cov_)
+                if np.sum(np.diag((weights.T @ cov_ @ weights)) == 0) > 0:
+                    print()
                 weights /= np.sqrt(np.diag((weights.T @ cov_ @ weights)))
                 true_features.append(weights)
                 cov.append(cov_)
@@ -311,6 +313,11 @@ class Tangled_MNIST_Dataset(Dataset):
 
 
 def _OH_digits(digits):
+    """
+    One hot encode numpy array
+
+    :param digits:
+    """
     b = np.zeros((digits.size, digits.max() + 1))
     b[np.arange(digits.size), digits] = 1
     return b
@@ -334,6 +341,14 @@ def _chol_sample(mean, chol):
 
 
 def _gaussian(x, mu, sig, dn):
+    """
+    Generate a gaussian covariance matrix
+
+    :param x:
+    :param mu:
+    :param sig:
+    :param dn:
+    """
     return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.))) * dn / (np.sqrt(2 * np.pi) * sig)
 
 

@@ -1,11 +1,9 @@
-import matplotlib
+import itertools
 
-matplotlib.use('agg')
-from matplotlib import cm
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import itertools
+from matplotlib import cm
 
 
 def cv_plot(scores, param_dict, reg):

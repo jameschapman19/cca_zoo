@@ -11,11 +11,11 @@ from joblib import Parallel, delayed
 from scipy.linalg import block_diag, eigh
 from scipy.linalg import sqrtm
 from sklearn.base import BaseEstimator
+from sklearn.metrics.pairwise import pairwise_kernels
 from tensorly.decomposition import parafac
 
 import cca_zoo.data
 import cca_zoo.innerloop
-import cca_zoo.kcca
 import cca_zoo.plot_utils
 
 
@@ -94,15 +94,15 @@ class _CCA_Base(BaseEstimator):
         Removes the mean of the training data for each view and stores it
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
-        :return: views_input: the demeaned numpy arrays to be used to fit the model
+        :return: train_views: the demeaned numpy arrays to be used to fit the model
         :rtype: Tuple[np.ndarray, ...]
         """
-        views_input = []
+        train_views = []
         self.view_means = []
         for view in views:
             self.view_means.append(view.mean(axis=0))
-            views_input.append(view - view.mean(axis=0))
-        return views_input
+            train_views.append(view - view.mean(axis=0))
+        return train_views
 
     def gridsearch_fit(self, *views: Tuple[np.ndarray, ...], K=None, param_candidates=None, folds: int = 5,
                        verbose: bool = False,
@@ -186,66 +186,6 @@ class _CCA_Base(BaseEstimator):
     """
 
 
-class KCCA(_CCA_Base, BaseEstimator):
-    """
-    A class used to fit KCCA model.
-
-    :Example:
-
-    >>> from cca_zoo.wrappers import KCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = KCCA()
-    >>> model.fit(X1,X2)
-    """
-
-    def __init__(self, latent_dims: int = 1, kernel: str = 'linear', sigma: float = 1.0, degree: int = 1,
-                 c: List[float] = None):
-        """
-        Constructor for KCCA
-
-        :param kernel: the kernel type 'linear', 'rbf', 'poly'
-        :param sigma: sigma parameter used by sklearn rbf kernel
-        :param degree: polynomial order parameter used by sklearn polynomial kernel
-        :param c: regularisation between 0 (CCA) and 1 (PLS)
-        """
-        super().__init__(latent_dims=latent_dims)
-        self.c = c
-        self.kernel = kernel
-        self.sigma = sigma
-        self.degree = degree
-        assert self.kernel in ['linear', 'poly', 'rbf'], 'c requires as many values as #views'
-
-    def fit(self, *views: Tuple[np.ndarray, ...], ):
-        """
-        Fits a KCCA model
-
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
-        """
-        if self.c is None:
-            self.c = [0] * len(views)
-        assert (len(self.c) == len(views)), 'c requires as many values as #views'
-        self.model = cca_zoo.kcca.KCCA(*self.demean_data(*views), latent_dims=self.latent_dims, kernel=self.kernel,
-                                       sigma=self.sigma,
-                                       degree=self.degree, c=self.c)
-        self.score_list = self.model.score_list
-        self.train_correlations = self.predict_corr(*views)
-        return self
-
-    def transform(self, *views: Tuple[np.ndarray, ...], ):
-        """
-        Transforms data given a fit kCCA model
-
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
-        :param kwargs: any additional keyword arguments required by the given model
-        """
-        transformed_views = []
-        for i, view in enumerate(views):
-            transformed_views.append(
-                self.model.make_kernel(view - self.view_means[i], self.model.views[i]) @ self.model.alphas[i])
-        return transformed_views
-
-
 class MCCA(_CCA_Base, BaseEstimator):
     """
     A class used to fit MCCA model. For more than 2 views, MCCA optimizes the sum of pairwise correlations.
@@ -278,14 +218,14 @@ class MCCA(_CCA_Base, BaseEstimator):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
-        views_input = self.demean_data(*views)
-        all_views = np.concatenate(views_input, axis=1)
+        train_views = self.demean_data(*views)
+        all_views = np.concatenate(train_views, axis=1)
         C = all_views.T @ all_views
         # Can regularise by adding to diagonal
         D = block_diag(*[(1 - self.c[i]) * m.T @ m + self.c[i] * np.eye(m.shape[1]) for i, m in
-                         enumerate(views_input)])
-        C -= block_diag(*[m.T @ m for i, m in
-                          enumerate(views_input)]) - D
+                         enumerate(train_views)])
+        C -= block_diag(*[view.T @ view for view in
+                          train_views]) - D
         n = D.shape[0]
         [eigvals, eigvecs] = eigh(C, D, subset_by_index=[n - self.latent_dims, n - 1])
         idx = np.argsort(eigvals, axis=0)[::-1]
@@ -293,12 +233,140 @@ class MCCA(_CCA_Base, BaseEstimator):
         splits = np.cumsum([0] + [view.shape[1] for view in views])
         self.eigvals = eigvals[idx].real
         self.weights_list = [eigvecs[split:splits[i + 1], :self.latent_dims] for i, split in enumerate(splits[:-1])]
-        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(train_views)]
         self.weights_list = [weights / np.linalg.norm(score) for weights, score in
                              zip(self.weights_list, self.score_list)]
-        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(train_views)]
         self.train_correlations = self.predict_corr(*views)
         return self
+
+
+class KCCA(_CCA_Base):
+    """
+    A class used to fit KCCA model.
+
+    :Example:
+
+    >>> from cca_zoo.wrappers import KCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = KCCA()
+    >>> model.fit(X1,X2)
+    """
+
+    def __init__(self, latent_dims: int = 1, c: List[float] = None, kernel: List[Union[float, callable]] = None,
+                 gamma: List[float] = None,
+                 degree: List[float] = None, coef0: List[float] = None,
+                 kernel_params: List[dict] = None, eps=1e-3):
+        """
+        :param latent_dims: number of latent dimensions
+        :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
+        :param kernel: list of kernel mappings used internally. This parameter is directly passed to
+        :class:`~sklearn.metrics.pairwise.pairwise_kernel`.
+        If element of `kernel` is a string, it must be one of the metrics
+        in `pairwise.PAIRWISE_KERNEL_FUNCTIONS`.
+        Alternatively, if element of `kernel` is a callable function, it is called on
+        each pair of instances (rows) and the resulting value recorded. The
+        callable should take two rows from X as input and return the
+        corresponding kernel value as a single number. This means that
+        callables from :mod:`sklearn.metrics.pairwise` are not allowed, as
+        they operate on matrices, not single samples. Use the string
+        identifying the kernel instead.
+        :param gamma: list of gamma parameters for the RBF, laplacian, polynomial, exponential chi2
+        and sigmoid kernels. Interpretation of the default value is left to
+        the kernel; see the documentation for sklearn.metrics.pairwise.
+        Ignored by other kernels.
+        :param degree: list of degree parameters of the polynomial kernel. Ignored by other kernels.
+        :param coef0: list of zero coefficients for polynomial and sigmoid kernels.
+        Ignored by other kernels.
+        :param kernel_params: list of additional parameters (keyword arguments) for kernel function passed
+        as callable object.
+        :param eps: epsilon value to ensure stability
+        """
+        super().__init__(latent_dims=latent_dims)
+        self.kernel_params = kernel_params
+        self.gamma = gamma
+        self.coef0 = coef0
+        self.kernel = kernel
+        self.degree = degree
+        self.c = c
+        self.eps = eps
+
+    def check_params(self):
+        if self.kernel is None:
+            self.kernel = ['linear'] * len(self.train_views)
+        if self.gamma is None:
+            self.gamma = [None] * len(self.train_views)
+        if self.coef0 is None:
+            self.coef0 = [1] * len(self.train_views)
+        if self.degree is None:
+            self.degree = [1] * len(self.train_views)
+        if self.c is None:
+            self.c = [0] * len(self.train_views)
+
+    def _get_kernel(self, view, X, Y=None):
+        if callable(self.kernel):
+            params = self.kernel_params[view] or {}
+        else:
+            params = {"gamma": self.gamma[view],
+                      "degree": self.degree[view],
+                      "coef0": self.coef0[view]}
+        return pairwise_kernels(X, Y, metric=self.kernel[view],
+                                filter_params=True, **params)
+
+    def fit(self, *views: Tuple[np.ndarray, ...], ):
+        """
+        Fits a KCCA model
+
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        """
+        self.train_views = self.demean_data(*views)
+        self.check_params()
+        kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
+        self.N = kernels[0].shape[0]
+        R, D = self.hardoon_method(*kernels)
+        # find what we need to add to D to ensure PSD
+        D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
+        n = D.shape[0]
+        betas, alphas = eigh(a=R, b=D - D_smallest_eig * np.eye(D.shape[0]),
+                             subset_by_index=[n - self.latent_dims, n - 1])
+        # sorting according to eigenvalue
+        betas = np.real(betas)
+        ind = np.argsort(betas)[::-1]
+        alphas = alphas[:, ind]
+        alpha = alphas[:, :self.latent_dims]
+        # making unit vectors
+        alpha = alpha / (np.sum(np.abs(alpha) ** 2, axis=0) ** (1. / 2))
+        self.alphas = np.split(alpha, len(views))
+        self.score_list = [kernel @ alpha for kernel, alpha in zip(kernels, self.alphas)]
+        self.train_correlations = self.predict_corr(*views)
+        return self
+
+    def hardoon_method(self, kernels: Tuple[np.ndarray, ...]):
+        """
+        Generates the left and right hand sides of the generalized eigenvalue problem
+
+        :param kernels: list or tuple of kernel matrices one for each view
+        """
+        R = np.hstack(kernels).T @ np.hstack(kernels)
+        # Can regularise by adding to diagonal
+        D = block_diag(
+            *[(1 - self.c[i]) * kernel @ kernel.T + self.c[i] * kernel for i, kernel in enumerate(kernels)])
+        R -= block_diag(*[k.T @ k for k in
+                          kernels]) - D
+        return R, D
+
+    def transform(self, *views: Tuple[np.ndarray, ...], ):
+        """
+        Transforms data given a fit kCCA model
+
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param kwargs: any additional keyword arguments required by the given model
+        """
+        Ktest = [self._get_kernel(i, train_view, Y=test_view - self.view_means[i]) for i, (train_view, test_view) in
+                 enumerate(zip(self.train_views, views))]
+        transformed_views = [test_kernel @ self.alphas[i] for i, test_kernel in enumerate(Ktest)]
+        return transformed_views
 
 
 class GCCA(_CCA_Base, BaseEstimator):
@@ -341,9 +409,9 @@ class GCCA(_CCA_Base, BaseEstimator):
         if K is None:
             # just use identity when all rows are observed in all views.
             K = np.ones((len(views), views[0].shape[0]))
-        views_input = self.demean_observed_data(*views, K=K)
+        train_views = self.demean_observed_data(*views, K=K)
         Q = []
-        for i, (view, view_weight) in enumerate(zip(views_input, self.view_weights)):
+        for i, (view, view_weight) in enumerate(zip(train_views, self.view_weights)):
             view_cov = view.T @ view
             view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(view_cov.shape[0])
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
@@ -354,8 +422,8 @@ class GCCA(_CCA_Base, BaseEstimator):
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         self.eigvals = eigvals[idx].real
-        self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in views_input]
-        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
+        self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in train_views]
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(train_views)]
         self.train_correlations = self.predict_corr(*views)
         return self
 
@@ -368,14 +436,14 @@ class GCCA(_CCA_Base, BaseEstimator):
         :param K: observation matrix. Binary array with (k,n) dimensions where k is the number of views and n is the number of samples
         1 means the data is observed in the corresponding view and 0 means the data is unobserved in that view.
         """
-        views_input = []
+        train_views = []
         self.view_means = []
         for i, (observations, view) in enumerate(zip(K, views)):
             observed = np.where(observations == 1)[0]
             self.view_means.append(view[observed].mean(axis=0))
             view[observed] = view[observed] - self.view_means[i]
-            views_input.append(np.diag(observations) @ view)
-        return views_input
+            train_views.append(np.diag(observations) @ view)
+        return train_views
 
     def transform(self, *views: Tuple[np.ndarray, ...], K=None):
         """
@@ -444,15 +512,15 @@ class rCCA(_CCA_Base, BaseEstimator):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
-        views_input = self.demean_data(*views)
-        U_list, S_list, Vt_list = _pca_data(*views_input)
+        train_views = self.demean_data(*views)
+        U_list, S_list, Vt_list = _pca_data(*train_views)
         if len(views) == 2:
             self.two_view_fit(U_list, S_list, Vt_list)
         else:
             self.multi_view_fit(U_list, S_list, Vt_list)
         if self.weights_list[0].shape[1] == 0:
             self.two_view_fit(U_list, S_list, Vt_list)
-        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(views_input)]
+        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(train_views)]
         if self.weights_list[0].shape[1] == 0:
             self.two_view_fit(U_list, S_list, Vt_list)
         self.train_correlations = self.predict_corr(*views)
@@ -549,16 +617,16 @@ class _Iterative(_CCA_Base):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
         self._set_loop_params()
-        views_input = self.demean_data(*views)
-        n = views_input[0].shape[0]
-        p = [view.shape[1] for view in views_input]
+        train_views = self.demean_data(*views)
+        n = train_views[0].shape[0]
+        p = [view.shape[1] for view in train_views]
         # list of d: p x k
         self.weights_list = [np.zeros((p_, self.latent_dims)) for p_ in p]
 
         # list of d: n x k
-        self.score_list = [np.zeros((n, self.latent_dims)) for _ in views_input]
+        self.score_list = [np.zeros((n, self.latent_dims)) for _ in train_views]
 
-        residuals = copy.deepcopy(list(views_input))
+        residuals = copy.deepcopy(list(train_views))
 
         self.objective = []
         # For each of the dimensions
