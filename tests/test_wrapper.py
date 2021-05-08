@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from cca_zoo.models import CCA, PLS, CCA_ALS, SCCA, PMD, ElasticCCA, rCCA, KCCA, KTCCA, MCCA, GCCA, TCCA, SCCA_ADMM
+from cca_zoo.models import CCA, PLS, CCA_ALS, SCCA, PMD, ElasticCCA, rCCA, KCCA, KTCCA, MCCA, GCCA, TCCA
 
 np.random.seed(123)
 
@@ -101,10 +101,6 @@ class TestWrapper(TestCase):
         wrap_scca = SCCA(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y,
                                                                  param_candidates=param_candidates,
                                                                  verbose=True)
-        param_candidates = {'c': list(itertools.product(c1, c2))}
-        wrap_scca = SCCA_ADMM(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y,
-                                                                      param_candidates=param_candidates,
-                                                                      verbose=True)
         wrap_elastic = ElasticCCA(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y,
                                                                           param_candidates=param_candidates,
                                                                           verbose=True)
