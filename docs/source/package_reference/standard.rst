@@ -7,7 +7,7 @@ Modules included in the standard pip install
 Model Wrappers
 --------------------
 
-.. currentmodule:: cca_zoo.wrappers
+.. currentmodule:: cca_zoo.models
 
 Base CCA
 ^^^^^^^^^
@@ -41,20 +41,20 @@ rCCA
    :undoc-members:
    :exclude-members: get_params, set_params
 
-PLS
+MCCA
 ^^^^^^^
 
-.. autoclass:: PLS
+.. autoclass:: MCCA
    :members:
    :inherited-members:
    :show-inheritance:
    :undoc-members:
    :exclude-members: get_params, set_params
 
-MCCA
+KCCA
 ^^^^^^^
 
-.. autoclass:: MCCA
+.. autoclass:: KCCA
    :members:
    :inherited-members:
    :show-inheritance:
@@ -92,10 +92,10 @@ KTCCA
    :undoc-members:
    :exclude-members: get_params, set_params
 
-KCCA
+PLS
 ^^^^^^^
 
-.. autoclass:: KCCA
+.. autoclass:: PLS
    :members:
    :inherited-members:
    :show-inheritance:
@@ -165,22 +165,14 @@ ElasticCCA
 Inner Loops for iterative optimization
 ---------------------------------------
 
-.. automodule:: cca_zoo.innerloop
+.. automodule:: innerloop
    :members:
    :inherited-members:
    :show-inheritance:
    :undoc-members:
    :exclude-members: get_params, set_params
 
-Kernel CCA
-----------------------------
 
-.. automodule:: cca_zoo.kcca
-   :members:
-   :inherited-members:
-   :show-inheritance:
-   :undoc-members:
-   :exclude-members: get_params, set_params
 
 Simulated Data and Toy Datasets
 --------------------------------

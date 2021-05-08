@@ -12,7 +12,7 @@ import numpy as np
 from torch.utils.data import Subset
 
 from cca_zoo.data import Noisy_MNIST_Dataset
-from cca_zoo.models.wrappers import CCA, SCCA, ElasticCCA, PMD, PLS, KCCA, MCCA, GCCA, TCCA
+from cca_zoo.models import CCA, SCCA, ElasticCCA, PMD, PLS, KCCA, MCCA, GCCA, TCCA
 
 # Load MNIST Data
 os.chdir('..')

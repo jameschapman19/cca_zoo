@@ -1,6 +1,6 @@
 import copy
 from abc import abstractmethod
-from typing import Tuple
+from typing import Tuple, Union, List
 
 import numpy as np
 from sklearn.base import BaseEstimator
@@ -99,7 +99,7 @@ class PLS(_Iterative):
 
     :Example:
 
-    >>> from cca_zoo import PLS
+    >>> from cca_zoo.models import PLS
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = PLS()
@@ -131,7 +131,7 @@ class ElasticCCA(_Iterative, BaseEstimator):
 
     :Example:
 
-    >>> from cca_zoo import ElasticCCA
+    >>> from cca_zoo.models import ElasticCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = ElasticCCA()

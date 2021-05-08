@@ -98,21 +98,3 @@ class GCCA(_CCA_Base):
                 transformed_view.mask[np.where(K[i]) == 1] = True
             transformed_views.append(transformed_view)
         return transformed_views
-
-
-def _pca_data(*views: Tuple[np.ndarray, ...]):
-    """
-    Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
-    demeaning transformation to out of sample data
-
-    :param views: numpy arrays with the same number of rows (samples) separated by commas
-    """
-    views_U = []
-    views_S = []
-    views_Vt = []
-    for i, view in enumerate(views):
-        U, S, Vt = np.linalg.svd(view, full_matrices=False)
-        views_U.append(U)
-        views_S.append(S)
-        views_Vt.append(Vt)
-    return views_U, views_S, views_Vt
