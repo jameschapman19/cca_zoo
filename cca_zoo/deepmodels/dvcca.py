@@ -4,8 +4,8 @@ import torch
 import torch.distributions as dist
 from torch.nn import functional as F
 
-from cca_zoo.dcca import _DCCA_base
-from cca_zoo.deep_models import BaseEncoder, Encoder, BaseDecoder, Decoder
+from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, BaseDecoder, Decoder
+from cca_zoo.deepmodels.dcca import _DCCA_base
 
 
 class DVCCA(_DCCA_base):

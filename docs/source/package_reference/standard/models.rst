@@ -1,13 +1,7 @@
-Standard install
-=================
-
-Modules included in the standard pip install
-
-
-Model Wrappers
+Models
 --------------------
 
-.. currentmodule:: cca_zoo.wrappers
+.. currentmodule:: cca_zoo.models
 
 Base CCA
 ^^^^^^^^^
@@ -31,6 +25,7 @@ CCA
    :show-inheritance:
    :undoc-members:
    :exclude-members: get_params, set_params
+
 rCCA
 ^^^^^^^
 
@@ -41,20 +36,20 @@ rCCA
    :undoc-members:
    :exclude-members: get_params, set_params
 
-PLS
+MCCA
 ^^^^^^^
 
-.. autoclass:: PLS
+.. autoclass:: MCCA
    :members:
    :inherited-members:
    :show-inheritance:
    :undoc-members:
    :exclude-members: get_params, set_params
 
-MCCA
+KCCA
 ^^^^^^^
 
-.. autoclass:: MCCA
+.. autoclass:: KCCA
    :members:
    :inherited-members:
    :show-inheritance:
@@ -92,10 +87,10 @@ KTCCA
    :undoc-members:
    :exclude-members: get_params, set_params
 
-KCCA
+PLS
 ^^^^^^^
 
-.. autoclass:: KCCA
+.. autoclass:: PLS
    :members:
    :inherited-members:
    :show-inheritance:
@@ -162,42 +157,4 @@ ElasticCCA
    :undoc-members:
    :exclude-members: get_params, set_params
 
-Inner Loops for iterative optimization
----------------------------------------
-
-.. automodule:: cca_zoo.innerloop
-   :members:
-   :inherited-members:
-   :show-inheritance:
-   :undoc-members:
-   :exclude-members: get_params, set_params
-
-Kernel CCA
-----------------------------
-
-.. automodule:: cca_zoo.kcca
-   :members:
-   :inherited-members:
-   :show-inheritance:
-   :undoc-members:
-   :exclude-members: get_params, set_params
-
-Simulated Data and Toy Datasets
---------------------------------
-
-.. automodule:: cca_zoo.data
-   :members:
-   :inherited-members:
-   :show-inheritance:
-   :undoc-members:
-   :exclude-members: get_params, set_params
-
-Plotting Utilities
-----------------------------
-
-.. automodule:: cca_zoo.plot_utils
-   :members:
-   :inherited-members:
-   :show-inheritance:
-   :undoc-members:
-   :exclude-members: get_params, set_params
+.. currentmodule:: cca_zoo.models

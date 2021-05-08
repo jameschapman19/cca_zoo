@@ -5,12 +5,16 @@ with open("README.md", "r") as fh:
 
 with open("./requirements/basic.txt", "r") as f:
     REQUIRED_PACKAGES = f.read()
+
+EXTRA_PACKAGES = {}
 with open("./requirements/deep.txt", "r") as f:
-    DEEP_PACKAGES = {'deep': f.read()}
+    EXTRA_PACKAGES['deep'] = f.read()
+with open("./requirements/probablistic.txt", "r") as f:
+    EXTRA_PACKAGES['probabilistic'] = f.read()
 
 setup(
     name='cca_zoo',
-    version='1.3.0',
+    version='1.4.0',
     include_package_data=True,
     keywords='cca',
     packages=find_packages(),
@@ -25,7 +29,7 @@ setup(
     author_email='james.chapman.19@ucl.ac.uk',
     python_requires='>=3.6',
     install_requires=REQUIRED_PACKAGES,
-    extras_require=DEEP_PACKAGES,
+    extras_require=EXTRA_PACKAGES,
     test_suite='tests',
     tests_require=[],
 )

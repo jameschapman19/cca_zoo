@@ -3,9 +3,9 @@ from typing import Iterable
 import torch
 from torch.nn import functional as F
 
-from cca_zoo.dcca import _DCCA_base
-from cca_zoo.deep_models import BaseEncoder, Encoder, BaseDecoder, Decoder
-from cca_zoo.objectives import CCA
+from cca_zoo.deepmodels import objectives
+from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, BaseDecoder, Decoder
+from cca_zoo.deepmodels.dcca import _DCCA_base
 
 
 class DCCAE(_DCCA_base):
@@ -14,11 +14,12 @@ class DCCAE(_DCCA_base):
 
     Examples
     --------
-    >>> from cca_zoo.dccae import DCCAE
+    >>> from cca_zoo.deepmodels import DCCAE
     >>> model = DCCAE()
     """
 
-    def __init__(self, latent_dims: int, objective=CCA, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
+    def __init__(self, latent_dims: int, objective=objectives.MCCA,
+                 encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  decoders: Iterable[BaseDecoder] = [Decoder, Decoder], r: float = 1e-3, learning_rate=1e-3, lam=0.5,
                  schedulers: Iterable = None, optimizers: Iterable = None):
         """

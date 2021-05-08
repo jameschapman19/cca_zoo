@@ -3,8 +3,8 @@ from typing import Iterable
 import torch
 import torch.nn.functional as F
 
-from cca_zoo.dcca import _DCCA_base
-from cca_zoo.deep_models import BaseEncoder, Encoder, BaseDecoder, Decoder
+from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, BaseDecoder, Decoder
+from cca_zoo.deepmodels.dcca import _DCCA_base
 
 
 class SplitAE(_DCCA_base):
@@ -13,7 +13,7 @@ class SplitAE(_DCCA_base):
 
     Examples
     --------
-    >>> from cca_zoo.splitae import SplitAE
+    >>> from cca_zoo.deepmodels import SplitAE
     >>> model = SplitAE()
     """
 
