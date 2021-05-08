@@ -2,8 +2,8 @@ from typing import List
 
 import torch
 
+from cca_zoo.deepmodels import objectives
 from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
-from cca_zoo.deepmodels.objectives import CCA
 from cca_zoo.models import MCCA
 from ._dcca_base import _DCCA_base
 
@@ -18,7 +18,7 @@ class DCCA(_DCCA_base, torch.nn.Module):
     >>> model = DCCA()
     """
 
-    def __init__(self, latent_dims: int, objective=CCA,
+    def __init__(self, latent_dims: int, objective=objectives.CCA,
                  encoders: List[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, r: float = 1e-3, eps: float = 1e-9,
                  schedulers: List = None,

@@ -2,9 +2,9 @@ from typing import List
 
 import torch
 
+from cca_zoo.deepmodels import objectives
 from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
 from cca_zoo.deepmodels.dcca import DCCA
-from cca_zoo.deepmodels.objectives import _compute_matrix_power, CCA
 from cca_zoo.models import MCCA
 
 
@@ -18,7 +18,7 @@ class DCCA_NOI(DCCA, torch.nn.Module):
     >>> model = DCCA_NOI()
     """
 
-    def __init__(self, latent_dims: int, objective=CCA, encoders: List[BaseEncoder] = [Encoder, Encoder],
+    def __init__(self, latent_dims: int, objective=objectives.MCCA, encoders: List[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-9, shared_target: bool = False,
                  schedulers: List = None, optimizers: List[torch.optim.Optimizer] = None):
         """
@@ -57,7 +57,7 @@ class DCCA_NOI(DCCA, torch.nn.Module):
     def update_weights(self, *args):
         z = self(*args)
         self.update_covariances(*z)
-        covariance_inv = [_compute_matrix_power(cov, -0.5, self.eps) for cov in self.covs]
+        covariance_inv = [objectives._compute_matrix_power(cov, -0.5, self.eps) for cov in self.covs]
         preds = [torch.matmul(z, covariance_inv[i]).detach() for i, z in enumerate(z)]
         losses = [torch.mean(torch.norm(z_i - preds[-i], dim=0)) for i, z_i in enumerate(z, start=1)]
         obj = self.objective.loss(*z)
