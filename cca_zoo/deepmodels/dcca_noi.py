@@ -2,10 +2,10 @@ from typing import List
 
 import torch
 
-from cca_zoo.dcca import DCCA
-from cca_zoo.deep_models import BaseEncoder, Encoder
-from cca_zoo.objectives import _compute_matrix_power, CCA
-from cca_zoo.wrappers import MCCA
+from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
+from cca_zoo.deepmodels.dcca import DCCA
+from cca_zoo.deepmodels.objectives import _compute_matrix_power, CCA
+from cca_zoo.models.wrappers import MCCA
 
 
 class DCCA_NOI(DCCA, torch.nn.Module):

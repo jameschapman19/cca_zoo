@@ -1,38 +1,11 @@
-from abc import abstractmethod
 from typing import List
 
 import torch
 
-from cca_zoo.deep_models import BaseEncoder, Encoder
-from cca_zoo.objectives import CCA
-from cca_zoo.wrappers import MCCA
-
-
-class _DCCA_base(torch.nn.Module):
-    def __init__(self, latent_dims: int):
-        super(_DCCA_base, self).__init__()
-        self.latent_dims = latent_dims
-        self.schedulers = [None]
-
-    @abstractmethod
-    def update_weights(self, *args):
-        """
-        A complete update of the weights used every batch
-        :param args: batches for each view separated by commas
-        :return:
-        """
-        pass
-
-    @abstractmethod
-    def forward(self, *args):
-        """
-        :param args: batches for each view separated by commas
-        :return: views encoded to latent dimensions
-        """
-        pass
-
-    def post_transform(self, *z_list, train=False):
-        return z_list
+from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
+from cca_zoo.deepmodels.objectives import CCA
+from cca_zoo.models.wrappers import MCCA
+from ._dcca_base import _DCCA_base
 
 
 class DCCA(_DCCA_base, torch.nn.Module):

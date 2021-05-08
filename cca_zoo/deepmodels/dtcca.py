@@ -2,10 +2,10 @@ from typing import Iterable
 
 import torch
 
-from cca_zoo import wrappers
-from cca_zoo.dcca import DCCA
-from cca_zoo.deep_models import BaseEncoder, Encoder
-from cca_zoo.objectives import TCCA
+from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
+from cca_zoo.deepmodels.dcca import DCCA
+from cca_zoo.deepmodels.objectives import TCCA
+from cca_zoo.models import wrappers
 
 
 class DTCCA(DCCA, torch.nn.Module):
