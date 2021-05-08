@@ -4,7 +4,7 @@ Standard install
 Modules included in the standard pip install
 
 
-Model Wrappers
+Models
 --------------------
 
 .. currentmodule:: cca_zoo.models
