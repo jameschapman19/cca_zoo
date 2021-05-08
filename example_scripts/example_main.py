@@ -267,17 +267,16 @@ We also have deep CCA methods (and autoencoder variants)
 We introduce a Config class from configuration.py. This contains a number of default settings for running DCCA.
 
 """
-from cca_zoo.deepmodels import dcca, dccae, dvcca, objectives, architectures, deepwrapper
-
+from cca_zoo.deepmodels import DCCA, DCCAE, DVCCA, DCCA_NOI, DeepWrapper, architectures, objectives
 # %%
 # DCCA
 print('DCCA')
 encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
 encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
-dcca_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
+dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dcca_model = deepwrapper.DeepWrapper(dcca_model)
+dcca_model = DeepWrapper(dcca_model)
 
 dcca_model.fit(train_view_1, train_view_2, epochs=epochs)
 
@@ -287,10 +286,10 @@ dcca_results = np.stack((dcca_model.train_correlations[0, 1], dcca_model.predict
 print('DGCCA')
 encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
 encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
-dgcca_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=objectives.GCCA)
+dgcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=objectives.GCCA)
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dgcca_model = deepwrapper.DeepWrapper(dgcca_model)
+dgcca_model = DeepWrapper(dgcca_model)
 
 dgcca_model.fit((train_view_1, train_view_2), epochs=epochs)
 
@@ -301,10 +300,10 @@ dgcca_results = np.stack(
 print('DMCCA')
 encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
 encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
-dmcca_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=objectives.MCCA)
+dmcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=objectives.MCCA)
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dmcca_model = deepwrapper.DeepWrapper(dmcca_model)
+dmcca_model = DeepWrapper(dmcca_model)
 
 dmcca_model.fit((train_view_1, train_view_2), epochs=epochs)
 
@@ -315,10 +314,10 @@ dmcca_results = np.stack(
 print('DCCA by non-linear orthogonal iterations')
 encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
 encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
-dcca_noi_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], als=True)
+dcca_noi_model = DCCA_NOI(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dcca_noi_model = deepwrapper.DeepWrapper(dcca_noi_model)
+dcca_noi_model = DeepWrapper(dcca_noi_model)
 
 dcca_noi_model.fit((train_view_1, train_view_2), epochs=epochs)
 
@@ -331,10 +330,10 @@ encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
 encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
 decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=784)
 decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=784)
-dccae_model = dccae.DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2])
+dccae_model = DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2])
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dccae_model = deepwrapper.DeepWrapper(dccae_model)
+dccae_model = DeepWrapper(dccae_model)
 
 dccae_model.fit((train_view_1, train_view_2), epochs=epochs)
 
@@ -359,11 +358,11 @@ encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=784, var
 encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=784, variational=True)
 decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=784, norm_output=True)
 decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=784, norm_output=True)
-dvcca_model = dvcca.DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2],
-                          private=False)
+dvcca_model = DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2],
+                    private=False)
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dvcca_model = deepwrapper.DeepWrapper(dvcca_model)
+dvcca_model = DeepWrapper(dvcca_model)
 
 dvcca_model.fit((train_view_1, train_view_2), epochs=epochs)
 
@@ -378,11 +377,11 @@ private_encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=
 private_encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=784, variational=True)
 decoder_1 = architectures.Decoder(latent_dims=latent_dims * 2, feature_size=784, norm_output=True)
 decoder_2 = architectures.Decoder(latent_dims=latent_dims * 2, feature_size=784, norm_output=True)
-dvccap_model = dvcca.DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2],
-                           private_encoders=[private_encoder_1, private_encoder_2], private=True)
+dvccap_model = DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2],
+                     private_encoders=[private_encoder_1, private_encoder_2], private=True)
 
 # hidden_layer_sizes are shown explicitly but these are also the defaults
-dvccap_model = deepwrapper.DeepWrapper(dvccap_model)
+dvccap_model = DeepWrapper(dvccap_model)
 
 dvccap_model.fit((train_view_1, train_view_2), epochs=epochs)
 
@@ -398,9 +397,9 @@ We can vary the encoder architecture from the default fcn to encoder/decoder bas
 print('Convolutional DCCA')
 encoder_1 = architectures.CNNEncoder(latent_dims=latent_dims, channels=[3, 3])
 encoder_2 = architectures.CNNEncoder(latent_dims=latent_dims, channels=[3, 3])
-dcca_conv_model = dcca.DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
+dcca_conv_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
 
-dcca_conv_model = deepwrapper.DeepWrapper(dcca_conv_model)
+dcca_conv_model = DeepWrapper(dcca_conv_model)
 
 # to change the models used change the cfg.encoder_models. We implement a CNN_Encoder and CNN_decoder as well
 # as some based on brainnet architecture in cca_zoo.deep_models. Equally you could pass your own encoder/decoder models
