@@ -8,7 +8,7 @@ from jax import random
 from numpyro.infer import MCMC, NUTS
 
 # import arviz as az
-from cca_zoo.models.wrappers import _CCA_Base
+from cca_zoo.models import _CCA_Base
 
 
 class VariationalCCA(_CCA_Base):
