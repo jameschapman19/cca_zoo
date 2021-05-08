@@ -6,6 +6,6 @@ try:
 except ModuleNotFoundError:
     pass
 try:
-    import cca_zoo.probablisticmodels
+    import cca_zoo.probabilisticmodels
 except ModuleNotFoundError:
     pass

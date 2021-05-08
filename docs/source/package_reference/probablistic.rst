@@ -1,9 +1,9 @@
-Probablistic install
+Probabilistic install
 =================
 
-Modules included in the probablistic optional install
+Modules included in the probabilistic optional install
 
-.. currentmodule:: cca_zoo.probablisticmodels
+.. currentmodule:: cca_zoo.probabilisticmodels
 
 Variational CCA
 ^^^^^^^^^^^^^^^^

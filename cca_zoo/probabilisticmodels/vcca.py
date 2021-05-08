@@ -12,6 +12,18 @@ from cca_zoo.models import _CCA_Base
 
 
 class VariationalCCA(_CCA_Base):
+    """
+    A class used to fit a variational bayesian CCA
+
+    :Example:
+
+    >>> from cca_zoo.probabilisticmodels import VariationalCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = VariationalCCA()
+    >>> model.fit(X1,X2)
+    """
+
     def __init__(self, latent_dims: int = 1):
         super().__init__(latent_dims=latent_dims)
 
@@ -49,14 +61,3 @@ class VariationalCCA(_CCA_Base):
             # sample from multivariate normal and observe data
             [numpyro.sample("obs" + str(i), dist.MultivariateNormal((z @ W_) + mu_, scale_tril=psi_), obs=X_) for
              i, (X_, psi_, mu_, W_) in enumerate(zip(views, psi, mu, self.weights_list))]
-
-
-def main():
-    x = np.random.rand(100, 19)
-    y = np.random.rand(100, 12)
-    vcca = VariationalCCA(latent_dims=1).fit(x, y)
-    print()
-
-
-if __name__ == "__main__":
-    main()
