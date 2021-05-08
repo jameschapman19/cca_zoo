@@ -30,6 +30,7 @@ jobs:
         python -m pip install codecov
         python -m pip install -r requirements/basic.txt
         python -m pip install -r requirements/deep.txt
+        python -m pip install -r requirements/probablistic.txt
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
