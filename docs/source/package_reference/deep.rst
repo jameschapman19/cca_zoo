@@ -6,57 +6,79 @@ Modules included using the optional pip install cca-zoo[deep]
 Deep Model Wrapper
 ---------------------------
 
-.. currentmodule:: cca_zoo.wrappers
+.. currentmodule:: cca_zoo.deepmodels
 
-.. automodule:: cca_zoo.deepwrapper
+.. autoclass:: DeepWrapper
    :members:
    :inherited-members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 DCCA
 --------------------
 
-.. automodule:: cca_zoo.dcca
+.. autoclass:: DCCA
    :members:
-   :undoc-members:
+   :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
+
+DCCA by Non-linear Orthogonal Iterations
+------------------------------------------
+
+.. autoclass:: DCCA_NOI
+   :members:
+   :inherited-members:
+   :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 DCCAE
 ---------------------
 
-.. automodule:: cca_zoo.dccae
+.. autoclass:: DCCAE
    :members:
-   :undoc-members:
+   :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 DTCCA
 ---------------------
 
-.. automodule:: cca_zoo.dtcca
+.. autoclass:: DTCCA
    :members:
-   :undoc-members:
+   :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 DVCCA
 ---------------------
 
-.. automodule:: cca_zoo.dvcca
+.. autoclass:: DVCCA
    :members:
-   :undoc-members:
+   :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 Split Autoencoder
 -----------------------
 
-.. automodule:: cca_zoo.splitae
+.. autoclass:: SplitAE
    :members:
+   :inherited-members:
    :show-inheritance:
+   :undoc-members:
+   :exclude-members: get_params, set_params
 
 Encoder and Decoder Architectures + Template
 ---------------------------------------------
 
-.. automodule:: cca_zoo.deep_models
+.. automodule:: architectures
    :members:
    :undoc-members:
    :show-inheritance:
@@ -64,7 +86,7 @@ Encoder and Decoder Architectures + Template
 Objective Functions
 --------------------------
 
-.. automodule:: cca_zoo.objectives
+.. automodule:: objectives
    :members:
    :undoc-members:
    :show-inheritance:

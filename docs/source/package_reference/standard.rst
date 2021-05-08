@@ -31,6 +31,7 @@ CCA
    :show-inheritance:
    :undoc-members:
    :exclude-members: get_params, set_params
+
 rCCA
 ^^^^^^^
 
@@ -162,10 +163,12 @@ ElasticCCA
    :undoc-members:
    :exclude-members: get_params, set_params
 
+.. currentmodule:: cca_zoo.models
+
 Inner Loops for iterative optimization
 ---------------------------------------
 
-.. automodule:: innerloop
+.. automodule:: cca_zoo.models.innerloop
    :members:
    :inherited-members:
    :show-inheritance:

@@ -18,6 +18,7 @@ Documentation
 
    package_reference/standard
    package_reference/deep
+   package_reference/probablistic
 
 .. toctree::
    :maxdepth: 4
