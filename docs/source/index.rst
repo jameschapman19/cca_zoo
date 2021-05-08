@@ -16,7 +16,7 @@ Documentation
    :maxdepth: 4
    :caption: Package Reference:
 
-   package_reference/standard
+   package_reference/standard/index
    package_reference/deep
    package_reference/probablistic
 
