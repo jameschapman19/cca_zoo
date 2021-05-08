@@ -6,9 +6,9 @@ from scipy import linalg
 from scipy.linalg import block_diag
 
 
-def generate_covariance_data(n: int, k: int, view_features: List[int],
+def generate_covariance_data(n: int, view_features: List[int], latent_dims: int = 1,
                              view_sparsity: List[Union[int, float]] = None,
-                             signal: float = 1,
+                             correlation: float = 1,
                              structure: List[str] = None, sigma: float = 0.9, decay: float = 0.5):
     """
     Function to generate CCA dataset with defined population correlation
@@ -16,12 +16,17 @@ def generate_covariance_data(n: int, k: int, view_features: List[int],
     :param view_sparsity: level of sparsity in features in each view either as number of active variables or percentage active
     :param view_features: number of features in each view
     :param n: number of samples
-    :param k: number of latent dimensions
+    :param latent_dims: number of latent dimensions
     :param signal: correlation
     :param structure: within view covariance structure
     :param sigma: gaussian sigma
     :param decay: ratio of second signal to first signal
     :return: tuple of numpy arrays: view_1, view_2, true weights from view 1, true weights from view 2, overall covariance structure
+
+    :Example:
+
+    >>> from cca_zoo.data import generate_covariance_data
+    >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=generate_covariance_data(200,[10,10],latent_dims=1,correlation=1)
     """
     if structure is None:
         structure = ['identity'] * len(view_features)
@@ -31,7 +36,7 @@ def generate_covariance_data(n: int, k: int, view_features: List[int],
     while not completed:
         try:
             mean = np.zeros(sum(view_features))
-            p = np.arange(0, k)
+            p = np.arange(0, latent_dims)
             p = decay ** p
             cov = []
             true_features = []
@@ -50,11 +55,12 @@ def generate_covariance_data(n: int, k: int, view_features: List[int],
                 else:
                     completed = True
                     print("invalid structure")
-                weights = np.random.rand(view_p, k)
+                weights = np.random.rand(view_p, latent_dims)
                 if sparsity < 1:
                     sparsity = np.ceil(sparsity * view_p).astype('int')
-                mask = np.stack((np.concatenate(([0] * (view_p - sparsity), [1] * sparsity)).astype(bool),) * k,
-                                axis=0).T
+                mask = np.stack(
+                    (np.concatenate(([0] * (view_p - sparsity), [1] * sparsity)).astype(bool),) * latent_dims,
+                    axis=0).T
                 np.random.shuffle(mask.flat)
                 while np.sum(np.unique(mask, axis=1, return_counts=True)[1] > 1) > 0 or np.sum(
                         np.sum(mask, axis=0) == 0) > 0:
@@ -73,8 +79,8 @@ def generate_covariance_data(n: int, k: int, view_features: List[int],
 
             for i, j in itertools.combinations(range(len(splits) - 1), 2):
                 cross = np.zeros((view_features[i], view_features[j]))
-                for _ in range(k):
-                    cross += signal * p[_] * np.outer(true_features[i][:, _], true_features[j][:, _])
+                for _ in range(latent_dims):
+                    cross += correlation * p[_] * np.outer(true_features[i][:, _], true_features[j][:, _])
                     # Cross Bit
                     cross = cov[splits[i]:splits[i] + view_features[i], splits[i]:splits[i] + view_features[i]] @ cross \
                             @ cov[splits[j]:splits[j] + view_features[j], splits[j]:splits[j] + view_features[j]]
@@ -101,6 +107,11 @@ def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[i
     :param view_sparsity: number of features view 2
     :param eps: gaussian noise std
     :return: view1 matrix, view2 matrix, true weights view 1, true weights view 2
+
+    :Example:
+
+    >>> from cca_zoo.data import generate_simple_data
+    >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=generate_covariance_data(200,[10,10])
     """
     z = np.random.normal(0, 1, n)
     views = []
