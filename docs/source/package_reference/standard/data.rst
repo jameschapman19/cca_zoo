@@ -1,9 +1,9 @@
-Simulated Data and Toy Datasets
+Simulated Data
 --------------------------------
 
-.. automodule:: cca_zoo.data
+.. automodule:: cca_zoo.data.simulated
    :members:
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
