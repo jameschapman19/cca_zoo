@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from cca_zoo.models.wrappers import CCA, PLS, CCA_ALS, SCCA, PMD, ElasticCCA, rCCA, KCCA, KTCCA, MCCA, GCCA, TCCA
+from cca_zoo.models import CCA, PLS, CCA_ALS, SCCA, PMD, ElasticCCA, rCCA, KCCA, KTCCA, MCCA, GCCA, TCCA
 
 np.random.seed(123)
 

@@ -3,8 +3,8 @@ from unittest import TestCase
 import numpy as np
 from torch import optim
 
-from cca_zoo import DCCA, DCCAE, DVCCA, DCCA_NOI, DTCCA, SplitAE, DeepWrapper
 from cca_zoo import data
+from cca_zoo.deepmodels import DCCA, DCCAE, DVCCA, DCCA_NOI, DTCCA, SplitAE, DeepWrapper
 from cca_zoo.deepmodels import objectives, architectures
 
 
