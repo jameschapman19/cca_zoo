@@ -8,7 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 import cca_zoo.utils.plot_utils
 from cca_zoo.deepmodels.dcca import _DCCA_base
-from cca_zoo.models.wrappers import _CCA_Base
+from cca_zoo.models import _CCA_Base
 
 
 class DeepWrapper(_CCA_Base):

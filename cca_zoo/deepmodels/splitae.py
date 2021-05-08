@@ -13,7 +13,7 @@ class SplitAE(_DCCA_base):
 
     Examples
     --------
-    >>> from cca_zoo.splitae import SplitAE
+    >>> from cca_zoo.deepmodels import SplitAE
     >>> model = SplitAE()
     """
 

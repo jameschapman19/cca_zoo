@@ -4,7 +4,7 @@ import torch
 
 from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
 from cca_zoo.deepmodels.objectives import CCA
-from cca_zoo.models.wrappers import MCCA
+from cca_zoo.models import MCCA
 from ._dcca_base import _DCCA_base
 
 
@@ -14,7 +14,7 @@ class DCCA(_DCCA_base, torch.nn.Module):
 
     Examples
     --------
-    >>> from cca_zoo.dcca import DCCA
+    >>> from cca_zoo.deepmodels import DCCA
     >>> model = DCCA()
     """
 

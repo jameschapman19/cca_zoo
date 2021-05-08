@@ -14,7 +14,7 @@ class DCCAE(_DCCA_base):
 
     Examples
     --------
-    >>> from cca_zoo.dccae import DCCAE
+    >>> from cca_zoo.deepmodels import DCCAE
     >>> model = DCCAE()
     """
 

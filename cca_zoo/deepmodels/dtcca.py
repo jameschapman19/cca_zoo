@@ -14,7 +14,7 @@ class DTCCA(DCCA, torch.nn.Module):
 
     Examples
     --------
-    >>> from cca_zoo.dtcca import DTCCA
+    >>> from cca_zoo.deepmodels import DTCCA
     >>> model = DTCCA()
     """
 
