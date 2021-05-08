@@ -10,11 +10,11 @@ EXTRA_PACKAGES = {}
 with open("./requirements/deep.txt", "r") as f:
     EXTRA_PACKAGES['deep'] = f.read()
 with open("./requirements/probablistic.txt", "r") as f:
-    EXTRA_PACKAGES['probablistic'] = f.read()
+    EXTRA_PACKAGES['probabilistic'] = f.read()
 
 setup(
     name='cca_zoo',
-    version='1.3.0',
+    version='1.4.0',
     include_package_data=True,
     keywords='cca',
     packages=find_packages(),
