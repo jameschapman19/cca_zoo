@@ -1,9 +1,3 @@
-Standard install
-=================
-
-Modules included in the standard pip install
-
-
 Models
 --------------------
 
@@ -164,35 +158,3 @@ ElasticCCA
    :exclude-members: get_params, set_params
 
 .. currentmodule:: cca_zoo.models
-
-Inner Loops for iterative optimization
----------------------------------------
-
-.. automodule:: cca_zoo.models.innerloop
-   :members:
-   :inherited-members:
-   :show-inheritance:
-   :undoc-members:
-   :exclude-members: get_params, set_params
-
-
-
-Simulated Data and Toy Datasets
---------------------------------
-
-.. automodule:: cca_zoo.data
-   :members:
-   :inherited-members:
-   :show-inheritance:
-   :undoc-members:
-   :exclude-members: get_params, set_params
-
-Plotting Utilities
-----------------------------
-
-.. automodule:: cca_zoo.plot_utils
-   :members:
-   :inherited-members:
-   :show-inheritance:
-   :undoc-members:
-   :exclude-members: get_params, set_params
