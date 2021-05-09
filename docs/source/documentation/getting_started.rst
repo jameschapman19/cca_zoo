@@ -7,7 +7,7 @@ Where possible I have followed the scikit-learn/mvlearn APIs and models therefor
 
 Models can be tuned using a gridsearch.
 
-We provide a tutorial notebook hosted on google colab: https://colab.research.google.com/drive/1reldEBw69hsOtwQOvYsbGGnpvH__b7WF?usp=sharing
+We provide a tutorial notebook hosted on google colab: https://colab.research.google.com/github/jameschapman19/cca_zoo/blob/master/tutorial_notebooks/cca_zoo_tutorial.ipynb
 
 Look how easy it is to use:
 
