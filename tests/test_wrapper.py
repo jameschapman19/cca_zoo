@@ -104,6 +104,9 @@ class TestWrapper(TestCase):
         wrap_elastic = ElasticCCA(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y,
                                                                           param_candidates=param_candidates,
                                                                           verbose=True)
+        wrap_elastic = ElasticCCA(latent_dims=latent_dims, constrained=True, max_iter=30).gridsearch_fit(self.X, self.Y,
+                                                                                                         param_candidates=param_candidates,
+                                                                                                         verbose=True)
         corr_pmd = wrap_pmd.train_correlations[0, 1]
         corr_scca = wrap_scca.train_correlations[0, 1]
         corr_elastic = wrap_elastic.train_correlations[0, 1]
@@ -137,7 +140,8 @@ class TestWrapper(TestCase):
         c2 = [0.1, 0.2]
         param_candidates = {'c': list(itertools.product(c1, c2))}
         wrap_unweighted_gcca = GCCA(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y, folds=2,
-                                                                            param_candidates=param_candidates)
+                                                                            param_candidates=param_candidates,
+                                                                            plot=True)
         wrap_deweighted_gcca = GCCA(latent_dims=latent_dims, view_weights=[0.5, 0.5]).gridsearch_fit(
             self.X, self.Y, folds=2, param_candidates=param_candidates)
         wrap_mcca = MCCA(latent_dims=latent_dims).gridsearch_fit(

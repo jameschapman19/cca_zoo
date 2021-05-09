@@ -157,5 +157,5 @@ class KCCA(MCCA):
         """
         Ktest = [self._get_kernel(i, train_view, Y=test_view - self.view_means[i]) for i, (train_view, test_view) in
                  enumerate(zip(self.train_views, views))]
-        transformed_views = [test_kernel @ self.alphas[i] for i, test_kernel in enumerate(Ktest)]
+        transformed_views = [test_kernel.T @ self.alphas[i] for i, test_kernel in enumerate(Ktest)]
         return transformed_views

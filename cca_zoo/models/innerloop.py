@@ -300,8 +300,8 @@ class ADMMInnerLoop(_InnerLoop):
         assert (all([mu <= lam / np.linalg.norm(view) ** 2 for mu, lam, view in
                      zip(self.mu, self.lam,
                          self.views)])), "Condition from Parikh 2014 mu<lam/frobenius(X)**2"
-        self.eta = [np.ones(view.shape[0]) * eta for view, eta in zip(self.views, self.eta)]
-        self.z = [np.zeros(view.shape[0]) for view in self.views]
+        self.eta = [np.ones((view.shape[0], 1)) * eta for view, eta in zip(self.views, self.eta)]
+        self.z = [np.zeros((view.shape[0], 1)) for view in self.views]
         self.l1_ratio = [1] * len(self.views)
 
     def update_view(self, view_index: int):

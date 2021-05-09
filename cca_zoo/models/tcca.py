@@ -158,6 +158,6 @@ class KTCCA(TCCA):
         """
         Ktest = [self._get_kernel(i, train_view, Y=test_view - self.view_means[i]) for i, (train_view, test_view) in
                  enumerate(zip(self.train_views, views))]
-        transformed_views = [test_kernel @ cov_invsqrt @ self.alphas[i] for i, (test_kernel, cov_invsqrt) in
+        transformed_views = [test_kernel.T @ cov_invsqrt @ self.alphas[i] for i, (test_kernel, cov_invsqrt) in
                              enumerate(zip(Ktest, self.covs_invsqrt))]
         return transformed_views
