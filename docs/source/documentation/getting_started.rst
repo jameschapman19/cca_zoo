@@ -29,8 +29,10 @@ Look how easy it is to use:
 Installation
 ------------
 
-for everything except the deep learning based models use: pip install cca-zoo
+for everything except the deep learning based models and probabilistic models use: pip install cca-zoo
 
 For deep learning elements use: pip install cca-zoo[deep]
+For probabilistic elements use: pip install cca-zoo[probabilistic]
 
 This means that there is no need to install the large pytorch package to run cca-zoo unless you wish to use deep learning
+Likewise there is no need to install numpyro to run the standard version of the package
