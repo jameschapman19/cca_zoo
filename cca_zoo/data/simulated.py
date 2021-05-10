@@ -31,7 +31,7 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
     if structure is None:
         structure = ['identity'] * len(view_features)
     if view_sparsity is None:
-        view_sparsity = [0] * len(view_features)
+        view_sparsity = [1] * len(view_features)
     completed = False
     while not completed:
         try:
@@ -56,7 +56,7 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                     completed = True
                     print("invalid structure")
                 weights = np.random.rand(view_p, latent_dims)
-                if sparsity < 1:
+                if sparsity <= 1:
                     sparsity = np.ceil(sparsity * view_p).astype('int')
                 mask = np.stack(
                     (np.concatenate(([0] * (view_p - sparsity), [1] * sparsity)).astype(bool),) * latent_dims,
