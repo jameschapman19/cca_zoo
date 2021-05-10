@@ -21,7 +21,7 @@ class TestWrapper(TestCase):
     def test_unregularized_methods(self):
         latent_dims = 1
         wrap_cca = CCA(latent_dims=latent_dims).fit(self.X, self.Y)
-        wrap_iter = CCA_ALS(latent_dims=latent_dims).fit(self.X, self.Y)
+        wrap_iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9).fit(self.X, self.Y)
         wrap_gcca = GCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_mcca = MCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_kcca = KCCA(latent_dims=latent_dims).fit(self.X, self.Y)
@@ -104,9 +104,6 @@ class TestWrapper(TestCase):
         wrap_elastic = ElasticCCA(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y,
                                                                           param_candidates=param_candidates,
                                                                           verbose=True)
-        wrap_elastic = ElasticCCA(latent_dims=latent_dims, constrained=True, max_iter=30).gridsearch_fit(self.X, self.Y,
-                                                                                                         param_candidates=param_candidates,
-                                                                                                         verbose=True)
         corr_pmd = wrap_pmd.train_correlations[0, 1]
         corr_scca = wrap_scca.train_correlations[0, 1]
         corr_elastic = wrap_elastic.train_correlations[0, 1]

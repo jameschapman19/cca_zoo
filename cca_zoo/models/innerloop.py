@@ -224,12 +224,14 @@ class ElasticInnerLoop(_InnerLoop):
     def elastic_solver(self, X, y, alpha=0.1, l1_ratio=0.5):
         if self.stochastic:
             if l1_ratio == 0:
-                beta = SGDRegressor(penalty='l2', alpha=alpha, fit_intercept=False, max_iter=10).fit(X, y.ravel()).coef_
+                beta = SGDRegressor(penalty='l2', alpha=alpha, fit_intercept=False, tol=self.tol).fit(X,
+                                                                                                      y.ravel()).coef_
             elif l1_ratio == 1:
-                beta = SGDRegressor(penalty='l1', alpha=alpha, fit_intercept=False, max_iter=10).fit(X, y.ravel()).coef_
+                beta = SGDRegressor(penalty='l1', alpha=alpha, fit_intercept=False, tol=self.tol).fit(X,
+                                                                                                      y.ravel()).coef_
             else:
                 beta = SGDRegressor(penalty='elasticnet', alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False,
-                                    max_iter=10).fit(X, y.ravel()).coef_
+                                    tol=self.tol).fit(X, y.ravel()).coef_
         else:
             if alpha == 0:
                 beta = LinearRegression(fit_intercept=False).fit(X, y.ravel()).coef_
