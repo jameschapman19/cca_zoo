@@ -18,7 +18,7 @@ class _Iterative(_CCA_Base):
     """
 
     def __init__(self, latent_dims: int = 1, deflation='cca', max_iter: int = 100, generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-5):
+                 initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for _Iterative
 
@@ -107,7 +107,7 @@ class PLS(_Iterative):
     """
 
     def __init__(self, latent_dims: int = 1, max_iter: int = 100, generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-5):
+                 initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for PLS
 
@@ -142,7 +142,7 @@ class ElasticCCA(_Iterative, BaseEstimator):
                  l1_ratio: Union[List[float], float] = None,
                  constrained: bool = False, max_iter: int = 100,
                  generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-5, stochastic=False):
+                 initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False):
         """
         Constructor for ElasticCCA
 
@@ -179,7 +179,7 @@ class CCA_ALS(ElasticCCA):
     """
 
     def __init__(self, latent_dims: int = 1, max_iter: int = 100, generalized: bool = False,
-                 initialization: str = 'random', tol: float = 1e-5, stochastic=True):
+                 initialization: str = 'random', tol: float = 1e-9, stochastic=True):
         """
         Constructor for CCA_ALS
 
@@ -208,7 +208,7 @@ class SCCA(ElasticCCA):
 
     def __init__(self, latent_dims: int = 1, c: List[float] = None, max_iter: int = 100,
                  generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-5, stochastic=False):
+                 initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False):
         """
         Constructor for SCCA
 
@@ -238,7 +238,7 @@ class PMD(_Iterative, BaseEstimator):
     """
 
     def __init__(self, latent_dims: int = 1, c: List[float] = None, max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-5):
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for PMD
 
@@ -272,7 +272,7 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
     """
 
     def __init__(self, latent_dims: int = 1, c: List[float] = None, max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-5):
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for ParkhomenkoCCA
 
@@ -309,7 +309,7 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
     def __init__(self, latent_dims: int = 1, c: List[float] = None, mu: List[float] = None, lam: List[float] = None,
                  eta: List[float] = None,
                  max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-5):
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for SCCA_ADMM
 
