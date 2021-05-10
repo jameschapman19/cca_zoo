@@ -77,9 +77,8 @@ class GCCA(_CCA_Base):
         train_views = []
         self.view_means = []
         for i, (observations, view) in enumerate(zip(K, views)):
-            observed = np.where(observations == 1)[0]
-            self.view_means.append(view[observed].mean(axis=0))
-            view[observed] = view[observed] - self.view_means[i]
+            self.view_means.append(observations @ view / np.sum(observations))
+            view[observations > 0] -= self.view_means[i]
             train_views.append(np.diag(observations) @ view)
         return train_views
 
