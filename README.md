@@ -6,16 +6,19 @@
 [![downloads](https://img.shields.io/pypi/dm/cca-zoo)](https://pypi.org/project/cca-zoo/)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/jameschapman19/cca_zoo/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/jameschapman19/cca_zoo/?branch=master)
 
-now including *tensor* and *deep tensor* cca!
+now including *tensor* and *deep tensor* cca and *variational bayesian* cca!
 
 # Installation
-Note: for everything except the deep learning based models use: 
+Note: for standard install use: 
 pip install cca-zoo
 
 For deep learning elements use:
 pip install cca-zoo[deep]
 
-This means that there is no need to install the large pytorch package to run cca-zoo unless you wish to use deep learning
+For probabilistic elements use:
+pip install cca-zoo[probabilistic]
+
+This means that there is no need to install the large pytorch package or numpyro to run cca-zoo unless you wish to use deep learning
 
 # Documentation
 Available at https://cca-zoo.readthedocs.io/en/latest/
