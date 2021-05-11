@@ -65,7 +65,7 @@ class TCCA(_CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def setup_tensor(self, *views: Tuple[np.ndarray, ...]):
+    def setup_tensor(self, *views: Tuple[np.ndarray, ...], **kwargs):
         train_views = self.demean_data(*views)
         n = train_views[0].shape[0]
         covs = [(1 - self.c[i]) * view.T @ view + self.c[i] * np.eye(view.shape[1]) for i, view in
@@ -149,15 +149,19 @@ class KTCCA(TCCA):
         train_views = [train_view @ cov_invsqrt for train_view, cov_invsqrt in zip(train_views, self.covs_invsqrt)]
         return train_views, self.covs_invsqrt
 
-    def transform(self, *views: Tuple[np.ndarray, ...], ):
+    def transform(self, *views: Tuple[np.ndarray, ...], view_indices: List[int] = None, **kwargs):
         """
         Transforms data given a fit k=KCCA model
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model
         """
-        Ktest = [self._get_kernel(i, train_view, Y=test_view - self.view_means[i]) for i, (train_view, test_view) in
-                 enumerate(zip(self.train_views, views))]
-        transformed_views = [test_kernel.T @ cov_invsqrt @ self.alphas[i] for i, (test_kernel, cov_invsqrt) in
-                             enumerate(zip(Ktest, self.covs_invsqrt))]
+        if view_indices is None:
+            view_indices = np.arange(len(views))
+        Ktest = [self._get_kernel(view_index, self.train_views[view_index], Y=test_view - self.view_means[view_index])
+                 for test_view, view_index in
+                 zip(views, view_indices)]
+        transformed_views = [test_kernel.T @ cov_invsqrt @ self.alphas[view_index] for
+                             i, (test_kernel, view_index, cov_invsqrt) in
+                             enumerate(zip(Ktest, view_indices, self.covs_invsqrt))]
         return transformed_views

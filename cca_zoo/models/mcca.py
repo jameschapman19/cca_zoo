@@ -148,14 +148,18 @@ class KCCA(MCCA):
         self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
         return kernels, C, D
 
-    def transform(self, *views: Tuple[np.ndarray, ...], ):
+    def transform(self, *views: Tuple[np.ndarray, ...], view_indices: List[int] = None, **kwargs):
         """
         Transforms data given a fit KCCA model
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model
         """
-        Ktest = [self._get_kernel(i, train_view, Y=test_view - self.view_means[i]) for i, (train_view, test_view) in
-                 enumerate(zip(self.train_views, views))]
-        transformed_views = [test_kernel.T @ self.alphas[i] for i, test_kernel in enumerate(Ktest)]
+        if view_indices is None:
+            view_indices = np.arange(len(views))
+        Ktest = [self._get_kernel(view_index, self.train_views[view_index], Y=test_view - self.view_means[view_index])
+                 for test_view, view_index in
+                 zip(views, view_indices)]
+        transformed_views = [test_kernel.T @ self.alphas[view_index] for test_kernel, view_index in
+                             zip(Ktest, view_indices)]
         return transformed_views

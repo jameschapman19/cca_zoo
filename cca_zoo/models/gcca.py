@@ -82,7 +82,7 @@ class GCCA(_CCA_Base):
             train_views.append(np.diag(observations) @ view)
         return train_views
 
-    def transform(self, *views: Tuple[np.ndarray, ...], K=None):
+    def transform(self, *views: Tuple[np.ndarray, ...], K=None, view_indices: List[int] = None, **kwargs):
         """
         Transforms data given a fit GCCA model
 
@@ -91,9 +91,11 @@ class GCCA(_CCA_Base):
         1 means the data is observed in the corresponding view and 0 means the data is unobserved in that view.
         """
         transformed_views = []
-        for i, view in enumerate(views):
-            transformed_view = np.ma.array((view - self.view_means[i]) @ self.weights_list[i])
+        if view_indices is None:
+            view_indices = np.arange(len(views))
+        for i, (view, view_index) in enumerate(zip(views, view_indices)):
+            transformed_view = np.ma.array((view - self.view_means[view_index]) @ self.weights_list[view_index])
             if K is not None:
-                transformed_view.mask[np.where(K[i]) == 1] = True
+                transformed_view.mask[np.where(K[view_index]) == 1] = True
             transformed_views.append(transformed_view)
         return transformed_views

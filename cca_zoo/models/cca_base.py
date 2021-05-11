@@ -1,6 +1,6 @@
 import itertools
 from abc import abstractmethod
-from typing import Tuple
+from typing import Tuple, List
 
 import numpy as np
 import numpy.ma as ma
@@ -43,40 +43,45 @@ class _CCA_Base(BaseEstimator):
         pass
         return self
 
-    def transform(self, *views: Tuple[np.ndarray, ...], **kwargs):
+    def transform(self, *views: Tuple[np.ndarray, ...], view_indices: List[int] = None, **kwargs):
         """
         Transforms data given a fit model
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param view_indices:
         :param kwargs: any additional keyword arguments required by the given model
         """
         transformed_views = []
-        for i, view in enumerate(views):
-            transformed_view = np.ma.array((view - self.view_means[i]) @ self.weights_list[i])
+        if view_indices is None:
+            view_indices = np.arange(len(views))
+        for i, (view, view_index) in enumerate(zip(views, view_indices)):
+            transformed_view = np.ma.array((view - self.view_means[view_index]) @ self.weights_list[view_index])
             transformed_views.append(transformed_view)
         return transformed_views
 
-    def fit_transform(self, *views: Tuple[np.ndarray, ...], **kwargs):
+    def fit_transform(self, *views: Tuple[np.ndarray, ...], view_indices: List[int] = None, **kwargs):
         """
         Fits and then transforms the training data
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param view_indices:
         :param kwargs: any additional keyword arguments required by the given model
         :rtype: Tuple[np.ndarray, ...]
         """
-        return self.fit(*views).transform(*views, **kwargs)
+        return self.fit(*views).transform(*views, view_indices=view_indices, **kwargs)
 
-    def predict_corr(self, *views: Tuple[np.ndarray, ...], **kwargs) -> np.ndarray:
+    def predict_corr(self, *views: Tuple[np.ndarray, ...], view_indices: List[int] = None, **kwargs) -> np.ndarray:
         """
         Predicts the correlation for the given data using the fit model
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model
+        :param view_indices:
         :return: all_corrs: an array of the pairwise correlations (k,k,self.latent_dims) where k is the number of views
         :rtype: np.ndarray
         """
         # Takes two views and predicts their out of sample correlation using trained model
-        transformed_views = self.transform(*views, **kwargs)
+        transformed_views = self.transform(*views, view_indices=view_indices, **kwargs)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(np.diag(ma.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
