@@ -63,7 +63,7 @@ class rCCA(_CCA_Base):
         R_12 = R_list[0].T @ R_list[1]
         M = np.diag(1 / np.sqrt(B_list[1])) @ R_12.T @ np.diag(1 / B_list[0]) @ R_12 @ np.diag(1 / np.sqrt(B_list[1]))
         n = M.shape[0]
-        [eigvals, eigvecs] = eigh(M, subset_by_index=[n - 1 - self.latent_dims, n - 1])
+        [eigvals, eigvecs] = eigh(M, subset_by_index=[n - self.latent_dims, n - 1])
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         eigvals = np.real(np.sqrt(eigvals))[idx][:self.latent_dims]

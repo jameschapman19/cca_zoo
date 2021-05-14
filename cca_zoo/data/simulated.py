@@ -9,7 +9,7 @@ from scipy.linalg import block_diag
 def generate_covariance_data(n: int, view_features: List[int], latent_dims: int = 1,
                              view_sparsity: List[Union[int, float]] = None,
                              correlation: float = 1,
-                             structure: List[str] = None, sigma: float = 0.9, decay: float = 0.5):
+                             structure: List[str] = None, sigma: List[str] = None, decay: float = 0.5):
     """
     Function to generate CCA dataset with defined population correlation
 
@@ -58,14 +58,15 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                 weights = np.random.rand(view_p, latent_dims)
                 if sparsity <= 1:
                     sparsity = np.ceil(sparsity * view_p).astype('int')
-                mask = np.stack(
-                    (np.concatenate(([0] * (view_p - sparsity), [1] * sparsity)).astype(bool),) * latent_dims,
-                    axis=0).T
-                np.random.shuffle(mask.flat)
-                while np.sum(np.unique(mask, axis=1, return_counts=True)[1] > 1) > 0 or np.sum(
-                        np.sum(mask, axis=0) == 0) > 0:
+                if sparsity < view_p:
+                    mask = np.stack(
+                        (np.concatenate(([0] * (view_p - sparsity), [1] * sparsity)).astype(bool),) * latent_dims,
+                        axis=0).T
                     np.random.shuffle(mask.flat)
-                weights = weights * mask
+                    while np.sum(np.unique(mask, axis=1, return_counts=True)[1] > 1) > 0 or np.sum(
+                            np.sum(mask, axis=0) == 0) > 0:
+                        np.random.shuffle(mask.flat)
+                    weights = weights * mask
                 weights = _decorrelate_dims(weights, cov_)
                 if np.sum(np.diag((weights.T @ cov_ @ weights)) == 0) > 0:
                     print()
