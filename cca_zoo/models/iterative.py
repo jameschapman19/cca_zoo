@@ -1,6 +1,6 @@
 import copy
 from abc import abstractmethod
-from typing import Tuple, Union, List
+from typing import Union, List
 
 import numpy as np
 from sklearn.base import BaseEstimator
@@ -37,14 +37,14 @@ class _Iterative(_CCA_Base):
         self.tol = tol
         self.deflation = deflation
 
-    def fit(self, *views: Tuple[np.ndarray, ...], ):
+    def fit(self, *views: np.ndarray, ):
         """
         Fits the model by running an inner loop to convergence and then using deflation (currently only supports CCA deflation)
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
         self._set_loop_params()
-        train_views = self.demean_data(*views)
+        train_views = self.centre_scale(*views)
         n = train_views[0].shape[0]
         p = [view.shape[1] for view in train_views]
         # list of d: p x k

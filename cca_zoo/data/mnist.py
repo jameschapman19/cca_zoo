@@ -1,14 +1,13 @@
 """Helped by https://github.com/bcdutton/AdversarialCanonicalCorrelationAnalysis (hopefully I will have my own
 implementation of their work soon) Check out their paper at https://arxiv.org/abs/2005.10349 """
 
-import PIL
 import numpy as np
 import torch
 import torch.utils.data
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
-
+from torchvision.transforms.functional import InterpolationMode
 
 class CCA_Dataset(Dataset):
     """
@@ -85,7 +84,7 @@ class Noisy_MNIST_Dataset(Dataset):
     def __getitem__(self, idx):
         x_a = self.a_transform(self.data[idx].numpy())
         rot_a = torch.rand(1) * 90 - 45
-        x_a = transforms.functional.rotate(x_a, rot_a.item(), resample=PIL.Image.BILINEAR)
+        x_a = transforms.functional.rotate(x_a, rot_a.item(), interpolation=InterpolationMode.BILINEAR)
         x_a = self.base_transform(x_a)  # convert from PIL back to pytorch tensor
 
         label = self.targets[idx]
@@ -168,8 +167,8 @@ class Tangled_MNIST_Dataset(Dataset):
         x_b = Image.fromarray(self.filtered_classes[label][random_index, :, :].numpy(), mode='L')
         # get random angles of rotation
         rot_a, rot_b = torch.rand(2) * 90 - 45
-        x_a_rotate = transforms.functional.rotate(x_a, rot_a.item(), resample=PIL.Image.BILINEAR)
-        x_b_rotate = transforms.functional.rotate(x_b, rot_b.item(), resample=PIL.Image.BILINEAR)
+        x_a_rotate = transforms.functional.rotate(x_a, rot_a.item(), interpolation=InterpolationMode.BILINEAR)
+        x_b_rotate = transforms.functional.rotate(x_b, rot_b.item(), interpolation=InterpolationMode.BILINEAR)
         # convert images to tensors
         x_a_rotate = self.transform(x_a_rotate)
         x_b_rotate = self.transform(x_b_rotate)

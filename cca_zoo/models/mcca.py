@@ -1,4 +1,4 @@
-from typing import Tuple, List, Union
+from typing import List, Union
 
 import numpy as np
 from scipy.linalg import block_diag, eigh
@@ -35,7 +35,7 @@ class MCCA(_CCA_Base):
         if self.c is None:
             self.c = [0] * self.n_views
 
-    def fit(self, *views: Tuple[np.ndarray, ...]):
+    def fit(self, *views: np.ndarray):
         """
         Fits an MCCA model
 
@@ -52,8 +52,8 @@ class MCCA(_CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def setup_gevp(self, *views: Tuple[np.ndarray, ...]):
-        train_views = self.demean_data(*views)
+    def setup_gevp(self, *views: np.ndarray):
+        train_views = self.centre_scale(*views)
         all_views = np.concatenate(train_views, axis=1)
         C = all_views.T @ all_views
         # Can regularise by adding to diagonal
@@ -130,13 +130,13 @@ class KCCA(MCCA):
         return pairwise_kernels(X, Y, metric=self.kernel[view],
                                 filter_params=True, **params)
 
-    def setup_gevp(self, *views: Tuple[np.ndarray, ...]):
+    def setup_gevp(self, *views: np.ndarray):
         """
         Generates the left and right hand sides of the generalized eigenvalue problem
 
         :param views:
         """
-        self.train_views = self.demean_data(*views)
+        self.train_views = self.centre_scale(*views)
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
         C = np.hstack(kernels).T @ np.hstack(kernels)
         # Can regularise by adding to diagonal
@@ -148,7 +148,7 @@ class KCCA(MCCA):
         self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
         return kernels, C, D
 
-    def transform(self, *views: Tuple[np.ndarray, ...], view_indices: List[int] = None, **kwargs):
+    def transform(self, *views: np.ndarray, view_indices: List[int] = None, **kwargs):
         """
         Transforms data given a fit KCCA model
 

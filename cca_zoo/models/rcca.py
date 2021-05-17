@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import List
 
 import numpy as np
 from scipy.linalg import block_diag, eigh
@@ -32,7 +32,7 @@ class rCCA(_CCA_Base):
         super().__init__(latent_dims=latent_dims)
         self.c = c
 
-    def fit(self, *views: Tuple[np.ndarray, ...]):
+    def fit(self, *views: np.ndarray):
         """
         Fits a regularised CCA (canonical ridge) model
 
@@ -41,7 +41,7 @@ class rCCA(_CCA_Base):
         if self.c is None:
             self.c = [0] * len(views)
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
-        train_views = self.demean_data(*views)
+        train_views = self.centre_scale(*views)
         U_list, S_list, Vt_list = _pca_data(*train_views)
         if len(views) == 2:
             self.two_view_fit(U_list, S_list, Vt_list)
@@ -113,7 +113,7 @@ class CCA(rCCA):
         super().__init__(latent_dims=latent_dims, c=[0.0, 0.0])
 
 
-def _pca_data(*views: Tuple[np.ndarray, ...]):
+def _pca_data(*views: np.ndarray):
     """
     Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
     demeaning transformation to out of sample data

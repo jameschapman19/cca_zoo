@@ -32,7 +32,7 @@ class GCCA(_CCA_Base):
         self.c = c
         self.view_weights = view_weights
 
-    def fit(self, *views: Tuple[np.ndarray, ...], K: np.ndarray = None):
+    def fit(self, *views: np.ndarray, K: np.ndarray = None):
         """
         Fits a GCCA model
 
@@ -47,7 +47,7 @@ class GCCA(_CCA_Base):
         if K is None:
             # just use identity when all rows are observed in all views.
             K = np.ones((len(views), views[0].shape[0]))
-        train_views = self.demean_observed_data(*views, K=K)
+        train_views = self.centre_scale(*views)
         Q = []
         for i, (view, view_weight) in enumerate(zip(train_views, self.view_weights)):
             view_cov = view.T @ view
@@ -65,24 +65,7 @@ class GCCA(_CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def demean_observed_data(self, *views: Tuple[np.ndarray, ...], K):
-        """
-        Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
-        demeaning transformation to out of sample data
-
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
-        :param K: observation matrix. Binary array with (k,n) dimensions where k is the number of views and n is the number of samples
-        1 means the data is observed in the corresponding view and 0 means the data is unobserved in that view.
-        """
-        train_views = []
-        self.view_means = []
-        for i, (observations, view) in enumerate(zip(K, views)):
-            self.view_means.append(observations @ view / np.sum(observations))
-            view[observations > 0] -= self.view_means[i]
-            train_views.append(np.diag(observations) @ view)
-        return train_views
-
-    def transform(self, *views: Tuple[np.ndarray, ...], K=None, view_indices: List[int] = None, **kwargs):
+    def transform(self, *views: np.ndarray, K=None, view_indices: List[int] = None, **kwargs):
         """
         Transforms data given a fit GCCA model
 

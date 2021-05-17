@@ -1,4 +1,4 @@
-from typing import Tuple, List, Union
+from typing import List, Union
 
 import numpy as np
 import tensorly as tl
@@ -41,7 +41,7 @@ class TCCA(_CCA_Base):
         if self.c is None:
             self.c = [0] * self.n_views
 
-    def fit(self, *views: Tuple[np.ndarray, ...], ):
+    def fit(self, *views: np.ndarray, ):
         self.n_views = len(views)
         self.check_params()
         assert (len(self.c) == len(views)), 'c requires as many values as #views'
@@ -65,8 +65,8 @@ class TCCA(_CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def setup_tensor(self, *views: Tuple[np.ndarray, ...], **kwargs):
-        train_views = self.demean_data(*views)
+    def setup_tensor(self, *views: np.ndarray, **kwargs):
+        train_views = self.centre_scale(*views)
         n = train_views[0].shape[0]
         covs = [(1 - self.c[i]) * view.T @ view + self.c[i] * np.eye(view.shape[1]) for i, view in
                 enumerate(train_views)]
@@ -138,8 +138,8 @@ class KTCCA(TCCA):
         return pairwise_kernels(X, Y, metric=self.kernel[view],
                                 filter_params=True, **params)
 
-    def setup_tensor(self, *views: Tuple[np.ndarray, ...]):
-        self.train_views = self.demean_data(*views)
+    def setup_tensor(self, *views: np.ndarray):
+        self.train_views = self.centre_scale(*views)
         train_views = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
         n = train_views[0].shape[0]
         covs = [(1 - self.c[i]) * kernel @ kernel.T + self.c[i] * kernel for i, kernel in enumerate(train_views)]
@@ -149,7 +149,7 @@ class KTCCA(TCCA):
         train_views = [train_view @ cov_invsqrt for train_view, cov_invsqrt in zip(train_views, self.covs_invsqrt)]
         return train_views, self.covs_invsqrt
 
-    def transform(self, *views: Tuple[np.ndarray, ...], view_indices: List[int] = None, **kwargs):
+    def transform(self, *views: np.ndarray, view_indices: List[int] = None, **kwargs):
         """
         Transforms data given a fit k=KCCA model
 

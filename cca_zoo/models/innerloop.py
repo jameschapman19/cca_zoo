@@ -195,7 +195,34 @@ class ElasticInnerLoop(_InnerLoop):
         elif isinstance(self.l1_ratio, (float, int)):
             self.l1_ratio = [self.l1_ratio] * len(self.views)
         if self.constrained:
-            self.bin_init = np.zeros(len(self.views))
+            self.gamma = np.zeros(len(self.views))
+        self.regressors = []
+        for alpha, l1_ratio in zip(self.c, self.l1_ratio):
+            if self.stochastic:
+                if l1_ratio == 0:
+                    self.regressors.append(
+                        SGDRegressor(penalty='l2', alpha=alpha / len(self.views), fit_intercept=False, tol=self.tol,
+                                     warm_start=True))
+                elif l1_ratio == 1:
+                    self.regressors.append(
+                        SGDRegressor(penalty='l1', alpha=alpha / len(self.views), fit_intercept=False, tol=self.tol,
+                                     warm_start=True))
+                else:
+                    self.regressors.append(
+                        SGDRegressor(penalty='elasticnet', alpha=alpha / len(self.views), l1_ratio=l1_ratio,
+                                     fit_intercept=False,
+                                     tol=self.tol, warm_start=True))
+            else:
+                if alpha == 0:
+                    self.regressors.append(LinearRegression(fit_intercept=False))
+                elif l1_ratio == 0:
+                    self.regressors.append(Ridge(alpha=alpha / len(self.views), fit_intercept=False))
+                elif l1_ratio == 1:
+                    self.regressors.append(Lasso(alpha=alpha / len(self.views), fit_intercept=False, warm_start=True))
+                else:
+                    self.regressors.append(
+                        ElasticNet(alpha=alpha / len(self.views), l1_ratio=l1_ratio, fit_intercept=False,
+                                   warm_start=True))
 
     def update_view(self, view_index: int):
         """
@@ -207,73 +234,39 @@ class ElasticInnerLoop(_InnerLoop):
         else:
             target = self.scores[view_index - 1]
         if self.constrained:
-            w, self.bin_init[view_index] = self.elastic_solver_constrained(self.views[view_index], target,
-                                                                           alpha=self.c[view_index] / len(self.views),
-                                                                           l1_ratio=self.l1_ratio[view_index],
-                                                                           init=self.bin_init[view_index])
+            self.elastic_solver_constrained(self.views[view_index], target, view_index)
         else:
-            w = self.elastic_solver(self.views[view_index], target,
-                                    alpha=self.c[view_index] / len(self.views),
-                                    l1_ratio=self.l1_ratio[view_index])
-        assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
-        self.weights[view_index] = w / np.linalg.norm(self.views[view_index] @ w)
+            self.elastic_solver(self.views[view_index], target, view_index)
+        assert (np.linalg.norm(
+            self.weights[view_index]) > 0), 'all weights zero. try less regularisation or another initialisation'
         self.scores[view_index] = (self.views[view_index] @ self.weights[view_index]).ravel()
-        return w
 
     @ignore_warnings(category=ConvergenceWarning)
-    def elastic_solver(self, X, y, alpha=0.1, l1_ratio=0.5):
-        if self.stochastic:
-            if l1_ratio == 0:
-                beta = SGDRegressor(penalty='l2', alpha=alpha, fit_intercept=False, tol=self.tol).fit(X,
-                                                                                                      y.ravel()).coef_
-            elif l1_ratio == 1:
-                beta = SGDRegressor(penalty='l1', alpha=alpha, fit_intercept=False, tol=self.tol).fit(X,
-                                                                                                      y.ravel()).coef_
-            else:
-                beta = SGDRegressor(penalty='elasticnet', alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False,
-                                    tol=self.tol).fit(X, y.ravel()).coef_
-        else:
-            if alpha == 0:
-                beta = LinearRegression(fit_intercept=False).fit(X, y.ravel()).coef_
-            elif l1_ratio == 0:
-                beta = Ridge(alpha=alpha, fit_intercept=False).fit(X, y.ravel()).coef_
-            elif l1_ratio == 1:
-                beta = Lasso(alpha=alpha, fit_intercept=False).fit(X, y.ravel()).coef_
-            else:
-                beta = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(X, y.ravel()).coef_
-        return beta
+    def elastic_solver(self, X, y, view_index):
+        self.weights[view_index] = self.regressors[view_index].fit(X, y.ravel()).coef_
+        self.weights[view_index] /= np.linalg.norm(self.views[view_index] @ self.weights[view_index])
 
     @ignore_warnings(category=ConvergenceWarning)
-    def elastic_solver_constrained(self, X, y, alpha=0.1, l1_ratio=0.5, init=0):
+    def elastic_solver_constrained(self, X, y, view_index):
         converged = False
         min_ = -1
         max_ = 1
-        current = init
-        previous = current
+        previous = self.gamma[view_index]
         previous_val = None
         i = 0
         while not converged:
             i += 1
-            if self.stochastic:
-                coef = SGDRegressor(penalty='elasticnet', alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(
-                    np.sqrt(current + 1) * X,
-                    y.ravel() / np.sqrt(
-                        current + 1)).coef_
-            else:
-                coef = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(np.sqrt(current + 1) * X,
-                                                                                           y.ravel() / np.sqrt(
-                                                                                               current + 1)).coef_
+            coef = self.regressors[view_index].fit(np.sqrt(self.gamma[view_index] + 1) * X,
+                                                   y.ravel() / np.sqrt(self.gamma[view_index] + 1)).coef_
             current_val = 1 - np.linalg.norm(X @ coef)
-            current, previous, min_, max_ = _bin_search(current, previous, current_val, previous_val, min_, max_)
+            self.gamma[view_index], previous, min_, max_ = _bin_search(self.gamma[view_index], previous, current_val,
+                                                                       previous_val, min_, max_)
             previous_val = current_val
             if np.abs(current_val) < 1e-5:
                 converged = True
             elif np.abs(max_ - min_) < 1e-30 or i == 50:
                 converged = True
-                coef = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=False).fit(np.sqrt(current + 1) * X,
-                                                                                           y / np.sqrt(
-                                                                                               current + 1)).coef_
-        return coef, current
+        self.weights[view_index] = coef
 
     def objective(self):
         return elastic_cca_objective(self)

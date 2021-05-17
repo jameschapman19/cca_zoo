@@ -1,9 +1,8 @@
 import itertools
 from abc import abstractmethod
-from typing import Tuple, List
+from typing import List
 
 import numpy as np
-import numpy.ma as ma
 import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import BaseEstimator
@@ -24,7 +23,7 @@ class _CCA_Base(BaseEstimator):
     """
 
     @abstractmethod
-    def __init__(self, latent_dims: int = 1):
+    def __init__(self, latent_dims: int = 1, scale=True):
         """
         Constructor for _CCA_Base
 
@@ -32,9 +31,10 @@ class _CCA_Base(BaseEstimator):
         self.weights_list = None
         self.train_correlations = None
         self.latent_dims = latent_dims
+        self.scale = scale
 
     @abstractmethod
-    def fit(self, *views: Tuple[np.ndarray, ...]):
+    def fit(self, *views: np.ndarray):
         """
         Fits a given model
 
@@ -43,7 +43,7 @@ class _CCA_Base(BaseEstimator):
         pass
         return self
 
-    def transform(self, *views: Tuple[np.ndarray, ...], view_indices: List[int] = None, **kwargs):
+    def transform(self, *views: np.ndarray, view_indices: List[int] = None, **kwargs):
         """
         Transforms data given a fit model
 
@@ -55,22 +55,25 @@ class _CCA_Base(BaseEstimator):
         if view_indices is None:
             view_indices = np.arange(len(views))
         for i, (view, view_index) in enumerate(zip(views, view_indices)):
-            transformed_view = np.ma.array((view - self.view_means[view_index]) @ self.weights_list[view_index])
+            view -= self.view_means[view_index]
+            if self.scale:
+                view /= self.view_stds[view_index]
+            transformed_view = view @ self.weights_list[view_index]
             transformed_views.append(transformed_view)
         return transformed_views
 
-    def fit_transform(self, *views: Tuple[np.ndarray, ...], view_indices: List[int] = None, **kwargs):
+    def fit_transform(self, *views: np.ndarray, view_indices: List[int] = None, **kwargs):
         """
         Fits and then transforms the training data
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param view_indices:
         :param kwargs: any additional keyword arguments required by the given model
-        :rtype: Tuple[np.ndarray, ...]
+        :rtype: np.ndarray
         """
         return self.fit(*views).transform(*views, view_indices=view_indices, **kwargs)
 
-    def predict_corr(self, *views: Tuple[np.ndarray, ...], view_indices: List[int] = None, **kwargs) -> np.ndarray:
+    def predict_corr(self, *views: np.ndarray, view_indices: List[int] = None, **kwargs) -> np.ndarray:
         """
         Predicts the correlation for the given data using the fit model
 
@@ -84,26 +87,34 @@ class _CCA_Base(BaseEstimator):
         transformed_views = self.transform(*views, view_indices=view_indices, **kwargs)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
-            all_corrs.append(np.diag(ma.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
+            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
         all_corrs = np.array(all_corrs).reshape((len(views), len(views), self.latent_dims))
         return all_corrs
 
-    def demean_data(self, *views: Tuple[np.ndarray, ...]):
+    def centre_scale(self, *views: np.ndarray):
         """
         Removes the mean of the training data for each view and stores it
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :return: train_views: the demeaned numpy arrays to be used to fit the model
-        :rtype: Tuple[np.ndarray, ...]
+        :rtype: np.ndarray
         """
         train_views = []
         self.view_means = []
+        self.view_stds = []
         for view in views:
-            self.view_means.append(view.mean(axis=0))
-            train_views.append(view - view.mean(axis=0))
+            view_mean = view.mean(axis=0)
+            self.view_means.append(view_mean)
+            view -= self.view_means[-1]
+            if self.scale:
+                view_std = view.std(axis=0, ddof=1)
+                view_std[view_std == 0.0] = 1.0
+                self.view_stds.append(view_std)
+                view /= self.view_stds[-1]
+            train_views.append(view)
         return train_views
 
-    def gridsearch_fit(self, *views: Tuple[np.ndarray, ...], K=None, param_candidates=None, folds: int = 5,
+    def gridsearch_fit(self, *views: np.ndarray, K=None, param_candidates=None, folds: int = 5,
                        verbose: bool = False,
                        jobs: int = 0,
                        plot: bool = False):
@@ -162,7 +173,7 @@ class _CCA_Base(BaseEstimator):
         return self
 
     """
-    def bayes_fit(self, *views: Tuple[np.ndarray, ...], space=None, folds: int = 5, verbose=True):
+    def bayes_fit(self, *views: np.ndarray, space=None, folds: int = 5, verbose=True):
         :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3)
         :param space:
         :param folds: number of folds used for cross validation
@@ -195,7 +206,7 @@ class _CrossValidate:
         self.verbose = verbose
         self.model = model
 
-    def score(self, *views: Tuple[np.ndarray, ...], K=None, **cvparams):
+    def score(self, *views: np.ndarray, K=None, **cvparams):
         scores = np.zeros(self.folds)
         inds = np.arange(views[0].shape[0])
         np.random.shuffle(inds)
