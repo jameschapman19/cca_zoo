@@ -77,6 +77,7 @@ class GCCA(_CCA_Base):
         if view_indices is None:
             view_indices = np.arange(len(views))
         for i, (view, view_index) in enumerate(zip(views, view_indices)):
+            view = view.copy(order='K')
             transformed_view = np.ma.array((view - self.view_means[view_index]) @ self.weights_list[view_index])
             if K is not None:
                 transformed_view.mask[np.where(K[view_index]) == 1] = True

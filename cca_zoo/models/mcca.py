@@ -157,7 +157,8 @@ class KCCA(MCCA):
         """
         if view_indices is None:
             view_indices = np.arange(len(views))
-        Ktest = [self._get_kernel(view_index, self.train_views[view_index], Y=test_view - self.view_means[view_index])
+        Ktest = [self._get_kernel(view_index, self.train_views[view_index],
+                                  Y=test_view.copy(order='K') - self.view_means[view_index])
                  for test_view, view_index in
                  zip(views, view_indices)]
         transformed_views = [test_kernel.T @ self.alphas[view_index] for test_kernel, view_index in

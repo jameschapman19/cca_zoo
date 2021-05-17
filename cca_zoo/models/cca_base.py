@@ -55,6 +55,7 @@ class _CCA_Base(BaseEstimator):
         if view_indices is None:
             view_indices = np.arange(len(views))
         for i, (view, view_index) in enumerate(zip(views, view_indices)):
+            view = view.copy(order='K')
             view -= self.view_means[view_index]
             if self.scale:
                 view /= self.view_stds[view_index]
@@ -103,6 +104,7 @@ class _CCA_Base(BaseEstimator):
         self.view_means = []
         self.view_stds = []
         for view in views:
+            view = view.copy(order='K')
             view_mean = view.mean(axis=0)
             self.view_means.append(view_mean)
             view -= self.view_means[-1]
