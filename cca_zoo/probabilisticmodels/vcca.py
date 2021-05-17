@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import jax.numpy as jnp
 import numpy as np
 import numpyro
@@ -27,7 +25,7 @@ class VariationalCCA(_CCA_Base):
     def __init__(self, latent_dims: int = 1):
         super().__init__(latent_dims=latent_dims)
 
-    def fit(self, *views: Tuple[np.ndarray, ...]):
+    def fit(self, *views: np.ndarray):
         nuts_kernel = NUTS(self.model)
         self.mcmc = MCMC(nuts_kernel, num_samples=100, num_warmup=100)
         rng_key = random.PRNGKey(0)
@@ -35,7 +33,7 @@ class VariationalCCA(_CCA_Base):
         self.posterior_samples = self.mcmc.get_samples()
         return self
 
-    def model(self, *views: Tuple[np.ndarray, ...]):
+    def model(self, *views: np.ndarray):
         n = views[0].shape[0]
         p = [view.shape[1] for view in views]
         # mean of column in each view of data (p_1,)
