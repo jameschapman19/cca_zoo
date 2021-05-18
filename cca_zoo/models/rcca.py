@@ -22,14 +22,14 @@ class rCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, c: List[float] = None):
+    def __init__(self, latent_dims: int = 1, c: List[float] = None, scale=True):
         """
         Constructor for rCCA
 
         :param latent_dims: number of latent dimensions
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         """
-        super().__init__(latent_dims=latent_dims)
+        super().__init__(latent_dims=latent_dims, scale=scale)
         self.c = c
 
     def fit(self, *views: np.ndarray):
@@ -105,13 +105,13 @@ class CCA(rCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1):
+    def __init__(self, latent_dims: int = 1, scale=True):
         """
         Constructor for CCA
 
         :param latent_dims: number of latent dimensions to learn
         """
-        super().__init__(latent_dims=latent_dims, c=[0.0, 0.0])
+        super().__init__(latent_dims=latent_dims, c=[0.0, 0.0], scale=scale)
 
 
 def _pca_data(*views: np.ndarray):

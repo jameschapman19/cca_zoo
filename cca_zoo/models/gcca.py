@@ -20,7 +20,7 @@ class GCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, c: List[float] = None, view_weights: Tuple[float, ...] = None):
+    def __init__(self, latent_dims: int = 1, c: List[float] = None, view_weights: Tuple[float, ...] = None, scale=True):
         """
         Constructor for GCCA
 
@@ -28,7 +28,7 @@ class GCCA(_CCA_Base):
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         :param view_weights: list of weights of each view
         """
-        super().__init__(latent_dims=latent_dims)
+        super().__init__(latent_dims=latent_dims, scale=scale)
         self.c = c
         self.view_weights = view_weights
 

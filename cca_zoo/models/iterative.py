@@ -18,7 +18,7 @@ class _Iterative(_CCA_Base):
     """
 
     def __init__(self, latent_dims: int = 1, deflation='cca', max_iter: int = 100, generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9):
+                 initialization: str = 'unregularized', tol: float = 1e-9, scale=True):
         """
         Constructor for _Iterative
 
@@ -30,7 +30,7 @@ class _Iterative(_CCA_Base):
         or 'random'.
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
-        super().__init__(latent_dims=latent_dims)
+        super().__init__(latent_dims=latent_dims, scale=scale)
         self.max_iter = max_iter
         self.generalized = generalized
         self.initialization = initialization
@@ -107,7 +107,7 @@ class PLS(_Iterative):
     """
 
     def __init__(self, latent_dims: int = 1, max_iter: int = 100, generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9):
+                 initialization: str = 'unregularized', tol: float = 1e-9, scale=True):
         """
         Constructor for PLS
 
@@ -118,7 +118,7 @@ class PLS(_Iterative):
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol)
+                         initialization=initialization, tol=tol, scale=scale)
 
     def _set_loop_params(self):
         self.loop = PLSInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
@@ -142,7 +142,7 @@ class ElasticCCA(_Iterative, BaseEstimator):
                  l1_ratio: Union[List[float], float] = None,
                  constrained: bool = False, max_iter: int = 100,
                  generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False):
+                 initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False, scale=True):
         """
         Constructor for ElasticCCA
 
@@ -156,7 +156,7 @@ class ElasticCCA(_Iterative, BaseEstimator):
         self.constrained = constrained
         self.stochastic = stochastic
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol)
+                         initialization=initialization, tol=tol, scale=scale)
 
     def _set_loop_params(self):
         self.loop = ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio,
@@ -179,7 +179,7 @@ class CCA_ALS(ElasticCCA):
     """
 
     def __init__(self, latent_dims: int = 1, max_iter: int = 100, generalized: bool = False,
-                 initialization: str = 'random', tol: float = 1e-9, stochastic=True):
+                 initialization: str = 'random', tol: float = 1e-9, stochastic=True, scale=True):
         """
         Constructor for CCA_ALS
 
@@ -190,7 +190,7 @@ class CCA_ALS(ElasticCCA):
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol, constrained=False, stochastic=stochastic)
+                         initialization=initialization, tol=tol, constrained=False, stochastic=stochastic, scale=scale)
 
 
 class SCCA(ElasticCCA):
@@ -208,7 +208,7 @@ class SCCA(ElasticCCA):
 
     def __init__(self, latent_dims: int = 1, c: List[float] = None, max_iter: int = 100,
                  generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False):
+                 initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False, scale=True):
         """
         Constructor for SCCA
 
@@ -221,7 +221,7 @@ class SCCA(ElasticCCA):
         """
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol, c=c, l1_ratio=1, constrained=False,
-                         stochastic=stochastic)
+                         stochastic=stochastic, scale=scale)
 
 
 class PMD(_Iterative, BaseEstimator):
@@ -238,7 +238,7 @@ class PMD(_Iterative, BaseEstimator):
     """
 
     def __init__(self, latent_dims: int = 1, c: List[float] = None, max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9, scale=True):
         """
         Constructor for PMD
 
@@ -251,7 +251,7 @@ class PMD(_Iterative, BaseEstimator):
         """
         self.c = c
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol)
+                         initialization=initialization, tol=tol, scale=scale)
 
     def _set_loop_params(self):
         self.loop = PMDInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
@@ -272,7 +272,7 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
     """
 
     def __init__(self, latent_dims: int = 1, c: List[float] = None, max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9, scale=True):
         """
         Constructor for ParkhomenkoCCA
 
@@ -285,7 +285,7 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
         """
         self.c = c
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol)
+                         initialization=initialization, tol=tol, scale=scale)
 
     def _set_loop_params(self):
         self.loop = ParkhomenkoInnerLoop(max_iter=self.max_iter, c=self.c,
@@ -309,7 +309,7 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
     def __init__(self, latent_dims: int = 1, c: List[float] = None, mu: List[float] = None, lam: List[float] = None,
                  eta: List[float] = None,
                  max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9, scale=True):
         """
         Constructor for SCCA_ADMM
 
@@ -328,7 +328,7 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
         self.lam = lam
         self.eta = eta
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol)
+                         initialization=initialization, tol=tol, scale=scale)
 
     def _set_loop_params(self):
         self.loop = ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,

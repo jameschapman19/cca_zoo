@@ -27,14 +27,14 @@ class TCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, c: List[float] = None):
+    def __init__(self, latent_dims: int = 1, c: List[float] = None, scale=True):
         """
         Constructor for TCCA
 
         :param latent_dims:
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         """
-        super().__init__(latent_dims)
+        super().__init__(latent_dims=latent_dims, scale=scale)
         self.c = c
 
     def check_params(self):
@@ -96,7 +96,7 @@ class KTCCA(TCCA):
     def __init__(self, latent_dims: int = 1, c: List[float] = None, kernel: List[Union[float, callable]] = None,
                  gamma: List[float] = None,
                  degree: List[float] = None, coef0: List[float] = None,
-                 kernel_params: List[dict] = None, eps=1e-3):
+                 kernel_params: List[dict] = None, eps=1e-3, scale=True):
         """
         :param latent_dims: number of latent dimensions
         :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
@@ -107,7 +107,7 @@ class KTCCA(TCCA):
         :param kernel_params: list of additional parameters (keyword arguments) for kernel function passed as callable object.
         :param eps: epsilon value to ensure stability
         """
-        super().__init__(latent_dims=latent_dims)
+        super().__init__(latent_dims=latent_dims, scale=scale)
         self.kernel_params = kernel_params
         self.gamma = gamma
         self.coef0 = coef0
