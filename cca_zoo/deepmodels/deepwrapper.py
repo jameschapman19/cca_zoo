@@ -1,5 +1,6 @@
 import copy
 import itertools
+from typing import Union, Iterable
 
 import numpy as np
 import torch
@@ -28,11 +29,14 @@ class DeepWrapper(_CCA_Base):
         if tensorboard:
             self.writer = SummaryWriter(tensorboard_tag)
 
-    def fit(self, train_dataset, val_dataset=None, train_labels=None, val_labels=None, val_split: float = 0.2,
+    def fit(self, train_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
+            val_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]] = None, train_labels=None,
+            val_labels=None, val_split: float = 0.2,
             batch_size: int = 0,
             patience: int = 0, epochs: int = 1,
             train_correlations: bool = True):
         """
+
         :param train_dataset: either tuple of 2d numpy arrays (one for each view) or torch dataset
         :param val_dataset: either tuple of 2d numpy arrays (one for each view) or torch dataset
         :param train_labels:
@@ -62,15 +66,12 @@ class DeepWrapper(_CCA_Base):
 
         # First we get the model class.
         # These have a forward method which takes data inputs and outputs the variables needed to calculate their
-        # respective loss. The models also have loss functions as methods but we can also customise the loss by calling
-        # a_loss_function(model(data))
+        # respective loss.
         num_params = sum(p.numel() for p in self.model.parameters())
         print('total parameters: ', num_params)
         best_model = copy.deepcopy(self.model.state_dict())
         self.model.float().to(self.device)
-        # if self.tensorboard:
-        #    example_input = [torch.tensor(d).float().to(self.device) for d in list(train_dataset[0][0])]
-        #    self.writer.add_graph(self.model, input_to_model=example_input)
+
         min_val_loss = torch.tensor(np.inf)
         epochs_no_improve = 0
         early_stop = False
@@ -102,14 +103,12 @@ class DeepWrapper(_CCA_Base):
                         early_stop = True
                         self.model.load_state_dict(best_model)
 
-                # all_train_loss.append(epoch_train_loss)
-                # all_val_loss.append(epoch_val_loss)
                 if self.tensorboard:
                     self.writer.add_scalar('Loss/train', epoch_train_loss, epoch)
                     self.writer.add_scalar('Loss/test', epoch_val_loss, epoch)
         if self.tensorboard:
             self.writer.close()
-        # cca_zoo.plot_utils.plot_training_loss(all_train_loss, all_val_loss)
+
         if train_correlations:
             self.train_correlations = self.predict_corr(train_dataset, train=True)
         return self
@@ -182,7 +181,6 @@ class DeepWrapper(_CCA_Base):
     def predict_view(self, test_dataset, labels=None):
         if type(test_dataset[0]) is np.ndarray:
             test_dataset = cca_zoo.data.CCA_Dataset(*test_dataset, labels=labels)
-
         test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
         with torch.no_grad():
             for batch_idx, (data, label) in enumerate(test_dataloader):

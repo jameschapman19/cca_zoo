@@ -97,68 +97,6 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
     return views, true_features
 
 
-def generate_fern_data(n: int, view_features: List[int], latent_dims: int = 1,
-                       view_sparsity: List[Union[int, float]] = None,
-                       correlation: Union[List[float], float] = 1, decay: float = 0.5):
-    """
-    Function to generate CCA dataset with defined population correlation
-
-    :param view_sparsity: level of sparsity in features in each view either as number of active variables or percentage active
-    :param view_features: number of features in each view
-    :param n: number of samples
-    :param latent_dims: number of latent dimensions
-    :param decay: ratio of second signal to first signal
-    :return: tuple of numpy arrays: view_1, view_2, true weights from view 1, true weights from view 2, overall covariance structure
-
-    :Example:
-
-    >>> from cca_zoo.data import generate_covariance_data
-    >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=generate_covariance_data(200,[10,10],latent_dims=1,correlation=1)
-    """
-    if view_sparsity is None:
-        view_sparsity = [1] * len(view_features)
-    completed = False
-    while not completed:
-        try:
-            true_features = []
-            mean = np.zeros(latent_dims * len(view_features))
-            if not isinstance(correlation, list):
-                p = np.arange(0, latent_dims)
-                correlation = correlation * decay ** p
-            splits = np.arange(len(view_features)) * latent_dims
-            cov = np.eye(latent_dims * len(view_features))
-            for i, j in itertools.combinations(range(len(splits)), 2):
-                cov[i * latent_dims:(i + 1) * latent_dims, j * latent_dims:(j + 1) * latent_dims] = np.diag(correlation)
-                cov[j * latent_dims:(j + 1) * latent_dims, i * latent_dims:(i + 1) * latent_dims] = np.diag(correlation)
-
-            X = np.zeros((n, latent_dims * len(view_features)))
-            chol = np.linalg.cholesky(cov)
-            for _ in range(n):
-                X[_, :] = _chol_sample(mean, chol)
-            views = np.split(X, splits[1:], axis=1)
-
-            for i, (view_p, sparsity) in enumerate(zip(view_features, view_sparsity)):
-                weights = np.random.normal(size=(view_p, latent_dims))
-                if sparsity <= 1:
-                    sparsity = np.ceil(sparsity * view_p).astype('int')
-                if sparsity < view_p:
-                    mask = np.stack(
-                        (np.concatenate(([0] * (view_p - sparsity), [1] * sparsity)).astype(bool),) * latent_dims,
-                        axis=0).T
-                    np.random.shuffle(mask.flat)
-                    while np.sum(np.unique(mask, axis=1, return_counts=True)[1] > 1) > 0 or np.sum(
-                            np.sum(mask, axis=0) == 0) > 0:
-                        np.random.shuffle(mask.flat)
-                    weights = weights * mask
-                weights = _decorrelate_dims_fern(weights)
-                true_features.append(weights)
-                views[i] = views[i] @ weights.T
-            completed = True
-        except:
-            completed = False
-    return views, true_features, X
-
-
 def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[int] = None,
                          eps: float = 0):
     """
