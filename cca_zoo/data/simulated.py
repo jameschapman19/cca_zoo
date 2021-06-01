@@ -63,10 +63,10 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                     mask = np.stack(
                         (np.concatenate(([0] * (view_p - sparsity), [1] * sparsity)).astype(bool),) * latent_dims,
                         axis=0).T
-                    np.random.shuffle(mask.flat)
+                    np.random.shuffle(mask.flatten())
                     while np.sum(np.unique(mask, axis=1, return_counts=True)[1] > 1) > 0 or np.sum(
                             np.sum(mask, axis=0) == 0) > 0:
-                        np.random.shuffle(mask.flat)
+                        np.random.shuffle(mask.flatten())
                     weights = weights * mask
                 weights = _decorrelate_dims(weights, cov_)
                 weights /= np.sqrt(np.diag((weights.T @ cov_ @ weights)))
