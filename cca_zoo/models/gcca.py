@@ -1,7 +1,6 @@
 from typing import Tuple, List
 
 import numpy as np
-import numpy.ma as ma
 from scipy.linalg import eigh
 
 from .cca_base import _CCA_Base
@@ -78,8 +77,9 @@ class GCCA(_CCA_Base):
             view_indices = np.arange(len(views))
         for i, (view, view_index) in enumerate(zip(views, view_indices)):
             view = view.copy(order='K')
-            transformed_view = np.ma.array((view - self.view_means[view_index]) @ self.weights_list[view_index])
-            if K is not None:
-                transformed_view.mask[np.where(K[view_index]) == 1] = True
+            transformed_view = np.array((view - self.view_means[view_index]) @ self.weights_list[view_index])
+            # TODO maybe revisit this. The original idea was to only generate correlations for observed samples but it's perhaps simpler to do this in post processing
+            # if K is not None:
+            #    transformed_view.mask[np.where(K[view_index]) == 1] = True
             transformed_views.append(transformed_view)
         return transformed_views
