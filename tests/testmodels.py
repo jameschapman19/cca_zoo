@@ -8,7 +8,7 @@ from cca_zoo.models import CCA, PLS, CCA_ALS, SCCA, PMD, ElasticCCA, rCCA, KCCA,
 np.random.seed(123)
 
 
-class TestWrapper(TestCase):
+class TestModels(TestCase):
 
     def setUp(self):
         self.X = np.random.rand(500, 20)
@@ -19,6 +19,7 @@ class TestWrapper(TestCase):
         pass
 
     def test_unregularized_methods(self):
+        # Tests unregularized CCA methods. The idea is that all of these should give the same result.
         latent_dims = 1
         wrap_cca = CCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9).fit(self.X, self.Y)
@@ -42,6 +43,7 @@ class TestWrapper(TestCase):
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_kcca, decimal=2))
 
     def test_unregularized_multi(self):
+        # Tests unregularized CCA methods for more than 2 views. The idea is that all of these should give the same result.
         latent_dims = 5
         wrap_cca = rCCA(latent_dims=latent_dims).fit(self.X, self.Y, self.Z)
         wrap_iter = CCA_ALS(latent_dims=latent_dims, stochastic=False, tol=1e-12).fit(self.X, self.Y,
@@ -66,7 +68,7 @@ class TestWrapper(TestCase):
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_kcca, decimal=2))
 
     def test_regularized_methods(self):
-        # Test that linear regularized methods match PLS solution when using maximum regularisation
+        # Test that linear regularized methods match PLS solution when using maximum regularisation.
         latent_dims = 5
         c = 1
         wrap_kernel = KCCA(latent_dims=latent_dims, c=[c, c], kernel=['linear', 'linear']).fit(self.X,
@@ -87,7 +89,7 @@ class TestWrapper(TestCase):
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_rcca, decimal=1))
 
     def test_sparse_methods(self):
-        # Test that linear regularized methods match PLS solution when using maximum regularisation
+        # Test sparsity inducing methods. At the moment just checks running.
         latent_dims = 5
         c1 = [1, 3]
         c2 = [1, 3]
@@ -109,7 +111,7 @@ class TestWrapper(TestCase):
         corr_elastic = wrap_elastic.train_correlations[0, 1]
 
     def test_weighted_GCCA_methods(self):
-        # Test that linear regularized methods match PLS solution when using maximum regularisation
+        # Test the 'fancy' additions to GCCA i.e. the view weighting and observation weighting.
         latent_dims = 5
         c = 0
         wrap_unweighted_gcca = GCCA(latent_dims=latent_dims, c=[c, c]).fit(self.X, self.Y)
@@ -124,6 +126,7 @@ class TestWrapper(TestCase):
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_unweighted_gcca, corr_deweighted_gcca, decimal=1))
 
     def test_TCCA(self):
+        # Tests tensor CCA methods
         latent_dims = 1
         wrap_tcca = TCCA(latent_dims=latent_dims, c=[0.2, 0.2]).fit(self.X, self.Y)
         wrap_ktcca = KTCCA(latent_dims=latent_dims, c=[0.2, 0.2]).fit(self.X, self.Y)
@@ -132,6 +135,7 @@ class TestWrapper(TestCase):
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_tcca, corr_ktcca, decimal=1))
 
     def test_cv_fit(self):
+        # Test the CV method
         latent_dims = 5
         c1 = [0.1, 0.2]
         c2 = [0.1, 0.2]

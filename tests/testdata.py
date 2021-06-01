@@ -8,7 +8,7 @@ from cca_zoo.models import MCCA, CCA
 np.random.seed(123)
 
 
-class TestWrapper(TestCase):
+class TestData(TestCase):
 
     def setUp(self):
         self.X = np.random.rand(500, 20)

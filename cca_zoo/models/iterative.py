@@ -49,6 +49,7 @@ class _Iterative(_CCA_Base):
         p = [view.shape[1] for view in train_views]
         # list of d: p x k
         self.weights_list = [np.zeros((p_, self.latent_dims)) for p_ in p]
+        self.loading_list = [np.zeros((p_, self.latent_dims)) for p_ in p]
 
         # list of d: n x k
         self.score_list = [np.zeros((n, self.latent_dims)) for _ in train_views]
@@ -62,10 +63,8 @@ class _Iterative(_CCA_Base):
             for i, residual in enumerate(residuals):
                 self.weights_list[i][:, k] = self.loop.weights[i]
                 self.score_list[i][:, k] = self.loop.scores[i]
+                self.loading_list[i][:, k] = np.dot(self.loop.scores[i], residual)
                 # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
-                # but in principle we could apply any form of deflation here
-                # residuals[i] = residuals[i] - np.outer(self.score_list[i][:, k], self.score_list[i][:, k]) @ residuals[
-                #    i] / np.dot(self.score_list[i][:, k], self.score_list[i][:, k]).item()
                 residuals[i] = self.deflate(residuals[i], self.score_list[i][:, k])
             self.objective.append(self.loop.track_objective)
         self.train_correlations = self.predict_corr(*views)

@@ -71,7 +71,6 @@ class Noisy_MNIST_Dataset(Dataset):
         for i in range(10):
             self.filtered_classes.append(self.data[self.targets == i])
             self.filtered_nums.append(self.filtered_classes[i].shape[0])
-
         self.flatten = flatten
 
     def __threshold_func__(self, x):

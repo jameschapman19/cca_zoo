@@ -25,7 +25,7 @@ class _InnerLoop:
         self.l1_ratio = [0] * len(self.views)
         self.c = [0] * len(self.views)
 
-    def fit(self, *views):
+    def fit(self, *views: np.ndarray):
         self.views = views
         if len(self.views) > 2:
             self.generalized = True
@@ -112,39 +112,11 @@ class PMDInnerLoop(_InnerLoop):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         self.weights[view_index] = self.views[view_index].T @ targets.sum(axis=0).filled()
-        self.weights[view_index], w_success = self.delta_search(self.weights[view_index], self.c[view_index])
+        self.weights[view_index], w_success = _delta_search(self.weights[view_index], self.c[view_index])
         assert (np.linalg.norm(
             self.weights[view_index]) > 0), 'all weights zero. try less regularisation or another initialisation'
         self.weights[view_index] = self.weights[view_index] / np.linalg.norm(self.weights[view_index])
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
-
-    def delta_search(self, w, c, init=0):
-        """
-        Searches for threshold delta such that the 1-norm of weights w is less than or equal to c
-        :param w: weights found by one power method iteration
-        :param c: 1-norm threshold
-        :return: updated weights
-        """
-        # First normalise the weights unit length
-        w = w / np.linalg.norm(w, 2)
-        converged = False
-        min_ = 0
-        max_ = 10
-        current = init
-        previous = current
-        previous_val = None
-        i = 0
-        while not converged:
-            i += 1
-            coef = _soft_threshold(w, current)
-            if np.linalg.norm(coef) > 0:
-                coef /= np.linalg.norm(coef)
-            current_val = c - np.linalg.norm(coef, 1)
-            current, previous, min_, max_ = _bin_search(current, previous, current_val, previous_val, min_, max_)
-            previous_val = current_val
-            if np.abs(current_val) < 1e-5 or np.abs(max_ - min_) < 1e-30 or i == 50:
-                converged = True
-        return coef, current
 
 
 class ParkhomenkoInnerLoop(_InnerLoop):
@@ -408,6 +380,34 @@ def _bin_search(current, previous, current_val, previous_val, min_, max_):
             max_ = current
     return new, current, min_, max_
 
+
+def _delta_search(w, c, init=0):
+    """
+    Searches for threshold delta such that the 1-norm of weights w is less than or equal to c
+    :param w: weights found by one power method iteration
+    :param c: 1-norm threshold
+    :return: updated weights
+    """
+    # First normalise the weights unit length
+    w = w / np.linalg.norm(w, 2)
+    converged = False
+    min_ = 0
+    max_ = 10
+    current = init
+    previous = current
+    previous_val = None
+    i = 0
+    while not converged:
+        i += 1
+        coef = _soft_threshold(w, current)
+        if np.linalg.norm(coef) > 0:
+            coef /= np.linalg.norm(coef)
+        current_val = c - np.linalg.norm(coef, 1)
+        current, previous, min_, max_ = _bin_search(current, previous, current_val, previous_val, min_, max_)
+        previous_val = current_val
+        if np.abs(current_val) < 1e-5 or np.abs(max_ - min_) < 1e-30 or i == 50:
+            converged = True
+    return coef, current
 
 def _soft_threshold(x, threshold):
     """

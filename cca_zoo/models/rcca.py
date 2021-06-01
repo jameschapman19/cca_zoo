@@ -47,14 +47,9 @@ class rCCA(_CCA_Base):
             self.two_view_fit(U_list, S_list, Vt_list)
         else:
             self.multi_view_fit(U_list, S_list, Vt_list)
-        if self.weights_list[0].shape[1] == 0:
-            self.two_view_fit(U_list, S_list, Vt_list)
         self.score_list = [view @ self.weights_list[i] for i, view in enumerate(train_views)]
-        if self.weights_list[0].shape[1] == 0:
-            self.two_view_fit(U_list, S_list, Vt_list)
         self.loading_list = [view.T @ score for score, view in zip(self.score_list, train_views)]
         self.train_correlations = self.predict_corr(*views)
-        self.predict_corr(*views)
         return self
 
     def two_view_fit(self, U_list, S_list, Vt_list):

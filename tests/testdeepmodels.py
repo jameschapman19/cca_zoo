@@ -8,7 +8,7 @@ from cca_zoo.deepmodels import DCCA, DCCAE, DVCCA, DCCA_NOI, DTCCA, SplitAE, Dee
 from cca_zoo.deepmodels import objectives, architectures
 
 
-class TestDeepWrapper(TestCase):
+class TestDeepModels(TestCase):
 
     def setUp(self):
         self.X = np.random.rand(200, 10)

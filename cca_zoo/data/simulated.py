@@ -8,7 +8,7 @@ from scipy.linalg import block_diag
 
 def generate_covariance_data(n: int, view_features: List[int], latent_dims: int = 1,
                              view_sparsity: List[Union[int, float]] = None,
-                             correlation: float = 1,
+                             correlation: Union[List[float], float] = 1,
                              structure: List[str] = None, sigma: List[str] = None, decay: float = 0.5):
     """
     Function to generate CCA dataset with defined population correlation
@@ -36,9 +36,10 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
     while not completed:
         try:
             mean = np.zeros(sum(view_features))
-            p = np.arange(0, latent_dims)
-            p = decay ** p
-            cov = []
+            if not isinstance(correlation, list):
+                p = np.arange(0, latent_dims)
+                correlation = correlation * decay ** p
+            covs = []
             true_features = []
             for view_p, sparsity, view_structure in zip(view_features, view_sparsity, structure):
                 # Covariance Bit
@@ -55,7 +56,7 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                 else:
                     completed = True
                     print("invalid structure")
-                weights = np.random.rand(view_p, latent_dims)
+                weights = np.random.normal(size=(view_p, latent_dims))
                 if sparsity <= 1:
                     sparsity = np.ceil(sparsity * view_p).astype('int')
                 if sparsity < view_p:
@@ -68,23 +69,20 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                         np.random.shuffle(mask.flat)
                     weights = weights * mask
                 weights = _decorrelate_dims(weights, cov_)
-                if np.sum(np.diag((weights.T @ cov_ @ weights)) == 0) > 0:
-                    print()
                 weights /= np.sqrt(np.diag((weights.T @ cov_ @ weights)))
                 true_features.append(weights)
-                cov.append(cov_)
+                covs.append(cov_)
 
-            cov = block_diag(*cov)
+            cov = block_diag(*covs)
 
             splits = np.concatenate(([0], np.cumsum(view_features)))
 
             for i, j in itertools.combinations(range(len(splits) - 1), 2):
                 cross = np.zeros((view_features[i], view_features[j]))
                 for _ in range(latent_dims):
-                    cross += correlation * p[_] * np.outer(true_features[i][:, _], true_features[j][:, _])
+                    A = correlation[_] * np.outer(true_features[i][:, _], true_features[j][:, _])
                     # Cross Bit
-                    cross = cov[splits[i]:splits[i] + view_features[i], splits[i]:splits[i] + view_features[i]] @ cross \
-                            @ cov[splits[j]:splits[j] + view_features[j], splits[j]:splits[j] + view_features[j]]
+                    cross += covs[i] @ A @ covs[j]
                 cov[splits[i]: splits[i] + view_features[i], splits[j]: splits[j] + view_features[j]] = cross
                 cov[splits[j]: splits[j] + view_features[j], splits[i]: splits[i] + view_features[i]] = cross.T
 
@@ -97,6 +95,68 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
         except:
             completed = False
     return views, true_features
+
+
+def generate_fern_data(n: int, view_features: List[int], latent_dims: int = 1,
+                       view_sparsity: List[Union[int, float]] = None,
+                       correlation: Union[List[float], float] = 1, decay: float = 0.5):
+    """
+    Function to generate CCA dataset with defined population correlation
+
+    :param view_sparsity: level of sparsity in features in each view either as number of active variables or percentage active
+    :param view_features: number of features in each view
+    :param n: number of samples
+    :param latent_dims: number of latent dimensions
+    :param decay: ratio of second signal to first signal
+    :return: tuple of numpy arrays: view_1, view_2, true weights from view 1, true weights from view 2, overall covariance structure
+
+    :Example:
+
+    >>> from cca_zoo.data import generate_covariance_data
+    >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=generate_covariance_data(200,[10,10],latent_dims=1,correlation=1)
+    """
+    if view_sparsity is None:
+        view_sparsity = [1] * len(view_features)
+    completed = False
+    while not completed:
+        try:
+            true_features = []
+            mean = np.zeros(latent_dims * len(view_features))
+            if not isinstance(correlation, list):
+                p = np.arange(0, latent_dims)
+                correlation = correlation * decay ** p
+            splits = np.arange(len(view_features)) * latent_dims
+            cov = np.eye(latent_dims * len(view_features))
+            for i, j in itertools.combinations(range(len(splits)), 2):
+                cov[i * latent_dims:(i + 1) * latent_dims, j * latent_dims:(j + 1) * latent_dims] = np.diag(correlation)
+                cov[j * latent_dims:(j + 1) * latent_dims, i * latent_dims:(i + 1) * latent_dims] = np.diag(correlation)
+
+            X = np.zeros((n, latent_dims * len(view_features)))
+            chol = np.linalg.cholesky(cov)
+            for _ in range(n):
+                X[_, :] = _chol_sample(mean, chol)
+            views = np.split(X, splits[1:], axis=1)
+
+            for i, (view_p, sparsity) in enumerate(zip(view_features, view_sparsity)):
+                weights = np.random.normal(size=(view_p, latent_dims))
+                if sparsity <= 1:
+                    sparsity = np.ceil(sparsity * view_p).astype('int')
+                if sparsity < view_p:
+                    mask = np.stack(
+                        (np.concatenate(([0] * (view_p - sparsity), [1] * sparsity)).astype(bool),) * latent_dims,
+                        axis=0).T
+                    np.random.shuffle(mask.flat)
+                    while np.sum(np.unique(mask, axis=1, return_counts=True)[1] > 1) > 0 or np.sum(
+                            np.sum(mask, axis=0) == 0) > 0:
+                        np.random.shuffle(mask.flat)
+                    weights = weights * mask
+                weights = _decorrelate_dims_fern(weights)
+                true_features.append(weights)
+                views[i] = views[i] @ weights.T
+            completed = True
+        except:
+            completed = False
+    return views, true_features, X
 
 
 def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[int] = None,
@@ -118,7 +178,7 @@ def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[i
     views = []
     true_features = []
     for p, sparsity in zip(view_features, view_sparsity):
-        weights = np.random.rand(p, 1)
+        weights = np.random.normal(size=(p, 1))
         if sparsity > 0:
             if sparsity < 1:
                 sparsity = np.ceil(sparsity * p).astype('int')
@@ -130,6 +190,14 @@ def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[i
         views.append(view)
         true_features.append(weights)
     return views, true_features
+
+
+def _decorrelate_dims_fern(up):
+    A = up.T @ up
+    for k in range(1, A.shape[0]):
+        up[:, k:] -= np.outer(up[:, k - 1], A[k - 1, k:] / A[k - 1, k - 1])
+        A = up.T @ up
+    return up
 
 
 def _decorrelate_dims(up, cov):
@@ -174,7 +242,7 @@ def _generate_toeplitz_cov(p, sigma):
 
 
 def _generate_random_cov(p):
-    cov_ = np.random.rand(p, p)
+    cov_ = np.random.normal(size=(p, p))
     U, S, V = np.linalg.svd(cov_.T @ cov_)
-    cov = U @ (1.0 + np.diag(np.random.rand(p))) @ V
+    cov = U @ (1.0 + np.diag(np.random.normal(size=(p)))) @ V
     return cov

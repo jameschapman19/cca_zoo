@@ -47,7 +47,8 @@ class MCCA(_CCA_Base):
         train_views, C, D = self.setup_gevp(*views)
         self.alphas = self.solve_gevp(C, D)
         self.score_list = [train_view @ eigvecs_ for train_view, eigvecs_ in zip(train_views, self.alphas)]
-        self.weights_list = [weights / np.linalg.norm(score) for weights, score in zip(self.alphas, self.score_list)]
+        self.weights_list = [weights / np.linalg.norm(score, axis=0) for weights, score in
+                             zip(self.alphas, self.score_list)]
         self.score_list = [train_view @ weights for train_view, weights in zip(train_views, self.weights_list)]
         self.train_correlations = self.predict_corr(*views)
         return self

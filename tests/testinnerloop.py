@@ -5,7 +5,7 @@ import numpy as np
 import cca_zoo.models.innerloop
 
 
-class TestAlsInnerLoop(TestCase):
+class TestInnerLoop(TestCase):
 
     def setUp(self):
         self.X = np.random.rand(10, 10)
