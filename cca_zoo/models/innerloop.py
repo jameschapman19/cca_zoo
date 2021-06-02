@@ -108,7 +108,7 @@ class PMDInnerLoop(_InnerLoop):
             raise ValueError("All regulariation parameters should be at least "
                              f"1. c=[{self.c}]")
         shape_sqrts = [np.sqrt(view.shape[1]) for view in self.views]
-        if any(c <= shape_sqrt for c, shape_sqrt in zip(self.c, shape_sqrts)):
+        if any(c > shape_sqrt for c, shape_sqrt in zip(self.c, shape_sqrts)):
             raise ValueError("All regulariation parameters should be less than"
                              " the square root of number of the respective"
                              f" view. c=[{self.c}], limit of each view: "
