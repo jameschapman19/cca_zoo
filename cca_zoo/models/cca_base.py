@@ -137,7 +137,9 @@ class _CCA_Base(BaseEstimator):
             print('number of folds: ', folds, flush=True)
 
         # Set up an array for each set of hyperparameters
-        assert (len(param_candidates) > 0)
+        if isinstance(param_candidates, dict) and len(param_candidates)== 0:
+            raise ValueError('No param_candidates was supplied.')
+
         param_names = list(param_candidates.keys())
         param_values = list(param_candidates.values())
         param_combinations = list(itertools.product(*param_values))

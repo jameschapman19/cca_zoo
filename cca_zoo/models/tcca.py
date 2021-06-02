@@ -7,6 +7,7 @@ from sklearn.metrics.pairwise import pairwise_kernels
 from tensorly.decomposition import parafac
 
 from .cca_base import _CCA_Base
+from ..utils.check_values import _check_parameter_number
 
 
 class TCCA(_CCA_Base):
@@ -40,11 +41,12 @@ class TCCA(_CCA_Base):
     def check_params(self):
         if self.c is None:
             self.c = [0] * self.n_views
+        _check_parameter_number(self.c, self.n_views)
 
     def fit(self, *views: np.ndarray, ):
         self.n_views = len(views)
         self.check_params()
-        assert (len(self.c) == len(views)), 'c requires as many values as #views'
+
         train_views, covs_invsqrt = self.setup_tensor(*views)
         for i, el in enumerate(train_views):
             if i == 0:

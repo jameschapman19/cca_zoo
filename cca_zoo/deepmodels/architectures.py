@@ -250,7 +250,7 @@ class E2EBlockReverse(torch.nn.Module):
 class BrainNetEncoder(BaseEncoder):
     def __init__(self, latent_dims: int, variational: bool = False, feature_size: Tuple[int] = (200, ...)):
         super(BrainNetEncoder, self).__init__(latent_dims, variational=variational)
-        assert (feature_size[0] == feature_size[1])
+        _check_feature_size(feature_size)
         self.d = feature_size[0]
         self.e2econv1 = E2EBlock(1, 32, self.d, bias=True)
         self.e2econv2 = E2EBlock(32, 64, self.d, bias=True)
@@ -275,7 +275,7 @@ class BrainNetEncoder(BaseEncoder):
 class BrainNetDecoder(BaseDecoder):
     def __init__(self, latent_dims: int, feature_size: Tuple[int] = (200, ...)):
         super(BrainNetDecoder, self).__init__(latent_dims)
-        assert (feature_size[0] == feature_size[1])
+        _check_feature_size(feature_size)
         self.d = feature_size[0]
         self.e2econv1 = E2EBlock(32, 1, self.d, bias=True)
         self.e2econv2 = E2EBlock(64, 32, self.d, bias=True)
@@ -326,3 +326,9 @@ class LinearDecoder(BaseDecoder):
     def forward(self, x):
         out = self.linear(x)
         return out
+
+
+def _check_feature_size(feature_size):
+    if feature_size[0] != feature_size[1]:
+        raise ValueError("BrainNetCNN requires a pair of feature_size of the"
+                         f"same value. feature_size={feature_size}.")
