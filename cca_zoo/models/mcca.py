@@ -5,6 +5,7 @@ from scipy.linalg import block_diag, eigh
 from sklearn.metrics.pairwise import pairwise_kernels
 
 from .cca_base import _CCA_Base
+from ..utils.check_values import _check_parameter_number
 
 
 # from hyperopt import fmin, tpe, Trials
@@ -34,6 +35,7 @@ class MCCA(_CCA_Base):
     def check_params(self):
         if self.c is None:
             self.c = [0] * self.n_views
+        _check_parameter_number(self.c, self.n_views)
 
     def fit(self, *views: np.ndarray):
         """
@@ -43,7 +45,6 @@ class MCCA(_CCA_Base):
         """
         self.n_views = len(views)
         self.check_params()
-        assert (len(self.c) == len(views)), 'c requires as many values as #views'
         train_views, C, D = self.setup_gevp(*views)
         self.alphas = self.solve_gevp(C, D)
         self.score_list = [train_view @ eigvecs_ for train_view, eigvecs_ in zip(train_views, self.alphas)]
