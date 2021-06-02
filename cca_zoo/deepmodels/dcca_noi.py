@@ -50,9 +50,10 @@ class DCCA_NOI(DCCA, torch.nn.Module):
             self.schedulers.extend(schedulers)
         self.covs = None
         self.eps = eps
+        if rho < 0 or rho > 1:
+            raise ValueError(f"rho should be between 0 and 1. rho={rho}")
         self.rho = rho
         self.shared_target = shared_target
-        assert (0 <= self.rho <= 1), "rho should be between 0 and 1"
 
     def update_weights(self, *args):
         z = self(*args)

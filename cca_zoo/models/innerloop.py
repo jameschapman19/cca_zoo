@@ -6,6 +6,8 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import ElasticNet, Lasso, LinearRegression, Ridge, SGDRegressor
 from sklearn.utils._testing import ignore_warnings
 
+from ..utils.check_values import _check_converged_weights, _check_Parikh2014
+
 
 class _InnerLoop:
     def __init__(self, max_iter: int = 100, tol: float = 1e-5, generalized: bool = False,
@@ -101,8 +103,16 @@ class PMDInnerLoop(_InnerLoop):
     def check_params(self):
         if self.c is None:
             self.c = [1] * len(self.views)
-        assert (all([c >= 1 for c in self.c]))
-        assert (all([c <= np.sqrt(view.shape[1]) for c, view in zip(self.c, self.views)]))
+
+        if any(c < 1 for c in self.c):
+            raise ValueError("All regulariation parameters should be at least "
+                             f"1. c=[{self.c}]")
+        shape_sqrts = [np.sqrt(view.shape[1]) for view in self.views]
+        if any(c > shape_sqrt for c, shape_sqrt in zip(self.c, shape_sqrts)):
+            raise ValueError("All regulariation parameters should be less than"
+                             " the square root of number of the respective"
+                             f" view. c=[{self.c}], limit of each view: "
+                             f"{shape_sqrts}")
 
     def update_view(self, view_index: int):
         """
@@ -113,8 +123,7 @@ class PMDInnerLoop(_InnerLoop):
         targets.mask[view_index] = True
         self.weights[view_index] = self.views[view_index].T @ targets.sum(axis=0).filled()
         self.weights[view_index], w_success = _delta_search(self.weights[view_index], self.c[view_index])
-        assert (np.linalg.norm(
-            self.weights[view_index]) > 0), 'all weights zero. try less regularisation or another initialisation'
+        _check_converged_weights(self.weights[view_index], view_index)
         self.weights[view_index] = self.weights[view_index] / np.linalg.norm(self.weights[view_index])
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
@@ -129,7 +138,9 @@ class ParkhomenkoInnerLoop(_InnerLoop):
     def check_params(self):
         if self.c is None:
             self.c = [0.0001] * len(self.views)
-        assert (all([c > 0 for c in self.c]))
+        if any(c <= 0 for c in self.c):
+            raise('All regularisation parameters should be above 0. '
+                  f'c=[{self.c}]')
 
     def update_view(self, view_index: int):
         """
@@ -139,10 +150,10 @@ class ParkhomenkoInnerLoop(_InnerLoop):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         w = self.views[view_index].T @ targets.sum(axis=0).filled()
-        assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
+        _check_converged_weights(w, view_index)
         w /= np.linalg.norm(w)
         w = _soft_threshold(w, self.c[view_index] / 2)
-        assert (np.linalg.norm(w) > 0), 'all weights zero. try less regularisation or another initialisation'
+        _check_converged_weights(w, view_index)
         self.weights[view_index] = w / np.linalg.norm(w)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
@@ -209,8 +220,7 @@ class ElasticInnerLoop(_InnerLoop):
             self.elastic_solver_constrained(self.views[view_index], target, view_index)
         else:
             self.elastic_solver(self.views[view_index], target, view_index)
-        assert (np.linalg.norm(
-            self.weights[view_index]) > 0), 'all weights zero. try less regularisation or another initialisation'
+        _check_converged_weights(self.weights[view_index], view_index)
         self.scores[view_index] = (self.views[view_index] @ self.weights[view_index]).ravel()
 
     @ignore_warnings(category=ConvergenceWarning)
@@ -263,10 +273,12 @@ class ADMMInnerLoop(_InnerLoop):
             self.mu = [lam / np.linalg.norm(view) ** 2 for lam, view in zip(self.lam, self.views)]
         if self.eta is None:
             self.eta = [0] * len(self.views)
-        assert (all([mu > 0 for mu in self.mu])), "at least one mu is less than zero"
-        assert (all([mu <= lam / np.linalg.norm(view) ** 2 for mu, lam, view in
-                     zip(self.mu, self.lam,
-                         self.views)])), "Condition from Parikh 2014 mu<lam/frobenius(X)**2"
+
+        if any(mu <= 0 for mu in self.mu):
+            raise ValueError("At least one mu is less than zero.")
+
+        _check_Parikh2014(self.mu, self.lam, self.views)
+
         self.eta = [np.ones((view.shape[0], 1)) * eta for view, eta in zip(self.views, self.eta)]
         self.z = [np.zeros((view.shape[0], 1)) for view in self.views]
         self.l1_ratio = [1] * len(self.views)
@@ -302,9 +314,7 @@ class ADMMInnerLoop(_InnerLoop):
             norm_eta.append(np.linalg.norm(self.eta[view_index]))
             norm_proj.append(np.linalg.norm(self.views[view_index] @ self.weights[view_index]))
             norm_weights.append(np.linalg.norm(self.weights[view_index], 1))
-        assert (np.linalg.norm(
-            self.weights[view_index]) > 0), 'all weights zero. try less regularisation or another initialisation'
-
+        _check_converged_weights(self.weights, view_index)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
     def objective(self):

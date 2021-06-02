@@ -37,6 +37,8 @@ class DCCAE(_DCCA_base):
         super().__init__(latent_dims)
         self.encoders = torch.nn.ModuleList(encoders)
         self.decoders = torch.nn.ModuleList(decoders)
+        if lam < 0 or lam > 1:
+            raise ValueError(f"lam should be between 0 and 1. rho={lam}")
         self.lam = lam
         self.objective = objective(latent_dims, r=r)
         if optimizers is None:
@@ -44,7 +46,6 @@ class DCCAE(_DCCA_base):
                                                 lr=learning_rate)]
         else:
             self.optimizers = optimizers
-        assert (0 <= self.lam <= 1), "lam between 0 and 1"
         self.schedulers = []
         if schedulers:
             self.schedulers.extend(schedulers)

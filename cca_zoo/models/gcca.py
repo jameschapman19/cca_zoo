@@ -4,6 +4,7 @@ import numpy as np
 from scipy.linalg import eigh
 
 from .cca_base import _CCA_Base
+from ..utils.check_values import _check_parameter_number
 
 
 class GCCA(_CCA_Base):
@@ -40,7 +41,9 @@ class GCCA(_CCA_Base):
         """
         if self.c is None:
             self.c = [0] * len(views)
-        assert (len(self.c) == len(views)), 'c requires as many values as #views'
+
+        _check_parameter_number(self.c, len(views))
+
         if self.view_weights is None:
             self.view_weights = [1] * len(views)
         if K is None:
