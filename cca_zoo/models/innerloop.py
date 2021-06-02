@@ -22,21 +22,28 @@ class _InnerLoop:
         self.tol = tol
 
     def check_params(self):
-        self.l1_ratio = [0] * len(self.views)
-        self.c = [0] * len(self.views)
+        """
+        Put any parameter checks using exceptions inside this function.
+        """
+        pass
 
     def fit(self, *views: np.ndarray):
         self.views = views
         if len(self.views) > 2:
             self.generalized = True
         self.track_objective = []
-        self.track_correlation = []
+        # Check that the parameters that have been passed are valid for these views given #views and #features
         self.check_params()
-        self.weights = [np.random.rand(view.shape[1], 1) for view in self.views]
+        # Initialize weights
+        self.weights = [np.random.rand(view.shape[1]) for view in self.views]
         self.weights = [weights / np.linalg.norm(view @ weights) for (weights, view) in
                         zip(self.weights, self.views)]
+        # Initialize with random or the unregularized solution
         if self.initialization == 'random':
             self.scores = np.array([np.random.rand(view.shape[0]) for view in self.views])
+        if self.initialization == 'uniform':
+            self.scores = np.array([np.ones(view.shape[0]) for view in self.views])
+            self.scores = self.scores / np.linalg.norm(self.scores, axis=1)[:, np.newaxis]
         elif self.initialization == 'unregularized':
             unregularized = PLSInnerLoop(initialization='random').fit(*self.views)
             norms = np.linalg.norm(unregularized.scores, axis=1)
@@ -44,40 +51,28 @@ class _InnerLoop:
 
         # Iterate until convergence
         for _ in range(self.max_iter):
-            # Update each view using loop update function
-            for i, view in enumerate(views):
-                self.update_view(i)
-
+            self.inner_iteration()
             self.track_objective.append(self.objective())
-            # Some kind of early stopping
-            if _ > 0 and all(_cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol) for n, view in
-                             enumerate(self.scores)):
+            if _ > 0 and self.early_stop():
                 break
             self.old_scores = self.scores.copy()
         return self
 
+    def early_stop(self) -> bool:
+        return False
+
     @abstractmethod
-    def update_view(self, view_index: int):
-        """
-        Function used to update the parameters in each view within the loop. By changing this function, we can change
-         the optimisation. This method NEEDS to update self.scores[view_index]
+    def inner_iteration(self):
+        pass
 
-        :param view_index: index of view being updated
-        :return: self with updated weights
-        """
-        targets = np.ma.array(self.scores, mask=False)
-        targets.mask[view_index] = True
-        self.weights[view_index] = self.views[view_index].T @ targets.sum(axis=0).filled()
-        self.weights[view_index] /= np.linalg.norm(self.weights[view_index])
-        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
-
-    def objective(self):
+    def objective(self) -> int:
         """
         Function used to calculate the objective function for the given. If we do not override then returns the covariance
          between projections
 
         :return:
         """
+        # default objective is correlation
         obj = 0
         for (score_i, score_j) in combinations(self.scores, 2):
             obj += score_i.T @ score_j
@@ -90,8 +85,41 @@ class PLSInnerLoop(_InnerLoop):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
 
+    def check_params(self):
+        self.l1_ratio = [0] * len(self.views)
+        self.c = [0] * len(self.views)
 
-class PMDInnerLoop(_InnerLoop):
+    def inner_iteration(self):
+        # Update each view using loop update function
+        for i, view in enumerate(self.views):
+            self.update_view(i)
+
+    @abstractmethod
+    def update_view(self, view_index: int):
+        """
+        Function used to update the parameters in each view within the loop. By changing this function, we can change
+         the optimisation. This method NEEDS to update self.scores[view_index]
+
+        :param view_index: index of view being updated
+        :return: self with updated weights
+        """
+        # mask off the current view and sum the rest
+        targets = np.ma.array(self.scores, mask=False)
+        targets.mask[view_index] = True
+        self.weights[view_index] = self.views[view_index].T @ targets.sum(axis=0).filled()
+        self.weights[view_index] /= np.linalg.norm(self.weights[view_index])
+        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
+
+    def early_stop(self) -> bool:
+        # Some kind of early stopping
+        if all(_cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol) for n, view in
+               enumerate(self.scores)):
+            return True
+        else:
+            return False
+
+
+class PMDInnerLoop(PLSInnerLoop):
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', c=None):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
@@ -109,17 +137,18 @@ class PMDInnerLoop(_InnerLoop):
         :param view_index: index of view being updated
         :return: updated weights
         """
+        # mask off the current view and sum the rest
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         self.weights[view_index] = self.views[view_index].T @ targets.sum(axis=0).filled()
-        self.weights[view_index], w_success = _delta_search(self.weights[view_index], self.c[view_index])
+        self.weights[view_index] = _delta_search(self.weights[view_index], self.c[view_index])
         assert (np.linalg.norm(
             self.weights[view_index]) > 0), 'all weights zero. try less regularisation or another initialisation'
         self.weights[view_index] = self.weights[view_index] / np.linalg.norm(self.weights[view_index])
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
 
-class ParkhomenkoInnerLoop(_InnerLoop):
+class ParkhomenkoInnerLoop(PLSInnerLoop):
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', c=None):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
@@ -136,6 +165,7 @@ class ParkhomenkoInnerLoop(_InnerLoop):
         :param view_index: index of view being updated
         :return: updated weights
         """
+        # mask off the current view and sum the rest
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         w = self.views[view_index].T @ targets.sum(axis=0).filled()
@@ -147,7 +177,7 @@ class ParkhomenkoInnerLoop(_InnerLoop):
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
 
-class ElasticInnerLoop(_InnerLoop):
+class ElasticInnerLoop(PLSInnerLoop):
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', c=None, l1_ratio=None, constrained=False, stochastic=True):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
@@ -244,7 +274,7 @@ class ElasticInnerLoop(_InnerLoop):
         return elastic_cca_objective(self)
 
 
-class ADMMInnerLoop(_InnerLoop):
+class ADMMInnerLoop(PLSInnerLoop):
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', mu=None, lam=None, c=None, eta=None):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
@@ -407,7 +437,8 @@ def _delta_search(w, c, init=0):
         previous_val = current_val
         if np.abs(current_val) < 1e-5 or np.abs(max_ - min_) < 1e-30 or i == 50:
             converged = True
-    return coef, current
+    return coef
+
 
 def _soft_threshold(x, threshold):
     """
