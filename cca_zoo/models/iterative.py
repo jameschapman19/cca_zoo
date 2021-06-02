@@ -3,13 +3,10 @@ from abc import abstractmethod
 from typing import Union, List
 
 import numpy as np
-from sklearn.base import BaseEstimator
 
 from .cca_base import _CCA_Base
 from .innerloop import PLSInnerLoop, PMDInnerLoop, ParkhomenkoInnerLoop, ElasticInnerLoop, ADMMInnerLoop
 
-
-# from hyperopt import fmin, tpe, Trials
 
 class _Iterative(_CCA_Base):
     """
@@ -43,7 +40,7 @@ class _Iterative(_CCA_Base):
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
-        self._set_loop_params()
+        self.set_loop_params()
         train_views = self.centre_scale(*views)
         n = train_views[0].shape[0]
         p = [view.shape[1] for view in train_views]
@@ -82,7 +79,7 @@ class _Iterative(_CCA_Base):
             return residual - np.outer(score, score) @ residual / np.dot(score, score).item()
 
     @abstractmethod
-    def _set_loop_params(self):
+    def set_loop_params(self):
         """
         Sets up the inner optimization loop for the method. By default uses the PLS inner loop.
         """
@@ -119,12 +116,12 @@ class PLS(_Iterative):
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol, scale=scale)
 
-    def _set_loop_params(self):
+    def set_loop_params(self):
         self.loop = PLSInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
                                  initialization=self.initialization, tol=self.tol)
 
 
-class ElasticCCA(_Iterative, BaseEstimator):
+class ElasticCCA(_Iterative):
     """
     Fits an elastic CCA by iterative rescaled elastic net regression
 
@@ -157,7 +154,7 @@ class ElasticCCA(_Iterative, BaseEstimator):
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol, scale=scale)
 
-    def _set_loop_params(self):
+    def set_loop_params(self):
         self.loop = ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio,
                                      generalized=self.generalized, initialization=self.initialization,
                                      tol=self.tol, constrained=self.constrained,
@@ -223,7 +220,7 @@ class SCCA(ElasticCCA):
                          stochastic=stochastic, scale=scale)
 
 
-class PMD(_Iterative, BaseEstimator):
+class PMD(_Iterative):
     """
     Fits a Sparse CCA (Penalized Matrix Decomposition) model.
 
@@ -252,12 +249,12 @@ class PMD(_Iterative, BaseEstimator):
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol, scale=scale)
 
-    def _set_loop_params(self):
+    def set_loop_params(self):
         self.loop = PMDInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
                                  initialization=self.initialization, tol=self.tol)
 
 
-class ParkhomenkoCCA(_Iterative, BaseEstimator):
+class ParkhomenkoCCA(_Iterative):
     """
     Fits a sparse CCA (penalized CCA) model
 
@@ -286,13 +283,13 @@ class ParkhomenkoCCA(_Iterative, BaseEstimator):
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol, scale=scale)
 
-    def _set_loop_params(self):
+    def set_loop_params(self):
         self.loop = ParkhomenkoInnerLoop(max_iter=self.max_iter, c=self.c,
                                          generalized=self.generalized,
                                          initialization=self.initialization, tol=self.tol)
 
 
-class SCCA_ADMM(_Iterative, BaseEstimator):
+class SCCA_ADMM(_Iterative):
     """
     Fits a sparse CCA model by alternating ADMM
 
@@ -329,7 +326,7 @@ class SCCA_ADMM(_Iterative, BaseEstimator):
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol, scale=scale)
 
-    def _set_loop_params(self):
+    def set_loop_params(self):
         self.loop = ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,
                                   eta=self.eta, generalized=self.generalized,
                                   initialization=self.initialization, tol=self.tol)
