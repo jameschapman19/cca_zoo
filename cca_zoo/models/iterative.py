@@ -224,6 +224,8 @@ class PMD(_Iterative):
     """
     Fits a Sparse CCA (Penalized Matrix Decomposition) model.
 
+    Paper:
+
     :Example:
 
     >>> from cca_zoo.models import PMD

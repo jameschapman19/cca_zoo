@@ -111,9 +111,6 @@ class CCA(rCCA):
 
 def _pca_data(*views: np.ndarray):
     """
-    Since most methods require zero-mean data, demean_data() is used to demean training data as well as to apply this
-    demeaning transformation to out of sample data
-
     :param views: numpy arrays with the same number of rows (samples) separated by commas
     """
     views_U = []

@@ -9,7 +9,7 @@ from scipy.linalg import block_diag
 def generate_covariance_data(n: int, view_features: List[int], latent_dims: int = 1,
                              view_sparsity: List[Union[int, float]] = None,
                              correlation: Union[List[float], float] = 1,
-                             structure: List[str] = None, sigma: List[str] = None, decay: float = 0.5):
+                             structure: List[str] = None, sigma: List[float] = None, decay: float = 0.5):
     """
     Function to generate CCA dataset with defined population correlation
 
@@ -128,15 +128,6 @@ def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[i
         views.append(view)
         true_features.append(weights)
     return views, true_features
-
-
-def _decorrelate_dims_fern(up):
-    A = up.T @ up
-    for k in range(1, A.shape[0]):
-        up[:, k:] -= np.outer(up[:, k - 1], A[k - 1, k:] / A[k - 1, k - 1])
-        A = up.T @ up
-    return up
-
 
 def _decorrelate_dims(up, cov):
     A = up.T @ cov @ up
