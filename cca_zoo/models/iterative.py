@@ -1,4 +1,5 @@
 import copy
+import warnings
 from abc import abstractmethod
 from typing import Union, List
 
@@ -138,7 +139,8 @@ class ElasticCCA(_Iterative):
                  l1_ratio: Union[List[float], float] = None,
                  constrained: bool = False, max_iter: int = 100,
                  generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False, scale=True):
+                 initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False, scale=True,
+                 positive: Union[List[bool], bool] = None):
         """
         Constructor for ElasticCCA
 
@@ -151,6 +153,11 @@ class ElasticCCA(_Iterative):
         self.l1_ratio = l1_ratio
         self.constrained = constrained
         self.stochastic = stochastic
+        self.positive = positive
+        if self.positive is not None and stochastic:
+            self.stochastic = False
+            warnings.warn(
+                'Non negative constraints cannot be used with stochastic regressors. Switching to stochastic=False')
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol, scale=scale)
 
@@ -158,7 +165,7 @@ class ElasticCCA(_Iterative):
         self.loop = ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio,
                                      generalized=self.generalized, initialization=self.initialization,
                                      tol=self.tol, constrained=self.constrained,
-                                     stochastic=self.stochastic)
+                                     stochastic=self.stochastic, positive=self.positive)
 
 
 class CCA_ALS(ElasticCCA):
@@ -175,7 +182,8 @@ class CCA_ALS(ElasticCCA):
     """
 
     def __init__(self, latent_dims: int = 1, max_iter: int = 100, generalized: bool = False,
-                 initialization: str = 'random', tol: float = 1e-9, stochastic=True, scale=True):
+                 initialization: str = 'random', tol: float = 1e-9, stochastic=True, scale=True,
+                 positive: Union[List[bool], bool] = None):
         """
         Constructor for CCA_ALS
 
@@ -185,8 +193,10 @@ class CCA_ALS(ElasticCCA):
         :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
+
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol, constrained=False, stochastic=stochastic, scale=scale)
+                         initialization=initialization, tol=tol, constrained=False, stochastic=stochastic, scale=scale,
+                         positive=positive)
 
 
 class SCCA(ElasticCCA):
@@ -204,7 +214,8 @@ class SCCA(ElasticCCA):
 
     def __init__(self, latent_dims: int = 1, c: List[float] = None, max_iter: int = 100,
                  generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False, scale=True):
+                 initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False, scale=True,
+                 positive: Union[List[bool], bool] = None):
         """
         Constructor for SCCA
 
@@ -217,7 +228,7 @@ class SCCA(ElasticCCA):
         """
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol, c=c, l1_ratio=1, constrained=False,
-                         stochastic=stochastic, scale=scale)
+                         stochastic=stochastic, scale=scale, positive=positive)
 
 
 class PMD(_Iterative):

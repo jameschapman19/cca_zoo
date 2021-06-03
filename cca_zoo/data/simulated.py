@@ -129,6 +129,7 @@ def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[i
         true_features.append(weights)
     return views, true_features
 
+
 def _decorrelate_dims(up, cov):
     A = up.T @ cov @ up
     for k in range(1, A.shape[0]):

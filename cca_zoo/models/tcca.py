@@ -7,7 +7,7 @@ from sklearn.metrics.pairwise import pairwise_kernels
 from tensorly.decomposition import parafac
 
 from .cca_base import _CCA_Base
-from ..utils.check_values import _check_parameter_number
+from ..utils.check_values import _process_parameter
 
 
 class TCCA(_CCA_Base):
@@ -39,14 +39,11 @@ class TCCA(_CCA_Base):
         self.c = c
 
     def check_params(self):
-        if self.c is None:
-            self.c = [0] * self.n_views
-        _check_parameter_number(self.c, self.n_views)
+        self.c = _process_parameter('c', self.c, 0, self.n_views)
 
     def fit(self, *views: np.ndarray, ):
         self.n_views = len(views)
         self.check_params()
-
         train_views, covs_invsqrt = self.setup_tensor(*views)
         for i, el in enumerate(train_views):
             if i == 0:
@@ -119,16 +116,11 @@ class KTCCA(TCCA):
         self.eps = eps
 
     def check_params(self):
-        if self.kernel is None:
-            self.kernel = ['linear'] * self.n_views
-        if self.gamma is None:
-            self.gamma = [None] * self.n_views
-        if self.coef0 is None:
-            self.coef0 = [1] * self.n_views
-        if self.degree is None:
-            self.degree = [1] * self.n_views
-        if self.c is None:
-            self.c = [0] * self.n_views
+        self.kernel = _process_parameter('kernel', self.kernel, 'linear', self.n_views)
+        self.gamma = _process_parameter('gamma', self.gamma, None, self.n_views)
+        self.coef0 = _process_parameter('coef0', self.coef0, 1, self.n_views)
+        self.degree = _process_parameter('degree', self.degree, 1, self.n_views)
+        self.c = _process_parameter('c', self.c, 0, self.n_views)
 
     def _get_kernel(self, view, X, Y=None):
         if callable(self.kernel):

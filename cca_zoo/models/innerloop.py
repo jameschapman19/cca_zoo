@@ -6,7 +6,7 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import ElasticNet, Lasso, LinearRegression, Ridge, SGDRegressor
 from sklearn.utils._testing import ignore_warnings
 
-from ..utils.check_values import _check_converged_weights, _check_Parikh2014
+from ..utils.check_values import _check_converged_weights, _check_Parikh2014, _process_parameter
 
 
 class _InnerLoop:
@@ -129,9 +129,7 @@ class PMDInnerLoop(PLSInnerLoop):
         self.c = c
 
     def check_params(self):
-        if self.c is None:
-            self.c = [1] * len(self.views)
-
+        self.c = _process_parameter('c', self.c, 1, len(self.views))
         if any(c < 1 for c in self.c):
             raise ValueError("All regulariation parameters should be at least "
                              f"1. c=[{self.c}]")
@@ -153,7 +151,6 @@ class PMDInnerLoop(PLSInnerLoop):
         self.weights[view_index] = self.views[view_index].T @ targets.sum(axis=0).filled()
         self.weights[view_index] = _delta_search(self.weights[view_index], self.c[view_index])
         _check_converged_weights(self.weights[view_index], view_index)
-        self.weights[view_index] = self.weights[view_index] / np.linalg.norm(self.weights[view_index])
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
 
@@ -165,11 +162,10 @@ class ParkhomenkoInnerLoop(PLSInnerLoop):
         self.c = c
 
     def check_params(self):
-        if self.c is None:
-            self.c = [0.0001] * len(self.views)
+        self.c = _process_parameter('c', self.c, [0.0001], len(self.views))
         if any(c <= 0 for c in self.c):
-            raise('All regularisation parameters should be above 0. '
-                  f'c=[{self.c}]')
+            raise ('All regularisation parameters should be above 0. '
+                   f'c=[{self.c}]')
 
     def update_view(self, view_index: int):
         """
@@ -190,27 +186,24 @@ class ParkhomenkoInnerLoop(PLSInnerLoop):
 
 class ElasticInnerLoop(PLSInnerLoop):
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized', c=None, l1_ratio=None, constrained=False, stochastic=True):
+                 initialization: str = 'unregularized', c=None, l1_ratio=None, constrained=False, stochastic=True,
+                 positive=None):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
         self.stochastic = stochastic
         self.constrained = constrained
         self.c = c
         self.l1_ratio = l1_ratio
+        self.positive = positive
 
     def check_params(self):
-        if self.c is None:
-            self.c = [0] * len(self.views)
-        elif isinstance(self.c, (float, int)):
-            self.c = [self.c] * len(self.views)
-        if self.l1_ratio is None:
-            self.l1_ratio = [0] * len(self.views)
-        elif isinstance(self.l1_ratio, (float, int)):
-            self.l1_ratio = [self.l1_ratio] * len(self.views)
+        self.c = _process_parameter("c", self.c, 0, len(self.views))
+        self.l1_ratio = _process_parameter('l1_ratio', self.l1_ratio, 0, len(self.views))
+        self.positive = _process_parameter('positive', self.positive, False, len(self.views))
         if self.constrained:
             self.gamma = np.zeros(len(self.views))
         self.regressors = []
-        for alpha, l1_ratio in zip(self.c, self.l1_ratio):
+        for alpha, l1_ratio, positive in zip(self.c, self.l1_ratio, self.positive):
             if self.stochastic:
                 if l1_ratio == 0:
                     self.regressors.append(
@@ -227,15 +220,21 @@ class ElasticInnerLoop(PLSInnerLoop):
                                      tol=self.tol, warm_start=True))
             else:
                 if alpha == 0:
-                    self.regressors.append(LinearRegression(fit_intercept=False))
+                    self.regressors.append(LinearRegression(fit_intercept=False, positive=positive))
                 elif l1_ratio == 0:
-                    self.regressors.append(Ridge(alpha=alpha / len(self.views), fit_intercept=False))
+                    if positive:
+                        self.regressors.append(
+                            ElasticNet(alpha=alpha / len(self.views), l1_ratio=0, fit_intercept=False,
+                                       warm_start=True, positive=positive))
+                    else:
+                        self.regressors.append(Ridge(alpha=alpha / len(self.views), fit_intercept=False))
                 elif l1_ratio == 1:
-                    self.regressors.append(Lasso(alpha=alpha / len(self.views), fit_intercept=False, warm_start=True))
+                    self.regressors.append(
+                        Lasso(alpha=alpha / len(self.views), fit_intercept=False, warm_start=True, positive=positive))
                 else:
                     self.regressors.append(
                         ElasticNet(alpha=alpha / len(self.views), l1_ratio=l1_ratio, fit_intercept=False,
-                                   warm_start=True))
+                                   warm_start=True, positive=positive))
 
     def update_view(self, view_index: int):
         """
@@ -295,14 +294,13 @@ class ADMMInnerLoop(PLSInnerLoop):
         self.eta = eta
 
     def check_params(self):
-        if self.c is None:
-            self.c = [0] * len(self.views)
-        if self.lam is None:
-            self.lam = [1] * len(self.views)
+        self.c = _process_parameter('c', self.c, 0, len(self.views))
+        self.lam = _process_parameter('lam', self.lam, 1, len(self.views))
         if self.mu is None:
             self.mu = [lam / np.linalg.norm(view) ** 2 for lam, view in zip(self.lam, self.views)]
-        if self.eta is None:
-            self.eta = [0] * len(self.views)
+        else:
+            self.mu = _process_parameter('mu', self.mu, 0, len(self.views))
+        self.eta = _process_parameter('eta', self.eta, 0, len(self.views))
 
         if any(mu <= 0 for mu in self.mu):
             raise ValueError("At least one mu is less than zero.")
@@ -370,7 +368,7 @@ class ADMMInnerLoop(PLSInnerLoop):
             return x / max(1, norm)
 
 
-def elastic_cca_objective(loop: _InnerLoop):
+def elastic_cca_objective(loop: PLSInnerLoop):
     """
     General objective function for sparse CCA |X_1w_1-X_2w_2|_2^2 + c_1|w_1|_1 + c_2|w_2|_1
     :param loop: an inner loop

@@ -189,8 +189,8 @@ class TCCA:
     def loss(self, *z):
         m = z[0].size(0)
         z = [z_ - z_.mean(dim=0).unsqueeze(dim=0) for z_ in z]
-        covs = [(1.0 / (m - 1))*torch.matmul(z_.T, z_) + self.r * torch.eye(z_.size(1), dtype=torch.double,
-                                                              device=z_.device).float() for z_ in z]
+        covs = [(1.0 / (m - 1)) * torch.matmul(z_.T, z_) + self.r * torch.eye(z_.size(1), dtype=torch.double,
+                                                                              device=z_.device).float() for z_ in z]
 
         z = [z_ @ _compute_matrix_power(cov, -0.5, self.eps) for z_, cov in zip(z, covs)]
 
@@ -205,4 +205,4 @@ class TCCA:
         tl.set_backend('pytorch')
         M_parafac = parafac(M.detach(), self.latent_dims)
         M_hat = cp_to_tensor(M_parafac)
-        return torch.norm(M-M_hat)
+        return torch.norm(M - M_hat)
