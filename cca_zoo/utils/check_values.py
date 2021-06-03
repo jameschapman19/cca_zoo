@@ -1,11 +1,20 @@
 import numpy as np
 
 
-def _check_parameter_number(c, n_views):
-    if len(c) != n_views:
-        raise ('number of views passed shout match number of parameter c '
-                f'for regularisation. len(views)={n_views} and '
-                f'len(c)={len(c)}')
+def _process_parameter(parameter_name: str, parameter, default, n_views: int):
+    if parameter is None:
+        parameter = [default] * n_views
+    elif not isinstance(parameter, (list, tuple)):
+        parameter = [parameter] * n_views
+    _check_parameter_number(parameter_name, parameter, n_views)
+    return parameter
+
+
+def _check_parameter_number(parameter_name: str, parameter, n_views: int):
+    if len(parameter) != n_views:
+        raise ValueError(f"number of views passed should match number of parameter {parameter_name}"
+                         f"len(views)={n_views} and "
+                         f"len({parameter_name})={len(parameter)}")
 
 
 def _check_converged_weights(weights, view_index):
@@ -18,7 +27,7 @@ def _check_converged_weights(weights, view_index):
 def _check_Parikh2014(mus, lams, views):
     """Return index of the view which the data not matching the condition
     documented in Parikh 2014."""
-    failed_check =  [
+    failed_check = [
         i
         for i, (mu, lam, view) in enumerate(zip(mus, lams, views))
         if mu <= lam / np.linalg.norm(view) ** 2

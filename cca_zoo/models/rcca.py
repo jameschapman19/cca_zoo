@@ -4,6 +4,7 @@ import numpy as np
 from scipy.linalg import block_diag, eigh
 
 from .cca_base import _CCA_Base
+from ..utils.check_values import _process_parameter
 
 
 # from hyperopt import fmin, tpe, Trials
@@ -32,15 +33,17 @@ class rCCA(_CCA_Base):
         super().__init__(latent_dims=latent_dims, scale=scale)
         self.c = c
 
+    def check_params(self):
+        self.c = _process_parameter('c', self.c, 0, self.n_views)
+
     def fit(self, *views: np.ndarray):
         """
         Fits a regularised CCA (canonical ridge) model
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
-        if self.c is None:
-            self.c = [0] * len(views)
-        assert (len(self.c) == len(views)), 'c requires as many values as #views'
+        self.n_views = len(views)
+        self.check_params()
         train_views = self.centre_scale(*views)
         U_list, S_list, Vt_list = _pca_data(*train_views)
         if len(views) == 2:

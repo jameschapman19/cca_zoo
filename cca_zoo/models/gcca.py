@@ -4,7 +4,7 @@ import numpy as np
 from scipy.linalg import eigh
 
 from .cca_base import _CCA_Base
-from ..utils.check_values import _check_parameter_number
+from ..utils.check_values import _process_parameter
 
 
 class GCCA(_CCA_Base):
@@ -32,6 +32,10 @@ class GCCA(_CCA_Base):
         self.c = c
         self.view_weights = view_weights
 
+    def check_params(self):
+        self.c = _process_parameter('c', self.c, 0, self.n_views)
+        self.view_weights = _process_parameter('view_weights', self.view_weights, 1, self.n_views)
+
     def fit(self, *views: np.ndarray, K: np.ndarray = None):
         """
         Fits a GCCA model
@@ -39,13 +43,10 @@ class GCCA(_CCA_Base):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param K: observation matrix. Binary array with (k,n) dimensions where k is the number of views and n is the number of samples 1 means the data is observed in the corresponding view and 0 means the data is unobserved in that view.
         """
-        if self.c is None:
-            self.c = [0] * len(views)
 
-        _check_parameter_number(self.c, len(views))
+        self.n_views = len(views)
+        self.check_params()
 
-        if self.view_weights is None:
-            self.view_weights = [1] * len(views)
         if K is None:
             # just use identity when all rows are observed in all views.
             K = np.ones((len(views), views[0].shape[0]))

@@ -88,6 +88,14 @@ class TestModels(TestCase):
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_kernel, decimal=1))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_rcca, decimal=1))
 
+    def test_non_negative_methods(self):
+        latent_dims = 1
+        wrap_als = CCA_ALS(latent_dims=latent_dims, tol=1e-9).fit(self.X, self.Y)
+        wrap_nnals = CCA_ALS(latent_dims=latent_dims, tol=1e-9, positive=True).fit(self.X, self.Y)
+        wrap_nnscca = SCCA(latent_dims=latent_dims, tol=1e-9, positive=True, c=[1e-4, 1e-5]).fit(self.X, self.Y)
+        wrap_nnelasticca = ElasticCCA(latent_dims=latent_dims, tol=1e-9, positive=True, l1_ratio=[0.5, 0.5],
+                                      c=[1e-4, 1e-5]).fit(self.X, self.Y)
+
     def test_sparse_methods(self):
         # Test sparsity inducing methods. At the moment just checks running.
         latent_dims = 5

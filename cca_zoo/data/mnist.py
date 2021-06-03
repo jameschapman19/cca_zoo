@@ -9,6 +9,7 @@ from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 from torchvision.transforms.functional import InterpolationMode
 
+
 class CCA_Dataset(Dataset):
     """
     Class that turns numpy arrays into a torch dataset
@@ -209,4 +210,3 @@ def _OH_digits(digits):
 def _add_mnist_noise(x):
     x = x + torch.rand(28, 28)
     return x
-
