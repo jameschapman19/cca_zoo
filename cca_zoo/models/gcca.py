@@ -20,7 +20,8 @@ class GCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, c: List[float] = None, view_weights: Tuple[float, ...] = None, scale=True):
+    def __init__(self, latent_dims: int = 1, scale: bool = True, c: List[float] = None,
+                 view_weights: Tuple[float, ...] = None):
         """
         Constructor for GCCA
 

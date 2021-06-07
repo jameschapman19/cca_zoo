@@ -286,10 +286,29 @@ class ElasticInnerLoop(PLSInnerLoop):
         self.weights[view_index] = coef
 
     def objective(self):
-        return elastic_cca_objective(self)
+        """
+        General objective function for sparse CCA |X_1w_1-X_2w_2|_2^2 + c_1|w_1|_1 + c_2|w_2|_1
+        :param loop: an inner loop
+        :return:
+        """
+        views = len(self.views)
+        c = np.array(self.c)
+        ratio = np.array(self.l1_ratio)
+        l1 = c * ratio
+        l2 = c * (1 - ratio)
+        total_objective = 0
+        for i in range(views):
+            # TODO this looks like it could be tidied up. In particular can we make the generalized objective correspond to the 2 view
+            target = self.scores.mean(axis=0)
+            objective = views * np.linalg.norm(self.views[i] @ self.weights[i] - target) ** 2 / (
+                    2 * self.views[i].shape[0])
+            l1_pen = l1[i] * np.linalg.norm(self.weights[i], ord=1)
+            l2_pen = l2[i] * np.linalg.norm(self.weights[i], ord=2)
+            total_objective += objective + l1_pen + l2_pen
+        return total_objective
 
 
-class ADMMInnerLoop(PLSInnerLoop):
+class ADMMInnerLoop(ElasticInnerLoop):
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
                  initialization: str = 'unregularized', mu=None, lam=None, c=None, eta=None):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
@@ -351,9 +370,6 @@ class ADMMInnerLoop(PLSInnerLoop):
         _check_converged_weights(self.weights, view_index)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
-    def objective(self):
-        return elastic_cca_objective(self)
-
     def prox_mu_f(self, x, mu, c, tau):
         u_update = x.copy()
         mask_1 = (x + (mu * c) > mu * tau)
@@ -374,26 +390,112 @@ class ADMMInnerLoop(PLSInnerLoop):
             return x / max(1, norm)
 
 
-def elastic_cca_objective(loop: PLSInnerLoop):
-    """
-    General objective function for sparse CCA |X_1w_1-X_2w_2|_2^2 + c_1|w_1|_1 + c_2|w_2|_1
-    :param loop: an inner loop
-    :return:
-    """
-    views = len(loop.views)
-    c = np.array(loop.c)
-    ratio = np.array(loop.l1_ratio)
-    l1 = c * ratio
-    l2 = c * (1 - ratio)
-    total_objective = 0
-    for i in range(views):
-        # TODO this looks like it could be tidied up. In particular can we make the generalized objective correspond to the 2 view
-        target = loop.scores.mean(axis=0)
-        objective = views * np.linalg.norm(loop.views[i] @ loop.weights[i] - target) ** 2 / (2 * loop.views[i].shape[0])
-        l1_pen = l1[i] * np.linalg.norm(loop.weights[i], ord=1)
-        l2_pen = l2[i] * np.linalg.norm(loop.weights[i], ord=2)
-        total_objective += objective + l1_pen + l2_pen
-    return total_objective
+class SpanCCAInnerLoop(_InnerLoop):
+    def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
+                 initialization: str = 'unregularized', c=None, regularisation='l0', rank=1, positive=None):
+        super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
+                         initialization=initialization)
+        self.c = c
+        self.regularisation = regularisation
+        self.rank = rank
+        self.positive = positive
+
+    def check_params(self):
+        """check number of views=2"""
+        if len(self.views) != 2:
+            raise ValueError(f"SpanCCA requires only 2 views")
+        cov = self.views[0].T @ self.views[1]
+        # Perform SVD on im and obtain individual matrices
+        P, D, Q = np.linalg.svd(cov, full_matrices=True)
+        self.P = P[:, :self.rank]
+        self.D = D[:self.rank]
+        self.Q = Q[:self.rank, :].T
+        self.max_obj = 0
+        if self.regularisation == 'l0':
+            self.update = _support_soft_thresh
+            self.c = _process_parameter("c", self.c, 0, len(self.views))
+        elif self.regularisation == 'l1':
+            self.update = _delta_search
+            self.c = _process_parameter("c", self.c, 0, len(self.views))
+        self.positive = _process_parameter('positive', self.positive, False, len(self.views))
+
+    def inner_iteration(self):
+        c = np.random.normal(size=self.rank)
+        c /= np.linalg.norm(c)
+        a = self.P @ np.diag(self.D) @ c
+        u = self.update(a, self.c[0])
+        u /= np.linalg.norm(u)
+        b = self.Q @ np.diag(self.D) @ self.P.T @ u
+        v = self.update(b, self.c[1])
+        v /= np.linalg.norm(v)
+        if b.T @ v > self.max_obj:
+            self.max_obj = b.T @ v
+            self.scores[0] = self.views[0] @ u
+            self.scores[1] = self.views[1] @ v
+            self.weights[0] = u
+            self.weights[1] = v
+
+
+class SWCCAInnerLoop(PLSInnerLoop):
+    def __init__(self, max_iter: int = 100, tol=1e-20, generalized: bool = False,
+                 initialization: str = 'unregularized', regularisation='l0', c=None,
+                 sample_support: int = None, positive=None):
+        super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
+                         initialization=initialization)
+        self.c = c
+        self.sample_support = sample_support
+        if regularisation == 'l0':
+            self.update = _support_soft_thresh
+        elif regularisation == 'l1':
+            self.update = _delta_search
+        self.positive = positive
+
+    def check_params(self):
+        self.sample_weights = np.ones(self.views[0].shape[0])
+        self.sample_weights /= np.linalg.norm(self.sample_weights)
+        self.positive = _process_parameter('positive', self.positive, False, len(self.views))
+
+    def initialize(self):
+        # Initialize weights
+        self.weights = [np.random.normal(size=view.shape[1]) for view in self.views]
+        self.weights = [weights / np.linalg.norm(weights) for weights in self.weights]
+        self.scores = np.array([view @ weights for view, weights in zip(self.views, self.weights)])
+
+    def update_view(self, view_index: int):
+        """
+        :param view_index: index of view being updated
+        :return: updated weights
+        """
+        targets = np.ma.array(self.scores, mask=False)
+        targets.mask[view_index] = True
+        self.weights[view_index] = self.views[view_index].T @ np.diag(self.sample_weights) @ targets.sum(
+            axis=0).filled()
+        self.weights[view_index] = self.update(self.weights[view_index], self.c[view_index],
+                                               positive=self.positive[view_index])
+        self.weights /= np.linalg.norm(self.weights)
+        if view_index == len(self.views) - 1:
+            self.update_sample_weights()
+        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
+
+    def update_sample_weights(self):
+        w = self.scores.prod(axis=0)
+        self.sample_weights = _support_soft_thresh(w, self.sample_support)
+
+    def early_stop(self) -> bool:
+        return False
+
+    def objective(self) -> int:
+        """
+        Function used to calculate the objective function for the given. If we do not override then returns the covariance
+         between projections
+
+        :return:
+        """
+        # default objective is correlation
+        obj = 0
+        for (score_i, score_j) in combinations(self.scores, 2):
+            obj += score_i.T @ np.diag(self.sample_weights) @ score_j
+        return obj
 
 
 def _bin_search(current, previous, current_val, previous_val, min_, max_):
@@ -460,10 +562,25 @@ def _soft_threshold(x, threshold, positive=False):
     :param x: input
     :return: x soft-thresholded by threshold
     """
-    diff = abs(x) - threshold
-    diff[diff < 0] = 0
-    out = np.sign(x) * diff
-    return out
+    if positive:
+        u = np.clip(x, 0, None)
+    else:
+        u = np.abs(x)
+    u = u - threshold
+    u[u < 0] = 0
+    return u * np.sign(x)
+
+
+def _support_soft_thresh(x, support, positive=False):
+    if x.shape[0] < support or np.linalg.norm(x) == 0:
+        return x
+    if positive:
+        u = np.clip(x, 0, None)
+    else:
+        u = np.abs(x)
+    idx = np.argpartition(x, x.shape[0] - support)
+    u[idx[:-support]] = 0
+    return u * np.sign(x)
 
 
 def _cosine_similarity(a, b):

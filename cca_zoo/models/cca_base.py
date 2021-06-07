@@ -27,6 +27,8 @@ class _CCA_Base(BaseEstimator):
         """
         Constructor for _CCA_Base
 
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
         """
         self.weights_list = None
         self.train_correlations = None
