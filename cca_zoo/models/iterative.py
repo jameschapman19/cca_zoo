@@ -184,14 +184,16 @@ class CCA_ALS(ElasticCCA):
     """
 
     def __init__(self, latent_dims: int = 1, max_iter: int = 100, generalized: bool = False,
-                 initialization: str = 'random', tol: float = 1e-9, stochastic=True, scale=True):
+                 initialization: str = 'random', tol: float = 1e-9, stochastic=True, scale=True,
+                 positive: Union[List[bool], bool] = None):
         """
         Constructor for CCA_ALS
 
         """
 
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol, constrained=False, stochastic=stochastic, scale=scale)
+                         initialization=initialization, tol=tol, constrained=False, stochastic=stochastic, scale=scale,
+                         positive=positive)
 
 
 class SCCA(ElasticCCA):
