@@ -260,6 +260,7 @@ class PMD(_Iterative):
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         self.c = c
+        self.positive = positive
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol, scale=scale)
 
