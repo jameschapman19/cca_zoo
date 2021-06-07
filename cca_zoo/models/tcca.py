@@ -14,10 +14,11 @@ class TCCA(_CCA_Base):
     """
     Fits a Tensor CCA model. Tensor CCA maximises higher order correlations
 
-    My own port from https://github.com/rciszek/mdr_tcca
+    Citation
+    --------
+    Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
 
-    :param latent_dims:
-    :param c: regularisation between 0 (CCA) and 1 (PLS)
+    My own port from https://github.com/rciszek/mdr_tcca
 
     :Example:
 
@@ -32,7 +33,6 @@ class TCCA(_CCA_Base):
         """
         Constructor for TCCA
 
-        :param latent_dims:
         """
         super().__init__(latent_dims=latent_dims, scale=scale)
         self.c = c
@@ -77,10 +77,9 @@ class KTCCA(TCCA):
     """
     Fits a Kernel Tensor CCA model. Tensor CCA maximises higher order correlations
 
-    My own port from https://github.com/rciszek/mdr_tcca
-
-    :param latent_dims:
-    :param c: regularisation between 0 (CCA) and 1 (PLS)
+    Citation
+    --------
+    Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
 
     :Example:
 

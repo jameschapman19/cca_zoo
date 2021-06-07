@@ -6,7 +6,8 @@ from typing import Union, List
 import numpy as np
 
 from .cca_base import _CCA_Base
-from .innerloop import PLSInnerLoop, PMDInnerLoop, ParkhomenkoInnerLoop, ElasticInnerLoop, ADMMInnerLoop
+from .innerloop import PLSInnerLoop, PMDInnerLoop, ParkhomenkoInnerLoop, ElasticInnerLoop, ADMMInnerLoop, \
+    SpanCCAInnerLoop, SWCCAInnerLoop
 
 
 class _Iterative(_CCA_Base):
@@ -15,18 +16,19 @@ class _Iterative(_CCA_Base):
 
     """
 
-    def __init__(self, latent_dims: int = 1, deflation='cca', max_iter: int = 100, generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9, scale=True):
+    def __init__(self, latent_dims: int = 1, scale=True, deflation='cca', max_iter: int = 100,
+                 generalized: bool = False,
+                 initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for _Iterative
 
         :param latent_dims: number of latent dimensions
+        :param scale: scale data by column variances before optimisation
         :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
-        :param scale: scale data by column variances before optimisation
         """
         super().__init__(latent_dims=latent_dims, scale=scale)
         self.max_iter = max_iter
@@ -103,19 +105,23 @@ class PLS(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter: int = 100, generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9, scale=True):
+    def __init__(self, latent_dims: int = 1, scale=True, deflation='cca', max_iter: int = 100,
+                 generalized: bool = False,
+                 initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for PLS
 
         :param latent_dims: number of latent dimensions
+        :param scale: scale data by column variances before optimisation
+        :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized:
-        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol, scale=scale)
+        super().__init__(latent_dims=latent_dims, scale=scale, deflation=deflation, max_iter=max_iter,
+                         generalized=generalized,
+                         initialization=initialization, tol=tol)
 
     def set_loop_params(self):
         self.loop = PLSInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
@@ -126,6 +132,10 @@ class ElasticCCA(_Iterative):
     """
     Fits an elastic CCA by iterative rescaled elastic net regression
 
+    Citation
+    --------
+    Waaijenborg, Sandra, Philip C. Verselewel de Witt Hamer, and Aeilko H. Zwinderman. "Quantifying the association between gene expressions and DNA-markers by penalized canonical correlation analysis." Statistical applications in genetics and molecular biology 7.1 (2008).
+
     :Example:
 
     >>> from cca_zoo.models import ElasticCCA
@@ -135,9 +145,9 @@ class ElasticCCA(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, max_iter: int = 100,
+    def __init__(self, latent_dims: int = 1, scale=True, deflation='cca', max_iter: int = 100,
                  generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9, scale=True,
+                 initialization: str = 'unregularized', tol: float = 1e-9,
                  c: Union[List[float], float] = None,
                  l1_ratio: Union[List[float], float] = None,
                  constrained: bool = False, stochastic=False,
@@ -145,6 +155,13 @@ class ElasticCCA(_Iterative):
         """
         Constructor for ElasticCCA
 
+        :param latent_dims: number of latent dimensions
+        :param scale: scale data by column variances before optimisation
+        :param deflation: the type of deflation.
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         :param c: lasso alpha
         :param l1_ratio: l1 ratio in lasso subproblems
         :param constrained: force unit norm constraint with binary search
@@ -160,8 +177,9 @@ class ElasticCCA(_Iterative):
             self.stochastic = False
             warnings.warn(
                 'Non negative constraints cannot be used with stochastic regressors. Switching to stochastic=False')
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol, scale=scale)
+        super().__init__(latent_dims=latent_dims, scale=scale, deflation=deflation, max_iter=max_iter,
+                         generalized=generalized,
+                         initialization=initialization, tol=tol)
 
     def set_loop_params(self):
         self.loop = ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio,
@@ -173,6 +191,10 @@ class ElasticCCA(_Iterative):
 class CCA_ALS(ElasticCCA):
     """
     Fits a CCA model with CCA deflation by NIPALS algorithm. Implemented by ElasticCCA with 0 regularisation
+
+    Citation
+    --------
+    Golub, Gene H., and Hongyuan Zha. "The canonical correlations of matrix pairs and their numerical computation." Linear algebra for signal processing. Springer, New York, NY, 1995. 27-49.
 
     :Example:
 
@@ -200,6 +222,10 @@ class SCCA(ElasticCCA):
     """
     Fits a sparse CCA model by iterative rescaled lasso regression. Implemented by ElasticCCA with l1 ratio=1
 
+    Citation
+    --------
+    Mai, Qing, and Xin Zhang. "An iterative penalized least squares approach to sparse canonical correlation analysis." Biometrics 75.3 (2019): 734-744.
+
     :Example:
 
     >>> from cca_zoo.models import SCCA
@@ -226,7 +252,9 @@ class PMD(_Iterative):
     """
     Fits a Sparse CCA (Penalized Matrix Decomposition) model.
 
-    Paper:
+    Citation
+    --------
+    Witten, Daniela M., Robert Tibshirani, and Trevor Hastie. "A penalized matrix decomposition, with applications to sparse principal components and canonical correlation analysis." Biostatistics 10.3 (2009): 515-534.
 
     :Example:
 
@@ -260,6 +288,10 @@ class ParkhomenkoCCA(_Iterative):
     """
     Fits a sparse CCA (penalized CCA) model
 
+    Citation
+    --------
+    Parkhomenko, Elena, David Tritchler, and Joseph Beyene. "Sparse canonical correlation analysis with application to genomic data integration." Statistical applications in genetics and molecular biology 8.1 (2009).
+
     :Example:
 
     >>> from cca_zoo.models import ParkhomenkoCCA
@@ -289,6 +321,10 @@ class ParkhomenkoCCA(_Iterative):
 class SCCA_ADMM(_Iterative):
     """
     Fits a sparse CCA model by alternating ADMM
+
+    Citation
+    --------
+    Suo, Xiaotong, et al. "Sparse canonical correlation analysis." arXiv preprint arXiv:1705.10865 (2017).
 
     :Example:
 
@@ -323,3 +359,57 @@ class SCCA_ADMM(_Iterative):
         self.loop = ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,
                                   eta=self.eta, generalized=self.generalized,
                                   initialization=self.initialization, tol=self.tol)
+
+
+class SpanCCA(_Iterative):
+    """
+    Fits a Sparse CCA model using SpanCCA.
+
+    Citation
+    --------
+    Asteris, Megasthenis, et al. "A simple and provable algorithm for sparse diagonal CCA." International Conference on Machine Learning. PMLR, 2016.
+
+    """
+
+    def __init__(self, latent_dims: int = 1, max_iter: int = 100, generalized: bool = False,
+                 initialization: str = 'uniform', tol: float = 1e-9, scale=True, regularisation='l0',
+                 c: List[Union[float, int]] = None, rank=1, positive: Union[List[bool], bool] = None):
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
+                         initialization=initialization, tol=tol, scale=scale)
+        self.c = c
+        self.regularisation = regularisation
+        self.rank = rank
+        self.positive = positive
+
+    def set_loop_params(self):
+        self.loop = SpanCCAInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
+                                     initialization=self.initialization, tol=self.tol,
+                                     regularisation=self.regularisation, rank=self.rank, positive=self.positive)
+
+
+class SWCCA(_Iterative):
+    """
+    A class used to fit SWCCA model
+
+    Citation
+    --------
+    Wenwen, M. I. N., L. I. U. Juan, and Shihua Zhang. "Sparse Weighted Canonical Correlation Analysis." Chinese Journal of Electronics 27.3 (2018): 459-466.
+
+
+    """
+
+    def __init__(self, latent_dims: int = 1, max_iter: int = 500, generalized: bool = False,
+                 initialization: str = 'uniform', tol: float = 1e-9, scale=True, regularisation='l0',
+                 c: List[Union[float, int]] = None, sample_support=None, positive: Union[List[bool], bool] = None):
+        self.c = c
+        self.sample_support = sample_support
+        self.regularisation = regularisation
+        self.positive = positive
+        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
+                         initialization=initialization, tol=tol, scale=scale)
+
+    def set_loop_params(self):
+        self.loop = SWCCAInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
+                                   initialization=self.initialization, tol=self.tol, regularisation=self.regularisation,
+                                   c=self.c,
+                                   sample_support=self.sample_support, positive=self.positive)

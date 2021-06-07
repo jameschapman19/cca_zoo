@@ -14,6 +14,10 @@ class rCCA(_CCA_Base):
     """
     A class used to fit Regularised CCA (canonical ridge) model. Uses PCA to perform the optimization efficiently for high dimensional data.
 
+    Citation
+    --------
+    Vinod, Hrishikesh D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
+
     :Example:
 
     >>> from cca_zoo.models import rCCA
@@ -106,9 +110,8 @@ class CCA(rCCA):
         """
         Constructor for CCA
 
-        :param latent_dims: number of latent dimensions to learn
         """
-        super().__init__(latent_dims=latent_dims, c=[0.0, 0.0], scale=scale)
+        super().__init__(latent_dims=latent_dims, scale=scale, c=[0.0, 0.0])
 
 
 def _pca_data(*views: np.ndarray):

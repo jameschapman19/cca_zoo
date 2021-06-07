@@ -13,6 +13,10 @@ class VariationalCCA(_CCA_Base):
     """
     A class used to fit a variational bayesian CCA
 
+    Citation
+    --------
+    Wang, Chong. "Variational Bayesian approach to canonical correlation analysis." IEEE Transactions on Neural Networks 18.3 (2007): 905-910.
+
     :Example:
 
     >>> from cca_zoo.probabilisticmodels import VariationalCCA
