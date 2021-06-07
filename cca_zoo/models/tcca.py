@@ -33,7 +33,6 @@ class TCCA(_CCA_Base):
         Constructor for TCCA
 
         :param latent_dims:
-        :param c: regularisation between 0 (CCA) and 1 (PLS)
         """
         super().__init__(latent_dims=latent_dims, scale=scale)
         self.c = c

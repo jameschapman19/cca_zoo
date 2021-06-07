@@ -26,7 +26,6 @@ class MCCA(_CCA_Base):
         """
         Constructor for MCCA
 
-        :param latent_dims: number of latent dimensions
         :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
         """
         super().__init__(latent_dims=latent_dims, scale=scale)

@@ -27,7 +27,6 @@ class rCCA(_CCA_Base):
         """
         Constructor for rCCA
 
-        :param latent_dims: number of latent dimensions
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         """
         super().__init__(latent_dims=latent_dims, scale=scale)
