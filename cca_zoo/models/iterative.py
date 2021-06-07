@@ -23,10 +23,10 @@ class _Iterative(_CCA_Base):
         :param latent_dims: number of latent dimensions
         :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized:
-        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights)
-        or 'random'.
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param scale: scale data by column variances before optimisation
         """
         super().__init__(latent_dims=latent_dims, scale=scale)
         self.max_iter = max_iter
@@ -135,19 +135,21 @@ class ElasticCCA(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, c: Union[List[float], float] = None,
-                 l1_ratio: Union[List[float], float] = None,
-                 constrained: bool = False, max_iter: int = 100,
+    def __init__(self, latent_dims: int = 1, max_iter: int = 100,
                  generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False, scale=True,
+                 initialization: str = 'unregularized', tol: float = 1e-9, scale=True,
+                 c: Union[List[float], float] = None,
+                 l1_ratio: Union[List[float], float] = None,
+                 constrained: bool = False, stochastic=False,
                  positive: Union[List[bool], bool] = None):
         """
         Constructor for ElasticCCA
 
-        :param latent_dims: Number of latent dimensions
         :param c: lasso alpha
         :param l1_ratio: l1 ratio in lasso subproblems
-        :param max_iter: Maximum number of iterations
+        :param constrained: force unit norm constraint with binary search
+        :param stochastic: use stochastic regression optimisers for subproblems
+        :param positive: constrain model weights to be positive
         """
         self.c = c
         self.l1_ratio = l1_ratio
@@ -187,11 +189,6 @@ class CCA_ALS(ElasticCCA):
         """
         Constructor for CCA_ALS
 
-        :param latent_dims: number of latent dimensions
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized:
-        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
 
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
@@ -219,12 +216,6 @@ class SCCA(ElasticCCA):
         """
         Constructor for SCCA
 
-        :param latent_dims: number of latent dimensions
-        :param c: l1 regularisation parameter
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized:
-        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol, c=c, l1_ratio=1, constrained=False,
@@ -247,24 +238,22 @@ class PMD(_Iterative):
     """
 
     def __init__(self, latent_dims: int = 1, c: List[float] = None, max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9, scale=True):
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9, scale=True,
+                 positive: Union[List[bool], bool] = None):
         """
         Constructor for PMD
 
-        :param latent_dims: number of latent dimensions
         :param c: l1 regularisation parameter between 1 and sqrt(number of features) for each view
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized:
-        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param positive: constrain model weights to be positive
         """
         self.c = c
+        self.positive = positive
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol, scale=scale)
 
     def set_loop_params(self):
         self.loop = PMDInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
-                                 initialization=self.initialization, tol=self.tol)
+                                 initialization=self.initialization, tol=self.tol, positive=self.positive)
 
 
 class ParkhomenkoCCA(_Iterative):
@@ -285,12 +274,7 @@ class ParkhomenkoCCA(_Iterative):
         """
         Constructor for ParkhomenkoCCA
 
-        :param latent_dims: number of latent dimensions
         :param c: l1 regularisation parameter
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized:
-        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         self.c = c
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
@@ -322,15 +306,11 @@ class SCCA_ADMM(_Iterative):
         """
         Constructor for SCCA_ADMM
 
-        :param latent_dims: number of latent dimensions
+
         :param c: l1 regularisation parameter
         :param mu:
         :param lam:
         :param: eta:
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized:
-        :param initialization: the initialization for the inner loop either 'unregularized' (initializes with PLS scores and weights) or 'random'.
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
         self.c = c
         self.mu = mu

@@ -1,3 +1,4 @@
+import warnings
 from abc import abstractmethod
 from itertools import combinations
 
@@ -29,18 +30,7 @@ class _InnerLoop:
         """
         pass
 
-    def fit(self, *views: np.ndarray):
-        self.views = views
-        if len(self.views) > 2:
-            self.generalized = True
-        self.track_objective = []
-        # Check that the parameters that have been passed are valid for these views given #views and #features
-        self.check_params()
-        # Initialize weights
-        self.weights = [np.random.rand(view.shape[1]) for view in self.views]
-        self.weights = [weights / np.linalg.norm(view @ weights) for (weights, view) in
-                        zip(self.weights, self.views)]
-        # Initialize with random or the unregularized solution
+    def initialize(self):
         if self.initialization == 'random':
             self.scores = np.array([np.random.rand(view.shape[0]) for view in self.views])
         if self.initialization == 'uniform':
@@ -50,8 +40,21 @@ class _InnerLoop:
             unregularized = PLSInnerLoop(initialization='random').fit(*self.views)
             norms = np.linalg.norm(unregularized.scores, axis=1)
             self.scores = unregularized.scores / norms[:, np.newaxis]
+        self.weights = [np.random.rand(view.shape[1]) for view in self.views]
+
+    def fit(self, *views: np.ndarray):
+        self.views = views
+        if len(self.views) > 2:
+            self.generalized = True
+            warnings.warn(
+                'For more than 2 views require generalized=True')
+
+        # Check that the parameters that have been passed are valid for these views given #views and #features
+        self.check_params()
+        self.initialize()
 
         # Iterate until convergence
+        self.track_objective = []
         for _ in range(self.max_iter):
             self.inner_iteration()
             self.track_objective.append(self.objective())
@@ -123,10 +126,11 @@ class PLSInnerLoop(_InnerLoop):
 
 class PMDInnerLoop(PLSInnerLoop):
     def __init__(self, max_iter: int = 100, tol=1e-5, generalized: bool = False,
-                 initialization: str = 'unregularized', c=None):
+                 initialization: str = 'unregularized', c=None, positive=None):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization)
         self.c = c
+        self.positive = positive
 
     def check_params(self):
         self.c = _process_parameter('c', self.c, 1, len(self.views))
@@ -139,6 +143,7 @@ class PMDInnerLoop(PLSInnerLoop):
                              " the square root of number of the respective"
                              f" view. c=[{self.c}], limit of each view: "
                              f"{shape_sqrts}")
+        self.positive = _process_parameter('positive', self.positive, False, len(self.views))
 
     def update_view(self, view_index: int):
         """
@@ -149,7 +154,8 @@ class PMDInnerLoop(PLSInnerLoop):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         self.weights[view_index] = self.views[view_index].T @ targets.sum(axis=0).filled()
-        self.weights[view_index] = _delta_search(self.weights[view_index], self.c[view_index])
+        self.weights[view_index] = _delta_search(self.weights[view_index], self.c[view_index],
+                                                 positive=self.positive[view_index])
         _check_converged_weights(self.weights[view_index], view_index)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
@@ -419,7 +425,7 @@ def _bin_search(current, previous, current_val, previous_val, min_, max_):
     return new, current, min_, max_
 
 
-def _delta_search(w, c, init=0):
+def _delta_search(w, c, positive=False, init=0):
     """
     Searches for threshold delta such that the 1-norm of weights w is less than or equal to c
     :param w: weights found by one power method iteration
@@ -437,7 +443,7 @@ def _delta_search(w, c, init=0):
     i = 0
     while not converged:
         i += 1
-        coef = _soft_threshold(w, current)
+        coef = _soft_threshold(w, current, positive=positive)
         if np.linalg.norm(coef) > 0:
             coef /= np.linalg.norm(coef)
         current_val = c - np.linalg.norm(coef, 1)
@@ -448,7 +454,7 @@ def _delta_search(w, c, init=0):
     return coef
 
 
-def _soft_threshold(x, threshold):
+def _soft_threshold(x, threshold, positive=False):
     """
     if absolute value of x less than threshold replace with zero
     :param x: input
