@@ -11,6 +11,10 @@ class GCCA(_CCA_Base):
     """
     A class used to fit GCCA model. For more than 2 views, GCCA optimizes the sum of correlations with a shared auxiliary vector
 
+    Citation
+    --------
+    Tenenhaus, Arthur, and Michel Tenenhaus. "Regularized generalized canonical correlation analysis." Psychometrika 76.2 (2011): 257.
+
     :Example:
 
     >>> from cca_zoo.models import GCCA

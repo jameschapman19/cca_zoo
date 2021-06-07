@@ -8,10 +8,13 @@ from .cca_base import _CCA_Base
 from ..utils.check_values import _process_parameter
 
 
-# from hyperopt import fmin, tpe, Trials
 class MCCA(_CCA_Base):
     """
     A class used to fit MCCA model. For more than 2 views, MCCA optimizes the sum of pairwise correlations.
+
+    Citation
+    --------
+    Kettenring, Jon R. "Canonical analysis of several sets of variables." Biometrika 58.3 (1971): 433-451.
 
     :Example:
 

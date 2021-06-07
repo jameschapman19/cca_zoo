@@ -12,8 +12,6 @@ import cca_zoo.models.innerloop
 import cca_zoo.utils.plot_utils
 
 
-# from hyperopt import fmin, tpe, Trials
-
 class _CCA_Base(BaseEstimator):
     """
     A class used as the base for methods in the package. Allows methods to inherit fit_transform, predict_corr, and gridsearch_fit

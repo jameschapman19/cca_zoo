@@ -132,6 +132,10 @@ class ElasticCCA(_Iterative):
     """
     Fits an elastic CCA by iterative rescaled elastic net regression
 
+    Citation
+    --------
+    Waaijenborg, Sandra, Philip C. Verselewel de Witt Hamer, and Aeilko H. Zwinderman. "Quantifying the association between gene expressions and DNA-markers by penalized canonical correlation analysis." Statistical applications in genetics and molecular biology 7.1 (2008).
+
     :Example:
 
     >>> from cca_zoo.models import ElasticCCA
@@ -188,6 +192,10 @@ class CCA_ALS(ElasticCCA):
     """
     Fits a CCA model with CCA deflation by NIPALS algorithm. Implemented by ElasticCCA with 0 regularisation
 
+    Citation
+    --------
+    Golub, Gene H., and Hongyuan Zha. "The canonical correlations of matrix pairs and their numerical computation." Linear algebra for signal processing. Springer, New York, NY, 1995. 27-49.
+
     :Example:
 
     >>> from cca_zoo.models import CCA_ALS
@@ -213,6 +221,10 @@ class CCA_ALS(ElasticCCA):
 class SCCA(ElasticCCA):
     """
     Fits a sparse CCA model by iterative rescaled lasso regression. Implemented by ElasticCCA with l1 ratio=1
+
+    Citation
+    --------
+    Mai, Qing, and Xin Zhang. "An iterative penalized least squares approach to sparse canonical correlation analysis." Biometrics 75.3 (2019): 734-744.
 
     :Example:
 
@@ -240,7 +252,9 @@ class PMD(_Iterative):
     """
     Fits a Sparse CCA (Penalized Matrix Decomposition) model.
 
-    Paper:
+    Citation
+    --------
+    Witten, Daniela M., Robert Tibshirani, and Trevor Hastie. "A penalized matrix decomposition, with applications to sparse principal components and canonical correlation analysis." Biostatistics 10.3 (2009): 515-534.
 
     :Example:
 
@@ -274,6 +288,10 @@ class ParkhomenkoCCA(_Iterative):
     """
     Fits a sparse CCA (penalized CCA) model
 
+    Citation
+    --------
+    Parkhomenko, Elena, David Tritchler, and Joseph Beyene. "Sparse canonical correlation analysis with application to genomic data integration." Statistical applications in genetics and molecular biology 8.1 (2009).
+
     :Example:
 
     >>> from cca_zoo.models import ParkhomenkoCCA
@@ -303,6 +321,10 @@ class ParkhomenkoCCA(_Iterative):
 class SCCA_ADMM(_Iterative):
     """
     Fits a sparse CCA model by alternating ADMM
+
+    Citation
+    --------
+    Suo, Xiaotong, et al. "Sparse canonical correlation analysis." arXiv preprint arXiv:1705.10865 (2017).
 
     :Example:
 
@@ -343,6 +365,10 @@ class SpanCCA(_Iterative):
     """
     Fits a Sparse CCA model using SpanCCA.
 
+    Citation
+    --------
+    Asteris, Megasthenis, et al. "A simple and provable algorithm for sparse diagonal CCA." International Conference on Machine Learning. PMLR, 2016.
+
     """
 
     def __init__(self, latent_dims: int = 1, max_iter: int = 100, generalized: bool = False,
@@ -364,6 +390,11 @@ class SpanCCA(_Iterative):
 class SWCCA(_Iterative):
     """
     A class used to fit SWCCA model
+
+    Citation
+    --------
+    Wenwen, M. I. N., L. I. U. Juan, and Shihua Zhang. "Sparse Weighted Canonical Correlation Analysis." Chinese Journal of Electronics 27.3 (2018): 459-466.
+
 
     """
 
