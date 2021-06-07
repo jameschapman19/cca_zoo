@@ -247,7 +247,8 @@ class PMD(_Iterative):
     """
 
     def __init__(self, latent_dims: int = 1, c: List[float] = None, max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9, scale=True):
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9, scale=True,
+                 positive: Union[List[bool], bool] = None):
         """
         Constructor for PMD
 
