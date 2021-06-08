@@ -472,7 +472,7 @@ class SWCCAInnerLoop(PLSInnerLoop):
             axis=0).filled()
         self.weights[view_index] = self.update(self.weights[view_index], self.c[view_index],
                                                positive=self.positive[view_index])
-        self.weights /= np.linalg.norm(self.weights)
+        self.weights[view_index] /= np.linalg.norm(self.weights[view_index])
         if view_index == len(self.views) - 1:
             self.update_sample_weights()
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
