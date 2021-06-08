@@ -32,7 +32,7 @@ class DeepWrapper(_CCA_Base):
     def fit(self, train_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
             val_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]] = None, train_labels=None,
             val_labels=None, val_split: float = 0.2,
-            batch_size: int = 0,
+            batch_size: int = 0, val_batch_size: int = 0,
             patience: int = 0, epochs: int = 1,
             train_correlations: bool = True):
         """
@@ -48,7 +48,6 @@ class DeepWrapper(_CCA_Base):
         :param train_correlations: if True generate training correlations
         :return:
         """
-        self.batch_size = batch_size
         if isinstance(train_dataset[0], np.ndarray):
             train_dataset = cca_zoo.data.CCA_Dataset(*train_dataset, labels=train_labels)
         if val_dataset is None:
@@ -59,10 +58,12 @@ class DeepWrapper(_CCA_Base):
 
         if batch_size == 0:
             train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset))
+        else:
+            train_dataloader = DataLoader(train_dataset, batch_size=batch_size, drop_last=True)
+        if val_batch_size == 0:
             val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
         else:
-            train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size, drop_last=True)
-            val_dataloader = DataLoader(val_dataset, batch_size=self.batch_size, drop_last=True)
+            val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, drop_last=True)
 
         # First we get the model class.
         # These have a forward method which takes data inputs and outputs the variables needed to calculate their
@@ -143,7 +144,7 @@ class DeepWrapper(_CCA_Base):
             total_val_loss += loss.item()
         return total_val_loss / len(val_dataloader)
 
-    def predict_corr(self, test_dataset, train: bool = False):
+    def predict_corr(self, test_dataset, train: bool = False, batch_size: int = 0):
         """
         :param views: EITHER numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training data
@@ -151,7 +152,7 @@ class DeepWrapper(_CCA_Base):
                         OR 2 or more torch.utils.data.Subset separated by commas
         :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
         """
-        transformed_views = self.transform(test_dataset, train=train)
+        transformed_views = self.transform(test_dataset, train=train, batch_size=batch_size)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:x.shape[1], y.shape[1]:]))
@@ -159,11 +160,11 @@ class DeepWrapper(_CCA_Base):
             (len(transformed_views), len(transformed_views), -1))
         return all_corrs
 
-    def transform(self, test_dataset, labels=None, train: bool = False):
+    def transform(self, test_dataset, labels=None, train: bool = False, batch_size: int = 0):
         if type(test_dataset[0]) is np.ndarray:
             test_dataset = cca_zoo.data.CCA_Dataset(*test_dataset, labels=labels)
-        if self.batch_size > 0:
-            test_dataloader = DataLoader(test_dataset, batch_size=self.batch_size)
+        if batch_size > 0:
+            test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
         else:
             test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
         with torch.no_grad():
