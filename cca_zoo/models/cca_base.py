@@ -17,7 +17,8 @@ class _CCA_Base(BaseEstimator):
     A class used as the base for methods in the package. Allows methods to inherit fit_transform, predict_corr, and gridsearch_fit
     when only fit (and transform where it is different to the default) is provided.
 
-    :param latent_dims: number of latent dimensions to learn
+    :param latent_dims: number of latent dimensions to fit
+    :param scale: normalize variance in each column before fitting
     """
 
     @abstractmethod

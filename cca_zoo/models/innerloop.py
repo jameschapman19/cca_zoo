@@ -480,6 +480,7 @@ class SWCCAInnerLoop(PLSInnerLoop):
     def update_sample_weights(self):
         w = self.scores.prod(axis=0)
         self.sample_weights = _support_soft_thresh(w, self.sample_support)
+        self.sample_weights /= np.linalg.norm(self.sample_weights)
 
     def early_stop(self) -> bool:
         return False
