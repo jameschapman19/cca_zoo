@@ -59,7 +59,7 @@ class TestDeepModels(TestCase):
         dmcca_model = DeepWrapper(dmcca_model, device=device)
         dmcca_model.fit((self.X, self.Y), epochs=3)
         # DCCA_NOI
-        dcca_noi_model = DCCA_NOI(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
+        dcca_noi_model = DCCA_NOI(latent_dims, self.X.shape[0], encoders=[encoder_1, encoder_2])
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dcca_noi_model = DeepWrapper(dcca_noi_model, device=device)
         dcca_noi_model.fit((self.X, self.Y), epochs=30)
@@ -211,7 +211,7 @@ class TestDeepModels(TestCase):
         dmcca_model = DeepWrapper(dmcca_model, device=device)
         dmcca_model.fit((self.X, self.Y))
         # DCCA_NOI
-        dcca_noi_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
+        dcca_noi_model = DCCA_NOI(latent_dims, self.X.shape[0], encoders=[encoder_1, encoder_2])
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dcca_noi_model = DeepWrapper(dcca_noi_model, device=device)
         dcca_noi_model.fit((self.X, self.Y))

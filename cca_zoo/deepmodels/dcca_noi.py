@@ -18,13 +18,15 @@ class DCCA_NOI(DCCA, torch.nn.Module):
     >>> model = DCCA_NOI()
     """
 
-    def __init__(self, latent_dims: int, objective=objectives.MCCA, encoders: List[BaseEncoder] = [Encoder, Encoder],
+    def __init__(self, latent_dims: int, N: int, objective=objectives.MCCA,
+                 encoders: List[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-9, shared_target: bool = False,
                  schedulers: List = None, optimizers: List[torch.optim.Optimizer] = None):
         """
         Constructor class for DCCA
 
         :param latent_dims: # latent dimensions
+        :param N: # samples used to estimate covariance
         :param objective: # CCA objective: normal tracenorm CCA by default
         :param encoders: list of encoder networks
         :param learning_rate: learning rate if no optimizers passed
@@ -38,6 +40,7 @@ class DCCA_NOI(DCCA, torch.nn.Module):
         super().__init__(latent_dims=latent_dims, objective=objective, encoders=encoders, learning_rate=learning_rate,
                          r=r, eps=eps, schedulers=schedulers, optimizers=optimizers)
         self.latent_dims = latent_dims
+        self.N = N
         self.encoders = torch.nn.ModuleList(encoders)
         self.objective = objective(latent_dims, r=r)
         if optimizers is None:
@@ -86,7 +89,7 @@ class DCCA_NOI(DCCA, torch.nn.Module):
 
     def update_covariances(self, *args):
         b = args[0].shape[0]
-        batch_covs = [z_i.T @ z_i for i, z_i in enumerate(args)]
+        batch_covs = [b / self.N * z_i.T @ z_i for i, z_i in enumerate(args)]
         if self.covs is not None:
             self.covs = [(self.rho * self.covs[i]).detach() + (1 - self.rho) * batch_cov for i, batch_cov
                          in

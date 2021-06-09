@@ -39,6 +39,55 @@ class CCA_Dataset(Dataset):
         return tuple(views), label
 
 
+class Split_MNIST_Dataset(Dataset):
+    """
+    Class to generate paired noisy mnist data
+    """
+
+    def __init__(self, mnist_type: str = 'MNIST', train: bool = True, flatten: bool = True):
+        """
+
+        :param mnist_type:
+        :param train:
+        :param flatten:
+        """
+        if mnist_type == 'MNIST':
+            self.dataset = datasets.MNIST('../../data', train=train, download=True)
+        elif mnist_type == 'FashionMNIST':
+            self.dataset = datasets.FashionMNIST('../../data', train=train, download=True)
+        elif mnist_type == 'KMNIST':
+            self.dataset = datasets.KMNIST('../../data', train=train, download=True)
+
+        self.data = self.dataset.data
+        self.base_transform = transforms.ToTensor()
+        self.targets = self.dataset.targets
+        self.flatten = flatten
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        x = self.data[idx].flatten()
+        x_a = x[:392]
+        x_b = x[392:]
+        label = self.targets[idx]
+        return (x_a, x_b), label
+
+    def to_numpy(self, indices=None):
+        if indices is None:
+            indices = np.arange(self.__len__())
+        view_1 = np.zeros((len(indices), 784))
+        view_2 = np.zeros((len(indices), 784))
+        labels = np.zeros(len(indices)).astype(int)
+        rotations = np.zeros(len(indices))
+        for i, n in enumerate(indices):
+            sample = self[n]
+            view_1[i] = sample[0][0].numpy()
+            view_2[i] = sample[0][1].numpy()
+            labels[i] = sample[1].numpy().astype(int)
+        return view_1, view_2, labels
+
+
 class Noisy_MNIST_Dataset(Dataset):
     """
     Class to generate paired noisy mnist data
