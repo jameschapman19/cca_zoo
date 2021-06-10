@@ -17,7 +17,6 @@ class MCCA(_CCA_Base):
     Kettenring, Jon R. "Canonical analysis of several sets of variables." Biometrika 58.3 (1971): 433-451.
 
     :Example:
-
     >>> from cca_zoo.models import MCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)

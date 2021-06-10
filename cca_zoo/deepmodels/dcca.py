@@ -47,7 +47,6 @@ class DCCA(_DCCA_base, torch.nn.Module):
         self.schedulers = []
         if schedulers:
             self.schedulers.extend(schedulers)
-        self.covs = None
         self.eps = eps
 
     def update_weights(self, *args):
