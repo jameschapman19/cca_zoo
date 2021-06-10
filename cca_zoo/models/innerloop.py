@@ -133,6 +133,9 @@ class PMDInnerLoop(PLSInnerLoop):
         self.positive = positive
 
     def check_params(self):
+        if self.c is None:
+            warnings.warn(
+                'c parameter not set. Setting to c=1 i.e. maximum regularisation of l1 norm')
         self.c = _process_parameter('c', self.c, 1, len(self.views))
         if any(c < 1 for c in self.c):
             raise ValueError("All regulariation parameters should be at least "
@@ -332,8 +335,8 @@ class ADMMInnerLoop(ElasticInnerLoop):
 
         _check_Parikh2014(self.mu, self.lam, self.views)
 
-        self.eta = [np.ones((view.shape[0], 1)) * eta for view, eta in zip(self.views, self.eta)]
-        self.z = [np.zeros((view.shape[0], 1)) for view in self.views]
+        self.eta = [np.ones((view.shape[0])) * eta for view, eta in zip(self.views, self.eta)]
+        self.z = [np.zeros((view.shape[0])) for view in self.views]
         self.l1_ratio = [1] * len(self.views)
 
     def update_view(self, view_index: int):
@@ -362,12 +365,10 @@ class ADMMInnerLoop(ElasticInnerLoop):
                 self.views[view_index] @ self.weights[view_index] + self.eta[view_index])
             self.eta[view_index] = self.eta[view_index] + self.views[view_index] @ self.weights[view_index] - self.z[
                 view_index]
-            if np.linalg.norm(self.eta[view_index]) < 0.00000001:
-                print('here')
             norm_eta.append(np.linalg.norm(self.eta[view_index]))
             norm_proj.append(np.linalg.norm(self.views[view_index] @ self.weights[view_index]))
             norm_weights.append(np.linalg.norm(self.weights[view_index], 1))
-        _check_converged_weights(self.weights, view_index)
+        _check_converged_weights(self.weights[view_index], view_index)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
     def prox_mu_f(self, x, mu, c, tau):
