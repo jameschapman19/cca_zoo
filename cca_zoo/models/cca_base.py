@@ -158,20 +158,21 @@ class _CCA_Base(BaseEstimator):
             out = Parallel(n_jobs=jobs)(delayed(cv.score)(*views, **param_set, K=K) for param_set in param_sets)
         else:
             out = [cv.score(*views, **param_set) for param_set in param_sets]
-        cv_scores, cv_stds = zip(*out)
-        max_index = cv_scores.index(max(cv_scores))
+        cv_scores = np.array(out)
+        max_index = np.argmax(cv_scores.mean(axis=1))
 
         if verbose:
-            print('Best score : ', max(cv_scores), flush=True)
-            print('Standard deviation : ', cv_stds[max_index], flush=True)
+            print('Best score : ', cv_scores[max_index].mean(), flush=True)
+            print('Standard deviation : ', cv_scores[max_index].std(), flush=True)
             print(param_sets[max_index], flush=True)
 
-        self.cv_results_table = pd.DataFrame(zip(param_sets, cv_scores, cv_stds), columns=['params', 'scores', 'std'])
+        self.cv_results_table = pd.DataFrame(zip(param_sets), columns=['params'])
+        self.cv_results_table[[f'fold_{f}' for f in range(folds)]] = cv_scores
         self.cv_results_table = self.cv_results_table.join(pd.json_normalize(self.cv_results_table.params))
         self.cv_results_table.drop(columns=['params'], inplace=True)
 
         if plot:
-            cca_zoo.utils.plot_utils.cv_plot(cv_scores, param_sets, self.__class__.__name__)
+            cca_zoo.utils.plot_utils.cv_plot(cv_scores.mean(axis=1), param_sets, self.__class__.__name__)
 
         self.set_params(**param_sets[max_index])
         self.fit(*views)
@@ -234,12 +235,10 @@ class _CrossValidate:
                     *train_sets)
                 scores[fold] = self.model.predict_corr(
                     *val_sets).sum(axis=-1)[np.triu_indices(len(views), 1)].sum()
-        metric = scores.sum(axis=0) / self.folds
+        scores[np.isnan(scores)] = 0
         std = scores.std(axis=0)
-        if np.isnan(metric):
-            metric = 0
         if self.verbose:
             print(cvparams)
-            print(metric)
+            print(scores.sum(axis=0) / self.folds)
             print(std)
-        return metric, std
+        return scores
