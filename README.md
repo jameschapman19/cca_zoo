@@ -29,15 +29,16 @@ If this repository was helpful to you please do give a star.
 In case this work is used as part of research I attach a DOI bibtex entry:
 
 ```bibtex
-@software{james_chapman_2021_4586389,
-  author       = {James Chapman},
-  title        = {jameschapman19/cca\_zoo: v1.1.22},
-  month        = mar,
+@software{james_chapman_2021_4925892,
+  author       = {James Chapman and
+                  Hao-Ting Wang},
+  title        = {jameschapman19/cca\_zoo:},
+  month        = jun,
   year         = 2021,
   publisher    = {Zenodo},
-  version      = {v1.1.22},
-  doi          = {10.5281/zenodo.4586389},
-  url          = {https://doi.org/10.5281/zenodo.4586389}
+  version      = {v1.6.1},
+  doi          = {10.5281/zenodo.4925892},
+  url          = {https://doi.org/10.5281/zenodo.4925892}
 }
 ```
 
