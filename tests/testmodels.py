@@ -2,6 +2,7 @@ import itertools
 from unittest import TestCase
 
 import numpy as np
+import scipy.sparse as sp
 
 from cca_zoo.models import CCA, PLS, CCA_ALS, SCCA, PMD, ElasticCCA, rCCA, KCCA, KTCCA, MCCA, GCCA, TCCA, SCCA_ADMM
 
@@ -14,6 +15,8 @@ class TestModels(TestCase):
         self.X = np.random.rand(500, 20)
         self.Y = np.random.rand(500, 21)
         self.Z = np.random.rand(500, 22)
+        self.X_sp = sp.random(1000, 20, density=0.1)
+        self.Y_sp = sp.random(1000, 21, density=0.1)
 
     def tearDown(self):
         pass
@@ -36,6 +39,30 @@ class TestModels(TestCase):
         self.assertTrue(wrap_gcca.score_list[0].shape == (self.X.shape[0], latent_dims))
         self.assertTrue(wrap_mcca.score_list[0].shape == (self.X.shape[0], latent_dims))
         self.assertTrue(wrap_kcca.score_list[0].shape == (self.X.shape[0], latent_dims))
+        # Check the correlations from each unregularized method are the same
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_iter, decimal=2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_mcca, decimal=2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_gcca, decimal=2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_kcca, decimal=2))
+
+    def test_sparse_input(self):
+        # Tests unregularized CCA methods. The idea is that all of these should give the same result.
+        latent_dims = 1
+        wrap_cca = CCA(latent_dims=latent_dims).fit(self.X_sp, self.Y_sp)
+        wrap_iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9).fit(self.X_sp, self.Y_sp)
+        wrap_gcca = GCCA(latent_dims=latent_dims).fit(self.X_sp, self.Y_sp)
+        wrap_mcca = MCCA(latent_dims=latent_dims).fit(self.X_sp, self.Y_sp)
+        wrap_kcca = KCCA(latent_dims=latent_dims).fit(self.X_sp, self.Y_sp)
+        corr_cca = wrap_cca.train_correlations[0, 1]
+        corr_iter = wrap_iter.train_correlations[0, 1]
+        corr_gcca = wrap_gcca.train_correlations[0, 1]
+        corr_mcca = wrap_mcca.train_correlations[0, 1]
+        corr_kcca = wrap_kcca.train_correlations[0, 1]
+        # Check the score outputs are the right shape
+        self.assertTrue(wrap_iter.score_list[0].shape == (self.X_sp.shape[0], latent_dims))
+        self.assertTrue(wrap_gcca.score_list[0].shape == (self.X_sp.shape[0], latent_dims))
+        self.assertTrue(wrap_mcca.score_list[0].shape == (self.X_sp.shape[0], latent_dims))
+        self.assertTrue(wrap_kcca.score_list[0].shape == (self.X_sp.shape[0], latent_dims))
         # Check the correlations from each unregularized method are the same
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_iter, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_mcca, decimal=2))
@@ -90,11 +117,11 @@ class TestModels(TestCase):
 
     def test_non_negative_methods(self):
         latent_dims = 1
+        wrap_nnelasticca = ElasticCCA(latent_dims=latent_dims, tol=1e-9, positive=True, l1_ratio=[0.5, 0.5],
+                                      c=[1e-4, 1e-5]).fit(self.X, self.Y)
         wrap_als = CCA_ALS(latent_dims=latent_dims, tol=1e-9).fit(self.X, self.Y)
         wrap_nnals = CCA_ALS(latent_dims=latent_dims, tol=1e-9, positive=True).fit(self.X, self.Y)
         wrap_nnscca = SCCA(latent_dims=latent_dims, tol=1e-9, positive=True, c=[1e-4, 1e-5]).fit(self.X, self.Y)
-        wrap_nnelasticca = ElasticCCA(latent_dims=latent_dims, tol=1e-9, positive=True, l1_ratio=[0.5, 0.5],
-                                      c=[1e-4, 1e-5]).fit(self.X, self.Y)
 
     def test_sparse_methods(self):
         # Test sparsity inducing methods. At the moment just checks running.
@@ -150,9 +177,9 @@ class TestModels(TestCase):
         c1 = [0.1, 0.2]
         c2 = [0.1, 0.2]
         param_candidates = {'c': list(itertools.product(c1, c2))}
-        wrap_unweighted_gcca = GCCA(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y, folds=2,
+        wrap_unweighted_gcca = GCCA(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y, folds=5,
                                                                             param_candidates=param_candidates,
-                                                                            plot=True)
+                                                                            plot=True, jobs=3)
         wrap_deweighted_gcca = GCCA(latent_dims=latent_dims, view_weights=[0.5, 0.5]).gridsearch_fit(
             self.X, self.Y, folds=2, param_candidates=param_candidates)
         wrap_mcca = MCCA(latent_dims=latent_dims).gridsearch_fit(

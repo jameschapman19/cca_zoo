@@ -9,7 +9,7 @@ from scipy.linalg import block_diag
 def generate_covariance_data(n: int, view_features: List[int], latent_dims: int = 1,
                              view_sparsity: List[Union[int, float]] = None,
                              correlation: Union[List[float], float] = 1,
-                             structure: List[str] = None, sigma: List[float] = None, decay: float = 0.5):
+                             structure: List[str] = None, sigma: List[float] = None, decay: float = 0.5, positive=None):
     """
     Function to generate CCA dataset with defined population correlation
 
@@ -32,6 +32,8 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
         structure = ['identity'] * len(view_features)
     if view_sparsity is None:
         view_sparsity = [1] * len(view_features)
+    if positive is None:
+        positive = [False] * len(view_features)
     completed = False
     while not completed:
         try:
@@ -41,7 +43,8 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                 correlation = correlation * decay ** p
             covs = []
             true_features = []
-            for view_p, sparsity, view_structure in zip(view_features, view_sparsity, structure):
+            for view_p, sparsity, view_structure, view_positive in zip(view_features, view_sparsity, structure,
+                                                                       positive):
                 # Covariance Bit
                 if view_structure == 'identity':
                     cov_ = np.eye(view_p)
@@ -68,6 +71,8 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                             np.sum(mask, axis=0) == 0) > 0:
                         np.random.shuffle(mask)
                     weights = weights * mask
+                    if view_positive:
+                        weights[weights < 0] = 0
                 weights = _decorrelate_dims(weights, cov_)
                 weights /= np.sqrt(np.diag((weights.T @ cov_ @ weights)))
                 true_features.append(weights)

@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import BaseEstimator
+from sklearn.utils.validation import check_array
 
 import cca_zoo.data
 import cca_zoo.models.innerloop
@@ -22,7 +23,7 @@ class _CCA_Base(BaseEstimator):
     """
 
     @abstractmethod
-    def __init__(self, latent_dims: int = 1, scale=True):
+    def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True):
         """
         Constructor for _CCA_Base
 
@@ -33,6 +34,8 @@ class _CCA_Base(BaseEstimator):
         self.train_correlations = None
         self.latent_dims = latent_dims
         self.scale = scale
+        self.centre = centre
+        self.copy_data = copy_data
 
     @abstractmethod
     def fit(self, *views: np.ndarray):
@@ -56,8 +59,9 @@ class _CCA_Base(BaseEstimator):
         if view_indices is None:
             view_indices = np.arange(len(views))
         for i, (view, view_index) in enumerate(zip(views, view_indices)):
-            view = view.copy(order='K')
-            view -= self.view_means[view_index]
+            view = check_array(view, copy=self.copy_data, accept_sparse=self.accept_sparse)
+            if self.centre:
+                view -= self.view_means[view_index]
             if self.scale:
                 view /= self.view_stds[view_index]
             transformed_view = view @ self.weights_list[view_index]
@@ -101,14 +105,17 @@ class _CCA_Base(BaseEstimator):
         :return: train_views: the demeaned numpy arrays to be used to fit the model
         :rtype: np.ndarray
         """
+
         train_views = []
         self.view_means = []
         self.view_stds = []
+        self.accept_sparse = ['csr', 'csc', 'coo']
         for view in views:
-            view = view.copy(order='K')
-            view_mean = view.mean(axis=0)
-            self.view_means.append(view_mean)
-            view -= self.view_means[-1]
+            view = check_array(view, copy=self.copy_data, accept_sparse=self.accept_sparse)
+            if self.centre:
+                view_mean = view.mean(axis=0)
+                self.view_means.append(view_mean)
+                view -= self.view_means[-1]
             if self.scale:
                 view_std = view.std(axis=0, ddof=1)
                 view_std[view_std == 0.0] = 1.0
