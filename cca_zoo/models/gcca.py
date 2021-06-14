@@ -2,6 +2,7 @@ from typing import Tuple, List
 
 import numpy as np
 from scipy.linalg import eigh
+from sklearn.utils.validation import check_array
 
 from .cca_base import _CCA_Base
 from ..utils.check_values import _process_parameter
@@ -24,7 +25,7 @@ class GCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, c: List[float] = None,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre: bool = True, c: List[float] = None,
                  view_weights: Tuple[float, ...] = None):
         """
         Constructor for GCCA
@@ -32,7 +33,7 @@ class GCCA(_CCA_Base):
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         :param view_weights: list of weights of each view
         """
-        super().__init__(latent_dims=latent_dims, scale=scale)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre)
         self.c = c
         self.view_weights = view_weights
 
@@ -84,7 +85,7 @@ class GCCA(_CCA_Base):
         if view_indices is None:
             view_indices = np.arange(len(views))
         for i, (view, view_index) in enumerate(zip(views, view_indices)):
-            view = view.copy(order='K')
+            view = check_array(view, copy=self.copy_data, accept_sparse=self.accept_sparse)
             transformed_view = np.array((view - self.view_means[view_index]) @ self.weights_list[view_index])
             # TODO maybe revisit this. The original idea was to only generate correlations for observed samples but it's perhaps simpler to do this in post processing
             # if K is not None:
