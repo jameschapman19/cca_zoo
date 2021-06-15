@@ -16,7 +16,8 @@ class _Iterative(_CCA_Base):
 
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, deflation='cca', max_iter: int = 100,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, deflation='cca',
+                 max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'unregularized', tol: float = 1e-9):
         """
@@ -30,7 +31,7 @@ class _Iterative(_CCA_Base):
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
-        super().__init__(latent_dims=latent_dims, scale=scale)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data)
         self.max_iter = max_iter
         self.generalized = generalized
         self.initialization = initialization
@@ -105,7 +106,8 @@ class PLS(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, deflation='cca', max_iter: int = 100,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, deflation='cca',
+                 max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'unregularized', tol: float = 1e-9):
         """
@@ -119,7 +121,7 @@ class PLS(_Iterative):
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, deflation=deflation, max_iter=max_iter,
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, deflation=deflation, max_iter=max_iter,
                          generalized=generalized,
                          initialization=initialization, tol=tol)
 
@@ -145,7 +147,8 @@ class ElasticCCA(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, deflation='cca', max_iter: int = 100,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, deflation='cca',
+                 max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'unregularized', tol: float = 1e-9,
                  c: Union[List[float], float] = None,
@@ -177,7 +180,8 @@ class ElasticCCA(_Iterative):
             self.stochastic = False
             warnings.warn(
                 'Non negative constraints cannot be used with stochastic regressors. Switching to stochastic=False')
-        super().__init__(latent_dims=latent_dims, scale=scale, deflation=deflation, max_iter=max_iter,
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, deflation=deflation,
+                         max_iter=max_iter,
                          generalized=generalized,
                          initialization=initialization, tol=tol)
 
@@ -205,7 +209,8 @@ class CCA_ALS(ElasticCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, max_iter: int = 100, generalized: bool = False,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, max_iter: int = 100,
+                 generalized: bool = False,
                  initialization: str = 'random', tol: float = 1e-9, stochastic=True,
                  positive: Union[List[bool], bool] = None):
         """
@@ -235,7 +240,8 @@ class SCCA(ElasticCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, c: Union[List[float], float] = None,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True,
+                 c: Union[List[float], float] = None,
                  max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False,
@@ -244,9 +250,10 @@ class SCCA(ElasticCCA):
         Constructor for SCCA
 
         """
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
+                         generalized=generalized,
                          initialization=initialization, tol=tol, c=c, l1_ratio=1, constrained=False,
-                         stochastic=stochastic, scale=scale, positive=positive)
+                         stochastic=stochastic, positive=positive)
 
 
 class PMD(_Iterative):
@@ -266,7 +273,8 @@ class PMD(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, c: Union[List[float], float] = None,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True,
+                 c: Union[List[float], float] = None,
                  max_iter: int = 100,
                  generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9,
                  positive: Union[List[bool], bool] = None):
@@ -278,8 +286,9 @@ class PMD(_Iterative):
         """
         self.c = c
         self.positive = positive
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol, scale=scale)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
+                         generalized=generalized,
+                         initialization=initialization, tol=tol)
 
     def set_loop_params(self):
         self.loop = PMDInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
@@ -303,7 +312,8 @@ class ParkhomenkoCCA(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, c: Union[List[float], float] = None,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True,
+                 c: Union[List[float], float] = None,
                  max_iter: int = 100,
                  generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
         """
@@ -312,8 +322,9 @@ class ParkhomenkoCCA(_Iterative):
         :param c: l1 regularisation parameter
         """
         self.c = c
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol, scale=scale)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
+                         generalized=generalized,
+                         initialization=initialization, tol=tol)
 
     def set_loop_params(self):
         self.loop = ParkhomenkoInnerLoop(max_iter=self.max_iter, c=self.c,
@@ -338,7 +349,8 @@ class SCCA_ADMM(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, c: Union[List[float], float] = None,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True,
+                 c: Union[List[float], float] = None,
                  mu: Union[List[float], float] = None,
                  lam: Union[List[float], float] = None,
                  eta: Union[List[float], float] = None,
@@ -357,8 +369,9 @@ class SCCA_ADMM(_Iterative):
         self.mu = mu
         self.lam = lam
         self.eta = eta
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol, scale=scale)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
+                         generalized=generalized,
+                         initialization=initialization, tol=tol)
 
     def set_loop_params(self):
         self.loop = ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,
@@ -376,12 +389,14 @@ class SpanCCA(_Iterative):
 
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, max_iter: int = 100, generalized: bool = False,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, max_iter: int = 100,
+                 generalized: bool = False,
                  initialization: str = 'uniform', tol: float = 1e-9, regularisation='l0',
                  c: Union[List[Union[float, int]], Union[float, int]] = None, rank=1,
                  positive: Union[List[bool], bool] = None):
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol, scale=scale)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
+                         generalized=generalized,
+                         initialization=initialization, tol=tol)
         self.c = c
         self.regularisation = regularisation
         self.rank = rank
@@ -404,7 +419,8 @@ class SWCCA(_Iterative):
 
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, max_iter: int = 500, generalized: bool = False,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, max_iter: int = 500,
+                 generalized: bool = False,
                  initialization: str = 'uniform', tol: float = 1e-9, regularisation='l0',
                  c: Union[List[Union[float, int]], Union[float, int]] = None, sample_support=None,
                  positive: Union[List[bool], bool] = None):
@@ -412,8 +428,9 @@ class SWCCA(_Iterative):
         self.sample_support = sample_support
         self.regularisation = regularisation
         self.positive = positive
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol, scale=scale)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
+                         generalized=generalized,
+                         initialization=initialization, tol=tol)
 
     def set_loop_params(self):
         self.loop = SWCCAInnerLoop(max_iter=self.max_iter, generalized=self.generalized,

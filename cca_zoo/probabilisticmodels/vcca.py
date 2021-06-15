@@ -63,3 +63,15 @@ class VariationalCCA(_CCA_Base):
             # sample from multivariate normal and observe data
             [numpyro.sample("obs" + str(i), dist.MultivariateNormal((z @ W_) + mu_, scale_tril=psi_), obs=X_) for
              i, (X_, psi_, mu_, W_) in enumerate(zip(views, psi, mu, self.weights_list))]
+
+
+def main():
+    np.random.seed(42)
+    X = np.random.rand(100, 10)
+    Y = np.random.rand(100, 10)
+    vcca = VariationalCCA(latent_dims=1).fit(X, Y)
+    print()
+
+
+if __name__ == "__main__":
+    main()

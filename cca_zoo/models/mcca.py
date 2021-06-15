@@ -25,13 +25,13 @@ class MCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre: bool = True, c: List[float] = None):
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, c: List[float] = None):
         """
         Constructor for MCCA
 
         :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data)
         self.c = c
 
     def check_params(self):
@@ -87,7 +87,7 @@ class KCCA(MCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre: bool = True, c: List[float] = None,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, c: List[float] = None,
                  kernel: List[Union[float, callable]] = None,
                  gamma: List[float] = None,
                  degree: List[float] = None, coef0: List[float] = None,
@@ -100,7 +100,7 @@ class KCCA(MCCA):
         :param kernel_params: list of additional parameters (keyword arguments) for kernel function passed as callable object.
         :param eps: epsilon value to ensure stability
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data)
         self.kernel_params = kernel_params
         self.gamma = gamma
         self.coef0 = coef0
