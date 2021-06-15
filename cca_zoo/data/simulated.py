@@ -5,11 +5,14 @@ import numpy as np
 from scipy import linalg
 from scipy.linalg import block_diag
 
+from ..utils.check_values import _process_parameter
+
 
 def generate_covariance_data(n: int, view_features: List[int], latent_dims: int = 1,
                              view_sparsity: List[Union[int, float]] = None,
                              correlation: Union[List[float], float] = 1,
-                             structure: List[str] = None, sigma: List[float] = None, decay: float = 0.5, positive=None):
+                             structure: Union[str, List[str]] = None, sigma: List[float] = None, decay: float = 0.5,
+                             positive=None):
     """
     Function to generate CCA dataset with defined population correlation
 
@@ -28,12 +31,10 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
     >>> from cca_zoo.data import generate_covariance_data
     >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=generate_covariance_data(200,[10,10],latent_dims=1,correlation=1)
     """
-    if structure is None:
-        structure = ['identity'] * len(view_features)
-    if view_sparsity is None:
-        view_sparsity = [1] * len(view_features)
-    if positive is None:
-        positive = [False] * len(view_features)
+    structure = _process_parameter('structure', structure, 'identity', len(view_features))
+    view_sparsity = _process_parameter('view_sparsity', view_sparsity, 1, len(view_features))
+    positive = _process_parameter('positive', positive, False, len(view_features))
+    sigma = _process_parameter('sigma', sigma, 0.5, len(view_features))
     completed = False
     while not completed:
         try:
@@ -43,22 +44,22 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                 correlation = correlation * decay ** p
             covs = []
             true_features = []
-            for view_p, sparsity, view_structure, view_positive in zip(view_features, view_sparsity, structure,
-                                                                       positive):
+            for view_p, sparsity, view_structure, view_positive, view_sigma in zip(view_features, view_sparsity,
+                                                                                   structure,
+                                                                                   positive, sigma):
                 # Covariance Bit
                 if view_structure == 'identity':
                     cov_ = np.eye(view_p)
                 elif view_structure == 'gaussian':
-                    cov_ = _generate_gaussian_cov(view_p, sigma)
+                    cov_ = _generate_gaussian_cov(view_p, view_sigma)
                 elif view_structure == 'toeplitz':
-                    cov_ = _generate_toeplitz_cov(view_p, sigma)
+                    cov_ = _generate_toeplitz_cov(view_p, view_sigma)
                 elif view_structure == 'random':
                     cov_ = _generate_random_cov(view_p)
-                elif view_structure == 'simple':
-                    cov_ = generate_simple_data(n, view_features, view_sparsity)
                 else:
                     completed = True
                     print("invalid structure")
+                    break
                 weights = np.random.normal(size=(view_p, latent_dims))
                 if sparsity <= 1:
                     sparsity = np.ceil(sparsity * view_p).astype('int')
@@ -179,5 +180,5 @@ def _generate_toeplitz_cov(p, sigma):
 def _generate_random_cov(p):
     cov_ = np.random.normal(size=(p, p))
     U, S, V = np.linalg.svd(cov_.T @ cov_)
-    cov = U @ (1.0 + np.diag(np.random.normal(size=(p)))) @ V
+    cov = U @ (2.0 + np.diag(np.random.normal(size=(p)))) @ V
     return cov

@@ -4,7 +4,8 @@ from unittest import TestCase
 import numpy as np
 import scipy.sparse as sp
 
-from cca_zoo.models import CCA, PLS, CCA_ALS, SCCA, PMD, ElasticCCA, rCCA, KCCA, KTCCA, MCCA, GCCA, TCCA, SCCA_ADMM
+from cca_zoo.models import CCA, PLS, CCA_ALS, SCCA, PMD, ElasticCCA, rCCA, KCCA, KTCCA, MCCA, GCCA, TCCA, SCCA_ADMM, \
+    SpanCCA, SWCCA
 
 np.random.seed(123)
 
@@ -185,9 +186,12 @@ class TestModels(TestCase):
         wrap_mcca = MCCA(latent_dims=latent_dims).gridsearch_fit(
             self.X, self.Y, folds=2, param_candidates=param_candidates)
 
-    def test_methods(self):
-        pass
-
-    # TODO
-    def test_gridsearchfit(self):
-        pass
+    def test_l0(self):
+        wrap_span_cca = SpanCCA(latent_dims=1, regularisation='l0', c=[2, 2]).fit(self.X, self.Y)
+        wrap_swcca = SWCCA(latent_dims=1, c=[2, 2], sample_support=5).fit(self.X, self.Y)
+        self.assertEqual((np.abs(wrap_span_cca.weights_list[0]) > 1e-5).sum(), 2)
+        self.assertEqual((np.abs(wrap_span_cca.weights_list[1]) > 1e-5).sum(), 2)
+        self.assertEqual((np.abs(wrap_swcca.weights_list[0]) > 1e-5).sum(), 2)
+        self.assertEqual((np.abs(wrap_swcca.weights_list[1]) > 1e-5).sum(), 2)
+        self.assertEqual((np.abs(wrap_swcca.loop.sample_weights) > 1e-5).sum(), 5)
+        print()
