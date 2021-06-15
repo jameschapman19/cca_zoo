@@ -19,8 +19,12 @@ class TestData(TestCase):
         pass
 
     def test_data_gen(self):
-        (x, y, z), true_feats = generate_covariance_data(1000, [10, 11, 12], 1, [0.5, 0.5, 0.5], correlation=0.5)
+        (x, y, z), true_feats = generate_covariance_data(1000, [10, 11, 12], 1, [0.5, 0.5, 0.5], correlation=0.5,
+                                                         structure=['random', 'identity', 'identity'])
         cca = CCA().fit(x[:500], y[:500])
         cca_pred = cca.predict_corr(x[500:], y[500:])
         mcca = MCCA().fit(x[:500], y[:500], z[:500])
         mcca_pred = mcca.predict_corr(x[500:], y[500:], z[500:])
+
+        (x, y), true_feats = generate_covariance_data(1000, [10, 11], 1, [0.5, 0.5], correlation=0.5,
+                                                      structure=['gaussian', 'toeplitz'])
