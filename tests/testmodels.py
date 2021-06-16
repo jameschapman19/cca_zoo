@@ -145,8 +145,8 @@ class TestModels(TestCase):
         corr_pmd = wrap_pmd.train_correlations[0, 1]
         corr_scca = wrap_scca.train_correlations[0, 1]
         corr_elastic = wrap_elastic.train_correlations[0, 1]
-        wrap_scca_admm = SCCA_ADMM(c=[1e-3, 1e-3]).fit(self.X, self.Y)
-        wrap_scca = SCCA(c=[1e-3, 1e-3]).fit(self.X, self.Y)
+        wrap_scca_admm = SCCA_ADMM(c=[1e-4, 1e-4]).fit(self.X, self.Y)
+        wrap_scca = SCCA(c=[1e-4, 1e-4]).fit(self.X, self.Y)
 
     def test_weighted_GCCA_methods(self):
         # Test the 'fancy' additions to GCCA i.e. the view weighting and observation weighting.
