@@ -31,7 +31,7 @@ class MCCA(_CCA_Base):
 
         :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True)
         self.c = c
 
     def check_params(self):

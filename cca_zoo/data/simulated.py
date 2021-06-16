@@ -178,7 +178,7 @@ def _generate_toeplitz_cov(p, sigma):
 
 
 def _generate_random_cov(p):
-    cov_ = np.random.normal(size=(p, p))
-    U, S, V = np.linalg.svd(cov_.T @ cov_)
-    cov = U @ (2.0 + np.diag(np.random.normal(size=(p)))) @ V
+    cov_ = np.random.rand(p, p)
+    U, S, Vt = np.linalg.svd(cov_.T @ cov_)
+    cov = U @ (1 + np.diag(np.random.rand(p))) @ Vt
     return cov

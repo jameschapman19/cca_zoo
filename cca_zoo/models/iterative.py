@@ -31,7 +31,7 @@ class _Iterative(_CCA_Base):
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True)
         self.max_iter = max_iter
         self.generalized = generalized
         self.initialization = initialization
@@ -66,12 +66,12 @@ class _Iterative(_CCA_Base):
                 self.score_list[i][:, k] = self.loop.scores[i]
                 self.loading_list[i][:, k] = np.dot(self.loop.scores[i], residual)
                 # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
-                residuals[i] = self.deflate(residuals[i], self.score_list[i][:, k])
+                residuals[i] = self.deflate(residuals[i], self.score_list[i][:, k], self.weights_list[i][:, k])
             self.objective.append(self.loop.track_objective)
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def deflate(self, residual, score):
+    def deflate(self, residual, score, loading):
         """
         Deflate view residual by CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
 
@@ -81,6 +81,8 @@ class _Iterative(_CCA_Base):
         """
         if self.deflation == 'cca':
             return residual - np.outer(score, score) @ residual / np.dot(score, score).item()
+        elif self.deflation == 'pls':
+            return residual - np.outer(score, loading)
 
     @abstractmethod
     def set_loop_params(self):

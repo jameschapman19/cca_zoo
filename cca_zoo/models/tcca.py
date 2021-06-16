@@ -34,7 +34,7 @@ class TCCA(_CCA_Base):
         Constructor for TCCA
 
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True)
         self.c = c
 
     def check_params(self):

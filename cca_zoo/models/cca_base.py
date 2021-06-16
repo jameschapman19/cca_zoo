@@ -23,7 +23,7 @@ class _CCA_Base(BaseEstimator):
     """
 
     @abstractmethod
-    def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True):
+    def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, accept_sparse=True):
         """
         Constructor for _CCA_Base
 
@@ -36,6 +36,7 @@ class _CCA_Base(BaseEstimator):
         self.scale = scale
         self.centre = centre
         self.copy_data = copy_data
+        self.accept_sparse = accept_sparse
 
     @abstractmethod
     def fit(self, *views: np.ndarray):
@@ -61,9 +62,9 @@ class _CCA_Base(BaseEstimator):
         for i, (view, view_index) in enumerate(zip(views, view_indices)):
             view = check_array(view, copy=self.copy_data, accept_sparse=self.accept_sparse)
             if self.centre:
-                view -= self.view_means[view_index]
+                view = view - self.view_means[view_index]
             if self.scale:
-                view /= self.view_stds[view_index]
+                view = view / self.view_stds[view_index]
             transformed_view = view @ self.weights_list[view_index]
             transformed_views.append(transformed_view)
         return transformed_views
@@ -115,12 +116,12 @@ class _CCA_Base(BaseEstimator):
             if self.centre:
                 view_mean = view.mean(axis=0)
                 self.view_means.append(view_mean)
-                view -= self.view_means[-1]
+                view = view - self.view_means[-1]
             if self.scale:
                 view_std = view.std(axis=0, ddof=1)
                 view_std[view_std == 0.0] = 1.0
                 self.view_stds.append(view_std)
-                view /= self.view_stds[-1]
+                view = view / self.view_stds[-1]
             train_views.append(view)
         return train_views
 
