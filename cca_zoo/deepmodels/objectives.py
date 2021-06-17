@@ -94,16 +94,17 @@ class GCCA:
         # H is n_views * n_samples * k
         all_views = [view - view.mean(dim=0) for view in views]
 
-        eigen_views = [view @ torch.inverse(view.T @ view) @ view.T for view in all_views]
+        eigen_views = [view @ torch.inverse(_minimal_regularisation(view.T @ view, self.eps)) @ view.T for view in
+                       all_views]
 
         Q = torch.stack(eigen_views, dim=0).sum(dim=0)
 
-        [eigvals, eigvecs] = torch.symeig(Q, eigenvectors=True)
+        [eigvals, eigvecs] = torch.linalg.eig(Q)
 
-        idx = torch.argsort(eigvals, descending=True)
-        eigvecs = eigvecs[:, idx]
+        idx = torch.argsort(eigvals.real, descending=True)
+        eigvecs = eigvecs.real[:, idx]
 
-        corr = (eigvals[idx][:self.latent_dims] - 1).sum()
+        corr = (eigvals.real[idx][:self.latent_dims] - 1).sum()
 
         return -corr
 

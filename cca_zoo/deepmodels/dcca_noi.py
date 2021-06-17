@@ -61,7 +61,8 @@ class DCCA_NOI(DCCA, torch.nn.Module):
     def update_weights(self, *args):
         z = self(*args)
         self.update_covariances(*z)
-        covariance_inv = [objectives._compute_matrix_power(cov, -0.5, self.eps) for cov in self.covs]
+        covariance_inv = [objectives._compute_matrix_power(objectives._minimal_regularisation(cov, self.eps), -0.5) for
+                          cov in self.covs]
         preds = [torch.matmul(z, covariance_inv[i]).detach() for i, z in enumerate(z)]
         losses = [torch.mean(torch.norm(z_i - preds[-i], dim=0)) for i, z_i in enumerate(z, start=1)]
         obj = self.objective.loss(*z)
