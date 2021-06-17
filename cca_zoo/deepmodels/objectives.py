@@ -54,7 +54,7 @@ class MCCA:
         # In MCCA our eigenvalue problem Cv = lambda Dv
 
         # Use the cholesky method to whiten the matrix C R^{-1}CRv = lambda v
-        R = torch.cholesky(D, upper=True)
+        R = torch.linalg.cholesky(D)
 
         C_whitened = torch.inverse(R.T) @ C @ torch.inverse(R)
 
