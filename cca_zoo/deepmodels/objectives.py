@@ -195,7 +195,7 @@ class TCCA:
             (1 - self.r) * (1.0 / (m - 1)) * torch.matmul(z_.T, z_) + self.r * torch.eye(z_.size(1), dtype=torch.double,
                                                                                          device=z_.device).float() for
             z_ in z]
-        z = [z_ @ _compute_matrix_power(cov, -0.5, self.eps) for z_, cov in zip(z, covs)]
+        z = [z_ @ _compute_matrix_power(_minimal_regularisation(cov, self.eps), -0.5) for z_, cov in zip(z, covs)]
 
         for i, el in enumerate(z):
             if i == 0:
