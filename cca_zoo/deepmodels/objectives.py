@@ -24,7 +24,7 @@ class MCCA:
 
     """
 
-    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 1e-3):
+    def __init__(self, latent_dims: int, r: float = 0, eps: float = 1e-9):
         """
 
         :param latent_dims: the number of latent dimensions
@@ -76,7 +76,7 @@ class GCCA:
 
     """
 
-    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 1e-3):
+    def __init__(self, latent_dims: int, r: float = 0, eps: float = 1e-9):
         """
 
         :param latent_dims: the number of latent dimensions
@@ -126,7 +126,7 @@ class CCA:
 
     """
 
-    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 1e-3):
+    def __init__(self, latent_dims: int, r: float = 0, eps: float = 1e-9):
         """
         :param latent_dims: the number of latent dimensions
         :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to the number of latent dimensions
@@ -176,7 +176,7 @@ class TCCA:
 
     """
 
-    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 1e-9):
+    def __init__(self, latent_dims: int, r: float = 0, eps: float = 1e-9):
         """
 
         :param latent_dims: the number of latent dimensions

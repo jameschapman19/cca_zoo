@@ -20,7 +20,7 @@ class DCCA(_DCCA_base, torch.nn.Module):
 
     def __init__(self, latent_dims: int, objective=objectives.CCA,
                  encoders: List[BaseEncoder] = [Encoder, Encoder],
-                 learning_rate=1e-3, r: float = 1e-3, eps: float = 1e-3,
+                 learning_rate=1e-3, r: float = 0, eps: float = 1e-9,
                  schedulers: List = None,
                  optimizers: List[torch.optim.Optimizer] = None):
         """
