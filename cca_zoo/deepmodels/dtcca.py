@@ -19,7 +19,7 @@ class DTCCA(DCCA, torch.nn.Module):
     """
 
     def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
-                 learning_rate=1e-3, r: float = 1e-7, eps: float = 1e-7,
+                 learning_rate=1e-3, r: float = 0, eps: float = 1e-7,
                  schedulers: Iterable = None, optimizers: Iterable = None):
         """
 

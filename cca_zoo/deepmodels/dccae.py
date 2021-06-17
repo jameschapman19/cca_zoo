@@ -20,7 +20,7 @@ class DCCAE(_DCCA_base):
 
     def __init__(self, latent_dims: int, objective=objectives.MCCA,
                  encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
-                 decoders: Iterable[BaseDecoder] = [Decoder, Decoder], r: float = 1e-7, eps: float = 1e-7,
+                 decoders: Iterable[BaseDecoder] = [Decoder, Decoder], r: float = 0, eps: float = 1e-7,
                  learning_rate=1e-3, lam=0.5,
                  schedulers: Iterable = None, optimizers: Iterable = None):
         """
