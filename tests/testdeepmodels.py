@@ -35,6 +35,18 @@ class TestDeepModels(TestCase):
         dcca_model.fit(self.train_dataset, val_dataset=self.train_dataset, epochs=3)
         dcca_model.fit((self.X, self.Y), val_dataset=(self.X, self.Y), epochs=3)
 
+    def test_large_p(self):
+        X = np.random.rand(2000, 2048)
+        Y = np.random.rand(2000, 2048)
+        latent_dims = 150
+        device = 'cpu'
+        encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=2048)
+        encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=2048)
+        dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
+                          objective=objectives.CCA)
+        dcca_model = DeepWrapper(dcca_model, device=device)
+        dcca_model.fit((X, Y), epochs=10)
+
     def test_DCCA_methods_cpu(self):
         latent_dims = 2
         device = 'cpu'
