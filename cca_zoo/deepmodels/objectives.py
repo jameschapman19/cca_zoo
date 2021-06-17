@@ -4,13 +4,14 @@ from tensorly.cp_tensor import cp_to_tensor
 from tensorly.decomposition import parafac
 
 
-def _compute_matrix_power(M, p, eps, order=True):
-    [D, V] = torch.linalg.eigh(M)
-    if order:
-        posInd1 = torch.nonzero(torch.gt(D, eps))[:, 0]
-        D = D[posInd1]
-        V = V[:, posInd1]
-    M_p = torch.matmul(torch.matmul(V, torch.diag(torch.pow(D, p))), V.t())
+def _compute_matrix_power(M, p, eps):
+    try:
+        M_smallest_eig = torch.relu(-torch.min(torch.real(torch.linalg.eigvals(M)))) + eps
+    except:
+        print()
+    M = M + M_smallest_eig * torch.eye(M.shape[0], dtype=torch.double, device=M.device).float()
+    U, V = torch.linalg.eig(M)
+    M_p = torch.matmul(torch.matmul(torch.real(V), torch.diag(torch.pow(torch.real(U), p))), torch.real(V).t())
     return M_p
 
 
@@ -162,14 +163,10 @@ class CCA:
         Tval = torch.matmul(torch.matmul(SigmaHat11RootInv,
                                          SigmaHat12), SigmaHat22RootInv)
 
-        # just the top self.latent_dims singular values are used
         trace_TT = torch.matmul(Tval.t(), Tval)
-        trace_TT_smallest_eig = torch.relu(-torch.min(torch.linalg.eigh(trace_TT)[0])) + self.eps
-        trace_TT = trace_TT + trace_TT_smallest_eig * torch.eye(o1, dtype=torch.double, device=trace_TT.device).float()
-        U, V = torch.linalg.eigh(trace_TT)
-        U_inds = torch.nonzero(torch.gt(U, self.eps))[:, 0]
-        U = U[U_inds]
-        corr = torch.sum(torch.sqrt(U))
+        eigvals = torch.real(torch.linalg.eigvals(trace_TT))
+        eigvals = eigvals[torch.gt(eigvals, self.eps)]
+        corr = torch.sum(torch.sqrt(eigvals))
         return -corr
 
 

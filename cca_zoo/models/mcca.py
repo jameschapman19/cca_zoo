@@ -25,7 +25,8 @@ class MCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, c: List[float] = None):
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, c: List[float] = None,
+                 eps=1e-3):
         """
         Constructor for MCCA
 
@@ -33,6 +34,7 @@ class MCCA(_CCA_Base):
         """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True)
         self.c = c
+        self.eps = eps
 
     def check_params(self):
         self.c = _process_parameter('c', self.c, 0, self.n_views)
@@ -61,6 +63,8 @@ class MCCA(_CCA_Base):
         # Can regularise by adding to diagonal
         D = block_diag(*[(1 - self.c[i]) * m.T @ m + self.c[i] * np.eye(m.shape[1]) for i, m in enumerate(train_views)])
         C -= block_diag(*[view.T @ view for view in train_views]) - D
+        D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
+        D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [view.shape[1] for view in train_views])
         return train_views, C, D
 
