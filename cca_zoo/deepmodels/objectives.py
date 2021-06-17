@@ -5,10 +5,7 @@ from tensorly.decomposition import parafac
 
 
 def _compute_matrix_power(M, p, eps):
-    try:
-        M_smallest_eig = torch.relu(-torch.min(torch.real(torch.linalg.eigvals(M)))) + eps
-    except:
-        print()
+    M_smallest_eig = torch.relu(-torch.min(torch.real(torch.linalg.eigvals(M)))) + eps
     M = M + M_smallest_eig * torch.eye(M.shape[0], dtype=torch.double, device=M.device).float()
     U, V = torch.linalg.eig(M)
     M_p = torch.matmul(torch.matmul(torch.real(V), torch.diag(torch.pow(torch.real(U), p))), torch.real(V).t())
