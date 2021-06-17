@@ -1,4 +1,4 @@
-from typing import List
+from typing import Iterable
 
 import torch
 
@@ -19,10 +19,10 @@ class DCCA(_DCCA_base, torch.nn.Module):
     """
 
     def __init__(self, latent_dims: int, objective=objectives.CCA,
-                 encoders: List[BaseEncoder] = [Encoder, Encoder],
+                 encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, r: float = 1e-7, eps: float = 1e-7,
-                 schedulers: List = None,
-                 optimizers: List[torch.optim.Optimizer] = None):
+                 schedulers: Iterable = None,
+                 optimizers: Iterable[torch.optim.Optimizer] = None):
         """
         Constructor class for DCCA
 
@@ -30,8 +30,8 @@ class DCCA(_DCCA_base, torch.nn.Module):
         :param objective: # CCA objective: normal tracenorm CCA by default
         :param encoders: list of encoder networks
         :param learning_rate: learning rate if no optimizers passed
-        :param r: regularisation parameter of tracenorm CCA like ridge CCA
-        :param eps: epsilon used throughout
+        :param r: regularisation parameter of tracenorm CCA like ridge CCA. Needs to be VERY SMALL. If you get errors make this smaller
+        :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
         :param schedulers: list of schedulers for each optimizer
         :param optimizers: list of optimizers for each encoder
         """

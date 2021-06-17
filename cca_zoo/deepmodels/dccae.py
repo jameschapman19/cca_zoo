@@ -29,7 +29,8 @@ class DCCAE(_DCCA_base):
         :param objective: # CCA objective: normal tracenorm CCA by default
         :param encoders: list of encoder networks
         :param decoders:  list of decoder networks
-        :param r:  regularisation parameter of tracenorm CCA like ridge CCA
+        :param r: regularisation parameter of tracenorm CCA like ridge CCA. Needs to be VERY SMALL. If you get errors make this smaller
+        :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
         :param learning_rate: learning rate if no optimizers passed
         :param lam: weight of reconstruction loss (1 minus weight of correlation loss)
         :param schedulers: list of schedulers for each optimizer

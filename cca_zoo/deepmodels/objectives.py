@@ -4,9 +4,13 @@ from tensorly.cp_tensor import cp_to_tensor
 from tensorly.decomposition import parafac
 
 
-def _compute_matrix_power(M, p, eps):
+def _minimal_regularisation(M, eps):
     M_smallest_eig = torch.relu(-torch.min(torch.real(torch.linalg.eigvals(M)))) + eps
     M = M + M_smallest_eig * torch.eye(M.shape[0], dtype=torch.double, device=M.device).float()
+    return M
+
+
+def _compute_matrix_power(M, p):
     U, V = torch.linalg.eig(M)
     M_p = torch.matmul(torch.matmul(torch.real(V), torch.diag(torch.pow(torch.real(U), p))), torch.real(V).t())
     return M_p
@@ -154,14 +158,14 @@ class CCA:
                                                                                                    dtype=torch.double,
                                                                                                    device=H2.device).float()
 
-        SigmaHat11RootInv = _compute_matrix_power(SigmaHat11, -0.5, self.eps)
-        SigmaHat22RootInv = _compute_matrix_power(SigmaHat22, -0.5, self.eps)
+        SigmaHat11RootInv = _compute_matrix_power(_minimal_regularisation(SigmaHat11, self.eps), -0.5)
+        SigmaHat22RootInv = _compute_matrix_power(_minimal_regularisation(SigmaHat22, self.eps), -0.5)
 
         Tval = torch.matmul(torch.matmul(SigmaHat11RootInv,
                                          SigmaHat12), SigmaHat22RootInv)
 
         trace_TT = torch.matmul(Tval.t(), Tval)
-        eigvals = torch.real(torch.linalg.eigvals(trace_TT))
+        eigvals = torch.real(torch.linalg.eigvals(_minimal_regularisation(trace_TT, self.eps)))
         eigvals = eigvals[torch.gt(eigvals, self.eps)]
         corr = torch.sum(torch.sqrt(eigvals))
         return -corr

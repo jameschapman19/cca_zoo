@@ -26,7 +26,8 @@ class DTCCA(DCCA, torch.nn.Module):
         :param latent_dims:
         :param encoders:
         :param learning_rate:
-        :param r:
+        :param r: regularisation parameter of tracenorm CCA like ridge CCA. Needs to be VERY SMALL. If you get errors make this smaller
+        :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
         :param schedulers:
         :param optimizers:
         """
