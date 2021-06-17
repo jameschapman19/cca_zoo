@@ -20,7 +20,7 @@ class DCCA_NOI(DCCA, torch.nn.Module):
 
     def __init__(self, latent_dims: int, N: int, objective=objectives.MCCA,
                  encoders: List[BaseEncoder] = [Encoder, Encoder],
-                 learning_rate=1e-3, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-9, shared_target: bool = False,
+                 learning_rate=1e-3, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-3, shared_target: bool = False,
                  schedulers: List = None, optimizers: List[torch.optim.Optimizer] = None):
         """
         Constructor class for DCCA
@@ -42,7 +42,7 @@ class DCCA_NOI(DCCA, torch.nn.Module):
         self.latent_dims = latent_dims
         self.N = N
         self.encoders = torch.nn.ModuleList(encoders)
-        self.objective = objective(latent_dims, r=r)
+        self.objective = objective(latent_dims, r=r, eps=eps)
         if optimizers is None:
             self.optimizers = [torch.optim.Adam(list(encoder.parameters()), lr=learning_rate) for encoder in
                                self.encoders]

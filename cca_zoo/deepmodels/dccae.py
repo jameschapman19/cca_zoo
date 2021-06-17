@@ -20,7 +20,8 @@ class DCCAE(_DCCA_base):
 
     def __init__(self, latent_dims: int, objective=objectives.MCCA,
                  encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
-                 decoders: Iterable[BaseDecoder] = [Decoder, Decoder], r: float = 1e-3, learning_rate=1e-3, lam=0.5,
+                 decoders: Iterable[BaseDecoder] = [Decoder, Decoder], r: float = 1e-3, eps: float = 1e-3,
+                 learning_rate=1e-3, lam=0.5,
                  schedulers: Iterable = None, optimizers: Iterable = None):
         """
 
@@ -40,7 +41,7 @@ class DCCAE(_DCCA_base):
         if lam < 0 or lam > 1:
             raise ValueError(f"lam should be between 0 and 1. rho={lam}")
         self.lam = lam
-        self.objective = objective(latent_dims, r=r)
+        self.objective = objective(latent_dims, r=r, eps=eps)
         if optimizers is None:
             self.optimizers = [torch.optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),
                                                 lr=learning_rate)]

@@ -19,7 +19,7 @@ class DTCCA(DCCA, torch.nn.Module):
     """
 
     def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
-                 learning_rate=1e-3, r: float = 0,
+                 learning_rate=1e-3, r: float = 1e-3, eps: float = 1e-3,
                  schedulers: Iterable = None, optimizers: Iterable = None):
         """
 
@@ -31,6 +31,7 @@ class DTCCA(DCCA, torch.nn.Module):
         :param optimizers:
         """
         super().__init__(latent_dims, objective=objectives.TCCA, encoders=encoders, learning_rate=learning_rate, r=r,
+                         eps=eps,
                          schedulers=schedulers, optimizers=optimizers)
 
     def post_transform(self, *z_list, train=False):

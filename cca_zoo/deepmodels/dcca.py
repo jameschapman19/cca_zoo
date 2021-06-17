@@ -20,7 +20,7 @@ class DCCA(_DCCA_base, torch.nn.Module):
 
     def __init__(self, latent_dims: int, objective=objectives.CCA,
                  encoders: List[BaseEncoder] = [Encoder, Encoder],
-                 learning_rate=1e-3, r: float = 1e-3, eps: float = 1e-9,
+                 learning_rate=1e-3, r: float = 1e-3, eps: float = 1e-3,
                  schedulers: List = None,
                  optimizers: List[torch.optim.Optimizer] = None):
         """
@@ -38,7 +38,7 @@ class DCCA(_DCCA_base, torch.nn.Module):
         super().__init__(latent_dims)
         self.latent_dims = latent_dims
         self.encoders = torch.nn.ModuleList(encoders)
-        self.objective = objective(latent_dims, r=r)
+        self.objective = objective(latent_dims, r=r, eps=eps)
         if optimizers is None:
             self.optimizers = [torch.optim.Adam(list(encoder.parameters()), lr=learning_rate) for encoder in
                                self.encoders]

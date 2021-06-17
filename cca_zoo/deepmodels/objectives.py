@@ -5,7 +5,7 @@ from tensorly.decomposition import parafac
 
 
 def _compute_matrix_power(M, p, eps, order=True):
-    [D, V] = torch.symeig(M, eigenvectors=True)
+    [D, V] = torch.linalg.eigh(M)
     if order:
         posInd1 = torch.nonzero(torch.gt(D, eps))[:, 0]
         D = D[posInd1]
@@ -23,7 +23,7 @@ class MCCA:
 
     """
 
-    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 0):
+    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 1e-3):
         """
 
         :param latent_dims: the number of latent dimensions
@@ -75,7 +75,7 @@ class GCCA:
 
     """
 
-    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 0):
+    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 1e-3):
         """
 
         :param latent_dims: the number of latent dimensions
@@ -125,7 +125,7 @@ class CCA:
 
     """
 
-    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 0):
+    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 1e-3):
         """
         :param latent_dims: the number of latent dimensions
         :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to the number of latent dimensions
@@ -147,12 +147,14 @@ class CCA:
         H2bar = H2 - H2.mean(dim=1).unsqueeze(dim=1)
 
         SigmaHat12 = (1.0 / (m - 1)) * torch.matmul(H1bar, H2bar.t())
-        SigmaHat11 = (1.0 / (m - 1)) * torch.matmul(H1bar,
-                                                    H1bar.t()) + self.r * torch.eye(o1, dtype=torch.double,
-                                                                                    device=H1.device).float()
-        SigmaHat22 = (1.0 / (m - 1)) * torch.matmul(H2bar,
-                                                    H2bar.t()) + self.r * torch.eye(o2, dtype=torch.double,
-                                                                                    device=H2.device).float()
+        SigmaHat11 = (1 - self.r) * (1.0 / (m - 1)) * torch.matmul(H1bar,
+                                                                   H1bar.t()) + self.r * torch.eye(o1,
+                                                                                                   dtype=torch.double,
+                                                                                                   device=H1.device).float()
+        SigmaHat22 = (1 - self.r) * (1.0 / (m - 1)) * torch.matmul(H2bar,
+                                                                   H2bar.t()) + self.r * torch.eye(o2,
+                                                                                                   dtype=torch.double,
+                                                                                                   device=H2.device).float()
 
         SigmaHat11RootInv = _compute_matrix_power(SigmaHat11, -0.5, self.eps)
         SigmaHat22RootInv = _compute_matrix_power(SigmaHat22, -0.5, self.eps)
@@ -162,7 +164,9 @@ class CCA:
 
         # just the top self.latent_dims singular values are used
         trace_TT = torch.matmul(Tval.t(), Tval)
-        U, V = torch.symeig(trace_TT, eigenvectors=True)
+        trace_TT_smallest_eig = torch.relu(-torch.min(torch.linalg.eigh(trace_TT)[0])) + self.eps
+        trace_TT = trace_TT + trace_TT_smallest_eig * torch.eye(o1, dtype=torch.double, device=trace_TT.device).float()
+        U, V = torch.linalg.eigh(trace_TT)
         U_inds = torch.nonzero(torch.gt(U, self.eps))[:, 0]
         U = U[U_inds]
         corr = torch.sum(torch.sqrt(U))
@@ -175,7 +179,7 @@ class TCCA:
 
     """
 
-    def __init__(self, latent_dims: int, r: float = 0, eps: float = 0):
+    def __init__(self, latent_dims: int, r: float = 1e-3, eps: float = 1e-9):
         """
 
         :param latent_dims: the number of latent dimensions
@@ -189,9 +193,10 @@ class TCCA:
     def loss(self, *z):
         m = z[0].size(0)
         z = [z_ - z_.mean(dim=0).unsqueeze(dim=0) for z_ in z]
-        covs = [(1.0 / (m - 1)) * torch.matmul(z_.T, z_) + self.r * torch.eye(z_.size(1), dtype=torch.double,
-                                                                              device=z_.device).float() for z_ in z]
-
+        covs = [
+            (1 - self.r) * (1.0 / (m - 1)) * torch.matmul(z_.T, z_) + self.r * torch.eye(z_.size(1), dtype=torch.double,
+                                                                                         device=z_.device).float() for
+            z_ in z]
         z = [z_ @ _compute_matrix_power(cov, -0.5, self.eps) for z_, cov in zip(z, covs)]
 
         for i, el in enumerate(z):
