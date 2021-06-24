@@ -30,7 +30,7 @@ class DCCAE(_DCCA_base):
         :param decoders:  list of decoder networks
         :param r: regularisation parameter of tracenorm CCA like ridge CCA. Needs to be VERY SMALL. If you get errors make this smaller
         :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
-        :param learning_rate: learning rate if no optimizers passed
+        :param learning_rate: learning rate if no optimizer passed
         :param lam: weight of reconstruction loss (1 minus weight of correlation loss)
         :param scheduler: scheduler associated with optimizer
         :param optimizer: pytorch optimizer

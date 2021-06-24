@@ -29,7 +29,7 @@ class DCCA_NOI(DCCA, torch.nn.Module):
         :param N: # samples used to estimate covariance
         :param objective: # CCA objective: normal tracenorm CCA by default
         :param encoders: list of encoder networks
-        :param learning_rate: learning rate if no optimizers passed
+        :param learning_rate: learning rate if no optimizer passed
         :param r: regularisation parameter of tracenorm CCA like ridge CCA
         :param rho: covariance memory like DCCA non-linear orthogonal iterations paper
         :param eps: epsilon used throughout

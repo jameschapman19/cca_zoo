@@ -12,6 +12,8 @@ class DTCCA(DCCA, torch.nn.Module):
     """
     A class used to fit a DTCCA model.
 
+    Is just a thin wrapper round DCCA with the DTCCA objective and a TCCA post-processing
+
     Examples
     --------
     >>> from cca_zoo.deepmodels import DTCCA
@@ -23,9 +25,9 @@ class DTCCA(DCCA, torch.nn.Module):
                  scheduler=None, optimizer: torch.optim.Optimizer = None):
         """
 
-        :param latent_dims:
-        :param encoders:
-        :param learning_rate:
+        :param latent_dims: # latent dimensions
+        :param encoders: list of encoder networks
+        :param learning_rate: learning rate if no optimizer passed
         :param r: regularisation parameter of tracenorm CCA like ridge CCA. Needs to be VERY SMALL. If you get errors make this smaller
         :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
         :param scheduler: scheduler associated with optimizer

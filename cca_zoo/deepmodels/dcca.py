@@ -29,7 +29,7 @@ class DCCA(_DCCA_base, torch.nn.Module):
         :param latent_dims: # latent dimensions
         :param objective: # CCA objective: normal tracenorm CCA by default
         :param encoders: list of encoder networks
-        :param learning_rate: learning rate if no optimizers passed
+        :param learning_rate: learning rate if no optimizer passed
         :param r: regularisation parameter of tracenorm CCA like ridge CCA. Needs to be VERY SMALL. If you get errors make this smaller
         :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
         :param scheduler: scheduler associated with optimizer

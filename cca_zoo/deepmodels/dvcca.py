@@ -19,24 +19,22 @@ class DVCCA(_DCCA_base):
 
     def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  decoders: Iterable[BaseDecoder] = [Decoder, Decoder],
-                 private_encoders: Iterable[BaseEncoder] = [Encoder, Encoder], learning_rate=1e-3, private=False,
+                 private_encoders: Iterable[BaseEncoder] = [Encoder, Encoder], learning_rate=1e-3,
                  optimizer: torch.optim.Optimizer = None, scheduler=None):
         """
-        :param latent_dims:
-        :param encoders:
-        :param decoders:
-        :param private_encoders:
-        :param learning_rate:
-        :param private:
+        :param latent_dims: # latent dimensions
+        :param encoders: list of encoder networks
+        :param decoders:  list of decoder networks
+        :param private_encoders: list of private (view specific) encoder networks
+        :param learning_rate: learning rate if no optimizer passed
         :param scheduler: scheduler associated with optimizer (allows scheduling through the DeepWrapper)
         :param optimizer: pytorch optimizer
         """
         super().__init__(latent_dims)
-        self.private = private
         self.latent_dims = latent_dims
         self.encoders = torch.nn.ModuleList(encoders)
         self.decoders = torch.nn.ModuleList(decoders)
-        if private:
+        if self.private_encoders:
             self.private_encoders = torch.nn.ModuleList(private_encoders)
         self.scheduler = scheduler
         if optimizer is None:
@@ -69,7 +67,7 @@ class DVCCA(_DCCA_base):
         # If using single encoder repeat representation n times
         if len(self.encoders) == 1:
             z = z * len(args)
-        if self.private:
+        if self.private_encoders:
             mu_p, logvar_p = self.encode_private(*args)
             if mle:
                 z_p = mu_p
@@ -130,7 +128,7 @@ class DVCCA(_DCCA_base):
         :return:
         """
         mus, logvars = self.encode(*args)
-        if self.private:
+        if self.private_encoders:
             mus_p, logvars_p = self.encode_private(*args)
             losses = [self.vcca_private_loss(*args, mu=mu, logvar=logvar, mu_p=mu_p, logvar_p=logvar_p) for
                       (mu, logvar, mu_p, logvar_p) in
