@@ -1,5 +1,6 @@
 from typing import Iterable
 
+import numpy as np
 import torch
 from torch import nn
 
@@ -23,7 +24,7 @@ class DCCA(nn.Module, _DCCA_base):
                  encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, r: float = 1e-7, eps: float = 1e-7,
                  scheduler=None,
-                 optimizer: torch.optim.Optimizer = None):
+                 optimizer: torch.optim.Optimizer = None, clip_value=float('inf')):
         """
         Constructor class for DCCA
 
@@ -43,7 +44,8 @@ class DCCA(nn.Module, _DCCA_base):
             # Andrew G, Arora R, Bilmes J, Livescu K. Deep canonical correlation analysis. InInternational conference on machine learning 2013 May 26 (pp. 1247-1255). PMLR.
             optimizer = torch.optim.LBFGS(self.parameters(), lr=learning_rate)
         self.scheduler = scheduler
-        _DCCA_base.__init__(self, latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler)
+        _DCCA_base.__init__(self, latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler,
+                            clip_value=clip_value)
 
     def forward(self, *args):
         z = self.encode(*args)
@@ -59,7 +61,7 @@ class DCCA(nn.Module, _DCCA_base):
         z = self(*args)
         return self.objective.loss(*z)
 
-    def post_transform(self, *z_list, train=False):
+    def post_transform(self, *z_list, train=False) -> Iterable[np.ndarray]:
         if train:
             self.cca = MCCA(latent_dims=self.latent_dims)
             self.cca.fit(*z_list)

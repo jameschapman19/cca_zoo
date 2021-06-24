@@ -1,5 +1,7 @@
+from typing import Iterable
 from typing import List
 
+import numpy as np
 import torch
 
 from cca_zoo.deepmodels import objectives
@@ -21,7 +23,7 @@ class DCCA_NOI(DCCA):
     def __init__(self, latent_dims: int, N: int, objective=objectives.MCCA,
                  encoders: List[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-3, shared_target: bool = False,
-                 scheduler=None, optimizer: torch.optim.Optimizer = None):
+                 scheduler=None, optimizer: torch.optim.Optimizer = None, clip_value=float('inf')):
         """
         Constructor class for DCCA
 
@@ -38,7 +40,7 @@ class DCCA_NOI(DCCA):
         :param optimizer: pytorch optimizer
         """
         super().__init__(latent_dims=latent_dims, objective=objective, encoders=encoders, learning_rate=learning_rate,
-                         r=r, eps=eps, scheduler=scheduler, optimizer=optimizer)
+                         r=r, eps=eps, scheduler=scheduler, optimizer=optimizer, clip_value=clip_value)
         self.N = N
         self.covs = None
         if rho < 0 or rho > 1:
@@ -77,7 +79,7 @@ class DCCA_NOI(DCCA):
         else:
             self.covs = batch_covs
 
-    def post_transform(self, *z_list, train=False):
+    def post_transform(self, *z_list, train=False) -> Iterable[np.ndarray]:
         if train:
             self.cca = MCCA(latent_dims=self.latent_dims)
             self.cca.fit(*z_list)
