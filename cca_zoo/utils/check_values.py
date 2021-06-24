@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 
@@ -37,3 +39,10 @@ def _check_Parikh2014(mus, lams, views):
                          "from Parikh 2014 (mu<lam/frobenius(X)**2)."
                          "Index of view(s) not meeting the condition: "
                          f"{failed_check}.")
+
+
+def _check_batch_size(batch_size, latent_dimensions):
+    """check batch size greater than number of latent dimensions and warn user otherwise"""
+    if batch_size < latent_dimensions:
+        warnings.warn(
+            'Objective is unstable when batch size is less than the number of latent dimensions')
