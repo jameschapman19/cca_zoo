@@ -2,12 +2,13 @@ from typing import Iterable
 
 import torch
 import torch.nn.functional as F
+from torch import nn
 
 from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, BaseDecoder, Decoder
 from cca_zoo.deepmodels.dcca import _DCCA_base
 
 
-class SplitAE(_DCCA_base):
+class SplitAE(nn.Module, _DCCA_base):
     """
     A class used to fit a Split Autoencoder model.
 
@@ -19,36 +20,25 @@ class SplitAE(_DCCA_base):
 
     def __init__(self, latent_dims: int, encoder: BaseEncoder = Encoder,
                  decoders: Iterable[BaseDecoder] = [Decoder, Decoder], learning_rate=1e-3,
-                 schedulers: Iterable = None, optimizers: Iterable = None):
+                 scheduler=None, optimizer: torch.optim.Optimizer = None):
         """
 
         :param latent_dims: # latent dimensions
-        :param encoders: list of encoder networks
+        :param encoder: list of encoder networks
         :param decoders:  list of decoder networks
         :param learning_rate: learning rate if no optimizers passed
-        :param schedulers: list of schedulers for each optimizer
-        :param optimizers: list of optimizers for each encoder
+        :param scheduler: scheduler associated with optimizer
+        :param optimizer: pytorch optimizer
+
         """
-        super().__init__(latent_dims)
+        super(SplitAE, self).__init__()
         self.encoder = encoder
         self.decoders = torch.nn.ModuleList(decoders)
-        if optimizers is None:
-            self.optimizer = torch.optim.Adam(list(self.encoder.parameters()) + list(self.decoders.parameters()),
-                                              lr=learning_rate)
-        else:
-            self.optimizer = optimizers
-        self.schedulers = []
-        if schedulers:
-            self.schedulers.extend(schedulers)
-        self.optimizer = torch.optim.Adam(list(self.encoder.parameters()) + list(self.decoders.parameters()),
-                                          lr=learning_rate)
-
-    def update_weights(self, *args):
-        self.optimizer.zero_grad()
-        loss = self.loss(*args)
-        loss.backward()
-        self.optimizer.step()
-        return loss
+        if optimizer is None:
+            optimizer = torch.optim.Adam(self.parameters(),
+                                         lr=learning_rate)
+        self.scheduler = scheduler
+        _DCCA_base.__init__(self, latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler)
 
     def forward(self, *args):
         z = self.encode(*args)

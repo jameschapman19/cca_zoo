@@ -33,6 +33,7 @@ class _InnerLoop:
     def initialize(self):
         if self.initialization == 'random':
             self.scores = np.array([np.random.rand(view.shape[0]) for view in self.views])
+            self.scores = self.scores / np.linalg.norm(self.scores, axis=1)[:, np.newaxis]
         if self.initialization == 'uniform':
             self.scores = np.array([np.ones(view.shape[0]) for view in self.views])
             self.scores = self.scores / np.linalg.norm(self.scores, axis=1)[:, np.newaxis]

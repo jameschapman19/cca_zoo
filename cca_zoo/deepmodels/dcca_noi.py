@@ -8,7 +8,7 @@ from cca_zoo.deepmodels.dcca import DCCA
 from cca_zoo.models import MCCA
 
 
-class DCCA_NOI(DCCA, torch.nn.Module):
+class DCCA_NOI(DCCA):
     """
     A class used to fit a DCCA model by non-linear orthogonal iterations
 
@@ -21,7 +21,7 @@ class DCCA_NOI(DCCA, torch.nn.Module):
     def __init__(self, latent_dims: int, N: int, objective=objectives.MCCA,
                  encoders: List[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-3, shared_target: bool = False,
-                 schedulers: List = None, optimizers: List[torch.optim.Optimizer] = None):
+                 scheduler=None, optimizer: torch.optim.Optimizer = None):
         """
         Constructor class for DCCA
 
@@ -29,50 +29,23 @@ class DCCA_NOI(DCCA, torch.nn.Module):
         :param N: # samples used to estimate covariance
         :param objective: # CCA objective: normal tracenorm CCA by default
         :param encoders: list of encoder networks
-        :param learning_rate: learning rate if no optimizers passed
+        :param learning_rate: learning rate if no optimizer passed
         :param r: regularisation parameter of tracenorm CCA like ridge CCA
         :param rho: covariance memory like DCCA non-linear orthogonal iterations paper
         :param eps: epsilon used throughout
         :param shared_target: not used
-        :param schedulers: list of schedulers for each optimizer
-        :param optimizers: list of optimizers for each encoder
+        :param scheduler: scheduler associated with optimizer
+        :param optimizer: pytorch optimizer
         """
         super().__init__(latent_dims=latent_dims, objective=objective, encoders=encoders, learning_rate=learning_rate,
-                         r=r, eps=eps, schedulers=schedulers, optimizers=optimizers)
-        self.latent_dims = latent_dims
+                         r=r, eps=eps, scheduler=scheduler, optimizer=optimizer)
         self.N = N
-        self.encoders = torch.nn.ModuleList(encoders)
-        self.objective = objective(latent_dims, r=r, eps=eps)
-        if optimizers is None:
-            self.optimizers = [torch.optim.Adam(list(encoder.parameters()), lr=learning_rate) for encoder in
-                               self.encoders]
-        else:
-            self.optimizers = optimizers
-        self.schedulers = []
-        if schedulers:
-            self.schedulers.extend(schedulers)
         self.covs = None
-        self.eps = eps
         if rho < 0 or rho > 1:
             raise ValueError(f"rho should be between 0 and 1. rho={rho}")
+        self.eps = eps
         self.rho = rho
         self.shared_target = shared_target
-
-    def update_weights(self, *args):
-        z = self(*args)
-        self.update_covariances(*z)
-        covariance_inv = [objectives._compute_matrix_power(objectives._minimal_regularisation(cov, self.eps), -0.5) for
-                          cov in self.covs]
-        preds = [torch.matmul(z, covariance_inv[i]).detach() for i, z in enumerate(z)]
-        losses = [torch.mean(torch.norm(z_i - preds[-i], dim=0)) for i, z_i in enumerate(z, start=1)]
-        obj = self.objective.loss(*z)
-        self.optimizers[0].zero_grad()
-        losses[0].backward()
-        self.optimizers[0].step()
-        self.optimizers[1].zero_grad()
-        losses[1].backward()
-        self.optimizers[1].step()
-        return obj
 
     def forward(self, *args):
         z = self.encode(*args)
@@ -86,7 +59,13 @@ class DCCA_NOI(DCCA, torch.nn.Module):
 
     def loss(self, *args):
         z = self(*args)
-        return self.objective.loss(*z)
+        self.update_covariances(*z)
+        covariance_inv = [objectives._compute_matrix_power(objectives._minimal_regularisation(cov, self.eps), -0.5) for
+                          cov in self.covs]
+        preds = [torch.matmul(z, covariance_inv[i]).detach() for i, z in enumerate(z)]
+        losses = [torch.mean(torch.norm(z_i - preds[-i], dim=0)) for i, z_i in enumerate(z, start=1)]
+        loss = torch.sum(torch.stack(losses))
+        return loss
 
     def update_covariances(self, *args):
         b = args[0].shape[0]

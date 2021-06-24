@@ -2,13 +2,14 @@ from typing import Iterable
 
 import torch
 import torch.distributions as dist
+from torch import nn
 from torch.nn import functional as F
 
 from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, BaseDecoder, Decoder
 from cca_zoo.deepmodels.dcca import _DCCA_base
 
 
-class DVCCA(_DCCA_base):
+class DVCCA(nn.Module, _DCCA_base):
     """
     A class used to fit a DVCCA model.
 
@@ -19,51 +20,29 @@ class DVCCA(_DCCA_base):
 
     def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  decoders: Iterable[BaseDecoder] = [Decoder, Decoder],
-                 private_encoders: Iterable[BaseEncoder] = [Encoder, Encoder], learning_rate=1e-3, private=False,
-                 mu=0.5, encoder_optimizers=None, decoder_optimizers=None,
-                 private_encoder_optimizers=None,
-                 encoder_schedulers=None, decoder_schedulers=None, private_encoder_schedulers=None):
-        super().__init__(latent_dims)
-        self.private = private
-        self.mu = mu
+                 private_encoders: Iterable[BaseEncoder] = None, learning_rate=1e-3,
+                 optimizer: torch.optim.Optimizer = None, scheduler=None):
+        """
+        :param latent_dims: # latent dimensions
+        :param encoders: list of encoder networks
+        :param decoders:  list of decoder networks
+        :param private_encoders: list of private (view specific) encoder networks
+        :param learning_rate: learning rate if no optimizer passed
+        :param scheduler: scheduler associated with optimizer (allows scheduling through the DeepWrapper)
+        :param optimizer: pytorch optimizer
+        """
+        super(DVCCA, self).__init__()
         self.latent_dims = latent_dims
         self.encoders = torch.nn.ModuleList(encoders)
         self.decoders = torch.nn.ModuleList(decoders)
-        self.schedulers = []
-        if encoder_schedulers:
-            self.schedulers.extend(encoder_schedulers)
-        if decoder_schedulers:
-            self.schedulers.extend(decoder_schedulers)
-        self.encoder_optimizers = encoder_optimizers
-        if self.encoder_optimizers is None:
-            self.encoder_optimizers = torch.optim.Adam(self.encoders.parameters(), lr=learning_rate)
-        self.decoder_optimizers = decoder_optimizers
-        if self.decoder_optimizers is None:
-            self.decoder_optimizers = torch.optim.Adam(self.decoders.parameters(), lr=learning_rate)
-        if private:
+        if private_encoders:
             self.private_encoders = torch.nn.ModuleList(private_encoders)
-            self.private_encoder_optimizers = private_encoder_optimizers
-            if self.private_encoder_optimizers is None:
-                self.private_encoder_optimizers = torch.optim.Adam(self.private_encoders.parameters(), lr=learning_rate)
-            if private_encoder_schedulers:
-                self.schedulers.extend(private_encoder_schedulers)
-
-    def update_weights(self, *args):
-        """
-        :param args:
-        :return:
-        """
-        self.encoder_optimizers.zero_grad()
-        self.decoder_optimizers.zero_grad()
-        if self.private:
-            self.private_encoder_optimizers.zero_grad()
-        loss = self.loss(*args)
-        loss.backward()
-        self.encoder_optimizers.step()
-        self.decoder_optimizers.step()
-        if self.private:
-            self.private_encoder_optimizers.step()
-        return loss
+        else:
+            self.private_encoders = None
+        self.scheduler = scheduler
+        if optimizer is None:
+            optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
+        _DCCA_base.__init__(self, latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler)
 
     def forward(self, *args, mle=True):
         """
@@ -81,7 +60,7 @@ class DVCCA(_DCCA_base):
         # If using single encoder repeat representation n times
         if len(self.encoders) == 1:
             z = z * len(args)
-        if self.private:
+        if self.private_encoders:
             mu_p, logvar_p = self.encode_private(*args)
             if mle:
                 z_p = mu_p
@@ -142,7 +121,7 @@ class DVCCA(_DCCA_base):
         :return:
         """
         mus, logvars = self.encode(*args)
-        if self.private:
+        if self.private_encoders:
             mus_p, logvars_p = self.encode_private(*args)
             losses = [self.vcca_private_loss(*args, mu=mu, logvar=logvar, mu_p=mu_p, logvar_p=logvar_p) for
                       (mu, logvar, mu_p, logvar_p) in

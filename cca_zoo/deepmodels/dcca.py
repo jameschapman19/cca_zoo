@@ -1,6 +1,7 @@
 from typing import Iterable
 
 import torch
+from torch import nn
 
 from cca_zoo.deepmodels import objectives
 from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
@@ -8,7 +9,7 @@ from cca_zoo.models import MCCA
 from ._dcca_base import _DCCA_base
 
 
-class DCCA(_DCCA_base, torch.nn.Module):
+class DCCA(nn.Module, _DCCA_base):
     """
     A class used to fit a DCCA model.
 
@@ -21,41 +22,28 @@ class DCCA(_DCCA_base, torch.nn.Module):
     def __init__(self, latent_dims: int, objective=objectives.CCA,
                  encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, r: float = 1e-7, eps: float = 1e-7,
-                 schedulers: Iterable = None,
-                 optimizers: Iterable[torch.optim.Optimizer] = None):
+                 scheduler=None,
+                 optimizer: torch.optim.Optimizer = None):
         """
         Constructor class for DCCA
 
         :param latent_dims: # latent dimensions
         :param objective: # CCA objective: normal tracenorm CCA by default
         :param encoders: list of encoder networks
-        :param learning_rate: learning rate if no optimizers passed
+        :param learning_rate: learning rate if no optimizer passed
         :param r: regularisation parameter of tracenorm CCA like ridge CCA. Needs to be VERY SMALL. If you get errors make this smaller
         :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
-        :param schedulers: list of schedulers for each optimizer
-        :param optimizers: list of optimizers for each encoder
+        :param scheduler: scheduler associated with optimizer
+        :param optimizer: pytorch optimizer
         """
-        super().__init__(latent_dims)
-        self.latent_dims = latent_dims
+        super(DCCA, self).__init__()
         self.encoders = torch.nn.ModuleList(encoders)
         self.objective = objective(latent_dims, r=r, eps=eps)
-        if optimizers is None:
-            self.optimizers = [torch.optim.Adam(list(encoder.parameters()), lr=learning_rate) for encoder in
-                               self.encoders]
-        else:
-            self.optimizers = optimizers
-        self.schedulers = []
-        if schedulers:
-            self.schedulers.extend(schedulers)
-        self.eps = eps
-
-    def update_weights(self, *args):
-        [optimizer.zero_grad() for optimizer in self.optimizers]
-        z = self(*args)
-        loss = self.objective.loss(*z)
-        loss.backward()
-        [optimizer.step() for optimizer in self.optimizers]
-        return loss
+        if optimizer is None:
+            # Andrew G, Arora R, Bilmes J, Livescu K. Deep canonical correlation analysis. InInternational conference on machine learning 2013 May 26 (pp. 1247-1255). PMLR.
+            optimizer = torch.optim.LBFGS(self.parameters(), lr=learning_rate)
+        self.scheduler = scheduler
+        _DCCA_base.__init__(self, latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler)
 
     def forward(self, *args):
         z = self.encode(*args)

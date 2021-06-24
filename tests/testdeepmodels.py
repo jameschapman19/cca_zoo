@@ -88,24 +88,22 @@ class TestDeepModels(TestCase):
         dtcca_model = DeepWrapper(dtcca_model, device=device)
         dtcca_model.fit((self.X, self.Y), epochs=20)
         # DCCA
-        dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2, encoder_3],
+        dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                           objective=objectives.GCCA)
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dcca_model = DeepWrapper(dcca_model, device=device)
-        dcca_model.fit((self.X, self.Y, self.Z), epochs=20)
-        print('here')
+        dcca_model.fit((self.X, self.Y), epochs=20)
 
-    def test_schedulers(self):
+    def test_scheduler(self):
         latent_dims = 2
         device = 'cpu'
         encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         # DCCA
-        optimizers = [optim.Adam(encoder_1.parameters(), lr=1e-4), optim.Adam(encoder_2.parameters(), lr=1e-4)]
-        schedulers = [optim.lr_scheduler.CosineAnnealingLR(optimizers[0], 1),
-                      optim.lr_scheduler.ReduceLROnPlateau(optimizers[1])]
+        optimizer = optim.Adam(list(encoder_1.parameters()) + list(encoder_2.parameters()), lr=1e-4)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, 1)
         dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
-                          objective=objectives.CCA, optimizers=optimizers, schedulers=schedulers)
+                          objective=objectives.CCA, optimizer=optimizer, scheduler=scheduler)
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dcca_model = DeepWrapper(dcca_model, device=device)
         dcca_model.fit((self.X, self.Y), epochs=20)
@@ -192,7 +190,7 @@ class TestDeepModels(TestCase):
         decoder_1 = architectures.Decoder(latent_dims=2 * latent_dims, feature_size=10, norm_output=True)
         decoder_2 = architectures.Decoder(latent_dims=2 * latent_dims, feature_size=10, norm_output=True)
         # DVCCA
-        dvcca_model = DVCCA(latent_dims=latent_dims, private=True, encoders=[encoder_1, encoder_2],
+        dvcca_model = DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                             decoders=[decoder_1, decoder_2],
                             private_encoders=[private_encoder_1, private_encoder_2])
         # hidden_layer_sizes are shown explicitly but these are also the defaults

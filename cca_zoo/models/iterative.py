@@ -221,7 +221,8 @@ class CCA_ALS(ElasticCCA):
         """
 
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol, constrained=False, stochastic=stochastic, scale=scale,
+                         initialization=initialization, tol=tol, constrained=False, stochastic=stochastic,
+                         centre=centre, copy_data=copy_data, scale=scale,
                          positive=positive)
 
 
