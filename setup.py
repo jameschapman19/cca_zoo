@@ -14,7 +14,7 @@ with open("./requirements/probablistic.txt", "r") as f:
 
 setup(
     name='cca_zoo',
-    version='1.7.4',
+    version='1.7.5',
     include_package_data=True,
     keywords='cca',
     packages=find_packages(),
