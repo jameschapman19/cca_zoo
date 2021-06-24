@@ -23,7 +23,7 @@ class DTCCA(DCCA):
 
     def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, r: float = 1e-7, eps: float = 1e-7,
-                 scheduler=None, optimizer: torch.optim.Optimizer = None):
+                 scheduler=None, optimizer: torch.optim.Optimizer = None, clip_value=float('inf')):
         """
 
         :param latent_dims: # latent dimensions
@@ -36,7 +36,7 @@ class DTCCA(DCCA):
         """
         super().__init__(latent_dims, objective=objectives.TCCA, encoders=encoders, learning_rate=learning_rate, r=r,
                          eps=eps,
-                         scheduler=scheduler, optimizer=optimizer)
+                         scheduler=scheduler, optimizer=optimizer, clip_value=clip_value)
 
     def post_transform(self, *z_list, train=False) -> Iterable[np.ndarray]:
         if train:

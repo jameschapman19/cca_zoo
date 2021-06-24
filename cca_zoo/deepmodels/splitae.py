@@ -20,7 +20,7 @@ class SplitAE(nn.Module, _DCCA_base):
 
     def __init__(self, latent_dims: int, encoder: BaseEncoder = Encoder,
                  decoders: Iterable[BaseDecoder] = [Decoder, Decoder], learning_rate=1e-3,
-                 scheduler=None, optimizer: torch.optim.Optimizer = None):
+                 scheduler=None, optimizer: torch.optim.Optimizer = None, clip_value=float('inf')):
         """
 
         :param latent_dims: # latent dimensions
@@ -38,7 +38,8 @@ class SplitAE(nn.Module, _DCCA_base):
             optimizer = torch.optim.Adam(self.parameters(),
                                          lr=learning_rate)
         self.scheduler = scheduler
-        _DCCA_base.__init__(self, latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler)
+        _DCCA_base.__init__(self, latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler,
+                            clip_value=clip_value)
 
     def forward(self, *args):
         z = self.encode(*args)
