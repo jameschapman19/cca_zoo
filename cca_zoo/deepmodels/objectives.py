@@ -5,12 +5,14 @@ from tensorly.decomposition import parafac
 
 
 def _minimal_regularisation(M, eps):
+    # calculate smallest ammount of regularisation that ensures smallest eigenvalue is eps
     M_smallest_eig = torch.relu(-torch.min(torch.real(torch.linalg.eigvals(M)))) + eps
     M = M + M_smallest_eig * torch.eye(M.shape[0], dtype=torch.double, device=M.device).float()
     return M
 
 
 def _compute_matrix_power(M, p):
+    #torch.linalg.eig can be unstable if eigenvalues are the same or are small https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
     U, V = torch.linalg.eig(M)
     M_p = torch.matmul(torch.matmul(torch.real(V), torch.diag(torch.pow(torch.real(U), p))), torch.real(V).t())
     return M_p

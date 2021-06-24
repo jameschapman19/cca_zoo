@@ -23,7 +23,7 @@ class DCCAE(nn.Module, _DCCA_base):
                  encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  decoders: Iterable[BaseDecoder] = [Decoder, Decoder], r: float = 1e-7, eps: float = 1e-7,
                  learning_rate=1e-3, lam=0.5,
-                 scheduler=None, optimizer: torch.optim.Optimizer = None):
+                 scheduler=None, optimizer: torch.optim.Optimizer = None, clip_value=float('inf')):
         """
         :param latent_dims: # latent dimensions
         :param objective: # CCA objective: normal tracenorm CCA by default
@@ -47,7 +47,8 @@ class DCCAE(nn.Module, _DCCA_base):
             # Wang W, Arora R, Livescu K, Bilmes J. On deep multi-view representation learning. InInternational conference on machine learning 2015 Jun 1 (pp. 1083-1092). PMLR.
             optimizer = torch.optim.SGD(self.parameters(), lr=learning_rate, weight_decay=1e-4)
         self.scheduler = scheduler
-        _DCCA_base.__init__(self, latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler)
+        _DCCA_base.__init__(self, latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler,
+                            clip_value=clip_value)
 
     def forward(self, *args):
         z = self.encode(*args)

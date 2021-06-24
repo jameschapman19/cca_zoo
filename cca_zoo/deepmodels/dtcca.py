@@ -1,5 +1,6 @@
 from typing import Iterable
 
+import numpy as np
 import torch
 
 from cca_zoo.deepmodels import objectives
@@ -37,7 +38,7 @@ class DTCCA(DCCA):
                          eps=eps,
                          scheduler=scheduler, optimizer=optimizer)
 
-    def post_transform(self, *z_list, train=False):
+    def post_transform(self, *z_list, train=False) -> Iterable[np.ndarray]:
         if train:
             self.cca = TCCA(latent_dims=self.latent_dims)
             self.cca.fit(*z_list)

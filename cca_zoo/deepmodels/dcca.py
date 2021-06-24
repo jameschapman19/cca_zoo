@@ -1,5 +1,6 @@
 from typing import Iterable
 
+import numpy as np
 import torch
 from torch import nn
 
@@ -59,7 +60,7 @@ class DCCA(nn.Module, _DCCA_base):
         z = self(*args)
         return self.objective.loss(*z)
 
-    def post_transform(self, *z_list, train=False):
+    def post_transform(self, *z_list, train=False) -> Iterable[np.ndarray]:
         if train:
             self.cca = MCCA(latent_dims=self.latent_dims)
             self.cca.fit(*z_list)

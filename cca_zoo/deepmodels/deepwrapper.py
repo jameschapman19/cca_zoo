@@ -31,43 +31,35 @@ class DeepWrapper(_CCA_Base):
 
     def fit(self, train_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
             val_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]] = None, train_labels=None,
-            val_labels=None, val_split: float = 0.2,
+            val_labels=None, val_split: float = 0,
             batch_size: int = 0, val_batch_size: int = 0,
             patience: int = 0, epochs: int = 1,
             train_correlations: bool = True):
         """
 
         :param train_dataset: either tuple of 2d numpy arrays (one for each view) or torch dataset
-        :param val_dataset: either tuple of 2d numpy arrays (one for each view) or torch dataset
+        :param val_dataset: either tuple of 2d numpy arrays (one for each view), torch dataset or None
         :param train_labels:
         :param val_labels:
-        :param val_split: the ammount of data used for validation
+        :param val_split: if val_dataset is None,
         :param batch_size: the minibatch size
         :param patience: if 0 train to num_epochs, else if validation score doesn't improve after patience epochs stop training
         :param epochs: maximum number of epochs to train
         :param train_correlations: if True generate training correlations
         :return:
         """
-        if isinstance(train_dataset[0], np.ndarray):
-            train_dataset = cca_zoo.data.CCA_Dataset(*train_dataset, labels=train_labels)
-        if val_dataset is None:
-            lengths = [len(train_dataset) - int(len(train_dataset) * val_split), int(len(train_dataset) * val_split)]
-            train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, lengths)
-        elif isinstance(val_dataset[0], np.ndarray):
-            val_dataset = cca_zoo.data.CCA_Dataset(*val_dataset, labels=val_labels)
+        train_dataset, val_dataset = self.process_data(train_dataset, val_dataset, train_labels, val_labels, val_split)
 
         if batch_size == 0:
             train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset))
         else:
             train_dataloader = DataLoader(train_dataset, batch_size=batch_size, drop_last=True)
-        if val_batch_size == 0:
-            val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
-        else:
-            val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, drop_last=True)
+        if val_dataset:
+            if val_batch_size == 0:
+                val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
+            else:
+                val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, drop_last=True)
 
-        # First we get the model class.
-        # These have a forward method which takes data inputs and outputs the variables needed to calculate their
-        # respective loss.
         num_params = sum(p.numel() for p in self.model.parameters())
         print('total parameters: ', num_params)
         best_model = copy.deepcopy(self.model.state_dict())
@@ -79,36 +71,39 @@ class DeepWrapper(_CCA_Base):
 
         for epoch in range(1, epochs + 1):
             if not early_stop:
+                # Train
                 epoch_train_loss = self.train_epoch(train_dataloader)
                 print('====> Epoch: {} Average train loss: {:.4f}'.format(
                     epoch, epoch_train_loss))
-                epoch_val_loss = self.val_epoch(val_dataloader)
-                print('====> Epoch: {} Average val loss: {:.4f}'.format(
-                    epoch, epoch_val_loss))
-                if epoch_val_loss < min_val_loss or epoch == 1:
-                    min_val_loss = epoch_val_loss
-                    best_model = copy.deepcopy(self.model.state_dict())
-                    print('Min loss %0.2f' % min_val_loss)
-                    epochs_no_improve = 0
+                if self.tensorboard:
+                    self.writer.add_scalar('Loss/train', epoch_train_loss, epoch)
+                # Val
+                if val_dataset:
+                    epoch_val_loss = self.val_epoch(val_dataloader)
+                    if self.tensorboard:
+                        self.writer.add_scalar('Loss/test', epoch_val_loss, epoch)
+                    print('====> Epoch: {} Average val loss: {:.4f}'.format(
+                        epoch, epoch_val_loss))
+                    if epoch_val_loss < min_val_loss or epoch == 1:
+                        min_val_loss = epoch_val_loss
+                        best_model = copy.deepcopy(self.model.state_dict())
+                        print('Min loss %0.2f' % min_val_loss)
+                        epochs_no_improve = 0
+                    else:
+                        epochs_no_improve += 1
+                        # Check early stopping condition
+                        if epochs_no_improve == patience and patience > 0:
+                            print('Early stopping!')
+                            early_stop = True
+                            self.model.load_state_dict(best_model)
+                # Scheduler step
                 if self.model.scheduler:
                     try:
                         self.model.scheduler.step()
                     except:
                         self.model.scheduler.step(epoch_train_loss)
-                else:
-                    epochs_no_improve += 1
-                    # Check early stopping condition
-                    if epochs_no_improve == patience and patience > 0:
-                        print('Early stopping!')
-                        early_stop = True
-                        self.model.load_state_dict(best_model)
-
-                if self.tensorboard:
-                    self.writer.add_scalar('Loss/train', epoch_train_loss, epoch)
-                    self.writer.add_scalar('Loss/test', epoch_val_loss, epoch)
         if self.tensorboard:
             self.writer.close()
-
         if train_correlations:
             self.train_correlations = self.predict_corr(train_dataset, train=True)
         return self
@@ -143,12 +138,11 @@ class DeepWrapper(_CCA_Base):
             total_val_loss += loss.item()
         return total_val_loss / len(val_dataloader)
 
-    def predict_corr(self, test_dataset, train: bool = False, batch_size: int = 0):
+    def predict_corr(self, test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], train: bool = False,
+                     batch_size: int = 0):
         """
         :param views: EITHER numpy arrays separated by comma. Each view needs to have the same number of features as its
-         corresponding view in the training data
-                        OR torch.torch.utils.data.Dataset
-                        OR 2 or more torch.utils.data.Subset separated by commas
+         corresponding view in the training dataOR torch.torch.utils.data.Dataset
         :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
         """
         transformed_views = self.transform(test_dataset, train=train, batch_size=batch_size)
@@ -159,9 +153,9 @@ class DeepWrapper(_CCA_Base):
             (len(transformed_views), len(transformed_views), -1))
         return all_corrs
 
-    def transform(self, test_dataset, labels=None, train: bool = False, batch_size: int = 0):
-        if type(test_dataset[0]) is np.ndarray:
-            test_dataset = cca_zoo.data.CCA_Dataset(*test_dataset, labels=labels)
+    def transform(self, test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], test_labels=None,
+                  train: bool = False, batch_size: int = 0):
+        test_dataset = self.process_data(test_dataset, labels=test_labels)[0]
         if batch_size > 0:
             test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
         else:
@@ -178,9 +172,8 @@ class DeepWrapper(_CCA_Base):
         z_list = self.model.post_transform(*z_list, train=train)
         return z_list
 
-    def predict_view(self, test_dataset, labels=None):
-        if type(test_dataset[0]) is np.ndarray:
-            test_dataset = cca_zoo.data.CCA_Dataset(*test_dataset, labels=labels)
+    def predict_view(self, test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], test_labels=None):
+        test_dataset = self.process_data(test_dataset, labels=test_labels)[0]
         test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
         with torch.no_grad():
             for batch_idx, (data, label) in enumerate(test_dataloader):
@@ -192,3 +185,16 @@ class DeepWrapper(_CCA_Base):
                     x_list = [np.append(x_list[i], x_i.detach().cpu().numpy(), axis=0) for
                               i, x_i in enumerate(x)]
         return x_list
+
+    def process_data(self, dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
+                     val_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]] = None, labels=None,
+                     val_labels=None, val_split: float = 0):
+        # Ensure datasets are in the right form (e.g. if numpy arrays are passed turn them into
+        if isinstance(dataset, tuple):
+            dataset = cca_zoo.data.CCA_Dataset(*dataset, labels=labels)
+        if val_dataset is None and val_split > 0:
+            lengths = [len(dataset) - int(len(dataset) * val_split), int(len(dataset) * val_split)]
+            dataset, val_dataset = torch.utils.data.random_split(dataset, lengths)
+        elif isinstance(val_dataset, tuple):
+            val_dataset = cca_zoo.data.CCA_Dataset(*val_dataset, labels=val_labels)
+        return dataset, val_dataset

@@ -1,5 +1,7 @@
+from typing import Iterable
 from typing import List
 
+import numpy as np
 import torch
 
 from cca_zoo.deepmodels import objectives
@@ -77,7 +79,7 @@ class DCCA_NOI(DCCA):
         else:
             self.covs = batch_covs
 
-    def post_transform(self, *z_list, train=False):
+    def post_transform(self, *z_list, train=False) -> Iterable[np.ndarray]:
         if train:
             self.cca = MCCA(latent_dims=self.latent_dims)
             self.cca.fit(*z_list)
