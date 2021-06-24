@@ -18,7 +18,19 @@ class DeepWrapper(_CCA_Base):
     customise the training loop. By inheriting _CCA_Base, the DeepWrapper class gives access to fit_transform.
     """
 
-    def __init__(self, model: _DCCA_base, device: str = 'cuda', tensorboard: bool = False, tensorboard_tag: str = ''):
+    def __init__(self, model: _DCCA_base, device: str = 'cuda', tensorboard: bool = False, tensorboard_tag: str = '',
+                 optimizer: torch.optim.Optimizer = None, scheduler=None, lr=1e-3, clip_value=float('inf')):
+        """
+
+        :param model: a
+        :param device:
+        :param tensorboard:
+        :param tensorboard_tag:
+        :param optimizer:
+        :param scheduler:
+        :param lr:
+        :param clip_value:
+        """
         super().__init__(latent_dims=model.latent_dims)
         self.model = model
         self.device = device
@@ -28,6 +40,11 @@ class DeepWrapper(_CCA_Base):
         self.tensorboard = tensorboard
         if tensorboard:
             self.writer = SummaryWriter(tensorboard_tag)
+        if optimizer is None:
+            # Andrew G, Arora R, Bilmes J, Livescu K. Deep canonical correlation analysis. InInternational conference on machine learning 2013 May 26 (pp. 1247-1255). PMLR.
+            self.optimizer = torch.optim.LBFGS(self.model.parameters(), lr=lr)
+        self.scheduler = scheduler
+        self.clip_value = clip_value
 
     def fit(self, train_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
             val_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]] = None, train_labels=None,
@@ -121,6 +138,33 @@ class DeepWrapper(_CCA_Base):
             loss = self.model.update_weights(*data)
             train_loss += loss.item()
         return train_loss / len(train_dataloader)
+
+    def update_weights(self, *args):
+        """
+        A complete update of the weights used every batch
+        :param args: batches for each view separated by commas
+        :return:
+        """
+        if type(self.optimizer) == torch.optim.LBFGS:
+            def closure():
+                """
+                Required by LBFGS optimizer
+                """
+                self.optimizer.zero_grad()
+                loss = self.model.loss(*args)
+                loss.backward()
+                return loss
+
+            torch.nn.utils.clip_grad_value_(self.model.parameters(), clip_value=self.clip_value)
+            self.optimizer.step(closure)
+            loss = closure()
+        else:
+            self.optimizer.zero_grad()
+            loss = self.model.loss(*args)
+            loss.backward()
+            torch.nn.utils.clip_grad_value_(self.model.parameters(), clip_value=self.clip_value)
+            self.optimizer.step()
+        return loss
 
     def val_epoch(self, val_dataloader: torch.utils.data.DataLoader):
         """

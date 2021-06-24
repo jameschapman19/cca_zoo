@@ -1,7 +1,6 @@
 from typing import Iterable
 
 import numpy as np
-import torch
 
 from cca_zoo.deepmodels import objectives
 from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
@@ -22,21 +21,16 @@ class DTCCA(DCCA):
     """
 
     def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
-                 learning_rate=1e-3, r: float = 1e-7, eps: float = 1e-7,
-                 scheduler=None, optimizer: torch.optim.Optimizer = None, clip_value=float('inf')):
+                 r: float = 1e-7, eps: float = 1e-7):
         """
 
         :param latent_dims: # latent dimensions
         :param encoders: list of encoder networks
-        :param learning_rate: learning rate if no optimizer passed
         :param r: regularisation parameter of tracenorm CCA like ridge CCA. Needs to be VERY SMALL. If you get errors make this smaller
         :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
-        :param scheduler: scheduler associated with optimizer
-        :param optimizer: pytorch optimizer
         """
-        super().__init__(latent_dims, objective=objectives.TCCA, encoders=encoders, learning_rate=learning_rate, r=r,
-                         eps=eps,
-                         scheduler=scheduler, optimizer=optimizer, clip_value=clip_value)
+        super().__init__(latent_dims=latent_dims, objective=objectives.TCCA, encoders=encoders, r=r,
+                         eps=eps)
 
     def post_transform(self, *z_list, train=False) -> Iterable[np.ndarray]:
         if train:
