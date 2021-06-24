@@ -8,8 +8,9 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 import cca_zoo.utils.plot_utils
-from cca_zoo.deepmodels.dcca import _DCCA_base
+from cca_zoo.deepmodels import _DCCA_base, DCCA, DCCAE
 from cca_zoo.models import _CCA_Base
+from ..utils.check_values import _check_batch_size
 
 
 class DeepWrapper(_CCA_Base):
@@ -18,7 +19,19 @@ class DeepWrapper(_CCA_Base):
     customise the training loop. By inheriting _CCA_Base, the DeepWrapper class gives access to fit_transform.
     """
 
-    def __init__(self, model: _DCCA_base, device: str = 'cuda', tensorboard: bool = False, tensorboard_tag: str = ''):
+    def __init__(self, model: _DCCA_base, device: str = 'cuda', tensorboard: bool = False, tensorboard_tag: str = '',
+                 optimizer: torch.optim.Optimizer = None, scheduler=None, lr=1e-3, clip_value=float('inf')):
+        """
+
+        :param model: An instance of a model
+        :param device: device to train on
+        :param tensorboard: whether to use tensorboard to record training
+        :param tensorboard_tag: tag used by tensorboard
+        :param optimizer: optimizer used to update model parameters each iteration
+        :param scheduler: scheduler used to update the optimizer e.g. learning rate decay
+        :param lr: learning rate if not specified in the optimizer
+        :param clip_value:
+        """
         super().__init__(latent_dims=model.latent_dims)
         self.model = model
         self.device = device
@@ -28,6 +41,18 @@ class DeepWrapper(_CCA_Base):
         self.tensorboard = tensorboard
         if tensorboard:
             self.writer = SummaryWriter(tensorboard_tag)
+        self.optimizer = optimizer
+        if optimizer is None:
+            if isinstance(self.model, DCCA):
+                # Andrew G, Arora R, Bilmes J, Livescu K. Deep canonical correlation analysis. InInternational conference on machine learning 2013 May 26 (pp. 1247-1255). PMLR.
+                self.optimizer = torch.optim.LBFGS(self.model.parameters(), lr=lr)
+            elif isinstance(self.model, DCCAE):
+                # Wang W, Arora R, Livescu K, Bilmes J. On deep multi-view representation learning. InInternational conference on machine learning 2015 Jun 1 (pp. 1083-1092). PMLR.
+                self.optimizer = torch.optim.SGD(self.model.parameters(), lr=lr, weight_decay=1e-4)
+            else:
+                self.optimizer = torch.optim.SGD(self.model.parameters(), lr=lr)
+        self.scheduler = scheduler
+        self.clip_value = clip_value
 
     def fit(self, train_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
             val_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]] = None, train_labels=None,
@@ -49,22 +74,11 @@ class DeepWrapper(_CCA_Base):
         :return:
         """
         train_dataset, val_dataset = self.process_data(train_dataset, val_dataset, train_labels, val_labels, val_split)
-
-        if batch_size == 0:
-            train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset))
-        else:
-            train_dataloader = DataLoader(train_dataset, batch_size=batch_size, drop_last=True)
-        if val_dataset:
-            if val_batch_size == 0:
-                val_dataloader = DataLoader(val_dataset, batch_size=len(val_dataset))
-            else:
-                val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, drop_last=True)
-
+        train_dataloader, val_dataloader = self.get_dataloaders(train_dataset, batch_size, val_dataset, val_batch_size)
         num_params = sum(p.numel() for p in self.model.parameters())
         print('total parameters: ', num_params)
         best_model = copy.deepcopy(self.model.state_dict())
         self.model.float().to(self.device)
-
         min_val_loss = torch.tensor(np.inf)
         epochs_no_improve = 0
         early_stop = False
@@ -97,11 +111,11 @@ class DeepWrapper(_CCA_Base):
                             early_stop = True
                             self.model.load_state_dict(best_model)
                 # Scheduler step
-                if self.model.scheduler:
+                if self.scheduler:
                     try:
-                        self.model.scheduler.step()
+                        self.scheduler.step()
                     except:
-                        self.model.scheduler.step(epoch_train_loss)
+                        self.scheduler.step(epoch_train_loss)
         if self.tensorboard:
             self.writer.close()
         if train_correlations:
@@ -118,9 +132,36 @@ class DeepWrapper(_CCA_Base):
         train_loss = 0
         for batch_idx, (data, label) in enumerate(train_dataloader):
             data = [d.float().to(self.device) for d in list(data)]
-            loss = self.model.update_weights(*data)
+            loss = self.update_weights(*data)
             train_loss += loss.item()
         return train_loss / len(train_dataloader)
+
+    def update_weights(self, *args):
+        """
+        A complete update of the weights used every batch
+        :param args: batches for each view separated by commas
+        :return:
+        """
+        if type(self.optimizer) == torch.optim.LBFGS:
+            def closure():
+                """
+                Required by LBFGS optimizer
+                """
+                self.optimizer.zero_grad()
+                loss = self.model.loss(*args)
+                loss.backward()
+                return loss
+
+            torch.nn.utils.clip_grad_value_(self.model.parameters(), clip_value=self.clip_value)
+            self.optimizer.step(closure)
+            loss = closure()
+        else:
+            self.optimizer.zero_grad()
+            loss = self.model.loss(*args)
+            loss.backward()
+            torch.nn.utils.clip_grad_value_(self.model.parameters(), clip_value=self.clip_value)
+            self.optimizer.step()
+        return loss
 
     def val_epoch(self, val_dataloader: torch.utils.data.DataLoader):
         """
@@ -198,3 +239,16 @@ class DeepWrapper(_CCA_Base):
         elif isinstance(val_dataset, tuple):
             val_dataset = cca_zoo.data.CCA_Dataset(*val_dataset, labels=val_labels)
         return dataset, val_dataset
+
+    def get_dataloaders(self, dataset, batch_size, val_dataset=None, val_batch_size=None):
+        if batch_size == 0:
+            batch_size = len(dataset)
+        train_dataloader = DataLoader(dataset, batch_size=batch_size, drop_last=True)
+        _check_batch_size(batch_size, self.latent_dims)
+        if val_dataset:
+            if val_batch_size == 0:
+                val_batch_size = len(val_dataset)
+            val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, drop_last=True)
+            _check_batch_size(batch_size, self.latent_dims)
+            return train_dataloader, val_dataloader
+        return train_dataloader, None

@@ -22,8 +22,7 @@ class DCCA_NOI(DCCA):
 
     def __init__(self, latent_dims: int, N: int, objective=objectives.MCCA,
                  encoders: List[BaseEncoder] = [Encoder, Encoder],
-                 learning_rate=1e-3, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-3, shared_target: bool = False,
-                 scheduler=None, optimizer: torch.optim.Optimizer = None, clip_value=float('inf')):
+                 r: float = 1e-3, rho: float = 0.2, eps: float = 1e-3, shared_target: bool = False):
         """
         Constructor class for DCCA
 
@@ -31,16 +30,13 @@ class DCCA_NOI(DCCA):
         :param N: # samples used to estimate covariance
         :param objective: # CCA objective: normal tracenorm CCA by default
         :param encoders: list of encoder networks
-        :param learning_rate: learning rate if no optimizer passed
         :param r: regularisation parameter of tracenorm CCA like ridge CCA
         :param rho: covariance memory like DCCA non-linear orthogonal iterations paper
         :param eps: epsilon used throughout
         :param shared_target: not used
-        :param scheduler: scheduler associated with optimizer
-        :param optimizer: pytorch optimizer
         """
-        super().__init__(latent_dims=latent_dims, objective=objective, encoders=encoders, learning_rate=learning_rate,
-                         r=r, eps=eps, scheduler=scheduler, optimizer=optimizer, clip_value=clip_value)
+        super().__init__(latent_dims=latent_dims, objective=objective, encoders=encoders,
+                         r=r, eps=eps)
         self.N = N
         self.covs = None
         if rho < 0 or rho > 1:

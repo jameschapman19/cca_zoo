@@ -101,12 +101,12 @@ class TestDeepModels(TestCase):
         encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         # DCCA
-        optimizer = optim.Adam(list(encoder_1.parameters()) + list(encoder_2.parameters()), lr=1e-4)
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, 1)
         dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
-                          objective=objectives.CCA, optimizer=optimizer, scheduler=scheduler)
+                          objective=objectives.CCA)
+        optimizer = optim.Adam(dcca_model.parameters(), lr=1e-4)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, 1)
         # hidden_layer_sizes are shown explicitly but these are also the defaults
-        dcca_model = DeepWrapper(dcca_model, device=device)
+        dcca_model = DeepWrapper(dcca_model, device=device, optimizer=optimizer, scheduler=scheduler)
         dcca_model.fit((self.X, self.Y), epochs=20)
 
     def test_DGCCA_methods_cpu(self):
