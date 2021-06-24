@@ -40,17 +40,6 @@ class DVCCA(_DCCA_base):
         if optimizer is None:
             self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
-    def update_weights(self, *args):
-        """
-        :param args:
-        :return:
-        """
-        self.optimizer.zero_grad()
-        loss = self.loss(*args)
-        loss.backward()
-        self.optimizer.step()
-        return loss
-
     def forward(self, *args, mle=True):
         """
         :param args:

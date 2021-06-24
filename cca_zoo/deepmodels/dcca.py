@@ -8,7 +8,7 @@ from cca_zoo.models import MCCA
 from ._dcca_base import _DCCA_base
 
 
-class DCCA(_DCCA_base, torch.nn.Module):
+class DCCA(_DCCA_base):
     """
     A class used to fit a DCCA model.
 
@@ -35,8 +35,6 @@ class DCCA(_DCCA_base, torch.nn.Module):
         :param scheduler: scheduler associated with optimizer
         :param optimizer: pytorch optimizer
         """
-        super().__init__(latent_dims)
-        self.latent_dims = latent_dims
         self.encoders = torch.nn.ModuleList(encoders)
         self.objective = objective(latent_dims, r=r, eps=eps)
         if optimizer is None:
@@ -45,26 +43,7 @@ class DCCA(_DCCA_base, torch.nn.Module):
         else:
             self.optimizer = optimizer
         self.scheduler = scheduler
-        self.eps = eps
-
-    def update_weights(self, *args):
-        if type(self.optimizer) == torch.optim.LBFGS:
-            def closure():
-                self.optimizer.zero_grad()
-                z = self(*args)
-                loss = self.objective.loss(*z)
-                loss.backward()
-                return loss
-
-            self.optimizer.step(closure)
-            loss = closure()
-        else:
-            self.optimizer.zero_grad()
-            z = self(*args)
-            loss = self.objective.loss(*z)
-            loss.backward()
-            self.optimizer.step()
-        return loss
+        super().__init__(latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler)
 
     def forward(self, *args):
         z = self.encode(*args)

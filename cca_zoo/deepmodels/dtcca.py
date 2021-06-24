@@ -8,7 +8,7 @@ from cca_zoo.deepmodels.dcca import DCCA
 from cca_zoo.models import TCCA
 
 
-class DTCCA(DCCA, torch.nn.Module):
+class DTCCA(DCCA):
     """
     A class used to fit a DTCCA model.
 

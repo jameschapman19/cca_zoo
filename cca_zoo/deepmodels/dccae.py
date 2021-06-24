@@ -49,13 +49,6 @@ class DCCAE(_DCCA_base):
             self.optimizer = optimizer
         self.scheduler = scheduler
 
-    def update_weights(self, *args):
-        self.optimizer.zero_grad()
-        loss = self.loss(*args)
-        loss.backward()
-        self.optimizer.step()
-        return loss
-
     def forward(self, *args):
         z = self.encode(*args)
         return z
