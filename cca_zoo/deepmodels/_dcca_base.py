@@ -3,7 +3,7 @@ from abc import abstractmethod
 import torch
 
 
-class _DCCA_base(torch.nn.Module):
+class _DCCA_base():
     def __init__(self, latent_dims: int, optimizer: torch.optim.Optimizer, scheduler=None):
         super(_DCCA_base, self).__init__()
         self.latent_dims = latent_dims

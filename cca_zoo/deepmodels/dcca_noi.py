@@ -37,15 +37,13 @@ class DCCA_NOI(DCCA):
         :param scheduler: scheduler associated with optimizer
         :param optimizer: pytorch optimizer
         """
-        if optimizer is None:
-            # Wang W, Arora R, Livescu K, Srebro N. Stochastic optimization for deep CCA via nonlinear orthogonal iterations. In2015 53rd Annual Allerton Conference on Communication, Control, and Computing (Allerton) 2015 Sep 30 (pp. 688-695). IEEE.
-            optimizer = torch.optim.SGD(self.parameters(), lr=learning_rate)
         super().__init__(latent_dims=latent_dims, objective=objective, encoders=encoders, learning_rate=learning_rate,
                          r=r, eps=eps, scheduler=scheduler, optimizer=optimizer)
         self.N = N
         self.covs = None
         if rho < 0 or rho > 1:
             raise ValueError(f"rho should be between 0 and 1. rho={rho}")
+        self.eps = eps
         self.rho = rho
         self.shared_target = shared_target
 

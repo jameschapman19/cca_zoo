@@ -1,6 +1,7 @@
 from typing import Iterable
 
 import torch
+from torch import nn
 from torch.nn import functional as F
 
 from cca_zoo.deepmodels import objectives
@@ -8,7 +9,7 @@ from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, BaseDecoder, 
 from cca_zoo.deepmodels.dcca import _DCCA_base
 
 
-class DCCAE(_DCCA_base):
+class DCCAE(nn.Module, _DCCA_base):
     """
     A class used to fit a DCCAE model.
 
@@ -35,7 +36,7 @@ class DCCAE(_DCCA_base):
         :param scheduler: scheduler associated with optimizer
         :param optimizer: pytorch optimizer
         """
-        super().__init__(latent_dims)
+        super(DCCAE, self).__init__()
         self.encoders = torch.nn.ModuleList(encoders)
         self.decoders = torch.nn.ModuleList(decoders)
         if lam < 0 or lam > 1:
@@ -44,10 +45,9 @@ class DCCAE(_DCCA_base):
         self.objective = objective(latent_dims, r=r, eps=eps)
         if optimizer is None:
             # Wang W, Arora R, Livescu K, Bilmes J. On deep multi-view representation learning. InInternational conference on machine learning 2015 Jun 1 (pp. 1083-1092). PMLR.
-            self.optimizer = torch.optim.SGD(self.parameters(), lr=learning_rate, weight_decay=1e-4)
-        else:
-            self.optimizer = optimizer
+            optimizer = torch.optim.SGD(self.parameters(), lr=learning_rate, weight_decay=1e-4)
         self.scheduler = scheduler
+        _DCCA_base.__init__(self, latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler)
 
     def forward(self, *args):
         z = self.encode(*args)

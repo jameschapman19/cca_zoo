@@ -2,12 +2,13 @@ from typing import Iterable
 
 import torch
 import torch.nn.functional as F
+from torch import nn
 
 from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, BaseDecoder, Decoder
 from cca_zoo.deepmodels.dcca import _DCCA_base
 
 
-class SplitAE(_DCCA_base):
+class SplitAE(nn.Module, _DCCA_base):
     """
     A class used to fit a Split Autoencoder model.
 
@@ -30,15 +31,14 @@ class SplitAE(_DCCA_base):
         :param optimizer: pytorch optimizer
 
         """
-        super().__init__(latent_dims)
+        super(SplitAE, self).__init__()
         self.encoder = encoder
         self.decoders = torch.nn.ModuleList(decoders)
         if optimizer is None:
-            self.optimizer = torch.optim.Adam(self.parameters(),
-                                              lr=learning_rate)
-        else:
-            self.optimizer = optimizer
+            optimizer = torch.optim.Adam(self.parameters(),
+                                         lr=learning_rate)
         self.scheduler = scheduler
+        _DCCA_base.__init__(self, latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler)
 
     def forward(self, *args):
         z = self.encode(*args)

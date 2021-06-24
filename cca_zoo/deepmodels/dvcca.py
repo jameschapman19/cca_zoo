@@ -2,13 +2,14 @@ from typing import Iterable
 
 import torch
 import torch.distributions as dist
+from torch import nn
 from torch.nn import functional as F
 
 from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, BaseDecoder, Decoder
 from cca_zoo.deepmodels.dcca import _DCCA_base
 
 
-class DVCCA(_DCCA_base):
+class DVCCA(nn.Module, _DCCA_base):
     """
     A class used to fit a DVCCA model.
 
@@ -19,7 +20,7 @@ class DVCCA(_DCCA_base):
 
     def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  decoders: Iterable[BaseDecoder] = [Decoder, Decoder],
-                 private_encoders: Iterable[BaseEncoder] = [Encoder, Encoder], learning_rate=1e-3,
+                 private_encoders: Iterable[BaseEncoder] = None, learning_rate=1e-3,
                  optimizer: torch.optim.Optimizer = None, scheduler=None):
         """
         :param latent_dims: # latent dimensions
@@ -30,15 +31,18 @@ class DVCCA(_DCCA_base):
         :param scheduler: scheduler associated with optimizer (allows scheduling through the DeepWrapper)
         :param optimizer: pytorch optimizer
         """
-        super().__init__(latent_dims)
+        super(DVCCA, self).__init__()
         self.latent_dims = latent_dims
         self.encoders = torch.nn.ModuleList(encoders)
         self.decoders = torch.nn.ModuleList(decoders)
-        if self.private_encoders:
+        if private_encoders:
             self.private_encoders = torch.nn.ModuleList(private_encoders)
+        else:
+            self.private_encoders = None
         self.scheduler = scheduler
         if optimizer is None:
-            self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
+            optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
+        _DCCA_base.__init__(self, latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler)
 
     def forward(self, *args, mle=True):
         """

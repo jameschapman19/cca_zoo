@@ -1,6 +1,7 @@
 from typing import Iterable
 
 import torch
+from torch import nn
 
 from cca_zoo.deepmodels import objectives
 from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
@@ -8,7 +9,7 @@ from cca_zoo.models import MCCA
 from ._dcca_base import _DCCA_base
 
 
-class DCCA(_DCCA_base):
+class DCCA(nn.Module, _DCCA_base):
     """
     A class used to fit a DCCA model.
 
@@ -35,15 +36,14 @@ class DCCA(_DCCA_base):
         :param scheduler: scheduler associated with optimizer
         :param optimizer: pytorch optimizer
         """
+        super(DCCA, self).__init__()
         self.encoders = torch.nn.ModuleList(encoders)
         self.objective = objective(latent_dims, r=r, eps=eps)
         if optimizer is None:
             # Andrew G, Arora R, Bilmes J, Livescu K. Deep canonical correlation analysis. InInternational conference on machine learning 2013 May 26 (pp. 1247-1255). PMLR.
-            self.optimizer = torch.optim.LBFGS(self.parameters(), lr=learning_rate)
-        else:
-            self.optimizer = optimizer
+            optimizer = torch.optim.LBFGS(self.parameters(), lr=learning_rate)
         self.scheduler = scheduler
-        super().__init__(latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler)
+        _DCCA_base.__init__(self, latent_dims=latent_dims, optimizer=optimizer, scheduler=scheduler)
 
     def forward(self, *args):
         z = self.encode(*args)

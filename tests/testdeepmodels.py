@@ -93,7 +93,6 @@ class TestDeepModels(TestCase):
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dcca_model = DeepWrapper(dcca_model, device=device)
         dcca_model.fit((self.X, self.Y), epochs=20)
-        print('here')
 
     def test_scheduler(self):
         latent_dims = 2
@@ -191,7 +190,7 @@ class TestDeepModels(TestCase):
         decoder_1 = architectures.Decoder(latent_dims=2 * latent_dims, feature_size=10, norm_output=True)
         decoder_2 = architectures.Decoder(latent_dims=2 * latent_dims, feature_size=10, norm_output=True)
         # DVCCA
-        dvcca_model = DVCCA(latent_dims=latent_dims, private=True, encoders=[encoder_1, encoder_2],
+        dvcca_model = DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                             decoders=[decoder_1, decoder_2],
                             private_encoders=[private_encoder_1, private_encoder_2])
         # hidden_layer_sizes are shown explicitly but these are also the defaults
