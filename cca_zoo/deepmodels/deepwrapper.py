@@ -251,4 +251,4 @@ class DeepWrapper(_CCA_Base):
             val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, drop_last=True)
             _check_batch_size(batch_size, self.latent_dims)
             return train_dataloader, val_dataloader
-        return train_dataloader
+        return train_dataloader, None
