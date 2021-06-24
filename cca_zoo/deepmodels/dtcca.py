@@ -20,7 +20,7 @@ class DTCCA(DCCA, torch.nn.Module):
 
     def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, r: float = 1e-7, eps: float = 1e-7,
-                 schedulers: Iterable = None, optimizers: Iterable = None):
+                 scheduler=None, optimizer: torch.optim.Optimizer = None):
         """
 
         :param latent_dims:
@@ -28,12 +28,12 @@ class DTCCA(DCCA, torch.nn.Module):
         :param learning_rate:
         :param r: regularisation parameter of tracenorm CCA like ridge CCA. Needs to be VERY SMALL. If you get errors make this smaller
         :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
-        :param schedulers:
-        :param optimizers:
+        :param scheduler: scheduler associated with optimizer
+        :param optimizer: pytorch optimizer
         """
         super().__init__(latent_dims, objective=objectives.TCCA, encoders=encoders, learning_rate=learning_rate, r=r,
                          eps=eps,
-                         schedulers=schedulers, optimizers=optimizers)
+                         scheduler=scheduler, optimizer=optimizer)
 
     def post_transform(self, *z_list, train=False):
         if train:

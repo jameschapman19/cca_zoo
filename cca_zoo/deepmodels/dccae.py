@@ -22,9 +22,8 @@ class DCCAE(_DCCA_base):
                  encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  decoders: Iterable[BaseDecoder] = [Decoder, Decoder], r: float = 1e-7, eps: float = 1e-7,
                  learning_rate=1e-3, lam=0.5,
-                 schedulers: Iterable = None, optimizers: Iterable = None):
+                 scheduler=None, optimizer: torch.optim.Optimizer = None):
         """
-
         :param latent_dims: # latent dimensions
         :param objective: # CCA objective: normal tracenorm CCA by default
         :param encoders: list of encoder networks
@@ -33,8 +32,8 @@ class DCCAE(_DCCA_base):
         :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
         :param learning_rate: learning rate if no optimizers passed
         :param lam: weight of reconstruction loss (1 minus weight of correlation loss)
-        :param schedulers: list of schedulers for each optimizer
-        :param optimizers: list of optimizers for each encoder/decoder pair
+        :param scheduler: scheduler associated with optimizer
+        :param optimizer: pytorch optimizer
         """
         super().__init__(latent_dims)
         self.encoders = torch.nn.ModuleList(encoders)
@@ -43,20 +42,18 @@ class DCCAE(_DCCA_base):
             raise ValueError(f"lam should be between 0 and 1. rho={lam}")
         self.lam = lam
         self.objective = objective(latent_dims, r=r, eps=eps)
-        if optimizers is None:
-            self.optimizers = [torch.optim.Adam(list(self.encoders.parameters()) + list(self.decoders.parameters()),
-                                                lr=learning_rate)]
+        if optimizer is None:
+            # Wang W, Arora R, Livescu K, Bilmes J. On deep multi-view representation learning. InInternational conference on machine learning 2015 Jun 1 (pp. 1083-1092). PMLR.
+            self.optimizer = torch.optim.SGD(self.parameters(), lr=learning_rate, weight_decay=1e-4)
         else:
-            self.optimizers = optimizers
-        self.schedulers = []
-        if schedulers:
-            self.schedulers.extend(schedulers)
+            self.optimizer = optimizer
+        self.scheduler = scheduler
 
     def update_weights(self, *args):
-        [optimizer.zero_grad() for optimizer in self.optimizers]
+        self.optimizer.zero_grad()
         loss = self.loss(*args)
         loss.backward()
-        [optimizer.step() for optimizer in self.optimizers]
+        self.optimizer.step()
         return loss
 
     def forward(self, *args):

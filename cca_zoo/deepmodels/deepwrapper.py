@@ -90,12 +90,11 @@ class DeepWrapper(_CCA_Base):
                     best_model = copy.deepcopy(self.model.state_dict())
                     print('Min loss %0.2f' % min_val_loss)
                     epochs_no_improve = 0
-                if any(self.model.schedulers):
-                    for scheduler in self.model.schedulers:
-                        try:
-                            scheduler.step()
-                        except:
-                            scheduler.step(epoch_train_loss)
+                if self.model.scheduler:
+                    try:
+                        self.model.scheduler.step()
+                    except:
+                        self.model.scheduler.step(epoch_train_loss)
                 else:
                     epochs_no_improve += 1
                     # Check early stopping condition

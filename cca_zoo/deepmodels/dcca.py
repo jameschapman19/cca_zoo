@@ -21,8 +21,8 @@ class DCCA(_DCCA_base, torch.nn.Module):
     def __init__(self, latent_dims: int, objective=objectives.CCA,
                  encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, r: float = 1e-7, eps: float = 1e-7,
-                 schedulers: Iterable = None,
-                 optimizers: Iterable[torch.optim.Optimizer] = None):
+                 scheduler=None,
+                 optimizer: torch.optim.Optimizer = None):
         """
         Constructor class for DCCA
 
@@ -32,29 +32,38 @@ class DCCA(_DCCA_base, torch.nn.Module):
         :param learning_rate: learning rate if no optimizers passed
         :param r: regularisation parameter of tracenorm CCA like ridge CCA. Needs to be VERY SMALL. If you get errors make this smaller
         :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
-        :param schedulers: list of schedulers for each optimizer
-        :param optimizers: list of optimizers for each encoder
+        :param scheduler: scheduler associated with optimizer
+        :param optimizer: pytorch optimizer
         """
         super().__init__(latent_dims)
         self.latent_dims = latent_dims
         self.encoders = torch.nn.ModuleList(encoders)
         self.objective = objective(latent_dims, r=r, eps=eps)
-        if optimizers is None:
-            self.optimizers = [torch.optim.Adam(list(encoder.parameters()), lr=learning_rate) for encoder in
-                               self.encoders]
+        if optimizer is None:
+            # Andrew G, Arora R, Bilmes J, Livescu K. Deep canonical correlation analysis. InInternational conference on machine learning 2013 May 26 (pp. 1247-1255). PMLR.
+            self.optimizer = torch.optim.LBFGS(self.parameters(), lr=learning_rate)
         else:
-            self.optimizers = optimizers
-        self.schedulers = []
-        if schedulers:
-            self.schedulers.extend(schedulers)
+            self.optimizer = optimizer
+        self.scheduler = scheduler
         self.eps = eps
 
     def update_weights(self, *args):
-        [optimizer.zero_grad() for optimizer in self.optimizers]
-        z = self(*args)
-        loss = self.objective.loss(*z)
-        loss.backward()
-        [optimizer.step() for optimizer in self.optimizers]
+        if type(self.optimizer) == torch.optim.LBFGS:
+            def closure():
+                self.optimizer.zero_grad()
+                z = self(*args)
+                loss = self.objective.loss(*z)
+                loss.backward()
+                return loss
+
+            self.optimizer.step(closure)
+            loss = closure()
+        else:
+            self.optimizer.zero_grad()
+            z = self(*args)
+            loss = self.objective.loss(*z)
+            loss.backward()
+            self.optimizer.step()
         return loss
 
     def forward(self, *args):

@@ -20,49 +20,37 @@ class DVCCA(_DCCA_base):
     def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  decoders: Iterable[BaseDecoder] = [Decoder, Decoder],
                  private_encoders: Iterable[BaseEncoder] = [Encoder, Encoder], learning_rate=1e-3, private=False,
-                 mu=0.5, encoder_optimizers=None, decoder_optimizers=None,
-                 private_encoder_optimizers=None,
-                 encoder_schedulers=None, decoder_schedulers=None, private_encoder_schedulers=None):
+                 optimizer: torch.optim.Optimizer = None, scheduler=None):
+        """
+        :param latent_dims:
+        :param encoders:
+        :param decoders:
+        :param private_encoders:
+        :param learning_rate:
+        :param private:
+        :param scheduler: scheduler associated with optimizer (allows scheduling through the DeepWrapper)
+        :param optimizer: pytorch optimizer
+        """
         super().__init__(latent_dims)
         self.private = private
-        self.mu = mu
         self.latent_dims = latent_dims
         self.encoders = torch.nn.ModuleList(encoders)
         self.decoders = torch.nn.ModuleList(decoders)
-        self.schedulers = []
-        if encoder_schedulers:
-            self.schedulers.extend(encoder_schedulers)
-        if decoder_schedulers:
-            self.schedulers.extend(decoder_schedulers)
-        self.encoder_optimizers = encoder_optimizers
-        if self.encoder_optimizers is None:
-            self.encoder_optimizers = torch.optim.Adam(self.encoders.parameters(), lr=learning_rate)
-        self.decoder_optimizers = decoder_optimizers
-        if self.decoder_optimizers is None:
-            self.decoder_optimizers = torch.optim.Adam(self.decoders.parameters(), lr=learning_rate)
         if private:
             self.private_encoders = torch.nn.ModuleList(private_encoders)
-            self.private_encoder_optimizers = private_encoder_optimizers
-            if self.private_encoder_optimizers is None:
-                self.private_encoder_optimizers = torch.optim.Adam(self.private_encoders.parameters(), lr=learning_rate)
-            if private_encoder_schedulers:
-                self.schedulers.extend(private_encoder_schedulers)
+        self.scheduler = scheduler
+        if optimizer is None:
+            self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
     def update_weights(self, *args):
         """
         :param args:
         :return:
         """
-        self.encoder_optimizers.zero_grad()
-        self.decoder_optimizers.zero_grad()
-        if self.private:
-            self.private_encoder_optimizers.zero_grad()
+        self.optimizer.zero_grad()
         loss = self.loss(*args)
         loss.backward()
-        self.encoder_optimizers.step()
-        self.decoder_optimizers.step()
-        if self.private:
-            self.private_encoder_optimizers.step()
+        self.optimizer.step()
         return loss
 
     def forward(self, *args, mle=True):

@@ -21,7 +21,7 @@ class DCCA_NOI(DCCA, torch.nn.Module):
     def __init__(self, latent_dims: int, N: int, objective=objectives.MCCA,
                  encoders: List[BaseEncoder] = [Encoder, Encoder],
                  learning_rate=1e-3, r: float = 1e-3, rho: float = 0.2, eps: float = 1e-3, shared_target: bool = False,
-                 schedulers: List = None, optimizers: List[torch.optim.Optimizer] = None):
+                 scheduler=None, optimizer: torch.optim.Optimizer = None):
         """
         Constructor class for DCCA
 
@@ -34,23 +34,21 @@ class DCCA_NOI(DCCA, torch.nn.Module):
         :param rho: covariance memory like DCCA non-linear orthogonal iterations paper
         :param eps: epsilon used throughout
         :param shared_target: not used
-        :param schedulers: list of schedulers for each optimizer
-        :param optimizers: list of optimizers for each encoder
+        :param scheduler: scheduler associated with optimizer
+        :param optimizer: pytorch optimizer
         """
         super().__init__(latent_dims=latent_dims, objective=objective, encoders=encoders, learning_rate=learning_rate,
-                         r=r, eps=eps, schedulers=schedulers, optimizers=optimizers)
+                         r=r, eps=eps, scheduler=scheduler, optimizer=optimizer)
         self.latent_dims = latent_dims
         self.N = N
         self.encoders = torch.nn.ModuleList(encoders)
         self.objective = objective(latent_dims, r=r, eps=eps)
-        if optimizers is None:
-            self.optimizers = [torch.optim.Adam(list(encoder.parameters()), lr=learning_rate) for encoder in
-                               self.encoders]
+        if optimizer is None:
+            # Wang W, Arora R, Livescu K, Srebro N. Stochastic optimization for deep CCA via nonlinear orthogonal iterations. In2015 53rd Annual Allerton Conference on Communication, Control, and Computing (Allerton) 2015 Sep 30 (pp. 688-695). IEEE.
+            self.optimizer = torch.optim.SGD(self.parameters(), lr=learning_rate)
         else:
-            self.optimizers = optimizers
-        self.schedulers = []
-        if schedulers:
-            self.schedulers.extend(schedulers)
+            self.optimizers = optimizer
+        self.scheduler = scheduler
         self.covs = None
         self.eps = eps
         if rho < 0 or rho > 1:
@@ -65,13 +63,11 @@ class DCCA_NOI(DCCA, torch.nn.Module):
                           cov in self.covs]
         preds = [torch.matmul(z, covariance_inv[i]).detach() for i, z in enumerate(z)]
         losses = [torch.mean(torch.norm(z_i - preds[-i], dim=0)) for i, z_i in enumerate(z, start=1)]
+        losses = torch.sum(torch.stack(losses))
+        self.optimizer.zero_grad()
+        losses.backward()
+        self.optimizer.step()
         obj = self.objective.loss(*z)
-        self.optimizers[0].zero_grad()
-        losses[0].backward()
-        self.optimizers[0].step()
-        self.optimizers[1].zero_grad()
-        losses[1].backward()
-        self.optimizers[1].step()
         return obj
 
     def forward(self, *args):

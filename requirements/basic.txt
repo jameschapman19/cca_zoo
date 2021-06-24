@@ -3,7 +3,6 @@ scikit-learn
 scipy>=1.5
 matplotlib
 seaborn
-Pillow
 pandas
 tensorly
 joblib
