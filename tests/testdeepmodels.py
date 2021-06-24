@@ -34,6 +34,7 @@ class TestDeepModels(TestCase):
         dcca_model.fit(self.train_dataset, epochs=3)
         dcca_model.fit(self.train_dataset, val_dataset=self.train_dataset, epochs=3)
         dcca_model.fit((self.X, self.Y), val_dataset=(self.X, self.Y), epochs=3)
+        dcca_model.fit((self.X, self.Y), val_split=0.2, epochs=3)
 
     def test_large_p(self):
         X = np.random.rand(2000, 2048)
