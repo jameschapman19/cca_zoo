@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Iterable
 
 import numpy as np
 from scipy.linalg import eigh
@@ -27,8 +27,8 @@ class GCCA(_CCA_Base):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: List[float] = None,
-                 view_weights: Tuple[float, ...] = None):
+                 c: Iterable[float] = None,
+                 view_weights: Iterable[float] = None):
         """
         Constructor for GCCA
 
@@ -81,7 +81,7 @@ class GCCA(_CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def transform(self, *views: np.ndarray, K=None, view_indices: List[int] = None, **kwargs):
+    def transform(self, *views: np.ndarray, K=None, view_indices: Iterable[int] = None, **kwargs):
         """
         Transforms data given a fit GCCA model
 

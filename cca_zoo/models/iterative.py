@@ -1,7 +1,7 @@
 import copy
 import warnings
 from abc import abstractmethod
-from typing import Union, List
+from typing import Union, Iterable
 
 import numpy as np
 
@@ -53,25 +53,25 @@ class _Iterative(_CCA_Base):
         train_views = self.centre_scale(*views)
         n = train_views[0].shape[0]
         p = [view.shape[1] for view in train_views]
-        # list of d: p x k
-        self.weights_list = [np.zeros((p_, self.latent_dims)) for p_ in p]
-        self.loading_list = [np.zeros((p_, self.latent_dims)) for p_ in p]
+        # Iterable of d: p x k
+        self.weights_Iterable = [np.zeros((p_, self.latent_dims)) for p_ in p]
+        self.loading_Iterable = [np.zeros((p_, self.latent_dims)) for p_ in p]
 
-        # list of d: n x k
-        self.score_list = [np.zeros((n, self.latent_dims)) for _ in train_views]
+        # Iterable of d: n x k
+        self.score_Iterable = [np.zeros((n, self.latent_dims)) for _ in train_views]
 
-        residuals = copy.deepcopy(list(train_views))
+        residuals = copy.deepcopy(Iterable(train_views))
 
         self.objective = []
         # For each of the dimensions
         for k in range(self.latent_dims):
             self.loop = self.loop.fit(*residuals)
             for i, residual in enumerate(residuals):
-                self.weights_list[i][:, k] = self.loop.weights[i]
-                self.score_list[i][:, k] = self.loop.scores[i]
-                self.loading_list[i][:, k] = np.dot(self.loop.scores[i], residual)
+                self.weights_Iterable[i][:, k] = self.loop.weights[i]
+                self.score_Iterable[i][:, k] = self.loop.scores[i]
+                self.loading_Iterable[i][:, k] = np.dot(self.loop.scores[i], residual)
                 # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
-                residuals[i] = self.deflate(residuals[i], self.score_list[i][:, k], self.weights_list[i][:, k])
+                residuals[i] = self.deflate(residuals[i], self.score_Iterable[i][:, k], self.weights_Iterable[i][:, k])
             self.objective.append(self.loop.track_objective)
         self.train_correlations = self.predict_corr(*views)
         return self
@@ -161,10 +161,10 @@ class ElasticCCA(_Iterative):
                  max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'unregularized', tol: float = 1e-9,
-                 c: Union[List[float], float] = None,
-                 l1_ratio: Union[List[float], float] = None,
+                 c: Union[Iterable[float], float] = None,
+                 l1_ratio: Union[Iterable[float], float] = None,
                  constrained: bool = False, stochastic=False,
-                 positive: Union[List[bool], bool] = None, random_state=None):
+                 positive: Union[Iterable[bool], bool] = None, random_state=None):
         """
         Constructor for ElasticCCA
 
@@ -225,7 +225,7 @@ class CCA_ALS(ElasticCCA):
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'random', tol: float = 1e-9, stochastic=True,
-                 positive: Union[List[bool], bool] = None, random_state=None):
+                 positive: Union[Iterable[bool], bool] = None, random_state=None):
         """
         Constructor for CCA_ALS
 
@@ -255,11 +255,11 @@ class SCCA(ElasticCCA):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True,
-                 c: Union[List[float], float] = None,
+                 c: Union[Iterable[float], float] = None,
                  max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False,
-                 positive: Union[List[bool], bool] = None, random_state=None):
+                 positive: Union[Iterable[bool], bool] = None, random_state=None):
         """
         Constructor for SCCA
 
@@ -288,10 +288,10 @@ class PMD(_Iterative):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: Union[List[float], float] = None,
+                 c: Union[Iterable[float], float] = None,
                  max_iter: int = 100,
                  generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9,
-                 positive: Union[List[bool], bool] = None):
+                 positive: Union[Iterable[bool], bool] = None):
         """
         Constructor for PMD
 
@@ -333,7 +333,7 @@ class ParkhomenkoCCA(_Iterative):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: Union[List[float], float] = None,
+                 c: Union[Iterable[float], float] = None,
                  max_iter: int = 100,
                  generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
         """
@@ -376,10 +376,10 @@ class SCCA_ADMM(_Iterative):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: Union[List[float], float] = None,
-                 mu: Union[List[float], float] = None,
-                 lam: Union[List[float], float] = None,
-                 eta: Union[List[float], float] = None,
+                 c: Union[Iterable[float], float] = None,
+                 mu: Union[Iterable[float], float] = None,
+                 lam: Union[Iterable[float], float] = None,
+                 eta: Union[Iterable[float], float] = None,
                  max_iter: int = 100,
                  generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
         """
@@ -422,8 +422,8 @@ class SpanCCA(_Iterative):
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'uniform', tol: float = 1e-9, regularisation='l0',
-                 c: Union[List[Union[float, int]], Union[float, int]] = None, rank=1,
-                 positive: Union[List[bool], bool] = None, random_state=None):
+                 c: Union[Iterable[Union[float, int]], Union[float, int]] = None, rank=1,
+                 positive: Union[Iterable[bool], bool] = None, random_state=None):
         """
 
         :param latent_dims: number of latent dimensions to fit
@@ -470,8 +470,8 @@ class SWCCA(_Iterative):
                  max_iter: int = 500,
                  generalized: bool = False,
                  initialization: str = 'uniform', tol: float = 1e-9, regularisation='l0',
-                 c: Union[List[Union[float, int]], Union[float, int]] = None, sample_support=None,
-                 positive: Union[List[bool], bool] = None):
+                 c: Union[Iterable[Union[float, int]], Union[float, int]] = None, sample_support=None,
+                 positive: Union[Iterable[bool], bool] = None):
         """
 
         :param latent_dims: number of latent dimensions to fit

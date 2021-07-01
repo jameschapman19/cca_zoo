@@ -1,4 +1,4 @@
-from typing import List
+from typing import Iterable
 
 import numpy as np
 from scipy.linalg import block_diag, eigh
@@ -28,7 +28,7 @@ class rCCA(_CCA_Base):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: List[float] = None,
+                 c: Iterable[float] = None,
                  eps=1e-3):
         """
         Constructor for rCCA
@@ -38,7 +38,7 @@ class rCCA(_CCA_Base):
         :param centre: demean data by column before fitting (and before transforming out of sample
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
-        :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
+        :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
         :param eps: epsilon for stability
         """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True,
@@ -58,49 +58,50 @@ class rCCA(_CCA_Base):
         self.n_views = len(views)
         self._check_params()
         train_views = self.centre_scale(*views)
-        U_list, S_list, Vt_list = _pca_data(*train_views)
+        U_Iterable, S_Iterable, Vt_Iterable = _pca_data(*train_views)
         if len(views) == 2:
-            self._two_view_fit(U_list, S_list, Vt_list)
+            self._two_view_fit(U_Iterable, S_Iterable, Vt_Iterable)
         else:
-            self._multi_view_fit(U_list, S_list, Vt_list)
-        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(train_views)]
-        self.loading_list = [view.T @ score for score, view in zip(self.score_list, train_views)]
+            self._multi_view_fit(U_Iterable, S_Iterable, Vt_Iterable)
+        self.score_Iterable = [view @ self.weights_Iterable[i] for i, view in enumerate(train_views)]
+        self.loading_Iterable = [view.T @ score for score, view in zip(self.score_Iterable, train_views)]
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def _two_view_fit(self, U_list, S_list, Vt_list):
-        B_list = [(1 - self.c[i]) * S * S + self.c[i] for i, S in
-                  enumerate(S_list)]
-        R_list = [U @ np.diag(S) for U, S in zip(U_list, S_list)]
-        R_12 = R_list[0].T @ R_list[1]
-        M = np.diag(1 / np.sqrt(B_list[1])) @ R_12.T @ np.diag(1 / B_list[0]) @ R_12 @ np.diag(1 / np.sqrt(B_list[1]))
+    def _two_view_fit(self, U_Iterable, S_Iterable, Vt_Iterable):
+        B_Iterable = [(1 - self.c[i]) * S * S + self.c[i] for i, S in
+                      enumerate(S_Iterable)]
+        R_Iterable = [U @ np.diag(S) for U, S in zip(U_Iterable, S_Iterable)]
+        R_12 = R_Iterable[0].T @ R_Iterable[1]
+        M = np.diag(1 / np.sqrt(B_Iterable[1])) @ R_12.T @ np.diag(1 / B_Iterable[0]) @ R_12 @ np.diag(
+            1 / np.sqrt(B_Iterable[1]))
         n = M.shape[0]
         [eigvals, eigvecs] = eigh(M, subset_by_index=[n - self.latent_dims, n - 1])
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         eigvals = np.real(np.sqrt(eigvals))[idx][:self.latent_dims]
-        w_y = Vt_list[1].T @ np.diag(1 / np.sqrt(B_list[1])) @ eigvecs[:, :self.latent_dims].real
-        w_x = Vt_list[0].T @ np.diag(1 / B_list[0]) @ R_12 @ np.diag(1 / np.sqrt(B_list[1])) @ eigvecs[:,
-                                                                                               :self.latent_dims].real / eigvals
-        self.weights_list = [w_x, w_y]
+        w_y = Vt_Iterable[1].T @ np.diag(1 / np.sqrt(B_Iterable[1])) @ eigvecs[:, :self.latent_dims].real
+        w_x = Vt_Iterable[0].T @ np.diag(1 / B_Iterable[0]) @ R_12 @ np.diag(1 / np.sqrt(B_Iterable[1])) @ eigvecs[:,
+                                                                                                           :self.latent_dims].real / eigvals
+        self.weights_Iterable = [w_x, w_y]
 
-    def _multi_view_fit(self, U_list, S_list, Vt_list):
-        B_list = [(1 - self.c[i]) * S * S + self.c[i] for i, S in
-                  enumerate(S_list)]
+    def _multi_view_fit(self, U_Iterable, S_Iterable, Vt_Iterable):
+        B_Iterable = [(1 - self.c[i]) * S * S + self.c[i] for i, S in
+                      enumerate(S_Iterable)]
         D = block_diag(*[np.diag((1 - self.c[i]) * S * S + self.c[i]) for i, S in
-                         enumerate(S_list)])
-        C = np.concatenate([U @ np.diag(S) for U, S in zip(U_list, S_list)], axis=1)
+                         enumerate(S_Iterable)])
+        C = np.concatenate([U @ np.diag(S) for U, S in zip(U_Iterable, S_Iterable)], axis=1)
         C = C.T @ C
-        C -= block_diag(*[np.diag(S ** 2) for U, S in zip(U_list, S_list)]) - D
+        C -= block_diag(*[np.diag(S ** 2) for U, S in zip(U_Iterable, S_Iterable)]) - D
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         n = C.shape[0]
         [eigvals, eigvecs] = eigh(C, D, subset_by_index=[n - self.latent_dims, n - 1])
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
-        splits = np.cumsum([0] + [U.shape[1] for U in U_list])
-        self.weights_list = [Vt.T @ np.diag(1 / np.sqrt(B)) @ eigvecs[split:splits[i + 1], :self.latent_dims] for
-                             i, (split, Vt, B) in enumerate(zip(splits[:-1], Vt_list, B_list))]
+        splits = np.cumsum([0] + [U.shape[1] for U in U_Iterable])
+        self.weights_Iterable = [Vt.T @ np.diag(1 / np.sqrt(B)) @ eigvecs[split:splits[i + 1], :self.latent_dims] for
+                                 i, (split, Vt, B) in enumerate(zip(splits[:-1], Vt_Iterable, B_Iterable))]
 
 
 class CCA(rCCA):
