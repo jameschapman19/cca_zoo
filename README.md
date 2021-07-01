@@ -43,8 +43,6 @@ In case this work is used as part of research I attach a DOI bibtex entry:
 ```
 
 # Canonical Correlation Analysis Methods: cca-zoo
-## Linear CCA/PLS:
-A variety of linear CCA and PLS methods implemented where possible as the solutions to generalized eigenvalue problems and otherwise using alternating minimization methods for non-convex optimisation based on least squares
 ### CCA (Canonical Correlation Analysis)
 Solutions based on either alternating least squares or as the solution to genrralized eigenvalue problem
 ### GCCA (Generalized CCA)  :
@@ -70,27 +68,31 @@ An alternative objective based on the linear GCCA solution. Can be extended to m
 ### DMCCA (Deep Multiset CCA) :
 https://arxiv.org/abs/1904.01775
 An alternative objective based on the linear MCCA solution. Can be extended to more than 2 views
+
 ### DTCCA (Deep Tensor CCA) :
+
 https://arxiv.org/pdf/2005.11914.pdf
+
 ### DCCAE (Deep Canonically Correlated Autoencoders) :
+
 http://proceedings.mlr.press/v37/wangb15.pdf
+
 ### DVCCA/DVCCA Private (Deep variational CCA):
+
 https://arxiv.org/pdf/1610.03454.pdf
 Wang's DVCCA and DVCCA Private
-## Kernel CCA:
-Piggybacking off sklearn's kernel methods which also allow callable kernel functions
 
+# Contributions
 
-
-# Issues/Feedback
-I've translated my work building baselines for my own research into a python package for my own experience but also, I hope,
-to help others. With that in mind if you have either suggestions for improvements/additions do let me know using the issues tab.
-The intention is to give flexibility to build new algorithms and substitute model architectures but there is a tradeoff between robustness and flexibility.
+A guide to contributions is available at https://cca-zoo.readthedocs.io/en/latest/developer_info/contribute.html
 
 # Sources
-I've added this section to give due credit to the repositories that helped me in addition to their copyright notices in the code where relevant.
 
-Models can be tested on data from MNIST datasets provided by the torch package (https://pytorch.org/) and the UCI dataset provided by mvlearn package (https://mvlearn.github.io/)
+I've added this section to give due credit to the repositories that helped me in addition to their copyright notices in
+the code where relevant.
+
+Models can be tested on data from MNIST datasets provided by the torch package (https://pytorch.org/) and the UCI
+dataset provided by mvlearn package (https://mvlearn.github.io/)
 
 ## Other Implementations of (regularised)CCA/PLS:
 

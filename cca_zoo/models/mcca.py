@@ -65,7 +65,7 @@ class MCCA(_CCA_Base):
         return self
 
     def _setup_gevp(self, *views: np.ndarray):
-        train_views = self.centre_scale(*views)
+        train_views = self._centre_scale(*views)
         all_views = np.concatenate(train_views, axis=1)
         C = all_views.T @ all_views
         # Can regularise by adding to diagonal
@@ -153,7 +153,7 @@ class KCCA(MCCA):
 
         :param views:
         """
-        self.train_views = self.centre_scale(*views)
+        self.train_views = self._centre_scale(*views)
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
         C = np.hstack(kernels).T @ np.hstack(kernels)
         # Can regularise by adding to diagonal

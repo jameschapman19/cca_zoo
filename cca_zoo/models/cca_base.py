@@ -105,7 +105,7 @@ class _CCA_Base(BaseEstimator):
         all_corrs = np.array(all_corrs).reshape((len(views), len(views), self.latent_dims))
         return all_corrs
 
-    def centre_scale(self, *views: np.ndarray):
+    def _centre_scale(self, *views: np.ndarray):
         """
         Removes the mean of the training data for each view and stores it
 

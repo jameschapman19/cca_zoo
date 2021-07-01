@@ -72,7 +72,7 @@ class TCCA(_CCA_Base):
         return self
 
     def _setup_tensor(self, *views: np.ndarray, **kwargs):
-        train_views = self.centre_scale(*views)
+        train_views = self._centre_scale(*views)
         n = train_views[0].shape[0]
         covs = [(1 - self.c[i]) * view.T @ view + self.c[i] * np.eye(view.shape[1]) for i, view in
                 enumerate(train_views)]
@@ -148,7 +148,7 @@ class KTCCA(TCCA):
                                 filter_params=True, **params)
 
     def _setup_tensor(self, *views: np.ndarray):
-        self.train_views = self.centre_scale(*views)
+        self.train_views = self._centre_scale(*views)
         train_views = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
         n = train_views[0].shape[0]
         covs = [(1 - self.c[i]) * kernel @ kernel.T + self.c[i] * kernel for i, kernel in enumerate(train_views)]
