@@ -60,7 +60,7 @@ class MCCA:
 
         C_whitened = torch.inverse(R.T) @ C @ torch.inverse(R)
 
-        [eigvals, eigvecs] = torch.symeig(C_whitened, eigenvectors=True)
+        eigvals = torch.linalg.eigvalsh(C_whitened)
 
         # Sort eigenvalues so lviewest first
         idx = torch.argsort(eigvals, descending=True)
@@ -101,12 +101,11 @@ class GCCA:
 
         Q = torch.stack(eigen_views, dim=0).sum(dim=0)
 
-        [eigvals, eigvecs] = torch.linalg.eig(Q)
+        eigvals = torch.linalg.eigvalsh(Q)
 
-        idx = torch.argsort(eigvals.real, descending=True)
-        eigvecs = eigvecs.real[:, idx]
+        idx = torch.argsort(eigvals, descending=True)
 
-        corr = (eigvals.real[idx][:self.latent_dims] - 1).sum()
+        corr = (eigvals[idx][:self.latent_dims] - 1).sum()
 
         return -corr
 

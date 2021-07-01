@@ -7,6 +7,7 @@ import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_array
+from sklearn.utils.validation import check_random_state
 
 import cca_zoo.data
 import cca_zoo.models.innerloop
@@ -23,7 +24,8 @@ class _CCA_Base(BaseEstimator):
     """
 
     @abstractmethod
-    def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, accept_sparse=True):
+    def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, accept_sparse=True,
+                 random_state=None):
         """
         Constructor for _CCA_Base
 
@@ -37,6 +39,7 @@ class _CCA_Base(BaseEstimator):
         self.centre = centre
         self.copy_data = copy_data
         self.accept_sparse = accept_sparse
+        self.random_state = check_random_state(random_state)
 
     @abstractmethod
     def fit(self, *views: np.ndarray):
@@ -160,7 +163,7 @@ class _CCA_Base(BaseEstimator):
                 param_dict[param_name] = param_set[i]
             param_sets.append(param_dict)
 
-        cv = _CrossValidate(self, folds=folds, verbose=verbose)
+        cv = _CrossValidate(self, folds=folds, verbose=verbose, random_state=self.random_state)
 
         if jobs > 0:
             out = Parallel(n_jobs=jobs)(delayed(cv.score)(*views, **param_set, K=K) for param_set in param_sets)
@@ -215,15 +218,16 @@ class _CrossValidate:
     Base class used for cross validation
     """
 
-    def __init__(self, model, folds: int = 5, verbose: bool = True):
+    def __init__(self, model, folds: int = 5, verbose: bool = True, random_state=None):
         self.folds = folds
         self.verbose = verbose
         self.model = model
+        self.random_state = check_random_state(random_state)
 
     def score(self, *views: np.ndarray, K=None, **cvparams):
         scores = np.zeros(self.folds)
         inds = np.arange(views[0].shape[0])
-        np.random.shuffle(inds)
+        self.random_state.shuffle(inds)
         if self.folds == 1:
             # If 1 fold do an 80:20 split
             fold_inds = np.array_split(inds, 5)

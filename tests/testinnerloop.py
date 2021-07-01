@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-import numpy as np
+from sklearn.utils.validation import check_random_state
 
 import cca_zoo.models.innerloop
 
@@ -8,9 +8,10 @@ import cca_zoo.models.innerloop
 class TestInnerLoop(TestCase):
 
     def setUp(self):
-        self.X = np.random.rand(10, 10)
-        self.Y = np.random.rand(10, 10)
-        self.Z = np.random.rand(10, 10)
+        self.rng = check_random_state(0)
+        self.X = self.rng.rand(10, 10)
+        self.Y = self.rng.rand(10, 10)
+        self.Z = self.rng.rand(10, 10)
 
     def tearDown(self):
         pass

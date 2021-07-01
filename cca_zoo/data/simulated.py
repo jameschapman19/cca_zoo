@@ -4,6 +4,7 @@ from typing import List, Union
 import numpy as np
 from scipy import linalg
 from scipy.linalg import block_diag
+from sklearn.utils.validation import check_random_state
 
 from ..utils.check_values import _process_parameter
 
@@ -12,7 +13,7 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                              view_sparsity: List[Union[int, float]] = None,
                              correlation: Union[List[float], float] = 1,
                              structure: Union[str, List[str]] = None, sigma: List[float] = None, decay: float = 0.5,
-                             positive=None):
+                             positive=None, random_state=None):
     """
     Function to generate CCA dataset with defined population correlation
 
@@ -31,6 +32,7 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
     >>> from cca_zoo.data import generate_covariance_data
     >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=generate_covariance_data(200,[10,10],latent_dims=1,correlation=1)
     """
+    random_state = check_random_state(random_state)
     structure = _process_parameter('structure', structure, 'identity', len(view_features))
     view_sparsity = _process_parameter('view_sparsity', view_sparsity, 1, len(view_features))
     positive = _process_parameter('positive', positive, False, len(view_features))
@@ -55,22 +57,22 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                 elif view_structure == 'toeplitz':
                     cov_ = _generate_toeplitz_cov(view_p, view_sigma)
                 elif view_structure == 'random':
-                    cov_ = _generate_random_cov(view_p)
+                    cov_ = _generate_random_cov(view_p, random_state)
                 else:
                     completed = True
                     print("invalid structure")
                     break
-                weights = np.random.normal(size=(view_p, latent_dims))
+                weights = random_state.randn(view_p, latent_dims)
                 if sparsity <= 1:
                     sparsity = np.ceil(sparsity * view_p).astype('int')
                 if sparsity < view_p:
                     mask = np.stack(
                         (np.concatenate(([0] * (view_p - sparsity), [1] * sparsity)).astype(bool),) * latent_dims,
                         axis=0).T
-                    np.random.shuffle(mask)
+                    random_state.shuffle(mask)
                     while np.sum(np.unique(mask, axis=1, return_counts=True)[1] > 1) > 0 or np.sum(
                             np.sum(mask, axis=0) == 0) > 0:
-                        np.random.shuffle(mask)
+                        random_state.shuffle(mask)
                     weights = weights * mask
                     if view_positive:
                         weights[weights < 0] = 0
@@ -95,7 +97,7 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
             X = np.zeros((n, sum(view_features)))
             chol = np.linalg.cholesky(cov)
             for _ in range(n):
-                X[_, :] = _chol_sample(mean, chol)
+                X[_, :] = _chol_sample(mean, chol, random_state)
             views = np.split(X, np.cumsum(view_features)[:-1], axis=1)
             completed = True
         except:
@@ -104,7 +106,7 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
 
 
 def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[int] = None,
-                         eps: float = 0):
+                         eps: float = 0, transform=True, random_state=None):
     """
 
     :param n: number of samples
@@ -118,17 +120,20 @@ def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[i
     >>> from cca_zoo.data import generate_simple_data
     >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=generate_covariance_data(200,[10,10])
     """
-    z = np.random.normal(0, 1, n)
+    random_state = check_random_state(random_state)
+    z = random_state.randn(n)
+    if transform:
+        z = np.sin(z)
     views = []
     true_features = []
+    view_sparsity = _process_parameter('view_sparsity', view_sparsity, 1, len(view_features))
     for p, sparsity in zip(view_features, view_sparsity):
-        weights = np.random.normal(size=(p, 1))
+        weights = random_state.randn(p, 1)
         if sparsity > 0:
             if sparsity < 1:
                 sparsity = np.ceil(sparsity * p).astype('int')
-            weights[np.random.choice(np.arange(p), p - sparsity, replace=False)] = 0
-
-        gaussian_x = np.random.normal(0, eps, (n, p))
+            weights[random_state.choice(np.arange(p), p - sparsity, replace=False)] = 0
+        gaussian_x = random_state.randn(n, p) * eps
         view = np.outer(z, weights)
         view += gaussian_x
         views.append(view)
@@ -144,8 +149,9 @@ def _decorrelate_dims(up, cov):
     return up
 
 
-def _chol_sample(mean, chol):
-    return mean + chol @ np.random.standard_normal(mean.size)
+def _chol_sample(mean, chol, random_state):
+    rng = check_random_state(random_state)
+    return mean + chol @ rng.randn(mean.size)
 
 
 def _gaussian(x, mu, sig, dn):
@@ -177,8 +183,9 @@ def _generate_toeplitz_cov(p, sigma):
     return cov
 
 
-def _generate_random_cov(p):
-    cov_ = np.random.rand(p, p)
+def _generate_random_cov(p, random_state):
+    rng = check_random_state(random_state)
+    cov_ = rng.randn(p, p)
     U, S, Vt = np.linalg.svd(cov_.T @ cov_)
-    cov = U @ (1 + np.diag(np.random.rand(p))) @ Vt
+    cov = U @ (1 + np.diag(rng.randn(p))) @ Vt
     return cov

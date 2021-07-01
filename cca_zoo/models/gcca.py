@@ -19,21 +19,23 @@ class GCCA(_CCA_Base):
     :Example:
 
     >>> from cca_zoo.models import GCCA
-    >>> X1 = np.random.rand(10,5)
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = GCCA()
     >>> model.fit(X1,X2)
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, c: List[float] = None,
-                 view_weights: Tuple[float, ...] = None):
+                 view_weights: Tuple[float, ...] = None, random_state=None):
         """
         Constructor for GCCA
 
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         :param view_weights: list of weights of each view
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True,
+                         random_state=random_state)
         self.c = c
         self.view_weights = view_weights
 

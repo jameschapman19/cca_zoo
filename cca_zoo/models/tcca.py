@@ -29,12 +29,14 @@ class TCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, c: List[float] = None):
+    def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, c: List[float] = None,
+                 random_state=None):
         """
         Constructor for TCCA
 
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True,
+                         random_state=random_state)
         self.c = c
 
     def check_params(self):
@@ -94,7 +96,7 @@ class KTCCA(TCCA):
                  kernel: List[Union[float, callable]] = None,
                  gamma: List[float] = None,
                  degree: List[float] = None, coef0: List[float] = None,
-                 kernel_params: List[dict] = None, eps=1e-3):
+                 kernel_params: List[dict] = None, eps=1e-3, random_state=None):
         """
         Constructor for TCCA
 
@@ -105,7 +107,8 @@ class KTCCA(TCCA):
         :param kernel_params: list of additional parameters (keyword arguments) for kernel function passed as callable object.
         :param eps: epsilon value to ensure stability
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data,
+                         random_state=random_state)
         self.kernel_params = kernel_params
         self.gamma = gamma
         self.coef0 = coef0

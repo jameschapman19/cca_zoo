@@ -3,21 +3,21 @@ from unittest import TestCase
 
 import numpy as np
 import scipy.sparse as sp
+from sklearn.utils.validation import check_random_state
 
 from cca_zoo.models import CCA, PLS, CCA_ALS, SCCA, PMD, ElasticCCA, rCCA, KCCA, KTCCA, MCCA, GCCA, TCCA, SCCA_ADMM, \
     SpanCCA, SWCCA
-
-np.random.seed(123)
 
 
 class TestModels(TestCase):
 
     def setUp(self):
-        self.X = np.random.rand(500, 20)
-        self.Y = np.random.rand(500, 21)
-        self.Z = np.random.rand(500, 22)
-        self.X_sp = sp.random(1000, 20, density=0.1)
-        self.Y_sp = sp.random(1000, 21, density=0.1)
+        self.rng = check_random_state(0)
+        self.X = self.rng.rand(500, 20)
+        self.Y = self.rng.rand(500, 21)
+        self.Z = self.rng.rand(500, 22)
+        self.X_sp = sp.random(1000, 20, density=0.1, random_state=self.rng)
+        self.Y_sp = sp.random(1000, 21, density=0.1, random_state=self.rng)
 
     def tearDown(self):
         pass
@@ -26,7 +26,7 @@ class TestModels(TestCase):
         # Tests unregularized CCA methods. The idea is that all of these should give the same result.
         latent_dims = 1
         wrap_cca = CCA(latent_dims=latent_dims).fit(self.X, self.Y)
-        wrap_iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9).fit(self.X, self.Y)
+        wrap_iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9, random_state=self.rng).fit(self.X, self.Y)
         wrap_gcca = GCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_mcca = MCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_kcca = KCCA(latent_dims=latent_dims).fit(self.X, self.Y)
@@ -130,18 +130,18 @@ class TestModels(TestCase):
         c1 = [1, 3]
         c2 = [1, 3]
         param_candidates = {'c': list(itertools.product(c1, c2))}
-        wrap_pmd = PMD(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y,
-                                                               param_candidates=param_candidates,
-                                                               verbose=True, plot=True)
+        wrap_pmd = PMD(latent_dims=latent_dims, random_state=self.rng).gridsearch_fit(self.X, self.Y,
+                                                                                      param_candidates=param_candidates,
+                                                                                      verbose=True, plot=True)
         c1 = [1e-4, 1e-5]
         c2 = [1e-4, 1e-5]
         param_candidates = {'c': list(itertools.product(c1, c2))}
-        wrap_scca = SCCA(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y,
-                                                                 param_candidates=param_candidates,
-                                                                 verbose=True)
-        wrap_elastic = ElasticCCA(latent_dims=latent_dims).gridsearch_fit(self.X, self.Y,
-                                                                          param_candidates=param_candidates,
-                                                                          verbose=True)
+        wrap_scca = SCCA(latent_dims=latent_dims, random_state=self.rng).gridsearch_fit(self.X, self.Y,
+                                                                                        param_candidates=param_candidates,
+                                                                                        verbose=True)
+        wrap_elastic = ElasticCCA(latent_dims=latent_dims, random_state=self.rng).gridsearch_fit(self.X, self.Y,
+                                                                                                 param_candidates=param_candidates,
+                                                                                                 verbose=True)
         corr_pmd = wrap_pmd.train_correlations[0, 1]
         corr_scca = wrap_scca.train_correlations[0, 1]
         corr_elastic = wrap_elastic.train_correlations[0, 1]

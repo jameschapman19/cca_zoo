@@ -26,13 +26,14 @@ class MCCA(_CCA_Base):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, c: List[float] = None,
-                 eps=1e-3):
+                 eps=1e-3, random_state=None):
         """
         Constructor for MCCA
 
         :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True,
+                         random_state=random_state)
         self.c = c
         self.eps = eps
 
@@ -95,7 +96,7 @@ class KCCA(MCCA):
                  kernel: List[Union[float, callable]] = None,
                  gamma: List[float] = None,
                  degree: List[float] = None, coef0: List[float] = None,
-                 kernel_params: List[dict] = None, eps=1e-3):
+                 kernel_params: List[dict] = None, eps=1e-3, random_state=None):
         """
         :param kernel: list of kernel mappings used internally. This parameter is directly passed to :class:`~sklearn.metrics.pairwise.pairwise_kernel`. If element of `kernel` is a string, it must be one of the metrics in `pairwise.PAIRWISE_KERNEL_FUNCTIONS`. Alternatively, if element of `kernel` is a callable function, it is called on each pair of instances (rows) and the resulting value recorded. The callable should take two rows from X as input and return the corresponding kernel value as a single number. This means that callables from :mod:`sklearn.metrics.pairwise` are not allowed, as they operate on matrices, not single samples. Use the string identifying the kernel instead.
         :param gamma: list of gamma parameters for the RBF, laplacian, polynomial, exponential chi2 and sigmoid kernels. Interpretation of the default value is left to the kernel; see the documentation for sklearn.metrics.pairwise. Ignored by other kernels.
@@ -104,7 +105,8 @@ class KCCA(MCCA):
         :param kernel_params: list of additional parameters (keyword arguments) for kernel function passed as callable object.
         :param eps: epsilon value to ensure stability
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data,
+                         random_state=random_state)
         self.kernel_params = kernel_params
         self.gamma = gamma
         self.coef0 = coef0
