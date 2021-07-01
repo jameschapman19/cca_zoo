@@ -1,6 +1,6 @@
 import itertools
 from abc import abstractmethod
-from typing import List, Optional, Dict, Any
+from typing import List, Union, Dict, Any
 
 import numpy as np
 import pandas as pd
@@ -25,7 +25,7 @@ class _CCA_Base(BaseEstimator):
 
     @abstractmethod
     def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, accept_sparse=True,
-                 random_state: Optional[int, np.random.RandomState] = None):
+                 random_state: Union[int, np.random.RandomState] = None):
         """
         Constructor for _CCA_Base
 

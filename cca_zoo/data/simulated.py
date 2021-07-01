@@ -13,7 +13,7 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                              view_sparsity: List[Union[int, float]] = None,
                              correlation: Union[List[float], float] = 1,
                              structure: Union[str, List[str]] = None, sigma: List[float] = None, decay: float = 0.5,
-                             positive=None, random_state=None):
+                             positive=None, random_state: Union[int, np.random.RandomState] = None):
     """
     Function to generate CCA dataset with defined population correlation
 
