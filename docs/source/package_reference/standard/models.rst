@@ -14,7 +14,7 @@ fit_transform, and predict_corr and only differ in their fit methods (and transf
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 CCA
 ^^^^^^^
@@ -24,7 +24,7 @@ CCA
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 rCCA
 ^^^^^^^
@@ -34,7 +34,7 @@ rCCA
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 MCCA
 ^^^^^^^
@@ -44,7 +44,7 @@ MCCA
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 KCCA
 ^^^^^^^
@@ -54,7 +54,7 @@ KCCA
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 GCCA
 ^^^^^^^
@@ -64,7 +64,7 @@ GCCA
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 TCCA
 ^^^^^^^^^^^^^^^
@@ -74,7 +74,6 @@ TCCA
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
 
 
 KTCCA
@@ -85,7 +84,7 @@ KTCCA
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 PLS
 ^^^^^^^
@@ -95,7 +94,7 @@ PLS
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 CCA_ALS
 ^^^^^^^
@@ -105,7 +104,7 @@ CCA_ALS
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 PMD
 ^^^^^^^
@@ -115,7 +114,7 @@ PMD
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 SCCA
 ^^^^^^^
@@ -125,7 +124,7 @@ SCCA
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 PMD
 ^^^^^^^
@@ -135,7 +134,7 @@ PMD
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 ParkhomenkoCCA
 ^^^^^^^^^^^^^^^
@@ -145,7 +144,7 @@ ParkhomenkoCCA
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 ElasticCCA
 ^^^^^^^^^^^^^^^
@@ -155,6 +154,6 @@ ElasticCCA
    :inherited-members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: get_params, set_params
+
 
 .. currentmodule:: cca_zoo.models
