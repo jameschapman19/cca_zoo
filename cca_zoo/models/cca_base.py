@@ -1,6 +1,6 @@
 import itertools
 from abc import abstractmethod
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -25,12 +25,16 @@ class _CCA_Base(BaseEstimator):
 
     @abstractmethod
     def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, accept_sparse=True,
-                 random_state=None):
+                 random_state: Optional[int, np.random.RandomState] = None):
         """
         Constructor for _CCA_Base
 
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param accept_sparse: Whether model can take sparse data as input
+        :param random_state: Pass for reproducible output across multiple function calls
         """
         self.weights_list = None
         self.train_correlations = None

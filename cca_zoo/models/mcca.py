@@ -25,12 +25,19 @@ class MCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, c: List[float] = None,
-                 eps=1e-3, random_state=None):
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 c: List[float] = None,
+                 eps=1e-3):
         """
         Constructor for MCCA
 
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
         :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
+        :param eps: epsilon for stability
         """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True,
                          random_state=random_state)
@@ -92,18 +99,26 @@ class KCCA(MCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, c: List[float] = None,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 c: List[float] = None, eps=1e-3,
                  kernel: List[Union[float, callable]] = None,
                  gamma: List[float] = None,
                  degree: List[float] = None, coef0: List[float] = None,
-                 kernel_params: List[dict] = None, eps=1e-3, random_state=None):
+                 kernel_params: List[dict] = None):
         """
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
+        :param eps: epsilon for stability
         :param kernel: list of kernel mappings used internally. This parameter is directly passed to :class:`~sklearn.metrics.pairwise.pairwise_kernel`. If element of `kernel` is a string, it must be one of the metrics in `pairwise.PAIRWISE_KERNEL_FUNCTIONS`. Alternatively, if element of `kernel` is a callable function, it is called on each pair of instances (rows) and the resulting value recorded. The callable should take two rows from X as input and return the corresponding kernel value as a single number. This means that callables from :mod:`sklearn.metrics.pairwise` are not allowed, as they operate on matrices, not single samples. Use the string identifying the kernel instead.
         :param gamma: list of gamma parameters for the RBF, laplacian, polynomial, exponential chi2 and sigmoid kernels. Interpretation of the default value is left to the kernel; see the documentation for sklearn.metrics.pairwise. Ignored by other kernels.
         :param degree: list of degree parameters of the polynomial kernel. Ignored by other kernels.
         :param coef0: list of zero coefficients for polynomial and sigmoid kernels. Ignored by other kernels.
         :param kernel_params: list of additional parameters (keyword arguments) for kernel function passed as callable object.
-        :param eps: epsilon value to ensure stability
+        :param eps: epsilon value to ensure stability of smallest eigenvalues
         """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data,
                          random_state=random_state)

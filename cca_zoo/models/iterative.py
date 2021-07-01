@@ -16,16 +16,18 @@ class _Iterative(_CCA_Base):
 
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, deflation='cca',
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 deflation='cca',
                  max_iter: int = 100,
                  generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9, random_state=None):
+                 initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for _Iterative
 
-        :param latent_dims: number of latent dimensions
-        :param scale: scale data by column variances before optimisation
-        :param deflation: the type of deflation.
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten        :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
@@ -116,8 +118,10 @@ class PLS(_Iterative):
         """
         Constructor for PLS
 
-        :param latent_dims: number of latent dimensions
-        :param scale: scale data by column variances before optimisation
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
         :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
@@ -162,8 +166,10 @@ class ElasticCCA(_Iterative):
         """
         Constructor for ElasticCCA
 
-        :param latent_dims: number of latent dimensions
-        :param scale: scale data by column variances before optimisation
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
         :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
