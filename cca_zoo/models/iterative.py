@@ -27,7 +27,9 @@ class _Iterative(_CCA_Base):
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, X will be copied; else, it may be overwritten        :param deflation: the type of deflation.
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
@@ -285,14 +287,19 @@ class PMD(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
                  c: Union[List[float], float] = None,
                  max_iter: int = 100,
                  generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9,
-                 positive: Union[List[bool], bool] = None, random_state=None):
+                 positive: Union[List[bool], bool] = None):
         """
         Constructor for PMD
 
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter between 1 and sqrt(number of features) for each view
         :param positive: constrain model weights to be positive
         """
@@ -325,14 +332,18 @@ class ParkhomenkoCCA(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
                  c: Union[List[float], float] = None,
                  max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9,
-                 random_state=None):
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for ParkhomenkoCCA
 
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter
         """
         self.c = c
@@ -364,18 +375,21 @@ class SCCA_ADMM(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
                  c: Union[List[float], float] = None,
                  mu: Union[List[float], float] = None,
                  lam: Union[List[float], float] = None,
                  eta: Union[List[float], float] = None,
                  max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9,
-                 random_state=None):
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for SCCA_ADMM
 
-
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter
         :param mu:
         :param lam:
@@ -410,6 +424,22 @@ class SpanCCA(_Iterative):
                  initialization: str = 'uniform', tol: float = 1e-9, regularisation='l0',
                  c: Union[List[Union[float, int]], Union[float, int]] = None, rank=1,
                  positive: Union[List[bool], bool] = None, random_state=None):
+        """
+
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        :param max_iter:
+        :param generalized:
+        :param initialization:
+        :param tol:
+        :param regularisation:
+        :param c:
+        :param rank:
+        :param positive:
+        """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
                          generalized=generalized,
                          initialization=initialization, tol=tol, random_state=random_state)
@@ -436,11 +466,29 @@ class SWCCA(_Iterative):
 
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, max_iter: int = 500,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 max_iter: int = 500,
                  generalized: bool = False,
                  initialization: str = 'uniform', tol: float = 1e-9, regularisation='l0',
                  c: Union[List[Union[float, int]], Union[float, int]] = None, sample_support=None,
-                 positive: Union[List[bool], bool] = None, random_state=None):
+                 positive: Union[List[bool], bool] = None):
+        """
+
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        :param max_iter:
+        :param generalized:
+        :param initialization:
+        :param tol:
+        :param regularisation:
+        :param c:
+        :param sample_support:
+        :param positive:
+        """
+
         self.c = c
         self.sample_support = sample_support
         self.regularisation = regularisation
