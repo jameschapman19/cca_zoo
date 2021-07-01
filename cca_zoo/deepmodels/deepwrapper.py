@@ -73,8 +73,8 @@ class DeepWrapper(_CCA_Base):
         :param train_correlations: if True generate training correlations
         :return:
         """
-        train_dataset, val_dataset = self.process_data(train_dataset, val_dataset, train_labels, val_labels, val_split)
-        train_dataloader, val_dataloader = self.get_dataloaders(train_dataset, batch_size, val_dataset, val_batch_size)
+        train_dataset, val_dataset = self._process_data(train_dataset, val_dataset, train_labels, val_labels, val_split)
+        train_dataloader, val_dataloader = self._get_dataloaders(train_dataset, batch_size, val_dataset, val_batch_size)
         num_params = sum(p.numel() for p in self.model.parameters())
         print('total parameters: ', num_params)
         best_model = copy.deepcopy(self.model.state_dict())
@@ -86,14 +86,14 @@ class DeepWrapper(_CCA_Base):
         for epoch in range(1, epochs + 1):
             if not early_stop:
                 # Train
-                epoch_train_loss = self.train_epoch(train_dataloader)
+                epoch_train_loss = self._train_epoch(train_dataloader)
                 print('====> Epoch: {} Average train loss: {:.4f}'.format(
                     epoch, epoch_train_loss))
                 if self.tensorboard:
                     self.writer.add_scalar('Loss/train', epoch_train_loss, epoch)
                 # Val
                 if val_dataset:
-                    epoch_val_loss = self.val_epoch(val_dataloader)
+                    epoch_val_loss = self._val_epoch(val_dataloader)
                     if self.tensorboard:
                         self.writer.add_scalar('Loss/test', epoch_val_loss, epoch)
                     print('====> Epoch: {} Average val loss: {:.4f}'.format(
@@ -122,9 +122,10 @@ class DeepWrapper(_CCA_Base):
             self.train_correlations = self.predict_corr(train_dataset, train=True)
         return self
 
-    def train_epoch(self, train_dataloader: torch.utils.data.DataLoader):
+    def _train_epoch(self, train_dataloader: torch.utils.data.DataLoader):
         """
         Train a single epoch
+
         :param train_dataloader: a dataloader for training data
         :return: average loss over the epoch
         """
@@ -132,13 +133,14 @@ class DeepWrapper(_CCA_Base):
         train_loss = 0
         for batch_idx, (data, label) in enumerate(train_dataloader):
             data = [d.float().to(self.device) for d in list(data)]
-            loss = self.update_weights(*data)
+            loss = self._update_weights(*data)
             train_loss += loss.item()
         return train_loss / len(train_dataloader)
 
-    def update_weights(self, *args):
+    def _update_weights(self, *args):
         """
         A complete update of the weights used every batch
+
         :param args: batches for each view separated by commas
         :return:
         """
@@ -163,9 +165,10 @@ class DeepWrapper(_CCA_Base):
             self.optimizer.step()
         return loss
 
-    def val_epoch(self, val_dataloader: torch.utils.data.DataLoader):
+    def _val_epoch(self, val_dataloader: torch.utils.data.DataLoader):
         """
         Validate a single epoch
+
         :param val_dataloader: a dataloder for validation data
         :return: average validation loss over the epoch
         """
@@ -182,6 +185,7 @@ class DeepWrapper(_CCA_Base):
     def predict_corr(self, test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], train: bool = False,
                      batch_size: int = 0):
         """
+
         :param views: EITHER numpy arrays separated by comma. Each view needs to have the same number of features as its
          corresponding view in the training dataOR torch.torch.utils.data.Dataset
         :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
@@ -196,7 +200,7 @@ class DeepWrapper(_CCA_Base):
 
     def transform(self, test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], test_labels=None,
                   train: bool = False, batch_size: int = 0):
-        test_dataset = self.process_data(test_dataset, labels=test_labels)[0]
+        test_dataset = self._process_data(test_dataset, labels=test_labels)[0]
         if batch_size > 0:
             test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
         else:
@@ -214,7 +218,7 @@ class DeepWrapper(_CCA_Base):
         return z_list
 
     def predict_view(self, test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], test_labels=None):
-        test_dataset = self.process_data(test_dataset, labels=test_labels)[0]
+        test_dataset = self._process_data(test_dataset, labels=test_labels)[0]
         test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
         with torch.no_grad():
             for batch_idx, (data, label) in enumerate(test_dataloader):
@@ -227,9 +231,9 @@ class DeepWrapper(_CCA_Base):
                               i, x_i in enumerate(x)]
         return x_list
 
-    def process_data(self, dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
-                     val_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]] = None, labels=None,
-                     val_labels=None, val_split: float = 0):
+    def _process_data(self, dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
+                      val_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]] = None, labels=None,
+                      val_labels=None, val_split: float = 0):
         # Ensure datasets are in the right form (e.g. if numpy arrays are passed turn them into
         if isinstance(dataset, tuple):
             dataset = cca_zoo.data.CCA_Dataset(*dataset, labels=labels)
@@ -240,7 +244,7 @@ class DeepWrapper(_CCA_Base):
             val_dataset = cca_zoo.data.CCA_Dataset(*val_dataset, labels=val_labels)
         return dataset, val_dataset
 
-    def get_dataloaders(self, dataset, batch_size, val_dataset=None, val_batch_size=None):
+    def _get_dataloaders(self, dataset, batch_size, val_dataset=None, val_batch_size=None):
         if batch_size == 0:
             batch_size = len(dataset)
         train_dataloader = DataLoader(dataset, batch_size=batch_size, drop_last=True)

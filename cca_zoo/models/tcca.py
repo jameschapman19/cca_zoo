@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Iterable, Union
 
 import numpy as np
 import tensorly as tl
@@ -29,23 +29,29 @@ class TCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, c: List[float] = None,
-                 random_state=None):
+    def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, random_state=None,
+                 c: Iterable[float] = None):
         """
         Constructor for TCCA
 
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
         """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True,
                          random_state=random_state)
         self.c = c
 
-    def check_params(self):
+    def _check_params(self):
         self.c = _process_parameter('c', self.c, 0, self.n_views)
 
     def fit(self, *views: np.ndarray, ):
         self.n_views = len(views)
-        self.check_params()
-        train_views, covs_invsqrt = self.setup_tensor(*views)
+        self._check_params()
+        train_views, covs_invsqrt = self._setup_tensor(*views)
         for i, el in enumerate(train_views):
             if i == 0:
                 M = el
@@ -58,14 +64,14 @@ class TCCA(_CCA_Base):
         M_parafac = parafac(M, self.latent_dims, verbose=True)
         self.alphas = [cov_invsqrt @ fac for i, (view, cov_invsqrt, fac) in
                        enumerate(zip(train_views, covs_invsqrt, M_parafac.factors))]
-        self.score_list = [view @ self.alphas[i] for i, view in enumerate(train_views)]
-        self.weights_list = [weights / np.linalg.norm(score) for weights, score in
-                             zip(self.alphas, self.score_list)]
-        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(train_views)]
+        self.scores = [view @ self.alphas[i] for i, view in enumerate(train_views)]
+        self.weights = [weights / np.linalg.norm(score) for weights, score in
+                        zip(self.alphas, self.scores)]
+        self.scores = [view @ self.weights[i] for i, view in enumerate(train_views)]
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def setup_tensor(self, *views: np.ndarray, **kwargs):
+    def _setup_tensor(self, *views: np.ndarray, **kwargs):
         train_views = self.centre_scale(*views)
         n = train_views[0].shape[0]
         covs = [(1 - self.c[i]) * view.T @ view + self.c[i] * np.eye(view.shape[1]) for i, view in
@@ -92,19 +98,26 @@ class KTCCA(TCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, c: List[float] = None,
-                 kernel: List[Union[float, callable]] = None,
-                 gamma: List[float] = None,
-                 degree: List[float] = None, coef0: List[float] = None,
-                 kernel_params: List[dict] = None, eps=1e-3, random_state=None):
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 eps=1e-3, c: Iterable[float] = None,
+                 kernel: Iterable[Union[float, callable]] = None,
+                 gamma: Iterable[float] = None,
+                 degree: Iterable[float] = None, coef0: Iterable[float] = None,
+                 kernel_params: Iterable[dict] = None):
         """
         Constructor for TCCA
 
-        :param kernel: list of kernel mappings used internally. This parameter is directly passed to :class:`~sklearn.metrics.pairwise.pairwise_kernel`. If element of `kernel` is a string, it must be one of the metrics in `pairwise.PAIRWISE_KERNEL_FUNCTIONS`. Alternatively, if element of `kernel` is a callable function, it is called on each pair of instances (rows) and the resulting value recorded. The callable should take two rows from X as input and return the corresponding kernel value as a single number. This means that callables from :mod:`sklearn.metrics.pairwise` are not allowed, as they operate on matrices, not single samples. Use the string identifying the kernel instead.
-        :param gamma: list of gamma parameters for the RBF, laplacian, polynomial, exponential chi2 and sigmoid kernels. Interpretation of the default value is left to the kernel; see the documentation for sklearn.metrics.pairwise. Ignored by other kernels.
-        :param degree: list of degree parameters of the polynomial kernel. Ignored by other kernels.
-        :param coef0: list of zero coefficients for polynomial and sigmoid kernels. Ignored by other kernels.
-        :param kernel_params: list of additional parameters (keyword arguments) for kernel function passed as callable object.
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
+        :param kernel: Iterable of kernel mappings used internally. This parameter is directly passed to :class:`~sklearn.metrics.pairwise.pairwise_kernel`. If element of `kernel` is a string, it must be one of the metrics in `pairwise.PAIRWISE_KERNEL_FUNCTIONS`. Alternatively, if element of `kernel` is a callable function, it is called on each pair of instances (rows) and the resulting value recorded. The callable should take two rows from X as input and return the corresponding kernel value as a single number. This means that callables from :mod:`sklearn.metrics.pairwise` are not allowed, as they operate on matrices, not single samples. Use the string identifying the kernel instead.
+        :param gamma: Iterable of gamma parameters for the RBF, laplacian, polynomial, exponential chi2 and sigmoid kernels. Interpretation of the default value is left to the kernel; see the documentation for sklearn.metrics.pairwise. Ignored by other kernels.
+        :param degree: Iterable of degree parameters of the polynomial kernel. Ignored by other kernels.
+        :param coef0: Iterable of zero coefficients for polynomial and sigmoid kernels. Ignored by other kernels.
+        :param kernel_params: Iterable of additional parameters (keyword arguments) for kernel function passed as callable object.
         :param eps: epsilon value to ensure stability
         """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data,
@@ -117,7 +130,7 @@ class KTCCA(TCCA):
         self.c = c
         self.eps = eps
 
-    def check_params(self):
+    def _check_params(self):
         self.kernel = _process_parameter('kernel', self.kernel, 'linear', self.n_views)
         self.gamma = _process_parameter('gamma', self.gamma, None, self.n_views)
         self.coef0 = _process_parameter('coef0', self.coef0, 1, self.n_views)
@@ -134,7 +147,7 @@ class KTCCA(TCCA):
         return pairwise_kernels(X, Y, metric=self.kernel[view],
                                 filter_params=True, **params)
 
-    def setup_tensor(self, *views: np.ndarray):
+    def _setup_tensor(self, *views: np.ndarray):
         self.train_views = self.centre_scale(*views)
         train_views = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
         n = train_views[0].shape[0]
@@ -145,7 +158,7 @@ class KTCCA(TCCA):
         train_views = [train_view @ cov_invsqrt for train_view, cov_invsqrt in zip(train_views, self.covs_invsqrt)]
         return train_views, self.covs_invsqrt
 
-    def transform(self, *views: np.ndarray, view_indices: List[int] = None, **kwargs):
+    def transform(self, *views: np.ndarray, view_indices: Iterable[int] = None, **kwargs):
         """
         Transforms data given a fit k=KCCA model
 

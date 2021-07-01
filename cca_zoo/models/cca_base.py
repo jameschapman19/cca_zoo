@@ -1,6 +1,6 @@
 import itertools
 from abc import abstractmethod
-from typing import List
+from typing import List, Union, Dict, Any
 
 import numpy as np
 import pandas as pd
@@ -25,14 +25,18 @@ class _CCA_Base(BaseEstimator):
 
     @abstractmethod
     def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, accept_sparse=True,
-                 random_state=None):
+                 random_state: Union[int, np.random.RandomState] = None):
         """
         Constructor for _CCA_Base
 
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param accept_sparse: Whether model can take sparse data as input
+        :param random_state: Pass for reproducible output across multiple function calls
         """
-        self.weights_list = None
+        self.weights = None
         self.train_correlations = None
         self.latent_dims = latent_dims
         self.scale = scale
@@ -68,7 +72,7 @@ class _CCA_Base(BaseEstimator):
                 view = view - self.view_means[view_index]
             if self.scale:
                 view = view / self.view_stds[view_index]
-            transformed_view = view @ self.weights_list[view_index]
+            transformed_view = view @ self.weights[view_index]
             transformed_views.append(transformed_view)
         return transformed_views
 
@@ -128,7 +132,8 @@ class _CCA_Base(BaseEstimator):
             train_views.append(view)
         return train_views
 
-    def gridsearch_fit(self, *views: np.ndarray, K=None, param_candidates=None, folds: int = 5,
+    def gridsearch_fit(self, *views: np.ndarray, K=None, param_candidates: Dict[str, List[Any]] = None,
+                       folds: int = 5,
                        verbose: bool = False,
                        jobs: int = 0,
                        plot: bool = False):
@@ -144,12 +149,14 @@ class _CCA_Base(BaseEstimator):
         :param jobs: number of jobs. If jobs>1 then the function can use parallelism
         :param plot: produce a hyperparameter surface plot
         """
+        if param_candidates is None:
+            param_candidates = {}
         if verbose:
             print('cross validation', flush=True)
             print('number of folds: ', folds, flush=True)
 
         # Set up an array for each set of hyperparameters
-        if isinstance(param_candidates, dict) and len(param_candidates) == 0:
+        if len(param_candidates) == 0:
             raise ValueError('No param_candidates was supplied.')
 
         param_names = list(param_candidates.keys())

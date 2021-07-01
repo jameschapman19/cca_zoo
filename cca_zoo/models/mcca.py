@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Iterable, Union
 
 import numpy as np
 from scipy.linalg import block_diag, eigh
@@ -25,19 +25,26 @@ class MCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, c: List[float] = None,
-                 eps=1e-3, random_state=None):
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 c: Iterable[float] = None,
+                 eps=1e-3):
         """
         Constructor for MCCA
 
-        :param c: list of regularisation parameters for each view (between 0:CCA and 1:PLS)
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
+        :param eps: epsilon for stability
         """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True,
                          random_state=random_state)
         self.c = c
         self.eps = eps
 
-    def check_params(self):
+    def _check_params(self):
         self.c = _process_parameter('c', self.c, 0, self.n_views)
 
     def fit(self, *views: np.ndarray):
@@ -47,17 +54,17 @@ class MCCA(_CCA_Base):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
         self.n_views = len(views)
-        self.check_params()
-        train_views, C, D = self.setup_gevp(*views)
-        self.alphas = self.solve_gevp(C, D)
-        self.score_list = [train_view @ eigvecs_ for train_view, eigvecs_ in zip(train_views, self.alphas)]
-        self.weights_list = [weights / np.linalg.norm(score, axis=0) for weights, score in
-                             zip(self.alphas, self.score_list)]
-        self.score_list = [train_view @ weights for train_view, weights in zip(train_views, self.weights_list)]
+        self._check_params()
+        train_views, C, D = self._setup_gevp(*views)
+        self.alphas = self._solve_gevp(C, D)
+        self.scores = [train_view @ eigvecs_ for train_view, eigvecs_ in zip(train_views, self.alphas)]
+        self.weights = [weights / np.linalg.norm(score, axis=0) for weights, score in
+                        zip(self.alphas, self.scores)]
+        self.scores = [train_view @ weights for train_view, weights in zip(train_views, self.weights)]
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def setup_gevp(self, *views: np.ndarray):
+    def _setup_gevp(self, *views: np.ndarray):
         train_views = self.centre_scale(*views)
         all_views = np.concatenate(train_views, axis=1)
         C = all_views.T @ all_views
@@ -69,7 +76,7 @@ class MCCA(_CCA_Base):
         self.splits = np.cumsum([0] + [view.shape[1] for view in train_views])
         return train_views, C, D
 
-    def solve_gevp(self, C, D):
+    def _solve_gevp(self, C, D):
         n = D.shape[0]
         [eigvals, eigvecs] = eigh(C, D, subset_by_index=[n - self.latent_dims, n - 1])
         # sorting according to eigenvalue
@@ -92,18 +99,26 @@ class KCCA(MCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, c: List[float] = None,
-                 kernel: List[Union[float, callable]] = None,
-                 gamma: List[float] = None,
-                 degree: List[float] = None, coef0: List[float] = None,
-                 kernel_params: List[dict] = None, eps=1e-3, random_state=None):
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 c: Iterable[float] = None, eps=1e-3,
+                 kernel: Iterable[Union[float, callable]] = None,
+                 gamma: Iterable[float] = None,
+                 degree: Iterable[float] = None, coef0: Iterable[float] = None,
+                 kernel_params: Iterable[dict] = None):
         """
-        :param kernel: list of kernel mappings used internally. This parameter is directly passed to :class:`~sklearn.metrics.pairwise.pairwise_kernel`. If element of `kernel` is a string, it must be one of the metrics in `pairwise.PAIRWISE_KERNEL_FUNCTIONS`. Alternatively, if element of `kernel` is a callable function, it is called on each pair of instances (rows) and the resulting value recorded. The callable should take two rows from X as input and return the corresponding kernel value as a single number. This means that callables from :mod:`sklearn.metrics.pairwise` are not allowed, as they operate on matrices, not single samples. Use the string identifying the kernel instead.
-        :param gamma: list of gamma parameters for the RBF, laplacian, polynomial, exponential chi2 and sigmoid kernels. Interpretation of the default value is left to the kernel; see the documentation for sklearn.metrics.pairwise. Ignored by other kernels.
-        :param degree: list of degree parameters of the polynomial kernel. Ignored by other kernels.
-        :param coef0: list of zero coefficients for polynomial and sigmoid kernels. Ignored by other kernels.
-        :param kernel_params: list of additional parameters (keyword arguments) for kernel function passed as callable object.
-        :param eps: epsilon value to ensure stability
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
+        :param eps: epsilon for stability
+        :param kernel: Iterable of kernel mappings used internally. This parameter is directly passed to :class:`~sklearn.metrics.pairwise.pairwise_kernel`. If element of `kernel` is a string, it must be one of the metrics in `pairwise.PAIRWISE_KERNEL_FUNCTIONS`. Alternatively, if element of `kernel` is a callable function, it is called on each pair of instances (rows) and the resulting value recorded. The callable should take two rows from X as input and return the corresponding kernel value as a single number. This means that callables from :mod:`sklearn.metrics.pairwise` are not allowed, as they operate on matrices, not single samples. Use the string identifying the kernel instead.
+        :param gamma: Iterable of gamma parameters for the RBF, laplacian, polynomial, exponential chi2 and sigmoid kernels. Interpretation of the default value is left to the kernel; see the documentation for sklearn.metrics.pairwise. Ignored by other kernels.
+        :param degree: Iterable of degree parameters of the polynomial kernel. Ignored by other kernels.
+        :param coef0: Iterable of zero coefficients for polynomial and sigmoid kernels. Ignored by other kernels.
+        :param kernel_params: Iterable of additional parameters (keyword arguments) for kernel function passed as callable object.
+        :param eps: epsilon value to ensure stability of smallest eigenvalues
         """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data,
                          random_state=random_state)
@@ -115,7 +130,7 @@ class KCCA(MCCA):
         self.c = c
         self.eps = eps
 
-    def check_params(self):
+    def _check_params(self):
         self.kernel = _process_parameter('kernel', self.kernel, 'linear', self.n_views)
         self.gamma = _process_parameter('gamma', self.gamma, None, self.n_views)
         self.coef0 = _process_parameter('coef0', self.coef0, 1, self.n_views)
@@ -132,7 +147,7 @@ class KCCA(MCCA):
         return pairwise_kernels(X, Y, metric=self.kernel[view],
                                 filter_params=True, **params)
 
-    def setup_gevp(self, *views: np.ndarray):
+    def _setup_gevp(self, *views: np.ndarray):
         """
         Generates the left and right hand sides of the generalized eigenvalue problem
 
@@ -150,7 +165,7 @@ class KCCA(MCCA):
         self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
         return kernels, C, D
 
-    def transform(self, *views: np.ndarray, view_indices: List[int] = None, **kwargs):
+    def transform(self, *views: np.ndarray, view_indices: Iterable[int] = None, **kwargs):
         """
         Transforms data given a fit KCCA model
 

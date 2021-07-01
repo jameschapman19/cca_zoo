@@ -1,7 +1,7 @@
 import copy
 import warnings
 from abc import abstractmethod
-from typing import Union, List
+from typing import Union, Iterable
 
 import numpy as np
 
@@ -16,15 +16,19 @@ class _Iterative(_CCA_Base):
 
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, deflation='cca',
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 deflation='cca',
                  max_iter: int = 100,
                  generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9, random_state=None):
+                 initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for _Iterative
 
-        :param latent_dims: number of latent dimensions
-        :param scale: scale data by column variances before optimisation
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
         :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
@@ -45,16 +49,16 @@ class _Iterative(_CCA_Base):
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
-        self.set_loop_params()
+        self._set_loop_params()
         train_views = self.centre_scale(*views)
         n = train_views[0].shape[0]
         p = [view.shape[1] for view in train_views]
-        # list of d: p x k
-        self.weights_list = [np.zeros((p_, self.latent_dims)) for p_ in p]
-        self.loading_list = [np.zeros((p_, self.latent_dims)) for p_ in p]
+        # List of d: p x k
+        self.weights = [np.zeros((p_, self.latent_dims)) for p_ in p]
+        self.loadings = [np.zeros((p_, self.latent_dims)) for p_ in p]
 
-        # list of d: n x k
-        self.score_list = [np.zeros((n, self.latent_dims)) for _ in train_views]
+        # List of d: n x k
+        self.scores = [np.zeros((n, self.latent_dims)) for _ in train_views]
 
         residuals = copy.deepcopy(list(train_views))
 
@@ -63,11 +67,11 @@ class _Iterative(_CCA_Base):
         for k in range(self.latent_dims):
             self.loop = self.loop.fit(*residuals)
             for i, residual in enumerate(residuals):
-                self.weights_list[i][:, k] = self.loop.weights[i]
-                self.score_list[i][:, k] = self.loop.scores[i]
-                self.loading_list[i][:, k] = np.dot(self.loop.scores[i], residual)
+                self.weights[i][:, k] = self.loop.weights[i]
+                self.scores[i][:, k] = self.loop.scores[i]
+                self.loadings[i][:, k] = np.dot(self.loop.scores[i], residual)
                 # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
-                residuals[i] = self.deflate(residuals[i], self.score_list[i][:, k], self.weights_list[i][:, k])
+                residuals[i] = self.deflate(residuals[i], self.scores[i][:, k], self.weights[i][:, k])
             self.objective.append(self.loop.track_objective)
         self.train_correlations = self.predict_corr(*views)
         return self
@@ -86,7 +90,7 @@ class _Iterative(_CCA_Base):
             return residual - np.outer(score, loading)
 
     @abstractmethod
-    def set_loop_params(self):
+    def _set_loop_params(self):
         """
         Sets up the inner optimization loop for the method. By default uses the PLS inner loop.
         """
@@ -116,8 +120,10 @@ class PLS(_Iterative):
         """
         Constructor for PLS
 
-        :param latent_dims: number of latent dimensions
-        :param scale: scale data by column variances before optimisation
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
         :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
@@ -129,7 +135,7 @@ class PLS(_Iterative):
                          generalized=generalized,
                          initialization=initialization, tol=tol, random_state=random_state)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = PLSInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
                                  initialization=self.initialization, tol=self.tol, random_state=self.random_state)
 
@@ -155,15 +161,17 @@ class ElasticCCA(_Iterative):
                  max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'unregularized', tol: float = 1e-9,
-                 c: Union[List[float], float] = None,
-                 l1_ratio: Union[List[float], float] = None,
+                 c: Union[Iterable[float], float] = None,
+                 l1_ratio: Union[Iterable[float], float] = None,
                  constrained: bool = False, stochastic=False,
-                 positive: Union[List[bool], bool] = None, random_state=None):
+                 positive: Union[Iterable[bool], bool] = None, random_state=None):
         """
         Constructor for ElasticCCA
 
-        :param latent_dims: number of latent dimensions
-        :param scale: scale data by column variances before optimisation
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
         :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
@@ -190,7 +198,7 @@ class ElasticCCA(_Iterative):
                          initialization=initialization, tol=tol, random_state=random_state
                          )
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio,
                                      generalized=self.generalized, initialization=self.initialization,
                                      tol=self.tol, constrained=self.constrained,
@@ -217,7 +225,7 @@ class CCA_ALS(ElasticCCA):
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'random', tol: float = 1e-9, stochastic=True,
-                 positive: Union[List[bool], bool] = None, random_state=None):
+                 positive: Union[Iterable[bool], bool] = None, random_state=None):
         """
         Constructor for CCA_ALS
 
@@ -247,11 +255,11 @@ class SCCA(ElasticCCA):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True,
-                 c: Union[List[float], float] = None,
+                 c: Union[Iterable[float], float] = None,
                  max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False,
-                 positive: Union[List[bool], bool] = None, random_state=None):
+                 positive: Union[Iterable[bool], bool] = None, random_state=None):
         """
         Constructor for SCCA
 
@@ -279,14 +287,19 @@ class PMD(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True,
-                 c: Union[List[float], float] = None,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 c: Union[Iterable[float], float] = None,
                  max_iter: int = 100,
                  generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9,
-                 positive: Union[List[bool], bool] = None, random_state=None):
+                 positive: Union[Iterable[bool], bool] = None):
         """
         Constructor for PMD
 
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter between 1 and sqrt(number of features) for each view
         :param positive: constrain model weights to be positive
         """
@@ -296,7 +309,7 @@ class PMD(_Iterative):
                          generalized=generalized,
                          initialization=initialization, tol=tol, random_state=random_state)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = PMDInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
                                  initialization=self.initialization, tol=self.tol, positive=self.positive,
                                  random_state=self.random_state)
@@ -319,14 +332,18 @@ class ParkhomenkoCCA(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True,
-                 c: Union[List[float], float] = None,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 c: Union[Iterable[float], float] = None,
                  max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9,
-                 random_state=None):
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for ParkhomenkoCCA
 
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter
         """
         self.c = c
@@ -334,7 +351,7 @@ class ParkhomenkoCCA(_Iterative):
                          generalized=generalized,
                          initialization=initialization, tol=tol, random_state=random_state)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = ParkhomenkoInnerLoop(max_iter=self.max_iter, c=self.c,
                                          generalized=self.generalized,
                                          initialization=self.initialization, tol=self.tol,
@@ -358,18 +375,21 @@ class SCCA_ADMM(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True,
-                 c: Union[List[float], float] = None,
-                 mu: Union[List[float], float] = None,
-                 lam: Union[List[float], float] = None,
-                 eta: Union[List[float], float] = None,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 c: Union[Iterable[float], float] = None,
+                 mu: Union[Iterable[float], float] = None,
+                 lam: Union[Iterable[float], float] = None,
+                 eta: Union[Iterable[float], float] = None,
                  max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9,
-                 random_state=None):
+                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for SCCA_ADMM
 
-
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter
         :param mu:
         :param lam:
@@ -383,7 +403,7 @@ class SCCA_ADMM(_Iterative):
                          generalized=generalized,
                          initialization=initialization, tol=tol, random_state=random_state)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,
                                   eta=self.eta, generalized=self.generalized,
                                   initialization=self.initialization, tol=self.tol, random_state=self.random_state)
@@ -402,8 +422,24 @@ class SpanCCA(_Iterative):
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'uniform', tol: float = 1e-9, regularisation='l0',
-                 c: Union[List[Union[float, int]], Union[float, int]] = None, rank=1,
-                 positive: Union[List[bool], bool] = None, random_state=None):
+                 c: Union[Iterable[Union[float, int]], Union[float, int]] = None, rank=1,
+                 positive: Union[Iterable[bool], bool] = None, random_state=None):
+        """
+
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        :param max_iter:
+        :param generalized:
+        :param initialization:
+        :param tol:
+        :param regularisation:
+        :param c:
+        :param rank:
+        :param positive:
+        """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
                          generalized=generalized,
                          initialization=initialization, tol=tol, random_state=random_state)
@@ -412,7 +448,7 @@ class SpanCCA(_Iterative):
         self.rank = rank
         self.positive = positive
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = SpanCCAInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
                                      initialization=self.initialization, tol=self.tol,
                                      regularisation=self.regularisation, rank=self.rank, positive=self.positive,
@@ -430,11 +466,29 @@ class SWCCA(_Iterative):
 
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, max_iter: int = 500,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 max_iter: int = 500,
                  generalized: bool = False,
                  initialization: str = 'uniform', tol: float = 1e-9, regularisation='l0',
-                 c: Union[List[Union[float, int]], Union[float, int]] = None, sample_support=None,
-                 positive: Union[List[bool], bool] = None, random_state=None):
+                 c: Union[Iterable[Union[float, int]], Union[float, int]] = None, sample_support=None,
+                 positive: Union[Iterable[bool], bool] = None):
+        """
+
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        :param max_iter:
+        :param generalized:
+        :param initialization:
+        :param tol:
+        :param regularisation:
+        :param c:
+        :param sample_support:
+        :param positive:
+        """
+
         self.c = c
         self.sample_support = sample_support
         self.regularisation = regularisation
@@ -443,7 +497,7 @@ class SWCCA(_Iterative):
                          generalized=generalized,
                          initialization=initialization, tol=tol, random_state=random_state)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = SWCCAInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
                                    initialization=self.initialization, tol=self.tol, regularisation=self.regularisation,
                                    c=self.c,

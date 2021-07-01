@@ -13,15 +13,15 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                              view_sparsity: List[Union[int, float]] = None,
                              correlation: Union[List[float], float] = 1,
                              structure: Union[str, List[str]] = None, sigma: List[float] = None, decay: float = 0.5,
-                             positive=None, random_state=None):
+                             positive=None, random_state: Union[int, np.random.RandomState] = None):
     """
     Function to generate CCA dataset with defined population correlation
 
+    :param n: number of samples
     :param view_sparsity: level of sparsity in features in each view either as number of active variables or percentage active
     :param view_features: number of features in each view
-    :param n: number of samples
     :param latent_dims: number of latent dimensions
-    :param signal: correlation
+    :param correlation: correlation either as list with element for each latent dimension or as float which is scaled by 'decay'
     :param structure: within view covariance structure
     :param sigma: gaussian sigma
     :param decay: ratio of second signal to first signal

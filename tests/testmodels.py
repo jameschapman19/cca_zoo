@@ -36,10 +36,10 @@ class TestModels(TestCase):
         corr_mcca = wrap_mcca.train_correlations[0, 1]
         corr_kcca = wrap_kcca.train_correlations[0, 1]
         # Check the score outputs are the right shape
-        self.assertTrue(wrap_iter.score_list[0].shape == (self.X.shape[0], latent_dims))
-        self.assertTrue(wrap_gcca.score_list[0].shape == (self.X.shape[0], latent_dims))
-        self.assertTrue(wrap_mcca.score_list[0].shape == (self.X.shape[0], latent_dims))
-        self.assertTrue(wrap_kcca.score_list[0].shape == (self.X.shape[0], latent_dims))
+        self.assertTrue(wrap_iter.scores[0].shape == (self.X.shape[0], latent_dims))
+        self.assertTrue(wrap_gcca.scores[0].shape == (self.X.shape[0], latent_dims))
+        self.assertTrue(wrap_mcca.scores[0].shape == (self.X.shape[0], latent_dims))
+        self.assertTrue(wrap_kcca.scores[0].shape == (self.X.shape[0], latent_dims))
         # Check the correlations from each unregularized method are the same
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_iter, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_mcca, decimal=2))
@@ -60,10 +60,10 @@ class TestModels(TestCase):
         corr_mcca = wrap_mcca.train_correlations[0, 1]
         corr_kcca = wrap_kcca.train_correlations[0, 1]
         # Check the score outputs are the right shape
-        self.assertTrue(wrap_iter.score_list[0].shape == (self.X_sp.shape[0], latent_dims))
-        self.assertTrue(wrap_gcca.score_list[0].shape == (self.X_sp.shape[0], latent_dims))
-        self.assertTrue(wrap_mcca.score_list[0].shape == (self.X_sp.shape[0], latent_dims))
-        self.assertTrue(wrap_kcca.score_list[0].shape == (self.X_sp.shape[0], latent_dims))
+        self.assertTrue(wrap_iter.scores[0].shape == (self.X_sp.shape[0], latent_dims))
+        self.assertTrue(wrap_gcca.scores[0].shape == (self.X_sp.shape[0], latent_dims))
+        self.assertTrue(wrap_mcca.scores[0].shape == (self.X_sp.shape[0], latent_dims))
+        self.assertTrue(wrap_kcca.scores[0].shape == (self.X_sp.shape[0], latent_dims))
         # Check the correlations from each unregularized method are the same
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_iter, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_mcca, decimal=2))
@@ -85,10 +85,10 @@ class TestModels(TestCase):
         corr_mcca = wrap_mcca.train_correlations[:, :, 0]
         corr_kcca = wrap_kcca.train_correlations[:, :, 0]
         # Check the score outputs are the right shape
-        self.assertTrue(wrap_iter.score_list[0].shape == (self.X.shape[0], latent_dims))
-        self.assertTrue(wrap_gcca.score_list[0].shape == (self.X.shape[0], latent_dims))
-        self.assertTrue(wrap_mcca.score_list[0].shape == (self.X.shape[0], latent_dims))
-        self.assertTrue(wrap_kcca.score_list[0].shape == (self.X.shape[0], latent_dims))
+        self.assertTrue(wrap_iter.scores[0].shape == (self.X.shape[0], latent_dims))
+        self.assertTrue(wrap_gcca.scores[0].shape == (self.X.shape[0], latent_dims))
+        self.assertTrue(wrap_mcca.scores[0].shape == (self.X.shape[0], latent_dims))
+        self.assertTrue(wrap_kcca.scores[0].shape == (self.X.shape[0], latent_dims))
         # Check the correlations from each unregularized method are the same
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_iter, decimal=1))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_mcca, decimal=2))
@@ -189,9 +189,9 @@ class TestModels(TestCase):
     def test_l0(self):
         wrap_span_cca = SpanCCA(latent_dims=1, regularisation='l0', c=[2, 2]).fit(self.X, self.Y)
         wrap_swcca = SWCCA(latent_dims=1, c=[2, 2], sample_support=5).fit(self.X, self.Y)
-        self.assertEqual((np.abs(wrap_span_cca.weights_list[0]) > 1e-5).sum(), 2)
-        self.assertEqual((np.abs(wrap_span_cca.weights_list[1]) > 1e-5).sum(), 2)
-        self.assertEqual((np.abs(wrap_swcca.weights_list[0]) > 1e-5).sum(), 2)
-        self.assertEqual((np.abs(wrap_swcca.weights_list[1]) > 1e-5).sum(), 2)
+        self.assertEqual((np.abs(wrap_span_cca.weights[0]) > 1e-5).sum(), 2)
+        self.assertEqual((np.abs(wrap_span_cca.weights[1]) > 1e-5).sum(), 2)
+        self.assertEqual((np.abs(wrap_swcca.weights[0]) > 1e-5).sum(), 2)
+        self.assertEqual((np.abs(wrap_swcca.weights[1]) > 1e-5).sum(), 2)
         self.assertEqual((np.abs(wrap_swcca.loop.sample_weights) > 1e-5).sum(), 5)
         print()
