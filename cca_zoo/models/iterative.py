@@ -113,10 +113,11 @@ class PLS(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, deflation='cca',
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 deflation='cca',
                  max_iter: int = 100,
                  generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9, random_state=None):
+                 initialization: str = 'unregularized', tol: float = 1e-9):
         """
         Constructor for PLS
 
@@ -124,6 +125,7 @@ class PLS(_Iterative):
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample
         :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
         :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
@@ -157,14 +159,15 @@ class ElasticCCA(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, deflation='cca',
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 deflation='cca',
                  max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'unregularized', tol: float = 1e-9,
                  c: Union[Iterable[float], float] = None,
                  l1_ratio: Union[Iterable[float], float] = None,
                  constrained: bool = False, stochastic=False,
-                 positive: Union[Iterable[bool], bool] = None, random_state=None):
+                 positive: Union[Iterable[bool], bool] = None):
         """
         Constructor for ElasticCCA
 
@@ -172,6 +175,7 @@ class ElasticCCA(_Iterative):
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample
         :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
         :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
@@ -222,13 +226,25 @@ class CCA_ALS(ElasticCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, max_iter: int = 100,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
+                 max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'random', tol: float = 1e-9, stochastic=True,
-                 positive: Union[Iterable[bool], bool] = None, random_state=None):
+                 positive: Union[Iterable[bool], bool] = None):
         """
         Constructor for CCA_ALS
 
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param stochastic: use stochastic regression optimisers for subproblems
+        :param positive: constrain model weights to be positive
         """
 
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
@@ -254,15 +270,27 @@ class SCCA(ElasticCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True,
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
                  c: Union[Iterable[float], float] = None,
                  max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False,
-                 positive: Union[Iterable[bool], bool] = None, random_state=None):
+                 positive: Union[Iterable[bool], bool] = None):
         """
         Constructor for SCCA
 
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param c: lasso alpha
+        :param stochastic: use stochastic regression optimisers for subproblems
+        :param positive: constrain model weights to be positive
         """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
                          generalized=generalized,
