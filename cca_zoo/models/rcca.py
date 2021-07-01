@@ -28,13 +28,14 @@ class rCCA(_CCA_Base):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, c: List[float] = None,
-                 eps=1e-3):
+                 eps=1e-3, random_state=None):
         """
         Constructor for rCCA
 
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True,
+                         random_state=random_state)
         self.c = c
         self.eps = eps
 

@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-import numpy as np
-from torch import optim
+from sklearn.utils.validation import check_random_state
+from torch import optim, manual_seed
 
 from cca_zoo import data
 from cca_zoo.deepmodels import DCCA, DCCAE, DVCCA, DCCA_NOI, DTCCA, SplitAE, DeepWrapper
@@ -11,11 +11,13 @@ from cca_zoo.deepmodels import objectives, architectures
 class TestDeepModels(TestCase):
 
     def setUp(self):
-        self.X = np.random.rand(200, 10)
-        self.Y = np.random.rand(200, 10)
-        self.Z = np.random.rand(200, 10)
-        self.X_conv = np.random.rand(100, 1, 16, 16)
-        self.Y_conv = np.random.rand(100, 1, 16, 16)
+        manual_seed(0)
+        self.rng = check_random_state(0)
+        self.X = self.rng.rand(200, 10)
+        self.Y = self.rng.rand(200, 10)
+        self.Z = self.rng.rand(200, 10)
+        self.X_conv = self.rng.rand(100, 1, 16, 16)
+        self.Y_conv = self.rng.rand(100, 1, 16, 16)
         self.train_dataset = data.CCA_Dataset(self.X, self.Y)
 
     def tearDown(self):
@@ -37,8 +39,8 @@ class TestDeepModels(TestCase):
         dcca_model.fit((self.X, self.Y), val_split=0.2, epochs=3)
 
     def test_large_p(self):
-        X = np.random.rand(2000, 2048)
-        Y = np.random.rand(2000, 2048)
+        X = self.rng.rand(2000, 2048)
+        Y = self.rng.rand(2000, 2048)
         latent_dims = 150
         device = 'cpu'
         encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=2048)
@@ -64,18 +66,18 @@ class TestDeepModels(TestCase):
                            objective=objectives.GCCA)
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dgcca_model = DeepWrapper(dgcca_model, device=device)
-        dgcca_model.fit((self.X, self.Y), epochs=3)
+        dgcca_model.fit((self.X, self.Y), epochs=20)
         # DMCCA
         dmcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                            objective=objectives.MCCA)
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dmcca_model = DeepWrapper(dmcca_model, device=device)
-        dmcca_model.fit((self.X, self.Y), epochs=3)
+        dmcca_model.fit((self.X, self.Y), epochs=20)
         # DCCA_NOI
         dcca_noi_model = DCCA_NOI(latent_dims, self.X.shape[0], encoders=[encoder_1, encoder_2])
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dcca_noi_model = DeepWrapper(dcca_noi_model, device=device)
-        dcca_noi_model.fit((self.X, self.Y), epochs=30)
+        dcca_noi_model.fit((self.X, self.Y), epochs=20)
 
     def test_DTCCA_methods_cpu(self):
         latent_dims = 2

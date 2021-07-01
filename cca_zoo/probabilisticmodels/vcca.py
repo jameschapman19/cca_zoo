@@ -26,8 +26,9 @@ class VariationalCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1):
-        super().__init__(latent_dims=latent_dims)
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state: int = 0):
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True,
+                         random_state=random_state)
 
     def fit(self, *views: np.ndarray):
         nuts_kernel = NUTS(self.model)
