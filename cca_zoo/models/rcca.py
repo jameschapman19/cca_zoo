@@ -57,7 +57,7 @@ class rCCA(_CCA_Base):
         """
         self.n_views = len(views)
         self._check_params()
-        train_views = self.centre_scale(*views)
+        train_views = self._centre_scale(*views)
         U_Iterable, S_Iterable, Vt_Iterable = _pca_data(*train_views)
         if len(views) == 2:
             self._two_view_fit(U_Iterable, S_Iterable, Vt_Iterable)

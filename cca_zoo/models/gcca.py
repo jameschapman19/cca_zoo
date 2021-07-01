@@ -63,7 +63,7 @@ class GCCA(_CCA_Base):
         if K is None:
             # just use identity when all rows are observed in all views.
             K = np.ones((len(views), views[0].shape[0]))
-        train_views = self.centre_scale(*views)
+        train_views = self._centre_scale(*views)
         Q = []
         for i, (view, view_weight) in enumerate(zip(train_views, self.view_weights)):
             view_cov = view.T @ view

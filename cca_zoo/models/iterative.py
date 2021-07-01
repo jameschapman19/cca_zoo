@@ -50,7 +50,7 @@ class _Iterative(_CCA_Base):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
         self._set_loop_params()
-        train_views = self.centre_scale(*views)
+        train_views = self._centre_scale(*views)
         n = train_views[0].shape[0]
         p = [view.shape[1] for view in train_views]
         # List of d: p x k
