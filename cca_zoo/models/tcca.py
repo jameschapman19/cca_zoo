@@ -45,13 +45,13 @@ class TCCA(_CCA_Base):
                          random_state=random_state)
         self.c = c
 
-    def check_params(self):
+    def _check_params(self):
         self.c = _process_parameter('c', self.c, 0, self.n_views)
 
     def fit(self, *views: np.ndarray, ):
         self.n_views = len(views)
-        self.check_params()
-        train_views, covs_invsqrt = self.setup_tensor(*views)
+        self._check_params()
+        train_views, covs_invsqrt = self._setup_tensor(*views)
         for i, el in enumerate(train_views):
             if i == 0:
                 M = el
@@ -71,7 +71,7 @@ class TCCA(_CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def setup_tensor(self, *views: np.ndarray, **kwargs):
+    def _setup_tensor(self, *views: np.ndarray, **kwargs):
         train_views = self.centre_scale(*views)
         n = train_views[0].shape[0]
         covs = [(1 - self.c[i]) * view.T @ view + self.c[i] * np.eye(view.shape[1]) for i, view in
@@ -130,7 +130,7 @@ class KTCCA(TCCA):
         self.c = c
         self.eps = eps
 
-    def check_params(self):
+    def _check_params(self):
         self.kernel = _process_parameter('kernel', self.kernel, 'linear', self.n_views)
         self.gamma = _process_parameter('gamma', self.gamma, None, self.n_views)
         self.coef0 = _process_parameter('coef0', self.coef0, 1, self.n_views)
@@ -147,7 +147,7 @@ class KTCCA(TCCA):
         return pairwise_kernels(X, Y, metric=self.kernel[view],
                                 filter_params=True, **params)
 
-    def setup_tensor(self, *views: np.ndarray):
+    def _setup_tensor(self, *views: np.ndarray):
         self.train_views = self.centre_scale(*views)
         train_views = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
         n = train_views[0].shape[0]

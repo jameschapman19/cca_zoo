@@ -130,8 +130,9 @@ class TestModels(TestCase):
         c1 = [1, 3]
         c2 = [1, 3]
         param_candidates = {'c': list(itertools.product(c1, c2))}
+        p2 = {'c': 2, 'd': [5, 3]}
         wrap_pmd = PMD(latent_dims=latent_dims, random_state=self.rng).gridsearch_fit(self.X, self.Y,
-                                                                                      param_candidates=param_candidates,
+                                                                                      param_candidates=p2,
                                                                                       verbose=True, plot=True)
         c1 = [1e-4, 1e-5]
         c2 = [1e-4, 1e-5]

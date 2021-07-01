@@ -44,7 +44,7 @@ class MCCA(_CCA_Base):
         self.c = c
         self.eps = eps
 
-    def check_params(self):
+    def _check_params(self):
         self.c = _process_parameter('c', self.c, 0, self.n_views)
 
     def fit(self, *views: np.ndarray):
@@ -54,9 +54,9 @@ class MCCA(_CCA_Base):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
         self.n_views = len(views)
-        self.check_params()
-        train_views, C, D = self.setup_gevp(*views)
-        self.alphas = self.solve_gevp(C, D)
+        self._check_params()
+        train_views, C, D = self._setup_gevp(*views)
+        self.alphas = self._solve_gevp(C, D)
         self.score_list = [train_view @ eigvecs_ for train_view, eigvecs_ in zip(train_views, self.alphas)]
         self.weights_list = [weights / np.linalg.norm(score, axis=0) for weights, score in
                              zip(self.alphas, self.score_list)]
@@ -64,7 +64,7 @@ class MCCA(_CCA_Base):
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def setup_gevp(self, *views: np.ndarray):
+    def _setup_gevp(self, *views: np.ndarray):
         train_views = self.centre_scale(*views)
         all_views = np.concatenate(train_views, axis=1)
         C = all_views.T @ all_views
@@ -76,7 +76,7 @@ class MCCA(_CCA_Base):
         self.splits = np.cumsum([0] + [view.shape[1] for view in train_views])
         return train_views, C, D
 
-    def solve_gevp(self, C, D):
+    def _solve_gevp(self, C, D):
         n = D.shape[0]
         [eigvals, eigvecs] = eigh(C, D, subset_by_index=[n - self.latent_dims, n - 1])
         # sorting according to eigenvalue
@@ -130,7 +130,7 @@ class KCCA(MCCA):
         self.c = c
         self.eps = eps
 
-    def check_params(self):
+    def _check_params(self):
         self.kernel = _process_parameter('kernel', self.kernel, 'linear', self.n_views)
         self.gamma = _process_parameter('gamma', self.gamma, None, self.n_views)
         self.coef0 = _process_parameter('coef0', self.coef0, 1, self.n_views)
@@ -147,7 +147,7 @@ class KCCA(MCCA):
         return pairwise_kernels(X, Y, metric=self.kernel[view],
                                 filter_params=True, **params)
 
-    def setup_gevp(self, *views: np.ndarray):
+    def _setup_gevp(self, *views: np.ndarray):
         """
         Generates the left and right hand sides of the generalized eigenvalue problem
 

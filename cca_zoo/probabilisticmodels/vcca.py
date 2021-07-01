@@ -23,7 +23,7 @@ class VariationalCCA(_CCA_Base):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = VariationalCCA()
-    >>> model.fit(X1,X2)
+    >>> _model.fit(X1,X2)
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state: int = 0):
@@ -31,14 +31,14 @@ class VariationalCCA(_CCA_Base):
                          random_state=random_state)
 
     def fit(self, *views: np.ndarray):
-        nuts_kernel = NUTS(self.model)
+        nuts_kernel = NUTS(self._model)
         self.mcmc = MCMC(nuts_kernel, num_samples=100, num_warmup=100)
         rng_key = random.PRNGKey(0)
         self.mcmc.run(rng_key, *views)
         self.posterior_samples = self.mcmc.get_samples()
         return self
 
-    def model(self, *views: np.ndarray):
+    def _model(self, *views: np.ndarray):
         n = views[0].shape[0]
         p = [view.shape[1] for view in views]
         # mean of column in each view of data (p_1,)

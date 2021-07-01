@@ -49,7 +49,7 @@ class _Iterative(_CCA_Base):
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
-        self.set_loop_params()
+        self._set_loop_params()
         train_views = self.centre_scale(*views)
         n = train_views[0].shape[0]
         p = [view.shape[1] for view in train_views]
@@ -90,7 +90,7 @@ class _Iterative(_CCA_Base):
             return residual - np.outer(score, loading)
 
     @abstractmethod
-    def set_loop_params(self):
+    def _set_loop_params(self):
         """
         Sets up the inner optimization loop for the method. By default uses the PLS inner loop.
         """
@@ -135,7 +135,7 @@ class PLS(_Iterative):
                          generalized=generalized,
                          initialization=initialization, tol=tol, random_state=random_state)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = PLSInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
                                  initialization=self.initialization, tol=self.tol, random_state=self.random_state)
 
@@ -198,7 +198,7 @@ class ElasticCCA(_Iterative):
                          initialization=initialization, tol=tol, random_state=random_state
                          )
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio,
                                      generalized=self.generalized, initialization=self.initialization,
                                      tol=self.tol, constrained=self.constrained,
@@ -309,7 +309,7 @@ class PMD(_Iterative):
                          generalized=generalized,
                          initialization=initialization, tol=tol, random_state=random_state)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = PMDInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
                                  initialization=self.initialization, tol=self.tol, positive=self.positive,
                                  random_state=self.random_state)
@@ -351,7 +351,7 @@ class ParkhomenkoCCA(_Iterative):
                          generalized=generalized,
                          initialization=initialization, tol=tol, random_state=random_state)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = ParkhomenkoInnerLoop(max_iter=self.max_iter, c=self.c,
                                          generalized=self.generalized,
                                          initialization=self.initialization, tol=self.tol,
@@ -403,7 +403,7 @@ class SCCA_ADMM(_Iterative):
                          generalized=generalized,
                          initialization=initialization, tol=tol, random_state=random_state)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,
                                   eta=self.eta, generalized=self.generalized,
                                   initialization=self.initialization, tol=self.tol, random_state=self.random_state)
@@ -448,7 +448,7 @@ class SpanCCA(_Iterative):
         self.rank = rank
         self.positive = positive
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = SpanCCAInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
                                      initialization=self.initialization, tol=self.tol,
                                      regularisation=self.regularisation, rank=self.rank, positive=self.positive,
@@ -497,7 +497,7 @@ class SWCCA(_Iterative):
                          generalized=generalized,
                          initialization=initialization, tol=tol, random_state=random_state)
 
-    def set_loop_params(self):
+    def _set_loop_params(self):
         self.loop = SWCCAInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
                                    initialization=self.initialization, tol=self.tol, regularisation=self.regularisation,
                                    c=self.c,

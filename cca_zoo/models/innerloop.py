@@ -26,7 +26,7 @@ class _InnerLoop:
         self.tol = tol
         self.random_state = check_random_state(random_state)
 
-    def check_params(self):
+    def _check_params(self):
         """
         Put any parameter checks using exceptions inside this function.
         """
@@ -53,7 +53,7 @@ class _InnerLoop:
                 'For more than 2 views require generalized=True')
 
         # Check that the parameters that have been passed are valid for these views given #views and #features
-        self.check_params()
+        self._check_params()
         self.initialize()
 
         # Iterate until convergence
@@ -93,7 +93,7 @@ class PLSInnerLoop(_InnerLoop):
         super().__init__(max_iter=max_iter, tol=tol, generalized=generalized,
                          initialization=initialization, random_state=random_state)
 
-    def check_params(self):
+    def _check_params(self):
         self.l1_ratio = [0] * len(self.views)
         self.c = [0] * len(self.views)
 
@@ -135,7 +135,7 @@ class PMDInnerLoop(PLSInnerLoop):
         self.c = c
         self.positive = positive
 
-    def check_params(self):
+    def _check_params(self):
         if self.c is None:
             warnings.warn(
                 'c parameter not set. Setting to c=1 i.e. maximum regularisation of l1 norm')
@@ -173,7 +173,7 @@ class ParkhomenkoInnerLoop(PLSInnerLoop):
                          initialization=initialization, random_state=random_state)
         self.c = c
 
-    def check_params(self):
+    def _check_params(self):
         self.c = _process_parameter('c', self.c, [0.0001], len(self.views))
         if any(c <= 0 for c in self.c):
             raise ('All regularisation parameters should be above 0. '
@@ -208,7 +208,7 @@ class ElasticInnerLoop(PLSInnerLoop):
         self.l1_ratio = l1_ratio
         self.positive = positive
 
-    def check_params(self):
+    def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, len(self.views))
         self.l1_ratio = _process_parameter('l1_ratio', self.l1_ratio, 0, len(self.views))
         self.positive = _process_parameter('positive', self.positive, False, len(self.views))
@@ -325,7 +325,7 @@ class ADMMInnerLoop(ElasticInnerLoop):
         self.mu = mu
         self.eta = eta
 
-    def check_params(self):
+    def _check_params(self):
         self.c = _process_parameter('c', self.c, 0, len(self.views))
         self.lam = _process_parameter('lam', self.lam, 1, len(self.views))
         if self.mu is None:
@@ -406,7 +406,7 @@ class SpanCCAInnerLoop(_InnerLoop):
         self.rank = rank
         self.positive = positive
 
-    def check_params(self):
+    def _check_params(self):
         """check number of views=2"""
         if len(self.views) != 2:
             raise ValueError(f"SpanCCA requires only 2 views")
@@ -456,7 +456,7 @@ class SWCCAInnerLoop(PLSInnerLoop):
             self.update = _delta_search
         self.positive = positive
 
-    def check_params(self):
+    def _check_params(self):
         self.sample_weights = np.ones(self.views[0].shape[0])
         self.sample_weights /= np.linalg.norm(self.sample_weights)
         self.positive = _process_parameter('positive', self.positive, False, len(self.views))

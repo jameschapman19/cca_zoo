@@ -45,7 +45,7 @@ class GCCA(_CCA_Base):
         self.c = c
         self.view_weights = view_weights
 
-    def check_params(self):
+    def _check_params(self):
         self.c = _process_parameter('c', self.c, 0, self.n_views)
         self.view_weights = _process_parameter('view_weights', self.view_weights, 1, self.n_views)
 
@@ -58,7 +58,7 @@ class GCCA(_CCA_Base):
         """
 
         self.n_views = len(views)
-        self.check_params()
+        self._check_params()
 
         if K is None:
             # just use identity when all rows are observed in all views.

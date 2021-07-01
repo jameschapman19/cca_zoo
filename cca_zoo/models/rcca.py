@@ -46,7 +46,7 @@ class rCCA(_CCA_Base):
         self.c = c
         self.eps = eps
 
-    def check_params(self):
+    def _check_params(self):
         self.c = _process_parameter('c', self.c, 0, self.n_views)
 
     def fit(self, *views: np.ndarray):
@@ -56,19 +56,19 @@ class rCCA(_CCA_Base):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
         self.n_views = len(views)
-        self.check_params()
+        self._check_params()
         train_views = self.centre_scale(*views)
         U_list, S_list, Vt_list = _pca_data(*train_views)
         if len(views) == 2:
-            self.two_view_fit(U_list, S_list, Vt_list)
+            self._two_view_fit(U_list, S_list, Vt_list)
         else:
-            self.multi_view_fit(U_list, S_list, Vt_list)
+            self._multi_view_fit(U_list, S_list, Vt_list)
         self.score_list = [view @ self.weights_list[i] for i, view in enumerate(train_views)]
         self.loading_list = [view.T @ score for score, view in zip(self.score_list, train_views)]
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def two_view_fit(self, U_list, S_list, Vt_list):
+    def _two_view_fit(self, U_list, S_list, Vt_list):
         B_list = [(1 - self.c[i]) * S * S + self.c[i] for i, S in
                   enumerate(S_list)]
         R_list = [U @ np.diag(S) for U, S in zip(U_list, S_list)]
@@ -84,7 +84,7 @@ class rCCA(_CCA_Base):
                                                                                                :self.latent_dims].real / eigvals
         self.weights_list = [w_x, w_y]
 
-    def multi_view_fit(self, U_list, S_list, Vt_list):
+    def _multi_view_fit(self, U_list, S_list, Vt_list):
         B_list = [(1 - self.c[i]) * S * S + self.c[i] for i, S in
                   enumerate(S_list)]
         D = block_diag(*[np.diag((1 - self.c[i]) * S * S + self.c[i]) for i, S in

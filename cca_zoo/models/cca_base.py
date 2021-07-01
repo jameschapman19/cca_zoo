@@ -1,6 +1,6 @@
 import itertools
 from abc import abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 import numpy as np
 import pandas as pd
@@ -132,7 +132,8 @@ class _CCA_Base(BaseEstimator):
             train_views.append(view)
         return train_views
 
-    def gridsearch_fit(self, *views: np.ndarray, K=None, param_candidates=None, folds: int = 5,
+    def gridsearch_fit(self, *views: np.ndarray, K=None, param_candidates: Dict[str, List[Any]] = None,
+                       folds: int = 5,
                        verbose: bool = False,
                        jobs: int = 0,
                        plot: bool = False):
@@ -148,12 +149,14 @@ class _CCA_Base(BaseEstimator):
         :param jobs: number of jobs. If jobs>1 then the function can use parallelism
         :param plot: produce a hyperparameter surface plot
         """
+        if param_candidates is None:
+            param_candidates = {}
         if verbose:
             print('cross validation', flush=True)
             print('number of folds: ', folds, flush=True)
 
         # Set up an array for each set of hyperparameters
-        if isinstance(param_candidates, dict) and len(param_candidates) == 0:
+        if len(param_candidates) == 0:
             raise ValueError('No param_candidates was supplied.')
 
         param_names = list(param_candidates.keys())
