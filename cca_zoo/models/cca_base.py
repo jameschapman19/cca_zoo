@@ -36,7 +36,7 @@ class _CCA_Base(BaseEstimator):
         :param accept_sparse: Whether model can take sparse data as input
         :param random_state: Pass for reproducible output across multiple function calls
         """
-        self.weights_list = None
+        self.weights = None
         self.train_correlations = None
         self.latent_dims = latent_dims
         self.scale = scale
@@ -72,7 +72,7 @@ class _CCA_Base(BaseEstimator):
                 view = view - self.view_means[view_index]
             if self.scale:
                 view = view / self.view_stds[view_index]
-            transformed_view = view @ self.weights_list[view_index]
+            transformed_view = view @ self.weights[view_index]
             transformed_views.append(transformed_view)
         return transformed_views
 

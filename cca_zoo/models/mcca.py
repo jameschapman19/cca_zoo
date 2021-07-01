@@ -57,10 +57,10 @@ class MCCA(_CCA_Base):
         self._check_params()
         train_views, C, D = self._setup_gevp(*views)
         self.alphas = self._solve_gevp(C, D)
-        self.score_Iterable = [train_view @ eigvecs_ for train_view, eigvecs_ in zip(train_views, self.alphas)]
-        self.weights_Iterable = [weights / np.linalg.norm(score, axis=0) for weights, score in
-                                 zip(self.alphas, self.score_Iterable)]
-        self.score_Iterable = [train_view @ weights for train_view, weights in zip(train_views, self.weights_Iterable)]
+        self.scores = [train_view @ eigvecs_ for train_view, eigvecs_ in zip(train_views, self.alphas)]
+        self.weights = [weights / np.linalg.norm(score, axis=0) for weights, score in
+                        zip(self.alphas, self.scores)]
+        self.scores = [train_view @ weights for train_view, weights in zip(train_views, self.weights)]
         self.train_correlations = self.predict_corr(*views)
         return self
 

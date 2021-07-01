@@ -63,8 +63,8 @@ class rCCA(_CCA_Base):
             self._two_view_fit(U_Iterable, S_Iterable, Vt_Iterable)
         else:
             self._multi_view_fit(U_Iterable, S_Iterable, Vt_Iterable)
-        self.score_Iterable = [view @ self.weights_Iterable[i] for i, view in enumerate(train_views)]
-        self.loading_Iterable = [view.T @ score for score, view in zip(self.score_Iterable, train_views)]
+        self.scores = [view @ self.weights[i] for i, view in enumerate(train_views)]
+        self.loading_Iterable = [view.T @ score for score, view in zip(self.scores, train_views)]
         self.train_correlations = self.predict_corr(*views)
         return self
 
@@ -83,7 +83,7 @@ class rCCA(_CCA_Base):
         w_y = Vt_Iterable[1].T @ np.diag(1 / np.sqrt(B_Iterable[1])) @ eigvecs[:, :self.latent_dims].real
         w_x = Vt_Iterable[0].T @ np.diag(1 / B_Iterable[0]) @ R_12 @ np.diag(1 / np.sqrt(B_Iterable[1])) @ eigvecs[:,
                                                                                                            :self.latent_dims].real / eigvals
-        self.weights_Iterable = [w_x, w_y]
+        self.weights = [w_x, w_y]
 
     def _multi_view_fit(self, U_Iterable, S_Iterable, Vt_Iterable):
         B_Iterable = [(1 - self.c[i]) * S * S + self.c[i] for i, S in
@@ -100,8 +100,8 @@ class rCCA(_CCA_Base):
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         splits = np.cumsum([0] + [U.shape[1] for U in U_Iterable])
-        self.weights_Iterable = [Vt.T @ np.diag(1 / np.sqrt(B)) @ eigvecs[split:splits[i + 1], :self.latent_dims] for
-                                 i, (split, Vt, B) in enumerate(zip(splits[:-1], Vt_Iterable, B_Iterable))]
+        self.weights = [Vt.T @ np.diag(1 / np.sqrt(B)) @ eigvecs[split:splits[i + 1], :self.latent_dims] for
+                        i, (split, Vt, B) in enumerate(zip(splits[:-1], Vt_Iterable, B_Iterable))]
 
 
 class CCA(rCCA):

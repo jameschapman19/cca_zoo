@@ -76,8 +76,8 @@ class GCCA(_CCA_Base):
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         self.eigvals = eigvals[idx].real
-        self.weights_list = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in train_views]
-        self.score_list = [view @ self.weights_list[i] for i, view in enumerate(train_views)]
+        self.weights = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in train_views]
+        self.scores = [view @ self.weights[i] for i, view in enumerate(train_views)]
         self.train_correlations = self.predict_corr(*views)
         return self
 
@@ -94,7 +94,7 @@ class GCCA(_CCA_Base):
             view_indices = np.arange(len(views))
         for i, (view, view_index) in enumerate(zip(views, view_indices)):
             view = check_array(view, copy=self.copy_data, accept_sparse=self.accept_sparse)
-            transformed_view = np.array((view - self.view_means[view_index]) @ self.weights_list[view_index])
+            transformed_view = np.array((view - self.view_means[view_index]) @ self.weights[view_index])
             # TODO maybe revisit this. The original idea was to only generate correlations for observed samples but it's perhaps simpler to do this in post processing
             # if K is not None:
             #    transformed_view.mask[np.where(K[view_index]) == 1] = True

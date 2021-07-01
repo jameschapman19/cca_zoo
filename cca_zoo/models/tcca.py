@@ -64,10 +64,10 @@ class TCCA(_CCA_Base):
         M_parafac = parafac(M, self.latent_dims, verbose=True)
         self.alphas = [cov_invsqrt @ fac for i, (view, cov_invsqrt, fac) in
                        enumerate(zip(train_views, covs_invsqrt, M_parafac.factors))]
-        self.score_Iterable = [view @ self.alphas[i] for i, view in enumerate(train_views)]
-        self.weights_Iterable = [weights / np.linalg.norm(score) for weights, score in
-                                 zip(self.alphas, self.score_Iterable)]
-        self.score_Iterable = [view @ self.weights_Iterable[i] for i, view in enumerate(train_views)]
+        self.scores = [view @ self.alphas[i] for i, view in enumerate(train_views)]
+        self.weights = [weights / np.linalg.norm(score) for weights, score in
+                        zip(self.alphas, self.scores)]
+        self.scores = [view @ self.weights[i] for i, view in enumerate(train_views)]
         self.train_correlations = self.predict_corr(*views)
         return self
 

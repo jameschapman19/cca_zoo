@@ -53,25 +53,25 @@ class _Iterative(_CCA_Base):
         train_views = self.centre_scale(*views)
         n = train_views[0].shape[0]
         p = [view.shape[1] for view in train_views]
-        # Iterable of d: p x k
-        self.weights_Iterable = [np.zeros((p_, self.latent_dims)) for p_ in p]
-        self.loading_Iterable = [np.zeros((p_, self.latent_dims)) for p_ in p]
+        # List of d: p x k
+        self.weights = [np.zeros((p_, self.latent_dims)) for p_ in p]
+        self.loadings = [np.zeros((p_, self.latent_dims)) for p_ in p]
 
-        # Iterable of d: n x k
-        self.score_Iterable = [np.zeros((n, self.latent_dims)) for _ in train_views]
+        # List of d: n x k
+        self.scores = [np.zeros((n, self.latent_dims)) for _ in train_views]
 
-        residuals = copy.deepcopy(Iterable(train_views))
+        residuals = copy.deepcopy(list(train_views))
 
         self.objective = []
         # For each of the dimensions
         for k in range(self.latent_dims):
             self.loop = self.loop.fit(*residuals)
             for i, residual in enumerate(residuals):
-                self.weights_Iterable[i][:, k] = self.loop.weights[i]
-                self.score_Iterable[i][:, k] = self.loop.scores[i]
-                self.loading_Iterable[i][:, k] = np.dot(self.loop.scores[i], residual)
+                self.weights[i][:, k] = self.loop.weights[i]
+                self.scores[i][:, k] = self.loop.scores[i]
+                self.loadings[i][:, k] = np.dot(self.loop.scores[i], residual)
                 # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
-                residuals[i] = self.deflate(residuals[i], self.score_Iterable[i][:, k], self.weights_Iterable[i][:, k])
+                residuals[i] = self.deflate(residuals[i], self.scores[i][:, k], self.weights[i][:, k])
             self.objective.append(self.loop.track_objective)
         self.train_correlations = self.predict_corr(*views)
         return self
