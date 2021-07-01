@@ -71,12 +71,12 @@ class _Iterative(_CCA_Base):
                 self.scores[i][:, k] = self.loop.scores[i]
                 self.loadings[i][:, k] = np.dot(self.loop.scores[i], residual)
                 # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
-                residuals[i] = self.deflate(residuals[i], self.scores[i][:, k], self.weights[i][:, k])
+                residuals[i] = self._deflate(residuals[i], self.scores[i][:, k], self.weights[i][:, k])
             self.objective.append(self.loop.track_objective)
         self.train_correlations = self.predict_corr(*views)
         return self
 
-    def deflate(self, residual, score, loading):
+    def _deflate(self, residual, score, loading):
         """
         Deflate view residual by CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
 
