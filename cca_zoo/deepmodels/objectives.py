@@ -14,6 +14,7 @@ def _minimal_regularisation(M, eps):
 def _compute_matrix_power(M, p):
     # torch.linalg.eig can be unstable if eigenvalues are the same or are small https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
     U, V = torch.linalg.eig(M)
+    a = torch.min(U.real)
     M_p = torch.matmul(torch.matmul(torch.real(V), torch.diag(torch.pow(torch.real(U), p))), torch.real(V).t())
     return M_p
 
@@ -160,14 +161,14 @@ class CCA:
                                                                                                    dtype=torch.double,
                                                                                                    device=H2.device).float()
 
-        SigmaHat11RootInv = _compute_matrix_power(_minimal_regularisation(SigmaHat11, self.eps), -0.5)
-        SigmaHat22RootInv = _compute_matrix_power(_minimal_regularisation(SigmaHat22, self.eps), -0.5)
+        SigmaHat11RootInv = torch.linalg.inv(torch.linalg.cholesky(_minimal_regularisation(SigmaHat11, self.eps)))
+        SigmaHat22RootInv = torch.linalg.inv(torch.linalg.cholesky(_minimal_regularisation(SigmaHat22, self.eps)))
 
         Tval = torch.matmul(torch.matmul(SigmaHat11RootInv,
                                          SigmaHat12), SigmaHat22RootInv)
 
         trace_TT = torch.matmul(Tval.t(), Tval)
-        eigvals = torch.real(torch.linalg.eigvals(_minimal_regularisation(trace_TT, self.eps)))
+        eigvals = torch.real(torch.linalg.eigvals(trace_TT))
         eigvals = eigvals[torch.gt(eigvals, self.eps)]
         corr = torch.sum(torch.sqrt(eigvals))
         return -corr
