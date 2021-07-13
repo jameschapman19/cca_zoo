@@ -157,23 +157,3 @@ def plot_latent_label(scores, labels=None, label_name=None):
     cca_pp = sns.pairplot(data, hue=label_name, x_vars=x_vars, y_vars=y_vars, corner=True)
     cca_pp.fig.suptitle('Confounded CCA')
     return cca_pp
-
-
-def main():
-    from cca_zoo.models import CCA
-    from cca_zoo.data import generate_covariance_data
-
-    (x, y), (tx, ty) = generate_covariance_data(1000, view_features=[50, 50], latent_dims=3, correlation=[1, 0.9, 0.8])
-    x_tr, y_tr = x[:500], y[:500]
-    x_te, y_te = x[500:], y[500:]
-    labs_tr = np.random.randint(2, size=500)
-    cca = CCA(latent_dims=3).fit(x_tr, y_tr)
-    test_scores = cca.transform(x_te, y_te)
-    ttp = plot_latent_train_test(cca.scores, test_scores)
-    lp = plot_latent_label(cca.scores, labels=labs_tr, label_name='hello')
-    plt.show()
-    print()
-
-
-if __name__ == "__main__":
-    main()
