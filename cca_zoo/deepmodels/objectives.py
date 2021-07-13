@@ -51,7 +51,7 @@ class MCCA:
         C = torch.matmul(all_views.T, all_views)
 
         # Get the block covariance matrix placing Xi^TX_i on the diagonal
-        D = torch.block_diag(*[torch.matmul(view.T, view) for view in views])
+        D = torch.block_diag(*[_minimal_regularisation(torch.matmul(view.T, view), self.eps) for view in views])
 
         # In MCCA our eigenvalue problem Cv = lambda Dv
 
