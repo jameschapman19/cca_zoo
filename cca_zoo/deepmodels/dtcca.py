@@ -21,7 +21,7 @@ class DTCCA(DCCA):
     """
 
     def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
-                 r: float = 1e-7, eps: float = 1e-7):
+                 r: float = 0, eps: float = 1e-3):
         """
 
         :param latent_dims: # latent dimensions

@@ -1,8 +1,10 @@
 import itertools
+from typing import Union, Tuple, List
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from matplotlib import cm
 
 
@@ -63,7 +65,7 @@ def split_columns(df):
         if isinstance(columnData[0], tuple) or isinstance(columnData[0], list):
             cols.append(columnName)
     for col in cols:
-        df = df.join(pd.DataFrame(df[col].tolist()).rename(columns=lambda x: col + '_' + str(x + 1))).drop(col, 1)
+        df = df.join(pd.DataFrame(df[col].tolist()).rename(columns=lambda x: col + '_' + str(x + 1))).drop(col, axis=1)
     return df
 
 
@@ -125,3 +127,50 @@ def plot_results(data, labels):
     plt.ylabel('Correlation')
     plt.tight_layout()
     plt.savefig('test_dims')
+
+
+def plot_latent_train_test(train_scores: Union[Tuple[np.ndarray], List[np.ndarray]],
+                           test_scores: Union[Tuple[np.ndarray], List[np.ndarray]], title=''):
+    """
+    Makes a pair plot showing the projections of each view against each other for each dimensions. Coloured by train and test
+
+    :param train_scores: projections of training data which can be accessed by model.scores
+    :param test_scores: projections of test data obtained by model.transform(*test_data)
+    :param title: Figure title
+    """
+    train_data = pd.DataFrame(
+        {'phase': np.asarray(['train'] * train_scores[0].shape[0]).astype(str)})
+    x_vars = [f'view 1 projection {f}' for f in range(train_scores[0].shape[1])]
+    y_vars = [f'view 2 projection {f}' for f in range(train_scores[1].shape[1])]
+    train_data[x_vars] = train_scores[0]
+    train_data[y_vars] = train_scores[1]
+    test_data = pd.DataFrame(
+        {'phase': np.asarray(['test'] * test_scores[0].shape[0]).astype(str)})
+    test_data[x_vars] = test_scores[0]
+    test_data[y_vars] = test_scores[1]
+    data = pd.concat([train_data, test_data], axis=0)
+    cca_pp = sns.pairplot(data, hue='phase', x_vars=x_vars, y_vars=y_vars, corner=True)
+    cca_pp.fig.suptitle(title)
+    return cca_pp
+
+
+def plot_latent_label(scores: Union[Tuple[np.ndarray], List[np.ndarray]], labels=None, label_name=None, title=''):
+    """
+    Makes a pair plot showing the projections of each view against each other for each dimensions. Coloured by categorical label
+
+    :param scores: projections of data obtained by model.transform(*data)
+    :param labels: array of labels
+    :param label_name: name of label for legend
+    :param title: Figure title
+    """
+    if label_name is None:
+        label_name = 'label'
+    data = pd.DataFrame(
+        {label_name: labels.astype(str)})
+    x_vars = [f'view 1 projection {f}' for f in range(scores[0].shape[1])]
+    y_vars = [f'view 2 projection {f}' for f in range(scores[1].shape[1])]
+    data[x_vars] = scores[0]
+    data[y_vars] = scores[1]
+    cca_pp = sns.pairplot(data, hue=label_name, x_vars=x_vars, y_vars=y_vars, corner=True)
+    cca_pp.fig.suptitle(title)
+    return cca_pp

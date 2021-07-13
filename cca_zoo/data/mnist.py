@@ -76,10 +76,9 @@ class Split_MNIST_Dataset(Dataset):
     def to_numpy(self, indices=None):
         if indices is None:
             indices = np.arange(self.__len__())
-        view_1 = np.zeros((len(indices), 784))
-        view_2 = np.zeros((len(indices), 784))
+        view_1 = np.zeros((len(indices), 392))
+        view_2 = np.zeros((len(indices), 392))
         labels = np.zeros(len(indices)).astype(int)
-        rotations = np.zeros(len(indices))
         for i, n in enumerate(indices):
             sample = self[n]
             view_1[i] = sample[0][0].numpy()

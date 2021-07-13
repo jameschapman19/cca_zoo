@@ -41,13 +41,14 @@ class TestDeepModels(TestCase):
     def test_large_p(self):
         X = self.rng.rand(2000, 2048)
         Y = self.rng.rand(2000, 2048)
-        latent_dims = 150
+        latent_dims = 2048
         device = 'cpu'
         encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=2048)
         encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=2048)
         dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                           objective=objectives.CCA)
-        dcca_model = DeepWrapper(dcca_model, device=device)
+        optimizer = optim.SGD(dcca_model.parameters(), lr=1e-3)
+        dcca_model = DeepWrapper(dcca_model, device=device, optimizer=optimizer)
         dcca_model.fit((X, Y), epochs=10)
 
     def test_DCCA_methods_cpu(self):
