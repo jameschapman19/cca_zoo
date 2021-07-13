@@ -161,6 +161,7 @@ class CCA:
                                                                                                    dtype=torch.double,
                                                                                                    device=H2.device).float()
 
+        # performs the inverse square root of the covariance matrices by the cholesky decomposition. This is more stable than using SVD
         SigmaHat11RootInv = torch.linalg.inv(torch.linalg.cholesky(_minimal_regularisation(SigmaHat11, self.eps)))
         SigmaHat22RootInv = torch.linalg.inv(torch.linalg.cholesky(_minimal_regularisation(SigmaHat22, self.eps)))
 
