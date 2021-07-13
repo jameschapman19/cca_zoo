@@ -20,7 +20,7 @@ class DCCA(_DCCA_base):
     """
 
     def __init__(self, latent_dims: int, objective=objectives.CCA, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
-                 r: float = 1e-7, eps: float = 1e-7):
+                 r: float = 0, eps: float = 1e-3):
         """
         Constructor class for DCCA
 

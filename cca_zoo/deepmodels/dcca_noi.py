@@ -22,7 +22,7 @@ class DCCA_NOI(DCCA):
 
     def __init__(self, latent_dims: int, N: int, objective=objectives.MCCA,
                  encoders: List[BaseEncoder] = [Encoder, Encoder],
-                 r: float = 1e-3, rho: float = 0.2, eps: float = 1e-3, shared_target: bool = False):
+                 r: float = 0, rho: float = 0.2, eps: float = 1e-3, shared_target: bool = False):
         """
         Constructor class for DCCA
 

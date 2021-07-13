@@ -3,6 +3,7 @@ import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from matplotlib import cm
 
 
@@ -125,3 +126,54 @@ def plot_results(data, labels):
     plt.ylabel('Correlation')
     plt.tight_layout()
     plt.savefig('test_dims')
+
+
+def plot_latent_train_test(train_scores, test_scores):
+    train_data = pd.DataFrame(
+        {'phase': np.asarray(['train'] * train_scores[0].shape[0]).astype(str)})
+    x_vars = [f'view 1 projection {f}' for f in range(train_scores[0].shape[1])]
+    y_vars = [f'view 2 projection {f}' for f in range(train_scores[1].shape[1])]
+    train_data[x_vars] = train_scores[0]
+    train_data[y_vars] = train_scores[1]
+    test_data = pd.DataFrame(
+        {'phase': np.asarray(['test'] * test_scores[0].shape[0]).astype(str)})
+    test_data[x_vars] = test_scores[0]
+    test_data[y_vars] = test_scores[1]
+    data = pd.concat([train_data, test_data], axis=0)
+    cca_pp = sns.pairplot(data, hue='phase', x_vars=x_vars, y_vars=y_vars, corner=True)
+    cca_pp.fig.suptitle('Confounded CCA')
+    return cca_pp
+
+
+def plot_latent_label(scores, labels=None, label_name=None):
+    if label_name is None:
+        label_name = 'label'
+    data = pd.DataFrame(
+        {label_name: labels.astype(str)})
+    x_vars = [f'view 1 projection {f}' for f in range(scores[0].shape[1])]
+    y_vars = [f'view 2 projection {f}' for f in range(scores[1].shape[1])]
+    data[x_vars] = scores[0]
+    data[y_vars] = scores[1]
+    cca_pp = sns.pairplot(data, hue=label_name, x_vars=x_vars, y_vars=y_vars, corner=True)
+    cca_pp.fig.suptitle('Confounded CCA')
+    return cca_pp
+
+
+def main():
+    from cca_zoo.models import CCA
+    from cca_zoo.data import generate_covariance_data
+
+    (x, y), (tx, ty) = generate_covariance_data(1000, view_features=[50, 50], latent_dims=3, correlation=[1, 0.9, 0.8])
+    x_tr, y_tr = x[:500], y[:500]
+    x_te, y_te = x[500:], y[500:]
+    labs_tr = np.random.randint(2, size=500)
+    cca = CCA(latent_dims=3).fit(x_tr, y_tr)
+    test_scores = cca.transform(x_te, y_te)
+    ttp = plot_latent_train_test(cca.scores, test_scores)
+    lp = plot_latent_label(cca.scores, labels=labs_tr, label_name='hello')
+    plt.show()
+    print()
+
+
+if __name__ == "__main__":
+    main()
