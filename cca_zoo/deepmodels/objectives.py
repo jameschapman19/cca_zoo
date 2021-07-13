@@ -14,7 +14,6 @@ def _minimal_regularisation(M, eps):
 def _compute_matrix_power(M, p):
     # torch.linalg.eig can be unstable if eigenvalues are the same or are small https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
     U, V = torch.linalg.eig(M)
-    a = torch.min(U.real)
     M_p = torch.matmul(torch.matmul(torch.real(V), torch.diag(torch.pow(torch.real(U), p))), torch.real(V).t())
     return M_p
 
