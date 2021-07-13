@@ -132,10 +132,11 @@ def plot_results(data, labels):
 def plot_latent_train_test(train_scores: Union[Tuple[np.ndarray], List[np.ndarray]],
                            test_scores: Union[Tuple[np.ndarray], List[np.ndarray]], title=''):
     """
-    Makes a pair plot showing the projections of each view against each other for each dimensions
+    Makes a pair plot showing the projections of each view against each other for each dimensions. Coloured by train and test
 
-    :param train_scores:
-    :param test_scores:
+    :param train_scores: projections of training data which can be accessed by model.scores
+    :param test_scores: projections of test data obtained by model.transform(*test_data)
+    :param title: Figure title
     """
     train_data = pd.DataFrame(
         {'phase': np.asarray(['train'] * train_scores[0].shape[0]).astype(str)})
@@ -154,6 +155,14 @@ def plot_latent_train_test(train_scores: Union[Tuple[np.ndarray], List[np.ndarra
 
 
 def plot_latent_label(scores: Union[Tuple[np.ndarray], List[np.ndarray]], labels=None, label_name=None, title=''):
+    """
+    Makes a pair plot showing the projections of each view against each other for each dimensions. Coloured by categorical label
+
+    :param scores: projections of data obtained by model.transform(*data)
+    :param labels: array of labels
+    :param label_name: name of label for legend
+    :param title: Figure title
+    """
     if label_name is None:
         label_name = 'label'
     data = pd.DataFrame(
