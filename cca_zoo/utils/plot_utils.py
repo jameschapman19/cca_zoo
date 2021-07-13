@@ -1,4 +1,5 @@
 import itertools
+from typing import Union, Tuple, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -64,7 +65,7 @@ def split_columns(df):
         if isinstance(columnData[0], tuple) or isinstance(columnData[0], list):
             cols.append(columnName)
     for col in cols:
-        df = df.join(pd.DataFrame(df[col].tolist()).rename(columns=lambda x: col + '_' + str(x + 1))).drop(col, 1)
+        df = df.join(pd.DataFrame(df[col].tolist()).rename(columns=lambda x: col + '_' + str(x + 1))).drop(col, axis=1)
     return df
 
 
@@ -128,7 +129,14 @@ def plot_results(data, labels):
     plt.savefig('test_dims')
 
 
-def plot_latent_train_test(train_scores, test_scores):
+def plot_latent_train_test(train_scores: Union[Tuple[np.ndarray], List[np.ndarray]],
+                           test_scores: Union[Tuple[np.ndarray], List[np.ndarray]], title=''):
+    """
+    Makes a pair plot showing the projections of each view against each other for each dimensions
+
+    :param train_scores:
+    :param test_scores:
+    """
     train_data = pd.DataFrame(
         {'phase': np.asarray(['train'] * train_scores[0].shape[0]).astype(str)})
     x_vars = [f'view 1 projection {f}' for f in range(train_scores[0].shape[1])]
@@ -141,11 +149,11 @@ def plot_latent_train_test(train_scores, test_scores):
     test_data[y_vars] = test_scores[1]
     data = pd.concat([train_data, test_data], axis=0)
     cca_pp = sns.pairplot(data, hue='phase', x_vars=x_vars, y_vars=y_vars, corner=True)
-    cca_pp.fig.suptitle('Confounded CCA')
+    cca_pp.fig.suptitle(title)
     return cca_pp
 
 
-def plot_latent_label(scores, labels=None, label_name=None):
+def plot_latent_label(scores: Union[Tuple[np.ndarray], List[np.ndarray]], labels=None, label_name=None, title=''):
     if label_name is None:
         label_name = 'label'
     data = pd.DataFrame(
@@ -155,5 +163,5 @@ def plot_latent_label(scores, labels=None, label_name=None):
     data[x_vars] = scores[0]
     data[y_vars] = scores[1]
     cca_pp = sns.pairplot(data, hue=label_name, x_vars=x_vars, y_vars=y_vars, corner=True)
-    cca_pp.fig.suptitle('Confounded CCA')
+    cca_pp.fig.suptitle(title)
     return cca_pp
