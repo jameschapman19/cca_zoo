@@ -14,7 +14,7 @@ def _minimal_regularisation(M, eps):
 def _compute_matrix_power(M, p):
     # torch.linalg.eig can be unstable if eigenvalues are the same or are small https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
     U, V = torch.linalg.eigh(M)
-    M_p = torch.matmul(torch.matmul(V, torch.diag(torch.pow(U, p))), V.T)
+    M_p = V @ torch.diag(torch.pow(U, p)) @ V.T
     return M_p
 
 
@@ -64,13 +64,18 @@ class MCCA:
         # In MCCA our eigenvalue problem Cv = lambda Dv
         C_whitened = R @ C @ R.T
 
-        eigvals = torch.linalg.eigh(C_whitened)[0]
+        eigvals = torch.linalg.eigvalsh(C_whitened)
 
         # Sort eigenvalues so lviewest first
         idx = torch.argsort(eigvals, descending=True)
 
-        # Sum the first #latent_dims values (after subtracting 1).
-        corr = (eigvals[idx][:self.latent_dims] - 1).sum()
+        eigvals = eigvals[idx[:self.latent_dims]]
+
+        # leaky relu encourages the gradient to be driven by positively correlated dimensions while also encouraging
+        # dimensions associated with spurious negative correlations to become more positive
+        eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)] - 1)
+
+        corr = eigvals.sum()
 
         return -corr
 
@@ -108,7 +113,13 @@ class GCCA:
 
         idx = torch.argsort(eigvals, descending=True)
 
-        corr = (eigvals[idx][:self.latent_dims] - 1).sum()
+        eigvals = eigvals[idx[:self.latent_dims]]
+
+        # leaky relu encourages the gradient to be driven by positively correlated dimensions while also encouraging
+        # dimensions associated with spurious negative correlations to become more positive
+        eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)] - 1)
+
+        corr = eigvals.sum()
 
         return -corr
 
@@ -150,21 +161,23 @@ class CCA:
 
         H1bar, H2bar = _demean(H1, H2)
 
-        SigmaHat12 = (1.0 / (n - 1)) * torch.matmul(H1bar.T, H2bar)
-        SigmaHat11 = (1 - self.r) * (1.0 / (n - 1)) * torch.matmul(H1bar.T,
-                                                                   H1bar) + self.r * torch.eye(o1, device=H1.device)
-        SigmaHat22 = (1 - self.r) * (1.0 / (n - 1)) * torch.matmul(H2bar.T,
-                                                                   H2bar) + self.r * torch.eye(o2, device=H2.device)
+        SigmaHat12 = (1.0 / (n - 1)) * H1bar.T @ H2bar
+        SigmaHat11 = (1 - self.r) * (1.0 / (n - 1)) * H1bar.T @ H1bar + self.r * torch.eye(o1, device=H1.device)
+        SigmaHat22 = (1 - self.r) * (1.0 / (n - 1)) * H2bar.T @ H2bar + self.r * torch.eye(o2, device=H2.device)
 
         SigmaHat11RootInv = _compute_matrix_power(_minimal_regularisation(SigmaHat11, self.eps), -0.5)
         SigmaHat22RootInv = _compute_matrix_power(_minimal_regularisation(SigmaHat22, self.eps), -0.5)
 
-        Tval = torch.matmul(torch.matmul(SigmaHat11RootInv,
-                                         SigmaHat12), SigmaHat22RootInv)
+        Tval = SigmaHat11RootInv @ SigmaHat12 @ SigmaHat22RootInv
         trace_TT = Tval.T @ Tval
         eigvals = torch.linalg.eigvalsh(trace_TT)
-        eigvals = eigvals[torch.gt(eigvals, 0)]
+
+        # leaky relu encourages the gradient to be driven by positively correlated dimensions while also encouraging
+        # dimensions associated with spurious negative correlations to become more positive
+        eigvals = eigvals[torch.gt(eigvals, self.eps)]
+
         corr = torch.sum(torch.sqrt(eigvals))
+
         return -corr
 
 
@@ -189,7 +202,7 @@ class TCCA:
         m = z[0].size(0)
         z = [z_ - z_.mean(dim=0).unsqueeze(dim=0) for z_ in z]
         covs = [
-            (1 - self.r) * (1.0 / (m - 1)) * torch.matmul(z_.T, z_) + self.r * torch.eye(z_.size(1), device=z_.device)
+            (1 - self.r) * (1.0 / (m - 1)) * z_.T @ z_ + self.r * torch.eye(z_.size(1), device=z_.device)
             for
             z_ in z]
         z = [z_ @ _compute_matrix_power(_minimal_regularisation(cov, self.eps), -0.5) for z_, cov in zip(z, covs)]
