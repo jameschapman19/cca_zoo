@@ -59,7 +59,7 @@ class TestDeepModels(TestCase):
         latent_dims = 4
         cca_model = CCA(latent_dims=latent_dims).fit(self.X, self.Y)
         device = 'cpu'
-        epochs = 50
+        epochs = 100
         # DCCA
         encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -87,7 +87,7 @@ class TestDeepModels(TestCase):
         encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         dmcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                            objective=objectives.MCCA)
-        optimizer = optim.SGD(dmcca_model.parameters(), lr=1e-2)
+        optimizer = optim.SGD(dmcca_model.parameters(), lr=1e-1)
         dmcca_model = DeepWrapper(dmcca_model, device=device, optimizer=optimizer)
         dmcca_model.fit((self.X, self.Y), epochs=epochs)
         self.assertIsNone(
@@ -97,7 +97,7 @@ class TestDeepModels(TestCase):
         encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         dcca_noi_model = DCCA_NOI(latent_dims, self.X.shape[0], encoders=[encoder_1, encoder_2], rho=0.5)
-        optimizer = optim.Adam(dcca_noi_model.parameters(), lr=1e-1)
+        optimizer = optim.Adam(dcca_noi_model.parameters(), lr=1e-3)
         dcca_noi_model = DeepWrapper(dcca_noi_model, device=device, optimizer=optimizer)
         dcca_noi_model.fit((self.X, self.Y), epochs=epochs)
         self.assertIsNone(
