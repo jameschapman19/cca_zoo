@@ -193,16 +193,16 @@ class TestDeepModels(TestCase):
         decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=10)
         # DCCAE
         dccae_model = DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
-                            decoders=[decoder_1, decoder_2], objective=objectives.CCA)
+                            decoders=[decoder_1, decoder_2])
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dccae_model = DeepWrapper(dccae_model, device=device)
-        dccae_model.fit((self.X, self.Y))
+        dccae_model.fit((self.X, self.Y), epochs=20)
         # SplitAE
         splitae_model = SplitAE(latent_dims=latent_dims, encoder=encoder_1,
                                 decoders=[decoder_1, decoder_2])
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         splitae_model = DeepWrapper(splitae_model, device=device)
-        splitae_model.fit((self.X, self.Y), train_correlations=False)
+        splitae_model.fit((self.X, self.Y), train_correlations=False, epochs=10)
 
     def test_DCCAEconv_methods_cpu(self):
         latent_dims = 2
@@ -213,7 +213,7 @@ class TestDeepModels(TestCase):
         decoder_2 = architectures.CNNDecoder(latent_dims=latent_dims, feature_size=[16, 16])
         # DCCAE
         dccae_model = DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
-                            decoders=[decoder_1, decoder_2], objective=objectives.CCA)
+                            decoders=[decoder_1, decoder_2])
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dccae_model = DeepWrapper(dccae_model, device=device)
         dccae_model.fit((self.X_conv, self.Y_conv))
@@ -306,7 +306,7 @@ class TestDeepModels(TestCase):
         decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=10)
         # DCCAE
         dccae_model = DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
-                            decoders=[decoder_1, decoder_2], objective=objectives.CCA)
+                            decoders=[decoder_1, decoder_2])
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         dccae_model = DeepWrapper(dccae_model, device=device)
         dccae_model.fit((self.X, self.Y))

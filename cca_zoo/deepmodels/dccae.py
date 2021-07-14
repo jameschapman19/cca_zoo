@@ -62,5 +62,5 @@ class DCCAE(_DCCA_base):
 
     @staticmethod
     def recon_loss(x, recon):
-        recons = [F.mse_loss(recon_, x_, reduction='sum') for recon_, x_ in zip(recon, x)]
+        recons = [F.mse_loss(recon_, x_, reduction='mean') for recon_, x_ in zip(recon, x)]
         return torch.stack(recons).sum(dim=0)
