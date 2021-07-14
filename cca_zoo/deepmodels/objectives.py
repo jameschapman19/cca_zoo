@@ -156,16 +156,14 @@ class CCA:
         SigmaHat22 = (1 - self.r) * (1.0 / (n - 1)) * torch.matmul(H2bar.T,
                                                                    H2bar) + self.r * torch.eye(o2, device=H2.device)
 
-        # performs the inverse square root of the covariance matrices by the cholesky decomposition. This is more stable than using SVD
         SigmaHat11RootInv = _compute_matrix_power(_minimal_regularisation(SigmaHat11, self.eps), -0.5)
         SigmaHat22RootInv = _compute_matrix_power(_minimal_regularisation(SigmaHat22, self.eps), -0.5)
-        # SigmaHat11RootInv = torch.linalg.cholesky(torch.linalg.inv(_minimal_regularisation(SigmaHat11, self.eps)))
-        # SigmaHat22RootInv = torch.linalg.cholesky(torch.linalg.inv(_minimal_regularisation(SigmaHat22, self.eps)))
+
         Tval = torch.matmul(torch.matmul(SigmaHat11RootInv,
                                          SigmaHat12), SigmaHat22RootInv)
         trace_TT = Tval.T @ Tval
         eigvals = torch.linalg.eigvalsh(trace_TT)
-        eigvals = eigvals[torch.gt(eigvals, self.eps)]
+        eigvals = eigvals[torch.gt(eigvals, 0)]
         corr = torch.sum(torch.sqrt(eigvals))
         return -corr
 

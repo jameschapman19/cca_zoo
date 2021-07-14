@@ -18,7 +18,7 @@ class DCCAE(_DCCA_base):
     >>> model = DCCAE()
     """
 
-    def __init__(self, latent_dims: int, objective=objectives.MCCA,
+    def __init__(self, latent_dims: int, objective=objectives.GCCA,
                  encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  decoders: Iterable[BaseDecoder] = [Decoder, Decoder], r: float = 0, eps: float = 1e-3, lam=0.5):
         """
