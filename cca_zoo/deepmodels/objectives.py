@@ -6,16 +6,20 @@ from tensorly.decomposition import parafac
 
 def _minimal_regularisation(M, eps):
     # calculate smallest ammount of regularisation that ensures smallest eigenvalue is eps
-    M_smallest_eig = torch.relu(-torch.min(torch.real(torch.linalg.eigvals(M)))) + eps
-    M = M + M_smallest_eig * torch.eye(M.shape[0], dtype=torch.double, device=M.device).float()
+    M_smallest_eig = torch.relu(-torch.min(torch.linalg.eigvalsh(M))) + eps
+    M = M + M_smallest_eig * torch.eye(M.shape[0], device=M.device)
     return M
 
 
 def _compute_matrix_power(M, p):
     # torch.linalg.eig can be unstable if eigenvalues are the same or are small https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
-    U, V = torch.linalg.eig(M)
-    M_p = torch.matmul(torch.matmul(torch.real(V), torch.diag(torch.pow(torch.real(U), p))), torch.real(V).t())
+    U, V = torch.linalg.eigh(M)
+    M_p = torch.matmul(torch.matmul(V, torch.diag(torch.pow(U, p))), V.T)
     return M_p
+
+
+def _demean(*views):
+    return tuple([view - view.mean(dim=0) for view in views])
 
 
 class MCCA:
@@ -40,27 +44,26 @@ class MCCA:
         self.eps = eps
 
     def loss(self, *views):
-        # https: // www.uta.edu / math / _docs / preprint / 2014 / rep2014_04.pdf
-        # H is n_views * n_samples * k
-
         # Subtract the mean from each output
-        views = [view - view.mean(dim=0) for view in views]
+        views = _demean(*views)
 
         # Concatenate all views and from this get the cross-covariance matrix
         all_views = torch.cat(views, dim=1)
-        C = torch.matmul(all_views.T, all_views)
+        C = all_views.T @ all_views
 
         # Get the block covariance matrix placing Xi^TX_i on the diagonal
-        D = torch.block_diag(*[_minimal_regularisation(torch.matmul(view.T, view), self.eps) for view in views])
+        D = torch.block_diag(*[(1 - self.r) * m.T @ m + self.r * torch.eye(m.shape[1]) for i, m in enumerate(views)])
+
+        C = C - torch.block_diag(*[view.T @ view for view in views]) + D
+
+        D = _minimal_regularisation(D, self.eps)
+
+        R = torch.linalg.inv(torch.linalg.cholesky(D))
 
         # In MCCA our eigenvalue problem Cv = lambda Dv
+        C_whitened = R @ C @ R.T
 
-        # Use the cholesky method to whiten the matrix C R^{-1}CRv = lambda v
-        R = torch.linalg.cholesky(D)
-
-        C_whitened = torch.inverse(R.T) @ C @ torch.inverse(R)
-
-        eigvals = torch.linalg.eigvalsh(C_whitened)
+        eigvals = torch.linalg.eigh(C_whitened)[0]
 
         # Sort eigenvalues so lviewest first
         idx = torch.argsort(eigvals, descending=True)
@@ -94,13 +97,12 @@ class GCCA:
     def loss(self, *views):
         # https: // www.uta.edu / math / _docs / preprint / 2014 / rep2014_04.pdf
         # H is n_views * n_samples * k
-        all_views = [view - view.mean(dim=0) for view in views]
+        views = _demean(*views)
 
         eigen_views = [view @ torch.inverse(_minimal_regularisation(view.T @ view, self.eps)) @ view.T for view in
-                       all_views]
+                       views]
 
         Q = torch.stack(eigen_views, dim=0).sum(dim=0)
-
         eigvals = torch.linalg.eigvalsh(Q)
 
         idx = torch.argsort(eigvals, descending=True)
@@ -140,35 +142,28 @@ class CCA:
         self.eps = eps
 
     def loss(self, H1, H2):
-        H1, H2 = H1.t(), H2.t()
+        o1 = H1.shape[1]
+        o2 = H2.shape[1]
 
-        o1 = H1.size(0)
-        o2 = H2.size(0)
+        n = H1.shape[0]
 
-        m = H1.size(1)
+        H1bar, H2bar = _demean(H1, H2)
 
-        H1bar = H1 - H1.mean(dim=1).unsqueeze(dim=1)
-        H2bar = H2 - H2.mean(dim=1).unsqueeze(dim=1)
-
-        SigmaHat12 = (1.0 / (m - 1)) * torch.matmul(H1bar, H2bar.t())
-        SigmaHat11 = (1 - self.r) * (1.0 / (m - 1)) * torch.matmul(H1bar,
-                                                                   H1bar.t()) + self.r * torch.eye(o1,
-                                                                                                   dtype=torch.double,
-                                                                                                   device=H1.device).float()
-        SigmaHat22 = (1 - self.r) * (1.0 / (m - 1)) * torch.matmul(H2bar,
-                                                                   H2bar.t()) + self.r * torch.eye(o2,
-                                                                                                   dtype=torch.double,
-                                                                                                   device=H2.device).float()
+        SigmaHat12 = (1.0 / (n - 1)) * torch.matmul(H1bar.T, H2bar)
+        SigmaHat11 = (1 - self.r) * (1.0 / (n - 1)) * torch.matmul(H1bar.T,
+                                                                   H1bar) + self.r * torch.eye(o1, device=H1.device)
+        SigmaHat22 = (1 - self.r) * (1.0 / (n - 1)) * torch.matmul(H2bar.T,
+                                                                   H2bar) + self.r * torch.eye(o2, device=H2.device)
 
         # performs the inverse square root of the covariance matrices by the cholesky decomposition. This is more stable than using SVD
-        SigmaHat11RootInv = torch.linalg.inv(torch.linalg.cholesky(_minimal_regularisation(SigmaHat11, self.eps)))
-        SigmaHat22RootInv = torch.linalg.inv(torch.linalg.cholesky(_minimal_regularisation(SigmaHat22, self.eps)))
-
+        SigmaHat11RootInv = _compute_matrix_power(_minimal_regularisation(SigmaHat11, self.eps), -0.5)
+        SigmaHat22RootInv = _compute_matrix_power(_minimal_regularisation(SigmaHat22, self.eps), -0.5)
+        # SigmaHat11RootInv = torch.linalg.cholesky(torch.linalg.inv(_minimal_regularisation(SigmaHat11, self.eps)))
+        # SigmaHat22RootInv = torch.linalg.cholesky(torch.linalg.inv(_minimal_regularisation(SigmaHat22, self.eps)))
         Tval = torch.matmul(torch.matmul(SigmaHat11RootInv,
                                          SigmaHat12), SigmaHat22RootInv)
-
-        trace_TT = torch.matmul(Tval.t(), Tval)
-        eigvals = torch.real(torch.linalg.eigvals(trace_TT))
+        trace_TT = Tval.T @ Tval
+        eigvals = torch.linalg.eigvalsh(trace_TT)
         eigvals = eigvals[torch.gt(eigvals, self.eps)]
         corr = torch.sum(torch.sqrt(eigvals))
         return -corr
@@ -195,8 +190,8 @@ class TCCA:
         m = z[0].size(0)
         z = [z_ - z_.mean(dim=0).unsqueeze(dim=0) for z_ in z]
         covs = [
-            (1 - self.r) * (1.0 / (m - 1)) * torch.matmul(z_.T, z_) + self.r * torch.eye(z_.size(1), dtype=torch.double,
-                                                                                         device=z_.device).float() for
+            (1 - self.r) * (1.0 / (m - 1)) * torch.matmul(z_.T, z_) + self.r * torch.eye(z_.size(1), device=z_.device)
+            for
             z_ in z]
         z = [z_ @ _compute_matrix_power(_minimal_regularisation(cov, self.eps), -0.5) for z_, cov in zip(z, covs)]
 
