@@ -3,8 +3,10 @@ from unittest import TestCase
 import numpy as np
 from sklearn.utils.validation import check_random_state
 from torch import optim, manual_seed
+from torch.utils.data import Subset
 
 from cca_zoo import data
+from cca_zoo.data import Noisy_MNIST_Dataset
 from cca_zoo.deepmodels import DCCA, DCCAE, DVCCA, DCCA_NOI, DTCCA, SplitAE, DeepWrapper
 from cca_zoo.deepmodels import objectives, architectures
 from cca_zoo.models import CCA
@@ -39,6 +41,28 @@ class TestDeepModels(TestCase):
         dcca_model.fit(self.train_dataset, val_dataset=self.train_dataset, epochs=3)
         dcca_model.fit((self.X, self.Y), val_dataset=(self.X, self.Y), epochs=3)
         dcca_model.fit((self.X, self.Y), val_split=0.2, epochs=3)
+
+    def tutorial_test(self):
+        # Load MNIST Data
+        N = 500
+        latent_dims = 2
+        dataset = Noisy_MNIST_Dataset(mnist_type='FashionMNIST', train=True)
+        ids = np.arange(min(2 * N, len(dataset)))
+        np.random.shuffle(ids)
+        train_ids, val_ids = np.array_split(ids, 2)
+        val_dataset = Subset(dataset, val_ids)
+        train_dataset = Subset(dataset, train_ids)
+        test_dataset = Noisy_MNIST_Dataset(mnist_type='FashionMNIST', train=False)
+        test_ids = np.arange(min(N, len(test_dataset)))
+        np.random.shuffle(test_ids)
+        test_dataset = Subset(test_dataset, test_ids)
+        print('DCCA')
+        encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
+        encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
+        dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
+        dcca_model = DeepWrapper(dcca_model)
+        dcca_model.fit(train_dataset, val_dataset=val_dataset, epochs=2)
+        dcca_results = np.stack((dcca_model.train_correlations[0, 1], dcca_model.predict_corr(test_dataset)[0, 1]))
 
     def test_large_p(self):
         large_p = 256
