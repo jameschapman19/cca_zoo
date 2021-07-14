@@ -1,11 +1,13 @@
 from unittest import TestCase
 
+import numpy as np
 from sklearn.utils.validation import check_random_state
 from torch import optim, manual_seed
 
 from cca_zoo import data
 from cca_zoo.deepmodels import DCCA, DCCAE, DVCCA, DCCA_NOI, DTCCA, SplitAE, DeepWrapper
 from cca_zoo.deepmodels import objectives, architectures
+from cca_zoo.models import CCA
 
 
 class TestDeepModels(TestCase):
@@ -39,46 +41,68 @@ class TestDeepModels(TestCase):
         dcca_model.fit((self.X, self.Y), val_split=0.2, epochs=3)
 
     def test_large_p(self):
-        X = self.rng.rand(2000, 2048)
-        Y = self.rng.rand(2000, 2048)
-        latent_dims = 2048
+        large_p = 256
+        X = self.rng.rand(2000, large_p)
+        Y = self.rng.rand(2000, large_p)
+        latent_dims = 32
         device = 'cpu'
-        encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=2048)
-        encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=2048)
+        encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=large_p)
+        encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=large_p)
         dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
-                          objective=objectives.CCA)
-        optimizer = optim.SGD(dcca_model.parameters(), lr=1e-3)
+                          objective=objectives.MCCA, eps=1e-3).float()
+        optimizer = optim.Adam(dcca_model.parameters(), lr=1e-4)
         dcca_model = DeepWrapper(dcca_model, device=device, optimizer=optimizer)
-        dcca_model.fit((X, Y), epochs=10)
+        dcca_model.fit((X, Y), epochs=100)
+        cca_model = CCA(latent_dims=latent_dims).fit(X, Y)
 
     def test_DCCA_methods_cpu(self):
-        latent_dims = 2
+        latent_dims = 4
+        cca_model = CCA(latent_dims=latent_dims).fit(self.X, self.Y)
         device = 'cpu'
+        epochs = 100
+        # DCCA
         encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-        # DCCA
         dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                           objective=objectives.CCA)
-        # hidden_layer_sizes are shown explicitly but these are also the defaults
-        dcca_model = DeepWrapper(dcca_model, device=device)
-        dcca_model.fit((self.X, self.Y), epochs=20)
+        optimizer = optim.SGD(dcca_model.parameters(), lr=1e-1)
+        dcca_model = DeepWrapper(dcca_model, device=device, optimizer=optimizer)
+        dcca_model.fit((self.X, self.Y), epochs=epochs)
+        self.assertIsNone(
+            np.testing.assert_array_less(cca_model.train_correlations[0, 1].sum(),
+                                         dcca_model.train_correlations[0, 1].sum()))
         # DGCCA
+        encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+        encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         dgcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                            objective=objectives.GCCA)
-        # hidden_layer_sizes are shown explicitly but these are also the defaults
-        dgcca_model = DeepWrapper(dgcca_model, device=device)
-        dgcca_model.fit((self.X, self.Y), epochs=20)
+        optimizer = optim.SGD(dgcca_model.parameters(), lr=1e-1)
+        dgcca_model = DeepWrapper(dgcca_model, device=device, optimizer=optimizer)
+        dgcca_model.fit((self.X, self.Y), epochs=epochs)
+        self.assertIsNone(
+            np.testing.assert_array_less(cca_model.train_correlations[0, 1].sum(),
+                                         dgcca_model.train_correlations[0, 1].sum()))
         # DMCCA
+        encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+        encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         dmcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                            objective=objectives.MCCA)
-        # hidden_layer_sizes are shown explicitly but these are also the defaults
-        dmcca_model = DeepWrapper(dmcca_model, device=device)
-        dmcca_model.fit((self.X, self.Y), epochs=20)
+        optimizer = optim.SGD(dmcca_model.parameters(), lr=1e-1)
+        dmcca_model = DeepWrapper(dmcca_model, device=device, optimizer=optimizer)
+        dmcca_model.fit((self.X, self.Y), epochs=epochs)
+        self.assertIsNone(
+            np.testing.assert_array_less(cca_model.train_correlations[0, 1].sum(),
+                                         dmcca_model.train_correlations[0, 1].sum()))
         # DCCA_NOI
-        dcca_noi_model = DCCA_NOI(latent_dims, self.X.shape[0], encoders=[encoder_1, encoder_2])
-        # hidden_layer_sizes are shown explicitly but these are also the defaults
-        dcca_noi_model = DeepWrapper(dcca_noi_model, device=device)
-        dcca_noi_model.fit((self.X, self.Y), epochs=20)
+        encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+        encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+        dcca_noi_model = DCCA_NOI(latent_dims, self.X.shape[0], encoders=[encoder_1, encoder_2], rho=0.5)
+        optimizer = optim.Adam(dcca_noi_model.parameters(), lr=1e-3)
+        dcca_noi_model = DeepWrapper(dcca_noi_model, device=device, optimizer=optimizer)
+        dcca_noi_model.fit((self.X, self.Y), epochs=epochs)
+        self.assertIsNone(
+            np.testing.assert_array_less(cca_model.train_correlations[0, 1].sum(),
+                                         dcca_noi_model.train_correlations[0, 1].sum()))
 
     def test_DTCCA_methods_cpu(self):
         latent_dims = 2

@@ -20,7 +20,7 @@ class DCCA_NOI(DCCA):
     >>> model = DCCA_NOI()
     """
 
-    def __init__(self, latent_dims: int, N: int, objective=objectives.MCCA,
+    def __init__(self, latent_dims: int, N: int,
                  encoders: List[BaseEncoder] = [Encoder, Encoder],
                  r: float = 0, rho: float = 0.2, eps: float = 1e-3, shared_target: bool = False):
         """
@@ -35,7 +35,7 @@ class DCCA_NOI(DCCA):
         :param eps: epsilon used throughout
         :param shared_target: not used
         """
-        super().__init__(latent_dims=latent_dims, objective=objective, encoders=encoders,
+        super().__init__(latent_dims=latent_dims, encoders=encoders,
                          r=r, eps=eps)
         self.N = N
         self.covs = None

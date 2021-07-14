@@ -19,7 +19,8 @@ class DCCA(_DCCA_base):
     >>> model = DCCA()
     """
 
-    def __init__(self, latent_dims: int, objective=objectives.CCA, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
+    def __init__(self, latent_dims: int, objective=objectives.MCCA,
+                 encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
                  r: float = 0, eps: float = 1e-3):
         """
         Constructor class for DCCA
@@ -51,8 +52,7 @@ class DCCA(_DCCA_base):
     def post_transform(self, *z_list, train=False) -> Iterable[np.ndarray]:
         if train:
             self.cca = MCCA(latent_dims=self.latent_dims)
-            self.cca.fit(*z_list)
-            z_list = self.cca.transform(*z_list)
+            z_list = self.cca.fit_transform(*z_list)
         else:
             z_list = self.cca.transform(*z_list)
         return z_list
