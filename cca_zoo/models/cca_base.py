@@ -196,6 +196,14 @@ class _CCA_Base(BaseEstimator):
         self.fit(*views)
         return self
 
+    def score(self, *views):
+        n_views = len(views)
+        # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
+        pair_corrs = self.predict_corr(*views)
+        # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
+        a = (pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views) / (2 * n_views)
+        return a
+
     """
     def bayes_fit(self, *views: np.ndarray, space=None, folds: int = 5, verbose=True):
         :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3)

@@ -33,7 +33,7 @@ class _Iterative(_CCA_Base):
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param tol: tolerance value used for early stopping
         """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True)
         self.max_iter = max_iter
@@ -130,7 +130,7 @@ class PLS(_Iterative):
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param tol: tolerance value used for early stopping
         """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, deflation=deflation,
                          max_iter=max_iter,
@@ -180,7 +180,7 @@ class ElasticCCA(_Iterative):
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param tol: tolerance value used for early stopping
         :param c: lasso alpha
         :param l1_ratio: l1 ratio in lasso subproblems
         :param constrained: force unit norm constraint with binary search
@@ -242,7 +242,7 @@ class CCA_ALS(ElasticCCA):
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param tol: tolerance value used for early stopping
         :param stochastic: use stochastic regression optimisers for subproblems
         :param positive: constrain model weights to be positive
         """
@@ -287,7 +287,7 @@ class SCCA(ElasticCCA):
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param tol: tolerance value used for early stopping
         :param c: lasso alpha
         :param stochastic: use stochastic regression optimisers for subproblems
         :param positive: constrain model weights to be positive
@@ -329,6 +329,10 @@ class PMD(_Iterative):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter between 1 and sqrt(number of features) for each view
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param tol: tolerance value used for early stopping
         :param positive: constrain model weights to be positive
         """
         self.c = c
@@ -373,6 +377,10 @@ class ParkhomenkoCCA(_Iterative):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param tol: tolerance value used for early stopping
         """
         self.c = c
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
@@ -419,6 +427,10 @@ class SCCA_ADMM(_Iterative):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param tol: tolerance value used for early stopping
         :param mu:
         :param lam:
         :param: eta:
@@ -459,10 +471,10 @@ class SpanCCA(_Iterative):
         :param centre: demean data by column before fitting (and before transforming out of sample
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
-        :param max_iter:
-        :param generalized:
-        :param initialization:
-        :param tol:
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param tol: tolerance value used for early stopping
         :param regularisation:
         :param c:
         :param rank:
@@ -507,10 +519,10 @@ class SWCCA(_Iterative):
         :param centre: demean data by column before fitting (and before transforming out of sample
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
-        :param max_iter:
-        :param generalized:
-        :param initialization:
-        :param tol:
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param tol: tolerance value used for early stopping
         :param regularisation:
         :param c:
         :param sample_support:
