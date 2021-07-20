@@ -1,6 +1,33 @@
 import warnings
+from typing import Iterable
 
 import numpy as np
+from sklearn.utils import check_array
+
+
+def check_views(*views: Iterable[np.ndarray], copy=False, accept_sparse=False):
+    """
+    
+    :param views:
+    :param copy:
+    """
+    if len(views) == 2:
+        # This is a bit of a hack to try to match up with the way mvlearn takes views which in turn is a bit of a hack to match up with sklearn.
+        # Sklearn expects fit(X,y) so if we want multiview X in sklearn functions we need X to be a list
+        if isinstance(views[0], list) and views[1] is None:
+            views = views[0]
+
+    n_views = len(views)
+    if n_views < 2:
+        raise ValueError("Require at least 2 views")
+
+    views = [check_array(view, allow_nd=False, copy=copy, accept_sparse=accept_sparse) for view in views]
+
+    if not len(set([view.shape[0] for view in views])) == 1:
+        msg = "All views must have the same number of samples"
+        raise ValueError(msg)
+
+    return views
 
 
 def _process_parameter(parameter_name: str, parameter, default, n_views: int):

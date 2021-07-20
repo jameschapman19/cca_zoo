@@ -58,8 +58,7 @@ class DeepWrapper(_CCA_Base):
             val_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]] = None, train_labels=None,
             val_labels=None, val_split: float = 0,
             batch_size: int = 0, val_batch_size: int = 0,
-            patience: int = 0, epochs: int = 1,
-            train_correlations: bool = True):
+            patience: int = 0, epochs: int = 1, post_transform=True):
         """
 
         :param train_dataset: either tuple of 2d numpy arrays (one for each view) or torch dataset
@@ -70,8 +69,6 @@ class DeepWrapper(_CCA_Base):
         :param batch_size: the minibatch size
         :param patience: if 0 train to num_epochs, else if validation score doesn't improve after patience epochs stop training
         :param epochs: maximum number of epochs to train
-        :param train_correlations: if True generate training correlations
-        :return:
         """
         train_dataset, val_dataset = self._process_data(train_dataset, val_dataset, train_labels, val_labels, val_split)
         train_dataloader, val_dataloader = self._get_dataloaders(train_dataset, batch_size, val_dataset, val_batch_size)
@@ -118,8 +115,8 @@ class DeepWrapper(_CCA_Base):
                         self.scheduler.step(epoch_train_loss)
         if self.tensorboard:
             self.writer.close()
-        if train_correlations:
-            self.train_correlations = self.predict_corr(train_dataset, train=True)
+        if post_transform:
+            self.transform(train_dataset, batch_size=batch_size, train=True)
         return self
 
     def _train_epoch(self, train_dataloader: torch.utils.data.DataLoader):
@@ -184,12 +181,6 @@ class DeepWrapper(_CCA_Base):
 
     def predict_corr(self, test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], train: bool = False,
                      batch_size: int = 0):
-        """
-
-        :param views: EITHER numpy arrays separated by comma. Each view needs to have the same number of features as its
-         corresponding view in the training dataOR torch.torch.utils.data.Dataset
-        :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
-        """
         transformed_views = self.transform(test_dataset, train=train, batch_size=batch_size)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
@@ -215,6 +206,7 @@ class DeepWrapper(_CCA_Base):
                     z_list = [np.append(z_list[i], z_i.detach().cpu().numpy(), axis=0) for
                               i, z_i in enumerate(z)]
         z_list = self.model.post_transform(*z_list, train=train)
+        self.n_views = len(z_list)
         return z_list
 
     def predict_view(self, test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], test_labels=None):

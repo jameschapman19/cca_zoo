@@ -7,7 +7,7 @@ from sklearn.metrics.pairwise import pairwise_kernels
 from tensorly.decomposition import parafac
 
 from .cca_base import _CCA_Base
-from ..utils.check_values import _process_parameter
+from ..utils.check_values import _process_parameter, check_views
 
 
 class TCCA(_CCA_Base):
@@ -41,7 +41,8 @@ class TCCA(_CCA_Base):
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True,
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data,
+                         accept_sparse=['csc', 'csr'],
                          random_state=random_state)
         self.c = c
 
@@ -49,10 +50,13 @@ class TCCA(_CCA_Base):
         self.c = _process_parameter('c', self.c, 0, self.n_views)
 
     def fit(self, *views: np.ndarray, ):
+        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
+        views = self._centre_scale(*views)
         self.n_views = len(views)
         self._check_params()
-        train_views, covs_invsqrt = self._setup_tensor(*views)
-        for i, el in enumerate(train_views):
+        # returns whitened views along with whitening matrix
+        views, covs_invsqrt = self._setup_tensor(*views)
+        for i, el in enumerate(views):
             if i == 0:
                 M = el
             else:
@@ -63,12 +67,11 @@ class TCCA(_CCA_Base):
         tl.set_backend('numpy')
         M_parafac = parafac(M, self.latent_dims, verbose=True)
         self.alphas = [cov_invsqrt @ fac for i, (view, cov_invsqrt, fac) in
-                       enumerate(zip(train_views, covs_invsqrt, M_parafac.factors))]
-        self.scores = [view @ self.alphas[i] for i, view in enumerate(train_views)]
+                       enumerate(zip(views, covs_invsqrt, M_parafac.factors))]
+        self.scores = [view @ self.alphas[i] for i, view in enumerate(views)]
         self.weights = [weights / np.linalg.norm(score) for weights, score in
                         zip(self.alphas, self.scores)]
-        self.scores = [view @ self.weights[i] for i, view in enumerate(train_views)]
-        self.train_correlations = self.predict_corr(*views)
+        self.scores = [view @ self.weights[i] for i, view in enumerate(views)]
         return self
 
     def _setup_tensor(self, *views: np.ndarray, **kwargs):
@@ -148,15 +151,15 @@ class KTCCA(TCCA):
                                 filter_params=True, **params)
 
     def _setup_tensor(self, *views: np.ndarray):
-        self.train_views = self._centre_scale(*views)
-        train_views = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
-        n = train_views[0].shape[0]
-        covs = [(1 - self.c[i]) * kernel @ kernel.T + self.c[i] * kernel for i, kernel in enumerate(train_views)]
+        self.train_views = views
+        kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
+        n = views[0].shape[0]
+        covs = [(1 - self.c[i]) * kernel @ kernel.T + self.c[i] * kernel for i, kernel in enumerate(kernels)]
         smallest_eigs = [min(0, np.linalg.eigvalsh(cov).min()) - self.eps for cov in covs]
         covs = [cov - smallest_eig * np.eye(cov.shape[0]) for cov, smallest_eig in zip(covs, smallest_eigs)]
         self.covs_invsqrt = [np.linalg.inv(sqrtm(cov)).real for cov in covs]
-        train_views = [train_view @ cov_invsqrt for train_view, cov_invsqrt in zip(train_views, self.covs_invsqrt)]
-        return train_views, self.covs_invsqrt
+        kernels = [kernel @ cov_invsqrt for kernel, cov_invsqrt in zip(kernels, self.covs_invsqrt)]
+        return kernels, self.covs_invsqrt
 
     def transform(self, *views: np.ndarray, view_indices: Iterable[int] = None, **kwargs):
         """
@@ -165,11 +168,19 @@ class KTCCA(TCCA):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model
         """
+        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         if view_indices is None:
             view_indices = np.arange(len(views))
+        transformed_views = []
+        for i, (view, view_index) in enumerate(zip(views, view_indices)):
+            if self.centre:
+                view = view - self.view_means[view_index]
+            if self.scale:
+                view = view / self.view_stds[view_index]
+            transformed_views.append(view)
         Ktest = [self._get_kernel(view_index, self.train_views[view_index], Y=test_view - self.view_means[view_index])
                  for test_view, view_index in
-                 zip(views, view_indices)]
+                 zip(transformed_views, view_indices)]
         transformed_views = [test_kernel.T @ cov_invsqrt @ self.alphas[view_index] for
                              i, (test_kernel, view_index, cov_invsqrt) in
                              enumerate(zip(Ktest, view_indices, self.covs_invsqrt))]

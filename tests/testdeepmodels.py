@@ -62,7 +62,7 @@ class TestDeepModels(TestCase):
         dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
         dcca_model = DeepWrapper(dcca_model)
         dcca_model.fit(train_dataset, val_dataset=val_dataset, epochs=2)
-        dcca_results = np.stack((dcca_model.train_correlations[0, 1], dcca_model.predict_corr(test_dataset)[0, 1]))
+        dcca_results = np.stack((dcca_model.score(train_dataset), dcca_model.predict_corr(test_dataset)[0, 1]))
 
     def test_large_p(self):
         large_p = 256
@@ -93,8 +93,8 @@ class TestDeepModels(TestCase):
         dcca_model = DeepWrapper(dcca_model, device=device, optimizer=optimizer)
         dcca_model.fit((self.X, self.Y), epochs=epochs)
         self.assertIsNone(
-            np.testing.assert_array_less(cca_model.train_correlations[0, 1].sum(),
-                                         dcca_model.train_correlations[0, 1].sum()))
+            np.testing.assert_array_less(cca_model.score(self.X, self.Y).sum(),
+                                         dcca_model.score((self.X, self.Y)).sum()))
         # DGCCA
         encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -104,8 +104,8 @@ class TestDeepModels(TestCase):
         dgcca_model = DeepWrapper(dgcca_model, device=device, optimizer=optimizer)
         dgcca_model.fit((self.X, self.Y), epochs=epochs)
         self.assertIsNone(
-            np.testing.assert_array_less(cca_model.train_correlations[0, 1].sum(),
-                                         dgcca_model.train_correlations[0, 1].sum()))
+            np.testing.assert_array_less(cca_model.score(self.X, self.Y).sum(),
+                                         dgcca_model.score((self.X, self.Y)).sum()))
         # DMCCA
         encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -115,8 +115,8 @@ class TestDeepModels(TestCase):
         dmcca_model = DeepWrapper(dmcca_model, device=device, optimizer=optimizer)
         dmcca_model.fit((self.X, self.Y), epochs=epochs)
         self.assertIsNone(
-            np.testing.assert_array_less(cca_model.train_correlations[0, 1].sum(),
-                                         dmcca_model.train_correlations[0, 1].sum()))
+            np.testing.assert_array_less(cca_model.score(self.X, self.Y).sum(),
+                                         dmcca_model.score((self.X, self.Y)).sum()))
         # DCCA_NOI
         encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
         encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -125,8 +125,8 @@ class TestDeepModels(TestCase):
         dcca_noi_model = DeepWrapper(dcca_noi_model, device=device, optimizer=optimizer)
         dcca_noi_model.fit((self.X, self.Y), epochs=epochs)
         self.assertIsNone(
-            np.testing.assert_array_less(cca_model.train_correlations[0, 1].sum(),
-                                         dcca_noi_model.train_correlations[0, 1].sum()))
+            np.testing.assert_array_less(cca_model.score(self.X, self.Y).sum(),
+                                         dcca_noi_model.score((self.X, self.Y)).sum()))
 
     def test_DTCCA_methods_cpu(self):
         latent_dims = 2
@@ -202,7 +202,7 @@ class TestDeepModels(TestCase):
                                 decoders=[decoder_1, decoder_2])
         # hidden_layer_sizes are shown explicitly but these are also the defaults
         splitae_model = DeepWrapper(splitae_model, device=device)
-        splitae_model.fit((self.X, self.Y), train_correlations=False, epochs=10)
+        splitae_model.fit((self.X, self.Y), epochs=10)
 
     def test_DCCAEconv_methods_cpu(self):
         latent_dims = 2
