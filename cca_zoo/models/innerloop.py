@@ -40,7 +40,8 @@ class _InnerLoop:
             self.scores = np.array([np.ones(view.shape[0]) for view in self.views])
             self.scores = self.scores / np.linalg.norm(self.scores, axis=1)[:, np.newaxis]
         elif self.initialization == 'unregularized':
-            unregularized = PLSInnerLoop(initialization='random', random_state=self.random_state).fit(*self.views)
+            unregularized = PLSInnerLoop(initialization='random', random_state=self.random_state, tol=self.tol).fit(
+                *self.views)
             norms = np.linalg.norm(unregularized.scores, axis=1)
             self.scores = unregularized.scores / norms[:, np.newaxis]
         self.weights = [self.random_state.randn(view.shape[1]) for view in self.views]
@@ -293,11 +294,6 @@ class ElasticInnerLoop(PLSInnerLoop):
         self.weights[view_index] = coef
 
     def objective(self):
-        """
-        General objective function for sparse CCA |X_1w_1-X_2w_2|_2^2 + c_1|w_1|_1 + c_2|w_2|_1
-        :param loop: an inner loop
-        :return:
-        """
         views = len(self.views)
         c = np.array(self.c)
         ratio = np.array(self.l1_ratio)
@@ -313,6 +309,13 @@ class ElasticInnerLoop(PLSInnerLoop):
             l2_pen = l2[i] * np.linalg.norm(self.weights[i], ord=2)
             total_objective += objective + l1_pen + l2_pen
         return total_objective
+
+    def early_stop(self) -> bool:
+        # Some kind of early stopping
+        if np.abs(self.track_objective[-2] - self.track_objective[-1]) < self.tol:
+            return True
+        else:
+            return False
 
 
 class ADMMInnerLoop(ElasticInnerLoop):
@@ -579,7 +582,7 @@ def _soft_threshold(x, threshold, positive=False):
 
 
 def _support_soft_thresh(x, support, positive=False):
-    if x.shape[0] < support or np.linalg.norm(x) == 0:
+    if x.shape[0] <= support or np.linalg.norm(x) == 0:
         return x
     if positive:
         u = np.clip(x, 0, None)

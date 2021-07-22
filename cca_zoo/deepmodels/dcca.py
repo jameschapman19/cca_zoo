@@ -1,6 +1,5 @@
 from typing import Iterable
 
-import numpy as np
 import torch
 
 from cca_zoo.deepmodels import objectives
@@ -49,7 +48,7 @@ class DCCA(_DCCA_base):
         z = self(*args)
         return self.objective.loss(*z)
 
-    def post_transform(self, *z_list, train=False) -> Iterable[np.ndarray]:
+    def post_transform(self, *z_list, train=False):
         if train:
             self.cca = MCCA(latent_dims=self.latent_dims)
             z_list = self.cca.fit_transform(*z_list)

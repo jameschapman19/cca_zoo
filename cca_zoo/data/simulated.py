@@ -126,7 +126,7 @@ def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[i
         z = np.sin(z)
     views = []
     true_features = []
-    view_sparsity = _process_parameter('view_sparsity', view_sparsity, 1, len(view_features))
+    view_sparsity = _process_parameter('view_sparsity', view_sparsity, 0, len(view_features))
     for p, sparsity in zip(view_features, view_sparsity):
         weights = random_state.randn(p, 1)
         if sparsity > 0:
@@ -136,7 +136,7 @@ def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[i
         gaussian_x = random_state.randn(n, p) * eps
         view = np.outer(z, weights)
         view += gaussian_x
-        views.append(view)
+        views.append(view / np.linalg.norm(view, axis=0))
         true_features.append(weights)
     return views, true_features
 

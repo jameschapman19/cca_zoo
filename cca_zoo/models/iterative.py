@@ -8,6 +8,7 @@ import numpy as np
 from .cca_base import _CCA_Base
 from .innerloop import PLSInnerLoop, PMDInnerLoop, ParkhomenkoInnerLoop, ElasticInnerLoop, ADMMInnerLoop, \
     SpanCCAInnerLoop, SWCCAInnerLoop
+from ..utils import check_views
 
 
 class _Iterative(_CCA_Base):
@@ -33,9 +34,10 @@ class _Iterative(_CCA_Base):
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param tol: tolerance value used for early stopping
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True)
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data,
+                         accept_sparse=['csc', 'csr'])
         self.max_iter = max_iter
         self.generalized = generalized
         self.initialization = initialization
@@ -49,18 +51,20 @@ class _Iterative(_CCA_Base):
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
+        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
+        views = self._centre_scale(*views)
+        self.n_views = len(views)
         self._set_loop_params()
-        train_views = self._centre_scale(*views)
-        n = train_views[0].shape[0]
-        p = [view.shape[1] for view in train_views]
+        n = views[0].shape[0]
+        p = [view.shape[1] for view in views]
         # List of d: p x k
         self.weights = [np.zeros((p_, self.latent_dims)) for p_ in p]
         self.loadings = [np.zeros((p_, self.latent_dims)) for p_ in p]
 
         # List of d: n x k
-        self.scores = [np.zeros((n, self.latent_dims)) for _ in train_views]
+        self.scores = [np.zeros((n, self.latent_dims)) for _ in views]
 
-        residuals = copy.deepcopy(list(train_views))
+        residuals = copy.deepcopy(list(views))
 
         self.objective = []
         # For each of the dimensions
@@ -73,7 +77,6 @@ class _Iterative(_CCA_Base):
                 # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
                 residuals[i] = self._deflate(residuals[i], self.scores[i][:, k], self.weights[i][:, k])
             self.objective.append(self.loop.track_objective)
-        self.train_correlations = self.predict_corr(*views)
         return self
 
     def _deflate(self, residual, score, loading):
@@ -98,7 +101,7 @@ class _Iterative(_CCA_Base):
                                  initialization=self.initialization, random_state=self.random_state)
 
 
-class PLS(_Iterative):
+class PLS_ALS(_Iterative):
     """
     A class used to fit a PLS model
 
@@ -130,7 +133,7 @@ class PLS(_Iterative):
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param tol: tolerance value used for early stopping
         """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, deflation=deflation,
                          max_iter=max_iter,
@@ -180,7 +183,7 @@ class ElasticCCA(_Iterative):
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param tol: tolerance value used for early stopping
         :param c: lasso alpha
         :param l1_ratio: l1 ratio in lasso subproblems
         :param constrained: force unit norm constraint with binary search
@@ -242,7 +245,7 @@ class CCA_ALS(ElasticCCA):
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param tol: tolerance value used for early stopping
         :param stochastic: use stochastic regression optimisers for subproblems
         :param positive: constrain model weights to be positive
         """
@@ -250,7 +253,7 @@ class CCA_ALS(ElasticCCA):
         super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
                          initialization=initialization, tol=tol, constrained=False, stochastic=stochastic,
                          centre=centre, copy_data=copy_data, scale=scale,
-                         positive=positive, random_state=random_state)
+                         positive=positive, random_state=random_state, c=1e-3)
 
 
 class SCCA(ElasticCCA):
@@ -287,7 +290,7 @@ class SCCA(ElasticCCA):
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
-        :param tol: if the cosine similarity of the weights between subsequent iterations is greater than 1-tol the loop is considered converged
+        :param tol: tolerance value used for early stopping
         :param c: lasso alpha
         :param stochastic: use stochastic regression optimisers for subproblems
         :param positive: constrain model weights to be positive
@@ -329,6 +332,10 @@ class PMD(_Iterative):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter between 1 and sqrt(number of features) for each view
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param tol: tolerance value used for early stopping
         :param positive: constrain model weights to be positive
         """
         self.c = c
@@ -373,6 +380,10 @@ class ParkhomenkoCCA(_Iterative):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param tol: tolerance value used for early stopping
         """
         self.c = c
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
@@ -419,6 +430,10 @@ class SCCA_ADMM(_Iterative):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param tol: tolerance value used for early stopping
         :param mu:
         :param lam:
         :param: eta:
@@ -459,10 +474,10 @@ class SpanCCA(_Iterative):
         :param centre: demean data by column before fitting (and before transforming out of sample
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
-        :param max_iter:
-        :param generalized:
-        :param initialization:
-        :param tol:
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param tol: tolerance value used for early stopping
         :param regularisation:
         :param c:
         :param rank:
@@ -507,10 +522,10 @@ class SWCCA(_Iterative):
         :param centre: demean data by column before fitting (and before transforming out of sample
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
-        :param max_iter:
-        :param generalized:
-        :param initialization:
-        :param tol:
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param generalized: use auxiliary variables (required for >2 views)
+        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param tol: tolerance value used for early stopping
         :param regularisation:
         :param c:
         :param sample_support:

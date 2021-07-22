@@ -16,25 +16,26 @@ class TestModels(TestCase):
         self.X = self.rng.rand(500, 20)
         self.Y = self.rng.rand(500, 21)
         self.Z = self.rng.rand(500, 22)
-        self.X_sp = sp.random(1000, 20, density=0.1, random_state=self.rng)
-        self.Y_sp = sp.random(1000, 21, density=0.1, random_state=self.rng)
+        self.X_sp = sp.random(500, 20, density=0.5, random_state=self.rng)
+        self.Y_sp = sp.random(500, 21, density=0.5, random_state=self.rng)
 
     def tearDown(self):
         pass
 
     def test_unregularized_methods(self):
         # Tests unregularized CCA methods. The idea is that all of these should give the same result.
-        latent_dims = 1
+        latent_dims = 2
         wrap_cca = CCA(latent_dims=latent_dims).fit(self.X, self.Y)
-        wrap_iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9, random_state=self.rng).fit(self.X, self.Y)
+        wrap_iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9, random_state=self.rng, stochastic=False).fit(self.X,
+                                                                                                            self.Y)
         wrap_gcca = GCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_mcca = MCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         wrap_kcca = KCCA(latent_dims=latent_dims).fit(self.X, self.Y)
-        corr_cca = wrap_cca.train_correlations[0, 1]
-        corr_iter = wrap_iter.train_correlations[0, 1]
-        corr_gcca = wrap_gcca.train_correlations[0, 1]
-        corr_mcca = wrap_mcca.train_correlations[0, 1]
-        corr_kcca = wrap_kcca.train_correlations[0, 1]
+        corr_cca = wrap_cca.score(self.X, self.Y)
+        corr_iter = wrap_iter.score(self.X, self.Y)
+        corr_gcca = wrap_gcca.score(self.X, self.Y)
+        corr_mcca = wrap_mcca.score(self.X, self.Y)
+        corr_kcca = wrap_kcca.score(self.X, self.Y)
         # Check the score outputs are the right shape
         self.assertTrue(wrap_iter.scores[0].shape == (self.X.shape[0], latent_dims))
         self.assertTrue(wrap_gcca.scores[0].shape == (self.X.shape[0], latent_dims))
@@ -48,17 +49,17 @@ class TestModels(TestCase):
 
     def test_sparse_input(self):
         # Tests unregularized CCA methods. The idea is that all of these should give the same result.
-        latent_dims = 1
-        wrap_cca = CCA(latent_dims=latent_dims).fit(self.X_sp, self.Y_sp)
-        wrap_iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9).fit(self.X_sp, self.Y_sp)
-        wrap_gcca = GCCA(latent_dims=latent_dims).fit(self.X_sp, self.Y_sp)
-        wrap_mcca = MCCA(latent_dims=latent_dims).fit(self.X_sp, self.Y_sp)
-        wrap_kcca = KCCA(latent_dims=latent_dims).fit(self.X_sp, self.Y_sp)
-        corr_cca = wrap_cca.train_correlations[0, 1]
-        corr_iter = wrap_iter.train_correlations[0, 1]
-        corr_gcca = wrap_gcca.train_correlations[0, 1]
-        corr_mcca = wrap_mcca.train_correlations[0, 1]
-        corr_kcca = wrap_kcca.train_correlations[0, 1]
+        latent_dims = 2
+        wrap_cca = CCA(latent_dims=latent_dims, centre=False).fit(self.X_sp, self.Y_sp)
+        wrap_iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9, stochastic=False, centre=False).fit(self.X_sp, self.Y_sp)
+        wrap_gcca = GCCA(latent_dims=latent_dims, centre=False).fit(self.X_sp, self.Y_sp)
+        wrap_mcca = MCCA(latent_dims=latent_dims, centre=False).fit(self.X_sp, self.Y_sp)
+        wrap_kcca = KCCA(latent_dims=latent_dims, centre=False).fit(self.X_sp, self.Y_sp)
+        corr_cca = wrap_cca.score(self.X, self.Y)
+        corr_iter = wrap_iter.score(self.X, self.Y)
+        corr_gcca = wrap_gcca.score(self.X, self.Y)
+        corr_mcca = wrap_mcca.score(self.X, self.Y)
+        corr_kcca = wrap_kcca.score(self.X, self.Y)
         # Check the score outputs are the right shape
         self.assertTrue(wrap_iter.scores[0].shape == (self.X_sp.shape[0], latent_dims))
         self.assertTrue(wrap_gcca.scores[0].shape == (self.X_sp.shape[0], latent_dims))
@@ -72,18 +73,18 @@ class TestModels(TestCase):
 
     def test_unregularized_multi(self):
         # Tests unregularized CCA methods for more than 2 views. The idea is that all of these should give the same result.
-        latent_dims = 5
+        latent_dims = 2
         wrap_cca = rCCA(latent_dims=latent_dims).fit(self.X, self.Y, self.Z)
         wrap_iter = CCA_ALS(latent_dims=latent_dims, stochastic=False, tol=1e-12).fit(self.X, self.Y,
                                                                                       self.Z)
         wrap_gcca = GCCA(latent_dims=latent_dims).fit(self.X, self.Y, self.Z)
         wrap_mcca = MCCA(latent_dims=latent_dims).fit(self.X, self.Y, self.Z)
         wrap_kcca = KCCA(latent_dims=latent_dims).fit(self.X, self.Y, self.Z)
-        corr_cca = wrap_cca.train_correlations[:, :, 0]
-        corr_iter = wrap_iter.train_correlations[:, :, 0]
-        corr_gcca = wrap_gcca.train_correlations[:, :, 0]
-        corr_mcca = wrap_mcca.train_correlations[:, :, 0]
-        corr_kcca = wrap_kcca.train_correlations[:, :, 0]
+        corr_cca = wrap_cca.score(self.X, self.Y, self.Z)
+        corr_iter = wrap_iter.score(self.X, self.Y, self.Z)
+        corr_gcca = wrap_gcca.score(self.X, self.Y, self.Z)
+        corr_mcca = wrap_mcca.score(self.X, self.Y, self.Z)
+        corr_kcca = wrap_kcca.score(self.X, self.Y, self.Z)
         # Check the score outputs are the right shape
         self.assertTrue(wrap_iter.scores[0].shape == (self.X.shape[0], latent_dims))
         self.assertTrue(wrap_gcca.scores[0].shape == (self.X.shape[0], latent_dims))
@@ -97,7 +98,7 @@ class TestModels(TestCase):
 
     def test_regularized_methods(self):
         # Test that linear regularized methods match PLS solution when using maximum regularisation.
-        latent_dims = 5
+        latent_dims = 2
         c = 1
         wrap_kernel = KCCA(latent_dims=latent_dims, c=[c, c], kernel=['linear', 'linear']).fit(self.X,
                                                                                                self.Y)
@@ -105,11 +106,11 @@ class TestModels(TestCase):
         wrap_gcca = GCCA(latent_dims=latent_dims, c=[c, c]).fit(self.X, self.Y)
         wrap_mcca = MCCA(latent_dims=latent_dims, c=[c, c]).fit(self.X, self.Y)
         wrap_rCCA = rCCA(latent_dims=latent_dims, c=[c, c]).fit(self.X, self.Y)
-        corr_gcca = wrap_gcca.train_correlations[0, 1]
-        corr_mcca = wrap_mcca.train_correlations[0, 1]
-        corr_kernel = wrap_kernel.train_correlations[0, 1]
-        corr_pls = wrap_pls.train_correlations[0, 1]
-        corr_rcca = wrap_rCCA.train_correlations[0, 1]
+        corr_gcca = wrap_gcca.score(self.X, self.Y)
+        corr_mcca = wrap_mcca.score(self.X, self.Y)
+        corr_kernel = wrap_kernel.score(self.X, self.Y)
+        corr_pls = wrap_pls.score(self.X, self.Y)
+        corr_rcca = wrap_rCCA.score(self.X, self.Y)
         # Check the correlations from each unregularized method are the same
         # self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_gcca, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_mcca, decimal=1))
@@ -117,7 +118,7 @@ class TestModels(TestCase):
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_pls, corr_rcca, decimal=1))
 
     def test_non_negative_methods(self):
-        latent_dims = 1
+        latent_dims = 2
         wrap_nnelasticca = ElasticCCA(latent_dims=latent_dims, tol=1e-9, positive=True, l1_ratio=[0.5, 0.5],
                                       c=[1e-4, 1e-5]).fit(self.X, self.Y)
         wrap_als = CCA_ALS(latent_dims=latent_dims, tol=1e-9).fit(self.X, self.Y)
@@ -126,7 +127,7 @@ class TestModels(TestCase):
 
     def test_sparse_methods(self):
         # Test sparsity inducing methods. At the moment just checks running.
-        latent_dims = 5
+        latent_dims = 2
         c1 = [1, 3]
         c2 = [1, 3]
         param_candidates = {'c': list(itertools.product(c1, c2))}
@@ -142,21 +143,21 @@ class TestModels(TestCase):
         wrap_elastic = ElasticCCA(latent_dims=latent_dims, random_state=self.rng).gridsearch_fit(self.X, self.Y,
                                                                                                  param_candidates=param_candidates,
                                                                                                  verbose=True)
-        corr_pmd = wrap_pmd.train_correlations[0, 1]
-        corr_scca = wrap_scca.train_correlations[0, 1]
-        corr_elastic = wrap_elastic.train_correlations[0, 1]
+        corr_pmd = wrap_pmd.score(self.X, self.Y)
+        corr_scca = wrap_scca.score(self.X, self.Y)
+        corr_elastic = wrap_elastic.score(self.X, self.Y)
         wrap_scca_admm = SCCA_ADMM(c=[1e-4, 1e-4]).fit(self.X, self.Y)
         wrap_scca = SCCA(c=[1e-4, 1e-4]).fit(self.X, self.Y)
 
     def test_weighted_GCCA_methods(self):
         # Test the 'fancy' additions to GCCA i.e. the view weighting and observation weighting.
-        latent_dims = 5
+        latent_dims = 2
         c = 0
         wrap_unweighted_gcca = GCCA(latent_dims=latent_dims, c=[c, c]).fit(self.X, self.Y)
         wrap_deweighted_gcca = GCCA(latent_dims=latent_dims, c=[c, c], view_weights=[0.5, 0.5]).fit(
             self.X, self.Y)
-        corr_unweighted_gcca = wrap_unweighted_gcca.train_correlations[0, 1]
-        corr_deweighted_gcca = wrap_deweighted_gcca.train_correlations[0, 1]
+        corr_unweighted_gcca = wrap_unweighted_gcca.score(self.X, self.Y)
+        corr_deweighted_gcca = wrap_deweighted_gcca.score(self.X, self.Y)
         # Check the correlations from each unregularized method are the same
         K = np.ones((2, self.X.shape[0]))
         K[0, 200:] = 0
@@ -165,16 +166,16 @@ class TestModels(TestCase):
 
     def test_TCCA(self):
         # Tests tensor CCA methods
-        latent_dims = 1
+        latent_dims = 2
         wrap_tcca = TCCA(latent_dims=latent_dims, c=[0.2, 0.2]).fit(self.X, self.Y)
         wrap_ktcca = KTCCA(latent_dims=latent_dims, c=[0.2, 0.2]).fit(self.X, self.Y)
-        corr_tcca = wrap_tcca.train_correlations[0, 1]
-        corr_ktcca = wrap_ktcca.train_correlations[0, 1]
+        corr_tcca = wrap_tcca.score(self.X, self.Y)
+        corr_ktcca = wrap_ktcca.score(self.X, self.Y)
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_tcca, corr_ktcca, decimal=1))
 
     def test_cv_fit(self):
         # Test the CV method
-        latent_dims = 5
+        latent_dims = 2
         c1 = [0.1, 0.2]
         c2 = [0.1, 0.2]
         param_candidates = {'c': list(itertools.product(c1, c2))}

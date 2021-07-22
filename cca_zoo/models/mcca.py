@@ -3,10 +3,9 @@ from typing import Iterable, Union
 import numpy as np
 from scipy.linalg import block_diag, eigh
 from sklearn.metrics.pairwise import pairwise_kernels
-from sklearn.utils.validation import check_array
 
 from .cca_base import _CCA_Base
-from ..utils.check_values import _process_parameter
+from ..utils.check_values import _process_parameter, check_views
 
 
 class MCCA(_CCA_Base):
@@ -39,7 +38,8 @@ class MCCA(_CCA_Base):
         :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
         :param eps: epsilon for stability
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True,
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data,
+                         accept_sparse=['csc', 'csr'],
                          random_state=random_state)
         self.c = c
         self.eps = eps
@@ -53,28 +53,28 @@ class MCCA(_CCA_Base):
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
+        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
+        views = self._centre_scale(*views)
         self.n_views = len(views)
         self._check_params()
-        train_views, C, D = self._setup_gevp(*views)
+        views, C, D = self._setup_gevp(*views)
         self.alphas = self._solve_gevp(C, D)
-        self.scores = [train_view @ eigvecs_ for train_view, eigvecs_ in zip(train_views, self.alphas)]
+        self.scores = [train_view @ eigvecs_ for train_view, eigvecs_ in zip(views, self.alphas)]
         self.weights = [weights / np.linalg.norm(score, axis=0) for weights, score in
                         zip(self.alphas, self.scores)]
-        self.scores = [train_view @ weights for train_view, weights in zip(train_views, self.weights)]
-        self.train_correlations = self.predict_corr(*views)
+        self.scores = [train_view @ weights for train_view, weights in zip(views, self.weights)]
         return self
 
     def _setup_gevp(self, *views: np.ndarray):
-        train_views = self._centre_scale(*views)
-        all_views = np.concatenate(train_views, axis=1)
+        all_views = np.concatenate(views, axis=1)
         C = all_views.T @ all_views
         # Can regularise by adding to diagonal
-        D = block_diag(*[(1 - self.c[i]) * m.T @ m + self.c[i] * np.eye(m.shape[1]) for i, m in enumerate(train_views)])
-        C -= block_diag(*[view.T @ view for view in train_views]) - D
+        D = block_diag(*[(1 - self.c[i]) * m.T @ m + self.c[i] * np.eye(m.shape[1]) for i, m in enumerate(views)])
+        C -= block_diag(*[view.T @ view for view in views]) - D
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
-        self.splits = np.cumsum([0] + [view.shape[1] for view in train_views])
-        return train_views, C, D
+        self.splits = np.cumsum([0] + [view.shape[1] for view in views])
+        return views, C, D
 
     def _solve_gevp(self, C, D):
         n = D.shape[0]
@@ -153,7 +153,7 @@ class KCCA(MCCA):
 
         :param views:
         """
-        self.train_views = self._centre_scale(*views)
+        self.train_views = views
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
         C = np.hstack(kernels).T @ np.hstack(kernels)
         # Can regularise by adding to diagonal
@@ -172,13 +172,18 @@ class KCCA(MCCA):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model
         """
+        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         if view_indices is None:
             view_indices = np.arange(len(views))
-        Ktest = [self._get_kernel(view_index, self.train_views[view_index],
-                                  Y=check_array(test_view, copy=self.copy_data, accept_sparse=self.accept_sparse) -
-                                    self.view_means[view_index])
-                 for test_view, view_index in
-                 zip(views, view_indices)]
+        transformed_views = []
+        for i, (view, view_index) in enumerate(zip(views, view_indices)):
+            if self.centre:
+                view = view - self.view_means[view_index]
+            if self.scale:
+                view = view / self.view_stds[view_index]
+            transformed_views.append(view)
+        Ktest = [self._get_kernel(view_index, self.train_views[view_index], Y=test_view - self.view_means[view_index])
+                 for test_view, view_index in zip(transformed_views, view_indices)]
         transformed_views = [test_kernel.T @ self.alphas[view_index] for test_kernel, view_index in
                              zip(Ktest, view_indices)]
         return transformed_views

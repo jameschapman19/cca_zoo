@@ -1,17 +1,19 @@
 import itertools
 from abc import abstractmethod
-from typing import List, Union, Dict, Any
+from typing import List, Union, Dict, Any, Iterable
 
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
+from scipy.sparse import issparse
 from sklearn.base import BaseEstimator
-from sklearn.utils.validation import check_array
+from sklearn.utils.sparsefuncs import mean_variance_axis
 from sklearn.utils.validation import check_random_state
 
 import cca_zoo.data
 import cca_zoo.models.innerloop
 import cca_zoo.utils.plot_utils
+from cca_zoo.utils import check_views
 
 
 class _CCA_Base(BaseEstimator):
@@ -24,7 +26,7 @@ class _CCA_Base(BaseEstimator):
     """
 
     @abstractmethod
-    def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, accept_sparse=True,
+    def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, accept_sparse=False,
                  random_state: Union[int, np.random.RandomState] = None):
         """
         Constructor for _CCA_Base
@@ -44,6 +46,7 @@ class _CCA_Base(BaseEstimator):
         self.copy_data = copy_data
         self.accept_sparse = accept_sparse
         self.random_state = check_random_state(random_state)
+        self.n_views = None
 
     @abstractmethod
     def fit(self, *views: np.ndarray):
@@ -63,11 +66,11 @@ class _CCA_Base(BaseEstimator):
         :param view_indices:
         :param kwargs: any additional keyword arguments required by the given model
         """
+        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         transformed_views = []
         if view_indices is None:
             view_indices = np.arange(len(views))
         for i, (view, view_index) in enumerate(zip(views, view_indices)):
-            view = check_array(view, copy=self.copy_data, accept_sparse=self.accept_sparse)
             if self.centre:
                 view = view - self.view_means[view_index]
             if self.scale:
@@ -87,7 +90,7 @@ class _CCA_Base(BaseEstimator):
         """
         return self.fit(*views).transform(*views, view_indices=view_indices, **kwargs)
 
-    def predict_corr(self, *views: np.ndarray, view_indices: List[int] = None, **kwargs) -> np.ndarray:
+    def predict_corr(self, *views: Iterable[np.ndarray], view_indices: List[int] = None, **kwargs):
         """
         Predicts the correlation for the given data using the fit model
 
@@ -114,23 +117,27 @@ class _CCA_Base(BaseEstimator):
         :rtype: np.ndarray
         """
 
-        train_views = []
         self.view_means = []
         self.view_stds = []
-        self.accept_sparse = ['csr', 'csc', 'coo']
+        transformed_views = []
         for view in views:
-            view = check_array(view, copy=self.copy_data, accept_sparse=self.accept_sparse)
-            if self.centre:
-                view_mean = view.mean(axis=0)
+            if issparse(view):
+                view_mean, view_std = mean_variance_axis(view, axis=0)
                 self.view_means.append(view_mean)
-                view = view - self.view_means[-1]
-            if self.scale:
-                view_std = view.std(axis=0, ddof=1)
-                view_std[view_std == 0.0] = 1.0
                 self.view_stds.append(view_std)
                 view = view / self.view_stds[-1]
-            train_views.append(view)
-        return train_views
+            else:
+                if self.centre:
+                    view_mean = view.mean(axis=0)
+                    self.view_means.append(view_mean)
+                    view = view - self.view_means[-1]
+                if self.scale:
+                    view_std = view.std(axis=0, ddof=1)
+                    view_std[view_std == 0.0] = 1.0
+                    self.view_stds.append(view_std)
+                    view = view / self.view_stds[-1]
+            transformed_views.append(view)
+        return transformed_views
 
     def gridsearch_fit(self, *views: np.ndarray, K=None, param_candidates: Dict[str, List[Any]] = None,
                        folds: int = 5,
@@ -196,6 +203,16 @@ class _CCA_Base(BaseEstimator):
         self.fit(*views)
         return self
 
+    def score(self, *views, view_indices: List[int] = None, **kwargs):
+        if view_indices is None:
+            view_indices = list(range(self.n_views))
+        # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
+        pair_corrs = self.predict_corr(*views, view_indices=view_indices, **kwargs)
+        # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
+        dim_corrs = (pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - len(view_indices)) / (
+                len(view_indices) ** 2 - len(view_indices))
+        return dim_corrs
+
     """
     def bayes_fit(self, *views: np.ndarray, space=None, folds: int = 5, verbose=True):
         :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3)
@@ -247,13 +264,13 @@ class _CrossValidate:
                 train_obs = np.delete(K, fold_inds[fold], axis=1)
                 val_obs = K[:, fold_inds[fold]]
                 scores[fold] = self.model.set_params(**cvparams).fit(
-                    *train_sets, K=train_obs).predict_corr(
-                    *val_sets).sum(axis=-1)[np.triu_indices(len(views), 1)].sum()
+                    *train_sets, K=train_obs).score(
+                    *val_sets).sum()
             else:
                 self.model.set_params(**cvparams).fit(
                     *train_sets)
-                scores[fold] = self.model.predict_corr(
-                    *val_sets).sum(axis=-1)[np.triu_indices(len(views), 1)].sum()
+                scores[fold] = self.model.score(
+                    *val_sets).sum()
         scores[np.isnan(scores)] = 0
         std = scores.std(axis=0)
         if self.verbose:

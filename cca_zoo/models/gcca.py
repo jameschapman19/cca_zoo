@@ -2,10 +2,9 @@ from typing import Iterable
 
 import numpy as np
 from scipy.linalg import eigh
-from sklearn.utils.validation import check_array
 
 from .cca_base import _CCA_Base
-from ..utils.check_values import _process_parameter
+from ..utils.check_values import _process_parameter, check_views
 
 
 class GCCA(_CCA_Base):
@@ -40,7 +39,8 @@ class GCCA(_CCA_Base):
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         :param view_weights: list of weights of each view
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True,
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data,
+                         accept_sparse=['csc', 'csr'],
                          random_state=random_state)
         self.c = c
         self.view_weights = view_weights
@@ -56,16 +56,15 @@ class GCCA(_CCA_Base):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param K: observation matrix. Binary array with (k,n) dimensions where k is the number of views and n is the number of samples 1 means the data is observed in the corresponding view and 0 means the data is unobserved in that view.
         """
-
+        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
+        views = self._centre_scale(*views)
         self.n_views = len(views)
         self._check_params()
-
         if K is None:
             # just use identity when all rows are observed in all views.
             K = np.ones((len(views), views[0].shape[0]))
-        train_views = self._centre_scale(*views)
         Q = []
-        for i, (view, view_weight) in enumerate(zip(train_views, self.view_weights)):
+        for i, (view, view_weight) in enumerate(zip(views, self.view_weights)):
             view_cov = view.T @ view
             view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(view_cov.shape[0])
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
@@ -76,27 +75,6 @@ class GCCA(_CCA_Base):
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         self.eigvals = eigvals[idx].real
-        self.weights = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in train_views]
-        self.scores = [view @ self.weights[i] for i, view in enumerate(train_views)]
-        self.train_correlations = self.predict_corr(*views)
+        self.weights = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in views]
+        self.scores = [view @ self.weights[i] for i, view in enumerate(views)]
         return self
-
-    def transform(self, *views: np.ndarray, K=None, view_indices: Iterable[int] = None, **kwargs):
-        """
-        Transforms data given a fit GCCA model
-
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
-        :param K: observation matrix. Binary array with (k,n) dimensions where k is the number of views and n is the number of samples
-        1 means the data is observed in the corresponding view and 0 means the data is unobserved in that view.
-        """
-        transformed_views = []
-        if view_indices is None:
-            view_indices = np.arange(len(views))
-        for i, (view, view_index) in enumerate(zip(views, view_indices)):
-            view = check_array(view, copy=self.copy_data, accept_sparse=self.accept_sparse)
-            transformed_view = np.array((view - self.view_means[view_index]) @ self.weights[view_index])
-            # TODO maybe revisit this. The original idea was to only generate correlations for observed samples but it's perhaps simpler to do this in post processing
-            # if K is not None:
-            #    transformed_view.mask[np.where(K[view_index]) == 1] = True
-            transformed_views.append(transformed_view)
-        return transformed_views
