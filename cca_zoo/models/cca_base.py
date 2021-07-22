@@ -262,13 +262,13 @@ class _CrossValidate:
                 train_obs = np.delete(K, fold_inds[fold], axis=1)
                 val_obs = K[:, fold_inds[fold]]
                 scores[fold] = self.model.set_params(**cvparams).fit(
-                    *train_sets, K=train_obs).predict_corr(
-                    *val_sets).sum(axis=-1)[np.triu_indices(len(views), 1)].sum()
+                    *train_sets, K=train_obs).score(
+                    *val_sets).sum()
             else:
                 self.model.set_params(**cvparams).fit(
                     *train_sets)
-                scores[fold] = self.model.predict_corr(
-                    *val_sets).sum(axis=-1)[np.triu_indices(len(views), 1)].sum()
+                scores[fold] = self.model.score(
+                    *val_sets).sum()
         scores[np.isnan(scores)] = 0
         std = scores.std(axis=0)
         if self.verbose:
