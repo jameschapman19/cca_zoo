@@ -101,7 +101,7 @@ class _Iterative(_CCA_Base):
                                  initialization=self.initialization, random_state=self.random_state)
 
 
-class PLS(_Iterative):
+class PLS_ALS(_Iterative):
     """
     A class used to fit a PLS model
 

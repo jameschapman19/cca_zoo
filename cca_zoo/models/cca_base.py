@@ -203,12 +203,14 @@ class _CCA_Base(BaseEstimator):
         self.fit(*views)
         return self
 
-    def score(self, *views):
+    def score(self, *views, view_indices: List[int] = None, **kwargs):
+        if view_indices is None:
+            view_indices = list(range(self.n_views))
         # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
-        pair_corrs = self.predict_corr(*views)
+        pair_corrs = self.predict_corr(*views, view_indices=view_indices, **kwargs)
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
-        dim_corrs = (pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - self.n_views) / (
-                    self.n_views ** 2 - self.n_views)
+        dim_corrs = (pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - len(view_indices)) / (
+                len(view_indices) ** 2 - len(view_indices))
         return dim_corrs
 
     """

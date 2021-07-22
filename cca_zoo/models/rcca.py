@@ -132,6 +132,32 @@ class CCA(rCCA):
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, c=[0.0, 0.0],
                          random_state=random_state)
 
+class PLS(rCCA):
+    """
+    A class used to fit a simple PLS model
+
+    Implements PLS by inheriting regularised CCA with maximal regularisation
+
+    :Example:
+
+    >>> from cca_zoo.models import PLS
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = CCA()
+    >>> model.fit(X1,X2)
+    """
+
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None):
+        """
+        Constructor for CCA
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        """
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, c=[1.0, 1.0],
+                         random_state=random_state)
 
 def _pca_data(*views: np.ndarray):
     """
