@@ -5,9 +5,9 @@ name: Python package
 
 on:
   push:
-    branches: [ master, probablistic ]
+    branches: [ master, probabilistic ]
   pull_request:
-    branches: [ master, probablistic ]
+    branches: [ master, probabilistic ]
 
 jobs:
   build:
