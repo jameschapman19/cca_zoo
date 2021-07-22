@@ -9,7 +9,7 @@ with open("./requirements/basic.txt", "r") as f:
 EXTRA_PACKAGES = {}
 with open("./requirements/deep.txt", "r") as f:
     EXTRA_PACKAGES['deep'] = f.read()
-with open("./requirements/probablistic.txt", "r") as f:
+with open("./requirements/probabilistic.txt", "r") as f:
     EXTRA_PACKAGES['probabilistic'] = f.read()
 
 setup(
