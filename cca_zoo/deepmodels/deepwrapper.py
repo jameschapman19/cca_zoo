@@ -180,7 +180,7 @@ class DeepWrapper(_CCA_Base):
         return total_val_loss / len(val_dataloader)
 
     def predict_corr(self, test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], train: bool = False,
-                     batch_size: int = 0):
+                     batch_size: int = 0, view_indices=None):
         transformed_views = self.transform(test_dataset, train=train, batch_size=batch_size)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
