@@ -182,7 +182,7 @@ class KCCA(MCCA):
             if self.scale:
                 view = view / self.view_stds[view_index]
             transformed_views.append(view)
-        Ktest = [self._get_kernel(view_index, self.train_views[view_index], Y=test_view - self.view_means[view_index])
+        Ktest = [self._get_kernel(view_index, self.train_views[view_index], Y=test_view)
                  for test_view, view_index in zip(transformed_views, view_indices)]
         transformed_views = [test_kernel.T @ self.alphas[view_index] for test_kernel, view_index in
                              zip(Ktest, view_indices)]
