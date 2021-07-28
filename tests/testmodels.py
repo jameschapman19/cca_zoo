@@ -141,6 +141,7 @@ class TestModels(TestCase):
         latent_dims = 2
         c1 = [1, 3]
         c2 = [1, 3]
+
         param_candidates = {'c': list(itertools.product(c1, c2))}
         pmd = PMD(latent_dims=latent_dims, random_state=self.rng).gridsearch_fit(self.X, self.Y,
                                                                                  param_candidates=param_candidates,

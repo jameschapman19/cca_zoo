@@ -231,7 +231,7 @@ class ElasticInnerLoop(PLSInnerLoop):
                                      tol=self.tol, warm_start=True, random_state=self.random_state))
             else:
                 if alpha == 0:
-                    self.regressors.append(LinearRegression(fit_intercept=False, positive=positive))
+                    self.regressors.append(LinearRegression(fit_intercept=False))
                 elif l1_ratio == 0:
                     if positive:
                         self.regressors.append(
