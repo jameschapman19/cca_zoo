@@ -125,6 +125,7 @@ class _CCA_Base(BaseEstimator):
                 view_mean, view_std = mean_variance_axis(view, axis=0)
                 self.view_means.append(view_mean)
                 self.view_stds.append(view_std)
+                view = view - self.view_means[-1]
                 view = view / self.view_stds[-1]
             else:
                 if self.centre:
