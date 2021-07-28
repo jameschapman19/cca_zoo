@@ -28,7 +28,7 @@ class TestModels(TestCase):
         cca = CCA(latent_dims=latent_dims).fit(self.X, self.Y)
         iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9, random_state=self.rng, stochastic=False).fit(self.X, self.Y)
         gcca = GCCA(latent_dims=latent_dims).fit(self.X, self.Y)
-        mcca = MCCA(latent_dims=latent_dims).fit(self.X, self.Y)
+        mcca = MCCA(latent_dims=latent_dims, eps=1e-9).fit(self.X, self.Y)
         kcca = KCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         tcca = TCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         corr_cca = cca.score(self.X, self.Y)
@@ -49,6 +49,15 @@ class TestModels(TestCase):
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_gcca, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_kcca, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_tcca, decimal=2))
+        # Check standardized models have standard outputs
+        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(iter.scores[0], axis=0) ** 2, 500))
+        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(cca.scores[0], axis=0) ** 2, 500))
+        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(mcca.scores[0], axis=0) ** 2, 500, rtol=0.1))
+        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(kcca.scores[0], axis=0) ** 2, 500, rtol=0.1))
+        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(iter.scores[1], axis=0) ** 2, 500))
+        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(cca.scores[1], axis=0) ** 2, 500))
+        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(mcca.scores[1], axis=0) ** 2, 500, rtol=0.1))
+        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(kcca.scores[1], axis=0) ** 2, 500, rtol=0.1))
 
     def test_sparse_input(self):
         # Tests unregularized CCA methods. The idea is that all of these should give the same result.

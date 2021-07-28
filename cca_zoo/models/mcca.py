@@ -66,7 +66,7 @@ class MCCA(_CCA_Base):
 
     def _setup_gevp(self, *views: np.ndarray):
         all_views = np.concatenate(views, axis=1)
-        C = all_views.T @ all_views / (self.n - 1)
+        C = all_views.T @ all_views / self.n
         # Can regularise by adding to diagonal
         D = block_diag(
             *[(1 - self.c[i]) * m.T @ m / self.n + self.c[i] * np.eye(m.shape[1]) for i, m in enumerate(views)])
@@ -160,7 +160,7 @@ class KCCA(MCCA):
         # Can regularise by adding to diagonal
         D = block_diag(
             *[(1 - self.c[i]) * kernel @ kernel.T / self.n + self.c[i] * kernel for i, kernel in enumerate(kernels)])
-        C -= block_diag(*[kernel.T @ kernel / (self.n - 1) for kernel in kernels]) - D
+        C -= block_diag(*[kernel.T @ kernel / self.n for kernel in kernels]) - D
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])

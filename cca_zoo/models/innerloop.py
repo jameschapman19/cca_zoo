@@ -267,7 +267,7 @@ class ElasticInnerLoop(PLSInnerLoop):
     @ignore_warnings(category=ConvergenceWarning)
     def elastic_solver(self, X, y, view_index):
         self.weights[view_index] = self.regressors[view_index].fit(X, y.ravel()).coef_
-        self.weights[view_index] /= np.linalg.norm(self.views[view_index] @ self.weights[view_index]) / self.n
+        self.weights[view_index] /= np.linalg.norm(self.views[view_index] @ self.weights[view_index]) / np.sqrt(self.n)
 
     @ignore_warnings(category=ConvergenceWarning)
     def elastic_solver_constrained(self, X, y, view_index):
