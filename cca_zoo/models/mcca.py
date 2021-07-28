@@ -56,21 +56,21 @@ class MCCA(_CCA_Base):
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         views = self._centre_scale(*views)
         self.n_views = len(views)
+        self.n = views[0].shape[0]
         self._check_params()
         views, C, D = self._setup_gevp(*views)
         self.alphas = self._solve_gevp(C, D)
-        self.scores = [train_view @ eigvecs_ for train_view, eigvecs_ in zip(views, self.alphas)]
-        self.weights = [weights / np.linalg.norm(score, axis=0) for weights, score in
-                        zip(self.alphas, self.scores)]
+        self.weights = self.alphas
         self.scores = [train_view @ weights for train_view, weights in zip(views, self.weights)]
         return self
 
     def _setup_gevp(self, *views: np.ndarray):
         all_views = np.concatenate(views, axis=1)
-        C = all_views.T @ all_views
+        C = all_views.T @ all_views / (self.n - 1)
         # Can regularise by adding to diagonal
-        D = block_diag(*[(1 - self.c[i]) * m.T @ m + self.c[i] * np.eye(m.shape[1]) for i, m in enumerate(views)])
-        C -= block_diag(*[view.T @ view for view in views]) - D
+        D = block_diag(
+            *[(1 - self.c[i]) * m.T @ m / self.n + self.c[i] * np.eye(m.shape[1]) for i, m in enumerate(views)])
+        C -= block_diag(*[view.T @ view / self.n for view in views]) - D
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [view.shape[1] for view in views])
@@ -81,6 +81,7 @@ class MCCA(_CCA_Base):
         [eigvals, eigvecs] = eigh(C, D, subset_by_index=[n - self.latent_dims, n - 1])
         # sorting according to eigenvalue
         idx = np.argsort(eigvals, axis=0)[::-1][:self.latent_dims]
+        eigvecs = eigvecs * eigvals
         eigvecs = eigvecs[:, idx].real
         eigvecs = [eigvecs[split:self.splits[i + 1]] for i, split in enumerate(self.splits[:-1])]
         return eigvecs
@@ -155,11 +156,11 @@ class KCCA(MCCA):
         """
         self.train_views = views
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
-        C = np.hstack(kernels).T @ np.hstack(kernels)
+        C = np.hstack(kernels).T @ np.hstack(kernels) / self.n
         # Can regularise by adding to diagonal
         D = block_diag(
-            *[(1 - self.c[i]) * kernel @ kernel.T + self.c[i] * kernel for i, kernel in enumerate(kernels)])
-        C -= block_diag(*[k.T @ k for k in kernels]) - D
+            *[(1 - self.c[i]) * kernel @ kernel.T / self.n + self.c[i] * kernel for i, kernel in enumerate(kernels)])
+        C -= block_diag(*[kernel.T @ kernel / (self.n - 1) for kernel in kernels]) - D
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])

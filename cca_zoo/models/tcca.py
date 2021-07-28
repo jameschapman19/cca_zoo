@@ -53,6 +53,7 @@ class TCCA(_CCA_Base):
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         views = self._centre_scale(*views)
         self.n_views = len(views)
+        self.n = views[0].shape[0]
         self._check_params()
         # returns whitened views along with whitening matrix
         views, covs_invsqrt = self._setup_tensor(*views)
@@ -69,15 +70,14 @@ class TCCA(_CCA_Base):
         self.alphas = [cov_invsqrt @ fac for i, (view, cov_invsqrt, fac) in
                        enumerate(zip(views, covs_invsqrt, M_parafac.factors))]
         self.scores = [view @ self.alphas[i] for i, view in enumerate(views)]
-        self.weights = [weights / np.linalg.norm(score) for weights, score in
-                        zip(self.alphas, self.scores)]
+        self.weights = self.alphas
         self.scores = [view @ self.weights[i] for i, view in enumerate(views)]
         return self
 
     def _setup_tensor(self, *views: np.ndarray, **kwargs):
         train_views = self._centre_scale(*views)
         n = train_views[0].shape[0]
-        covs = [(1 - self.c[i]) * view.T @ view + self.c[i] * np.eye(view.shape[1]) for i, view in
+        covs = [(1 - self.c[i]) * view.T @ view / (self.n) + self.c[i] * np.eye(view.shape[1]) for i, view in
                 enumerate(train_views)]
         covs_invsqrt = [np.linalg.inv(sqrtm(cov)) for cov in covs]
         train_views = [train_view @ cov_invsqrt for train_view, cov_invsqrt in zip(train_views, covs_invsqrt)]
@@ -153,8 +153,8 @@ class KTCCA(TCCA):
     def _setup_tensor(self, *views: np.ndarray):
         self.train_views = views
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
-        n = views[0].shape[0]
-        covs = [(1 - self.c[i]) * kernel @ kernel.T + self.c[i] * kernel for i, kernel in enumerate(kernels)]
+        covs = [(1 - self.c[i]) * kernel @ kernel.T / (self.n - 1) + self.c[i] * kernel for i, kernel in
+                enumerate(kernels)]
         smallest_eigs = [min(0, np.linalg.eigvalsh(cov).min()) - self.eps for cov in covs]
         covs = [cov - smallest_eig * np.eye(cov.shape[0]) for cov, smallest_eig in zip(covs, smallest_eigs)]
         self.covs_invsqrt = [np.linalg.inv(sqrtm(cov)).real for cov in covs]

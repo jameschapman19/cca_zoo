@@ -59,22 +59,22 @@ class GCCA(_CCA_Base):
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         views = self._centre_scale(*views)
         self.n_views = len(views)
+        self.n = views[0].shape[0]
         self._check_params()
         if K is None:
             # just use identity when all rows are observed in all views.
             K = np.ones((len(views), views[0].shape[0]))
         Q = []
         for i, (view, view_weight) in enumerate(zip(views, self.view_weights)):
-            view_cov = view.T @ view
+            view_cov = view.T @ view / self.n
             view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(view_cov.shape[0])
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
         Q = np.diag(np.sqrt(np.sum(K, axis=0))) @ Q @ np.diag(np.sqrt(np.sum(K, axis=0)))
         n = Q.shape[0]
         [eigvals, eigvecs] = eigh(Q, subset_by_index=[n - self.latent_dims, n - 1])
-        idx = np.argsort(eigvals, axis=0)[::-1]
+        idx = np.argsort(eigvals, axis=0)[::-1][:self.latent_dims]
         eigvecs = eigvecs[:, idx].real
-        self.eigvals = eigvals[idx].real
         self.weights = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in views]
         self.scores = [view @ self.weights[i] for i, view in enumerate(views)]
         return self
