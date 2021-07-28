@@ -35,19 +35,17 @@ class _InnerLoop:
     def initialize(self):
         if self.initialization == 'random':
             self.scores = np.array([self.random_state.randn(view.shape[0]) for view in self.views])
-            self.scores = self.scores / np.linalg.norm(self.scores, axis=1)[:, np.newaxis]
         if self.initialization == 'uniform':
             self.scores = np.array([np.ones(view.shape[0]) for view in self.views])
-            self.scores = self.scores / np.linalg.norm(self.scores, axis=1)[:, np.newaxis]
         elif self.initialization == 'unregularized':
-            unregularized = PLSInnerLoop(initialization='random', random_state=self.random_state, tol=self.tol).fit(
-                *self.views)
-            norms = np.linalg.norm(unregularized.scores, axis=1)
-            self.scores = unregularized.scores / norms[:, np.newaxis]
+            self.scores = PLSInnerLoop(initialization='random', random_state=self.random_state, tol=self.tol).fit(
+                *self.views).scores
+        self.scores = self.scores * np.sqrt(self.n - 1) / np.linalg.norm(self.scores, axis=1)[:, np.newaxis]
         self.weights = [self.random_state.randn(view.shape[1]) for view in self.views]
 
     def fit(self, *views: np.ndarray):
         self.views = views
+        self.n = views[0].shape[0]
         if len(self.views) > 2:
             self.generalized = True
             warnings.warn(
@@ -269,7 +267,7 @@ class ElasticInnerLoop(PLSInnerLoop):
     @ignore_warnings(category=ConvergenceWarning)
     def elastic_solver(self, X, y, view_index):
         self.weights[view_index] = self.regressors[view_index].fit(X, y.ravel()).coef_
-        self.weights[view_index] /= np.linalg.norm(self.views[view_index] @ self.weights[view_index])
+        self.weights[view_index] /= np.linalg.norm(self.views[view_index] @ self.weights[view_index]) / self.n
 
     @ignore_warnings(category=ConvergenceWarning)
     def elastic_solver_constrained(self, X, y, view_index):
@@ -283,7 +281,7 @@ class ElasticInnerLoop(PLSInnerLoop):
             i += 1
             coef = self.regressors[view_index].fit(np.sqrt(self.gamma[view_index] + 1) * X,
                                                    y.ravel() / np.sqrt(self.gamma[view_index] + 1)).coef_
-            current_val = 1 - np.linalg.norm(X @ coef)
+            current_val = 1 - (np.linalg.norm(X @ coef) ** 2) / self.n
             self.gamma[view_index], previous, min_, max_ = _bin_search(self.gamma[view_index], previous, current_val,
                                                                        previous_val, min_, max_)
             previous_val = current_val
@@ -304,7 +302,7 @@ class ElasticInnerLoop(PLSInnerLoop):
             # TODO this looks like it could be tidied up. In particular can we make the generalized objective correspond to the 2 view
             target = self.scores.mean(axis=0)
             objective = views * np.linalg.norm(self.views[i] @ self.weights[i] - target) ** 2 / (
-                    2 * self.views[i].shape[0])
+                    2 * self.n)
             l1_pen = l1[i] * np.linalg.norm(self.weights[i], ord=1)
             l2_pen = l2[i] * np.linalg.norm(self.weights[i], ord=2)
             total_objective += objective + l1_pen + l2_pen
@@ -413,7 +411,7 @@ class SpanCCAInnerLoop(_InnerLoop):
         """check number of views=2"""
         if len(self.views) != 2:
             raise ValueError(f"SpanCCA requires only 2 views")
-        cov = self.views[0].T @ self.views[1]
+        cov = self.views[0].T @ self.views[1] / self.n
         # Perform SVD on im and obtain individual matrices
         P, D, Q = np.linalg.svd(cov, full_matrices=True)
         self.P = P[:, :self.rank]

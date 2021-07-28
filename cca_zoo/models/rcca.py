@@ -59,6 +59,7 @@ class rCCA(_CCA_Base):
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         views = self._centre_scale(*views)
         self.n_views = len(views)
+        self.n = views[0].shape[0]
         self._check_params()
         Us, Ss, Vs = _pca_data(*views)
         if len(views) == 2:
@@ -70,7 +71,7 @@ class rCCA(_CCA_Base):
         return self
 
     def _two_view_fit(self, Us, Ss, Vts):
-        Bs = [(1 - self.c[i]) * S * S + self.c[i] for i, S in
+        Bs = [(1 - self.c[i]) * S * S / self.n + self.c[i] for i, S in
               enumerate(Ss)]
         Rs = [U @ np.diag(S) for U, S in zip(Us, Ss)]
         R_12 = Rs[0].T @ Rs[1]
@@ -78,12 +79,11 @@ class rCCA(_CCA_Base):
             1 / np.sqrt(Bs[1]))
         n = M.shape[0]
         [eigvals, eigvecs] = eigh(M, subset_by_index=[n - self.latent_dims, n - 1])
-        idx = np.argsort(eigvals, axis=0)[::-1]
+        eigvecs = eigvecs
+        idx = np.argsort(eigvals, axis=0)[::-1][:self.latent_dims]
         eigvecs = eigvecs[:, idx].real
-        eigvals = np.real(np.sqrt(eigvals))[idx][:self.latent_dims]
-        w_y = Vts[1].T @ np.diag(1 / np.sqrt(Bs[1])) @ eigvecs[:, :self.latent_dims].real
-        w_x = Vts[0].T @ np.diag(1 / Bs[0]) @ R_12 @ np.diag(1 / np.sqrt(Bs[1])) @ eigvecs[:,
-                                                                                   :self.latent_dims].real / eigvals
+        w_y = Vts[1].T @ np.diag(1 / np.sqrt(Bs[1])) @ eigvecs
+        w_x = Vts[0].T @ np.diag(1 / Bs[0]) @ R_12 @ np.diag(1 / np.sqrt(Bs[1])) @ eigvecs / np.sqrt(eigvals[idx])
         self.weights = [w_x, w_y]
 
     def _multi_view_fit(self, Us, Ss, Vts):
@@ -132,6 +132,7 @@ class CCA(rCCA):
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, c=[0.0, 0.0],
                          random_state=random_state)
 
+
 class PLS(rCCA):
     """
     A class used to fit a simple PLS model
@@ -158,6 +159,7 @@ class PLS(rCCA):
         """
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, c=[1.0, 1.0],
                          random_state=random_state)
+
 
 def _pca_data(*views: np.ndarray):
     """

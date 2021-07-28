@@ -54,6 +54,7 @@ class _Iterative(_CCA_Base):
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         views = self._centre_scale(*views)
         self.n_views = len(views)
+        self.n = views[0].shape[0]
         self._set_loop_params()
         n = views[0].shape[0]
         p = [view.shape[1] for view in views]
