@@ -6,8 +6,6 @@
 [![downloads](https://img.shields.io/pypi/dm/cca-zoo)](https://pypi.org/project/cca-zoo/)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/jameschapman19/cca_zoo/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/jameschapman19/cca_zoo/?branch=master)
 
-now including *tensor* and *deep tensor* cca and *variational bayesian* cca!
-
 # Installation
 Note: for standard install use: 
 pip install cca-zoo
