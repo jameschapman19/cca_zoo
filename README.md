@@ -83,6 +83,7 @@ https://arxiv.org/pdf/2005.11914.pdf
 ### DCCAE (Deep Canonically Correlated Autoencoders) :
 http://proceedings.mlr.press/v37/wangb15.pdf
 ### DVCCA/DVCCA Private (Deep variational CCA):
+https://arxiv.org/pdf/1610.03454.pdf
 ## Probabilistic Install
 ### Variational Bayes CCA
 https://ieeexplore.ieee.org/document/4182407
