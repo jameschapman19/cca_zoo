@@ -9,7 +9,7 @@ from functools import partial
 
 
 # Calculate the eigenvalues of covariance matrix of X using Numpy for comparison
-def calc_numpy_eig(X, Y, n, r=0):
+def calc_numpy(X, Y, n, r=0):
     dof = X.shape[0] - 1
     C = jnp.hstack((X, Y))
     C = C.T @ C / dof
@@ -27,8 +27,13 @@ def calc_numpy_eig(X, Y, n, r=0):
     eigvals, eigvecs = jnp.linalg.eigh(C_whitened)
     idx = np.argsort(eigvals, axis=0)[::-1][:n]
     eigvecs = eigvecs[:, idx]
-    return (eigvals, eigvecs[:X.shape[1]], eigvecs[X.shape[1]:])
+    return eigvals, eigvecs[:X.shape[1]], eigvecs[X.shape[1]:]
 
+def calc_sklearn(X, Y, n):
+    cca = CCA(n_components=p, scale=False).fit(np.array(X), np.array(Y))
+    ccax, ccay = cca.transform(X, Y)
+    cca_corr = np.diag(np.corrcoef(ccax, ccay, rowvar=False)[p:n+p, :n])
+    return cca_corr, cca.x_weights_, cca.y_weights_
 
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
@@ -70,16 +75,16 @@ def update(u, v, X, Y, U1, V1, k, lr=1e-1, riemannian_projection=False):
 
 # Run the update step iteratively across all eigenvectors
 # Run the update step iteratively across all eigenvectors
-def calc_eigengame_eigenvectors(X, Y, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='random',
+def calc_eigengame(X, Y, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='random',
                                 random_state=0):
     if initialization == 'svd':
         U1, _, V1 = jnp.linalg.svd(X.T @ Y)
         U1 = U1[:, :n]
         V1 = V1[:, :n]
     elif initialization == 'cca':
-        cca = CCA(n_components=n, scale=False).fit(np.array(X), np.array(Y))
-        U1 = jnp.array(cca.x_weights_)
-        V1 = jnp.array(cca.y_weights_)
+        _,U1,V1=calc_sklearn(X,Y,n)
+        U1=jnp.array(U1)
+        V1=jnp.array(V1)
     elif initialization == 'random':
         key = random.PRNGKey(random_state)
         key, subkey = random.split(key)
@@ -96,7 +101,7 @@ def calc_eigengame_eigenvectors(X, Y, n, lr=1e-1, iterations=100, riemannian_pro
             U1 = U1.at[:, k].set(u)
             V1 = V1.at[:, k].set(v)
         print(f'iteration {i}: {calc_eigengame_eigenvalues(X, Y, U1, V1)}')
-    return U1, V1
+    return calc_eigengame_eigenvalues(X, Y, U1, V1), U1, V1
 
 
 # Calculate eigenvalues once the eigenvectors have been computed
@@ -123,25 +128,21 @@ q = 5
 X = random.normal(key, (20, p))
 Y = random.normal(subkey, (20, q))
 
-Xnp = np.array(X)
-Ynp = np.array(Y)
-
 latent_dims = 1
 max_iter = 200
 riemannian_projection = True
 lr = 1e-1
 initialization = 'cca'
-cca = CCA(n_components=p, scale=False).fit(Xnp, Ynp)
-ccax, ccay = cca.transform(Xnp, Ynp)
-cca_corr = np.diag(np.corrcoef(ccax, ccay, rowvar=False)[p:, :p])
+corr_sk, U1sk, V1sk = calc_sklearn(X, Y, n=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", cca_corr)
-p, U1np, V1np = calc_numpy_eig(X, Y, n=latent_dims)
+corr_np, U1np, V1np = calc_numpy(X, Y, n=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", p)
-U1, V1 = calc_eigengame_eigenvectors(X, Y, latent_dims, lr=lr, iterations=max_iter,
+corr, U1, V1 = calc_eigengame(X, Y, latent_dims, lr=lr, iterations=max_iter,
                                      riemannian_projection=riemannian_projection, random_state=random_state,
                                      initialization=initialization)
-print("\n Eigenvalues calculated using numpy are :\n", p)
-print("\n Eigenvalues calculate using the Eigengame are :\n", calc_eigengame_eigenvalues(X, Y, U1, V1))
+print("\n Eigenvalues calculated using numpy are :\n", corr_sk)
+print("\n Eigenvalues calculated using numpy are :\n", corr_np)
+print("\n Eigenvalues calculate using the Eigengame are :\n", corr)
 print("\n Left Eigenvectors calculated using numpy are :\n", U1np)
 print("\n Left Eigenvectors calculated using the Eigengame are :\n", U1)
 print("\n Right Eigenvectors calculated using numpy are :\n", V1np)
