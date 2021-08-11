@@ -27,6 +27,7 @@ def calc_numpy(X, Y, n, r=0):
     eigvals, eigvecs = jnp.linalg.eigh(C_whitened)
     idx = np.argsort(eigvals, axis=0)[::-1][:n]
     eigvecs = eigvecs[:, idx]
+    eigvals=eigvals[idx]
     return eigvals, eigvecs[:X.shape[1]], eigvecs[X.shape[1]:]
 
 def calc_sklearn(X, Y, n):
