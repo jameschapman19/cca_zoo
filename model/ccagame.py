@@ -44,9 +44,11 @@ def model(u, v, X, Y, U1, k):
     C_xy = jnp.dot(jnp.transpose(X), Y)
     C_xx = jnp.dot(jnp.transpose(X), X)
     C_yy = jnp.dot(jnp.transpose(Y), Y)
-    rewards = jnp.dot(jnp.transpose(u), jnp.dot(C_xy, v)) / (
-            jnp.sqrt(jnp.dot(jnp.transpose(u), jnp.dot(C_xx, u))) * jnp.sqrt(
-        jnp.dot(jnp.transpose(v), jnp.dot(C_yy, v))))
+    #rewards = jnp.dot(jnp.transpose(u), jnp.dot(C_xy, v)) / (
+    #        jnp.sqrt(jnp.dot(jnp.transpose(u), jnp.dot(C_xx, u))) * jnp.sqrt(
+    #    jnp.dot(jnp.transpose(v), jnp.dot(C_yy, v))))
+    rewards = jnp.dot(jnp.transpose(u), jnp.dot(C_xy, v))**2 / (
+             jnp.dot(jnp.transpose(u), jnp.dot(C_xx, u)) * jnp.dot(jnp.transpose(v), jnp.dot(C_yy, v)))
     penalties = 0
     for j in range(k):
         penalties = penalties + jnp.dot(jnp.transpose(u), jnp.dot(C_xx, U1[:, j].reshape(-1, 1))) ** 2 / (jnp.dot(
