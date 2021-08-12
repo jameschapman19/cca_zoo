@@ -39,8 +39,8 @@ def calc_sklearn(X, Y, n):
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
 # X is the design matrix and V1 holds the previously computed eigenvectors
-# @partial(jit, static_argnums=(5))
-def model(u, v, X, Y, U1, k):
+@partial(jit, static_argnums=(5))
+def model(u, v, X, Y, V1, k):
     C_xy = jnp.dot(jnp.transpose(X), Y)
     C_xx = jnp.dot(jnp.transpose(X), X)
     C_yy = jnp.dot(jnp.transpose(Y), Y)
@@ -51,8 +51,8 @@ def model(u, v, X, Y, U1, k):
              jnp.dot(jnp.transpose(u), jnp.dot(C_xx, u)) * jnp.dot(jnp.transpose(v), jnp.dot(C_yy, v)))
     penalties = 0
     for j in range(k):
-        penalties = penalties + jnp.dot(jnp.transpose(u), jnp.dot(C_xx, U1[:, j].reshape(-1, 1))) ** 2 / (jnp.dot(
-            jnp.transpose(U1[:, j].reshape(-1, 1)), jnp.dot(C_xx, U1[:, j].reshape(-1, 1))) * jnp.dot(
+        penalties = penalties + jnp.dot(jnp.transpose(u), jnp.dot(C_xy, V1[:, j].reshape(-1, 1))) ** 2 / (jnp.dot(
+            jnp.transpose(V1[:, j].reshape(-1, 1)), jnp.dot(C_yy, V1[:, j].reshape(-1, 1))) * jnp.dot(
             jnp.transpose(u), jnp.dot(C_xx, u)))
     return jnp.sum(rewards - penalties)
 
@@ -63,8 +63,8 @@ def model(u, v, X, Y, U1, k):
 # But using riemannian_projection = False also works and in the tests that I did it converges much faster than including the
 # Riemannian Projection
 def update(u, v, X, Y, U1, V1, k, lr=1e-1, riemannian_projection=False):
-    du = grad(model)(u, v, X, Y, U1, k)
-    dv = grad(model)(v, u, Y, X, V1, k)
+    du = grad(model)(u, v, X, Y, V1, k)
+    dv = grad(model)(v, u, Y, X, U1, k)
     if riemannian_projection:
         dur = du - (jnp.dot(du.T, u)) * u
         uhat = u + lr * dur
