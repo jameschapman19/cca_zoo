@@ -1,7 +1,8 @@
 # Importing necessary libraries
 
 import jax.numpy as jnp
-
+from jax import jit
+from functools import partial
 from .utils import calc_eigenvalues
 from .utils import initialize
 
@@ -11,6 +12,7 @@ from .utils import initialize
 # For all others, use riemannian_projection = True to be aligned with the paper
 # But using riemannian_projection = False also works and in the tests that I did it converges much faster than including the
 # Riemannian Projection
+@partial(jit, static_argnums=(2))
 def update(u, X, lr=0.1):
     dv = jnp.dot(jnp.dot(jnp.transpose(X), X), u) - jnp.dot(u, jnp.triu(
         jnp.dot(jnp.transpose(jnp.dot(X, u)), jnp.dot(X, u))))

@@ -12,10 +12,9 @@ from .utils import calc_eigenvalues, initialize
 # Riemannian Projection
 @partial(jit, static_argnums=(2))
 def update(u, X, lr=0.1):
-    dv = jnp.dot(jnp.dot(jnp.transpose(X), X), u)
-    vhat = u + lr * dv
-    vhat = jnp.linalg.qr(vhat)[0]
-    return vhat/jnp.linalg.norm(vhat,axis=0)
+    du = jnp.dot(jnp.dot(X-jnp.dot(jnp.dot(X,u),jnp.transpose(u)),jnp.transpose(X)),u)
+    vhat = u + lr * du
+    return jnp.linalg.qr(vhat)[0]
 
 
 # Run the update step iteratively across all eigenvectors
