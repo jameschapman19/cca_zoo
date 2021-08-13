@@ -1,7 +1,9 @@
 # Importing necessary libraries
 from functools import partial
+
 import jax.numpy as jnp
 from jax import jit
+
 from .utils import calc_eigenvalues, initialize
 
 
@@ -12,16 +14,16 @@ from .utils import calc_eigenvalues, initialize
 # Riemannian Projection
 @partial(jit, static_argnums=(2))
 def update(u, X, lr=0.1):
-    du = jnp.dot(jnp.dot(X-jnp.dot(jnp.dot(X,u),jnp.transpose(u)),jnp.transpose(X)),u)
+    du = jnp.dot(jnp.dot(jnp.transpose(X), X - jnp.dot(jnp.dot(X, u), jnp.transpose(u))), u)
     vhat = u + lr * du
     return jnp.linalg.qr(vhat)[0]
 
 
 # Run the update step iteratively across all eigenvectors
 def calc_krasulina(X, n, lr=1e-1, iterations=100, initialization='random',
-             random_state=0):
+                   random_state=0):
     U = initialize(X, n, type=initialization, random_state=random_state)
-    obj=[]
+    obj = []
     for i in range(iterations):
         U = update(U, X, lr=lr)
         obj.append(calc_eigenvalues(X, U))

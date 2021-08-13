@@ -1,8 +1,10 @@
 # Importing necessary libraries
 
+from functools import partial
+
 import jax.numpy as jnp
 from jax import jit
-from functools import partial
+
 from .utils import calc_eigenvalues
 from .utils import initialize
 

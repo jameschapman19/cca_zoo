@@ -1,8 +1,10 @@
 # Importing necessary libraries
 
+from functools import partial
+
 import jax.numpy as jnp
 from jax import jit
-from functools import partial
+
 from .utils import calc_eigenvalues, initialize
 
 
@@ -22,7 +24,7 @@ def update(u, X, lr=0.1):
 def calc_oja(X, n, lr=1e-1, iterations=100, initialization='random',
              random_state=0):
     U = initialize(X, n, type=initialization, random_state=random_state)
-    obj=[]
+    obj = []
     for i in range(iterations):
         U = update(U, X, lr=lr)
         obj.append(calc_eigenvalues(X, U))
