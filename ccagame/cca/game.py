@@ -67,5 +67,3 @@ def calc_eigengame(X, Y, n, lr=1e-1, iterations=100, riemannian_projection=False
                 V = V.at[:, k].set(v)
                 print(f'iteration {i}: {calc_eigenvalues(X, Y, U, V)}')
     return calc_eigenvalues(X, Y, U, V), U, V
-
-

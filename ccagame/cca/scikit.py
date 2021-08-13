@@ -1,5 +1,6 @@
-from sklearn.cross_decomposition import CCA
 import numpy as np
+from sklearn.cross_decomposition import CCA
+
 
 def calc_sklearn(X, Y, n):
     cca = CCA(n_components=n, scale=False).fit(np.array(X), np.array(Y))

@@ -4,7 +4,6 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 from jax import jit
-from jax import random
 
 from .utils import calc_eigenvalues, initialize
 
@@ -28,30 +27,30 @@ def model(u, X, U, k):
 # For all others, use riemannian_projection = True to be aligned with the paper
 # But using riemannian_projection = False also works and in the tests that I did it converges much faster than including the
 # Riemannian Projection
-def update(v, X, V, k, lr=0.1, riemannian_projection=False):
-    dv = jax.grad(model)(v, X, V, k)
+def update(u, X, U, k, lr=0.1, riemannian_projection=False):
+    du = jax.grad(model)(u, X, U, k)
     if riemannian_projection:
-        dvr = dv - (jnp.dot(dv.T, v)) * v
-        vhat = v + lr * dvr
+        dur = du - (jnp.dot(du.T, u)) * u
+        uhat = u + lr * dur
     else:
-        vhat = v + lr * dv
-    return (vhat / jnp.linalg.norm(vhat))
+        uhat = u + lr * du
+    return (uhat / jnp.linalg.norm(uhat))
 
 
 # Run the update step iteratively across all eigenvectors
 def calc_alphaeigengame(X, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='random',
                         random_state=0, simultaneous=False):
-    V = initialize(X, n, type=initialization, random_state=random_state)
+    U = initialize(X, n, type=initialization, random_state=random_state)
     if simultaneous:
         for i in range(iterations):
             for k in range(n):
-                v = update(V[:, k], X, V, k, lr=lr, riemannian_projection=riemannian_projection)
-                V = V.at[:, k].set(v)
-            print(f'iteration {i}: {calc_eigenvalues(X, V)}')
+                u = update(U[:, k], X, U, k, lr=lr, riemannian_projection=riemannian_projection)
+                U = U.at[:, k].set(u)
+            print(f'iteration {i}: {calc_eigenvalues(X, U)}')
     else:
         for k in range(n):
             for i in range(iterations):
-                v = update(V[:, k], X, V, k, lr=lr, riemannian_projection=riemannian_projection)
-                V = V.at[:, k].set(v)
-                print(f'iteration {i}: {calc_eigenvalues(X, V)}')
-    return calc_eigenvalues(X, V), V
+                u = update(U[:, k], X, U, k, lr=lr, riemannian_projection=riemannian_projection)
+                U = U.at[:, k].set(u)
+                print(f'iteration {i}: {calc_eigenvalues(X, U)}')
+    return calc_eigenvalues(X, U), U

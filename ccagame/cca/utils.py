@@ -17,6 +17,7 @@ def calc_eigenvalues(X, Y, U1, V1):
                                           -1, 1))))))
     return eigvals
 
+
 def initialize(X, Y, n, type='uniform', random_state=0):
     if type == 'svd':
         U1, _, V1 = jnp.linalg.svd(X.T @ Y)
