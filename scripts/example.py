@@ -2,7 +2,7 @@
 
 import numpy as np
 # Imports
-from ccagame.cca import calc_numpy,calc_sklearn,calc_game, calc_lscca
+from ccagame.cca import calc_numpy,calc_sklearn,calc_game, calc_lscca, calc_lscca_exact
 from jax import random
 
 # %%
@@ -13,10 +13,10 @@ n = 50
 p = 8
 q = 9
 latent_dims = 5
-max_iter = 90
+max_iter = 200
 riemannian_projection = False
 lr = 5e-1
-initialization = 'random'
+initialization = 'uniform'
 
 # %%
 
@@ -36,6 +36,10 @@ corr_sk, U1sk, V1sk = calc_sklearn(X, Y, n=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 corr_np, U1np, V1np = calc_numpy(X, Y, n=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
+corr_lse, U1_lse, V1_lse = calc_lscca_exact(X, Y, latent_dims, iterations=max_iter,
+                                    random_state=random_state,
+                                    initialization=initialization)
+print("\n Eigenvalues calculated using lsccae are :\n", corr_lse)
 corr_ls, U1_ls, V1_ls = calc_lscca(X, Y, latent_dims, iterations=max_iter,
                                     random_state=random_state,
                                     initialization=initialization)
