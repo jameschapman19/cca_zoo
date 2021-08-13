@@ -3,7 +3,8 @@ from functools import partial
 
 import jax.numpy as jnp
 from jax import jit, grad
-from jax import random
+
+from .utils import initialize
 
 
 # Define utlity function, we will take grad of this in the
@@ -50,25 +51,7 @@ def update(u, v, X, Y, U1, V1, k, lr=1e-1, riemannian_projection=False):
 # Run the update step iteratively across all eigenvectors
 def calc_eigengame(X, Y, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='random',
                    random_state=0, simultaneous=False):
-    if initialization == 'svd':
-        U1, _, V1 = jnp.linalg.svd(X.T @ Y)
-        U1 = U1[:, :n]
-        V1 = V1[:, :n]
-    elif initialization == 'uniform':
-        U1 = jnp.ones((X.shape[1], n))
-        V1 = jnp.ones((Y.shape[1], n))
-        U1 = U1 / jnp.linalg.norm(U1, axis=0)
-        V1 = V1 / jnp.linalg.norm(V1, axis=0)
-    elif initialization == 'random':
-        key = random.PRNGKey(random_state)
-        key, subkey = random.split(key)
-        U1 = random.normal(key, (X.shape[1], n))
-        V1 = random.normal(subkey, (Y.shape[1], n))
-        U1 = U1 / jnp.linalg.norm(U1, axis=0)
-        V1 = V1 / jnp.linalg.norm(V1, axis=0)
-    else:
-        print(f'Initialization "{initialization}" not implemented')
-        return
+    U1, V1 = initialize(X, Y, n, initialization, random_state)
     if simultaneous:
         for i in range(iterations):
             for k in range(n):
