@@ -9,11 +9,11 @@ from jax import random
 
 # Parameters
 random_state = 0
-n = 50
-p = 8
-q = 9
-latent_dims = 5
-max_iter = 200
+n = 1000
+p = 1000
+q = 1000
+latent_dims = 10
+max_iter = 100
 riemannian_projection = False
 lr = 5e-1
 initialization = 'uniform'
@@ -34,8 +34,10 @@ Ynp = np.array(Y)
 # Model
 corr_sk, U1sk, V1sk = calc_sklearn(X, Y, n=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
-corr_np, U1np, V1np = calc_numpy(X, Y, n=latent_dims)
-print("\n Eigenvalues calculated using numpy are :\n", corr_np)
+corr, U1, V1 = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
+                                    riemannian_projection=riemannian_projection, random_state=random_state,
+                                    initialization=initialization, simultaneous=True)
+print("\n Eigenvalues calculated using game are :\n", corr)
 corr_lse, U1_lse, V1_lse = calc_lscca_exact(X, Y, latent_dims, iterations=max_iter,
                                     random_state=random_state,
                                     initialization=initialization)
@@ -44,9 +46,8 @@ corr_ls, U1_ls, V1_ls = calc_lscca(X, Y, latent_dims, iterations=max_iter,
                                     random_state=random_state,
                                     initialization=initialization)
 print("\n Eigenvalues calculated using lscca are :\n", corr_ls)
-corr, U1, V1 = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
-                                    riemannian_projection=False, random_state=random_state,
-                                    initialization=initialization, simultaneous=True)
+corr_np, U1np, V1np = calc_numpy(X, Y, n=latent_dims)
+print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 print("\n Eigenvalues calculated using lscca are :\n", corr_ls)

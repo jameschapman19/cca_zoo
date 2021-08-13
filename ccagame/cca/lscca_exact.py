@@ -20,8 +20,8 @@ def update(X, Y, Hx, Hy, U1, V1):
 def calc_lscca_exact(X, Y, n, iterations=100, initialization='uniform',
                      random_state=0):
     U1, V1 = initialize(X, Y, n, initialization, random_state)
-    Hx = jnp.linalg.pinv(X)
-    Hy = jnp.linalg.pinv(Y)
+    Hx = jnp.dot(jnp.linalg.inv(jnp.dot(jnp.transpose(X),X)),jnp.transpose(X))
+    Hy = jnp.dot(jnp.linalg.inv(jnp.dot(jnp.transpose(Y),Y)),jnp.transpose(Y))
     for i in range(iterations):
         U1, V1 = update(X, Y, Hx, Hy, U1, V1)
         print(f'iteration {i}: {calc_eigenvalues(X, Y, U1, V1)}')
