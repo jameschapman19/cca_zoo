@@ -12,13 +12,13 @@ from .utils import calc_eigenvalues
 # But using riemannian_projection = False also works and in the tests that I did it converges much faster than including the
 # Riemannian Projection
 def update(v, X, lr=0.1):
-    dv = jnp.dot(jnp.dot(jnp.transpose(X), X), v)
+    dv = jnp.dot(jnp.dot(jnp.transpose(X), X), v) - jnp.dot(jnp.tril(jnp.dot(X, v)),dv)
     vhat = v + lr * dv
-    return jnp.linalg.qr(vhat)[0]
+    return vhat
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_oja(X, n, lr=1e-1, iterations=100, initialization='random',
+def calc_gha(X, n, lr=1e-1, iterations=100, initialization='random',
              random_state=0):
     if initialization == 'uniform':
         V1 = jnp.ones((n, 1))

@@ -20,21 +20,5 @@ def calc_eigengame(X, Y, n, lr=1e-1, iterations=100, riemannian_projection=False
     U1, V1 = initialize(X, Y, n, initialization, random_state)
     for i in range(iterations):
         U1, V1 = update(U1, V1, X, Y, U1, V1, lr=lr, riemannian_projection=riemannian_projection)
-        print(f'iteration {i}: {calc_eigengame_eigenvalues(X, Y, U1, V1)}')
+        print(f'iteration {i}: {calc_eigenvalues(X, Y, U1, V1)}')
     return calc_eigengame_eigenvalues(X, Y, U1, V1), U1, V1
-
-
-# Calculate eigenvalues once the eigenvectors have been computed
-def calc_eigengame_eigenvalues(X, Y, U1, V1):
-    C_xy = jnp.dot(jnp.transpose(X), Y)
-    C_xx = jnp.dot(jnp.transpose(X), X)
-    C_yy = jnp.dot(jnp.transpose(Y), Y)
-    n = jnp.size(V1, axis=1)
-    eigvals = jnp.zeros((1, n))
-    for k in range(n):
-        eigvals = eigvals.at[:, k].set(jnp.dot(U1[:, k], jnp.dot(C_xy, V1[:, k].reshape(-1, 1))) / (
-                jnp.sqrt(jnp.dot(U1[:, k], jnp.dot(C_xx, U1[:, k].reshape(-1, 1)))) * jnp.sqrt(
-            jnp.dot(V1[:, k], jnp.dot(C_yy,
-                                      V1[:, k].reshape(
-                                          -1, 1))))))
-    return eigvals
