@@ -4,6 +4,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from jax import jit
+from jax import random
 
 from .eigengamevals import calc_eigengame_eigenvalues
 
@@ -38,24 +39,30 @@ def update(v, X, V1, lr=0.1, riemannian_projection=False):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_alphaeigengame(X, n, iterations=100):
-    v = jnp.array([[1.0], [1.0], [1.0], [1.0]])
-    v = v / jnp.linalg.norm(v)
-    v0 = jnp.array([[1.0], [1.0], [1.0], [1.0]])
-    v0 = v0 / jnp.linalg.norm(v0)
-    V1 = np.zeros_like(X)
-    V1[:, 0] = v.T
+def calc_alphaeigengame(X, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='random',
+                        random_state=0, simultaneous=False):
+    if initialization == 'uniform':
+        V1 = jnp.ones((n, 1))
+        V1 = V1 / jnp.linalg.norm(V1)
+    elif initialization == 'random':
+        key = random.PRNGKey(random_state)
+        V1 = random.normal(key, (X.shape[1], n))
+        V1 = V1 / jnp.linalg.norm(V1)
+    else:
+        print(f'Initialization "{initialization}" not implemented')
+        return
 
-    for k in range(n):
-        print("Finding the eigenvector ", k)
+    if simultaneous:
+        for k in range(n):
+            print("Finding the eigenvector ", k)
+            for i in range(iterations):
+                v = update(V1[:, k], X, V1, lr=lr, riemannian_projection=riemannian_projection)
+                V1 = V1.at[:, k].set(v)
+                print(f'iteration {i}: {calc_eigengame_eigenvalues(X, V1)}')
+    else:
         for i in range(iterations):
-            if k == 0:
-                v = update(v, X, V1)
-            else:
-                # v = update(v,X,V1,riemannian_projection=True)
-                v = update(v, X, V1)
-        V1[:, k] = v.T
-        v = v0
-        if k < n - 1:
-            V1[:, k + 1] = v0.T
+            for k in range(n):
+                v = update(V1[:, k], X, V1, lr=lr, riemannian_projection=riemannian_projection)
+                V1 = V1.at[:, k].set(v)
+                print(f'iteration {i}: {calc_eigengame_eigenvalues(X, V1)}')
     return calc_eigengame_eigenvalues(X, V1), V1
