@@ -5,41 +5,21 @@ import jax
 import jax.numpy as jnp
 from jax import jit
 from jax import random
-
 from .utils import calc_eigenvalues
-
-
-# Define utlity function, we will take grad of this in the
-# update step, v is the current eigenvector being calculated
-# X is the design matrix and V1 holds the previously computed eigenvectors
-@partial(jit, static_argnums=(3))
-def model(v, X, V1, k):
-    M = jnp.dot(jnp.transpose(X), X)
-    rewards = jnp.dot(jnp.transpose(v), jnp.dot(M, v))
-    penalties = 0
-    for j in range(k):
-        penalties = penalties + (jnp.dot(jnp.transpose(v), jnp.dot(M, V1[:, j].reshape(-1, 1)))) ** 2 / jnp.dot(
-            jnp.transpose(V1[:, j].reshape(-1, 1)), jnp.dot(M, V1[:, j].reshape(-1, 1)))
-    return jnp.sum(rewards - penalties)
-
 
 # Update rule to be used for calculating eigenvectors
 # For first eigenvector use riemannian_projection = False (update rule given in the paper doesn't work without the penalty term)
 # For all others, use riemannian_projection = True to be aligned with the paper
 # But using riemannian_projection = False also works and in the tests that I did it converges much faster than including the
 # Riemannian Projection
-def update(v, X, V1, k, lr=0.1, riemannian_projection=False):
-    dv = jax.grad(model)(v, X, V1, k)
-    if riemannian_projection:
-        dvr = dv - (jnp.dot(dv.T, v)) * v
-        vhat = v + lr * dvr
-    else:
-        vhat = v + lr * dv
-    return (vhat / jnp.linalg.norm(vhat))
+def update(v, X, lr=0.1):
+    dv = jnp.dot(jnp.dot(jnp.transpose(X), X),v)
+    vhat = v + lr * dv
+    return jnp.linalg.qr(vhat)[0]
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_alphaeigengame(X, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='random',
+def calc_oja(X, n, lr=1e-1, iterations=100, initialization='random',
                         random_state=0, simultaneous=False):
     if initialization == 'uniform':
         V1 = jnp.ones((n, 1))
@@ -56,13 +36,13 @@ def calc_alphaeigengame(X, n, lr=1e-1, iterations=100, riemannian_projection=Fal
         for k in range(n):
             print("Finding the eigenvector ", k)
             for i in range(iterations):
-                v = update(V1[:, k], X, V1, k, lr=lr, riemannian_projection=riemannian_projection)
+                v = update(V1, X, lr=lr)
                 V1 = V1.at[:, k].set(v)
                 print(f'iteration {i}: {calc_eigenvalues(X, V1)}')
     else:
         for i in range(iterations):
             for k in range(n):
-                v = update(V1[:, k], X, V1, k, lr=lr, riemannian_projection=riemannian_projection)
+                v = update(V1, X, lr=lr)
                 V1 = V1.at[:, k].set(v)
                 print(f'iteration {i}: {calc_eigenvalues(X, V1)}')
     return calc_eigenvalues(X, V1), V1
