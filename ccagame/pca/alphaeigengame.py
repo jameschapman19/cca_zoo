@@ -38,7 +38,7 @@ def update(u, X, U, k, lr=0.1, riemannian_projection=False):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_alphaeigengame(X, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='random',
+def calc_alphaeigengame(X, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='uniform',
                         random_state=0, simultaneous=False):
     U = initialize(X, n, type=initialization, random_state=random_state)
     obj = []

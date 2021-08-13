@@ -14,13 +14,13 @@ from .utils import calc_eigenvalues, initialize
 # Riemannian Projection
 @partial(jit, static_argnums=(2))
 def update(u, X, lr=0.1):
-    du = jnp.dot(jnp.dot(jnp.transpose(X), X - jnp.dot(jnp.dot(X, u), jnp.transpose(u))), u)
+    du = jnp.dot(jnp.dot(jnp.transpose(X - jnp.dot(jnp.dot(X, u), jnp.transpose(u))), X), u)
     vhat = u + lr * du
     return jnp.linalg.qr(vhat)[0]
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_krasulina(X, n, lr=1e-1, iterations=100, initialization='random',
+def calc_krasulina(X, n, lr=1e-1, iterations=100, initialization='uniform',
                    random_state=0):
     U = initialize(X, n, type=initialization, random_state=random_state)
     obj = []

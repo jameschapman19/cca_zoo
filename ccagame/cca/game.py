@@ -49,7 +49,7 @@ def update(u, v, X, Y, U, V, k, lr=1e-1, riemannian_projection=False):
 
 # Run the update step iteratively across all eigenvectors
 # Run the update step iteratively across all eigenvectors
-def calc_eigengame(X, Y, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='random',
+def calc_eigengame(X, Y, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='uniform',
                    random_state=0, simultaneous=False):
     U, V = initialize(X, Y, n, initialization, random_state)
     if simultaneous:
