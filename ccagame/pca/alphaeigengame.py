@@ -6,20 +6,20 @@ import jax.numpy as jnp
 from jax import jit
 from jax import random
 
-from .utils import calc_eigenvalues
+from .utils import calc_eigenvalues, initialize
 
 
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
-# X is the design matrix and V1 holds the previously computed eigenvectors
+# X is the design matrix and V holds the previously computed eigenvectors
 @partial(jit, static_argnums=(3))
-def model(v, X, V1, k):
+def model(u, X, U, k):
     M = jnp.dot(jnp.transpose(X), X)
-    rewards = jnp.dot(jnp.transpose(v), jnp.dot(M, v))
+    rewards = jnp.dot(jnp.transpose(u), jnp.dot(M, u))
     penalties = 0
     for j in range(k):
-        penalties = penalties + (jnp.dot(jnp.transpose(v), jnp.dot(M, V1[:, j].reshape(-1, 1)))) ** 2 / jnp.dot(
-            jnp.transpose(V1[:, j].reshape(-1, 1)), jnp.dot(M, V1[:, j].reshape(-1, 1)))
+        penalties = penalties + (jnp.dot(jnp.transpose(u), jnp.dot(M, U[:, j].reshape(-1, 1)))) ** 2 / jnp.dot(
+            jnp.transpose(U[:, j].reshape(-1, 1)), jnp.dot(M, U[:, j].reshape(-1, 1)))
     return jnp.sum(rewards - penalties)
 
 
@@ -28,8 +28,8 @@ def model(v, X, V1, k):
 # For all others, use riemannian_projection = True to be aligned with the paper
 # But using riemannian_projection = False also works and in the tests that I did it converges much faster than including the
 # Riemannian Projection
-def update(v, X, V1, k, lr=0.1, riemannian_projection=False):
-    dv = jax.grad(model)(v, X, V1, k)
+def update(v, X, V, k, lr=0.1, riemannian_projection=False):
+    dv = jax.grad(model)(v, X, V, k)
     if riemannian_projection:
         dvr = dv - (jnp.dot(dv.T, v)) * v
         vhat = v + lr * dvr
@@ -41,28 +41,17 @@ def update(v, X, V1, k, lr=0.1, riemannian_projection=False):
 # Run the update step iteratively across all eigenvectors
 def calc_alphaeigengame(X, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='random',
                         random_state=0, simultaneous=False):
-    if initialization == 'uniform':
-        V1 = jnp.ones((n, 1))
-        V1 = V1 / jnp.linalg.norm(V1)
-    elif initialization == 'random':
-        key = random.PRNGKey(random_state)
-        V1 = random.normal(key, (X.shape[1], n))
-        V1 = V1 / jnp.linalg.norm(V1)
-    else:
-        print(f'Initialization "{initialization}" not implemented')
-        return
-
+    V = initialize(X, n, type=initialization, random_state=random_state)
     if simultaneous:
-        for k in range(n):
-            print("Finding the eigenvector ", k)
-            for i in range(iterations):
-                v = update(V1[:, k], X, V1, k, lr=lr, riemannian_projection=riemannian_projection)
-                V1 = V1.at[:, k].set(v)
-                print(f'iteration {i}: {calc_eigenvalues(X, V1)}')
-    else:
         for i in range(iterations):
             for k in range(n):
-                v = update(V1[:, k], X, V1, k, lr=lr, riemannian_projection=riemannian_projection)
-                V1 = V1.at[:, k].set(v)
-                print(f'iteration {i}: {calc_eigenvalues(X, V1)}')
-    return calc_eigenvalues(X, V1), V1
+                v = update(V[:, k], X, V, k, lr=lr, riemannian_projection=riemannian_projection)
+                V = V.at[:, k].set(v)
+            print(f'iteration {i}: {calc_eigenvalues(X, V)}')
+    else:
+        for k in range(n):
+            for i in range(iterations):
+                v = update(V[:, k], X, V, k, lr=lr, riemannian_projection=riemannian_projection)
+                V = V.at[:, k].set(v)
+                print(f'iteration {i}: {calc_eigenvalues(X, V)}')
+    return calc_eigenvalues(X, V), V

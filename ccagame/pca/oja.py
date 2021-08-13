@@ -3,7 +3,7 @@
 import jax.numpy as jnp
 from jax import random
 
-from .utils import calc_eigenvalues
+from .utils import calc_eigenvalues, initialize
 
 
 # Update rule to be used for calculating eigenvectors
@@ -20,18 +20,9 @@ def update(v, X, lr=0.1):
 # Run the update step iteratively across all eigenvectors
 def calc_oja(X, n, lr=1e-1, iterations=100, initialization='random',
              random_state=0):
-    if initialization == 'uniform':
-        V1 = jnp.ones((n, 1))
-        V1 = V1 / jnp.linalg.norm(V1)
-    elif initialization == 'random':
-        key = random.PRNGKey(random_state)
-        V1 = random.normal(key, (X.shape[1], n))
-        V1 = V1 / jnp.linalg.norm(V1)
-    else:
-        print(f'Initialization "{initialization}" not implemented')
-        return
+    V=initialize(X,n,type=initialization,random_state=random_state)
 
     for i in range(iterations):
-        V1 = update(V1, X, lr=lr)
-        print(f'iteration {i}: {calc_eigenvalues(X, V1)}')
-    return calc_eigenvalues(X, V1), V1
+        V = update(V, X, lr=lr)
+        print(f'iteration {i}: {calc_eigenvalues(X, V)}')
+    return calc_eigenvalues(X, V), V
