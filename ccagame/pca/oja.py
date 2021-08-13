@@ -32,17 +32,8 @@ def calc_oja(X, n, lr=1e-1, iterations=100, initialization='random',
         print(f'Initialization "{initialization}" not implemented')
         return
 
-    if simultaneous:
-        for k in range(n):
-            print("Finding the eigenvector ", k)
-            for i in range(iterations):
-                v = update(V1, X, lr=lr)
-                V1 = V1.at[:, k].set(v)
-                print(f'iteration {i}: {calc_eigenvalues(X, V1)}')
-    else:
-        for i in range(iterations):
-            for k in range(n):
-                v = update(V1, X, lr=lr)
-                V1 = V1.at[:, k].set(v)
-                print(f'iteration {i}: {calc_eigenvalues(X, V1)}')
+    for i in range(iterations):
+        v = update(V1, X, lr=lr)
+        V1 = v
+        print(f'iteration {i}: {calc_eigenvalues(X, V1)}')
     return calc_eigenvalues(X, V1), V1

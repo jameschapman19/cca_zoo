@@ -8,6 +8,9 @@ X = jnp.array([[7., 4., 5., 2.],
                [34., 23., 67., 23.],
                [1., 7., 8., 4.]])
 
+vals_oj, vecs_oj = pca.calc_oja(X,4)
+print("\n Eigenvalues calculated using numpy are :\n", vals_oj)
+print("\n Eigenvectors calculated using numpy are :\n", vecs_oj)
 vals_np, vecs_np = pca.calc_numpy(X)
 print("\n Eigenvalues calculated using numpy are :\n", vals_np)
 print("\n Eigenvectors calculated using numpy are :\n", vecs_np)
