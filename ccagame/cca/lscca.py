@@ -1,7 +1,7 @@
 # Importing necessary libraries
 import jax.numpy as jnp
 
-from .utils import initialize
+from .utils import initialize, calc_eigenvalues
 
 
 # Update rule to be used for calculating eigenvectors
@@ -9,14 +9,17 @@ from .utils import initialize
 # For all others, use riemannian_projection = True to be aligned with the paper
 # But using riemannian_projection = False also works and in the tests that I did it converges much faster than including the
 # Riemannian Projection
-def update(u, v, X, Y, U1, V1, lr=1e-1):
-    return uhat / jnp.linalg.norm(uhat), vhat / jnp.linalg.norm(vhat)
+def update(X, Y, U1, V1):
+    vhat = jnp.linalg.lstsq(Y, jnp.dot(X, U1))
+    uhat = jnp.linalg.lstsq(X, jnp.dot(Y, V1))
+    return jnp.linalg.qr(uhat)[0], jnp.linalg.qr(vhat)[0]
+
 
 # Run the update step iteratively across all eigenvectors
-def calc_eigengame(X, Y, n, lr=1e-1, iterations=100, initialization='uniform',
-                   random_state=0):
+def calc_lscca(X, Y, n, iterations=100, initialization='uniform',
+               random_state=0):
     U1, V1 = initialize(X, Y, n, initialization, random_state)
     for i in range(iterations):
-        U1, V1 = update(U1, V1, X, Y, U1, V1, lr=lr)
+        U1, V1 = update(X, Y, U1, V1)
         print(f'iteration {i}: {calc_eigenvalues(X, Y, U1, V1)}')
-    return calc_eigengame_eigenvalues(X, Y, U1, V1), U1, V1
+    return calc_eigenvalues(X, Y, U1, V1), U1, V1

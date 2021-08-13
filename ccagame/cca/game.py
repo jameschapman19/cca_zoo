@@ -15,9 +15,6 @@ def model(u, v, X, Y, V, k):
     C_xy = jnp.dot(jnp.transpose(X), Y)
     C_xx = jnp.dot(jnp.transpose(X), X)
     C_yy = jnp.dot(jnp.transpose(Y), Y)
-    # rewards = jnp.dot(jnp.transpose(u), jnp.dot(C_xy, v)) / (
-    #        jnp.sqrt(jnp.dot(jnp.transpose(u), jnp.dot(C_xx, u))) * jnp.sqrt(
-    #    jnp.dot(jnp.transpose(v), jnp.dot(C_yy, v))))
     rewards = jnp.dot(jnp.transpose(u), jnp.dot(C_xy, v)) ** 2 / (
             jnp.dot(jnp.transpose(u), jnp.dot(C_xx, u)) * jnp.dot(jnp.transpose(v), jnp.dot(C_yy, v)))
     penalties = 0
@@ -49,8 +46,8 @@ def update(u, v, X, Y, U, V, k, lr=1e-1, riemannian_projection=False):
 
 # Run the update step iteratively across all eigenvectors
 # Run the update step iteratively across all eigenvectors
-def calc_eigengame(X, Y, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='uniform',
-                   random_state=0, simultaneous=False):
+def calc_game(X, Y, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='uniform',
+              random_state=0, simultaneous=False):
     U, V = initialize(X, Y, n, initialization, random_state)
     if simultaneous:
         for i in range(iterations):

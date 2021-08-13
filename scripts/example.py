@@ -2,7 +2,7 @@
 
 import numpy as np
 # Imports
-from ccagame.ccagame import calc_numpy, calc_sklearn, calc_eigengame
+from ccagame.cca import calc_numpy,calc_sklearn,calc_game, calc_lscca
 from jax import random
 
 # %%
@@ -36,18 +36,15 @@ corr_sk, U1sk, V1sk = calc_sklearn(X, Y, n=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 corr_np, U1np, V1np = calc_numpy(X, Y, n=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
-corr_r, U1_r, V1_r = calc_eigengame(X, Y, latent_dims, lr=lr, iterations=max_iter,
+corr_ls, U1_ls, V1_ls = calc_lscca(X, Y, latent_dims, iterations=max_iter,
+                                    random_state=random_state,
+                                    initialization=initialization)
+print("\n Eigenvalues calculated using lscca are :\n", corr_ls)
+corr, U1, V1 = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
                                     riemannian_projection=False, random_state=random_state,
                                     initialization=initialization, simultaneous=True)
-corr, U1, V1 = calc_eigengame(X, Y, latent_dims, lr=lr, iterations=max_iter,
-                              riemannian_projection=False, random_state=random_state,
-                              initialization=initialization, simultaneous=False)
-print("\n Eigenvalues calculated using numpy are :\n", corr_sk)
+print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
-print("\n Eigenvalues calculate using the Eigengame are :\n", corr)
-print("\n Left Eigenvectors calculated using numpy are :\n", U1np)
-print("\n Left Eigenvectors calculated using the Eigengame are :\n", U1)
-print("\n Right Eigenvectors calculated using numpy are :\n", V1np)
-print("\n Right Eigenvectors calculated using the Eigengame are :\n", V1)
-print("\n Squared error in estimation of eigenvectors as compared to numpy :\n",
-      np.sum((np.abs(U1np) - np.abs(U1)) ** 2, axis=0))
+print("\n Eigenvalues calculated using lscca are :\n", corr_ls)
+print("\n Eigenvalues calculate using the game are :\n", corr)
+
