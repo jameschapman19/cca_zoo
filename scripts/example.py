@@ -1,32 +1,26 @@
-#%%
+# %%
 
-#Imports
-from model.ccagame import calc_numpy,calc_sklearn,calc_eigengame
 import numpy as np
-import jax.numpy as jnp
-import jax.scipy as jsp
+# Imports
+from ccagame.ccagame import calc_numpy, calc_sklearn, calc_eigengame
 from jax import random
-from sklearn.cross_decomposition import CCA
-from jax import jit, grad
-from functools import partial
 
-#%%
+# %%
 
-#Parameters
+# Parameters
 random_state = 0
-n=50
+n = 50
 p = 8
 q = 9
 latent_dims = 5
-max_iter = 200
+max_iter = 90
 riemannian_projection = False
 lr = 5e-1
-initialization='random'
+initialization = 'random'
 
+# %%
 
-#%%
-
-#Data Generation
+# Data Generation
 key = random.PRNGKey(random_state)
 key, subkey = random.split(key)
 X = random.normal(key, (n, p))
@@ -35,17 +29,19 @@ Y = random.normal(subkey, (n, q))
 Xnp = np.array(X)
 Ynp = np.array(Y)
 
+# %%
 
-#%%
-
-#Model
+# Model
 corr_sk, U1sk, V1sk = calc_sklearn(X, Y, n=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 corr_np, U1np, V1np = calc_numpy(X, Y, n=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
+corr_r, U1_r, V1_r = calc_eigengame(X, Y, latent_dims, lr=lr, iterations=max_iter,
+                                    riemannian_projection=False, random_state=random_state,
+                                    initialization=initialization, simultaneous=True)
 corr, U1, V1 = calc_eigengame(X, Y, latent_dims, lr=lr, iterations=max_iter,
-                                     riemannian_projection=riemannian_projection, random_state=random_state,
-                                     initialization=initialization)
+                              riemannian_projection=False, random_state=random_state,
+                              initialization=initialization, simultaneous=False)
 print("\n Eigenvalues calculated using numpy are :\n", corr_sk)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 print("\n Eigenvalues calculate using the Eigengame are :\n", corr)

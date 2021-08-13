@@ -1,40 +1,10 @@
 # Importing necessary libraries
-import numpy as np
-import jax.numpy as jnp
-import jax.scipy as jsp
-from jax import random
-from sklearn.cross_decomposition import CCA
-from jax import jit, grad
 from functools import partial
 
+import jax.numpy as jnp
+from jax import jit, grad
+from jax import random
 
-# Calculate the eigenvalues of covariance matrix of X using Numpy for comparison
-def calc_numpy(X, Y, n, r=0):
-    dof = X.shape[0] - 1
-    C = jnp.hstack((X, Y))
-    C = C.T @ C / dof
-    # Get the block covariance matrix placing Xi^TX_i on the diagonal
-    D = jsp.linalg.block_diag(
-        *[m.T @ m + r * jnp.eye(m.shape[1]) for i, m in enumerate([X, Y])]) / dof
-
-    C = C - jsp.linalg.block_diag(*[view.T @ view / dof for view in [X, Y]]) + D
-
-    R = jnp.linalg.inv(jnp.linalg.cholesky(D))
-
-    # In MCCA our eigenvalue problem Cv = lambda Dv
-    C_whitened = R @ C @ R.T
-
-    eigvals, eigvecs = jnp.linalg.eigh(C_whitened)
-    idx = np.argsort(eigvals, axis=0)[::-1][:n]
-    eigvecs = eigvecs[:, idx]
-    eigvals=eigvals[idx]
-    return eigvals, eigvecs[:X.shape[1]], eigvecs[X.shape[1]:]
-
-def calc_sklearn(X, Y, n):
-    cca = CCA(n_components=n, scale=False).fit(np.array(X), np.array(Y))
-    ccax, ccay = cca.transform(X, Y)
-    cca_corr = np.diag(np.corrcoef(ccax, ccay, rowvar=False)[n:, :n])
-    return cca_corr, cca.x_weights_, cca.y_weights_
 
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
@@ -44,11 +14,11 @@ def model(u, v, X, Y, V1, k):
     C_xy = jnp.dot(jnp.transpose(X), Y)
     C_xx = jnp.dot(jnp.transpose(X), X)
     C_yy = jnp.dot(jnp.transpose(Y), Y)
-    #rewards = jnp.dot(jnp.transpose(u), jnp.dot(C_xy, v)) / (
+    # rewards = jnp.dot(jnp.transpose(u), jnp.dot(C_xy, v)) / (
     #        jnp.sqrt(jnp.dot(jnp.transpose(u), jnp.dot(C_xx, u))) * jnp.sqrt(
     #    jnp.dot(jnp.transpose(v), jnp.dot(C_yy, v))))
-    rewards = jnp.dot(jnp.transpose(u), jnp.dot(C_xy, v))**2 / (
-             jnp.dot(jnp.transpose(u), jnp.dot(C_xx, u)) * jnp.dot(jnp.transpose(v), jnp.dot(C_yy, v)))
+    rewards = jnp.dot(jnp.transpose(u), jnp.dot(C_xy, v)) ** 2 / (
+            jnp.dot(jnp.transpose(u), jnp.dot(C_xx, u)) * jnp.dot(jnp.transpose(v), jnp.dot(C_yy, v)))
     penalties = 0
     for j in range(k):
         penalties = penalties + jnp.dot(jnp.transpose(u), jnp.dot(C_xy, V1[:, j].reshape(-1, 1))) ** 2 / (jnp.dot(
@@ -79,15 +49,15 @@ def update(u, v, X, Y, U1, V1, k, lr=1e-1, riemannian_projection=False):
 # Run the update step iteratively across all eigenvectors
 # Run the update step iteratively across all eigenvectors
 def calc_eigengame(X, Y, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='random',
-                                random_state=0):
+                   random_state=0, simultaneous=False):
     if initialization == 'svd':
         U1, _, V1 = jnp.linalg.svd(X.T @ Y)
         U1 = U1[:, :n]
         V1 = V1[:, :n]
     elif initialization == 'cca':
-        _,U1,V1=calc_sklearn(X,Y,n)
-        U1=jnp.array(U1)
-        V1=jnp.array(V1)
+        _, U1, V1 = calc_sklearn(X, Y, n)
+        U1 = jnp.array(U1)
+        V1 = jnp.array(V1)
     elif initialization == 'random':
         key = random.PRNGKey(random_state)
         key, subkey = random.split(key)
@@ -98,12 +68,20 @@ def calc_eigengame(X, Y, n, lr=1e-1, iterations=100, riemannian_projection=False
     else:
         print(f'Initialization "{initialization}" not implemented')
         return
-    for i in range(iterations):
+    if simultaneous:
+        for i in range(iterations):
+            for k in range(n):
+                u, v = update(U1[:, k], V1[:, k], X, Y, U1, V1, k, lr=lr, riemannian_projection=riemannian_projection)
+                U1 = U1.at[:, k].set(u)
+                V1 = V1.at[:, k].set(v)
+            print(f'iteration {i}: {calc_eigengame_eigenvalues(X, Y, U1, V1)}')
+    else:
         for k in range(n):
-            u, v = update(U1[:, k], V1[:, k], X, Y, U1, V1, k, lr=lr, riemannian_projection=riemannian_projection)
-            U1 = U1.at[:, k].set(u)
-            V1 = V1.at[:, k].set(v)
-        print(f'iteration {i}: {calc_eigengame_eigenvalues(X, Y, U1, V1)}')
+            for i in range(iterations):
+                u, v = update(U1[:, k], V1[:, k], X, Y, U1, V1, k, lr=lr, riemannian_projection=riemannian_projection)
+                U1 = U1.at[:, k].set(u)
+                V1 = V1.at[:, k].set(v)
+            print(f'iteration {i}: {calc_eigengame_eigenvalues(X, Y, U1, V1)}')
     return calc_eigengame_eigenvalues(X, Y, U1, V1), U1, V1
 
 
@@ -115,10 +93,9 @@ def calc_eigengame_eigenvalues(X, Y, U1, V1):
     n = jnp.size(V1, axis=1)
     eigvals = jnp.zeros((1, n))
     for k in range(n):
-        eigvals=eigvals.at[:, k].set(jnp.dot(U1[:, k], jnp.dot(C_xy, V1[:, k].reshape(-1, 1))) / (
+        eigvals = eigvals.at[:, k].set(jnp.dot(U1[:, k], jnp.dot(C_xy, V1[:, k].reshape(-1, 1))) / (
                 jnp.sqrt(jnp.dot(U1[:, k], jnp.dot(C_xx, U1[:, k].reshape(-1, 1)))) * jnp.sqrt(
             jnp.dot(V1[:, k], jnp.dot(C_yy,
                                       V1[:, k].reshape(
                                           -1, 1))))))
     return eigvals
-
