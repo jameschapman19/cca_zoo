@@ -20,8 +20,9 @@ def update(u, X, lr=0.1):
 def calc_oja(X, n, lr=1e-1, iterations=100, initialization='random',
              random_state=0):
     U = initialize(X, n, type=initialization, random_state=random_state)
-
+    obj=[]
     for i in range(iterations):
         U = update(U, X, lr=lr)
-        print(f'iteration {i}: {calc_eigenvalues(X, U)}')
-    return calc_eigenvalues(X, U), U
+        obj.append(calc_eigenvalues(X, U))
+        print(f'iteration {i}: {obj[-1]}')
+    return calc_eigenvalues(X, U), U, obj

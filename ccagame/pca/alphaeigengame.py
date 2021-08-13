@@ -41,16 +41,19 @@ def update(u, X, U, k, lr=0.1, riemannian_projection=False):
 def calc_alphaeigengame(X, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='random',
                         random_state=0, simultaneous=False):
     U = initialize(X, n, type=initialization, random_state=random_state)
+    obj = []
     if simultaneous:
         for i in range(iterations):
             for k in range(n):
                 u = update(U[:, k], X, U, k, lr=lr, riemannian_projection=riemannian_projection)
                 U = U.at[:, k].set(u)
-            print(f'iteration {i}: {calc_eigenvalues(X, U)}')
+            obj.append(calc_eigenvalues(X, U))
+            print(f'iteration {i}: {obj[-1]}')
     else:
         for k in range(n):
             for i in range(iterations):
                 u = update(U[:, k], X, U, k, lr=lr, riemannian_projection=riemannian_projection)
                 U = U.at[:, k].set(u)
-                print(f'iteration {i}: {calc_eigenvalues(X, U)}')
-    return calc_eigenvalues(X, U), U
+                obj.append(calc_eigenvalues(X, U))
+                print(f'iteration {i}: {obj[-1]}')
+    return calc_eigenvalues(X, U), U, obj
