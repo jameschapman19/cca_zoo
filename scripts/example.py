@@ -37,7 +37,7 @@ print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 corr, U1, V1 = calc_genoja(X, Y, latent_dims, iterations=max_iter,
                                     random_state=random_state,
                                     initialization=initialization)
-print("\n Eigenvalues calculated using game are :\n", corr)
+print("\n Eigenvalues calculated using genoja are :\n", corr)
 corr, U1, V1 = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
                                     riemannian_projection=riemannian_projection, random_state=random_state,
                                     initialization=initialization, simultaneous=True)
