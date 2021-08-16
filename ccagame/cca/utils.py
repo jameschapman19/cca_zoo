@@ -1,10 +1,10 @@
 import jax.numpy as jnp
-from jax import random
 from jax import jit
+from jax import random
 
 
 # Calculate eigenvalues once the eigenvectors have been computed
-@jit
+#@jit
 def calc_eigenvalues(X, Y, U1, V1):
     C_xy = jnp.dot(jnp.transpose(X), Y)
     C_xx = jnp.dot(jnp.transpose(X), X)

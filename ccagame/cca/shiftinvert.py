@@ -1,7 +1,8 @@
 # Importing necessary libraries
 import jax.numpy as jnp
 from jax import jit
-from .utils import initialize, calc_eigenvalues
+
+from .utils import calc_eigenvalues
 
 
 # Update rule to be used for calculating eigenvectors
@@ -18,11 +19,11 @@ def update(X, Y, U1, V1):
 
 # Run the update step iteratively across all eigenvectors
 def calc_lscca(X, Y, n, iterations=100, initialization='uniform'):
-    X_aux=X[:n_aux]
+    X_aux = X[:n_aux]
     Y_aux = Y[:n_aux]
-    X=X[n_aux:]
+    X = X[n_aux:]
     Y = Y[n_aux:]
-    Cxx=jnp.dot(jnp.transpose(X_aux),X_aux)/n_aux
+    Cxx = jnp.dot(jnp.transpose(X_aux), X_aux) / n_aux
     Cyy = jnp.dot(jnp.transpose(Y_aux), Y_aux) / n_aux
     for i in range(iterations):
         U1, V1 = update(X, Y, U1, V1)

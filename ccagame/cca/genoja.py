@@ -1,10 +1,8 @@
 # Importing necessary libraries
-from functools import partial
 
-from jax import jit, grad
 import jax.numpy as jnp
 import jax.scipy as jsp
-
+from jax import random
 from ccagame.cca.utils import calc_eigenvalues
 
 
@@ -22,23 +20,25 @@ def update(X, Y, W, V, alpha=1e-1, beta=1e-1):
     V = V + beta * W
     return W, jnp.linalg.qr(V)[0]
 
+
 def initialize(X, Y, n, type='uniform', random_state=0):
     if type == 'uniform':
-        U1 = jnp.ones((X.shape[1]+Y.shape[1], n))
-        V1 = jnp.ones((X.shape[1]+Y.shape[1], n))
+        U1 = jnp.ones((X.shape[1] + Y.shape[1], n))
+        V1 = jnp.ones((X.shape[1] + Y.shape[1], n))
         U1 = U1 / jnp.linalg.norm(U1, axis=0)
         V1 = V1 / jnp.linalg.norm(V1, axis=0)
     elif type == 'random':
         key = random.PRNGKey(random_state)
         key, subkey = random.split(key)
-        U1 = random.normal(key, (X.shape[1]+Y.shape[1], n))
-        V1 = random.normal(subkey, (Y.shape[1]+Y.shape[1], n))
+        U1 = random.normal(key, (X.shape[1] + Y.shape[1], n))
+        V1 = random.normal(subkey, (Y.shape[1] + Y.shape[1], n))
         U1 = U1 / jnp.linalg.norm(U1, axis=0)
         V1 = V1 / jnp.linalg.norm(V1, axis=0)
     else:
         print(f'Initialization "{type}" not implemented')
         return
     return U1, V1
+
 
 # Run the update step iteratively across all eigenvectors
 def calc_genoja(X, Y, n, iterations=100, initialization='uniform',
@@ -50,4 +50,3 @@ def calc_genoja(X, Y, n, iterations=100, initialization='uniform',
             f'iteration {i}: {calc_eigenvalues(X, Y, jnp.linalg.qr(V1[:X.shape[1]])[0], jnp.linalg.qr(V1[:Y.shape[1]])[0])}')
     return calc_eigenvalues(X, Y, jnp.linalg.qr(V1[:X.shape[1]])[0], jnp.linalg.qr(V1[:Y.shape[1]])[0]), \
            jnp.linalg.qr(V1[:X.shape[1]])[0], jnp.linalg.qr(V1[:Y.shape[1]])[0]
-

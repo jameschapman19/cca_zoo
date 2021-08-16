@@ -2,7 +2,8 @@
 
 import numpy as np
 # Imports
-from ccagame.cca import calc_numpy, calc_sklearn, calc_game, calc_lscca, calc_lscca_exact, calc_genoja
+from ccagame.cca import calc_numpy, calc_sklearn, calc_game, \
+    calc_lscca, calc_lscca_exact, calc_genoja, calc_ccalin
 from jax import random
 
 # %%
@@ -38,6 +39,10 @@ corr, U1, V1 = calc_genoja(X, Y, latent_dims, iterations=max_iter,
                            random_state=random_state,
                            initialization=initialization)
 print("\n Eigenvalues calculated using genoja are :\n", corr)
+corr, U1, V1 = calc_ccalin(X, Y, latent_dims, iterations=max_iter,
+                           random_state=random_state,
+                           )
+print("\n Eigenvalues calculated using ccalin are :\n", corr)
 corr, U1, V1 = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
                          riemannian_projection=riemannian_projection, random_state=random_state,
                          initialization=initialization, simultaneous=True)
