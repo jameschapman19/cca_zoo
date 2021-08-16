@@ -2,7 +2,7 @@
 
 import numpy as np
 # Imports
-from ccagame.cca import calc_numpy,calc_sklearn,calc_game, calc_lscca, calc_lscca_exact
+from ccagame.cca import calc_numpy,calc_sklearn,calc_game, calc_lscca, calc_lscca_exact, calc_genoja
 from jax import random
 
 # %%
@@ -10,12 +10,12 @@ from jax import random
 # Parameters
 random_state = 0
 n = 1000
-p = 1000
-q = 1000
+p = 200
+q = 200
 latent_dims = 10
 max_iter = 100
 riemannian_projection = False
-lr = 5e-1
+lr = 1
 initialization = 'uniform'
 
 # %%
@@ -34,6 +34,10 @@ Ynp = np.array(Y)
 # Model
 corr_sk, U1sk, V1sk = calc_sklearn(X, Y, n=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
+corr, U1, V1 = calc_genoja(X, Y, latent_dims, iterations=max_iter,
+                                    random_state=random_state,
+                                    initialization=initialization)
+print("\n Eigenvalues calculated using game are :\n", corr)
 corr, U1, V1 = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
                                     riemannian_projection=riemannian_projection, random_state=random_state,
                                     initialization=initialization, simultaneous=True)
