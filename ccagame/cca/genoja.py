@@ -1,8 +1,9 @@
 # Importing necessary libraries
-
+from functools import partial
 import jax.numpy as jnp
 import jax.scipy as jsp
 from jax import random
+from jax import jit
 from ccagame.cca.utils import calc_eigenvalues
 
 
@@ -11,8 +12,8 @@ from ccagame.cca.utils import calc_eigenvalues
 # For all others, use riemannian_projection = True to be aligned with the paper
 # But using riemannian_projection = False also works and in the tests that I did it converges much faster than including the
 # Riemannian Projection
-# @partial(jit, static_argnums=(4, 5))
-def update(X, Y, W, V, alpha=1e-1, beta=1e-1):
+@partial(jit, static_argnums=(4, 5))
+def update(X, Y, W, V, alpha=1e-3, beta=1e-3):
     A = jnp.hstack((X, Y))
     A = jnp.dot(jnp.transpose(A), A)
     B = jsp.linalg.block_diag(jnp.dot(jnp.transpose(X), X), jnp.dot(jnp.transpose(Y), Y))
@@ -42,7 +43,7 @@ def initialize(X, Y, n, type='uniform', random_state=0):
 
 # Run the update step iteratively across all eigenvectors
 def calc_genoja(X, Y, n, iterations=100, initialization='uniform',
-                random_state=0, alpha=1e-1, beta=1e-1):
+                random_state=0, alpha=1e-3, beta=1e-3):
     W1, V1 = initialize(X, Y, n, initialization, random_state)
     for i in range(iterations):
         W1, V1 = update(X, Y, W1, V1, alpha=alpha, beta=beta)
