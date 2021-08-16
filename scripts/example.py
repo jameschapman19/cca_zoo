@@ -2,7 +2,7 @@
 
 import numpy as np
 # Imports
-from ccagame.cca import calc_numpy,calc_sklearn,calc_game, calc_lscca, calc_lscca_exact, calc_genoja
+from ccagame.cca import calc_numpy, calc_sklearn, calc_game, calc_lscca, calc_lscca_exact, calc_genoja
 from jax import random
 
 # %%
@@ -35,20 +35,20 @@ Ynp = np.array(Y)
 corr_sk, U1sk, V1sk = calc_sklearn(X, Y, n=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 corr, U1, V1 = calc_genoja(X, Y, latent_dims, iterations=max_iter,
-                                    random_state=random_state,
-                                    initialization=initialization)
+                           random_state=random_state,
+                           initialization=initialization)
 print("\n Eigenvalues calculated using genoja are :\n", corr)
 corr, U1, V1 = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
-                                    riemannian_projection=riemannian_projection, random_state=random_state,
-                                    initialization=initialization, simultaneous=True)
+                         riemannian_projection=riemannian_projection, random_state=random_state,
+                         initialization=initialization, simultaneous=True)
 print("\n Eigenvalues calculated using game are :\n", corr)
 corr_lse, U1_lse, V1_lse = calc_lscca_exact(X, Y, latent_dims, iterations=max_iter,
-                                    random_state=random_state,
-                                    initialization=initialization)
+                                            random_state=random_state,
+                                            initialization=initialization)
 print("\n Eigenvalues calculated using lsccae are :\n", corr_lse)
 corr_ls, U1_ls, V1_ls = calc_lscca(X, Y, latent_dims, iterations=max_iter,
-                                    random_state=random_state,
-                                    initialization=initialization)
+                                   random_state=random_state,
+                                   initialization=initialization)
 print("\n Eigenvalues calculated using lscca are :\n", corr_ls)
 corr_np, U1np, V1np = calc_numpy(X, Y, n=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
@@ -56,4 +56,3 @@ print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 print("\n Eigenvalues calculated using lscca are :\n", corr_ls)
 print("\n Eigenvalues calculate using the game are :\n", corr)
-
