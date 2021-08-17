@@ -1,19 +1,19 @@
+from functools import partial
 import jax.numpy as jnp
 from jax import grad, vmap, jit
 
 
-def gd_solve(fn, *args, x=None, in_axes=None, iters=10, lr=1e-1, verbose=False):
+#@partial(jit, static_argnums=(0), static_argnames=('in_axes', 'iterations', 'lr'))
+def gd_solve(fn, *args, x=None, in_axes=None, iterations=100, lr=1e-1):
     if in_axes is None:
         sample_grad = jit(grad(fn, argnums=0))
-        fn_eval = jit(fn)
+        # fn_eval = jit(fn)
     else:
         sample_grad = jit(vmap(grad(fn, argnums=0), in_axes=in_axes))
-        fn_eval = jit(vmap(fn, in_axes=in_axes))
-    for t in range(iters):
+        # fn_eval = jit(vmap(fn, in_axes=in_axes))
+    for t in range(iterations):
         mu_grad = jnp.mean(sample_grad(x, *args), axis=0)
         x = x - lr * mu_grad
-        if verbose:
-            print(f'Value of function: {jnp.mean(fn_eval(x, *args, ))}')
     return x
 
 
@@ -32,7 +32,7 @@ def main():
     y = y / jnp.linalg.norm(y, axis=0)
     w = jnp.array(np.random.rand(p, 1))
 
-    w_ = gd_solve(ls, X, y, x=w, in_axes=(None,0,0))
+    w_ = gd_solve(ls, X, y, x=w, in_axes=(None, 0, 0))
 
     print()
 

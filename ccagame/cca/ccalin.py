@@ -4,13 +4,13 @@ import jax.numpy as jnp
 import jax.scipy as jsp
 from jax import random, jit
 
-from ccagame.solver import agd_solve
-from .utils import calc_eigenvalues
+from ccagame.solver import agd_solve, gd_solve
+from .utils import calc_eigenvalues, gram_schmidt_matrix
 
 
 @jit
 def obj(W, A, B, Wt):
-    return jnp.trace(jnp.dot(jnp.dot(jnp.transpose(W), B), W) - 2 * jnp.dot(jnp.dot(jnp.transpose(W), A), Wt))
+    return jnp.trace(0.5 * jnp.dot(jnp.dot(jnp.transpose(W), B), W) - jnp.dot(jnp.dot(jnp.transpose(W), A), Wt))
 
 
 @jit
@@ -19,29 +19,40 @@ def gamma(W, A, B):
                    jnp.dot(jnp.dot(jnp.transpose(W), A), W))
 
 
-@jit
-def GenELinK_update(W, A, B):
-    W = agd_solve(obj, A, B, W, x=jnp.dot(W, gamma(W, A, B)))
-    return jnp.linalg.qr(W)[0]
+def GenELinK_update(W, A, B, lr, mu, iterations):
+    # W = agd_solve(obj, A, B, W, x=jnp.dot(W, gamma(W, A, B)), lr=lr, mu=mu, iterations=iterations, verbose=True)
+    W = gd_solve(obj, A, B, W, x=jnp.dot(W, gamma(W, A, B)), lr=lr, iterations=iterations)
+    return gram_schmidt_matrix(W,B)
 
 
-def GenELinK(A, B, k, iterations=100, random_state=0):
+def GenELinK(A, B, k, iterations=100, random_state=0, verbose=False, X=None, Y=None):
     key = random.PRNGKey(random_state)
     d = A.shape[1]
+    beta = jnp.linalg.norm(B)
+    alpha = jnp.min(jnp.abs(jnp.linalg.eig(B)[0]))
+    Q = beta / alpha
+    mu = (jnp.sqrt(Q) - 1) / (jnp.sqrt(Q) + 1)
+    lr = 1 / beta
     W = random.normal(key, (d, k))
     W = jnp.linalg.qr(W)[0]
     for i in range(iterations):
-        W = GenELinK_update(W, A, B)
+        W = GenELinK_update(W, A, B, lr=lr, mu=mu, iterations=iterations)
+        if verbose:
+            key = random.PRNGKey(random_state)
+            U = random.normal(key, (k, int(k / 2)))
+            Wx = jnp.linalg.qr(jnp.dot(W[:X.shape[1]], U))[0]
+            Wy = jnp.linalg.qr(jnp.dot(W[X.shape[1]:], U))[0]
+            print(f'iteration {i}: {calc_eigenvalues(X, Y, Wx, Wy)}')
     return W
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_ccalin(X, Y, k, iterations=5, random_state=0):
+def calc_ccalin(X, Y, k, iterations=20, random_state=0, verbose=False):
     A = jnp.hstack((X, Y))
     A = jnp.dot(jnp.transpose(A), A)
     B = jsp.linalg.block_diag(jnp.dot(jnp.transpose(X), X), jnp.dot(jnp.transpose(Y), Y))
     A = A - B
-    W = GenELinK(A, B, k, iterations=iterations, random_state=random_state)
+    W = GenELinK(A, B, 2 * k, iterations=iterations, random_state=random_state, verbose=verbose, X=X, Y=Y)
     key = random.PRNGKey(random_state)
     U = random.normal(key, (2 * k, k))
     Wx = jnp.linalg.qr(jnp.dot(W[:A.shape[1]], U))

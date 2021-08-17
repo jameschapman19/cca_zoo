@@ -3,6 +3,17 @@ from jax import jit
 from jax import random
 
 
+
+def gram_schmidt_matrix(W, M):
+    for k in range(W.shape[1]):
+        C = jnp.zeros((W.shape[0], k))
+        for j in range(k):
+            C = C.at[:, j].set(jnp.dot(W[:, j], jnp.dot(jnp.transpose(W[:, j]), jnp.dot(M, W[:, j]))))
+        W = W.at[:, k].set(W[:, k] - jnp.sum(C, axis=1))
+        W = W.at[:, k].set(W[:, k] / jnp.sqrt(jnp.dot(jnp.transpose(W[:, k]), jnp.dot(M, W[:, k]))))
+    return W
+
+
 # Calculate eigenvalues once the eigenvectors have been computed
 @jit
 def calc_eigenvalues(X, Y, U1, V1):

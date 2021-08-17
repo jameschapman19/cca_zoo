@@ -38,22 +38,22 @@ def update(u, X, U, k, lr=0.1, riemannian_projection=False):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_game(X, n, lr=1e-1, iterations=100, riemannian_projection=False, initialization='uniform',
+def calc_game(X, k, lr=1e-1, iterations=100, riemannian_projection=False, initialization='uniform',
               random_state=0, simultaneous=False):
-    U = initialize(X, n, type=initialization, random_state=random_state)
+    U = initialize(X, k, type=initialization, random_state=random_state)
     obj = []
     if simultaneous:
         for i in range(iterations):
-            for k in range(n):
-                u = update(U[:, k], X, U, k, lr=lr, riemannian_projection=riemannian_projection)
-                U = U.at[:, k].set(u)
+            for k_ in range(k):
+                u = update(U[:, k], X, U, k_, lr=lr, riemannian_projection=riemannian_projection)
+                U = U.at[:, k_].set(u)
             obj.append(calc_eigenvalues(X, U))
             print(f'iteration {i}: {obj[-1]}')
     else:
-        for k in range(n):
+        for k_ in range(k):
             for i in range(iterations):
-                u = update(U[:, k], X, U, k, lr=lr, riemannian_projection=riemannian_projection)
-                U = U.at[:, k].set(u)
+                u = update(U[:, k_], X, U, k_, lr=lr, riemannian_projection=riemannian_projection)
+                U = U.at[:, k_].set(u)
                 obj.append(calc_eigenvalues(X, U))
                 print(f'iteration {i}: {obj[-1]}')
     return calc_eigenvalues(X, U), U, obj

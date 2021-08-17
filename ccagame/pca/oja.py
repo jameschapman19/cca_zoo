@@ -21,9 +21,9 @@ def update(u, X, lr=0.1):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_oja(X, n, lr=1e-1, iterations=100, initialization='uniform',
+def calc_oja(X, k, lr=1e-1, iterations=100, initialization='uniform',
              random_state=0):
-    U = initialize(X, n, type=initialization, random_state=random_state)
+    U = initialize(X, k, type=initialization, random_state=random_state)
     obj = []
     for i in range(iterations):
         U = update(U, X, lr=lr)
