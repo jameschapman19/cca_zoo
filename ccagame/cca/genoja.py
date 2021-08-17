@@ -9,10 +9,6 @@ from ccagame.cca.utils import calc_eigenvalues
 
 
 # Update rule to be used for calculating eigenvectors
-# For first eigenvector use riemannian_projection = False (update rule given in the paper doesn't work without the penalty term)
-# For all others, use riemannian_projection = True to be aligned with the paper
-# But using riemannian_projection = False also works and in the tests that I did it converges much faster than including the
-# Riemannian Projection
 @partial(jit, static_argnums=(7))
 def update(X, Y, wx, wy, vx, vy, beta, alpha=1e-3):
     Cxx = jnp.dot(jnp.transpose(X), X)

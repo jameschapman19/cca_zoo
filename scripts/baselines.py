@@ -16,7 +16,7 @@ q = 11
 latent_dims = 2
 max_iter = 300
 riemannian_projection = False
-lr = 1
+lr = 1e-3
 initialization = 'uniform'
 
 # %%

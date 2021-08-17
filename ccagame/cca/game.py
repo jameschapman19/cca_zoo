@@ -26,10 +26,6 @@ def model(u, v, X, Y, V, k):
 
 
 # Update rule to be used for calculating eigenvectors
-# For first eigenvector use riemannian_projection = False (update rule given in the paper doesn't work without the penalty term)
-# For all others, use riemannian_projection = True to be aligned with the paper
-# But using riemannian_projection = False also works and in the tests that I did it converges much faster than including the
-# Riemannian Projection
 def update(u, v, X, Y, U, V, k, lr=1e-1, riemannian_projection=False):
     du = grad(model)(u, v, X, Y, V, k)
     dv = grad(model)(v, u, Y, X, U, k)
@@ -44,7 +40,6 @@ def update(u, v, X, Y, U, V, k, lr=1e-1, riemannian_projection=False):
     return uhat / jnp.linalg.norm(uhat), vhat / jnp.linalg.norm(vhat)
 
 
-# Run the update step iteratively across all eigenvectors
 # Run the update step iteratively across all eigenvectors
 def calc_game(X, Y, k, lr=1e-1, iterations=100, riemannian_projection=False, initialization='uniform',
               random_state=0, simultaneous=False):

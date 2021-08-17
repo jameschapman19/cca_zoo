@@ -26,8 +26,8 @@ def GenELinK_update(W, A, B, lr, mu, iterations):
 
 
 def GenELinK(A, B, k, iterations=100, random_state=0, verbose=False, X=None, Y=None):
-    p=X.shape[1]
-    q=Y.shape[1]
+    p = X.shape[1]
+    q = Y.shape[1]
     key = random.PRNGKey(random_state)
     d = A.shape[1]
     beta = jnp.linalg.norm(B)
@@ -36,15 +36,15 @@ def GenELinK(A, B, k, iterations=100, random_state=0, verbose=False, X=None, Y=N
     mu = (jnp.sqrt(Q) - 1) / (jnp.sqrt(Q) + 1)
     lr = 1 / beta
     W = random.normal(key, (d, k))
-    W = jnp.linalg.qr(W)[0]
+    W = gram_schmidt_matrix(W,B)
     for i in range(iterations):
         W = GenELinK_update(W, A, B, lr=lr, mu=mu, iterations=iterations)
         if verbose:
             key = random.PRNGKey(random_state)
             U = random.normal(key, (k, int(k / 2)))
-            Wx = gram_schmidt_matrix(jnp.dot(W[:p],U), B[:p,:p])
-            Wy = gram_schmidt_matrix(jnp.dot(W[p:],U), B[p:,p:])
-            print(f'iteration {i}: {jnp.trace(jnp.dot(jnp.transpose(Wx),jnp.dot(A[:p,:q],Wy)))}')
+            Wx = gram_schmidt_matrix(jnp.dot(W[:p], U), B[:p, :p])
+            Wy = gram_schmidt_matrix(jnp.dot(W[p:], U), B[p:, p:])
+            print(f'iteration {i}: {jnp.trace(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, :q], Wy)))}')
     return W
 
 

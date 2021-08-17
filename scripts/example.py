@@ -16,7 +16,8 @@ q = 10
 latent_dims = 3
 max_iter = 500
 riemannian_projection = False
-lr = 1e-2
+#EIGENGAME IS SUPER SENSITIVE TO LR IT LIKES A BIG ONE
+lr = 1e-3
 initialization = 'uniform'
 
 # %%
@@ -34,7 +35,7 @@ corr_sk, U1sk, V1sk = calc_sklearn(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 corr_np, U1np, V1np = calc_numpy(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
-corr, U1, V1 = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
+corr, U1, V1 = calc_game(X, Y, latent_dims, lr=1e-1, iterations=max_iter,
                          riemannian_projection=riemannian_projection, random_state=random_state,
                          initialization=initialization,simultaneous=True)
 print("\n Eigenvalues calculated using game are :\n", corr)
