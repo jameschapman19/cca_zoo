@@ -1,18 +1,20 @@
 from functools import partial
-import jax.numpy as jnp
 from jax import grad
 from jax import jit, vmap, random
+import jax.numpy as jnp
 from random import randint
 
 
+def print_objective(fn_eval, t, x, *args):
+    val = jnp.mean(fn_eval(x, *args), axis=0)
+    print(f'Iteration {t} : {val}')
+
 #@partial(jit, static_argnums=(0), static_argnames=('in_axes', 'iterations', 'lr', 'random_state'))
-def svrg_solve(fn, *args, x=None, in_axes=None, iterations=100, lr=1e-1, random_state=0):
+def svrg_solve(fn, *args, x=None, in_axes=None, iterations=100, lr=1e-1, random_state=0, verbose=False):
     if in_axes is None:
-        sample_grad = jit(grad(fn, argnums=0))
-        # fn_eval = jit(fn)
-    else:
-        sample_grad = jit(vmap(grad(fn, argnums=0), in_axes=in_axes))
-        # fn_eval = jit(vmap(fn, in_axes=in_axes))
+        in_axes = tuple([None] + [0] * len(args))
+    sample_grad = jit(vmap(grad(fn, argnums=0), in_axes=in_axes))
+    fn_eval = jit(vmap(fn, in_axes=in_axes))
     n = args[0].shape[0]
     key = random.PRNGKey(random_state)
     for t in range(iterations):
@@ -22,6 +24,8 @@ def svrg_solve(fn, *args, x=None, in_axes=None, iterations=100, lr=1e-1, random_
             i = random.randint(key, [1], 0, n)
             x = x - lr * (
                     jnp.squeeze(current[i], axis=0) - jnp.squeeze(previous[i], axis=0) + jnp.mean(previous, axis=0))
+        if verbose:
+            print_objective(fn_eval, t, x, *args)
     return x
 
 

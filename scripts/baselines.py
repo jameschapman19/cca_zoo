@@ -5,6 +5,7 @@ import numpy as np
 from ccagame.cca import calc_numpy, calc_sklearn, calc_game, \
     calc_lscca, calc_lscca_exact, calc_genoja, calc_ccalin
 from jax import random
+import jax.numpy as jnp
 
 # %%
 
@@ -25,10 +26,9 @@ initialization = 'uniform'
 key = random.PRNGKey(random_state)
 key, subkey = random.split(key)
 X = random.normal(key, (n, p))
+X = X/jnp.linalg.norm(X,axis=0)
 Y = random.normal(subkey, (n, q))
-
-Xnp = np.array(X)
-Ynp = np.array(Y)
+Y = Y/jnp.linalg.norm(Y,axis=0)
 
 # %%
 
