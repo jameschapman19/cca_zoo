@@ -28,25 +28,25 @@ def update(X, Y, wx, wy, vx, vy, beta, alpha=1e-3):
     return wx, wy, vx, vy
 
 
-def initialize(X, Y, n, type='uniform', random_state=0):
+def initialize(X, Y, k, type='uniform', random_state=0):
     if type == 'uniform':
-        wx = jnp.ones((X.shape[1], n))
-        vx = jnp.ones((X.shape[1], n))
+        wx = jnp.ones((X.shape[1], k))
+        vx = jnp.ones((X.shape[1], k))
         wx = wx / jnp.linalg.norm(wx, axis=0)
         vx = vx / jnp.linalg.norm(vx, axis=0)
-        wy = jnp.ones((Y.shape[1], n))
-        vy = jnp.ones((Y.shape[1], n))
+        wy = jnp.ones((Y.shape[1], k))
+        vy = jnp.ones((Y.shape[1], k))
         wy = wy / jnp.linalg.norm(wy, axis=0)
         vy = vy / jnp.linalg.norm(vy, axis=0)
     elif type == 'random':
         key = random.PRNGKey(random_state)
         key, subkey = random.split(key)
-        wx = random.normal(key, (X.shape[1], n))
-        wy = random.normal(subkey, (Y.shape[1], n))
+        wx = random.normal(key, (X.shape[1], k))
+        wy = random.normal(subkey, (Y.shape[1], k))
         wx = wx / jnp.linalg.norm(wx, axis=0)
         wy = wy / jnp.linalg.norm(wy, axis=0)
-        vx = random.normal(key, (X.shape[1], n))
-        vy = random.normal(subkey, (Y.shape[1], n))
+        vx = random.normal(key, (X.shape[1], k))
+        vy = random.normal(subkey, (Y.shape[1], k))
         vx = vx / jnp.linalg.norm(vx, axis=0)
         vy = vy / jnp.linalg.norm(vy, axis=0)
     else:
@@ -56,9 +56,9 @@ def initialize(X, Y, n, type='uniform', random_state=0):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_genoja(X, Y, n, iterations=100, initialization='uniform',
+def calc_genoja(X, Y, k, iterations=100, initialization='uniform',
                 random_state=0, alpha=1e-4, beta_0=1e-3):
-    wx, wy, vx, vy = initialize(X, Y, n, initialization, random_state)
+    wx, wy, vx, vy = initialize(X, Y,k, initialization, random_state)
     for i in range(iterations):
         wx, wy, vx, vy = update(X, Y, wx, wy, vx, vy, beta=beta_0 / (1 + 1e-4 * i), alpha=alpha)
         print(

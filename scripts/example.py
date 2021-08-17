@@ -33,7 +33,7 @@ Ynp = np.array(Y)
 # %%
 
 # Model
-corr_sk, U1sk, V1sk = calc_sklearn(X, Y, n=latent_dims)
+corr_sk, U1sk, V1sk = calc_sklearn(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 corr, U1, V1 = calc_ccalin(X, Y, latent_dims, iterations=max_iter,
                            random_state=random_state,
@@ -55,7 +55,7 @@ corr_ls, U1_ls, V1_ls = calc_lscca(X, Y, latent_dims, iterations=max_iter,
                                    random_state=random_state,
                                    initialization=initialization)
 print("\n Eigenvalues calculated using lscca are :\n", corr_ls)
-corr_np, U1np, V1np = calc_numpy(X, Y, n=latent_dims)
+corr_np, U1np, V1np = calc_numpy(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)

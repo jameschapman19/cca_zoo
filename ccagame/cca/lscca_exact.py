@@ -18,9 +18,9 @@ def update(X, Y, Hx, Hy, U1, V1):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_lscca_exact(X, Y, n, iterations=100, initialization='uniform',
+def calc_lscca_exact(X, Y, k, iterations=100, initialization='uniform',
                      random_state=0):
-    U1, V1 = initialize(X, Y, n, initialization, random_state)
+    U1, V1 = initialize(X, Y, k, initialization, random_state)
     Hx = jnp.dot(jnp.linalg.inv(jnp.dot(jnp.transpose(X), X)), jnp.transpose(X))
     Hy = jnp.dot(jnp.linalg.inv(jnp.dot(jnp.transpose(Y), Y)), jnp.transpose(Y))
     for i in range(iterations):

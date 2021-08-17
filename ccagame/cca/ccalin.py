@@ -10,32 +10,40 @@ from .utils import calc_eigenvalues
 
 @jit
 def obj(W, A, B, Wt):
-    return jnp.dot(jnp.dot(jnp.transpose(W), B), W) - 2 * jnp.dot(jnp.dot(jnp.transpose(W), A), Wt)
+    return jnp.trace(jnp.dot(jnp.dot(jnp.transpose(W), B), W) - 2 * jnp.dot(jnp.dot(jnp.transpose(W), A), Wt))
 
 
-@partial(jit, static_argnums=(2, 3, 4))
-def GenELinK(A, B, n, iterations=100, random_state=0):
+@jit
+def gamma(W, A, B):
+    return jnp.dot(jnp.linalg.inv(jnp.dot(jnp.dot(jnp.transpose(W), B), W)),
+                   jnp.dot(jnp.dot(jnp.transpose(W), A), W))
+
+
+@jit
+def GenELinK_update(W, A, B):
+    W = agd_solve(obj, A, B, W, x=jnp.dot(W, gamma(W, A, B)))
+    return jnp.linalg.qr(W)[0]
+
+
+def GenELinK(A, B, k, iterations=100, random_state=0):
     key = random.PRNGKey(random_state)
     d = A.shape[1]
-    W = random.normal(key, (d, n))
+    W = random.normal(key, (d, k))
     W = jnp.linalg.qr(W)[0]
     for i in range(iterations):
-        gamma = jnp.dot(jnp.linalg.inv(jnp.dot(jnp.dot(jnp.transpose(W), B), W)),
-                        jnp.dot(jnp.dot(jnp.transpose(W), A), W))
-        W = agd_solve(obj, A, B, W, x=gamma)
-        W = jnp.linalg.qr(W)[0]
+        W = GenELinK_update(W, A, B)
     return W
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_ccalin(X, Y, n, iterations=100, random_state=0):
+def calc_ccalin(X, Y, k, iterations=5, random_state=0):
     A = jnp.hstack((X, Y))
     A = jnp.dot(jnp.transpose(A), A)
     B = jsp.linalg.block_diag(jnp.dot(jnp.transpose(X), X), jnp.dot(jnp.transpose(Y), Y))
     A = A - B
-    W = GenELinK(A, B, n, iterations=iterations, random_state=random_state)
+    W = GenELinK(A, B, k, iterations=iterations, random_state=random_state)
     key = random.PRNGKey(random_state)
-    U = random.normal(key, (2 * n, n))
+    U = random.normal(key, (2 * k, k))
     Wx = jnp.linalg.qr(jnp.dot(W[:A.shape[1]], U))
     Wy = jnp.linalg.qr(jnp.dot(W[A.shape[1]:], U))
     return calc_eigenvalues(X, Y, Wx, Wy), Wx, Wy

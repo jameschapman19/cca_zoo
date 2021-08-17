@@ -18,9 +18,9 @@ def update(X, Y, U1, V1):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_lscca(X, Y, n, iterations=100, initialization='uniform',
+def calc_lscca(X, Y, k, iterations=100, initialization='uniform',
                random_state=0):
-    U1, V1 = initialize(X, Y, n, initialization, random_state)
+    U1, V1 = initialize(X, Y, k, initialization, random_state)
     for i in range(iterations):
         U1, V1 = update(X, Y, U1, V1)
         print(f'iteration {i}: {calc_eigenvalues(X, Y, U1, V1)}')

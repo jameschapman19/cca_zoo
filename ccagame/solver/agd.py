@@ -3,7 +3,7 @@ from jax import grad
 from jax import jit, vmap
 
 
-def agd_solve(fn, *args, x=None, in_axes=None, iters=1000, lr=1e-1, mu=0.9, verbose=False):
+def agd_solve(fn, *args, x=None, in_axes=None, iters=10, lr=1e-1, mu=0.9, verbose=False):
     if in_axes is None:
         sample_grad = jit(grad(fn, argnums=0))
         fn_eval = jit(fn)
@@ -30,7 +30,6 @@ def main():
 
     n = 100
     p = 10
-    q = 2
     X = jnp.array(np.random.rand(n, p))
     X = X / jnp.linalg.norm(X, axis=0)
     y = jnp.array(np.random.rand(n, 1))
