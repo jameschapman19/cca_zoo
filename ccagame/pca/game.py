@@ -23,10 +23,6 @@ def model(u, X, U, k):
 
 
 # Update rule to be used for calculating eigenvectors
-# For first eigenvector use riemannian_projection = False (update rule given in the paper doesn't work without the penalty term)
-# For all others, use riemannian_projection = True to be aligned with the paper
-# But using riemannian_projection = False also works and in the tests that I did it converges much faster than including the
-# Riemannian Projection
 def update(u, X, U, k, lr=0.1, riemannian_projection=False):
     du = jax.grad(model)(u, X, U, k)
     if riemannian_projection:
@@ -34,7 +30,7 @@ def update(u, X, U, k, lr=0.1, riemannian_projection=False):
         uhat = u + lr * dur
     else:
         uhat = u + lr * du
-    return (uhat / jnp.linalg.norm(uhat))
+    return uhat / jnp.linalg.norm(uhat)
 
 
 # Run the update step iteratively across all eigenvectors

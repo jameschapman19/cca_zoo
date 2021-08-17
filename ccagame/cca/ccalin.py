@@ -22,10 +22,12 @@ def gamma(W, A, B):
 def GenELinK_update(W, A, B, lr, mu, iterations):
     # W = agd_solve(obj, A, B, W, x=jnp.dot(W, gamma(W, A, B)), lr=lr, mu=mu, iterations=iterations, verbose=True)
     W = gd_solve(obj, A, B, W, x=jnp.dot(W, gamma(W, A, B)), lr=lr, iterations=iterations)
-    return gram_schmidt_matrix(W,B)
+    return gram_schmidt_matrix(W, B)
 
 
 def GenELinK(A, B, k, iterations=100, random_state=0, verbose=False, X=None, Y=None):
+    p=X.shape[1]
+    q=Y.shape[1]
     key = random.PRNGKey(random_state)
     d = A.shape[1]
     beta = jnp.linalg.norm(B)
@@ -40,8 +42,8 @@ def GenELinK(A, B, k, iterations=100, random_state=0, verbose=False, X=None, Y=N
         if verbose:
             key = random.PRNGKey(random_state)
             U = random.normal(key, (k, int(k / 2)))
-            Wx = jnp.linalg.qr(jnp.dot(W[:X.shape[1]], U))[0]
-            Wy = jnp.linalg.qr(jnp.dot(W[X.shape[1]:], U))[0]
+            Wx = gram_schmidt_matrix(jnp.dot(W[:p],U), B[:p,:p])
+            Wy = gram_schmidt_matrix(jnp.dot(W[p:],U), B[p:,p:])
             print(f'iteration {i}: {calc_eigenvalues(X, Y, Wx, Wy)}')
     return W
 

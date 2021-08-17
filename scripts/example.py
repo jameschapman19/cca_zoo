@@ -11,12 +11,12 @@ from jax import random
 # Parameters
 random_state = 0
 n = 100
-p = 20
-q = 15
-latent_dims = 2
-max_iter = 100
+p = 10
+q = 10
+latent_dims = 3
+max_iter = 500
 riemannian_projection = False
-lr = 1e-1
+lr = 1e-3
 initialization = 'uniform'
 
 # %%
@@ -36,9 +36,8 @@ corr_np, U1np, V1np = calc_numpy(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 corr, U1, V1 = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
                          riemannian_projection=riemannian_projection, random_state=random_state,
-                         initialization=initialization)
+                         initialization=initialization,simultaneous=True)
 print("\n Eigenvalues calculated using game are :\n", corr)
-print("\n Eigenvalues calculate using the Eigengame are :\n", corr)
 print("\n Left Eigenvectors calculated using numpy are :\n", U1np)
 print("\n Left Eigenvectors calculated using the Eigengame are :\n", U1)
 print("\n Right Eigenvectors calculated using numpy are :\n", V1np)
