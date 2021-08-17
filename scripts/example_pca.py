@@ -7,14 +7,15 @@ from ccagame import pca
 n = 100
 p = 20
 dims = 3
+lr=1e-3
 
 key = random.PRNGKey(0)
 X = random.normal(key, (n, p))
 
 vals_kr, vecs_kr, obj_kr = pca.calc_krasulina(X, dims, lr=1e-3)
-print("\n Eigenvalues calculated using oja are :\n", vals_kr)
+print("\n Eigenvalues calculated using krasulina are :\n", vals_kr)
 print("\n Sum :\n", jnp.sum(vals_kr))
-print("\n Eigenvectors calculated using oja are :\n", vecs_kr)
+print("\n Eigenvectors calculated using krasulina are :\n", vecs_kr)
 vals_oj, vecs_oj, obj_oj = pca.calc_oja(X, dims, lr=1e-1)
 print("\n Eigenvalues calculated using oja are :\n", vals_oj)
 print("\n Sum :\n", jnp.sum(vals_oj))
