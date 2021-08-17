@@ -10,9 +10,9 @@ from jax import random
 
 # Parameters
 random_state = 0
-n = 1000
-p = 200
-q = 200
+n = 100
+p = 10
+q = 11
 latent_dims = 2
 max_iter = 300
 riemannian_projection = False
