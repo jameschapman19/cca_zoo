@@ -1,10 +1,10 @@
 # Importing necessary libraries
-
+from functools import partial
 import jax.numpy as jnp
 import jax.scipy as jsp
 from jax import random, jit
 
-from ccagame.solver import svrg_solve
+from ccagame.solver import agd_solve
 from .utils import calc_eigenvalues
 
 
@@ -13,7 +13,7 @@ def obj(W, A, B, Wt):
     return jnp.dot(jnp.dot(jnp.transpose(W), B), W) - 2 * jnp.dot(jnp.dot(jnp.transpose(W), A), Wt)
 
 
-# @partial(jit, static_argnums=(2, 3, 4))
+@partial(jit, static_argnums=(2, 3, 4))
 def GenELinK(A, B, n, iterations=100, random_state=0):
     key = random.PRNGKey(random_state)
     d = A.shape[1]
@@ -22,7 +22,7 @@ def GenELinK(A, B, n, iterations=100, random_state=0):
     for i in range(iterations):
         gamma = jnp.dot(jnp.linalg.inv(jnp.dot(jnp.dot(jnp.transpose(W), B), W)),
                         jnp.dot(jnp.dot(jnp.transpose(W), A), W))
-        W = svrg_solve(obj, A, B, x=gamma)
+        W = agd_solve(obj, A, B, W, x=gamma)
         W = jnp.linalg.qr(W)[0]
     return W
 

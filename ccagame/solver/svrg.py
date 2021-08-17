@@ -5,11 +5,13 @@ from jax import jit, vmap, random
 
 def svrg_solve(fn, *args, x=None, in_axes=None, iters=1000, lr=1e-2, random_state=0, verbose=False):
     if in_axes is None:
-        in_axes = tuple([None] + [0] * len(args))
+        sample_grad = jit(grad(fn, argnums=0))
+        fn_eval = jit(fn)
+    else:
+        sample_grad = jit(vmap(grad(fn, argnums=0), in_axes=in_axes))
+        fn_eval = jit(vmap(fn, in_axes=in_axes))
     n = args[0].shape[0]
     key = random.PRNGKey(random_state)
-    sample_grad = jit(vmap(grad(fn, argnums=0), in_axes=in_axes))
-    fn_eval = jit(vmap(fn, in_axes=in_axes))
     for t in range(iters):
         previous = sample_grad(x, *args)
         for m_ in range(int(random.randint(key, [1], 0, n))):
@@ -39,7 +41,7 @@ def main():
     y = y / jnp.linalg.norm(y, axis=0)
     w = jnp.array(np.random.rand(p, 1))
 
-    w_ = svrg_solve(ls, X, y, x=w)
+    w_ = svrg_solve(ls, X, y, x=w, in_axes=(None,0,0))
 
     print()
 

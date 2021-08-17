@@ -5,9 +5,11 @@ from jax import jit, vmap
 
 def agd_solve(fn, *args, x=None, in_axes=None, iters=1000, lr=1e-1, mu=0.9, verbose=False):
     if in_axes is None:
-        in_axes = tuple([None] + [0] * len(args))
-    sample_grad = jit(vmap(grad(fn, argnums=0), in_axes=in_axes))
-    fn_eval = jit(vmap(fn, in_axes=in_axes))
+        sample_grad = jit(grad(fn, argnums=0))
+        fn_eval = jit(fn)
+    else:
+        sample_grad = jit(vmap(grad(fn, argnums=0), in_axes=in_axes))
+        fn_eval = jit(vmap(fn, in_axes=in_axes))
     theta_ = jnp.zeros_like(x)
     for t in range(iters):
         mu_grad = jnp.mean(sample_grad(x, *args), axis=0)
@@ -35,7 +37,7 @@ def main():
     y = y / jnp.linalg.norm(y, axis=0)
     w = jnp.array(np.random.rand(p, 1))
 
-    w_ = agd_solve(ls, X, y, x=w)
+    w_ = agd_solve(ls, X, y, x=w, in_axes=(None,0,0))
 
     print()
 
