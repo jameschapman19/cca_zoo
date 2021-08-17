@@ -9,8 +9,6 @@ def gd_solve(fn, *args, x=None, in_axes=None, iters=1000, lr=1e-1, verbose=False
     else:
         sample_grad = jit(vmap(grad(fn, argnums=0), in_axes=in_axes))
         fn_eval = jit(vmap(fn, in_axes=in_axes))
-    sample_grad = jit(vmap(grad(fn, argnums=0), in_axes=in_axes))
-    fn_eval = jit(vmap(fn, in_axes=in_axes))
     for t in range(iters):
         mu_grad = jnp.mean(sample_grad(x, *args), axis=0)
         x = x - lr * mu_grad
