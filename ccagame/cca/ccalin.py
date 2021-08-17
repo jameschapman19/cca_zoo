@@ -1,28 +1,19 @@
 # Importing necessary libraries
-from functools import partial
 
 import jax.numpy as jnp
 import jax.scipy as jsp
-import jax.scipy.optimize
-from jax import jit
-from jax import random
+from jax import random, jit
 
+from ccagame.solver import svrg_solve
 from .utils import calc_eigenvalues
 
 
+@jit
 def obj(W, A, B, Wt):
     return jnp.dot(jnp.dot(jnp.transpose(W), B), W) - 2 * jnp.dot(jnp.dot(jnp.transpose(W), A), Wt)
 
 
-def SVRG(U, V, X, Y, rx, T, m, eta):
-    for t in range(T):
-        W_ = U
-        W = W_
-        batch_grad = jnp.dot(X, jnp.dot(jnp.transpose(X), jnp.dot(W_ - Y, V)))+rx*W_
-    return y
-
-
-@partial(jit, static_argnums=(2, 3, 4))
+# @partial(jit, static_argnums=(2, 3, 4))
 def GenELinK(A, B, n, iterations=100, random_state=0):
     key = random.PRNGKey(random_state)
     d = A.shape[1]
@@ -31,7 +22,7 @@ def GenELinK(A, B, n, iterations=100, random_state=0):
     for i in range(iterations):
         gamma = jnp.dot(jnp.linalg.inv(jnp.dot(jnp.dot(jnp.transpose(W), B), W)),
                         jnp.dot(jnp.dot(jnp.transpose(W), A), W))
-
+        W = svrg_solve(obj, A, B, x=gamma)
         W = jnp.linalg.qr(W)[0]
     return W
 
