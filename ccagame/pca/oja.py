@@ -9,10 +9,6 @@ from .utils import calc_eigenvalues, initialize
 
 
 # Update rule to be used for calculating eigenvectors
-# For first eigenvector use riemannian_projection = False (update rule given in the paper doesn't work without the penalty term)
-# For all others, use riemannian_projection = True to be aligned with the paper
-# But using riemannian_projection = False also works and in the tests that I did it converges much faster than including the
-# Riemannian Projection
 @partial(jit, static_argnums=(2))
 def update(u, X, lr=0.1):
     dv = jnp.dot(jnp.dot(jnp.transpose(X), X), u)

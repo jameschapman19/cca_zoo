@@ -10,10 +10,6 @@ from .utils import initialize
 
 
 # Update rule to be used for calculating eigenvectors
-# For first eigenvector use riemannian_projection = False (update rule given in the paper doesn't work without the penalty term)
-# For all others, use riemannian_projection = True to be aligned with the paper
-# But using riemannian_projection = False also works and in the tests that I did it converges much faster than including the
-# Riemannian Projection
 @partial(jit, static_argnums=(2))
 def update(u, X, lr=0.1):
     dv = jnp.dot(jnp.dot(jnp.transpose(X), X), u) - jnp.dot(u, jnp.triu(
@@ -21,8 +17,6 @@ def update(u, X, lr=0.1):
     vhat = u + lr * dv
     return vhat / jnp.linalg.norm(vhat, axis=0)
 
-
-# Run the update step iteratively across all eigenvectors
 def calc_gha(X, k, lr=1e-1, iterations=100, initialization='uniform',
              random_state=0):
     U = initialize(X, k, type=initialization, random_state=random_state)
