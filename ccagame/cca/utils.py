@@ -3,6 +3,7 @@ import jax.scipy as jsp
 from jax import jit
 from jax import random
 
+def TCC(X,Y,Wx,Wy)
 
 def gram_schmidt_matrix(W, M):
     for k in range(W.shape[1]):

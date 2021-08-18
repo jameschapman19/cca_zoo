@@ -16,7 +16,7 @@ p = 10
 q = 11
 latent_dims = 2
 max_iter = 300
-riemannian_projection = False
+riemannian_projection = True
 initialization = 'random'
 
 # %%
