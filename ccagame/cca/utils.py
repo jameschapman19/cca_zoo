@@ -1,4 +1,5 @@
 import jax.numpy as jnp
+import jax.scipy as jsp
 from jax import jit
 from jax import random
 
@@ -51,3 +52,12 @@ def initialize(X, Y, k, type='uniform', random_state=0):
         print(f'Initialization "{type}" not implemented')
         return
     return U1, V1
+
+
+def initialize_gep(X, Y):
+    n = X.shape[0]
+    A = jnp.hstack((X, Y))
+    A = jnp.dot(jnp.transpose(A), A) / n
+    B = jsp.linalg.block_diag(jnp.dot(jnp.transpose(X), X), jnp.dot(jnp.transpose(Y), Y)) / n
+    A = A - B
+    return A, B

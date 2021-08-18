@@ -5,11 +5,10 @@ https://export.arxiv.org/pdf/1604.03930
 """
 # Importing necessary libraries
 import jax.numpy as jnp
-import jax.scipy as jsp
 from jax import random
 
 from ccagame.solver import agd_solve
-from .utils import calc_eigenvalues, gram_schmidt_matrix
+from .utils import calc_eigenvalues, gram_schmidt_matrix, initialize_gep
 
 
 def obj(W, A, B, Wt):
@@ -54,14 +53,11 @@ def GenELinK(A, B, k, iterations=1000, random_state=0, verbose=False, X=None, Y=
 
 # Run the update step iteratively across all eigenvectors
 def calc_ccalin(X, Y, k, iterations=1000, random_state=0, verbose=False):
-    n = X.shape[0]
-    A = jnp.hstack((X, Y))
-    A = jnp.dot(jnp.transpose(A), A) / n
-    B = jsp.linalg.block_diag(jnp.dot(jnp.transpose(X), X), jnp.dot(jnp.transpose(Y), Y)) / n
-    A = A - B
+    p = X.shape[1]
+    A, B = initialize_gep(X, Y)
     W = GenELinK(A, B, 2 * k, iterations=iterations, random_state=random_state, verbose=verbose, X=X, Y=Y)
     key = random.PRNGKey(random_state)
     U = random.normal(key, (2 * k, k))
-    Wx = jnp.linalg.qr(jnp.dot(W[:A.shape[1]], U))
-    Wy = jnp.linalg.qr(jnp.dot(W[A.shape[1]:], U))
+    Wx = jnp.linalg.qr(jnp.dot(W[:p], U))
+    Wy = jnp.linalg.qr(jnp.dot(W[p:], U))
     return calc_eigenvalues(X, Y, Wx, Wy), Wx, Wy
