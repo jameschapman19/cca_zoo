@@ -1,10 +1,12 @@
+import jax.numpy as jnp
 from jax import grad
 from jax import jit, vmap
-import jax.numpy as jnp
+
 
 def print_objective(fn_eval, t, x, *args):
     val = jnp.mean(fn_eval(x, *args), axis=0)
     print(f'Iteration {t} : {val}')
+
 
 # @partial(jit, static_argnums=(0), static_argnames=('in_axes', 'iterations', 'lr', 'mu', 'eps'))
 def agd_solve(fn, *args, x=None, in_axes=None, iterations=1000, lr=1e-1, mu=0.0, verbose=False):
@@ -38,8 +40,8 @@ def main():
     y = y / jnp.linalg.norm(y, axis=0)
     w = jnp.array(np.random.rand(p, 1))
 
-    w_ = agd_solve(ls, X, y, x=w, mu=0.9,verbose=True)
-    w_ = agd_solve(ls, X, y, x=w, mu=0.9,in_axes=(None, 0, 0), verbose=True)
+    w_ = agd_solve(ls, X, y, x=w, mu=0.9, verbose=True)
+    w_ = agd_solve(ls, X, y, x=w, mu=0.9, in_axes=(None, 0, 0), verbose=True)
 
     print()
 

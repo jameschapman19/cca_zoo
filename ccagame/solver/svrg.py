@@ -1,15 +1,16 @@
-from functools import partial
+from random import randint
+
+import jax.numpy as jnp
 from jax import grad
 from jax import jit, vmap, random
-import jax.numpy as jnp
-from random import randint
 
 
 def print_objective(fn_eval, t, x, *args):
     val = jnp.mean(fn_eval(x, *args), axis=0)
     print(f'Iteration {t} : {val}')
 
-#@partial(jit, static_argnums=(0), static_argnames=('in_axes', 'iterations', 'lr', 'random_state'))
+
+# @partial(jit, static_argnums=(0), static_argnames=('in_axes', 'iterations', 'lr', 'random_state'))
 def svrg_solve(fn, *args, x=None, in_axes=None, iterations=100, lr=1e-1, random_state=0, verbose=False):
     if in_axes is None:
         in_axes = tuple([None] + [0] * len(args))

@@ -1,5 +1,5 @@
-from jax import grad, vmap, jit
 import jax.numpy as jnp
+from jax import grad, vmap, jit
 
 
 def print_objective(fn_eval, t, x, *args):
