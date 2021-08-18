@@ -26,16 +26,16 @@ initialization = 'uniform'
 key = random.PRNGKey(random_state)
 key, subkey = random.split(key)
 X = random.normal(key, (n, p))
-X = X/jnp.linalg.norm(X,axis=0)
+X = X / jnp.linalg.norm(X, axis=0)
 Y = random.normal(subkey, (n, q))
-Y = Y/jnp.linalg.norm(Y,axis=0)
+Y = Y / jnp.linalg.norm(Y, axis=0)
 
 # %%
 
 # Model
 corr_sk, U1sk, V1sk = calc_sklearn(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
-corr, U1, V1 = calc_lagrangeminmax(X, Y, latent_dims, iterations=max_itern)
+corr, U1, V1 = calc_lagrangeminmax(X, Y, latent_dims, iterations=max_iter)
 print("\n Eigenvalues calculated using lagrangeminmax are :\n", corr)
 corr, U1, V1 = calc_genoja(X, Y, 1, iterations=max_iter,
                            initialization=initialization)

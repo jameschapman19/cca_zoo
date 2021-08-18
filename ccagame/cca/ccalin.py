@@ -28,8 +28,7 @@ def GenELinK_update(W, A, B, lr, mu, iterations):
     return gram_schmidt_matrix(W, B)
 
 
-def GenELinK(A, B, k, iterations=1000, random_state=0, verbose=False, X=None, Y=None):
-    n = X.shape[0]
+def GenELinK(A, B, k, iterations=1000, random_state=0, verbose=False, X=None):
     p = X.shape[1]
     d = A.shape[1]
     key = random.PRNGKey(random_state)
@@ -55,7 +54,7 @@ def GenELinK(A, B, k, iterations=1000, random_state=0, verbose=False, X=None, Y=
 def calc_ccalin(X, Y, k, iterations=1000, random_state=0, verbose=False):
     p = X.shape[1]
     A, B = initialize_gep(X, Y)
-    W = GenELinK(A, B, 2 * k, iterations=iterations, random_state=random_state, verbose=verbose, X=X, Y=Y)
+    W = GenELinK(A, B, 2 * k, iterations=iterations, random_state=random_state, verbose=verbose, X=X)
     key = random.PRNGKey(random_state)
     U = random.normal(key, (2 * k, k))
     Wx = jnp.linalg.qr(jnp.dot(W[:p], U))
