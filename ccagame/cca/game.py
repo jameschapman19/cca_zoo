@@ -4,7 +4,7 @@ from functools import partial
 import jax.numpy as jnp
 from jax import jit, grad
 
-from .utils import initialize, calc_eigenvalues
+from .utils import initialize, calc_eigenvalues, TCC
 
 
 # Define utlity function, we will take grad of this in the
@@ -50,12 +50,12 @@ def calc_game(X, Y, k, lr=1, iterations=100, riemannian_projection=False, initia
                 u, v = update(U[:, k_], V[:, k_], X, Y, U, V, k_, lr=lr, riemannian_projection=riemannian_projection)
                 U = U.at[:, k_].set(u)
                 V = V.at[:, k_].set(v)
-            print(f'iteration {i}: {calc_eigenvalues(X, Y, U, V)}')
+            print(f'iteration {i}: {TCC(X, Y, U, V)}')
     else:
         for k_ in range(k):
             for i in range(iterations):
                 u, v = update(U[:, k_], V[:, k_], X, Y, U, V, k_, lr=lr, riemannian_projection=riemannian_projection)
                 U = U.at[:, k_].set(u)
                 V = V.at[:, k_].set(v)
-                print(f'iteration {i}: {calc_eigenvalues(X, Y, U, V)}')
+                print(f'iteration {i}: {TCC(X, Y, U, V)}')
     return calc_eigenvalues(X, Y, U, V), U, V

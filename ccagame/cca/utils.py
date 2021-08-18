@@ -2,6 +2,13 @@ import jax.numpy as jnp
 import jax.scipy as jsp
 from jax import jit
 from jax import random
+from .numpy import calc_numpy
+
+
+def TCC(X, Y, Wx, Wy):
+    k = Wx.shape[1]
+    return jnp.sum(calc_numpy(jnp.dot(X, Wx), jnp.dot(Y, Wy), k)[0])
+
 
 def gram_schmidt_matrix(W, M):
     for k in range(W.shape[1]):

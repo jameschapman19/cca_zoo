@@ -7,7 +7,7 @@ https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-
 
 import jax.numpy as jnp
 
-from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix
+from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix, TCC
 
 
 # Update rule to be used for calculating eigenvectors
@@ -30,5 +30,5 @@ def calc_genoja(X, Y, k, iterations=100,
         W, V = update(A, B, W, V, beta_0 / (1 + 1e-4 * i), alpha)
         Wx = gram_schmidt_matrix(W[:p], B[:p, :p])
         Wy = gram_schmidt_matrix(W[p:], B[p:, p:])
-        print(f'iteration {i}: {jnp.sum(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, p:], Wy)))}')
+        print(f'iteration {i}: {TCC(X, Y, Wx, Wy)}')
     return jnp.sum(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, p:], Wy))), Wx, Wy
