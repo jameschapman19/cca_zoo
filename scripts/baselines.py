@@ -3,7 +3,7 @@
 import numpy as np
 # Imports
 from ccagame.cca import calc_numpy, calc_sklearn, calc_game, \
-    calc_lscca, calc_lscca_exact, calc_genoja, calc_ccalin
+    calc_lscca, calc_lscca_exact, calc_genoja, calc_ccalin, calc_lagrangeminmax
 from jax import random
 import jax.numpy as jnp
 
@@ -35,7 +35,10 @@ Y = Y/jnp.linalg.norm(Y,axis=0)
 # Model
 corr_sk, U1sk, V1sk = calc_sklearn(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
-corr, U1, V1 = calc_genoja(X, Y, latent_dims, iterations=max_iter,
+corr, U1, V1 = calc_lagrangeminmax(X, Y, latent_dims, iterations=max_iter,
+                           initialization=initialization)
+print("\n Eigenvalues calculated using lagrangeminmax are :\n", corr)
+corr, U1, V1 = calc_genoja(X, Y, 1, iterations=max_iter,
                            initialization=initialization)
 print("\n Eigenvalues calculated using genoja are :\n", corr)
 corr, U1, V1 = calc_ccalin(X, Y, latent_dims, iterations=max_iter,

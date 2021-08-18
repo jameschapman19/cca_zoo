@@ -1,3 +1,8 @@
+"""
+Gen-Oja: A Simple and Efficient Algorithm for
+Streaming Generalized Eigenvector Computation
+https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-Paper.pdf
+"""
 # Importing necessary libraries
 from functools import partial
 
@@ -13,12 +18,12 @@ from ccagame.cca.utils import initialize
 def update(A, B, W, V, beta, alpha):
     W = W - alpha * (jnp.dot(B, W) - jnp.dot(A, V))
     V = V + beta * W
-    return W, jnp.linalg.qr(V)[0]
+    return W, V / jnp.linalg.norm(V)
 
 
 # Run the update step iteratively across all eigenvectors
 def calc_genoja(X, Y, k, iterations=100,
-                alpha=1e-4, beta_0=1e-3, random_state=0, initialization='uniform'):
+                alpha=10, beta_0=10, random_state=0, initialization='uniform'):
     n = X.shape[0]
     p = X.shape[1]
     A = jnp.hstack((X, Y))
@@ -30,7 +35,7 @@ def calc_genoja(X, Y, k, iterations=100,
     V = W
     for i in range(iterations):
         W, V = update(A, B, W, V, beta_0 / (1 + 1e-4 * i), alpha)
-        Wx = jnp.linalg.qr(V[:p])
-        Wy = jnp.linalg.qr(V[p:])
+        Wx = V[:p]
+        Wy = V[p:]
         print(f'iteration {i}: {jnp.sum(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, p:], Wy)))}')
     return jnp.sum(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, p:], Wy))), Wx, Wy

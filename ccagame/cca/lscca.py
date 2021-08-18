@@ -1,3 +1,8 @@
+"""
+Efficient Globally Convergent Stochastic
+Optimization for Canonical Correlation Analysis
+https://proceedings.neurips.cc/paper/2016/file/42998cf32d552343bc8e460416382dca-Paper.pdf
+"""
 # Importing necessary libraries
 import jax.numpy as jnp
 from jax import jit

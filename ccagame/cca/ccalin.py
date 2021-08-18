@@ -1,3 +1,8 @@
+"""
+Efficient Algorithms for Large-scale Generalized Eigenvector
+Computation and Canonical Correlation Analysis
+https://export.arxiv.org/pdf/1604.03930
+"""
 # Importing necessary libraries
 import jax.numpy as jnp
 import jax.scipy as jsp

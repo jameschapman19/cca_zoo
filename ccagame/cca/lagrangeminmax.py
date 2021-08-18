@@ -1,3 +1,8 @@
+"""
+On Constrained Nonconvex Stochastic Optimization: A Case
+Study for Generalized Eigenvalue Decomposition
+http://proceedings.mlr.press/v89/chen19a/chen19a.pdf
+"""
 # Importing necessary libraries
 from functools import partial
 
@@ -18,7 +23,7 @@ def update(A, B, W, Y, lr):
 
 # Run the update step iteratively across all eigenvectors
 def calc_lagrangeminmax(X, Y, k, iterations=100,
-                        lr=1e-3, random_state=0, initialization='uniform'):
+                        lr=10, random_state=0, initialization='random'):
     n = X.shape[0]
     p = X.shape[1]
     A = jnp.hstack((X, Y))
@@ -26,11 +31,11 @@ def calc_lagrangeminmax(X, Y, k, iterations=100,
     B = jsp.linalg.block_diag(jnp.dot(jnp.transpose(X), X), jnp.dot(jnp.transpose(Y), Y)) / n
     A = A - B
     W, V = initialize(X, Y, k, type=initialization, random_state=random_state)
-    W = jnp.vstack(W, V)
-    V = W
+    W = jnp.vstack((W, V))
+    V = jnp.zeros((k, k))
     for i in range(iterations):
         W, V = update(A, B, W, V, lr)
-        Wx = jnp.linalg.qr(W[:p])
-        Wy = jnp.linalg.qr(W[p:])
+        Wx = W[:p]
+        Wy = W[p:]
         print(f'iteration {i}: {jnp.sum(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, p:], Wy)))}')
     return jnp.sum(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, p:], Wy))), Wx, Wy

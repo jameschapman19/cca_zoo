@@ -1,3 +1,7 @@
+"""
+EigenGame: PCA as a Nash Equilibrium
+https://arxiv.org/pdf/2010.00554.pdf
+"""
 # Importing necessary libraries
 from functools import partial
 

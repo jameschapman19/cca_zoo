@@ -1,3 +1,7 @@
+"""
+Exponentially convergent stochastic k-PCA without variance reduction
+https://arxiv.org/pdf/1904.01750.pdf
+"""
 # Importing necessary libraries
 from functools import partial
 
