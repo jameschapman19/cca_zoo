@@ -14,19 +14,19 @@ from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix
 
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=(5))
+#@partial(jit, static_argnums=5)
 def update(A, B, W, V, beta, alpha):
     W = W - alpha * (jnp.dot(B, W) - jnp.dot(A, V))
     V = V + beta * W
-    return W, jnp.linalg.qr(V)[0]
+    return W, V/jnp.linalg.norm(V,axis=0)
 
 
 # Run the update step iteratively across all eigenvectors
 def calc_genoja(X, Y, k, iterations=100,
-                alpha=10, beta_0=10, random_state=0, initialization='uniform'):
+                alpha=10, beta_0=10, random_state=0):
     p = X.shape[1]
     A, B = initialize_gep(X, Y)
-    W, V = initialize(X, Y, k, type=initialization, random_state=random_state)
+    W, V = initialize(X, Y, k, type='random', random_state=random_state)
     W = jnp.vstack((W, V))
     V = W
     for i in range(iterations):
