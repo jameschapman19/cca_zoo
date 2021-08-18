@@ -10,7 +10,7 @@ from .utils import initialize, calc_eigenvalues
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
 # X is the design matrix and V holds the previously computed eigenvectors
-@partial(jit, static_argnums=(5))
+@partial(jit, static_argnums=5)
 def model(u, v, X, Y, V, k):
     C_xy = jnp.dot(jnp.transpose(X), Y)
     C_xx = jnp.dot(jnp.transpose(X), X)

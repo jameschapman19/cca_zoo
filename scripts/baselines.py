@@ -17,8 +17,7 @@ q = 11
 latent_dims = 2
 max_iter = 300
 riemannian_projection = False
-lr = 1e-3
-initialization = 'uniform'
+initialization = 'random'
 
 # %%
 
@@ -35,6 +34,10 @@ Y = Y / jnp.linalg.norm(Y, axis=0)
 # Model
 corr_sk, U1sk, V1sk = calc_sklearn(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
+corr, U1, V1 = calc_game(X, Y, latent_dims, lr=1, iterations=max_iter,
+                         riemannian_projection=riemannian_projection,
+                         initialization=initialization, simultaneous=True)
+print("\n Eigenvalues calculated using game are :\n", corr)
 corr, U1, V1 = calc_genoja(X, Y, latent_dims, iterations=max_iter)
 print("\n Eigenvalues calculated using genoja are :\n", corr)
 corr, U1, V1 = calc_lagrangeminmax(X, Y, latent_dims, iterations=max_iter)
@@ -43,10 +46,6 @@ corr, U1, V1 = calc_ccalin(X, Y, latent_dims, iterations=max_iter,
                            random_state=random_state, verbose=True
                            )
 print("\n Eigenvalues calculated using ccalin are :\n", corr)
-corr, U1, V1 = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
-                         riemannian_projection=riemannian_projection, random_state=random_state,
-                         initialization=initialization, simultaneous=True)
-print("\n Eigenvalues calculated using game are :\n", corr)
 corr_lse, U1_lse, V1_lse = calc_lscca_exact(X, Y, latent_dims, iterations=max_iter,
                                             random_state=random_state,
                                             initialization=initialization)

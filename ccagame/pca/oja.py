@@ -13,7 +13,7 @@ from .utils import calc_eigenvalues, initialize
 def update(u, X, lr=0.1):
     dv = jnp.dot(jnp.dot(jnp.transpose(X), X), u)
     vhat = u + lr * dv
-    return jnp.linalg.qr(vhat)[0]
+    return vhat/jnp.linalg.norm(vhat,axis=0)
 
 
 # Run the update step iteratively across all eigenvectors

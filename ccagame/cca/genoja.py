@@ -4,11 +4,8 @@ Streaming Generalized Eigenvector Computation
 https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-Paper.pdf
 """
 # Importing necessary libraries
-from functools import partial
 
 import jax.numpy as jnp
-import jax.scipy as jsp
-from jax import jit
 
 from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix
 
