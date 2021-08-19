@@ -40,22 +40,34 @@ In case this work is used as part of research I attach a DOI bibtex entry:
 }
 ```
 
-# Canonical Correlation Analysis Methods: cca-zoo
+# Implemented Methods
+## Standard Install
 ### CCA (Canonical Correlation Analysis)
 Solutions based on either alternating least squares or as the solution to genrralized eigenvalue problem
+### PLS (Partial Least Squares)
+
+### rCCA (Ridge Regularized Canonical Correlation Analysis)
+https://www.sciencedirect.com/science/article/abs/pii/0304407676900105?via%3Dihub
 ### GCCA (Generalized CCA)  :
 https://academic.oup.com/biomet/article-abstract/58/3/433/233349?redirectedFrom=fulltext
-### MCCA (Multiset CCA)
+### MCCA (Multiset CCA) : 
+### K(M)CCA (kernel Multiset CCA) : 
 ### TCCA (Tensor CCA) :
 https://arxiv.org/pdf/1502.02330.pdf
+### KTCCA (kernel Tensor CCA) :
+https://arxiv.org/pdf/1502.02330.pdf
 ### SCCA (Sparse CCA) :
-Mai's sparse CCA
+https://onlinelibrary.wiley.com/doi/abs/10.1111/biom.13043
 ### SPLS (Sparse PLS/Penalized Matrix Decomposition)  :
-Witten's sparse CCA
-### PCCA (Penalized CCA - elastic net)
-Waiijenborg's elastic penalized CCA
-## Deep CCA:
-A variety of Deep CCA and related methods. All allow for user to pass their own model architectures. Recently added solutions to DCCA using nob-linear orthogonal iterations (or alternating least squares)
+https://web.stanford.edu/~hastie/Papers/PMD_Witten.pdf
+### ElasticCCA (Penalized CCA) :
+https://pubmed.ncbi.nlm.nih.gov/19689958/
+### SWCCA (Sparse Weighted CCA) : 
+https://arxiv.org/abs/1710.04792v1#:~:text=However%2C%20classical%20and%20sparse%20CCA%20models%20consider%20the,where%20weights%20are%20used%20for%20regularizing%20different%20samples.
+### SpanCCA
+http://akyrillidis.github.io/pubs/Conferences/cca.pdf
+
+## Deep Install
 ### DCCA (Deep CCA) : 
 https://ttic.uchicago.edu/~klivescu/papers/andrew_icml2013.pdf
 https://arxiv.org/pdf/1510.02054v1.pdf
@@ -66,22 +78,17 @@ An alternative objective based on the linear GCCA solution. Can be extended to m
 ### DMCCA (Deep Multiset CCA) :
 https://arxiv.org/abs/1904.01775
 An alternative objective based on the linear MCCA solution. Can be extended to more than 2 views
-
 ### DTCCA (Deep Tensor CCA) :
-
 https://arxiv.org/pdf/2005.11914.pdf
-
 ### DCCAE (Deep Canonically Correlated Autoencoders) :
-
 http://proceedings.mlr.press/v37/wangb15.pdf
-
 ### DVCCA/DVCCA Private (Deep variational CCA):
-
 https://arxiv.org/pdf/1610.03454.pdf
-Wang's DVCCA and DVCCA Private
+## Probabilistic Install
+### Variational Bayes CCA
+https://ieeexplore.ieee.org/document/4182407
 
 # Contributions
-
 A guide to contributions is available at https://cca-zoo.readthedocs.io/en/latest/developer_info/contribute.html
 
 # Sources
