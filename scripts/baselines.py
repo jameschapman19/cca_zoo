@@ -11,10 +11,10 @@ import jax.numpy as jnp
 
 # Parameters
 random_state = 0
-n = 100
-p = 10
-q = 11
-latent_dims = 2
+n = 1000
+p = 100
+q = 110
+latent_dims = 5
 max_iter = 300
 riemannian_projection = True
 initialization = 'random'
@@ -34,12 +34,14 @@ Y = Y / jnp.linalg.norm(Y, axis=0)
 # Model
 corr_sk, U1sk, V1sk = calc_sklearn(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
-corr, U1, V1 = calc_lagrangeminmax(X, Y, latent_dims, iterations=max_iter)
-print("\n Eigenvalues calculated using lagrangeminmax are :\n", corr)
-corr, U1, V1 = calc_game(X, Y, latent_dims, lr=1, iterations=max_iter,
+
+corr, U1, V1 = calc_game(X, Y, latent_dims, lr=10, iterations=max_iter,
                          riemannian_projection=riemannian_projection,
                          initialization=initialization, simultaneous=True)
 print("\n Eigenvalues calculated using game are :\n", corr)
+
+corr, U1, V1 = calc_lagrangeminmax(X, Y, latent_dims, iterations=max_iter)
+print("\n Eigenvalues calculated using lagrangeminmax are :\n", corr)
 corr, U1, V1 = calc_genoja(X, Y, latent_dims, iterations=max_iter)
 print("\n Eigenvalues calculated using genoja are :\n", corr)
 corr, U1, V1 = calc_ccalin(X, Y, latent_dims, iterations=max_iter,

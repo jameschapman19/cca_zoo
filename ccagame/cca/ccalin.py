@@ -59,4 +59,4 @@ def calc_ccalin(X, Y, k, iterations=1000, random_state=0, verbose=False):
     U = random.normal(key, (2 * k, k))
     Wx = gram_schmidt_matrix(jnp.dot(W[:p], U), B[:p, :p])
     Wy = gram_schmidt_matrix(jnp.dot(W[p:], U), B[p:, p:])
-    return calc_eigenvalues(X, Y, Wx, Wy), Wx, Wy
+    return TCC(X, Y, Wx, Wy), Wx, Wy

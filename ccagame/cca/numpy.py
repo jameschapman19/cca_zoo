@@ -2,11 +2,12 @@
 from functools import partial
 import jax.numpy as jnp
 import jax.scipy as jsp
+from jax import jit
 import numpy as np
 
 
 # Calculate the eigenvalues of covariance matrix of X using Numpy for comparison
-
+#@partial(jit, static_argnums=3)
 def calc_numpy(X, Y, k, r=0):
     dof = X.shape[0] - 1
     C = jnp.hstack((X, Y))

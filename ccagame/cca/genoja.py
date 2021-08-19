@@ -31,4 +31,4 @@ def calc_genoja(X, Y, k, iterations=100,
         Wx = gram_schmidt_matrix(W[:p], B[:p, :p])
         Wy = gram_schmidt_matrix(W[p:], B[p:, p:])
         print(f'iteration {i}: {TCC(X, Y, Wx, Wy)}')
-    return jnp.sum(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, p:], Wy))), Wx, Wy
+    return TCC(X, Y, Wx, Wy), Wx, Wy
