@@ -18,11 +18,16 @@ class VariationalCCA(_CCA_Base):
 
     :Example:
 
+
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state: int = 0):
+    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state: int = 0,
+                 num_samples=100, num_warmup=100):
         super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, accept_sparse=True,
                          random_state=random_state)
+        self.num_samples = num_samples
+        self.num_warmup = num_warmup
+        self.rng_key = PRNGKey(random_state)
 
     def fit(self, *views: np.ndarray):
         """
@@ -31,9 +36,8 @@ class VariationalCCA(_CCA_Base):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
         nuts_kernel = NUTS(self.model)
-        self.mcmc = MCMC(nuts_kernel, num_samples=100, num_warmup=100)
-        rng_key = PRNGKey(0)
-        self.mcmc.run(rng_key, *views)
+        self.mcmc = MCMC(nuts_kernel, num_samples=self.num_samples, num_warmup=self.num_warmup)
+        self.mcmc.run(self.rng_key, *views)
         self.posterior_samples = self.mcmc.get_samples()
         return self
 
@@ -49,25 +53,16 @@ class VariationalCCA(_CCA_Base):
     def model(self, *views: np.ndarray):
         n = views[0].shape[0]
         p = [view.shape[1] for view in views]
-        # mean of column in each view of data (p_1,)
+        # parameter representing the mean of column in each view of data
         mu = [numpyro.sample("mu_" + str(i), dist.MultivariateNormal(0., 10 * jnp.eye(p_))) for i, p_ in enumerate(p)]
-        """
-        Generates cholesky factors of correlation matrices using an LKJ prior.
-
-        The expected use is to combine it with a vector of variances and pass it
-        to the scale_tril parameter of a multivariate distribution such as MultivariateNormal.
-
-        E.g., if theta is a (positive) vector of covariances with the same dimensionality
-        as this distribution, and Omega is sampled from this distribution,
-        scale_tril=torch.mm(torch.diag(sqrt(theta)), Omega)
-        """
+        # parameter representing the within view variance for each view of data
         psi = [numpyro.sample("psi_" + str(i), dist.LKJCholesky(p_)) for i, p_ in enumerate(p)]
-        # sample weights to get from latent to data space (k,p)
+        # parameter representing weights applied to latent variables
         with numpyro.plate("plate_views", self.latent_dims):
             self.weights_list = [numpyro.sample("W_" + str(i), dist.MultivariateNormal(0., jnp.diag(jnp.ones(p_)))) for
                                  i, p_ in enumerate(p)]
         with numpyro.plate("plate_i", n):
-            # sample from latent z - normally disributed (n,k)
+            # sample from latent z: the latent variables of the model
             z = numpyro.sample("z", dist.MultivariateNormal(0., jnp.diag(jnp.ones(self.latent_dims))))
             # sample from multivariate normal and observe data
             [numpyro.sample("obs" + str(i), dist.MultivariateNormal((z @ W_) + mu_, scale_tril=psi_), obs=X_) for
