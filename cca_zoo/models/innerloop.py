@@ -34,14 +34,14 @@ class _InnerLoop:
 
     def initialize(self):
         if self.initialization == 'random':
-            self.scores = np.array([self.random_state.randn(view.shape[0]) for view in self.views])
+            self.scores = np.array([self.random_state.randn(view.shape[0], 1) for view in self.views])
         if self.initialization == 'uniform':
-            self.scores = np.array([np.ones(view.shape[0]) for view in self.views])
+            self.scores = np.array([np.ones(view.shape[0], 1) for view in self.views])
         elif self.initialization == 'unregularized':
             self.scores = PLSInnerLoop(initialization='random', random_state=self.random_state, tol=self.tol).fit(
                 *self.views).scores
         self.scores = self.scores * np.sqrt(self.n - 1) / np.linalg.norm(self.scores, axis=1)[:, np.newaxis]
-        self.weights = [self.random_state.randn(view.shape[1]) for view in self.views]
+        self.weights = [self.random_state.randn(view.shape[1], 1) for view in self.views]
 
     def fit(self, *views: np.ndarray):
         self.views = views
@@ -262,11 +262,11 @@ class ElasticInnerLoop(PLSInnerLoop):
         else:
             self.elastic_solver(self.views[view_index], target, view_index)
         _check_converged_weights(self.weights[view_index], view_index)
-        self.scores[view_index] = (self.views[view_index] @ self.weights[view_index]).ravel()
+        self.scores[view_index] = (self.views[view_index] @ self.weights[view_index])
 
     @ignore_warnings(category=ConvergenceWarning)
     def elastic_solver(self, X, y, view_index):
-        self.weights[view_index] = self.regressors[view_index].fit(X, y.ravel()).coef_
+        self.weights[view_index] = np.expand_dims(self.regressors[view_index].fit(X, y.ravel()).coef_, 1)
         self.weights[view_index] /= np.linalg.norm(self.views[view_index] @ self.weights[view_index]) / np.sqrt(self.n)
 
     @ignore_warnings(category=ConvergenceWarning)

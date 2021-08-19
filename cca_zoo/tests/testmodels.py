@@ -6,7 +6,7 @@ import scipy.sparse as sp
 from sklearn.utils.validation import check_random_state
 
 from cca_zoo.models import CCA, PLS, CCA_ALS, SCCA, PMD, ElasticCCA, rCCA, KCCA, KTCCA, MCCA, GCCA, TCCA, SCCA_ADMM, \
-    SpanCCA, SWCCA
+    SpanCCA, SWCCA, PLS_ALS
 
 
 class TestModels(TestCase):
@@ -27,6 +27,8 @@ class TestModels(TestCase):
         latent_dims = 2
         cca = CCA(latent_dims=latent_dims).fit(self.X, self.Y)
         iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9, random_state=self.rng, stochastic=False).fit(self.X, self.Y)
+        iter_pls = PLS_ALS(latent_dims=latent_dims, tol=1e-9, initialization='unregularized',
+                           centre=False).fit(self.X, self.Y)
         gcca = GCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         mcca = MCCA(latent_dims=latent_dims, eps=1e-9).fit(self.X, self.Y)
         kcca = KCCA(latent_dims=latent_dims).fit(self.X, self.Y)
@@ -63,8 +65,9 @@ class TestModels(TestCase):
         # Tests unregularized CCA methods. The idea is that all of these should give the same result.
         latent_dims = 2
         cca = CCA(latent_dims=latent_dims, centre=False).fit(self.X_sp, self.Y_sp)
-        iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9, stochastic=False, centre=False,
-                       initialization='unregularized').fit(self.X_sp, self.Y_sp)
+        iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9, stochastic=False, centre=False).fit(self.X_sp, self.Y_sp)
+        iter_pls = PLS_ALS(latent_dims=latent_dims, tol=1e-9, initialization='unregularized',
+                           centre=False).fit(self.X_sp, self.Y_sp)
         gcca = GCCA(latent_dims=latent_dims, centre=False).fit(self.X_sp, self.Y_sp)
         mcca = MCCA(latent_dims=latent_dims, centre=False).fit(self.X_sp, self.Y_sp)
         kcca = KCCA(latent_dims=latent_dims, centre=False).fit(self.X_sp, self.Y_sp)

@@ -72,9 +72,9 @@ class _Iterative(_CCA_Base):
         for k in range(self.latent_dims):
             self.loop = self.loop.fit(*residuals)
             for i, residual in enumerate(residuals):
-                self.weights[i][:, k] = self.loop.weights[i]
-                self.scores[i][:, k] = self.loop.scores[i]
-                self.loadings[i][:, k] = np.dot(self.loop.scores[i], residual)
+                self.weights[i][:, k] = self.loop.weights[i].ravel()
+                self.scores[i][:, k] = self.loop.scores[i].ravel()
+                self.loadings[i][:, k] = np.dot(self.scores[i][:, k], residual)
                 # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
                 residuals[i] = self._deflate(residuals[i], self.scores[i][:, k], self.weights[i][:, k])
             self.objective.append(self.loop.track_objective)
