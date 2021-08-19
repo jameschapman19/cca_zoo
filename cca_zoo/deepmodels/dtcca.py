@@ -3,7 +3,6 @@ from typing import Iterable
 import numpy as np
 
 from cca_zoo.deepmodels import objectives
-from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
 from cca_zoo.deepmodels.dcca import DCCA
 from cca_zoo.models import TCCA
 
@@ -20,7 +19,7 @@ class DTCCA(DCCA):
     >>> model = DTCCA()
     """
 
-    def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
+    def __init__(self, latent_dims: int, encoders=None,
                  r: float = 0, eps: float = 1e-3):
         """
 

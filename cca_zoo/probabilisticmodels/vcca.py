@@ -2,10 +2,9 @@ import jax.numpy as jnp
 import numpy as np
 import numpyro
 import numpyro.distributions as dist
-from jax import random
-from numpyro.infer import MCMC, NUTS
+from jax.random import PRNGKey
+from numpyro.infer import MCMC, NUTS, Predictive
 
-# import arviz as az
 from cca_zoo.models import _CCA_Base
 
 
@@ -19,11 +18,6 @@ class VariationalCCA(_CCA_Base):
 
     :Example:
 
-    >>> from cca_zoo.probabilisticmodels import VariationalCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = VariationalCCA()
-    >>> _model.fit(X1,X2)
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state: int = 0):
@@ -31,14 +25,28 @@ class VariationalCCA(_CCA_Base):
                          random_state=random_state)
 
     def fit(self, *views: np.ndarray):
-        nuts_kernel = NUTS(self._model)
+        """
+        Infer the parameters (mu: mean, psi: within view variance) and latent variables (z) of the generative CCA model
+
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        """
+        nuts_kernel = NUTS(self.model)
         self.mcmc = MCMC(nuts_kernel, num_samples=100, num_warmup=100)
-        rng_key = random.PRNGKey(0)
+        rng_key = PRNGKey(0)
         self.mcmc.run(rng_key, *views)
         self.posterior_samples = self.mcmc.get_samples()
         return self
 
-    def _model(self, *views: np.ndarray):
+    def transform(self, *views):
+        """
+        Predict the latent variables that generate the data in views using the sampled model parameters
+
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        """
+        return Predictive(self.model, self.posterior_samples, return_sites=['z'])(
+            PRNGKey(1), *views)['z']
+
+    def model(self, *views: np.ndarray):
         n = views[0].shape[0]
         p = [view.shape[1] for view in views]
         # mean of column in each view of data (p_1,)
@@ -64,15 +72,3 @@ class VariationalCCA(_CCA_Base):
             # sample from multivariate normal and observe data
             [numpyro.sample("obs" + str(i), dist.MultivariateNormal((z @ W_) + mu_, scale_tril=psi_), obs=X_) for
              i, (X_, psi_, mu_, W_) in enumerate(zip(views, psi, mu, self.weights_list))]
-
-
-def main():
-    np.random.seed(42)
-    X = np.random.rand(100, 10)
-    Y = np.random.rand(100, 10)
-    vcca = VariationalCCA(latent_dims=1).fit(X, Y)
-    print()
-
-
-if __name__ == "__main__":
-    main()

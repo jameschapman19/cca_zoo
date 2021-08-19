@@ -1,9 +1,7 @@
-from typing import Iterable
-
 import torch
 import torch.nn.functional as F
 
-from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, BaseDecoder, Decoder
+from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, Decoder
 from cca_zoo.deepmodels.dcca import _DCCA_base
 
 
@@ -18,7 +16,7 @@ class SplitAE(_DCCA_base):
     """
 
     def __init__(self, latent_dims: int, encoder: BaseEncoder = Encoder,
-                 decoders: Iterable[BaseDecoder] = [Decoder, Decoder]):
+                 decoders=None):
         """
 
         :param latent_dims: # latent dimensions
@@ -26,6 +24,8 @@ class SplitAE(_DCCA_base):
         :param decoders:  list of decoder networks
         """
         super().__init__(latent_dims=latent_dims)
+        if decoders is None:
+            decoders = [Decoder, Decoder]
         self.encoder = encoder
         self.decoders = torch.nn.ModuleList(decoders)
 

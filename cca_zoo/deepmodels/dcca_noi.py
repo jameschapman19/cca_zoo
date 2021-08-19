@@ -1,11 +1,9 @@
 from typing import Iterable
-from typing import List
 
 import numpy as np
 import torch
 
 from cca_zoo.deepmodels import objectives
-from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
 from cca_zoo.deepmodels.dcca import DCCA
 from cca_zoo.models import MCCA
 
@@ -21,7 +19,7 @@ class DCCA_NOI(DCCA):
     """
 
     def __init__(self, latent_dims: int, N: int,
-                 encoders: List[BaseEncoder] = [Encoder, Encoder],
+                 encoders=None,
                  r: float = 0, rho: float = 0.2, eps: float = 1e-3, shared_target: bool = False):
         """
         Constructor class for DCCA

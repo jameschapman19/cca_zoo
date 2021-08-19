@@ -1,9 +1,7 @@
-from typing import Iterable
-
 import torch
 
 from cca_zoo.deepmodels import objectives
-from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
+from cca_zoo.deepmodels.architectures import Encoder
 from cca_zoo.models import MCCA
 from ._dcca_base import _DCCA_base
 
@@ -19,7 +17,7 @@ class DCCA(_DCCA_base):
     """
 
     def __init__(self, latent_dims: int, objective=objectives.MCCA,
-                 encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
+                 encoders=None,
                  r: float = 0, eps: float = 1e-3):
         """
         Constructor class for DCCA
@@ -31,6 +29,8 @@ class DCCA(_DCCA_base):
         :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
         """
         super().__init__(latent_dims=latent_dims)
+        if encoders is None:
+            encoders = [Encoder, Encoder]
         self.encoders = torch.nn.ModuleList(encoders)
         self.objective = objective(latent_dims, r=r, eps=eps)
 

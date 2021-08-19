@@ -63,10 +63,12 @@ class TestModels(TestCase):
         # Tests unregularized CCA methods. The idea is that all of these should give the same result.
         latent_dims = 2
         cca = CCA(latent_dims=latent_dims, centre=False).fit(self.X_sp, self.Y_sp)
-        iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9, stochastic=False, centre=False).fit(self.X_sp, self.Y_sp)
+        iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9, stochastic=False, centre=False,
+                       initialization='unregularized').fit(self.X_sp, self.Y_sp)
         gcca = GCCA(latent_dims=latent_dims, centre=False).fit(self.X_sp, self.Y_sp)
         mcca = MCCA(latent_dims=latent_dims, centre=False).fit(self.X_sp, self.Y_sp)
         kcca = KCCA(latent_dims=latent_dims, centre=False).fit(self.X_sp, self.Y_sp)
+        scca = SCCA(latent_dims=latent_dims, centre=False, c=0.001).fit(self.X_sp, self.Y_sp)
         corr_cca = cca.score(self.X, self.Y)
         corr_iter = iter.score(self.X, self.Y)
         corr_gcca = gcca.score(self.X, self.Y)

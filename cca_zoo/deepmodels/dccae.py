@@ -1,10 +1,8 @@
-from typing import Iterable
-
 import torch
 from torch.nn import functional as F
 
 from cca_zoo.deepmodels import objectives
-from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, BaseDecoder, Decoder
+from cca_zoo.deepmodels.architectures import Encoder, Decoder
 from cca_zoo.deepmodels.dcca import _DCCA_base
 
 
@@ -19,8 +17,8 @@ class DCCAE(_DCCA_base):
     """
 
     def __init__(self, latent_dims: int, objective=objectives.MCCA,
-                 encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
-                 decoders: Iterable[BaseDecoder] = [Decoder, Decoder], r: float = 0, eps: float = 1e-3, lam=0.5):
+                 encoders=None,
+                 decoders=None, r: float = 0, eps: float = 1e-3, lam=0.5):
         """
         :param latent_dims: # latent dimensions
         :param objective: # CCA objective: normal tracenorm CCA by default
@@ -31,6 +29,10 @@ class DCCAE(_DCCA_base):
         :param lam: weight of reconstruction loss (1 minus weight of correlation loss)
         """
         super().__init__(latent_dims=latent_dims)
+        if decoders is None:
+            decoders = [Decoder, Decoder]
+        if encoders is None:
+            encoders = [Encoder, Encoder]
         self.encoders = torch.nn.ModuleList(encoders)
         self.decoders = torch.nn.ModuleList(decoders)
         if lam < 0 or lam > 1:

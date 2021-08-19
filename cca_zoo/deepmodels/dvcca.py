@@ -4,7 +4,7 @@ import torch
 import torch.distributions as dist
 from torch.nn import functional as F
 
-from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, BaseDecoder, Decoder
+from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, Decoder
 from cca_zoo.deepmodels.dcca import _DCCA_base
 
 
@@ -17,8 +17,8 @@ class DVCCA(_DCCA_base):
     # https: // github.com / pytorch / examples / blob / master / vae / main.py
     """
 
-    def __init__(self, latent_dims: int, encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
-                 decoders: Iterable[BaseDecoder] = [Decoder, Decoder], private_encoders: Iterable[BaseEncoder] = None):
+    def __init__(self, latent_dims: int, encoders=None,
+                 decoders=None, private_encoders: Iterable[BaseEncoder] = None):
         """
         :param latent_dims: # latent dimensions
         :param encoders: list of encoder networks
@@ -26,6 +26,10 @@ class DVCCA(_DCCA_base):
         :param private_encoders: list of private (view specific) encoder networks
         """
         super().__init__(latent_dims=latent_dims)
+        if decoders is None:
+            decoders = [Decoder, Decoder]
+        if encoders is None:
+            encoders = [Encoder, Encoder]
         self.encoders = torch.nn.ModuleList(encoders)
         self.decoders = torch.nn.ModuleList(decoders)
         if private_encoders:
