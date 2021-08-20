@@ -11,25 +11,20 @@ from .utils import initialize, calc_eigenvalues, TCC
 # update step, v is the current eigenvector being calculated
 # X is the design matrix and V holds the previously computed eigenvectors
 @partial(jit, static_argnums=5)
-def model(u, v, X, Y, V, k):
+def model(u, v, X, Y, U, k):
     C_xy = jnp.dot(jnp.transpose(X), Y)
-    C_xx = jnp.dot(jnp.transpose(X), X)
-    C_yy = jnp.dot(jnp.transpose(Y), Y)
-    rewards = jnp.dot(jnp.transpose(u), jnp.dot(C_xy, v)) ** 2 / (
-            jnp.dot(jnp.transpose(u), jnp.dot(C_xx, u)) * jnp.dot(jnp.transpose(v), jnp.dot(C_yy, v)))
+    rewards = u.T@C_xy@v
     penalties = 0
     for j in range(k):
-        penalties = penalties + jnp.dot(jnp.transpose(u), jnp.dot(C_xy, V[:, j].reshape(-1, 1))) ** 2 / (jnp.dot(
-            jnp.transpose(V[:, j].reshape(-1, 1)), jnp.dot(C_yy, V[:, j].reshape(-1, 1))) * jnp.dot(
-            jnp.transpose(u), jnp.dot(C_xx, u)))
+        penalties = penalties + u.T@U[:, j]
     return jnp.sum(rewards - penalties)
 
 
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=6, static_argnames=('lr', 'riemannian_projection'))
 def update(u, v, X, Y, U, V, k, lr=1, riemannian_projection=False):
-    du = grad(model)(u, v, X, Y, V, k)
-    dv = grad(model)(v, u, Y, X, U, k)
+    du = grad(model)(u, v, X, Y, U, k)
+    dv = grad(model)(v, u, Y, X, V, k)
     if riemannian_projection:
         dur = du - (u.T@u) * u
         uhat = u + lr * dur
