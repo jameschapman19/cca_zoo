@@ -13,7 +13,7 @@ from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix, T
 # Update rule to be used for calculating eigenvectors
 # @partial(jit, static_argnums=5)
 def update(A, B, W, V, beta, alpha):
-    W = W - alpha * (B@W - A@V)
+    W = W - alpha * (B @ W - A @ V)
     V = V + beta * W
     return W, V / jnp.linalg.norm(V, axis=0)
 

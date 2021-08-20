@@ -1,10 +1,7 @@
 # Importing necessary libraries
 
-from functools import partial
-
 import jax.numpy as jnp
 import numpy as np
-from jax import jit
 
 from .utils import TV, initialize
 
@@ -17,10 +14,11 @@ def update(X, Y, U, S, V, k):
     vhat = Y @ V
     v_orth = Y - Y @ V @ V.T
     Q = jnp.vstack((jnp.hstack((jnp.diag(S) + uhat.T @ vhat, jnp.linalg.norm(v_orth) * uhat.T)),
-                   jnp.hstack((jnp.linalg.norm(u_orth) * vhat, jnp.atleast_2d(jnp.linalg.norm(u_orth) * jnp.linalg.norm(v_orth))))))
+                    jnp.hstack((jnp.linalg.norm(u_orth) * vhat,
+                                jnp.atleast_2d(jnp.linalg.norm(u_orth) * jnp.linalg.norm(v_orth))))))
     U_, S, V_ = jnp.linalg.svd(Q)
-    U = jnp.hstack((U, u_orth.T / jnp.linalg.norm(u_orth)))@U_[:,:k]
-    V = jnp.hstack((V, v_orth.T / jnp.linalg.norm(v_orth)))@V_[:,:k]
+    U = jnp.hstack((U, u_orth.T / jnp.linalg.norm(u_orth))) @ U_[:, :k]
+    V = jnp.hstack((V, v_orth.T / jnp.linalg.norm(v_orth))) @ V_[:, :k]
     return U, S[:k], V
 
 

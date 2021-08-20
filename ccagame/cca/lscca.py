@@ -7,14 +7,14 @@ https://proceedings.neurips.cc/paper/2016/file/42998cf32d552343bc8e460416382dca-
 import jax.numpy as jnp
 from jax import jit
 
-from .utils import initialize, calc_eigenvalues, TCC
+from .utils import initialize, TCC
 
 
 # Update rule to be used for calculating eigenvectors
 @jit
 def update(X, Y, U, V):
-    vhat = jnp.linalg.lstsq(Y, X@U)[0]
-    uhat = jnp.linalg.lstsq(X, Y@V)[0]
+    vhat = jnp.linalg.lstsq(Y, X @ U)[0]
+    uhat = jnp.linalg.lstsq(X, Y @ V)[0]
     return jnp.linalg.qr(uhat)[0], jnp.linalg.qr(vhat)[0]
 
 

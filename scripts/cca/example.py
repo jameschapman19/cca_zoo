@@ -32,19 +32,19 @@ Y = Y / jnp.linalg.norm(Y, axis=0)
 # %%
 
 # Model
-corr_sk, U1sk, V1sk = calc_sklearn(X, Y, k=latent_dims)
+corr_sk, Usk, Vsk = calc_sklearn(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 print("\n Sum :\n", jnp.sum(corr_sk))
-corr_np, U1np, V1np = calc_numpy(X, Y, k=latent_dims)
+corr_np, Unp, Vnp = calc_numpy(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 print("\n Sum :\n", jnp.sum(corr_np))
-corr, U1, V1 = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
+corr, U, V = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
                          riemannian_projection=riemannian_projection, random_state=random_state, simultaneous=True)
 print("\n Eigenvalues calculated using game are :\n", corr)
 print("\n Sum :\n", jnp.sum(corr))
-print("\n Left Eigenvectors calculated using numpy are :\n", U1np)
-print("\n Left Eigenvectors calculated using the Eigengame are :\n", U1)
-print("\n Right Eigenvectors calculated using numpy are :\n", V1np)
-print("\n Right Eigenvectors calculated using the Eigengame are :\n", V1)
+print("\n Left Eigenvectors calculated using numpy are :\n", Unp)
+print("\n Left Eigenvectors calculated using the Eigengame are :\n", U)
+print("\n Right Eigenvectors calculated using numpy are :\n", Vnp)
+print("\n Right Eigenvectors calculated using the Eigengame are :\n", V)
 print("\n Squared error in estimation of eigenvectors as compared to numpy :\n",
-      np.sum((np.abs(U1np) - np.abs(U1)) ** 2, axis=0))
+      np.sum((np.abs(Unp) - np.abs(U)) ** 2, axis=0))

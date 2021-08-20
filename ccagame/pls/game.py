@@ -1,8 +1,7 @@
 # Importing necessary libraries
-from functools import partial
 
 import jax.numpy as jnp
-from jax import jit, grad
+from jax import grad
 
 from .utils import initialize, TV
 

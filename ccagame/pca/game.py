@@ -22,7 +22,7 @@ def model(u, X, U, k):
     penalties = 0
     for j in range(k):
         penalties = penalties + (u.T @ M @ U[:, j].reshape(-1, 1)) ** 2 / (
-                    U[:, j].reshape(-1, 1).T @ M @ U[:, j].reshape(-1, 1))
+                U[:, j].reshape(-1, 1).T @ M @ U[:, j].reshape(-1, 1))
     return jnp.sum(rewards - penalties)
 
 
