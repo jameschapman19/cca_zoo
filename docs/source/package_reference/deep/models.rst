@@ -1,5 +1,5 @@
 Deep Model Wrapper
----------------------------
+^^^^^^^^^^^^^^^^^^^
 
 .. currentmodule:: cca_zoo.deepmodels
 
@@ -10,7 +10,7 @@ Deep Model Wrapper
 
 
 DCCA
---------------------
+^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: DCCA
    :members:
@@ -18,7 +18,7 @@ DCCA
    :undoc-members:
 
 DCCA by Non-linear Orthogonal Iterations
-------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: DCCA_NOI
    :members:
@@ -26,7 +26,7 @@ DCCA by Non-linear Orthogonal Iterations
    :undoc-members:
 
 DCCAE
----------------------
+^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: DCCAE
    :members:
@@ -34,7 +34,7 @@ DCCAE
    :undoc-members:
 
 DTCCA
----------------------
+^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: DTCCA
    :members:
@@ -42,7 +42,7 @@ DTCCA
    :undoc-members:
 
 DVCCA
----------------------
+^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: DVCCA
    :members:
@@ -50,7 +50,7 @@ DVCCA
    :undoc-members:
 
 Split Autoencoder
------------------------
+^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: SplitAE
    :members:
@@ -58,7 +58,7 @@ Split Autoencoder
    :undoc-members:
 
 Encoder and Decoder Architectures + Template
----------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: architectures
    :members:
@@ -66,7 +66,7 @@ Encoder and Decoder Architectures + Template
    :undoc-members:
 
 Objective Functions
---------------------------
+^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: objectives
    :members:
