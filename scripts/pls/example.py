@@ -40,8 +40,8 @@ corr_np, Unp, Vnp = calc_numpy(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 print("\n Sum :\n", jnp.sum(corr_np))
 
-corr_b, Ub, Vb = calc_incremental(X, Y, k=latent_dims)
-print("\n Eigenvalues calculated using incremental are :\n", corr_b)
+corr_b, Ub, Vb = calc_batch(X, Y, k=latent_dims)
+print("\n Eigenvalues calculated using batch are :\n", corr_b)
 print("\n Sum :\n", jnp.sum(corr_b))
 
 corr_inc, Uinc, Vinc = calc_incremental(X, Y, k=latent_dims)
