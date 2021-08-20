@@ -155,5 +155,3 @@ ElasticCCA
    :show-inheritance:
    :undoc-members:
    :exclude-members: get_params, set_params
-
-.. currentmodule:: cca_zoo.models

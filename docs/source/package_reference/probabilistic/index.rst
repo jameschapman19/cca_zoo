@@ -1,5 +1,5 @@
-Standard install
-=================
+Probabilistic install
+======================
 
 Modules included in the standard pip install
 
