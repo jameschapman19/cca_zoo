@@ -2,7 +2,7 @@
 
 import numpy as np
 # Imports
-from ccagame.pls import calc_numpy, calc_sklearn
+from ccagame.pls import calc_numpy, calc_sklearn, calc_game
 from jax import random
 
 # %%
@@ -11,7 +11,7 @@ from jax import random
 random_state = 0
 n = 100
 p = 10
-q = 10
+q = 11
 latent_dims = 3
 max_iter = 500
 riemannian_projection = False
