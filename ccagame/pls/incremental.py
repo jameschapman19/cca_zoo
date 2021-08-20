@@ -18,17 +18,18 @@ def update(X, Y, U, S, V, k):
                                 jnp.atleast_2d(jnp.linalg.norm(u_orth) * jnp.linalg.norm(v_orth))))))
     U_, S, V_ = jnp.linalg.svd(Q)
     U = jnp.hstack((U, u_orth.T / jnp.linalg.norm(u_orth))) @ U_[:, :k]
-    V = jnp.hstack((V, v_orth.T / jnp.linalg.norm(v_orth))) @ V_[:, :k]
+    V = jnp.hstack((V, v_orth.T / jnp.linalg.norm(v_orth))) @ V_.T[:, :k]
     return U, S[:k], V
 
 
 # Run the update step iteratively across all eigenvectors
 def calc_incremental(X, Y, k, iterations=100,
                      random_state=0):
+    n = X.shape[0]
     U, V = initialize(X, Y, k, 'random', random_state)
     S = np.zeros(k)
     for i in range(iterations):
-        for idx in range(X.shape[0]):
-            U, S, V = update(X[idx, None], Y[idx, None], U, S, V, k)
-            print(f'iteration {i}: {TV(X, Y, U, V)}')
+        idx = i % n
+        U, S, V = update(X[idx, None], Y[idx, None], U, S, V, k)
+        print(f'iteration {i}: {TV(X, Y, U, V)}')
     return TV(X, Y, U, V), U, V
