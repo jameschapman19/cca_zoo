@@ -22,4 +22,4 @@ def calc_lscca_exact(X, Y, k, iterations=100, initialization='uniform',
     for i in range(iterations):
         U, V = update(X, Y, Hx, Hy, U, V)
         print(f'iteration {i}: {TCC(X, Y, U, V)}')
-    return calc_eigenvalues(X, Y, U, V), U, V
+    return TCC(X, Y, U, V), U, V

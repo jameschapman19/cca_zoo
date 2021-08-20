@@ -31,4 +31,4 @@ def calc_lagrangeminmax(X, Y, k, iterations=100,
         # print(f'iteration {i}: {jnp.sum(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, p:], Wy)))}')
     Wx = gram_schmidt_matrix(W[:p], B[:p, :p])
     Wy = gram_schmidt_matrix(W[p:], B[p:, p:])
-    return jnp.sum(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, p:], Wy))), Wx, Wy
+    return TCC(X, Y, W[:p], W[p:]), Wx, Wy
