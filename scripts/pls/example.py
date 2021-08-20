@@ -36,7 +36,7 @@ corr_np, U1np, V1np = calc_numpy(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 corr, U1, V1 = calc_game(X, Y, latent_dims, lr=1e-1, iterations=max_iter,
                          riemannian_projection=riemannian_projection, random_state=random_state,
-                         initialization=initialization,simultaneous=True)
+                         simultaneous=True)
 print("\n Eigenvalues calculated using game are :\n", corr)
 print("\n Left Eigenvectors calculated using numpy are :\n", U1np)
 print("\n Left Eigenvectors calculated using the Eigengame are :\n", U1)

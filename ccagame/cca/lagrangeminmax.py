@@ -14,7 +14,7 @@ from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix, T
 # @partial(jit, static_argnums=5)
 def update(A, B, W, lr):
     Y = jnp.dot(jnp.transpose(W), jnp.dot(A, W))
-    W = W - lr * (jnp.dot(jnp.dot(B, W), Y) - jnp.dot(A, W))
+    W = W - lr * (B@W@Y - A@W)
     return W
 
 

@@ -12,11 +12,11 @@ from .utils import gram_schmidt_matrix, initialize_gep, TCC
 
 
 def obj(W, A, B, Wt):
-    return jnp.trace(0.5 * jnp.dot(jnp.dot(jnp.transpose(W), B), W) - jnp.dot(jnp.dot(jnp.transpose(W), A), Wt))
+    return jnp.trace(0.5 * W.T@B@W - W.T@A@Wt)
 
 
 def gamma(W, A):
-    return jnp.dot(jnp.dot(jnp.transpose(W), A), W)
+    return W.T@A@W
 
 
 def GenELinK_update(W, A, B, lr, mu, iterations):
@@ -44,8 +44,8 @@ def GenELinK(A, B, k, iterations=1000, random_state=0, verbose=False, X=None, Y=
         if verbose:
             key = random.PRNGKey(random_state)
             U = random.normal(key, (k, int(k / 2)))
-            Wx = gram_schmidt_matrix(jnp.dot(W[:p], U), B[:p, :p])
-            Wy = gram_schmidt_matrix(jnp.dot(W[p:], U), B[p:, p:])
+            Wx = gram_schmidt_matrix(W[:p]@ U, B[:p, :p])
+            Wy = gram_schmidt_matrix(W[p:]@ U, B[p:, p:])
             print(f'iteration {i}: {TCC(X, Y, Wx, Wy)}')
     return W
 

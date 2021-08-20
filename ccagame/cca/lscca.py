@@ -12,9 +12,9 @@ from .utils import initialize, calc_eigenvalues, TCC
 
 # Update rule to be used for calculating eigenvectors
 @jit
-def update(X, Y, U1, V1):
-    vhat = jnp.linalg.lstsq(Y, jnp.dot(X, U1))[0]
-    uhat = jnp.linalg.lstsq(X, jnp.dot(Y, V1))[0]
+def update(X, Y, U, V):
+    vhat = jnp.linalg.lstsq(Y, X@U)[0]
+    uhat = jnp.linalg.lstsq(X, Y@V)[0]
     return jnp.linalg.qr(uhat)[0], jnp.linalg.qr(vhat)[0]
 
 

@@ -10,9 +10,9 @@ from .utils import initialize, TV
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
 # X is the design matrix and V holds the previously computed eigenvectors
-@partial(jit, static_argnums=5)
+#@partial(jit, static_argnums=5)
 def model(u, v, X, Y, U, k):
-    C_xy = jnp.dot(jnp.transpose(X), Y)
+    C_xy = X.T@Y
     rewards = u.T @ C_xy @ v
     penalties = 0
     for j in range(k):
@@ -21,7 +21,7 @@ def model(u, v, X, Y, U, k):
 
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=6, static_argnames=('lr', 'riemannian_projection'))
+#@partial(jit, static_argnums=6, static_argnames=('lr', 'riemannian_projection'))
 def update(u, v, X, Y, U, V, k, lr=1, riemannian_projection=False):
     du = grad(model)(u, v, X, Y, U, k)
     dv = grad(model)(v, u, Y, X, V, k)
@@ -37,9 +37,9 @@ def update(u, v, X, Y, U, V, k, lr=1, riemannian_projection=False):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_game(X, Y, k, lr=1, iterations=100, riemannian_projection=False, initialization='uniform',
+def calc_game(X, Y, k, lr=1, iterations=100, riemannian_projection=False,
               random_state=0, simultaneous=False):
-    U, V = initialize(X, Y, k, initialization, random_state)
+    U, V = initialize(X, Y, k, 'random', random_state)
     if simultaneous:
         for i in range(iterations):
             for k_ in range(k):
