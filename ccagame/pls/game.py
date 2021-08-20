@@ -4,7 +4,7 @@ from functools import partial
 import jax.numpy as jnp
 from jax import jit, grad
 
-from .utils import initialize, calc_eigenvalues, TCC
+from .utils import initialize, TV
 
 
 # Define utlity function, we will take grad of this in the
@@ -13,10 +13,10 @@ from .utils import initialize, calc_eigenvalues, TCC
 @partial(jit, static_argnums=5)
 def model(u, v, X, Y, U, k):
     C_xy = jnp.dot(jnp.transpose(X), Y)
-    rewards = u.T@C_xy@v
+    rewards = u.T @ C_xy @ v
     penalties = 0
     for j in range(k):
-        penalties = penalties + u.T@U[:, j]
+        penalties = penalties + u.T @ U[:, j]
     return jnp.sum(rewards - penalties)
 
 
@@ -26,9 +26,9 @@ def update(u, v, X, Y, U, V, k, lr=1, riemannian_projection=False):
     du = grad(model)(u, v, X, Y, U, k)
     dv = grad(model)(v, u, Y, X, V, k)
     if riemannian_projection:
-        dur = du - (u.T@u) * u
+        dur = du - (u.T @ u) * u
         uhat = u + lr * dur
-        dvr = dv - (v.T@v) * v
+        dvr = dv - (v.T @ v) * v
         vhat = v + lr * dvr
     else:
         uhat = u + lr * du
@@ -46,12 +46,12 @@ def calc_game(X, Y, k, lr=1, iterations=100, riemannian_projection=False, initia
                 u, v = update(U[:, k_], V[:, k_], X, Y, U, V, k_, lr=lr, riemannian_projection=riemannian_projection)
                 U = U.at[:, k_].set(u)
                 V = V.at[:, k_].set(v)
-            print(f'iteration {i}: {TCC(X, Y, U, V)}')
+            print(f'iteration {i}: {TV(X, Y, U, V)}')
     else:
         for k_ in range(k):
             for i in range(iterations):
                 u, v = update(U[:, k_], V[:, k_], X, Y, U, V, k_, lr=lr, riemannian_projection=riemannian_projection)
                 U = U.at[:, k_].set(u)
                 V = V.at[:, k_].set(v)
-                print(f'iteration {i}: {TCC(X, Y, U, V)}')
-    return calc_eigenvalues(X, Y, U, V), U, V
+                print(f'iteration {i}: {TV(X, Y, U, V)}')
+    return TV(X, Y, U, V), U, V

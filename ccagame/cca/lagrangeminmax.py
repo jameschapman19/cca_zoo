@@ -27,8 +27,8 @@ def calc_lagrangeminmax(X, Y, k, iterations=100,
     W = jnp.vstack((W, V))
     for i in range(iterations):
         W = update(A, B, W, lr)
-        print(f'iteration {i}: {TCC(X,Y,W[:p],W[p:])}')
-        #print(f'iteration {i}: {jnp.sum(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, p:], Wy)))}')
+        print(f'iteration {i}: {TCC(X, Y, W[:p], W[p:])}')
+        # print(f'iteration {i}: {jnp.sum(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, p:], Wy)))}')
     Wx = gram_schmidt_matrix(W[:p], B[:p, :p])
     Wy = gram_schmidt_matrix(W[p:], B[p:, p:])
     return jnp.sum(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, p:], Wy))), Wx, Wy

@@ -31,9 +31,9 @@ def update(u, v, X, Y, U, V, k, lr=1, riemannian_projection=False):
     du = grad(model)(u, v, X, Y, V, k)
     dv = grad(model)(v, u, Y, X, U, k)
     if riemannian_projection:
-        dur = du - (u.T@u) * u
+        dur = du - (u.T @ u) * u
         uhat = u + lr * dur
-        dvr = dv - (v.T@v) * v
+        dvr = dv - (v.T @ v) * v
         vhat = v + lr * dvr
     else:
         uhat = u + lr * du

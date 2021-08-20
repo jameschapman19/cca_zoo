@@ -2,6 +2,7 @@ import jax.numpy as jnp
 import jax.scipy as jsp
 from jax import jit
 from jax import random
+
 from .numpy import calc_numpy
 
 

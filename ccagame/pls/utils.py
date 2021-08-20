@@ -1,11 +1,11 @@
 import jax.numpy as jnp
 import jax.scipy as jsp
-from jax import jit
 from jax import random
+
 from .numpy import calc_numpy
 
 
-def TCC(X, Y, Wx, Wy):
+def TV(X, Y, Wx, Wy):
     k = Wx.shape[1]
     return jnp.sum(calc_numpy(jnp.dot(X, Wx), jnp.dot(Y, Wy), k)[0])
 
@@ -18,23 +18,6 @@ def gram_schmidt_matrix(W, M):
         W = W.at[:, k].set(W[:, k] - jnp.sum(C, axis=1))
         W = W.at[:, k].set(W[:, k] / jnp.sqrt(jnp.dot(jnp.transpose(W[:, k]), jnp.dot(M, W[:, k]))))
     return W
-
-
-# Calculate eigenvalues once the eigenvectors have been computed
-@jit
-def calc_eigenvalues(X, Y, U1, V1):
-    C_xy = jnp.dot(jnp.transpose(X), Y)
-    C_xx = jnp.dot(jnp.transpose(X), X)
-    C_yy = jnp.dot(jnp.transpose(Y), Y)
-    n = jnp.size(V1, axis=1)
-    eigvals = jnp.zeros((1, n))
-    for k in range(n):
-        eigvals = eigvals.at[:, k].set(jnp.dot(U1[:, k], jnp.dot(C_xy, V1[:, k].reshape(-1, 1))) / (
-                jnp.sqrt(jnp.dot(U1[:, k], jnp.dot(C_xx, U1[:, k].reshape(-1, 1)))) * jnp.sqrt(
-            jnp.dot(V1[:, k], jnp.dot(C_yy,
-                                      V1[:, k].reshape(
-                                          -1, 1))))))
-    return eigvals
 
 
 def initialize(X, Y, k, type='uniform', random_state=0):

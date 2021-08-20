@@ -1,5 +1,6 @@
 import jax.numpy as jnp
 from jax import random
+
 from .numpy import calc_numpy
 
 

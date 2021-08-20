@@ -16,6 +16,7 @@ def update(u, X, lr=0.1):
     vhat = u + lr * dv
     return vhat / jnp.linalg.norm(vhat, axis=0)
 
+
 def calc_gha(X, k, lr=1e-1, iterations=100, initialization='uniform',
              random_state=0):
     U = initialize(X, k, type=initialization, random_state=random_state)

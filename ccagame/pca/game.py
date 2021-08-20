@@ -17,11 +17,12 @@ from .utils import TV, initialize
 # X is the design matrix and V holds the previously computed eigenvectors
 @partial(jit, static_argnums=(3))
 def model(u, X, U, k):
-    M = X.T@X
-    rewards = u.T@M@u
+    M = X.T @ X
+    rewards = u.T @ M @ u
     penalties = 0
     for j in range(k):
-        penalties = penalties + (u.T@M@U[:, j].reshape(-1, 1))**2 / (U[:, j].reshape(-1, 1).T@M@ U[:, j].reshape(-1, 1))
+        penalties = penalties + (u.T @ M @ U[:, j].reshape(-1, 1)) ** 2 / (
+                    U[:, j].reshape(-1, 1).T @ M @ U[:, j].reshape(-1, 1))
     return jnp.sum(rewards - penalties)
 
 
@@ -29,7 +30,7 @@ def model(u, X, U, k):
 def update(u, X, U, k, lr=0.1, riemannian_projection=False):
     du = jax.grad(model)(u, X, U, k)
     if riemannian_projection:
-        dur = du - (u.T@u) * u
+        dur = du - (u.T @ u) * u
         uhat = u + lr * dur
     else:
         uhat = u + lr * du
