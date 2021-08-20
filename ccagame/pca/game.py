@@ -27,7 +27,7 @@ def model(u, X, U, k):
 
 
 # Update rule to be used for calculating eigenvectors
-def update(u, X, U, k, lr=0.1, riemannian_projection=False):
+def update(u, X, U, k, lr=1, riemannian_projection=False):
     du = jax.grad(model)(u, X, U, k)
     if riemannian_projection:
         dur = du - (u.T @ u) * u
@@ -37,7 +37,7 @@ def update(u, X, U, k, lr=0.1, riemannian_projection=False):
     return uhat / jnp.linalg.norm(uhat)
 
 
-def calc_game(X, k, lr=1e-1, iterations=100, riemannian_projection=False, initialization='uniform',
+def calc_game(X, k, lr=1, iterations=100, riemannian_projection=False, initialization='uniform',
               random_state=0, simultaneous=False):
     U = initialize(X, k, type=initialization, random_state=random_state)
     obj = []

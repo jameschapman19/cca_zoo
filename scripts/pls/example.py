@@ -16,7 +16,7 @@ latent_dims = 3
 max_iter = 500
 riemannian_projection = False
 #EIGENGAME IS SUPER SENSITIVE TO LR IT LIKES A BIG ONE
-lr = 1
+lr = 1e-1
 initialization = 'uniform'
 
 # %%

@@ -17,9 +17,7 @@ q = 10
 latent_dims = 3
 max_iter = 500
 riemannian_projection = False
-#EIGENGAME IS SUPER SENSITIVE TO LR IT LIKES A BIG ONE
-lr = 1
-initialization = 'uniform'
+lr = 1e-1
 
 # %%
 
@@ -27,21 +25,23 @@ initialization = 'uniform'
 key = random.PRNGKey(random_state)
 key, subkey = random.split(key)
 X = random.normal(key, (n, p))
-X = X/jnp.linalg.norm(X,axis=0)
+X = X / jnp.linalg.norm(X, axis=0)
 Y = random.normal(subkey, (n, q))
-Y = Y/jnp.linalg.norm(Y,axis=0)
+Y = Y / jnp.linalg.norm(Y, axis=0)
 
 # %%
 
 # Model
 corr_sk, U1sk, V1sk = calc_sklearn(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
+print("\n Sum :\n", jnp.sum(corr_sk))
 corr_np, U1np, V1np = calc_numpy(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
+print("\n Sum :\n", jnp.sum(corr_np))
 corr, U1, V1 = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
-                         riemannian_projection=riemannian_projection, random_state=random_state,
-                         initialization=initialization,simultaneous=True)
+                         riemannian_projection=riemannian_projection, random_state=random_state, simultaneous=True)
 print("\n Eigenvalues calculated using game are :\n", corr)
+print("\n Sum :\n", jnp.sum(corr))
 print("\n Left Eigenvectors calculated using numpy are :\n", U1np)
 print("\n Left Eigenvectors calculated using the Eigengame are :\n", U1)
 print("\n Right Eigenvectors calculated using numpy are :\n", V1np)

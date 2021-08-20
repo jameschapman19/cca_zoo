@@ -10,23 +10,20 @@ from .utils import initialize, calc_eigenvalues, TCC
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
 # X is the design matrix and V holds the previously computed eigenvectors
-@partial(jit, static_argnums=5)
+#@partial(jit, static_argnums=5)
 def model(u, v, X, Y, V, k):
     C_xy = jnp.dot(jnp.transpose(X), Y)
     C_xx = jnp.dot(jnp.transpose(X), X)
     C_yy = jnp.dot(jnp.transpose(Y), Y)
-    rewards = jnp.dot(jnp.transpose(u), jnp.dot(C_xy, v)) ** 2 / (
-            jnp.dot(jnp.transpose(u), jnp.dot(C_xx, u)) * jnp.dot(jnp.transpose(v), jnp.dot(C_yy, v)))
+    rewards = (u.T @ C_xy @ v)**2 / (v.T @ C_yy @ v)
     penalties = 0
     for j in range(k):
-        penalties = penalties + jnp.dot(jnp.transpose(u), jnp.dot(C_xy, V[:, j].reshape(-1, 1))) ** 2 / (jnp.dot(
-            jnp.transpose(V[:, j].reshape(-1, 1)), jnp.dot(C_yy, V[:, j].reshape(-1, 1))) * jnp.dot(
-            jnp.transpose(u), jnp.dot(C_xx, u)))
-    return jnp.sum(rewards - penalties)
+        penalties = penalties + (u.T @ C_xy @ V[:, j])**2 / (V[:, j].T @ C_yy @ V[:, j])
+    return jnp.sum(rewards - penalties) / (u.T @ C_xx @ u)
 
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=6, static_argnames=('lr', 'riemannian_projection'))
+#@partial(jit, static_argnums=6, static_argnames=('lr', 'riemannian_projection'))
 def update(u, v, X, Y, U, V, k, lr=1, riemannian_projection=False):
     du = grad(model)(u, v, X, Y, V, k)
     dv = grad(model)(v, u, Y, X, U, k)
@@ -42,9 +39,9 @@ def update(u, v, X, Y, U, V, k, lr=1, riemannian_projection=False):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_game(X, Y, k, lr=1, iterations=100, riemannian_projection=False, initialization='uniform',
+def calc_game(X, Y, k, lr=1, iterations=100, riemannian_projection=False,
               random_state=0, simultaneous=False):
-    U, V = initialize(X, Y, k, initialization, random_state)
+    U, V = initialize(X, Y, k, 'random', random_state)
     if simultaneous:
         for i in range(iterations):
             for k_ in range(k):

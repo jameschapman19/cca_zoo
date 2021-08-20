@@ -6,7 +6,7 @@ from ccagame import pca
 n = 100
 p = 10
 dims = 3
-lr = 1
+lr = 1e-1
 
 key = random.PRNGKey(0)
 X = random.normal(key, (n, p))

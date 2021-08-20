@@ -14,7 +14,7 @@ from .utils import TV, initialize
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=(2))
 def update(u, X, lr=0.1):
-    du = jnp.dot(jnp.dot(jnp.transpose(X - jnp.dot(jnp.dot(X, u), jnp.transpose(u))), X), u)
+    du = (X - X @ u @ u.T).T @ X @ u
     vhat = u + lr * du
     return jnp.linalg.qr(vhat)[0]
 
