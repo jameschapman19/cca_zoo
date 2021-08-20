@@ -2,7 +2,7 @@
 
 import numpy as np
 # Imports
-from ccagame.pls import calc_numpy, calc_sklearn, calc_game, calc_sgd
+from ccagame.pls import calc_numpy, calc_sklearn, calc_game, calc_sgd, calc_incremental
 from jax import random
 import jax.numpy as jnp
 # %%
@@ -40,8 +40,8 @@ corr_np, U1np, V1np = calc_numpy(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 print("\n Sum :\n", jnp.sum(corr_np))
 
-corr_inc, U1inc, V1inc = calc_sgd(X, Y, k=latent_dims)
-print("\n Eigenvalues calculated using numpy are :\n", corr_inc)
+corr_inc, U1inc, V1inc = calc_incremental(X, Y, k=latent_dims)
+print("\n Eigenvalues calculated using incremental are :\n", corr_inc)
 print("\n Sum :\n", jnp.sum(corr_inc))
 
 corr_sg, U1sg, V1sg = calc_sgd(X, Y, k=latent_dims)
