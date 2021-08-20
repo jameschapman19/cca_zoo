@@ -18,7 +18,9 @@ latent_dims = 5
 max_iter = 300
 riemannian_projection = True
 initialization = 'random'
-lr=1
+lr=1e-1
+alpha=100
+beta_0=100
 
 # %%
 
@@ -37,15 +39,15 @@ corr_sk, Usk, Vsk = calc_sklearn(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 print("\n Sum :\n", jnp.sum(corr_sk))
 
+corr_go, Ugo, Vgo = calc_genoja(X, Y, latent_dims, iterations=max_iter, alpha=alpha,beta_0=beta_0)
+print("\n Eigenvalues calculated using genoja are :\n", corr_go)
+print("\n Sum :\n", jnp.sum(corr_go))
+
 corr, U, V = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
                          riemannian_projection=riemannian_projection,
                          simultaneous=True)
 print("\n Eigenvalues calculated using game are :\n", corr)
 print("\n Sum :\n", jnp.sum(corr))
-
-corr_go, Ugo, Vgo = calc_genoja(X, Y, latent_dims, iterations=max_iter, alpha=lr,beta_0=lr)
-print("\n Eigenvalues calculated using genoja are :\n", corr)
-print("\n Sum :\n", jnp.sum(corr_go))
 
 corr_l, Ul, Vl = calc_lagrangeminmax(X, Y, latent_dims, iterations=max_iter)
 print("\n Eigenvalues calculated using lagrangeminmax are :\n", corr)
