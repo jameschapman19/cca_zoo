@@ -6,10 +6,11 @@ from ccagame import pca
 n = 100
 p = 10
 dims = 3
-lr = 1e-3
+lr = 1
 
 key = random.PRNGKey(0)
 X = random.normal(key, (n, p))
+X = X/jnp.linalg.norm(X,axis=0)
 
 vals_np, vecs_np = pca.calc_numpy(X, dims)
 print("\n Eigenvalues calculated using numpy are :\n", vals_np)
@@ -23,7 +24,7 @@ vals_oj, vecs_oj, obj_oj = pca.calc_oja(X, dims, lr=lr)
 print("\n Eigenvalues calculated using oja are :\n", vals_oj)
 print("\n Sum :\n", jnp.sum(vals_oj))
 
-vals, vecs, obj = pca.calc_game(X, dims, lr=1e-1, simultaneous=True)
+vals, vecs, obj = pca.calc_game(X, dims, lr=lr, simultaneous=True)
 print("\n Eigenvalues calculate using the Eigengame are :\n", vals)
 print("\n Sum :\n", jnp.sum(vals))
 
