@@ -83,7 +83,7 @@ class _InnerLoop:
         obj = 0
         for (score_i, score_j) in combinations(self.scores, 2):
             obj += score_i.T @ score_j
-        return np.item(obj)
+        return obj.item()
 
 
 class PLSInnerLoop(_InnerLoop):
