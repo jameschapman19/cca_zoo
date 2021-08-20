@@ -3,18 +3,21 @@ from jax import random
 
 from ccagame import pca
 
-
 n = 100
 p = 10
 dims = 3
-lr=1e-3
+lr = 1e-3
 
 key = random.PRNGKey(0)
 X = random.normal(key, (n, p))
 
-vals_np, vecs_np = pca.calc_numpy(X,dims)
+vals_np, vecs_np = pca.calc_numpy(X, dims)
 print("\n Eigenvalues calculated using numpy are :\n", vals_np)
 print("\n Sum :\n", jnp.sum(vals_np))
+
+vals_sk, vecs_sk = pca.calc_sklearn(X, dims)
+print("\n Eigenvalues calculated using sk are :\n", vals_sk)
+print("\n Sum :\n", jnp.sum(vals_sk))
 
 vals_oj, vecs_oj, obj_oj = pca.calc_oja(X, dims, lr=lr)
 print("\n Eigenvalues calculated using oja are :\n", vals_oj)

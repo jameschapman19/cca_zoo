@@ -2,8 +2,7 @@
 
 import numpy as np
 # Imports
-from ccagame.cca import calc_numpy, calc_sklearn, calc_game, \
-    calc_lscca, calc_lscca_exact, calc_genoja, calc_ccalin
+from ccagame.pls import calc_numpy, calc_sklearn
 from jax import random
 
 # %%

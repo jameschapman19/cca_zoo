@@ -5,8 +5,7 @@ from functools import partial
 import jax.numpy as jnp
 from jax import jit
 
-from .utils import calc_eigenvalues
-from .utils import initialize
+from .utils import initialize, TV
 
 
 # Update rule to be used for calculating eigenvectors
@@ -23,6 +22,6 @@ def calc_gha(X, k, lr=1e-1, iterations=100, initialization='uniform',
     obj = []
     for i in range(iterations):
         U = update(U, X, lr=lr)
-        obj.append(calc_eigenvalues(X, U))
+        obj.append(TV(X, U))
         print(f'iteration {i}: {obj[-1]}')
-    return calc_eigenvalues(X, U), U, obj
+    return TV(X, U), U, obj

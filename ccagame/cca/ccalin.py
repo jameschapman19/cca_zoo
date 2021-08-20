@@ -8,7 +8,7 @@ import jax.numpy as jnp
 from jax import random
 
 from ccagame.solver import agd_solve
-from .utils import calc_eigenvalues, gram_schmidt_matrix, initialize_gep, TCC
+from .utils import gram_schmidt_matrix, initialize_gep, TCC
 
 
 def obj(W, A, B, Wt):
