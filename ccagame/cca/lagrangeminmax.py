@@ -4,14 +4,15 @@ Study for Generalized Eigenvalue Decomposition
 https://proceedings.mlr.press/v89/chen19a/chen19a.pdf
 """
 # Importing necessary libraries
-
+from functools import partial
+from jax import jit
 import jax.numpy as jnp
 
 from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix, TCC
 
 
 # Update rule to be used for calculating eigenvectors
-# @partial(jit, static_argnums=5)
+@partial(jit, static_argnums=5)
 def update(A, B, W, lr):
     Y = jnp.dot(jnp.transpose(W), jnp.dot(A, W))
     W = W - lr * (B @ W @ Y - A @ W)

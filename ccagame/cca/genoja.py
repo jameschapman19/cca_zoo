@@ -4,14 +4,15 @@ Streaming Generalized Eigenvector Computation
 https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-Paper.pdf
 """
 # Importing necessary libraries
-
+from functools import partial
+from jax import jit
 import jax.numpy as jnp
 
 from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix, TCC
 
 
 # Update rule to be used for calculating eigenvectors
-# @partial(jit, static_argnums=5)
+@partial(jit, static_argnums=5)
 def update(A, B, W, V, beta, alpha):
     W = W - alpha * (B @ W - A @ V)
     V = V + beta * W
@@ -20,7 +21,7 @@ def update(A, B, W, V, beta, alpha):
 
 # Run the update step iteratively across all eigenvectors
 def calc_genoja(X, Y, k, iterations=100,
-                alpha=10, beta_0=10, random_state=0):
+                alpha=1, beta_0=1, random_state=0):
     p = X.shape[1]
     A, B = initialize_gep(X, Y)
     W, V = initialize(X, Y, k, type='random', random_state=random_state)

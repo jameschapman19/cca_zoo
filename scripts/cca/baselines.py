@@ -18,6 +18,7 @@ latent_dims = 5
 max_iter = 300
 riemannian_projection = True
 initialization = 'random'
+lr=1
 
 # %%
 
@@ -32,33 +33,38 @@ Y = Y / jnp.linalg.norm(Y, axis=0)
 # %%
 
 # Model
-corr_sk, U1sk, V1sk = calc_sklearn(X, Y, k=latent_dims)
+corr_sk, Usk, Vsk = calc_sklearn(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
+print("\n Sum :\n", jnp.sum(corr_sk))
 
-corr, U1, V1 = calc_game(X, Y, latent_dims, lr=10, iterations=max_iter,
+corr, U, V = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
                          riemannian_projection=riemannian_projection,
-                         initialization=initialization, simultaneous=True)
+                         simultaneous=True)
 print("\n Eigenvalues calculated using game are :\n", corr)
+print("\n Sum :\n", jnp.sum(corr))
 
-corr, U1, V1 = calc_lagrangeminmax(X, Y, latent_dims, iterations=max_iter)
-print("\n Eigenvalues calculated using lagrangeminmax are :\n", corr)
-corr, U1, V1 = calc_genoja(X, Y, latent_dims, iterations=max_iter)
+corr_go, Ugo, Vgo = calc_genoja(X, Y, latent_dims, iterations=max_iter, alpha=lr,beta_0=lr)
 print("\n Eigenvalues calculated using genoja are :\n", corr)
-corr, U1, V1 = calc_ccalin(X, Y, latent_dims, iterations=max_iter,
+print("\n Sum :\n", jnp.sum(corr_go))
+
+corr_l, Ul, Vl = calc_lagrangeminmax(X, Y, latent_dims, iterations=max_iter)
+print("\n Eigenvalues calculated using lagrangeminmax are :\n", corr)
+print("\n Sum :\n", jnp.sum(corr_l))
+
+corr_cl, Ucl, Vcl = calc_ccalin(X, Y, latent_dims, iterations=max_iter,
                            random_state=random_state, verbose=True
                            )
 print("\n Eigenvalues calculated using ccalin are :\n", corr)
-corr_lse, U1_lse, V1_lse = calc_lscca_exact(X, Y, latent_dims, iterations=max_iter,
+print("\n Sum :\n", jnp.sum(corr_cl))
+
+corr_lse, U_lse, V_lse = calc_lscca_exact(X, Y, latent_dims, iterations=max_iter,
                                             random_state=random_state,
                                             initialization=initialization)
 print("\n Eigenvalues calculated using lsccae are :\n", corr_lse)
-corr_ls, U1_ls, V1_ls = calc_lscca(X, Y, latent_dims, iterations=max_iter,
+print("\n Sum :\n", jnp.sum(corr_lse))
+
+corr_ls, U_ls, V_ls = calc_lscca(X, Y, latent_dims, iterations=max_iter,
                                    random_state=random_state,
                                    initialization=initialization)
 print("\n Eigenvalues calculated using lscca are :\n", corr_ls)
-corr_np, U1np, V1np = calc_numpy(X, Y, k=latent_dims)
-print("\n Eigenvalues calculated using numpy are :\n", corr_np)
-print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
-print("\n Eigenvalues calculated using numpy are :\n", corr_np)
-print("\n Eigenvalues calculated using lscca are :\n", corr_ls)
-print("\n Eigenvalues calculate using the game are :\n", corr)
+print("\n Sum :\n", jnp.sum(corr_ls))
