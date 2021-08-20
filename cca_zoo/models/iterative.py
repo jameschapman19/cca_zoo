@@ -75,7 +75,6 @@ class _Iterative(_CCA_Base):
                 self.weights[i][:, k] = self.loop.weights[i].ravel()
                 self.scores[i][:, k] = self.loop.scores[i].ravel()
                 self.loadings[i][:, k] = np.dot(self.scores[i][:, k], residual)
-                # TODO This is CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
                 residuals[i] = self._deflate(residuals[i], self.scores[i][:, k], self.weights[i][:, k])
             self.objective.append(self.loop.track_objective)
         return self
@@ -118,7 +117,6 @@ class PLS_ALS(_Iterative):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 deflation='cca',
                  max_iter: int = 100,
                  generalized: bool = False,
                  initialization: str = 'unregularized', tol: float = 1e-9):
@@ -130,13 +128,12 @@ class PLS_ALS(_Iterative):
         :param centre: demean data by column before fitting (and before transforming out of sample
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
-        :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, deflation=deflation,
+        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, deflation='pls',
                          max_iter=max_iter,
                          generalized=generalized,
                          initialization=initialization, tol=tol, random_state=random_state)
