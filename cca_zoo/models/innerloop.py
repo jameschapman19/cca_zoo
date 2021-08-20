@@ -36,7 +36,7 @@ class _InnerLoop:
         if self.initialization == 'random':
             self.scores = np.array([self.random_state.randn(view.shape[0], 1) for view in self.views])
         if self.initialization == 'uniform':
-            self.scores = np.array([np.ones(view.shape[0], 1) for view in self.views])
+            self.scores = np.array([np.ones((view.shape[0], 1)) for view in self.views])
         elif self.initialization == 'unregularized':
             self.scores = PLSInnerLoop(initialization='random', random_state=self.random_state, tol=self.tol).fit(
                 *self.views).scores
@@ -427,7 +427,7 @@ class SpanCCAInnerLoop(_InnerLoop):
         self.positive = _process_parameter('positive', self.positive, False, len(self.views))
 
     def inner_iteration(self):
-        c = self.random_state.randn(self.rank)
+        c = self.random_state.randn(self.rank, 1)
         c /= np.linalg.norm(c)
         a = self.P @ np.diag(self.D) @ c
         u = self.update(a, self.c[0])
@@ -586,7 +586,7 @@ def _support_soft_thresh(x, support, positive=False):
         u = np.clip(x, 0, None)
     else:
         u = np.abs(x)
-    idx = np.argpartition(x, x.shape[0] - support)
+    idx = np.argpartition(x.ravel(), x.shape[0] - support)
     u[idx[:-support]] = 0
     return u * np.sign(x)
 
