@@ -21,8 +21,8 @@ def model(u, X, U, k):
     rewards = u.T @ M @ u
     penalties = 0
     for j in range(k):
-        penalties = penalties + (u.T @ M @ U[:, j].reshape(-1, 1)) ** 2 / (
-                U[:, j].reshape(-1, 1).T @ M @ U[:, j].reshape(-1, 1))
+        penalties = penalties + (u.T @ M @ U[:, j]) ** 2 / (
+                U[:, j].T @ M @ U[:, j])
     return jnp.sum(rewards - penalties)
 
 
@@ -37,14 +37,14 @@ def update(u, X, U, k, lr=1, riemannian_projection=False):
     return uhat / jnp.linalg.norm(uhat)
 
 
-def calc_game(X, k, lr=1, iterations=100, riemannian_projection=False, initialization='uniform',
+def calc_game(X, k, lr=1, iterations=100, riemannian_projection=False, initialization='random',
               random_state=0, simultaneous=False):
     U = initialize(X, k, type=initialization, random_state=random_state)
     obj = []
     if simultaneous:
         for i in range(iterations):
             for k_ in range(k):
-                u = update(U[:, k], X, U, k_, lr=lr, riemannian_projection=riemannian_projection)
+                u = update(U[:, k_], X, U, k_, lr=lr, riemannian_projection=riemannian_projection)
                 U = U.at[:, k_].set(u)
             obj.append(TV(X, U))
             print(f'iteration {i}: {obj[-1]}')

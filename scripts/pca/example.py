@@ -20,6 +20,10 @@ vals_sk, vecs_sk = pca.calc_sklearn(X, dims)
 print("\n Eigenvalues calculated using sk are :\n", vals_sk)
 print("\n Sum :\n", jnp.sum(vals_sk))
 
+vals, vecs, obj = pca.calc_game(X, dims, lr=lr, simultaneous=True)
+print("\n Eigenvalues calculate using the Eigengame are :\n", vals)
+print("\n Sum :\n", jnp.sum(vals))
+
 vals_gha, vecs_gha, obj_gha = pca.calc_gha(X, dims, lr=lr)
 print("\n Eigenvalues calculated using gha are :\n", vals_gha)
 print("\n Sum :\n", jnp.sum(vals_gha))
@@ -27,10 +31,6 @@ print("\n Sum :\n", jnp.sum(vals_gha))
 vals_oj, vecs_oj, obj_oj = pca.calc_oja(X, dims, lr=lr)
 print("\n Eigenvalues calculated using oja are :\n", vals_oj)
 print("\n Sum :\n", jnp.sum(vals_oj))
-
-vals, vecs, obj = pca.calc_game(X, dims, lr=lr, simultaneous=True)
-print("\n Eigenvalues calculate using the Eigengame are :\n", vals)
-print("\n Sum :\n", jnp.sum(vals))
 
 vals_kr, vecs_kr, obj_kr = pca.calc_krasulina(X, dims, lr=lr)
 print("\n Eigenvalues calculated using krasulina are :\n", vals_kr)
