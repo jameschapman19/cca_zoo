@@ -1,4 +1,5 @@
 numpyro
+jax
 arviz
 numpy
 scikit-learn
