@@ -40,6 +40,12 @@ corr_np, Unp, Vnp = calc_numpy(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 print("\n Sum :\n", jnp.sum(corr_np))
 
+corr, U, V = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
+                         riemannian_projection=riemannian_projection, random_state=random_state,
+                         simultaneous=True)
+print("\n Eigenvalues calculated using game are :\n", corr)
+print("\n Sum :\n", jnp.sum(corr))
+
 corr_inc, Uinc, Vinc = calc_incremental(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using incremental are :\n", corr_inc)
 print("\n Sum :\n", jnp.sum(corr_inc))
@@ -51,9 +57,3 @@ print("\n Sum :\n", jnp.sum(corr_b))
 corr_sg, Usg, Vsg = calc_sgd(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using sgd are :\n", corr_sg)
 print("\n Sum :\n", jnp.sum(corr_sg))
-
-corr, U, V = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
-                         riemannian_projection=riemannian_projection, random_state=random_state,
-                         simultaneous=True)
-print("\n Eigenvalues calculated using game are :\n", corr)
-print("\n Sum :\n", jnp.sum(corr))
