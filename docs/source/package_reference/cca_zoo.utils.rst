@@ -4,7 +4,7 @@ cca\_zoo.utils package
 Submodules
 ----------
 
-cca\_zoo.utils.check\_values module
+cca\_zoo.utils.check\_values
 -----------------------------------
 
 .. automodule:: cca_zoo.utils.check_values
@@ -12,7 +12,7 @@ cca\_zoo.utils.check\_values module
    :undoc-members:
    :show-inheritance:
 
-cca\_zoo.utils.plot\_utils module
+cca\_zoo.utils.plot\_utils
 ---------------------------------
 
 .. automodule:: cca_zoo.utils.plot_utils
@@ -20,7 +20,7 @@ cca\_zoo.utils.plot\_utils module
    :undoc-members:
    :show-inheritance:
 
-cca\_zoo.utils.sklearn\_integrate module
+cca\_zoo.utils.sklearn\_integrate
 ----------------------------------------
 
 .. automodule:: cca_zoo.utils.sklearn_integrate

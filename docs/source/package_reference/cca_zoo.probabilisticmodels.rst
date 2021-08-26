@@ -4,7 +4,7 @@ cca\_zoo.probabilisticmodels package
 Submodules
 ----------
 
-cca\_zoo.probabilisticmodels.vcca module
+cca\_zoo.probabilisticmodels.vcca
 ----------------------------------------
 
 .. automodule:: cca_zoo.probabilisticmodels.vcca

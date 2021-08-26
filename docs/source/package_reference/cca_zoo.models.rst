@@ -4,7 +4,7 @@ cca\_zoo.models package
 Submodules
 ----------
 
-cca\_zoo.models.cca\_base module
+cca\_zoo.models.cca\_base
 --------------------------------
 
 .. automodule:: cca_zoo.models.cca_base
@@ -12,7 +12,7 @@ cca\_zoo.models.cca\_base module
    :undoc-members:
    :show-inheritance:
 
-cca\_zoo.models.gcca module
+cca\_zoo.models.gcca
 ---------------------------
 
 .. automodule:: cca_zoo.models.gcca
@@ -20,23 +20,25 @@ cca\_zoo.models.gcca module
    :undoc-members:
    :show-inheritance:
 
-cca\_zoo.models.innerloop module
+cca\_zoo.models.innerloop
 --------------------------------
 
 .. automodule:: cca_zoo.models.innerloop
+   :private-members:
    :members:
    :undoc-members:
    :show-inheritance:
 
-cca\_zoo.models.iterative module
+cca\_zoo.models.iterative
 --------------------------------
 
 .. automodule:: cca_zoo.models.iterative
+   :private-members:
    :members:
    :undoc-members:
    :show-inheritance:
 
-cca\_zoo.models.mcca module
+cca\_zoo.models.mcca
 ---------------------------
 
 .. automodule:: cca_zoo.models.mcca
@@ -44,7 +46,7 @@ cca\_zoo.models.mcca module
    :undoc-members:
    :show-inheritance:
 
-cca\_zoo.models.rcca module
+cca\_zoo.models.rcca
 ---------------------------
 
 .. automodule:: cca_zoo.models.rcca
@@ -52,7 +54,7 @@ cca\_zoo.models.rcca module
    :undoc-members:
    :show-inheritance:
 
-cca\_zoo.models.tcca module
+cca\_zoo.models.tcca
 ---------------------------
 
 .. automodule:: cca_zoo.models.tcca
@@ -64,6 +66,7 @@ Module contents
 ---------------
 
 .. automodule:: cca_zoo.models
+   :private-members:
    :members:
    :undoc-members:
    :show-inheritance:

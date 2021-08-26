@@ -1,9 +1,6 @@
 Reference
 ================
 
-Subpackages
------------
-
 .. toctree::
    :maxdepth: 4
 
@@ -12,11 +9,3 @@ Subpackages
    cca_zoo.models
    cca_zoo.probabilisticmodels
    cca_zoo.utils
-
-Module contents
----------------
-
-.. automodule:: cca_zoo
-   :members:
-   :undoc-members:
-   :show-inheritance:

@@ -4,7 +4,7 @@ cca\_zoo.data package
 Submodules
 ----------
 
-cca\_zoo.data.simulated module
+cca\_zoo.data.simulated
 ------------------------------
 
 .. automodule:: cca_zoo.data.simulated
@@ -12,7 +12,7 @@ cca\_zoo.data.simulated module
    :undoc-members:
    :show-inheritance:
 
-cca\_zoo.data.toy module
+cca\_zoo.data.toy
 ------------------------
 
 .. automodule:: cca_zoo.data.toy
@@ -20,7 +20,7 @@ cca\_zoo.data.toy module
    :undoc-members:
    :show-inheritance:
 
-cca\_zoo.data.utils module
+cca\_zoo.data.utils
 --------------------------
 
 .. automodule:: cca_zoo.data.utils
