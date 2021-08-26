@@ -11,7 +11,7 @@ Documentation
    
    documentation/getting_started
    documentation/tutorials
-   package_reference/cca_zoo
+   package_reference/cca_zoo.rst
    developer_info
 
    
