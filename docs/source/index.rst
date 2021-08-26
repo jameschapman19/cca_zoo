@@ -11,22 +11,9 @@ Documentation
    
    documentation/getting_started
    documentation/tutorials
+   package_reference/cca_zoo
+   developer_info
 
-.. toctree::
-   :maxdepth: 4
-   :caption: Package Reference:
-
-   package_reference/standard/index
-   package_reference/deep/index
-   package_reference/probabilistic/index
-
-.. toctree::
-   :maxdepth: 4
-   :caption: Developer Information
-
-   developer_info/contribute
-   developer_info/support
-   developer_info/license
    
 Features
 --------

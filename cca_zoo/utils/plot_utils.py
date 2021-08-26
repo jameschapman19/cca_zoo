@@ -69,66 +69,6 @@ def split_columns(df):
     return df
 
 
-def plot_results(data, labels):
-    # data is c*3*k where c is the different models and k is the number of latents and 3 is train,test,val
-
-    # Compare sum of first k dimensions
-    corr_sum = np.sum(data, axis=2)
-
-    # set width of bar
-    barWidth = 0.7
-    r = 2 * np.arange(len(labels))
-    r1 = [x - barWidth / 2 for x in r]
-    r2 = [x + barWidth / 2 for x in r]
-
-    # Make the plot
-    fig, ax = plt.subplots()
-    ax.bar(r1, corr_sum[:, 0], width=barWidth, edgecolor='white', label='Train')
-    ax.bar(r2, corr_sum[:, 1], width=barWidth, edgecolor='white', label='Test')
-
-    # Add xticks on the middle of the group bars
-    ax.set_xlabel('model', fontweight='bold')
-    ax.set_ylabel('Sum of first n correlations', fontweight='bold')
-    # plt.xticks([r + barWidth for r in range(len(labels))], labels)
-    ax.set_xticks(r)
-    ax.set_xticklabels(labels)
-    ax.xaxis.set_tick_params(rotation=90)
-
-    # Create legend & Show graphic
-    ax.legend()
-    fig.tight_layout()
-    fig.savefig('compare_train_test')
-
-    # Train dimensions
-    plt.figure()
-    x = np.arange(1, data.shape[2] + 1)
-    for i, m in enumerate(labels):
-        if any(m in _ for _ in ['KCCA', 'KCCA-reg', 'KCCA-gaussian', 'KCCA-polynomial', 'DCCA']):
-            plt.plot(x, data[i, 0, :], linestyle='dashed')
-        else:
-            plt.plot(x, data[i, 0, :])
-    plt.title('train canonical correlations')
-    plt.legend(labels)
-    plt.xlabel('Dimension')
-    plt.ylabel('Correlation')
-    plt.tight_layout()
-    plt.savefig('train_dims')
-
-    # Test dimensions
-    plt.figure()
-    for i, m in enumerate(labels):
-        if any(m in _ for _ in ['KCCA', 'KCCA-reg', 'KCCA-gaussian', 'KCCA-polynomial', 'DCCA']):
-            plt.plot(x, data[i, 1, :], linestyle='dashed')
-        else:
-            plt.plot(x, data[i, 1, :])
-    plt.title('test canonical correlations')
-    plt.legend(labels)
-    plt.xlabel('Dimension')
-    plt.ylabel('Correlation')
-    plt.tight_layout()
-    plt.savefig('test_dims')
-
-
 def plot_latent_train_test(train_scores: Union[Tuple[np.ndarray], List[np.ndarray]],
                            test_scores: Union[Tuple[np.ndarray], List[np.ndarray]], title=''):
     """
