@@ -8,6 +8,7 @@ cca\_zoo.models.cca\_base
 --------------------------------
 
 .. automodule:: cca_zoo.models.cca_base
+   :private-members:
    :members:
    :undoc-members:
    :show-inheritance:
