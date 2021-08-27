@@ -55,8 +55,7 @@ class _CCA_Base(BaseEstimator):
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
-        pass
-        return self
+        raise NotImplementedError
 
     def transform(self, *views: np.ndarray, view_indices: List[int] = None, **kwargs):
         """
@@ -198,7 +197,8 @@ class _CCA_Base(BaseEstimator):
         self.cv_results_table.drop(columns=['params'], inplace=True)
 
         if plot:
-            cca_zoo.utils.plot_utils.cv_plot(cv_scores.mean(axis=1), param_sets, self.__class__.__name__)
+            hyperparameter_plot = cca_zoo.utils.plot_utils.cv_plot(cv_scores.mean(axis=1), param_sets,
+                                                                   self.__class__.__name__)
 
         self.set_params(**param_sets[max_index])
         self.fit(*views)

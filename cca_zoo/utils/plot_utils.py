@@ -8,7 +8,14 @@ import seaborn as sns
 from matplotlib import cm
 
 
-def cv_plot(scores, param_dict, reg):
+def cv_plot(scores, param_dict, model_name):
+    """
+    Plot a hyperparameter surface plot (or multiple surface plots if more than 2 hyperparameters
+
+    :param scores:
+    :param param_dict:
+    :param model_name:
+    """
     scores = pd.Series(scores)
     hyper_df = pd.DataFrame(param_dict)
     hyper_df = split_columns(hyper_df)
@@ -19,8 +26,7 @@ def cv_plot(scores, param_dict, reg):
     sub_dfs = []
     sub_scores = []
     if dimensions > 4:
-        print('plot not implemented for more than 4 hyperparameters')
-        return
+        raise ValueError('plot not implemented for more than 4 hyperparameters')
     elif dimensions == 4:
         fig, axs = plt.subplots(n_uniques[-2], n_uniques[-1], subplot_kw={'projection': '3d'})
         unique_x = hyper_df[hyper_df.columns[-2]].unique()
@@ -54,8 +60,8 @@ def cv_plot(scores, param_dict, reg):
             ax.set_ylabel('log ' + sub_df.columns[1])
             ax.set_zlabel('Sum of first n correlations')
 
-    fig.suptitle('Hyperparameter plot ' + reg)
-    plt.savefig('Hyperparameter_plot_' + reg)
+    fig.suptitle('Hyperparameter plot ' + model_name)
+    return fig
 
 
 def split_columns(df):

@@ -16,7 +16,7 @@ class _DCCA_base(nn.Module):
         :param args: batches for each view separated by commas
         :return: views encoded to latent dimensions
         """
-        pass
+        raise NotImplementedError
 
     def post_transform(self, *z_list, train=False) -> Iterable[np.ndarray]:
         return z_list
