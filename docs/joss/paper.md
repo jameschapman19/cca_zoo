@@ -76,7 +76,11 @@ be used to measure the canonical correlations.
 The package is accompanied by documentation and a number of tutorial notebooks which serve as both guides to the package
 as well as educational resources for multiview learning methods.
 
-# Model List
+Due to the size of the PyTorch and NumPyro packages used respectively in the deep and probabilistic models, these models
+are only installed when the optional [deep] and [probabilistic] are passed during pip install. The complete list of
+models along with their installation tag are provided below.
+
+## Model List
 
 | Model Class | Model Name | Number of Views | Install |
 | -------- | -------- | ------ |-----|
