@@ -1,18 +1,15 @@
 ---
 title: 'cca-zoo: a python package for implementing models from the canonical correlation analysis family'
 tags:
-- Python
-- Multiview
-- Machine Learning 
+  - Python
+  - Multiview
+  - Machine Learning 
 authors:
-- name: James Chapman 
-- orcid: 0000-0002-9364-8118 
-- affiliation: 1
-- name: Hao-Ting Wang 
-- affiliation: 2 
+  - name: James Chapman orcid: 0000-0002-9364-8118 affiliation: 1
+  - name: Hao-Ting Wang affiliation: 2 
 affiliations:
-- name: Centre for Medical Image Computing, University College London, London, UK index: 1
-- name: Centre for Medical Image Computing, University College London, London, UK index: 2 
+  - name: Centre for Medical Image Computing, University College London, London, UK index: 1
+  - name: Centre for Medical Image Computing, University College London, London, UK index: 2 
 date: 1 September 2021
 bibliography: paper.bib
 ---
