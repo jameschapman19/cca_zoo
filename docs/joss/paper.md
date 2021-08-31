@@ -1,15 +1,26 @@
 ---
 title: 'cca-zoo: a python package for implementing regularized, deep and probabilistic variants of canonical correlation
-analysis and partial least squares models.' tags:
+analysis and partial least squares models.'
+
+tags:
 
 - Python
 - Multiview
-- Machine Learning authors:
+- Machine Learning
+
+authors:
+
 - name: James Chapman affiliation: "1" # (Multiple affiliations must be quoted)
-- name: Hao-Ting Wang affiliation: 2 affiliations:
+- name: Hao-Ting Wang affiliation: 2
+
+affiliations:
+
 - name: Centre for Medical Image Computing, University College London, London, UK index: 1
-- name: Centre for Medical Image Computing, University College London, London, UK index: 1 date: 19/08/2021 date: 31
-  August 2021 bibliography: paper.bib
+- name: Centre for Medical Image Computing, University College London, London, UK index: 1
+
+date: 31 August 2021
+
+bibliography: paper.bib
 ---
 
 # Summary
