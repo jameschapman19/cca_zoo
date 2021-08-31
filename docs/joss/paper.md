@@ -91,8 +91,8 @@ as well as educational resources for multiview learning methods.
 | CCA_ALS   | Canonical Correlation Analysis (Alternating Least Squares) [@golub1995canonical] | \>=2   | standard |
 | PLS_ALS   | Partial Least Squares (Alternating Least Squares)  | \>=2   | standard |
 | PMD   | Sparse CCA by Penalized Matrix Decomposition | \>=2   | standard |
-| ElasticCCA   | Sparse Penalized CCA | \>=2   | standard |
-| ParkhomenkoCCA   | Sparse CCA | \>=2   | standard |
+| ElasticCCA   | Sparse Penalized CCA [@waaijenborg2008quantifying] | \>=2   | standard |
+| ParkhomenkoCCA   | Sparse CCA [@parkhomenko2009sparse] | \>=2   | standard |
 | SCCA   | Sparse Canonical Correlation Analysis by Iterative Least Squares [@mai2019iterative] | \>=2   | standard |
 | SCCA_ADMM   | Sparse Canonical Correlation Analysis by Altnerating Direction Method of Multipliers [@suo2017sparse] | \>=2   | standard |
 | SpanCCA   | Sparse Diagonal Canonical Correlation Analysis [@asteris2016simple] | \>=2   | standard |
@@ -108,8 +108,6 @@ as well as educational resources for multiview learning methods.
 | VCCA   | Variational Canonical Correlation Analysis [@wang2007variational] | 2   | probabilistic |
 
 # Conclusion
-
-`cca-zoo`
 
 We hope that `cca-zoo` will help researchers to apply and develop Canonical Correlation Analysis and Partial Least
 Squares models and continue to welcome contributions from the community.
