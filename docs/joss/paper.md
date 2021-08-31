@@ -1,21 +1,15 @@
 ---
 title: 'cca-zoo: a python package for implementing models from the canonical correlation analysis family' 
 tags:
-  - Python
-  - Multiview
-  - Machine Learning
-authors:
-  - name: James Chapman
-    affiliation: 1
-  - name: Hao-Ting Wang
-    affiliation: 2
-affiliations:
- - name: Centre for Medical Image Computing, University College London, London, UK
-   index: 1
- - name: Centre for Medical Image Computing, University College London, London, UK
-   index: 2
-date: 1 September 2021
-bibliography: paper.bib
+
+- Python
+- Multiview
+- Machine Learning authors:
+- name: James Chapman orcid: 0000-0002-9364-8118 affiliation: 1
+- name: Hao-Ting Wang affiliation: 2 affiliations:
+- name: Centre for Medical Image Computing, University College London, London, UK index: 1
+- name: Centre for Medical Image Computing, University College London, London, UK index: 2 date: 1 September 2021
+  bibliography: paper.bib
 ---
 
 # Summary
@@ -75,34 +69,34 @@ as well as educational resources for multiview learning methods.
 
 # Model List
 
-| Model Class | Number of Views | Install |
-| -------- | -------- | ------ |
-| CCA   | 2   | standard |
-| rCCA   | 2   | standard |
-| KCCA   | 2   | standard |
-| MCCA   | \>=2   | standard |
-| KMCCA   | \>=2   | standard |
-| GCCA   | \>=2   | standard |
-| KGCCA   | \>=2   | standard |
-| PLS   | \>=2   | standard |
-| CCA_ALS   | \>=2   | standard |
-| PLS_ALS   | \>=2   | standard |
-| PMD   | \>=2   | standard |
-| ElasticCCA   | \>=2   | standard |
-| ParkhomenkoCCA   | \>=2   | standard |
-| SCCA   | \>=2   | standard |
-| SCCA_ADMM   | \>=2   | standard |
-| SpanCCA   | \>=2   | standard |
-| SWCCA   | \>=2   | standard |
-| TCCA   | \>=2   | standard |
-| KTCCA   | \>=2   | standard |
-| DCCA   | \>=2   | deep |
-| DCCA_NOI   | \>=2   | deep |
-| DCCAE   | \>=2   | deep |
-| DTCCA   | \>=2   | deep |
-| SplitAE   | 2   | deep |
-| DVCCA   | \>=2   | deep |
-| VCCA   | 2   | probabilistic |
+| Model Class | Model Name | Number of Views | Install |
+| -------- | -------- | ------ |-----|
+| CCA   | Canonical Correlation Analysis | 2   | standard |
+| rCCA   | Canonical Ridge | 2   | standard |
+| KCCA   | Kernel Canonical Correlation Analysis | 2   | standard |
+| MCCA   | Multiset Canonical Correlation Analysis | \>=2   | standard |
+| KMCCA   | Kernel Multiset Canonical Correlation Analysis | \>=2   | standard |
+| GCCA   | Generalized Canonical Correlation Analysis | \>=2   | standard |
+| KGCCA   | Kernel Generalized Canonical Correlation Analysis | \>=2   | standard |
+| PLS   | Partial Least Squares | \>=2   | standard |
+| CCA_ALS   | Canonical Correlation Analysis (Alternating Least Squares) | \>=2   | standard |
+| PLS_ALS   | Partial Least Squares (Alternating Least Squares)  | \>=2   | standard |
+| PMD   | Sparse CCA by Penalized Matrix Decomposition | \>=2   | standard |
+| ElasticCCA   | Sparse Penalized CCA | \>=2   | standard |
+| ParkhomenkoCCA   | Sparse CCA | \>=2   | standard |
+| SCCA   | Sparse Canonical Correlation Analysis by Iterative Least Squares | \>=2   | standard |
+| SCCA_ADMM   | Sparse Canonical Correlation Analysis by Altnerating Direction Method of Multipliers | \>=2   | standard |
+| SpanCCA   | Model Name | \>=2   | standard |
+| SWCCA   | Sparse Weighted Canonical Correlation Analysis | \>=2   | standard |
+| TCCA   | Tensor Canonical Correlation Analysis | \>=2   | standard |
+| KTCCA   | Kernel Tensor Canonical Correlation Analysis | \>=2   | standard |
+| DCCA   | Deep Canonical Correlation Analysis | \>=2   | deep |
+| DCCA_NOI   | Deep Canonical Correlation Analysis by Non-Linear Orthogonal Iterations | \>=2   | deep |
+| DCCAE   | Deep Canonically Correlated Autoencoders | \>=2   | deep |
+| DTCCA   | Deep Tensor Canonical Correlation Analysis | \>=2   | deep |
+| SplitAE   | Split Autoencoders | 2   | deep |
+| DVCCA   | Deep Variational Canonical Correlation Analysis | \>=2   | deep |
+| VCCA   | Variational Canonical Correlation Analysis | 2   | probabilistic |
 
 # Conclusion
 
