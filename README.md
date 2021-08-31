@@ -21,7 +21,7 @@ This means that there is no need to install the large pytorch package or numpyro
 # Documentation
 Available at https://cca-zoo.readthedocs.io/en/latest/
   
-# Credits:
+# Citation:
 If this repository was helpful to you please do give a star.
 
 In case this work is used as part of research I attach a DOI bibtex entry:
