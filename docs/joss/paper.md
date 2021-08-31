@@ -1,6 +1,5 @@
 ---
-title: 'cca-zoo: a python package for implementing regularized, deep and probabilistic variants of canonical correlation
-analysis and partial least squares models.'
+title: 'cca-zoo: a python package for implementing models from the canonical correlation analysis family'
 tags:
   - Python
   - Multiview
