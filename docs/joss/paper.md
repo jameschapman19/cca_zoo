@@ -73,9 +73,6 @@ analysis. For iterative models, the model may also contain information about the
 After the model has been fit, its transform() method can be used to project views into latent variables and score() can
 be used to measure the canonical correlations.
 
-The package is accompanied by documentation and a number of tutorial notebooks which serve as both guides to the package
-as well as educational resources for multiview learning methods.
-
 Due to the size of the PyTorch and NumPyro packages used respectively in the deep and probabilistic models, these models
 are only installed when the optional [deep] and [probabilistic] are passed during pip install. The complete list of
 models along with their installation tag are provided below.
@@ -110,6 +107,11 @@ models along with their installation tag are provided below.
 | SplitAE   | Split Autoencoders [@ngiam2011multimodal] | 2   | deep |
 | DVCCA   | Deep Variational Canonical Correlation Analysis [@wang2016deep] | \>=2   | deep |
 | VCCA   | Variational Canonical Correlation Analysis [@wang2007variational] | 2   | probabilistic |
+
+## Documentation
+
+The package is accompanied by documentation and a number of tutorial notebooks which serve as both guides to the package
+as well as educational resources for multiview learning methods.
 
 # Conclusion
 
