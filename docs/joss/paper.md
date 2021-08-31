@@ -86,7 +86,7 @@ as well as educational resources for multiview learning methods.
 | ParkhomenkoCCA   | Sparse CCA | \>=2   | standard |
 | SCCA   | Sparse Canonical Correlation Analysis by Iterative Least Squares | \>=2   | standard |
 | SCCA_ADMM   | Sparse Canonical Correlation Analysis by Altnerating Direction Method of Multipliers | \>=2   | standard |
-| SpanCCA   | Model Name | \>=2   | standard |
+| SpanCCA   | Sparse Diagonal Canonical Correlation Analysis | \>=2   | standard |
 | SWCCA   | Sparse Weighted Canonical Correlation Analysis | \>=2   | standard |
 | TCCA   | Tensor Canonical Correlation Analysis | \>=2   | standard |
 | KTCCA   | Kernel Tensor Canonical Correlation Analysis | \>=2   | standard |

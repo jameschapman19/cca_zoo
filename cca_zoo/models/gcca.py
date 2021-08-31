@@ -89,12 +89,17 @@ class GCCA(_CCA_Base):
 
 class KGCCA(GCCA):
     """
-    A class used to fit KGCCA model.
+    A class used to fit KGCCA model. For more than 2 views, KGCCA optimizes the sum of correlations with a shared auxiliary vector
+
+    Citation
+    --------
+    Tenenhaus, Arthur, Cathy Philippe, and Vincent Frouin. "Kernel generalized canonical correlation analysis." Computational Statistics & Data Analysis 90 (2015): 114-131.
 
     :Example:
 
     >>> from cca_zoo.models import KGCCA
-    >>> X1 = np.random.rand(10,5)
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = KGCCA()
     >>> model.fit(X1,X2)
@@ -176,7 +181,7 @@ class KGCCA(GCCA):
 
     def transform(self, *views: np.ndarray, view_indices: Iterable[int] = None, **kwargs):
         """
-        Transforms data given a fit KCCA model
+        Transforms data given a fit KGCCA model
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model

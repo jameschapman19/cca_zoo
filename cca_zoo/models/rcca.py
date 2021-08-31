@@ -109,6 +109,10 @@ class CCA(rCCA):
 
     Implements CCA by inheriting regularised CCA with 0 regularisation
 
+    Citation
+    --------
+    Hotelling, Harold. "Relations between two sets of variates." Breakthroughs in statistics. Springer, New York, NY, 1992. 162-190.
+
     :Example:
 
     >>> from cca_zoo.models import CCA
