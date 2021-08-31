@@ -30,7 +30,7 @@ class TCCA(_CCA_Base):
     """
 
     def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, random_state=None,
-                 c: Iterable[float] = None):
+                 c: Union[Iterable[float], float] = None):
         """
         Constructor for TCCA
 
@@ -69,9 +69,7 @@ class TCCA(_CCA_Base):
         M_parafac = parafac(M, self.latent_dims, verbose=True)
         self.alphas = [cov_invsqrt @ fac for i, (view, cov_invsqrt, fac) in
                        enumerate(zip(views, covs_invsqrt, M_parafac.factors))]
-        self.scores = [view @ self.alphas[i] for i, view in enumerate(views)]
         self.weights = self.alphas
-        self.scores = [view @ self.weights[i] for i, view in enumerate(views)]
         return self
 
     def _setup_tensor(self, *views: np.ndarray, **kwargs):
@@ -102,7 +100,7 @@ class KTCCA(TCCA):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 eps=1e-3, c: Iterable[float] = None,
+                 eps=1e-3, c: Union[Iterable[float], float] = None,
                  kernel: Iterable[Union[float, callable]] = None,
                  gamma: Iterable[float] = None,
                  degree: Iterable[float] = None, coef0: Iterable[float] = None,

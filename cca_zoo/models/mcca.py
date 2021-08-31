@@ -25,7 +25,7 @@ class MCCA(_CCA_Base):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: Iterable[float] = None,
+                 c: Union[Iterable[float], float] = None,
                  eps=1e-3):
         """
         Constructor for MCCA
@@ -61,7 +61,6 @@ class MCCA(_CCA_Base):
         views, C, D = self._setup_gevp(*views)
         self.alphas = self._solve_gevp(C, D)
         self.weights = self.alphas
-        self.scores = [train_view @ weights for train_view, weights in zip(views, self.weights)]
         return self
 
     def _setup_gevp(self, *views: np.ndarray):
@@ -101,7 +100,7 @@ class KCCA(MCCA):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: Iterable[float] = None, eps=1e-3,
+                 c: Union[Iterable[float], float] = None, eps=1e-3,
                  kernel: Iterable[Union[float, callable]] = None,
                  gamma: Iterable[float] = None,
                  degree: Iterable[float] = None, coef0: Iterable[float] = None,

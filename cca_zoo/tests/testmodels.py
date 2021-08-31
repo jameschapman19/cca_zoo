@@ -6,7 +6,7 @@ import scipy.sparse as sp
 from sklearn.utils.validation import check_random_state
 
 from cca_zoo.models import CCA, PLS, CCA_ALS, SCCA, PMD, ElasticCCA, rCCA, KCCA, KTCCA, MCCA, GCCA, TCCA, SCCA_ADMM, \
-    SpanCCA, SWCCA, PLS_ALS
+    SpanCCA, SWCCA, PLS_ALS, KGCCA
 
 
 class TestModels(TestCase):
@@ -32,34 +32,39 @@ class TestModels(TestCase):
         gcca = GCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         mcca = MCCA(latent_dims=latent_dims, eps=1e-9).fit(self.X, self.Y)
         kcca = KCCA(latent_dims=latent_dims).fit(self.X, self.Y)
+        kgcca = KGCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         tcca = TCCA(latent_dims=latent_dims).fit(self.X, self.Y)
         corr_cca = cca.score(self.X, self.Y)
         corr_iter = iter.score(self.X, self.Y)
         corr_gcca = gcca.score(self.X, self.Y)
         corr_mcca = mcca.score(self.X, self.Y)
         corr_kcca = kcca.score(self.X, self.Y)
+        corr_kgcca = kgcca.score(self.X, self.Y)
         corr_tcca = kcca.score(self.X, self.Y)
-        # Check the score outputs are the right shape
-        self.assertTrue(iter.scores[0].shape == (self.X.shape[0], latent_dims))
-        self.assertTrue(gcca.scores[0].shape == (self.X.shape[0], latent_dims))
-        self.assertTrue(mcca.scores[0].shape == (self.X.shape[0], latent_dims))
-        self.assertTrue(kcca.scores[0].shape == (self.X.shape[0], latent_dims))
-        self.assertTrue(tcca.scores[0].shape == (self.X.shape[0], latent_dims))
         # Check the correlations from each unregularized method are the same
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_iter, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_mcca, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_gcca, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_kcca, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_tcca, decimal=2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(corr_kgcca, corr_gcca, decimal=2))
         # Check standardized models have standard outputs
-        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(iter.scores[0], axis=0) ** 2, 500))
-        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(cca.scores[0], axis=0) ** 2, 500))
-        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(mcca.scores[0], axis=0) ** 2, 500, rtol=0.1))
-        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(kcca.scores[0], axis=0) ** 2, 500, rtol=0.1))
-        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(iter.scores[1], axis=0) ** 2, 500))
-        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(cca.scores[1], axis=0) ** 2, 500))
-        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(mcca.scores[1], axis=0) ** 2, 500, rtol=0.1))
-        self.assertIsNone(np.testing.assert_allclose(np.linalg.norm(kcca.scores[1], axis=0) ** 2, 500, rtol=0.1))
+        self.assertIsNone(
+            np.testing.assert_allclose(np.linalg.norm(iter.transform(self.X, self.Y)[0], axis=0) ** 2, 500, rtol=0.1))
+        self.assertIsNone(
+            np.testing.assert_allclose(np.linalg.norm(cca.transform(self.X, self.Y)[0], axis=0) ** 2, 500, rtol=0.1))
+        self.assertIsNone(
+            np.testing.assert_allclose(np.linalg.norm(mcca.transform(self.X, self.Y)[0], axis=0) ** 2, 500, rtol=0.1))
+        self.assertIsNone(
+            np.testing.assert_allclose(np.linalg.norm(kcca.transform(self.X, self.Y)[0], axis=0) ** 2, 500, rtol=0.1))
+        self.assertIsNone(
+            np.testing.assert_allclose(np.linalg.norm(iter.transform(self.X, self.Y)[1], axis=0) ** 2, 500, rtol=0.1))
+        self.assertIsNone(
+            np.testing.assert_allclose(np.linalg.norm(cca.transform(self.X, self.Y)[1], axis=0) ** 2, 500, rtol=0.1))
+        self.assertIsNone(
+            np.testing.assert_allclose(np.linalg.norm(mcca.transform(self.X, self.Y)[1], axis=0) ** 2, 500, rtol=0.1))
+        self.assertIsNone(
+            np.testing.assert_allclose(np.linalg.norm(kcca.transform(self.X, self.Y)[1], axis=0) ** 2, 500, rtol=0.1))
 
     def test_sparse_input(self):
         # Tests unregularized CCA methods. The idea is that all of these should give the same result.
@@ -77,11 +82,6 @@ class TestModels(TestCase):
         corr_gcca = gcca.score(self.X, self.Y)
         corr_mcca = mcca.score(self.X, self.Y)
         corr_kcca = kcca.score(self.X, self.Y)
-        # Check the score outputs are the right shape
-        self.assertTrue(iter.scores[0].shape == (self.X_sp.shape[0], latent_dims))
-        self.assertTrue(gcca.scores[0].shape == (self.X_sp.shape[0], latent_dims))
-        self.assertTrue(mcca.scores[0].shape == (self.X_sp.shape[0], latent_dims))
-        self.assertTrue(kcca.scores[0].shape == (self.X_sp.shape[0], latent_dims))
         # Check the correlations from each unregularized method are the same
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_iter, decimal=2))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_iter, corr_mcca, decimal=2))
@@ -101,11 +101,6 @@ class TestModels(TestCase):
         corr_gcca = gcca.score(self.X, self.Y, self.Z)
         corr_mcca = mcca.score(self.X, self.Y, self.Z)
         corr_kcca = kcca.score(self.X, self.Y, self.Z)
-        # Check the score outputs are the right shape
-        self.assertTrue(iter.scores[0].shape == (self.X.shape[0], latent_dims))
-        self.assertTrue(gcca.scores[0].shape == (self.X.shape[0], latent_dims))
-        self.assertTrue(mcca.scores[0].shape == (self.X.shape[0], latent_dims))
-        self.assertTrue(kcca.scores[0].shape == (self.X.shape[0], latent_dims))
         # Check the correlations from each unregularized method are the same
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_iter, decimal=1))
         self.assertIsNone(np.testing.assert_array_almost_equal(corr_cca, corr_mcca, decimal=2))

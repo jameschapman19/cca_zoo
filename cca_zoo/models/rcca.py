@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Union
 
 import numpy as np
 from scipy.linalg import block_diag, eigh
@@ -28,7 +28,7 @@ class rCCA(_CCA_Base):
     """
 
     def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: Iterable[float] = None,
+                 c: Union[Iterable[float], float] = None,
                  eps=1e-3):
         """
         Constructor for rCCA
@@ -66,8 +66,6 @@ class rCCA(_CCA_Base):
             self._two_view_fit(Us, Ss, Vs)
         else:
             self._multi_view_fit(Us, Ss, Vs)
-        self.scores = [view @ self.weights[i] for i, view in enumerate(views)]
-        self.loadings = [view.T @ score for score, view in zip(self.scores, views)]
         return self
 
     def _two_view_fit(self, Us, Ss, Vts):
