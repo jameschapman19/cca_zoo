@@ -106,7 +106,7 @@ as well as educational resources for multiview learning methods.
 
 # Conclusion
 
-``cca-zoo``
+`cca-zoo`
 
 We hope that `cca-zoo` will help researchers to apply and develop Canonical Correlation Analysis and Partial Least
 Squares models and continue to welcome contributions from the community.
