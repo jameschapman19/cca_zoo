@@ -47,35 +47,38 @@ as the paired MNIST data commonly used as a toy dataset in deep multiview learni
 # Statement of need
 
 Much of the methods research in CCA and PLS methods has been coded in R. Despite this, the python ecosystem for
-multiview learning now provides a few options. [scikit-learn] contains standard implementations of both CCA and PLS for
-two-view data which plug into their mature API. [pyrcca] contains implementations of ridge regularised and kernelized
-two-view CCA. The embed module of [mvlearn] is perhaps the closest relative of our package, containing implementations
-of ridge regularised and kernelized multi-view CCA. They also implement a reference deep CCA using pytorch but its lack
-of modularity makes it somewhat unflexible for application or development.
+multiview learning now provides a few options. scikit-learn contains standard implementations of both CCA and PLS for
+two-view data which plug into their mature API. pyrcca contains implementations of ridge regularised and kernelized
+two-view CCA. The embed module of mvlearn is perhaps the closest relative of our package, containing implementations of
+ridge regularised and kernelized multi-view CCA. They also implement a reference deep CCA using pytorch but its lack of
+modularity makes it somewhat unflexible for application or development.
 
-[cca-zoo] extends the existing ecosystem by providing implementations of a number of models for sparse regularised CCA
+cca-zoo extends the existing ecosystem by providing implementations of a number of models for sparse regularised CCA
 which have found popularity in genetics and neuroimaging where signals are contained in a small subset of variables.
 With applications like these in mind, we also have tried to make it as simple as possible to access the learnt model
-weights to perform further analysis in the feature space. Furthermore, [cca-zoo] contains modular implementations of
-deep CCA as well as the only installable implementation of multiview deep CCA. Finally, [cca-zoo] adds generative models
+weights to perform further analysis in the feature space. Furthermore, cca-zoo contains modular implementations of deep
+CCA as well as the only installable implementation of multiview deep CCA. Finally, cca-zoo adds generative models
 including variational and deep variational CCA as well as higher order canonical correlation analysis with tensor and
 deep tensor CCA.
 
 # Implementation
 
-[cca-zoo] models are built in a similar way to those in [scikit-learn]. The user first instantiates a model object and
-its relevant hyperparameters. Next they call the model's fit() method. After fitting, the model object contains its
-relevant parameters such as weights or dual coefficients (for kernel methods) which can be accessed for further
-analysis. For iterative models, the model may also contain information about the convergence of the objective function.
-After the model has been fit, its transform() method can be used to project views into latent variables and score() can
-be used to measure the canonical correlations.
+cca-zoo models are built in a similar way to those in scikit-learn. The user first instantiates a model object and its
+relevant hyperparameters. Next they call the model's fit() method. After fitting, the model object contains its relevant
+parameters such as weights or dual coefficients (for kernel methods) which can be accessed for further analysis. For
+iterative models, the model may also contain information about the convergence of the objective function. After the
+model has been fit, its transform() method can be used to project views into latent variables and score() can be used to
+measure the canonical correlations.
+
+The package is accompanied by documentation and a number of tutorial notebooks which serve as both guides to the package
+as well as educational resources for multiview learning methods.
 
 # Conclusion
 
-[cca-zoo]
+`cca-zoo`
 
-We hope that [cca-zoo] will help researchers to apply and develop Canonical Correlation Analysis and Partial Least
-Squares models and continue to welcome contributions from the community.
+We hope that cca-zoo will help researchers to apply and develop Canonical Correlation Analysis and Partial Least Squares
+models and continue to welcome contributions from the community.
 
 # Citations
 
