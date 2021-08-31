@@ -37,9 +37,9 @@ algorithm [@witten2009penalized] which induces sparsity in the weight vectors.
 `cca-zoo` is a Python package that implements a number of these variants in a simple API with standardised outputs.
 While there are a few Python packages containing implementations of CCA, we would like to highlight the unique benefits
 our package brings to the community. Firstly, `cca-zoo` contains a number of models for implementing various forms of
-regularised CCA and PLS that have previously only been available using MATLAB and R. We hope that this will give Python
-users access to these powerful models for both application and the development of new algorithms. Secondly, `cca-zoo`
-contains implementations of a number of deep CCA variants written in PyTorch
+regularised CCA and PLS that have previously only been available in packages in MATLAB and R. We hope that this will
+give Python users access to these powerful models for both application and the development of new algorithms. Secondly,
+`cca-zoo`contains implementations of a number of deep CCA variants written in PyTorch
 [@paszke2019pytorch] which are written in a modular style, allowing users to swap out neural network architectures for
 each view and plug the models into a customised training pipeline. We also provide a standard pipeline which can serve
 as a simple baseline. Thirdly, `cca-zoo` contains reference implementations of variational and deep variational CCA in
@@ -48,12 +48,12 @@ as the paired MNIST data commonly used as a toy dataset in deep multiview learni
 
 # Statement of need
 
-The python ecosystem for multiview learning now provides a few options. `scikit-learn` [@pedregosa2011scikit] contains
-standard implementations of both CCA and PLS for two-view data which plug into their mature
-API. `pyrcca` [@bilenko2016pyrcca] contains implementations of ridge regularised and kernelized two-view CCA. The embed
-module of `mvlearn` [@perry2020mvlearn] is perhaps the closest relative of our package, containing implementations of
-ridge regularised and kernelized multi-view CCA. They also implement a reference deep CCA using pytorch but its lack of
-modularity makes it somewhat unflexible for application or development.
+The python ecosystem for multiview learning currently provides a few options for implementing CCA and PLS models.
+`scikit-learn` [@pedregosa2011scikit] contains standard implementations of both CCA and PLS for two-view data which plug
+into their mature API. `pyrcca` [@bilenko2016pyrcca] contains implementations of ridge regularised and kernelized
+two-view CCA. The embed module of `mvlearn` [@perry2020mvlearn] is perhaps the closest relative of our package,
+containing implementations of ridge regularised and kernelized multi-view CCA. They also implement a reference deep CCA
+using pytorch but its lack of modularity makes it somewhat unflexible for application to new datadets or development.
 
 `cca-zoo` extends the existing ecosystem by providing implementations of a number of models for sparse regularised CCA
 which have found popularity in genetics and neuroimaging where signals are contained in a small subset of variables.
@@ -88,8 +88,8 @@ as well as educational resources for multiview learning methods.
 | GCCA   | Generalized Canonical Correlation Analysis | \>=2   | standard |
 | KGCCA   | Kernel Generalized Canonical Correlation Analysis | \>=2   | standard |
 | PLS   | Partial Least Squares | \>=2   | standard |
-| CCA_ALS   | Canonical Correlation Analysis (Alternating Least Squares) [@golub1995canonical] | \>=2   | standard |
-| PLS_ALS   | Partial Least Squares (Alternating Least Squares)  | \>=2   | standard |
+| CCA_ALS   | Canonical Correlation Analysis by Alternating Least Squares) [@golub1995canonical] | \>=2   | standard |
+| PLS_ALS   | Partial Least Squares by Alternating Least Squares)  | \>=2   | standard |
 | PMD   | Sparse CCA by Penalized Matrix Decomposition | \>=2   | standard |
 | ElasticCCA   | Sparse Penalized CCA [@waaijenborg2008quantifying] | \>=2   | standard |
 | ParkhomenkoCCA   | Sparse CCA [@parkhomenko2009sparse] | \>=2   | standard |
