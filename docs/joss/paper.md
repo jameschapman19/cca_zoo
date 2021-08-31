@@ -1,6 +1,5 @@
 ---
-title: 'cca-zoo: a python package for implementing models from the canonical correlation analysis family' 
-tags:
+title: cca-zoo: a python package for implementing models from the canonical correlation analysis family tags:
 
 - Python
 - Multiview
