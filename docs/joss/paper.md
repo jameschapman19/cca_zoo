@@ -31,17 +31,17 @@ variants. In particular these have allowed practioners to apply these models to 
 Similarly, variants of PLS have been proposed including the widely used Penalized Matrix Decomposition
 algorithm [Witten:2001] which induces sparsity in the weight vectors.
 
-[`cca-zoo`] is a Python package that implements a number of these variants in a simple API with standardised outputs.
+`cca-zoo` is a Python package that implements a number of these variants in a simple API with standardised outputs.
 While there are a few Python packages containing implementations of CCA, we would like to highlight the unique benefits
-our package brings to the community. Firstly, [`cca-zoo`] contains a number of models for implementing various forms of
+our package brings to the community. Firstly, `cca-zoo` contains a number of models for implementing various forms of
 regularised CCA and PLS that have previously only been available using MATLAB and R. We hope that this will give Python
-users access to these powerful models for both application and the development of new algorithms. Secondly, [`cca-zoo`]
+users access to these powerful models for both application and the development of new algorithms. Secondly, `cca-zoo`
 contains implementations of a number of deep CCA variants written in PyTorch
 [PyTorch:2001] which are written in a modular style, allowing users to swap out neural network architectures for each
 view and plug the models into a customised training pipeline. We also provide a standard pipeline which can serve as a
-simple baseline. Thirdly, [`cca-zoo`] contains reference implementations of variational and deep variational CCA in
-python. Finally, [`cca-zoo`] gives users the ability to simulate data containing specified correlation structures as
-well as the paired MNIST data commonly used as a toy dataset in deep multiview learning.
+simple baseline. Thirdly, `cca-zoo` contains reference implementations of variational and deep variational CCA in
+python. Finally, `cca-zoo` gives users the ability to simulate data containing specified correlation structures as well
+as the paired MNIST data commonly used as a toy dataset in deep multiview learning.
 
 # Statement of need
 
@@ -105,7 +105,7 @@ as well as educational resources for multiview learning methods.
 
 # Conclusion
 
-``cca-zoo``
+`cca-zoo`
 
 We hope that `cca-zoo` will help researchers to apply and develop Canonical Correlation Analysis and Partial Least
 Squares models and continue to welcome contributions from the community.
