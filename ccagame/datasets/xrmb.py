@@ -1,7 +1,7 @@
 from scipy.io import loadmat
 import os
 
-def xrmb(datadir='C:/Users/chapm/PycharmProjects/barlowtwins/data/XRMB/'):
+def xrmb(datadir='/mnt/c/Users/chapm/PycharmProjects/barlowtwins/data/XRMB/'):
     """
     Download, parse and process xrmb data
     Examples
