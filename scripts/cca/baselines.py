@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from jax import random
 
 # Imports
-from ccagame.cca import calc_numpy, Numpy, Genoja, Game, Lagrange, AlternatingLeastSquares, CCALin
+from ccagame.cca import Numpy, Genoja, Game, Lagrange, AlternatingLeastSquares, CCALin
 
 # %%
 
@@ -39,6 +39,9 @@ Y = Y / jnp.linalg.norm(Y, axis=0)
 numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
 print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X, Y))
 
+lagrange = Lagrange(scale=False, lr=1e-3, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
+print("\n Eigenvalues calculated using numpy are :\n", lagrange.score(X, Y))
+
 ccalin = CCALin(scale=False, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using CCALin are :\n", ccalin.score(X, Y))
 
@@ -49,9 +52,6 @@ print("\n Eigenvalues calculated using game are :\n", game.score(X, Y))
 genoja = Genoja(scale=False, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True, alpha=alpha,
                 beta_0=beta_0).fit(X, Y)
 print("\n Eigenvalues calculated using genoja are :\n", genoja.score(X, Y))
-
-lagrange = Lagrange(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
-print("\n Eigenvalues calculated using numpy are :\n", lagrange.score(X, Y))
 
 als = AlternatingLeastSquares(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using ALS are :\n", als.score(X, Y))
