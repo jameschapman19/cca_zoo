@@ -3,8 +3,9 @@
 import jax.numpy as jnp
 from jax import random
 
+from ccagame.pls import Game, SGD, Incremental, Batch
 # Imports
-from ccagame.pls import calc_numpy, calc_sklearn, calc_game, calc_sgd, calc_incremental, calc_batch
+from ccagame.pls import calc_numpy, calc_sklearn
 
 # %%
 
@@ -16,7 +17,7 @@ q = 11
 latent_dims = 3
 epochs = 100
 riemannian_projection = False
-lr = 1
+lr = 1e-2
 batch_size = 8
 
 # %%
@@ -25,11 +26,7 @@ batch_size = 8
 key = random.PRNGKey(random_state)
 key, subkey = random.split(key)
 X = random.normal(key, (n, p))
-X = X / jnp.linalg.norm(X, axis=0)
 Y = random.normal(subkey, (n, q))
-Y = Y / jnp.linalg.norm(Y, axis=0)
-
-# %%
 
 # Model
 corr_sk, Usk, Vsk = calc_sklearn(X, Y, k=latent_dims)
@@ -40,23 +37,11 @@ corr_np, Unp, Vnp = calc_numpy(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 print("\n Sum :\n", jnp.sum(corr_np))
 
-corr_sg, Usg, Vsg = calc_sgd(X, Y, k=latent_dims, epochs=epochs, batch_size=batch_size)
-print("\n Eigenvalues calculated using sgd are :\n", corr_sg)
-print("\n Sum :\n", jnp.sum(corr_sg))
+game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
+            mu=True).fit(X, Y)
 
-corr_inc, Uinc, Vinc = calc_incremental(X, Y, k=latent_dims, epochs=epochs)
-print("\n Eigenvalues calculated using incremental are :\n", corr_inc)
-print("\n Sum :\n", jnp.sum(corr_inc))
+sgd = SGD(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 
-corr, U, V = calc_game(X, Y, latent_dims, lr=lr, epochs=epochs,
-                       riemannian_projection=riemannian_projection, random_state=random_state,
-                       simultaneous=True, batch_size=batch_size, mu=True)
-print("\n Eigenvalues calculated using game are :\n", corr)
-print("\n Sum :\n", jnp.sum(corr))
+batch = Batch(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 
-corr_b, Ub, Vb = calc_batch(X, Y, k=latent_dims, epochs=epochs)
-print("\n Eigenvalues calculated using batch are :\n", corr_b)
-print("\n Sum :\n", jnp.sum(corr_b))
-
-
-
+incremental = Incremental(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)

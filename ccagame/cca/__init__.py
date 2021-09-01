@@ -1,3 +1,4 @@
+from ._cca import _CCA
 from .ccalin import calc_ccalin
 from .game import calc_game
 from .genoja import calc_genoja
@@ -6,4 +7,3 @@ from .lscca import calc_lscca
 from .lscca_exact import calc_lscca_exact
 from .lvm import calc_lvm
 from .numpy import calc_numpy
-from .scikit import calc_sklearn

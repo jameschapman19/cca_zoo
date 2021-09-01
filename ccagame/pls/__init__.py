@@ -1,6 +1,6 @@
-from .batch import calc_batch
-from .game import calc_game
-from .incremental import calc_incremental
+from ._pls import _PLS
+from .batch import calc_batch, Batch
+from .game import calc_game, Game
+from .incremental import calc_incremental, Incremental
 from .numpy import calc_numpy
-from .scikit import calc_sklearn
-from .sgd import calc_sgd
+from .sgd import calc_sgd, SGD
