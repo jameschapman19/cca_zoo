@@ -39,11 +39,11 @@ Y = Y / jnp.linalg.norm(Y, axis=0)
 numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
 print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X, Y))
 
-lagrange = Lagrange(scale=False, lr=1e-3, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
-print("\n Eigenvalues calculated using numpy are :\n", lagrange.score(X, Y))
-
 ccalin = CCALin(scale=False, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using CCALin are :\n", ccalin.score(X, Y))
+
+lagrange = Lagrange(scale=False, lr=100, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
+print("\n Eigenvalues calculated using numpy are :\n", lagrange.score(X, Y))
 
 game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
             mu=True).fit(X, Y)

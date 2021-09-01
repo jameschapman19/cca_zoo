@@ -5,29 +5,29 @@ https://export.arxiv.org/pdf/1604.03930
 """
 # Importing necessary libraries
 import jax.numpy as jnp
-from jax import random
-
+from jax import random, jit
+from functools import partial
 from ccagame.solver import agd_solve
 from . import _CCA
 from .utils import TCC
 from .utils import gram_schmidt_matrix, initialize_gep
 
-
+@jit
 def obj(W, A, B, Wt):
     return jnp.trace(0.5 * W.T @ B @ W - W.T @ A @ Wt)
 
-
+@jit
 def gamma(W, A):
     return W.T @ A @ W
 
-
+@partial(jit, static_argnums=(3,4,5))
 def GenELinK_update(W, A, B, lr, mu, iterations):
     W = jnp.squeeze(
         agd_solve(obj, A, B, W, x=jnp.expand_dims(jnp.dot(W, gamma(W, A)), 0), lr=lr, mu=mu, iterations=iterations,
                   in_axes=(0, None, None, None)), 0)
     return gram_schmidt_matrix(W, B)
 
-
+@partial(jit, static_argnums=(2), static_argnames=('epochs','random_state','verbose'))
 def GenELinK(A, B, k, epochs=1000, random_state=0, verbose=False, X=None, Y=None):
     p = X.shape[1]
     d = A.shape[1]
