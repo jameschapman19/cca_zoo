@@ -4,7 +4,7 @@ from functools import partial
 import jax.numpy as jnp
 from jax import jit, lax
 
-from . import _PLS
+from ccagame.pls._pls import _PLS
 
 
 # Calculate the eigenvalues of covariance matrix of X using Numpy for comparison
