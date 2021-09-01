@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 from jax import random
 
-from .numpy import calc_numpy
+from ccagame.pca.numpy import calc_numpy
 
 
 def initialize(X, n, type='uniform', random_state=0):

@@ -2,7 +2,7 @@ import jax.numpy as jnp
 import jax.scipy as jsp
 from jax import random
 
-from .numpy import calc_numpy
+from ccagame.pls.numpy import calc_numpy
 
 
 def TV(X, Y, Wx, Wy):

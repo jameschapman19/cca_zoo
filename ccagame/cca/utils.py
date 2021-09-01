@@ -3,7 +3,7 @@ import jax.scipy as jsp
 from jax import jit
 from jax import random
 
-from .numpy import calc_numpy
+from ccagame.cca.numpy import calc_numpy
 
 
 def TCC(X, Y, Wx, Wy):
