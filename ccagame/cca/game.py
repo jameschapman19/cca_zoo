@@ -11,7 +11,7 @@ from .utils import initialize, calc_eigenvalues, TCC
 # update step, v is the current eigenvector being calculated
 # X is the design matrix and V holds the previously computed eigenvectors
 from ..utils import data_stream, get_num_batches
-
+from . import _CCA
 
 @partial(jit, static_argnums=5)
 def model(u, v, X, Y, V, k):
@@ -74,3 +74,52 @@ def calc_game(X, Y, k, lr=1, epochs=100, riemannian_projection=False,
                 print(f"Epoch {epoch} in {epoch_time} sec")
                 print(f'epoch {epoch}: {TCC(X, Y, U, V)}')
     return calc_eigenvalues(X, Y, U, V), U, V
+
+class Game(_CCA):
+
+    def __init__(self, n_components=4, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
+                 riemannian_projection: bool = False,
+                 random_state: int = 0, simultaneous: bool = False, batch_size: int = 128, mu=True, verbose=False):
+        super().__init__(n_components, scale=scale, copy=copy)
+        self.lr = lr
+        self.epochs = epochs
+        self.riemannian_projection = riemannian_projection
+        self.random_state = random_state
+        self.simultaneous = simultaneous
+        self.batch_size = batch_size
+        self.mu = mu
+        self.verbose = verbose
+
+    def _fit(self, X, Y):
+        U, V = initialize(X, Y, self.n_components, 'random', self.random_state)
+        batches = data_stream(X, Y, batch_size=self.batch_size)
+        num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
+        if self.simultaneous:
+            for epoch in range(self.epochs):
+                start_time = time.time()
+                for _ in range(num_batches):
+                    X_i, Y_i = next(batches)
+                    for k_ in range(self.n_components):
+                        u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=self.lr,
+                                      riemannian_projection=self.riemannian_projection, mu=self.mu)
+                        U = U.at[:, k_].set(u)
+                        V = V.at[:, k_].set(v)
+                epoch_time = time.time() - start_time
+                if self.verbose:
+                    print(f"Epoch {epoch} in {epoch_time} sec")
+                    print(f'epoch {epoch}: {TCC(X, Y, U, V)}')
+        else:
+            for k_ in range(self.n_components):
+                for epoch in range(self.epochs):
+                    start_time = time.time()
+                    for _ in range(num_batches):
+                        X_i, Y_i = next(batches)
+                        u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=self.lr,
+                                      riemannian_projection=self.riemannian_projection, mu=self.mu)
+                        U = U.at[:, k_].set(u)
+                        V = V.at[:, k_].set(v)
+                    epoch_time = time.time() - start_time
+                    if self.verbose:
+                        print(f"Epoch {epoch} in {epoch_time} sec")
+                        print(f'epoch {epoch}: {TCC(X, Y, U, V)}')
+        return U, V
