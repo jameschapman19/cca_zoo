@@ -36,21 +36,23 @@ Y = Y / jnp.linalg.norm(Y, axis=0)
 # %%
 
 # Model
-corr_sk, Usk, Vsk = calc_numpy(X, Y, k=latent_dims)
-print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
-print("\n Sum :\n", jnp.sum(corr_sk))
 
 numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
+print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X,Y))
 
 game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
             mu=True).fit(X, Y)
+print("\n Eigenvalues calculated using game are :\n", game.score(X,Y))
 
-sgd = Genoja(scale=False, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True, alpha=alpha,
+genoja = Genoja(scale=False, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True, alpha=alpha,
              beta_0=beta_0).fit(X, Y)
+print("\n Eigenvalues calculated using genoja are :\n", genoja.score(X,Y))
 
-batch = Lagrange(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
+lagrange = Lagrange(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
+print("\n Eigenvalues calculated using numpy are :\n", lagrange.score(X,Y))
 
-incremental = AlternatingLeastSquares(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X,
-                                                                                                                     Y)
+als = AlternatingLeastSquares(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X,Y)
+print("\n Eigenvalues calculated using ALS are :\n", als.score(X,Y))
 
 ccalin = CCALin(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
+print("\n Eigenvalues calculated using CCALin are :\n", ccalin.score(X,Y))

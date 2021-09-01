@@ -23,7 +23,7 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         self.x_weights = self._fit(X)
         return self
 
-    def score(self, X, y, sample_weight=None):
+    def score(self, X, y=None, sample_weight=None):
         return TV(X, self.x_weights)
 
     @abstractmethod

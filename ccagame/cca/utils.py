@@ -18,7 +18,7 @@ def TCC(X, Y, Wx, Wy):
     # In MCCA our eigenvalue problem Cv = lambda Dv
     C_whitened = R @ C @ R.T
     eigvals = jnp.linalg.eigvalsh(C_whitened)
-    return eigvals.sum()
+    return eigvals.real.sum()
 
 
 def gram_schmidt_matrix(W, M):

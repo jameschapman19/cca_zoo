@@ -28,7 +28,7 @@ def model(u, v, X, Y, V, k):
 
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=6, static_argnames=('lr', 'riemannian_projection'))
-def update(u, v, X, Y, U, V, k, lr=1, riemannian_projection=False):
+def update(u, v, X, Y, U, V, k, lr:float=1.0, riemannian_projection=False):
     du = grad(model)(u, v, X, Y, V, k)
     dv = grad(model)(v, u, Y, X, U, k)
     if riemannian_projection:
@@ -79,7 +79,7 @@ def calc_game(X, Y, k, lr=1, epochs=100, riemannian_projection=False,
 
 class Game(_CCA):
 
-    def __init__(self, n_components=4, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
+    def __init__(self, n_components=4, *, scale=True, copy=True, lr: float = 1.0, epochs: int = 100,
                  riemannian_projection: bool = False,
                  random_state: int = 0, simultaneous: bool = False, batch_size: int = 128, mu=True, verbose=False):
         super().__init__(n_components, scale=scale, copy=copy)
@@ -103,7 +103,7 @@ class Game(_CCA):
                     X_i, Y_i = next(batches)
                     for k_ in range(self.n_components):
                         u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=self.lr,
-                                      riemannian_projection=self.riemannian_projection, mu=self.mu)
+                                      riemannian_projection=self.riemannian_projection)
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
                 epoch_time = time.time() - start_time
@@ -117,7 +117,7 @@ class Game(_CCA):
                     for _ in range(num_batches):
                         X_i, Y_i = next(batches)
                         u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=self.lr,
-                                      riemannian_projection=self.riemannian_projection, mu=self.mu)
+                                      riemannian_projection=self.riemannian_projection)
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
                     epoch_time = time.time() - start_time

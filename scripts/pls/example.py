@@ -30,17 +30,18 @@ Y = random.normal(subkey, (n, q))
 
 # Model
 
-corr_np, Unp, Vnp = calc_numpy(X, Y, k=latent_dims)
-print("\n Eigenvalues calculated using numpy are :\n", corr_np)
-print("\n Sum :\n", jnp.sum(corr_np))
-
 numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
+print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X, Y))
 
 game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
             mu=True).fit(X, Y)
+print("\n Eigenvalues calculated using game are :\n", game.score(X, Y))
 
 sgd = SGD(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
+print("\n Eigenvalues calculated using sgd are :\n", sgd.score(X, Y))
 
 batch = Batch(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
+print("\n Eigenvalues calculated using batch are :\n", batch.score(X, Y))
 
 incremental = Incremental(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
+print("\n Eigenvalues calculated using incremental are :\n", incremental.score(X, Y))
