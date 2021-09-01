@@ -38,20 +38,26 @@ Y = Y / jnp.linalg.norm(Y, axis=0)
 # Model
 numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
 print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X, Y))
+print("\n Time :\n", numpy.fit_time)
 
 ccalin = CCALin(scale=False, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using CCALin are :\n", ccalin.score(X, Y))
+print("\n Time :\n", ccalin.fit_time)
 
 lagrange = Lagrange(scale=False, lr=100, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using numpy are :\n", lagrange.score(X, Y))
+print("\n Time :\n", lagrange.fit_time)
 
 game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
             mu=True).fit(X, Y)
 print("\n Eigenvalues calculated using game are :\n", game.score(X, Y))
+print("\n Time :\n", game.fit_time)
 
 genoja = Genoja(scale=False, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True, alpha=alpha,
                 beta_0=beta_0).fit(X, Y)
 print("\n Eigenvalues calculated using genoja are :\n", genoja.score(X, Y))
+print("\n Time :\n", genoja.fit_time)
 
 als = AlternatingLeastSquares(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using ALS are :\n", als.score(X, Y))
+print("\n Time :\n", als.fit_time)

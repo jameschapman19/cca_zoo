@@ -29,29 +29,23 @@ X = random.normal(key, (n, p))
 Y = random.normal(subkey, (n, q))
 
 # Model
-
-before = time.time()
 numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
 print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X, Y))
-print("\n Time :\n", time.time() - before)
+print("\n Time :\n", numpy.fit_time)
 
-before = time.time()
 game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
             mu=True).fit(X, Y)
 print("\n Eigenvalues calculated using game are :\n", game.score(X, Y))
-print("\n Time :\n", time.time() - before)
+print("\n Time :\n", game.fit_time)
 
-before = time.time()
 sgd = SGD(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using sgd are :\n", sgd.score(X, Y))
-print("\n Time :\n", time.time() - before)
+print("\n Time :\n", sgd.fit_time)
 
-before = time.time()
 batch = Batch(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using batch are :\n", batch.score(X, Y))
-print("\n Time :\n", time.time() - before)
+print("\n Time :\n", batch.fit_time)
 
-before = time.time()
 incremental = Incremental(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using incremental are :\n", incremental.score(X, Y))
-print("\n Time :\n", time.time() - before)
+print("\n Time :\n", incremental.fit_time)
