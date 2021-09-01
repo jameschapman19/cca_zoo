@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 from scipy.sparse import issparse
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, MultiOutputMixin, RegressorMixin
 from sklearn.utils.sparsefuncs import mean_variance_axis
 from sklearn.utils.validation import check_random_state
 
@@ -16,7 +16,7 @@ import cca_zoo.utils.plot_utils
 from cca_zoo.utils import check_views
 
 
-class _CCA_Base(BaseEstimator):
+class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
     """
     A class used as the base for methods in the package. Allows methods to inherit fit_transform, predict_corr, and gridsearch_fit
     when only fit (and transform where it is different to the default) is provided.
@@ -25,7 +25,6 @@ class _CCA_Base(BaseEstimator):
     :param scale: normalize variance in each column before fitting
     """
 
-    @abstractmethod
     def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, accept_sparse=False,
                  random_state: Union[int, np.random.RandomState] = None):
         """
@@ -78,16 +77,15 @@ class _CCA_Base(BaseEstimator):
             transformed_views.append(transformed_view)
         return transformed_views
 
-    def fit_transform(self, *views: np.ndarray, view_indices: List[int] = None, **kwargs):
+    def fit_transform(self, *views: np.ndarray, **kwargs):
         """
         Fits and then transforms the training data
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
-        :param view_indices:
         :param kwargs: any additional keyword arguments required by the given model
         :rtype: np.ndarray
         """
-        return self.fit(*views).transform(*views, view_indices=view_indices, **kwargs)
+        return self.fit(*views, **kwargs).transform(*views)
 
     def predict_corr(self, *views: Iterable[np.ndarray], view_indices: List[int] = None, **kwargs):
         """

@@ -1,6 +1,6 @@
 numpy
 scikit-learn
-scipy>=1.5
+scipy>=1.7
 matplotlib
 seaborn
 pandas
