@@ -35,7 +35,6 @@ print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 print("\n Sum :\n", jnp.sum(corr_np))
 
 numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
-numpy.score(X, Y)
 
 game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
             mu=True).fit(X, Y)

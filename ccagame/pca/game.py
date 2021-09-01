@@ -93,7 +93,7 @@ class Game(_PCA):
 
     def __init__(self, n_components=4, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
                  riemannian_projection: bool = False,
-                 random_state: int = 0, simultaneous: bool = False, batch_size: int = 128, mu=True, verbose=False):
+                 random_state: int = 0, simultaneous: bool = True, batch_size: int = 128, mu=True, verbose=False):
         super().__init__(n_components, scale=scale, copy=copy)
         self.lr = lr
         self.epochs = epochs

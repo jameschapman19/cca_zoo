@@ -17,6 +17,6 @@ def initialize(X, n, type='uniform', random_state=0):
 
 
 def TV(X, Wx):
-    X_hat=X@Wx
+    X_hat = X @ Wx
     eigvals, eigvecs = jnp.linalg.eigvals(X_hat.T @ X_hat)
     return eigvals.sum()

@@ -6,8 +6,8 @@ from jax import random
 
 def TCC(X, Y, Wx, Wy):
     dof = X.shape[0] - 1
-    X_hat=X@Wx
-    Y_hat=Y@Wy
+    X_hat = X @ Wx
+    Y_hat = Y @ Wy
     C = jnp.hstack((X_hat, Y_hat))
     C = C.T @ C / dof
     # Get the block covariance matrix placing Xi^TX_i on the diagonal

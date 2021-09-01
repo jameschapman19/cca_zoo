@@ -2,6 +2,7 @@
 import jax.numpy as jnp
 import jax.scipy as jsp
 import numpy as np
+
 from ccagame.cca._cca import _CCA
 
 

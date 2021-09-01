@@ -4,8 +4,7 @@ import jax.numpy as jnp
 from jax import random
 
 # Imports
-from ccagame.cca import calc_sklearn, calc_game, \
-    calc_lscca, calc_lscca_exact, calc_genoja, calc_ccalin, calc_lagrangeminmax
+from ccagame.cca import calc_numpy, Numpy, Genoja, Game, Lagrange, AlternatingLeastSquares, CCALin
 
 # %%
 
