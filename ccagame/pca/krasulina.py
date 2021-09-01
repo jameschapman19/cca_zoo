@@ -9,6 +9,7 @@ from functools import partial
 import jax.numpy as jnp
 from jax import jit
 
+from . import _PCA
 from .utils import TV, initialize
 # Update rule to be used for calculating eigenvectors
 from ..utils import data_stream, get_num_batches
@@ -36,3 +37,30 @@ def calc_krasulina(X, k, lr=1e-1, epochs=100, initialization='uniform',
         print(f"Epoch {epoch} in {epoch_time} sec")
         print(f'epoch {epoch}: {obj[-1]}')
     return TV(X, U), U, obj
+
+
+class Krasulina(_PCA):
+    def __init__(self, n_components=2, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
+                 random_state: int = 0, batch_size: int = 128, verbose=False):
+        super().__init__(n_components, scale=scale, copy=copy)
+        self.lr = lr
+        self.epochs = epochs
+        self.random_state = random_state
+        self.batch_size = batch_size
+        self.verbose = verbose
+
+    def _fit(self, X):
+        U = initialize(X, self.n_components, type='random', random_state=self.random_state)
+        batches = data_stream(X, batch_size=self.batch_size)
+        num_batches = get_num_batches(X, batch_size=self.batch_size)
+        obj = []
+        for epoch in range(self.epochs):
+            start_time = time.time()
+            for _ in range(num_batches):
+                U = update(U, next(batches), lr=self.lr)
+            epoch_time = time.time() - start_time
+            obj.append(TV(X, U))
+            if self.verbose:
+                print(f"Epoch {epoch} in {epoch_time} sec")
+                print(f'epoch {epoch}: {obj[-1]}')
+        return U
