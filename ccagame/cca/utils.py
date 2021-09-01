@@ -3,12 +3,22 @@ import jax.scipy as jsp
 from jax import jit
 from jax import random
 
-from ccagame.cca.numpy import calc_numpy
-
 
 def TCC(X, Y, Wx, Wy):
-    k = Wx.shape[1]
-    return jnp.sum(calc_numpy(jnp.dot(X, Wx), jnp.dot(Y, Wy), k)[0])
+    dof = X.shape[0] - 1
+    X_hat=X@Wx
+    Y_hat=Y@Wy
+    C = jnp.hstack((X_hat, Y_hat))
+    C = C.T @ C / dof
+    # Get the block covariance matrix placing Xi^TX_i on the diagonal
+    D = jsp.linalg.block_diag(
+        *[m.T @ m for i, m in enumerate([X_hat, Y_hat])]) / dof
+    C = C - jsp.linalg.block_diag(*[view.T @ view / dof for view in [X_hat, Y_hat]]) + D
+    R = jnp.linalg.inv(jnp.linalg.cholesky(D))
+    # In MCCA our eigenvalue problem Cv = lambda Dv
+    C_whitened = R @ C @ R.T
+    eigvals = jnp.linalg.eigvalsh(C_whitened)
+    return eigvals.sum()
 
 
 def gram_schmidt_matrix(W, M):

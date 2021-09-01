@@ -27,5 +27,4 @@ class Numpy(_PCA):
         eigvals, eigvecs = jnp.linalg.eig(X.T @ X)
         idx = np.argsort(eigvals, axis=0)[::-1][:self.n_components]
         eigvecs = eigvecs[:, idx]
-        eigvals = eigvals[idx]
-        return eigvals, eigvecs
+        return eigvecs

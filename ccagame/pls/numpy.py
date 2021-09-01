@@ -26,5 +26,5 @@ class Numpy(_PLS):
         C = X.T @ Y
         U, S, Vt = jnp.linalg.svd(C)
         U = lax.dynamic_slice(U, (0, 0), (U.shape[0], self.n_components))
-        Vt = lax.dynamic_slice(Vt, (0, 0), (Vt.shape[0], self.n_components))
+        Vt = lax.dynamic_slice(Vt, (0, 0), (self.n_components,Vt.shape[0]))
         return U, Vt.T

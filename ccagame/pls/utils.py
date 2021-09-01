@@ -2,12 +2,13 @@ import jax.numpy as jnp
 import jax.scipy as jsp
 from jax import random
 
-from ccagame.pls.numpy import calc_numpy
-
 
 def TV(X, Y, Wx, Wy):
-    k = Wx.shape[1]
-    return jnp.sum(calc_numpy(jnp.dot(X, Wx), jnp.dot(Y, Wy), k)[0])
+    X_hat = X @ Wx
+    Y_hat = Y @ Wy
+    C = X_hat.T @ Y_hat
+    _, S, _ = jnp.linalg.svd(C)
+    return S.sum()
 
 
 def gram_schmidt_matrix(W, M):

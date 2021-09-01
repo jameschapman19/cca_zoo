@@ -1,8 +1,6 @@
 import jax.numpy as jnp
 from jax import random
 
-from ccagame.pca.numpy import calc_numpy
-
 
 def initialize(X, n, type='uniform', random_state=0):
     if type == 'uniform':
@@ -19,5 +17,6 @@ def initialize(X, n, type='uniform', random_state=0):
 
 
 def TV(X, Wx):
-    k = Wx.shape[1]
-    return jnp.sum(calc_numpy(jnp.dot(X, Wx), k)[0])
+    X_hat=X@Wx
+    eigvals, eigvecs = jnp.linalg.eigvals(X_hat.T @ X_hat)
+    return eigvals.sum()
