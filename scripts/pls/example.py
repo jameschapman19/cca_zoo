@@ -15,10 +15,10 @@ n = 100
 p = 10
 q = 11
 latent_dims = 3
-epochs = 100
+epochs = 10
 riemannian_projection = False
 lr = 1e-2
-batch_size = 8
+batch_size = 10
 
 # %%
 

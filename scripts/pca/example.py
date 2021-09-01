@@ -1,4 +1,3 @@
-import jax.numpy as jnp
 from jax import random
 
 from ccagame.pca import Game, GHA, Oja, Krasulina, Numpy

@@ -15,6 +15,8 @@ p = 10
 q = 11
 latent_dims = 5
 max_iter = 300
+batch_size = 10
+epochs = 10
 riemannian_projection = True
 initialization = 'random'
 lr = 1e-1
@@ -34,38 +36,21 @@ Y = Y / jnp.linalg.norm(Y, axis=0)
 # %%
 
 # Model
-corr_sk, Usk, Vsk = calc_sklearn(X, Y, k=latent_dims)
+corr_sk, Usk, Vsk = calc_numpy(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
 print("\n Sum :\n", jnp.sum(corr_sk))
 
-corr_go, Ugo, Vgo = calc_genoja(X, Y, latent_dims, iterations=max_iter, alpha=alpha, beta_0=beta_0)
-print("\n Eigenvalues calculated using genoja are :\n", corr_go)
-print("\n Sum :\n", jnp.sum(corr_go))
+numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
 
-corr, U, V = calc_game(X, Y, latent_dims, lr=lr, iterations=max_iter,
-                       riemannian_projection=riemannian_projection,
-                       simultaneous=True)
-print("\n Eigenvalues calculated using game are :\n", corr)
-print("\n Sum :\n", jnp.sum(corr))
+game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
+            mu=True).fit(X, Y)
 
-corr_l, Ul, Vl = calc_lagrangeminmax(X, Y, latent_dims, iterations=max_iter)
-print("\n Eigenvalues calculated using lagrangeminmax are :\n", corr)
-print("\n Sum :\n", jnp.sum(corr_l))
+sgd = Genoja(scale=False, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True, alpha=alpha,
+             beta_0=beta_0).fit(X, Y)
 
-corr_cl, Ucl, Vcl = calc_ccalin(X, Y, latent_dims, iterations=max_iter,
-                                random_state=random_state, verbose=True
-                                )
-print("\n Eigenvalues calculated using ccalin are :\n", corr)
-print("\n Sum :\n", jnp.sum(corr_cl))
+batch = Lagrange(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 
-corr_lse, U_lse, V_lse = calc_lscca_exact(X, Y, latent_dims, iterations=max_iter,
-                                          random_state=random_state,
-                                          initialization=initialization)
-print("\n Eigenvalues calculated using lsccae are :\n", corr_lse)
-print("\n Sum :\n", jnp.sum(corr_lse))
+incremental = AlternatingLeastSquares(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X,
+                                                                                                                     Y)
 
-corr_ls, U_ls, V_ls = calc_lscca(X, Y, latent_dims, iterations=max_iter,
-                                 random_state=random_state,
-                                 initialization=initialization)
-print("\n Eigenvalues calculated using lscca are :\n", corr_ls)
-print("\n Sum :\n", jnp.sum(corr_ls))
+ccalin = CCALin(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
