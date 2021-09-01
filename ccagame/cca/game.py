@@ -1,15 +1,18 @@
 # Importing necessary libraries
+import time
 from functools import partial
-from jax import jit
+
 import jax.numpy as jnp
 from jax import grad
+from jax import jit
 
 from .utils import initialize, calc_eigenvalues, TCC
-
-
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
 # X is the design matrix and V holds the previously computed eigenvectors
+from ..utils import data_stream, get_num_batches
+
+
 @partial(jit, static_argnums=5)
 def model(u, v, X, Y, V, k):
     C_xy = jnp.dot(jnp.transpose(X), Y)
@@ -39,21 +42,35 @@ def update(u, v, X, Y, U, V, k, lr=1, riemannian_projection=False):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_game(X, Y, k, lr=1, iterations=100, riemannian_projection=False,
-              random_state=0, simultaneous=False):
+def calc_game(X, Y, k, lr=1, epochs=100, riemannian_projection=False,
+              random_state=0, simultaneous=False, batch_size=None):
     U, V = initialize(X, Y, k, 'random', random_state)
+    batches = data_stream(X, Y, batch_size=batch_size)
+    num_batches = get_num_batches(X, Y, batch_size=batch_size)
     if simultaneous:
-        for i in range(iterations):
-            for k_ in range(k):
-                u, v = update(U[:, k_], V[:, k_], X, Y, U, V, k_, lr=lr, riemannian_projection=riemannian_projection)
-                U = U.at[:, k_].set(u)
-                V = V.at[:, k_].set(v)
-            print(f'iteration {i}: {TCC(X, Y, U, V)}')
+        for epoch in range(epochs):
+            start_time = time.time()
+            for _ in range(num_batches):
+                X_i, Y_i = next(batches)
+                for k_ in range(k):
+                    u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=lr,
+                                  riemannian_projection=riemannian_projection)
+                    U = U.at[:, k_].set(u)
+                    V = V.at[:, k_].set(v)
+            epoch_time = time.time() - start_time
+            print(f"Epoch {epoch} in {epoch_time} sec")
+            print(f'epoch {epoch}: {TCC(X, Y, U, V)}')
     else:
         for k_ in range(k):
-            for i in range(iterations):
-                u, v = update(U[:, k_], V[:, k_], X, Y, U, V, k_, lr=lr, riemannian_projection=riemannian_projection)
-                U = U.at[:, k_].set(u)
-                V = V.at[:, k_].set(v)
-                print(f'iteration {i}: {TCC(X, Y, U, V)}')
+            for epoch in range(epochs):
+                start_time = time.time()
+                for _ in range(num_batches):
+                    X_i, Y_i = next(batches)
+                    u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=lr,
+                                  riemannian_projection=riemannian_projection)
+                    U = U.at[:, k_].set(u)
+                    V = V.at[:, k_].set(v)
+                epoch_time = time.time() - start_time
+                print(f"Epoch {epoch} in {epoch_time} sec")
+                print(f'epoch {epoch}: {TCC(X, Y, U, V)}')
     return calc_eigenvalues(X, Y, U, V), U, V

@@ -5,8 +5,9 @@ https://proceedings.mlr.press/v89/chen19a/chen19a.pdf
 """
 # Importing necessary libraries
 from functools import partial
-from jax import jit
+
 import jax.numpy as jnp
+from jax import jit
 
 from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix, TCC
 
@@ -29,7 +30,6 @@ def calc_lagrangeminmax(X, Y, k, iterations=100,
     for i in range(iterations):
         W = update(A, B, W, lr)
         print(f'iteration {i}: {TCC(X, Y, W[:p], W[p:])}')
-        # print(f'iteration {i}: {jnp.sum(jnp.dot(jnp.transpose(Wx), jnp.dot(A[:p, p:], Wy)))}')
     Wx = gram_schmidt_matrix(W[:p], B[:p, :p])
     Wy = gram_schmidt_matrix(W[p:], B[p:, p:])
     return TCC(X, Y, W[:p], W[p:]), Wx, Wy

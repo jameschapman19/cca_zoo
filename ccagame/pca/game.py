@@ -2,6 +2,7 @@
 EigenGame: PCA as a Nash Equilibrium
 https://arxiv.org/pdf/2010.00554.pdf
 """
+import time
 # Importing necessary libraries
 from functools import partial
 
@@ -10,11 +11,12 @@ import jax.numpy as jnp
 from jax import jit
 
 from .utils import TV, initialize
-
-
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
 # X is the design matrix and V holds the previously computed eigenvectors
+from ..utils import data_stream, get_num_batches
+
+
 @partial(jit, static_argnums=(3))
 def model(u, X, U, k):
     M = X.T @ X
@@ -37,22 +39,34 @@ def update(u, X, U, k, lr=1, riemannian_projection=False):
     return uhat / jnp.linalg.norm(uhat)
 
 
-def calc_game(X, k, lr=1, iterations=100, riemannian_projection=False, initialization='random',
-              random_state=0, simultaneous=False):
+def calc_game(X, k, lr=1, epochs=100, riemannian_projection=False, initialization='random',
+              random_state=0, simultaneous=False, batch_size=None):
     U = initialize(X, k, type=initialization, random_state=random_state)
+    batches = data_stream(X, batch_size=batch_size)
+    num_batches = get_num_batches(X, batch_size=batch_size)
     obj = []
     if simultaneous:
-        for i in range(iterations):
-            for k_ in range(k):
-                u = update(U[:, k_], X, U, k_, lr=lr, riemannian_projection=riemannian_projection)
-                U = U.at[:, k_].set(u)
+        for epoch in range(epochs):
+            start_time = time.time()
+            for _ in range(num_batches):
+                X_i = next(batches)
+                for k_ in range(k):
+                    u = update(U[:, k_], X_i, U, k_, lr=lr, riemannian_projection=riemannian_projection)
+                    U = U.at[:, k_].set(u)
+            epoch_time = time.time() - start_time
+            print(f"Epoch {epoch} in {epoch_time} sec")
             obj.append(TV(X, U))
-            print(f'iteration {i}: {obj[-1]}')
+            print(f'epoch {epoch}: {obj[-1]}')
     else:
         for k_ in range(k):
-            for i in range(iterations):
-                u = update(U[:, k_], X, U, k_, lr=lr, riemannian_projection=riemannian_projection)
-                U = U.at[:, k_].set(u)
+            for epoch in range(epochs):
+                start_time = time.time()
+                for _ in range(num_batches):
+                    X_i = next(batches)
+                    u = update(U[:, k_], X_i, U, k_, lr=lr, riemannian_projection=riemannian_projection)
+                    U = U.at[:, k_].set(u)
+                epoch_time = time.time() - start_time
+                print(f"Epoch {epoch} in {epoch_time} sec")
                 obj.append(TV(X, U))
-                print(f'iteration {i}: {obj[-1]}')
+                print(f'epoch {epoch}: {obj[-1]}')
     return TV(X, U), U, obj

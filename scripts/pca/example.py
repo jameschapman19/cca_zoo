@@ -7,10 +7,12 @@ n = 100
 p = 10
 dims = 3
 lr = 1
+batch_size = 8
+epochs = 20
 
 key = random.PRNGKey(0)
 X = random.normal(key, (n, p))
-X = X/jnp.linalg.norm(X,axis=0)
+X = X / jnp.linalg.norm(X, axis=0)
 
 vals_np, vecs_np = pca.calc_numpy(X, dims)
 print("\n Eigenvalues calculated using numpy are :\n", vals_np)
@@ -20,7 +22,7 @@ vals_sk, vecs_sk = pca.calc_sklearn(X, dims)
 print("\n Eigenvalues calculated using sk are :\n", vals_sk)
 print("\n Sum :\n", jnp.sum(vals_sk))
 
-vals, vecs, obj = pca.calc_game(X, dims, lr=lr, simultaneous=True)
+vals, vecs, obj = pca.calc_game(X, dims, lr=lr, simultaneous=True, batch_size=batch_size, epochs=epochs)
 print("\n Eigenvalues calculate using the Eigengame are :\n", vals)
 print("\n Sum :\n", jnp.sum(vals))
 

@@ -1,29 +1,43 @@
 # Importing necessary libraries
+import time
+from functools import partial
 
 import jax.numpy as jnp
-from jax import grad
+from jax import grad, jit
 
+from ccagame.utils import data_stream, get_num_batches
 from .utils import initialize, TV
 
 
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
 # X is the design matrix and V holds the previously computed eigenvectors
-# @partial(jit, static_argnums=5)
-def model(u, v, X, Y, V, k):
+@partial(jit, static_argnums=(6))
+def alpha_model(u, v, X, Y, U, V, k: int):
     C_xy = X.T @ Y
-    rewards = (u.T @ C_xy @ v) ** 2
+    rewards = (u.T @ C_xy @ v)
     penalties = 0
-    for j in range(k):
-        penalties = penalties + (u.T @ C_xy @ V[:, j]) ** 2
-    return jnp.sum(rewards - penalties)
+    penalties = (u.T @ C_xy @ V[:, :k]) ** 2 / (U[:, :k].T @ C_xy @ V[:, :k])
+    return jnp.sum(rewards - penalties.sum(axis=1))
+
+
+@partial(jit, static_argnums=(6))
+def mu_model(u, v, X, Y, U, V, k: int):
+    C_xy = X.T @ Y
+    rewards = C_xy @ v
+    penalties = (u.T @ C_xy @ V[:, :k]) * U[:, :k]
+    return rewards - penalties.sum(axis=1)
 
 
 # Update rule to be used for calculating eigenvectors
-# @partial(jit, static_argnums=6, static_argnames=('lr', 'riemannian_projection'))
-def update(u, v, X, Y, U, V, k, lr=1, riemannian_projection=False):
-    du = grad(model)(u, v, X, Y, V, k)
-    dv = grad(model)(v, u, Y, X, U, k)
+@partial(jit, static_argnums=6, static_argnames=('lr', 'riemannian_projection', 'mu'))
+def update(u, v, X, Y, U, V, k: int, lr: float = 1, riemannian_projection: bool = False, mu=False):
+    if mu:
+        du = mu_model(u, v, X, Y, U, V, k)
+        dv = mu_model(v, u, Y, X, V, U, k)
+    else:
+        du = grad(alpha_model)(u, v, X, Y, U, V, k)
+        dv = grad(alpha_model)(v, u, Y, X, V, U, k)
     if riemannian_projection:
         dur = du - (u.T @ u) * u
         uhat = u + lr * dur
@@ -36,21 +50,63 @@ def update(u, v, X, Y, U, V, k, lr=1, riemannian_projection=False):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_game(X, Y, k, lr=1, iterations=100, riemannian_projection=False,
-              random_state=0, simultaneous=False):
+def calc_game(X, Y, k: int, lr: float = 1, epochs: int = 100, riemannian_projection: bool = False,
+              random_state: int = 0, simultaneous: bool = False, batch_size: int = 128, mu=False):
+    """
+    Calculate partial least squares weights with PLS-Game
+
+    Parameters
+    ----------
+    X :
+        First view of data
+    Y :
+        Second view of data
+    k :
+        number of latent dimensions
+    lr :
+        learning rate
+    epochs :
+        number of epochs
+    riemannian_projection :
+        whether to do a riemannian gradient descent projection. False gives a smoothing effect near the optimum
+    random_state :
+        random seed
+    simultaneous :
+        whether to solve for all players simultaneously
+    batch_size :
+        minibatch size for calculation of stochastic gradients
+
+    Returns
+    -------
+
+    """
     U, V = initialize(X, Y, k, 'random', random_state)
+    batches = data_stream(X, Y, batch_size=batch_size)
+    num_batches = get_num_batches(X, Y, batch_size=batch_size)
     if simultaneous:
-        for i in range(iterations):
-            for k_ in range(k):
-                u, v = update(U[:, k_], V[:, k_], X, Y, U, V, k_, lr=lr, riemannian_projection=riemannian_projection)
-                U = U.at[:, k_].set(u)
-                V = V.at[:, k_].set(v)
-            print(f'iteration {i}: {TV(X, Y, U, V)}')
+        for epoch in range(epochs):
+            start_time = time.time()
+            for _ in range(num_batches):
+                X_i, Y_i = next(batches)
+                for k_ in range(k):
+                    u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=lr,
+                                  riemannian_projection=riemannian_projection, mu=mu)
+                    U = U.at[:, k_].set(u)
+                    V = V.at[:, k_].set(v)
+            epoch_time = time.time() - start_time
+            print(f"Epoch {epoch} in {epoch_time} sec")
+            print(f'epoch {epoch}: {TV(X, Y, U, V)}')
     else:
         for k_ in range(k):
-            for i in range(iterations):
-                u, v = update(U[:, k_], V[:, k_], X, Y, U, V, k_, lr=lr, riemannian_projection=riemannian_projection)
-                U = U.at[:, k_].set(u)
-                V = V.at[:, k_].set(v)
-                print(f'iteration {i}: {TV(X, Y, U, V)}')
+            for epoch in range(epochs):
+                start_time = time.time()
+                for _ in range(num_batches):
+                    X_i, Y_i = next(batches)
+                    u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=lr,
+                                  riemannian_projection=riemannian_projection, mu=mu)
+                    U = U.at[:, k_].set(u)
+                    V = V.at[:, k_].set(v)
+                epoch_time = time.time() - start_time
+                print(f"Epoch {epoch} in {epoch_time} sec")
+                print(f'epoch {epoch}: {TV(X, Y, U, V)}')
     return TV(X, Y, U, V), U, V
