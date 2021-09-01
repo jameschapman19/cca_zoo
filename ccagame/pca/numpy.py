@@ -2,7 +2,7 @@
 import jax.numpy as jnp
 import numpy as np
 
-from . import _PCA
+from ._pca import _PCA
 
 
 # Calculate the eigenvalues of covariance matrix of X using Numpy for comparison
