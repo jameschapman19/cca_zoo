@@ -18,7 +18,7 @@ latent_dims = 3
 epochs = 10
 riemannian_projection = False
 lr = 1e-2
-batch_size = 10
+batch_size = 20
 # This implements the version with unbiased updates analagous to Eigengame:Unloaded
 mu = True
 
@@ -44,7 +44,7 @@ sgd = SGD(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components
 print("\n Eigenvalues calculated using sgd are :\n", sgd.score(X, Y))
 print("\n Time :\n", sgd.fit_time)
 
-batch = Batch(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
+batch = Batch(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using batch are :\n", batch.score(X, Y))
 print("\n Time :\n", batch.fit_time)
 

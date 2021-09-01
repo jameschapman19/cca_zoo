@@ -67,10 +67,12 @@ class Batch(_PLS):
         U, V = initialize(X, Y, self.n_components, 'random', self.random_state)
         batches = data_stream(X, Y, batch_size=None)
         num_batches = get_num_batches(X, Y, batch_size=None)
+        self.obj = []
         for epoch in range(self.epochs):
             start_time = time.time()
             for _ in range(num_batches):
                 U, V = update(*next(batches), V)
+                self.obj.append(TV(X, Y, U, V))
             epoch_time = time.time() - start_time
             if self.verbose:
                 print(f"Epoch {epoch} in {epoch_time} sec")
