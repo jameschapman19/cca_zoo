@@ -3,9 +3,9 @@
 import jax.numpy as jnp
 from jax import random
 
-from ccagame.pls import Game, SGD, Incremental, Batch
+from ccagame.pls import Game, SGD, Incremental, Batch, Numpy
 # Imports
-from ccagame.pls import calc_numpy, calc_sklearn
+from ccagame.pls import calc_numpy
 
 # %%
 
@@ -29,13 +29,12 @@ X = random.normal(key, (n, p))
 Y = random.normal(subkey, (n, q))
 
 # Model
-corr_sk, Usk, Vsk = calc_sklearn(X, Y, k=latent_dims)
-print("\n Eigenvalues calculated using scikit are :\n", corr_sk)
-print("\n Sum :\n", jnp.sum(corr_sk))
 
 corr_np, Unp, Vnp = calc_numpy(X, Y, k=latent_dims)
 print("\n Eigenvalues calculated using numpy are :\n", corr_np)
 print("\n Sum :\n", jnp.sum(corr_np))
+
+numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
 
 game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
             mu=True).fit(X, Y)

@@ -19,18 +19,12 @@ def calc_numpy(X, Y, k):
 
 
 class Numpy(_PLS):
-    def __init__(self, n_components=2, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
-                 random_state: int = 0, verbose=False):
+    def __init__(self, n_components=2, *, scale=True, copy=True):
         super().__init__(n_components, scale=scale, copy=copy)
-        self.lr = lr
-        self.epochs = epochs
-        self.random_state = random_state
-        self.verbose = verbose
 
     def _fit(self, X, Y):
         C = X.T @ Y
         U, S, Vt = jnp.linalg.svd(C)
         U = lax.dynamic_slice(U, (0, 0), (U.shape[0], self.n_components))
         Vt = lax.dynamic_slice(Vt, (0, 0), (Vt.shape[0], self.n_components))
-        S = lax.dynamic_slice(S.reshape(1, C.shape[0]), (0, 0), (1, self.n_components))
-        return S, U, Vt.T
+        return U, Vt.T

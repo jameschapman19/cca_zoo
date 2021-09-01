@@ -84,4 +84,4 @@ class SGD(_PLS):
             if self.verbose:
                 print(f"Epoch {epoch} in {epoch_time} sec")
                 print(f'epoch {epoch}: {TV(X, Y, U, V)}')
-        return TV(X, Y, U, V), U, V
+        return U, V

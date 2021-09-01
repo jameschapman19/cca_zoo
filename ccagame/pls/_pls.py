@@ -2,6 +2,8 @@ from abc import abstractmethod
 
 from sklearn.base import BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin
 
+from .utils import TV
+
 
 class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
     def __init__(self, n_components=2, *, scale=True, copy=True):
@@ -16,12 +18,15 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
     @abstractmethod
     def fit(self, X, Y):
         X, Y, self._x_mean, self._y_mean, self._x_std, self._y_std = self.center_scale(X, Y)
-        self._fit(X, Y)
+        self.x_weights, self.y_weights = self._fit(X, Y)
         return self
 
     @abstractmethod
     def transform(self, X, Y):
         raise NotImplementedError
+
+    def score(self, X, y, sample_weight=None):
+        return TV(X, y, self.x_weights, self.y_weights)
 
     def center_scale(self, X, Y):
         x_mean = X.mean(axis=0)
