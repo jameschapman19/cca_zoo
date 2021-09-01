@@ -131,6 +131,7 @@ class Game(_PLS):
         U, V = initialize(X, Y, self.n_components, 'random', self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
+        self.obj = []
         if self.simultaneous:
             for epoch in range(self.epochs):
                 start_time = time.time()
@@ -141,6 +142,7 @@ class Game(_PLS):
                                       riemannian_projection=self.riemannian_projection, mu=self.mu)
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
+                    self.obj.append(TV(X, Y, U, V))
                 epoch_time = time.time() - start_time
                 if self.verbose:
                     print(f"Epoch {epoch} in {epoch_time} sec")
@@ -155,6 +157,7 @@ class Game(_PLS):
                                       riemannian_projection=self.riemannian_projection, mu=self.mu)
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
+                        self.obj.append(TV(X, Y, U, V))
                     epoch_time = time.time() - start_time
                     if self.verbose:
                         print(f"Epoch {epoch} in {epoch_time} sec")

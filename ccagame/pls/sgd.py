@@ -74,12 +74,14 @@ class SGD(_PLS):
         U, V = initialize(X, Y, self.n_components, 'random', self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
+        self.obj=[]
         for epoch in range(self.epochs):
             start_time = time.time()
             for _ in range(num_batches):
                 X_i, Y_i = next(batches)
                 U = update(X_i, Y_i, U, V, lr=self.lr)
                 V = update(Y_i, X_i, V, U, lr=self.lr)
+                self.obj.append(TV(X, Y, U, V))
             epoch_time = time.time() - start_time
             if self.verbose:
                 print(f"Epoch {epoch} in {epoch_time} sec")

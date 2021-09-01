@@ -37,7 +37,7 @@ def calc_gha(X, k, lr=1e-1, epochs=100, initialization='uniform',
 
 
 class GHA(_PCA):
-    def __init__(self, n_components=2, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
+    def __init__(self, n_components=2, *, scale=True, copy=True, lr: float = 1e-2, epochs: int = 100,
                  random_state: int = 0, batch_size: int = 128, verbose=False):
         super().__init__(n_components, scale=scale, copy=copy)
         self.lr = lr
@@ -50,14 +50,14 @@ class GHA(_PCA):
         U = initialize(X, self.n_components, type='random', random_state=self.random_state)
         batches = data_stream(X, batch_size=self.batch_size)
         num_batches = get_num_batches(X, batch_size=self.batch_size)
-        obj = []
+        self.obj = []
         for epoch in range(self.epochs):
             start_time = time.time()
             for _ in range(num_batches):
                 U = update(U, next(batches), lr=self.lr)
+                self.obj.append(TV(X, U))
             epoch_time = time.time() - start_time
-            obj.append(TV(X, U))
             if self.verbose:
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f'epoch {epoch}: {obj[-1]}')
+                print(f'epoch {epoch}: {TV(X, U)}')
         return U

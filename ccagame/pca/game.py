@@ -117,11 +117,11 @@ class Game(_PCA):
                     for k_ in range(self.n_components):
                         u = update(U[:, k_], X_i, U, k_, lr=self.lr, riemannian_projection=self.riemannian_projection)
                         U = U.at[:, k_].set(u)
-                obj.append(TV(X, U))
+                    self.obj.append(TV(X, U))
                 if self.verbose:
                     epoch_time = time.time() - start_time
                     print(f"Epoch {epoch} in {epoch_time} sec")
-                    print(f'epoch {epoch}: {obj[-1]}')
+                    print(f'epoch {epoch}: {TV(X, U)}')
         else:
             for k_ in range(self.n_components):
                 for epoch in range(self.epochs):
@@ -130,9 +130,9 @@ class Game(_PCA):
                         X_i = next(batches)
                         u = update(U[:, k_], X_i, U, k_, lr=self.lr, riemannian_projection=self.riemannian_projection)
                         U = U.at[:, k_].set(u)
-                    obj.append(TV(X, U))
+                        self.obj.append(TV(X, U))
                     if self.verbose:
                         epoch_time = time.time() - start_time
                         print(f"Epoch {epoch} in {epoch_time} sec")
-                        print(f'epoch {epoch}: {obj[-1]}')
+                        print(f'epoch {epoch}: {self.obj[-1]}')
         return U
