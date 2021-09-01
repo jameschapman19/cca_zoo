@@ -7,8 +7,9 @@ https://proceedings.neurips.cc/paper/2016/file/42998cf32d552343bc8e460416382dca-
 import jax.numpy as jnp
 from jax import jit
 
-from .utils import initialize, TCC
 from . import _CCA
+from .utils import initialize, TCC
+
 
 # Update rule to be used for calculating eigenvectors
 @jit
@@ -26,6 +27,7 @@ def calc_lscca(X, Y, k, iterations=100, initialization='uniform',
         U, V = update(X, Y, U, V)
     return TCC(X, Y, U, V), U, V
 
+
 class AlternatingLeastSquares(_CCA):
 
     def __init__(self, n_components=4, *, scale=True, copy=True, epochs: int = 100,
@@ -35,8 +37,7 @@ class AlternatingLeastSquares(_CCA):
         self.random_state = random_state
         self.batch_size = batch_size
         self.verbose = verbose
-        self.lr=lr
-
+        self.lr = lr
 
     def _fit(self, X, Y):
         U, V = initialize(X, Y, self.n_components, 'random', self.random_state)

@@ -12,6 +12,7 @@ from jax import jit
 from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix, TCC
 from . import _CCA
 
+
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=5)
 def update(A, B, W, lr):
@@ -34,6 +35,7 @@ def calc_lagrangeminmax(X, Y, k, iterations=100,
     Wy = gram_schmidt_matrix(W[p:], B[p:, p:])
     return TCC(X, Y, W[:p], W[p:]), Wx, Wy
 
+
 class Lagrange(_CCA):
 
     def __init__(self, n_components=4, *, scale=True, copy=True, epochs: int = 100,
@@ -43,8 +45,7 @@ class Lagrange(_CCA):
         self.random_state = random_state
         self.batch_size = batch_size
         self.verbose = verbose
-        self.lr=lr
-
+        self.lr = lr
 
     def _fit(self, X, Y):
         p = X.shape[1]

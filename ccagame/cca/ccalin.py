@@ -8,11 +8,10 @@ import jax.numpy as jnp
 from jax import random
 
 from ccagame.solver import agd_solve
-from .utils import gram_schmidt_matrix, initialize_gep, TCC
-
-from ccagame.utils import data_stream, get_num_batches
-from .utils import TCC, initialize
 from . import _CCA
+from .utils import TCC
+from .utils import gram_schmidt_matrix, initialize_gep
+
 
 def obj(W, A, B, Wt):
     return jnp.trace(0.5 * W.T @ B @ W - W.T @ A @ Wt)
@@ -75,7 +74,8 @@ class CCALin(_CCA):
     def _fit(self, X, Y):
         p = X.shape[1]
         A, B = initialize_gep(X, Y)
-        W = GenELinK(A, B, 2 * self.n_components, epochs=self.epochs, random_state=self.random_state, verbose=self.verbose, X=X)
+        W = GenELinK(A, B, 2 * self.n_components, epochs=self.epochs, random_state=self.random_state,
+                     verbose=self.verbose, X=X)
         key = random.PRNGKey(self.random_state)
         M = random.normal(key, (2 * self.n_components, self.n_components))
         U = gram_schmidt_matrix(jnp.dot(W[:p], M), B[:p, :p])

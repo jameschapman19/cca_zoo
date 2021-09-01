@@ -6,12 +6,13 @@ import jax.numpy as jnp
 from jax import grad
 from jax import jit
 
+from . import _CCA
 from .utils import initialize, calc_eigenvalues, TCC
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
 # X is the design matrix and V holds the previously computed eigenvectors
 from ..utils import data_stream, get_num_batches
-from . import _CCA
+
 
 @partial(jit, static_argnums=5)
 def model(u, v, X, Y, V, k):
@@ -74,6 +75,7 @@ def calc_game(X, Y, k, lr=1, epochs=100, riemannian_projection=False,
                 print(f"Epoch {epoch} in {epoch_time} sec")
                 print(f'epoch {epoch}: {TCC(X, Y, U, V)}')
     return calc_eigenvalues(X, Y, U, V), U, V
+
 
 class Game(_CCA):
 

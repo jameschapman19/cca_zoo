@@ -12,6 +12,7 @@ from jax import jit
 from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix, TCC
 from . import _CCA
 
+
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=5)
 def update(A, B, W, V, beta, alpha):
@@ -35,6 +36,7 @@ def calc_genoja(X, Y, k, iterations=100,
         print(f'iteration {i}: {TCC(X, Y, Wx, Wy)}')
     return TCC(X, Y, Wx, Wy), Wx, Wy
 
+
 class Genoja(_CCA):
 
     def __init__(self, n_components=4, *, scale=True, copy=True, epochs: int = 100,
@@ -44,8 +46,8 @@ class Genoja(_CCA):
         self.random_state = random_state
         self.batch_size = batch_size
         self.verbose = verbose
-        self.beta_0=beta_0
-        self.alpha=alpha
+        self.beta_0 = beta_0
+        self.alpha = alpha
 
     def _fit(self, X, Y):
         p = X.shape[1]

@@ -53,5 +53,3 @@ def calc_lvm(X, Y, k, iterations=100,
         U, V, U_, V_, Z, = update(U, V, U_, V_, Z, X, Y, lr=lr)
         print(f'iteration {i}: {TCC(X, Y, U, V)}')
     return TCC(X, Y, U, V), U, V
-
-
