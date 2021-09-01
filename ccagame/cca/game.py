@@ -7,10 +7,7 @@ from jax import grad
 from jax import jit
 
 from . import _CCA
-from .utils import initialize, calc_eigenvalues, TCC
-# Define utlity function, we will take grad of this in the
-# update step, v is the current eigenvector being calculated
-# X is the design matrix and V holds the previously computed eigenvectors
+from .utils import initialize, TCC
 from ..utils import data_stream, get_num_batches
 
 
@@ -44,7 +41,7 @@ def update(u, v, X, Y, U, V, k, lr:float=1.0, riemannian_projection=False):
 
 # Run the update step iteratively across all eigenvectors
 def calc_game(X, Y, k, lr=1, epochs=100, riemannian_projection=False,
-              random_state=0, simultaneous=False, batch_size=None):
+              random_state=0, simultaneous=True, batch_size=None):
     U, V = initialize(X, Y, k, 'random', random_state)
     batches = data_stream(X, Y, batch_size=batch_size)
     num_batches = get_num_batches(X, Y, batch_size=batch_size)
@@ -74,14 +71,14 @@ def calc_game(X, Y, k, lr=1, epochs=100, riemannian_projection=False,
                 epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")
                 print(f'epoch {epoch}: {TCC(X, Y, U, V)}')
-    return calc_eigenvalues(X, Y, U, V), U, V
+    return TCC(X, Y, U, V), U, V
 
 
 class Game(_CCA):
 
     def __init__(self, n_components=4, *, scale=True, copy=True, lr: float = 1.0, epochs: int = 100,
                  riemannian_projection: bool = False,
-                 random_state: int = 0, simultaneous: bool = False, batch_size: int = 128, mu=True, verbose=False):
+                 random_state: int = 0, simultaneous: bool = True, batch_size: int = 128, mu=True, verbose=False):
         super().__init__(n_components, scale=scale, copy=copy)
         self.lr = lr
         self.epochs = epochs

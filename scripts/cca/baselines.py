@@ -15,11 +15,11 @@ p = 10
 q = 11
 latent_dims = 5
 max_iter = 300
-batch_size = 10
+batch_size = 100
 epochs = 10
 riemannian_projection = True
 initialization = 'random'
-lr = 1e-1
+lr = 1
 alpha = 100
 beta_0 = 100
 
@@ -37,22 +37,25 @@ Y = Y / jnp.linalg.norm(Y, axis=0)
 
 # Model
 
+a, b, c = calc_numpy(X, Y, latent_dims)
+
 numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
-print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X,Y))
+print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X, Y))
+
+ccalin = CCALin(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
+print("\n Eigenvalues calculated using CCALin are :\n", ccalin.score(X, Y))
 
 game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
             mu=True).fit(X, Y)
-print("\n Eigenvalues calculated using game are :\n", game.score(X,Y))
+print("\n Eigenvalues calculated using game are :\n", game.score(X, Y))
 
 genoja = Genoja(scale=False, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True, alpha=alpha,
-             beta_0=beta_0).fit(X, Y)
-print("\n Eigenvalues calculated using genoja are :\n", genoja.score(X,Y))
+                beta_0=beta_0).fit(X, Y)
+print("\n Eigenvalues calculated using genoja are :\n", genoja.score(X, Y))
 
 lagrange = Lagrange(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
-print("\n Eigenvalues calculated using numpy are :\n", lagrange.score(X,Y))
+print("\n Eigenvalues calculated using numpy are :\n", lagrange.score(X, Y))
 
-als = AlternatingLeastSquares(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X,Y)
-print("\n Eigenvalues calculated using ALS are :\n", als.score(X,Y))
+als = AlternatingLeastSquares(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
+print("\n Eigenvalues calculated using ALS are :\n", als.score(X, Y))
 
-ccalin = CCALin(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
-print("\n Eigenvalues calculated using CCALin are :\n", ccalin.score(X,Y))
