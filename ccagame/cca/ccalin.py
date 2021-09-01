@@ -12,23 +12,25 @@ from . import _CCA
 from .utils import TCC
 from .utils import gram_schmidt_matrix, initialize_gep
 
+
 @jit
 def obj(W, A, B, Wt):
     return jnp.trace(0.5 * W.T @ B @ W - W.T @ A @ Wt)
+
 
 @jit
 def gamma(W, A):
     return W.T @ A @ W
 
-@partial(jit, static_argnums=(3,4,5))
+
 def GenELinK_update(W, A, B, lr, mu, iterations):
     W = jnp.squeeze(
         agd_solve(obj, A, B, W, x=jnp.expand_dims(jnp.dot(W, gamma(W, A)), 0), lr=lr, mu=mu, iterations=iterations,
                   in_axes=(0, None, None, None)), 0)
     return gram_schmidt_matrix(W, B)
 
-@partial(jit, static_argnums=(2), static_argnames=('epochs','random_state','verbose'))
-def GenELinK(A, B, k, epochs=1000, random_state=0, verbose=False, X=None, Y=None):
+
+def GenELinK(A, B, X, Y, k, epochs=1000, random_state=0, verbose=False):
     p = X.shape[1]
     d = A.shape[1]
     key = random.PRNGKey(random_state)
@@ -40,7 +42,7 @@ def GenELinK(A, B, k, epochs=1000, random_state=0, verbose=False, X=None, Y=None
     W = random.normal(key, (d, k))
     W = gram_schmidt_matrix(W, B)
     for i in range(epochs):
-        W = GenELinK_update(W, A, B, lr=lr, mu=mu, iterations=epochs)
+        W = GenELinK_update(W, A, B, lr, mu, epochs)
         if verbose:
             key = random.PRNGKey(random_state)
             U = random.normal(key, (k, int(k / 2)))
@@ -54,7 +56,7 @@ def GenELinK(A, B, k, epochs=1000, random_state=0, verbose=False, X=None, Y=None
 def calc_ccalin(X, Y, k, epochs=1000, random_state=0, verbose=False):
     p = X.shape[1]
     A, B = initialize_gep(X, Y)
-    W = GenELinK(A, B, 2 * k, epochs=epochs, random_state=random_state, verbose=verbose, X=X)
+    W = GenELinK(A, B,X,Y, 2 * k, epochs=epochs, random_state=random_state, verbose=verbose)
     key = random.PRNGKey(random_state)
     U = random.normal(key, (2 * k, k))
     Wx = gram_schmidt_matrix(jnp.dot(W[:p], U), B[:p, :p])
@@ -73,8 +75,8 @@ class CCALin(_CCA):
     def _fit(self, X, Y):
         p = X.shape[1]
         A, B = initialize_gep(X, Y)
-        W = GenELinK(A, B, 2 * self.n_components, epochs=self.epochs, random_state=self.random_state,
-                     verbose=self.verbose, X=X, Y=Y)
+        W = GenELinK(A, B, X, Y, 2 * self.n_components, epochs=self.epochs, random_state=self.random_state,
+                     verbose=self.verbose)
         key = random.PRNGKey(self.random_state)
         M = random.normal(key, (2 * self.n_components, self.n_components))
         U = gram_schmidt_matrix(jnp.dot(W[:p], M), B[:p, :p])
