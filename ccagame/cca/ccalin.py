@@ -6,7 +6,7 @@ https://export.arxiv.org/pdf/1604.03930
 # Importing necessary libraries
 import jax.numpy as jnp
 from jax import random, jit
-from functools import partial
+
 from ccagame.solver import agd_solve
 from . import _CCA
 from .utils import TCC
@@ -56,7 +56,7 @@ def GenELinK(A, B, X, Y, k, epochs=1000, random_state=0, verbose=False):
 def calc_ccalin(X, Y, k, epochs=1000, random_state=0, verbose=False):
     p = X.shape[1]
     A, B = initialize_gep(X, Y)
-    W = GenELinK(A, B,X,Y, 2 * k, epochs=epochs, random_state=random_state, verbose=verbose)
+    W = GenELinK(A, B, X, Y, 2 * k, epochs=epochs, random_state=random_state, verbose=verbose)
     key = random.PRNGKey(random_state)
     U = random.normal(key, (2 * k, k))
     Wx = gram_schmidt_matrix(jnp.dot(W[:p], U), B[:p, :p])

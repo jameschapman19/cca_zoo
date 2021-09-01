@@ -16,7 +16,7 @@ def TCC(X, Y, Wx, Wy):
     R = jnp.linalg.inv(jnp.linalg.cholesky(D))
     # In MCCA our eigenvalue problem Cv = lambda Dv
     C_whitened = R @ C @ R.T
-    eigvals = jnp.linalg.eigvalsh(C_whitened)[::-1][:Wx.shape[1]]-1
+    eigvals = jnp.linalg.eigvalsh(C_whitened)[::-1][:Wx.shape[1]] - 1
     return eigvals.real.sum()
 
 

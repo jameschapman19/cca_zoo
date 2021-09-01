@@ -55,4 +55,3 @@ print("\n Eigenvalues calculated using genoja are :\n", genoja.score(X, Y))
 
 als = AlternatingLeastSquares(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using ALS are :\n", als.score(X, Y))
-

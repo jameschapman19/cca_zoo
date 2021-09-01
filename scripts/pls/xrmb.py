@@ -1,5 +1,5 @@
 from ccagame import datasets
 
-a=datasets.xrmb()
+a = datasets.xrmb()
 
 print()

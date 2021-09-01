@@ -43,7 +43,7 @@ def mu_model(u, X, U, k):
 
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=3, static_argnames=('lr', 'riemannian_projection', 'mu'))
-def update(u, X, U, k, lr:float=1.0, riemannian_projection=False, mu=False):
+def update(u, X, U, k, lr: float = 1.0, riemannian_projection=False, mu=False):
     if mu:
         du = mu_model(u, X, U, k)
     else:

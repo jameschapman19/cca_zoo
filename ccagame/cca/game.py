@@ -25,7 +25,7 @@ def model(u, v, X, Y, V, k):
 
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=6, static_argnames=('lr', 'riemannian_projection'))
-def update(u, v, X, Y, U, V, k, lr:float=1.0, riemannian_projection=False):
+def update(u, v, X, Y, U, V, k, lr: float = 1.0, riemannian_projection=False):
     du = grad(model)(u, v, X, Y, V, k)
     dv = grad(model)(v, u, Y, X, U, k)
     if riemannian_projection:

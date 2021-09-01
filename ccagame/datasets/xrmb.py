@@ -1,5 +1,5 @@
 from scipy.io import loadmat
-import os
+
 
 def xrmb(datadir='/mnt/c/Users/chapm/PycharmProjects/barlowtwins/data/XRMB/'):
     """
@@ -17,4 +17,4 @@ def xrmb(datadir='/mnt/c/Users/chapm/PycharmProjects/barlowtwins/data/XRMB/'):
     view_1 = loadmat(datadir + 'XRMBf2KALDI_window7_single1.mat')
     view_2 = loadmat(datadir + 'XRMBf2KALDI_window7_single2.mat')
 
-    return view_1['X1'],view_2['X2'],view_1['XTe1'],view_2['XTe2']
+    return view_1['X1'], view_2['X2'], view_1['XTe1'], view_2['XTe2']

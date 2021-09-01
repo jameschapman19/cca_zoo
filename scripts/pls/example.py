@@ -1,12 +1,11 @@
 # %%
 
-import jax.numpy as jnp
+# Imports
+import time
+
 from jax import random
 
 from ccagame.pls import Game, SGD, Incremental, Batch, Numpy
-# Imports
-from ccagame.pls import calc_numpy
-import time
 
 # %%
 

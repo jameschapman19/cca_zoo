@@ -1,3 +1,3 @@
 from .mnist import mnist
-from .xrmb import xrmb
 from .ukbiobank import ukbiobank
+from .xrmb import xrmb
