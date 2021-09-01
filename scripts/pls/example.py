@@ -19,6 +19,8 @@ epochs = 10
 riemannian_projection = False
 lr = 1e-2
 batch_size = 10
+# This implements the version with unbiased updates analagous to Eigengame:Unloaded
+mu = True
 
 # %%
 

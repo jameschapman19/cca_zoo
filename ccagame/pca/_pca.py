@@ -20,9 +20,8 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
     def fit(self, X):
         self.mean = jnp.mean(X, axis=0)
         X -= self.mean
-        self.x_weights = self._fit(X)
         start_time=time.time()
-        self._fit(X)
+        self.x_weights = self._fit(X)
         self.fit_time=time.time()-start_time
         return self
 

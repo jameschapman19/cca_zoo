@@ -7,7 +7,7 @@ from ccagame.pca import Game, GHA, Oja, Krasulina, Numpy
 n = 100
 p = 10
 latent_dims = 3
-lr = 1
+lr = 1e-2
 batch_size = 8
 epochs = 20
 
