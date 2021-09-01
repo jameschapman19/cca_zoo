@@ -63,7 +63,7 @@ def calc_ccalin(X, Y, k, epochs=1000, random_state=0, verbose=False):
 
 
 class CCALin(_CCA):
-    def __init__(self, n_components=2, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
+    def __init__(self, n_components=2, *, scale=True, copy=True, epochs: int = 100,
                  random_state: int = 0, verbose=False):
         super().__init__(n_components, scale=scale, copy=copy)
         self.epochs = epochs
@@ -74,7 +74,7 @@ class CCALin(_CCA):
         p = X.shape[1]
         A, B = initialize_gep(X, Y)
         W = GenELinK(A, B, 2 * self.n_components, epochs=self.epochs, random_state=self.random_state,
-                     verbose=self.verbose, X=X)
+                     verbose=self.verbose, X=X, Y=Y)
         key = random.PRNGKey(self.random_state)
         M = random.normal(key, (2 * self.n_components, self.n_components))
         U = gram_schmidt_matrix(jnp.dot(W[:p], M), B[:p, :p])

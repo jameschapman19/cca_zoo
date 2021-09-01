@@ -36,13 +36,10 @@ Y = Y / jnp.linalg.norm(Y, axis=0)
 # %%
 
 # Model
-
-a, b, c = calc_numpy(X, Y, latent_dims)
-
 numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
 print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X, Y))
 
-ccalin = CCALin(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
+ccalin = CCALin(scale=False, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using CCALin are :\n", ccalin.score(X, Y))
 
 game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
