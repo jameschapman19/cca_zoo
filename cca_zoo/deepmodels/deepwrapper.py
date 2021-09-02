@@ -179,8 +179,8 @@ class DeepWrapper(_CCA_Base):
             total_val_loss += loss.item()
         return total_val_loss / len(val_dataloader)
 
-    def score(self, dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], train: bool = False,
-              batch_size: int = 0):
+    def correlations(self, dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], train: bool = False,
+                     batch_size: int = 0):
         transformed_views = self.transform(dataset, train=train, batch_size=batch_size)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
@@ -188,6 +188,15 @@ class DeepWrapper(_CCA_Base):
         all_corrs = np.array(all_corrs).reshape(
             (len(transformed_views), len(transformed_views), -1))
         return all_corrs
+
+    def score(self, dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
+              batch_size: int = 0):
+        # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
+        pair_corrs = self.correlations(dataset, batch_size=batch_size)
+        # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
+        dim_corrs = (pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - pair_corrs.shape[0]) / (
+                pair_corrs.shape[0] ** 2 - pair_corrs.shape[0])
+        return dim_corrs
 
     def transform(self, dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], test_labels=None,
                   train: bool = False, batch_size: int = 0):
@@ -206,7 +215,6 @@ class DeepWrapper(_CCA_Base):
                     z_list = [np.append(z_list[i], z_i.detach().cpu().numpy(), axis=0) for
                               i, z_i in enumerate(z)]
         z_list = self.model.post_transform(*z_list, train=train)
-        self.n_views = len(z_list)
         return z_list
 
     def predict_view(self, test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], test_labels=None):

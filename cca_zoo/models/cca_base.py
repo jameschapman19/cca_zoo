@@ -137,7 +137,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
             views = [view / std for view, std in zip(views, self.view_stds)]
         return views
 
-    def predict_corr(self, *views: Iterable[np.ndarray], **kwargs):
+    def correlations(self, *views: Iterable[np.ndarray], **kwargs):
         """
         Predicts the correlation for the given data using the fit model
 
@@ -220,7 +220,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     def score(self, *views, **kwargs):
         # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
-        pair_corrs = self.predict_corr(*views, **kwargs)
+        pair_corrs = self.correlations(*views, **kwargs)
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
         dim_corrs = (pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - len(views)) / (
                 len(views) ** 2 - len(views))

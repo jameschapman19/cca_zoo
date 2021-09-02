@@ -62,7 +62,7 @@ class TestDeepModels(TestCase):
         dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
         dcca_model = DeepWrapper(dcca_model)
         dcca_model.fit(train_dataset, val_dataset=val_dataset, epochs=2)
-        dcca_results = np.stack((dcca_model.score(train_dataset), dcca_model.predict_corr(test_dataset)[0, 1]))
+        dcca_results = np.stack((dcca_model.score(train_dataset), dcca_model.correlations(test_dataset)[0, 1]))
 
     def test_large_p(self):
         large_p = 256
