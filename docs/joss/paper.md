@@ -58,9 +58,10 @@ using pytorch but its lack of modularity makes it somewhat unflexible for applic
 which have found popularity in genetics and neuroimaging where signals are contained in a small subset of variables.
 With applications like these in mind, we also have tried to make it as simple as possible to access the learnt model
 weights to perform further analysis in the feature space. Furthermore, `cca-zoo` contains modular implementations of
-deep CCA and its multiview variants. Finally, `cca-zoo` adds generative models including variational and deep
-variational CCA as well as higher order canonical correlation analysis with tensor and deep tensor CCA. Standard
-implementations of these models help as benchmarks for methods development as well as easy application to new datasets.
+deep CCA and its multiview variants. Finally, `cca-zoo` adds generative models including
+variational [@wang2007variational] and deep variational CCA [@wang2016deep] as well as higher order canonical
+correlation analysis with tensor [@kim2007tensor] and deep tensor CCA [@wong2021deep]. Standard implementations of these
+models help as benchmarks for methods development as well as easy application to new datasets.
 
 # Implementation
 
@@ -98,15 +99,15 @@ A complete model list at the time of publication:
 | SCCA_ADMM   | Sparse Canonical Correlation Analysis by Altnerating Direction Method of Multipliers [@suo2017sparse] | \>=2   | standard |
 | SpanCCA   | Sparse Diagonal Canonical Correlation Analysis [@asteris2016simple] | \>=2   | standard |
 | SWCCA   | Sparse Weighted Canonical Correlation Analysis [@wenwen2018sparse] | \>=2   | standard |
-| TCCA   | Tensor Canonical Correlation Analysis [@kim2007tensor] | \>=2   | standard |
+| TCCA   | Tensor Canonical Correlation Analysis | \>=2   | standard |
 | KTCCA   | Kernel Tensor Canonical Correlation Analysis [@kim2007tensor] | \>=2   | standard |
 | DCCA   | Deep Canonical Correlation Analysis | \>=2   | deep |
 | DCCA_NOI   | Deep Canonical Correlation Analysis by Non-Linear Orthogonal Iterations [@wang2015stochastic] | \>=2   | deep |
 | DCCAE   | Deep Canonically Correlated Autoencoders [@wang2015deep] | \>=2   | deep |
 | DTCCA   | Deep Tensor Canonical Correlation Analysis | \>=2   | deep |
 | SplitAE   | Split Autoencoders [@ngiam2011multimodal] | 2   | deep |
-| DVCCA   | Deep Variational Canonical Correlation Analysis [@wang2016deep] | \>=2   | deep |
-| VCCA   | Variational Canonical Correlation Analysis [@wang2007variational] | 2   | probabilistic |
+| DVCCA   | Deep Variational Canonical Correlation Analysis | \>=2   | deep |
+| VCCA   | Variational Canonical Correlation Analysis | 2   | probabilistic |
 
 ## Documentation
 
