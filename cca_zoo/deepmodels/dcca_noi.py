@@ -12,10 +12,6 @@ class DCCA_NOI(DCCA):
     """
     A class used to fit a DCCA model by non-linear orthogonal iterations
 
-    Examples
-    --------
-    >>> from cca_zoo.deepmodels import DCCA_NOI
-    >>> model = DCCA_NOI()
     """
 
     def __init__(self, latent_dims: int, N: int,
@@ -26,7 +22,6 @@ class DCCA_NOI(DCCA):
 
         :param latent_dims: # latent dimensions
         :param N: # samples used to estimate covariance
-        :param objective: # CCA objective: normal tracenorm CCA by default
         :param encoders: list of encoder networks
         :param r: regularisation parameter of tracenorm CCA like ridge CCA
         :param rho: covariance memory like DCCA non-linear orthogonal iterations paper
@@ -59,13 +54,12 @@ class DCCA_NOI(DCCA):
         covariance_inv = [objectives._compute_matrix_power(objectives._minimal_regularisation(cov, self.eps), -0.5) for
                           cov in self.covs]
         preds = [torch.matmul(z, covariance_inv[i]).detach() for i, z in enumerate(z)]
-        losses = [torch.mean(torch.norm(z_i - preds[-i], dim=0)) for i, z_i in enumerate(z, start=1)]
-        loss = torch.sum(torch.stack(losses))
+        loss = torch.mean(torch.norm(z[0] - preds[1], dim=1)) + torch.mean(torch.norm(z[1] - preds[0], dim=1))
         return loss
 
     def update_covariances(self, *args):
         b = args[0].shape[0]
-        batch_covs = [b / self.N * z_i.T @ z_i for i, z_i in enumerate(args)]
+        batch_covs = [self.N * z_i.T @ z_i / b for i, z_i in enumerate(args)]
         if self.covs is not None:
             self.covs = [(self.rho * self.covs[i]).detach() + (1 - self.rho) * batch_cov for i, batch_cov
                          in
