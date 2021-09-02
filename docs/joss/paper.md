@@ -77,6 +77,8 @@ models along with their installation tag are provided below.
 
 ## Model List
 
+A complete model list at the time of publication:
+
 | Model Class | Model Name | Number of Views | Install |
 | -------- | -------- | ------ |-----|
 | CCA   | Canonical Correlation Analysis | 2   | standard |
