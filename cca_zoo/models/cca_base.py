@@ -12,7 +12,7 @@ from sklearn.utils.validation import check_random_state
 
 import cca_zoo.data
 import cca_zoo.models.innerloop
-import cca_zoo.utils.plot_utils
+import cca_zoo.utils.plotting
 from cca_zoo.utils import check_views
 
 
@@ -211,8 +211,8 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self.cv_results_table.drop(columns=['params'], inplace=True)
 
         if plot:
-            hyperparameter_plot = cca_zoo.utils.plot_utils.cv_plot(cv_scores.mean(axis=1), param_sets,
-                                                                   self.__class__.__name__)
+            hyperparameter_plot = cca_zoo.utils.plotting.cv_plot(cv_scores.mean(axis=1), param_sets,
+                                                                 self.__class__.__name__)
 
         self.set_params(**param_sets[max_index])
         self.fit(*views)

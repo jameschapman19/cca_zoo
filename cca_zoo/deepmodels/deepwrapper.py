@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-import cca_zoo.utils.plot_utils
+import cca_zoo.utils.plotting
 from cca_zoo.deepmodels import _DCCA_base, DCCA, DCCAE
 from cca_zoo.models import _CCA_Base
 from ..utils.check_values import _check_batch_size
