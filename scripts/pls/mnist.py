@@ -1,6 +1,8 @@
 from ccagame import datasets
 
-train_1, train_2,test_1,test_2 = datasets.xrmb()
+train, train_labels,test_1,test_labels = datasets.mnist()
+train_1=train[:,:]
+train_2=train[:,:]
 
 # Model
 numpy = Numpy(scale=False, n_components=latent_dims).fit(train_1, Y)

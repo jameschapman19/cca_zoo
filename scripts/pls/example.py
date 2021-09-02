@@ -18,7 +18,7 @@ latent_dims = 3
 epochs = 10
 riemannian_projection = False
 lr = 1e-2
-batch_size = 20
+batch_size = 10
 # This implements the version with unbiased updates analagous to Eigengame:Unloaded
 mu = True
 
@@ -35,9 +35,9 @@ numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
 print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X, Y))
 print("\n Time :\n", numpy.fit_time)
 
-msg = MSG(scale=False, n_components=latent_dims,verbose=True).fit(X, Y)
+msg = MSG(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using msg are :\n", msg.score(X, Y))
-print("\n Time :\n", numpy.fit_time)
+print("\n Time :\n", msg.fit_time)
 
 game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
             mu=True).fit(X, Y)
