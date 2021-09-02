@@ -3,6 +3,7 @@ from typing import Iterable, Union
 import numpy as np
 from scipy.linalg import eigh
 from sklearn.metrics import pairwise_kernels
+from sklearn.utils.validation import check_is_fitted
 
 from .cca_base import _CCA_Base
 from ..utils.check_values import _process_parameter, check_views
@@ -186,6 +187,7 @@ class KGCCA(GCCA):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model
         """
+        check_is_fitted(self, attributes=['alphas'])
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         if view_indices is None:
             view_indices = np.arange(len(views))

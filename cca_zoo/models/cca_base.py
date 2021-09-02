@@ -8,7 +8,7 @@ from joblib import Parallel, delayed
 from scipy.sparse import issparse
 from sklearn.base import BaseEstimator, MultiOutputMixin, RegressorMixin
 from sklearn.utils.sparsefuncs import mean_variance_axis
-from sklearn.utils.validation import check_random_state
+from sklearn.utils.validation import check_random_state, check_is_fitted
 
 import cca_zoo.data
 import cca_zoo.models.innerloop
@@ -37,8 +37,6 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         :param accept_sparse: Whether model can take sparse data as input
         :param random_state: Pass for reproducible output across multiple function calls
         """
-        self.weights = None
-        self.train_correlations = None
         self.latent_dims = latent_dims
         self.scale = scale
         self.centre = centre
@@ -63,6 +61,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model
         """
+        check_is_fitted(self, attributes=['weights'])
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         views = self._centre_scale_transform(*views)
         transformed_views = []

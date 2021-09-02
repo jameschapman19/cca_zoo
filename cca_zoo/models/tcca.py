@@ -4,6 +4,7 @@ import numpy as np
 import tensorly as tl
 from scipy.linalg import sqrtm
 from sklearn.metrics.pairwise import pairwise_kernels
+from sklearn.utils.validation import check_is_fitted
 from tensorly.decomposition import parafac
 
 from .cca_base import _CCA_Base
@@ -166,6 +167,7 @@ class KTCCA(TCCA):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model
         """
+        check_is_fitted(self, attributes=['alphas'])
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         if view_indices is None:
             view_indices = np.arange(len(views))

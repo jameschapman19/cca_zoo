@@ -4,6 +4,7 @@ import numpyro
 import numpyro.distributions as dist
 from jax.random import PRNGKey
 from numpyro.infer import MCMC, NUTS, Predictive
+from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo.models import _CCA_Base
 
@@ -47,6 +48,7 @@ class VariationalCCA(_CCA_Base):
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
+        check_is_fitted(self, attributes=['posterior_samples'])
         return Predictive(self.model, self.posterior_samples, return_sites=['z'])(
             PRNGKey(1), *views)['z']
 
