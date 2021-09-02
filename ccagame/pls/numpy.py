@@ -13,7 +13,7 @@ def calc_numpy(X, Y, k):
     C = X.T @ Y
     U, S, Vt = jnp.linalg.svd(C)
     U = lax.dynamic_slice(U, (0, 0), (U.shape[0], k))
-    Vt = lax.dynamic_slice(Vt, (0, 0), (Vt.shape[0], k))
+    Vt = lax.dynamic_slice(Vt, (0, 0), (k, Vt.shape[0]))
     S = lax.dynamic_slice(S.reshape(1, C.shape[0]), (0, 0), (1, k))
     return S, U, Vt.T
 

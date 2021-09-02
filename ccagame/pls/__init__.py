@@ -4,3 +4,4 @@ from .game import calc_game, Game
 from .incremental import calc_incremental, Incremental
 from .numpy import calc_numpy, Numpy
 from .sgd import calc_sgd, SGD
+from .msg import MSG
