@@ -29,10 +29,9 @@ data into a latent space where they are highly correlated.
 
 The original CCA has been developed into a family of models which include regularised [@vinod1976canonical],
 kernelized [@hardoon2004canonical], probabilistic/generative [@bach2005probabilistic], and deep learning
-based [@andrew2013deep]
-variants. In particular these have allowed practioners to apply these models to complex, high dimensional data.
-Similarly, variants of PLS have been proposed including the widely used Penalized Matrix Decomposition
-algorithm [@witten2009penalized] which induces sparsity in the weight vectors.
+based [@andrew2013deep] variants. In particular these have allowed practioners to apply these models to complex, high
+dimensional data. Similarly, variants of PLS have been proposed including the widely used Penalized Matrix Decomposition
+algorithm [@witten2009penalized] which induces sparsity in the weight vectors for interpretability and generalisation.
 
 `cca-zoo` is a Python package that implements a number of these variants in a simple API with standardised outputs.
 While there are a few Python packages containing implementations of CCA, we would like to highlight the unique benefits
@@ -41,10 +40,10 @@ regularised CCA and PLS that have previously only been available in packages in 
 give Python users access to these powerful models for both application and the development of new algorithms. Secondly,
 `cca-zoo`contains implementations of a number of deep CCA variants written in PyTorch
 [@paszke2019pytorch] which are written in a modular style, allowing users to swap out neural network architectures for
-each view and plug the models into a customised training pipeline. We also provide a standard pipeline which can serve
-as a simple baseline. Thirdly, `cca-zoo` contains reference implementations of variational and deep variational CCA in
-python. Finally, `cca-zoo` gives users the ability to simulate data containing specified correlation structures as well
-as the paired MNIST data commonly used as a toy dataset in deep multiview learning.
+each view and plug the models into a customised training pipeline. Thirdly, `cca-zoo` contains generative models
+including of variational and deep variational CCA in python. Finally, `cca-zoo` gives users the ability to simulate data
+containing specified correlation structures as well as the paired MNIST data commonly used as a toy dataset in deep
+multiview learning.
 
 # Statement of need
 
@@ -59,10 +58,9 @@ using pytorch but its lack of modularity makes it somewhat unflexible for applic
 which have found popularity in genetics and neuroimaging where signals are contained in a small subset of variables.
 With applications like these in mind, we also have tried to make it as simple as possible to access the learnt model
 weights to perform further analysis in the feature space. Furthermore, `cca-zoo` contains modular implementations of
-deep CCA as well as the only installable implementation of multiview deep CCA. Finally, `cca-zoo` adds generative models
-including variational and deep variational CCA as well as higher order canonical correlation analysis with tensor and
-deep tensor CCA. Standard implementations of these models help as benchmarks for methods development as well as easy
-application to new datasets.
+deep CCA and its multiview variants. Finally, `cca-zoo` adds generative models including variational and deep
+variational CCA as well as higher order canonical correlation analysis with tensor and deep tensor CCA. Standard
+implementations of these models help as benchmarks for methods development as well as easy application to new datasets.
 
 # Implementation
 
