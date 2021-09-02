@@ -25,33 +25,3 @@ Look how easy it is to use:
 
    in_sample_correlation =linear_cca.score(train_view_1,train_view_2)
    out_of_sample_correlation =linear_cca.score(test_view_1,test_view_2)
-
-
-
-Fitting and using a model
--------------------------
-
-.. sourcecode:: python
-
-   from cca_zoo.models import CCA
-   from cca_zoo.data import generate_covariance_data
-   # %%
-   (train_view_1,train_view_2),(true_weights_1,true_weights_2)=generate_covariance_data(n=200,view_features=[10,10],latent_dims=1,correlation=1)
-
-
-   linear_cca = CCA(latent_dims=latent_dims, max_iter=max_iter)
-
-   linear_cca.fit(train_view_1, train_view_2)
-
-   in_sample_correlation =linear_cca.score(train_view_1,train_view_2)
-   out_of_sample_correlation =linear_cca.score(test_view_1,test_view_2)
-
-Fitting  a model
-------------------
-
-Transforming data
-------------------
-
-.. sourcecode:: python
-
-   projection_1,projection_2=linear_cca.transform(train_view_1, train_view_2)
