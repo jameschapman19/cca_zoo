@@ -193,8 +193,7 @@ class Tangled_MNIST_Dataset(Dataset):
         if self.flatten:
             x_a_rotate = torch.flatten(x_a_rotate)
             x_b_rotate = torch.flatten(x_b_rotate)
-        OH = self.OHs[idx]
-        return (x_a_rotate, x_b_rotate, rot_a, rot_b, OH), label
+        return (x_a_rotate, x_b_rotate), (rot_a, rot_b, label)
 
     def to_numpy(self, indices):
         view_1 = np.zeros((len(indices), 784))

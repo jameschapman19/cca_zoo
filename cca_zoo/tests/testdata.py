@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from sklearn.utils.validation import check_random_state
 
+from cca_zoo.data import Noisy_MNIST_Dataset
 from cca_zoo.data import generate_covariance_data
 from cca_zoo.models import MCCA, CCA
 
@@ -31,3 +32,8 @@ class TestData(TestCase):
 
         (x, y), true_feats = generate_covariance_data(1000, [10, 11], 1, [0.5, 0.5], correlation=0.5,
                                                       structure=['gaussian', 'toeplitz'])
+
+    def test_deep_data(self):
+        dataset = Noisy_MNIST_Dataset(mnist_type='FashionMNIST', train=True)
+        train_view_1, train_view_2, train_rotations, train_OH_labels, train_labels = dataset.dataset.to_numpy(
+            train_dataset.indices)
