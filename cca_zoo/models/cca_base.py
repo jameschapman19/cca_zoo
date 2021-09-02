@@ -1,6 +1,6 @@
 import itertools
 from abc import abstractmethod
-from typing import List, Union, Dict, Any
+from typing import List, Union, Dict, Any, Iterable
 
 import numpy as np
 import pandas as pd
@@ -56,24 +56,18 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         raise NotImplementedError
 
-    def transform(self, *views: np.ndarray, view_indices: List[int] = None, **kwargs):
+    def transform(self, *views: np.ndarray, **kwargs):
         """
         Transforms data given a fit model
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
-        :param view_indices:
         :param kwargs: any additional keyword arguments required by the given model
         """
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
+        views = self._centre_scale_transform(*views)
         transformed_views = []
-        if view_indices is None:
-            view_indices = np.arange(len(views))
-        for i, (view, view_index) in enumerate(zip(views, view_indices)):
-            if self.centre:
-                view = view - self.view_means[view_index]
-            if self.scale:
-                view = view / self.view_stds[view_index]
-            transformed_view = view @ self.weights[view_index]
+        for i, (view) in enumerate(views):
+            transformed_view = view @ self.weights[i]
             transformed_views.append(transformed_view)
         return transformed_views
 
@@ -87,13 +81,24 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         return self.fit(*views, **kwargs).transform(*views)
 
+    def loadings(self, *views: np.ndarray, **kwargs):
+        """
+        Returns the model loadings for each view for the given data
+
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param kwargs: any additional keyword arguments required by the given model
+        """
+        transformed_views = self.transform(*views, **kwargs)
+        views = self._centre_scale_transform(*views)
+        loadings = [view.T @ transformed_view for view, transformed_view in zip(views, transformed_views)]
+        return loadings
+
     def _centre_scale(self, *views: np.ndarray):
         """
-        Removes the mean of the training data for each view and stores it
+        Removes the mean of the training data and standardizes for each view and stores mean and standard deviation during training
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :return: train_views: the demeaned numpy arrays to be used to fit the model
-        :rtype: np.ndarray
         """
 
         self.view_means = []
@@ -118,6 +123,36 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
                     view = view / self.view_stds[-1]
             transformed_views.append(view)
         return transformed_views
+
+    def _centre_scale_transform(self, *views: np.ndarray):
+        """
+        Removes the mean and standardizes each view based on the mean and standard deviation of the training data
+
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        """
+        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
+        for i, view in enumerate(views):
+            if self.centre:
+                view = view - self.view_means[i]
+            if self.scale:
+                view = view / self.view_stds[i]
+        return views
+
+    def predict_corr(self, *views: Iterable[np.ndarray], **kwargs):
+        """
+        Predicts the correlation for the given data using the fit model
+
+        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param kwargs: any additional keyword arguments required by the given model
+        :return: all_corrs: an array of the pairwise correlations (k,k,self.latent_dims) where k is the number of views
+        :rtype: np.ndarray
+        """
+        transformed_views = self.transform(*views, **kwargs)
+        all_corrs = []
+        for x, y in itertools.product(transformed_views, repeat=2):
+            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
+        all_corrs = np.array(all_corrs).reshape((len(views), len(views), self.latent_dims))
+        return all_corrs
 
     def gridsearch_fit(self, *views: np.ndarray, K=None, param_candidates: Dict[str, List[Any]] = None,
                        folds: int = 5,
@@ -184,14 +219,12 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self.fit(*views)
         return self
 
-    def score(self, *views, view_indices: List[int] = None, **kwargs):
-        if view_indices is None:
-            view_indices = list(range(self.n_views))
+    def score(self, *views, **kwargs):
         # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
-        pair_corrs = self.predict_corr(*views, view_indices=view_indices, **kwargs)
+        pair_corrs = self.predict_corr(*views, **kwargs)
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
-        dim_corrs = (pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - len(view_indices)) / (
-                len(view_indices) ** 2 - len(view_indices))
+        dim_corrs = (pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - len(views)) / (
+                len(views) ** 2 - len(views))
         return dim_corrs
 
     """

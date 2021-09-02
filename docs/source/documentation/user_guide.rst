@@ -65,8 +65,16 @@ We can evaluate models by their correlation in the latent space
 .. sourcecode:: python
    correlation=ridge.score(train_view_1,train_view_2)
 
-Model Evaluation
+Model Weights
 -----------------
+
+In applications of cca, we are often interested in the model weights. These can be easily accessed as arrays with
+#features x #latent_dimensions for each view.
+
+.. sourcecode:: python
+   view_1_weights=ridge.weights[0]
+   view_2_weights=ridge.weights[1]
+
 
 Deep Models
 ------------
