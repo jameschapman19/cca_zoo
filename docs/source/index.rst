@@ -16,12 +16,11 @@ Documentation
    package_reference/cca_zoo.rst
    developer_info
 
-   
-Features
---------
+Indices and tables
+==================
 
-
-
+* :ref:`genindex`
+* :ref:`search`
 
 
 
