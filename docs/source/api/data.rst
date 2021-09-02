@@ -1,8 +1,5 @@
-cca\_zoo.data package
+cca\_zoo.data
 =====================
-
-Submodules
-----------
 
 cca\_zoo.data.simulated
 ------------------------------

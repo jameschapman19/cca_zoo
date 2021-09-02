@@ -1,8 +1,5 @@
-cca\_zoo.probabilisticmodels package
+cca\_zoo.probabilisticmodels
 ====================================
-
-Submodules
-----------
 
 cca\_zoo.probabilisticmodels.vcca
 ----------------------------------------

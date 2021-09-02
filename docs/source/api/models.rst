@@ -1,8 +1,5 @@
-cca\_zoo.models package
+cca\_zoo.models
 =======================
-
-Submodules
-----------
 
 cca\_zoo.models.cca\_base
 --------------------------------

@@ -1,8 +1,5 @@
-cca\_zoo.utils package
+cca\_zoo.utils
 ======================
-
-Submodules
-----------
 
 cca\_zoo.utils.check\_values
 -----------------------------------

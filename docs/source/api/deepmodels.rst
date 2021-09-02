@@ -1,8 +1,5 @@
-cca\_zoo.deepmodels package
+cca\_zoo.deepmodels
 ===========================
-
-Submodules
-----------
 
 cca\_zoo.deepmodels.architectures
 ----------------------------------------
