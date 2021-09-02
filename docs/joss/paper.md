@@ -110,8 +110,9 @@ models along with their installation tag are provided below.
 
 ## Documentation
 
-The package is accompanied by documentation and a number of tutorial notebooks which serve as both guides to the package
-as well as educational resources for multiview learning methods.
+The package is accompanied by documentation (https://cca-zoo.readthedocs.io/en/latest/index.html) and a number of
+tutorial notebooks which serve as both guides to the package as well as educational resources for multiview learning
+methods.
 
 # Conclusion
 
