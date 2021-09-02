@@ -38,7 +38,7 @@ While there are a few Python packages containing implementations of CCA, we woul
 our package brings to the community. Firstly, `cca-zoo` contains a number of models for implementing various forms of
 regularised CCA and PLS that have previously only been available in packages in MATLAB and R. We hope that this will
 give Python users access to these powerful models for both application and the development of new algorithms. Secondly,
-`cca-zoo`contains implementations of a number of deep CCA variants written in PyTorch
+`cca-zoo` contains implementations of a number of deep CCA variants written in PyTorch
 [@paszke2019pytorch] which are written in a modular style, allowing users to swap out neural network architectures for
 each view and plug the models into a customised training pipeline. Thirdly, `cca-zoo` contains generative models
 including of variational and deep variational CCA in python. Finally, `cca-zoo` gives users the ability to simulate data
