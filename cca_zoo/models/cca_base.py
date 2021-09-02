@@ -131,11 +131,10 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
-        for i, view in enumerate(views):
-            if self.centre:
-                view = view - self.view_means[i]
-            if self.scale:
-                view = view / self.view_stds[i]
+        if self.centre:
+            views = [view - mean for view, mean in zip(views, self.view_means)]
+        if self.scale:
+            views = [view / std for view, std in zip(views, self.view_stds)]
         return views
 
     def predict_corr(self, *views: Iterable[np.ndarray], **kwargs):
