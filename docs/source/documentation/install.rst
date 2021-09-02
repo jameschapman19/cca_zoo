@@ -9,13 +9,13 @@ cca-zoo can be installed with python versions >=3.7. At the moment there are two
 Installing with pip
 ----------------------------------------
 
-Install the current release of ``mvlearn`` with ``pip``::
+Install the current release of ``cca-zoo`` with ``pip``::
 
-    $ pip install mvlearn
+    $ pip install cca-zoo
 
 To upgrade to a newer release use the ``--upgrade`` flag::
 
-    $ pip install --upgrade mvlearn
+    $ pip install --upgrade cca-zoo
 
 Optional dependencies
 ----------------------------------------
@@ -28,12 +28,12 @@ with windows installation, we do not install them by default. To access these,
 
 If you wish to use these functions, you must install their required dependencies. These are listed in the package requirements folder with corresponding keyword names for manual installation or can be installed from PyPI by simply calling::
 
-    $ pip install mvlearn[keyword]
+    $ pip install cca-zoo[keyword]
 
 where 'keyword' is from the list above, bracketed.
 To upgrade the package and torch requirements::
 
-    $ pip install --upgrade mvlearn[keyword]
+    $ pip install --upgrade cca-zoo[keyword]
 
 Hardware requirements
 ---------------------
