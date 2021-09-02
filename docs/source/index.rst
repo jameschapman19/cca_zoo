@@ -20,11 +20,11 @@ Documentation
    :maxdepth: 1
    :caption: Reference
 
-   cca_zoo.data
-   cca_zoo.deepmodels
-   cca_zoo.models
-   cca_zoo.probabilisticmodels
-   cca_zoo.utils
+   api/data
+   api/deepmodels
+   api/models
+   api/probabilisticmodels
+   api/utils
 
 
 .. toctree::
