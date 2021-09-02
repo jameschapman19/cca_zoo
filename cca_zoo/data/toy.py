@@ -55,7 +55,7 @@ class Split_MNIST_Dataset(Dataset):
             view_1[i] = sample[0][0].numpy()
             view_2[i] = sample[0][1].numpy()
             labels[i] = sample[1].numpy().astype(int)
-        return view_1, view_2, labels
+        return (view_1, view_2), labels
 
 
 class Noisy_MNIST_Dataset(Dataset):
@@ -115,8 +115,7 @@ class Noisy_MNIST_Dataset(Dataset):
         if self.flatten:
             x_a = torch.flatten(x_a)
             x_b = torch.flatten(x_b)
-        OH = self.OHs[idx]
-        return (x_b, x_a, rot_a, OH), label
+        return (x_b, x_a), (rot_a, label)
 
     def to_numpy(self, indices=None):
         if indices is None:
@@ -131,8 +130,7 @@ class Noisy_MNIST_Dataset(Dataset):
             view_2[i] = sample[0][1].numpy().reshape((-1, 28 * 28))
             rotations[i] = sample[0][2].numpy()
             labels[i] = sample[1].numpy().astype(int)
-        OH_labels = _OH_digits(labels.astype(int))
-        return view_1, view_2, rotations, OH_labels, labels
+        return (view_1, view_2), (rotations, labels)
 
 
 class Tangled_MNIST_Dataset(Dataset):
@@ -211,8 +209,7 @@ class Tangled_MNIST_Dataset(Dataset):
             rotation_1[i] = sample[0][2].numpy()
             rotation_2[i] = sample[0][3].numpy()
             labels[i] = sample[1].numpy().astype(int)
-        OH_labels = _OH_digits(labels.astype(int))
-        return view_1, view_2, rotation_1, rotation_2, OH_labels, labels
+        return (view_1, view_2), (rotation_1, rotation_2, labels)
 
 
 def _OH_digits(digits):

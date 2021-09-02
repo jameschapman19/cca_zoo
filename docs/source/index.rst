@@ -7,7 +7,6 @@ Documentation
 
 .. toctree::
    :maxdepth: 1
-   :caption: Documentation:
 
    documentation/install
    documentation/getting_started

@@ -179,9 +179,9 @@ class DeepWrapper(_CCA_Base):
             total_val_loss += loss.item()
         return total_val_loss / len(val_dataloader)
 
-    def predict_corr(self, test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], train: bool = False,
-                     batch_size: int = 0, view_indices=None):
-        transformed_views = self.transform(test_dataset, train=train, batch_size=batch_size)
+    def score(self, dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], train: bool = False,
+              batch_size: int = 0):
+        transformed_views = self.transform(dataset, train=train, batch_size=batch_size)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:x.shape[1], y.shape[1]:]))
@@ -189,13 +189,13 @@ class DeepWrapper(_CCA_Base):
             (len(transformed_views), len(transformed_views), -1))
         return all_corrs
 
-    def transform(self, test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], test_labels=None,
+    def transform(self, dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], test_labels=None,
                   train: bool = False, batch_size: int = 0):
-        test_dataset = self._process_data(test_dataset, labels=test_labels)[0]
+        dataset = self._process_data(dataset, labels=test_labels)[0]
         if batch_size > 0:
-            test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
+            test_dataloader = DataLoader(dataset, batch_size=batch_size)
         else:
-            test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
+            test_dataloader = DataLoader(dataset, batch_size=len(dataset))
         with torch.no_grad():
             for batch_idx, (data, label) in enumerate(test_dataloader):
                 data = [d.double().to(self.device) for d in list(data)]

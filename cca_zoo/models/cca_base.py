@@ -1,6 +1,6 @@
 import itertools
 from abc import abstractmethod
-from typing import List, Union, Dict, Any, Iterable
+from typing import List, Union, Dict, Any
 
 import numpy as np
 import pandas as pd
@@ -86,24 +86,6 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         :rtype: np.ndarray
         """
         return self.fit(*views, **kwargs).transform(*views)
-
-    def predict_corr(self, *views: Iterable[np.ndarray], view_indices: List[int] = None, **kwargs):
-        """
-        Predicts the correlation for the given data using the fit model
-
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
-        :param kwargs: any additional keyword arguments required by the given model
-        :param view_indices:
-        :return: all_corrs: an array of the pairwise correlations (k,k,self.latent_dims) where k is the number of views
-        :rtype: np.ndarray
-        """
-        # Takes two views and predicts their out of sample correlation using trained model
-        transformed_views = self.transform(*views, view_indices=view_indices, **kwargs)
-        all_corrs = []
-        for x, y in itertools.product(transformed_views, repeat=2):
-            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
-        all_corrs = np.array(all_corrs).reshape((len(views), len(views), self.latent_dims))
-        return all_corrs
 
     def _centre_scale(self, *views: np.ndarray):
         """

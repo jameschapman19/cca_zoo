@@ -23,5 +23,3 @@ Look how easy it is to use:
 
    linear_cca.fit(train_view_1, train_view_2)
 
-   in_sample_correlation =linear_cca.score(train_view_1,train_view_2)
-   out_of_sample_correlation =linear_cca.score(test_view_1,test_view_2)

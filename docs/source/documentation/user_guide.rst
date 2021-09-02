@@ -1,92 +1,105 @@
-Models and sources
-===================
+User Guide
+===========
 
-Linear CCA/PLS:
----------------
 
-A variety of linear CCA and PLS methods implemented using alternating minimization methods for non-convex optimisation
-based on the power method or alternating least squares.
 
-GCCA (Generalized MAXVAR CCA):
-
-The generalized eigenvalue problem form of generalized MAXVAR CCA. Maximises the squared correlation between each view projection and
-a shared auxiliary vector of unit length.
-
-https://academic.oup.com/biomet/article-abstract/58/3/433/233349?redirectedFrom=fulltext
-
-MCCA (Multiset SUMCOR CCA):
----------------------------
-
-The generalized eigenvalue problem form of multiset SUMCOR CCA. Maximises the pairwise sum of correlations between view
-projections.
-
-SCCA (Sparse CCA - Mai):
-------------------------
-
-A solution to the sparse CCA problem based on iterative rescaled lasso regression problems to ensure projections are unit length.
-
-https://onlinelibrary.wiley.com/doi/abs/10.1111/biom.13043?casa_token=pw8OSPmNkzEAAAAA:CcrMA_8g_2po011hQsGQXfiYyvtpBlSS6LJm-z_zANOg6t5YhpFZ-2YJNeCbJdHmT7GXIFZUU7gQl78
-
-PMD (Sparse PLS/PMD/Penalized Matrix Decomposition - Witten):
---------------------------------------------------------------
-
-A solution to a sparse CCA problem based on penalized matrix decomposition. The relaxation and assumptions made make this method
-more similar to an l1-regularized PLS
-
-https://academic.oup.com/biostatistics/article/10/3/515/293026
-
-PCCA (Penalized CCA - elastic net - Waaijenborg):
--------------------------------------------------
-
-A solution to the sparse CCA problem based on iterative rescaled elastic regression problems to ensure projections are unit length.
-
-https://pubmed.ncbi.nlm.nih.gov/19689958/
-
-SCCA_ADMM (Sparse canonical correlation analysis-Suo):
-------------------------------------------------------
-
-A solution to the sparse CCA problem based on iterative rescaled lasso regression problems solved using ADMM.
-
-https://arxiv.org/abs/1705.10865
-
-Kernel CCA
+Model Fit
 ----------
 
-CCA solved using the kernel method. Adding regularisation in the linear case can be shown to be equivalent to regularised CCA.
+.. sourcecode:: python
 
-Linear Kernel
-RBF Kernel
-Polynomial Kernels
-
-DCCA (Deep CCA):
-----------------
-
-Using either Andrew's original Tracenorm Objective or Wang's alternating least squares solution
-
-https://ttic.uchicago.edu/-klivescu/papers/andrew_icml2013.pdf
-https://arxiv.org/pdf/1510.02054v1.pdf
+   from cca_zoo.models import CCA
+   from cca_zoo.data import generate_covariance_data
+   # %%
+   (train_view_1,train_view_2),(true_weights_1,true_weights_2)=generate_covariance_data(n=200,view_features=[10,10],latent_dims=1,correlation=1)
 
 
-DGCCA (Deep Generalized CCA):
------------------------------
+   linear_cca = CCA(latent_dims=latent_dims, max_iter=max_iter)
 
-An alternative objective based on the linear GCCA solution. Can be extended to more than 2 views
+   linear_cca.fit(train_view_1, train_view_2)
 
-https://www.aclweb.org/anthology/W19-4301.pdf
+Hyperparameter Tuning
+^^^^^^^^^^^^^^^^^^^^^^
 
-DMCCA (Deep Multiset CCA):
---------------------------
+Some models require hyperparameters. We can either choose these manually when the model is instantiated or we can use the gridsearch_fit() method
+to use a data driven approach.
 
-An alternative objective based on the linear MCCA solution. Can be extended to more than 2 views
+.. sourcecode:: python
 
-https://arxiv.org/abs/1904.01775
+   from cca_zoo.models import rCCA
 
-DCCAE (Deep Canonically Correlated Autoencoders):
--------------------------------------------------
+   #Candidates for regularisation in the first view
+   c1 = [0.1, 0.3, 0.7, 0.9]
+   #Candidates for regularisation in the second view
+   c2 = [0.1, 0.3, 0.7, 0.9]
+   #param_candidates expects a dictionary
+   param_candidates = {'c': list(itertools.product(c1, c2))}
 
-http://proceedings.mlr.press/v37/wangb15.pdf
+   #performs 5 fold cross validation using 2 parallel jobs, printing the results and producing a hyperparameter plot
+   ridge = rCCA(latent_dims=latent_dims).gridsearch_fit(
+        train_view_1,
+        train_view_2,
+        param_candidates=param_candidates,
+        folds=5,
+        verbose=True, jobs=2,
+        plot=True)
 
-DVCCA/DVCCA Private (Deep variational CCA):
--------------------------------------------
+Model Transforms
+-----------------
 
-https://arxiv.org/pdf/1610.03454.pdf
+One models are fit we can transform the data to latent projections for each view
+
+.. sourcecode:: python
+   projection_1,projection_2=ridge.transform(train_view_1,train_view_2)
+
+In a similar way to scikit-learn we can also call fit_transform to complete both of these steps in one go:
+
+.. sourcecode:: python
+   projection_1,projection_2=ridge.fit_transform(train_view_1,train_view_2)
+
+Model Evaluation
+-----------------
+
+We can evaluate models by their correlation in the latent space
+
+.. sourcecode:: python
+   correlation=ridge.score(train_view_1,train_view_2)
+
+Model Evaluation
+-----------------
+
+Deep Models
+------------
+
+Deep models have a slightly more involved process. We first need to choose the architectures for our encoder models
+
+.. sourcecode:: python
+   from cca_zoo.deepmodels import architectures
+   encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
+   encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
+
+We build our deep cca model using these encoders as inputs:
+
+.. sourcecode:: python
+   from cca_zoo.deepmodels import DCCA
+   dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
+
+This produces a PyTorch.nn.Module object which can be updated in a customised training loop. As a quick start, we also
+provide a DeepWrapper class which wraps the deep cca model and its training loop so that it shares the fit(), transform()
+and score() methods of the other models in the package.
+
+.. sourcecode:: python
+   from cca_zoo.deepmodels import DeepWrapper
+   dcca_model = DeepWrapper(dcca_model)
+   #datasets can be pytorch datasets which output ((view_1,view_2),label) or 2 or more numpy arrays
+   dcca_model.fit(train_dataset, val_dataset=val_dataset, epochs=epochs)
+
+We can now use:
+
+.. sourcecode:: python
+   dcca_model.score(train_dataset)
+
+And:
+
+.. sourcecode:: python
+   projection_1,projection_2=dcca_model.transform(train_dataset)
