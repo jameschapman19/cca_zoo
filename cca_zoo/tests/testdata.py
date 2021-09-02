@@ -1,8 +1,9 @@
 from unittest import TestCase
 
+import numpy as np
 from sklearn.utils.validation import check_random_state
 
-from cca_zoo.data import Noisy_MNIST_Dataset
+from cca_zoo.data import Noisy_MNIST_Dataset, Tangled_MNIST_Dataset, Split_MNIST_Dataset
 from cca_zoo.data import generate_covariance_data
 from cca_zoo.models import MCCA, CCA
 
@@ -35,5 +36,9 @@ class TestData(TestCase):
 
     def test_deep_data(self):
         dataset = Noisy_MNIST_Dataset(mnist_type='FashionMNIST', train=True)
-        train_view_1, train_view_2, train_rotations, train_OH_labels, train_labels = dataset.dataset.to_numpy(
-            train_dataset.indices)
+        (train_view_1, train_view_2), (train_rotations, train_labels) = dataset.to_numpy(np.arange(10))
+        dataset = Tangled_MNIST_Dataset(mnist_type='FashionMNIST', train=True)
+        (train_view_1, train_view_2), (train_rotations_1, train_rotations_2, train_labels) = dataset.to_numpy(
+            np.arange(10))
+        dataset = Split_MNIST_Dataset(mnist_type='FashionMNIST', train=True)
+        (train_view_1, train_view_2), (train_labels) = dataset.to_numpy(np.arange(10))

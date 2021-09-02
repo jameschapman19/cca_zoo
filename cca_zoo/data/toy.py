@@ -128,8 +128,8 @@ class Noisy_MNIST_Dataset(Dataset):
             sample = self[n]
             view_1[i] = sample[0][0].numpy().reshape((-1, 28 * 28))
             view_2[i] = sample[0][1].numpy().reshape((-1, 28 * 28))
-            rotations[i] = sample[0][2].numpy()
-            labels[i] = sample[1].numpy().astype(int)
+            rotations[i] = sample[1][0].numpy()
+            labels[i] = sample[1][1].numpy().astype(int)
         return (view_1, view_2), (rotations, labels)
 
 
@@ -205,9 +205,9 @@ class Tangled_MNIST_Dataset(Dataset):
             sample = self[n]
             view_1[i] = sample[0][0].numpy().reshape((-1, 28 * 28))
             view_2[i] = sample[0][1].numpy().reshape((-1, 28 * 28))
-            rotation_1[i] = sample[0][2].numpy()
-            rotation_2[i] = sample[0][3].numpy()
-            labels[i] = sample[1].numpy().astype(int)
+            rotation_1[i] = sample[1][0].numpy()
+            rotation_2[i] = sample[1][1].numpy()
+            labels[i] = sample[1][2].numpy().astype(int)
         return (view_1, view_2), (rotation_1, rotation_2, labels)
 
 
