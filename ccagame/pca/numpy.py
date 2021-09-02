@@ -5,15 +5,7 @@ import numpy as np
 from ccagame.pca._pca import _PCA
 
 
-# Calculate the eigenvalues of covariance matrix of X using Numpy for comparison
-def calc_numpy(X, k):
-    eigvals, eigvecs = jnp.linalg.eig(X.T @ X)
-    idx = np.argsort(eigvals, axis=0)[::-1][:k]
-    eigvecs = eigvecs[:, idx]
-    eigvals = eigvals[idx]
-    return eigvals, eigvecs
-
-
+#object form
 class Numpy(_PCA):
     def __init__(self, n_components=2, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
                  random_state: int = 0, verbose=False):
@@ -28,3 +20,11 @@ class Numpy(_PCA):
         idx = np.argsort(eigvals, axis=0)[::-1][:self.n_components]
         eigvecs = eigvecs[:, idx]
         return eigvecs
+
+# function form
+def calc_numpy(X, k):
+    eigvals, eigvecs = jnp.linalg.eig(X.T @ X)
+    idx = np.argsort(eigvals, axis=0)[::-1][:k]
+    eigvecs = eigvecs[:, idx]
+    eigvals = eigvals[idx]
+    return eigvals, eigvecs

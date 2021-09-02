@@ -55,40 +55,7 @@ def update(u, X, U, k, lr: float = 1.0, riemannian_projection=False, mu=False):
         uhat = u + lr * du
     return uhat / jnp.linalg.norm(uhat)
 
-
-def calc_game(X, k, lr: float = 1.0, epochs=100, riemannian_projection=False, initialization='random',
-              random_state=0, simultaneous=False, batch_size=None):
-    U = initialize(X, k, type=initialization, random_state=random_state)
-    batches = data_stream(X, batch_size=batch_size)
-    num_batches = get_num_batches(X, batch_size=batch_size)
-    obj = []
-    if simultaneous:
-        for epoch in range(epochs):
-            start_time = time.time()
-            for _ in range(num_batches):
-                X_i = next(batches)
-                for k_ in range(k):
-                    u = update(U[:, k_], X_i, U, k_, lr=lr, riemannian_projection=riemannian_projection)
-                    U = U.at[:, k_].set(u)
-            epoch_time = time.time() - start_time
-            print(f"Epoch {epoch} in {epoch_time} sec")
-            obj.append(TV(X, U))
-            print(f'epoch {epoch}: {obj[-1]}')
-    else:
-        for k_ in range(k):
-            for epoch in range(epochs):
-                start_time = time.time()
-                for _ in range(num_batches):
-                    X_i = next(batches)
-                    u = update(U[:, k_], X_i, U, k_, lr=lr, riemannian_projection=riemannian_projection)
-                    U = U.at[:, k_].set(u)
-                epoch_time = time.time() - start_time
-                print(f"Epoch {epoch} in {epoch_time} sec")
-                obj.append(TV(X, U))
-                print(f'epoch {epoch}: {obj[-1]}')
-    return TV(X, U), U, obj
-
-
+#Object form
 class Game(_PCA):
 
     def __init__(self, n_components=4, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
@@ -136,3 +103,37 @@ class Game(_PCA):
                         print(f"Epoch {epoch} in {epoch_time} sec")
                         print(f'epoch {epoch}: {self.obj[-1]}')
         return U
+
+
+#function form
+def calc_game(X, k, lr: float = 1.0, epochs=100, riemannian_projection=False, initialization='random',
+              random_state=0, simultaneous=False, batch_size=None):
+    U = initialize(X, k, type=initialization, random_state=random_state)
+    batches = data_stream(X, batch_size=batch_size)
+    num_batches = get_num_batches(X, batch_size=batch_size)
+    obj = []
+    if simultaneous:
+        for epoch in range(epochs):
+            start_time = time.time()
+            for _ in range(num_batches):
+                X_i = next(batches)
+                for k_ in range(k):
+                    u = update(U[:, k_], X_i, U, k_, lr=lr, riemannian_projection=riemannian_projection)
+                    U = U.at[:, k_].set(u)
+            epoch_time = time.time() - start_time
+            print(f"Epoch {epoch} in {epoch_time} sec")
+            obj.append(TV(X, U))
+            print(f'epoch {epoch}: {obj[-1]}')
+    else:
+        for k_ in range(k):
+            for epoch in range(epochs):
+                start_time = time.time()
+                for _ in range(num_batches):
+                    X_i = next(batches)
+                    u = update(U[:, k_], X_i, U, k_, lr=lr, riemannian_projection=riemannian_projection)
+                    U = U.at[:, k_].set(u)
+                epoch_time = time.time() - start_time
+                print(f"Epoch {epoch} in {epoch_time} sec")
+                obj.append(TV(X, U))
+                print(f'epoch {epoch}: {obj[-1]}')
+    return TV(X, U), U, obj
