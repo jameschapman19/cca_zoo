@@ -20,14 +20,20 @@ Documentation
    :maxdepth: 1
    :caption: Reference
 
-   package_reference/cca_zoo.rst
+   cca_zoo.data
+   cca_zoo.deepmodels
+   cca_zoo.models
+   cca_zoo.probabilisticmodels
+   cca_zoo.utils
 
 
 .. toctree::
    :maxdepth: 1
    :caption: Developer Info
 
-   developer_info
+   developer_info/contribute
+   developer_info/support
+   developer_info/license
 
 
 Indices and tables
