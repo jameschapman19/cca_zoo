@@ -38,6 +38,9 @@ class DCCA_NOI(DCCA):
         self.rho = rho
         self.shared_target = shared_target
         self.mse = torch.nn.MSELoss()
+        self.linear_layers = torch.nn.ModuleList(
+            [torch.nn.Linear(latent_dims, latent_dims, bias=False) for _ in range(len(encoders))])
+        self.rand = torch.rand(N, self.latent_dims)
 
     def forward(self, *args):
         z = self.encode(*args)
@@ -45,26 +48,25 @@ class DCCA_NOI(DCCA):
 
     def encode(self, *args):
         z = []
-        for i, encoder in enumerate(self.encoders):
-            z.append(encoder(args[i]))
+        for i, (encoder, linear_layer) in enumerate(zip(self.encoders, self.linear_layers)):
+            z.append(linear_layer(encoder(args[i])))
         return tuple(z)
 
     def loss(self, *args):
         z = self(*args)
-        self.update_covariances(*z)
-        covariance_inv = [objectives._compute_matrix_power(objectives._minimal_regularisation(cov, self.eps), -0.5) for
+        z_copy = [z_.detach().clone() for z_ in z]
+        self.update_covariances(*z_copy)
+        covariance_inv = [torch.linalg.inv(objectives.MatrixSquareRoot.apply(cov)) for
                           cov in self.covs]
-        preds = [torch.matmul(z, covariance_inv[i]).detach() for i, z in enumerate(z)]
+        preds = [z_ @ covariance_inv[i] for i, z_ in enumerate(z_copy)]
         loss = self.mse(z[0], preds[1]) + self.mse(z[1], preds[0])
         return loss
 
-    def update_covariances(self, *args):
-        b = args[0].shape[0]
-        batch_covs = [self.N * z_i.T @ z_i / b for i, z_i in enumerate(args)]
+    def update_covariances(self, *z):
+        b = z[0].shape[0]
+        batch_covs = [self.N * z_i.T @ z_i / b for i, z_i in enumerate(z)]
         if self.covs is not None:
-            self.covs = [(self.rho * self.covs[i]).detach() + (1 - self.rho) * batch_cov for i, batch_cov
-                         in
-                         enumerate(batch_covs)]
+            self.covs = [self.rho * self.covs[i] + (1 - self.rho) * batch_cov for i, batch_cov in enumerate(batch_covs)]
         else:
             self.covs = batch_covs
 

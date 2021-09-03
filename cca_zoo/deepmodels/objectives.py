@@ -1,19 +1,46 @@
+import numpy as np
+import scipy.linalg
 import tensorly as tl
 import torch
 from tensorly.cp_tensor import cp_to_tensor
 from tensorly.decomposition import parafac
+from torch.autograd import Function
 
+
+class MatrixSquareRoot(Function):
+    """Square root of a positive definite matrix.
+    NOTE: matrix square root is not differentiable for matrices with
+          zero eigenvalues.
+    """
+
+    @staticmethod
+    def forward(ctx, input):
+        m = input.detach().cpu().numpy().astype(np.float_)
+        sqrtm = torch.from_numpy(scipy.linalg.sqrtm(m).real).to(input)
+        ctx.save_for_backward(sqrtm)
+        return sqrtm
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        grad_input = None
+        if ctx.needs_input_grad[0]:
+            sqrtm, = ctx.saved_tensors
+            sqrtm = sqrtm.data.cpu().numpy().astype(np.float_)
+            gm = grad_output.data.cpu().numpy().astype(np.float_)
+
+            # Given a positive semi-definite matrix X,
+            # since X = X^{1/2}X^{1/2}, we can compute the gradient of the
+            # matrix square root dX^{1/2} by solving the Sylvester equation:
+            # dX = (d(X^{1/2})X^{1/2} + X^{1/2}(dX^{1/2}).
+            grad_sqrtm = scipy.linalg.solve_sylvester(sqrtm, sqrtm, gm)
+
+            grad_input = torch.from_numpy(grad_sqrtm).to(grad_output)
+        return grad_input
 
 def _minimal_regularisation(M, eps):
     M_smallest_eig = torch.relu(-torch.min(torch.linalg.eigvalsh(M))) + eps
     M = M + M_smallest_eig * torch.eye(M.shape[0], device=M.device)
     return M
-
-def _compute_matrix_power(M, p):
-    U, V = torch.linalg.eigh(M)
-    M_p = V @ torch.diag(torch.pow(U, p)) @ V.T
-    return M_p
-
 
 def _demean(*views):
     return tuple([view - view.mean(dim=0) for view in views])
@@ -56,7 +83,7 @@ class MCCA:
 
         D = _minimal_regularisation(D, self.eps)
 
-        R = torch.linalg.inv(torch.linalg.cholesky(D))
+        R = torch.linalg.inv(MatrixSquareRoot.apply(_minimal_regularisation(D, self.eps)))
 
         # In MCCA our eigenvalue problem Cv = lambda Dv
         C_whitened = R @ C @ R.T
@@ -162,8 +189,8 @@ class CCA:
         SigmaHat11 = (1 - self.r) * (1.0 / (n - 1)) * H1bar.T @ H1bar + self.r * torch.eye(o1, device=H1.device)
         SigmaHat22 = (1 - self.r) * (1.0 / (n - 1)) * H2bar.T @ H2bar + self.r * torch.eye(o2, device=H2.device)
 
-        SigmaHat11RootInv = _compute_matrix_power(_minimal_regularisation(SigmaHat11, self.eps), -0.5)
-        SigmaHat22RootInv = _compute_matrix_power(_minimal_regularisation(SigmaHat22, self.eps), -0.5)
+        SigmaHat11RootInv = torch.linalg.inv(MatrixSquareRoot.apply(_minimal_regularisation(SigmaHat11, self.eps)))
+        SigmaHat22RootInv = torch.linalg.inv(MatrixSquareRoot.apply(_minimal_regularisation(SigmaHat22, self.eps)))
 
         Tval = SigmaHat11RootInv @ SigmaHat12 @ SigmaHat22RootInv
         trace_TT = Tval.T @ Tval
@@ -202,7 +229,8 @@ class TCCA:
             (1 - self.r) * (1.0 / (m - 1)) * z_.T @ z_ + self.r * torch.eye(z_.size(1), device=z_.device)
             for
             z_ in z]
-        z = [z_ @ _compute_matrix_power(_minimal_regularisation(cov, self.eps), -0.5) for z_, cov in zip(z, covs)]
+        z = [z_ @ torch.linalg.inv(MatrixSquareRoot.apply(_minimal_regularisation(cov, self.eps))) for z_, cov in
+             zip(z, covs)]
 
         for i, el in enumerate(z):
             if i == 0:
