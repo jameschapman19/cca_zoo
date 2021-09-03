@@ -28,6 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8
         python -m pip install codecov
+        python -m pip install pytest-cov
         python -m pip install -r requirements/basic.txt
         python -m pip install -r requirements/deep.txt
         python -m pip install -r requirements/probabilistic.txt
