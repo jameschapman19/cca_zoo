@@ -30,6 +30,6 @@ setup(
     python_requires='>=3.6',
     install_requires=REQUIRED_PACKAGES,
     extras_require=EXTRA_PACKAGES,
-    test_suite='tests',
+    test_suite='test',
     tests_require=[],
 )
