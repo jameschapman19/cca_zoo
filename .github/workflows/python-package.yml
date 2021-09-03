@@ -28,6 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8
         python -m pip install codecov
+        python -m pip install pytest-cov
         python -m pip install -r requirements/basic.txt
         python -m pip install -r requirements/deep.txt
         python -m pip install -r requirements/probabilistic.txt
@@ -38,7 +39,7 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Run Test
-      run: coverage run -m unittest discover
+      run: pytest --cov-report=xml --cov=cca_zoo ./cca_zoo/test/
     - name: "Upload coverage to Codecov"
       uses: codecov/codecov-action@v1
       with:
