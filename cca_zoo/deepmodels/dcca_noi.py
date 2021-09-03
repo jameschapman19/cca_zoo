@@ -37,6 +37,7 @@ class DCCA_NOI(DCCA):
         self.eps = eps
         self.rho = rho
         self.shared_target = shared_target
+        self.mse = torch.nn.MSELoss()
 
     def forward(self, *args):
         z = self.encode(*args)
@@ -54,7 +55,7 @@ class DCCA_NOI(DCCA):
         covariance_inv = [objectives._compute_matrix_power(objectives._minimal_regularisation(cov, self.eps), -0.5) for
                           cov in self.covs]
         preds = [torch.matmul(z, covariance_inv[i]).detach() for i, z in enumerate(z)]
-        loss = torch.mean(torch.norm(z[0] - preds[1], dim=1)) + torch.mean(torch.norm(z[1] - preds[0], dim=1))
+        loss = self.mse(z[0], preds[1]) + self.mse(z[1], preds[0])
         return loss
 
     def update_covariances(self, *args):
