@@ -22,7 +22,7 @@ bibliography: paper.bib
 
 # Summary
 
-It is increasingly common to collect large datasets with multiple views. Examples include natural language processing,
+Many scientific datasets contain multiple views of data for each sample. Examples include natural language processing,
 neuroimaging, multiomics and audiovisual data. Canonical Correlation Analyis (CCA) [@hotelling1992relations]  and
 Partial Least Squares are classical methods for investigating and quantifying multivariate relationships between these
 views of data. The goal of CCA and its variants is to find projections (and associated weights) for each view of the
@@ -30,7 +30,7 @@ data into a latent space where they are highly correlated.
 
 The original CCA has been developed into a family of models which include regularised [@vinod1976canonical],
 kernelized [@hardoon2004canonical], probabilistic/generative [@bach2005probabilistic], and deep learning
-based [@andrew2013deep] variants. In particular these have allowed practioners to apply these models to complex, high
+based [@andrew2013deep] variants. In particular these have allowed practitioners to apply these models to complex, high
 dimensional data. Similarly, variants of PLS have been proposed including the widely used Penalized Matrix Decomposition
 algorithm [@witten2009penalized] which induces sparsity in the weight vectors for interpretability and generalisation.
 
@@ -41,10 +41,10 @@ regularised CCA and PLS that have previously only been available in packages in 
 give Python users access to these powerful models for both application and the development of new algorithms. Secondly,
 `cca-zoo` contains implementations of a number of deep CCA variants written in PyTorch
 [@paszke2019pytorch] which are written in a modular style, allowing users to swap out neural network architectures for
-each view and plug the models into a customised training pipeline. Thirdly, `cca-zoo` contains generative models
-including of variational and deep variational CCA in python. Finally, `cca-zoo` gives users the ability to simulate data
-containing specified correlation structures as well as the paired MNIST data commonly used as a toy dataset in deep
-multiview learning.
+each view and plug the models into their own training pipeline. Thirdly, `cca-zoo` contains generative models including
+variational and deep variational CCA which can be used to generate new data. Finally, `cca-zoo` gives users the ability
+to simulate data containing specified correlation structures as well as the paired MNIST data commonly used as a toy
+dataset in deep multiview learning.
 
 # Statement of need
 
@@ -113,8 +113,7 @@ A complete model list at the time of publication:
 ## Documentation
 
 The package is accompanied by documentation (https://cca-zoo.readthedocs.io/en/latest/index.html) and a number of
-tutorial notebooks which serve as both guides to the package as well as educational resources for multiview learning
-methods.
+tutorial notebooks which serve as both guides to the package as well as educational resources for CCA and PLS methods.
 
 # Conclusion
 
