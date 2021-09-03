@@ -1,8 +1,6 @@
 from sklearn.utils.validation import check_random_state
 
 import cca_zoo.models.innerloop
-from sklearn.utils.validation import check_random_state
-
 import cca_zoo.models.innerloop
 
 rng = check_random_state(0)

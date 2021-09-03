@@ -1,5 +1,4 @@
 import itertools
-import itertools
 
 import numpy as np
 import scipy.sparse as sp
