@@ -5,7 +5,6 @@ from typing import Union, Iterable
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
 
 import cca_zoo.utils.plotting
 from cca_zoo.deepmodels import _DCCA_base, DCCA, DCCAE
@@ -19,14 +18,12 @@ class DeepWrapper(_CCA_Base):
     customise the training loop. By inheriting _CCA_Base, the DeepWrapper class gives access to fit_transform.
     """
 
-    def __init__(self, model: _DCCA_base, device: str = 'cuda', tensorboard: bool = False, tensorboard_tag: str = '',
+    def __init__(self, model: _DCCA_base, device: str = 'cuda',
                  optimizer: torch.optim.Optimizer = None, scheduler=None, lr=1e-3, clip_value=float('inf')):
         """
 
         :param model: An instance of a model
         :param device: device to train on
-        :param tensorboard: whether to use tensorboard to record training
-        :param tensorboard_tag: tag used by tensorboard
         :param optimizer: optimizer used to update model parameters each iteration
         :param scheduler: scheduler used to update the optimizer e.g. learning rate decay
         :param lr: learning rate if not specified in the optimizer
@@ -38,9 +35,6 @@ class DeepWrapper(_CCA_Base):
         if not torch.cuda.is_available() and self.device == 'cuda':
             self.device = 'cpu'
         self.latent_dims = model.latent_dims
-        self.tensorboard = tensorboard
-        if tensorboard:
-            self.writer = SummaryWriter(tensorboard_tag)
         self.optimizer = optimizer
         if optimizer is None:
             if isinstance(self.model, DCCA):
@@ -86,13 +80,9 @@ class DeepWrapper(_CCA_Base):
                 epoch_train_loss = self._train_epoch(train_dataloader)
                 print('====> Epoch: {} Average train loss: {:.4f}'.format(
                     epoch, epoch_train_loss))
-                if self.tensorboard:
-                    self.writer.add_scalar('Loss/train', epoch_train_loss, epoch)
                 # Val
                 if val_dataset:
                     epoch_val_loss = self._val_epoch(val_dataloader)
-                    if self.tensorboard:
-                        self.writer.add_scalar('Loss/test', epoch_val_loss, epoch)
                     print('====> Epoch: {} Average val loss: {:.4f}'.format(
                         epoch, epoch_val_loss))
                     if epoch_val_loss < min_val_loss or epoch == 1:
@@ -113,8 +103,6 @@ class DeepWrapper(_CCA_Base):
                         self.scheduler.step()
                     except:
                         self.scheduler.step(epoch_train_loss)
-        if self.tensorboard:
-            self.writer.close()
         if post_transform:
             self.transform(train_dataset, batch_size=batch_size, train=True)
         return self
@@ -155,7 +143,8 @@ class DeepWrapper(_CCA_Base):
             self.optimizer.step(closure)
             loss = closure()
         else:
-            self.optimizer.zero_grad()
+            for p in self.model.parameters():
+                p.grad = None
             loss = self.model.loss(*args)
             loss.backward()
             torch.nn.utils.clip_grad_value_(self.model.parameters(), clip_value=self.clip_value)
@@ -244,15 +233,18 @@ class DeepWrapper(_CCA_Base):
             val_dataset = cca_zoo.data.CCA_Dataset(*val_dataset, labels=val_labels)
         return dataset, val_dataset
 
-    def _get_dataloaders(self, dataset, batch_size, val_dataset=None, val_batch_size=None):
+    def _get_dataloaders(self, dataset, batch_size, val_dataset=None, val_batch_size=None, num_workers=1,
+                         pin_memory=True):
         if batch_size == 0:
             batch_size = len(dataset)
-        train_dataloader = DataLoader(dataset, batch_size=batch_size, drop_last=True)
+        train_dataloader = DataLoader(dataset, batch_size=batch_size, drop_last=True, num_workers=num_workers,
+                                      pin_memory=pin_memory)
         _check_batch_size(batch_size, self.latent_dims)
         if val_dataset:
             if val_batch_size == 0:
                 val_batch_size = len(val_dataset)
-            val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, drop_last=True)
+            val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, drop_last=True, num_workers=num_workers,
+                                        pin_memory=pin_memory)
             _check_batch_size(batch_size, self.latent_dims)
             return train_dataloader, val_dataloader
         return train_dataloader, None
