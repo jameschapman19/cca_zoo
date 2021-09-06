@@ -26,6 +26,30 @@ def model(u, v, X, Y, V, k):
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=6, static_argnames=('lr', 'riemannian_projection'))
 def update(u, v, X, Y, U, V, k, lr: float = 1.0, riemannian_projection=False):
+    """
+    Update the left and right singular vector estimates
+
+    Parameters
+    ----------
+    u :
+        current estimate for this level's left eigenvector
+    v :
+        current estimate for this level's right eigenvector
+    X :
+        batch of data for view X
+    Y :
+        batch of data for view Y
+    U :
+        all eigenvector estimates for each level
+    V :
+        all eigenvector estimates for each level
+    k :
+        level
+    lr :
+        learning rate
+    riemannian_projection :
+        whether to use riemannian projection
+    """
     du = grad(model)(u, v, X, Y, V, k)
     dv = grad(model)(v, u, Y, X, U, k)
     if riemannian_projection:

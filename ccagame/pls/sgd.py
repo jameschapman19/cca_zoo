@@ -13,6 +13,22 @@ from .utils import TV, initialize
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=(4))
 def update(X, Y, U, V, lr: float = 0.1):
+    """
+    Update the left and right singular vector estimates
+
+    Parameters
+    ----------
+    X :
+        batch of data for view X
+    Y :
+        batch of data for view Y
+    U :
+        all eigenvector estimates for each level
+    V :
+        all eigenvector estimates for each level
+    lr :
+        learning rate
+    """
     du = X.T @ Y @ V
     uhat = U + lr * du
     return jnp.linalg.qr(uhat)[0]

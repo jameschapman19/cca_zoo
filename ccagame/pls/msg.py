@@ -15,6 +15,24 @@ from .utils import TV, initialize
 
 # Update rule to be used for calculating eigenvectors
 def update(X, Y, U, V, k, lr: float = 0.1):
+    """
+    Update the left and right singular vector estimates
+
+    Parameters
+    ----------
+    X :
+        batch of data for view X
+    Y :
+        batch of data for view Y
+    U :
+        all eigenvector estimates for each level
+    V :
+        all eigenvector estimates for each level
+    k :
+        number of levels
+    lr :
+        learning rate
+    """
     S = jnp.zeros(min(U.shape[0], V.shape[0]))
     S = S.at[:k].set(1)
     M = U @ jnp.diag(S[:k]) @ V.T + lr * X.T @ Y

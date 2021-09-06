@@ -44,6 +44,26 @@ def mu_model(u, X, U, k):
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=3, static_argnames=('lr', 'riemannian_projection', 'mu'))
 def update(u, X, U, k, lr: float = 1.0, riemannian_projection=False, mu=False):
+    """
+    Update the singular vector estimates
+
+    Parameters
+    ----------
+    u :
+        current estimate for this level's left eigenvector
+    X :
+        batch of data for view X
+    U :
+        all eigenvector estimates for each level
+    k :
+        level
+    lr :
+        learning rate
+    riemannian_projection :
+        whether to use riemannian projection
+    mu :
+        which game model to use. If True uses unbiased estimate as in eigengame:unloaded if False uses biased estimate as in original eigengame
+    """
     if mu:
         du = mu_model(u, X, U, k)
     else:
