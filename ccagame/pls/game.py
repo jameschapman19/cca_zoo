@@ -104,7 +104,7 @@ class Game(_PLS):
 
 # Function form
 def calc_game(X, Y, k: int, lr: float = 1, epochs: int = 100, riemannian_projection: bool = False,
-              random_state: int = 0, simultaneous: bool = False, batch_size: int = 128, mu=False):
+              random_state: int = 0, simultaneous: bool = False, batch_size: int = 128, mu=True):
     """
     Calculate partial least squares weights with PLS-Game
 

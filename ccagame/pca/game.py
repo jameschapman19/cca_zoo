@@ -82,7 +82,7 @@ class Game(_PCA):
                 for _ in range(num_batches):
                     X_i = next(batches)
                     for k_ in range(self.n_components):
-                        u = update(U[:, k_], X_i, U, k_, lr=self.lr, riemannian_projection=self.riemannian_projection)
+                        u = update(U[:, k_], X_i, U, k_, lr=self.lr, riemannian_projection=self.riemannian_projection, mu=self.mu)
                         U = U.at[:, k_].set(u)
                     self.obj.append(TV(X, U))
                 if self.verbose:
@@ -95,7 +95,7 @@ class Game(_PCA):
                     start_time = time.time()
                     for _ in range(num_batches):
                         X_i = next(batches)
-                        u = update(U[:, k_], X_i, U, k_, lr=self.lr, riemannian_projection=self.riemannian_projection)
+                        u = update(U[:, k_], X_i, U, k_, lr=self.lr, riemannian_projection=self.riemannian_projection, mu=self.mu)
                         U = U.at[:, k_].set(u)
                         self.obj.append(TV(X, U))
                     if self.verbose:
@@ -107,7 +107,7 @@ class Game(_PCA):
 
 #function form
 def calc_game(X, k, lr: float = 1.0, epochs=100, riemannian_projection=False, initialization='random',
-              random_state=0, simultaneous=False, batch_size=None):
+              random_state=0, simultaneous=False, batch_size=None, mu=True):
     U = initialize(X, k, type=initialization, random_state=random_state)
     batches = data_stream(X, batch_size=batch_size)
     num_batches = get_num_batches(X, batch_size=batch_size)
@@ -118,7 +118,7 @@ def calc_game(X, k, lr: float = 1.0, epochs=100, riemannian_projection=False, in
             for _ in range(num_batches):
                 X_i = next(batches)
                 for k_ in range(k):
-                    u = update(U[:, k_], X_i, U, k_, lr=lr, riemannian_projection=riemannian_projection)
+                    u = update(U[:, k_], X_i, U, k_, lr=lr, riemannian_projection=riemannian_projection, mu=mu)
                     U = U.at[:, k_].set(u)
             epoch_time = time.time() - start_time
             print(f"Epoch {epoch} in {epoch_time} sec")
@@ -130,7 +130,7 @@ def calc_game(X, k, lr: float = 1.0, epochs=100, riemannian_projection=False, in
                 start_time = time.time()
                 for _ in range(num_batches):
                     X_i = next(batches)
-                    u = update(U[:, k_], X_i, U, k_, lr=lr, riemannian_projection=riemannian_projection)
+                    u = update(U[:, k_], X_i, U, k_, lr=lr, riemannian_projection=riemannian_projection, mu=mu)
                     U = U.at[:, k_].set(u)
                 epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")

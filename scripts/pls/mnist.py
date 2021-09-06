@@ -1,7 +1,7 @@
 from ccagame import datasets
 
 train, train_labels,test_1,test_labels = datasets.mnist()
-train_1=train[:,:]
+train_1=train[:,:392]
 train_2=train[:,:]
 
 # Model
