@@ -18,7 +18,8 @@ def update(u, X, lr=0.1):
     vhat = u + lr * dv
     return jnp.linalg.qr(vhat)[0]
 
-#object form
+
+# object form
 class Oja(_PCA):
     def __init__(self, n_components=2, *, scale=True, copy=True, lr: float = 1e-2, epochs: int = 100,
                  random_state: int = 0, batch_size: int = 128, verbose=False):

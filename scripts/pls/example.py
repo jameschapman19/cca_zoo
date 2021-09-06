@@ -1,7 +1,6 @@
 # %%
 
 # Imports
-import time
 
 from jax import random
 

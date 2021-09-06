@@ -17,6 +17,7 @@ def update(X, Y, V):
     V = Y.T @ X @ U
     return jnp.linalg.qr(U)[0], jnp.linalg.qr(V)[0]
 
+
 # Object form
 class Batch(_PLS):
     def __init__(self, n_components=2, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
@@ -42,6 +43,7 @@ class Batch(_PLS):
                 print(f"Epoch {epoch} in {epoch_time} sec")
                 print(f'epoch {epoch}: {TV(X, Y, U, V)}')
         return U, V
+
 
 # Function form
 def calc_batch(X, Y, k: int, epochs: int = 100,

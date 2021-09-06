@@ -21,7 +21,8 @@ def update(u, X, lr=0.1):
     vhat = u + lr * du
     return jnp.linalg.qr(vhat)[0]
 
-#object form
+
+# object form
 class Krasulina(_PCA):
     def __init__(self, n_components=2, *, scale=True, copy=True, lr: float = 1e-2, epochs: int = 100,
                  random_state: int = 0, batch_size: int = 128, verbose=False):
@@ -48,7 +49,8 @@ class Krasulina(_PCA):
                 print(f'epoch {epoch}: {TV(X, U)}')
         return U
 
-#function form
+
+# function form
 def calc_krasulina(X, k, lr=1e-1, epochs=100, initialization='uniform',
                    random_state=0, batch_size=None):
     U = initialize(X, k, type=initialization, random_state=random_state)

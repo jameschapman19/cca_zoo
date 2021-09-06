@@ -3,10 +3,8 @@
 
 # Importing necessary libraries
 import time
-from functools import partial
 
 import jax.numpy as jnp
-from jax import jit
 
 from ccagame.utils import data_stream, get_num_batches
 from . import _PLS
@@ -21,7 +19,8 @@ def update(X, Y, U, V, k, lr: float = 0.1):
     U, _, Vt = jnp.linalg.svd(M)
     return U[:, :k], Vt[:k].T
 
-#Object form
+
+# Object form
 class MSG(_PLS):
     def __init__(self, n_components=2, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
                  random_state: int = 0, batch_size: int = 128, verbose=False):

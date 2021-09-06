@@ -1,9 +1,10 @@
+import time
 from abc import abstractmethod
 
 from sklearn.base import BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin
 
 from .utils import TV
-import time
+
 
 class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
     def __init__(self, n_components=2, *, scale=True, copy=True):
@@ -20,7 +21,7 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         X, Y, self._x_mean, self._y_mean, self._x_std, self._y_std = self.center_scale(X, Y)
         start_time = time.time()
         self.x_weights, self.y_weights = self._fit(X, Y)
-        self.fit_time=time.time()-start_time
+        self.fit_time = time.time() - start_time
         return self
 
     @abstractmethod

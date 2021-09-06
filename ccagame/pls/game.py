@@ -81,7 +81,7 @@ def update(u, v, X, Y, U, V, k: int, lr: float = 1, riemannian_projection: bool 
     return uhat / jnp.linalg.norm(uhat), vhat / jnp.linalg.norm(vhat)
 
 
-#Object form
+# Object form
 class Game(_PLS):
 
     def __init__(self, n_components=4, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
@@ -144,6 +144,7 @@ class Game(_PLS):
                         print(f"Epoch {epoch} in {epoch_time} sec")
                         print(f'epoch {epoch}: {TV(X, Y, U, V)}')
         return U, V
+
 
 # Function form
 def calc_game(X, Y, k: int, lr: float = 1, epochs: int = 100, riemannian_projection: bool = False,

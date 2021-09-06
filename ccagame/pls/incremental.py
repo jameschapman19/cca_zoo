@@ -27,7 +27,8 @@ def update(X, Y, U, S, V, k):
     V = jnp.hstack((V, v_orth.T / jnp.linalg.norm(v_orth))) @ V_.T[:, :k]
     return U, S[:k], V
 
-#Object form
+
+# Object form
 class Incremental(_PLS):
     def __init__(self, n_components=2, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
                  random_state: int = 0, verbose=False):
@@ -51,6 +52,7 @@ class Incremental(_PLS):
                 print(f"Epoch {epoch} in {epoch_time} sec")
                 print(f'epoch {epoch}: {TV(X, Y, U, V)}')
         return U, V
+
 
 # Function form
 def calc_incremental(X, Y, k: int, epochs: int = 100,

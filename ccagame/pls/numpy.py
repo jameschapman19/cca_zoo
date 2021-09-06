@@ -6,7 +6,8 @@ from jax import jit, lax
 
 from ccagame.pls._pls import _PLS
 
-#object form
+
+# object form
 class Numpy(_PLS):
     def __init__(self, n_components=2, *, scale=True, copy=True):
         super().__init__(n_components, scale=scale, copy=copy)
