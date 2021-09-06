@@ -18,32 +18,72 @@ from .utils import TV, initialize
 from ..utils import data_stream, get_num_batches
 
 
-@partial(jit, static_argnums=(3))
+@partial(jit, static_argnums=3)
 def alpha_model(u, X, U, k):
-    n = X.shape[0]
-    M = X.T @ X / n
-    rewards = u.T @ M @ u
-    penalties = 0
-    for j in range(k):
-        penalties = penalties + (u.T @ M @ U[:, j]) ** 2 / (
-                U[:, j].T @ M @ U[:, j])
-    return jnp.sum(rewards - penalties)
+    """
+    Returns the utility of the kth player
 
+    Parameters
+    ----------
+    u
+    X
+    U
+    k
 
-@partial(jit, static_argnums=(3))
-def mu_model(u, X, U, k):
+    Returns
+    -------
+
+    """
     M = X.T @ X
     rewards = u.T @ M @ u
-    penalties = 0
-    for j in range(k):
-        penalties = penalties + (u.T @ M @ U[:, j]) ** 2 / (
-                U[:, j].T @ M @ U[:, j])
-    return jnp.sum(rewards - penalties)
+    penalties = (u.T @ M @ U[:, :k]) ** 2 / jnp.diag(U[:, :k].T @ M @ U[:, :k])
+    return jnp.sum(rewards - penalties.sum())
+
+
+@partial(jit, static_argnums=3)
+def mu_model(u, X, U, k):
+    """
+    Returns the utility of the kth player
+
+    Parameters
+    ----------
+    u
+    X
+    U
+    k
+
+    Returns
+    -------
+
+    """
+    M = X.T @ X
+    rewards = M @ u
+    penalties = u.T @ M @ U[:, :k] * U[:, :k]
+    return rewards - penalties.sum(axis=1)
 
 
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=3, static_argnames=('lr', 'riemannian_projection', 'mu'))
 def update(u, X, U, k, lr: float = 1.0, riemannian_projection=False, mu=False):
+    """
+        Update the singular vector estimates
+        Parameters
+        ----------
+        u :
+            current estimate for this level's left eigenvector
+        X :
+            batch of data for view X
+        U :
+            all eigenvector estimates for each level
+        k :
+            level
+        lr :
+            learning rate
+        riemannian_projection :
+            whether to use riemannian projection
+        mu :
+            which game model to use. If True uses unbiased estimate as in eigengame:unloaded if False uses biased estimate as in original eigengame
+        """
     if mu:
         du = mu_model(u, X, U, k)
     else:
@@ -55,7 +95,8 @@ def update(u, X, U, k, lr: float = 1.0, riemannian_projection=False, mu=False):
         uhat = u + lr * du
     return uhat / jnp.linalg.norm(uhat)
 
-#Object form
+
+# Object form
 class Game(_PCA):
 
     def __init__(self, n_components=4, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
@@ -75,14 +116,15 @@ class Game(_PCA):
         U = initialize(X, self.n_components, type='random', random_state=self.random_state)
         batches = data_stream(X, batch_size=self.batch_size)
         num_batches = get_num_batches(X, batch_size=self.batch_size)
-        obj = []
+        self.obj = []
         if self.simultaneous:
             for epoch in range(self.epochs):
                 start_time = time.time()
                 for _ in range(num_batches):
                     X_i = next(batches)
                     for k_ in range(self.n_components):
-                        u = update(U[:, k_], X_i, U, k_, lr=self.lr, riemannian_projection=self.riemannian_projection, mu=self.mu)
+                        u = update(U[:, k_], X_i, U, k_, lr=self.lr, riemannian_projection=self.riemannian_projection,
+                                   mu=self.mu)
                         U = U.at[:, k_].set(u)
                     self.obj.append(TV(X, U))
                 if self.verbose:
@@ -95,7 +137,8 @@ class Game(_PCA):
                     start_time = time.time()
                     for _ in range(num_batches):
                         X_i = next(batches)
-                        u = update(U[:, k_], X_i, U, k_, lr=self.lr, riemannian_projection=self.riemannian_projection, mu=self.mu)
+                        u = update(U[:, k_], X_i, U, k_, lr=self.lr, riemannian_projection=self.riemannian_projection,
+                                   mu=self.mu)
                         U = U.at[:, k_].set(u)
                         self.obj.append(TV(X, U))
                     if self.verbose:
@@ -105,7 +148,7 @@ class Game(_PCA):
         return U
 
 
-#function form
+# function form
 def calc_game(X, k, lr: float = 1.0, epochs=100, riemannian_projection=False, initialization='random',
               random_state=0, simultaneous=False, batch_size=None, mu=True):
     U = initialize(X, k, type=initialization, random_state=random_state)

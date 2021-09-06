@@ -6,6 +6,7 @@ from sklearn.base import BaseEstimator, TransformerMixin, MultiOutputMixin, Regr
 from .utils import TV
 import time
 
+
 class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
     def __init__(self, n_components=2, *, scale=True, copy=True):
         self.n_components = n_components
@@ -20,9 +21,9 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
     def fit(self, X):
         self.mean = jnp.mean(X, axis=0)
         X -= self.mean
-        start_time=time.time()
+        start_time = time.time()
         self.x_weights = self._fit(X)
-        self.fit_time=time.time()-start_time
+        self.fit_time = time.time() - start_time
         return self
 
     def score(self, X, y=None, sample_weight=None):

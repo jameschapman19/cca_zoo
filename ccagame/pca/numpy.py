@@ -16,14 +16,14 @@ class Numpy(_PCA):
         self.verbose = verbose
 
     def _fit(self, X):
-        eigvals, eigvecs = jnp.linalg.eig(X.T @ X)
+        eigvals, eigvecs = jnp.linalg.eigh(X.T @ X)
         idx = np.argsort(eigvals, axis=0)[::-1][:self.n_components]
         eigvecs = eigvecs[:, idx]
         return eigvecs
 
 # function form
 def calc_numpy(X, k):
-    eigvals, eigvecs = jnp.linalg.eig(X.T @ X)
+    eigvals, eigvecs = jnp.linalg.eigh(X.T @ X)
     idx = np.argsort(eigvals, axis=0)[::-1][:k]
     eigvecs = eigvecs[:, idx]
     eigvals = eigvals[idx]

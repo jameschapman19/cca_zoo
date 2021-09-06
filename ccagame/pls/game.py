@@ -15,14 +15,46 @@ from .utils import initialize, TV
 # X is the design matrix and V holds the previously computed eigenvectors
 @partial(jit, static_argnums=(6))
 def alpha_model(u, v, X, Y, U, V, k: int):
+    """
+    Returns the utilities for the kth players
+
+    Parameters
+    ----------
+    u
+    v
+    X
+    Y
+    V
+    k
+
+    Returns
+    -------
+
+    """
     C_xy = X.T @ Y
     rewards = (u.T @ C_xy @ v)
-    penalties = (u.T @ C_xy @ V[:, :k]) ** 2 / (U[:, :k].T @ C_xy @ V[:, :k])
-    return jnp.sum(rewards - penalties.sum(axis=1))
+    penalties = (u.T @ C_xy @ V[:, :k]) ** 2 / jnp.diag(U[:, :k].T @ C_xy @ V[:, :k])
+    return jnp.sum(rewards - penalties.sum())
 
 
 @partial(jit, static_argnums=(6))
 def mu_model(u, v, X, Y, U, V, k: int):
+    """
+    Returns the gradients for the kth players
+
+    Parameters
+    ----------
+    u
+    v
+    X
+    Y
+    V
+    k
+
+    Returns
+    -------
+
+    """
     C_xy = X.T @ Y
     rewards = C_xy @ v
     penalties = (u.T @ C_xy @ V[:, :k]) * U[:, :k]
@@ -66,6 +98,17 @@ class Game(_PLS):
         self.verbose = verbose
 
     def _fit(self, X, Y):
+        """
+
+        Parameters
+        ----------
+        X
+        Y
+
+        Returns
+        -------
+
+        """
         U, V = initialize(X, Y, self.n_components, 'random', self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
