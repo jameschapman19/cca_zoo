@@ -16,7 +16,7 @@ def model(u, v, X, Y, V, k):
     C_xy = jnp.dot(jnp.transpose(X), Y)
     C_xx = jnp.dot(jnp.transpose(X), X)
     C_yy = jnp.dot(jnp.transpose(Y), Y)
-    rewards = (u.T @ C_xy @ v) ** 2 / (v.T @ C_yy @ v)
+    rewards = (u.T @ C_xy @ v) / (v.T @ C_yy @ v)
     penalties = 0
     for j in range(k):
         penalties = penalties + (u.T @ C_xy @ V[:, j]) ** 2 / (V[:, j].T @ C_yy @ V[:, j])

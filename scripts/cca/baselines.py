@@ -15,7 +15,7 @@ p = 10
 q = 11
 latent_dims = 5
 max_iter = 300
-batch_size = 100
+batch_size = 8
 epochs = 10
 riemannian_projection = True
 initialization = 'random'
@@ -40,6 +40,11 @@ numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
 print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X, Y))
 print("\n Time :\n", numpy.fit_time)
 
+game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
+            mu=True).fit(X, Y)
+print("\n Eigenvalues calculated using game are :\n", game.score(X, Y))
+print("\n Time :\n", game.fit_time)
+
 ccalin = CCALin(scale=False, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using CCALin are :\n", ccalin.score(X, Y))
 print("\n Time :\n", ccalin.fit_time)
@@ -47,11 +52,6 @@ print("\n Time :\n", ccalin.fit_time)
 lagrange = Lagrange(scale=False, lr=100, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using numpy are :\n", lagrange.score(X, Y))
 print("\n Time :\n", lagrange.fit_time)
-
-game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
-            mu=True).fit(X, Y)
-print("\n Eigenvalues calculated using game are :\n", game.score(X, Y))
-print("\n Time :\n", game.fit_time)
 
 genoja = Genoja(scale=False, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True, alpha=alpha,
                 beta_0=beta_0).fit(X, Y)

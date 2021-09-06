@@ -10,9 +10,6 @@ from . import _PLS
 from .utils import initialize, TV
 
 
-# Define utlity function, we will take grad of this in the
-# update step, v is the current eigenvector being calculated
-# X is the design matrix and V holds the previously computed eigenvectors
 @partial(jit, static_argnums=(6))
 def alpha_model(u, v, X, Y, U, V, k: int):
     C_xy = X.T @ Y
