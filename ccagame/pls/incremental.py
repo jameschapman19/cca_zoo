@@ -15,6 +15,24 @@ from .utils import TV, initialize
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=(5))
 def update(X, Y, U, S, V, k):
+    """
+    Update the left and right singular vector estimates
+
+    Parameters
+    ----------
+    X :
+        batch of data for view X
+    Y :
+        batch of data for view Y
+    U :
+        all eigenvector estimates for each level
+    S :
+        all singular value estimates
+    V :
+        all eigenvector estimates for each level
+    k :
+        number of levels
+    """
     uhat = X @ U
     u_orth = X - X @ U @ U.T
     vhat = Y @ V

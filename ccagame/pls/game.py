@@ -10,9 +10,6 @@ from . import _PLS
 from .utils import initialize, TV
 
 
-# Define utlity function, we will take grad of this in the
-# update step, v is the current eigenvector being calculated
-# X is the design matrix and V holds the previously computed eigenvectors
 @partial(jit, static_argnums=(6))
 def alpha_model(u, v, X, Y, U, V, k: int):
     """
@@ -64,6 +61,32 @@ def mu_model(u, v, X, Y, U, V, k: int):
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=6, static_argnames=('lr', 'riemannian_projection', 'mu'))
 def update(u, v, X, Y, U, V, k: int, lr: float = 1, riemannian_projection: bool = False, mu=False):
+    """
+    Update the left and right singular vector estimates
+
+    Parameters
+    ----------
+    u :
+        current estimate for this level's left eigenvector
+    v :
+        current estimate for this level's right eigenvector
+    X :
+        batch of data for view X
+    Y :
+        batch of data for view Y
+    U :
+        all eigenvector estimates for each level
+    V :
+        all eigenvector estimates for each level
+    k :
+        level
+    lr :
+        learning rate
+    riemannian_projection :
+        whether to use riemannian projection
+    mu :
+        which game model to use. If True uses unbiased estimate as in eigengame:unloaded if False uses biased estimate as in original eigengame
+    """
     if mu:
         du = mu_model(u, v, X, Y, U, V, k)
         dv = mu_model(v, u, Y, X, V, U, k)
@@ -113,6 +136,7 @@ class Game(_PLS):
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
         self.obj = []
+        # We can either solve the eigenvectors simulataneously or complete each one
         if self.simultaneous:
             for epoch in range(self.epochs):
                 start_time = time.time()
@@ -180,6 +204,7 @@ def calc_game(X, Y, k: int, lr: float = 1, epochs: int = 100, riemannian_project
     U, V = initialize(X, Y, k, 'random', random_state)
     batches = data_stream(X, Y, batch_size=batch_size)
     num_batches = get_num_batches(X, Y, batch_size=batch_size)
+    # We can either solve the eigenvectors simulataneously or complete each one
     if simultaneous:
         for epoch in range(epochs):
             start_time = time.time()

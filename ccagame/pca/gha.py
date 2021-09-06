@@ -13,9 +13,21 @@ from ..utils import data_stream, get_num_batches
 
 
 @partial(jit, static_argnums=(2))
-def update(u, X, lr=0.1):
-    dv = X.T @ X @ u - u @ jnp.triu(u.T @ X.T @ X @ u)
-    vhat = u + lr * dv
+def update(U, X, lr=0.1):
+    """
+    Update all of the singular vector estimates
+
+    Parameters
+    ----------
+    X :
+        batch of data for view X
+    U :
+        all eigenvector estimates for each level
+    lr :
+        learning rate
+    """
+    dv = X.T @ X @ U - U @ jnp.triu(U.T @ X.T @ X @ U)
+    vhat = U + lr * dv
     return vhat / jnp.linalg.norm(vhat, axis=0)
 
 

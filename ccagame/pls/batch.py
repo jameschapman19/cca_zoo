@@ -13,6 +13,18 @@ from .utils import TV, initialize
 # Update rule to be used for calculating eigenvectors
 @partial(jit)
 def update(X, Y, V):
+    """
+    Update the left and right singular vector estimates by one iteration of the power method. Could be stochastic if X and Y are batches rather than full data
+
+    Parameters
+    ----------
+    X :
+        batch of data for view X
+    Y :
+        batch of data for view Y
+    V :
+        all eigenvector estimates for each level
+    """
     U = X.T @ Y @ V
     V = Y.T @ X @ U
     return jnp.linalg.qr(U)[0], jnp.linalg.qr(V)[0]
