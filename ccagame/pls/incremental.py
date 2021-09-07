@@ -10,7 +10,7 @@ from jax import jit
 from ccagame.utils import data_stream, get_num_batches
 from . import _PLS
 from .utils import TV, initialize
-
+from sklearn.model_selection import train_test_split
 
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=(5))
@@ -57,18 +57,22 @@ class Incremental(_PLS):
         self.verbose = verbose
 
     def _fit(self, X, Y):
+        X, X_val, Y, Y_val = train_test_split(X, Y, random_state=self.random_state,
+                                              train_size=0.9)
         U, V = initialize(X, Y, self.n_components, 'random', self.random_state)
         batches = data_stream(X, Y, batch_size=1)
         num_batches = get_num_batches(X, Y, batch_size=1)
         S = np.zeros(self.n_components)
+        self.obj=[]
         for epoch in range(self.epochs):
             start_time = time.time()
             for _ in range(num_batches):
                 U, S, V = update(*next(batches), U, S, V, self.n_components)
+                self.obj.append(TV(X_val, Y_val, U[:, :self.n_components], V[:, :self.n_components]))
             epoch_time = time.time() - start_time
             if self.verbose:
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f'epoch {epoch}: {TV(X, Y, U, V)}')
+                print(f'epoch {epoch}: {self.obj[-1]}')
         return U, V
 
 

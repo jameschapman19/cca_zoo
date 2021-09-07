@@ -3,17 +3,22 @@ from jax import grad
 from jax import jit, vmap
 from functools import partial
 
-@partial(jit, static_argnums=(0), static_argnames=('in_axes', 'iterations', 'lr', 'mu', 'eps'))
-def agd_solve(fn, X,y, x=None, in_axes=None, iterations=1000, lr=1e-1, mu=0.0):
+
+@partial(jit, static_argnums=(0), static_argnames=('lr', 'mu'))
+def update(sample_grad, x, X, y, theta_, lr, mu):
+    mu_grad = jnp.mean(sample_grad(x, X, y), axis=0)
+    theta = x - lr * mu_grad
+    x = theta + mu * (theta - theta_)
+    return x, theta
+
+
+def agd_solve(fn, X, y, x=None, in_axes=None, iterations=10000, lr=1e-1, mu=0.0):
     if in_axes is None:
         in_axes = tuple([None] + [0] * 2)
     sample_grad = jit(vmap(grad(fn, argnums=0), in_axes=in_axes))
     theta_ = jnp.zeros_like(x)
     for t in range(iterations):
-        mu_grad = jnp.mean(sample_grad(x, X,y), axis=0)
-        theta = x - lr * mu_grad
-        x = theta + mu * (theta - theta_)
-        theta_ = theta
+        x, theta_ = update(sample_grad, x, X, y, theta_, lr, mu)
     return x
 
 
@@ -32,8 +37,9 @@ def main():
     y = y / jnp.linalg.norm(y, axis=0)
     w = jnp.array(np.random.rand(p, 1))
 
-    w_ = agd_solve(ls, X, y, x=w, mu=0.9)
-    w_ = agd_solve(ls, X, y, x=w, mu=0.9, in_axes=(None, 0, 0))
+    w_a = agd_solve(ls, X, y, x=w, mu=0.9)
+    w_b = agd_solve(ls, X, y, x=w, mu=0.9, in_axes=(None, 0, 0))
+    w_c = np.linalg.pinv(X)@y
     print()
 
 

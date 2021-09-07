@@ -2,7 +2,7 @@ import jax.numpy as jnp
 from jax import grad, vmap, jit
 from functools import partial
 
-@partial(jit, static_argnums=(0), static_argnames=('in_axes', 'iterations', 'lr'))
+#@partial(jit, static_argnums=(0), static_argnames=('in_axes', 'iterations', 'lr'))
 def gd_solve(fn, X,y, x=None, in_axes=None, iterations=1000, lr=1e-1):
     if in_axes is None:
         in_axes = tuple([None] + [0] * 2)
@@ -21,7 +21,7 @@ def main():
         return jnp.linalg.norm(jnp.dot(X, w) - y)
 
     n = 100
-    p = 99
+    p = 10
     X = jnp.array(np.random.rand(n, p))
     X = X / jnp.linalg.norm(X, axis=0)
     y = jnp.array(np.random.rand(n, 1))

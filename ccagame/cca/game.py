@@ -17,13 +17,19 @@ def model(u, v, X, Y, V, k):
     Returns the utilities for the kth players
 
     Parameters
-    ----------
-    u
-    v
-    X
-    Y
-    V
-    k
+        ----------
+        u :
+            current estimate for this level's left eigenvector
+        v :
+            current estimate for this level's right eigenvector
+        X :
+            batch of data for view X
+        Y :
+            batch of data for view Y
+        V :
+            all eigenvector estimates for each level
+        k :
+            level
 
     Returns
     -------

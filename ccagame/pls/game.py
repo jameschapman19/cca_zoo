@@ -3,6 +3,7 @@ import time
 from functools import partial
 
 import jax.numpy as jnp
+from sklearn.model_selection import train_test_split
 from jax import grad, jit
 
 from ccagame.utils import data_stream, get_num_batches
@@ -17,12 +18,20 @@ def alpha_model(u, v, X, Y, U, V, k: int):
 
     Parameters
     ----------
-    u
-    v
-    X
-    Y
-    V
-    k
+    u :
+        current estimate for this level's left eigenvector
+    v :
+        current estimate for this level's right eigenvector
+    X :
+        batch of data for view X
+    Y :
+        batch of data for view Y
+    U :
+        all eigenvector estimates for each level
+    V :
+        all eigenvector estimates for each level
+    k :
+        level
 
     Returns
     -------
@@ -41,12 +50,20 @@ def mu_model(u, v, X, Y, U, V, k: int):
 
     Parameters
     ----------
-    u
-    v
-    X
-    Y
-    V
-    k
+    u :
+        current estimate for this level's left eigenvector
+    v :
+        current estimate for this level's right eigenvector
+    X :
+        batch of data for view X
+    Y :
+        batch of data for view Y
+    U :
+        all eigenvector estimates for each level
+    V :
+        all eigenvector estimates for each level
+    k :
+        level
 
     Returns
     -------
@@ -132,6 +149,8 @@ class Game(_PLS):
         -------
 
         """
+        X, X_val, Y, Y_val = train_test_split(X, Y, random_state=self.random_state,
+                                              train_size=0.9)
         U, V = initialize(X, Y, self.n_components, 'random', self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
@@ -147,11 +166,11 @@ class Game(_PLS):
                                       riemannian_projection=self.riemannian_projection, mu=self.mu)
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
-                    self.obj.append(TV(X, Y, U, V))
+                    self.obj.append(TV(X_val, Y_val, U, V))
                 epoch_time = time.time() - start_time
                 if self.verbose:
                     print(f"Epoch {epoch} in {epoch_time} sec")
-                    print(f'epoch {epoch}: {TV(X, Y, U, V)}')
+                    print(f'epoch {epoch}: {self.obj[-1]}')
         else:
             for k_ in range(self.n_components):
                 for epoch in range(self.epochs):
@@ -162,11 +181,11 @@ class Game(_PLS):
                                       riemannian_projection=self.riemannian_projection, mu=self.mu)
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
-                        self.obj.append(TV(X, Y, U, V))
+                        self.obj.append(TV(X_val, Y_val, U, V))
                     epoch_time = time.time() - start_time
                     if self.verbose:
                         print(f"Epoch {epoch} in {epoch_time} sec")
-                        print(f'epoch {epoch}: {TV(X, Y, U, V)}')
+                        print(f'epoch {epoch}: {self.obj[-1]}')
         return U, V
 
 
