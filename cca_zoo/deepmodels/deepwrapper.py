@@ -233,18 +233,15 @@ class DeepWrapper(_CCA_Base):
             val_dataset = cca_zoo.data.CCA_Dataset(*val_dataset, labels=val_labels)
         return dataset, val_dataset
 
-    def _get_dataloaders(self, dataset, batch_size, val_dataset=None, val_batch_size=None, num_workers=1,
-                         pin_memory=True):
+    def _get_dataloaders(self, dataset, batch_size, val_dataset=None, val_batch_size=None):
         if batch_size == 0:
             batch_size = len(dataset)
-        train_dataloader = DataLoader(dataset, batch_size=batch_size, drop_last=True, num_workers=num_workers,
-                                      pin_memory=pin_memory)
+        train_dataloader = DataLoader(dataset, batch_size=batch_size, drop_last=True)
         _check_batch_size(batch_size, self.latent_dims)
         if val_dataset:
             if val_batch_size == 0:
                 val_batch_size = len(val_dataset)
-            val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, drop_last=True, num_workers=num_workers,
-                                        pin_memory=pin_memory)
+            val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, drop_last=True)
             _check_batch_size(batch_size, self.latent_dims)
             return train_dataloader, val_dataloader
         return train_dataloader, None
