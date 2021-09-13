@@ -461,6 +461,7 @@ class SWCCAInnerLoop(PLSInnerLoop):
         self.sample_weights = np.ones(self.views[0].shape[0])
         self.sample_weights /= np.linalg.norm(self.sample_weights)
         self.positive = _process_parameter('positive', self.positive, False, len(self.views))
+        self.c = _process_parameter('c', self.c, 1, len(self.views))
 
     def initialize(self):
         # Initialize weights

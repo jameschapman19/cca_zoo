@@ -39,8 +39,8 @@ class Split_MNIST_Dataset(Dataset):
 
     def __getitem__(self, idx):
         x = self.data[idx].flatten()
-        x_a = x[:392]
-        x_b = x[392:]
+        x_a = x[:392] / 255
+        x_b = x[392:] / 255
         label = self.targets[idx]
         return (x_a, x_b), label
 
@@ -101,7 +101,7 @@ class Noisy_MNIST_Dataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        x_a = self.a_transform(self.data[idx].numpy())
+        x_a = self.a_transform(self.data[idx].numpy() / 255)
         rot_a = torch.rand(1) * 90 - 45
         x_a = transforms.functional.rotate(x_a, rot_a.item(), interpolation=InterpolationMode.BILINEAR)
         x_a = self.base_transform(x_a)  # convert from PIL back to pytorch tensor
@@ -109,7 +109,7 @@ class Noisy_MNIST_Dataset(Dataset):
         label = self.targets[idx]
         # get random index of image with same class
         random_index = np.random.randint(self.filtered_nums[label])
-        x_b = Image.fromarray(self.filtered_classes[label][random_index, :, :].numpy(), mode='L')
+        x_b = Image.fromarray(self.filtered_classes[label][random_index, :, :].numpy() / 255, mode='L')
         x_b = self.b_transform(x_b)
 
         if self.flatten:
@@ -178,10 +178,10 @@ class Tangled_MNIST_Dataset(Dataset):
     def __getitem__(self, idx):
         # get first image from idx and second of same class
         label = self.targets[idx]
-        x_a = Image.fromarray(self.data[idx].numpy(), mode='L')
+        x_a = Image.fromarray(self.data[idx].numpy() / 255, mode='L')
         # get random index of image with same class
         random_index = np.random.randint(self.filtered_nums[label])
-        x_b = Image.fromarray(self.filtered_classes[label][random_index, :, :].numpy(), mode='L')
+        x_b = Image.fromarray(self.filtered_classes[label][random_index, :, :].numpy() / 255, mode='L')
         # get random angles of rotation
         rot_a, rot_b = torch.rand(2) * 90 - 45
         x_a_rotate = transforms.functional.rotate(x_a, rot_a.item(), interpolation=InterpolationMode.BILINEAR)

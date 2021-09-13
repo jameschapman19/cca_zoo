@@ -69,7 +69,7 @@ class DeepWrapper(_CCA_Base):
         num_params = sum(p.numel() for p in self.model.parameters())
         print('total parameters: ', num_params)
         best_model = copy.deepcopy(self.model.state_dict())
-        self.model.double().to(self.device)
+        self.model.to(self.device)
         min_val_loss = torch.tensor(np.inf)
         epochs_no_improve = 0
         early_stop = False
@@ -117,7 +117,7 @@ class DeepWrapper(_CCA_Base):
         self.model.train()
         train_loss = 0
         for batch_idx, (data, label) in enumerate(train_dataloader):
-            data = [d.double().to(self.device) for d in list(data)]
+            data = [d.to(self.device) for d in list(data)]
             loss = self._update_weights(*data)
             train_loss += loss.item()
         return train_loss / len(train_dataloader)
@@ -163,7 +163,7 @@ class DeepWrapper(_CCA_Base):
             param.grad = None
         total_val_loss = 0
         for batch_idx, (data, label) in enumerate(val_dataloader):
-            data = [d.double().to(self.device) for d in list(data)]
+            data = [d.to(self.device) for d in list(data)]
             loss = self.model.loss(*data)
             total_val_loss += loss.item()
         return total_val_loss / len(val_dataloader)
@@ -196,7 +196,7 @@ class DeepWrapper(_CCA_Base):
             test_dataloader = DataLoader(dataset, batch_size=len(dataset))
         with torch.no_grad():
             for batch_idx, (data, label) in enumerate(test_dataloader):
-                data = [d.double().to(self.device) for d in list(data)]
+                data = [d.to(self.device) for d in list(data)]
                 z = self.model(*data)
                 if batch_idx == 0:
                     z_list = [z_i.detach().cpu().numpy() for i, z_i in enumerate(z)]

@@ -119,8 +119,10 @@ tutorial notebooks which serve as both guides to the package as well as educatio
 
 # Conclusion
 
-We hope that `cca-zoo` will help researchers to apply and develop Canonical Correlation Analysis and Partial Least
-Squares models and continue to welcome contributions from the community.
+`cca-zoo` fills many of the gaps in the multiview learning ecosystem in Python, including a flexible API for
+deep-learning based models, regularised models for high dimensional data (and in particular those that induce sparsity),
+and generative models.`cca-zoo` will therefore help researchers to apply and develop Canonical Correlation Analysis and
+Partial Least Squares models and we continue to welcome contributions from the community.
 
 # Acknowledgements
 
