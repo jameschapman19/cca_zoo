@@ -27,7 +27,7 @@ def test_input_types():
     # DCCA
     dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                       objective=objectives.CCA)
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dcca_model = DeepWrapper(dcca_model, device=device)
     dcca_model.fit(train_dataset, epochs=3)
     dcca_model.fit(train_dataset, val_dataset=train_dataset, epochs=3)
@@ -127,13 +127,13 @@ def test_DTCCA_methods_cpu():
     encoder_3 = architectures.Encoder(latent_dims=10, feature_size=10)
     # DTCCA
     dtcca_model = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dtcca_model = DeepWrapper(dtcca_model, device=device)
     dtcca_model.fit((X, Y), epochs=20)
     # DCCA
     dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                       objective=objectives.GCCA)
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dcca_model = DeepWrapper(dcca_model, device=device)
     dcca_model.fit((X, Y), epochs=20)
 
@@ -148,7 +148,7 @@ def test_scheduler():
                       objective=objectives.CCA)
     optimizer = optim.Adam(dcca_model.parameters(), lr=1e-4)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, 1)
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dcca_model = DeepWrapper(dcca_model, device=device, optimizer=optimizer, scheduler=scheduler)
     dcca_model.fit((X, Y), epochs=20)
 
@@ -161,19 +161,19 @@ def test_DGCCA_methods_cpu():
     encoder_3 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
     # DTCCA
     dtcca_model = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dtcca_model = DeepWrapper(dtcca_model, device=device)
     dtcca_model.fit((X, Y, Z))
     # DGCCA
     dgcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2, encoder_3],
                        objective=objectives.GCCA)
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dgcca_model = DeepWrapper(dgcca_model, device=device)
     dgcca_model.fit((X, Y, Z))
     # DMCCA
     dmcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2, encoder_3],
                        objective=objectives.MCCA)
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dmcca_model = DeepWrapper(dmcca_model, device=device)
     dmcca_model.fit((X, Y, Z))
 
@@ -188,13 +188,13 @@ def test_DCCAE_methods_cpu():
     # DCCAE
     dccae_model = DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                         decoders=[decoder_1, decoder_2])
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dccae_model = DeepWrapper(dccae_model, device=device)
     dccae_model.fit((X, Y), epochs=20)
     # SplitAE
     splitae_model = SplitAE(latent_dims=latent_dims, encoder=encoder_1,
                             decoders=[decoder_1, decoder_2])
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     splitae_model = DeepWrapper(splitae_model, device=device)
     splitae_model.fit((X, Y), epochs=10)
 
@@ -209,7 +209,7 @@ def test_DCCAEconv_methods_cpu():
     # DCCAE
     dccae_model = DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                         decoders=[decoder_1, decoder_2])
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dccae_model = DeepWrapper(dccae_model, device=device)
     dccae_model.fit((X_conv, Y_conv))
 
@@ -224,7 +224,7 @@ def test_DVCCA_methods_cpu():
     # DVCCA
     dvcca_model = DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                         decoders=[decoder_1, decoder_2])
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dvcca_model = DeepWrapper(dvcca_model, device=device)
     dvcca_model.fit((X, Y))
 
@@ -242,7 +242,7 @@ def test_DVCCA_p_methods_cpu():
     dvcca_model = DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                         decoders=[decoder_1, decoder_2],
                         private_encoders=[private_encoder_1, private_encoder_2])
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dvcca_model = DeepWrapper(dvcca_model, device=device)
     dvcca_model.fit((X, Y))
 
@@ -255,24 +255,24 @@ def test_DCCA_methods_gpu():
     # DCCA
     dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                       objective=objectives.CCA)
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dcca_model = DeepWrapper(dcca_model, device=device)
     dcca_model.fit((X, Y))
     # DGCCA
     dgcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                        objective=objectives.GCCA)
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dgcca_model = DeepWrapper(dgcca_model, device=device)
     dgcca_model.fit((X, Y))
     # DMCCA
     dmcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                        objective=objectives.MCCA)
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dmcca_model = DeepWrapper(dmcca_model, device=device)
     dmcca_model.fit((X, Y))
     # DCCA_NOI
     dcca_noi_model = DCCA_NOI(latent_dims, X.shape[0], encoders=[encoder_1, encoder_2], rho=0)
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dcca_noi_model = DeepWrapper(dcca_noi_model, device=device)
     dcca_noi_model.fit((X, Y))
 
@@ -286,13 +286,13 @@ def test_DGCCA_methods_gpu():
     # DGCCA
     dgcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2, encoder_3],
                        objective=objectives.GCCA)
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dgcca_model = DeepWrapper(dgcca_model, device=device)
     dgcca_model.fit((X, Y, Z))
     # DMCCA
     dmcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2, encoder_3],
                        objective=objectives.MCCA)
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dmcca_model = DeepWrapper(dmcca_model, device=device)
     dmcca_model.fit((X, Y, Z))
 
@@ -307,7 +307,7 @@ def test_DCCAE_methods_gpu():
     # DCCAE
     dccae_model = DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                         decoders=[decoder_1, decoder_2])
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dccae_model = DeepWrapper(dccae_model, device=device)
     dccae_model.fit((X, Y))
 
@@ -322,6 +322,6 @@ def test_DVCCA_methods_gpu():
     # DVCCA
     dvcca_model = DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2],
                         decoders=[decoder_1, decoder_2])
-    # hidden_layer_sizes are shown explicitly but these are also the defaults
+
     dvcca_model = DeepWrapper(dvcca_model, device=device)
     dvcca_model.fit((X, Y))

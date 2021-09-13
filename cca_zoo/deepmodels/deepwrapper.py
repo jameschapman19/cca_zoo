@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-import cca_zoo.utils.plotting
+from cca_zoo.data import CCA_Dataset
 from cca_zoo.deepmodels import _DCCA_base, DCCA, DCCAE
 from cca_zoo.models import _CCA_Base
 from ..utils.check_values import _check_batch_size
@@ -168,9 +168,16 @@ class DeepWrapper(_CCA_Base):
             total_val_loss += loss.item()
         return total_val_loss / len(val_dataloader)
 
-    def correlations(self, dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], train: bool = False,
+    def correlations(self,
+                     test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray], torch.utils.data.DataLoader],
+                     train: bool = False,
                      batch_size: int = 0):
-        transformed_views = self.transform(dataset, train=train, batch_size=batch_size)
+        """
+
+
+        :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
+        """
+        transformed_views = self.transform(test_dataset, train=train, batch_size=batch_size)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:x.shape[1], y.shape[1]:]))
@@ -178,22 +185,18 @@ class DeepWrapper(_CCA_Base):
             (len(transformed_views), len(transformed_views), -1))
         return all_corrs
 
-    def score(self, dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
-              batch_size: int = 0):
-        # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
-        pair_corrs = self.correlations(dataset, batch_size=batch_size)
-        # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
-        dim_corrs = (pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - pair_corrs.shape[0]) / (
-                pair_corrs.shape[0] ** 2 - pair_corrs.shape[0])
-        return dim_corrs
-
-    def transform(self, dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]], test_labels=None,
+    def transform(self,
+                  test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray], torch.utils.data.DataLoader],
+                  test_labels=None,
                   train: bool = False, batch_size: int = 0):
-        dataset = self._process_data(dataset, labels=test_labels)[0]
-        if batch_size > 0:
-            test_dataloader = DataLoader(dataset, batch_size=batch_size)
+        if isinstance(test_dataset, torch.utils.data.DataLoader):
+            test_dataloader = test_dataset
         else:
-            test_dataloader = DataLoader(dataset, batch_size=len(dataset))
+            test_dataset = self._process_data(test_dataset, labels=test_labels)[0]
+            if batch_size > 0:
+                test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
+            else:
+                test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
         with torch.no_grad():
             for batch_idx, (data, label) in enumerate(test_dataloader):
                 data = [d.to(self.device) for d in list(data)]
@@ -220,28 +223,42 @@ class DeepWrapper(_CCA_Base):
                               i, x_i in enumerate(x)]
         return x_list
 
+    def score(self, test_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray], torch.utils.data.DataLoader],
+              train: bool = False,
+              batch_size: int = 0):
+        # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
+        pair_corrs = self.correlations(test_dataset=test_dataset, train=train, batch_size=batch_size)
+        # n views
+        n_views = pair_corrs.shape[0]
+        # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
+        dim_corrs = (pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views) / (
+                n_views ** 2 - n_views)
+        return dim_corrs
+
     def _process_data(self, dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
                       val_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]] = None, labels=None,
                       val_labels=None, val_split: float = 0):
         # Ensure datasets are in the right form (e.g. if numpy arrays are passed turn them into
         if isinstance(dataset, tuple):
-            dataset = cca_zoo.data.CCA_Dataset(*dataset, labels=labels)
+            dataset = CCA_Dataset(*dataset, labels=labels)
         if val_dataset is None and val_split > 0:
             lengths = [len(dataset) - int(len(dataset) * val_split), int(len(dataset) * val_split)]
             dataset, val_dataset = torch.utils.data.random_split(dataset, lengths)
         elif isinstance(val_dataset, tuple):
-            val_dataset = cca_zoo.data.CCA_Dataset(*val_dataset, labels=val_labels)
+            val_dataset = CCA_Dataset(*val_dataset, labels=val_labels)
         return dataset, val_dataset
 
-    def _get_dataloaders(self, dataset, batch_size, val_dataset=None, val_batch_size=None):
+    def _get_dataloaders(self, dataset, batch_size, val_dataset=None, val_batch_size=None, num_workers=0):
         if batch_size == 0:
             batch_size = len(dataset)
-        train_dataloader = DataLoader(dataset, batch_size=batch_size, drop_last=True)
+        train_dataloader = DataLoader(dataset, batch_size=batch_size, drop_last=True, num_workers=num_workers,
+                                      pin_memory=True, shuffle=True)
         _check_batch_size(batch_size, self.latent_dims)
         if val_dataset:
             if val_batch_size == 0:
                 val_batch_size = len(val_dataset)
-            val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, drop_last=True)
+            val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, drop_last=True, num_workers=num_workers,
+                                        pin_memory=True)
             _check_batch_size(batch_size, self.latent_dims)
             return train_dataloader, val_dataloader
         return train_dataloader, None
