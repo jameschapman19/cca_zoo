@@ -1,3 +1,2 @@
-jax
 numpyro
 arviz
