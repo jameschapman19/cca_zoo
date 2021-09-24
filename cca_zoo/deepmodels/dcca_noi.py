@@ -49,7 +49,7 @@ class DCCA_NOI(DCCA):
 
     def encode(self, *args):
         z = []
-        #Users architecture + final linear layer
+        # Users architecture + final linear layer
         for i, (encoder, linear_layer) in enumerate(zip(self.encoders, self.linear_layers)):
             z.append(linear_layer(encoder(args[i])))
         return tuple(z)

@@ -37,10 +37,12 @@ class MatrixSquareRoot(Function):
             grad_input = torch.from_numpy(grad_sqrtm).to(grad_output)
         return grad_input
 
+
 def _minimal_regularisation(M, eps):
     M_smallest_eig = torch.relu(-torch.min(torch.linalg.eigvalsh(M))) + eps
     M = M + M_smallest_eig * torch.eye(M.shape[0], device=M.device)
     return M
+
 
 def _demean(*views):
     return tuple([view - view.mean(dim=0) for view in views])
