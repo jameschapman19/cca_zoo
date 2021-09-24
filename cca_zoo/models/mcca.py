@@ -52,7 +52,7 @@ class MCCA(_CCA_Base):
         """
         Fits an MCCA model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         views = self._centre_scale(views)
@@ -150,7 +150,7 @@ class KCCA(MCCA):
         """
         Generates the left and right hand sides of the generalized eigenvalue problem
 
-        :param views:
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
         self.train_views = views
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
@@ -168,7 +168,7 @@ class KCCA(MCCA):
         """
         Transforms data given a fit KCCA model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param kwargs: any additional keyword arguments required by the given model
         """
         check_is_fitted(self, attributes=['weights'])

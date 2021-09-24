@@ -54,7 +54,7 @@ class rCCA(_CCA_Base):
         """
         Fits a regularised CCA (canonical ridge) model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         views = self._centre_scale(views)

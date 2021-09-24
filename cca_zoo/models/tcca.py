@@ -51,6 +51,10 @@ class TCCA(_CCA_Base):
         self.c = _process_parameter('c', self.c, 0, self.n_views)
 
     def fit(self, views: Iterable[np.ndarray], **kwargs):
+        """
+
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        """
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         views = self._centre_scale(views)
         self.n_views = len(views)
@@ -163,7 +167,7 @@ class KTCCA(TCCA):
         """
         Transforms data given a fit k=KCCA model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param kwargs: any additional keyword arguments required by the given model
         """
         check_is_fitted(self, attributes=['weights'])

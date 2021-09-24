@@ -15,9 +15,6 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
     """
     A class used as the base for methods in the package. Allows methods to inherit fit_transform, predict_corr,
     and gridsearch_fit when only fit (and transform where it is different to the default) is provided.
-
-    :param latent_dims: number of latent dimensions to fit
-    :param scale: normalize variance in each column before fitting
     """
 
     def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, accept_sparse=False,
@@ -45,7 +42,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         Fits a given model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
         raise NotImplementedError
 
@@ -69,9 +66,8 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         Fits and then transforms the training data
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param kwargs: any additional keyword arguments required by the given model
-        :rtype: np.ndarray
         """
         return self.fit(views, **kwargs).transform(views)
 
@@ -79,7 +75,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         Returns the model loadings for each view for the given data
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param kwargs: any additional keyword arguments required by the given model
         """
         transformed_views = self.transform(views, **kwargs)
@@ -91,7 +87,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         Predicts the correlation for the given data using the fit model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param kwargs: any additional keyword arguments required by the given model
         :return: all_corrs: an array of the pairwise correlations (k,k,self.latent_dims) where k is the number of views
         :rtype: np.ndarray
@@ -125,7 +121,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         Removes the mean of the training data and standardizes for each view and stores mean and standard deviation during training
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :return: train_views: the demeaned numpy arrays to be used to fit the model
         """
 
@@ -156,7 +152,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         Removes the mean and standardizes each view based on the mean and standard deviation of the training data
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
         if self.centre:
             views = [view - mean for view, mean in zip(views, self.view_means)]

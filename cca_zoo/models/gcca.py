@@ -55,7 +55,7 @@ class GCCA(_CCA_Base):
         """
         Fits a GCCA model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param K: observation matrix. Binary array with (k,n) dimensions where k is the number of views and n is the number of samples 1 means the data is observed in the corresponding view and 0 means the data is unobserved in that view.
         """
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
@@ -184,7 +184,7 @@ class KGCCA(GCCA):
         """
         Transforms data given a fit KGCCA model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param kwargs: any additional keyword arguments required by the given model
         """
         check_is_fitted(self, attributes=['weights'])

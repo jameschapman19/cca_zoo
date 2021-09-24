@@ -53,9 +53,6 @@ class _MVBaseKFold(_BaseKFold):
         for train, test in super().split(Xs[0], y, groups):
             yield train, test
 
-    def _iter_test_indices(self, X=None, y=None, groups=None):
-        raise NotImplementedError
-
 
 class MVKFold(_MVBaseKFold):
     """K-Folds cross-validator
@@ -92,8 +89,8 @@ class MVKFold(_MVBaseKFold):
         super().__init__(n_splits=n_splits, shuffle=shuffle,
                          random_state=random_state)
 
-    def _iter_test_indices(self, Xs=None, y=None, groups=None):
-        n_samples = _num_samples(Xs[0])
+    def _iter_test_indices(self, X=None, y=None, groups=None):
+        n_samples = _num_samples(X)
         indices = np.arange(n_samples)
         if self.shuffle:
             check_random_state(self.random_state).shuffle(indices)

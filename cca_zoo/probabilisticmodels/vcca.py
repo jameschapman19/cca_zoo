@@ -36,7 +36,7 @@ class VariationalCCA(_CCA_Base):
         """
         Infer the parameters (mu: mean, psi: within view variance) and latent variables (z) of the generative CCA model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
         nuts_kernel = NUTS(self.model)
         self.mcmc = MCMC(nuts_kernel, num_samples=self.num_samples, num_warmup=self.num_warmup)
@@ -48,7 +48,7 @@ class VariationalCCA(_CCA_Base):
         """
         Predict the latent variables that generate the data in views using the sampled model parameters
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
         check_is_fitted(self, attributes=['posterior_samples'])
         return Predictive(self.model, self.posterior_samples, return_sites=['z'])(
