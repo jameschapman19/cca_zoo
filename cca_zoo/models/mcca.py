@@ -48,20 +48,19 @@ class MCCA(_CCA_Base):
     def _check_params(self):
         self.c = _process_parameter('c', self.c, 0, self.n_views)
 
-    def fit(self, *views: np.ndarray):
+    def fit(self, views: Iterable[np.ndarray], **kwargs):
         """
         Fits an MCCA model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
-        views = self._centre_scale(*views)
+        views = self._centre_scale(views)
         self.n_views = len(views)
         self.n = views[0].shape[0]
         self._check_params()
         views, C, D = self._setup_gevp(*views)
-        self.alphas = self._solve_gevp(C, D)
-        self.weights = self.alphas
+        self._solve_gevp(C, D)
         return self
 
     def _setup_gevp(self, *views: np.ndarray):
@@ -83,8 +82,7 @@ class MCCA(_CCA_Base):
         idx = np.argsort(eigvals, axis=0)[::-1][:self.latent_dims]
         eigvecs = eigvecs * eigvals
         eigvecs = eigvecs[:, idx].real
-        eigvecs = [eigvecs[split:self.splits[i + 1]] for i, split in enumerate(self.splits[:-1])]
-        return eigvecs
+        self.weights = [eigvecs[split:self.splits[i + 1]] for i, split in enumerate(self.splits[:-1])]
 
 
 class KCCA(MCCA):
@@ -152,7 +150,7 @@ class KCCA(MCCA):
         """
         Generates the left and right hand sides of the generalized eigenvalue problem
 
-        :param views:
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
         self.train_views = views
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
@@ -166,26 +164,18 @@ class KCCA(MCCA):
         self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
         return kernels, C, D
 
-    def transform(self, *views: np.ndarray, view_indices: Iterable[int] = None, **kwargs):
+    def transform(self, views: np.ndarray, **kwargs):
         """
         Transforms data given a fit KCCA model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param kwargs: any additional keyword arguments required by the given model
         """
-        check_is_fitted(self, attributes=['alphas'])
+        check_is_fitted(self, attributes=['weights'])
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
-        if view_indices is None:
-            view_indices = np.arange(len(views))
-        transformed_views = []
-        for i, (view, view_index) in enumerate(zip(views, view_indices)):
-            if self.centre:
-                view = view - self.view_means[view_index]
-            if self.scale:
-                view = view / self.view_stds[view_index]
-            transformed_views.append(view)
-        Ktest = [self._get_kernel(view_index, self.train_views[view_index], Y=test_view)
-                 for test_view, view_index in zip(transformed_views, view_indices)]
-        transformed_views = [test_kernel.T @ self.alphas[view_index] for test_kernel, view_index in
-                             zip(Ktest, view_indices)]
+        views = self._centre_scale_transform(views)
+        Ktest = [self._get_kernel(i, self.train_views[i], Y=view)
+                 for i, view in enumerate(views)]
+        transformed_views = [kernel.T @ self.weights[i] for i, kernel in
+                             enumerate(Ktest)]
         return transformed_views

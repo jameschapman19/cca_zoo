@@ -45,14 +45,14 @@ class _Iterative(_CCA_Base):
         self.deflation = deflation
         self.random_state = random_state
 
-    def fit(self, *views: np.ndarray, ):
+    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Fits the model by running an inner loop to convergence and then using deflation (currently only supports CCA deflation)
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
-        views = self._centre_scale(*views)
+        views = self._centre_scale(views)
         self.n_views = len(views)
         self.n = views[0].shape[0]
         self._set_loop_params()
