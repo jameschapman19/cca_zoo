@@ -45,7 +45,7 @@ class _Iterative(_CCA_Base):
         self.deflation = deflation
         self.random_state = random_state
 
-    def fit(self, *views: np.ndarray, ):
+    def fit(self, views: Iterable[np.ndarray], **kwargs):
         """
         Fits the model by running an inner loop to convergence and then using deflation (currently only supports CCA deflation)
 

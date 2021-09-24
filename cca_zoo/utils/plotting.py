@@ -8,7 +8,7 @@ import seaborn as sns
 from matplotlib import cm
 
 
-def cv_plot(scores, param_dict, model_name):
+def cv_plot(scores):
     """
     Plot a hyperparameter surface plot (or multiple surface plots if more than 2 hyperparameters
 
@@ -63,7 +63,6 @@ def cv_plot(scores, param_dict, model_name):
     fig.suptitle('Hyperparameter plot ' + model_name)
     return fig
 
-
 def split_columns(df):
     cols = []
     # check first row to see if each column contains a list or tuple
@@ -76,7 +75,7 @@ def split_columns(df):
 
 
 def plot_latent_train_test(train_scores: Union[Tuple[np.ndarray], List[np.ndarray]],
-                           test_scores: Union[Tuple[np.ndarray], List[np.ndarray]], title=''):
+                           test_scores: Union[Tuple[np.ndarray], List[np.ndarray]] = None, title=''):
     """
     Makes a pair plot showing the projections of each view against each other for each dimensions. Coloured by train and test
 
@@ -84,17 +83,18 @@ def plot_latent_train_test(train_scores: Union[Tuple[np.ndarray], List[np.ndarra
     :param test_scores: projections of test data obtained by model.transform(*test_data)
     :param title: Figure title
     """
-    train_data = pd.DataFrame(
+    data = pd.DataFrame(
         {'phase': np.asarray(['train'] * train_scores[0].shape[0]).astype(str)})
     x_vars = [f'view 1 projection {f}' for f in range(train_scores[0].shape[1])]
     y_vars = [f'view 2 projection {f}' for f in range(train_scores[1].shape[1])]
-    train_data[x_vars] = train_scores[0]
-    train_data[y_vars] = train_scores[1]
-    test_data = pd.DataFrame(
-        {'phase': np.asarray(['test'] * test_scores[0].shape[0]).astype(str)})
-    test_data[x_vars] = test_scores[0]
-    test_data[y_vars] = test_scores[1]
-    data = pd.concat([train_data, test_data], axis=0)
+    data[x_vars] = train_scores[0]
+    data[y_vars] = train_scores[1]
+    if test_scores is not None:
+        test_data = pd.DataFrame(
+            {'phase': np.asarray(['test'] * test_scores[0].shape[0]).astype(str)})
+        test_data[x_vars] = test_scores[0]
+        test_data[y_vars] = test_scores[1]
+        data = pd.concat([data, test_data], axis=0)
     cca_pp = sns.pairplot(data, hue='phase', x_vars=x_vars, y_vars=y_vars, corner=True)
     cca_pp.fig.suptitle(title)
     return cca_pp

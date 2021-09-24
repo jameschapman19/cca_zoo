@@ -1,3 +1,5 @@
+from typing import Iterable
+
 import jax.numpy as jnp
 import numpy as np
 import numpyro
@@ -30,7 +32,7 @@ class VariationalCCA(_CCA_Base):
         self.num_warmup = num_warmup
         self.rng_key = PRNGKey(random_state)
 
-    def fit(self, *views: np.ndarray):
+    def fit(self, views: Iterable[np.ndarray], **kwargs):
         """
         Infer the parameters (mu: mean, psi: within view variance) and latent variables (z) of the generative CCA model
 
@@ -42,7 +44,7 @@ class VariationalCCA(_CCA_Base):
         self.posterior_samples = self.mcmc.get_samples()
         return self
 
-    def transform(self, *views):
+    def transform(self, views: Iterable[np.ndarray], **kwargs):
         """
         Predict the latent variables that generate the data in views using the sampled model parameters
 
@@ -52,7 +54,7 @@ class VariationalCCA(_CCA_Base):
         return Predictive(self.model, self.posterior_samples, return_sites=['z'])(
             PRNGKey(1), *views)['z']
 
-    def model(self, *views: np.ndarray):
+    def model(self, views: Iterable[np.ndarray]):
         n = views[0].shape[0]
         p = [view.shape[1] for view in views]
         # parameter representing the mean of column in each view of data

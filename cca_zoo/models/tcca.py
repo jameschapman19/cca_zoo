@@ -50,7 +50,7 @@ class TCCA(_CCA_Base):
     def _check_params(self):
         self.c = _process_parameter('c', self.c, 0, self.n_views)
 
-    def fit(self, *views: np.ndarray, ):
+    def fit(self, views: Iterable[np.ndarray], **kwargs):
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         views = self._centre_scale(*views)
         self.n_views = len(views)

@@ -131,18 +131,20 @@ def test_sparse_methods():
     c1 = [1, 3]
     c2 = [1, 3]
 
-    param_candidates = {'c': list(itertools.product(c1, c2))}
+    param_grid = {'c': list(itertools.product(c1, c2))}
     pmd = PMD(latent_dims=latent_dims, random_state=rng).gridsearch_fit(X, Y,
-                                                                        param_candidates=param_candidates,
-                                                                        verbose=True, plot=True)
+                                                                        param_grid=param_grid,
+                                                                        verbose=True)
+    pmd.hyperparameter_plot()
+    pmd.plot_latent((X, Y), (X, Y))
     c1 = [1e-4, 1e-5]
     c2 = [1e-4, 1e-5]
-    param_candidates = {'c': list(itertools.product(c1, c2))}
+    param_grid = {'c': list(itertools.product(c1, c2))}
     scca = SCCA(latent_dims=latent_dims, random_state=rng).gridsearch_fit(X, Y,
-                                                                          param_candidates=param_candidates,
+                                                                          param_grid=param_grid,
                                                                           verbose=True)
     elastic = ElasticCCA(latent_dims=latent_dims, random_state=rng).gridsearch_fit(X, Y,
-                                                                                   param_candidates=param_candidates,
+                                                                                   param_grid=param_grid,
                                                                                    verbose=True)
     corr_pmd = pmd.score(X, Y)
     corr_scca = scca.score(X, Y)
@@ -182,14 +184,14 @@ def test_cv_fit():
     latent_dims = 2
     c1 = [0.1, 0.2]
     c2 = [0.1, 0.2]
-    param_candidates = {'c': list(itertools.product(c1, c2))}
+    param_grid = {'c': list(itertools.product(c1, c2))}
     unweighted_gcca = GCCA(latent_dims=latent_dims).gridsearch_fit(X, Y, folds=5,
-                                                                   param_candidates=param_candidates,
+                                                                   param_grid=param_grid,
                                                                    plot=True, jobs=3)
     deweighted_gcca = GCCA(latent_dims=latent_dims, view_weights=[0.5, 0.5]).gridsearch_fit(
-        X, Y, folds=2, param_candidates=param_candidates)
+        X, Y, folds=2, param_grid=param_grid)
     mcca = MCCA(latent_dims=latent_dims).gridsearch_fit(
-        X, Y, folds=2, param_candidates=param_candidates)
+        X, Y, folds=2, param_grid=param_grid)
 
 
 def test_l0():
