@@ -32,7 +32,7 @@ def _safe_split(estimator, Xs, y, indices):
     estimator : object
         Estimator to determine whether we should slice only rows or rows and
         columns.
-    X : array-like, sparse matrix or iterable
+    Xs : array-like, sparse matrix or iterable
         Data to be indexed. If ``estimator._pairwise is True``,
         this needs to be a square array-like or sparse matrix.
     y : array-like, sparse matrix or iterable

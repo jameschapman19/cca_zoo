@@ -1,20 +1,37 @@
+# Original code by:
+#         Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#         Gael Varoquaux <gael.varoquaux@normalesup.org>
+#         Olivier Grisel <olivier.grisel@ensta.org>
+#         Raghav RV <rvraghav93@gmail.com>
+#         Leandro Hermida <hermidal@cs.umd.edu>
+#         Rodion Martynov <marrodion@gmail.com>
+# License: BSD 3 clause
+
 import numbers
 import time
 from collections import defaultdict
 from itertools import product
 
 import numpy as np
+import pandas as pd
 from joblib import Parallel
 from sklearn import clone
 from sklearn.metrics import check_scoring
 from sklearn.metrics._scorer import _check_multimetric_scoring
 from sklearn.model_selection._search import BaseSearchCV, ParameterGrid
-from sklearn.model_selection._split import _BaseKFold
+from sklearn.model_selection._split import _BaseKFold, check_cv
 from sklearn.model_selection._validation import _insert_error_scores
 from sklearn.utils.fixes import delayed
 from sklearn.utils.validation import check_random_state, _check_fit_params, _num_samples, indexable
 
 from cca_zoo.model_selection._validation import _fit_and_score
+
+
+def post_process_cv_results(df):
+    cols = [col for col in df.columns if 'param_' in col]
+    for col in cols:
+        df = df.join(pd.DataFrame(df[col].tolist()).rename(columns=lambda x: col + '_' + str(x + 1))).drop(col, axis=1)
+    return df
 
 
 class _MVBaseKFold(_BaseKFold):
@@ -27,9 +44,10 @@ class _MVBaseKFold(_BaseKFold):
         """Generate indices to split data into training and test set.
         Parameters
         ----------
-        Xs : array-like of shape (n_samples, n_features)
-            Training data, where n_samples is the number of samples
-            and n_features is the number of features.
+        Xs : list of array-likes or numpy.ndarray
+            - Xs length: n_views
+            - Xs[i] shape: (n_samples, n_features_i)
+            The data to fit to.
         y : array-like of shape (n_samples,), default=None
             The target variable for supervised learning problems.
         groups : array-like of shape (n_samples,), default=None
@@ -105,41 +123,6 @@ class MVKFold(_MVBaseKFold):
             current = stop
 
 
-def check_cv(cv=5, y=None):
-    """Input checker utility for building a cross-validator
-    Parameters
-    ----------
-    cv : int, cross-validation generator or an iterable, default=None
-        Determines the cross-validation splitting strategy.
-        Possible inputs for cv are:
-        - None, to use the default 5-fold cross validation,
-        - integer, to specify the number of folds.
-        - :term:`CV splitter`,
-        - An iterable yielding (train, test) splits as arrays of indices.
-        For integer/None inputs, if classifier is True and ``y`` is either
-        binary or multiclass, :class:`StratifiedKFold` is used. In all other
-        cases, :class:`KFold` is used.
-        Refer :ref:`User Guide <cross_validation>` for the various
-        cross-validation strategies that can be used here.
-    y : array-like, default=None
-        The target variable for supervised learning problems.
-    Returns
-    -------
-    checked_cv : a cross-validator instance.
-        The return value is a cross-validator which generates the train/test
-        splits via the ``split`` method.
-    """
-    cv = 5 if cv is None else cv
-    if isinstance(cv, numbers.Integral):
-        return MVKFold(cv)
-
-    if not hasattr(cv, 'split') or isinstance(cv, str):
-        raise ValueError("Expected cv as an integer, cross-validation "
-                         "object (from sklearn.model_selection) "
-                         "or an iterable. Got %s." % cv)
-    return cv
-
-
 class MVBaseSearchCV(BaseSearchCV):
     def __init__(self, estimator, *, scoring=None, n_jobs=None,
                  refit=True, cv=None, verbose=0,
@@ -150,13 +133,13 @@ class MVBaseSearchCV(BaseSearchCV):
                          pre_dispatch=pre_dispatch, error_score=error_score,
                          return_train_score=return_train_score)
 
-    def fit(self, X, y=None, *, groups=None, **fit_params):
+    def fit(self, Xs, y=None, *, groups=None, **fit_params):
         """Run fit with all sets of parameters.
 
         Parameters
         ----------
 
-        X : list of array-likes or numpy.ndarray
+        Xs : list of array-likes or numpy.ndarray
             - X length: n_views
             - X[i] shape: (n_samples, n_features_i)
             The data to fit to.
@@ -182,13 +165,12 @@ class MVBaseSearchCV(BaseSearchCV):
             scorers = _check_multimetric_scoring(self.estimator, self.scoring)
             self._check_refit_for_multimetric(scorers)
             refit_metric = self.refit
-        # TODO
-        # X, y, groups = indexable(X, y, groups)
-        fit_params = _check_fit_params(X, fit_params)
 
-        # TODO
+        # X, y, groups = indexable(X, y, groups)
+        fit_params = _check_fit_params(Xs, fit_params)
+
         cv_orig = check_cv(self.cv, y)
-        n_splits = cv_orig.get_n_splits(X, y, groups)
+        n_splits = cv_orig.get_n_splits(Xs[0], y, groups)
 
         base_estimator = clone(self.estimator)
 
@@ -221,7 +203,7 @@ class MVBaseSearchCV(BaseSearchCV):
                         n_splits, n_candidates, n_candidates * n_splits))
 
                 out = parallel(delayed(_fit_and_score)(clone(base_estimator),
-                                                       X, y,
+                                                       Xs, y,
                                                        train=train, test=test,
                                                        parameters=parameters,
                                                        split_progress=(
@@ -234,7 +216,7 @@ class MVBaseSearchCV(BaseSearchCV):
                                for (cand_idx, parameters),
                                    (split_idx, (train, test)) in product(
                     enumerate(candidate_params),
-                    enumerate(cv.split(X, y, groups))))
+                    enumerate(cv.split(Xs[0], y, groups))))
 
                 if len(out) < 1:
                     raise ValueError('No fits were performed. '
@@ -305,16 +287,18 @@ class MVBaseSearchCV(BaseSearchCV):
                 **self.best_params_))
             refit_start_time = time.time()
             if y is not None:
-                self.best_estimator_.fit(X, y, **fit_params)
+                self.best_estimator_.fit(Xs, y, **fit_params)
             else:
-                self.best_estimator_.fit(X, **fit_params)
+                self.best_estimator_.fit(Xs, **fit_params)
             refit_end_time = time.time()
             self.refit_time_ = refit_end_time - refit_start_time
 
         # Store the only scorer not as a dict for single metric evaluation
         self.scorer_ = scorers
 
-        self.cv_results_ = results
+        # Process multiview parameters for neat output
+        self.cv_results_ = post_process_cv_results(pd.DataFrame(results))
+
         self.n_splits_ = n_splits
 
         return self
@@ -597,16 +581,31 @@ class MVGridSearchCV(MVBaseSearchCV):
 
 def main():
     import itertools
-    from cca_zoo.models import rCCA
-    x = np.random.rand(1000, 10)
-    y = np.random.rand(1000, 10)
-    c1 = [0, 0.9, 0.99, 0.999, 1]
-    c2 = [0, 0.9, 0.99, 0.999, 1]
+    from cca_zoo.models import KCCA
+    from cca_zoo.data import generate_covariance_data
+    from cca_zoo.utils.plotting import cv_plot
+    (x, y), (tx, ty) = generate_covariance_data(100, [10, 11], latent_dims=1, view_sparsity=[0.5, 0.5])
+
+    c1 = [0.9, 0.99]
+    c2 = [0.9, 0.99]
+    # kernel cca (poly)
+    degree1 = [2, 3]
+    degree2 = [2, 3]
+
+    param_grid = {'kernel': [['poly', 'poly']], 'degree': list(itertools.product(degree1, degree2)),
+                  'c': list(itertools.product(c1, c2))}
+
+    mod = KCCA()
+    mod = MVGridSearchCV(mod, param_grid=param_grid).fit((x, y))
+
+    """
+    c1 = [0.9, 0.99]
+    c2 = [0.9, 0.99]
     param_grid = {'c': list(itertools.product(c1, c2))}
     mod = rCCA()
     mod = MVGridSearchCV(mod, param_grid=param_grid).fit((x, y))
-    print()
-    print()
+    """
+    cv_plot(mod.cv_results_)
 
 
 if __name__ == '__main__':

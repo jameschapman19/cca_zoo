@@ -1,4 +1,5 @@
 import itertools
+import warnings
 from typing import Union, Tuple, List
 
 import matplotlib.pyplot as plt
@@ -8,71 +9,54 @@ import seaborn as sns
 from matplotlib import cm
 
 
-def cv_plot(scores):
+def cv_plot(cv_results_):
     """
     Plot a hyperparameter surface plot (or multiple surface plots if more than 2 hyperparameters
-
-    :param scores:
-    :param param_dict:
-    :param model_name:
     """
-    scores = pd.Series(scores)
-    hyper_df = pd.DataFrame(param_dict)
-    hyper_df = split_columns(hyper_df)
-    hyper_df = hyper_df[[i for i in hyper_df if len(set(hyper_df[i])) > 1]]
-    # Check dimensions
-    dimensions = len(hyper_df.columns)
-    n_uniques = hyper_df.nunique()
+    param_cols = [col for col in cv_results_.columns if 'param_' in col]
+    n_params = len(param_cols)
+    n_uniques = [cv_results_[col].nunique() for col in param_cols]
     sub_dfs = []
     sub_scores = []
-    if dimensions > 4:
-        raise ValueError('plot not implemented for more than 4 hyperparameters')
-    elif dimensions == 4:
+    if n_params > 4:
+        warnings.warn('plot not implemented for more than 4 hyperparameters. Plotting for first 4')
+        param_cols = param_cols[:4]
+        n_uniques = n_uniques[:4]
+    if n_params > 3:
         fig, axs = plt.subplots(n_uniques[-2], n_uniques[-1], subplot_kw={'projection': '3d'})
-        unique_x = hyper_df[hyper_df.columns[-2]].unique()
-        unique_y = hyper_df[hyper_df.columns[-1]].unique()
+        unique_x = cv_results_[param_cols[-2]].unique()
+        unique_y = cv_results_[param_cols[-1]].unique()
         param_pairs = list(itertools.product(unique_x, unique_y))
         for pair in param_pairs:
-            mask = (hyper_df[hyper_df.columns[-2]] == pair[0]) & (hyper_df[hyper_df.columns[-1]] == pair[1])
-            sub_dfs.append(hyper_df.loc[mask].iloc[:, :-2])
-            sub_scores.append(scores[mask])
-    elif dimensions == 3:
+            mask = (cv_results_[param_cols[-2]] == pair[0]) & (cv_results_[param_cols[-1]] == pair[1])
+            sub_dfs.append(cv_results_.loc[mask].iloc[:, :-2])
+            sub_scores.append(cv_results_[mask].mean_test_score)
+    elif n_params == 3:
         fig, axs = plt.subplots(1, n_uniques[-1], subplot_kw={'projection': '3d'})
-        unique_x = hyper_df[hyper_df.columns[-1]].unique()
+        unique_x = cv_results_[param_cols[-1]].unique()
         for x in unique_x:
-            mask = (hyper_df[hyper_df.columns[-1]] == x)
-            sub_dfs.append(hyper_df.loc[mask].iloc[:, :-1])
-            sub_scores.append(scores[mask])
+            mask = (cv_results_[param_cols[-1]] == x)
+            sub_dfs.append(cv_results_.loc[mask].iloc[:, :-1])
+            sub_scores.append(cv_results_[mask].mean_test_score)
     else:
-        sub_dfs.append(hyper_df)
-        sub_scores.append(scores)
-        if dimensions == 2:
+        sub_dfs.append(cv_results_)
+        sub_scores.append(cv_results_.mean_test_score)
+        if n_params == 2:
             fig, axs = plt.subplots(1, subplot_kw={'projection': '3d'})
         else:
             fig, axs = plt.subplots(1)
-        axs = np.array([axs])
+    axs = np.array([axs])
     axs = axs.flatten()
     for i, (ax, sub_df, sub_score) in enumerate(zip(axs, sub_dfs, sub_scores)):
         if len(sub_df.shape) > 1:
-            ax.plot_trisurf(np.log(sub_df.iloc[:, 0]), np.log(sub_df.iloc[:, 1]), sub_score, cmap=cm.coolwarm,
+            ax.plot_trisurf(sub_df[param_cols[0]], sub_df[param_cols[1]], sub_score, cmap=cm.coolwarm,
                             linewidth=0.2)
-            ax.set_xlabel('log ' + sub_df.columns[0])
-            ax.set_ylabel('log ' + sub_df.columns[1])
-            ax.set_zlabel('Sum of first n correlations')
+            ax.set_xlabel(param_cols[0])
+            ax.set_ylabel(param_cols[1])
+            ax.set_zlabel('Score')
 
-    fig.suptitle('Hyperparameter plot ' + model_name)
+    fig.suptitle('Hyperparameter plot')
     return fig
-
-
-def split_columns(df):
-    cols = []
-    # check first row to see if each column contains a list or tuple
-    for (columnName, columnData) in df.iteritems():
-        if isinstance(columnData[0], tuple) or isinstance(columnData[0], list):
-            cols.append(columnName)
-    for col in cols:
-        df = df.join(pd.DataFrame(df[col].tolist()).rename(columns=lambda x: col + '_' + str(x + 1))).drop(col, axis=1)
-    return df
 
 
 def plot_latent_train_test(train_scores: Union[Tuple[np.ndarray], List[np.ndarray]],
