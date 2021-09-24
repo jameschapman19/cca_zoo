@@ -59,7 +59,7 @@ class GCCA(_CCA_Base):
         :param K: observation matrix. Binary array with (k,n) dimensions where k is the number of views and n is the number of samples 1 means the data is observed in the corresponding view and 0 means the data is unobserved in that view.
         """
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
-        views = self._centre_scale(*views)
+        views = self._centre_scale(views)
         self.n_views = len(views)
         self.n = views[0].shape[0]
         self._check_params()
@@ -180,26 +180,18 @@ class KGCCA(GCCA):
         eigvecs = eigvecs[:, idx].real
         self.alphas = [np.linalg.pinv(kernel) @ eigvecs[:, :self.latent_dims] for kernel in kernels]
 
-    def transform(self, *views: np.ndarray, view_indices: Iterable[int] = None, **kwargs):
+    def transform(self, views: np.ndarray, **kwargs):
         """
         Transforms data given a fit KGCCA model
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model
         """
-        check_is_fitted(self, attributes=['alphas'])
+        check_is_fitted(self, attributes=['weights'])
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
-        if view_indices is None:
-            view_indices = np.arange(len(views))
-        transformed_views = []
-        for i, (view, view_index) in enumerate(zip(views, view_indices)):
-            if self.centre:
-                view = view - self.view_means[view_index]
-            if self.scale:
-                view = view / self.view_stds[view_index]
-            transformed_views.append(view)
-        Ktest = [self._get_kernel(view_index, self.train_views[view_index], Y=test_view)
-                 for test_view, view_index in zip(transformed_views, view_indices)]
-        transformed_views = [test_kernel.T @ self.alphas[view_index] for test_kernel, view_index in
-                             zip(Ktest, view_indices)]
+        views = self._centre_scale_transform(views)
+        Ktest = [self._get_kernel(i, self.train_views[i], Y=view)
+                 for i, view in enumerate(views)]
+        transformed_views = [kernel.T @ self.weights[i] for i, kernel in
+                             enumerate(Ktest)]
         return transformed_views

@@ -57,7 +57,7 @@ class rCCA(_CCA_Base):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
-        views = self._centre_scale(*views)
+        views = self._centre_scale(views)
         self.n_views = len(views)
         self.n = views[0].shape[0]
         self._check_params()

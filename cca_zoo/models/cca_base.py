@@ -58,7 +58,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         check_is_fitted(self, attributes=['weights'])
         views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
-        views = self._centre_scale_transform(*views)
+        views = self._centre_scale_transform(views)
         transformed_views = []
         for i, (view) in enumerate(views):
             transformed_view = view @ self.weights[i]
@@ -82,8 +82,8 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model
         """
-        transformed_views = self.transform(*views, **kwargs)
-        views = self._centre_scale_transform(*views)
+        transformed_views = self.transform(views, **kwargs)
+        views = self._centre_scale_transform(views)
         loadings = [view.T @ transformed_view for view, transformed_view in zip(views, transformed_views)]
         return loadings
 
@@ -96,7 +96,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         :return: all_corrs: an array of the pairwise correlations (k,k,self.latent_dims) where k is the number of views
         :rtype: np.ndarray
         """
-        transformed_views = self.transform(*views, **kwargs)
+        transformed_views = self.transform(views, **kwargs)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
@@ -113,7 +113,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     def score(self, views: Iterable[np.ndarray], **kwargs):
         # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
-        pair_corrs = self.correlations(*views, **kwargs)
+        pair_corrs = self.correlations(views, **kwargs)
         # n views
         n_views = pair_corrs.shape[0]
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
@@ -158,32 +158,8 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
-        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
         if self.centre:
             views = [view - mean for view, mean in zip(views, self.view_means)]
         if self.scale:
             views = [view / std for view, std in zip(views, self.view_stds)]
         return views
-
-    """
-    def bayes_fit(self, *views: np.ndarray, space=None, folds: int = 5, verbose=True):
-        :param views: numpy arrays separated by comma e.g. fit(view_1,view_2,view_3)
-        :param space:
-        :param folds: number of folds used for cross validation
-        :param verbose: whether to return scores for each set of parameters
-        :return: fit model with best parameters
-        trials = Trials()
-
-        cv = CrossValidate(self, folds=folds, verbose=verbose)
-
-        best_params = fmin(
-            fn=cv.score(*views),
-            space=space,
-            algo=tpe.suggest,
-            max_evals=100,
-            trials=trials,
-        )
-        self.set_params(**param_sets[max_index])
-        self.fit(*views)
-        return self
-    """

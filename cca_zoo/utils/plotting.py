@@ -63,6 +63,7 @@ def cv_plot(scores):
     fig.suptitle('Hyperparameter plot ' + model_name)
     return fig
 
+
 def split_columns(df):
     cols = []
     # check first row to see if each column contains a list or tuple
