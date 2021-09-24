@@ -73,7 +73,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         :param kwargs: any additional keyword arguments required by the given model
         :rtype: np.ndarray
         """
-        return self.fit(views, **kwargs).transform(*views)
+        return self.fit(views, **kwargs).transform(views)
 
     def get_loadings(self, views: Iterable[np.ndarray], **kwargs):
         """

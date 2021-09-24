@@ -603,8 +603,8 @@ def main():
     from cca_zoo.models import rCCA
     x = np.random.rand(1000, 10)
     y = np.random.rand(1000, 10)
-    c1 = [0, 0.9, 0.99, 1]
-    c2 = [0, 0.9, 0.99, 1]
+    c1 = [0, 0.9, 0.99, 0.999, 1]
+    c2 = [0, 0.9, 0.99, 0.999, 1]
     param_grid = {'c': list(itertools.product(c1, c2))}
     mod = rCCA()
     mod = MVGridSearchCV(mod, param_grid=param_grid).fit((x, y))

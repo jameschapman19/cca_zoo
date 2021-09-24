@@ -34,8 +34,8 @@ class DTCCA(DCCA):
     def post_transform(self, *z_list, train=False) -> Iterable[np.ndarray]:
         if train:
             self.cca = TCCA(latent_dims=self.latent_dims)
-            self.cca.fit(*z_list)
-            z_list = self.cca.transform(*z_list)
+            self.cca.fit(z_list)
+            z_list = self.cca.transform(z_list)
         else:
-            z_list = self.cca.transform(*z_list)
+            z_list = self.cca.transform(z_list)
         return z_list

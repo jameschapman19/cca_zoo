@@ -19,10 +19,10 @@ def test_data_rand():
 def test_data_gen():
     (x, y, z), true_feats = generate_covariance_data(1000, [10, 11, 12], 1, [0.5, 0.5, 0.5], correlation=0.5,
                                                      structure=['identity', 'identity', 'identity'])
-    cca = CCA().fit(x[:500], y[:500])
-    cca_pred = cca.score(x[500:], y[500:])
-    mcca = MCCA().fit(x[:500], y[:500], z[:500])
-    mcca_pred = mcca.score(x[500:], y[500:], z[500:])
+    cca = CCA().fit((x[:500], y[:500]))
+    cca_pred = cca.score((x[500:], y[500:]))
+    mcca = MCCA().fit((x[:500], y[:500], z[:500]))
+    mcca_pred = mcca.score((x[500:], y[500:], z[500:]))
 
     (x, y), true_feats = generate_covariance_data(1000, [10, 11], 1, [0.5, 0.5], correlation=0.5,
                                                   structure=['gaussian', 'toeplitz'])

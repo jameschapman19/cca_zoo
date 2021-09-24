@@ -60,7 +60,7 @@ class MCCA(_CCA_Base):
         self.n = views[0].shape[0]
         self._check_params()
         views, C, D = self._setup_gevp(*views)
-        self.weights = self._solve_gevp(C, D)
+        self._solve_gevp(C, D)
         return self
 
     def _setup_gevp(self, *views: np.ndarray):
@@ -82,8 +82,7 @@ class MCCA(_CCA_Base):
         idx = np.argsort(eigvals, axis=0)[::-1][:self.latent_dims]
         eigvecs = eigvecs * eigvals
         eigvecs = eigvecs[:, idx].real
-        eigvecs = [eigvecs[split:self.splits[i + 1]] for i, split in enumerate(self.splits[:-1])]
-        return eigvecs
+        self.weights = [eigvecs[split:self.splits[i + 1]] for i, split in enumerate(self.splits[:-1])]
 
 
 class KCCA(MCCA):

@@ -178,7 +178,7 @@ class KGCCA(GCCA):
         [eigvals, eigvecs] = eigh(Q, subset_by_index=[n - self.latent_dims, n - 1])
         idx = np.argsort(eigvals, axis=0)[::-1][:self.latent_dims]
         eigvecs = eigvecs[:, idx].real
-        self.alphas = [np.linalg.pinv(kernel) @ eigvecs[:, :self.latent_dims] for kernel in kernels]
+        self.weights = [np.linalg.pinv(kernel) @ eigvecs[:, :self.latent_dims] for kernel in kernels]
 
     def transform(self, views: np.ndarray, **kwargs):
         """

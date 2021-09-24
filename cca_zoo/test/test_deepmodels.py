@@ -75,7 +75,7 @@ def test_large_p():
 
 def test_DCCA_methods_cpu():
     latent_dims = 4
-    cca_model = CCA(latent_dims=latent_dims).fit(X, Y)
+    cca_model = CCA(latent_dims=latent_dims).fit((X, Y))
     device = 'cpu'
     epochs = 100
     # DCCA
@@ -86,7 +86,7 @@ def test_DCCA_methods_cpu():
     optimizer = optim.SGD(dcca_model.parameters(), lr=1e-2)
     dcca_model = DeepWrapper(dcca_model, device=device, optimizer=optimizer)
     dcca_model.fit((X, Y), epochs=epochs)
-    assert np.testing.assert_array_less(cca_model.score(X, Y).sum(),
+    assert np.testing.assert_array_less(cca_model.score((X, Y)).sum(),
                                         dcca_model.score((X, Y)).sum()) is None
     # DGCCA
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -96,7 +96,7 @@ def test_DCCA_methods_cpu():
     optimizer = optim.SGD(dgcca_model.parameters(), lr=1e-2)
     dgcca_model = DeepWrapper(dgcca_model, device=device, optimizer=optimizer)
     dgcca_model.fit((X, Y), epochs=epochs)
-    assert np.testing.assert_array_less(cca_model.score(X, Y).sum(),
+    assert np.testing.assert_array_less(cca_model.score((X, Y)).sum(),
                                         dgcca_model.score((X, Y)).sum()) is None
     # DMCCA
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -106,7 +106,7 @@ def test_DCCA_methods_cpu():
     optimizer = optim.SGD(dmcca_model.parameters(), lr=1e-2)
     dmcca_model = DeepWrapper(dmcca_model, device=device, optimizer=optimizer)
     dmcca_model.fit((X, Y), epochs=epochs)
-    assert np.testing.assert_array_less(cca_model.score(X, Y).sum(),
+    assert np.testing.assert_array_less(cca_model.score((X, Y)).sum(),
                                         dmcca_model.score((X, Y)).sum()) is None
     # DCCA_NOI
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -115,7 +115,7 @@ def test_DCCA_methods_cpu():
     optimizer = optim.Adam(dcca_noi_model.parameters(), lr=1e-2)
     dcca_noi_model = DeepWrapper(dcca_noi_model, device=device, optimizer=optimizer)
     dcca_noi_model.fit((X, Y), epochs=epochs)
-    assert np.testing.assert_array_less(cca_model.score(X, Y).sum(),
+    assert np.testing.assert_array_less(cca_model.score((X, Y)).sum(),
                                         dcca_noi_model.score((X, Y)).sum()) is None
 
 
