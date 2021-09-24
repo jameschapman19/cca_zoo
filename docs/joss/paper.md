@@ -38,7 +38,7 @@ algorithm [@witten2009penalized] which induces sparsity in the weight vectors fo
 While there are a few Python packages containing implementations of CCA, we would like to highlight the unique benefits
 our package brings to the community. Firstly, `cca-zoo` contains a number of models for implementing various forms of
 regularised CCA and PLS suitable for high dimensional data that have previously only been available in installable
-packages in R. We hope that this will give Python users access to these powerful models for both application and the
+packages in R. We believe that this will give Python users access to these powerful models for both application and the
 development of new algorithms. Secondly,
 `cca-zoo` contains implementations of a number of deep CCA variants written in PyTorch
 [@paszke2019pytorch] which are written in a modular style, allowing users to swap out neural network architectures for
