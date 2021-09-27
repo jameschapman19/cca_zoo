@@ -879,7 +879,7 @@ class RandomizedSearchCV(BaseSearchCV):
     >>> X2 = [[0.1, -0.2], [0.9, 1.1], [6.2, 5.9], [11.9, 12.3]]
     >>> X3 = [[0, 1, 0], [1, 9, 0], [4, 3, 3,], [12, 8, 10]]
     >>> model = MCCA()
-    >>> params = {'regs': [loguniform(1e-4, 1e0), loguniform(1e-4, 1e0), [0.1]]}
+    >>> params = {'c': [loguniform(1e-4, 1e0), loguniform(1e-4, 1e0), [0.1]]}
     >>> def scorer(estimator, X):
     ...    scores = estimator.score(X)
     ...    return np.mean(scores)

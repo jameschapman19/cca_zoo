@@ -26,6 +26,7 @@ def cv_plot(cv_results_):
     """
     if isinstance(cv_results_, dict):
         cv_results_ = pd.DataFrame(cv_results_)
+    cv_results_ = post_process_cv_results(cv_results_)
     param_cols = [col for col in cv_results_.columns if "param_" in col]
     n_params = len(param_cols)
     n_uniques = [cv_results_[col].nunique() for col in param_cols]
