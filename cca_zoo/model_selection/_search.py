@@ -1,3 +1,11 @@
+# Author: James Chapman
+# Original Authors:
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>,
+#         Gael Varoquaux <gael.varoquaux@normalesup.org>
+#         Andreas Mueller <amueller@ais.uni-bonn.de>
+#         Olivier Grisel <olivier.grisel@ensta.org>
+#         Raghav RV <rvraghav93@gmail.com>
+
 import itertools
 import numbers
 import time
