@@ -1,3 +1,4 @@
+import itertools
 import numbers
 import time
 from collections import defaultdict
@@ -5,7 +6,6 @@ from itertools import product
 from typing import Mapping, Iterable
 
 import numpy as np
-import pandas as pd
 from joblib import Parallel
 from mvlearn.compose import SimpleSplitter
 from mvlearn.utils import check_Xs
@@ -22,10 +22,34 @@ from sklearn.model_selection._search import (
 from sklearn.model_selection._validation import _fit_and_score, _insert_error_scores
 from sklearn.pipeline import Pipeline
 from sklearn.utils import indexable
-from sklearn.utils.fixes import delayed, loguniform
+from sklearn.utils.fixes import delayed
 from sklearn.utils.validation import _check_fit_params, check_random_state
 
-from cca_zoo.utils.plotting import post_process_cv_results
+
+def param2grid(params):
+    """
+    Converts parameters with a list for each view into a scikit-learn friendly form
+
+    Parameters
+    ----------
+    params : a dictionary of parameters where some parameters may contain a list of lists (one list for each 'view')
+
+    Returns : a parameter grid in the form expected by scikit-learn where each element is a single candidate
+    (a single value or a list with one value for each view)
+    -------
+
+    Examples
+    ---------
+    >>> params = {'regs': [[1, 2], [3, 4]]}
+    >>> param2grid(params)
+    [[1,3], [1,4], [2,3], [2,4]]
+    """
+    for k, v in params.items():
+        if any([isinstance(v_, list) for v_ in v]):
+            # itertools expects all lists to perform product
+            v = [[v_] if not isinstance(v_, list) else v_ for v_ in v]
+            params[k] = list(map(list, itertools.product(*v)))
+    return params
 
 
 class ParameterSampler:
@@ -405,12 +429,10 @@ class GridSearchCV(BaseSearchCV):
         - a callable returning a dictionary where the keys are the metric
           names and the values are the metric scores;
         - a dictionary with metric names as keys and callables a values.
-        See :ref:`multimetric_grid_search` for an example.
     n_jobs : int, default=None
         Number of jobs to run in parallel.
         ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
-        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
-        for more details.
+        ``-1`` means using all processors.
     refit : bool, str, or callable, default=True
         Refit an estimator using the best found parameters on the whole
         dataset.
@@ -559,7 +581,6 @@ class GridSearchCV(BaseSearchCV):
     refit_time_ : float
         Seconds used for refitting the best model on the whole dataset.
         This is present only if ``refit`` is not False.
-        .. versionadded:: 0.20
     multimetric_ : bool
         Whether or not the scorers compute several metrics.
     classes_ : ndarray of shape (n_classes,)
@@ -570,13 +591,27 @@ class GridSearchCV(BaseSearchCV):
         `best_estimator_` is defined (see the documentation for the `refit`
         parameter for more details) and that `best_estimator_` exposes
         `n_features_in_` when fit.
-        .. versionadded:: 0.24
     feature_names_in_ : ndarray of shape (`n_features_in_`,)
         Names of features seen during :term:`fit`. Only defined if
         `best_estimator_` is defined (see the documentation for the `refit`
         parameter for more details) and that `best_estimator_` exposes
         `feature_names_in_` when fit.
-        .. versionadded:: 1.0
+
+    Examples
+    ---------
+    >>> from mvlearn.model_selection import GridSearchCV
+    >>> from mvlearn.embed import MCCA
+    >>> X1 = [[0, 0, 1], [1, 0, 0], [2, 2, 2], [3, 5, 4]]
+    >>> X2 = [[0.1, -0.2], [0.9, 1.1], [6.2, 5.9], [11.9, 12.3]]
+    >>> X3 = [[0, 1, 0], [1, 9, 0], [4, 3, 3,], [12, 8, 10]]
+    >>> model = MCCA()
+    >>> params = {'regs': [[0.1, 0.2], [0.3, 0.4], 0.1]}
+    >>> def scorer(estimator, X):
+    ...    scores = estimator.score(X)
+    ...    return np.mean(scores)
+    >>> GridSearchCV(model,param_grid=params, cv=3, scoring=scorer).fit([X1,X2,X3]).best_estimator_
+    MCCA(regs=[0.1, 0.3, 0.1])
+
     Notes
     -----
     The parameters selected are those that maximize the score of the left out
@@ -618,7 +653,7 @@ class GridSearchCV(BaseSearchCV):
             error_score=error_score,
             return_train_score=return_train_score,
         )
-        self.param_grid = param_grid
+        self.param_grid = param2grid(param_grid)
         _check_param_grid(param_grid)
 
     def _run_search(self, evaluate_candidates):
@@ -672,13 +707,11 @@ class RandomizedSearchCV(BaseSearchCV):
         - a callable returning a dictionary where the keys are the metric
           names and the values are the metric scores;
         - a dictionary with metric names as keys and callables a values.
-        See :ref:`multimetric_grid_search` for an example.
         If None, the estimator's score method is used.
     n_jobs : int, default=None
         Number of jobs to run in parallel.
         ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
-        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
-        for more details.
+        ``-1`` means using all processors.
     refit : bool, str, or callable, default=True
         Refit an estimator using the best found parameters on the whole
         dataset.
@@ -824,7 +857,6 @@ class RandomizedSearchCV(BaseSearchCV):
     refit_time_ : float
         Seconds used for refitting the best model on the whole dataset.
         This is present only if ``refit`` is not False.
-        .. versionadded:: 0.20
     multimetric_ : bool
         Whether or not the scorers compute several metrics.
     classes_ : ndarray of shape (n_classes,)
@@ -835,13 +867,28 @@ class RandomizedSearchCV(BaseSearchCV):
         `best_estimator_` is defined (see the documentation for the `refit`
         parameter for more details) and that `best_estimator_` exposes
         `n_features_in_` when fit.
-        .. versionadded:: 0.24
     feature_names_in_ : ndarray of shape (`n_features_in_`,)
         Names of features seen during :term:`fit`. Only defined if
         `best_estimator_` is defined (see the documentation for the `refit`
         parameter for more details) and that `best_estimator_` exposes
         `feature_names_in_` when fit.
-        .. versionadded:: 1.0
+
+    Examples
+    ---------
+    >>> from mvlearn.model_selection import RandomizedSearchCV
+    >>> from mvlearn.embed import MCCA
+    >>> from sklearn.utils.fixes import loguniform
+    >>> X1 = [[0, 0, 1], [1, 0, 0], [2, 2, 2], [3, 5, 4]]
+    >>> X2 = [[0.1, -0.2], [0.9, 1.1], [6.2, 5.9], [11.9, 12.3]]
+    >>> X3 = [[0, 1, 0], [1, 9, 0], [4, 3, 3,], [12, 8, 10]]
+    >>> model = MCCA()
+    >>> params = {'regs': [loguniform(1e-4, 1e0), loguniform(1e-4, 1e0), [0.1]]}
+    >>> def scorer(estimator, X):
+    ...    scores = estimator.score(X)
+    ...    return np.mean(scores)
+    >>> RandomizedSearchCV(model,param_distributions=params, cv=3, scoring=scorer,n_iter=10).fit([X1,X2,X3]).n_iter
+    10
+
     Notes
     -----
     The parameters selected are those that maximize the score of the held-out
@@ -895,48 +942,3 @@ class RandomizedSearchCV(BaseSearchCV):
                 self.param_distributions, self.n_iter, random_state=self.random_state
             )
         )
-
-
-def main():
-    import itertools
-    from cca_zoo.models import KCCA
-    from cca_zoo.data import generate_covariance_data
-    from cca_zoo.utils.plotting import cv_plot
-
-    Xs, (tx, ty) = generate_covariance_data(
-        100, [10, 11], latent_dims=1, view_sparsity=[0.5, 0.5]
-    )
-    n_iter_search = 15
-    estimator = KCCA()
-
-    # specify parameters and distributions to sample from
-    param_dist = {
-        "kernel": ["linear", "poly"],
-        "degree": [[1, 2, 3], [2]],
-        "c": [[0, 1], loguniform(1e-4, 1e0)],
-    }
-
-    mod = RandomizedSearchCV(
-        estimator, cv=5, param_distributions=param_dist, n_iter=n_iter_search
-    ).fit(Xs)
-    cv_results_ = post_process_cv_results(pd.DataFrame(mod.cv_results_))
-
-    c1 = [0.9, 0.99]
-    c2 = [0.9, 0.99]
-    # kernel cca (poly)
-    degree1 = [2, 3]
-    degree2 = [2, 3]
-
-    param_grid = {
-        "kernel": [["poly", "poly"]],
-        "degree": list(itertools.product(degree1, degree2)),
-        "c": list(itertools.product(c1, c2)),
-    }
-
-    mod = GridSearchCV(estimator, cv=5, param_grid=param_grid).fit(Xs)
-    cv_results_ = post_process_cv_results(pd.DataFrame(mod.cv_results_))
-    cv_plot(cv_results_)
-
-
-if __name__ == "__main__":
-    main()
