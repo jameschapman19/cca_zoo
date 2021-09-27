@@ -1,5 +1,3 @@
-import itertools
-
 import numpy as np
 import scipy.sparse as sp
 from sklearn.utils.fixes import loguniform
@@ -260,23 +258,6 @@ def test_TCCA():
     corr_ktcca = ktcca.score((X, Y))
     assert (
             np.testing.assert_array_almost_equal(corr_tcca, corr_ktcca, decimal=1) is None
-    )
-
-
-def test_cv_fit():
-    # Test the CV method
-    latent_dims = 2
-    c1 = [0.1, 0.2]
-    c2 = [0.1, 0.2]
-    param_grid = {"c": list(itertools.product(c1, c2))}
-    unweighted_gcca = GCCA(latent_dims=latent_dims).gridsearch_fit(
-        X, Y, folds=5, param_grid=param_grid, plot=True, jobs=3
-    )
-    deweighted_gcca = GCCA(
-        latent_dims=latent_dims, view_weights=[0.5, 0.5]
-    ).gridsearch_fit(X, Y, folds=2, param_grid=param_grid)
-    mcca = MCCA(latent_dims=latent_dims).gridsearch_fit(
-        X, Y, folds=2, param_grid=param_grid
     )
 
 
