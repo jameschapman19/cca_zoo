@@ -19,8 +19,9 @@ class DTCCA(DCCA):
     >>> model = DTCCA()
     """
 
-    def __init__(self, latent_dims: int, encoders=None,
-                 r: float = 0, eps: float = 1e-3):
+    def __init__(
+            self, latent_dims: int, encoders=None, r: float = 0, eps: float = 1e-3
+    ):
         """
 
         :param latent_dims: # latent dimensions
@@ -28,8 +29,13 @@ class DTCCA(DCCA):
         :param r: regularisation parameter of tracenorm CCA like ridge CCA. Needs to be VERY SMALL. If you get errors make this smaller
         :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
         """
-        super().__init__(latent_dims=latent_dims, objective=objectives.TCCA, encoders=encoders, r=r,
-                         eps=eps)
+        super().__init__(
+            latent_dims=latent_dims,
+            objective=objectives.TCCA,
+            encoders=encoders,
+            r=r,
+            eps=eps,
+        )
 
     def post_transform(self, *z_list, train=False) -> Iterable[np.ndarray]:
         if train:

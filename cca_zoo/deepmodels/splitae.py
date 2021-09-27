@@ -15,8 +15,7 @@ class SplitAE(_DCCA_base):
     >>> model = SplitAE()
     """
 
-    def __init__(self, latent_dims: int, encoder: BaseEncoder = Encoder,
-                 decoders=None):
+    def __init__(self, latent_dims: int, encoder: BaseEncoder = Encoder, decoders=None):
         """
 
         :param latent_dims: # latent dimensions
@@ -51,5 +50,5 @@ class SplitAE(_DCCA_base):
 
     @staticmethod
     def recon_loss(x, recon):
-        recons = [F.mse_loss(recon[i], x[i], reduction='mean') for i in range(len(x))]
+        recons = [F.mse_loss(recon[i], x[i], reduction="mean") for i in range(len(x))]
         return torch.stack(recons).sum(dim=0)

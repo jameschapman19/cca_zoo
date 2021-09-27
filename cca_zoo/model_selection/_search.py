@@ -1,6 +1,5 @@
 import numbers
 import time
-import warnings
 from collections import defaultdict
 from itertools import product
 from typing import Mapping, Iterable
@@ -15,11 +14,14 @@ from sklearn.base import is_classifier
 from sklearn.metrics import check_scoring
 from sklearn.metrics._scorer import _check_multimetric_scoring
 from sklearn.model_selection import check_cv
-from sklearn.model_selection._search import BaseSearchCV as SKBaseSearchCV, ParameterGrid, _check_param_grid
+from sklearn.model_selection._search import (
+    BaseSearchCV as SKBaseSearchCV,
+    ParameterGrid,
+    _check_param_grid,
+)
 from sklearn.model_selection._validation import _fit_and_score, _insert_error_scores
 from sklearn.pipeline import Pipeline
 from sklearn.utils import indexable
-from sklearn.utils._random import sample_without_replacement
 from sklearn.utils.fixes import delayed, loguniform
 from sklearn.utils.validation import _check_fit_params, check_random_state
 
@@ -34,7 +36,6 @@ class ParameterSampler:
     is given as a distribution, sampling with replacement is used.
     It is highly recommended to use continuous distributions for continuous
     parameters.
-    Read more in the :ref:`User Guide <grid_search>`.
     Parameters
     ----------
     param_distributions : dict
@@ -51,7 +52,6 @@ class ParameterSampler:
         from lists of possible values instead of scipy.stats distributions.
         Pass an int for reproducible output across multiple
         function calls.
-        See :term:`Glossary <random_state>`.
     Returns
     -------
     params : dict of str to any
@@ -78,9 +78,21 @@ class ParameterSampler:
                     "Parameter distribution is not a dict ({!r})".format(dist)
                 )
             for key in dist:
-                if not isinstance(dist[key], Iterable) and not hasattr(
-                        dist[key], "rvs"
-                ):
+                if isinstance(dist[key], Iterable):
+                    if any(
+                            [
+                                not isinstance(view_param, Iterable)
+                                and not hasattr(view_param, "rvs")
+                                for view_param in dist[key]
+                            ]
+                    ):
+                        raise TypeError(
+                            "Parameter value for at least one view is not iterable "
+                            "or distribution (key={!r}, value={!r})".format(
+                                key, dist[key]
+                            )
+                        )
+                elif not hasattr(dist[key], "rvs"):
                     raise TypeError(
                         "Parameter value is not iterable "
                         "or distribution (key={!r}, value={!r})".format(key, dist[key])
@@ -89,54 +101,46 @@ class ParameterSampler:
         self.random_state = random_state
         self.param_distributions = param_distributions
 
-    def _is_all_lists(self):
-        return all(
-            all(not hasattr(v, "rvs") for v in dist.values())
-            for dist in self.param_distributions
-        )
-
     def __iter__(self):
         rng = check_random_state(self.random_state)
-
-        # if all distributions are given as lists, we want to sample without
-        # replacement
-        if self._is_all_lists():
-            # look up sampled parameter settings in parameter grid
-            param_grid = ParameterGrid(self.param_distributions)
-            grid_size = len(param_grid)
-            n_iter = self.n_iter
-
-            if grid_size < n_iter:
-                warnings.warn(
-                    "The total space of parameters %d is smaller "
-                    "than n_iter=%d. Running %d iterations. For exhaustive "
-                    "searches, use GridSearchCV." % (grid_size, self.n_iter, grid_size),
-                    UserWarning,
-                )
-                n_iter = grid_size
-            for i in sample_without_replacement(grid_size, n_iter, random_state=rng):
-                yield param_grid[i]
-
-        else:
-            for _ in range(self.n_iter):
-                dist = rng.choice(self.param_distributions)
-                # Always sort the keys of a dictionary, for reproducibility
-                items = sorted(dist.items())
-                params = dict()
-                for k, v in items:
-                    if hasattr(v, "rvs"):
-                        params[k] = v.rvs(random_state=rng)
+        for _ in range(self.n_iter):
+            dist = rng.choice(self.param_distributions)
+            # Always sort the keys of a dictionary, for reproducibility
+            items = sorted(dist.items())
+            params = dict()
+            for k, v in items:
+                # if value is an iterable then either the elements are the distribution or each element is a distribution
+                # for each view.
+                if isinstance(v, Iterable):
+                    # if the parameter is shared across views then the list will just contain non-iterable values
+                    if not any(
+                            [
+                                (isinstance(v_, Iterable) and not isinstance(v_, str))
+                                for v_ in v
+                            ]
+                    ):
+                        params[k] = self.return_param(v)
+                    # if each element is a distribution for each view (i.e. it is a non-string Iterable) then call return_param for each view
                     else:
-                        params[k] = v[rng.randint(len(v))]
-                yield params
+                        params[k] = [self.return_param(v_) for v_ in v]
+                # if value is not iterable then it is either a distribution or a value in which case call return param on it.
+                else:
+                    params[k] = self.return_param(v)
+            yield params
+
+    def return_param(self, v):
+        rng = check_random_state(self.random_state)
+        if hasattr(v, "rvs"):
+            param = v.rvs(random_state=rng)
+        elif isinstance(v, Iterable) and not isinstance(v, str):
+            param = v[rng.randint(len(v))]
+        else:
+            param = v
+        return param
 
     def __len__(self):
         """Number of points that will be sampled."""
-        if self._is_all_lists():
-            grid_size = len(ParameterGrid(self.param_distributions))
-            return min(self.n_iter, grid_size)
-        else:
-            return self.n_iter
+        return self.n_iter
 
 
 class BaseSearchCV(SKBaseSearchCV):
@@ -151,10 +155,19 @@ class BaseSearchCV(SKBaseSearchCV):
             verbose=0,
             pre_dispatch="2*n_jobs",
             error_score=np.nan,
-            return_train_score=True):
-        super().__init__(estimator=estimator, scoring=scoring, n_jobs=n_jobs, refit=refit, cv=cv, verbose=verbose,
-                         pre_dispatch=pre_dispatch,
-                         error_score=error_score, return_train_score=return_train_score)
+            return_train_score=True,
+    ):
+        super().__init__(
+            estimator=estimator,
+            scoring=scoring,
+            n_jobs=n_jobs,
+            refit=refit,
+            cv=cv,
+            verbose=verbose,
+            pre_dispatch=pre_dispatch,
+            error_score=error_score,
+            return_train_score=return_train_score,
+        )
 
     def fit(self, Xs, y=None, *, groups=None, **fit_params):
         """Run fit with all sets of parameters.
@@ -232,8 +245,12 @@ class BaseSearchCV(SKBaseSearchCV):
                 X_transformed, _, _, n_features = check_Xs(
                     Xs, copy=True, return_dimensions=True
                 )
-                pipeline = Pipeline([('splitter', SimpleSplitter(n_features)),
-                                     ('estimator', clone(base_estimator))])
+                pipeline = Pipeline(
+                    [
+                        ("splitter", SimpleSplitter(n_features)),
+                        ("estimator", clone(base_estimator)),
+                    ]
+                )
 
                 out = parallel(
                     delayed(_fit_and_score)(
@@ -242,13 +259,16 @@ class BaseSearchCV(SKBaseSearchCV):
                         y,
                         train=train,
                         test=test,
-                        parameters={f'estimator__{k}': v for k, v in parameters.items()},
+                        parameters={
+                            f"estimator__{k}": v for k, v in parameters.items()
+                        },
                         split_progress=(split_idx, n_splits),
                         candidate_progress=(cand_idx, n_candidates),
                         **fit_and_score_kwargs,
                     )
                     for (cand_idx, parameters), (split_idx, (train, test)) in product(
-                        enumerate(candidate_params), enumerate(cv.split(Xs[0], y, groups))
+                        enumerate(candidate_params),
+                        enumerate(cv.split(Xs[0], y, groups)),
                     )
                 )
 
@@ -882,16 +902,23 @@ def main():
     from cca_zoo.models import KCCA
     from cca_zoo.data import generate_covariance_data
     from cca_zoo.utils.plotting import cv_plot
-    Xs, (tx, ty) = generate_covariance_data(100, [10, 11], latent_dims=1, view_sparsity=[0.5, 0.5])
-    n_iter_search = 5
+
+    Xs, (tx, ty) = generate_covariance_data(
+        100, [10, 11], latent_dims=1, view_sparsity=[0.5, 0.5]
+    )
+    n_iter_search = 15
     estimator = KCCA()
 
     # specify parameters and distributions to sample from
-    param_dist = {'kernel': [['poly', 'poly']],
-                  'degree': [[1, 2, 3], [1, 2, 3]],
-                  'c': [loguniform(0, 1), loguniform(0, 1)]}
+    param_dist = {
+        "kernel": ["linear", "poly"],
+        "degree": [[1, 2, 3], [2]],
+        "c": [[0, 1], loguniform(1e-4, 1e0)],
+    }
 
-    mod = RandomizedSearchCV(estimator, cv=5, param_distributions=param_dist, n_iter=n_iter_search).fit(Xs)
+    mod = RandomizedSearchCV(
+        estimator, cv=5, param_distributions=param_dist, n_iter=n_iter_search
+    ).fit(Xs)
     cv_results_ = post_process_cv_results(pd.DataFrame(mod.cv_results_))
 
     c1 = [0.9, 0.99]
@@ -900,13 +927,16 @@ def main():
     degree1 = [2, 3]
     degree2 = [2, 3]
 
-    param_grid = {'kernel': [['poly', 'poly']], 'degree': list(itertools.product(degree1, degree2)),
-                  'c': list(itertools.product(c1, c2))}
+    param_grid = {
+        "kernel": [["poly", "poly"]],
+        "degree": list(itertools.product(degree1, degree2)),
+        "c": list(itertools.product(c1, c2)),
+    }
 
     mod = GridSearchCV(estimator, cv=5, param_grid=param_grid).fit(Xs)
     cv_results_ = post_process_cv_results(pd.DataFrame(mod.cv_results_))
     cv_plot(cv_results_)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

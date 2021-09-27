@@ -6,8 +6,15 @@ from typing import Union, Iterable
 import numpy as np
 
 from .cca_base import _CCA_Base
-from .innerloop import PLSInnerLoop, PMDInnerLoop, ParkhomenkoInnerLoop, ElasticInnerLoop, ADMMInnerLoop, \
-    SpanCCAInnerLoop, SWCCAInnerLoop
+from .innerloop import (
+    PLSInnerLoop,
+    PMDInnerLoop,
+    ParkhomenkoInnerLoop,
+    ElasticInnerLoop,
+    ADMMInnerLoop,
+    SpanCCAInnerLoop,
+    SWCCAInnerLoop,
+)
 from ..utils import check_views
 
 
@@ -17,11 +24,19 @@ class _Iterative(_CCA_Base):
 
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 deflation='cca',
-                 max_iter: int = 100,
-                 generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            max_iter: int = 100,
+            generalized: bool = False,
+            initialization: str = "unregularized",
+            tol: float = 1e-9,
+    ):
         """
         Constructor for _Iterative
 
@@ -36,8 +51,13 @@ class _Iterative(_CCA_Base):
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data,
-                         accept_sparse=['csc', 'csr'])
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            accept_sparse=["csc", "csr"],
+        )
         self.max_iter = max_iter
         self.generalized = generalized
         self.initialization = initialization
@@ -51,7 +71,9 @@ class _Iterative(_CCA_Base):
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
-        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
+        views = check_views(
+            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
+        )
         views = self._centre_scale(views)
         self.n_views = len(views)
         self.n = views[0].shape[0]
@@ -75,7 +97,9 @@ class _Iterative(_CCA_Base):
                 self.weights[i][:, k] = self.loop.weights[i].ravel()
                 self.scores[i][:, k] = self.loop.scores[i].ravel()
                 self.loadings[i][:, k] = np.dot(self.scores[i][:, k], residual)
-                residuals[i] = self._deflate(residuals[i], self.scores[i][:, k], self.weights[i][:, k])
+                residuals[i] = self._deflate(
+                    residuals[i], self.scores[i][:, k], self.weights[i][:, k]
+                )
             self.objective.append(self.loop.track_objective)
         return self
 
@@ -87,9 +111,12 @@ class _Iterative(_CCA_Base):
         :param score:
 
         """
-        if self.deflation == 'cca':
-            return residual - np.outer(score, score) @ residual / np.dot(score, score).item()
-        elif self.deflation == 'pls':
+        if self.deflation == "cca":
+            return (
+                    residual
+                    - np.outer(score, score) @ residual / np.dot(score, score).item()
+            )
+        elif self.deflation == "pls":
             return residual - np.outer(score, loading)
 
     @abstractmethod
@@ -97,8 +124,12 @@ class _Iterative(_CCA_Base):
         """
         Sets up the inner optimization loop for the method. By default uses the PLS inner loop.
         """
-        self.loop = PLSInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
-                                 initialization=self.initialization, random_state=self.random_state)
+        self.loop = PLSInnerLoop(
+            max_iter=self.max_iter,
+            generalized=self.generalized,
+            initialization=self.initialization,
+            random_state=self.random_state,
+        )
 
 
 class PLS_ALS(_Iterative):
@@ -116,10 +147,18 @@ class PLS_ALS(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 max_iter: int = 100,
-                 generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            max_iter: int = 100,
+            generalized: bool = False,
+            initialization: str = "unregularized",
+            tol: float = 1e-9,
+    ):
         """
         Constructor for PLS
 
@@ -133,14 +172,27 @@ class PLS_ALS(_Iterative):
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, deflation='pls',
-                         max_iter=max_iter,
-                         generalized=generalized,
-                         initialization=initialization, tol=tol, random_state=random_state)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            deflation="pls",
+            max_iter=max_iter,
+            generalized=generalized,
+            initialization=initialization,
+            tol=tol,
+            random_state=random_state,
+        )
 
     def _set_loop_params(self):
-        self.loop = PLSInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
-                                 initialization=self.initialization, tol=self.tol, random_state=self.random_state)
+        self.loop = PLSInnerLoop(
+            max_iter=self.max_iter,
+            generalized=self.generalized,
+            initialization=self.initialization,
+            tol=self.tol,
+            random_state=self.random_state,
+        )
 
 
 class ElasticCCA(_Iterative):
@@ -160,15 +212,24 @@ class ElasticCCA(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 deflation='cca',
-                 max_iter: int = 100,
-                 generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9,
-                 c: Union[Iterable[float], float] = None,
-                 l1_ratio: Union[Iterable[float], float] = None,
-                 constrained: bool = False, stochastic=False,
-                 positive: Union[Iterable[bool], bool] = None):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            max_iter: int = 100,
+            generalized: bool = False,
+            initialization: str = "unregularized",
+            tol: float = 1e-9,
+            c: Union[Iterable[float], float] = None,
+            l1_ratio: Union[Iterable[float], float] = None,
+            constrained: bool = False,
+            stochastic=False,
+            positive: Union[Iterable[bool], bool] = None,
+    ):
         """
         Constructor for ElasticCCA
 
@@ -196,18 +257,34 @@ class ElasticCCA(_Iterative):
         if self.positive is not None and stochastic:
             self.stochastic = False
             warnings.warn(
-                'Non negative constraints cannot be used with stochastic regressors. Switching to stochastic=False')
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, deflation=deflation,
-                         max_iter=max_iter,
-                         generalized=generalized,
-                         initialization=initialization, tol=tol, random_state=random_state
-                         )
+                "Non negative constraints cannot be used with stochastic regressors. Switching to stochastic=False"
+            )
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            deflation=deflation,
+            max_iter=max_iter,
+            generalized=generalized,
+            initialization=initialization,
+            tol=tol,
+            random_state=random_state,
+        )
 
     def _set_loop_params(self):
-        self.loop = ElasticInnerLoop(max_iter=self.max_iter, c=self.c, l1_ratio=self.l1_ratio,
-                                     generalized=self.generalized, initialization=self.initialization,
-                                     tol=self.tol, constrained=self.constrained,
-                                     stochastic=self.stochastic, positive=self.positive, random_state=self.random_state)
+        self.loop = ElasticInnerLoop(
+            max_iter=self.max_iter,
+            c=self.c,
+            l1_ratio=self.l1_ratio,
+            generalized=self.generalized,
+            initialization=self.initialization,
+            tol=self.tol,
+            constrained=self.constrained,
+            stochastic=self.stochastic,
+            positive=self.positive,
+            random_state=self.random_state,
+        )
 
 
 class CCA_ALS(ElasticCCA):
@@ -227,11 +304,20 @@ class CCA_ALS(ElasticCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 max_iter: int = 100,
-                 generalized: bool = False,
-                 initialization: str = 'random', tol: float = 1e-9, stochastic=True,
-                 positive: Union[Iterable[bool], bool] = None):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            max_iter: int = 100,
+            generalized: bool = False,
+            initialization: str = "random",
+            tol: float = 1e-9,
+            stochastic=True,
+            positive: Union[Iterable[bool], bool] = None,
+    ):
         """
         Constructor for CCA_ALS
 
@@ -248,10 +334,21 @@ class CCA_ALS(ElasticCCA):
         :param positive: constrain model weights to be positive
         """
 
-        super().__init__(latent_dims=latent_dims, max_iter=max_iter, generalized=generalized,
-                         initialization=initialization, tol=tol, constrained=False, stochastic=stochastic,
-                         centre=centre, copy_data=copy_data, scale=scale,
-                         positive=positive, random_state=random_state, c=1e-3)
+        super().__init__(
+            latent_dims=latent_dims,
+            max_iter=max_iter,
+            generalized=generalized,
+            initialization=initialization,
+            tol=tol,
+            constrained=False,
+            stochastic=stochastic,
+            centre=centre,
+            copy_data=copy_data,
+            scale=scale,
+            positive=positive,
+            random_state=random_state,
+            c=1e-3,
+        )
 
 
 class SCCA(ElasticCCA):
@@ -271,12 +368,21 @@ class SCCA(ElasticCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: Union[Iterable[float], float] = None,
-                 max_iter: int = 100,
-                 generalized: bool = False,
-                 initialization: str = 'unregularized', tol: float = 1e-9, stochastic=False,
-                 positive: Union[Iterable[bool], bool] = None):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            generalized: bool = False,
+            initialization: str = "unregularized",
+            tol: float = 1e-9,
+            stochastic=False,
+            positive: Union[Iterable[bool], bool] = None,
+    ):
         """
         Constructor for SCCA
 
@@ -293,10 +399,22 @@ class SCCA(ElasticCCA):
         :param stochastic: use stochastic regression optimisers for subproblems
         :param positive: constrain model weights to be positive
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
-                         generalized=generalized,
-                         initialization=initialization, tol=tol, c=c, l1_ratio=1, constrained=False,
-                         stochastic=stochastic, positive=positive, random_state=random_state)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            max_iter=max_iter,
+            generalized=generalized,
+            initialization=initialization,
+            tol=tol,
+            c=c,
+            l1_ratio=1,
+            constrained=False,
+            stochastic=stochastic,
+            positive=positive,
+            random_state=random_state,
+        )
 
 
 class PMD(_Iterative):
@@ -316,11 +434,20 @@ class PMD(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: Union[Iterable[float], float] = None,
-                 max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9,
-                 positive: Union[Iterable[bool], bool] = None):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            generalized: bool = False,
+            initialization: str = "unregularized",
+            tol: float = 1e-9,
+            positive: Union[Iterable[bool], bool] = None,
+    ):
         """
         Constructor for PMD
 
@@ -338,14 +465,28 @@ class PMD(_Iterative):
         """
         self.c = c
         self.positive = positive
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
-                         generalized=generalized,
-                         initialization=initialization, tol=tol, random_state=random_state)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            max_iter=max_iter,
+            generalized=generalized,
+            initialization=initialization,
+            tol=tol,
+            random_state=random_state,
+        )
 
     def _set_loop_params(self):
-        self.loop = PMDInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
-                                 initialization=self.initialization, tol=self.tol, positive=self.positive,
-                                 random_state=self.random_state)
+        self.loop = PMDInnerLoop(
+            max_iter=self.max_iter,
+            c=self.c,
+            generalized=self.generalized,
+            initialization=self.initialization,
+            tol=self.tol,
+            positive=self.positive,
+            random_state=self.random_state,
+        )
 
 
 class ParkhomenkoCCA(_Iterative):
@@ -365,10 +506,19 @@ class ParkhomenkoCCA(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: Union[Iterable[float], float] = None,
-                 max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            generalized: bool = False,
+            initialization: str = "unregularized",
+            tol: float = 1e-9,
+    ):
         """
         Constructor for ParkhomenkoCCA
 
@@ -384,15 +534,27 @@ class ParkhomenkoCCA(_Iterative):
         :param tol: tolerance value used for early stopping
         """
         self.c = c
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
-                         generalized=generalized,
-                         initialization=initialization, tol=tol, random_state=random_state)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            max_iter=max_iter,
+            generalized=generalized,
+            initialization=initialization,
+            tol=tol,
+            random_state=random_state,
+        )
 
     def _set_loop_params(self):
-        self.loop = ParkhomenkoInnerLoop(max_iter=self.max_iter, c=self.c,
-                                         generalized=self.generalized,
-                                         initialization=self.initialization, tol=self.tol,
-                                         random_state=self.random_state)
+        self.loop = ParkhomenkoInnerLoop(
+            max_iter=self.max_iter,
+            c=self.c,
+            generalized=self.generalized,
+            initialization=self.initialization,
+            tol=self.tol,
+            random_state=self.random_state,
+        )
 
 
 class SCCA_ADMM(_Iterative):
@@ -412,13 +574,22 @@ class SCCA_ADMM(_Iterative):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: Union[Iterable[float], float] = None,
-                 mu: Union[Iterable[float], float] = None,
-                 lam: Union[Iterable[float], float] = None,
-                 eta: Union[Iterable[float], float] = None,
-                 max_iter: int = 100,
-                 generalized: bool = False, initialization: str = 'unregularized', tol: float = 1e-9):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            mu: Union[Iterable[float], float] = None,
+            lam: Union[Iterable[float], float] = None,
+            eta: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            generalized: bool = False,
+            initialization: str = "unregularized",
+            tol: float = 1e-9,
+    ):
         """
         Constructor for SCCA_ADMM
 
@@ -440,14 +611,30 @@ class SCCA_ADMM(_Iterative):
         self.mu = mu
         self.lam = lam
         self.eta = eta
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
-                         generalized=generalized,
-                         initialization=initialization, tol=tol, random_state=random_state)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            max_iter=max_iter,
+            generalized=generalized,
+            initialization=initialization,
+            tol=tol,
+            random_state=random_state,
+        )
 
     def _set_loop_params(self):
-        self.loop = ADMMInnerLoop(max_iter=self.max_iter, c=self.c, mu=self.mu, lam=self.lam,
-                                  eta=self.eta, generalized=self.generalized,
-                                  initialization=self.initialization, tol=self.tol, random_state=self.random_state)
+        self.loop = ADMMInnerLoop(
+            max_iter=self.max_iter,
+            c=self.c,
+            mu=self.mu,
+            lam=self.lam,
+            eta=self.eta,
+            generalized=self.generalized,
+            initialization=self.initialization,
+            tol=self.tol,
+            random_state=self.random_state,
+        )
 
 
 class SpanCCA(_Iterative):
@@ -460,11 +647,22 @@ class SpanCCA(_Iterative):
 
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, max_iter: int = 100,
-                 generalized: bool = False,
-                 initialization: str = 'uniform', tol: float = 1e-9, regularisation='l0',
-                 c: Union[Iterable[Union[float, int]], Union[float, int]] = None, rank=1,
-                 positive: Union[Iterable[bool], bool] = None, random_state=None):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            max_iter: int = 100,
+            generalized: bool = False,
+            initialization: str = "uniform",
+            tol: float = 1e-9,
+            regularisation="l0",
+            c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+            rank=1,
+            positive: Union[Iterable[bool], bool] = None,
+            random_state=None,
+    ):
         """
 
         :param latent_dims: number of latent dimensions to fit
@@ -481,19 +679,34 @@ class SpanCCA(_Iterative):
         :param rank:
         :param positive:
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
-                         generalized=generalized,
-                         initialization=initialization, tol=tol, random_state=random_state)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            max_iter=max_iter,
+            generalized=generalized,
+            initialization=initialization,
+            tol=tol,
+            random_state=random_state,
+        )
         self.c = c
         self.regularisation = regularisation
         self.rank = rank
         self.positive = positive
 
     def _set_loop_params(self):
-        self.loop = SpanCCAInnerLoop(max_iter=self.max_iter, c=self.c, generalized=self.generalized,
-                                     initialization=self.initialization, tol=self.tol,
-                                     regularisation=self.regularisation, rank=self.rank, positive=self.positive,
-                                     random_state=self.random_state)
+        self.loop = SpanCCAInnerLoop(
+            max_iter=self.max_iter,
+            c=self.c,
+            generalized=self.generalized,
+            initialization=self.initialization,
+            tol=self.tol,
+            regularisation=self.regularisation,
+            rank=self.rank,
+            positive=self.positive,
+            random_state=self.random_state,
+        )
 
 
 class SWCCA(_Iterative):
@@ -507,12 +720,22 @@ class SWCCA(_Iterative):
 
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 max_iter: int = 500,
-                 generalized: bool = False,
-                 initialization: str = 'uniform', tol: float = 1e-9, regularisation='l0',
-                 c: Union[Iterable[Union[float, int]], Union[float, int]] = None, sample_support=None,
-                 positive: Union[Iterable[bool], bool] = None):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            max_iter: int = 500,
+            generalized: bool = False,
+            initialization: str = "uniform",
+            tol: float = 1e-9,
+            regularisation="l0",
+            c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+            sample_support=None,
+            positive: Union[Iterable[bool], bool] = None,
+    ):
         """
 
         :param latent_dims: number of latent dimensions to fit
@@ -534,13 +757,27 @@ class SWCCA(_Iterative):
         self.sample_support = sample_support
         self.regularisation = regularisation
         self.positive = positive
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, max_iter=max_iter,
-                         generalized=generalized,
-                         initialization=initialization, tol=tol, random_state=random_state)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            max_iter=max_iter,
+            generalized=generalized,
+            initialization=initialization,
+            tol=tol,
+            random_state=random_state,
+        )
 
     def _set_loop_params(self):
-        self.loop = SWCCAInnerLoop(max_iter=self.max_iter, generalized=self.generalized,
-                                   initialization=self.initialization, tol=self.tol, regularisation=self.regularisation,
-                                   c=self.c,
-                                   sample_support=self.sample_support, positive=self.positive,
-                                   random_state=self.random_state)
+        self.loop = SWCCAInnerLoop(
+            max_iter=self.max_iter,
+            generalized=self.generalized,
+            initialization=self.initialization,
+            tol=self.tol,
+            regularisation=self.regularisation,
+            c=self.c,
+            sample_support=self.sample_support,
+            positive=self.positive,
+            random_state=self.random_state,
+        )

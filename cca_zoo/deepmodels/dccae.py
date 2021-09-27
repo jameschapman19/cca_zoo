@@ -16,9 +16,16 @@ class DCCAE(_DCCA_base):
     >>> model = DCCAE()
     """
 
-    def __init__(self, latent_dims: int, objective=objectives.MCCA,
-                 encoders=None,
-                 decoders=None, r: float = 0, eps: float = 1e-3, lam=0.5):
+    def __init__(
+            self,
+            latent_dims: int,
+            objective=objectives.MCCA,
+            encoders=None,
+            decoders=None,
+            r: float = 0,
+            eps: float = 1e-3,
+            lam=0.5,
+    ):
         """
         :param latent_dims: # latent dimensions
         :param objective: # CCA objective: normal tracenorm CCA by default
@@ -59,10 +66,12 @@ class DCCAE(_DCCA_base):
     def loss(self, *args):
         z = self.encode(*args)
         recon = self.decode(*z)
-        recon_loss = self.recon_loss(args[:len(recon)], recon)
+        recon_loss = self.recon_loss(args[: len(recon)], recon)
         return self.lam * recon_loss + self.objective.loss(*z)
 
     @staticmethod
     def recon_loss(x, recon):
-        recons = [F.mse_loss(recon_, x_, reduction='mean') for recon_, x_ in zip(recon, x)]
+        recons = [
+            F.mse_loss(recon_, x_, reduction="mean") for recon_, x_ in zip(recon, x)
+        ]
         return torch.stack(recons).sum(dim=0)
