@@ -22,7 +22,7 @@ def post_process_cv_results(df):
 
 def cv_plot(cv_results_):
     """
-    Plot a hyperparameter surface plot (or multiple surface plots if more than 2 hyperparameters
+    Plot a hyperparameter surface plot (or multiple surface plots if more than 2 hyperparameters)
     """
     if isinstance(cv_results_, dict):
         cv_results_ = pd.DataFrame(cv_results_)
