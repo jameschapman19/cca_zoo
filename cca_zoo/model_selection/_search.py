@@ -1,7 +1,9 @@
 import numbers
 import time
+import warnings
 from collections import defaultdict
 from itertools import product
+from typing import Mapping, Iterable
 
 import numpy as np
 import pandas as pd
@@ -13,15 +15,128 @@ from sklearn.base import is_classifier
 from sklearn.metrics import check_scoring
 from sklearn.metrics._scorer import _check_multimetric_scoring
 from sklearn.model_selection import check_cv
-from sklearn.model_selection._search import BaseSearchCV as SKBaseSearchCV, ParameterGrid, _check_param_grid, \
-    ParameterSampler
+from sklearn.model_selection._search import BaseSearchCV as SKBaseSearchCV, ParameterGrid, _check_param_grid
 from sklearn.model_selection._validation import _fit_and_score, _insert_error_scores
 from sklearn.pipeline import Pipeline
 from sklearn.utils import indexable
-from sklearn.utils.fixes import delayed
-from sklearn.utils.validation import _check_fit_params
+from sklearn.utils._random import sample_without_replacement
+from sklearn.utils.fixes import delayed, loguniform
+from sklearn.utils.validation import _check_fit_params, check_random_state
 
 from cca_zoo.utils.plotting import post_process_cv_results
+
+
+class ParameterSampler:
+    """Generator on parameters sampled from given distributions.
+    Non-deterministic iterable over random candidate combinations for hyper-
+    parameter search. If all parameters are presented as a list,
+    sampling without replacement is performed. If at least one parameter
+    is given as a distribution, sampling with replacement is used.
+    It is highly recommended to use continuous distributions for continuous
+    parameters.
+    Read more in the :ref:`User Guide <grid_search>`.
+    Parameters
+    ----------
+    param_distributions : dict
+        Dictionary with parameters names (`str`) as keys and distributions
+        or lists of parameters to try. Distributions must provide a ``rvs``
+        method for sampling (such as those from scipy.stats.distributions).
+        If a list is given, it is sampled uniformly.
+        If a list of dicts is given, first a dict is sampled uniformly, and
+        then a parameter is sampled using that dict as above.
+    n_iter : int
+        Number of parameter settings that are produced.
+    random_state : int, RandomState instance or None, default=None
+        Pseudo random number generator state used for random uniform sampling
+        from lists of possible values instead of scipy.stats distributions.
+        Pass an int for reproducible output across multiple
+        function calls.
+        See :term:`Glossary <random_state>`.
+    Returns
+    -------
+    params : dict of str to any
+        **Yields** dictionaries mapping each estimator parameter to
+        as sampled value.
+    """
+
+    def __init__(self, param_distributions, n_iter, *, random_state=None):
+        if not isinstance(param_distributions, (Mapping, Iterable)):
+            raise TypeError(
+                "Parameter distribution is not a dict or a list ({!r})".format(
+                    param_distributions
+                )
+            )
+
+        if isinstance(param_distributions, Mapping):
+            # wrap dictionary in a singleton list to support either dict
+            # or list of dicts
+            param_distributions = [param_distributions]
+
+        for dist in param_distributions:
+            if not isinstance(dist, dict):
+                raise TypeError(
+                    "Parameter distribution is not a dict ({!r})".format(dist)
+                )
+            for key in dist:
+                if not isinstance(dist[key], Iterable) and not hasattr(
+                        dist[key], "rvs"
+                ):
+                    raise TypeError(
+                        "Parameter value is not iterable "
+                        "or distribution (key={!r}, value={!r})".format(key, dist[key])
+                    )
+        self.n_iter = n_iter
+        self.random_state = random_state
+        self.param_distributions = param_distributions
+
+    def _is_all_lists(self):
+        return all(
+            all(not hasattr(v, "rvs") for v in dist.values())
+            for dist in self.param_distributions
+        )
+
+    def __iter__(self):
+        rng = check_random_state(self.random_state)
+
+        # if all distributions are given as lists, we want to sample without
+        # replacement
+        if self._is_all_lists():
+            # look up sampled parameter settings in parameter grid
+            param_grid = ParameterGrid(self.param_distributions)
+            grid_size = len(param_grid)
+            n_iter = self.n_iter
+
+            if grid_size < n_iter:
+                warnings.warn(
+                    "The total space of parameters %d is smaller "
+                    "than n_iter=%d. Running %d iterations. For exhaustive "
+                    "searches, use GridSearchCV." % (grid_size, self.n_iter, grid_size),
+                    UserWarning,
+                )
+                n_iter = grid_size
+            for i in sample_without_replacement(grid_size, n_iter, random_state=rng):
+                yield param_grid[i]
+
+        else:
+            for _ in range(self.n_iter):
+                dist = rng.choice(self.param_distributions)
+                # Always sort the keys of a dictionary, for reproducibility
+                items = sorted(dist.items())
+                params = dict()
+                for k, v in items:
+                    if hasattr(v, "rvs"):
+                        params[k] = v.rvs(random_state=rng)
+                    else:
+                        params[k] = v[rng.randint(len(v))]
+                yield params
+
+    def __len__(self):
+        """Number of points that will be sampled."""
+        if self._is_all_lists():
+            grid_size = len(ParameterGrid(self.param_distributions))
+            return min(self.n_iter, grid_size)
+        else:
+            return self.n_iter
 
 
 class BaseSearchCV(SKBaseSearchCV):
@@ -768,8 +883,16 @@ def main():
     from cca_zoo.data import generate_covariance_data
     from cca_zoo.utils.plotting import cv_plot
     Xs, (tx, ty) = generate_covariance_data(100, [10, 11], latent_dims=1, view_sparsity=[0.5, 0.5])
-
+    n_iter_search = 5
     estimator = KCCA()
+
+    # specify parameters and distributions to sample from
+    param_dist = {'kernel': [['poly', 'poly']],
+                  'degree': [[1, 2, 3], [1, 2, 3]],
+                  'c': [loguniform(0, 1), loguniform(0, 1)]}
+
+    mod = RandomizedSearchCV(estimator, cv=5, param_distributions=param_dist, n_iter=n_iter_search).fit(Xs)
+    cv_results_ = post_process_cv_results(pd.DataFrame(mod.cv_results_))
 
     c1 = [0.9, 0.99]
     c2 = [0.9, 0.99]
