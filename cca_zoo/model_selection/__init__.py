@@ -1,1 +1,1 @@
-from ._search import MVGridSearchCV
+from ._search import GridSearchCV

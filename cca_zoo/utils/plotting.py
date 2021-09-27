@@ -9,6 +9,13 @@ import seaborn as sns
 from matplotlib import cm
 
 
+def post_process_cv_results(df):
+    cols = [col for col in df.columns if 'param_' in col]
+    for col in cols:
+        df = df.join(pd.DataFrame(df[col].tolist()).rename(columns=lambda x: col + '_' + str(x + 1))).drop(col, axis=1)
+    return df
+
+
 def cv_plot(cv_results_):
     """
     Plot a hyperparameter surface plot (or multiple surface plots if more than 2 hyperparameters
