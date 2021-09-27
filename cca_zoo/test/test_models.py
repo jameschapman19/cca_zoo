@@ -289,6 +289,3 @@ def test_l0():
     assert (np.abs(swcca.weights[1]) > 1e-5).sum() == 2
     assert (np.abs(swcca.loop.sample_weights) > 1e-5).sum() == 5
 
-
-if __name__ == '__main__':
-    test_sparse_methods()
