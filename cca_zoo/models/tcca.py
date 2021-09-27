@@ -50,7 +50,7 @@ class TCCA(_CCA_Base):
     def _check_params(self):
         self.c = _process_parameter('c', self.c, 0, self.n_views)
 
-    def fit(self, views: Iterable[np.ndarray], **kwargs):
+    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)

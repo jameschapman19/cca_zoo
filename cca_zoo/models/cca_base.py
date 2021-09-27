@@ -38,7 +38,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self.n_views = None
 
     @abstractmethod
-    def fit(self, views: Iterable[np.ndarray], **kwargs):
+    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Fits a given model
 
@@ -107,7 +107,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
             test_scores = None
         plot_latent_train_test(scores, test_scores, title=title)
 
-    def score(self, views: Iterable[np.ndarray], **kwargs):
+    def score(self, views: Iterable[np.ndarray], y=None, **kwargs):
         # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
         pair_corrs = self.correlations(views, **kwargs)
         # n views

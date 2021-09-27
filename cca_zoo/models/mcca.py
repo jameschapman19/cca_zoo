@@ -48,7 +48,7 @@ class MCCA(_CCA_Base):
     def _check_params(self):
         self.c = _process_parameter('c', self.c, 0, self.n_views)
 
-    def fit(self, views: Iterable[np.ndarray], **kwargs):
+    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Fits an MCCA model
 
@@ -164,7 +164,7 @@ class KCCA(MCCA):
         self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
         return kernels, C, D
 
-    def transform(self, views: np.ndarray, **kwargs):
+    def transform(self, views: np.ndarray, y=None, **kwargs):
         """
         Transforms data given a fit KCCA model
 
