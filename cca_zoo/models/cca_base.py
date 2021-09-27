@@ -17,8 +17,15 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
     and gridsearch_fit when only fit (and transform where it is different to the default) is provided.
     """
 
-    def __init__(self, latent_dims: int = 1, scale=True, centre=True, copy_data=True, accept_sparse=False,
-                 random_state: Union[int, np.random.RandomState] = None):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale=True,
+            centre=True,
+            copy_data=True,
+            accept_sparse=False,
+            random_state: Union[int, np.random.RandomState] = None,
+    ):
         """
         Constructor for _CCA_Base
 
@@ -38,7 +45,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self.n_views = None
 
     @abstractmethod
-    def fit(self, views: Iterable[np.ndarray], **kwargs):
+    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Fits a given model
 
@@ -46,15 +53,17 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         raise NotImplementedError
 
-    def transform(self, views: Iterable[np.ndarray], **kwargs):
+    def transform(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Transforms data given a fit model
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model
         """
-        check_is_fitted(self, attributes=['weights'])
-        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
+        check_is_fitted(self, attributes=["weights"])
+        views = check_views(
+            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
+        )
         views = self._centre_scale_transform(views)
         transformed_views = []
         for i, (view) in enumerate(views):
@@ -62,7 +71,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
             transformed_views.append(transformed_view)
         return transformed_views
 
-    def fit_transform(self, views: Iterable[np.ndarray], **kwargs):
+    def fit_transform(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Fits and then transforms the training data
 
@@ -71,7 +80,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         return self.fit(views, **kwargs).transform(views)
 
-    def get_loadings(self, views: Iterable[np.ndarray], **kwargs):
+    def get_loadings(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Returns the model loadings for each view for the given data
 
@@ -80,10 +89,13 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         transformed_views = self.transform(views, **kwargs)
         views = self._centre_scale_transform(views)
-        loadings = [view.T @ transformed_view for view, transformed_view in zip(views, transformed_views)]
+        loadings = [
+            view.T @ transformed_view
+            for view, transformed_view in zip(views, transformed_views)
+        ]
         return loadings
 
-    def correlations(self, views: Iterable[np.ndarray], **kwargs):
+    def correlations(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Predicts the correlation for the given data using the fit model
 
@@ -95,11 +107,20 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         transformed_views = self.transform(views, **kwargs)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
-            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[:self.latent_dims, self.latent_dims:]))
-        all_corrs = np.array(all_corrs).reshape((len(views), len(views), self.latent_dims))
+            all_corrs.append(
+                np.diag(np.corrcoef(x.T, y.T)[: self.latent_dims, self.latent_dims:])
+            )
+        all_corrs = np.array(all_corrs).reshape(
+            (len(views), len(views), self.latent_dims)
+        )
         return all_corrs
 
-    def plot_latent(self, views: Iterable[np.ndarray], test_views: Iterable[np.ndarray] = None, title=''):
+    def plot_latent(
+            self,
+            views: Iterable[np.ndarray],
+            test_views: Iterable[np.ndarray] = None,
+            title="",
+    ):
         scores = self.transform(views)
         if test_views is not None:
             test_scores = self.transform(test_views)
@@ -107,14 +128,15 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
             test_scores = None
         plot_latent_train_test(scores, test_scores, title=title)
 
-    def score(self, views: Iterable[np.ndarray], **kwargs):
+    def score(self, views: Iterable[np.ndarray], y=None, **kwargs):
         # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
         pair_corrs = self.correlations(views, **kwargs)
         # n views
         n_views = pair_corrs.shape[0]
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
-        dim_corrs = (pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views) / (
-                n_views ** 2 - n_views)
+        dim_corrs = (
+                            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
+                    ) / (n_views ** 2 - n_views)
         return dim_corrs
 
     def _centre_scale(self, views: Iterable[np.ndarray]):

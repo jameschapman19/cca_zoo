@@ -17,8 +17,13 @@ class DVCCA(_DCCA_base):
     # https: // github.com / pytorch / examples / blob / master / vae / main.py
     """
 
-    def __init__(self, latent_dims: int, encoders=None,
-                 decoders=None, private_encoders: Iterable[BaseEncoder] = None):
+    def __init__(
+            self,
+            latent_dims: int,
+            encoders=None,
+            decoders=None,
+            private_encoders: Iterable[BaseEncoder] = None,
+    ):
         """
         :param latent_dims: # latent dimensions
         :param encoders: list of encoder networks
@@ -116,12 +121,17 @@ class DVCCA(_DCCA_base):
         mus, logvars = self.encode(*args)
         if self.private_encoders:
             mus_p, logvars_p = self.encode_private(*args)
-            losses = [self.vcca_private_loss(*args, mu=mu, logvar=logvar, mu_p=mu_p, logvar_p=logvar_p) for
-                      (mu, logvar, mu_p, logvar_p) in
-                      zip(mus, logvars, mus_p, logvars_p)]
+            losses = [
+                self.vcca_private_loss(
+                    *args, mu=mu, logvar=logvar, mu_p=mu_p, logvar_p=logvar_p
+                )
+                for (mu, logvar, mu_p, logvar_p) in zip(mus, logvars, mus_p, logvars_p)
+            ]
         else:
-            losses = [self.vcca_loss(*args, mu=mu, logvar=logvar) for (mu, logvar) in
-                      zip(mus, logvars)]
+            losses = [
+                self.vcca_loss(*args, mu=mu, logvar=logvar)
+                for (mu, logvar) in zip(mus, logvars)
+            ]
         return torch.stack(losses).mean()
 
     def vcca_loss(self, *args, mu, logvar):
@@ -134,11 +144,16 @@ class DVCCA(_DCCA_base):
         batch_n = mu.shape[0]
         z_dist = dist.Normal(mu, torch.exp(0.5 * logvar))
         z = z_dist.rsample()
-        kl = torch.mean(-0.5 * torch.sum(1 + logvar - logvar.exp() - mu.pow(2), dim=1), dim=0)
+        kl = torch.mean(
+            -0.5 * torch.sum(1 + logvar - logvar.exp() - mu.pow(2), dim=1), dim=0
+        )
         recons = self.decode(z)
         bces = torch.stack(
-            [F.binary_cross_entropy(recon, arg, reduction='sum') / batch_n for recon, arg in
-             zip(recons, args)]).sum()
+            [
+                F.binary_cross_entropy(recon, arg, reduction="sum") / batch_n
+                for recon, arg in zip(recons, args)
+            ]
+        ).sum()
         return kl + bces
 
     def vcca_private_loss(self, *args, mu, logvar, mu_p, logvar_p):
@@ -154,12 +169,24 @@ class DVCCA(_DCCA_base):
         z_p_dist = dist.Normal(mu_p, torch.exp(0.5 * logvar_p))
         z_p = z_p_dist.rsample()
         kl_p = torch.stack(
-            [torch.mean(-0.5 * torch.sum(1 + logvar_p - logvar_p.exp() - mu_p.pow(2), dim=1), dim=0) for
-             i, _ in enumerate(self.private_encoders)]).sum()
-        kl = torch.mean(-0.5 * torch.sum(1 + logvar - logvar.exp() - mu.pow(2), dim=1), dim=0)
+            [
+                torch.mean(
+                    -0.5
+                    * torch.sum(1 + logvar_p - logvar_p.exp() - mu_p.pow(2), dim=1),
+                    dim=0,
+                )
+                for i, _ in enumerate(self.private_encoders)
+            ]
+        ).sum()
+        kl = torch.mean(
+            -0.5 * torch.sum(1 + logvar - logvar.exp() - mu.pow(2), dim=1), dim=0
+        )
         z_combined = torch.cat([z, z_p], dim=-1)
         recon = self.decode(z_combined)
         bces = torch.stack(
-            [F.binary_cross_entropy(recon[i], args[i], reduction='sum') / batch_n for i, _ in
-             enumerate(self.decoders)]).sum()
+            [
+                F.binary_cross_entropy(recon[i], args[i], reduction="sum") / batch_n
+                for i, _ in enumerate(self.decoders)
+            ]
+        ).sum()
         return kl + kl_p + bces
