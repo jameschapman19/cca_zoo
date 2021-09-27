@@ -180,7 +180,7 @@ class KGCCA(GCCA):
         eigvecs = eigvecs[:, idx].real
         self.weights = [np.linalg.pinv(kernel) @ eigvecs[:, :self.latent_dims] for kernel in kernels]
 
-    def transform(self, views: np.ndarray, **kwargs):
+    def transform(self, views: np.ndarray, y=None, **kwargs):
         """
         Transforms data given a fit KGCCA model
 

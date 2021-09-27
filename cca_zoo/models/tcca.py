@@ -163,7 +163,7 @@ class KTCCA(TCCA):
         kernels = [kernel @ cov_invsqrt for kernel, cov_invsqrt in zip(kernels, self.covs_invsqrt)]
         return kernels, self.covs_invsqrt
 
-    def transform(self, views: np.ndarray, view_indices: Iterable[int] = None, **kwargs):
+    def transform(self, views: np.ndarray, y=None, **kwargs):
         """
         Transforms data given a fit k=KCCA model
 

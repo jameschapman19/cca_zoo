@@ -46,7 +46,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         raise NotImplementedError
 
-    def transform(self, views: Iterable[np.ndarray], **kwargs):
+    def transform(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Transforms data given a fit model
 
@@ -62,7 +62,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
             transformed_views.append(transformed_view)
         return transformed_views
 
-    def fit_transform(self, views: Iterable[np.ndarray], **kwargs):
+    def fit_transform(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Fits and then transforms the training data
 
@@ -71,7 +71,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         return self.fit(views, **kwargs).transform(views)
 
-    def get_loadings(self, views: Iterable[np.ndarray], **kwargs):
+    def get_loadings(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Returns the model loadings for each view for the given data
 
@@ -83,7 +83,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         loadings = [view.T @ transformed_view for view, transformed_view in zip(views, transformed_views)]
         return loadings
 
-    def correlations(self, views: Iterable[np.ndarray], **kwargs):
+    def correlations(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Predicts the correlation for the given data using the fit model
 
