@@ -24,6 +24,8 @@ def cv_plot(cv_results_):
     """
     Plot a hyperparameter surface plot (or multiple surface plots if more than 2 hyperparameters
     """
+    if isinstance(cv_results_, dict):
+        cv_results_ = pd.DataFrame(cv_results_)
     param_cols = [col for col in cv_results_.columns if "param_" in col]
     n_params = len(param_cols)
     n_uniques = [cv_results_[col].nunique() for col in param_cols]

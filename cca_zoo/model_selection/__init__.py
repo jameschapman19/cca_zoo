@@ -1,1 +1,1 @@
-from ._search import GridSearchCV
+from ._search import GridSearchCV, RandomizedSearchCV

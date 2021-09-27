@@ -599,18 +599,15 @@ class GridSearchCV(BaseSearchCV):
 
     Examples
     ---------
-    >>> from mvlearn.model_selection import GridSearchCV
-    >>> from mvlearn.embed import MCCA
+    >>> from cca_zoo.model_selection import GridSearchCV
+    >>> from cca_zoo.models import MCCA
     >>> X1 = [[0, 0, 1], [1, 0, 0], [2, 2, 2], [3, 5, 4]]
     >>> X2 = [[0.1, -0.2], [0.9, 1.1], [6.2, 5.9], [11.9, 12.3]]
     >>> X3 = [[0, 1, 0], [1, 9, 0], [4, 3, 3,], [12, 8, 10]]
     >>> model = MCCA()
-    >>> params = {'regs': [[0.1, 0.2], [0.3, 0.4], 0.1]}
-    >>> def scorer(estimator, X):
-    ...    scores = estimator.score(X)
-    ...    return np.mean(scores)
-    >>> GridSearchCV(model,param_grid=params, cv=3, scoring=scorer).fit([X1,X2,X3]).best_estimator_
-    MCCA(regs=[0.1, 0.3, 0.1])
+    >>> params = {'c': [[0.1, 0.2], [0.3, 0.4], 0.1]}
+    >>> GridSearchCV(model,param_grid=params, cv=3).fit([X1,X2,X3]).best_estimator_.c
+    [0.1, 0.3, 0.1]
 
     Notes
     -----
@@ -875,8 +872,8 @@ class RandomizedSearchCV(BaseSearchCV):
 
     Examples
     ---------
-    >>> from mvlearn.model_selection import RandomizedSearchCV
-    >>> from mvlearn.embed import MCCA
+    >>> from cca_zoo.model_selection import RandomizedSearchCV
+    >>> from cca_zoo.models import MCCA
     >>> from sklearn.utils.fixes import loguniform
     >>> X1 = [[0, 0, 1], [1, 0, 0], [2, 2, 2], [3, 5, 4]]
     >>> X2 = [[0.1, -0.2], [0.9, 1.1], [6.2, 5.9], [11.9, 12.3]]

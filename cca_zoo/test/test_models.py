@@ -4,6 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 from sklearn.utils.validation import check_random_state
 
+from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.models import (
     CCA,
     PLS,
@@ -23,6 +24,7 @@ from cca_zoo.models import (
     PLS_ALS,
     KGCCA,
 )
+from cca_zoo.utils.plotting import cv_plot
 
 rng = check_random_state(0)
 X = rng.rand(500, 20)
@@ -207,24 +209,18 @@ def test_sparse_methods():
     c1 = [1, 3]
     c2 = [1, 3]
 
-    param_grid = {"c": list(itertools.product(c1, c2))}
-    pmd = PMD(latent_dims=latent_dims, random_state=rng).gridsearch_fit(
-        X, Y, param_grid=param_grid, verbose=True
-    )
-    pmd.hyperparameter_plot()
-    pmd.plot_latent((X, Y), (X, Y))
+    param_grid = {"c": [c1, c2]}
+    pmd_cv = GridSearchCV(PMD(random_state=rng), param_grid=param_grid).fit(X, Y)
+    cv_plot(pmd_cv.cv_results_)
+
     c1 = [1e-4, 1e-5]
     c2 = [1e-4, 1e-5]
-    param_grid = {"c": list(itertools.product(c1, c2))}
-    scca = SCCA(latent_dims=latent_dims, random_state=rng).gridsearch_fit(
-        X, Y, param_grid=param_grid, verbose=True
-    )
-    elastic = ElasticCCA(latent_dims=latent_dims, random_state=rng).gridsearch_fit(
-        X, Y, param_grid=param_grid, verbose=True
-    )
-    corr_pmd = pmd.score((X, Y))
-    corr_scca = scca.score((X, Y))
-    corr_elastic = elastic.score((X, Y))
+    param_grid = {"c": [c1, c2]}
+    scca_cv = GridSearchCV(PMD(random_state=rng), param_grid=param_grid).fit(X, Y)
+    elastic_cv = GridSearchCV(PMD(random_state=rng), param_grid=param_grid).fit(X, Y)
+    corr_pmd = pmd_cv.score((X, Y))
+    corr_scca = scca_cv.score((X, Y))
+    corr_elastic = elastic_cv.score((X, Y))
     scca_admm = SCCA_ADMM(c=[1e-4, 1e-4]).fit((X, Y))
     scca = SCCA(c=[1e-4, 1e-4]).fit((X, Y))
 
