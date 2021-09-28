@@ -1,5 +1,5 @@
 cca\_zoo.model\_selection
-=========================
+==========================
 
 cca\_zoo.model\_selection.GridSearchCV
 ---------------------------------------
