@@ -31,17 +31,17 @@ numpy = Numpy(scale=False, n_components=latent_dims).fit(train_1, train_2)
 print("\n Eigenvalues calculated using numpy are :\n", numpy.score(train_1, train_2))
 print("\n Time :\n", numpy.fit_time)
 
-game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
-            mu=True).fit(train_1, train_2)
-print("\n Eigenvalues calculated using game are :\n", game.score(train_1, train_2))
-print("\n Time :\n", game.fit_time)
-np.save('game', game.obj)
-
 sgd = SGD(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True).fit(train_1,
                                                                                                                 train_2)
 print("\n Eigenvalues calculated using sgd are :\n", sgd.score(train_1, train_2))
 print("\n Time :\n", sgd.fit_time)
-np.save('sgd', sgd.obj)
+np.save(f'sgd_{batch_size}', sgd.obj)
+
+game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
+            mu=True).fit(train_1, train_2)
+print("\n Eigenvalues calculated using game are :\n", game.score(train_1, train_2))
+print("\n Time :\n", game.fit_time)
+np.save(f'game_{batch_size}', game.obj)
 
 incremental = Incremental(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(train_1,
                                                                                                          train_2)
