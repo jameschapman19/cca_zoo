@@ -12,7 +12,7 @@ cca\_zoo.model\_selection.GridSearchCV
 
 
 cca\_zoo.model\_selection.RandomizedSearchCV
----------------------------------------
+---------------------------------------------
 
 .. automodule:: cca_zoo.model_selection.RandomizedSearchCV
    :private-members:
