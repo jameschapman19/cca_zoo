@@ -9,10 +9,3 @@ cca\_zoo.probabilisticmodels.vcca
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: cca_zoo.probabilisticmodels
-   :members:
-   :undoc-members:
-   :show-inheritance:

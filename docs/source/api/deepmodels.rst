@@ -72,11 +72,3 @@ cca\_zoo.deepmodels.splitae
    :members:
    :undoc-members:
    :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: cca_zoo.deepmodels
-   :members:
-   :undoc-members:
-   :show-inheritance:

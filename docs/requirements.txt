@@ -3,6 +3,7 @@ numpyro
 arviz
 numpy
 scikit-learn
+mvlearn
 scipy>=1.5
 matplotlib
 seaborn

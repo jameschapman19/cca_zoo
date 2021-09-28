@@ -59,12 +59,3 @@ cca\_zoo.models.tcca
    :members:
    :undoc-members:
    :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: cca_zoo.models
-   :private-members:
-   :members:
-   :undoc-members:
-   :show-inheritance:

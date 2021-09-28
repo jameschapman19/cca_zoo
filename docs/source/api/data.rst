@@ -25,10 +25,3 @@ cca\_zoo.data.utils
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: cca_zoo.data
-   :members:
-   :undoc-members:
-   :show-inheritance:
