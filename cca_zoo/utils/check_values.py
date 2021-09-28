@@ -7,7 +7,7 @@ from sklearn.utils import check_array
 
 def check_views(*views: Iterable[np.ndarray], copy=False, accept_sparse=False):
     """
-    
+
     :param views:
     :param copy:
     """
@@ -21,7 +21,10 @@ def check_views(*views: Iterable[np.ndarray], copy=False, accept_sparse=False):
     if n_views < 2:
         raise ValueError("Require at least 2 views")
 
-    views = [check_array(view, allow_nd=False, copy=copy, accept_sparse=accept_sparse) for view in views]
+    views = [
+        check_array(view, allow_nd=False, copy=copy, accept_sparse=accept_sparse)
+        for view in views
+    ]
 
     if not len(set([view.shape[0] for view in views])) == 1:
         msg = "All views must have the same number of samples"
@@ -41,16 +44,20 @@ def _process_parameter(parameter_name: str, parameter, default, n_views: int):
 
 def _check_parameter_number(parameter_name: str, parameter, n_views: int):
     if len(parameter) != n_views:
-        raise ValueError(f"number of views passed should match number of parameter {parameter_name}"
-                         f"len(views)={n_views} and "
-                         f"len({parameter_name})={len(parameter)}")
+        raise ValueError(
+            f"number of views passed should match number of parameter {parameter_name}"
+            f"len(views)={n_views} and "
+            f"len({parameter_name})={len(parameter)}"
+        )
 
 
 def _check_converged_weights(weights, view_index):
     """check the converged weights are not zero."""
     if np.linalg.norm(weights) <= 0:
-        raise ValueError(f"All result weights are zero in view {view_index}. "
-                         "Try less regularisation or another initialisation")
+        raise ValueError(
+            f"All result weights are zero in view {view_index}. "
+            "Try less regularisation or another initialisation"
+        )
 
 
 def _check_Parikh2014(mus, lams, views):
@@ -62,14 +69,17 @@ def _check_Parikh2014(mus, lams, views):
         if mu < lam / np.linalg.norm(view) ** 2
     ]
     if failed_check:
-        raise ValueError("mu, lam, view not matching condition specified "
-                         "from Parikh 2014 (mu<lam/frobenius(X)**2)."
-                         "Index of view(s) not meeting the condition: "
-                         f"{failed_check}.")
+        raise ValueError(
+            "mu, lam, view not matching condition specified "
+            "from Parikh 2014 (mu<lam/frobenius(X)**2)."
+            "Index of view(s) not meeting the condition: "
+            f"{failed_check}."
+        )
 
 
 def _check_batch_size(batch_size, latent_dimensions):
     """check batch size greater than number of latent dimensions and warn user otherwise"""
     if batch_size < latent_dimensions:
         warnings.warn(
-            'Objective is unstable when batch size is less than the number of latent dimensions')
+            "Objective is unstable when batch size is less than the number of latent dimensions"
+        )

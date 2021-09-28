@@ -24,7 +24,7 @@ class MatrixSquareRoot(Function):
     def backward(ctx, grad_output):
         grad_input = None
         if ctx.needs_input_grad[0]:
-            sqrtm, = ctx.saved_tensors
+            (sqrtm,) = ctx.saved_tensors
             sqrtm = sqrtm.data.cpu().numpy().astype(np.float_)
             gm = grad_output.data.cpu().numpy().astype(np.float_)
 
@@ -79,13 +79,19 @@ class MCCA:
 
         # Get the block covariance matrix placing Xi^TX_i on the diagonal
         D = torch.block_diag(
-            *[(1 - self.r) * m.T @ m + self.r * torch.eye(m.shape[1], device=m.device) for i, m in enumerate(views)])
+            *[
+                (1 - self.r) * m.T @ m + self.r * torch.eye(m.shape[1], device=m.device)
+                for i, m in enumerate(views)
+            ]
+        )
 
         C = C - torch.block_diag(*[view.T @ view for view in views]) + D
 
         D = _minimal_regularisation(D, self.eps)
 
-        R = torch.linalg.inv(MatrixSquareRoot.apply(_minimal_regularisation(D, self.eps)))
+        R = torch.linalg.inv(
+            MatrixSquareRoot.apply(_minimal_regularisation(D, self.eps))
+        )
 
         # In MCCA our eigenvalue problem Cv = lambda Dv
         C_whitened = R @ C @ R.T
@@ -95,7 +101,7 @@ class MCCA:
         # Sort eigenvalues so lviewest first
         idx = torch.argsort(eigvals, descending=True)
 
-        eigvals = eigvals[idx[:self.latent_dims]]
+        eigvals = eigvals[idx[: self.latent_dims]]
 
         # leaky relu encourages the gradient to be driven by positively correlated dimensions while also encouraging
         # dimensions associated with spurious negative correlations to become more positive
@@ -131,15 +137,19 @@ class GCCA:
         # H is n_views * n_samples * k
         views = _demean(*views)
 
-        eigen_views = [view @ torch.inverse(_minimal_regularisation(view.T @ view, self.eps)) @ view.T for view in
-                       views]
+        eigen_views = [
+            view
+            @ torch.inverse(_minimal_regularisation(view.T @ view, self.eps))
+            @ view.T
+            for view in views
+        ]
 
         Q = torch.stack(eigen_views, dim=0).sum(dim=0)
         eigvals = torch.linalg.eigvalsh(Q)
 
         idx = torch.argsort(eigvals, descending=True)
 
-        eigvals = eigvals[idx[:self.latent_dims]]
+        eigvals = eigvals[idx[: self.latent_dims]]
 
         # leaky relu encourages the gradient to be driven by positively correlated dimensions while also encouraging
         # dimensions associated with spurious negative correlations to become more positive
@@ -188,11 +198,19 @@ class CCA:
         H1bar, H2bar = _demean(H1, H2)
 
         SigmaHat12 = (1.0 / (n - 1)) * H1bar.T @ H2bar
-        SigmaHat11 = (1 - self.r) * (1.0 / (n - 1)) * H1bar.T @ H1bar + self.r * torch.eye(o1, device=H1.device)
-        SigmaHat22 = (1 - self.r) * (1.0 / (n - 1)) * H2bar.T @ H2bar + self.r * torch.eye(o2, device=H2.device)
+        SigmaHat11 = (1 - self.r) * (
+                1.0 / (n - 1)
+        ) * H1bar.T @ H1bar + self.r * torch.eye(o1, device=H1.device)
+        SigmaHat22 = (1 - self.r) * (
+                1.0 / (n - 1)
+        ) * H2bar.T @ H2bar + self.r * torch.eye(o2, device=H2.device)
 
-        SigmaHat11RootInv = torch.linalg.inv(MatrixSquareRoot.apply(_minimal_regularisation(SigmaHat11, self.eps)))
-        SigmaHat22RootInv = torch.linalg.inv(MatrixSquareRoot.apply(_minimal_regularisation(SigmaHat22, self.eps)))
+        SigmaHat11RootInv = torch.linalg.inv(
+            MatrixSquareRoot.apply(_minimal_regularisation(SigmaHat11, self.eps))
+        )
+        SigmaHat22RootInv = torch.linalg.inv(
+            MatrixSquareRoot.apply(_minimal_regularisation(SigmaHat22, self.eps))
+        )
 
         Tval = SigmaHat11RootInv @ SigmaHat12 @ SigmaHat22RootInv
         trace_TT = Tval.T @ Tval
@@ -228,11 +246,17 @@ class TCCA:
         m = z[0].size(0)
         z = [z_ - z_.mean(dim=0).unsqueeze(dim=0) for z_ in z]
         covs = [
-            (1 - self.r) * (1.0 / (m - 1)) * z_.T @ z_ + self.r * torch.eye(z_.size(1), device=z_.device)
-            for
-            z_ in z]
-        z = [z_ @ torch.linalg.inv(MatrixSquareRoot.apply(_minimal_regularisation(cov, self.eps))) for z_, cov in
-             zip(z, covs)]
+            (1 - self.r) * (1.0 / (m - 1)) * z_.T @ z_
+            + self.r * torch.eye(z_.size(1), device=z_.device)
+            for z_ in z
+        ]
+        z = [
+            z_
+            @ torch.linalg.inv(
+                MatrixSquareRoot.apply(_minimal_regularisation(cov, self.eps))
+            )
+            for z_, cov in zip(z, covs)
+        ]
 
         for i, el in enumerate(z):
             if i == 0:
@@ -242,7 +266,7 @@ class TCCA:
                     el = torch.unsqueeze(el, 1)
                 curr = torch.unsqueeze(curr, -1) @ el
         M = torch.mean(curr, 0)
-        tl.set_backend('pytorch')
+        tl.set_backend("pytorch")
         M_parafac = parafac(M.detach(), self.latent_dims)
         M_hat = cp_to_tensor(M_parafac)
         return torch.norm(M - M_hat)

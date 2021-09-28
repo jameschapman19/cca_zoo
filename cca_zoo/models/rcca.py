@@ -27,9 +27,16 @@ class rCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: Union[Iterable[float], float] = None,
-                 eps=1e-3):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            eps=1e-3,
+    ):
         """
         Constructor for rCCA
 
@@ -41,23 +48,30 @@ class rCCA(_CCA_Base):
         :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
         :param eps: epsilon for stability
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data,
-                         accept_sparse=['csc', 'csr'],
-                         random_state=random_state)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            accept_sparse=["csc", "csr"],
+            random_state=random_state,
+        )
         self.c = c
         self.eps = eps
 
     def _check_params(self):
-        self.c = _process_parameter('c', self.c, 0, self.n_views)
+        self.c = _process_parameter("c", self.c, 0, self.n_views)
 
-    def fit(self, *views: np.ndarray):
+    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Fits a regularised CCA (canonical ridge) model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
-        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
-        views = self._centre_scale(*views)
+        views = check_views(
+            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
+        )
+        views = self._centre_scale(views)
         self.n_views = len(views)
         self.n = views[0].shape[0]
         self._check_params()
@@ -69,26 +83,37 @@ class rCCA(_CCA_Base):
         return self
 
     def _two_view_fit(self, Us, Ss, Vts):
-        Bs = [(1 - self.c[i]) * S * S / self.n + self.c[i] for i, S in
-              enumerate(Ss)]
+        Bs = [(1 - self.c[i]) * S * S / self.n + self.c[i] for i, S in enumerate(Ss)]
         Rs = [U @ np.diag(S) for U, S in zip(Us, Ss)]
         R_12 = Rs[0].T @ Rs[1]
-        M = np.diag(1 / np.sqrt(Bs[1])) @ R_12.T @ np.diag(1 / Bs[0]) @ R_12 @ np.diag(
-            1 / np.sqrt(Bs[1]))
+        M = (
+                np.diag(1 / np.sqrt(Bs[1]))
+                @ R_12.T
+                @ np.diag(1 / Bs[0])
+                @ R_12
+                @ np.diag(1 / np.sqrt(Bs[1]))
+        )
         n = M.shape[0]
         [eigvals, eigvecs] = eigh(M, subset_by_index=[n - self.latent_dims, n - 1])
         eigvecs = eigvecs
-        idx = np.argsort(eigvals, axis=0)[::-1][:self.latent_dims]
+        idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dims]
         eigvecs = eigvecs[:, idx].real
         w_y = Vts[1].T @ np.diag(1 / np.sqrt(Bs[1])) @ eigvecs
-        w_x = Vts[0].T @ np.diag(1 / Bs[0]) @ R_12 @ np.diag(1 / np.sqrt(Bs[1])) @ eigvecs / np.sqrt(eigvals[idx])
+        w_x = (
+                Vts[0].T
+                @ np.diag(1 / Bs[0])
+                @ R_12
+                @ np.diag(1 / np.sqrt(Bs[1]))
+                @ eigvecs
+                / np.sqrt(eigvals[idx])
+        )
         self.weights = [w_x, w_y]
 
     def _multi_view_fit(self, Us, Ss, Vts):
-        Bs = [(1 - self.c[i]) * S * S + self.c[i] for i, S in
-              enumerate(Ss)]
-        D = block_diag(*[np.diag((1 - self.c[i]) * S * S + self.c[i]) for i, S in
-                         enumerate(Ss)])
+        Bs = [(1 - self.c[i]) * S * S + self.c[i] for i, S in enumerate(Ss)]
+        D = block_diag(
+            *[np.diag((1 - self.c[i]) * S * S + self.c[i]) for i, S in enumerate(Ss)]
+        )
         C = np.concatenate([U @ np.diag(S) for U, S in zip(Us, Ss)], axis=1)
         C = C.T @ C
         C -= block_diag(*[np.diag(S ** 2) for U, S in zip(Us, Ss)]) - D
@@ -99,8 +124,12 @@ class rCCA(_CCA_Base):
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         splits = np.cumsum([0] + [U.shape[1] for U in Us])
-        self.weights = [Vt.T @ np.diag(1 / np.sqrt(B)) @ eigvecs[split:splits[i + 1], :self.latent_dims] for
-                        i, (split, Vt, B) in enumerate(zip(splits[:-1], Vts, Bs))]
+        self.weights = [
+            Vt.T
+            @ np.diag(1 / np.sqrt(B))
+            @ eigvecs[split: splits[i + 1], : self.latent_dims]
+            for i, (split, Vt, B) in enumerate(zip(splits[:-1], Vts, Bs))
+        ]
 
 
 class CCA(rCCA):
@@ -122,7 +151,14 @@ class CCA(rCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+    ):
         """
         Constructor for CCA
         :param latent_dims: number of latent dimensions to fit
@@ -131,8 +167,14 @@ class CCA(rCCA):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, c=[0.0, 0.0],
-                         random_state=random_state)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            c=[0.0, 0.0],
+            random_state=random_state,
+        )
 
 
 class PLS(rCCA):
@@ -150,7 +192,14 @@ class PLS(rCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+    ):
         """
         Constructor for CCA
         :param latent_dims: number of latent dimensions to fit
@@ -159,8 +208,14 @@ class PLS(rCCA):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data, c=[1.0, 1.0],
-                         random_state=random_state)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            c=[1.0, 1.0],
+            random_state=random_state,
+        )
 
 
 def _pca_data(*views: np.ndarray):

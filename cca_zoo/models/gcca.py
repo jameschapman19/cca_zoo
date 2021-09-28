@@ -27,9 +27,16 @@ class GCCA(_CCA_Base):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: Union[Iterable[float], float] = None,
-                 view_weights: Iterable[float] = None):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            view_weights: Iterable[float] = None,
+    ):
         """
         Constructor for GCCA
 
@@ -41,25 +48,34 @@ class GCCA(_CCA_Base):
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         :param view_weights: list of weights of each view
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data,
-                         accept_sparse=['csc', 'csr'],
-                         random_state=random_state)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            accept_sparse=["csc", "csr"],
+            random_state=random_state,
+        )
         self.c = c
         self.view_weights = view_weights
 
     def _check_params(self):
-        self.c = _process_parameter('c', self.c, 0, self.n_views)
-        self.view_weights = _process_parameter('view_weights', self.view_weights, 1, self.n_views)
+        self.c = _process_parameter("c", self.c, 0, self.n_views)
+        self.view_weights = _process_parameter(
+            "view_weights", self.view_weights, 1, self.n_views
+        )
 
-    def fit(self, *views: np.ndarray, K: np.ndarray = None):
+    def fit(self, views: Iterable[np.ndarray], y=None, K: np.ndarray = None):
         """
         Fits a GCCA model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param K: observation matrix. Binary array with (k,n) dimensions where k is the number of views and n is the number of samples 1 means the data is observed in the corresponding view and 0 means the data is unobserved in that view.
         """
-        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
-        views = self._centre_scale(*views)
+        views = check_views(
+            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
+        )
+        views = self._centre_scale(views)
         self.n_views = len(views)
         self.n = views[0].shape[0]
         self._check_params()
@@ -74,18 +90,26 @@ class GCCA(_CCA_Base):
         Q = []
         for i, (view, view_weight) in enumerate(zip(views, self.view_weights)):
             view_cov = view.T @ view / self.n
-            view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(view_cov.shape[0])
+            view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(
+                view_cov.shape[0]
+            )
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
-        Q = np.diag(np.sqrt(np.sum(K, axis=0))) @ Q @ np.diag(np.sqrt(np.sum(K, axis=0)))
+        Q = (
+                np.diag(np.sqrt(np.sum(K, axis=0)))
+                @ Q
+                @ np.diag(np.sqrt(np.sum(K, axis=0)))
+        )
         return Q
 
     def _solve_evp(self, *views, Q=None):
         n = Q.shape[0]
         [eigvals, eigvecs] = eigh(Q, subset_by_index=[n - self.latent_dims, n - 1])
-        idx = np.argsort(eigvals, axis=0)[::-1][:self.latent_dims]
+        idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dims]
         eigvecs = eigvecs[:, idx].real
-        self.weights = [np.linalg.pinv(view) @ eigvecs[:, :self.latent_dims] for view in views]
+        self.weights = [
+            np.linalg.pinv(view) @ eigvecs[:, : self.latent_dims] for view in views
+        ]
 
 
 class KGCCA(GCCA):
@@ -106,12 +130,21 @@ class KGCCA(GCCA):
     >>> model.fit(X1,X2)
     """
 
-    def __init__(self, latent_dims: int = 1, scale: bool = True, centre=True, copy_data=True, random_state=None,
-                 c: Union[Iterable[float], float] = None, eps=1e-3,
-                 kernel: Iterable[Union[float, callable]] = None,
-                 gamma: Iterable[float] = None,
-                 degree: Iterable[float] = None, coef0: Iterable[float] = None,
-                 kernel_params: Iterable[dict] = None):
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            eps=1e-3,
+            kernel: Iterable[Union[float, callable]] = None,
+            gamma: Iterable[float] = None,
+            degree: Iterable[float] = None,
+            coef0: Iterable[float] = None,
+            kernel_params: Iterable[dict] = None,
+    ):
         """
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
@@ -127,8 +160,13 @@ class KGCCA(GCCA):
         :param kernel_params: Iterable of additional parameters (keyword arguments) for kernel function passed as callable object.
         :param eps: epsilon value to ensure stability of smallest eigenvalues
         """
-        super().__init__(latent_dims=latent_dims, scale=scale, centre=centre, copy_data=copy_data,
-                         random_state=random_state)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            random_state=random_state,
+        )
         self.kernel_params = kernel_params
         self.gamma = gamma
         self.coef0 = coef0
@@ -138,22 +176,27 @@ class KGCCA(GCCA):
         self.eps = eps
 
     def _check_params(self):
-        self.kernel = _process_parameter('kernel', self.kernel, 'linear', self.n_views)
-        self.gamma = _process_parameter('gamma', self.gamma, None, self.n_views)
-        self.coef0 = _process_parameter('coef0', self.coef0, 1, self.n_views)
-        self.degree = _process_parameter('degree', self.degree, 1, self.n_views)
-        self.c = _process_parameter('c', self.c, 0, self.n_views)
-        self.view_weights = _process_parameter('view_weights', self.view_weights, 1, self.n_views)
+        self.kernel = _process_parameter("kernel", self.kernel, "linear", self.n_views)
+        self.gamma = _process_parameter("gamma", self.gamma, None, self.n_views)
+        self.coef0 = _process_parameter("coef0", self.coef0, 1, self.n_views)
+        self.degree = _process_parameter("degree", self.degree, 1, self.n_views)
+        self.c = _process_parameter("c", self.c, 0, self.n_views)
+        self.view_weights = _process_parameter(
+            "view_weights", self.view_weights, 1, self.n_views
+        )
 
     def _get_kernel(self, view, X, Y=None):
         if callable(self.kernel):
             params = self.kernel_params[view] or {}
         else:
-            params = {"gamma": self.gamma[view],
-                      "degree": self.degree[view],
-                      "coef0": self.coef0[view]}
-        return pairwise_kernels(X, Y, metric=self.kernel[view],
-                                filter_params=True, **params)
+            params = {
+                "gamma": self.gamma[view],
+                "degree": self.degree[view],
+                "coef0": self.coef0[view],
+            }
+        return pairwise_kernels(
+            X, Y, metric=self.kernel[view], filter_params=True, **params
+        )
 
     def _setup_evp(self, *views: np.ndarray, K=None):
         self.train_views = views
@@ -164,42 +207,48 @@ class KGCCA(GCCA):
         Q = []
         for i, (view, view_weight) in enumerate(zip(kernels, self.view_weights)):
             view_cov = view.T @ view / self.n
-            view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(view_cov.shape[0])
+            view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(
+                view_cov.shape[0]
+            )
             smallest_eig = min(0, np.linalg.eigvalsh(view_cov).min()) - self.eps
             view_cov = view_cov - smallest_eig * np.eye(view_cov.shape[0])
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
-        Q = np.diag(np.sqrt(np.sum(K, axis=0))) @ Q @ np.diag(np.sqrt(np.sum(K, axis=0)))
+        Q = (
+                np.diag(np.sqrt(np.sum(K, axis=0)))
+                @ Q
+                @ np.diag(np.sqrt(np.sum(K, axis=0)))
+        )
         return Q
 
     def _solve_evp(self, *views, Q=None):
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
         n = Q.shape[0]
         [eigvals, eigvecs] = eigh(Q, subset_by_index=[n - self.latent_dims, n - 1])
-        idx = np.argsort(eigvals, axis=0)[::-1][:self.latent_dims]
+        idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dims]
         eigvecs = eigvecs[:, idx].real
-        self.alphas = [np.linalg.pinv(kernel) @ eigvecs[:, :self.latent_dims] for kernel in kernels]
+        self.weights = [
+            np.linalg.pinv(kernel) @ eigvecs[:, : self.latent_dims]
+            for kernel in kernels
+        ]
 
-    def transform(self, *views: np.ndarray, view_indices: Iterable[int] = None, **kwargs):
+    def transform(self, views: np.ndarray, y=None, **kwargs):
         """
         Transforms data given a fit KGCCA model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param kwargs: any additional keyword arguments required by the given model
         """
-        check_is_fitted(self, attributes=['alphas'])
-        views = check_views(*views, copy=self.copy_data, accept_sparse=self.accept_sparse)
-        if view_indices is None:
-            view_indices = np.arange(len(views))
-        transformed_views = []
-        for i, (view, view_index) in enumerate(zip(views, view_indices)):
-            if self.centre:
-                view = view - self.view_means[view_index]
-            if self.scale:
-                view = view / self.view_stds[view_index]
-            transformed_views.append(view)
-        Ktest = [self._get_kernel(view_index, self.train_views[view_index], Y=test_view)
-                 for test_view, view_index in zip(transformed_views, view_indices)]
-        transformed_views = [test_kernel.T @ self.alphas[view_index] for test_kernel, view_index in
-                             zip(Ktest, view_indices)]
+        check_is_fitted(self, attributes=["weights"])
+        views = check_views(
+            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
+        )
+        views = self._centre_scale_transform(views)
+        Ktest = [
+            self._get_kernel(i, self.train_views[i], Y=view)
+            for i, view in enumerate(views)
+        ]
+        transformed_views = [
+            kernel.T @ self.weights[i] for i, kernel in enumerate(Ktest)
+        ]
         return transformed_views

@@ -9,11 +9,18 @@ from sklearn.utils.validation import check_random_state
 from ..utils.check_values import _process_parameter
 
 
-def generate_covariance_data(n: int, view_features: List[int], latent_dims: int = 1,
-                             view_sparsity: List[Union[int, float]] = None,
-                             correlation: Union[List[float], float] = 1,
-                             structure: Union[str, List[str]] = None, sigma: List[float] = None, decay: float = 0.5,
-                             positive=None, random_state: Union[int, np.random.RandomState] = None):
+def generate_covariance_data(
+        n: int,
+        view_features: List[int],
+        latent_dims: int = 1,
+        view_sparsity: List[Union[int, float]] = None,
+        correlation: Union[List[float], float] = 1,
+        structure: Union[str, List[str]] = None,
+        sigma: List[float] = None,
+        decay: float = 0.5,
+        positive=None,
+        random_state: Union[int, np.random.RandomState] = None,
+):
     """
     Function to generate CCA dataset with defined population correlation
 
@@ -33,10 +40,14 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
     >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=generate_covariance_data(200,[10,10],latent_dims=1,correlation=1)
     """
     random_state = check_random_state(random_state)
-    structure = _process_parameter('structure', structure, 'identity', len(view_features))
-    view_sparsity = _process_parameter('view_sparsity', view_sparsity, 1, len(view_features))
-    positive = _process_parameter('positive', positive, False, len(view_features))
-    sigma = _process_parameter('sigma', sigma, 0.5, len(view_features))
+    structure = _process_parameter(
+        "structure", structure, "identity", len(view_features)
+    )
+    view_sparsity = _process_parameter(
+        "view_sparsity", view_sparsity, 1, len(view_features)
+    )
+    positive = _process_parameter("positive", positive, False, len(view_features))
+    sigma = _process_parameter("sigma", sigma, 0.5, len(view_features))
     completed = False
     while not completed:
         try:
@@ -46,17 +57,17 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                 correlation = correlation * decay ** p
             covs = []
             true_features = []
-            for view_p, sparsity, view_structure, view_positive, view_sigma in zip(view_features, view_sparsity,
-                                                                                   structure,
-                                                                                   positive, sigma):
+            for view_p, sparsity, view_structure, view_positive, view_sigma in zip(
+                    view_features, view_sparsity, structure, positive, sigma
+            ):
                 # Covariance Bit
-                if view_structure == 'identity':
+                if view_structure == "identity":
                     cov_ = np.eye(view_p)
-                elif view_structure == 'gaussian':
+                elif view_structure == "gaussian":
                     cov_ = _generate_gaussian_cov(view_p, view_sigma)
-                elif view_structure == 'toeplitz':
+                elif view_structure == "toeplitz":
                     cov_ = _generate_toeplitz_cov(view_p, view_sigma)
-                elif view_structure == 'random':
+                elif view_structure == "random":
                     cov_ = _generate_random_cov(view_p, random_state)
                 else:
                     completed = True
@@ -64,14 +75,22 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
                     break
                 weights = random_state.randn(view_p, latent_dims)
                 if sparsity <= 1:
-                    sparsity = np.ceil(sparsity * view_p).astype('int')
+                    sparsity = np.ceil(sparsity * view_p).astype("int")
                 if sparsity < view_p:
                     mask = np.stack(
-                        (np.concatenate(([0] * (view_p - sparsity), [1] * sparsity)).astype(bool),) * latent_dims,
-                        axis=0).T
+                        (
+                            np.concatenate(
+                                ([0] * (view_p - sparsity), [1] * sparsity)
+                            ).astype(bool),
+                        )
+                        * latent_dims,
+                        axis=0,
+                    ).T
                     random_state.shuffle(mask)
-                    while np.sum(np.unique(mask, axis=1, return_counts=True)[1] > 1) > 0 or np.sum(
-                            np.sum(mask, axis=0) == 0) > 0:
+                    while (
+                            np.sum(np.unique(mask, axis=1, return_counts=True)[1] > 1) > 0
+                            or np.sum(np.sum(mask, axis=0) == 0) > 0
+                    ):
                         random_state.shuffle(mask)
                     weights = weights * mask
                     if view_positive:
@@ -88,11 +107,19 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
             for i, j in itertools.combinations(range(len(splits) - 1), 2):
                 cross = np.zeros((view_features[i], view_features[j]))
                 for _ in range(latent_dims):
-                    A = correlation[_] * np.outer(true_features[i][:, _], true_features[j][:, _])
+                    A = correlation[_] * np.outer(
+                        true_features[i][:, _], true_features[j][:, _]
+                    )
                     # Cross Bit
                     cross += covs[i] @ A @ covs[j]
-                cov[splits[i]: splits[i] + view_features[i], splits[j]: splits[j] + view_features[j]] = cross
-                cov[splits[j]: splits[j] + view_features[j], splits[i]: splits[i] + view_features[i]] = cross.T
+                cov[
+                splits[i]: splits[i] + view_features[i],
+                splits[j]: splits[j] + view_features[j],
+                ] = cross
+                cov[
+                splits[j]: splits[j] + view_features[j],
+                splits[i]: splits[i] + view_features[i],
+                ] = cross.T
 
             X = np.zeros((n, sum(view_features)))
             chol = np.linalg.cholesky(cov)
@@ -105,8 +132,14 @@ def generate_covariance_data(n: int, view_features: List[int], latent_dims: int 
     return views, true_features
 
 
-def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[int] = None,
-                         eps: float = 0, transform=True, random_state=None):
+def generate_simple_data(
+        n: int,
+        view_features: List[int],
+        view_sparsity: List[int] = None,
+        eps: float = 0,
+        transform=True,
+        random_state=None,
+):
     """
 
     :param n: number of samples
@@ -126,12 +159,14 @@ def generate_simple_data(n: int, view_features: List[int], view_sparsity: List[i
         z = np.sin(z)
     views = []
     true_features = []
-    view_sparsity = _process_parameter('view_sparsity', view_sparsity, 0, len(view_features))
+    view_sparsity = _process_parameter(
+        "view_sparsity", view_sparsity, 0, len(view_features)
+    )
     for p, sparsity in zip(view_features, view_sparsity):
         weights = random_state.randn(p, 1)
         if sparsity > 0:
             if sparsity < 1:
-                sparsity = np.ceil(sparsity * p).astype('int')
+                sparsity = np.ceil(sparsity * p).astype("int")
             weights[random_state.choice(np.arange(p), p - sparsity, replace=False)] = 0
         gaussian_x = random_state.randn(n, p) * eps
         view = np.outer(z, weights)
@@ -163,7 +198,11 @@ def _gaussian(x, mu, sig, dn):
     :param sig:
     :param dn:
     """
-    return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.))) * dn / (np.sqrt(2 * np.pi) * sig)
+    return (
+            np.exp(-np.power(x - mu, 2.0) / (2 * np.power(sig, 2.0)))
+            * dn
+            / (np.sqrt(2 * np.pi) * sig)
+    )
 
 
 def _generate_gaussian_cov(p, sigma):

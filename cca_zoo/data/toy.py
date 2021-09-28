@@ -15,19 +15,23 @@ class Split_MNIST_Dataset(Dataset):
     Class to generate paired noisy mnist data
     """
 
-    def __init__(self, mnist_type: str = 'MNIST', train: bool = True, flatten: bool = True):
+    def __init__(
+            self, mnist_type: str = "MNIST", train: bool = True, flatten: bool = True
+    ):
         """
 
         :param mnist_type:
         :param train:
         :param flatten:
         """
-        if mnist_type == 'MNIST':
-            self.dataset = datasets.MNIST('../../data', train=train, download=True)
-        elif mnist_type == 'FashionMNIST':
-            self.dataset = datasets.FashionMNIST('../../data', train=train, download=True)
-        elif mnist_type == 'KMNIST':
-            self.dataset = datasets.KMNIST('../../data', train=train, download=True)
+        if mnist_type == "MNIST":
+            self.dataset = datasets.MNIST("../../data", train=train, download=True)
+        elif mnist_type == "FashionMNIST":
+            self.dataset = datasets.FashionMNIST(
+                "../../data", train=train, download=True
+            )
+        elif mnist_type == "KMNIST":
+            self.dataset = datasets.KMNIST("../../data", train=train, download=True)
 
         self.data = self.dataset.data
         self.base_transform = transforms.ToTensor()
@@ -63,27 +67,39 @@ class Noisy_MNIST_Dataset(Dataset):
     Class to generate paired noisy mnist data
     """
 
-    def __init__(self, mnist_type: str = 'MNIST', train: bool = True, flatten: bool = True):
+    def __init__(
+            self, mnist_type: str = "MNIST", train: bool = True, flatten: bool = True
+    ):
         """
 
         :param mnist_type:
         :param train:
         :param flatten:
         """
-        if mnist_type == 'MNIST':
-            self.dataset = datasets.MNIST('../../data', train=train, download=True)
-        elif mnist_type == 'FashionMNIST':
-            self.dataset = datasets.FashionMNIST('../../data', train=train, download=True)
-        elif mnist_type == 'KMNIST':
-            self.dataset = datasets.KMNIST('../../data', train=train, download=True)
+        if mnist_type == "MNIST":
+            self.dataset = datasets.MNIST("../../data", train=train, download=True)
+        elif mnist_type == "FashionMNIST":
+            self.dataset = datasets.FashionMNIST(
+                "../../data", train=train, download=True
+            )
+        elif mnist_type == "KMNIST":
+            self.dataset = datasets.KMNIST("../../data", train=train, download=True)
 
         self.data = self.dataset.data
         self.base_transform = transforms.ToTensor()
-        self.a_transform = transforms.Compose([transforms.ToTensor(),  # first, convert image to PyTorch tensor
-                                               transforms.ToPILImage()])
+        self.a_transform = transforms.Compose(
+            [
+                transforms.ToTensor(),  # first, convert image to PyTorch tensor
+                transforms.ToPILImage(),
+            ]
+        )
         self.b_transform = transforms.Compose(
-            [transforms.ToTensor(), transforms.Lambda(_add_mnist_noise),
-             transforms.Lambda(self.__threshold_func__)])
+            [
+                transforms.ToTensor(),
+                transforms.Lambda(_add_mnist_noise),
+                transforms.Lambda(self.__threshold_func__),
+            ]
+        )
         self.targets = self.dataset.targets
         self.OHs = _OH_digits(self.targets.numpy().astype(int))
         self.filtered_classes = []
@@ -103,13 +119,17 @@ class Noisy_MNIST_Dataset(Dataset):
     def __getitem__(self, idx):
         x_a = self.a_transform(self.data[idx].numpy() / 255)
         rot_a = torch.rand(1) * 90 - 45
-        x_a = transforms.functional.rotate(x_a, rot_a.item(), interpolation=InterpolationMode.BILINEAR)
+        x_a = transforms.functional.rotate(
+            x_a, rot_a.item(), interpolation=InterpolationMode.BILINEAR
+        )
         x_a = self.base_transform(x_a)  # convert from PIL back to pytorch tensor
 
         label = self.targets[idx]
         # get random index of image with same class
         random_index = np.random.randint(self.filtered_nums[label])
-        x_b = Image.fromarray(self.filtered_classes[label][random_index, :, :].numpy() / 255, mode='L')
+        x_b = Image.fromarray(
+            self.filtered_classes[label][random_index, :, :].numpy() / 255, mode="L"
+        )
         x_b = self.b_transform(x_b)
 
         if self.flatten:
@@ -138,7 +158,7 @@ class Tangled_MNIST_Dataset(Dataset):
     Class to generate paired tangled MNIST dataset
     """
 
-    def __init__(self, mnist_type='MNIST', train=True, fixed=False, flatten=True):
+    def __init__(self, mnist_type="MNIST", train=True, fixed=False, flatten=True):
         """
 
         :param mnist_type:
@@ -146,12 +166,14 @@ class Tangled_MNIST_Dataset(Dataset):
         :param fixed:
         :param flatten:
         """
-        if mnist_type == 'MNIST':
-            self.dataset = datasets.MNIST('../../data', train=train, download=True)
-        elif mnist_type == 'FashionMNIST':
-            self.dataset = datasets.FashionMNIST('../../data', train=train, download=True)
-        elif mnist_type == 'KMNIST':
-            self.dataset = datasets.KMNIST('../../data', train=train, download=True)
+        if mnist_type == "MNIST":
+            self.dataset = datasets.MNIST("../../data", train=train, download=True)
+        elif mnist_type == "FashionMNIST":
+            self.dataset = datasets.FashionMNIST(
+                "../../data", train=train, download=True
+            )
+        elif mnist_type == "KMNIST":
+            self.dataset = datasets.KMNIST("../../data", train=train, download=True)
 
         self.data = self.dataset.data
         self.mean = torch.mean(self.data.float())
@@ -168,7 +190,9 @@ class Tangled_MNIST_Dataset(Dataset):
         if fixed:
             self.view_b_indices = []
             for i in range(10):
-                self.view_b_indices.append(np.random.permutation(np.arange(len(self.data))[self.targets == i]))
+                self.view_b_indices.append(
+                    np.random.permutation(np.arange(len(self.data))[self.targets == i])
+                )
 
         self.flatten = flatten
 
@@ -178,14 +202,20 @@ class Tangled_MNIST_Dataset(Dataset):
     def __getitem__(self, idx):
         # get first image from idx and second of same class
         label = self.targets[idx]
-        x_a = Image.fromarray(self.data[idx].numpy() / 255, mode='L')
+        x_a = Image.fromarray(self.data[idx].numpy() / 255, mode="L")
         # get random index of image with same class
         random_index = np.random.randint(self.filtered_nums[label])
-        x_b = Image.fromarray(self.filtered_classes[label][random_index, :, :].numpy() / 255, mode='L')
+        x_b = Image.fromarray(
+            self.filtered_classes[label][random_index, :, :].numpy() / 255, mode="L"
+        )
         # get random angles of rotation
         rot_a, rot_b = torch.rand(2) * 90 - 45
-        x_a_rotate = transforms.functional.rotate(x_a, rot_a.item(), interpolation=InterpolationMode.BILINEAR)
-        x_b_rotate = transforms.functional.rotate(x_b, rot_b.item(), interpolation=InterpolationMode.BILINEAR)
+        x_a_rotate = transforms.functional.rotate(
+            x_a, rot_a.item(), interpolation=InterpolationMode.BILINEAR
+        )
+        x_b_rotate = transforms.functional.rotate(
+            x_b, rot_b.item(), interpolation=InterpolationMode.BILINEAR
+        )
         # convert images to tensors
         x_a_rotate = self.transform(x_a_rotate)
         x_b_rotate = self.transform(x_b_rotate)

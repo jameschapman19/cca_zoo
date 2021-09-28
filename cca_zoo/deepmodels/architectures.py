@@ -30,25 +30,33 @@ class BaseDecoder(torch.nn.Module):
 
 
 class Encoder(BaseEncoder):
-    def __init__(self, latent_dims: int, variational: bool = False, feature_size: int = 784,
-                 layer_sizes: Iterable = None):
+    def __init__(
+            self,
+            latent_dims: int,
+            variational: bool = False,
+            feature_size: int = 784,
+            layer_sizes: Iterable = None,
+    ):
         super(Encoder, self).__init__(latent_dims, variational=variational)
         if layer_sizes is None:
             layer_sizes = [128]
         layers = []
 
         # first layer
-        layers.append(torch.nn.Sequential(
-            torch.nn.Linear(feature_size, layer_sizes[0]),
-            torch.nn.ReLU()
-        ))
+        layers.append(
+            torch.nn.Sequential(
+                torch.nn.Linear(feature_size, layer_sizes[0]), torch.nn.ReLU()
+            )
+        )
 
         # other layers
         for l_id in range(len(layer_sizes) - 1):
-            layers.append(torch.nn.Sequential(
-                torch.nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
-                torch.nn.ReLU()
-            ))
+            layers.append(
+                torch.nn.Sequential(
+                    torch.nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
+                    torch.nn.ReLU(),
+                )
+            )
         self.layers = torch.nn.Sequential(*layers)
 
         if self.variational:
@@ -69,33 +77,46 @@ class Encoder(BaseEncoder):
 
 
 class Decoder(BaseDecoder):
-    def __init__(self, latent_dims: int, feature_size: int = 784, layer_sizes: list = None, norm_output: bool = False):
+    def __init__(
+            self,
+            latent_dims: int,
+            feature_size: int = 784,
+            layer_sizes: list = None,
+            norm_output: bool = False,
+    ):
         super(Decoder, self).__init__(latent_dims)
         if layer_sizes is None:
             layer_sizes = [128]
         layers = []
 
-        layers.append(torch.nn.Sequential(
-            torch.nn.Linear(latent_dims, layer_sizes[0]),
-            torch.nn.Sigmoid()
-        ))
+        layers.append(
+            torch.nn.Sequential(
+                torch.nn.Linear(latent_dims, layer_sizes[0]), torch.nn.Sigmoid()
+            )
+        )
 
         for l_id in range(len(layer_sizes)):
             if l_id == len(layer_sizes) - 1:
                 if norm_output:
-                    layers.append(torch.nn.Sequential(
-                        torch.nn.Linear(layer_sizes[l_id], feature_size),
-                        torch.nn.Sigmoid()
-                    ))
+                    layers.append(
+                        torch.nn.Sequential(
+                            torch.nn.Linear(layer_sizes[l_id], feature_size),
+                            torch.nn.Sigmoid(),
+                        )
+                    )
                 else:
-                    layers.append(torch.nn.Sequential(
-                        torch.nn.Linear(layer_sizes[l_id], feature_size),
-                    ))
+                    layers.append(
+                        torch.nn.Sequential(
+                            torch.nn.Linear(layer_sizes[l_id], feature_size),
+                        )
+                    )
             else:
-                layers.append(torch.nn.Sequential(
-                    torch.nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
-                    torch.nn.ReLU()
-                ))
+                layers.append(
+                    torch.nn.Sequential(
+                        torch.nn.Linear(layer_sizes[l_id], layer_sizes[l_id + 1]),
+                        torch.nn.ReLU(),
+                    )
+                )
         self.layers = torch.nn.Sequential(*layers)
 
     def forward(self, x):
@@ -104,10 +125,16 @@ class Decoder(BaseDecoder):
 
 
 class CNNEncoder(BaseEncoder):
-    def __init__(self, latent_dims: int, variational: bool = False, feature_size: Iterable = (28, 28),
-                 channels: list = None, kernel_sizes: list = None,
-                 stride: list = None,
-                 padding: list = None):
+    def __init__(
+            self,
+            latent_dims: int,
+            variational: bool = False,
+            feature_size: Iterable = (28, 28),
+            channels: list = None,
+            kernel_sizes: list = None,
+            stride: list = None,
+            padding: list = None,
+    ):
         super(CNNEncoder, self).__init__(latent_dims, variational=variational)
         if channels is None:
             channels = [1, 1]
@@ -122,31 +149,39 @@ class CNNEncoder(BaseEncoder):
         current_size = feature_size[0]
         current_channels = 1
         for l_id in range(len(channels) - 1):
-            conv_layers.append(torch.nn.Sequential(  # input shape (1, current_size, current_size)
-                torch.nn.Conv2d(
-                    in_channels=current_channels,  # input height
-                    out_channels=channels[l_id],  # n_filters
-                    kernel_size=kernel_sizes[l_id],  # filter size
-                    stride=stride[l_id],  # filter movement/step
-                    padding=padding[l_id],
-                    # if want same width and length of this image after Conv2d, padding=(kernel_size-1)/2 if
-                    # stride=1
-                ),  # output shape (out_channels, current_size, current_size)
-                torch.nn.ReLU(),  # activation
-            ))
+            conv_layers.append(
+                torch.nn.Sequential(  # input shape (1, current_size, current_size)
+                    torch.nn.Conv2d(
+                        in_channels=current_channels,  # input height
+                        out_channels=channels[l_id],  # n_filters
+                        kernel_size=kernel_sizes[l_id],  # filter size
+                        stride=stride[l_id],  # filter movement/step
+                        padding=padding[l_id],
+                        # if want same width and length of this image after Conv2d, padding=(kernel_size-1)/2 if
+                        # stride=1
+                    ),  # output shape (out_channels, current_size, current_size)
+                    torch.nn.ReLU(),  # activation
+                )
+            )
             current_size = current_size
             current_channels = channels[l_id]
 
         if self.variational:
             self.fc_mu = torch.nn.Sequential(
-                torch.nn.Linear(int(current_size * current_size * current_channels), latent_dims),
+                torch.nn.Linear(
+                    int(current_size * current_size * current_channels), latent_dims
+                ),
             )
             self.fc_var = torch.nn.Sequential(
-                torch.nn.Linear(int(current_size * current_size * current_channels), latent_dims),
+                torch.nn.Linear(
+                    int(current_size * current_size * current_channels), latent_dims
+                ),
             )
         else:
             self.fc = torch.nn.Sequential(
-                torch.nn.Linear(int(current_size * current_size * current_channels), latent_dims),
+                torch.nn.Linear(
+                    int(current_size * current_size * current_channels), latent_dims
+                ),
             )
         self.conv_layers = torch.nn.Sequential(*conv_layers)
 
@@ -163,9 +198,16 @@ class CNNEncoder(BaseEncoder):
 
 
 class CNNDecoder(BaseDecoder):
-    def __init__(self, latent_dims: int, feature_size: Iterable = (28, 28), channels: list = None, kernel_sizes=None,
-                 strides=None,
-                 paddings=None, norm_output: bool = False):
+    def __init__(
+            self,
+            latent_dims: int,
+            feature_size: Iterable = (28, 28),
+            channels: list = None,
+            kernel_sizes=None,
+            strides=None,
+            paddings=None,
+            norm_output: bool = False,
+    ):
         super(CNNDecoder, self).__init__(latent_dims)
         if channels is None:
             channels = [1, 1]
@@ -187,33 +229,44 @@ class CNNDecoder(BaseDecoder):
         # Loop backward through decoding layers in order to work out the dimensions at each layer - in particular the first
         # linear layer needs to know B*current_size*current_size*channels
         for l_id, (channel, kernel, stride, padding) in reversed(
-                list(enumerate(zip(channels, kernel_sizes, strides, paddings)))):
-            conv_layers.append(torch.nn.Sequential(
-                torch.nn.ConvTranspose2d(
-                    in_channels=channel,  # input height
-                    out_channels=current_channels,
-                    kernel_size=kernel_sizes[l_id],
-                    stride=strides[l_id],  # filter movement/step
-                    padding=paddings[l_id],
-                    # if want same width and length of this image after Conv2d, padding=(kernel_size-1)/2 if
-                    # stride=1
-                ),
-                activation,
-            ))
+                list(enumerate(zip(channels, kernel_sizes, strides, paddings)))
+        ):
+            conv_layers.append(
+                torch.nn.Sequential(
+                    torch.nn.ConvTranspose2d(
+                        in_channels=channel,  # input height
+                        out_channels=current_channels,
+                        kernel_size=kernel_sizes[l_id],
+                        stride=strides[l_id],  # filter movement/step
+                        padding=paddings[l_id],
+                        # if want same width and length of this image after Conv2d, padding=(kernel_size-1)/2 if
+                        # stride=1
+                    ),
+                    activation,
+                )
+            )
             current_size = current_size
             current_channels = channel
 
         # reverse layers as constructed in reverse
         self.conv_layers = torch.nn.Sequential(*conv_layers[::-1])
         self.fc_layer = torch.nn.Sequential(
-            torch.nn.Linear(latent_dims, int(current_size * current_size * current_channels)),
+            torch.nn.Linear(
+                latent_dims, int(current_size * current_size * current_channels)
+            ),
         )
 
     def forward(self, x):
         x = self.fc_layer(x)
         x = x.reshape((x.shape[0], self.conv_layers[0][0].in_channels, -1))
         x = x.reshape(
-            (x.shape[0], self.conv_layers[0][0].in_channels, int(sqrt(x.shape[-1])), int(sqrt(x.shape[-1]))))
+            (
+                x.shape[0],
+                self.conv_layers[0][0].in_channels,
+                int(sqrt(x.shape[-1])),
+                int(sqrt(x.shape[-1])),
+            )
+        )
         x = self.conv_layers(x)
         return x
 
@@ -248,7 +301,12 @@ class E2EBlockReverse(torch.nn.Module):
 
 # BrainNetCNN Network for fitting Gold-MSI on LSD dataset
 class BrainNetEncoder(BaseEncoder):
-    def __init__(self, latent_dims: int, variational: bool = False, feature_size: Tuple[int] = (200, ...)):
+    def __init__(
+            self,
+            latent_dims: int,
+            variational: bool = False,
+            feature_size: Tuple[int] = (200, ...),
+    ):
         super(BrainNetEncoder, self).__init__(latent_dims, variational=variational)
         _check_feature_size(feature_size)
         self.d = feature_size[0]
@@ -264,7 +322,9 @@ class BrainNetEncoder(BaseEncoder):
         out = F.leaky_relu(self.e2econv1(x), negative_slope=0.33)  # B,32,200,200
         out = F.leaky_relu(self.e2econv2(out), negative_slope=0.33)  # B,64,200,200
         out = F.leaky_relu(self.E2N(out), negative_slope=0.33)  # B,1,200,1
-        out = F.dropout(F.leaky_relu(self.N2G(out), negative_slope=0.33), p=0.5)  # B,256,1,1
+        out = F.dropout(
+            F.leaky_relu(self.N2G(out), negative_slope=0.33), p=0.5
+        )  # B,256,1,1
         out = out.view(out.shape[0], -1)  # B,256
         out = F.dropout(F.leaky_relu(self.dense1(out), negative_slope=0.33), p=0.5)
         out = F.dropout(F.leaky_relu(self.dense2(out), negative_slope=0.33), p=0.5)
@@ -330,5 +390,7 @@ class LinearDecoder(BaseDecoder):
 
 def _check_feature_size(feature_size):
     if feature_size[0] != feature_size[1]:
-        raise ValueError("BrainNetCNN requires a pair of feature_size of the"
-                         f"same value. feature_size={feature_size}.")
+        raise ValueError(
+            "BrainNetCNN requires a pair of feature_size of the"
+            f"same value. feature_size={feature_size}."
+        )
