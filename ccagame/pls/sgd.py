@@ -36,8 +36,18 @@ def update(X, Y, U, V, lr: float = 0.1):
 
 # Object form
 class SGD(_PLS):
-    def __init__(self, n_components=2, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
-                 random_state: int = 0, batch_size: int = 128, verbose=False):
+    def __init__(
+        self,
+        n_components=2,
+        *,
+        scale=True,
+        copy=True,
+        lr: float = 1,
+        epochs: int = 100,
+        random_state: int = 0,
+        batch_size: int = 128,
+        verbose=False,
+    ):
         super().__init__(n_components, scale=scale, copy=copy)
         self.lr = lr
         self.epochs = epochs
@@ -46,9 +56,10 @@ class SGD(_PLS):
         self.verbose = verbose
 
     def _fit(self, X, Y):
-        X, X_val, Y, Y_val = train_test_split(X, Y, random_state=self.random_state,
-                                              train_size=0.9)
-        U, V = initialize(X, Y, self.n_components, 'random', self.random_state)
+        X, X_val, Y, Y_val = train_test_split(
+            X, Y, random_state=self.random_state, train_size=0.9
+        )
+        U, V = initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
         self.obj = []
@@ -62,13 +73,20 @@ class SGD(_PLS):
             epoch_time = time.time() - start_time
             if self.verbose:
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f'epoch {epoch}: {self.obj[-1]}')
+                print(f"epoch {epoch}: {self.obj[-1]}")
         return U, V
 
 
 # Function form
-def calc_sgd(X, Y, k: int, lr: float = 1, epochs: int = 100,
-             random_state: int = 0, batch_size: int = 128):
+def calc_sgd(
+    X,
+    Y,
+    k: int,
+    lr: float = 1,
+    epochs: int = 100,
+    random_state: int = 0,
+    batch_size: int = 128,
+):
     """
     Calculate partial least squares weights with SGD method from https://home.ttic.edu/~klivescu/papers/arora_etal_allerton2012.pdf
 
@@ -93,7 +111,7 @@ def calc_sgd(X, Y, k: int, lr: float = 1, epochs: int = 100,
     -------
 
     """
-    U, V = initialize(X, Y, k, 'random', random_state)
+    U, V = initialize(X, Y, k, "random", random_state)
     batches = data_stream(X, Y, batch_size=batch_size)
     num_batches = get_num_batches(X, Y, batch_size=batch_size)
     for epoch in range(epochs):
@@ -104,5 +122,5 @@ def calc_sgd(X, Y, k: int, lr: float = 1, epochs: int = 100,
             V = update(Y_i, X_i, V, U, lr=lr)
         epoch_time = time.time() - start_time
         print(f"Epoch {epoch} in {epoch_time} sec")
-        print(f'epoch {epoch}: {TV(X, Y, U, V)}')
+        print(f"epoch {epoch}: {TV(X, Y, U, V)}")
     return TV(X, Y, U, V), U, V

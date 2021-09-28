@@ -44,7 +44,7 @@ def model(u, v, X, Y, V, k):
 
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=6, static_argnames=('lr', 'riemannian_projection'))
+@partial(jit, static_argnums=6, static_argnames=("lr", "riemannian_projection"))
 def update(u, v, X, Y, U, V, k, lr: float = 1.0, riemannian_projection=False):
     """
     Update the left and right singular vector estimates
@@ -83,9 +83,18 @@ def update(u, v, X, Y, U, V, k, lr: float = 1.0, riemannian_projection=False):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_game(X, Y, k, lr=1, epochs=100, riemannian_projection=False,
-              random_state=0, simultaneous=True, batch_size=None):
-    U, V = initialize(X, Y, k, 'random', random_state)
+def calc_game(
+    X,
+    Y,
+    k,
+    lr=1,
+    epochs=100,
+    riemannian_projection=False,
+    random_state=0,
+    simultaneous=True,
+    batch_size=None,
+):
+    U, V = initialize(X, Y, k, "random", random_state)
     batches = data_stream(X, Y, batch_size=batch_size)
     num_batches = get_num_batches(X, Y, batch_size=batch_size)
     if simultaneous:
@@ -94,34 +103,63 @@ def calc_game(X, Y, k, lr=1, epochs=100, riemannian_projection=False,
             for _ in range(num_batches):
                 X_i, Y_i = next(batches)
                 for k_ in range(k):
-                    u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=lr,
-                                  riemannian_projection=riemannian_projection)
+                    u, v = update(
+                        U[:, k_],
+                        V[:, k_],
+                        X_i,
+                        Y_i,
+                        U,
+                        V,
+                        k_,
+                        lr=lr,
+                        riemannian_projection=riemannian_projection,
+                    )
                     U = U.at[:, k_].set(u)
                     V = V.at[:, k_].set(v)
             epoch_time = time.time() - start_time
             print(f"Epoch {epoch} in {epoch_time} sec")
-            print(f'epoch {epoch}: {TCC(X, Y, U, V)}')
+            print(f"epoch {epoch}: {TCC(X, Y, U, V)}")
     else:
         for k_ in range(k):
             for epoch in range(epochs):
                 start_time = time.time()
                 for _ in range(num_batches):
                     X_i, Y_i = next(batches)
-                    u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=lr,
-                                  riemannian_projection=riemannian_projection)
+                    u, v = update(
+                        U[:, k_],
+                        V[:, k_],
+                        X_i,
+                        Y_i,
+                        U,
+                        V,
+                        k_,
+                        lr=lr,
+                        riemannian_projection=riemannian_projection,
+                    )
                     U = U.at[:, k_].set(u)
                     V = V.at[:, k_].set(v)
                 epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f'epoch {epoch}: {TCC(X, Y, U, V)}')
+                print(f"epoch {epoch}: {TCC(X, Y, U, V)}")
     return TCC(X, Y, U, V), U, V
 
 
 class Game(_CCA):
-
-    def __init__(self, n_components=4, *, scale=True, copy=True, lr: float = 1.0, epochs: int = 100,
-                 riemannian_projection: bool = False,
-                 random_state: int = 0, simultaneous: bool = True, batch_size: int = 128, mu=True, verbose=False):
+    def __init__(
+        self,
+        n_components=4,
+        *,
+        scale=True,
+        copy=True,
+        lr: float = 1.0,
+        epochs: int = 100,
+        riemannian_projection: bool = False,
+        random_state: int = 0,
+        simultaneous: bool = True,
+        batch_size: int = 128,
+        mu=True,
+        verbose=False,
+    ):
         super().__init__(n_components, scale=scale, copy=copy)
         self.lr = lr
         self.epochs = epochs
@@ -133,7 +171,7 @@ class Game(_CCA):
         self.verbose = verbose
 
     def _fit(self, X, Y):
-        U, V = initialize(X, Y, self.n_components, 'random', self.random_state)
+        U, V = initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
         if self.simultaneous:
@@ -142,26 +180,44 @@ class Game(_CCA):
                 for _ in range(num_batches):
                     X_i, Y_i = next(batches)
                     for k_ in range(self.n_components):
-                        u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=self.lr,
-                                      riemannian_projection=self.riemannian_projection)
+                        u, v = update(
+                            U[:, k_],
+                            V[:, k_],
+                            X_i,
+                            Y_i,
+                            U,
+                            V,
+                            k_,
+                            lr=self.lr,
+                            riemannian_projection=self.riemannian_projection,
+                        )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
                 epoch_time = time.time() - start_time
                 if self.verbose:
                     print(f"Epoch {epoch} in {epoch_time} sec")
-                    print(f'epoch {epoch}: {TCC(X, Y, U, V)}')
+                    print(f"epoch {epoch}: {TCC(X, Y, U, V)}")
         else:
             for k_ in range(self.n_components):
                 for epoch in range(self.epochs):
                     start_time = time.time()
                     for _ in range(num_batches):
                         X_i, Y_i = next(batches)
-                        u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=self.lr,
-                                      riemannian_projection=self.riemannian_projection)
+                        u, v = update(
+                            U[:, k_],
+                            V[:, k_],
+                            X_i,
+                            Y_i,
+                            U,
+                            V,
+                            k_,
+                            lr=self.lr,
+                            riemannian_projection=self.riemannian_projection,
+                        )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
                     epoch_time = time.time() - start_time
                     if self.verbose:
                         print(f"Epoch {epoch} in {epoch_time} sec")
-                        print(f'epoch {epoch}: {TCC(X, Y, U, V)}')
+                        print(f"epoch {epoch}: {TCC(X, Y, U, V)}")
         return U, V

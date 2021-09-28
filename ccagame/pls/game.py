@@ -38,7 +38,7 @@ def alpha_model(u, v, X, Y, U, V, k: int):
 
     """
     C_xy = X.T @ Y
-    rewards = (u.T @ C_xy @ v)
+    rewards = u.T @ C_xy @ v
     penalties = (u.T @ C_xy @ V[:, :k]) ** 2 / jnp.diag(U[:, :k].T @ C_xy @ V[:, :k])
     return jnp.sum(rewards - penalties.sum())
 
@@ -76,8 +76,19 @@ def mu_model(u, v, X, Y, U, V, k: int):
 
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=6, static_argnames=('lr', 'riemannian_projection', 'mu'))
-def update(u, v, X, Y, U, V, k: int, lr: float = 1, riemannian_projection: bool = False, mu=False):
+@partial(jit, static_argnums=6, static_argnames=("lr", "riemannian_projection", "mu"))
+def update(
+    u,
+    v,
+    X,
+    Y,
+    U,
+    V,
+    k: int,
+    lr: float = 1,
+    riemannian_projection: bool = False,
+    mu=False,
+):
     """
     Update the left and right singular vector estimates
 
@@ -123,10 +134,21 @@ def update(u, v, X, Y, U, V, k: int, lr: float = 1, riemannian_projection: bool 
 
 # Object form
 class Game(_PLS):
-
-    def __init__(self, n_components=4, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
-                 riemannian_projection: bool = False,
-                 random_state: int = 0, simultaneous: bool = True, batch_size: int = 128, mu=True, verbose=False):
+    def __init__(
+        self,
+        n_components=4,
+        *,
+        scale=True,
+        copy=True,
+        lr: float = 1,
+        epochs: int = 100,
+        riemannian_projection: bool = False,
+        random_state: int = 0,
+        simultaneous: bool = True,
+        batch_size: int = 128,
+        mu=True,
+        verbose=False,
+    ):
         super().__init__(n_components, scale=scale, copy=copy)
         self.lr = lr
         self.epochs = epochs
@@ -149,9 +171,10 @@ class Game(_PLS):
         -------
 
         """
-        X, X_val, Y, Y_val = train_test_split(X, Y, random_state=self.random_state,
-                                              train_size=0.9)
-        U, V = initialize(X, Y, self.n_components, 'random', self.random_state)
+        X, X_val, Y, Y_val = train_test_split(
+            X, Y, random_state=self.random_state, train_size=0.9
+        )
+        U, V = initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
         self.obj = []
@@ -162,36 +185,66 @@ class Game(_PLS):
                 for _ in range(num_batches):
                     X_i, Y_i = next(batches)
                     for k_ in range(self.n_components):
-                        u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=self.lr,
-                                      riemannian_projection=self.riemannian_projection, mu=self.mu)
+                        u, v = update(
+                            U[:, k_],
+                            V[:, k_],
+                            X_i,
+                            Y_i,
+                            U,
+                            V,
+                            k_,
+                            lr=self.lr,
+                            riemannian_projection=self.riemannian_projection,
+                            mu=self.mu,
+                        )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
                     self.obj.append(TV(X_val, Y_val, U, V))
                 epoch_time = time.time() - start_time
                 if self.verbose:
                     print(f"Epoch {epoch} in {epoch_time} sec")
-                    print(f'epoch {epoch}: {self.obj[-1]}')
+                    print(f"epoch {epoch}: {self.obj[-1]}")
         else:
             for k_ in range(self.n_components):
                 for epoch in range(self.epochs):
                     start_time = time.time()
                     for _ in range(num_batches):
                         X_i, Y_i = next(batches)
-                        u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=self.lr,
-                                      riemannian_projection=self.riemannian_projection, mu=self.mu)
+                        u, v = update(
+                            U[:, k_],
+                            V[:, k_],
+                            X_i,
+                            Y_i,
+                            U,
+                            V,
+                            k_,
+                            lr=self.lr,
+                            riemannian_projection=self.riemannian_projection,
+                            mu=self.mu,
+                        )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
                         self.obj.append(TV(X_val, Y_val, U, V))
                     epoch_time = time.time() - start_time
                     if self.verbose:
                         print(f"Epoch {epoch} in {epoch_time} sec")
-                        print(f'epoch {epoch}: {self.obj[-1]}')
+                        print(f"epoch {epoch}: {self.obj[-1]}")
         return U, V
 
 
 # Function form
-def calc_game(X, Y, k: int, lr: float = 1, epochs: int = 100, riemannian_projection: bool = False,
-              random_state: int = 0, simultaneous: bool = False, batch_size: int = 128, mu=True):
+def calc_game(
+    X,
+    Y,
+    k: int,
+    lr: float = 1,
+    epochs: int = 100,
+    riemannian_projection: bool = False,
+    random_state: int = 0,
+    simultaneous: bool = False,
+    batch_size: int = 128,
+    mu=True,
+):
     """
     Calculate partial least squares weights with PLS-Game
 
@@ -220,7 +273,7 @@ def calc_game(X, Y, k: int, lr: float = 1, epochs: int = 100, riemannian_project
     -------
 
     """
-    U, V = initialize(X, Y, k, 'random', random_state)
+    U, V = initialize(X, Y, k, "random", random_state)
     batches = data_stream(X, Y, batch_size=batch_size)
     num_batches = get_num_batches(X, Y, batch_size=batch_size)
     # We can either solve the eigenvectors simulataneously or complete each one
@@ -230,24 +283,44 @@ def calc_game(X, Y, k: int, lr: float = 1, epochs: int = 100, riemannian_project
             for _ in range(num_batches):
                 X_i, Y_i = next(batches)
                 for k_ in range(k):
-                    u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=lr,
-                                  riemannian_projection=riemannian_projection, mu=mu)
+                    u, v = update(
+                        U[:, k_],
+                        V[:, k_],
+                        X_i,
+                        Y_i,
+                        U,
+                        V,
+                        k_,
+                        lr=lr,
+                        riemannian_projection=riemannian_projection,
+                        mu=mu,
+                    )
                     U = U.at[:, k_].set(u)
                     V = V.at[:, k_].set(v)
             epoch_time = time.time() - start_time
             print(f"Epoch {epoch} in {epoch_time} sec")
-            print(f'epoch {epoch}: {TV(X, Y, U, V)}')
+            print(f"epoch {epoch}: {TV(X, Y, U, V)}")
     else:
         for k_ in range(k):
             for epoch in range(epochs):
                 start_time = time.time()
                 for _ in range(num_batches):
                     X_i, Y_i = next(batches)
-                    u, v = update(U[:, k_], V[:, k_], X_i, Y_i, U, V, k_, lr=lr,
-                                  riemannian_projection=riemannian_projection, mu=mu)
+                    u, v = update(
+                        U[:, k_],
+                        V[:, k_],
+                        X_i,
+                        Y_i,
+                        U,
+                        V,
+                        k_,
+                        lr=lr,
+                        riemannian_projection=riemannian_projection,
+                        mu=mu,
+                    )
                     U = U.at[:, k_].set(u)
                     V = V.at[:, k_].set(v)
                 epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f'epoch {epoch}: {TV(X, Y, U, V)}')
+                print(f"epoch {epoch}: {TV(X, Y, U, V)}")
     return TV(X, Y, U, V), U, V

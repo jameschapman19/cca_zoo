@@ -22,25 +22,34 @@ def update(A, B, W, V, beta, alpha):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_genoja(X, Y, k, iterations=100,
-                alpha=1, beta_0=1, random_state=0):
+def calc_genoja(X, Y, k, iterations=100, alpha=1, beta_0=1, random_state=0):
     p = X.shape[1]
     A, B = initialize_gep(X, Y)
-    W, V = initialize(X, Y, k, type='random', random_state=random_state)
+    W, V = initialize(X, Y, k, type="random", random_state=random_state)
     W = jnp.vstack((W, V))
     V = W
     for i in range(iterations):
         W, V = update(A, B, W, V, beta_0 / (1 + 1e-4 * i), alpha)
         Wx = gram_schmidt_matrix(W[:p], B[:p, :p])
         Wy = gram_schmidt_matrix(W[p:], B[p:, p:])
-        print(f'iteration {i}: {TCC(X, Y, Wx, Wy)}')
+        print(f"iteration {i}: {TCC(X, Y, Wx, Wy)}")
     return TCC(X, Y, Wx, Wy), Wx, Wy
 
 
 class Genoja(_CCA):
-
-    def __init__(self, n_components=4, *, scale=True, copy=True, epochs: int = 100,
-                 random_state: int = 0, batch_size: int = 128, verbose=False, beta_0, alpha):
+    def __init__(
+        self,
+        n_components=4,
+        *,
+        scale=True,
+        copy=True,
+        epochs: int = 100,
+        random_state: int = 0,
+        batch_size: int = 128,
+        verbose=False,
+        beta_0,
+        alpha,
+    ):
         super().__init__(n_components, scale=scale, copy=copy)
         self.epochs = epochs
         self.random_state = random_state
@@ -52,7 +61,9 @@ class Genoja(_CCA):
     def _fit(self, X, Y):
         p = X.shape[1]
         A, B = initialize_gep(X, Y)
-        W, P = initialize(X, Y, self.n_components, type='random', random_state=self.random_state)
+        W, P = initialize(
+            X, Y, self.n_components, type="random", random_state=self.random_state
+        )
         W = jnp.vstack((W, P))
         P = W
         for i in range(self.epochs):
@@ -60,5 +71,5 @@ class Genoja(_CCA):
             U = gram_schmidt_matrix(W[:p], B[:p, :p])
             V = gram_schmidt_matrix(W[p:], B[p:, p:])
             if self.verbose:
-                print(f'iteration {i}: {TCC(X, Y, U, V)}')
+                print(f"iteration {i}: {TCC(X, Y, U, V)}")
         return U, V

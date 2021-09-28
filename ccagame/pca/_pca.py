@@ -2,7 +2,12 @@ import time
 from abc import abstractmethod
 
 import jax.numpy as jnp
-from sklearn.base import BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin
+from sklearn.base import (
+    BaseEstimator,
+    TransformerMixin,
+    MultiOutputMixin,
+    RegressorMixin,
+)
 
 from .utils import TV
 

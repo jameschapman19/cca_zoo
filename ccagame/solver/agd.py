@@ -4,7 +4,7 @@ from jax import jit, vmap
 from functools import partial
 
 
-@partial(jit, static_argnums=(0), static_argnames=('lr', 'mu'))
+@partial(jit, static_argnums=(0), static_argnames=("lr", "mu"))
 def update(sample_grad, x, X, y, theta_, lr, mu):
     mu_grad = jnp.mean(sample_grad(x, X, y), axis=0)
     theta = x - lr * mu_grad
@@ -24,6 +24,7 @@ def agd_solve(fn, X, y, x=None, in_axes=None, iterations=10000, lr=1e-1, mu=0.0)
 
 def main():
     import numpy as np
+
     np.random.seed(42)
 
     def ls(w, X, y):
@@ -39,9 +40,9 @@ def main():
 
     w_a = agd_solve(ls, X, y, x=w, mu=0.9)
     w_b = agd_solve(ls, X, y, x=w, mu=0.9, in_axes=(None, 0, 0))
-    w_c = np.linalg.pinv(X)@y
+    w_c = np.linalg.pinv(X) @ y
     print()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -2,19 +2,20 @@ import jax.numpy as jnp
 from jax import grad, vmap, jit
 from functools import partial
 
-#@partial(jit, static_argnums=(0), static_argnames=('in_axes', 'iterations', 'lr'))
-def gd_solve(fn, X,y, x=None, in_axes=None, iterations=1000, lr=1e-1):
+# @partial(jit, static_argnums=(0), static_argnames=('in_axes', 'iterations', 'lr'))
+def gd_solve(fn, X, y, x=None, in_axes=None, iterations=1000, lr=1e-1):
     if in_axes is None:
         in_axes = tuple([None] + [0] * 2)
     sample_grad = jit(vmap(grad(fn, argnums=0), in_axes=in_axes))
     for t in range(iterations):
-        mu_grad = jnp.mean(sample_grad(x, X,y), axis=0)
+        mu_grad = jnp.mean(sample_grad(x, X, y), axis=0)
         x = x - lr * mu_grad
     return x
 
 
 def main():
     import numpy as np
+
     np.random.seed(42)
 
     def ls(w, X, y):
@@ -34,5 +35,5 @@ def main():
     print()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -2,11 +2,11 @@ import jax.numpy as jnp
 from jax import random
 
 
-def initialize(X, n, type='uniform', random_state=0):
-    if type == 'uniform':
+def initialize(X, n, type="uniform", random_state=0):
+    if type == "uniform":
         V1 = jnp.ones((X.shape[1], n))
         V1 = V1 / jnp.linalg.norm(V1, axis=0)
-    elif type == 'random':
+    elif type == "random":
         key = random.PRNGKey(random_state)
         V1 = random.normal(key, (X.shape[1], n))
         V1 = V1 / jnp.linalg.norm(V1, axis=0)

@@ -59,11 +59,16 @@ def mnist_raw():
     def parse_images(filename):
         with gzip.open(filename, "rb") as fh:
             _, num_data, rows, cols = struct.unpack(">IIII", fh.read(16))
-            return np.array(array.array("B", fh.read()),
-                            dtype=np.uint8).reshape(num_data, rows, cols)
+            return np.array(array.array("B", fh.read()), dtype=np.uint8).reshape(
+                num_data, rows, cols
+            )
 
-    for filename in ["train-images-idx3-ubyte.gz", "train-labels-idx1-ubyte.gz",
-                     "t10k-images-idx3-ubyte.gz", "t10k-labels-idx1-ubyte.gz"]:
+    for filename in [
+        "train-images-idx3-ubyte.gz",
+        "train-labels-idx1-ubyte.gz",
+        "t10k-images-idx3-ubyte.gz",
+        "t10k-labels-idx1-ubyte.gz",
+    ]:
         _download(base_url + filename, filename)
 
     train_images = parse_images(path.join(_DATA, "train-images-idx3-ubyte.gz"))
@@ -78,8 +83,8 @@ def mnist(permute_train=False):
     """Download, parse and process MNIST data to unit scale and one-hot labels."""
     train_images, train_labels, test_images, test_labels = mnist_raw()
 
-    train_images = _partial_flatten(train_images) / np.float32(255.)
-    test_images = _partial_flatten(test_images) / np.float32(255.)
+    train_images = _partial_flatten(train_images) / np.float32(255.0)
+    test_images = _partial_flatten(test_images) / np.float32(255.0)
     train_labels = _one_hot(train_labels, 10)
     test_labels = _one_hot(test_labels, 10)
 
