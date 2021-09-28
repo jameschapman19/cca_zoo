@@ -24,11 +24,3 @@ cca\_zoo.utils.sklearn\_integrate
    :members:
    :undoc-members:
    :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: cca_zoo.utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
