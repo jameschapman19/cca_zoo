@@ -507,19 +507,7 @@ class GridSearchCV(BaseSearchCV):
     ----------
     cv_results_ : dict of numpy (masked) ndarrays
         A dict with keys as column headers and values as columns, that can be
-        imported into a pandas ``DataFrame``.
-        For instance the below given table
-        +------------+-----------+------------+-----------------+---+---------+
-        |param_kernel|param_gamma|param_degree|split0_test_score|...|rank_t...|
-        +============+===========+============+=================+===+=========+
-        |  'poly'    |     --    |      2     |       0.80      |...|    2    |
-        +------------+-----------+------------+-----------------+---+---------+
-        |  'poly'    |     --    |      3     |       0.70      |...|    4    |
-        +------------+-----------+------------+-----------------+---+---------+
-        |  'rbf'     |     0.1   |     --     |       0.80      |...|    3    |
-        +------------+-----------+------------+-----------------+---+---------+
-        |  'rbf'     |     0.2   |     --     |       0.93      |...|    1    |
-        +------------+-----------+------------+-----------------+---+---------+
+        imported into a pandas ``DataFrame``
         will be represented by a ``cv_results_`` dict of::
             {
             'param_kernel': masked_array(data = ['poly', 'poly', 'rbf', 'rbf'],
@@ -784,16 +772,6 @@ class RandomizedSearchCV(BaseSearchCV):
     cv_results_ : dict of numpy (masked) ndarrays
         A dict with keys as column headers and values as columns, that can be
         imported into a pandas ``DataFrame``.
-        For instance the below given table
-        +--------------+-------------+-------------------+---+---------------+
-        | param_kernel | param_gamma | split0_test_score |...|rank_test_score|
-        +==============+=============+===================+===+===============+
-        |    'rbf'     |     0.1     |       0.80        |...|       1       |
-        +--------------+-------------+-------------------+---+---------------+
-        |    'rbf'     |     0.2     |       0.84        |...|       3       |
-        +--------------+-------------+-------------------+---+---------------+
-        |    'rbf'     |     0.3     |       0.70        |...|       2       |
-        +--------------+-------------+-------------------+---+---------------+
         will be represented by a ``cv_results_`` dict of::
             {
             'param_kernel' : masked_array(data = ['rbf', 'rbf', 'rbf'],
