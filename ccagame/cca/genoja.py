@@ -32,7 +32,6 @@ def calc_genoja(X, Y, k, iterations=100, alpha=1, beta_0=1, random_state=0):
         W, V = update(A, B, W, V, beta_0 / (1 + 1e-4 * i), alpha)
         Wx = gram_schmidt_matrix(W[:p], B[:p, :p])
         Wy = gram_schmidt_matrix(W[p:], B[p:, p:])
-        print(f"iteration {i}: {TCC(X, Y, Wx, Wy)}")
     return TCC(X, Y, Wx, Wy), Wx, Wy
 
 

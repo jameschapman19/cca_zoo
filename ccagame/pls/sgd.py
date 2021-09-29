@@ -121,6 +121,4 @@ def calc_sgd(
             U = update(X_i, Y_i, U, V, lr=lr)
             V = update(Y_i, X_i, V, U, lr=lr)
         epoch_time = time.time() - start_time
-        print(f"Epoch {epoch} in {epoch_time} sec")
-        print(f"epoch {epoch}: {TV(X, Y, U, V)}")
     return TV(X, Y, U, V), U, V

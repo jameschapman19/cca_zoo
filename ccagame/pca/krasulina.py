@@ -88,8 +88,5 @@ def calc_krasulina(
         start_time = time.time()
         for _ in range(num_batches):
             U = update(U, next(batches), lr=lr)
-        epoch_time = time.time() - start_time
         obj.append(TV(X, U))
-        print(f"Epoch {epoch} in {epoch_time} sec")
-        print(f"epoch {epoch}: {obj[-1]}")
     return TV(X, U), U, obj

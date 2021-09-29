@@ -51,5 +51,6 @@ class AlternatingLeastSquares(_CCA):
         U, V = initialize(X, Y, self.n_components, "random", self.random_state)
         for i in range(self.epochs):
             U, V = update(X, Y, U, V)
-            print(f"iteration {i}: {TCC(X, Y, U, V)}")
+            if self.verbose:
+                print(f"iteration {i}: {TCC(X, Y, U, V)}")
         return U, V

@@ -96,6 +96,4 @@ def calc_batch(X, Y, k: int, epochs: int = 100, random_state: int = 0):
         for _ in range(num_batches):
             U, V = update(*next(batches), V)
         epoch_time = time.time() - start_time
-        print(f"Epoch {epoch} in {epoch_time} sec")
-        print(f"epoch {epoch}: {TV(X, Y, U, V)}")
     return TV(X, Y, U, V), U, V

@@ -116,9 +116,6 @@ def calc_game(
                     )
                     U = U.at[:, k_].set(u)
                     V = V.at[:, k_].set(v)
-            epoch_time = time.time() - start_time
-            print(f"Epoch {epoch} in {epoch_time} sec")
-            print(f"epoch {epoch}: {TCC(X, Y, U, V)}")
     else:
         for k_ in range(k):
             for epoch in range(epochs):
@@ -138,9 +135,6 @@ def calc_game(
                     )
                     U = U.at[:, k_].set(u)
                     V = V.at[:, k_].set(v)
-                epoch_time = time.time() - start_time
-                print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"epoch {epoch}: {TCC(X, Y, U, V)}")
     return TCC(X, Y, U, V), U, V
 
 

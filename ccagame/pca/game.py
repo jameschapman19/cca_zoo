@@ -210,10 +210,7 @@ def calc_game(
                         mu=mu,
                     )
                     U = U.at[:, k_].set(u)
-            epoch_time = time.time() - start_time
-            print(f"Epoch {epoch} in {epoch_time} sec")
             obj.append(TV(X, U))
-            print(f"epoch {epoch}: {obj[-1]}")
     else:
         for k_ in range(k):
             for epoch in range(epochs):
@@ -230,8 +227,5 @@ def calc_game(
                         mu=mu,
                     )
                     U = U.at[:, k_].set(u)
-                epoch_time = time.time() - start_time
-                print(f"Epoch {epoch} in {epoch_time} sec")
                 obj.append(TV(X, U))
-                print(f"epoch {epoch}: {obj[-1]}")
     return TV(X, U), U, obj

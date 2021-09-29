@@ -132,6 +132,4 @@ def calc_incremental(X, Y, k: int, epochs: int = 100, random_state: int = 0):
         for _ in range(num_batches):
             U, S, V = update(*next(batches), U, S, V, k)
         epoch_time = time.time() - start_time
-        print(f"Epoch {epoch} in {epoch_time} sec")
-        print(f"epoch {epoch}: {TV(X, Y, U, V)}")
     return TV(X, Y, U, V), U, V

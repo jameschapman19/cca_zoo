@@ -54,12 +54,6 @@ def GenELinK(A, B, X, Y, k, epochs=1000, random_state=0, verbose=False):
     W = gram_schmidt_matrix(W, B)
     for i in range(epochs):
         W = GenELinK_update(W, A, B, lr, mu, epochs)
-        if verbose:
-            key = random.PRNGKey(random_state)
-            U = random.normal(key, (k, int(k / 2)))
-            Wx = gram_schmidt_matrix(W[:p] @ U, B[:p, :p])
-            Wy = gram_schmidt_matrix(W[p:] @ U, B[p:, p:])
-            print(f"iteration {i}: {TCC(X, Y, Wx, Wy)}")
     return W
 
 

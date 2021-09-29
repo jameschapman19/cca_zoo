@@ -29,7 +29,6 @@ def calc_lagrangeminmax(X, Y, k, iterations=100, lr=100, random_state=0):
     W = jnp.vstack((W, V))
     for i in range(iterations):
         W = update(A, B, W, lr)
-        print(f"iteration {i}: {TCC(X, Y, W[:p], W[p:])}")
     Wx = gram_schmidt_matrix(W[:p], B[:p, :p])
     Wy = gram_schmidt_matrix(W[p:], B[p:, p:])
     return TCC(X, Y, W[:p], W[p:]), Wx, Wy
