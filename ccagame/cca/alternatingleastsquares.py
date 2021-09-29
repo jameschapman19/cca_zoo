@@ -39,8 +39,9 @@ class AlternatingLeastSquares(_CCA):
         batch_size: int = 128,
         verbose=False,
         lr=1,
+        wandb=True
     ):
-        super().__init__(n_components, scale=scale, copy=copy)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.epochs = epochs
         self.random_state = random_state
         self.batch_size = batch_size

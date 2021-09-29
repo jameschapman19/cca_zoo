@@ -81,8 +81,9 @@ class CCALin(_CCA):
         epochs: int = 100,
         random_state: int = 0,
         verbose=False,
+        wandb=True
     ):
-        super().__init__(n_components, scale=scale, copy=copy)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.epochs = epochs
         self.random_state = random_state
         self.verbose = verbose

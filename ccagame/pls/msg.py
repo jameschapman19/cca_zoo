@@ -53,8 +53,9 @@ class MSG(_PLS):
         random_state: int = 0,
         batch_size: int = 128,
         verbose=False,
+        wandb=True
     ):
-        super().__init__(n_components, scale=scale, copy=copy)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.lr = lr
         self.epochs = epochs
         self.random_state = random_state

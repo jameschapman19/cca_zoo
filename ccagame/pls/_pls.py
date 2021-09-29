@@ -12,10 +12,11 @@ from .utils import TV
 
 
 class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
-    def __init__(self, n_components=2, *, scale=True, copy=True):
+    def __init__(self, n_components=2, *, scale=True, copy=True, wandb=True):
         self.n_components = n_components
         self.scale = scale
         self.copy = copy
+        self.wandb=wandb
 
     @abstractmethod
     def _fit(self, X, Y):

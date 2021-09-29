@@ -153,8 +153,9 @@ class Game(_CCA):
         batch_size: int = 128,
         mu=True,
         verbose=False,
+        wandb=True
     ):
-        super().__init__(n_components, scale=scale, copy=copy)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.lr = lr
         self.epochs = epochs
         self.riemannian_projection = riemannian_projection
