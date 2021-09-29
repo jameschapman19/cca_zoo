@@ -10,12 +10,14 @@ authors:
     affiliation: 1
   - name: Hao-Ting Wang 
     orcid: 0000-0003-4078-2038 
-    affiliation: 2 
+    affiliation: "2, 3" 
 affiliations:
   - name: Centre for Medical Image Computing, University College London, London, UK 
     index: 1
   - name: Centre de Recherche de l'Institut Universitaire de Gériatrie de Montréal, Université de Montréal, Montréal, QC, Canada
     index: 2 
+  - name: Centre de Recherche de l'Hôpital du Sacré Coeur de Montréal, Université de Montréal, Montréal, QC, Canada
+    index: 3 
 date: 1 September 2021 
 bibliography: paper.bib
 ---
@@ -128,6 +130,6 @@ Partial Least Squares models and we continue to welcome contributions from the c
 
 JC is supported by the EPSRC-funded UCL Centre for Doctoral Training in Intelligent, Integrated Imaging in Healthcare (
 i4health) (EP/S021930/1) and the Department of Health’s NIHR-funded Biomedical Research Centre at University College
-London Hospitals.
+London Hospitals. HTW is supported by funds from la Fondation Courtois awarded to Dr. Pierre Bellec. 
 
 # References
