@@ -22,7 +22,7 @@ lr = 1e-3
 batch_size = 1
 # This implements the version with unbiased updates analagous to Eigengame:Unloaded
 mu = True
-train, train_labels, test_1, test_labels = datasets.mnist()
+train, train_labels, test, test_labels = datasets.mnist()
 train_1 = train[:, :392]
 train_2 = train[:, 392:]
 
