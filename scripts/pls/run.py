@@ -4,7 +4,7 @@ from ccagame.pls import Game, SGD, Incremental, Batch, Numpy, MSG
 import numpy as np
 import os
 import wandb
-
+import random
 # Set up your default hyperparameters
 
 hyperparameter_defaults = dict(
@@ -12,10 +12,17 @@ hyperparameter_defaults = dict(
     n_components=1,
     lr=1e-3,
     epochs=1,
+    dataset='mnist',
+    model='sgd'
 )
+
+def set_seeds(seed):
+    np.random.seed(seed)
+    random.seed(seed)
 
 
 def main():
+    set_seeds(42)
     # Pass your defaults to wandb.init
     wandb.init(config=hyperparameter_defaults)
     # Access all hyperparameter values through wandb.config
@@ -57,14 +64,14 @@ def main():
         print("\n Eigenvalues calculated using game are :\n", game.score(train_1, train_2))
         print("\n Time :\n", game.fit_time)
         np.save(f'game_{batch_size}', game.obj)
-    elif config.model == 'game':
+    elif config.model == 'incremental':
         incremental = Incremental(lr=lr, epochs=epochs, n_components=n_components, verbose=True).fit(
             train_1,
             train_2)
         print("\n Eigenvalues calculated using incremental are :\n", incremental.score(train_1, train_2))
         print("\n Time :\n", incremental.fit_time)
         np.save('inc', incremental.obj)
-    elif config.model == 'game':
+    elif config.model == 'msg':
         msg = MSG(lr=lr, batch_size=batch_size, epochs=epochs, n_components=n_components,
                   verbose=True).fit(
             train_1,
@@ -72,7 +79,7 @@ def main():
         print("\n Eigenvalues calculated using msg are :\n", msg.score(train_1, train_2))
         print("\n Time :\n", msg.fit_time)
         np.save('msg', msg.obj)
-    elif config.model == 'game':
+    elif config.model == 'batch':
         batch = Batch(lr=lr, epochs=epochs, n_components=n_components, verbose=True).fit(train_1, train_2)
         print("\n Eigenvalues calculated using batch are :\n", batch.score(train_1, train_2))
         print("\n Time :\n", batch.fit_time)
