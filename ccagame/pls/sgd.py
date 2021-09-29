@@ -9,7 +9,7 @@ from ccagame.utils import data_stream, get_num_batches
 from . import _PLS
 from .utils import TV, initialize
 from sklearn.model_selection import train_test_split
-
+import wandb
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=(4))
 def update(X, Y, U, V, lr: float = 0.1):
@@ -69,11 +69,18 @@ class SGD(_PLS):
                 X_i, Y_i = next(batches)
                 U = update(X_i, Y_i, U, V, lr=self.lr)
                 V = update(Y_i, X_i, V, U, lr=self.lr)
-                self.obj.append(TV(X_val, Y_val, U, V))
-            epoch_time = time.time() - start_time
+                obj = TV(X, Y, U, V)
+                if self.wandb:
+                    wandb.log({"Iteration/Objective": obj})
+                else:
+                    self.obj.append(obj)
+            obj = TV(X, Y, U, V)
+            if self.wandb:
+                wandb.log({"Epoch/Objective": obj})
             if self.verbose:
+                epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"epoch {epoch}: {self.obj[-1]}")
+                print(f"epoch {epoch}: {obj}")
         return U, V
 
 

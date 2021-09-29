@@ -15,7 +15,7 @@ from .utils import TV, initialize
 
 # Update rule to be used for calculating eigenvectors
 from ..utils import data_stream, get_num_batches
-
+import wandb
 
 @partial(jit, static_argnums=(2))
 def update(U, X, lr=0.1):
@@ -68,11 +68,18 @@ class Krasulina(_PCA):
             start_time = time.time()
             for _ in range(num_batches):
                 U = update(U, next(batches), lr=self.lr)
-                self.obj.append(TV(X, U))
-            epoch_time = time.time() - start_time
+                obj = TV(X, U)
+                if self.wandb:
+                    wandb.log({"Iteration/Objective": obj})
+                else:
+                    self.obj.append(obj)
+            obj = TV(X, U)
+            if self.wandb:
+                wandb.log({"Epoch/Objective": obj})
             if self.verbose:
+                epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"epoch {epoch}: {TV(X, U)}")
+                print(f"epoch {epoch}: {obj}")
         return U
 
 

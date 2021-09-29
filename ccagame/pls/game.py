@@ -5,7 +5,7 @@ from functools import partial
 import jax.numpy as jnp
 from sklearn.model_selection import train_test_split
 from jax import grad, jit
-
+import wandb
 from ccagame.utils import data_stream, get_num_batches
 from . import _PLS
 from .utils import initialize, TV
@@ -199,11 +199,18 @@ class Game(_PLS):
                         )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
-                    self.obj.append(TV(X_val, Y_val, U, V))
-                epoch_time = time.time() - start_time
+                    obj = TV(X, Y, U, V)
+                    if self.wandb:
+                        wandb.log({"Iteration/Objective": obj})
+                    else:
+                        self.obj.append(obj)
+                obj = TV(X, Y, U, V)
+                if self.wandb:
+                    wandb.log({"Epoch/Objective": obj})
                 if self.verbose:
+                    epoch_time = time.time() - start_time
                     print(f"Epoch {epoch} in {epoch_time} sec")
-                    print(f"epoch {epoch}: {self.obj[-1]}")
+                    print(f"epoch {epoch}: {obj}")
         else:
             for k_ in range(self.n_components):
                 for epoch in range(self.epochs):
@@ -224,11 +231,18 @@ class Game(_PLS):
                         )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
-                        self.obj.append(TV(X_val, Y_val, U, V))
-                    epoch_time = time.time() - start_time
+                        obj = TV(X, Y, U, V)
+                        if self.wandb:
+                            wandb.log({f"Iteration/Objective/{k_}": obj})
+                        else:
+                            self.obj.append(obj)
+                    obj = TV(X, Y, U, V)
+                    if self.wandb:
+                        wandb.log({f"Epoch/Objective/{k_}": obj})
                     if self.verbose:
+                        epoch_time = time.time() - start_time
                         print(f"Epoch {epoch} in {epoch_time} sec")
-                        print(f"epoch {epoch}: {self.obj[-1]}")
+                        print(f"epoch {epoch}: {obj}")
         return U, V
 
 
@@ -279,7 +293,6 @@ def calc_game(
     # We can either solve the eigenvectors simulataneously or complete each one
     if simultaneous:
         for epoch in range(epochs):
-            start_time = time.time()
             for _ in range(num_batches):
                 X_i, Y_i = next(batches)
                 for k_ in range(k):
@@ -297,11 +310,9 @@ def calc_game(
                     )
                     U = U.at[:, k_].set(u)
                     V = V.at[:, k_].set(v)
-            epoch_time = time.time() - start_time
     else:
         for k_ in range(k):
             for epoch in range(epochs):
-                start_time = time.time()
                 for _ in range(num_batches):
                     X_i, Y_i = next(batches)
                     u, v = update(
@@ -318,5 +329,4 @@ def calc_game(
                     )
                     U = U.at[:, k_].set(u)
                     V = V.at[:, k_].set(v)
-                epoch_time = time.time() - start_time
     return TV(X, Y, U, V), U, V

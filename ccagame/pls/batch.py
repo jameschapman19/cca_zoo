@@ -4,7 +4,7 @@ from functools import partial
 
 import jax.numpy as jnp
 from jax import jit
-
+import wandb
 from ccagame.utils import data_stream, get_num_batches
 from . import _PLS
 from .utils import TV, initialize
@@ -33,15 +33,15 @@ def update(X, Y, V):
 # Object form
 class Batch(_PLS):
     def __init__(
-        self,
-        n_components=2,
-        *,
-        scale=True,
-        copy=True,
-        lr: float = 1,
-        epochs: int = 100,
-        random_state: int = 0,
-        verbose=False,
+            self,
+            n_components=2,
+            *,
+            scale=True,
+            copy=True,
+            lr: float = 1,
+            epochs: int = 100,
+            random_state: int = 0,
+            verbose=False,
     ):
         super().__init__(n_components, scale=scale, copy=copy)
         self.lr = lr
@@ -58,11 +58,18 @@ class Batch(_PLS):
             start_time = time.time()
             for _ in range(num_batches):
                 U, V = update(*next(batches), V)
-                self.obj.append(TV(X, Y, U, V))
-            epoch_time = time.time() - start_time
+                obj = TV(X, Y, U, V)
+                if self.wandb:
+                    wandb.log({"Iteration/Objective": obj})
+                else:
+                    self.obj.append(obj)
+            obj = TV(X, Y, U, V)
+            if self.wandb:
+                wandb.log({"Epoch/Objective": obj})
             if self.verbose:
+                epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"epoch {epoch}: {TV(X, Y, U, V)}")
+                print(f"epoch {epoch}: {obj}")
         return U, V
 
 
@@ -92,8 +99,6 @@ def calc_batch(X, Y, k: int, epochs: int = 100, random_state: int = 0):
     batches = data_stream(X, Y, batch_size=None)
     num_batches = get_num_batches(X, Y, batch_size=None)
     for epoch in range(epochs):
-        start_time = time.time()
         for _ in range(num_batches):
             U, V = update(*next(batches), V)
-        epoch_time = time.time() - start_time
     return TV(X, Y, U, V), U, V
