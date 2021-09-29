@@ -41,7 +41,7 @@ def GenELinK_update(W, A, B, lr, mu, iterations):
     return gram_schmidt_matrix(W, B)
 
 
-def GenELinK(A, B, X, Y, k, epochs=1000, random_state=0, verbose=False):
+def GenELinK(A, B, X, Y, k, epochs=1000, random_state=0):
     p = X.shape[1]
     d = A.shape[1]
     key = random.PRNGKey(random_state)
@@ -58,11 +58,11 @@ def GenELinK(A, B, X, Y, k, epochs=1000, random_state=0, verbose=False):
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_ccalin(X, Y, k, epochs=1000, random_state=0, verbose=False):
+def calc_ccalin(X, Y, k, epochs=1000, random_state=0):
     p = X.shape[1]
     A, B = initialize_gep(X, Y)
     W = GenELinK(
-        A, B, X, Y, 2 * k, epochs=epochs, random_state=random_state, verbose=verbose
+        A, B, X, Y, 2 * k, epochs=epochs, random_state=random_state
     )
     key = random.PRNGKey(random_state)
     U = random.normal(key, (2 * k, k))
@@ -99,7 +99,6 @@ class CCALin(_CCA):
             2 * self.n_components,
             epochs=self.epochs,
             random_state=self.random_state,
-            verbose=self.verbose,
         )
         key = random.PRNGKey(self.random_state)
         M = random.normal(key, (2 * self.n_components, self.n_components))
