@@ -42,7 +42,7 @@ class Batch(_PLS):
             epochs: int = 100,
             random_state: int = 0,
             verbose=False,
-            wandb=True
+            wandb=False
     ):
         super().__init__(n_components, scale=scale, copy=copy,wandb=wandb)
         self.lr = lr

@@ -46,7 +46,7 @@ class Lagrange(_CCA):
         batch_size: int = 128,
         verbose=False,
         lr=1,
-        wandb=True
+        wandb=False
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.epochs = epochs

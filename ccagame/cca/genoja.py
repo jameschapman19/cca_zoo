@@ -48,7 +48,7 @@ class Genoja(_CCA):
         verbose=False,
         beta_0,
         alpha,
-        wandb=True
+        wandb=False
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.epochs = epochs

@@ -148,7 +148,7 @@ class Game(_PLS):
         batch_size: int = 128,
         mu=True,
         verbose=False,
-        wandb=True
+        wandb=False
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.lr = lr

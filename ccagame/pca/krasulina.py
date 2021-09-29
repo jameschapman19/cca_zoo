@@ -49,7 +49,7 @@ class Krasulina(_PCA):
         random_state: int = 0,
         batch_size: int = 128,
         verbose=False,
-        wandb=True
+        wandb=False
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.lr = lr
