@@ -25,12 +25,23 @@ def gamma(W, A):
 
 def GenELinK_update(W, A, B, lr, mu, iterations):
     W = jnp.squeeze(
-        agd_solve(obj, A, B, W, x=jnp.expand_dims(jnp.dot(W, gamma(W, A)), 0), lr=lr, mu=mu, iterations=iterations,
-                  in_axes=(0, None, None, None)), 0)
+        agd_solve(
+            obj,
+            A,
+            B,
+            W,
+            x=jnp.expand_dims(jnp.dot(W, gamma(W, A)), 0),
+            lr=lr,
+            mu=mu,
+            iterations=iterations,
+            in_axes=(0, None, None, None),
+        ),
+        0,
+    )
     return gram_schmidt_matrix(W, B)
 
 
-def GenELinK(A, B, X, Y, k, epochs=1000, random_state=0, verbose=False):
+def GenELinK(A, B, X, Y, k, epochs=1000, random_state=0):
     p = X.shape[1]
     d = A.shape[1]
     key = random.PRNGKey(random_state)
@@ -43,20 +54,16 @@ def GenELinK(A, B, X, Y, k, epochs=1000, random_state=0, verbose=False):
     W = gram_schmidt_matrix(W, B)
     for i in range(epochs):
         W = GenELinK_update(W, A, B, lr, mu, epochs)
-        if verbose:
-            key = random.PRNGKey(random_state)
-            U = random.normal(key, (k, int(k / 2)))
-            Wx = gram_schmidt_matrix(W[:p] @ U, B[:p, :p])
-            Wy = gram_schmidt_matrix(W[p:] @ U, B[p:, p:])
-            print(f'iteration {i}: {TCC(X, Y, Wx, Wy)}')
     return W
 
 
 # Run the update step iteratively across all eigenvectors
-def calc_ccalin(X, Y, k, epochs=1000, random_state=0, verbose=False):
+def calc_ccalin(X, Y, k, epochs=1000, random_state=0):
     p = X.shape[1]
     A, B = initialize_gep(X, Y)
-    W = GenELinK(A, B, X, Y, 2 * k, epochs=epochs, random_state=random_state, verbose=verbose)
+    W = GenELinK(
+        A, B, X, Y, 2 * k, epochs=epochs, random_state=random_state
+    )
     key = random.PRNGKey(random_state)
     U = random.normal(key, (2 * k, k))
     Wx = gram_schmidt_matrix(jnp.dot(W[:p], U), B[:p, :p])
@@ -65,9 +72,18 @@ def calc_ccalin(X, Y, k, epochs=1000, random_state=0, verbose=False):
 
 
 class CCALin(_CCA):
-    def __init__(self, n_components=2, *, scale=True, copy=True, epochs: int = 100,
-                 random_state: int = 0, verbose=False):
-        super().__init__(n_components, scale=scale, copy=copy)
+    def __init__(
+        self,
+        n_components=2,
+        *,
+        scale=True,
+        copy=True,
+        epochs: int = 100,
+        random_state: int = 0,
+        verbose=False,
+        wandb=False
+    ):
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.epochs = epochs
         self.random_state = random_state
         self.verbose = verbose
@@ -75,8 +91,15 @@ class CCALin(_CCA):
     def _fit(self, X, Y):
         p = X.shape[1]
         A, B = initialize_gep(X, Y)
-        W = GenELinK(A, B, X, Y, 2 * self.n_components, epochs=self.epochs, random_state=self.random_state,
-                     verbose=self.verbose)
+        W = GenELinK(
+            A,
+            B,
+            X,
+            Y,
+            2 * self.n_components,
+            epochs=self.epochs,
+            random_state=self.random_state,
+        )
         key = random.PRNGKey(self.random_state)
         M = random.normal(key, (2 * self.n_components, self.n_components))
         U = gram_schmidt_matrix(jnp.dot(W[:p], M), B[:p, :p])

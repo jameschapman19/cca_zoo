@@ -2,16 +2,22 @@ import time
 from abc import abstractmethod
 
 import jax.numpy as jnp
-from sklearn.base import BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin
+from sklearn.base import (
+    BaseEstimator,
+    TransformerMixin,
+    MultiOutputMixin,
+    RegressorMixin,
+)
 
 from .utils import TV
 
 
 class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
-    def __init__(self, n_components=2, *, scale=True, copy=True):
+    def __init__(self, n_components=2, *, scale=True, copy=True, wandb=True):
         self.n_components = n_components
         self.scale = scale
         self.copy = copy
+        self.wandb=wandb
 
     @abstractmethod
     def _fit(self, X):

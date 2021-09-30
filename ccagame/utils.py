@@ -2,18 +2,20 @@ import numpy as np
 from scipy.io import loadmat
 
 
-def get_xrmb(datadir='/mnt/c/Users/chapm/PycharmProjects/ccagame/data/XRMB/', mode='train'):
-    view_1 = loadmat(datadir + 'XRMBf2KALDI_window7_single1.mat')
-    view_2 = loadmat(datadir + 'XRMBf2KALDI_window7_single2.mat')
-    if mode == 'train':
-        view_1 = view_1['X1']
-        view_2 = view_2['X2']
-    elif mode == 'val':
-        view_1 = view_1['XV1']
-        view_2 = view_2['XV2']
-    elif mode == 'test':
-        view_1 = view_1['XTe1']
-        view_2 = view_2['XTe2']
+def get_xrmb(
+    datadir="/mnt/c/Users/chapm/PycharmProjects/ccagame/data/XRMB/", mode="train"
+):
+    view_1 = loadmat(datadir + "XRMBf2KALDI_window7_single1.mat")
+    view_2 = loadmat(datadir + "XRMBf2KALDI_window7_single2.mat")
+    if mode == "train":
+        view_1 = view_1["X1"]
+        view_2 = view_2["X2"]
+    elif mode == "val":
+        view_1 = view_1["XV1"]
+        view_2 = view_2["XV2"]
+    elif mode == "test":
+        view_1 = view_1["XTe1"]
+        view_2 = view_2["XTe2"]
     return view_1, view_2
 
 
@@ -36,7 +38,7 @@ def data_stream(X, Y=None, batch_size=None):
     while True:
         perm = rng.permutation(num)
         for i in range(num_batches):
-            batch_idx = perm[i * batch_size:(i + 1) * batch_size]
+            batch_idx = perm[i * batch_size : (i + 1) * batch_size]
             if Y is None:
                 yield X[batch_idx]
             else:

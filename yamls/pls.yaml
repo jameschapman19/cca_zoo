@@ -1,0 +1,11 @@
+program: scripts/pls/run.py
+method: grid
+parameters:
+  learning_rate:
+    values : [1e-5, 1e-4,1e-3]
+  model_type:
+    values: ['sgd','mugame','alphagame','incremental','msg','batch']
+  batch_size:
+    values: [1,10,100,1000]
+
+

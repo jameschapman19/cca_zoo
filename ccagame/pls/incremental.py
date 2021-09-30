@@ -6,7 +6,7 @@ from functools import partial
 import jax.numpy as jnp
 import numpy as np
 from jax import jit
-
+import wandb
 from ccagame.utils import data_stream, get_num_batches
 from . import _PLS
 from .utils import TV, initialize
@@ -37,9 +37,17 @@ def update(X, Y, U, S, V, k):
     u_orth = X - X @ U @ U.T
     vhat = Y @ V
     v_orth = Y - Y @ V @ V.T
-    Q = jnp.vstack((jnp.hstack((jnp.diag(S) + uhat.T @ vhat, jnp.linalg.norm(v_orth) * uhat.T)),
-                    jnp.hstack((jnp.linalg.norm(u_orth) * vhat,
-                                jnp.atleast_2d(jnp.linalg.norm(u_orth) * jnp.linalg.norm(v_orth))))))
+    Q = jnp.vstack(
+        (
+            jnp.hstack((jnp.diag(S) + uhat.T @ vhat, jnp.linalg.norm(v_orth) * uhat.T)),
+            jnp.hstack(
+                (
+                    jnp.linalg.norm(u_orth) * vhat,
+                    jnp.atleast_2d(jnp.linalg.norm(u_orth) * jnp.linalg.norm(v_orth)),
+                )
+            ),
+        )
+    )
     U_, S, V_ = jnp.linalg.svd(Q)
     U = jnp.hstack((U, u_orth.T / jnp.linalg.norm(u_orth))) @ U_[:, :k]
     V = jnp.hstack((V, v_orth.T / jnp.linalg.norm(v_orth))) @ V_.T[:, :k]
@@ -48,37 +56,54 @@ def update(X, Y, U, S, V, k):
 
 # Object form
 class Incremental(_PLS):
-    def __init__(self, n_components=2, *, scale=True, copy=True, lr: float = 1, epochs: int = 100,
-                 random_state: int = 0, verbose=False):
-        super().__init__(n_components, scale=scale, copy=copy)
+    def __init__(
+        self,
+        n_components=2,
+        *,
+        scale=True,
+        copy=True,
+        lr: float = 1,
+        epochs: int = 100,
+        random_state: int = 0,
+        verbose=False,
+        wandb=False
+    ):
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.lr = lr
         self.epochs = epochs
         self.random_state = random_state
         self.verbose = verbose
 
     def _fit(self, X, Y):
-        X, X_val, Y, Y_val = train_test_split(X, Y, random_state=self.random_state,
-                                              train_size=0.9)
-        U, V = initialize(X, Y, self.n_components, 'random', self.random_state)
+        X, X_val, Y, Y_val = train_test_split(
+            X, Y, random_state=self.random_state, train_size=0.9
+        )
+        U, V = initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=1)
         num_batches = get_num_batches(X, Y, batch_size=1)
         S = np.zeros(self.n_components)
-        self.obj=[]
+        self.obj = []
         for epoch in range(self.epochs):
             start_time = time.time()
             for _ in range(num_batches):
                 U, S, V = update(*next(batches), U, S, V, self.n_components)
-                self.obj.append(TV(X_val, Y_val, U[:, :self.n_components], V[:, :self.n_components]))
-            epoch_time = time.time() - start_time
+                obj = TV(X, Y, U, V)
+                if self.wandb:
+                    wandb.log({"Iteration/Objective": obj})
+                else:
+                    self.obj.append(obj)
+            obj = TV(X, Y, U, V)
+            if self.wandb:
+                wandb.log({"Epoch/Objective": obj})
             if self.verbose:
+                epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f'epoch {epoch}: {self.obj[-1]}')
+                print(f"epoch {epoch}: {obj}")
         return U, V
 
 
 # Function form
-def calc_incremental(X, Y, k: int, epochs: int = 100,
-                     random_state: int = 0):
+def calc_incremental(X, Y, k: int, epochs: int = 100, random_state: int = 0):
     """
     Calculate partial least squares weights with incremental method from https://home.ttic.edu/~klivescu/papers/arora_etal_allerton2012.pdf
 
@@ -99,7 +124,7 @@ def calc_incremental(X, Y, k: int, epochs: int = 100,
     -------
 
     """
-    U, V = initialize(X, Y, k, 'random', random_state)
+    U, V = initialize(X, Y, k, "random", random_state)
     batches = data_stream(X, Y, batch_size=1)
     num_batches = get_num_batches(X, Y, batch_size=1)
     S = np.zeros(k)
@@ -108,6 +133,4 @@ def calc_incremental(X, Y, k: int, epochs: int = 100,
         for _ in range(num_batches):
             U, S, V = update(*next(batches), U, S, V, k)
         epoch_time = time.time() - start_time
-        print(f"Epoch {epoch} in {epoch_time} sec")
-        print(f'epoch {epoch}: {TV(X, Y, U, V)}')
     return TV(X, Y, U, V), U, V
