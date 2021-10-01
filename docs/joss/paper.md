@@ -24,30 +24,31 @@ bibliography: paper.bib
 
 # Summary
 
-Multiple views data has gained visibility in the scientific research. Examples include different languages in natural 
-language processing, as well as neuroimaging, multiomics and audiovisual data. Canonical Correlation Analyis (
-CCA) [@hotelling1992relations]  and Partial Least Squares (PLS) are classical methods for investigating and quantifying
+Multi-view data has gained visibility in scientific research. Examples include different languages in natural language 
+processing, as well as neuroimaging, multiomics and audiovisual data. Canonical Correlation Analysis (CCA)
+[@hotelling1992relations]  and Partial Least Squares (PLS) are classical methods for investigating and quantifying
 multivariate relationships between these views of data. The goal of CCA and its variants is to find projections (and
 associated weights) for each view of the data into a latent space where they are highly correlated.
 
-The original CCA is constrained by the sample-to-feature ratio. The algorith cannot produce a solution when the number 
-of features in one view exceede the number of samples. To overcome this restriction, the original CCA has been developed 
+The original CCA is constrained by the sample-to-feature ratio. The algorithm cannot produce a solution when the number 
+of features in one view exceeds the number of samples. To overcome this restriction, the original CCA has been developed 
 into a family of models which include regularised [@vinod1976canonical], kernelized [@hardoon2004canonical], 
 probabilistic/generative [@bach2005probabilistic], and deep learning based [@andrew2013deep] variants. In particular 
 these variations have allowed practitioners to apply these models to complex, high dimensional data. Similarly, 
 variants of PLS have been proposed including the widely used Penalized Matrix Decomposition algorithm 
 [@witten2009penalized] which induces sparsity in the weight vectors for interpretability and generalisation.
 
-`cca-zoo` is a Python package that implements a number of variants in a simple API with standardised outputs.
-We would like to highlight the unique benefits our package brings to the community in comparison to other established 
-Python packages containing implementations of CCA. Firstly, `cca-zoo` contains a number of regularised CCA and PLS for 
-high dimensional data that have previously only been available in installable packages in R. Native Python implemetation
-will give Python users convenient access to these powerful models for both application and the development of new algorithms. Secondly, `cca-zoo` contains a number of deep CCA variants written in PyTorch [@paszke2019pytorch]. We 
-adopted a modular style allowing users to apply their desired neural network architectures for each view for their own 
-training pipeline. Thirdly, `cca-zoo` contains generative models including variational and deep variational CCA. This 
-class of variations can be used to model the multiview data generation process and even generate new synthetic samples. 
-Finally, `cca-zoo` provides data simulation utilites to synthesize data containing specified correlation structures as 
-well as the paired MNIST data commonly used as a toy dataset in deep multiview learning.
+`cca-zoo` is a Python package that implements many variants in a simple API with standardised outputs. We would like to 
+highlight the unique benefits our package brings to the community in comparison to other established Python packages 
+containing implementations of CCA. Firstly, `cca-zoo` contains a number of regularised CCA and PLS for high dimensional 
+data that have previously only been available in installable packages in R. Native Python implementation will give 
+Python users convenient access to these powerful models for both application and the development of new algorithms. 
+Secondly,`cca-zoo` contains several deep CCA variants written in PyTorch [@paszke2019pytorch]. We adopted a modular 
+style allowing users to apply their desired neural network architectures for each view for their own training pipeline. 
+Thirdly, `cca-zoo` contains generative models including variational and deep variational CCA. This class of variations 
+can be used to model the multiview data generation process and even generate new synthetic samples. Finally, `cca-zoo` 
+provides data simulation utilites to synthesize data containing specified correlation structures as well as the paired 
+MNIST data commonly used as a toy dataset in deep multiview learning.
 
 # Statement of need
 
@@ -63,23 +64,24 @@ design to enable users to supply their choice of neural network architectures.
 Standard implementations of state-of-the-art models help as benchmarks for methods development and easy application to 
 new datasets. `cca-zoo` extends the existing ecosystem with a number of sparse regularised CCA model. This variation 
 have found popularity in genetics and neuroimaging where signals are contained in a small subset of variables. With applications like these in mind, `cca-zoo` simplified the access to the learnt model weights to perform further analysis 
-in the feature space. Furthermore, the modular implementations of deep CCA and its multiview variants which allow the 
-user to focus on architecture tuning. Finally, `cca-zoo` adds generative models including variational 
-[@wang2007variational] and deep variational CCA [@wang2016deep] as well as higher order canonical correlation analysis 
-with tensor [@kim2007tensor] and deep tensor CCA [@wong2021deep].
+in the feature space. Furthermore, the modular implementations of deep CCA and its multiview variants allow the user to 
+focus on architecture tuning. Finally, `cca-zoo` adds generative models including variational [@wang2007variational] and 
+deep variational CCA [@wang2016deep] as well as higher order canonical correlation analysis with tensor [@kim2007tensor] 
+and deep tensor CCA [@wong2021deep].
 
 # Implementation
 
 `cca-zoo` adopted a simlar API used in `scikit-learn`. The user first instantiates a model object and its relevant 
 hyperparameters. Next they call the model's `fit()` method to apply the data. After fitting, the model object contains 
 its relevant parameters such as weights or dual coefficients (for kernel methods) which can be accessed for further
-analysis. For models fit with iterative algorithms, the model may also contain information about the convergence of the
-objective function. After the model has been fit, its `transform()` method can project views into latent variables and 
-`score()` can be used to measure the canonical correlations.
+analysis. For models that fit with iterative algorithms, the model may also contain information about the convergence of 
+the objective function. After the model has been fit, its `transform()` method can project views into latent variables 
+and `score()` can be used to measure the canonical correlations.
 
-The deep and probabilistic models depends on PyTorch and NumPyro packages respectively. Due to the size of these 
-dependencies, these two classes of variations are not in the default installation. Instead, we provieded options [deep] 
-and [probabilistic] for users. The complete list of models along with their installation tag are provided below.
+The deep and probabilistic models are supported by PyTorch and NumPyro respectively. Due to the size of these 
+dependencies, these two classes of variations are not in the default installation. Instead, we provide options [deep] 
+and [probabilistic] for users. The list bellow provides the complete collection of models along with their installation 
+tag is provided below.
 
 ## Model List
 
