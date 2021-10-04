@@ -24,9 +24,9 @@ class DeepWrapper(_CCA_Base):
             device: str = "cuda",
             optimizer: torch.optim.Optimizer = None,
             scheduler=None,
-            lr=1e-3,
+            lr: float = 1e-3,
             clip_value=float("inf"),
-            random_state=1
+            random_state: int = 1
     ):
         """
 
