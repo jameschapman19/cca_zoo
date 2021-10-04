@@ -12,7 +12,12 @@ cca\_zoo.models.cca\_base
 cca\_zoo.models.gcca
 ---------------------------
 
-.. automodule:: cca_zoo.models.gcca
+.. autoclass:: cca_zoo.models.gcca.GCCA
+   :members:
+   :show-inheritance:
+   :inherited-members:
+
+.. autoclass:: cca_zoo.models.gcca.KGCCA
    :members:
    :show-inheritance:
    :inherited-members:
@@ -23,6 +28,7 @@ cca\_zoo.models.innerloop
 .. automodule:: cca_zoo.models.innerloop
    :members:
    :show-inheritance:
+   :inherited-members:
 
 cca\_zoo.models.iterative
 --------------------------------
@@ -35,7 +41,12 @@ cca\_zoo.models.iterative
 cca\_zoo.models.mcca
 ---------------------------
 
-.. automodule:: cca_zoo.models.mcca
+.. autoclass:: cca_zoo.models.mcca.MCCA
+   :members:
+   :show-inheritance:
+   :inherited-members:
+
+.. autoclass:: cca_zoo.models.mcca.KCCA
    :members:
    :show-inheritance:
    :inherited-members:
@@ -43,7 +54,17 @@ cca\_zoo.models.mcca
 cca\_zoo.models.rcca
 ---------------------------
 
-.. automodule:: cca_zoo.models.rcca
+.. autoclass:: cca_zoo.models.rcca.RCCA
+   :members:
+   :show-inheritance:
+   :inherited-members:
+
+.. autoclass:: cca_zoo.models.rcca.CCA
+   :members:
+   :show-inheritance:
+   :inherited-members:
+
+.. autoclass:: cca_zoo.models.rcca.PLS
    :members:
    :show-inheritance:
    :inherited-members:
@@ -51,7 +72,12 @@ cca\_zoo.models.rcca
 cca\_zoo.models.tcca
 ---------------------------
 
-.. automodule:: cca_zoo.models.tcca
+.. autoclass:: cca_zoo.models.tcca.TCCA
+   :members:
+   :show-inheritance:
+   :inherited-members:
+
+.. autoclass:: cca_zoo.models.tcca.KTCCA
    :members:
    :show-inheritance:
    :inherited-members:
