@@ -55,18 +55,19 @@ MNIST data commonly used as a toy dataset in deep multiview learning.
 The python ecosystem for multiview learning currently provides a few options for implementing CCA and PLS models.
 `scikit-learn` [@pedregosa2011scikit] contains standard implementations of both CCA and PLS for two-view data which plug
 into their mature API. `pyrcca` [@bilenko2016pyrcca] contains implementations of ridge regularised and kernelized
-two-view CCA. The embed module of `mvlearn` [@perry2020mvlearn] is perhaps the closest relative of `cca-zoo`,
-containing implementations of ridge regularised and kernelized multi-view CCA. `cca-zoo` builds on `mvlearn` by
-providing an additional range of regularised models and in particular sparsity inducing models which have
-found success in multiomics. On the foundation of deep CCA implementation in `mvlearn`, `cca-zoo` adopted a modular 
-design to enable users to supply their choice of neural network architectures.
+two-view CCA. The embed module of `mvlearn` [@perry2020mvlearn] is perhaps the closest relative of `cca-zoo`, containing
+implementations of ridge regularised and kernelized multi-view CCA. `cca-zoo` builds on `mvlearn` by providing an
+additional range of regularised models and in particular sparsity inducing models which have found success in
+multiomics. Building on the reference implementation in `mvlearn`, `cca-zoo` further provides a number of deep learning
+models with a modular design to enable users to supply their own choice of neural network architectures.
 
-Standard implementations of state-of-the-art models help as benchmarks for methods development and easy application to 
-new datasets. `cca-zoo` extends the existing ecosystem with a number of sparse regularised CCA model. This variation 
-have found popularity in genetics and neuroimaging where signals are contained in a small subset of variables. With applications like these in mind, `cca-zoo` simplified the access to the learnt model weights to perform further analysis 
-in the feature space. Furthermore, the modular implementations of deep CCA and its multiview variants allow the user to 
-focus on architecture tuning. Finally, `cca-zoo` adds generative models including variational [@wang2007variational] and 
-deep variational CCA [@wang2016deep] as well as higher order canonical correlation analysis with tensor [@kim2007tensor] 
+Standard implementations of state-of-the-art models help as benchmarks for methods development and easy application to
+new datasets. `cca-zoo` extends the existing ecosystem with a number of sparse regularised CCA model. This variation
+have found popularity in genetics and neuroimaging where signals are contained in a small subset of variables. With
+applications like these in mind, `cca-zoo` simplified the access to the learnt model weights to perform further analysis
+in the feature space. Furthermore, the modular implementations of deep CCA and its multiview variants allow the user to
+focus on architecture tuning. Finally, `cca-zoo` adds generative models including variational [@wang2007variational] and
+deep variational CCA [@wang2016deep] as well as higher order canonical correlation analysis with tensor [@kim2007tensor]
 and deep tensor CCA [@wong2021deep].
 
 # Implementation
