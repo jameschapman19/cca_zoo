@@ -5,7 +5,8 @@ cca\_zoo.models.cca\_base
 --------------------------------
 
 .. automodule:: cca_zoo.models.cca_base
-    :private-members:
+    :members:
+    :private-members: _CCA_Base
 
 cca\_zoo.models.rcca
 ---------------------------

@@ -5,19 +5,31 @@ cca\_zoo.deepmodels.dcca
 -------------------------------
 
 .. automodule:: cca_zoo.deepmodels.dcca
-    :inherited-members:
 
 cca\_zoo.deepmodels.dcca\_noi
 ------------------------------------
 
 .. automodule:: cca_zoo.deepmodels.dcca_noi
-    :inherited-members:
 
 cca\_zoo.deepmodels.dccae
 --------------------------------
 
 .. automodule:: cca_zoo.deepmodels.dccae
-    :inherited-members:
+
+cca\_zoo.deepmodels.dtcca
+--------------------------------
+
+.. automodule:: cca_zoo.deepmodels.dtcca
+
+cca\_zoo.deepmodels.dvcca
+--------------------------------
+
+.. automodule:: cca_zoo.deepmodels.dvcca
+
+cca\_zoo.deepmodels.splitae
+----------------------------------
+
+.. automodule:: cca_zoo.deepmodels.splitae
 
 cca\_zoo.deepmodels.deepwrapper
 --------------------------------------
@@ -25,34 +37,21 @@ cca\_zoo.deepmodels.deepwrapper
 .. automodule:: cca_zoo.deepmodels.deepwrapper
     :inherited-members:
 
-cca\_zoo.deepmodels.dtcca
---------------------------------
-
-.. automodule:: cca_zoo.deepmodels.dtcca
-    :inherited-members:
-
-cca\_zoo.deepmodels.dvcca
---------------------------------
-
-.. automodule:: cca_zoo.deepmodels.dvcca
-    :inherited-members:
-
-cca\_zoo.deepmodels.splitae
-----------------------------------
-
-.. autoclass:: cca_zoo.deepmodels.splitae
-    :inherited-members:
-
 cca\_zoo.deepmodels.objectives
 -------------------------------------
 
 .. autoclass:: cca_zoo.deepmodels.objectives.CCA
+    :members:
 
 .. autoclass:: cca_zoo.deepmodels.objectives.MCCA
+    :members:
 
 .. autoclass:: cca_zoo.deepmodels.objectives.GCCA
+    :members:
 
 .. autoclass:: cca_zoo.deepmodels.objectives.TCCA
+    :members:
+
 
 cca\_zoo.deepmodels.architectures
 ----------------------------------------
