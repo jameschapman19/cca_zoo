@@ -49,6 +49,11 @@ class Split_MNIST_Dataset(Dataset):
         return (x_a, x_b), label
 
     def to_numpy(self, indices=None):
+        """
+        Converts dataset to numpy array form
+
+        :param indices: indices of the samples to extract into numpy arrays
+        """
         if indices is None:
             indices = np.arange(self.__len__())
         view_1 = np.zeros((len(indices), 392))
@@ -138,6 +143,11 @@ class Noisy_MNIST_Dataset(Dataset):
         return (x_b, x_a), (rot_a, label)
 
     def to_numpy(self, indices=None):
+        """
+        Converts dataset to numpy array form
+
+        :param indices: indices of the samples to extract into numpy arrays
+        """
         if indices is None:
             indices = np.arange(self.__len__())
         view_1 = np.zeros((len(indices), 784))
@@ -226,6 +236,11 @@ class Tangled_MNIST_Dataset(Dataset):
         return (x_a_rotate, x_b_rotate), (rot_a, rot_b, label)
 
     def to_numpy(self, indices):
+        """
+        Converts dataset to numpy array form
+
+        :param indices: indices of the samples to extract into numpy arrays
+        """
         view_1 = np.zeros((len(indices), 784))
         view_2 = np.zeros((len(indices), 784))
         labels = np.zeros(len(indices)).astype(int)

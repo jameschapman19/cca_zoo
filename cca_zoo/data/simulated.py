@@ -22,7 +22,7 @@ def generate_covariance_data(
         random_state: Union[int, np.random.RandomState] = None,
 ):
     """
-    Function to generate CCA dataset with defined population correlation
+    Function to generate CCA dataset with defined population correlations
 
     :param n: number of samples
     :param view_sparsity: level of sparsity in features in each view either as number of active variables or percentage active
@@ -141,6 +141,7 @@ def generate_simple_data(
         random_state=None,
 ):
     """
+    Simple latent variable model to generate data with one latent factor
 
     :param n: number of samples
     :param view_features: number of features view 1
