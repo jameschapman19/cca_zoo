@@ -5,11 +5,11 @@ from scipy.linalg import block_diag, eigh
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
-from .cca_base import _CCA_Base
+from cca_zoo.models import rCCA
 from ..utils.check_values import _process_parameter, check_views
 
 
-class MCCA(_CCA_Base):
+class MCCA(rCCA):
     """
     A class used to fit MCCA model. For more than 2 views, MCCA optimizes the sum of pairwise correlations.
 
@@ -22,7 +22,7 @@ class MCCA(_CCA_Base):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = MCCA()
-    >>> model.fit(X1,X2)
+    >>> model.fit([X1,X2])
     """
 
     def __init__(
@@ -57,27 +57,7 @@ class MCCA(_CCA_Base):
         self.c = c
         self.eps = eps
 
-    def _check_params(self):
-        self.c = _process_parameter("c", self.c, 0, self.n_views)
-
-    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        """
-        Fits an MCCA model
-
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        """
-        views = check_views(
-            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
-        )
-        views = self._centre_scale(views)
-        self.n_views = len(views)
-        self.n = views[0].shape[0]
-        self._check_params()
-        views, C, D = self._setup_gevp(*views)
-        self._solve_gevp(C, D)
-        return self
-
-    def _setup_gevp(self, *views: np.ndarray):
+    def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
         all_views = np.concatenate(views, axis=1)
         C = all_views.T @ all_views / self.n
         # Can regularise by adding to diagonal
@@ -93,7 +73,7 @@ class MCCA(_CCA_Base):
         self.splits = np.cumsum([0] + [view.shape[1] for view in views])
         return views, C, D
 
-    def _solve_gevp(self, C, D):
+    def _solve_evp(self, views: Iterable[np.ndarray], C, D=None, **kwargs):
         n = D.shape[0]
         [eigvals, eigvecs] = eigh(C, D, subset_by_index=[n - self.latent_dims, n - 1])
         # sorting according to eigenvalue
@@ -116,7 +96,7 @@ class KCCA(MCCA):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = KCCA()
-    >>> model.fit(X1,X2)
+    >>> model.fit([X1,X2])
     """
 
     def __init__(
@@ -184,7 +164,7 @@ class KCCA(MCCA):
             X, Y, metric=self.kernel[view], filter_params=True, **params
         )
 
-    def _setup_gevp(self, *views: np.ndarray):
+    def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
         """
         Generates the left and right hand sides of the generalized eigenvalue problem
 

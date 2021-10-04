@@ -38,6 +38,7 @@ extensions = [
 
 # -- sphinx.ext.autosummary
 autosummary_generate = True
+autodoc_inherit_docstrings = True
 
 # -- sphinx.ext.autodoc
 autoclass_content = "both"

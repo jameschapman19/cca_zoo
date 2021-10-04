@@ -5,11 +5,11 @@ from scipy.linalg import eigh
 from sklearn.metrics import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
-from .cca_base import _CCA_Base
+from cca_zoo.models import rCCA
 from ..utils.check_values import _process_parameter, check_views
 
 
-class GCCA(_CCA_Base):
+class GCCA(rCCA):
     """
     A class used to fit GCCA model. For more than 2 views, GCCA optimizes the sum of correlations with a shared auxiliary vector
 
@@ -24,7 +24,7 @@ class GCCA(_CCA_Base):
     >>> X1 = rng.random(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = GCCA()
-    >>> model.fit(X1,X2)
+    >>> model.fit([X1,X2])
     """
 
     def __init__(
@@ -65,25 +65,7 @@ class GCCA(_CCA_Base):
             "view_weights", self.view_weights, 1, self.n_views
         )
 
-    def fit(self, views: Iterable[np.ndarray], y=None, K: np.ndarray = None):
-        """
-        Fits a GCCA model
-
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        :param K: observation matrix. Binary array with (k,n) dimensions where k is the number of views and n is the number of samples 1 means the data is observed in the corresponding view and 0 means the data is unobserved in that view.
-        """
-        views = check_views(
-            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
-        )
-        views = self._centre_scale(views)
-        self.n_views = len(views)
-        self.n = views[0].shape[0]
-        self._check_params()
-        Q = self._setup_evp(*views, K=K)
-        self._solve_evp(*views, Q=Q)
-        return self
-
-    def _setup_evp(self, *views: np.ndarray, K=None):
+    def _setup_evp(self, views: Iterable[np.ndarray], K=None):
         if K is None:
             # just use identity when all rows are observed in all views.
             K = np.ones((len(views), views[0].shape[0]))
@@ -100,11 +82,11 @@ class GCCA(_CCA_Base):
                 @ Q
                 @ np.diag(np.sqrt(np.sum(K, axis=0)))
         )
-        return Q
+        return views, Q, None
 
-    def _solve_evp(self, *views, Q=None):
-        n = Q.shape[0]
-        [eigvals, eigvecs] = eigh(Q, subset_by_index=[n - self.latent_dims, n - 1])
+    def _solve_evp(self, views: Iterable[np.ndarray], C, D=None, **kwargs):
+        p = C.shape[0]
+        [eigvals, eigvecs] = eigh(C, subset_by_index=[p - self.latent_dims, p - 1])
         idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dims]
         eigvecs = eigvecs[:, idx].real
         self.weights = [
@@ -127,7 +109,7 @@ class KGCCA(GCCA):
     >>> X1 = rng.random(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = KGCCA()
-    >>> model.fit(X1,X2)
+    >>> model.fit([X1,X2])
     """
 
     def __init__(
@@ -198,7 +180,7 @@ class KGCCA(GCCA):
             X, Y, metric=self.kernel[view], filter_params=True, **params
         )
 
-    def _setup_evp(self, *views: np.ndarray, K=None):
+    def _setup_evp(self, views: Iterable[np.ndarray], K=None):
         self.train_views = views
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
         if K is None:
@@ -219,18 +201,7 @@ class KGCCA(GCCA):
                 @ Q
                 @ np.diag(np.sqrt(np.sum(K, axis=0)))
         )
-        return Q
-
-    def _solve_evp(self, *views, Q=None):
-        kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
-        n = Q.shape[0]
-        [eigvals, eigvecs] = eigh(Q, subset_by_index=[n - self.latent_dims, n - 1])
-        idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dims]
-        eigvecs = eigvecs[:, idx].real
-        self.weights = [
-            np.linalg.pinv(kernel) @ eigvecs[:, : self.latent_dims]
-            for kernel in kernels
-        ]
+        return views, Q, None
 
     def transform(self, views: np.ndarray, y=None, **kwargs):
         """

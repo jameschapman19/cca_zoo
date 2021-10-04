@@ -107,8 +107,8 @@ class _Iterative(_CCA_Base):
         """
         Deflate view residual by CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
 
-        :param residual:
-        :param score:
+        :param residual: the current residual data matrix
+        :param score: the score for that view
 
         """
         if self.deflation == "cca":
@@ -143,8 +143,8 @@ class PLS_ALS(_Iterative):
     >>> from cca_zoo.models import PLS
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
-    >>> model = PLS()
-    >>> model.fit(X1,X2)
+    >>> model = PLS_ALS()
+    >>> model.fit([X1,X2])
     """
 
     def __init__(
@@ -208,8 +208,8 @@ class ElasticCCA(_Iterative):
     >>> from cca_zoo.models import ElasticCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
-    >>> model = ElasticCCA()
-    >>> model.fit(X1,X2)
+    >>> model = ElasticCCA(c=[0.1,0.1],l1_ratio=[0.5,0.5])
+    >>> model.fit([X1,X2])
     """
 
     def __init__(

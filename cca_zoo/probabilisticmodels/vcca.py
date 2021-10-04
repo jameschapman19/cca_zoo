@@ -52,7 +52,7 @@ class VariationalCCA(_CCA_Base):
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
-        nuts_kernel = NUTS(self.model)
+        nuts_kernel = NUTS(self._model)
         self.mcmc = MCMC(
             nuts_kernel, num_samples=self.num_samples, num_warmup=self.num_warmup
         )
@@ -67,11 +67,11 @@ class VariationalCCA(_CCA_Base):
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
         check_is_fitted(self, attributes=["posterior_samples"])
-        return Predictive(self.model, self.posterior_samples, return_sites=["z"])(
+        return Predictive(self._model, self.posterior_samples, return_sites=["z"])(
             PRNGKey(1), *views
         )["z"]
 
-    def model(self, views: Iterable[np.ndarray]):
+    def _model(self, views: Iterable[np.ndarray]):
         n = views[0].shape[0]
         p = [view.shape[1] for view in views]
         # parameter representing the mean of column in each view of data

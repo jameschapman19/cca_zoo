@@ -5,7 +5,6 @@ cca\_zoo.models.cca\_base
 --------------------------------
 
 .. automodule:: cca_zoo.models.cca_base
-   :private-members:
    :members:
    :undoc-members:
    :show-inheritance:
@@ -22,7 +21,6 @@ cca\_zoo.models.innerloop
 --------------------------------
 
 .. automodule:: cca_zoo.models.innerloop
-   :private-members:
    :members:
    :undoc-members:
    :show-inheritance:
@@ -31,7 +29,6 @@ cca\_zoo.models.iterative
 --------------------------------
 
 .. automodule:: cca_zoo.models.iterative
-   :private-members:
    :members:
    :undoc-members:
    :show-inheritance:
