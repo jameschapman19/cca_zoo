@@ -74,14 +74,21 @@ class TCCA(_CCA_Base):
         self.n_views = len(views)
         self.n = views[0].shape[0]
         self._check_params()
-        # returns whitened views along with whitening matrix
-        views, covs_invsqrt = self._setup_tensor(*views)
-        for i, el in enumerate(views):
+        # returns whitened views along with whitening matrices
+        whitened_views, covs_invsqrt = self._setup_tensor(*views)
+        # The idea here is to form a matrix with M dimensions one for each view where at index
+        # M[p_i,p_j,p_k...] we have the sum over n samples of the product of the pth feature of the
+        # ith, jth, kth view etc.
+        for i, el in enumerate(whitened_views):
+            # To achieve this we start with the first view so M is nxp.
             if i == 0:
                 M = el
+            # For the remaining views we expand their dimensions to match M i.e. nx1x...x1xp
             else:
                 for _ in range(len(M.shape) - 1):
                     el = np.expand_dims(el, 1)
+                # Then we perform an outer product by expanding the dimensionality of M and
+                # outer product with the expanded el
                 M = np.expand_dims(M, -1) @ el
         M = np.mean(M, 0)
         tl.set_backend("numpy")
@@ -89,7 +96,7 @@ class TCCA(_CCA_Base):
         self.weights = [
             cov_invsqrt @ fac
             for i, (view, cov_invsqrt, fac) in enumerate(
-                zip(views, covs_invsqrt, M_parafac.factors)
+                zip(whitened_views, covs_invsqrt, M_parafac.factors)
             )
         ]
         return self

@@ -250,22 +250,28 @@ class TCCA:
             + self.r * torch.eye(z_.size(1), device=z_.device)
             for z_ in z
         ]
-        z = [
+        whitened_z = [
             z_
             @ torch.linalg.inv(
                 MatrixSquareRoot.apply(_minimal_regularisation(cov, self.eps))
             )
             for z_, cov in zip(z, covs)
         ]
-
-        for i, el in enumerate(z):
+        # The idea here is to form a matrix with M dimensions one for each view where at index
+        # M[p_i,p_j,p_k...] we have the sum over n samples of the product of the pth feature of the
+        # ith, jth, kth view etc.
+        for i, el in enumerate(whitened_z):
+            # To achieve this we start with the first view so M is nxp.
             if i == 0:
-                curr = el
+                M = el
+            # For the remaining views we expand their dimensions to match M i.e. nx1x...x1xp
             else:
-                for _ in range(len(curr.size()) - 1):
+                for _ in range(len(M.size()) - 1):
                     el = torch.unsqueeze(el, 1)
-                curr = torch.unsqueeze(curr, -1) @ el
-        M = torch.mean(curr, 0)
+                # Then we perform an outer product by expanding the dimensionality of M and
+                # outer product with the expanded el
+                M = torch.unsqueeze(M, -1) @ el
+        M = torch.mean(M, 0)
         tl.set_backend("pytorch")
         M_parafac = parafac(M.detach(), self.latent_dims)
         M_hat = cp_to_tensor(M_parafac)
