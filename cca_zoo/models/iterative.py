@@ -675,9 +675,8 @@ class SpanCCA(_Iterative):
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         :param regularisation:
-        :param c:
-        :param rank:
-        :param positive:
+        :param c: regularisation parameter
+        :param rank: rank of the approximation
         """
         super().__init__(
             latent_dims=latent_dims,
@@ -693,7 +692,6 @@ class SpanCCA(_Iterative):
         self.c = c
         self.regularisation = regularisation
         self.rank = rank
-        self.positive = positive
 
     def _set_loop_params(self):
         self.loop = SpanCCAInnerLoop(
@@ -704,7 +702,6 @@ class SpanCCA(_Iterative):
             tol=self.tol,
             regularisation=self.regularisation,
             rank=self.rank,
-            positive=self.positive,
             random_state=self.random_state,
         )
 
@@ -734,7 +731,6 @@ class SWCCA(_Iterative):
             regularisation="l0",
             c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
             sample_support=None,
-            positive: Union[Iterable[bool], bool] = None,
     ):
         """
 
@@ -747,16 +743,14 @@ class SWCCA(_Iterative):
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
-        :param regularisation:
-        :param c:
-        :param sample_support:
-        :param positive:
+        :param regularisation: the type of regularisation on the weights either 'l0' or 'l1'
+        :param c: regularisation parameter
+        :param sample_support: the l0 norm of the sample weights
         """
 
         self.c = c
         self.sample_support = sample_support
         self.regularisation = regularisation
-        self.positive = positive
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -778,6 +772,5 @@ class SWCCA(_Iterative):
             regularisation=self.regularisation,
             c=self.c,
             sample_support=self.sample_support,
-            positive=self.positive,
             random_state=self.random_state,
         )

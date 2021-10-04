@@ -603,7 +603,6 @@ class SpanCCAInnerLoop(_InnerLoop):
             c=None,
             regularisation="l0",
             rank=1,
-            positive=None,
             random_state=None,
     ):
         super().__init__(
@@ -616,7 +615,6 @@ class SpanCCAInnerLoop(_InnerLoop):
         self.c = c
         self.regularisation = regularisation
         self.rank = rank
-        self.positive = positive
 
     def _check_params(self):
         """check number of views=2"""
@@ -635,9 +633,6 @@ class SpanCCAInnerLoop(_InnerLoop):
         elif self.regularisation == "l1":
             self.update = _delta_search
             self.c = _process_parameter("c", self.c, 0, len(self.views))
-        self.positive = _process_parameter(
-            "positive", self.positive, False, len(self.views)
-        )
 
     def _inner_iteration(self):
         c = self.random_state.randn(self.rank, 1)
@@ -666,7 +661,6 @@ class SWCCAInnerLoop(PLSInnerLoop):
             regularisation="l0",
             c=None,
             sample_support: int = None,
-            positive=None,
             random_state=None,
     ):
         super().__init__(
@@ -682,14 +676,10 @@ class SWCCAInnerLoop(PLSInnerLoop):
             self.update = _support_soft_thresh
         elif regularisation == "l1":
             self.update = _delta_search
-        self.positive = positive
 
     def _check_params(self):
         self.sample_weights = np.ones((self.views[0].shape[0], 1))
         self.sample_weights /= np.linalg.norm(self.sample_weights)
-        self.positive = _process_parameter(
-            "positive", self.positive, False, len(self.views)
-        )
         self.c = _process_parameter("c", self.c, 1, len(self.views))
 
     def _update_view(self, view_index: int):
