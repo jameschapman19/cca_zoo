@@ -35,6 +35,7 @@ autosummary_generate = True
 
 # -- sphinx.ext.autodoc
 autoclass_content = "both"
+autodoc_default_flags = ["members", "show-inheritance"]
 autodoc_member_order = "bysource"  # default is alphabetical
 special_members = '--init__'
 

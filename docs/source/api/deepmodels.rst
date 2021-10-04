@@ -4,71 +4,58 @@ cca\_zoo.deepmodels
 cca\_zoo.deepmodels.dcca
 -------------------------------
 
-.. autoclass:: DCCA
-    :show-inheritance:
+.. automodule:: cca_zoo.deepmodels.dcca.DCCA
     :inherited-members:
-    :members:
 
 cca\_zoo.deepmodels.dcca\_noi
 ------------------------------------
 
-.. autoclass:: DCCA_NOI
-    :show-inheritance:
+.. automodule:: cca_zoo.deepmodels.dcca_noi.DCCA_NOI
     :inherited-members:
-    :members:
 
 cca\_zoo.deepmodels.dccae
 --------------------------------
 
-.. autoclass:: DCCAE
-    :show-inheritance:
+.. automodule:: cca_zoo.deepmodels.dccae.DCCAE
     :inherited-members:
-    :members:
 
 cca\_zoo.deepmodels.deepwrapper
 --------------------------------------
 
-.. autoclass:: DeepWrapper
-    :show-inheritance:
+.. automodule:: cca_zoo.deepmodels.deepwrapper.DeepWrapper
     :inherited-members:
-    :members:
 
 cca\_zoo.deepmodels.dtcca
 --------------------------------
 
-.. autoclass:: DTCCA
-    :show-inheritance:
+.. automodule:: cca_zoo.deepmodels.dtcca.DTCCA
     :inherited-members:
-    :members:
 
 cca\_zoo.deepmodels.dvcca
 --------------------------------
 
-.. autoclass:: DVCCA
-    :show-inheritance:
+.. automodule:: cca_zoo.deepmodels.dvcca.DVCCA
     :inherited-members:
-    :members:
 
 cca\_zoo.deepmodels.splitae
 ----------------------------------
 
-.. autoclass:: SplitAE
-    :show-inheritance:
+.. autoclass:: cca_zoo.deepmodels.splitae.SplitAE
     :inherited-members:
-    :members:
 
 cca\_zoo.deepmodels.objectives
 -------------------------------------
 
-.. automodule:: cca_zoo.deepmodels.objectives
-    :show-inheritance:
-    :inherited-members:
-    :members:
+.. autoclass:: cca_zoo.deepmodels.objectives.CCA
+
+.. autoclass:: cca_zoo.deepmodels.objectives.MCCA
+
+.. autoclass:: cca_zoo.deepmodels.objectives.GCCA
+
+.. autoclass:: cca_zoo.deepmodels.objectives.TCCA
 
 cca\_zoo.deepmodels.architectures
 ----------------------------------------
 
 .. automodule:: cca_zoo.deepmodels.architectures
-    :show-inheritance:
     :inherited-members:
-    :members:
