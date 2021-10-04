@@ -31,6 +31,7 @@ release = '1.2.1'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autoclass'
     "sphinx.ext.autosummary",
     'sphinx_autodoc_typehints',
     'sphinx.ext.viewcode'
@@ -39,8 +40,6 @@ extensions = [
 # -- sphinx.ext.autosummary
 autosummary_generate = True
 autodoc_inherit_docstrings = True
-
-# -- sphinx.ext.autodoc
 autoclass_content = "both"
 autodoc_default_flags = ["members", "inherited-members"]
 autodoc_member_order = "bysource"  # default is alphabetical
