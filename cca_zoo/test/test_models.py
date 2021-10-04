@@ -252,10 +252,10 @@ def test_weighted_GCCA_methods():
 def test_TCCA():
     # Tests tensor CCA methods
     latent_dims = 2
-    tcca = TCCA(latent_dims=latent_dims, c=[0.2, 0.2, 0.2]).fit([X, X, X])
-    ktcca = KTCCA(latent_dims=latent_dims, c=[0.2, 0.2, 0.2]).fit([X, X, X])
-    corr_tcca = tcca.score((X, X, X))
-    corr_ktcca = ktcca.score((X, X, X))
+    tcca = TCCA(latent_dims=latent_dims, c=[0.2, 0.2]).fit([X, Y])
+    ktcca = KTCCA(latent_dims=latent_dims, c=[0.2, 0.2]).fit([X, Y])
+    corr_tcca = tcca.score((X, Y))
+    corr_ktcca = ktcca.score((X, Y))
     assert (
             np.testing.assert_array_almost_equal(corr_tcca, corr_ktcca, decimal=1) is None
     )
