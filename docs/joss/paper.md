@@ -62,7 +62,7 @@ multiomics. Building on the reference implementation in `mvlearn`, `cca-zoo` fur
 models with a modular design to enable users to supply their own choice of neural network architectures.
 
 Standard implementations of state-of-the-art models help as benchmarks for methods development and easy application to
-new datasets. `cca-zoo` extends the existing ecosystem with a number of sparse regularised CCA model. This variation
+new datasets. `cca-zoo` extends the existing ecosystem with a number of sparse regularised CCA models. These variations
 have found popularity in genetics and neuroimaging where signals are contained in a small subset of variables. With
 applications like these in mind, `cca-zoo` simplified the access to the learnt model weights to perform further analysis
 in the feature space. Furthermore, the modular implementations of deep CCA and its multiview variants allow the user to
