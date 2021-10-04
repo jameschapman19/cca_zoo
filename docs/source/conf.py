@@ -34,9 +34,6 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
     "sphinx.ext.ifconfig",
-    "sphinx.ext.githubpages",
-    "sphinx.ext.intersphinx",
-    'sphinx_gallery.gen_gallery',
     "sphinx_autodoc_typehints",
 ]
 
