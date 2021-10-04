@@ -37,7 +37,7 @@ class rCCA(_CCA_Base):
             random_state=None,
             c: Union[Iterable[float], float] = None,
             eps=1e-3,
-            accept_sparse=None
+            accept_sparse=None,
     ):
         """
         Constructor for rCCA
@@ -87,7 +87,9 @@ class rCCA(_CCA_Base):
     @abstractmethod
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
         Us, Ss, Vts = _pca_data(*views)
-        self.Bs = [(1 - self.c[i]) * S * S / self.n + self.c[i] for i, S in enumerate(Ss)]
+        self.Bs = [
+            (1 - self.c[i]) * S * S / self.n + self.c[i] for i, S in enumerate(Ss)
+        ]
         if len(views) == 2:
             self._two_view = True
             C, D = self._two_view_evp(Us, Ss)
@@ -115,14 +117,18 @@ class rCCA(_CCA_Base):
             )
             self.weights = [w_x, w_y]
         else:
-            [eigvals, eigvecs] = eigh(C, D, subset_by_index=[p - self.latent_dims, p - 1])
+            [eigvals, eigvecs] = eigh(
+                C, D, subset_by_index=[p - self.latent_dims, p - 1]
+            )
             idx = np.argsort(eigvals, axis=0)[::-1]
             eigvecs = eigvecs[:, idx].real
             self.weights = [
                 Vt.T
                 @ np.diag(1 / np.sqrt(B))
                 @ eigvecs[split: self.splits[i + 1], : self.latent_dims]
-                for i, (split, Vt, B) in enumerate(zip(self.splits[:-1], views, self.Bs))
+                for i, (split, Vt, B) in enumerate(
+                    zip(self.splits[:-1], views, self.Bs)
+                )
             ]
 
     def _two_view_evp(self, Us, Ss):

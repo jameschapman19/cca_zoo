@@ -67,7 +67,7 @@ class _Iterative(_CCA_Base):
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
-        Fits the model by running an inner loop to convergence and then using deflation (currently only supports CCA deflation)
+        Fits the model by running an inner loop to convergence and then using either CCA or PLS deflation
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
@@ -92,7 +92,7 @@ class _Iterative(_CCA_Base):
         self.objective = []
         # For each of the dimensions
         for k in range(self.latent_dims):
-            self.loop = self.loop.fit(*residuals)
+            self.loop = self.loop._fit(*residuals)
             for i, residual in enumerate(residuals):
                 self.weights[i][:, k] = self.loop.weights[i].ravel()
                 self.scores[i][:, k] = self.loop.scores[i].ravel()
