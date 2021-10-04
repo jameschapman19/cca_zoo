@@ -4,7 +4,7 @@ cca\_zoo.probabilisticmodels
 cca\_zoo.probabilisticmodels.vcca
 ----------------------------------------
 
-.. autoclass:: cca_zoo.probabilisticmodels.vcca.VCCA
+.. autoclass:: VCCA
     :show-inheritance:
     :inherited-members:
     :members:

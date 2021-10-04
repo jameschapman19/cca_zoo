@@ -4,7 +4,7 @@ cca\_zoo.deepmodels
 cca\_zoo.deepmodels.dcca
 -------------------------------
 
-.. autoclass:: cca_zoo.deepmodels.dcca.DCCA
+.. autoclass:: DCCA
     :show-inheritance:
     :inherited-members:
     :members:
@@ -12,7 +12,7 @@ cca\_zoo.deepmodels.dcca
 cca\_zoo.deepmodels.dcca\_noi
 ------------------------------------
 
-.. autoclass:: cca_zoo.deepmodels.dcca_noi.DCCA_NOI
+.. autoclass:: DCCA_NOI
     :show-inheritance:
     :inherited-members:
     :members:
@@ -20,7 +20,7 @@ cca\_zoo.deepmodels.dcca\_noi
 cca\_zoo.deepmodels.dccae
 --------------------------------
 
-.. autoclass:: cca_zoo.deepmodels.dccae.DCCAE
+.. autoclass:: DCCAE
     :show-inheritance:
     :inherited-members:
     :members:
@@ -28,7 +28,7 @@ cca\_zoo.deepmodels.dccae
 cca\_zoo.deepmodels.deepwrapper
 --------------------------------------
 
-.. autoclass:: cca_zoo.deepmodels.deepwrapper.DeepWrapper
+.. autoclass:: DeepWrapper
     :show-inheritance:
     :inherited-members:
     :members:
@@ -36,7 +36,7 @@ cca\_zoo.deepmodels.deepwrapper
 cca\_zoo.deepmodels.dtcca
 --------------------------------
 
-.. autoclass:: cca_zoo.deepmodels.dtcca.DTCCA
+.. autoclass:: DTCCA
     :show-inheritance:
     :inherited-members:
     :members:
@@ -44,7 +44,7 @@ cca\_zoo.deepmodels.dtcca
 cca\_zoo.deepmodels.dvcca
 --------------------------------
 
-.. autoclass:: cca_zoo.deepmodels.dvcca.DVCCA
+.. autoclass:: DVCCA
     :show-inheritance:
     :inherited-members:
     :members:
@@ -52,7 +52,7 @@ cca\_zoo.deepmodels.dvcca
 cca\_zoo.deepmodels.splitae
 ----------------------------------
 
-.. autoclass:: cca_zoo.deepmodels.splitae.SplitAE
+.. autoclass:: SplitAE
     :show-inheritance:
     :inherited-members:
     :members:

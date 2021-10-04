@@ -27,25 +27,20 @@ release = '1.2.1'
 # -- General configuration ---------------------------------------------------
 
 extensions = [
-    "sphinx.ext.autodoc",
+    'sphinx.ext.autodoc',
     "sphinx.ext.autosummary",
-    "sphinx.ext.todo",
-    "sphinx.ext.viewcode",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.napoleon",
-    "sphinx.ext.ifconfig",
-    "sphinx_autodoc_typehints",
+    'sphinx_autodoc_typehints',
+    'sphinx.ext.viewcode'
 ]
-
-numpydoc_show_class_members = False
 
 # -- sphinx.ext.autosummary
 autosummary_generate = True
 
 # -- sphinx.ext.autodoc
 autoclass_content = "both"
-autodoc_default_flags = ["members", "inherited-members", "undoc-members", "imported-members"]
-autodoc_member_order = "bysource"
+autodoc_default_flags = ["members", "inherited-members"]
+autodoc_member_order = "bysource"  # default is alphabetical
+special_members = '--init__'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
