@@ -51,13 +51,18 @@ class DCCAE(_DCCA_base):
         z = []
         for i, encoder in enumerate(self.encoders):
             z.append(encoder(args[i]))
-        return tuple(z)
+        return z
 
-    def decode(self, *args):
+    def decode(self, *z):
+        """
+        This method is used to decode from the latent space to the best prediction of the original views
+
+        :param args:
+        """
         recon = []
         for i, decoder in enumerate(self.decoders):
-            recon.append(decoder(args[i]))
-        return tuple(recon)
+            recon.append(decoder(z[i]))
+        return recon
 
     def loss(self, *args):
         z = self(*args)

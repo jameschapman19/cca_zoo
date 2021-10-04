@@ -43,7 +43,7 @@ class DCCA(_DCCA_base):
         z = []
         for i, encoder in enumerate(self.encoders):
             z.append(encoder(args[i]))
-        return tuple(z)
+        return z
 
     def loss(self, *args):
         """

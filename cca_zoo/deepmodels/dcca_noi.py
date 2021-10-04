@@ -56,7 +56,7 @@ class DCCA_NOI(DCCA):
                 zip(self.encoders, self.linear_layers)
         ):
             z.append(linear_layer(encoder(args[i])))
-        return tuple(z)
+        return z
 
     def loss(self, *args):
         z = self(*args)
