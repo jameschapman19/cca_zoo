@@ -5,36 +5,43 @@ DCCA
 -------------------------------
 
 .. automodule:: cca_zoo.deepmodels.dcca
+    :members:
 
 DCCA by Non-Linear Orthogonal Iterations
 -----------------------------------------
 
 .. automodule:: cca_zoo.deepmodels.dcca_noi
+    :members:
 
 Deep Canonically Correlated Autoencoders
 -----------------------------------------
 
 .. automodule:: cca_zoo.deepmodels.dccae
+    :members:
 
 Deep Tensor CCA
 --------------------------------
 
 .. automodule:: cca_zoo.deepmodels.dtcca
+    :members:
 
 Deep Variational CCA
 --------------------------------
 
 .. automodule:: cca_zoo.deepmodels.dvcca
+    :members:
 
 Split Autoencoders
 ----------------------------------
 
 .. automodule:: cca_zoo.deepmodels.splitae
+    :members:
 
 Deep Wrapper for Training
 --------------------------------------
 
 .. automodule:: cca_zoo.deepmodels.deepwrapper
+    :members:
     :inherited-members:
     :exclude-members: get_params, set_params
 

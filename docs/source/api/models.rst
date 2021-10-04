@@ -1,7 +1,7 @@
-cca\_zoo.models
+Models
 =======================
 
-cca\_base
+Base Class
 --------------------------------
 
 .. automodule:: cca_zoo.models.cca_base
