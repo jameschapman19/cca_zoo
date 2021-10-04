@@ -4,6 +4,6 @@ cca\_zoo.probabilisticmodels
 cca\_zoo.probabilisticmodels.vcca
 ----------------------------------------
 
-.. autoclass:: VCCA
+.. automodule:: cca_zoo.probabilisticmodels.vcca
     :inherited-members:
 

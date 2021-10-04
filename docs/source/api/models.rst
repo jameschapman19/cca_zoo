@@ -5,6 +5,7 @@ cca\_zoo.models.cca\_base
 --------------------------------
 
 .. automodule:: cca_zoo.models.cca_base
+    :private-members:
 
 cca\_zoo.models.rcca
 ---------------------------
@@ -29,12 +30,14 @@ cca\_zoo.models.iterative
 
 .. automodule:: cca_zoo.models.iterative
     :inherited-members:
+    :private-members:
 
 cca\_zoo.models.innerloop
 --------------------------------
 
 .. automodule:: cca_zoo.models.innerloop
     :inherited-members:
+    :private-members:
 
 cca\_zoo.models.tcca
 ---------------------------
