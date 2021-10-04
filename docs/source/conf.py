@@ -37,9 +37,7 @@ extensions = [
     'sphinx.ext.viewcode'
 ]
 
-# -- sphinx.ext.autosummary
 autosummary_generate = True
-autodoc_inherit_docstrings = True
 autoclass_content = "both"
 autodoc_default_flags = ["members", "inherited-members"]
 autodoc_member_order = "bysource"  # default is alphabetical
