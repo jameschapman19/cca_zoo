@@ -5,7 +5,6 @@ cca\_zoo.model\_selection.GridSearchCV
 ---------------------------------------
 
 .. automodule:: cca_zoo.model_selection.GridSearchCV
-   :members:
    :show-inheritance:
 
 
@@ -13,5 +12,5 @@ cca\_zoo.model\_selection.RandomizedSearchCV
 ---------------------------------------------
 
 .. automodule:: cca_zoo.model_selection.RandomizedSearchCV
-   :members:
-   :show-inheritance:
+    :show-inheritance:
+
