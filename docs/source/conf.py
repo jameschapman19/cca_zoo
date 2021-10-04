@@ -37,7 +37,7 @@ autosummary_generate = True
 
 # -- sphinx.ext.autodoc
 autoclass_content = "both"
-autodoc_default_flags = ["members", "inherited-members", "undoc-members"]
+autodoc_default_flags = ["members", "inherited-members", "undoc-members", "imported-members"]
 autodoc_member_order = "bysource"
 
 # Add any paths that contain templates here, relative to this directory.
