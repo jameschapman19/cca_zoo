@@ -101,6 +101,30 @@ class TCCA(_CCA_Base):
         ]
         return self
 
+    def correlations(self, views: Iterable[np.ndarray], y=None, **kwargs):
+        """
+        Predicts the correlation for the given data using the fit model
+
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        :param kwargs: any additional keyword arguments required by the given model
+        """
+        transformed_views = self.transform(views, **kwargs)
+        transformed_views = [transformed_view - transformed_view.mean(axis=0) for transformed_view in transformed_views]
+        multiplied_views = np.stack(transformed_views, axis=0).prod(axis=0).mean(axis=0)
+        stds = np.stack([transformed_view.std(axis=0) for transformed_view in transformed_views], axis=0).prod(axis=0)
+        corrs = (multiplied_views / stds)
+        return corrs
+
+    def score(self, views: Iterable[np.ndarray], y=None, **kwargs):
+        """
+        Returns the higher order correlations in each dimension
+
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        :param kwargs: any additional keyword arguments required by the given model
+        """
+        dim_corrs = self.correlations(views, **kwargs)
+        return dim_corrs
+
     def _setup_tensor(self, *views: np.ndarray, **kwargs):
         train_views = self._centre_scale(views)
         n = train_views[0].shape[0]

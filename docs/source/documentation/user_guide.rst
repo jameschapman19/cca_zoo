@@ -16,7 +16,7 @@ Model Fit
 
    linear_cca = CCA(latent_dims=latent_dims, max_iter=max_iter)
 
-   linear_cca.fit(train_view_1, train_view_2)
+   linear_cca.fit([train_view_1, train_view_2])
 
 Hyperparameter Tuning
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -27,22 +27,19 @@ to use a data driven approach.
 .. sourcecode:: python
 
    from cca_zoo.models import rCCA
+   from cca_zoo.model_selection import GridsearchCV
 
-   #Candidates for regularisation in the first view
-   c1 = [0.1, 0.3, 0.7, 0.9]
-   #Candidates for regularisation in the second view
-   c2 = [0.1, 0.3, 0.7, 0.9]
-   #param_candidates expects a dictionary
-   param_candidates = {'c': list(itertools.product(c1, c2))}
+    def scorer(estimator,X):
+      dim_corrs=estimator.score(X)
+      return dim_corrs.mean()
 
-   #performs 5 fold cross validation using 2 parallel jobs, printing the results and producing a hyperparameter plot
-   ridge = rCCA(latent_dims=latent_dims).gridsearch_fit(
-        train_view_1,
-        train_view_2,
-        param_candidates=param_candidates,
-        folds=5,
-        verbose=True, jobs=2,
-        plot=True)
+    c1 = [0.1, 0.3, 0.7, 0.9]
+    c2 = [0.1, 0.3, 0.7, 0.9]
+    param_grid = {'c': [c1,c2]}
+
+    ridge = GridSearchCV(rCCA(latent_dims=latent_dims),param_grid=param_grid,
+        cv=cv,
+        verbose=True,scoring=scorer).fit([train_view_1,train_view_2]).best_estimator_
 
 Model Transforms
 -----------------
@@ -50,12 +47,14 @@ Model Transforms
 One models are fit we can transform the data to latent projections for each view
 
 .. sourcecode:: python
-   projection_1,projection_2=ridge.transform(train_view_1,train_view_2)
+
+   projection_1,projection_2=ridge.transform([train_view_1,train_view_2])
 
 In a similar way to scikit-learn we can also call fit_transform to complete both of these steps in one go:
 
 .. sourcecode:: python
-   projection_1,projection_2=ridge.fit_transform(train_view_1,train_view_2)
+
+   projection_1,projection_2=ridge.fit_transform([train_view_1,train_view_2])
 
 Model Evaluation
 -----------------
@@ -63,7 +62,11 @@ Model Evaluation
 We can evaluate models by their correlation in the latent space
 
 .. sourcecode:: python
-   correlation=ridge.score(train_view_1,train_view_2)
+
+   correlation=ridge.score([train_view_1,train_view_2])
+
+For most models this gives us the average pairwise correlation in each latent dimension. For tensor cca models this
+gives the higher order correlation in each dimension.
 
 Model Weights
 -----------------
@@ -72,9 +75,9 @@ In applications of cca, we are often interested in the model weights. These can 
 #features x #latent_dimensions for each view.
 
 .. sourcecode:: python
+
    view_1_weights=ridge.weights[0]
    view_2_weights=ridge.weights[1]
-
 
 Deep Models
 ------------
@@ -82,6 +85,7 @@ Deep Models
 Deep models have a slightly more involved process. We first need to choose the architectures for our encoder models
 
 .. sourcecode:: python
+
    from cca_zoo.deepmodels import architectures
    encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
@@ -89,6 +93,7 @@ Deep models have a slightly more involved process. We first need to choose the a
 We build our deep cca model using these encoders as inputs:
 
 .. sourcecode:: python
+
    from cca_zoo.deepmodels import DCCA
    dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
 
@@ -97,6 +102,7 @@ provide a DeepWrapper class which wraps the deep cca model and its training loop
 and score() methods of the other models in the package.
 
 .. sourcecode:: python
+
    from cca_zoo.deepmodels import DeepWrapper
    dcca_model = DeepWrapper(dcca_model)
    #datasets can be pytorch datasets which output ((view_1,view_2),label) or 2 or more numpy arrays
@@ -105,9 +111,11 @@ and score() methods of the other models in the package.
 We can now use:
 
 .. sourcecode:: python
+
    dcca_model.score(train_dataset)
 
 And:
 
 .. sourcecode:: python
+
    projection_1,projection_2=dcca_model.transform(train_dataset)

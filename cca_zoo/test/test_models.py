@@ -54,7 +54,7 @@ def test_unregularized_methods():
     corr_mcca = mcca.score((X, Y))
     corr_kcca = kcca.score((X, Y))
     corr_kgcca = kgcca.score((X, Y))
-    corr_tcca = kcca.score((X, Y))
+    corr_tcca = tcca.score((X, Y))
     # Check the correlations from each unregularized method are the same
     assert np.testing.assert_array_almost_equal(corr_cca, corr_iter, decimal=2) is None
     assert np.testing.assert_array_almost_equal(corr_cca, corr_mcca, decimal=2) is None
@@ -254,13 +254,10 @@ def test_weighted_GCCA_methods():
 def test_TCCA():
     # Tests tensor CCA methods
     latent_dims = 2
-    tcca = TCCA(latent_dims=latent_dims, c=[0.2, 0.2]).fit([X, Y])
+    tcca = TCCA(latent_dims=latent_dims, c=[0.2, 0.2, 0.2]).fit([X, X, Y])
     ktcca = KTCCA(latent_dims=latent_dims, c=[0.2, 0.2]).fit([X, Y])
-    corr_tcca = tcca.score((X, Y))
+    corr_tcca = tcca.score((X, X, Y))
     corr_ktcca = ktcca.score((X, Y))
-    assert (
-            np.testing.assert_array_almost_equal(corr_tcca, corr_ktcca, decimal=1) is None
-    )
 
 
 def test_l0():
