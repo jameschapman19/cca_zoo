@@ -253,7 +253,7 @@ def test_TCCA():
     # Tests tensor CCA methods
     latent_dims = 2
     tcca = TCCA(latent_dims=latent_dims, c=[0.2, 0.2, 0.2]).fit([X, X, X])
-    ktcca = KTCCA(latent_dims=latent_dims, c=[0.2, 0.2, 0.2]).fit([X, X, X])
+    ktcca = KTCCA(latent_dims=latent_dims, c=[0.2, 0.2, 0.2]).fit([X, Y])
     corr_tcca = tcca.score((X, X, X))
     corr_ktcca = ktcca.score((X, X, X))
     assert (
