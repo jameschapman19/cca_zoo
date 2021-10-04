@@ -1,12 +1,6 @@
 cca\_zoo.deepmodels
 ===========================
 
-cca\_zoo.deepmodels.architectures
-----------------------------------------
-
-.. automodule:: cca_zoo.deepmodels.architectures
-    :show-inheritance:
-
 cca\_zoo.deepmodels.dcca
 -------------------------------
 
@@ -43,14 +37,22 @@ cca\_zoo.deepmodels.dvcca
 .. autoclass:: cca_zoo.deepmodels.dvcca.DVCCA
     :show-inheritance:
 
-cca\_zoo.deepmodels.objectives
--------------------------------------
-
-.. automodule:: cca_zoo.deepmodels.objectives
-    :show-inheritance:
-
 cca\_zoo.deepmodels.splitae
 ----------------------------------
 
 .. autoclass:: cca_zoo.deepmodels.splitae.SplitAE
+    :show-inheritance:
+
+cca\_zoo.deepmodels.objectives
+-------------------------------------
+
+.. automodule:: cca_zoo.deepmodels.objectives
+    :members:
+    :show-inheritance:
+
+cca\_zoo.deepmodels.architectures
+----------------------------------------
+
+.. automodule:: cca_zoo.deepmodels.architectures
+    :members:
     :show-inheritance:
