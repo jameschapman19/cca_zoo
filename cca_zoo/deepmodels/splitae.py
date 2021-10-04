@@ -39,7 +39,7 @@ class SplitAE(_DCCA_base):
         return tuple(recon)
 
     def loss(self, *args):
-        z = self.encode(*args)
+        z = self(*args)
         recon = self.decode(z)
         recon_loss = self.recon_loss(args, recon)
         return recon_loss
