@@ -25,10 +25,18 @@ author = 'James Chapman'
 release = '1.2.1'
 
 # -- General configuration ---------------------------------------------------
+
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinx.ext.todo",
     "sphinx.ext.viewcode",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.ifconfig",
+    "sphinx.ext.githubpages",
+    "sphinx.ext.intersphinx",
+    'sphinx_gallery.gen_gallery',
     "sphinx_autodoc_typehints",
 ]
 
