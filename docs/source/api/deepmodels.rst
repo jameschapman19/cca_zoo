@@ -36,6 +36,7 @@ cca\_zoo.deepmodels.deepwrapper
 
 .. automodule:: cca_zoo.deepmodels.deepwrapper
     :inherited-members:
+    :exclude-members: get_params, set_params
 
 cca\_zoo.deepmodels.objectives
 -------------------------------------
