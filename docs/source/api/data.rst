@@ -1,17 +1,17 @@
-cca\_zoo.data
+Data
 =====================
 
-cca\_zoo.data.simulated
+Simulated Data
 ------------------------------
 
 .. automodule:: cca_zoo.data.simulated
 
-cca\_zoo.data.toy
+Toy Data
 ------------------------
 
 .. automodule:: cca_zoo.data.toy
 
-cca\_zoo.data.utils
+Utils
 --------------------------
 
 .. automodule:: cca_zoo.data.utils

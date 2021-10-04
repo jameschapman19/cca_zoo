@@ -1,7 +1,7 @@
-cca\_zoo.probabilisticmodels
+Probabilistic Models
 ====================================
 
-cca\_zoo.probabilisticmodels.vcca
+Variational CCA
 ----------------------------------------
 
 .. automodule:: cca_zoo.probabilisticmodels.vcca

@@ -1,7 +1,7 @@
 cca\_zoo.models
 =======================
 
-cca\_zoo.models.cca\_base
+cca\_base
 --------------------------------
 
 .. automodule:: cca_zoo.models.cca_base
@@ -9,45 +9,46 @@ cca\_zoo.models.cca\_base
     :private-members: _CCA_Base
     :exclude-members: get_params, set_params
 
-cca\_zoo.models.rcca
+rCCA
 ---------------------------
 
 .. automodule:: cca_zoo.models.rcca
     :inherited-members:
     :exclude-members: get_params, set_params
 
-cca\_zoo.models.gcca
+GCCA and KGCCA
 ---------------------------
 
 .. automodule:: cca_zoo.models.gcca
     :inherited-members:
     :exclude-members: get_params, set_params
 
-cca\_zoo.models.mcca
+MCCA and KCCA
 ---------------------------
 
 .. automodule:: cca_zoo.models.mcca
     :inherited-members:
     :exclude-members: get_params, set_params
 
-cca\_zoo.models.iterative
+TCCA and KTCCA
+---------------------------
+
+.. automodule:: cca_zoo.models.tcca
+    :inherited-members:
+    :exclude-members: get_params, set_params
+
+Iterative Models
 --------------------------------
 
 .. automodule:: cca_zoo.models.iterative
     :inherited-members:
     :exclude-members: get_params, set_params
 
-cca\_zoo.models.innerloop
+Inner Loops
 --------------------------------
 
 .. automodule:: cca_zoo.models.innerloop
     :inherited-members:
     :exclude-members: get_params, set_params
 
-cca\_zoo.models.tcca
----------------------------
-
-.. automodule:: cca_zoo.models.tcca
-    :inherited-members:
-    :exclude-members: get_params, set_params
 

@@ -1,44 +1,44 @@
-cca\_zoo.deepmodels
+Deep Models
 ===========================
 
-cca\_zoo.deepmodels.dcca
+DCCA
 -------------------------------
 
 .. automodule:: cca_zoo.deepmodels.dcca
 
-cca\_zoo.deepmodels.dcca\_noi
-------------------------------------
+DCCA by Non-Linear Orthogonal Iterations
+-----------------------------------------
 
 .. automodule:: cca_zoo.deepmodels.dcca_noi
 
-cca\_zoo.deepmodels.dccae
---------------------------------
+Deep Canonically Correlated Autoencoders
+-----------------------------------------
 
 .. automodule:: cca_zoo.deepmodels.dccae
 
-cca\_zoo.deepmodels.dtcca
+Deep Tensor CCA
 --------------------------------
 
 .. automodule:: cca_zoo.deepmodels.dtcca
 
-cca\_zoo.deepmodels.dvcca
+Deep Variational CCA
 --------------------------------
 
 .. automodule:: cca_zoo.deepmodels.dvcca
 
-cca\_zoo.deepmodels.splitae
+Split Autoencoders
 ----------------------------------
 
 .. automodule:: cca_zoo.deepmodels.splitae
 
-cca\_zoo.deepmodels.deepwrapper
+Deep Wrapper for Training
 --------------------------------------
 
 .. automodule:: cca_zoo.deepmodels.deepwrapper
     :inherited-members:
     :exclude-members: get_params, set_params
 
-cca\_zoo.deepmodels.objectives
+Deep Objectives
 -------------------------------------
 
 .. autoclass:: cca_zoo.deepmodels.objectives.CCA
@@ -54,7 +54,7 @@ cca\_zoo.deepmodels.objectives
     :members:
 
 
-cca\_zoo.deepmodels.architectures
+Model Architectures
 ----------------------------------------
 
 .. automodule:: cca_zoo.deepmodels.architectures
