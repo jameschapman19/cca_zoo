@@ -25,22 +25,19 @@ author = 'James Chapman'
 release = '1.2.1'
 
 # -- General configuration ---------------------------------------------------
-
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
 extensions = [
-    'sphinx.ext.autodoc',
+    "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    'sphinx_autodoc_typehints',
-    'sphinx.ext.viewcode'
+    "sphinx.ext.viewcode",
 ]
 
+# -- sphinx.ext.autosummary
 autosummary_generate = True
-autodoc_inherit_docstrings = True
+
+# -- sphinx.ext.autodoc
 autoclass_content = "both"
-autodoc_default_flags = ["members", "inherited-members", "show-inheritance"]
-autodoc_member_order = "bysource"  # default is alphabetical
+autodoc_default_flags = ["members", "inherited-members"]
+autodoc_member_order = "bysource"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
