@@ -26,6 +26,7 @@ class DeepWrapper(_CCA_Base):
             scheduler=None,
             lr=1e-3,
             clip_value=float("inf"),
+            random_state=1
     ):
         """
 
@@ -39,8 +40,10 @@ class DeepWrapper(_CCA_Base):
         super().__init__(latent_dims=model.latent_dims)
         self.model = model
         self.device = device
-        if not torch.cuda.is_available() and self.device == "cuda":
+        if not torch.cuda.is_available():
             self.device = "cpu"
+        torch.manual_seed(random_state)
+        torch.cuda.manual_seed(random_state)
         self.latent_dims = model.latent_dims
         self.optimizer = optimizer
         if optimizer is None:
