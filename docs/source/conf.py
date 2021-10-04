@@ -40,7 +40,6 @@ autosummary_generate = True
 autoclass_content = "both"
 autodoc_default_flags = ["members", "inherited-members", "show-inheritance"]
 autodoc_member_order = "bysource"  # default is alphabetical
-special_members = '--init__'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
