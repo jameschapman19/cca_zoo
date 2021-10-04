@@ -31,7 +31,6 @@ release = '1.2.1'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.autoclass'
     "sphinx.ext.autosummary",
     'sphinx_autodoc_typehints',
     'sphinx.ext.viewcode'
