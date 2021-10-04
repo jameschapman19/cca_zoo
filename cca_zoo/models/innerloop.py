@@ -635,6 +635,9 @@ class SpanCCAInnerLoop(_InnerLoop):
         elif self.regularisation == "l1":
             self.update = _delta_search
             self.c = _process_parameter("c", self.c, 0, len(self.views))
+        self.positive = _process_parameter(
+            "positive", self.positive, False, len(self.views)
+        )
 
     def _inner_iteration(self):
         c = self.random_state.randn(self.rank, 1)
@@ -685,6 +688,9 @@ class SWCCAInnerLoop(PLSInnerLoop):
         self.sample_weights = np.ones((self.views[0].shape[0], 1))
         self.sample_weights /= np.linalg.norm(self.sample_weights)
         self.c = _process_parameter("c", self.c, 1, len(self.views))
+        self.positive = _process_parameter(
+            "positive", self.positive, False, len(self.views)
+        )
 
     def _update_view(self, view_index: int):
         """

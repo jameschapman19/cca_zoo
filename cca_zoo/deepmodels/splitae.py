@@ -29,10 +29,6 @@ class SplitAE(_DCCA_base):
         self.decoders = torch.nn.ModuleList(decoders)
 
     def forward(self, *args):
-        z = self.encode(*args)
-        return z
-
-    def encode(self, *args):
         z = self.encoder(args[0])
         return z
 
