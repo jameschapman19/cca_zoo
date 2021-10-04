@@ -604,6 +604,7 @@ class SpanCCAInnerLoop(_InnerLoop):
             regularisation="l0",
             rank=1,
             random_state=None,
+            positive=False
     ):
         super().__init__(
             max_iter=max_iter,
@@ -615,6 +616,7 @@ class SpanCCAInnerLoop(_InnerLoop):
         self.c = c
         self.regularisation = regularisation
         self.rank = rank
+        self.positive = positive
 
     def _check_params(self):
         """check number of views=2"""
@@ -662,6 +664,7 @@ class SWCCAInnerLoop(PLSInnerLoop):
             c=None,
             sample_support: int = None,
             random_state=None,
+            positive=False
     ):
         super().__init__(
             max_iter=max_iter,
@@ -676,6 +679,7 @@ class SWCCAInnerLoop(PLSInnerLoop):
             self.update = _support_soft_thresh
         elif regularisation == "l1":
             self.update = _delta_search
+        self.positive = positive
 
     def _check_params(self):
         self.sample_weights = np.ones((self.views[0].shape[0], 1))
