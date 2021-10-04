@@ -5,13 +5,13 @@ from sklearn.utils.validation import check_random_state
 
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.models import (
+    rCCA,
     CCA,
     PLS,
     CCA_ALS,
     SCCA,
     PMD,
     ElasticCCA,
-    rCCA,
     KCCA,
     KTCCA,
     MCCA,

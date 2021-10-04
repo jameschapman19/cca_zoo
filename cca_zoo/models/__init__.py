@@ -13,5 +13,5 @@ from .iterative import (
     SWCCA,
 )
 from .mcca import MCCA, KCCA
-from .rcca import CCA, rCCA, PLS
+from .rcca import rCCA, CCA, PLS
 from .tcca import TCCA, KTCCA

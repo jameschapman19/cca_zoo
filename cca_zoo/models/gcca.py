@@ -201,7 +201,7 @@ class KGCCA(GCCA):
                 @ Q
                 @ np.diag(np.sqrt(np.sum(K, axis=0)))
         )
-        return views, Q, None
+        return kernels, Q, None
 
     def transform(self, views: np.ndarray, y=None, **kwargs):
         """
