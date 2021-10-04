@@ -1,11 +1,9 @@
-cca\_zoo.probabilisticmodels
+Probabilistic Models
 ====================================
 
-cca\_zoo.probabilisticmodels.vcca
+Variational CCA
 ----------------------------------------
 
 .. automodule:: cca_zoo.probabilisticmodels.vcca
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
+    :inherited-members:
+    :exclude-members: get_params, set_params

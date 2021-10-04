@@ -27,7 +27,7 @@ class TCCA(_CCA_Base):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = TCCA()
-    >>> model.fit(X1,X2)
+    >>> model.fit([X1,X2])
     """
 
     def __init__(
@@ -131,7 +131,7 @@ class KTCCA(TCCA):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = KTCCA()
-    >>> model.fit(X1,X2)
+    >>> model.fit([X1,X2])
     """
 
     def __init__(

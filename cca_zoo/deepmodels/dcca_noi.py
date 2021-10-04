@@ -50,17 +50,13 @@ class DCCA_NOI(DCCA):
         self.rand = torch.rand(N, self.latent_dims)
 
     def forward(self, *args):
-        z = self.encode(*args)
-        return z
-
-    def encode(self, *args):
         z = []
         # Users architecture + final linear layer
         for i, (encoder, linear_layer) in enumerate(
                 zip(self.encoders, self.linear_layers)
         ):
             z.append(linear_layer(encoder(args[i])))
-        return tuple(z)
+        return z
 
     def loss(self, *args):
         z = self(*args)

@@ -1,61 +1,54 @@
-cca\_zoo.models
+Models
 =======================
 
-cca\_zoo.models.cca\_base
+Base Class
 --------------------------------
 
 .. automodule:: cca_zoo.models.cca_base
-   :private-members:
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :private-members: _CCA_Base
+    :exclude-members: get_params, set_params
 
-cca\_zoo.models.gcca
----------------------------
-
-.. automodule:: cca_zoo.models.gcca
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-cca\_zoo.models.innerloop
---------------------------------
-
-.. automodule:: cca_zoo.models.innerloop
-   :private-members:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-cca\_zoo.models.iterative
---------------------------------
-
-.. automodule:: cca_zoo.models.iterative
-   :private-members:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-cca\_zoo.models.mcca
----------------------------
-
-.. automodule:: cca_zoo.models.mcca
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-cca\_zoo.models.rcca
+rCCA
 ---------------------------
 
 .. automodule:: cca_zoo.models.rcca
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :inherited-members:
+    :exclude-members: get_params, set_params
 
-cca\_zoo.models.tcca
+GCCA and KGCCA
+---------------------------
+
+.. automodule:: cca_zoo.models.gcca
+    :inherited-members:
+    :exclude-members: get_params, set_params
+
+MCCA and KCCA
+---------------------------
+
+.. automodule:: cca_zoo.models.mcca
+    :inherited-members:
+    :exclude-members: get_params, set_params
+
+TCCA and KTCCA
 ---------------------------
 
 .. automodule:: cca_zoo.models.tcca
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :inherited-members:
+    :exclude-members: get_params, set_params
+
+Iterative Models
+--------------------------------
+
+.. automodule:: cca_zoo.models.iterative
+    :inherited-members:
+    :exclude-members: get_params, set_params
+
+Inner Loops
+--------------------------------
+
+.. automodule:: cca_zoo.models.innerloop
+    :inherited-members:
+    :exclude-members: get_params, set_params
+
+

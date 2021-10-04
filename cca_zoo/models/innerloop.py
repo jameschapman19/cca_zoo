@@ -48,7 +48,7 @@ class _InnerLoop:
         """
         pass
 
-    def initialize(self):
+    def _initialize(self):
         if self.initialization == "random":
             self.scores = np.array(
                 [self.random_state.randn(view.shape[0], 1) for view in self.views]
@@ -62,7 +62,7 @@ class _InnerLoop:
                     random_state=self.random_state,
                     tol=self.tol,
                 )
-                    .fit(*self.views)
+                    ._fit(*self.views)
                     .scores
             )
         self.scores = (
@@ -74,7 +74,7 @@ class _InnerLoop:
             self.random_state.randn(view.shape[1], 1) for view in self.views
         ]
 
-    def fit(self, *views: np.ndarray):
+    def _fit(self, *views: np.ndarray):
         self.views = views
         self.n = views[0].shape[0]
         if len(self.views) > 2:
@@ -83,26 +83,26 @@ class _InnerLoop:
 
         # Check that the parameters that have been passed are valid for these views given #views and #features
         self._check_params()
-        self.initialize()
+        self._initialize()
 
         # Iterate until convergence
         self.track_objective = []
         for _ in range(self.max_iter):
-            self.inner_iteration()
-            self.track_objective.append(self.objective())
-            if _ > 0 and self.early_stop():
+            self._inner_iteration()
+            self.track_objective.append(self._objective())
+            if _ > 0 and self._early_stop():
                 break
             self.old_scores = self.scores.copy()
         return self
 
-    def early_stop(self) -> bool:
+    def _early_stop(self) -> bool:
         return False
 
     @abstractmethod
-    def inner_iteration(self):
+    def _inner_iteration(self):
         pass
 
-    def objective(self) -> int:
+    def _objective(self) -> int:
         """
         Function used to calculate the objective function for the given. If we do not override then returns the covariance
          between projections
@@ -137,13 +137,13 @@ class PLSInnerLoop(_InnerLoop):
         self.l1_ratio = [0] * len(self.views)
         self.c = [0] * len(self.views)
 
-    def inner_iteration(self):
+    def _inner_iteration(self):
         # Update each view using loop update function
         for i, view in enumerate(self.views):
-            self.update_view(i)
+            self._update_view(i)
 
     @abstractmethod
-    def update_view(self, view_index: int):
+    def _update_view(self, view_index: int):
         """
         Function used to update the parameters in each view within the loop. By changing this function, we can change
          the optimisation. This method NEEDS to update self.scores[view_index]
@@ -160,7 +160,7 @@ class PLSInnerLoop(_InnerLoop):
         self.weights[view_index] /= np.linalg.norm(self.weights[view_index])
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
-    def early_stop(self) -> bool:
+    def _early_stop(self) -> bool:
         # Some kind of early stopping
         if all(
                 _cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol)
@@ -214,7 +214,7 @@ class PMDInnerLoop(PLSInnerLoop):
             "positive", self.positive, False, len(self.views)
         )
 
-    def update_view(self, view_index: int):
+    def _update_view(self, view_index: int):
         """
         :param view_index: index of view being updated
         :return: updated weights
@@ -258,7 +258,7 @@ class ParkhomenkoInnerLoop(PLSInnerLoop):
         if any(c <= 0 for c in self.c):
             raise ("All regularisation parameters should be above 0. " f"c=[{self.c}]")
 
-    def update_view(self, view_index: int):
+    def _update_view(self, view_index: int):
         """
         :param view_index: index of view being updated
         :return: updated weights
@@ -390,7 +390,7 @@ class ElasticInnerLoop(PLSInnerLoop):
                         )
                     )
 
-    def update_view(self, view_index: int):
+    def _update_view(self, view_index: int):
         """
         :param view_index: index of view being updated
         :return: updated weights
@@ -400,14 +400,14 @@ class ElasticInnerLoop(PLSInnerLoop):
         else:
             target = self.scores[view_index - 1]
         if self.constrained:
-            self.elastic_solver_constrained(self.views[view_index], target, view_index)
+            self._elastic_solver_constrained(self.views[view_index], target, view_index)
         else:
-            self.elastic_solver(self.views[view_index], target, view_index)
+            self._elastic_solver(self.views[view_index], target, view_index)
         _check_converged_weights(self.weights[view_index], view_index)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
     @ignore_warnings(category=ConvergenceWarning)
-    def elastic_solver(self, X, y, view_index):
+    def _elastic_solver(self, X, y, view_index):
         self.weights[view_index] = np.expand_dims(
             self.regressors[view_index].fit(X, y.ravel()).coef_, 1
         )
@@ -416,7 +416,7 @@ class ElasticInnerLoop(PLSInnerLoop):
         ) / np.sqrt(self.n)
 
     @ignore_warnings(category=ConvergenceWarning)
-    def elastic_solver_constrained(self, X, y, view_index):
+    def _elastic_solver_constrained(self, X, y, view_index):
         converged = False
         min_ = -1
         max_ = 1
@@ -444,7 +444,7 @@ class ElasticInnerLoop(PLSInnerLoop):
                 converged = True
         self.weights[view_index] = coef
 
-    def objective(self):
+    def _objective(self):
         views = len(self.views)
         c = np.array(self.c)
         ratio = np.array(self.l1_ratio)
@@ -464,7 +464,7 @@ class ElasticInnerLoop(PLSInnerLoop):
             total_objective += objective + l1_pen + l2_pen
         return total_objective
 
-    def early_stop(self) -> bool:
+    def _early_stop(self) -> bool:
         # Some kind of early stopping
         if np.abs(self.track_objective[-2] - self.track_objective[-1]) < self.tol:
             return True
@@ -520,7 +520,7 @@ class ADMMInnerLoop(ElasticInnerLoop):
         self.z = [np.zeros((view.shape[0], 1)) for view in self.views]
         self.l1_ratio = [1] * len(self.views)
 
-    def update_view(self, view_index: int):
+    def _update_view(self, view_index: int):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         # Suo uses parameter tau whereas we use parameter c to penalize the 1-norm of the weights.
@@ -537,7 +537,7 @@ class ADMMInnerLoop(ElasticInnerLoop):
         norm_proj = []
         for _ in range(self.max_iter):
             # We multiply 'c' by N in order to make regularisation match across the different sparse cca methods
-            self.weights[view_index] = self.prox_mu_f(
+            self.weights[view_index] = self._prox_mu_f(
                 self.weights[view_index]
                 - mu
                 / lam
@@ -557,7 +557,7 @@ class ADMMInnerLoop(ElasticInnerLoop):
                     + self.eta[view_index]
                 )
             )
-            self.z[view_index] = self.prox_lam_g(
+            self.z[view_index] = self._prox_lam_g(
                 self.views[view_index] @ self.weights[view_index] + self.eta[view_index]
             )
             self.eta[view_index] = (
@@ -573,7 +573,7 @@ class ADMMInnerLoop(ElasticInnerLoop):
         _check_converged_weights(self.weights[view_index], view_index)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
-    def prox_mu_f(self, x, mu, c, tau):
+    def _prox_mu_f(self, x, mu, c, tau):
         u_update = x.copy()
         mask_1 = x + (mu * c) > mu * tau
         # if mask_1.sum()>0:
@@ -585,7 +585,7 @@ class ADMMInnerLoop(ElasticInnerLoop):
         u_update[mask_3] = 0
         return u_update
 
-    def prox_lam_g(self, x):
+    def _prox_lam_g(self, x):
         norm = np.linalg.norm(x)
         if norm < 1:
             return x
@@ -603,8 +603,8 @@ class SpanCCAInnerLoop(_InnerLoop):
             c=None,
             regularisation="l0",
             rank=1,
-            positive=None,
             random_state=None,
+            positive=False
     ):
         super().__init__(
             max_iter=max_iter,
@@ -639,7 +639,7 @@ class SpanCCAInnerLoop(_InnerLoop):
             "positive", self.positive, False, len(self.views)
         )
 
-    def inner_iteration(self):
+    def _inner_iteration(self):
         c = self.random_state.randn(self.rank, 1)
         c /= np.linalg.norm(c)
         a = self.P @ np.diag(self.D) @ c
@@ -666,8 +666,8 @@ class SWCCAInnerLoop(PLSInnerLoop):
             regularisation="l0",
             c=None,
             sample_support: int = None,
-            positive=None,
             random_state=None,
+            positive=False
     ):
         super().__init__(
             max_iter=max_iter,
@@ -685,22 +685,14 @@ class SWCCAInnerLoop(PLSInnerLoop):
         self.positive = positive
 
     def _check_params(self):
-        self.sample_weights = np.ones(self.views[0].shape[0])
+        self.sample_weights = np.ones((self.views[0].shape[0], 1))
         self.sample_weights /= np.linalg.norm(self.sample_weights)
+        self.c = _process_parameter("c", self.c, 1, len(self.views))
         self.positive = _process_parameter(
             "positive", self.positive, False, len(self.views)
         )
-        self.c = _process_parameter("c", self.c, 1, len(self.views))
 
-    def initialize(self):
-        # Initialize weights
-        self.weights = [self.random_state.randn(view.shape[1]) for view in self.views]
-        self.weights = [weights / np.linalg.norm(weights) for weights in self.weights]
-        self.scores = np.array(
-            [view @ weights for view, weights in zip(self.views, self.weights)]
-        )
-
-    def update_view(self, view_index: int):
+    def _update_view(self, view_index: int):
         """
         :param view_index: index of view being updated
         :return: updated weights
@@ -708,10 +700,8 @@ class SWCCAInnerLoop(PLSInnerLoop):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         self.weights[view_index] = (
-                self.views[view_index].T
-                @ np.diag(self.sample_weights)
-                @ targets.sum(axis=0).filled()
-        )
+                                           self.views[view_index] * self.sample_weights
+                                   ).T @ targets.sum(axis=0).filled()
         self.weights[view_index] = self.update(
             self.weights[view_index],
             self.c[view_index],
@@ -719,18 +709,18 @@ class SWCCAInnerLoop(PLSInnerLoop):
         )
         self.weights[view_index] /= np.linalg.norm(self.weights[view_index])
         if view_index == len(self.views) - 1:
-            self.update_sample_weights()
+            self._update_sample_weights()
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
-    def update_sample_weights(self):
+    def _update_sample_weights(self):
         w = self.scores.prod(axis=0)
         self.sample_weights = _support_soft_thresh(w, self.sample_support)
         self.sample_weights /= np.linalg.norm(self.sample_weights)
 
-    def early_stop(self) -> bool:
+    def _early_stop(self) -> bool:
         return False
 
-    def objective(self) -> int:
+    def _objective(self) -> int:
         """
         Function used to calculate the objective function for the given. If we do not override then returns the covariance
          between projections
@@ -740,7 +730,7 @@ class SWCCAInnerLoop(PLSInnerLoop):
         # default objective is correlation
         obj = 0
         for (score_i, score_j) in combinations(self.scores, 2):
-            obj += score_i.T @ np.diag(self.sample_weights) @ score_j
+            obj += (score_i * self.sample_weights).T @ score_j
         return obj
 
 

@@ -19,5 +19,6 @@ Interactive CCA Tutorial
 ---------------------------
 
 An interactive notebook that allows the user to vary parameters in models with live updates using ipython widgets
+submitted for MICCAI 2021 Educational Challenge
 
-https://colab.research.google.com/github/jameschapman19/education-challenge/blob/main/CCA_Tutorial_without_bug.ipynb
+https://colab.research.google.com/github/jameschapman19/education-challenge/blob/main/CCA_Tutorial.ipynb

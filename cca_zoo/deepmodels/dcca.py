@@ -40,16 +40,18 @@ class DCCA(_DCCA_base):
         self.objective = objective(latent_dims, r=r, eps=eps)
 
     def forward(self, *args):
-        z = self.encode(*args)
-        return z
-
-    def encode(self, *args):
         z = []
         for i, encoder in enumerate(self.encoders):
             z.append(encoder(args[i]))
-        return tuple(z)
+        return z
 
     def loss(self, *args):
+        """
+        Define the loss function for the model. This is used by the DeepWrapper class
+
+        :param args:
+        :return:
+        """
         z = self(*args)
         return self.objective.loss(*z)
 

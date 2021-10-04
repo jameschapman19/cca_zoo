@@ -5,13 +5,13 @@ from sklearn.utils.validation import check_random_state
 
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.models import (
+    rCCA,
     CCA,
     PLS,
     CCA_ALS,
     SCCA,
     PMD,
     ElasticCCA,
-    rCCA,
     KCCA,
     KTCCA,
     MCCA,
@@ -219,7 +219,9 @@ def test_sparse_methods():
     c1 = loguniform(1e-4, 1e0)
     c2 = loguniform(1e-4, 1e0)
     param_grid = {"c": [c1, c2]}
-    elastic_cv = RandomizedSearchCV(ElasticCCA(random_state=rng), param_distributions=param_grid, n_iter=4).fit([X, Y])
+    elastic_cv = RandomizedSearchCV(
+        ElasticCCA(random_state=rng), param_distributions=param_grid, n_iter=4
+    ).fit([X, Y])
     corr_pmd = pmd_cv.score((X, Y))
     corr_scca = scca_cv.score((X, Y))
     corr_elastic = elastic_cv.score((X, Y))
@@ -269,4 +271,3 @@ def test_l0():
     assert (np.abs(swcca.weights[0]) > 1e-5).sum() == 2
     assert (np.abs(swcca.weights[1]) > 1e-5).sum() == 2
     assert (np.abs(swcca.loop.sample_weights) > 1e-5).sum() == 5
-

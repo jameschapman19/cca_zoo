@@ -67,7 +67,7 @@ class _Iterative(_CCA_Base):
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
-        Fits the model by running an inner loop to convergence and then using deflation (currently only supports CCA deflation)
+        Fits the model by running an inner loop to convergence and then using either CCA or PLS deflation
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
@@ -92,7 +92,7 @@ class _Iterative(_CCA_Base):
         self.objective = []
         # For each of the dimensions
         for k in range(self.latent_dims):
-            self.loop = self.loop.fit(*residuals)
+            self.loop = self.loop._fit(*residuals)
             for i, residual in enumerate(residuals):
                 self.weights[i][:, k] = self.loop.weights[i].ravel()
                 self.scores[i][:, k] = self.loop.scores[i].ravel()
@@ -107,8 +107,8 @@ class _Iterative(_CCA_Base):
         """
         Deflate view residual by CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
 
-        :param residual:
-        :param score:
+        :param residual: the current residual data matrix
+        :param score: the score for that view
 
         """
         if self.deflation == "cca":
@@ -143,8 +143,8 @@ class PLS_ALS(_Iterative):
     >>> from cca_zoo.models import PLS
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
-    >>> model = PLS()
-    >>> model.fit(X1,X2)
+    >>> model = PLS_ALS()
+    >>> model.fit([X1,X2])
     """
 
     def __init__(
@@ -208,8 +208,8 @@ class ElasticCCA(_Iterative):
     >>> from cca_zoo.models import ElasticCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
-    >>> model = ElasticCCA()
-    >>> model.fit(X1,X2)
+    >>> model = ElasticCCA(c=[0.1,0.1],l1_ratio=[0.5,0.5])
+    >>> model.fit([X1,X2])
     """
 
     def __init__(
@@ -675,9 +675,9 @@ class SpanCCA(_Iterative):
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         :param regularisation:
-        :param c:
-        :param rank:
-        :param positive:
+        :param c: regularisation parameter
+        :param rank: rank of the approximation
+        :param positive: constrain weights to be positive
         """
         super().__init__(
             latent_dims=latent_dims,
@@ -704,8 +704,8 @@ class SpanCCA(_Iterative):
             tol=self.tol,
             regularisation=self.regularisation,
             rank=self.rank,
-            positive=self.positive,
             random_state=self.random_state,
+            positive=self.positive
         )
 
 
@@ -734,7 +734,7 @@ class SWCCA(_Iterative):
             regularisation="l0",
             c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
             sample_support=None,
-            positive: Union[Iterable[bool], bool] = None,
+            positive=False
     ):
         """
 
@@ -747,10 +747,10 @@ class SWCCA(_Iterative):
         :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
-        :param regularisation:
-        :param c:
-        :param sample_support:
-        :param positive:
+        :param regularisation: the type of regularisation on the weights either 'l0' or 'l1'
+        :param c: regularisation parameter
+        :param sample_support: the l0 norm of the sample weights
+        :param positive: constrain weights to be positive
         """
 
         self.c = c
@@ -778,6 +778,6 @@ class SWCCA(_Iterative):
             regularisation=self.regularisation,
             c=self.c,
             sample_support=self.sample_support,
-            positive=self.positive,
             random_state=self.random_state,
+            positive=self.positive
         )

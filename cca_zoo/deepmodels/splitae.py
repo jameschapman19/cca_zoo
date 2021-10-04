@@ -29,21 +29,22 @@ class SplitAE(_DCCA_base):
         self.decoders = torch.nn.ModuleList(decoders)
 
     def forward(self, *args):
-        z = self.encode(*args)
-        return z
-
-    def encode(self, *args):
         z = self.encoder(args[0])
         return z
 
     def decode(self, z):
+        """
+        This method is used to decode from the latent space to the best prediction of the original views
+
+        :param z:
+        """
         recon = []
         for i, decoder in enumerate(self.decoders):
             recon.append(decoder(z))
         return tuple(recon)
 
     def loss(self, *args):
-        z = self.encode(*args)
+        z = self(*args)
         recon = self.decode(z)
         recon_loss = self.recon_loss(args, recon)
         return recon_loss

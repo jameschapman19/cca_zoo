@@ -103,7 +103,7 @@ class DVCCA(_DCCA_base):
         for i, decoder in enumerate(self.decoders):
             x_i = decoder(z)
             x.append(x_i)
-        return tuple(x)
+        return x
 
     def recon(self, *args):
         """

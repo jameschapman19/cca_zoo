@@ -21,14 +21,8 @@ project = 'cca-zoo'
 copyright = '2021, James Chapman'
 author = 'James Chapman'
 
-# The full version, including alpha/beta/rc tags
-release = '1.2.1'
-
 # -- General configuration ---------------------------------------------------
 
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
 extensions = [
     'sphinx.ext.autodoc',
     "sphinx.ext.autosummary",
@@ -41,7 +35,7 @@ autosummary_generate = True
 
 # -- sphinx.ext.autodoc
 autoclass_content = "both"
-autodoc_default_flags = ["members", "inherited-members"]
+autodoc_default_flags = ["members", "show-inheritance"]
 autodoc_member_order = "bysource"  # default is alphabetical
 special_members = '--init__'
 

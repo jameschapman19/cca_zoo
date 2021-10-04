@@ -1,21 +1,16 @@
-cca\_zoo.model\_selection
+Model Selection
 ==========================
 
-cca\_zoo.model\_selection.GridSearchCV
+GridSearchCV
 ---------------------------------------
 
 .. automodule:: cca_zoo.model_selection.GridSearchCV
-   :private-members:
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :inherited-members:
 
 
-cca\_zoo.model\_selection.RandomizedSearchCV
+RandomizedSearchCV
 ---------------------------------------------
 
 .. automodule:: cca_zoo.model_selection.RandomizedSearchCV
-   :private-members:
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :inherited-members:
+

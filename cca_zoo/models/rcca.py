@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Iterable, Union
 
 import numpy as np
@@ -23,8 +24,8 @@ class rCCA(_CCA_Base):
     >>> from cca_zoo.models import rCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
-    >>> model = rCCA()
-    >>> model.fit(X1,X2)
+    >>> model = rCCA(c=[0.1,0.1])
+    >>> model.fit([X1,X2])
     """
 
     def __init__(
@@ -36,6 +37,7 @@ class rCCA(_CCA_Base):
             random_state=None,
             c: Union[Iterable[float], float] = None,
             eps=1e-3,
+            accept_sparse=None,
     ):
         """
         Constructor for rCCA
@@ -47,13 +49,16 @@ class rCCA(_CCA_Base):
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
         :param eps: epsilon for stability
+        :param accept_sparse: which forms are accepted for sparse data
         """
+        if accept_sparse is None:
+            accept_sparse = ["csc", "csr"]
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
             centre=centre,
             copy_data=copy_data,
-            accept_sparse=["csc", "csr"],
+            accept_sparse=accept_sparse,
             random_state=random_state,
         )
         self.c = c
@@ -75,42 +80,70 @@ class rCCA(_CCA_Base):
         self.n_views = len(views)
         self.n = views[0].shape[0]
         self._check_params()
-        Us, Ss, Vs = _pca_data(*views)
-        if len(views) == 2:
-            self._two_view_fit(Us, Ss, Vs)
-        else:
-            self._multi_view_fit(Us, Ss, Vs)
+        views, C, D = self._setup_evp(views, **kwargs)
+        self._solve_evp(views, C, D, **kwargs)
         return self
 
-    def _two_view_fit(self, Us, Ss, Vts):
-        Bs = [(1 - self.c[i]) * S * S / self.n + self.c[i] for i, S in enumerate(Ss)]
-        Rs = [U @ np.diag(S) for U, S in zip(Us, Ss)]
-        R_12 = Rs[0].T @ Rs[1]
-        M = (
-                np.diag(1 / np.sqrt(Bs[1]))
-                @ R_12.T
-                @ np.diag(1 / Bs[0])
-                @ R_12
-                @ np.diag(1 / np.sqrt(Bs[1]))
-        )
-        n = M.shape[0]
-        [eigvals, eigvecs] = eigh(M, subset_by_index=[n - self.latent_dims, n - 1])
-        eigvecs = eigvecs
-        idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dims]
-        eigvecs = eigvecs[:, idx].real
-        w_y = Vts[1].T @ np.diag(1 / np.sqrt(Bs[1])) @ eigvecs
-        w_x = (
-                Vts[0].T
-                @ np.diag(1 / Bs[0])
-                @ R_12
-                @ np.diag(1 / np.sqrt(Bs[1]))
-                @ eigvecs
-                / np.sqrt(eigvals[idx])
-        )
-        self.weights = [w_x, w_y]
+    @abstractmethod
+    def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
+        Us, Ss, Vts = _pca_data(*views)
+        self.Bs = [
+            (1 - self.c[i]) * S * S / self.n + self.c[i] for i, S in enumerate(Ss)
+        ]
+        if len(views) == 2:
+            self._two_view = True
+            C, D = self._two_view_evp(Us, Ss)
+        else:
+            self._two_view = False
+            C, D = self._multi_view_evp(Us, Ss)
+        return Vts, C, D
 
-    def _multi_view_fit(self, Us, Ss, Vts):
-        Bs = [(1 - self.c[i]) * S * S + self.c[i] for i, S in enumerate(Ss)]
+    @abstractmethod
+    def _solve_evp(self, views: Iterable[np.ndarray], C, D=None, **kwargs):
+        p = C.shape[0]
+        if self._two_view:
+            [eigvals, eigvecs] = eigh(C, subset_by_index=[p - self.latent_dims, p - 1])
+            eigvecs = eigvecs
+            idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dims]
+            eigvecs = eigvecs[:, idx].real
+            w_y = views[1].T @ np.diag(1 / np.sqrt(self.Bs[1])) @ eigvecs
+            w_x = (
+                    views[0].T
+                    @ np.diag(1 / self.Bs[0])
+                    @ self.R_12
+                    @ np.diag(1 / np.sqrt(self.Bs[1]))
+                    @ eigvecs
+                    / np.sqrt(eigvals[idx])
+            )
+            self.weights = [w_x, w_y]
+        else:
+            [eigvals, eigvecs] = eigh(
+                C, D, subset_by_index=[p - self.latent_dims, p - 1]
+            )
+            idx = np.argsort(eigvals, axis=0)[::-1]
+            eigvecs = eigvecs[:, idx].real
+            self.weights = [
+                Vt.T
+                @ np.diag(1 / np.sqrt(B))
+                @ eigvecs[split: self.splits[i + 1], : self.latent_dims]
+                for i, (split, Vt, B) in enumerate(
+                    zip(self.splits[:-1], views, self.Bs)
+                )
+            ]
+
+    def _two_view_evp(self, Us, Ss):
+        Rs = [U @ np.diag(S) for U, S in zip(Us, Ss)]
+        self.R_12 = Rs[0].T @ Rs[1]
+        M = (
+                np.diag(1 / np.sqrt(self.Bs[1]))
+                @ self.R_12.T
+                @ np.diag(1 / self.Bs[0])
+                @ self.R_12
+                @ np.diag(1 / np.sqrt(self.Bs[1]))
+        )
+        return M, None
+
+    def _multi_view_evp(self, Us, Ss):
         D = block_diag(
             *[np.diag((1 - self.c[i]) * S * S + self.c[i]) for i, S in enumerate(Ss)]
         )
@@ -119,17 +152,8 @@ class rCCA(_CCA_Base):
         C -= block_diag(*[np.diag(S ** 2) for U, S in zip(Us, Ss)]) - D
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
-        n = C.shape[0]
-        [eigvals, eigvecs] = eigh(C, D, subset_by_index=[n - self.latent_dims, n - 1])
-        idx = np.argsort(eigvals, axis=0)[::-1]
-        eigvecs = eigvecs[:, idx].real
-        splits = np.cumsum([0] + [U.shape[1] for U in Us])
-        self.weights = [
-            Vt.T
-            @ np.diag(1 / np.sqrt(B))
-            @ eigvecs[split: splits[i + 1], : self.latent_dims]
-            for i, (split, Vt, B) in enumerate(zip(splits[:-1], Vts, Bs))
-        ]
+        self.splits = np.cumsum([0] + [U.shape[1] for U in Us])
+        return C, D
 
 
 class CCA(rCCA):
@@ -189,7 +213,7 @@ class PLS(rCCA):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = CCA()
-    >>> model.fit(X1,X2)
+    >>> model.fit([X1,X2])
     """
 
     def __init__(
