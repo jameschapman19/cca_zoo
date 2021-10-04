@@ -60,7 +60,7 @@ class DCCAE(_DCCA_base):
         return tuple(recon)
 
     def loss(self, *args):
-        z = self.encode(*args)
+        z = self(*args)
         recon = self.decode(*z)
         recon_loss = self.recon_loss(args[: len(recon)], recon)
         return self.lam * recon_loss + self.objective.loss(*z)
