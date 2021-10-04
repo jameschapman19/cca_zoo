@@ -56,8 +56,8 @@ The python ecosystem for multiview learning currently provides a few options for
 `scikit-learn` [@pedregosa2011scikit] contains standard implementations of both CCA and PLS for two-view data which plug
 into their mature API. `pyrcca` [@bilenko2016pyrcca] contains implementations of ridge regularised and kernelized
 two-view CCA. The embed module of `mvlearn` [@perry2020mvlearn] is perhaps the closest relative of `cca-zoo`, containing
-implementations of ridge regularised and kernelized multi-view CCA. `cca-zoo` builds on `mvlearn` by providing an
-additional range of regularised models and in particular sparsity inducing models which have found success in
+implementations of ridge regularised and kernelized multi-view CCA. `cca-zoo` builds on the `mvlearn` API by providing
+an additional range of regularised models and in particular sparsity inducing models which have found success in
 multiomics. Building on the reference implementation in `mvlearn`, `cca-zoo` further provides a number of deep learning
 models with a modular design to enable users to supply their own choice of neural network architectures.
 
