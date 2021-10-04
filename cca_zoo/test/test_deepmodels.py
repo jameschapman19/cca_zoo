@@ -16,7 +16,7 @@ Y = rng.rand(200, 10)
 Z = rng.rand(200, 10)
 X_conv = rng.rand(100, 1, 16, 16)
 Y_conv = rng.rand(100, 1, 16, 16)
-train_dataset = data.CCA_Dataset(X, Y)
+train_dataset = data.CCA_Dataset([X, Y])
 
 
 def test_input_types():

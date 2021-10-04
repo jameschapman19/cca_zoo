@@ -316,7 +316,7 @@ class DeepWrapper(_CCA_Base):
             ]
             dataset, val_dataset = torch.utils.data.random_split(dataset, lengths)
         elif isinstance(val_dataset, tuple):
-            val_dataset = CCA_Dataset(*val_dataset, labels=val_labels)
+            val_dataset = CCA_Dataset(val_dataset, labels=val_labels)
         return dataset, val_dataset
 
     def _get_dataloaders(
