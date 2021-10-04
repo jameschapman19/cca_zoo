@@ -4,7 +4,7 @@ cca\_zoo.models
 cca\_zoo.models.cca\_base
 --------------------------------
 
-.. automodule:: cca_zoo.models.cca_base
+.. autoclass:: cca_zoo.models.cca_base._CCA_Base
     :show-inheritance:
 
 cca\_zoo.models.rcca
