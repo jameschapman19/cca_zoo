@@ -15,6 +15,11 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
     """
     A class used as the base for methods in the package. Allows methods to inherit fit_transform, predict_corr,
     and gridsearch_fit when only fit (and transform where it is different to the default) is provided.
+
+    Attributes
+    ----------
+    weights : list of weights for each view
+
     """
 
     def __init__(
