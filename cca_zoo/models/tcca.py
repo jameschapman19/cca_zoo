@@ -109,10 +109,16 @@ class TCCA(_CCA_Base):
         :param kwargs: any additional keyword arguments required by the given model
         """
         transformed_views = self.transform(views, **kwargs)
-        transformed_views = [transformed_view - transformed_view.mean(axis=0) for transformed_view in transformed_views]
+        transformed_views = [
+            transformed_view - transformed_view.mean(axis=0)
+            for transformed_view in transformed_views
+        ]
         multiplied_views = np.stack(transformed_views, axis=0).prod(axis=0).mean(axis=0)
-        stds = np.stack([transformed_view.std(axis=0) for transformed_view in transformed_views], axis=0).prod(axis=0)
-        corrs = (multiplied_views / stds)
+        stds = np.stack(
+            [transformed_view.std(axis=0) for transformed_view in transformed_views],
+            axis=0,
+        ).prod(axis=0)
+        corrs = multiplied_views / stds
         return corrs
 
     def score(self, views: Iterable[np.ndarray], y=None, **kwargs):

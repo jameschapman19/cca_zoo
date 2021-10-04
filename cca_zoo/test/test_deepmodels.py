@@ -76,7 +76,7 @@ def test_large_p():
         encoders=[encoder_1, encoder_2],
         objective=objectives.MCCA,
         eps=1e-3,
-    ).float()
+    )
     optimizer = optim.Adam(dcca_model.parameters(), lr=1e-4)
     dcca_model = DeepWrapper(dcca_model, device=device, optimizer=optimizer)
     dcca_model.fit((X, Y), epochs=100)
@@ -439,3 +439,18 @@ def test_DVCCA_methods_gpu():
 
     dvcca_model = DeepWrapper(dvcca_model, device=device)
     dvcca_model.fit((X, Y))
+
+
+def test_linear():
+    encoder_1 = architectures.LinearEncoder(latent_dims=1, feature_size=10)
+    encoder_2 = architectures.LinearEncoder(latent_dims=1, feature_size=10)
+    dcca_model = DCCA(latent_dims=1, encoders=[encoder_1, encoder_2])
+    dcca_model = DeepWrapper(dcca_model).fit((X, Y), epochs=35)
+    cca = CCA().fit((X, Y))
+    # check linear encoder with SGD matches vanilla linear CCA
+    assert (
+            np.testing.assert_array_almost_equal(
+                cca.score((X, Y)), dcca_model.score((X, Y)), decimal=2
+            )
+            is None
+    )

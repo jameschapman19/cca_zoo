@@ -27,8 +27,6 @@ class VariationalCCA(_CCA_Base):
     def __init__(
             self,
             latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
             copy_data=True,
             random_state: int = 0,
             num_samples=100,
@@ -36,10 +34,8 @@ class VariationalCCA(_CCA_Base):
     ):
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
-            accept_sparse=True,
+            accept_sparse=False,
             random_state=random_state,
         )
         self.num_samples = num_samples
@@ -56,7 +52,7 @@ class VariationalCCA(_CCA_Base):
         self.mcmc = MCMC(
             nuts_kernel, num_samples=self.num_samples, num_warmup=self.num_warmup
         )
-        self.mcmc.run(self.rng_key, *views)
+        self.mcmc.run(self.rng_key, views)
         self.posterior_samples = self.mcmc.get_samples()
         return self
 
@@ -68,7 +64,7 @@ class VariationalCCA(_CCA_Base):
         """
         check_is_fitted(self, attributes=["posterior_samples"])
         return Predictive(self._model, self.posterior_samples, return_sites=["z"])(
-            PRNGKey(1), *views
+            self.rng_key, views
         )["z"]
 
     def _model(self, views: Iterable[np.ndarray]):
@@ -90,7 +86,8 @@ class VariationalCCA(_CCA_Base):
         with numpyro.plate("plate_views", self.latent_dims):
             self.weights_list = [
                 numpyro.sample(
-                    "W_" + str(i), dist.MultivariateNormal(0.0, jnp.diag(jnp.ones(p_)))
+                    "W_" + str(i),
+                    dist.MultivariateNormal(0.0, 10 * jnp.diag(jnp.ones(p_))),
                 )
                 for i, p_ in enumerate(p)
             ]

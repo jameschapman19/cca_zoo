@@ -89,7 +89,7 @@ class _Iterative(_CCA_Base):
 
         residuals = copy.deepcopy(list(views))
 
-        self.objective = []
+        self.track = []
         # For each of the dimensions
         for k in range(self.latent_dims):
             self.loop = self.loop._fit(*residuals)
@@ -100,7 +100,7 @@ class _Iterative(_CCA_Base):
                 residuals[i] = self._deflate(
                     residuals[i], self.scores[i][:, k], self.weights[i][:, k]
                 )
-            self.objective.append(self.loop.track_objective)
+            self.track.append(self.loop.track)
         return self
 
     def _deflate(self, residual, score, loading):
@@ -705,7 +705,7 @@ class SpanCCA(_Iterative):
             regularisation=self.regularisation,
             rank=self.rank,
             random_state=self.random_state,
-            positive=self.positive
+            positive=self.positive,
         )
 
 
@@ -734,7 +734,7 @@ class SWCCA(_Iterative):
             regularisation="l0",
             c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
             sample_support=None,
-            positive=False
+            positive=False,
     ):
         """
 
@@ -779,5 +779,5 @@ class SWCCA(_Iterative):
             c=self.c,
             sample_support=self.sample_support,
             random_state=self.random_state,
-            positive=self.positive
+            positive=self.positive,
         )

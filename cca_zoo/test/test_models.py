@@ -268,3 +268,28 @@ def test_l0():
     assert (np.abs(swcca.weights[0]) > 1e-5).sum() == 2
     assert (np.abs(swcca.weights[1]) > 1e-5).sum() == 2
     assert (np.abs(swcca.loop.sample_weights) > 1e-5).sum() == 5
+
+
+def test_VCCA():
+    try:
+        from cca_zoo.probabilisticmodels import VariationalCCA
+        from cca_zoo.data import generate_simple_data
+
+        # Tests tensor CCA methods
+        (X, Y), (_) = generate_simple_data(100, [10, 10], random_state=rng, eps=0.1)
+        latent_dims = 1
+        cca = CCA(latent_dims=latent_dims).fit([X, Y])
+        vcca = VariationalCCA(
+            latent_dims=latent_dims, num_warmup=500, num_samples=500
+        ).fit([X, Y])
+        # Test that vanilla CCA and VCCA produce roughly similar latent space
+        assert (
+                np.corrcoef(
+                    cca.transform([X, Y])[1].T,
+                    vcca.posterior_samples["z"].mean(axis=0)[:, 0],
+                )[0, 1]
+                > 0.9
+        )
+    except:
+        # some might not have access to jax/numpyro so leave this as an optional test locally.
+        pass

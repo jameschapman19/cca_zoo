@@ -53,7 +53,7 @@ class _InnerLoop:
             self.scores = np.array(
                 [self.random_state.randn(view.shape[0], 1) for view in self.views]
             )
-        if self.initialization == "uniform":
+        elif self.initialization == "uniform":
             self.scores = np.array([np.ones((view.shape[0], 1)) for view in self.views])
         elif self.initialization == "unregularized":
             self.scores = (
@@ -65,6 +65,8 @@ class _InnerLoop:
                     ._fit(*self.views)
                     .scores
             )
+        else:
+            raise ValueError("initialize must be random, uniform or unregularized")
         self.scores = (
                 self.scores
                 * np.sqrt(self.n - 1)
@@ -85,11 +87,12 @@ class _InnerLoop:
         self._check_params()
         self._initialize()
 
+        self.track = {}
         # Iterate until convergence
-        self.track_objective = []
+        self.track["objective"] = []
         for _ in range(self.max_iter):
             self._inner_iteration()
-            self.track_objective.append(self._objective())
+            self.track["objective"].append(self._objective())
             if _ > 0 and self._early_stop():
                 break
             self.old_scores = self.scores.copy()
@@ -604,7 +607,7 @@ class SpanCCAInnerLoop(_InnerLoop):
             regularisation="l0",
             rank=1,
             random_state=None,
-            positive=False
+            positive=False,
     ):
         super().__init__(
             max_iter=max_iter,
@@ -667,7 +670,7 @@ class SWCCAInnerLoop(PLSInnerLoop):
             c=None,
             sample_support: int = None,
             random_state=None,
-            positive=False
+            positive=False,
     ):
         super().__init__(
             max_iter=max_iter,
@@ -716,6 +719,7 @@ class SWCCAInnerLoop(PLSInnerLoop):
         w = self.scores.prod(axis=0)
         self.sample_weights = _support_soft_thresh(w, self.sample_support)
         self.sample_weights /= np.linalg.norm(self.sample_weights)
+        self.track["sample_weights"] = self.sample_weights
 
     def _early_stop(self) -> bool:
         return False

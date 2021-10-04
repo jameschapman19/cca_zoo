@@ -26,7 +26,7 @@ class DeepWrapper(_CCA_Base):
             scheduler=None,
             lr: float = 1e-3,
             clip_value=float("inf"),
-            random_state: int = 1
+            random_state: int = 1,
     ):
         """
 
