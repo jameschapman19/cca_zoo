@@ -72,16 +72,16 @@ and deep tensor CCA [@wong2021deep].
 
 # Implementation
 
-`cca-zoo` adopted a simlar API used in `scikit-learn`. The user first instantiates a model object and its relevant 
-hyperparameters. Next they call the model's `fit()` method to apply the data. After fitting, the model object contains 
-its relevant parameters such as weights or dual coefficients (for kernel methods) which can be accessed for further
-analysis. For models that fit with iterative algorithms, the model may also contain information about the convergence of 
-the objective function. After the model has been fit, its `transform()` method can project views into latent variables 
-and `score()` can be used to measure the canonical correlations.
+`cca-zoo` adopted a similar API to that used in `scikit-learn`. The user first instantiates a model object and its
+relevant hyperparameters. Next they call the model's `fit()` method to apply the data. After fitting, the model object
+contains its relevant parameters such as weights or dual coefficients (for kernel methods) which can be accessed for
+further analysis. For models that fit with iterative algorithms, the model may also contain information about the
+convergence of the objective function. After the model has been fit, its `transform()` method can project views into
+latent variables and `score()` can be used to measure the canonical correlations.
 
-The deep and probabilistic models are supported by PyTorch and NumPyro respectively. Due to the size of these 
-dependencies, these two classes of variations are not in the default installation. Instead, we provide options [deep] 
-and [probabilistic] for users. The list bellow provides the complete collection of models along with their installation 
+The deep and probabilistic models are supported by PyTorch and NumPyro respectively. Due to the size of these
+dependencies, these two classes of variations are not in the default installation. Instead, we provide options [deep]
+and [probabilistic] for users. The list bellow provides the complete collection of models along with their installation
 tag is provided below.
 
 ## Model List
