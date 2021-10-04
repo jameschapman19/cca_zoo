@@ -20,9 +20,9 @@ class Split_MNIST_Dataset(Dataset):
     ):
         """
 
-        :param mnist_type:
-        :param train:
-        :param flatten:
+        :param mnist_type: "MNIST", "FashionMNIST" or "KMNIST"
+        :param train: whether this is train or test
+        :param flatten: whether to flatten the data into array or use 2d images
         """
         if mnist_type == "MNIST":
             self.dataset = datasets.MNIST("../../data", train=train, download=True)
@@ -77,9 +77,9 @@ class Noisy_MNIST_Dataset(Dataset):
     ):
         """
 
-        :param mnist_type:
-        :param train:
-        :param flatten:
+        :param mnist_type: "MNIST", "FashionMNIST" or "KMNIST"
+        :param train: whether this is train or test
+        :param flatten: whether to flatten the data into array or use 2d images
         """
         if mnist_type == "MNIST":
             self.dataset = datasets.MNIST("../../data", train=train, download=True)
@@ -106,7 +106,6 @@ class Noisy_MNIST_Dataset(Dataset):
             ]
         )
         self.targets = self.dataset.targets
-        self.OHs = _OH_digits(self.targets.numpy().astype(int))
         self.filtered_classes = []
         self.filtered_nums = []
         for i in range(10):
@@ -168,13 +167,12 @@ class Tangled_MNIST_Dataset(Dataset):
     Class to generate paired tangled MNIST dataset
     """
 
-    def __init__(self, mnist_type="MNIST", train=True, fixed=False, flatten=True):
+    def __init__(self, mnist_type="MNIST", train=True, flatten=True):
         """
 
-        :param mnist_type:
-        :param train:
-        :param fixed:
-        :param flatten:
+        :param mnist_type: "MNIST", "FashionMNIST" or "KMNIST"
+        :param train: whether this is train or test
+        :param flatten: whether to flatten the data into array or use 2d images
         """
         if mnist_type == "MNIST":
             self.dataset = datasets.MNIST("../../data", train=train, download=True)
@@ -186,24 +184,14 @@ class Tangled_MNIST_Dataset(Dataset):
             self.dataset = datasets.KMNIST("../../data", train=train, download=True)
 
         self.data = self.dataset.data
-        self.mean = torch.mean(self.data.float())
-        self.std = torch.std(self.data.float())
         self.transform = transforms.Compose([transforms.ToTensor()])
         self.targets = self.dataset.targets
         self.OHs = _OH_digits(self.targets.numpy().astype(int))
-        self.fixed = fixed
         self.filtered_classes = []
         self.filtered_nums = []
         for i in range(10):
             self.filtered_classes.append(self.data[self.targets == i])
             self.filtered_nums.append(self.filtered_classes[i].shape[0])
-        if fixed:
-            self.view_b_indices = []
-            for i in range(10):
-                self.view_b_indices.append(
-                    np.random.permutation(np.arange(len(self.data))[self.targets == i])
-                )
-
         self.flatten = flatten
 
     def __len__(self):

@@ -308,7 +308,7 @@ class DeepWrapper(_CCA_Base):
     ):
         # Ensure datasets are in the right form (e.g. if numpy arrays are passed turn them into
         if isinstance(dataset, tuple):
-            dataset = CCA_Dataset(*dataset, labels=labels)
+            dataset = CCA_Dataset(dataset, labels=labels)
         if val_dataset is None and val_split > 0:
             lengths = [
                 len(dataset) - int(len(dataset) * val_split),
