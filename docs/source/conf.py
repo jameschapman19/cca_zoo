@@ -40,6 +40,8 @@ extensions = [
     "sphinx_autodoc_typehints",
 ]
 
+numpydoc_show_class_members = False
+
 # -- sphinx.ext.autosummary
 autosummary_generate = True
 
