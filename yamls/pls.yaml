@@ -1,4 +1,4 @@
-program: projects/ccagame/scripts/pls/run.py
+program: projects/ccagame/run.py
 method: grid
 parameters:
   learning_rate:
