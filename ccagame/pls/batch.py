@@ -70,7 +70,7 @@ class Batch(_PLS):
             if self.verbose:
                 epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"epoch {epoch}: {obj}")
+                print(f"epoch {epoch} objective: {obj}")
         return U, V
 
 
