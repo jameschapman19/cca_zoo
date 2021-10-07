@@ -1,13 +1,10 @@
-from ccagame import datasets
 import random
 
 import numpy as np
-import wandb
 
 from ccagame import datasets
 from ccagame.pls import Game, SGD, Incremental, Batch, MSG
-
-# Set up your default hyperparameters
+import wandb
 
 hyperparameter_defaults = dict(
     batch_size=100,
@@ -19,6 +16,7 @@ hyperparameter_defaults = dict(
     scale=False,
     wandb=True,
 )
+
 
 def set_seeds(seed):
     np.random.seed(seed)
@@ -47,12 +45,11 @@ def main():
     n_components = config.n_components
     lr = config.lr
     epochs = config.epochs
-    scale=config.scale
-    wandb=config.wandb
+    scale = config.scale
 
     if config.model == 'sgd':
         sgd = SGD(lr=lr, batch_size=batch_size, epochs=epochs, n_components=n_components,
-                  verbose=True,scale=scale, wandb=wandb).fit(
+                  verbose=True, scale=scale, wandb=True).fit(
             train_1,
             train_2)
         print("\n Eigenvalues calculated using sgd are :\n", sgd.score(train_1, train_2))
@@ -60,18 +57,19 @@ def main():
         np.save(f'sgd_{batch_size}', sgd.obj)
     elif config.model == 'mugame':
         game = Game(lr=lr, batch_size=batch_size, epochs=epochs, n_components=n_components, verbose=True,
-                    mu=True,scale=scale, wandb=wandb).fit(train_1, train_2)
+                    mu=True, scale=scale, wandb=True).fit(train_1, train_2)
         print("\n Eigenvalues calculated using game are :\n", game.score(train_1, train_2))
         print("\n Time :\n", game.fit_time)
         np.save(f'game_{batch_size}', game.obj)
     elif config.model == 'alphagame':
         game = Game(lr=lr, batch_size=batch_size, epochs=epochs, n_components=n_components, verbose=True,
-                    mu=False,scale=scale, wandb=wandb).fit(train_1, train_2)
+                    mu=False, scale=scale, wandb=True).fit(train_1, train_2)
         print("\n Eigenvalues calculated using game are :\n", game.score(train_1, train_2))
         print("\n Time :\n", game.fit_time)
         np.save(f'game_{batch_size}', game.obj)
     elif config.model == 'incremental':
-        incremental = Incremental(lr=lr, epochs=epochs, n_components=n_components, verbose=True,scale=scale, wandb=wandb).fit(
+        incremental = Incremental(lr=lr, epochs=epochs, n_components=n_components, verbose=True, scale=scale,
+                                  wandb=True).fit(
             train_1,
             train_2)
         print("\n Eigenvalues calculated using incremental are :\n", incremental.score(train_1, train_2))
@@ -79,14 +77,15 @@ def main():
         np.save('inc', incremental.obj)
     elif config.model == 'msg':
         msg = MSG(lr=lr, batch_size=batch_size, epochs=epochs, n_components=n_components,
-                  verbose=True,scale=scale, wandb=wandb).fit(
+                  verbose=True, scale=scale, wandb=True).fit(
             train_1,
             train_2)
         print("\n Eigenvalues calculated using msg are :\n", msg.score(train_1, train_2))
         print("\n Time :\n", msg.fit_time)
         np.save('msg', msg.obj)
     elif config.model == 'batch':
-        batch = Batch(lr=lr, epochs=epochs, n_components=n_components, verbose=True,scale=scale, wandb=wandb).fit(train_1, train_2)
+        batch = Batch(lr=lr, epochs=epochs, n_components=n_components, verbose=True, scale=scale, wandb=True).fit(
+            train_1, train_2)
         print("\n Eigenvalues calculated using batch are :\n", batch.score(train_1, train_2))
         print("\n Time :\n", batch.fit_time)
 
