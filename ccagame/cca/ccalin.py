@@ -57,20 +57,6 @@ def GenELinK(A, B, X, Y, k, epochs=1000, random_state=0):
     return W
 
 
-# Run the update step iteratively across all eigenvectors
-def calc_ccalin(X, Y, k, epochs=1000, random_state=0):
-    p = X.shape[1]
-    A, B = initialize_gep(X, Y)
-    W = GenELinK(
-        A, B, X, Y, 2 * k, epochs=epochs, random_state=random_state
-    )
-    key = random.PRNGKey(random_state)
-    U = random.normal(key, (2 * k, k))
-    Wx = gram_schmidt_matrix(jnp.dot(W[:p], U), B[:p, :p])
-    Wy = gram_schmidt_matrix(jnp.dot(W[p:], U), B[p:, p:])
-    return TCC(X, Y, Wx, Wy), Wx, Wy
-
-
 class CCALin(_CCA):
     def __init__(
         self,

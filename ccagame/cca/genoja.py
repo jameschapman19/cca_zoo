@@ -21,20 +21,6 @@ def update(A, B, W, V, beta, alpha):
     return W, V / jnp.linalg.norm(V, axis=0)
 
 
-# Run the update step iteratively across all eigenvectors
-def calc_genoja(X, Y, k, iterations=100, alpha=1, beta_0=1, random_state=0):
-    p = X.shape[1]
-    A, B = initialize_gep(X, Y)
-    W, V = initialize(X, Y, k, type="random", random_state=random_state)
-    W = jnp.vstack((W, V))
-    V = W
-    for i in range(iterations):
-        W, V = update(A, B, W, V, beta_0 / (1 + 1e-4 * i), alpha)
-        Wx = gram_schmidt_matrix(W[:p], B[:p, :p])
-        Wy = gram_schmidt_matrix(W[p:], B[p:, p:])
-    return TCC(X, Y, Wx, Wy), Wx, Wy
-
-
 class Genoja(_CCA):
     def __init__(
         self,

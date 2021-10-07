@@ -19,14 +19,6 @@ def update(X, Y, U, V):
     return jnp.linalg.qr(uhat)[0], jnp.linalg.qr(vhat)[0]
 
 
-# Run the update step iteratively across all eigenvectors
-def calc_lscca(X, Y, k, iterations=100, initialization="uniform", random_state=0):
-    U, V = initialize(X, Y, k, initialization, random_state)
-    for i in range(iterations):
-        U, V = update(X, Y, U, V)
-    return TCC(X, Y, U, V), U, V
-
-
 class AlternatingLeastSquares(_CCA):
     def __init__(
         self,

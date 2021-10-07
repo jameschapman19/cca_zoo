@@ -78,18 +78,3 @@ class GHA(_PCA):
                 print(f"Epoch {epoch} in {epoch_time} sec")
                 print(f"epoch {epoch}: {obj}")
         return U
-
-
-# function form
-def calc_gha(
-    X, k, lr=1e-1, epochs=100, initialization="uniform", random_state=0, batch_size=None
-):
-    U = initialize(X, k, type=initialization, random_state=random_state)
-    batches = data_stream(X, batch_size=batch_size)
-    num_batches = get_num_batches(X, batch_size=batch_size)
-    obj = []
-    for epoch in range(epochs):
-        for _ in range(num_batches):
-            U = update(U, next(batches), lr=lr)
-        obj.append(TV(X, U))
-    return TV(X, U), U, obj

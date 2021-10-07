@@ -57,49 +57,18 @@ class Batch(_PLS):
         self.obj = []
         for epoch in range(self.epochs):
             start_time = time.time()
-            for _ in range(num_batches):
+            for b in range(num_batches):
                 U, V = update(*next(batches), V)
                 obj = TV(X, Y, U, V)
                 if self.wandb:
-                    wandb.log({"Iteration/Objective": obj})
+                    wandb.log({"Iteration/Objective": obj},step=b)
                 else:
                     self.obj.append(obj)
             obj = TV(X, Y, U, V)
             if self.wandb:
-                wandb.log({"Epoch/Objective": obj})
+                wandb.log({"Epoch/Objective": obj},step=epoch)
             if self.verbose:
                 epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")
                 print(f"epoch {epoch} objective: {obj}")
         return U, V
-
-
-# Function form
-def calc_batch(X, Y, k: int, epochs: int = 100, random_state: int = 0):
-    """
-    Calculate partial least squares weights with batch power method
-
-    Parameters
-    ----------
-    X :
-        First view of data
-    Y :
-        Second view of data
-    k :
-        number of latent dimensions
-    epochs :
-        number of epochs
-    random_state :
-        random seed
-
-    Returns
-    -------
-
-    """
-    U, V = initialize(X, Y, k, "random", random_state)
-    batches = data_stream(X, Y, batch_size=None)
-    num_batches = get_num_batches(X, Y, batch_size=None)
-    for epoch in range(epochs):
-        for _ in range(num_batches):
-            U, V = update(*next(batches), V)
-    return TV(X, Y, U, V), U, V

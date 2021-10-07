@@ -72,17 +72,17 @@ class MSG(_PLS):
         self.obj = []
         for epoch in range(self.epochs):
             start_time = time.time()
-            for _ in range(num_batches):
+            for b in range(num_batches):
                 X_i, Y_i = next(batches)
                 U, V = update(X_i, Y_i, U, V, self.n_components, lr=self.lr)
                 obj = TV(X, Y, U, V)
                 if self.wandb:
-                    wandb.log({"Iteration/Objective": obj})
+                    wandb.log({"Iteration/Objective": obj},step=b)
                 else:
                     self.obj.append(obj)
             obj = TV(X, Y, U, V)
             if self.wandb:
-                wandb.log({"Epoch/Objective": obj})
+                wandb.log({"Epoch/Objective": obj},step=epoch)
             if self.verbose:
                 epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")

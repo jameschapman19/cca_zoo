@@ -183,7 +183,7 @@ class Game(_PLS):
         if self.simultaneous:
             for epoch in range(self.epochs):
                 start_time = time.time()
-                for _ in range(num_batches):
+                for b in range(num_batches):
                     X_i, Y_i = next(batches)
                     for k_ in range(self.n_components):
                         u, v = update(
@@ -202,12 +202,12 @@ class Game(_PLS):
                         V = V.at[:, k_].set(v)
                     obj = TV(X, Y, U, V)
                     if self.wandb:
-                        wandb.log({"Iteration/Objective": obj})
+                        wandb.log({"Iteration/Objective": obj},step=b)
                     else:
                         self.obj.append(obj)
                 obj = TV(X, Y, U, V)
                 if self.wandb:
-                    wandb.log({"Epoch/Objective": obj})
+                    wandb.log({"Epoch/Objective": obj},step=epoch)
                 if self.verbose:
                     epoch_time = time.time() - start_time
                     print(f"Epoch {epoch} in {epoch_time} sec")
@@ -245,89 +245,3 @@ class Game(_PLS):
                         print(f"Epoch {epoch} in {epoch_time} sec")
                         print(f"epoch {epoch} objective: {obj}")
         return U, V
-
-
-# Function form
-def calc_game(
-    X,
-    Y,
-    k: int,
-    lr: float = 1,
-    epochs: int = 100,
-    riemannian_projection: bool = False,
-    random_state: int = 0,
-    simultaneous: bool = False,
-    batch_size: int = 128,
-    mu=True,
-):
-    """
-    Calculate partial least squares weights with PLS-Game
-
-    Parameters
-    ----------
-    X :
-        First view of data
-    Y :
-        Second view of data
-    k :
-        number of latent dimensions
-    lr :
-        learning rate
-    epochs :
-        number of epochs
-    riemannian_projection :
-        whether to do a riemannian gradient descent projection. False gives a smoothing effect near the optimum
-    random_state :
-        random seed
-    simultaneous :
-        whether to solve for all players simultaneously
-    batch_size :
-        minibatch size for calculation of stochastic gradients
-
-    Returns
-    -------
-
-    """
-    U, V = initialize(X, Y, k, "random", random_state)
-    batches = data_stream(X, Y, batch_size=batch_size)
-    num_batches = get_num_batches(X, Y, batch_size=batch_size)
-    # We can either solve the eigenvectors simulataneously or complete each one
-    if simultaneous:
-        for epoch in range(epochs):
-            for _ in range(num_batches):
-                X_i, Y_i = next(batches)
-                for k_ in range(k):
-                    u, v = update(
-                        U[:, k_],
-                        V[:, k_],
-                        X_i,
-                        Y_i,
-                        U,
-                        V,
-                        k_,
-                        lr=lr,
-                        riemannian_projection=riemannian_projection,
-                        mu=mu,
-                    )
-                    U = U.at[:, k_].set(u)
-                    V = V.at[:, k_].set(v)
-    else:
-        for k_ in range(k):
-            for epoch in range(epochs):
-                for _ in range(num_batches):
-                    X_i, Y_i = next(batches)
-                    u, v = update(
-                        U[:, k_],
-                        V[:, k_],
-                        X_i,
-                        Y_i,
-                        U,
-                        V,
-                        k_,
-                        lr=lr,
-                        riemannian_projection=riemannian_projection,
-                        mu=mu,
-                    )
-                    U = U.at[:, k_].set(u)
-                    V = V.at[:, k_].set(v)
-    return TV(X, Y, U, V), U, V

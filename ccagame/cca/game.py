@@ -82,62 +82,6 @@ def update(u, v, X, Y, U, V, k, lr: float = 1.0, riemannian_projection=False):
     return uhat / jnp.linalg.norm(uhat), vhat / jnp.linalg.norm(vhat)
 
 
-# Run the update step iteratively across all eigenvectors
-def calc_game(
-    X,
-    Y,
-    k,
-    lr=1,
-    epochs=100,
-    riemannian_projection=False,
-    random_state=0,
-    simultaneous=True,
-    batch_size=None,
-):
-    U, V = initialize(X, Y, k, "random", random_state)
-    batches = data_stream(X, Y, batch_size=batch_size)
-    num_batches = get_num_batches(X, Y, batch_size=batch_size)
-    if simultaneous:
-        for epoch in range(epochs):
-            start_time = time.time()
-            for _ in range(num_batches):
-                X_i, Y_i = next(batches)
-                for k_ in range(k):
-                    u, v = update(
-                        U[:, k_],
-                        V[:, k_],
-                        X_i,
-                        Y_i,
-                        U,
-                        V,
-                        k_,
-                        lr=lr,
-                        riemannian_projection=riemannian_projection,
-                    )
-                    U = U.at[:, k_].set(u)
-                    V = V.at[:, k_].set(v)
-    else:
-        for k_ in range(k):
-            for epoch in range(epochs):
-                start_time = time.time()
-                for _ in range(num_batches):
-                    X_i, Y_i = next(batches)
-                    u, v = update(
-                        U[:, k_],
-                        V[:, k_],
-                        X_i,
-                        Y_i,
-                        U,
-                        V,
-                        k_,
-                        lr=lr,
-                        riemannian_projection=riemannian_projection,
-                    )
-                    U = U.at[:, k_].set(u)
-                    V = V.at[:, k_].set(v)
-    return TCC(X, Y, U, V), U, V
-
-
 class Game(_CCA):
     def __init__(
         self,

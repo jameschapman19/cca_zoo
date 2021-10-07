@@ -21,19 +21,6 @@ def update(A, B, W, lr):
     return W
 
 
-# Run the update step iteratively across all eigenvectors
-def calc_lagrangeminmax(X, Y, k, iterations=100, lr=100, random_state=0):
-    p = X.shape[1]
-    A, B = initialize_gep(X, Y)
-    W, V = initialize(X, Y, k, type="random", random_state=random_state)
-    W = jnp.vstack((W, V))
-    for i in range(iterations):
-        W = update(A, B, W, lr)
-    Wx = gram_schmidt_matrix(W[:p], B[:p, :p])
-    Wy = gram_schmidt_matrix(W[p:], B[p:, p:])
-    return TCC(X, Y, W[:p], W[p:]), Wx, Wy
-
-
 class Lagrange(_CCA):
     def __init__(
         self,
