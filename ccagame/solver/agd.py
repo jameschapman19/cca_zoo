@@ -1,7 +1,8 @@
+from functools import partial
+
 import jax.numpy as jnp
 from jax import grad
 from jax import jit, vmap
-from functools import partial
 
 
 @partial(jit, static_argnums=(0), static_argnames=("lr", "mu"))

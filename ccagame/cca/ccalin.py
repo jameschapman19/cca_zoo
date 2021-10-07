@@ -9,7 +9,6 @@ from jax import random, jit
 
 from ccagame.solver import agd_solve
 from . import _CCA
-from .utils import TCC
 from .utils import gram_schmidt_matrix, initialize_gep
 
 
@@ -59,15 +58,15 @@ def GenELinK(A, B, X, Y, k, epochs=1000, random_state=0):
 
 class CCALin(_CCA):
     def __init__(
-        self,
-        n_components=2,
-        *,
-        scale=True,
-        copy=True,
-        epochs: int = 100,
-        random_state: int = 0,
-        verbose=False,
-        wandb=False
+            self,
+            n_components=2,
+            *,
+            scale=True,
+            copy=True,
+            epochs: int = 100,
+            random_state: int = 0,
+            verbose=False,
+            wandb=False
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.epochs = epochs

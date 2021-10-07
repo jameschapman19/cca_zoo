@@ -1,9 +1,9 @@
+from functools import partial
 from random import randint
 
 import jax.numpy as jnp
 from jax import grad
 from jax import jit, vmap, random
-from functools import partial
 
 
 @partial(
@@ -23,9 +23,9 @@ def svrg_solve(fn, X, y, x=None, in_axes=None, iterations=100, lr=1e-1, random_s
             current = sample_grad(x, X, y)
             i = random.randint(key, [1], 0, n)
             x = x - lr * (
-                jnp.squeeze(current[i], axis=0)
-                - jnp.squeeze(previous[i], axis=0)
-                + jnp.mean(previous, axis=0)
+                    jnp.squeeze(current[i], axis=0)
+                    - jnp.squeeze(previous[i], axis=0)
+                    + jnp.mean(previous, axis=0)
             )
     return x
 

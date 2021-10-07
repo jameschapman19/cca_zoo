@@ -3,7 +3,6 @@ EigenGame: PCA as a Nash Equilibrium
 https://arxiv.org/pdf/2010.00554.pdf
 """
 import time
-
 # Importing necessary libraries
 from functools import partial
 
@@ -13,7 +12,6 @@ from jax import jit
 
 from . import _PCA
 from .utils import TV, initialize
-
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
 # X is the design matrix and V holds the previously computed eigenvectors
@@ -101,20 +99,20 @@ def update(u, X, U, k, lr: float = 1.0, riemannian_projection=False, mu=False):
 # Object form
 class Game(_PCA):
     def __init__(
-        self,
-        n_components=4,
-        *,
-        scale=True,
-        copy=True,
-        lr: float = 1,
-        epochs: int = 100,
-        riemannian_projection: bool = False,
-        random_state: int = 0,
-        simultaneous: bool = True,
-        batch_size: int = 128,
-        mu=True,
-        verbose=False,
-        wandb=False
+            self,
+            n_components=4,
+            *,
+            scale=True,
+            copy=True,
+            lr: float = 1,
+            epochs: int = 100,
+            riemannian_projection: bool = False,
+            random_state: int = 0,
+            simultaneous: bool = True,
+            batch_size: int = 128,
+            mu=True,
+            verbose=False,
+            wandb=False
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.lr = lr

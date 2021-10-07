@@ -84,20 +84,20 @@ def update(u, v, X, Y, U, V, k, lr: float = 1.0, riemannian_projection=False):
 
 class Game(_CCA):
     def __init__(
-        self,
-        n_components=4,
-        *,
-        scale=True,
-        copy=True,
-        lr: float = 1.0,
-        epochs: int = 100,
-        riemannian_projection: bool = False,
-        random_state: int = 0,
-        simultaneous: bool = True,
-        batch_size: int = 128,
-        mu=True,
-        verbose=False,
-        wandb=False
+            self,
+            n_components=4,
+            *,
+            scale=True,
+            copy=True,
+            lr: float = 1.0,
+            epochs: int = 100,
+            riemannian_projection: bool = False,
+            random_state: int = 0,
+            simultaneous: bool = True,
+            batch_size: int = 128,
+            mu=True,
+            verbose=False,
+            wandb=False
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.lr = lr

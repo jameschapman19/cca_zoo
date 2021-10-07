@@ -53,10 +53,10 @@ def initialize_gep(X, Y):
     A = jnp.hstack((X, Y))
     A = jnp.dot(jnp.transpose(A), A) / n
     B = (
-        jsp.linalg.block_diag(
-            jnp.dot(jnp.transpose(X), X), jnp.dot(jnp.transpose(Y), Y)
-        )
-        / n
+            jsp.linalg.block_diag(
+                jnp.dot(jnp.transpose(X), X), jnp.dot(jnp.transpose(Y), Y)
+            )
+            / n
     )
     A = A - B
     return A, B

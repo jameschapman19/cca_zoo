@@ -3,13 +3,15 @@ import time
 from functools import partial
 
 import jax.numpy as jnp
+import wandb
 from jax import jit
+from sklearn.model_selection import train_test_split
 
 from ccagame.utils import data_stream, get_num_batches
 from . import _PLS
 from .utils import TV, initialize
-from sklearn.model_selection import train_test_split
-import wandb
+
+
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=(4))
 def update(X, Y, U, V, lr: float = 0.1):
@@ -37,17 +39,17 @@ def update(X, Y, U, V, lr: float = 0.1):
 # Object form
 class SGD(_PLS):
     def __init__(
-        self,
-        n_components=2,
-        *,
-        scale=True,
-        copy=True,
-        lr: float = 1,
-        epochs: int = 100,
-        random_state: int = 0,
-        batch_size: int = 128,
-        verbose=False,
-        wandb=False
+            self,
+            n_components=2,
+            *,
+            scale=True,
+            copy=True,
+            lr: float = 1,
+            epochs: int = 100,
+            random_state: int = 0,
+            batch_size: int = 128,
+            verbose=False,
+            wandb=False
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.lr = lr
@@ -72,12 +74,12 @@ class SGD(_PLS):
                 V = update(Y_i, X_i, V, U, lr=self.lr)
                 obj = TV(X, Y, U, V)
                 if self.wandb:
-                    wandb.log({"Iteration/Objective": obj},step=b)
+                    wandb.log({"Iteration/Objective": obj}, step=b)
                 else:
                     self.obj.append(obj)
             obj = TV(X, Y, U, V)
             if self.wandb:
-                wandb.log({"Epoch/Objective": obj},step=epoch)
+                wandb.log({"Epoch/Objective": obj}, step=epoch)
             if self.verbose:
                 epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")

@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 from jax import grad, vmap, jit
-from functools import partial
+
 
 # @partial(jit, static_argnums=(0), static_argnames=('in_axes', 'iterations', 'lr'))
 def gd_solve(fn, X, y, x=None, in_axes=None, iterations=1000, lr=1e-1):

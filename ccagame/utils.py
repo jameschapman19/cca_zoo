@@ -3,7 +3,7 @@ from scipy.io import loadmat
 
 
 def get_xrmb(
-    datadir="/mnt/c/Users/chapm/PycharmProjects/ccagame/data/XRMB/", mode="train"
+        datadir="/mnt/c/Users/chapm/PycharmProjects/ccagame/data/XRMB/", mode="train"
 ):
     view_1 = loadmat(datadir + "XRMBf2KALDI_window7_single1.mat")
     view_2 = loadmat(datadir + "XRMBf2KALDI_window7_single2.mat")
@@ -38,7 +38,7 @@ def data_stream(X, Y=None, batch_size=None):
     while True:
         perm = rng.permutation(num)
         for i in range(num_batches):
-            batch_idx = perm[i * batch_size : (i + 1) * batch_size]
+            batch_idx = perm[i * batch_size: (i + 1) * batch_size]
             if Y is None:
                 yield X[batch_idx]
             else:

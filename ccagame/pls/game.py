@@ -3,9 +3,10 @@ import time
 from functools import partial
 
 import jax.numpy as jnp
-from sklearn.model_selection import train_test_split
-from jax import grad, jit
 import wandb
+from jax import grad, jit
+from sklearn.model_selection import train_test_split
+
 from ccagame.utils import data_stream, get_num_batches
 from . import _PLS
 from .utils import initialize, TV
@@ -78,16 +79,16 @@ def mu_model(u, v, X, Y, U, V, k: int):
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=6, static_argnames=("lr", "riemannian_projection", "mu"))
 def update(
-    u,
-    v,
-    X,
-    Y,
-    U,
-    V,
-    k: int,
-    lr: float = 1,
-    riemannian_projection: bool = False,
-    mu=False,
+        u,
+        v,
+        X,
+        Y,
+        U,
+        V,
+        k: int,
+        lr: float = 1,
+        riemannian_projection: bool = False,
+        mu=False,
 ):
     """
     Update the left and right singular vector estimates
@@ -135,20 +136,20 @@ def update(
 # Object form
 class Game(_PLS):
     def __init__(
-        self,
-        n_components=4,
-        *,
-        scale=True,
-        copy=True,
-        lr: float = 1,
-        epochs: int = 100,
-        riemannian_projection: bool = False,
-        random_state: int = 0,
-        simultaneous: bool = True,
-        batch_size: int = 128,
-        mu=True,
-        verbose=False,
-        wandb=False
+            self,
+            n_components=4,
+            *,
+            scale=True,
+            copy=True,
+            lr: float = 1,
+            epochs: int = 100,
+            riemannian_projection: bool = False,
+            random_state: int = 0,
+            simultaneous: bool = True,
+            batch_size: int = 128,
+            mu=True,
+            verbose=False,
+            wandb=False
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.lr = lr
@@ -202,12 +203,12 @@ class Game(_PLS):
                         V = V.at[:, k_].set(v)
                     obj = TV(X, Y, U, V)
                     if self.wandb:
-                        wandb.log({"Iteration/Objective": obj},step=b)
+                        wandb.log({"Iteration/Objective": obj}, step=b)
                     else:
                         self.obj.append(obj)
                 obj = TV(X, Y, U, V)
                 if self.wandb:
-                    wandb.log({"Epoch/Objective": obj},step=epoch)
+                    wandb.log({"Epoch/Objective": obj}, step=epoch)
                 if self.verbose:
                     epoch_time = time.time() - start_time
                     print(f"Epoch {epoch} in {epoch_time} sec")

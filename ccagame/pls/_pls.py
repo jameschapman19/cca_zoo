@@ -16,7 +16,7 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         self.n_components = n_components
         self.scale = scale
         self.copy = copy
-        self.wandb=wandb
+        self.wandb = wandb
 
     @abstractmethod
     def _fit(self, X, Y):

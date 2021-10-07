@@ -23,17 +23,17 @@ def update(A, B, W, lr):
 
 class Lagrange(_CCA):
     def __init__(
-        self,
-        n_components=4,
-        *,
-        scale=True,
-        copy=True,
-        epochs: int = 100,
-        random_state: int = 0,
-        batch_size: int = 128,
-        verbose=False,
-        lr=1,
-        wandb=False
+            self,
+            n_components=4,
+            *,
+            scale=True,
+            copy=True,
+            epochs: int = 100,
+            random_state: int = 0,
+            batch_size: int = 128,
+            verbose=False,
+            lr=1,
+            wandb=False
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.epochs = epochs
