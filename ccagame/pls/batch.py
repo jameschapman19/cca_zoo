@@ -59,7 +59,8 @@ class Batch(_PLS):
         for epoch in range(self.epochs):
             start_time = time.time()
             for b in range(num_batches):
-                U, V = update(*next(batches), V)
+                _, (X_i, Y_i) = next(batches)
+                U, V = update(X_i,Y_i, V)
                 obj = TV(X, Y, U, V)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj}, step=b)

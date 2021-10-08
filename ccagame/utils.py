@@ -40,6 +40,6 @@ def data_stream(X, Y=None, batch_size=None):
         for i in range(num_batches):
             batch_idx = perm[i * batch_size: (i + 1) * batch_size]
             if Y is None:
-                yield X[batch_idx]
+                yield batch_idx,(X[batch_idx])
             else:
-                yield X[batch_idx], Y[batch_idx]
+                yield batch_idx,(X[batch_idx], Y[batch_idx])

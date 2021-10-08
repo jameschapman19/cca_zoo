@@ -69,7 +69,7 @@ class SGD(_PLS):
         for epoch in range(self.epochs):
             start_time = time.time()
             for b in range(num_batches):
-                X_i, Y_i = next(batches)
+                _,(X_i, Y_i) = next(batches)
                 U = update(X_i, Y_i, U, V, lr=self.lr)
                 V = update(Y_i, X_i, V, U, lr=self.lr)
                 obj = TV(X, Y, U, V)

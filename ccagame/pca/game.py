@@ -135,7 +135,7 @@ class Game(_PCA):
             for epoch in range(self.epochs):
                 start_time = time.time()
                 for _ in range(num_batches):
-                    X_i = next(batches)
+                    _,X_i = next(batches)
                     for k_ in range(self.n_components):
                         u = update(
                             U[:, k_],
@@ -157,7 +157,7 @@ class Game(_PCA):
                 for epoch in range(self.epochs):
                     start_time = time.time()
                     for _ in range(num_batches):
-                        X_i = next(batches)
+                        _,X_i = next(batches)
                         u = update(
                             U[:, k_],
                             X_i,

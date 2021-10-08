@@ -185,7 +185,7 @@ class Game(_PLS):
             for epoch in range(self.epochs):
                 start_time = time.time()
                 for b in range(num_batches):
-                    X_i, Y_i = next(batches)
+                    _,(X_i, Y_i) = next(batches)
                     for k_ in range(self.n_components):
                         u, v = update(
                             U[:, k_],
@@ -217,8 +217,8 @@ class Game(_PLS):
             for k_ in range(self.n_components):
                 for epoch in range(self.epochs):
                     start_time = time.time()
-                    for _ in range(num_batches):
-                        X_i, Y_i = next(batches)
+                    for b in range(num_batches):
+                        _,(X_i, Y_i) = next(batches)
                         u, v = update(
                             U[:, k_],
                             V[:, k_],
@@ -235,7 +235,7 @@ class Game(_PLS):
                         V = V.at[:, k_].set(v)
                         obj = TV(X, Y, U, V)
                         if self.wandb:
-                            wandb.log({f"Iteration/Objective/{k_}": obj})
+                            wandb.log({f"Iteration/Objective/{k_}": obj},step=b)
                         else:
                             self.obj.append(obj)
                     obj = TV(X, Y, U, V)

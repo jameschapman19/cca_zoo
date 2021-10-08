@@ -64,7 +64,8 @@ class GHA(_PCA):
         for epoch in range(self.epochs):
             start_time = time.time()
             for _ in range(num_batches):
-                U = update(U, next(batches), lr=self.lr)
+                _,X=next(batches)
+                U = update(U, X, lr=self.lr)
                 obj = TV(X, U)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj})

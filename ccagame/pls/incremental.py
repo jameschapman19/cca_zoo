@@ -88,7 +88,8 @@ class Incremental(_PLS):
         for epoch in range(self.epochs):
             start_time = time.time()
             for b in range(num_batches):
-                U, S, V = update(*next(batches), U, S, V, self.n_components)
+                _, (X_i, Y_i) = next(batches)
+                U, S, V = update(X_i,Y_i, U, S, V, self.n_components)
                 obj = TV(X, Y, U, V)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj}, step=b)

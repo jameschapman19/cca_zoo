@@ -67,7 +67,8 @@ class Krasulina(_PCA):
         for epoch in range(self.epochs):
             start_time = time.time()
             for _ in range(num_batches):
-                U = update(U, next(batches), lr=self.lr)
+                _, X_i = next(batches)
+                U = update(U, X_i, lr=self.lr)
                 obj = TV(X, U)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj})

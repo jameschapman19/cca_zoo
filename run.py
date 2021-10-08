@@ -9,7 +9,7 @@ import wandb
 hyperparameter_defaults = dict(
     batch_size=100,
     n_components=1,
-    lr=1e-3,
+    lr=1e-6,
     epochs=1,
     dataset='mnist',
     model='sgd',

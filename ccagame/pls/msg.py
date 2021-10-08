@@ -76,7 +76,7 @@ class MSG(_PLS):
         for epoch in range(self.epochs):
             start_time = time.time()
             for b in range(num_batches):
-                X_i, Y_i = next(batches)
+                _,(X_i, Y_i) = next(batches)
                 U, V = update(X_i, Y_i, U, V, self.n_components, lr=self.lr)
                 obj = TV(X, Y, U, V)
                 if self.wandb:

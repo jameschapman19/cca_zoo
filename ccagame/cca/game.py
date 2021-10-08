@@ -3,51 +3,86 @@ import time
 from functools import partial
 
 import jax.numpy as jnp
-from jax import grad
-from jax import jit
+from jax import grad, jit
 
+from ccagame.utils import data_stream, get_num_batches
 from . import _CCA
 from .utils import initialize, TCC
-from ..utils import data_stream, get_num_batches
 
 
-@partial(jit, static_argnums=5)
-def model(u, v, X, Y, V, k):
+@partial(jit, static_argnums=(4))
+def alpha_model(u, X, U, T, k: int):
     """
     Returns the utilities for the kth players
 
     Parameters
-        ----------
-        u :
-            current estimate for this level's left eigenvector
-        v :
-            current estimate for this level's right eigenvector
-        X :
-            batch of data for view X
-        Y :
-            batch of data for view Y
-        V :
-            all eigenvector estimates for each level
-        k :
-            level
+    ----------
+    u :
+        current estimate for this level's left eigenvector
+    X :
+        batch of data for view X
+    U :
+        all eigenvector estimates for each level
+    T :
+        the shared target
+    k :
+        level
 
     Returns
     -------
 
     """
-    C_xy = jnp.dot(jnp.transpose(X), Y)
-    C_xx = jnp.dot(jnp.transpose(X), X)
-    C_yy = jnp.dot(jnp.transpose(Y), Y)
-    rewards = (u.T @ C_xy @ v) ** 2 / (v.T @ C_yy @ v)
-    penalties = (u.T @ C_xy @ V[:, :k]) ** 2 / jnp.diag(V[:, :k].T @ C_yy @ V[:, :k])
-    return jnp.sum(rewards - penalties.sum()) / (u.T @ C_xx @ u)
+    C_xt = X.T @ T
+    rewards = -jnp.linalg.norm(T[:, k] - X @ u) ** 2
+    penalties = (u.T @ C_xt[:, :k]) ** 2 / jnp.diag(U[:, :k].T @ C_xt[:, :k])
+    return jnp.sum(rewards - penalties.sum())
+
+
+@partial(jit, static_argnums=(4))
+def mu_model(u, X, U, T, k: int):
+    """
+    Returns the gradients for the kth players
+
+    Parameters
+    ----------
+    u :
+        current estimate for this level's left eigenvector
+    X :
+        batch of data for view X
+    U :
+        all eigenvector estimates for each level
+    T :
+        the shared target
+    k :
+        level
+
+    Returns
+    -------
+
+    """
+    C_xt = X.T @ T
+    rewards = C_xt[:, k] - X.T@X@u
+    penalties = (u.T @ C_xt[:, :k]) * U[:, :k]
+    return rewards - penalties.sum(axis=1)
 
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=6, static_argnames=("lr", "riemannian_projection"))
-def update(u, v, X, Y, U, V, k, lr: float = 1.0, riemannian_projection=False):
+@partial(jit, static_argnums=7, static_argnames=("lr", "mu"))
+def update(
+        u,
+        v,
+        X,
+        Y,
+        U,
+        V,
+        T,
+        k: int,
+        lr: float = 1,
+        mu=True,
+):
     """
     Update the left and right singular vector estimates
+
     Parameters
     ----------
     u :
@@ -66,20 +101,26 @@ def update(u, v, X, Y, U, V, k, lr: float = 1.0, riemannian_projection=False):
         level
     lr :
         learning rate
-    riemannian_projection :
-        whether to use riemannian projection
+    mu :
+        which game model to use. If True uses unbiased estimate as in eigengame:unloaded if False uses biased estimate as in original eigengame
     """
-    du = grad(model)(u, v, X, Y, V, k)
-    dv = grad(model)(v, u, Y, X, U, k)
-    if riemannian_projection:
-        dur = du - (u.T @ u) * u
-        uhat = u + lr * dur
-        dvr = dv - (v.T @ v) * v
-        vhat = v + lr * dvr
+    if mu:
+        du = mu_model(u, X, U, T, k)
+        dv = mu_model(v, Y, V, T, k)
     else:
-        uhat = u + lr * du
-        vhat = v + lr * dv
-    return uhat / jnp.linalg.norm(uhat), vhat / jnp.linalg.norm(vhat)
+        du = grad(alpha_model)(u, X, U, T, k)
+        dv = grad(alpha_model)(v, Y, V, T, k)
+    uhat = u + lr * du
+    vhat = v + lr * dv
+    return uhat, vhat
+
+
+def update_T(X, Y, U, V):
+    latent_dims = U.shape[1]
+    W = jnp.eye(latent_dims) - 1
+    P, S, Qt = jnp.linalg.svd((X @ U + Y @ V) @ W)
+    T = P[:, :latent_dims] @ Qt[:latent_dims, :]
+    return T
 
 
 class Game(_CCA):
@@ -115,9 +156,10 @@ class Game(_CCA):
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
         if self.simultaneous:
             for epoch in range(self.epochs):
+                T = update_T(X, Y, U, V)
                 start_time = time.time()
                 for _ in range(num_batches):
-                    X_i, Y_i = next(batches)
+                    idx, (X_i, Y_i) = next(batches)
                     for k_ in range(self.n_components):
                         u, v = update(
                             U[:, k_],
@@ -126,9 +168,10 @@ class Game(_CCA):
                             Y_i,
                             U,
                             V,
+                            T[idx],
                             k_,
                             lr=self.lr,
-                            riemannian_projection=self.riemannian_projection,
+                            mu=self.mu
                         )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
@@ -138,10 +181,11 @@ class Game(_CCA):
                     print(f"epoch {epoch}: {TCC(X, Y, U, V)}")
         else:
             for k_ in range(self.n_components):
+                T = update_T(X, Y, U, V)
                 for epoch in range(self.epochs):
                     start_time = time.time()
                     for _ in range(num_batches):
-                        X_i, Y_i = next(batches)
+                        idx, (X_i, Y_i) = next(batches)
                         u, v = update(
                             U[:, k_],
                             V[:, k_],
@@ -149,9 +193,10 @@ class Game(_CCA):
                             Y_i,
                             U,
                             V,
+                            T,
                             k_,
                             lr=self.lr,
-                            riemannian_projection=self.riemannian_projection,
+                            mu=self.mu
                         )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
