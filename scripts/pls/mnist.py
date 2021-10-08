@@ -2,7 +2,7 @@
 
 # Imports
 
-from ccagame import datasets
+import datasets
 from ccagame.pls import Game, SGD, Incremental, Batch, Numpy, MSG
 import numpy as np
 import os

@@ -1,5 +1,5 @@
 from . import cca
-from . import datasets
+import datasets
 from . import pca
 from . import pls
 from . import solver

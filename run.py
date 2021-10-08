@@ -2,7 +2,7 @@ import random
 
 import numpy as np
 
-from ccagame import datasets
+import datasets
 from ccagame.pls import Game, SGD, Incremental, Batch, MSG
 import wandb
 
