@@ -18,6 +18,6 @@ Look how easy it is to use:
 
    linear_cca.fit(train_view_1, train_view_2)
 
-In addition to the code snippets in the user guide section, we provide a tutorial notebook hosted on google
-colab: https://colab.research.google.com/github/jameschapman19/cca_zoo/blob/master/tutorial_notebooks/cca_zoo_tutorial.ipynb
+In addition to the code snippets in the user guide section, we provide a number of tutorial notebooks hosted on google
+colab at https://github.com/jameschapman19/cca_zoo/tree/main/tutorial_notebooks
 

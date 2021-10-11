@@ -1,24 +1,24 @@
 Tutorials
 =========
 
-Main Tutorial
---------------
+Tutorial on CCA and PLS methods
+---------------------------------
 
-Runs many of the models implemented in cca-zoo.
+Introduces the CCA and PLS family of models in an interactive notebook that allows the user to vary parameters in models
+with live updates using ipython widgets submitted for MICCAI 2021 Educational Challenge
 
-https://colab.research.google.com/github/jameschapman19/cca_zoo/blob/master/tutorial_notebooks/cca_zoo_tutorial.ipynb
+https://github.com/jameschapman19/cca_zoo/blob/main/tutorial_notebooks/CCA_Tutorial.ipynb
 
-Sparse CCA Tutorial
----------------------
+Tutorial running models on paired MNIST halves
+--------------------------------------------------
 
-Demonstrates the effect of different regularized CCA models
+Demonstrates the API for deep learning and multiview (more than 2 view) data
 
-https://colab.research.google.com/github/jameschapman19/cca_zoo/blob/master/cca_zoo_sparsity.ipynb
+https://github.com/jameschapman19/cca_zoo/blob/main/tutorial_notebooks/cca_zoo_mnist.ipynb
 
-Interactive CCA Tutorial
----------------------------
+Tutorial understanding how regularisation and sparsity affects model weights for different models
+----------------------------------------------------------------------------------------------------
 
-An interactive notebook that allows the user to vary parameters in models with live updates using ipython widgets
-submitted for MICCAI 2021 Educational Challenge
+Demonstrates some of the state-of-the-art methods for modelling multiview data with sparse weights
 
-https://colab.research.google.com/github/jameschapman19/education-challenge/blob/main/CCA_Tutorial.ipynb
+https://github.com/jameschapman19/cca_zoo/blob/main/tutorial_notebooks/cca_zoo_weights_and_sparsity.ipynb
