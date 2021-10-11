@@ -109,3 +109,14 @@ def fill_W(kernels, inds):
     for i, ind in enumerate(inds):
         W[ind, i] = kernels[ind, i]
     return W.T
+
+
+def main():
+    x = np.random.rand(100, 10)
+    y = np.random.rand(100, 11)
+    ncca = NCCA(latent_dims=10).fit([x, y])
+    print()
+
+
+if __name__ == '__main__':
+    main()
