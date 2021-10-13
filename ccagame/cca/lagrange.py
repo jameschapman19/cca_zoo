@@ -16,7 +16,7 @@ from . import _CCA
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=5)
 def update(A, B, W, lr):
-    Y = jnp.dot(jnp.transpose(W), jnp.dot(A, W))
+    Y = W.T@A@W
     W = W - lr * (B @ W @ Y - A @ W)
     return W
 

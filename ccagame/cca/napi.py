@@ -1,42 +1,46 @@
-"""
-Efficient Algorithms for Large-scale Generalized Eigenvector
-Computation and Canonical Correlation Analysis
-https://export.arxiv.org/pdf/1604.03930
-"""
-# Importing necessary libraries
-import time
-from functools import partial
-import jax.numpy as jnp
-from jax import random, jit
+# https://arxiv.org/pdf/1903.08742v1.pdf
 
-from ccagame.solver import agd_solve
+# Importing necessary libraries
+from functools import partial
+
+import jax.numpy as jnp
+from jax import jit
+import time
+from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix, TCC
 from . import _CCA
-from .utils import gram_schmidt_matrix, initialize_gep, initialize, TCC
+from functools import partial
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=5)
-def update(A, B, W):
-    gamma=jnp.linalg.inv(W.T @ B @ W) @ W.T @ A @ W
-    W = solver(A, B, W @ gamma)
-    W = gram_schmidt_matrix(W, B)
-    return W
+@partial(jit)
+def update(A, B, W_, W, lr):
+    Z = jnp.linalg.inv(W.T @ B @ W) @ W.T @ A @ W
+    W_t1 = solver(A, B, W @ Z)
+    W_t1 = W_t1 - lr * W_
+    _, R_t1 = jnp.linalg.qr(W_t1)
+    R_t1_inv = jnp.linalg.inv(R_t1)
+    W_t1 = W_t1 @ R_t1_inv
+    W = W @ R_t1_inv
+    return W, W_t1
 
-class CCALin(_CCA):
+
+class NAPI(_CCA):
     def __init__(
             self,
-            n_components=2,
+            n_components=4,
             *,
             scale=True,
             copy=True,
             epochs: int = 100,
             random_state: int = 0,
             verbose=False,
+            lr=1,
             wandb=False
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
         self.epochs = epochs
         self.random_state = random_state
         self.verbose = verbose
+        self.lr = lr
 
     def _fit(self, X, Y):
         p = X.shape[1]
@@ -45,9 +49,10 @@ class CCALin(_CCA):
             X, Y, self.n_components, type="random", random_state=self.random_state
         )
         W = jnp.vstack((W, V))
+        W_ = jnp.zeros_like(W)
         for epoch in range(self.epochs):
             start_time = time.time()
-            W = update(A, B, W)
+            W_, W = update(A, B, W_, W, self.lr)
             epoch_time = time.time() - start_time
             if self.verbose:
                 print(f"Epoch {epoch} in {epoch_time} sec")
