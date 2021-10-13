@@ -61,13 +61,13 @@ def mu_model(u, X, U, T, k: int):
 
     """
     C_xt = X.T @ T
-    rewards = C_xt[:, k] - X.T@X@u
+    rewards = C_xt[:, k] - X.T @ X @ u
     penalties = (u.T @ C_xt[:, :k]) * U[:, :k]
     return rewards - penalties.sum(axis=1)
 
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=7, static_argnames=("lr", "mu"))
+@partial(jit, static_argnums=6, static_argnames=("lr", "mu"))
 def update(
         u,
         v,
@@ -75,7 +75,6 @@ def update(
         Y,
         U,
         V,
-        T,
         k: int,
         lr: float = 1,
         mu=True,
@@ -85,25 +84,10 @@ def update(
 
     Parameters
     ----------
-    u :
-        current estimate for this level's left eigenvector
-    v :
-        current estimate for this level's right eigenvector
-    X :
-        batch of data for view X
-    Y :
-        batch of data for view Y
-    U :
-        all eigenvector estimates for each level
-    V :
-        all eigenvector estimates for each level
-    k :
-        level
-    lr :
-        learning rate
-    mu :
-        which game model to use. If True uses unbiased estimate as in eigengame:unloaded if False uses biased estimate as in original eigengame
+
     """
+    T = X @ U + Y @ V
+    T = T / jnp.linalg.norm(T, axis=0)
     if mu:
         du = mu_model(u, X, U, T, k)
         dv = mu_model(v, Y, V, T, k)
@@ -113,14 +97,6 @@ def update(
     uhat = u + lr * du
     vhat = v + lr * dv
     return uhat, vhat
-
-
-def update_T(X, Y, U, V):
-    latent_dims = U.shape[1]
-    W = jnp.eye(latent_dims) - 1
-    P, S, Qt = jnp.linalg.svd((X @ U + Y @ V) @ W)
-    T = P[:, :latent_dims] @ Qt[:latent_dims, :]
-    return T
 
 
 class Game(_CCA):
@@ -156,7 +132,7 @@ class Game(_CCA):
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
         if self.simultaneous:
             for epoch in range(self.epochs):
-                T = update_T(X, Y, U, V)
+                # T = update_T(X, Y, U, V)
                 start_time = time.time()
                 for _ in range(num_batches):
                     idx, (X_i, Y_i) = next(batches)
@@ -168,11 +144,11 @@ class Game(_CCA):
                             Y_i,
                             U,
                             V,
-                            T[idx],
                             k_,
                             lr=self.lr,
                             mu=self.mu
                         )
+                        # T[idx],
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
                 epoch_time = time.time() - start_time
@@ -181,7 +157,7 @@ class Game(_CCA):
                     print(f"epoch {epoch}: {TCC(X, Y, U, V)}")
         else:
             for k_ in range(self.n_components):
-                T = update_T(X, Y, U, V)
+                # T = update_T(X, Y, U, V)
                 for epoch in range(self.epochs):
                     start_time = time.time()
                     for _ in range(num_batches):
@@ -193,11 +169,11 @@ class Game(_CCA):
                             Y_i,
                             U,
                             V,
-                            T,
                             k_,
                             lr=self.lr,
                             mu=self.mu
                         )
+                        # T,
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
                     epoch_time = time.time() - start_time

@@ -4,4 +4,4 @@ from .game import Game
 from .genoja import Genoja
 from .lagrange import Lagrange
 from .ccalin import CCALin
-from .alternatingleastsquares import AlternatingLeastSquares
+from .msg import MSG

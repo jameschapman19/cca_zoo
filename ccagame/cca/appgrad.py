@@ -5,23 +5,30 @@ https://export.arxiv.org/pdf/1604.03930
 """
 # Importing necessary libraries
 import time
-from functools import partial
+
 import jax.numpy as jnp
 from jax import random, jit
 
 from ccagame.solver import agd_solve
 from . import _CCA
 from .utils import gram_schmidt_matrix, initialize_gep, initialize, TCC
+from functools import partial
+
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=5)
-def update(A, B, W):
-    gamma=jnp.linalg.inv(W.T @ B @ W) @ W.T @ A @ W
-    W = solver(A, B, W @ gamma)
-    W = gram_schmidt_matrix(W, B)
-    return W
+@partial(jit)
+def update(X, Y, phi, psi, phi_, psi_, lr):
+    n = X.shape[0]
+    phi_t = phi_ - lr * X.T @ (X @ phi_ - Y @ psi) / n
+    U, S, Vt = jnp.linalg.svd(phi_.T @ X.T @ X @ phi_)
+    phit = phi_ @ U @ jnp.diag(S ** -0.5) @ phi_.T
+    psi_t = psi_ - lr * Y.T @ (Y @ psi_ - X @ phi) / n
+    U, S, Vt = jnp.linalg.svd(psi_.T @ Y.T @ Y @ psi_)
+    psit = psi_ @ U @ jnp.diag(S ** -0.5) @ psi_.T
+    return phit, psit, phi_t, psi_t
 
-class CCALin(_CCA):
+
+class AppGrad(_CCA):
     def __init__(
             self,
             n_components=2,
@@ -39,15 +46,10 @@ class CCALin(_CCA):
         self.verbose = verbose
 
     def _fit(self, X, Y):
-        p = X.shape[1]
-        A, B = initialize_gep(X, Y)
-        W, V = initialize(
-            X, Y, self.n_components, type="random", random_state=self.random_state
-        )
-        W = jnp.vstack((W, V))
+        U, V = initialize(X, Y, self.n_components, "random", self.random_state)
         for epoch in range(self.epochs):
             start_time = time.time()
-            W = update(A, B, W)
+            U, V, phi_, psi_ = update(U, V, phi_, psi_)
             epoch_time = time.time() - start_time
             if self.verbose:
                 print(f"Epoch {epoch} in {epoch_time} sec")
