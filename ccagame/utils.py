@@ -1,6 +1,9 @@
-import numpy as np
-from scipy.io import loadmat
+import numbers
 
+import numpy as np
+from jax._src.random import PRNGKey
+from scipy.io import loadmat
+from jax._src import prng
 
 def get_xrmb(
         datadir="/mnt/c/Users/chapm/PycharmProjects/ccagame/data/XRMB/", mode="train"
@@ -43,3 +46,23 @@ def data_stream(X, Y=None, batch_size=None):
                 yield batch_idx, (X[batch_idx])
             else:
                 yield batch_idx, (X[batch_idx], Y[batch_idx])
+
+def check_random_state(seed):
+    """Turn seed into a prng. instance
+    Parameters
+    ----------
+    seed : None, int or instance of RandomState
+        If seed is None, return the RandomState singleton used by np.random.
+        If seed is an int, return a new RandomState instance seeded with seed.
+        If seed is already a RandomState instance, return it.
+        Otherwise raise ValueError.
+    """
+    if seed is None:
+        return PRNGKey(0)
+    if isinstance(seed, numbers.Integral):
+        return PRNGKey(seed)
+    if isinstance(seed, prng.PRNGKeyArray):
+        return seed
+    raise ValueError(
+        "%r cannot be used to seed a numpy.random.RandomState instance" % seed
+    )

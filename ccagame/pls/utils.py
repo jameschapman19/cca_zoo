@@ -25,7 +25,7 @@ def gram_schmidt_matrix(W, M):
     return W
 
 
-def initialize(X, Y, k, type="uniform", random_state=0):
+def initialize(X, Y, k, type="uniform", random_state=None):
     if type == "svd":
         U1, _, V1 = jnp.linalg.svd(X.T @ Y)
         U1 = U1[:, :k]

@@ -66,7 +66,7 @@ class Incremental(_PLS):
             copy=True,
             lr: float = 1,
             epochs: int = 100,
-            random_state: int = 0,
+            random_state: int = None,
             verbose=False,
             wandb=False
     ):

@@ -63,7 +63,7 @@ class MSG(_CCA):
             copy=True,
             lr: float = 1,
             epochs: int = 100,
-            random_state: int = 0,
+            random_state: int = None,
             batch_size: int = 128,
             verbose=False,
             wandb=False

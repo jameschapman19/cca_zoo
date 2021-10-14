@@ -29,7 +29,7 @@ class Genoja(_CCA):
             scale=True,
             copy=True,
             epochs: int = 100,
-            random_state: int = 0,
+            random_state: int = None,
             batch_size: int = 128,
             verbose=False,
             beta_0,

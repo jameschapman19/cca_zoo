@@ -107,7 +107,7 @@ class Game(_PCA):
             lr: float = 1,
             epochs: int = 100,
             riemannian_projection: bool = False,
-            random_state: int = 0,
+            random_state: int = None,
             simultaneous: bool = True,
             batch_size: int = 128,
             mu=True,

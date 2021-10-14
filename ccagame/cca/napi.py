@@ -33,7 +33,7 @@ class NAPI(_CCA):
             scale=True,
             copy=True,
             epochs: int = 100,
-            random_state: int = 0,
+            random_state: int = None,
             verbose=False,
             lr=1,
             wandb=False

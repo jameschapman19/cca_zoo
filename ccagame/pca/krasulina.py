@@ -45,7 +45,7 @@ class Krasulina(_PCA):
             copy=True,
             lr: float = 1e-2,
             epochs: int = 100,
-            random_state: int = 0,
+            random_state: int = None,
             batch_size: int = 128,
             verbose=False,
             wandb=False

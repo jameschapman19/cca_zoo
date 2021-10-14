@@ -35,7 +35,7 @@ class AppGrad(_CCA):
             scale=True,
             copy=True,
             epochs: int = 100,
-            random_state: int = 0,
+            random_state: int = None,
             verbose=False,
             wandb=False
     ):

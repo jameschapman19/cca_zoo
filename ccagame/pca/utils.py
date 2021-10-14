@@ -2,7 +2,7 @@ import jax.numpy as jnp
 from jax import random
 
 
-def initialize(X, n, type="uniform", random_state=0):
+def initialize(X, n, type="uniform", random_state=None):
     if type == "uniform":
         V1 = jnp.ones((X.shape[1], n))
         V1 = V1 / jnp.linalg.norm(V1, axis=0)
