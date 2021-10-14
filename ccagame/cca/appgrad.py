@@ -5,14 +5,13 @@ https://export.arxiv.org/pdf/1604.03930
 """
 # Importing necessary libraries
 import time
+from functools import partial
 
 import jax.numpy as jnp
-from jax import random, jit
+from jax import jit
 
-from ccagame.solver import agd_solve
 from . import _CCA
-from .utils import gram_schmidt_matrix, initialize_gep, initialize, TCC
-from functools import partial
+from .utils import gram_schmidt_matrix, initialize, TCC
 
 
 # Update rule to be used for calculating eigenvectors
@@ -40,10 +39,8 @@ class AppGrad(_CCA):
             verbose=False,
             wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.epochs = epochs
-        self.random_state = random_state
-        self.verbose = verbose
 
     def _fit(self, X, Y):
         U, V = initialize(X, Y, self.n_components, "random", self.random_state)

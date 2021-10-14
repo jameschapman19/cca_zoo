@@ -1,14 +1,16 @@
 # https://arxiv.org/pdf/1903.08742v1.pdf
 
 # Importing necessary libraries
+
+import time
 from functools import partial
 
 import jax.numpy as jnp
 from jax import jit
-import time
+
 from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix, TCC
 from . import _CCA
-from functools import partial
+
 
 # Update rule to be used for calculating eigenvectors
 @partial(jit)
@@ -36,10 +38,8 @@ class NAPI(_CCA):
             lr=1,
             wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.epochs = epochs
-        self.random_state = random_state
-        self.verbose = verbose
         self.lr = lr
 
     def _fit(self, X, Y):

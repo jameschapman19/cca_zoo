@@ -36,11 +36,9 @@ class Genoja(_CCA):
             alpha,
             wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.epochs = epochs
-        self.random_state = random_state
         self.batch_size = batch_size
-        self.verbose = verbose
         self.beta_0 = beta_0
         self.alpha = alpha
 

@@ -1,7 +1,7 @@
 from ._pls import _PLS
-from .msg import MSG
+from .batch import Batch
 from .game import Game
 from .incremental import Incremental
-from .batch import Batch
-from .sgd import SGD
+from .msg import MSG
 from .numpy import calc_numpy, Numpy
+from .sgd import SGD

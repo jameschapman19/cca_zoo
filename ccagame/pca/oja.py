@@ -47,12 +47,10 @@ class Oja(_PCA):
             verbose=False,
             wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.lr = lr
         self.epochs = epochs
-        self.random_state = random_state
         self.batch_size = batch_size
-        self.verbose = verbose
 
     def _fit(self, X):
         U = initialize(
