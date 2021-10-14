@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from jax import random
 
 # Imports
-from ccagame.cca import Numpy, Genoja, Game, Lagrange, MSG
+from ccagame.cca import Numpy, Genoja, Game, Lagrange, MSG, CCALin
 from sklearn.cross_decomposition import CCA
 import numpy as np
 
@@ -40,6 +40,10 @@ n = np.corrcoef(a.x_scores_, a.y_scores_, rowvar=False)
 numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
 print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X, Y))
 print("\n Time :\n", numpy.fit_time)
+
+ccalin = CCALin(scale=False, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
+print("\n Eigenvalues calculated using game are :\n", ccalin.score(X, Y))
+print("\n Time :\n", ccalin.fit_time)
 
 game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
             mu=True, simultaneous=True).fit(X, Y)

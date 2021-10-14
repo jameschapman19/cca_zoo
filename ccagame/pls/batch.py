@@ -41,15 +41,13 @@ class Batch(_PLS):
             copy=True,
             lr: float = 1,
             epochs: int = 100,
-            random_state: int = 0,
+            random_state: int = None,
             verbose=False,
             wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.lr = lr
         self.epochs = epochs
-        self.random_state = random_state
-        self.verbose = verbose
 
     def _fit(self, X, Y):
         U, V = initialize(X, Y, self.n_components, "random", self.random_state)
@@ -60,7 +58,7 @@ class Batch(_PLS):
             start_time = time.time()
             for b in range(num_batches):
                 _, (X_i, Y_i) = next(batches)
-                U, V = update(X_i,Y_i, V)
+                U, V = update(X_i, Y_i, V)
                 obj = TV(X, Y, U, V)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj}, step=b)

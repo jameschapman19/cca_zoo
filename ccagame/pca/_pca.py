@@ -13,11 +13,13 @@ from .utils import TV
 
 
 class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
-    def __init__(self, n_components=2, *, scale=True, copy=True, wandb=True):
+    def __init__(self, n_components=2, *, scale=True, copy=True, wandb=True, verbose=False, random_state=None):
         self.n_components = n_components
         self.scale = scale
         self.copy = copy
         self.wandb = wandb
+        self.verbose = verbose
+        self.random_state = random_state
 
     @abstractmethod
     def _fit(self, X):

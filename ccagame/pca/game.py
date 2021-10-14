@@ -114,15 +114,13 @@ class Game(_PCA):
             verbose=False,
             wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.lr = lr
         self.epochs = epochs
         self.riemannian_projection = riemannian_projection
-        self.random_state = random_state
         self.simultaneous = simultaneous
         self.batch_size = batch_size
         self.mu = mu
-        self.verbose = verbose
 
     def _fit(self, X):
         U = initialize(
@@ -135,7 +133,7 @@ class Game(_PCA):
             for epoch in range(self.epochs):
                 start_time = time.time()
                 for _ in range(num_batches):
-                    _,X_i = next(batches)
+                    _, X_i = next(batches)
                     for k_ in range(self.n_components):
                         u = update(
                             U[:, k_],
@@ -157,7 +155,7 @@ class Game(_PCA):
                 for epoch in range(self.epochs):
                     start_time = time.time()
                     for _ in range(num_batches):
-                        _,X_i = next(batches)
+                        _, X_i = next(batches)
                         u = update(
                             U[:, k_],
                             X_i,

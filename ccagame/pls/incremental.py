@@ -70,11 +70,9 @@ class Incremental(_PLS):
             verbose=False,
             wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.lr = lr
         self.epochs = epochs
-        self.random_state = random_state
-        self.verbose = verbose
 
     def _fit(self, X, Y):
         X, X_val, Y, Y_val = train_test_split(
@@ -89,7 +87,7 @@ class Incremental(_PLS):
             start_time = time.time()
             for b in range(num_batches):
                 _, (X_i, Y_i) = next(batches)
-                U, S, V = update(X_i,Y_i, U, S, V, self.n_components)
+                U, S, V = update(X_i, Y_i, U, S, V, self.n_components)
                 obj = TV(X, Y, U, V)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj}, step=b)

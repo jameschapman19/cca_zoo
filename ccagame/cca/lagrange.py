@@ -16,7 +16,7 @@ from . import _CCA
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=5)
 def update(A, B, W, lr):
-    Y = W.T@A@W
+    Y = W.T @ A @ W
     W = W - lr * (B @ W @ Y - A @ W)
     return W
 
@@ -35,11 +35,9 @@ class Lagrange(_CCA):
             lr=1,
             wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.epochs = epochs
-        self.random_state = random_state
         self.batch_size = batch_size
-        self.verbose = verbose
         self.lr = lr
 
     def _fit(self, X, Y):

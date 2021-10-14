@@ -116,15 +116,13 @@ class Game(_CCA):
             verbose=False,
             wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.lr = lr
         self.epochs = epochs
         self.riemannian_projection = riemannian_projection
-        self.random_state = random_state
         self.simultaneous = simultaneous
         self.batch_size = batch_size
         self.mu = mu
-        self.verbose = verbose
 
     def _fit(self, X, Y):
         U, V = initialize(X, Y, self.n_components, "random", self.random_state)

@@ -22,7 +22,7 @@ def invsqrtm(M):
 
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=(6, 7),static_argnames=('lr'))
+@partial(jit, static_argnums=(6, 7), static_argnames=('lr'))
 def update(X, Y, U, V, Cx, Cy, b, k, lr: float = 0.1):
     """
     Update the left and right singular vector estimates
@@ -50,7 +50,7 @@ def update(X, Y, U, V, Cx, Cy, b, k, lr: float = 0.1):
     delta = Wx.T @ X.T @ Y @ Wy
     M = U @ V.T + lr * delta
     U, _, Vt = jnp.linalg.svd(M)
-    return U[:, :k], Vt[:k].T, Cx,Cy
+    return U[:, :k], Vt[:k].T, Cx, Cy
 
 
 # Object form
@@ -68,12 +68,10 @@ class MSG(_CCA):
             verbose=False,
             wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb)
+        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.lr = lr
         self.epochs = epochs
-        self.random_state = random_state
         self.batch_size = batch_size
-        self.verbose = verbose
 
     def _fit(self, X, Y):
         X, X_val, Y, Y_val = train_test_split(
