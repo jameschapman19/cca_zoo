@@ -5,9 +5,7 @@ from functools import partial
 
 import jax.numpy as jnp
 import numpy as np
-import wandb
 from jax import jit
-from sklearn.model_selection import train_test_split
 
 from ccagame.utils import data_stream, get_num_batches
 from . import _PLS

@@ -3,7 +3,6 @@ import time
 from functools import partial
 
 import jax.numpy as jnp
-import wandb
 from jax import jit
 
 from ccagame.utils import data_stream, get_num_batches

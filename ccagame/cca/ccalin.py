@@ -10,7 +10,7 @@ import jax.numpy as jnp
 
 from ccagame.solver import agd_solve
 from . import _CCA
-import wandb
+
 
 def obj(W, A, B, Wt):
     return 0.5 * jnp.sum(jnp.diag(W.T @ B @ W - W.T @ A @ Wt))

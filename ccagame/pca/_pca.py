@@ -2,15 +2,16 @@ import time
 from abc import abstractmethod
 
 import jax.numpy as jnp
+import wandb
+from jax import random
 from sklearn.base import (
     BaseEstimator,
     TransformerMixin,
     MultiOutputMixin,
     RegressorMixin,
 )
-from jax import random
 from sklearn.model_selection import train_test_split
-import wandb
+
 
 class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
     def __init__(self, n_components=2, *, scale=True, copy=True, wandb=True, verbose=False, random_state=None):

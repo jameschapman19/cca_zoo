@@ -4,7 +4,6 @@ import time
 from functools import partial
 
 import jax.numpy as jnp
-import wandb
 from jax import jit
 
 from . import _PCA

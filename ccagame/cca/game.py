@@ -7,7 +7,7 @@ from jax import grad, jit
 
 from ccagame.utils import data_stream, get_num_batches
 from . import _CCA
-import wandb
+
 
 @partial(jit, static_argnums=(4))
 def alpha_model(u, X, U, T, k: int):
@@ -127,7 +127,7 @@ class Game(_CCA):
         U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
-        self.obj=[]
+        self.obj = []
         if self.simultaneous:
             for epoch in range(self.epochs):
                 # T = update_T(X, Y, U, V)

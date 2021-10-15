@@ -6,7 +6,6 @@ import time
 from functools import partial
 
 import jax.numpy as jnp
-import wandb
 from jax import jit
 from sklearn.model_selection import train_test_split
 

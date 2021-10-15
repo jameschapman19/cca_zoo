@@ -4,6 +4,7 @@ from abc import abstractmethod
 import jax.numpy as jnp
 import jax.scipy as jsp
 import sklearn.utils
+import wandb
 from jax import random
 from sklearn.base import (
     BaseEstimator,
@@ -12,7 +13,6 @@ from sklearn.base import (
     RegressorMixin,
 )
 from sklearn.model_selection import train_test_split
-import wandb
 
 from ..utils import check_random_state
 
@@ -26,7 +26,7 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         self.verbose = verbose
         self.random_state = check_random_state(random_state)
         self.scikit_random_state = sklearn.utils.check_random_state(random_state)
-        self.obj=[]
+        self.obj = []
 
     @abstractmethod
     def _fit(self, X, Y, X_val=None, Y_val=None):

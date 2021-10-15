@@ -144,7 +144,7 @@ class Game(_PCA):
                             mu=self.mu,
                         )
                         U = U.at[:, k_].set(u)
-                        obj_tr=self.TV(X@U)
+                        obj_tr = self.TV(X @ U)
                         obj_val = self.TV(X_val @ U)
                     self.callback(obj_tr, obj_val, b)
                 self.callback(obj_tr, obj_val, epoch, start_time)

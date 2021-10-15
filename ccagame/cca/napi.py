@@ -8,8 +8,9 @@ from functools import partial
 import jax.numpy as jnp
 from jax import jit
 
-from . import _CCA
 from ccagame.solver import agd_solve
+from . import _CCA
+
 
 # Update rule to be used for calculating eigenvectors
 @partial(jit)
@@ -41,7 +42,7 @@ class NAPI(_CCA):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.epochs = epochs
         self.lr = lr
-        self.solver=solver
+        self.solver = solver
 
     def _fit(self, X, Y, X_val=None, Y_val=None):
         p = X.shape[1]
@@ -53,7 +54,7 @@ class NAPI(_CCA):
         W_ = jnp.zeros_like(W)
         for epoch in range(self.epochs):
             start_time = time.time()
-            W_, W = update(A, B, W_, W, self.lr,self.solver)
+            W_, W = update(A, B, W_, W, self.lr, self.solver)
             obj_tr = self.TCC(X @ U, Y @ V)
             obj_val = self.TCC(X_val @ U, Y_val @ V)
             self.callback(obj_tr, obj_val, epoch, start_time)

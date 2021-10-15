@@ -11,7 +11,7 @@ import jax.numpy as jnp
 from jax import jit
 
 from . import _CCA
-import wandb
+
 
 # Update rule to be used for calculating eigenvectors
 @partial(jit)
