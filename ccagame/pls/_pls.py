@@ -54,8 +54,8 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         return X @ self.x_weights, Y @ self.y_weights
 
     def score(self, X, y=None, sample_weight=None):
-        X, Y = self.transform(X, y)
-        return self.TV(X, Y)
+        X_hat, Y_hat = self.transform(X, y)
+        return self.TV(X_hat, Y_hat)
 
     def center_scale(self, X, Y):
         x_mean = X.mean(axis=0)
@@ -107,23 +107,10 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
 
     @staticmethod
     def TV(X, Y):
+        dof=X.shape[0]-1
         C = X.T @ Y
         _, S, _ = jnp.linalg.svd(C)
-        return S.sum()
-
-    @staticmethod
-    def TCC(X, Y):
-        dof = X.shape[0] - 1
-        C = jnp.hstack((X, Y))
-        C = C.T @ C / dof
-        # Get the block covariance matrix placing Xi^TX_i on the diagonal
-        D = jsp.linalg.block_diag(*[m.T @ m for i, m in enumerate([X, Y])]) / dof
-        C = C - jsp.linalg.block_diag(*[view.T @ view / dof for view in [X, Y]]) + D
-        R = jnp.linalg.inv(jnp.linalg.cholesky(D))
-        # In MCCA our eigenvalue problem Cv = lambda Dv
-        C_whitened = R @ C @ R.T
-        eigvals = jnp.linalg.eigvalsh(C_whitened)[::-1][: X.shape[1]] - 1
-        return eigvals.real.sum()
+        return S.sum()/dof
 
     @staticmethod
     def gram_schmidt_matrix(W, M):

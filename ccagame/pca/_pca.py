@@ -45,8 +45,8 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         return self
 
     def score(self, X, y=None, sample_weight=None):
-        X = self.transform(X)
-        return self.TV(X)
+        X_hat = self.transform(X)
+        return self.TV(X_hat)
 
     @abstractmethod
     def transform(self, X):
@@ -82,8 +82,9 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
 
     @staticmethod
     def TV(X):
+        dof=X.shape[0]-1
         eigvals = jnp.linalg.eigvalsh(X.T @ X)
-        return eigvals.real.sum()
+        return eigvals.real.sum()/dof
 
     def center_scale(self, X):
         x_mean = X.mean(axis=0)

@@ -7,7 +7,7 @@ random_state = 0
 n = 100
 p = 10
 latent_dims = 3
-epochs = 50
+epochs = 20
 riemannian_projection = False
 lr = 1e-1
 batch_size = 100
@@ -26,14 +26,14 @@ game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_componen
 print("\n Eigenvalues calculated using game are :\n", game.score(X))
 print("\n Time :\n", game.fit_time)
 
-gha = GHA(scale=False, n_components=latent_dims, verbose=True, lr=lr).fit(X)
+gha = GHA(scale=False, epochs=epochs,n_components=latent_dims, verbose=True, lr=lr).fit(X)
 print("\n Eigenvalues calculated using gha are :\n", gha.score(X))
 print("\n Time :\n", gha.fit_time)
 
-oja = Oja(scale=False, n_components=latent_dims, verbose=True, lr=1e-2).fit(X)
+oja = Oja(scale=False, epochs=epochs,n_components=latent_dims, verbose=True, lr=1e-2).fit(X)
 print("\n Eigenvalues calculated using oja are :\n", oja.score(X))
 print("\n Time :\n", oja.fit_time)
 
-krasulina = Krasulina(scale=False, n_components=latent_dims, verbose=True, lr=1e-2).fit(X)
+krasulina = Krasulina(scale=False, epochs=epochs,n_components=latent_dims, verbose=True, lr=1e-2).fit(X)
 print("\n Eigenvalues calculated using krasulina are :\n", krasulina.score(X))
 print("\n Time :\n", krasulina.fit_time)
