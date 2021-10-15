@@ -66,16 +66,16 @@ class SGD(_PLS):
                 _, (X_i, Y_i) = next(batches)
                 U = update(X_i, Y_i, U, V, lr=self.lr)
                 V = update(Y_i, X_i, V, U, lr=self.lr)
-                obj = self.TV(X@U, Y@V)
+                obj_tr = self.TV(X @ U, Y @ V)
+                obj_val = self.TV(X_val @ U, Y_val @ V)
                 if self.wandb:
-                    wandb.log({"Iteration/Objective": obj}, step=b)
+                    wandb.log({"Iteration/Objective (Train)": obj_tr,
+                               "Iteration/Objective (Val)": obj_val}, step=b)
                 else:
-                    self.obj.append(obj)
-            obj = self.TV(X, Y, U, V)
-            if self.wandb:
-                wandb.log({"Epoch/Objective": obj}, step=epoch)
+                    self.obj.append([obj_tr, obj_val])
             if self.verbose:
                 epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"epoch {epoch} objective: {obj}")
+                print(f"Epoch {epoch} objective (Train): {obj_tr}")
+                print(f"Epoch {epoch} objective (Train): {obj_val}")
         return U, V

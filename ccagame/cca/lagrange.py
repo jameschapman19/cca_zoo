@@ -4,13 +4,14 @@ Study for Generalized Eigenvalue Decomposition
 https://proceedings.mlr.press/v89/chen19a/chen19a.pdf
 """
 # Importing necessary libraries
+import time
 from functools import partial
 
 import jax.numpy as jnp
 from jax import jit
 
 from . import _CCA
-
+import wandb
 
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=5)
@@ -46,9 +47,21 @@ class Lagrange(_CCA):
             X, Y, self.n_components, type="random", random_state=self.random_state
         )
         W = jnp.vstack((W, V))
-        for i in range(self.epochs):
+        for epoch in range(self.epochs):
+            start_time = time.time()
             W = update(A, B, W, self.lr)
-            print(f"iteration {i}: {self.TCC(X, Y, W[:p], W[p:])}")
+            obj_tr = self.TV(X @ W[:p], Y @ W[p:])
+            obj_val = self.TV(X_val @ W[:p], Y_val @ W[p:])
+            if self.wandb:
+                wandb.log({"Iteration/Objective (Train)": obj_tr,
+                           "Iteration/Objective (Val)": obj_val}, step=epoch)
+            else:
+                self.obj.append([obj_tr, obj_val])
+            if self.verbose:
+                epoch_time = time.time() - start_time
+                print(f"Epoch {epoch} in {epoch_time} sec")
+                print(f"Epoch {epoch} objective (Train): {obj_tr}")
+                print(f"Epoch {epoch} objective (Train): {obj_val}")
         U = self.gram_schmidt_matrix(W[:p], B[:p, :p])
         V = self.gram_schmidt_matrix(W[p:], B[p:, p:])
         return U, V

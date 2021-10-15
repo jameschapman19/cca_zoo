@@ -11,7 +11,7 @@ import jax.numpy as jnp
 from jax import jit
 
 from . import _CCA
-
+import wandb
 
 # Update rule to be used for calculating eigenvectors
 @partial(jit)
@@ -43,13 +43,20 @@ class AppGrad(_CCA):
 
     def _fit(self, X, Y, X_val=None, Y_val=None):
         U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
+        self.obj = []
         for epoch in range(self.epochs):
             start_time = time.time()
             U, V, phi_, psi_ = update(U, V, phi_, psi_)
-            epoch_time = time.time() - start_time
+            obj_tr = self.TV(X @ U, Y @ V)
+            obj_val = self.TV(X_val @ U, Y_val @ V)
+            if self.wandb:
+                wandb.log({"Iteration/Objective (Train)": obj_tr,
+                           "Iteration/Objective (Val)": obj_val}, step=epoch)
+            else:
+                self.obj.append([obj_tr, obj_val])
             if self.verbose:
+                epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"epoch {epoch}: {self.TCC(X, Y, W[:p], W[p:])}")
-        U = self.gram_schmidt_matrix(W[:p], B[:p, :p])
-        V = self.gram_schmidt_matrix(W[p:], B[p:, p:])
+                print(f"Epoch {epoch} objective (Train): {obj_tr}")
+                print(f"Epoch {epoch} objective (Train): {obj_val}")
         return U, V

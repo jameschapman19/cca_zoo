@@ -4,13 +4,14 @@ Streaming Generalized Eigenvector Computation
 https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-Paper.pdf
 """
 # Importing necessary libraries
+import time
 from functools import partial
 
 import jax.numpy as jnp
 from jax import jit
 
 from . import _CCA
-
+import wandb
 
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=5)
@@ -49,10 +50,21 @@ class Genoja(_CCA):
         )
         W = jnp.vstack((W, P))
         P = W
-        for i in range(self.epochs):
-            W, P = update(A, B, W, P, self.beta_0 / (1 + 1e-4 * i), self.alpha)
-            U = self.gram_schmidt_matrix(W[:p], B[:p, :p])
-            V = self.gram_schmidt_matrix(W[p:], B[p:, p:])
+        for epoch in range(self.epochs):
+            start_time = time.time()
+            W, P = update(A, B, W, P, self.beta_0 / (1 + 1e-4 * epoch), self.alpha)
+            obj_tr = self.TV(X @ W[:p], Y @ W[p:])
+            obj_val = self.TV(X_val @ W[:p], Y_val @ W[p:])
+            if self.wandb:
+                wandb.log({"Iteration/Objective (Train)": obj_tr,
+                           "Iteration/Objective (Val)": obj_val}, step=epoch)
+            else:
+                self.obj.append([obj_tr, obj_val])
             if self.verbose:
-                print(f"iteration {i}: {self.TCC(X, Y, U, V)}")
+                epoch_time = time.time() - start_time
+                print(f"Epoch {epoch} in {epoch_time} sec")
+                print(f"Epoch {epoch} objective (Train): {obj_tr}")
+                print(f"Epoch {epoch} objective (Train): {obj_val}")
+        U = self.gram_schmidt_matrix(W[:p], B[:p, :p])
+        V = self.gram_schmidt_matrix(W[p:], B[p:, p:])
         return U, V

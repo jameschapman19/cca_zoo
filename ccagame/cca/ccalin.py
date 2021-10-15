@@ -10,7 +10,7 @@ import jax.numpy as jnp
 
 from ccagame.solver import agd_solve
 from . import _CCA
-
+import wandb
 
 def obj(W, A, B, Wt):
     return 0.5 * jnp.sum(jnp.diag(W.T @ B @ W - W.T @ A @ Wt))
@@ -46,14 +46,23 @@ class CCALin(_CCA):
             X, Y, self.n_components, type="random", random_state=self.random_state
         )
         W = jnp.vstack((W, V))
+        self.obj = []
         for epoch in range(self.epochs):
             start_time = time.time()
             W = update(A, B, W)
             W = self.gram_schmidt_matrix(W, B)
-            epoch_time = time.time() - start_time
+            obj_tr = self.TV(X @ W[:p], Y @ W[p:])
+            obj_val = self.TV(X_val @ W[:p], Y_val @ W[p:])
+            if self.wandb:
+                wandb.log({"Iteration/Objective (Train)": obj_tr,
+                           "Iteration/Objective (Val)": obj_val}, step=epoch)
+            else:
+                self.obj.append([obj_tr, obj_val])
             if self.verbose:
+                epoch_time = time.time() - start_time
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"epoch {epoch}: {self.TCC(X@W[:p], Y@W[p:])}")
+                print(f"Epoch {epoch} objective (Train): {obj_tr}")
+                print(f"Epoch {epoch} objective (Train): {obj_val}")
         U = self.gram_schmidt_matrix(W[:p], B[:p, :p])
         V = self.gram_schmidt_matrix(W[p:], B[p:, p:])
         return U, V
