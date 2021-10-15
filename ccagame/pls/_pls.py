@@ -12,6 +12,7 @@ from sklearn.base import (
     RegressorMixin,
 )
 from sklearn.model_selection import train_test_split
+import wandb
 
 from ..utils import check_random_state
 
@@ -25,6 +26,7 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         self.verbose = verbose
         self.random_state = check_random_state(random_state)
         self.scikit_random_state = sklearn.utils.check_random_state(random_state)
+        self.obj=[]
 
     @abstractmethod
     def _fit(self, X, Y, X_val=None, Y_val=None):
@@ -38,7 +40,7 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         X, Y, self._x_mean, self._y_mean, self._x_std, self._y_std = self.center_scale(
             X, Y
         )
-        X_val=(X_val-self._x_mean)/self._x_std
+        X_val = (X_val - self._x_mean) / self._x_std
         Y_val = (Y_val - self._y_mean) / self._y_std
         start_time = time.time()
         self.x_weights, self.y_weights = self._fit(X, Y, X_val, Y_val)
@@ -49,11 +51,10 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
     def transform(self, X, Y):
         X = (X - self._x_mean) / self._x_std
         Y = (Y - self._y_mean) / self._y_std
-        return X@self.x_weights, Y@self.y_weights
-
+        return X @ self.x_weights, Y @ self.y_weights
 
     def score(self, X, y, sample_weight=None):
-        X,Y=self.transform(X,y)
+        X, Y = self.transform(X, y)
         return self.TV(X, Y)
 
     def center_scale(self, X, Y):
@@ -89,6 +90,19 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
             print(f'Initialization "{type}" not implemented')
             return
         return U1, V1
+
+    def callback(self, obj_tr, obj_val, iteration, start_time=None):
+        if self.wandb:
+            wandb.log({"Iteration/Objective (Train)": obj_tr,
+                       "Iteration/Objective (Val)": obj_val}, step=iteration)
+        else:
+            self.obj.append([obj_tr, obj_val])
+        if self.verbose:
+            if start_time is not None:
+                epoch_time = time.time() - start_time
+                print(f"Epoch {iteration} in {epoch_time} sec")
+            print(f"Epoch {iteration} objective (Train): {obj_tr}")
+            print(f"Epoch {iteration} objective (Train): {obj_val}")
 
     @staticmethod
     def TV(X, Y):

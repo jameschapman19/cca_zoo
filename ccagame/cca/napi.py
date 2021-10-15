@@ -54,10 +54,9 @@ class NAPI(_CCA):
         for epoch in range(self.epochs):
             start_time = time.time()
             W_, W = update(A, B, W_, W, self.lr,self.solver)
-            epoch_time = time.time() - start_time
-            if self.verbose:
-                print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"epoch {epoch}: {self.TCC(X, Y, W[:p], W[p:])}")
+            obj_tr = self.TCC(X @ U, Y @ V)
+            obj_val = self.TCC(X_val @ U, Y_val @ V)
+            self.callback(obj_tr, obj_val, epoch, start_time)
         U = self.gram_schmidt_matrix(W[:p], B[:p, :p])
         V = self.gram_schmidt_matrix(W[p:], B[p:, p:])
         return U, V

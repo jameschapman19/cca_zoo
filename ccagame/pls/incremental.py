@@ -86,14 +86,6 @@ class Incremental(_PLS):
                 U, S, V = update(X_i, Y_i, U, S, V, self.n_components)
                 obj_tr = self.TV(X @ U, Y @ V)
                 obj_val = self.TV(X_val @ U, Y_val @ V)
-                if self.wandb:
-                    wandb.log({"Iteration/Objective (Train)": obj_tr,
-                               "Iteration/Objective (Val)": obj_val}, step=b)
-                else:
-                    self.obj.append([obj_tr, obj_val])
-            if self.verbose:
-                epoch_time = time.time() - start_time
-                print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"Epoch {epoch} objective (Train): {obj_tr}")
-                print(f"Epoch {epoch} objective (Train): {obj_val}")
+                self.callback(obj_tr, obj_val, b)
+            self.callback(obj_tr, obj_val, b, start_time)
         return U, V

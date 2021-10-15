@@ -87,16 +87,8 @@ class MSG(_CCA):
             for b in range(num_batches):
                 _, (X_i, Y_i) = next(batches)
                 U, V, Cx, Cy = update(X_i, Y_i, U, V, Cx, Cy, b, self.n_components, lr=self.lr)
-                obj = self.TCC(X@Y, Y@V)
-                if self.wandb:
-                    wandb.log({"Iteration/Objective": obj}, step=b)
-                else:
-                    self.obj.append(obj)
-            obj = self.TCC(X, Y, U, V)
-            if self.wandb:
-                wandb.log({"Epoch/Objective": obj}, step=epoch)
-            if self.verbose:
-                epoch_time = time.time() - start_time
-                print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"epoch {epoch} objective: {obj}")
+                obj_tr = self.TCC(X @ U, Y @ V)
+                obj_val = self.TCC(X_val @ U, Y_val @ V)
+                self.callback(obj_tr, obj_val, b)
+            self.callback(obj_tr, obj_val, b, start_time)
         return U, V
