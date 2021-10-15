@@ -9,7 +9,6 @@ from functools import partial
 import jax.numpy as jnp
 from jax import jit
 
-from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix, TCC
 from . import _CCA
 
 
@@ -42,14 +41,14 @@ class Lagrange(_CCA):
 
     def _fit(self, X, Y):
         p = X.shape[1]
-        A, B = initialize_gep(X, Y)
-        W, V = initialize(
+        A, B = self.initialize_gep(X, Y)
+        W, V = self.initialize(
             X, Y, self.n_components, type="random", random_state=self.random_state
         )
         W = jnp.vstack((W, V))
         for i in range(self.epochs):
             W = update(A, B, W, self.lr)
-            print(f"iteration {i}: {TCC(X, Y, W[:p], W[p:])}")
-        U = gram_schmidt_matrix(W[:p], B[:p, :p])
-        V = gram_schmidt_matrix(W[p:], B[p:, p:])
+            print(f"iteration {i}: {self.TCC(X, Y, W[:p], W[p:])}")
+        U = self.gram_schmidt_matrix(W[:p], B[:p, :p])
+        V = self.gram_schmidt_matrix(W[p:], B[p:, p:])
         return U, V

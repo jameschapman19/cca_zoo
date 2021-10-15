@@ -8,13 +8,12 @@ from functools import partial
 import jax.numpy as jnp
 from jax import jit
 
-from ccagame.cca.utils import initialize, initialize_gep, gram_schmidt_matrix, TCC
 from . import _CCA
-
+from ccagame.solver import agd_solve
 
 # Update rule to be used for calculating eigenvectors
 @partial(jit)
-def update(A, B, W_, W, lr):
+def update(A, B, W_, W, lr, solver=agd_solve):
     Z = jnp.linalg.inv(W.T @ B @ W) @ W.T @ A @ W
     W_t1 = solver(A, B, W @ Z)
     W_t1 = W_t1 - lr * W_
@@ -36,27 +35,29 @@ class NAPI(_CCA):
             random_state: int = None,
             verbose=False,
             lr=1,
-            wandb=False
+            wandb=False,
+            solver=agd_solve
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.epochs = epochs
         self.lr = lr
+        self.solver=solver
 
     def _fit(self, X, Y):
         p = X.shape[1]
-        A, B = initialize_gep(X, Y)
-        W, V = initialize(
+        A, B = self.initialize_gep(X, Y)
+        W, V = self.initialize(
             X, Y, self.n_components, type="random", random_state=self.random_state
         )
         W = jnp.vstack((W, V))
         W_ = jnp.zeros_like(W)
         for epoch in range(self.epochs):
             start_time = time.time()
-            W_, W = update(A, B, W_, W, self.lr)
+            W_, W = update(A, B, W_, W, self.lr,self.solver)
             epoch_time = time.time() - start_time
             if self.verbose:
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"epoch {epoch}: {TCC(X, Y, W[:p], W[p:])}")
-        U = gram_schmidt_matrix(W[:p], B[:p, :p])
-        V = gram_schmidt_matrix(W[p:], B[p:, p:])
+                print(f"epoch {epoch}: {self.TCC(X, Y, W[:p], W[p:])}")
+        U = self.gram_schmidt_matrix(W[:p], B[:p, :p])
+        V = self.gram_schmidt_matrix(W[p:], B[p:, p:])
         return U, V

@@ -8,7 +8,6 @@ from jax import jit
 
 from ccagame.utils import data_stream, get_num_batches
 from . import _PLS
-from .utils import TV, initialize
 
 
 # Update rule to be used for calculating eigenvectors
@@ -50,7 +49,7 @@ class Batch(_PLS):
         self.epochs = epochs
 
     def _fit(self, X, Y):
-        U, V = initialize(X, Y, self.n_components, "random", self.random_state)
+        U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=None)
         num_batches = get_num_batches(X, Y, batch_size=None)
         self.obj = []
@@ -59,12 +58,12 @@ class Batch(_PLS):
             for b in range(num_batches):
                 _, (X_i, Y_i) = next(batches)
                 U, V = update(X_i, Y_i, V)
-                obj = TV(X, Y, U, V)
+                obj = self.TV(X, Y, U, V)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj}, step=b)
                 else:
                     self.obj.append(obj)
-            obj = TV(X, Y, U, V)
+            obj = self.TV(X, Y, U, V)
             if self.wandb:
                 wandb.log({"Epoch/Objective": obj}, step=epoch)
             if self.verbose:

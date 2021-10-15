@@ -7,7 +7,6 @@ from jax import grad, jit
 
 from ccagame.utils import data_stream, get_num_batches
 from . import _CCA
-from .utils import initialize, TCC
 
 
 @partial(jit, static_argnums=(4))
@@ -125,7 +124,7 @@ class Game(_CCA):
         self.mu = mu
 
     def _fit(self, X, Y):
-        U, V = initialize(X, Y, self.n_components, "random", self.random_state)
+        U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
         if self.simultaneous:
@@ -152,7 +151,7 @@ class Game(_CCA):
                 epoch_time = time.time() - start_time
                 if self.verbose:
                     print(f"Epoch {epoch} in {epoch_time} sec")
-                    print(f"epoch {epoch}: {TCC(X, Y, U, V)}")
+                    print(f"epoch {epoch}: {self.TCC(X, Y, U, V)}")
         else:
             for k_ in range(self.n_components):
                 # T = update_T(X, Y, U, V)
@@ -177,5 +176,5 @@ class Game(_CCA):
                     epoch_time = time.time() - start_time
                     if self.verbose:
                         print(f"Epoch {epoch} in {epoch_time} sec")
-                        print(f"epoch {epoch}: {TCC(X, Y, U, V)}")
+                        print(f"epoch {epoch}: {self.TCC(X, Y, U, V)}")
         return U, V

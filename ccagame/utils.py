@@ -1,9 +1,10 @@
 import numbers
 
 import numpy as np
+from jax._src import prng
 from jax._src.random import PRNGKey
 from scipy.io import loadmat
-from jax._src import prng
+
 
 def get_xrmb(
         datadir="/mnt/c/Users/chapm/PycharmProjects/ccagame/data/XRMB/", mode="train"
@@ -46,6 +47,7 @@ def data_stream(X, Y=None, batch_size=None):
                 yield batch_idx, (X[batch_idx])
             else:
                 yield batch_idx, (X[batch_idx], Y[batch_idx])
+
 
 def check_random_state(seed):
     """Turn seed into a prng. instance

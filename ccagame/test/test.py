@@ -9,7 +9,7 @@ def test_solvers():
     np.random.seed(42)
 
     def ls(w, X, y):
-        return (jnp.linalg.norm(X @ w - y) ** 2)/X.shape[0]
+        return (jnp.linalg.norm(X @ w - y) ** 2) / X.shape[0]
 
     n = 100
     p = 50

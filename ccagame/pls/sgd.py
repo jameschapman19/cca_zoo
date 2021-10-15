@@ -9,7 +9,6 @@ from sklearn.model_selection import train_test_split
 
 from ccagame.utils import data_stream, get_num_batches
 from . import _PLS
-from .utils import TV, initialize
 
 
 # Update rule to be used for calculating eigenvectors
@@ -60,7 +59,7 @@ class SGD(_PLS):
         X, X_val, Y, Y_val = train_test_split(
             X, Y, random_state=self.random_state, train_size=0.9
         )
-        U, V = initialize(X, Y, self.n_components, "random", self.random_state)
+        U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
         self.obj = []
@@ -70,12 +69,12 @@ class SGD(_PLS):
                 _, (X_i, Y_i) = next(batches)
                 U = update(X_i, Y_i, U, V, lr=self.lr)
                 V = update(Y_i, X_i, V, U, lr=self.lr)
-                obj = TV(X, Y, U, V)
+                obj = self.TV(X, Y, U, V)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj}, step=b)
                 else:
                     self.obj.append(obj)
-            obj = TV(X, Y, U, V)
+            obj = self.TV(X, Y, U, V)
             if self.wandb:
                 wandb.log({"Epoch/Objective": obj}, step=epoch)
             if self.verbose:

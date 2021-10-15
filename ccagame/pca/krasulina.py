@@ -11,7 +11,6 @@ import wandb
 from jax import jit
 
 from . import _PCA
-from .utils import TV, initialize
 # Update rule to be used for calculating eigenvectors
 from ..utils import data_stream, get_num_batches
 

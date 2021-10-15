@@ -11,7 +11,6 @@ import jax.numpy as jnp
 from jax import jit
 
 from . import _PCA
-from .utils import TV, initialize
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
 # X is the design matrix and V holds the previously computed eigenvectors
@@ -123,7 +122,7 @@ class Game(_PCA):
         self.mu = mu
 
     def _fit(self, X):
-        U = initialize(
+        U = self.initialize(
             X, self.n_components, type="random", random_state=self.random_state
         )
         batches = data_stream(X, batch_size=self.batch_size)
@@ -145,11 +144,11 @@ class Game(_PCA):
                             mu=self.mu,
                         )
                         U = U.at[:, k_].set(u)
-                    self.obj.append(TV(X, U))
+                    self.obj.append(self.TV(X, U))
                 if self.verbose:
                     epoch_time = time.time() - start_time
                     print(f"Epoch {epoch} in {epoch_time} sec")
-                    print(f"epoch {epoch}: {TV(X, U)}")
+                    print(f"epoch {epoch}: {self.TV(X, U)}")
         else:
             for k_ in range(self.n_components):
                 for epoch in range(self.epochs):
@@ -166,7 +165,7 @@ class Game(_PCA):
                             mu=self.mu,
                         )
                         U = U.at[:, k_].set(u)
-                        self.obj.append(TV(X, U))
+                        self.obj.append(self.TV(X, U))
                     if self.verbose:
                         epoch_time = time.time() - start_time
                         print(f"Epoch {epoch} in {epoch_time} sec")

@@ -8,7 +8,6 @@ import wandb
 from jax import jit
 
 from . import _PCA
-from .utils import initialize, TV
 # Update rule to be used for calculating eigenvectors
 from ..utils import data_stream, get_num_batches
 
@@ -53,7 +52,7 @@ class GHA(_PCA):
         self.batch_size = batch_size
 
     def _fit(self, X):
-        U = initialize(
+        U = self.initialize(
             X, self.n_components, type="random", random_state=self.random_state
         )
         batches = data_stream(X, batch_size=self.batch_size)
@@ -64,12 +63,12 @@ class GHA(_PCA):
             for _ in range(num_batches):
                 _, X = next(batches)
                 U = update(U, X, lr=self.lr)
-                obj = TV(X, U)
+                obj = self.TV(X, U)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj})
                 else:
                     self.obj.append(obj)
-            obj = TV(X, U)
+            obj = self.TV(X, U)
             if self.wandb:
                 wandb.log({"Epoch/Objective": obj})
             if self.verbose:

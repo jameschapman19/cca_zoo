@@ -11,7 +11,6 @@ import jax.numpy as jnp
 from jax import jit
 
 from . import _CCA
-from .utils import gram_schmidt_matrix, initialize, TCC
 
 
 # Update rule to be used for calculating eigenvectors
@@ -43,14 +42,14 @@ class AppGrad(_CCA):
         self.epochs = epochs
 
     def _fit(self, X, Y):
-        U, V = initialize(X, Y, self.n_components, "random", self.random_state)
+        U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         for epoch in range(self.epochs):
             start_time = time.time()
             U, V, phi_, psi_ = update(U, V, phi_, psi_)
             epoch_time = time.time() - start_time
             if self.verbose:
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"epoch {epoch}: {TCC(X, Y, W[:p], W[p:])}")
-        U = gram_schmidt_matrix(W[:p], B[:p, :p])
-        V = gram_schmidt_matrix(W[p:], B[p:, p:])
+                print(f"epoch {epoch}: {self.TCC(X, Y, W[:p], W[p:])}")
+        U = self.gram_schmidt_matrix(W[:p], B[:p, :p])
+        V = self.gram_schmidt_matrix(W[p:], B[p:, p:])
         return U, V
