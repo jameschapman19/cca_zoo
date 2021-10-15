@@ -49,5 +49,5 @@ class AppGrad(_CCA):
             U, V, phi_, psi_ = update(U, V, phi_, psi_)
             obj_tr = self.TCC(X @ U, Y @ V)
             obj_val = self.TCC(X_val @ U, Y_val @ V)
-            self.callback(obj_tr, obj_val, epoch, start_time)
+            self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
         return U, V

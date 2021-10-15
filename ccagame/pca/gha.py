@@ -59,11 +59,11 @@ class GHA(_PCA):
         self.obj = []
         for epoch in range(self.epochs):
             start_time = time.time()
-            for _ in range(num_batches):
+            for b in range(num_batches):
                 _, X = next(batches)
                 U = update(U, X, lr=self.lr)
                 obj_tr = self.TV(X @ U)
                 obj_val = self.TV(X_val @ U)
-            self.callback(obj_tr, obj_val, b)
-            self.callback(obj_tr, obj_val, epoch, start_time)
+                self.callback(obj_tr, obj_val)
+            self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
         return U

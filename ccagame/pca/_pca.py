@@ -2,6 +2,7 @@ import time
 from abc import abstractmethod
 
 import jax.numpy as jnp
+import sklearn
 import wandb
 from jax import random
 from sklearn.base import (
@@ -12,6 +13,8 @@ from sklearn.base import (
 )
 from sklearn.model_selection import train_test_split
 
+from ccagame.utils import check_random_state
+
 
 class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
     def __init__(self, n_components=2, *, scale=True, copy=True, wandb=True, verbose=False, random_state=None):
@@ -20,8 +23,9 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         self.copy = copy
         self.wandb = wandb
         self.verbose = verbose
-        self.random_state = random_state
-        self.scikit_random_state = random_state
+        self.random_state = check_random_state(random_state)
+        self.scikit_random_state = sklearn.utils.check_random_state(random_state)
+        self.obj = []
 
     @abstractmethod
     def _fit(self, X, X_val):
@@ -30,7 +34,7 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
     @abstractmethod
     def fit(self, X):
         X, X_val = train_test_split(
-            X, random_state=self.random_state, train_size=0.9
+            X, random_state=self.scikit_random_state, train_size=0.9
         )
         X, self._x_mean, self._x_std, = self.center_scale(
             X
@@ -62,18 +66,19 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
             return
         return V1
 
-    def callback(self, obj_tr, obj_val, iteration, start_time=None):
+    def callback(self, obj_tr, obj_val, epoch=None, start_time=None):
         if self.wandb:
             wandb.log({"Iteration/Objective (Train)": obj_tr,
-                       "Iteration/Objective (Val)": obj_val}, step=iteration)
+                       "Iteration/Objective (Val)": obj_val})
         else:
             self.obj.append([obj_tr, obj_val])
         if self.verbose:
-            if start_time is not None:
-                epoch_time = time.time() - start_time
-                print(f"Epoch {iteration} in {epoch_time} sec")
-            print(f"Epoch {iteration} objective (Train): {obj_tr}")
-            print(f"Epoch {iteration} objective (Val): {obj_val}")
+            if epoch is not None:
+                if start_time is not None:
+                    epoch_time = time.time() - start_time
+                    print(f"Epoch {epoch} in {epoch_time} sec")
+                print(f"Epoch {epoch} objective (Train): {obj_tr}", flush=True)
+                print(f"Epoch {epoch} objective (Val): {obj_val}", flush=True)
 
     @staticmethod
     def TV(X):

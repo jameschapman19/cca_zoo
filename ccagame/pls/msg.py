@@ -72,6 +72,6 @@ class MSG(_PLS):
                 U, V = update(X_i, Y_i, U, V, self.n_components, lr=self.lr)
                 obj_tr = self.TV(X @ U, Y @ V)
                 obj_val = self.TV(X_val @ U, Y_val @ V)
-                self.callback(obj_tr, obj_val, b)
-            self.callback(obj_tr, obj_val, b, start_time)
+                self.callback(obj_tr, obj_val)
+            self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
         return U, V

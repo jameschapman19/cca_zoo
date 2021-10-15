@@ -84,6 +84,6 @@ class Incremental(_PLS):
                 U, S, V = update(X_i, Y_i, U, S, V, self.n_components)
                 obj_tr = self.TV(X @ U, Y @ V)
                 obj_val = self.TV(X_val @ U, Y_val @ V)
-                self.callback(obj_tr, obj_val, b)
-            self.callback(obj_tr, obj_val, b, start_time)
+                self.callback(obj_tr, obj_val)
+            self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
         return U, V

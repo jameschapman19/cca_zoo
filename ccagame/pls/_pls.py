@@ -91,18 +91,19 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
             return
         return U1, V1
 
-    def callback(self, obj_tr, obj_val, iteration, start_time=None):
+    def callback(self, obj_tr, obj_val, epoch=None, start_time=None):
         if self.wandb:
             wandb.log({"Iteration/Objective (Train)": obj_tr,
-                       "Iteration/Objective (Val)": obj_val}, step=iteration)
+                       "Iteration/Objective (Val)": obj_val})
         else:
             self.obj.append([obj_tr, obj_val])
         if self.verbose:
-            if start_time is not None:
-                epoch_time = time.time() - start_time
-                print(f"Epoch {iteration} in {epoch_time} sec")
-            print(f"Epoch {iteration} objective (Train): {obj_tr}")
-            print(f"Epoch {iteration} objective (Val): {obj_val}")
+            if epoch is not None:
+                if start_time is not None:
+                    epoch_time = time.time() - start_time
+                    print(f"Epoch {epoch} in {epoch_time} sec")
+                print(f"Epoch {epoch} objective (Train): {obj_tr}", flush=True)
+                print(f"Epoch {epoch} objective (Val): {obj_val}", flush=True)
 
     @staticmethod
     def TV(X, Y):

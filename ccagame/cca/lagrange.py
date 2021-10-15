@@ -52,7 +52,7 @@ class Lagrange(_CCA):
             W = update(A, B, W, self.lr)
             obj_tr = self.TCC(X @ W[:p], Y @ W[p:])
             obj_val = self.TCC(X_val @ W[:p], Y_val @ W[p:])
-            self.callback(obj_tr, obj_val, epoch, start_time)
+            self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
         U = self.gram_schmidt_matrix(W[:p], B[:p, :p])
         V = self.gram_schmidt_matrix(W[p:], B[p:, p:])
         return U, V

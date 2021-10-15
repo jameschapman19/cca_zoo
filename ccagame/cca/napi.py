@@ -57,7 +57,7 @@ class NAPI(_CCA):
             W_, W = update(A, B, W_, W, self.lr, self.solver)
             obj_tr = self.TCC(X @ U, Y @ V)
             obj_val = self.TCC(X_val @ U, Y_val @ V)
-            self.callback(obj_tr, obj_val, epoch, start_time)
+            self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
         U = self.gram_schmidt_matrix(W[:p], B[:p, :p])
         V = self.gram_schmidt_matrix(W[p:], B[p:, p:])
         return U, V
