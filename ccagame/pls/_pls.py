@@ -3,6 +3,7 @@ from abc import abstractmethod
 
 import jax.numpy as jnp
 import jax.scipy as jsp
+import sklearn.utils
 from jax import random
 from sklearn.base import (
     BaseEstimator,
@@ -23,6 +24,7 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         self.wandb = wandb
         self.verbose = verbose
         self.random_state = check_random_state(random_state)
+        self.scikit_random_state = sklearn.utils.check_random_state(random_state)
 
     @abstractmethod
     def _fit(self, X, Y, X_val=None, Y_val=None):
@@ -31,7 +33,7 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
     @abstractmethod
     def fit(self, X, Y):
         X, X_val, Y, Y_val = train_test_split(
-            X, Y, random_state=self.random_state, train_size=0.9
+            X, Y, random_state=self.scikit_random_state, train_size=0.9
         )
         X, Y, self._x_mean, self._y_mean, self._x_std, self._y_std = self.center_scale(
             X, Y

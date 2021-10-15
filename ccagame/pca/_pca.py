@@ -20,6 +20,7 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         self.wandb = wandb
         self.verbose = verbose
         self.random_state = random_state
+        self.scikit_random_state = random_state
 
     @abstractmethod
     def _fit(self, X):

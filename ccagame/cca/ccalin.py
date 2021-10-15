@@ -53,7 +53,7 @@ class CCALin(_CCA):
             epoch_time = time.time() - start_time
             if self.verbose:
                 print(f"Epoch {epoch} in {epoch_time} sec")
-                print(f"epoch {epoch}: {self.TCC(X, Y, W[:p], W[p:])}")
+                print(f"epoch {epoch}: {self.TCC(X@W[:p], Y@W[p:])}")
         U = self.gram_schmidt_matrix(W[:p], B[:p, :p])
         V = self.gram_schmidt_matrix(W[p:], B[p:, p:])
         return U, V

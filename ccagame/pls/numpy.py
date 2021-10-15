@@ -12,7 +12,7 @@ class Numpy(_PLS):
     def __init__(self, n_components=2, *, scale=True, copy=True):
         super().__init__(n_components, scale=scale, copy=copy)
 
-    def _fit(self, X, Y):
+    def _fit(self, X, Y, X_val=None, Y_val=None):
         C = X.T @ Y
         U, S, Vt = jnp.linalg.svd(C)
         U = lax.dynamic_slice(U, (0, 0), (U.shape[0], self.n_components))

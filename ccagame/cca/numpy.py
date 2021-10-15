@@ -39,7 +39,7 @@ class Numpy(_CCA):
         super().__init__(n_components, scale=scale, copy=copy)
         self.c = c
 
-    def _fit(self, X, Y):
+    def _fit(self, X, Y, X_val=None, Y_val=None):
         dof = X.shape[0] - 1
         C = jnp.hstack((X, Y))
         C = C.T @ C / dof
