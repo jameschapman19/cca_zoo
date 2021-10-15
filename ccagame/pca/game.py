@@ -121,7 +121,7 @@ class Game(_PCA):
         self.batch_size = batch_size
         self.mu = mu
 
-    def _fit(self, X):
+    def _fit(self, X, X_val):
         U = self.initialize(
             X, self.n_components, type="random", random_state=self.random_state
         )
@@ -131,7 +131,7 @@ class Game(_PCA):
         if self.simultaneous:
             for epoch in range(self.epochs):
                 start_time = time.time()
-                for _ in range(num_batches):
+                for b in range(num_batches):
                     _, X_i = next(batches)
                     for k_ in range(self.n_components):
                         u = update(
@@ -144,16 +144,15 @@ class Game(_PCA):
                             mu=self.mu,
                         )
                         U = U.at[:, k_].set(u)
-                    self.obj.append(self.TV(X))
-                if self.verbose:
-                    epoch_time = time.time() - start_time
-                    print(f"Epoch {epoch} in {epoch_time} sec")
-                    print(f"epoch {epoch}: {self.TV(X)}")
+                        obj_tr=self.TV(X@U)
+                        obj_val = self.TV(X_val @ U)
+                    self.callback(obj_tr, obj_val, b)
+                self.callback(obj_tr, obj_val, epoch, start_time)
         else:
             for k_ in range(self.n_components):
                 for epoch in range(self.epochs):
                     start_time = time.time()
-                    for _ in range(num_batches):
+                    for b in range(num_batches):
                         _, X_i = next(batches)
                         u = update(
                             U[:, k_],
@@ -165,9 +164,8 @@ class Game(_PCA):
                             mu=self.mu,
                         )
                         U = U.at[:, k_].set(u)
-                        self.obj.append(self.TV(X))
-                    if self.verbose:
-                        epoch_time = time.time() - start_time
-                        print(f"Epoch {epoch} in {epoch_time} sec")
-                        print(f"epoch {epoch}: {self.obj[-1]}")
+                        obj_tr = self.TV(X @ U)
+                        obj_val = self.TV(X_val @ U)
+                        self.callback(obj_tr, obj_val, b)
+                    self.callback(obj_tr, obj_val, epoch, start_time)
         return U

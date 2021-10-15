@@ -10,7 +10,7 @@ from sklearn.base import (
 )
 from jax import random
 from sklearn.model_selection import train_test_split
-
+import wandb
 
 class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
     def __init__(self, n_components=2, *, scale=True, copy=True, wandb=True, verbose=False, random_state=None):
@@ -23,7 +23,7 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         self.scikit_random_state = random_state
 
     @abstractmethod
-    def _fit(self, X):
+    def _fit(self, X, X_val):
         raise NotImplementedError
 
     @abstractmethod
@@ -35,7 +35,7 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
             X
         )
         start_time = time.time()
-        self.x_weights = self._fit(X)
+        self.x_weights = self._fit(X, X_val)
         self.fit_time = time.time() - start_time
         return self
 
@@ -59,6 +59,19 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
             print(f'Initialization "{type}" not implemented')
             return
         return V1
+
+    def callback(self, obj_tr, obj_val, iteration, start_time=None):
+        if self.wandb:
+            wandb.log({"Iteration/Objective (Train)": obj_tr,
+                       "Iteration/Objective (Val)": obj_val}, step=iteration)
+        else:
+            self.obj.append([obj_tr, obj_val])
+        if self.verbose:
+            if start_time is not None:
+                epoch_time = time.time() - start_time
+                print(f"Epoch {iteration} in {epoch_time} sec")
+            print(f"Epoch {iteration} objective (Train): {obj_tr}")
+            print(f"Epoch {iteration} objective (Train): {obj_val}")
 
     @staticmethod
     def TV(X):
