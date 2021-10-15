@@ -123,7 +123,7 @@ class Game(_CCA):
         self.batch_size = batch_size
         self.mu = mu
 
-    def _fit(self, X, Y):
+    def _fit(self, X, Y, X_val=None, Y_val=None):
         U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)

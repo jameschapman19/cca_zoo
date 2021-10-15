@@ -48,7 +48,7 @@ class Batch(_PLS):
         self.lr = lr
         self.epochs = epochs
 
-    def _fit(self, X, Y):
+    def _fit(self, X, Y, X_val=None, Y_val=None):
         U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=None)
         num_batches = get_num_batches(X, Y, batch_size=None)
@@ -58,7 +58,7 @@ class Batch(_PLS):
             for b in range(num_batches):
                 _, (X_i, Y_i) = next(batches)
                 U, V = update(X_i, Y_i, V)
-                obj = self.TV(X, Y, U, V)
+                obj = self.TV(X@U, Y@V)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj}, step=b)
                 else:

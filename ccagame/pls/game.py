@@ -158,7 +158,7 @@ class Game(_PLS):
         self.batch_size = batch_size
         self.mu = mu
 
-    def _fit(self, X, Y):
+    def _fit(self, X, Y, X_val=None, Y_val=None):
         """
 
         Parameters
@@ -170,9 +170,6 @@ class Game(_PLS):
         -------
 
         """
-        X, X_val, Y, Y_val = train_test_split(
-            X, Y, random_state=self.random_state, train_size=0.9
-        )
         U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
@@ -198,12 +195,12 @@ class Game(_PLS):
                         )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
-                    obj = self.TV(X, Y, U, V)
+                    obj = self.TV(X@U, Y@V)
                     if self.wandb:
                         wandb.log({"Iteration/Objective": obj}, step=b)
                     else:
                         self.obj.append(obj)
-                obj = self.TV(X, Y, U, V)
+                obj = self.TV(X@U, Y@V)
                 if self.wandb:
                     wandb.log({"Epoch/Objective": obj}, step=epoch)
                 if self.verbose:
@@ -230,12 +227,12 @@ class Game(_PLS):
                         )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
-                        obj = self.TV(X, Y, U, V)
+                        obj = self.TV(X@U, Y@V)
                         if self.wandb:
                             wandb.log({f"Iteration/Objective/{k_}": obj}, step=b)
                         else:
                             self.obj.append(obj)
-                    obj = self.TV(X, Y, U, V)
+                    obj = self.TV(X@U, Y@V)
                     if self.wandb:
                         wandb.log({f"Epoch/Objective/{k_}": obj})
                     if self.verbose:

@@ -55,7 +55,7 @@ class Krasulina(_PCA):
         self.batch_size = batch_size
 
     def _fit(self, X):
-        U = initialize(
+        U = self.initialize(
             X, self.n_components, type="random", random_state=self.random_state
         )
         batches = data_stream(X, batch_size=self.batch_size)
@@ -66,12 +66,12 @@ class Krasulina(_PCA):
             for _ in range(num_batches):
                 _, X_i = next(batches)
                 U = update(U, X_i, lr=self.lr)
-                obj = TV(X, U)
+                obj = self.TV(X)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj})
                 else:
                     self.obj.append(obj)
-            obj = TV(X, U)
+            obj = self.TV(X)
             if self.wandb:
                 wandb.log({"Epoch/Objective": obj})
             if self.verbose:

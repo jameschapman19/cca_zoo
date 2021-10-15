@@ -41,7 +41,7 @@ class AppGrad(_CCA):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.epochs = epochs
 
-    def _fit(self, X, Y):
+    def _fit(self, X, Y, X_val=None, Y_val=None):
         U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         for epoch in range(self.epochs):
             start_time = time.time()

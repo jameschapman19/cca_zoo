@@ -72,7 +72,7 @@ class MSG(_CCA):
         self.epochs = epochs
         self.batch_size = batch_size
 
-    def _fit(self, X, Y):
+    def _fit(self, X, Y, X_val=None, Y_val=None):
         X, X_val, Y, Y_val = train_test_split(
             X, Y, random_state=self.random_state, train_size=0.9
         )

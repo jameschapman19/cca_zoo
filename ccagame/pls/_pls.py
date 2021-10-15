@@ -10,6 +10,7 @@ from sklearn.base import (
     MultiOutputMixin,
     RegressorMixin,
 )
+from sklearn.model_selection import train_test_split
 
 from ..utils import check_random_state
 
@@ -24,25 +25,34 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         self.random_state = check_random_state(random_state)
 
     @abstractmethod
-    def _fit(self, X, Y):
+    def _fit(self, X, Y, X_val=None, Y_val=None):
         raise NotImplementedError
 
     @abstractmethod
     def fit(self, X, Y):
+        X, X_val, Y, Y_val = train_test_split(
+            X, Y, random_state=self.random_state, train_size=0.9
+        )
         X, Y, self._x_mean, self._y_mean, self._x_std, self._y_std = self.center_scale(
             X, Y
         )
+        X_val=(X_val-self._x_mean)/self._x_std
+        Y_val = (Y_val - self._y_mean) / self._y_std
         start_time = time.time()
-        self.x_weights, self.y_weights = self._fit(X, Y)
+        self.x_weights, self.y_weights = self._fit(X, Y, X_val, Y_val)
         self.fit_time = time.time() - start_time
         return self
 
     @abstractmethod
     def transform(self, X, Y):
-        raise NotImplementedError
+        X = (X - self._x_mean) / self._x_std
+        Y = (Y - self._y_mean) / self._y_std
+        return X@self.x_weights, Y@self.y_weights
+
 
     def score(self, X, y, sample_weight=None):
-        return self.TV(X, y, self.x_weights, self.y_weights)
+        X,Y=self.transform(X,y)
+        return self.TV(X, Y)
 
     def center_scale(self, X, Y):
         x_mean = X.mean(axis=0)
@@ -79,27 +89,23 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         return U1, V1
 
     @staticmethod
-    def TV(X, Y, Wx, Wy):
-        X_hat = X @ Wx
-        Y_hat = Y @ Wy
-        C = X_hat.T @ Y_hat
+    def TV(X, Y):
+        C = X.T @ Y
         _, S, _ = jnp.linalg.svd(C)
         return S.sum()
 
     @staticmethod
-    def TCC(X, Y, Wx, Wy):
+    def TCC(X, Y):
         dof = X.shape[0] - 1
-        X_hat = X @ Wx
-        Y_hat = Y @ Wy
-        C = jnp.hstack((X_hat, Y_hat))
+        C = jnp.hstack((X, Y))
         C = C.T @ C / dof
         # Get the block covariance matrix placing Xi^TX_i on the diagonal
-        D = jsp.linalg.block_diag(*[m.T @ m for i, m in enumerate([X_hat, Y_hat])]) / dof
-        C = C - jsp.linalg.block_diag(*[view.T @ view / dof for view in [X_hat, Y_hat]]) + D
+        D = jsp.linalg.block_diag(*[m.T @ m for i, m in enumerate([X, Y])]) / dof
+        C = C - jsp.linalg.block_diag(*[view.T @ view / dof for view in [X, Y]]) + D
         R = jnp.linalg.inv(jnp.linalg.cholesky(D))
         # In MCCA our eigenvalue problem Cv = lambda Dv
         C_whitened = R @ C @ R.T
-        eigvals = jnp.linalg.eigvalsh(C_whitened)[::-1][: Wx.shape[1]] - 1
+        eigvals = jnp.linalg.eigvalsh(C_whitened)[::-1][: X.shape[1]] - 1
         return eigvals.real.sum()
 
     @staticmethod

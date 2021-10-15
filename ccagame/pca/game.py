@@ -144,11 +144,11 @@ class Game(_PCA):
                             mu=self.mu,
                         )
                         U = U.at[:, k_].set(u)
-                    self.obj.append(self.TV(X, U))
+                    self.obj.append(self.TV(X))
                 if self.verbose:
                     epoch_time = time.time() - start_time
                     print(f"Epoch {epoch} in {epoch_time} sec")
-                    print(f"epoch {epoch}: {self.TV(X, U)}")
+                    print(f"epoch {epoch}: {self.TV(X)}")
         else:
             for k_ in range(self.n_components):
                 for epoch in range(self.epochs):
@@ -165,7 +165,7 @@ class Game(_PCA):
                             mu=self.mu,
                         )
                         U = U.at[:, k_].set(u)
-                        self.obj.append(self.TV(X, U))
+                        self.obj.append(self.TV(X))
                     if self.verbose:
                         epoch_time = time.time() - start_time
                         print(f"Epoch {epoch} in {epoch_time} sec")

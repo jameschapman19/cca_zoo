@@ -39,7 +39,7 @@ class CCALin(_CCA):
         self.epochs = epochs
         self.solver = solver
 
-    def _fit(self, X, Y):
+    def _fit(self, X, Y, X_val=None, Y_val=None):
         p = X.shape[1]
         A, B = self.initialize_gep(X, Y)
         W, V = self.initialize(

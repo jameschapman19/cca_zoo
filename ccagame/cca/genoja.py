@@ -41,7 +41,7 @@ class Genoja(_CCA):
         self.beta_0 = beta_0
         self.alpha = alpha
 
-    def _fit(self, X, Y):
+    def _fit(self, X, Y, X_val=None, Y_val=None):
         p = X.shape[1]
         A, B = self.initialize_gep(X, Y)
         W, P = self.initialize(

@@ -7,4 +7,5 @@ class _CCA(_PLS):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
 
     def score(self, X, y, sample_weight=None):
-        return TCC(X, y, self.x_weights, self.y_weights)
+        X, Y = self.transform(X, y)
+        return self.TCC(X, Y)

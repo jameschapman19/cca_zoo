@@ -63,12 +63,12 @@ class GHA(_PCA):
             for _ in range(num_batches):
                 _, X = next(batches)
                 U = update(U, X, lr=self.lr)
-                obj = self.TV(X, U)
+                obj = self.TV(X)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj})
                 else:
                     self.obj.append(obj)
-            obj = self.TV(X, U)
+            obj = self.TV(X)
             if self.wandb:
                 wandb.log({"Epoch/Objective": obj})
             if self.verbose:

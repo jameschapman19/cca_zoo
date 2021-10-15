@@ -62,10 +62,7 @@ class MSG(_PLS):
         self.epochs = epochs
         self.batch_size = batch_size
 
-    def _fit(self, X, Y):
-        X, X_val, Y, Y_val = train_test_split(
-            X, Y, random_state=self.random_state, train_size=0.9
-        )
+    def _fit(self, X, Y, X_val=None, Y_val=None):
         U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
@@ -75,7 +72,7 @@ class MSG(_PLS):
             for b in range(num_batches):
                 _, (X_i, Y_i) = next(batches)
                 U, V = update(X_i, Y_i, U, V, self.n_components, lr=self.lr)
-                obj = self.TV(X, Y, U, V)
+                obj = self.TV(X@U, Y@V)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj}, step=b)
                 else:

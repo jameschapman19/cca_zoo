@@ -9,6 +9,7 @@ from sklearn.base import (
     RegressorMixin,
 )
 from jax import random
+from sklearn.model_selection import train_test_split
 
 
 class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
@@ -26,15 +27,20 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
 
     @abstractmethod
     def fit(self, X):
-        self.mean = jnp.mean(X, axis=0)
-        X -= self.mean
+        X, X_val = train_test_split(
+            X, random_state=self.random_state, train_size=0.9
+        )
+        X, self._x_mean, self._x_std, = self.center_scale(
+            X
+        )
         start_time = time.time()
         self.x_weights = self._fit(X)
         self.fit_time = time.time() - start_time
         return self
 
     def score(self, X, y=None, sample_weight=None):
-        return self.TV(X, self.x_weights)
+        X = self.transform(X)
+        return self.TV(X)
 
     @abstractmethod
     def transform(self, X):
@@ -54,7 +60,14 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         return V1
 
     @staticmethod
-    def TV(X, Wx):
-        X_hat = X @ Wx
-        eigvals = jnp.linalg.eigvalsh(X_hat.T @ X_hat)
+    def TV(X):
+        eigvals = jnp.linalg.eigvalsh(X.T @ X)
         return eigvals.real.sum()
+
+    def center_scale(self, X):
+        x_mean = X.mean(axis=0)
+        X -= x_mean
+        x_std = X.std(axis=0)
+        if self.scale:
+            X /= x_std
+        return X, x_mean, x_std
