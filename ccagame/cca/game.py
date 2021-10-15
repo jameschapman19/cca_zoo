@@ -7,7 +7,7 @@ from jax import grad, jit
 
 from ccagame.utils import data_stream, get_num_batches
 from . import _CCA
-
+import wandb
 
 @partial(jit, static_argnums=(4))
 def alpha_model(u, X, U, T, k: int):
@@ -127,11 +127,12 @@ class Game(_CCA):
         U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
+        self.obj=[]
         if self.simultaneous:
             for epoch in range(self.epochs):
                 # T = update_T(X, Y, U, V)
                 start_time = time.time()
-                for _ in range(num_batches):
+                for b in range(num_batches):
                     idx, (X_i, Y_i) = next(batches)
                     for k_ in range(self.n_components):
                         u, v = update(
@@ -145,19 +146,25 @@ class Game(_CCA):
                             lr=self.lr,
                             mu=self.mu
                         )
-                        # T[idx],
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
-                epoch_time = time.time() - start_time
-                if self.verbose:
-                    print(f"Epoch {epoch} in {epoch_time} sec")
-                    print(f"epoch {epoch}: {self.TCC(X, Y, U, V)}")
+                        obj_tr = self.TCC(X @ U, Y @ V)
+                        obj_val = self.TCC(X_val @ U, Y_val @ V)
+                        if self.wandb:
+                            wandb.log({"Iteration/Objective (Train)": obj_tr,
+                                       "Iteration/Objective (Val)": obj_val}, step=b)
+                        else:
+                            self.obj.append([obj_tr, obj_val])
+                    if self.verbose:
+                        epoch_time = time.time() - start_time
+                        print(f"Epoch {epoch} in {epoch_time} sec")
+                        print(f"Epoch {epoch} objective (Train): {obj_tr}")
+                        print(f"Epoch {epoch} objective (Train): {obj_val}")
         else:
             for k_ in range(self.n_components):
-                # T = update_T(X, Y, U, V)
                 for epoch in range(self.epochs):
                     start_time = time.time()
-                    for _ in range(num_batches):
+                    for b in range(num_batches):
                         idx, (X_i, Y_i) = next(batches)
                         u, v = update(
                             U[:, k_],

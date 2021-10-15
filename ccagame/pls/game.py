@@ -195,18 +195,18 @@ class Game(_PLS):
                         )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
-                    obj = self.TV(X@U, Y@V)
+                    obj_tr = self.TV(X @ U, Y @ V)
+                    obj_val = self.TV(X_val @ U, Y_val @ V)
                     if self.wandb:
-                        wandb.log({"Iteration/Objective": obj}, step=b)
+                        wandb.log({"Iteration/Objective (Train)": obj_tr,
+                                   "Iteration/Objective (Val)": obj_val}, step=b)
                     else:
-                        self.obj.append(obj)
-                obj = self.TV(X@U, Y@V)
-                if self.wandb:
-                    wandb.log({"Epoch/Objective": obj}, step=epoch)
+                        self.obj.append([obj_tr, obj_val])
                 if self.verbose:
                     epoch_time = time.time() - start_time
                     print(f"Epoch {epoch} in {epoch_time} sec")
-                    print(f"epoch {epoch} objective: {obj}")
+                    print(f"Epoch {epoch} objective (Train): {obj_tr}")
+                    print(f"Epoch {epoch} objective (Train): {obj_val}")
         else:
             for k_ in range(self.n_components):
                 for epoch in range(self.epochs):
@@ -227,16 +227,16 @@ class Game(_PLS):
                         )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
-                        obj = self.TV(X@U, Y@V)
+                        obj_tr = self.TV(X @ U, Y @ V)
+                        obj_val = self.TV(X_val @ U, Y_val @ V)
                         if self.wandb:
-                            wandb.log({f"Iteration/Objective/{k_}": obj}, step=b)
+                            wandb.log({"Iteration/Objective (Train)": obj_tr,
+                                       "Iteration/Objective (Val)": obj_val}, step=b)
                         else:
-                            self.obj.append(obj)
-                    obj = self.TV(X@U, Y@V)
-                    if self.wandb:
-                        wandb.log({f"Epoch/Objective/{k_}": obj})
+                            self.obj.append([obj_tr, obj_val])
                     if self.verbose:
                         epoch_time = time.time() - start_time
                         print(f"Epoch {epoch} in {epoch_time} sec")
-                        print(f"epoch {epoch} objective: {obj}")
+                        print(f"Epoch {epoch} objective (Train): {obj_tr}")
+                        print(f"Epoch {epoch} objective (Train): {obj_val}")
         return U, V
