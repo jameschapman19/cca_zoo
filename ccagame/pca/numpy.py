@@ -24,7 +24,7 @@ class Numpy(_PCA):
         self.random_state = random_state
         self.verbose = verbose
 
-    def _fit(self, X):
+    def _fit(self, X, X_val):
         eigvals, eigvecs = jnp.linalg.eigh(X.T @ X)
         idx = np.argsort(eigvals, axis=0)[::-1][: self.n_components]
         eigvecs = eigvecs[:, idx]

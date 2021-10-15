@@ -50,7 +50,7 @@ game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_componen
 print("\n Eigenvalues calculated using game are :\n", game.score(X, Y))
 print("\n Time :\n", game.fit_time)
 
-msg = MSG(scale=False, lr=lr,n_components=latent_dims,epochs=epochs,verbose=True).fit(X, Y)
+msg = MSG(scale=False, lr=lr, n_components=latent_dims, epochs=epochs, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using msg are :\n", msg.score(X, Y))
 print("\n Time :\n", msg.fit_time)
 

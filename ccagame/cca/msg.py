@@ -72,9 +72,6 @@ class MSG(_CCA):
         self.batch_size = batch_size
 
     def _fit(self, X, Y, X_val=None, Y_val=None):
-        X, X_val, Y, Y_val = train_test_split(
-            X, Y, random_state=self.random_state, train_size=0.9
-        )
         U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         Cx = jnp.zeros((X.shape[1], X.shape[1]))
         Cy = jnp.zeros((Y.shape[1], Y.shape[1]))

@@ -53,7 +53,7 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         Y = (Y - self._y_mean) / self._y_std
         return X @ self.x_weights, Y @ self.y_weights
 
-    def score(self, X, y, sample_weight=None):
+    def score(self, X, y=None, sample_weight=None):
         X, Y = self.transform(X, y)
         return self.TV(X, Y)
 
@@ -102,7 +102,7 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
                 epoch_time = time.time() - start_time
                 print(f"Epoch {iteration} in {epoch_time} sec")
             print(f"Epoch {iteration} objective (Train): {obj_tr}")
-            print(f"Epoch {iteration} objective (Train): {obj_val}")
+            print(f"Epoch {iteration} objective (Val): {obj_val}")
 
     @staticmethod
     def TV(X, Y):

@@ -46,7 +46,8 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
 
     @abstractmethod
     def transform(self, X):
-        raise NotImplementedError
+        X = (X - self._x_mean) / self._x_std
+        return X @ self.x_weights
 
     @staticmethod
     def initialize(X, n, type="uniform", random_state=None):
@@ -72,7 +73,7 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
                 epoch_time = time.time() - start_time
                 print(f"Epoch {iteration} in {epoch_time} sec")
             print(f"Epoch {iteration} objective (Train): {obj_tr}")
-            print(f"Epoch {iteration} objective (Train): {obj_val}")
+            print(f"Epoch {iteration} objective (Val): {obj_val}")
 
     @staticmethod
     def TV(X):
