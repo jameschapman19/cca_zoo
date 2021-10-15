@@ -8,7 +8,6 @@ import wandb
 from jax import jit
 
 from . import _PCA
-from .utils import TV, initialize
 # Update rule to be used for calculating eigenvectors
 from ..utils import data_stream, get_num_batches
 
@@ -53,7 +52,7 @@ class Oja(_PCA):
         self.batch_size = batch_size
 
     def _fit(self, X):
-        U = initialize(
+        U = self.initialize(
             X, self.n_components, type="random", random_state=self.random_state
         )
         batches = data_stream(X, batch_size=self.batch_size)
@@ -64,12 +63,12 @@ class Oja(_PCA):
             for _ in range(num_batches):
                 _, X_i = next(batches)
                 U = update(U, X_i, lr=self.lr)
-                obj = TV(X, U)
+                obj = self.TV(X, U)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj})
                 else:
                     self.obj.append(obj)
-            obj = TV(X, U)
+            obj = self.TV(X, U)
             if self.wandb:
                 wandb.log({"Epoch/Objective": obj})
             if self.verbose:
