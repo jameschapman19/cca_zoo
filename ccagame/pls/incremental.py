@@ -74,9 +74,6 @@ class Incremental(_PLS):
         self.epochs = epochs
 
     def _fit(self, X, Y):
-        X, X_val, Y, Y_val = train_test_split(
-            X, Y, random_state=self.random_state, train_size=0.9
-        )
         U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=1)
         num_batches = get_num_batches(X, Y, batch_size=1)
