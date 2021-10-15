@@ -50,8 +50,8 @@ class Lagrange(_CCA):
         for epoch in range(self.epochs):
             start_time = time.time()
             W = update(A, B, W, self.lr)
-            obj_tr = self.TV(X @ W[:p], Y @ W[p:])
-            obj_val = self.TV(X_val @ W[:p], Y_val @ W[p:])
+            obj_tr = self.TCC(X @ W[:p], Y @ W[p:])
+            obj_val = self.TCC(X_val @ W[:p], Y_val @ W[p:])
             if self.wandb:
                 wandb.log({"Iteration/Objective (Train)": obj_tr,
                            "Iteration/Objective (Val)": obj_val}, step=epoch)

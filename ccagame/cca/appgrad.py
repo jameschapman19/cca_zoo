@@ -47,8 +47,8 @@ class AppGrad(_CCA):
         for epoch in range(self.epochs):
             start_time = time.time()
             U, V, phi_, psi_ = update(U, V, phi_, psi_)
-            obj_tr = self.TV(X @ U, Y @ V)
-            obj_val = self.TV(X_val @ U, Y_val @ V)
+            obj_tr = self.TCC(X @ U, Y @ V)
+            obj_val = self.TCC(X_val @ U, Y_val @ V)
             if self.wandb:
                 wandb.log({"Iteration/Objective (Train)": obj_tr,
                            "Iteration/Objective (Val)": obj_val}, step=epoch)

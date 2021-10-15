@@ -87,7 +87,7 @@ class MSG(_CCA):
             for b in range(num_batches):
                 _, (X_i, Y_i) = next(batches)
                 U, V, Cx, Cy = update(X_i, Y_i, U, V, Cx, Cy, b, self.n_components, lr=self.lr)
-                obj = self.TCC(X, Y, U, V)
+                obj = self.TCC(X@Y, Y@V)
                 if self.wandb:
                     wandb.log({"Iteration/Objective": obj}, step=b)
                 else:
