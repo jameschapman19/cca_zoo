@@ -151,7 +151,7 @@ class Game(_CCA):
                         obj_tr = self.TCC(X @ U, Y @ V)
                         obj_val = self.TCC(X_val @ U, Y_val @ V)
                         self.callback(obj_tr, obj_val)
-                    self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
+                self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
         else:
             for k_ in range(self.n_components):
                 for epoch in range(self.epochs):

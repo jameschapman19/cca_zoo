@@ -42,7 +42,7 @@ print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X, Y))
 print("\n Time :\n", numpy.fit_time)
 
 ccalin = CCALin(scale=False, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
-print("\n Eigenvalues calculated using game are :\n", ccalin.score(X, Y))
+print("\n Eigenvalues calculated using CCALin are :\n", ccalin.score(X, Y))
 print("\n Time :\n", ccalin.fit_time)
 
 game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
