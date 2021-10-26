@@ -3,6 +3,7 @@ EigenGame: PCA as a Nash Equilibrium
 https://arxiv.org/pdf/2010.00554.pdf
 """
 import time
+
 # Importing necessary libraries
 from functools import partial
 
@@ -11,6 +12,7 @@ import jax.numpy as jnp
 from jax import jit
 
 from . import _PCA
+
 # Define utlity function, we will take grad of this in the
 # update step, v is the current eigenvector being calculated
 # X is the design matrix and V holds the previously computed eigenvectors
@@ -98,22 +100,29 @@ def update(u, X, U, k, lr: float = 1.0, riemannian_projection=False, mu=False):
 # Object form
 class Game(_PCA):
     def __init__(
-            self,
-            n_components=4,
-            *,
-            scale=True,
-            copy=True,
-            lr: float = 1,
-            epochs: int = 100,
-            riemannian_projection: bool = False,
-            random_state: int = None,
-            simultaneous: bool = True,
-            batch_size: int = 128,
-            mu=True,
-            verbose=False,
-            wandb=False
+        self,
+        n_components=4,
+        *,
+        scale=True,
+        copy=True,
+        lr: float = 1,
+        epochs: int = 100,
+        riemannian_projection: bool = False,
+        random_state: int = None,
+        simultaneous: bool = True,
+        batch_size: int = 128,
+        mu=True,
+        verbose=False,
+        wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
+        super().__init__(
+            n_components,
+            scale=scale,
+            copy=copy,
+            wandb=wandb,
+            verbose=verbose,
+            random_state=random_state,
+        )
         self.lr = lr
         self.epochs = epochs
         self.riemannian_projection = riemannian_projection

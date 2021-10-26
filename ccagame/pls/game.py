@@ -76,16 +76,16 @@ def mu_model(u, v, X, Y, U, V, k: int):
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=6, static_argnames=("lr", "riemannian_projection", "mu"))
 def update(
-        u,
-        v,
-        X,
-        Y,
-        U,
-        V,
-        k: int,
-        lr: float = 1,
-        riemannian_projection: bool = False,
-        mu=False,
+    u,
+    v,
+    X,
+    Y,
+    U,
+    V,
+    k: int,
+    lr: float = 1,
+    riemannian_projection: bool = False,
+    mu=False,
 ):
     """
     Update the left and right singular vector estimates
@@ -133,22 +133,29 @@ def update(
 # Object form
 class Game(_PLS):
     def __init__(
-            self,
-            n_components=4,
-            *,
-            scale=True,
-            copy=True,
-            lr: float = 1,
-            epochs: int = 100,
-            riemannian_projection: bool = False,
-            random_state: int = None,
-            simultaneous: bool = True,
-            batch_size: int = 128,
-            mu=True,
-            verbose=False,
-            wandb=False
+        self,
+        n_components=4,
+        *,
+        scale=True,
+        copy=True,
+        lr: float = 1,
+        epochs: int = 100,
+        riemannian_projection: bool = False,
+        random_state: int = None,
+        simultaneous: bool = True,
+        batch_size: int = 128,
+        mu=True,
+        verbose=False,
+        wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
+        super().__init__(
+            n_components,
+            scale=scale,
+            copy=copy,
+            wandb=wandb,
+            verbose=verbose,
+            random_state=random_state,
+        )
         self.lr = lr
         self.epochs = epochs
         self.riemannian_projection = riemannian_projection

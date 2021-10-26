@@ -1,8 +1,10 @@
 import jax.numpy as jnp
+import numpy as np
+from jax import random
 
 from ccagame import cca, pls, pca
 from ccagame.solver import gd_solve, agd_solve, svrg_solve, sgd_solve
-from jax import random
+
 
 def test_pca():
     """
@@ -17,16 +19,39 @@ def test_pca():
     q = 2
     n_components = 2
     batch_size = 2
-    epochs = 2
+    epochs = 10
     key = random.PRNGKey(0)
     X = random.normal(key, (n, p))
     X = X / jnp.linalg.norm(X, axis=0)
     Y = random.normal(key, (n, q))
     Y = Y / jnp.linalg.norm(Y, axis=0)
-    game = pca.Game(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(X)
-    gha = pca.GHA(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(X)
-    oja = pca.Oja(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(X)
-    krasulina = pca.Krasulina(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(X)
+    numpy = pca.Numpy(n_components=n_components, epochs=epochs).fit(X)
+    game = pca.Game(
+        n_components=n_components, batch_size=batch_size, epochs=epochs
+    ).fit(X)
+    gha = pca.GHA(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(
+        X
+    )
+    oja = pca.Oja(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(
+        X
+    )
+    krasulina = pca.Krasulina(
+        n_components=n_components, batch_size=batch_size, epochs=epochs
+    ).fit(X)
+    assert (
+        np.testing.assert_array_almost_equal(
+            [
+                numpy.score(X),
+                game.score(X),
+                gha.score(X),
+                oja.score(X),
+                krasulina.score(X),
+            ],
+            decimal=0,
+        )
+        is None
+    )
+
 
 def test_cca():
     """
@@ -41,17 +66,41 @@ def test_cca():
     q = 2
     n_components = 2
     batch_size = 2
-    epochs = 2
+    epochs = 4
     key = random.PRNGKey(0)
     X = random.normal(key, (n, p))
     X = X / jnp.linalg.norm(X, axis=0)
     Y = random.normal(key, (n, q))
     Y = Y / jnp.linalg.norm(Y, axis=0)
+    numpy = cca.Numpy(n_components=n_components).fit(X, Y)
     ccalin = cca.CCALin(n_components=n_components, epochs=epochs).fit(X, Y)
-    game = cca.Game(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(X, Y)
-    msg = cca.MSG(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(X, Y)
-    lagrange = cca.Lagrange(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(X, Y)
-    genoja = cca.Genoja(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(X, Y)
+    game = cca.Game(
+        n_components=n_components, batch_size=batch_size, epochs=epochs
+    ).fit(X, Y)
+    msg = cca.MSG(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(
+        X, Y
+    )
+    lagrange = cca.Lagrange(
+        n_components=n_components, batch_size=batch_size, epochs=epochs
+    ).fit(X, Y)
+    genoja = cca.Genoja(
+        n_components=n_components, batch_size=batch_size, epochs=epochs
+    ).fit(X, Y)
+    assert (
+        np.testing.assert_array_almost_equal(
+            [
+                numpy.score(X, Y),
+                ccalin.score(X, Y),
+                game.score(X, Y),
+                msg.score(X, Y),
+                lagrange.score(X, Y),
+                genoja.score(X, Y),
+            ],
+            decimal=1,
+        )
+        is None
+    )
+
 
 def test_pls():
     """
@@ -66,17 +115,39 @@ def test_pls():
     q = 2
     n_components = 2
     batch_size = 2
-    epochs = 2
+    epochs = 4
     key = random.PRNGKey(0)
     X = random.normal(key, (n, p))
     X = X / jnp.linalg.norm(X, axis=0)
     Y = random.normal(key, (n, q))
     Y = Y / jnp.linalg.norm(Y, axis=0)
-    game = pls.Game(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(X, Y)
+    numpy = pls.Numpy(n_components=n_components).fit(X, Y)
+    game = pls.Game(
+        n_components=n_components, batch_size=batch_size, epochs=epochs
+    ).fit(X, Y)
     batch = pls.Batch(n_components=n_components, epochs=epochs).fit(X, Y)
     msg = pls.Incremental(n_components=n_components, epochs=epochs).fit(X, Y)
-    lagrange = pls.MSG(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(X, Y)
-    genoja = pls.SGD(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(X, Y)
+    lagrange = pls.MSG(
+        n_components=n_components, batch_size=batch_size, epochs=epochs
+    ).fit(X, Y)
+    genoja = pls.SGD(
+        n_components=n_components, batch_size=batch_size, epochs=epochs
+    ).fit(X, Y)
+    assert (
+        np.testing.assert_array_almost_equal(
+            [
+                numpy.score(X, Y),
+                game.score(X, Y),
+                batch.score(X, Y),
+                msg.score(X, Y),
+                lagrange.score(X, Y),
+                genoja.score(X, Y),
+            ],
+            decimal=1,
+        )
+        is None
+    )
+
 
 def test_solvers():
     import numpy as np
@@ -100,7 +171,27 @@ def test_solvers():
     w_sgd = sgd_solve(ls, X, y, x=w)
     w_exact = jnp.linalg.pinv(X) @ y
     print()
-    assert np.testing.assert_array_almost_equal(ls(w_gd, X, y), ls(w_exact, X, y), decimal=1) is None
-    assert np.testing.assert_array_almost_equal(ls(w_agd, X, y), ls(w_exact, X, y), decimal=1) is None
-    assert np.testing.assert_array_almost_equal(ls(w_sgd, X, y), ls(w_exact, X, y), decimal=1) is None
-    assert np.testing.assert_array_almost_equal(ls(w_svrg, X, y), ls(w_exact, X, y), decimal=1) is None
+    assert (
+        np.testing.assert_array_almost_equal(
+            ls(w_gd, X, y), ls(w_exact, X, y), decimal=1
+        )
+        is None
+    )
+    assert (
+        np.testing.assert_array_almost_equal(
+            ls(w_agd, X, y), ls(w_exact, X, y), decimal=1
+        )
+        is None
+    )
+    assert (
+        np.testing.assert_array_almost_equal(
+            ls(w_sgd, X, y), ls(w_exact, X, y), decimal=1
+        )
+        is None
+    )
+    assert (
+        np.testing.assert_array_almost_equal(
+            ls(w_svrg, X, y), ls(w_exact, X, y), decimal=1
+        )
+        is None
+    )

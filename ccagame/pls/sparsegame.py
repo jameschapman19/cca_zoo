@@ -78,20 +78,22 @@ def mu_model(u, v, X, Y, U, V, k: int):
 
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=(6, 7), static_argnames=("lr", "riemannian_projection", "mu"))
+@partial(
+    jit, static_argnums=(6, 7), static_argnames=("lr", "riemannian_projection", "mu")
+)
 def update(
-        u,
-        v,
-        X,
-        Y,
-        U,
-        V,
-        c,
-        k: int,
-        n: int,
-        lr: float = 1,
-        riemannian_projection: bool = False,
-        mu=False,
+    u,
+    v,
+    X,
+    Y,
+    U,
+    V,
+    c,
+    k: int,
+    n: int,
+    lr: float = 1,
+    riemannian_projection: bool = False,
+    mu=False,
 ):
     """
     Update the left and right singular vector estimates
@@ -135,29 +137,38 @@ def update(
     else:
         uhat = u + lr * du
         vhat = v + lr * dv
-    return prox(uhat, lr * c) / jnp.linalg.norm(uhat), prox(vhat, lr * c) / jnp.linalg.norm(vhat)
+    return prox(uhat, lr * c) / jnp.linalg.norm(uhat), prox(
+        vhat, lr * c
+    ) / jnp.linalg.norm(vhat)
 
 
 # Object form
 class SparseGame(_PLS):
     def __init__(
-            self,
-            n_components=4,
-            *,
-            scale=True,
-            copy=True,
-            lr: float = 1,
-            epochs: int = 100,
-            riemannian_projection: bool = False,
-            random_state: int = 0,
-            simultaneous: bool = True,
-            batch_size: int = 128,
-            mu=True,
-            verbose=False,
-            wandb=False,
-            c=0.0
+        self,
+        n_components=4,
+        *,
+        scale=True,
+        copy=True,
+        lr: float = 1,
+        epochs: int = 100,
+        riemannian_projection: bool = False,
+        random_state: int = 0,
+        simultaneous: bool = True,
+        batch_size: int = 128,
+        mu=True,
+        verbose=False,
+        wandb=False,
+        c=0.0
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
+        super().__init__(
+            n_components,
+            scale=scale,
+            copy=copy,
+            wandb=wandb,
+            verbose=verbose,
+            random_state=random_state,
+        )
         self.lr = lr
         self.epochs = epochs
         self.riemannian_projection = riemannian_projection

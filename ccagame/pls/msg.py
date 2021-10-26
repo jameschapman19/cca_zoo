@@ -43,19 +43,26 @@ def update(X, Y, U, V, k, lr: float = 0.1):
 # Object form
 class MSG(_PLS):
     def __init__(
-            self,
-            n_components=2,
-            *,
-            scale=True,
-            copy=True,
-            lr: float = 1,
-            epochs: int = 100,
-            random_state: int = None,
-            batch_size: int = 128,
-            verbose=False,
-            wandb=False
+        self,
+        n_components=2,
+        *,
+        scale=True,
+        copy=True,
+        lr: float = 1,
+        epochs: int = 100,
+        random_state: int = None,
+        batch_size: int = 128,
+        verbose=False,
+        wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
+        super().__init__(
+            n_components,
+            scale=scale,
+            copy=copy,
+            wandb=wandb,
+            verbose=verbose,
+            random_state=random_state,
+        )
         self.lr = lr
         self.epochs = epochs
         self.batch_size = batch_size

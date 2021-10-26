@@ -74,16 +74,16 @@ def mu_model(u, X, U, T, k: int):
 # Update rule to be used for calculating eigenvectors
 @partial(jit, static_argnums=(6, 7), static_argnames=("lr", "mu"))
 def update(
-        u,
-        v,
-        X,
-        Y,
-        U,
-        V,
-        c,
-        k: int,
-        lr: float = 1,
-        mu=True,
+    u,
+    v,
+    X,
+    Y,
+    U,
+    V,
+    c,
+    k: int,
+    lr: float = 1,
+    mu=True,
 ):
     """
     Update the left and right singular vector estimates
@@ -104,28 +104,37 @@ def update(
     dv = dv * X.shape[0]
     uhat = u + lr * du
     vhat = v + lr * dv
-    return prox(uhat, lr * c) / jnp.linalg.norm(uhat), prox(vhat, lr * c) / jnp.linalg.norm(vhat)
+    return prox(uhat, lr * c) / jnp.linalg.norm(uhat), prox(
+        vhat, lr * c
+    ) / jnp.linalg.norm(vhat)
 
 
 class SparseGame(_CCA):
     def __init__(
-            self,
-            n_components=4,
-            *,
-            scale=True,
-            copy=True,
-            lr: float = 1.0,
-            epochs: int = 100,
-            riemannian_projection: bool = False,
-            random_state: int = None,
-            simultaneous: bool = True,
-            batch_size: int = 128,
-            mu=True,
-            verbose=False,
-            wandb=False,
-            c=0.0
+        self,
+        n_components=4,
+        *,
+        scale=True,
+        copy=True,
+        lr: float = 1.0,
+        epochs: int = 100,
+        riemannian_projection: bool = False,
+        random_state: int = None,
+        simultaneous: bool = True,
+        batch_size: int = 128,
+        mu=True,
+        verbose=False,
+        wandb=False,
+        c=0.0
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
+        super().__init__(
+            n_components,
+            scale=scale,
+            copy=copy,
+            wandb=wandb,
+            verbose=verbose,
+            random_state=random_state,
+        )
         self.lr = lr
         self.epochs = epochs
         self.riemannian_projection = riemannian_projection
@@ -157,7 +166,7 @@ class SparseGame(_CCA):
                             k_,
                             X.shape[0],
                             lr=self.lr,
-                            mu=self.mu
+                            mu=self.mu,
                         )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
@@ -182,7 +191,7 @@ class SparseGame(_CCA):
                             k_,
                             X.shape[0],
                             lr=self.lr,
-                            mu=self.mu
+                            mu=self.mu,
                         )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)

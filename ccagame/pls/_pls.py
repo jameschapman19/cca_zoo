@@ -18,7 +18,16 @@ from ..utils import check_random_state
 
 
 class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
-    def __init__(self, n_components=2, *, scale=True, copy=True, wandb=True, verbose=False, random_state=None):
+    def __init__(
+        self,
+        n_components=2,
+        *,
+        scale=True,
+        copy=True,
+        wandb=True,
+        verbose=False,
+        random_state=None,
+    ):
         self.n_components = n_components
         self.scale = scale
         self.copy = copy
@@ -92,11 +101,15 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         return U1, V1
 
     def callback(self, obj_tr, obj_val, epoch=None, start_time=None):
-        obj_tr=float(obj_tr)
-        obj_val=float(obj_val)
+        obj_tr = float(obj_tr)
+        obj_val = float(obj_val)
         if self.wandb:
-            wandb.log({"Iteration/Objective (Train)": obj_tr,
-                       "Iteration/Objective (Val)": obj_val})
+            wandb.log(
+                {
+                    "Iteration/Objective (Train)": obj_tr,
+                    "Iteration/Objective (Val)": obj_val,
+                }
+            )
         else:
             self.obj.append([obj_tr, obj_val])
         if self.verbose:
@@ -109,10 +122,10 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
 
     @staticmethod
     def TV(X, Y):
-        dof=X.shape[0]
+        dof = X.shape[0]
         C = X.T @ Y
         _, S, _ = jnp.linalg.svd(C)
-        return S.sum()/dof
+        return S.sum() / dof
 
     @staticmethod
     def gram_schmidt_matrix(W, M):
@@ -120,7 +133,9 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
             C = jnp.zeros((W.shape[0], k))
             for j in range(k):
                 C = C.at[:, j].set(
-                    jnp.dot(W[:, j], jnp.dot(jnp.transpose(W[:, k]), jnp.dot(M, W[:, j])))
+                    jnp.dot(
+                        W[:, j], jnp.dot(jnp.transpose(W[:, k]), jnp.dot(M, W[:, j]))
+                    )
                 )
             W = W.at[:, k].set(W[:, k] - jnp.sum(C, axis=1))
             W = W.at[:, k].set(
@@ -134,10 +149,10 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         A = jnp.hstack((X, Y))
         A = jnp.dot(jnp.transpose(A), A) / n
         B = (
-                jsp.linalg.block_diag(
-                    jnp.dot(jnp.transpose(X), X), jnp.dot(jnp.transpose(Y), Y)
-                )
-                / n
+            jsp.linalg.block_diag(
+                jnp.dot(jnp.transpose(X), X), jnp.dot(jnp.transpose(Y), Y)
+            )
+            / n
         )
         A = A - B
         return A, B
