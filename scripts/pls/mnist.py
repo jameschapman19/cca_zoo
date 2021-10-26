@@ -20,7 +20,7 @@ latent_dims = 3
 epochs = 20
 riemannian_projection = False
 lr = 1e-3
-batch_size = 20
+batch_size = 1
 # This implements the version with unbiased updates analagous to Eigengame:Unloaded
 mu = True
 train, train_labels, test, test_labels = datasets.mnist()

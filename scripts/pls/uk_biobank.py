@@ -11,7 +11,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 
-os.chdir('./results/ukbb_results/211025_v2')
+os.chdir('./results/ukbb_results/211026')
 print(os.getcwd())
 # %%
 
@@ -21,12 +21,13 @@ n = 100
 p = 10
 q = 11
 latent_dims = 3
-epochs = 1
+epochs = 200
 riemannian_projection = False
 lr = 1e-3
 batch_size = 1
 # This implements the version with unbiased updates analagous to Eigengame:Unloaded
-train_1, train_2 = datasets.ukbiobank(path=os.getcwd(), save=True)
+PATH = '/mnt/c/Users/anala/Documents/PhD/year_1/project_work/Epilepsy/data/PLS/210326'
+train_1, train_2 = datasets.ukbiobank(path=PATH, save=True)
 print(train_1.shape)
 # Model
 numpy = Numpy(scale=False, n_components=latent_dims).fit(train_1, train_2)
@@ -69,6 +70,7 @@ print("\n Time :\n", batch.fit_time)
 
 # %%
 plt.figure()
+plt.suptitle('UKBB results for batch size: {0}'.format(batch_size))
 plt.subplot(1,2,1)
 plt.title('Training covariance')
 plt.plot(np.load('sgd_train.npy'), label='sgd')
