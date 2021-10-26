@@ -65,6 +65,7 @@ def test_cca():
     n_components = 2
     batch_size = 2
     epochs = 4
+    lr=1e-1
     key = random.PRNGKey(0)
     key, subkey = random.split(key)
     X = random.normal(key, (n, p))
@@ -74,7 +75,7 @@ def test_cca():
     numpy = cca.Numpy(n_components=n_components).fit(X, Y)
     ccalin = cca.CCALin(n_components=n_components, epochs=epochs).fit(X, Y)
     game = cca.Game(
-        n_components=n_components, batch_size=batch_size, epochs=epochs
+        n_components=n_components, batch_size=batch_size, epochs=epochs, lr=lr
     ).fit(X, Y)
     msg = cca.MSG(n_components=n_components, batch_size=batch_size, epochs=epochs).fit(
         X, Y
