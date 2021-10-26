@@ -20,7 +20,7 @@ def invsqrtm(M):
 
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=(6, 7), static_argnames=('lr'))
+@partial(jit, static_argnums=(6, 7), static_argnames=("lr"))
 def update(X, Y, U, V, Cx, Cy, b, k, lr: float = 0.1):
     """
     Update the left and right singular vector estimates
@@ -54,19 +54,26 @@ def update(X, Y, U, V, Cx, Cy, b, k, lr: float = 0.1):
 # Object form
 class MSG(_CCA):
     def __init__(
-            self,
-            n_components=2,
-            *,
-            scale=True,
-            copy=True,
-            lr: float = 1,
-            epochs: int = 100,
-            random_state: int = None,
-            batch_size: int = 128,
-            verbose=False,
-            wandb=False
+        self,
+        n_components=2,
+        *,
+        scale=True,
+        copy=True,
+        lr: float = 1,
+        epochs: int = 100,
+        random_state: int = None,
+        batch_size: int = 128,
+        verbose=False,
+        wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
+        super().__init__(
+            n_components,
+            scale=scale,
+            copy=copy,
+            wandb=wandb,
+            verbose=verbose,
+            random_state=random_state,
+        )
         self.lr = lr
         self.epochs = epochs
         self.batch_size = batch_size
@@ -82,7 +89,9 @@ class MSG(_CCA):
             start_time = time.time()
             for b in range(num_batches):
                 _, (X_i, Y_i) = next(batches)
-                U, V, Cx, Cy = update(X_i, Y_i, U, V, Cx, Cy, b, self.n_components, lr=self.lr)
+                U, V, Cx, Cy = update(
+                    X_i, Y_i, U, V, Cx, Cy, b, self.n_components, lr=self.lr
+                )
                 obj_tr = self.TCC(X @ U, Y @ V)
                 obj_val = self.TCC(X_val @ U, Y_val @ V)
                 self.callback(obj_tr, obj_val)

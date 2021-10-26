@@ -8,15 +8,15 @@ from ccagame.pca._pca import _PCA
 # object form
 class Numpy(_PCA):
     def __init__(
-            self,
-            n_components=2,
-            *,
-            scale=True,
-            copy=True,
-            lr: float = 1,
-            epochs: int = 100,
-            random_state: int = 0,
-            verbose=False
+        self,
+        n_components=2,
+        *,
+        scale=True,
+        copy=True,
+        lr: float = 1,
+        epochs: int = 100,
+        random_state: int = 0,
+        verbose=False
     ):
         super().__init__(n_components, scale=scale, copy=copy)
         self.lr = lr

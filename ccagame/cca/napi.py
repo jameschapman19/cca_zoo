@@ -27,19 +27,26 @@ def update(A, B, W_, W, lr, solver=agd_solve):
 
 class NAPI(_CCA):
     def __init__(
-            self,
-            n_components=4,
-            *,
-            scale=True,
-            copy=True,
-            epochs: int = 100,
-            random_state: int = None,
-            verbose=False,
-            lr=1,
-            wandb=False,
-            solver=agd_solve
+        self,
+        n_components=4,
+        *,
+        scale=True,
+        copy=True,
+        epochs: int = 100,
+        random_state: int = None,
+        verbose=False,
+        lr=1,
+        wandb=False,
+        solver=agd_solve
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
+        super().__init__(
+            n_components,
+            scale=scale,
+            copy=copy,
+            wandb=wandb,
+            verbose=verbose,
+            random_state=random_state,
+        )
         self.epochs = epochs
         self.lr = lr
         self.solver = solver

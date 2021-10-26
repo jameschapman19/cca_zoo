@@ -3,6 +3,7 @@ Exponentially convergent stochastic k-PCA without variance reduction
 https://arxiv.org/pdf/1904.01750.pdf
 """
 import time
+
 # Importing necessary libraries
 from functools import partial
 
@@ -10,6 +11,7 @@ import jax.numpy as jnp
 from jax import jit
 
 from . import _PCA
+
 # Update rule to be used for calculating eigenvectors
 from ..utils import data_stream, get_num_batches
 
@@ -36,19 +38,26 @@ def update(U, X, lr=0.1):
 # object form
 class Krasulina(_PCA):
     def __init__(
-            self,
-            n_components=2,
-            *,
-            scale=True,
-            copy=True,
-            lr: float = 1e-2,
-            epochs: int = 100,
-            random_state: int = None,
-            batch_size: int = 128,
-            verbose=False,
-            wandb=False
+        self,
+        n_components=2,
+        *,
+        scale=True,
+        copy=True,
+        lr: float = 1e-2,
+        epochs: int = 100,
+        random_state: int = None,
+        batch_size: int = 128,
+        verbose=False,
+        wandb=False
     ):
-        super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
+        super().__init__(
+            n_components,
+            scale=scale,
+            copy=copy,
+            wandb=wandb,
+            verbose=verbose,
+            random_state=random_state,
+        )
         self.lr = lr
         self.epochs = epochs
         self.batch_size = batch_size

@@ -1,12 +1,18 @@
 # Importing necessary libraries
 import time
-from functools import partial
 
 import jax.numpy as jnp
-from jax import grad, jit
+import numpy as np
+from jax import grad
 
 from ccagame.utils import data_stream, get_num_batches
 from . import _CCA
+from functools import partial
+from jax import jit
+
+
+def prox(u, t):
+    return jnp.sign(u) * jnp.maximum(jnp.abs(u) - t, 0)
 
 
 @partial(jit, static_argnums=(4))
@@ -32,7 +38,7 @@ def alpha_model(u, X, U, T, k: int):
 
     """
     C_xt = X.T @ T
-    rewards = -jnp.linalg.norm(T[:, k] - X @ u) ** 2
+    rewards = -jnp.linalg.norm(T[:, k] - X @ u) ** 2 / 2
     penalties = (u.T @ C_xt[:, :k]) ** 2 / jnp.diag(U[:, :k].T @ C_xt[:, :k])
     return jnp.sum(rewards - penalties.sum())
 
@@ -66,7 +72,7 @@ def mu_model(u, X, U, T, k: int):
 
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=6, static_argnames=("lr", "mu"))
+@partial(jit, static_argnums=(6, 7), static_argnames=("lr", "mu"))
 def update(
     u,
     v,
@@ -74,6 +80,7 @@ def update(
     Y,
     U,
     V,
+    c,
     k: int,
     lr: float = 1,
     mu=True,
@@ -86,19 +93,23 @@ def update(
 
     """
     T = X @ U + Y @ V
-    T = T / jnp.linalg.norm(T, axis=0)
+    T = T / (jnp.linalg.norm(T, axis=0))
     if mu:
         du = mu_model(u, X, U, T, k)
         dv = mu_model(v, Y, V, T, k)
     else:
         du = grad(alpha_model)(u, X, U, T, k)
         dv = grad(alpha_model)(v, Y, V, T, k)
+    du = du * X.shape[0]
+    dv = dv * X.shape[0]
     uhat = u + lr * du
     vhat = v + lr * dv
-    return uhat, vhat
+    return prox(uhat, lr * c) / jnp.linalg.norm(uhat), prox(
+        vhat, lr * c
+    ) / jnp.linalg.norm(vhat)
 
 
-class Game(_CCA):
+class SparseGame(_CCA):
     def __init__(
         self,
         n_components=4,
@@ -113,7 +124,8 @@ class Game(_CCA):
         batch_size: int = 128,
         mu=True,
         verbose=False,
-        wandb=False
+        wandb=False,
+        c=0.0
     ):
         super().__init__(
             n_components,
@@ -129,8 +141,10 @@ class Game(_CCA):
         self.simultaneous = simultaneous
         self.batch_size = batch_size
         self.mu = mu
+        self.c = c
 
     def _fit(self, X, Y, X_val=None, Y_val=None):
+        n = X.shape[0]
         U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
@@ -148,14 +162,16 @@ class Game(_CCA):
                             Y_i,
                             U,
                             V,
+                            self.c,
                             k_,
+                            X.shape[0],
                             lr=self.lr,
                             mu=self.mu,
                         )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
-                        obj_tr = self.TCC(X @ U, Y @ V)
-                        obj_val = self.TCC(X_val @ U, Y_val @ V)
+                        obj_tr = self.SCCA(X, Y, U, V)
+                        obj_val = self.SCCA(X_val, Y_val, U, V)
                         self.callback(obj_tr, obj_val)
                 self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
         else:
@@ -171,16 +187,23 @@ class Game(_CCA):
                             Y_i,
                             U,
                             V,
+                            self.c,
                             k_,
                             X.shape[0],
                             lr=self.lr,
                             mu=self.mu,
                         )
-                        # T,
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
-                        obj_tr = self.TCC(X @ U, Y @ V)
-                        obj_val = self.TCC(X_val @ U, Y_val @ V)
-                        self.callback(obj_tr, obj_val)
-                    self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
+                    obj_tr = self.SCCA(X, Y, U, V)
+                    obj_val = self.SCCA(X, Y, U, V)
+                    self.callback(obj_tr, obj_val)
+                self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
         return U, V
+
+    def SCCA(self, X, Y, U, V):
+        T = X @ U + Y @ V
+        T = T / jnp.linalg.norm(T, axis=0)
+        obj = jnp.linalg.norm(X @ U - T) ** 2 + jnp.linalg.norm(Y @ V - T) ** 2
+        reg = self.c * (jnp.linalg.norm(U, 1) + jnp.linalg.norm(V, 1))
+        return obj + reg

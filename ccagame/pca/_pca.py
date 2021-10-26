@@ -17,7 +17,16 @@ from ccagame.utils import check_random_state
 
 
 class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
-    def __init__(self, n_components=2, *, scale=True, copy=True, wandb=True, verbose=False, random_state=None):
+    def __init__(
+        self,
+        n_components=2,
+        *,
+        scale=True,
+        copy=True,
+        wandb=True,
+        verbose=False,
+        random_state=None,
+    ):
         self.n_components = n_components
         self.scale = scale
         self.copy = copy
@@ -36,9 +45,11 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         X, X_val = train_test_split(
             X, random_state=self.scikit_random_state, train_size=0.9
         )
-        X, self._x_mean, self._x_std, = self.center_scale(
-            X
-        )
+        (
+            X,
+            self._x_mean,
+            self._x_std,
+        ) = self.center_scale(X)
         start_time = time.time()
         self.x_weights = self._fit(X, X_val)
         self.fit_time = time.time() - start_time
@@ -67,9 +78,15 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         return V1
 
     def callback(self, obj_tr, obj_val, epoch=None, start_time=None):
+        obj_tr = float(obj_tr)
+        obj_val = float(obj_val)
         if self.wandb:
-            wandb.log({"Iteration/Objective (Train)": obj_tr,
-                       "Iteration/Objective (Val)": obj_val})
+            wandb.log(
+                {
+                    "Iteration/Objective (Train)": obj_tr,
+                    "Iteration/Objective (Val)": obj_val,
+                }
+            )
         else:
             self.obj.append([obj_tr, obj_val])
         if self.verbose:
@@ -82,9 +99,9 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
 
     @staticmethod
     def TV(X):
-        dof=X.shape[0]-1
+        dof = X.shape[0]
         eigvals = jnp.linalg.eigvalsh(X.T @ X)
-        return eigvals.real.sum()/dof
+        return eigvals.real.sum() / dof
 
     def center_scale(self, X):
         x_mean = X.mean(axis=0)

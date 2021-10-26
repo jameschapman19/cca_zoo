@@ -17,9 +17,9 @@ def svrg_solve(fn, *args, x=None, in_axes=None, iterations=1000, lr=1):
             i = randint(0, n)
             current = sample_grad(x, *args)[i]
             x = x - lr * (
-                    jnp.squeeze(current[i], axis=0)
-                    - jnp.squeeze(previous[i], axis=0)
-                    + previous
+                jnp.squeeze(current[i], axis=0)
+                - jnp.squeeze(previous[i], axis=0)
+                + previous
             )
             obj.append(float(fn(x, *args)))
     return x

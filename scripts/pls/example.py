@@ -34,6 +34,11 @@ numpy = Numpy(scale=False, n_components=latent_dims).fit(X, Y)
 print("\n Eigenvalues calculated using numpy are :\n", numpy.score(X, Y))
 print("\n Time :\n", numpy.fit_time)
 
+game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
+            mu=False).fit(X, Y)
+print("\n Eigenvalues calculated using game are :\n", game.score(X, Y))
+print("\n Time :\n", game.fit_time)
+
 batch = Batch(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using batch are :\n", batch.score(X, Y))
 print("\n Time :\n", batch.fit_time)
@@ -41,11 +46,6 @@ print("\n Time :\n", batch.fit_time)
 incremental = Incremental(scale=False, lr=lr, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using incremental are :\n", incremental.score(X, Y))
 print("\n Time :\n", incremental.fit_time)
-
-game = Game(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True,
-            mu=False).fit(X, Y)
-print("\n Eigenvalues calculated using game are :\n", game.score(X, Y))
-print("\n Time :\n", game.fit_time)
 
 msg = MSG(scale=False, lr=lr, batch_size=batch_size, epochs=epochs, n_components=latent_dims, verbose=True).fit(X, Y)
 print("\n Eigenvalues calculated using msg are :\n", msg.score(X, Y))
