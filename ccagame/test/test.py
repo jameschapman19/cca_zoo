@@ -23,8 +23,6 @@ def test_pca():
     key = random.PRNGKey(0)
     X = random.normal(key, (n, p))
     X = X / jnp.linalg.norm(X, axis=0)
-    Y = random.normal(key, (n, q))
-    Y = Y / jnp.linalg.norm(Y, axis=0)
     numpy = pca.Numpy(n_components=n_components, epochs=epochs).fit(X)
     game = pca.Game(
         n_components=n_components, batch_size=batch_size, epochs=epochs
@@ -39,14 +37,14 @@ def test_pca():
         n_components=n_components, batch_size=batch_size, epochs=epochs
     ).fit(X)
     assert (
-        np.testing.assert_array_almost_equal(
+        np.testing.assert_almost_equal(
             [
-                numpy.score(X),
                 game.score(X),
                 gha.score(X),
                 oja.score(X),
                 krasulina.score(X),
             ],
+            numpy.score(X),
             decimal=0,
         )
         is None
@@ -68,9 +66,10 @@ def test_cca():
     batch_size = 2
     epochs = 4
     key = random.PRNGKey(0)
+    key, subkey = random.split(key)
     X = random.normal(key, (n, p))
     X = X / jnp.linalg.norm(X, axis=0)
-    Y = random.normal(key, (n, q))
+    Y = random.normal(subkey, (n, q))
     Y = Y / jnp.linalg.norm(Y, axis=0)
     numpy = cca.Numpy(n_components=n_components).fit(X, Y)
     ccalin = cca.CCALin(n_components=n_components, epochs=epochs).fit(X, Y)
@@ -87,16 +86,16 @@ def test_cca():
         n_components=n_components, batch_size=batch_size, epochs=epochs
     ).fit(X, Y)
     assert (
-        np.testing.assert_array_almost_equal(
+        np.testing.assert_almost_equal(
             [
-                numpy.score(X, Y),
                 ccalin.score(X, Y),
                 game.score(X, Y),
                 msg.score(X, Y),
                 lagrange.score(X, Y),
                 genoja.score(X, Y),
             ],
-            decimal=1,
+            numpy.score(X, Y),
+            decimal=0,
         )
         is None
     )
@@ -117,9 +116,10 @@ def test_pls():
     batch_size = 2
     epochs = 4
     key = random.PRNGKey(0)
+    key, subkey = random.split(key)
     X = random.normal(key, (n, p))
     X = X / jnp.linalg.norm(X, axis=0)
-    Y = random.normal(key, (n, q))
+    Y = random.normal(subkey, (n, q))
     Y = Y / jnp.linalg.norm(Y, axis=0)
     numpy = pls.Numpy(n_components=n_components).fit(X, Y)
     game = pls.Game(
@@ -134,16 +134,16 @@ def test_pls():
         n_components=n_components, batch_size=batch_size, epochs=epochs
     ).fit(X, Y)
     assert (
-        np.testing.assert_array_almost_equal(
+        np.testing.assert_almost_equal(
             [
-                numpy.score(X, Y),
                 game.score(X, Y),
                 batch.score(X, Y),
                 msg.score(X, Y),
                 lagrange.score(X, Y),
                 genoja.score(X, Y),
             ],
-            decimal=1,
+            numpy.score(X, Y),
+            decimal=0,
         )
         is None
     )
