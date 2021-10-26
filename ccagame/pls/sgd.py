@@ -59,13 +59,14 @@ class SGD(_PLS):
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
         self.obj = []
         for epoch in range(self.epochs):
+            obj_tr = 0
+            obj_val = 0
             start_time = time.time()
             for b in range(num_batches):
                 _, (X_i, Y_i) = next(batches)
                 U = update(X_i, Y_i, U, V, lr=self.lr)
                 V = update(Y_i, X_i, V, U, lr=self.lr)
-                obj_tr = self.TV(X @ U, Y @ V)
-                obj_val = self.TV(X_val @ U, Y_val @ V)
-                self.callback(obj_tr, obj_val)
-            self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
+                obj_tr += self.TV(X @ U, Y @ V)
+                obj_val += self.TV(X_val @ U, Y_val @ V)
+            self.callback(obj_tr/num_batches, obj_val/num_batches, epoch=epoch, start_time=start_time)
         return U, V

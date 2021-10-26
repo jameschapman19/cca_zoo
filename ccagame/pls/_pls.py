@@ -37,11 +37,12 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         X, X_val, Y, Y_val = train_test_split(
             X, Y, random_state=self.scikit_random_state, train_size=0.9
         )
-        X, Y, self._x_mean, self._y_mean, self._x_std, self._y_std = self.center_scale(
-            X, Y
-        )
-        X_val = (X_val - self._x_mean) / self._x_std
-        Y_val = (Y_val - self._y_mean) / self._y_std
+       # X, Y, self._x_mean, self._y_mean, self._x_std, self._y_std = self.center_scale(
+       #     X, Y
+       # )
+       #  X_val = (X_val - self._x_mean) / self._x_std
+      
+       #  Y_val = (Y_val - self._y_mean) / self._y_std
         start_time = time.time()
         self.x_weights, self.y_weights = self._fit(X, Y, X_val, Y_val)
         self.fit_time = time.time() - start_time
@@ -54,8 +55,9 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         return X @ self.x_weights, Y @ self.y_weights
 
     def score(self, X, y=None, sample_weight=None):
-        X_hat, Y_hat = self.transform(X, y)
-        return self.TV(X_hat, Y_hat)
+       # X_hat, Y_hat = self.transform(X, y)
+       # return self.TV(X_hat, Y_hat)
+        return self.TV(X, y)
 
     def center_scale(self, X, Y):
         x_mean = X.mean(axis=0)
