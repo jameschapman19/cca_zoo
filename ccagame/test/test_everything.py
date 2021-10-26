@@ -149,9 +149,6 @@ def test_pls():
         is None
     )
 
-from ccagame.solver import gd_solve, agd_solve, svrg_solve, sgd_solve
-
-
 def test_solvers():
     import numpy as np
 
