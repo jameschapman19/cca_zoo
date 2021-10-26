@@ -149,6 +149,8 @@ def test_pls():
         is None
     )
 
+from ccagame.solver import gd_solve, agd_solve, svrg_solve, sgd_solve
+
 
 def test_solvers():
     import numpy as np
@@ -171,7 +173,6 @@ def test_solvers():
     w_svrg = svrg_solve(ls, X, y, x=w)
     w_sgd = sgd_solve(ls, X, y, x=w)
     w_exact = jnp.linalg.pinv(X) @ y
-    print()
     assert (
         np.testing.assert_array_almost_equal(
             ls(w_gd, X, y), ls(w_exact, X, y), decimal=1
