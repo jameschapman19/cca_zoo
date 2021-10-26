@@ -67,6 +67,8 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         return V1
 
     def callback(self, obj_tr, obj_val, epoch=None, start_time=None):
+        obj_tr = float(obj_tr)
+        obj_val = float(obj_val)
         if self.wandb:
             wandb.log({"Iteration/Objective (Train)": obj_tr,
                        "Iteration/Objective (Val)": obj_val})
@@ -82,7 +84,7 @@ class _PCA(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
 
     @staticmethod
     def TV(X):
-        dof=X.shape[0]-1
+        dof=X.shape[0]
         eigvals = jnp.linalg.eigvalsh(X.T @ X)
         return eigvals.real.sum()/dof
 

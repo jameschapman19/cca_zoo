@@ -12,7 +12,7 @@ class _CCA(_PLS):
 
     @staticmethod
     def TCC(X, Y):
-        dof = X.shape[0] - 1
+        dof = X.shape[0]
         C = jnp.hstack((X, Y))
         C = C.T @ C / dof
         # Get the block covariance matrix placing Xi^TX_i on the diagonal

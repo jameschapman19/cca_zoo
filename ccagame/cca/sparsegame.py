@@ -1,16 +1,22 @@
 # Importing necessary libraries
 import time
-from functools import partial
 
 import jax.numpy as jnp
-from jax import grad, jit
+import numpy as np
+from jax import grad
 
 from ccagame.utils import data_stream, get_num_batches
-from . import _PLS
+from . import _CCA
+from functools import partial
+from jax import jit
 
 
-@partial(jit, static_argnums=(6))
-def alpha_model(u, v, X, Y, U, V, k: int):
+def prox(u, t):
+    return jnp.sign(u) * jnp.maximum(jnp.abs(u) - t, 0)
+
+
+@partial(jit, static_argnums=(4))
+def alpha_model(u, X, U, T, k: int):
     """
     Returns the utilities for the kth players
 
@@ -18,16 +24,12 @@ def alpha_model(u, v, X, Y, U, V, k: int):
     ----------
     u :
         current estimate for this level's left eigenvector
-    v :
-        current estimate for this level's right eigenvector
     X :
         batch of data for view X
-    Y :
-        batch of data for view Y
     U :
         all eigenvector estimates for each level
-    V :
-        all eigenvector estimates for each level
+    T :
+        the shared target
     k :
         level
 
@@ -35,14 +37,14 @@ def alpha_model(u, v, X, Y, U, V, k: int):
     -------
 
     """
-    C_xy = X.T @ Y
-    rewards = u.T @ C_xy @ v
-    penalties = (u.T @ C_xy @ V[:, :k]) ** 2 / jnp.diag(U[:, :k].T @ C_xy @ V[:, :k])
+    C_xt = X.T @ T
+    rewards = -jnp.linalg.norm(T[:, k] - X @ u) ** 2 / 2
+    penalties = (u.T @ C_xt[:, :k]) ** 2 / jnp.diag(U[:, :k].T @ C_xt[:, :k])
     return jnp.sum(rewards - penalties.sum())
 
 
-@partial(jit, static_argnums=(6))
-def mu_model(u, v, X, Y, U, V, k: int):
+@partial(jit, static_argnums=(4))
+def mu_model(u, X, U, T, k: int):
     """
     Returns the gradients for the kth players
 
@@ -50,16 +52,12 @@ def mu_model(u, v, X, Y, U, V, k: int):
     ----------
     u :
         current estimate for this level's left eigenvector
-    v :
-        current estimate for this level's right eigenvector
     X :
         batch of data for view X
-    Y :
-        batch of data for view Y
     U :
         all eigenvector estimates for each level
-    V :
-        all eigenvector estimates for each level
+    T :
+        the shared target
     k :
         level
 
@@ -67,14 +65,14 @@ def mu_model(u, v, X, Y, U, V, k: int):
     -------
 
     """
-    C_xy = X.T @ Y
-    rewards = C_xy @ v
-    penalties = (u.T @ C_xy @ V[:, :k]) * U[:, :k]
+    C_xt = X.T @ T
+    rewards = C_xt[:, k] - X.T @ X @ u
+    penalties = (u.T @ C_xt[:, :k]) * U[:, :k]
     return rewards - penalties.sum(axis=1)
 
 
 # Update rule to be used for calculating eigenvectors
-@partial(jit, static_argnums=6, static_argnames=("lr", "riemannian_projection", "mu"))
+@partial(jit, static_argnums=(6, 7), static_argnames=("lr", "mu"))
 def update(
         u,
         v,
@@ -82,65 +80,41 @@ def update(
         Y,
         U,
         V,
+        c,
         k: int,
         lr: float = 1,
-        riemannian_projection: bool = False,
-        mu=False,
+        mu=True,
 ):
     """
     Update the left and right singular vector estimates
 
     Parameters
     ----------
-    u :
-        current estimate for this level's left eigenvector
-    v :
-        current estimate for this level's right eigenvector
-    X :
-        batch of data for view X
-    Y :
-        batch of data for view Y
-    U :
-        all eigenvector estimates for each level
-    V :
-        all eigenvector estimates for each level
-    k :
-        level
-    lr :
-        learning rate
-    riemannian_projection :
-        whether to use riemannian projection
-    mu :
-        which game model to use. If True uses unbiased estimate as in eigengame:unloaded if False uses biased estimate as in original eigengame
+
     """
+    T = X @ U + Y @ V
+    T = T / (jnp.linalg.norm(T, axis=0))
     if mu:
-        du = mu_model(u, v, X, Y, U, V, k)
-        dv = mu_model(v, u, Y, X, V, U, k)
+        du = mu_model(u, X, U, T, k)
+        dv = mu_model(v, Y, V, T, k)
     else:
-        du = grad(alpha_model)(u, v, X, Y, U, V, k)
-        dv = grad(alpha_model)(v, u, Y, X, V, U, k)
+        du = grad(alpha_model)(u, X, U, T, k)
+        dv = grad(alpha_model)(v, Y, V, T, k)
     du = du * X.shape[0]
     dv = dv * X.shape[0]
-    if riemannian_projection:
-        dur = du - (u.T @ u) * u
-        uhat = u + lr * dur
-        dvr = dv - (v.T @ v) * v
-        vhat = v + lr * dvr
-    else:
-        uhat = u + lr * du
-        vhat = v + lr * dv
-    return uhat / jnp.linalg.norm(uhat), vhat / jnp.linalg.norm(vhat)
+    uhat = u + lr * du
+    vhat = v + lr * dv
+    return prox(uhat, lr * c) / jnp.linalg.norm(uhat), prox(vhat, lr * c) / jnp.linalg.norm(vhat)
 
 
-# Object form
-class Game(_PLS):
+class SparseGame(_CCA):
     def __init__(
             self,
             n_components=4,
             *,
             scale=True,
             copy=True,
-            lr: float = 1,
+            lr: float = 1.0,
             epochs: int = 100,
             riemannian_projection: bool = False,
             random_state: int = None,
@@ -148,7 +122,8 @@ class Game(_PLS):
             batch_size: int = 128,
             mu=True,
             verbose=False,
-            wandb=False
+            wandb=False,
+            c=0.0
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
         self.lr = lr
@@ -157,29 +132,19 @@ class Game(_PLS):
         self.simultaneous = simultaneous
         self.batch_size = batch_size
         self.mu = mu
+        self.c = c
 
     def _fit(self, X, Y, X_val=None, Y_val=None):
-        """
-
-        Parameters
-        ----------
-        X
-        Y
-
-        Returns
-        -------
-
-        """
+        n = X.shape[0]
         U, V = self.initialize(X, Y, self.n_components, "random", self.random_state)
         batches = data_stream(X, Y, batch_size=self.batch_size)
         num_batches = get_num_batches(X, Y, batch_size=self.batch_size)
         self.obj = []
-        # We can either solve the eigenvectors simulataneously or complete each one
         if self.simultaneous:
             for epoch in range(self.epochs):
                 start_time = time.time()
                 for b in range(num_batches):
-                    _, (X_i, Y_i) = next(batches)
+                    idx, (X_i, Y_i) = next(batches)
                     for k_ in range(self.n_components):
                         u, v = update(
                             U[:, k_],
@@ -188,24 +153,24 @@ class Game(_PLS):
                             Y_i,
                             U,
                             V,
+                            self.c,
                             k_,
                             X.shape[0],
                             lr=self.lr,
-                            riemannian_projection=self.riemannian_projection,
-                            mu=self.mu,
+                            mu=self.mu
                         )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
-                    obj_tr = self.TV(X @ U, Y @ V)
-                    obj_val = self.TV(X_val @ U, Y_val @ V)
-                    self.callback(obj_tr, obj_val)
+                        obj_tr = self.SCCA(X, Y, U, V)
+                        obj_val = self.SCCA(X_val, Y_val, U, V)
+                        self.callback(obj_tr, obj_val)
                 self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
         else:
             for k_ in range(self.n_components):
                 for epoch in range(self.epochs):
                     start_time = time.time()
                     for b in range(num_batches):
-                        _, (X_i, Y_i) = next(batches)
+                        idx, (X_i, Y_i) = next(batches)
                         u, v = update(
                             U[:, k_],
                             V[:, k_],
@@ -213,16 +178,23 @@ class Game(_PLS):
                             Y_i,
                             U,
                             V,
+                            self.c,
                             k_,
                             X.shape[0],
                             lr=self.lr,
-                            riemannian_projection=self.riemannian_projection,
-                            mu=self.mu,
+                            mu=self.mu
                         )
                         U = U.at[:, k_].set(u)
                         V = V.at[:, k_].set(v)
-                        obj_tr = self.TV(X @ U, Y @ V)
-                        obj_val = self.TV(X_val @ U, Y_val @ V)
-                        self.callback(obj_tr, obj_val)
-                    self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
+                    obj_tr = self.SCCA(X, Y, U, V)
+                    obj_val = self.SCCA(X, Y, U, V)
+                    self.callback(obj_tr, obj_val)
+                self.callback(obj_tr, obj_val, epoch=epoch, start_time=start_time)
         return U, V
+
+    def SCCA(self, X, Y, U, V):
+        T = X @ U + Y @ V
+        T = T / jnp.linalg.norm(T, axis=0)
+        obj = jnp.linalg.norm(X @ U - T) ** 2 + jnp.linalg.norm(Y @ V - T) ** 2
+        reg = self.c * (jnp.linalg.norm(U, 1) + jnp.linalg.norm(V, 1))
+        return obj + reg

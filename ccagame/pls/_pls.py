@@ -92,6 +92,8 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         return U1, V1
 
     def callback(self, obj_tr, obj_val, epoch=None, start_time=None):
+        obj_tr=float(obj_tr)
+        obj_val=float(obj_val)
         if self.wandb:
             wandb.log({"Iteration/Objective (Train)": obj_tr,
                        "Iteration/Objective (Val)": obj_val})
@@ -107,7 +109,7 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
 
     @staticmethod
     def TV(X, Y):
-        dof=X.shape[0]-1
+        dof=X.shape[0]
         C = X.T @ Y
         _, S, _ = jnp.linalg.svd(C)
         return S.sum()/dof
