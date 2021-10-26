@@ -37,12 +37,14 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
         X, X_val, Y, Y_val = train_test_split(
             X, Y, random_state=self.scikit_random_state, train_size=0.9
         )
-       # X, Y, self._x_mean, self._y_mean, self._x_std, self._y_std = self.center_scale(
-       #     X, Y
-       # )
-       #  X_val = (X_val - self._x_mean) / self._x_std
-      
-       #  Y_val = (Y_val - self._y_mean) / self._y_std
+        X, Y, self._x_mean, self._y_mean, self._x_std, self._y_std = self.center_scale(
+            X, Y
+        )
+        X_val = (X_val - self._x_mean) 
+        Y_val = (Y_val - self._y_mean)
+        if self.scale:
+            X_val /= self.x_std
+            Y_val /= self.y_std
         start_time = time.time()
         self.x_weights, self.y_weights = self._fit(X, Y, X_val, Y_val)
         self.fit_time = time.time() - start_time
