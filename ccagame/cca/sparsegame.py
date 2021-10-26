@@ -100,8 +100,6 @@ def update(
     else:
         du = grad(alpha_model)(u, X, U, T, k)
         dv = grad(alpha_model)(v, Y, V, T, k)
-    du = du * X.shape[0]
-    dv = dv * X.shape[0]
     uhat = u + lr * du
     vhat = v + lr * dv
     return prox(uhat, lr * c) / jnp.linalg.norm(uhat), prox(
