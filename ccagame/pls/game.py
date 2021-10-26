@@ -119,8 +119,6 @@ def update(
     else:
         du = grad(alpha_model)(u, v, X, Y, U, V, k)
         dv = grad(alpha_model)(v, u, Y, X, V, U, k)
-    du = du * X.shape[0]
-    dv = dv * X.shape[0]
     if riemannian_projection:
         dur = du - (u.T @ u) * u
         uhat = u + lr * dur
@@ -189,7 +187,6 @@ class Game(_PLS):
                             U,
                             V,
                             k_,
-                            X.shape[0],
                             lr=self.lr,
                             riemannian_projection=self.riemannian_projection,
                             mu=self.mu,
@@ -214,7 +211,6 @@ class Game(_PLS):
                             U,
                             V,
                             k_,
-                            X.shape[0],
                             lr=self.lr,
                             riemannian_projection=self.riemannian_projection,
                             mu=self.mu,

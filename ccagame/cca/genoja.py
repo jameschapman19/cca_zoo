@@ -32,8 +32,8 @@ class Genoja(_CCA):
             random_state: int = None,
             batch_size: int = 128,
             verbose=False,
-            beta_0,
-            alpha,
+            beta_0=100,
+            alpha=100,
             wandb=False
     ):
         super().__init__(n_components, scale=scale, copy=copy, wandb=wandb, verbose=verbose, random_state=random_state)
