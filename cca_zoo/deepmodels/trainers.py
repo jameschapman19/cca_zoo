@@ -57,9 +57,9 @@ class CCALightning(LightningModule):
             print("Invalid optimizer.  See --help")
             sys.exit()
 
-        if self.hparams.lr_scheduler == None:
+        if self.hparams.lr_scheduler is None:
             return optimizer
-        elif isinstance(self.hparams.lr_scheduler, torch.optim.lr_scheduler):
+        elif isinstance(self.hparams.lr_scheduler, torch.optim.lr_scheduler._LRScheduler):
             scheduler = self.hparams.lr_scheduler
         elif self.hparams.lr_scheduler == "StepLR":
             step_size = self.hparams.StepLR_step_size

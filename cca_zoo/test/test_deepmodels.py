@@ -28,6 +28,8 @@ train_dataset_numpy, val_dataset_numpy = process_data(
     val_split=0.2)
 train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
 train_loader_numpy, val_loader_numpy = get_dataloaders(train_dataset, val_dataset)
+conv_dataset = data.CCA_Dataset((X_conv, Y_conv))
+conv_loader = get_dataloaders(conv_dataset)
 
 
 def test_input_types():
@@ -158,7 +160,7 @@ def test_DCCA_methods():
     dcca_noi_model = DCCA_NOI(
         latent_dims, X.shape[0], encoders=[encoder_1, encoder_2], rho=0
     )
-    optimizer = optim.Adam(dcca_noi_model.parameters(), lr=1e-2)
+    optimizer = optim.Adam(dcca_noi_model.parameters(), lr=1e-4)
     dcca_noi_model = CCALightning(dcca_noi_model, optimizer=optimizer)
     trainer = pl.Trainer(max_epochs=epochs, progress_bar_refresh_rate=1, log_every_n_steps=1, logger=False)
     trainer.fit(dcca_noi_model, train_loader)
@@ -175,19 +177,16 @@ def test_DTCCA_methods():
     epochs = 5
     encoder_1 = architectures.Encoder(latent_dims=10, feature_size=10)
     encoder_2 = architectures.Encoder(latent_dims=10, feature_size=10)
-    # DTCCA
     dtcca_model = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
-    dcca_noi_model = CCALightning(dtcca_model)
+    dtcca_model = CCALightning(dtcca_model)
     trainer = pl.Trainer(max_epochs=epochs, progress_bar_refresh_rate=1, log_every_n_steps=1, logger=False)
-    trainer.fit(dcca_noi_model, train_loader)
+    trainer.fit(dtcca_model, train_loader)
 
 
 def test_scheduler():
     latent_dims = 2
-    device = "cpu"
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
     encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    # DCCA
     dcca_model = DCCA(
         latent_dims=latent_dims,
         encoders=[encoder_1, encoder_2],
@@ -195,16 +194,13 @@ def test_scheduler():
     )
     optimizer = optim.Adam(dcca_model.parameters(), lr=1e-4)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, 1)
-
-    dcca_model = CCALightning(
-        dcca_model, device=device, optimizer=optimizer, scheduler=scheduler
-    )
-    dcca_model.fit((X, Y), epochs=20)
+    dcca_model = CCALightning(dcca_model, optimizer=optimizer, lr_scheduler=scheduler)
+    trainer = pl.Trainer(max_epochs=5, progress_bar_refresh_rate=1, log_every_n_steps=1, logger=False)
+    trainer.fit(dcca_model, train_loader)
 
 
 def test_DCCAE_methods():
     latent_dims = 2
-    device = "cpu"
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
     encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
     decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=10)
@@ -217,19 +213,19 @@ def test_DCCAE_methods():
     )
 
     dccae_model = CCALightning(dccae_model)
-    dccae_model.fit((X, Y), epochs=20)
+    trainer = pl.Trainer(max_epochs=5, progress_bar_refresh_rate=1, log_every_n_steps=1, logger=False)
+    trainer.fit(dccae_model, train_loader)
     # SplitAE
     splitae_model = SplitAE(
         latent_dims=latent_dims, encoder=encoder_1, decoders=[decoder_1, decoder_2]
     )
-
     splitae_model = CCALightning(splitae_model)
-    splitae_model.fit((X, Y), epochs=10)
+    trainer = pl.Trainer(max_epochs=5, progress_bar_refresh_rate=1, log_every_n_steps=1, logger=False)
+    trainer.fit(splitae_model, train_loader)
 
 
 def test_DCCAEconv_methods():
     latent_dims = 2
-    device = "cpu"
     encoder_1 = architectures.CNNEncoder(latent_dims=latent_dims, feature_size=[16, 16])
     encoder_2 = architectures.CNNEncoder(latent_dims=latent_dims, feature_size=[16, 16])
     decoder_1 = architectures.CNNDecoder(latent_dims=latent_dims, feature_size=[16, 16])
@@ -240,14 +236,13 @@ def test_DCCAEconv_methods():
         encoders=[encoder_1, encoder_2],
         decoders=[decoder_1, decoder_2],
     )
-
     dccae_model = CCALightning(dccae_model)
-    dccae_model.fit((X_conv, Y_conv))
+    trainer = pl.Trainer(max_epochs=5, progress_bar_refresh_rate=1, log_every_n_steps=1, logger=False)
+    trainer.fit(dccae_model, conv_loader)
 
 
 def test_DVCCA_p_methods():
     latent_dims = 2
-    device = "cpu"
     encoder_1 = architectures.Encoder(
         latent_dims=latent_dims, feature_size=10, variational=True
     )
@@ -275,12 +270,12 @@ def test_DVCCA_p_methods():
     )
 
     dvcca_model = CCALightning(dvcca_model)
-    dvcca_model.fit((X, Y))
+    trainer = pl.Trainer(max_epochs=5, progress_bar_refresh_rate=1, log_every_n_steps=1, logger=False)
+    trainer.fit(dvcca_model, train_loader)
 
 
 def test_DVCCA_methods():
     latent_dims = 2
-    device = "cuda"
     encoder_1 = architectures.Encoder(
         latent_dims=latent_dims, feature_size=10, variational=True
     )
@@ -293,7 +288,6 @@ def test_DVCCA_methods():
     decoder_2 = architectures.Decoder(
         latent_dims=latent_dims, feature_size=10, norm_output=True
     )
-    # DVCCA
     dvcca_model = DVCCA(
         latent_dims=latent_dims,
         encoders=[encoder_1, encoder_2],
@@ -301,19 +295,22 @@ def test_DVCCA_methods():
     )
 
     dvcca_model = CCALightning(dvcca_model)
-    dvcca_model.fit((X, Y))
+    trainer = pl.Trainer(max_epochs=5, progress_bar_refresh_rate=1, log_every_n_steps=1, logger=False)
+    trainer.fit(dvcca_model, train_loader)
 
 
 def test_linear():
     encoder_1 = architectures.LinearEncoder(latent_dims=1, feature_size=10)
     encoder_2 = architectures.LinearEncoder(latent_dims=1, feature_size=10)
     dcca_model = DCCA(latent_dims=1, encoders=[encoder_1, encoder_2])
-    dcca_model = CCALightning(dcca_model).fit((X, Y), epochs=35)
+    dcca_model = CCALightning(dcca_model)
+    trainer = pl.Trainer(gpus=0, max_epochs=5, progress_bar_refresh_rate=1, log_every_n_steps=1, logger=False)
+    trainer.fit(dcca_model, train_loader, val_loader)
     cca = CCA().fit((X, Y))
     # check linear encoder with SGD matches vanilla linear CCA
     assert (
             np.testing.assert_array_almost_equal(
-                cca.score((X, Y)), dcca_model.score((X, Y)), decimal=2
+                cca.score((X, Y)), trainer.model.score(train_loader), decimal=2
             )
             is None
     )
