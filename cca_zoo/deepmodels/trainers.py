@@ -134,6 +134,8 @@ class CCALightning(LightningModule):
         transformed_views = self.transform(
             loader, train=train
         )
+        if len(transformed_views) < 2:
+            return None
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], y.shape[1]:]))
@@ -170,6 +172,8 @@ class CCALightning(LightningModule):
         pair_corrs = self.correlations(
             loader, train=train
         )
+        if pair_corrs is None:
+            return np.zeros(1)
         # n views
         n_views = pair_corrs.shape[0]
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation

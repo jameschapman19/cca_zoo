@@ -30,7 +30,7 @@ class SplitAE(_DCCA_base):
 
     def forward(self, *args):
         z = self.encoder(args[0])
-        return z
+        return [z]
 
     def decode(self, z):
         """
@@ -45,7 +45,7 @@ class SplitAE(_DCCA_base):
 
     def loss(self, *args):
         z = self(*args)
-        recon = self.decode(z)
+        recon = self.decode(*z)
         recon_loss = self.recon_loss(args, recon)
         return recon_loss
 
