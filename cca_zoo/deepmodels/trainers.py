@@ -1,22 +1,48 @@
 import itertools
 import sys
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import torch
 from pytorch_lightning import LightningModule
 from torch.utils.data import DataLoader
 
+from cca_zoo.deepmodels import _DCCA_base
+
 
 class CCALightning(LightningModule):
     def __init__(
             self,
-            model,
-            optimizer='Adam',
-            learning_rate=1e-3,
-            weight_decay=0.1,
-            lr_scheduler=None,
+            model: _DCCA_base,
+            optimizer: Union[torch.optim.Optimizer, str] = 'Adam',
+            learning_rate: float = 1e-3,
+            weight_decay: float = 0.1,
+            lr_scheduler: torch.optim.lr_scheduler._LRScheduler = None,
+            StepLR_step_size: float = None,
+            StepLR_gamma: float = None,
+            lr_factor: float = None,
+            lr_patience: float = None,
+            OneCycleLR_max_lr: float = None,
+            OneCycleLR_epochs: float = None,
+            train_trajectories: float = None,
+            T: float = None,
     ):
+        """
+
+        :param model: a model instance from deepmodels
+        :param optimizer: a pytorch optimizer with parameters from model or a string like 'Adam' to
+        :param learning_rate: learning rate used when optimizer is instantiated with a string
+        :param weight_decay: weight decay used when optimizer is instantiated with a string
+        :param lr_scheduler: a pytorch learning rate scheduler or a string like "StepLR" or None
+        :param StepLR_step_size: step size used by "StepLR"
+        :param StepLR_gamma: gamma used by "StepLR"
+        :param lr_factor: factor used by "ReduceLROnPlateau"
+        :param lr_patience: patience used by "ReduceLROnPlateau"
+        :param OneCycleLR_max_lr: max lr used by "OneCycleLR"
+        :param OneCycleLR_epochs: epochs used by "OneCycleLR"
+        :param train_trajectories: train trajectories used by "OneCycleLR"
+        :param T: T used by "OneCycleLR"
+        """
         super().__init__()
         self.save_hyperparameters()
         self.model = model
@@ -128,7 +154,8 @@ class CCALightning(LightningModule):
     ):
         """
 
-
+        :param loader: a dataloader that matches the structure of that used for training
+        :param train: if True and the model requires a final linear CCA this solves and stores the linear CCA
         :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
         """
         transformed_views = self.transform(
@@ -149,6 +176,12 @@ class CCALightning(LightningModule):
             loader: torch.utils.data.DataLoader,
             train: bool = False,
     ):
+        """
+
+        :param loader: a dataloader that matches the structure of that used for training
+        :param train: if True and the model requires a final linear CCA this solves and stores the linear CCA
+        :return: transformed views
+        """
         with torch.no_grad():
             for batch_idx, (data, label) in enumerate(loader):
                 data = [d.to(self.device) for d in list(data)]
@@ -168,7 +201,12 @@ class CCALightning(LightningModule):
             loader: torch.utils.data.DataLoader,
             train: bool = False,
     ):
-        # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
+        """
+
+        :param loader: a dataloader that matches the structure of that used for training
+        :param train: if True and the model requires a final linear CCA this solves and stores the linear CCA
+        :return: by default returns the average pairwise correlation in each dimension (for 2 views just the correlation)
+        """
         pair_corrs = self.correlations(
             loader, train=train
         )
