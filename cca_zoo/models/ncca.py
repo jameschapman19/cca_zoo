@@ -38,7 +38,7 @@ class NCCA(_CCA_Base):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param accept_sparse: Whether model can take sparse data as input
         :param random_state: Pass for reproducible output across multiple function calls
-        :param nearest_neighbors: Number of neaest neighbors (l2 distance) to consider when constructing affinity
+        :param nearest_neighbors: Number of nearest neighbors (l2 distance) to consider when constructing affinity
         :param gamma: Bandwidth parameter for rbf kernel
         """
         super().__init__(latent_dims, scale, centre, copy_data, accept_sparse, random_state)
