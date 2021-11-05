@@ -30,7 +30,7 @@ class CCALightning(LightningModule):
         """
 
         :param model: a model instance from deepmodels
-        :param optimizer: a pytorch optimizer with parameters from model or a string like 'Adam' to
+        :param optimizer: a pytorch optimizer with parameters from model or a string like 'Adam' to use Adam optimizer with default parameters or those specified by the user
         :param learning_rate: learning rate used when optimizer is instantiated with a string
         :param weight_decay: weight decay used when optimizer is instantiated with a string
         :param lr_scheduler: a pytorch learning rate scheduler or a string like "StepLR" or None
