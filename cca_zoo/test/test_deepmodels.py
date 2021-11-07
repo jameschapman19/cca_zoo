@@ -12,8 +12,8 @@ from cca_zoo.models import CCA
 manual_seed(0)
 rng = check_random_state(0)
 X = rng.rand(200, 10)
-Y = rng.rand(200, 10)
-Z = rng.rand(200, 10)
+Y = rng.rand(200, 12)
+Z = rng.rand(200, 14)
 X_conv = rng.rand(100, 1, 16, 16)
 Y_conv = rng.rand(100, 1, 16, 16)
 train_dataset = data.CCA_Dataset([X, Y])
@@ -23,7 +23,7 @@ def test_input_types():
     latent_dims = 2
     device = "cpu"
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     # DCCA
     dcca_model = DCCA(
         latent_dims=latent_dims,
@@ -89,7 +89,7 @@ def test_DCCA_methods_cpu():
     epochs = 100
     # DCCA
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     dcca_model = DCCA(
         latent_dims=latent_dims,
         encoders=[encoder_1, encoder_2],
@@ -106,7 +106,7 @@ def test_DCCA_methods_cpu():
     )
     # DGCCA
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     dgcca_model = DCCA(
         latent_dims=latent_dims,
         encoders=[encoder_1, encoder_2],
@@ -123,7 +123,7 @@ def test_DCCA_methods_cpu():
     )
     # DMCCA
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     dmcca_model = DCCA(
         latent_dims=latent_dims,
         encoders=[encoder_1, encoder_2],
@@ -140,7 +140,7 @@ def test_DCCA_methods_cpu():
     )
     # DCCA_NOI
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     dcca_noi_model = DCCA_NOI(
         latent_dims, X.shape[0], encoders=[encoder_1, encoder_2], rho=0
     )
@@ -159,8 +159,8 @@ def test_DTCCA_methods_cpu():
     latent_dims = 2
     device = "cpu"
     encoder_1 = architectures.Encoder(latent_dims=10, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=10, feature_size=10)
-    encoder_3 = architectures.Encoder(latent_dims=10, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=10, feature_size=12)
+    encoder_3 = architectures.Encoder(latent_dims=10, feature_size=14)
     # DTCCA
     dtcca_model = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
 
@@ -181,7 +181,7 @@ def test_scheduler():
     latent_dims = 2
     device = "cpu"
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     # DCCA
     dcca_model = DCCA(
         latent_dims=latent_dims,
@@ -201,8 +201,8 @@ def test_DGCCA_methods_cpu():
     latent_dims = 2
     device = "cpu"
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_3 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
+    encoder_3 = architectures.Encoder(latent_dims=latent_dims, feature_size=14)
     # DTCCA
     dtcca_model = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
 
@@ -232,9 +232,9 @@ def test_DCCAE_methods_cpu():
     latent_dims = 2
     device = "cpu"
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=10)
-    decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=10)
+    decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=12)
     # DCCAE
     dccae_model = DCCAE(
         latent_dims=latent_dims,
@@ -278,13 +278,13 @@ def test_DVCCA_methods_cpu():
         latent_dims=latent_dims, feature_size=10, variational=True
     )
     encoder_2 = architectures.Encoder(
-        latent_dims=latent_dims, feature_size=10, variational=True
+        latent_dims=latent_dims, feature_size=12, variational=True
     )
     decoder_1 = architectures.Decoder(
         latent_dims=latent_dims, feature_size=10, norm_output=True
     )
     decoder_2 = architectures.Decoder(
-        latent_dims=latent_dims, feature_size=10, norm_output=True
+        latent_dims=latent_dims, feature_size=12, norm_output=True
     )
     # DVCCA
     dvcca_model = DVCCA(
@@ -304,19 +304,19 @@ def test_DVCCA_p_methods_cpu():
         latent_dims=latent_dims, feature_size=10, variational=True
     )
     encoder_2 = architectures.Encoder(
-        latent_dims=latent_dims, feature_size=10, variational=True
+        latent_dims=latent_dims, feature_size=12, variational=True
     )
     private_encoder_1 = architectures.Encoder(
         latent_dims=latent_dims, feature_size=10, variational=True
     )
     private_encoder_2 = architectures.Encoder(
-        latent_dims=latent_dims, feature_size=10, variational=True
+        latent_dims=latent_dims, feature_size=12, variational=True
     )
     decoder_1 = architectures.Decoder(
         latent_dims=2 * latent_dims, feature_size=10, norm_output=True
     )
     decoder_2 = architectures.Decoder(
-        latent_dims=2 * latent_dims, feature_size=10, norm_output=True
+        latent_dims=2 * latent_dims, feature_size=12, norm_output=True
     )
     # DVCCA
     dvcca_model = DVCCA(
@@ -334,7 +334,7 @@ def test_DCCA_methods_gpu():
     latent_dims = 2
     device = "cuda"
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     # DCCA
     dcca_model = DCCA(
         latent_dims=latent_dims,
@@ -375,8 +375,8 @@ def test_DGCCA_methods_gpu():
     latent_dims = 2
     device = "cuda"
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_3 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
+    encoder_3 = architectures.Encoder(latent_dims=latent_dims, feature_size=14)
     # DGCCA
     dgcca_model = DCCA(
         latent_dims=latent_dims,
@@ -401,9 +401,9 @@ def test_DCCAE_methods_gpu():
     latent_dims = 2
     device = "cuda"
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=10)
-    decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=10)
+    decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=12)
     # DCCAE
     dccae_model = DCCAE(
         latent_dims=latent_dims,
@@ -422,13 +422,13 @@ def test_DVCCA_methods_gpu():
         latent_dims=latent_dims, feature_size=10, variational=True
     )
     encoder_2 = architectures.Encoder(
-        latent_dims=latent_dims, feature_size=10, variational=True
+        latent_dims=latent_dims, feature_size=12, variational=True
     )
     decoder_1 = architectures.Decoder(
         latent_dims=latent_dims, feature_size=10, norm_output=True
     )
     decoder_2 = architectures.Decoder(
-        latent_dims=latent_dims, feature_size=10, norm_output=True
+        latent_dims=latent_dims, feature_size=12, norm_output=True
     )
     # DVCCA
     dvcca_model = DVCCA(
@@ -443,7 +443,7 @@ def test_DVCCA_methods_gpu():
 
 def test_linear():
     encoder_1 = architectures.LinearEncoder(latent_dims=1, feature_size=10)
-    encoder_2 = architectures.LinearEncoder(latent_dims=1, feature_size=10)
+    encoder_2 = architectures.LinearEncoder(latent_dims=1, feature_size=12)
     dcca_model = DCCA(latent_dims=1, encoders=[encoder_1, encoder_2])
     dcca_model = DeepWrapper(dcca_model).fit((X, Y), epochs=35)
     cca = CCA().fit((X, Y))
