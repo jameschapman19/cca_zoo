@@ -144,7 +144,7 @@ def test_DCCA_methods_cpu():
     dcca_noi_model = DCCA_NOI(
         latent_dims, X.shape[0], encoders=[encoder_1, encoder_2], rho=0
     )
-    optimizer = optim.Adam(dcca_noi_model.parameters(), lr=1e-2)
+    optimizer = optim.Adam(dcca_noi_model.parameters(), lr=1e-3)
     dcca_noi_model = DeepWrapper(dcca_noi_model, device=device, optimizer=optimizer)
     dcca_noi_model.fit((X, Y), epochs=epochs)
     assert (
