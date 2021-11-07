@@ -445,7 +445,7 @@ def test_linear():
     encoder_1 = architectures.LinearEncoder(latent_dims=1, feature_size=10)
     encoder_2 = architectures.LinearEncoder(latent_dims=1, feature_size=12)
     dcca_model = DCCA(latent_dims=1, encoders=[encoder_1, encoder_2])
-    dcca_model = DeepWrapper(dcca_model).fit((X, Y), epochs=35)
+    dcca_model = DeepWrapper(dcca_model).fit((X, Y), epochs=40)
     cca = CCA().fit((X, Y))
     # check linear encoder with SGD matches vanilla linear CCA
     assert (
