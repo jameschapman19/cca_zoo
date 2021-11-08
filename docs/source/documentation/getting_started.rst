@@ -16,7 +16,7 @@ Look how easy it is to use:
 
    linear_cca = CCA(latent_dims=latent_dims, max_iter=max_iter)
 
-   linear_cca.fit(train_view_1, train_view_2)
+   linear_cca.fit((train_view_1, train_view_2))
 
 In addition to the code snippets in the user guide section, we provide a number of tutorial notebooks hosted on google
 colab at https://github.com/jameschapman19/cca_zoo/tree/main/tutorial_notebooks
