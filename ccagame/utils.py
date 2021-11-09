@@ -44,9 +44,9 @@ def data_stream(X, Y=None, batch_size=None):
         for i in range(num_batches):
             batch_idx = perm[i * batch_size : (i + 1) * batch_size]
             if Y is None:
-                yield batch_idx, (X[batch_idx])
+                yield X[batch_idx]
             else:
-                yield batch_idx, (X[batch_idx], Y[batch_idx])
+                yield X[batch_idx], Y[batch_idx]
 
 
 def check_random_state(seed):

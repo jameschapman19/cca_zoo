@@ -58,8 +58,9 @@ class _PLS(BaseEstimator, TransformerMixin, MultiOutputMixin, RegressorMixin):
 
     @abstractmethod
     def transform(self, X, Y):
-        X = (X - self._x_mean) / self._x_std
-        Y = (Y - self._y_mean) / self._y_std
+        if self.scale:
+            X = (X - self._x_mean) / self._x_std
+            Y = (Y - self._y_mean) / self._y_std
         return X @ self.x_weights, Y @ self.y_weights
 
     def score(self, X, y=None, sample_weight=None):
