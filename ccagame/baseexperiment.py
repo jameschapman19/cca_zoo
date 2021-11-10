@@ -1,39 +1,35 @@
-import functools
 from abc import abstractmethod
-from os import environ
 from typing import Optional
 
 import jax
 import jax.numpy as jnp
-import numpy as np
-import optax
-from absl import app, flags
-from ccagame.utils import data_stream
-from datasets.mnist import mnist
+from absl import flags
 from jax._src.random import PRNGKey
-from jaxline import platform, utils
+from jaxline import utils
 from jaxline.base_config import get_base_config
 from jaxline.experiment import AbstractExperiment
 
-# CORES = 2
-# environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={CORES}"
-FLAGS = flags.FLAGS
 
-
-def get_config(data_stream, CORES, dims):
+def get_config(
+    data_stream,
+    devices,
+    k_per_device,
+    dims,
+    log_tensors_interval=1,
+    log_train_data_interval=1,
+):
     """Return config object for training."""
     config = get_base_config()
     config.experiment_kwargs = {
-        "k_per_device": 3,
-        "num_devices": CORES,
+        "k_per_device": k_per_device,
+        "num_devices": devices,
         "dims": dims,
-        "axis_index_groups": None,
         "data_stream": data_stream,
     }
     config.checkpoint_dir = "jaxlog"
     config.train_checkpoint_all_hosts = True
-    config.log_tensors_interval = 1
-    config.log_train_data_interval = 1
+    config.log_tensors_interval = log_tensors_interval
+    config.log_train_data_interval = log_train_data_interval
     config.lock()
     return config
 
@@ -45,8 +41,6 @@ class BaseExperiment(AbstractExperiment):
         init_rng=None,
         num_devices=1,
         k_per_device=1,
-        dims=1,
-        axis_index_groups=None,
         data_stream=None,
     ):
         super(BaseExperiment, self).__init__(mode=mode, init_rng=init_rng)
@@ -57,11 +51,9 @@ class BaseExperiment(AbstractExperiment):
         """
         """Initialization function for a Jaxline experiment."""
         self._total_k = k_per_device * num_devices
-        self._dims = dims
         self.data_stream = data_stream
-        local_rng = jax.random.fold_in(PRNGKey(123), jax.host_id())
-        # generates a key for each device
-        keys = jax.random.split(local_rng, num_devices)
+        self.local_rng = jax.random.fold_in(PRNGKey(123), jax.host_id())
+        self._num_devices = num_devices
 
     def step(
         self,
@@ -73,7 +65,10 @@ class BaseExperiment(AbstractExperiment):
         """Step function for a Jaxline experiment"""
         inputs = next(self.data_stream)
         outputs = self._update(inputs, global_step)
-        return outputs
+        return self._get_scalars(outputs)
+
+    def _get_scalars(self, outputs):
+        return {}
 
     @abstractmethod
     def _update(self, inputs, global_step):
