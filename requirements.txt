@@ -104,3 +104,7 @@ wandb==0.12.5
     # via ccagame (setup.py)
 yaspin==2.1.0
     # via wandb
+optax
+ml_collections
+wrapt
+tensorflow

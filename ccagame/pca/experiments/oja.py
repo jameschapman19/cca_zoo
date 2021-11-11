@@ -24,6 +24,7 @@ class Oja(PCAExperiment):
         k_per_device=1,
         dims=1,
         data_stream=None,
+        whole_batch=False
     ):
         super(Oja, self).__init__(
             mode,
@@ -32,6 +33,7 @@ class Oja(PCAExperiment):
             k_per_device=k_per_device,
             dims=dims,
             data_stream=data_stream,
+            whole_batch=whole_batch
         )
         """
         Constructs the experiment.

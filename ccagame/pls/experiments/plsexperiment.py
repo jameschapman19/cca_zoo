@@ -15,6 +15,7 @@ class PLSExperiment(BaseExperiment):
         k_per_device=1,
         dims=1,
         data_stream=None,
+        whole_batch=False
     ):
         super(PLSExperiment, self).__init__(
             mode=mode,
@@ -22,6 +23,7 @@ class PLSExperiment(BaseExperiment):
             num_devices=num_devices,
             k_per_device=k_per_device,
             data_stream=data_stream,
+            whole_batch=whole_batch
         )
         """Constructs the experiment.
         Args:
@@ -34,6 +36,8 @@ class PLSExperiment(BaseExperiment):
         self._correct_U, self._correct_S, self._correct_Vt = jnp.linalg.svd(X.T @ Y)
         self._correct_U = self._correct_U[:, : self._total_k]
         self._correct_Vt = self._correct_Vt[: self._total_k, :]
+        if self.whole_batch:
+            self.inputs=next(self.data_stream)
 
     @abstractmethod
     def _update(self, views, global_step):

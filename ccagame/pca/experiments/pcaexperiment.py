@@ -13,6 +13,7 @@ class PCAExperiment(BaseExperiment):
         k_per_device=1,
         dims=1,
         data_stream=None,
+        whole_batch=False
     ):
         super(PCAExperiment, self).__init__(
             mode=mode,
@@ -20,6 +21,7 @@ class PCAExperiment(BaseExperiment):
             num_devices=num_devices,
             k_per_device=k_per_device,
             data_stream=data_stream,
+            whole_batch=whole_batch
         )
         """Constructs the experiment.
         Args:
@@ -32,6 +34,8 @@ class PCAExperiment(BaseExperiment):
         _, vals, vecs = jnp.linalg.svd(X.T @ X)
         self._correct_eigenvectors = vecs[: self._total_k, :]
         self._correct_eigenvalues = vals[: self._total_k] / X.shape[0]
+        if self.whole_batch:
+            self.inputs=next(self.data_stream)
 
     @abstractmethod
     def _update(self, X_i, Y_i, global_step):

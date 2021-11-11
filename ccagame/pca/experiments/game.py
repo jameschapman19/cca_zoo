@@ -1,6 +1,5 @@
 import functools
 from os import environ
-
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -13,7 +12,7 @@ from datasets.mnist import mnist
 from jax._src.random import PRNGKey
 from jaxline import platform
 
-CORES = 4
+CORES = 1
 environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={CORES}"
 FLAGS = flags.FLAGS
 
@@ -24,9 +23,10 @@ class Game(PCAExperiment):
         mode,
         init_rng=None,
         num_devices=1,
-        k_per_device=1,
+        k_per_device=15,
         dims=1,
         data_stream=None,
+        whole_batch=False
     ):
         super(Game, self).__init__(
             mode,
@@ -35,6 +35,7 @@ class Game(PCAExperiment):
             k_per_device=k_per_device,
             dims=dims,
             data_stream=data_stream,
+            whole_batch=whole_batch
         )
         """
         Constructs the experiment.
@@ -153,7 +154,8 @@ class Game(PCAExperiment):
 if __name__ == "__main__":
     X, _, X_te, _ = mnist()
     input_data_iterator = data_stream(X, Y=None, batch_size=None)
-    k_per_device = 3
-    FLAGS.config = get_config(input_data_iterator, CORES, k_per_device, X.shape[1])
+    k_per_device = 15
+    whole_batch = True
+    FLAGS.config = get_config(input_data_iterator, CORES, k_per_device, X.shape[1], whole_batch=whole_batch)
     flags.mark_flag_as_required("config")
     app.run(functools.partial(platform.main, Game))
