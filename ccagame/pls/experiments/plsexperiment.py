@@ -68,12 +68,12 @@ class PLSExperiment(BaseExperiment):
         cosine_similarities_y = jnp.diag(self._correct_Vt @ V.T)
         x_idx = jnp.where(jnp.abs(cosine_similarities_x) < jnp.cos(jnp.pi / 8))[0]
         if len(x_idx) == 0:
-            x_idx = 0
+            x_idx = self._total_k
         else:
             x_idx = x_idx[0]
         y_idx = jnp.where(jnp.abs(cosine_similarities_y) < jnp.cos(jnp.pi / 8))[0]
         if len(y_idx) == 0:
-            y_idx = 0
+            y_idx = self._total_k
         else:
             y_idx = y_idx[0]
         return {"correct x": x_idx, "correct y": y_idx}

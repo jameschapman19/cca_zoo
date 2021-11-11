@@ -13,8 +13,8 @@ from jaxline.experiment import AbstractExperiment
 def get_config(
     data_stream,
     devices,
-    k_per_device,
     dims,
+    k_per_device=1,
     log_tensors_interval=1,
     log_train_data_interval=1,
     whole_batch=False

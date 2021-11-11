@@ -72,6 +72,7 @@ class GHA(PCAExperiment):
 if __name__ == "__main__":
     X, _, X_te, _ = mnist()
     input_data_iterator = data_stream(X, Y=None, batch_size=None)
-    FLAGS.config = get_config(input_data_iterator, CORES, X.shape[1])
+    k_per_device = 5
+    FLAGS.config = get_config(input_data_iterator, CORES, X.shape[1],k_per_device=k_per_device)
     flags.mark_flag_as_required("config")
     app.run(functools.partial(platform.main, GHA))

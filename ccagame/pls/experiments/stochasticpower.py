@@ -16,7 +16,7 @@ environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={CORES}"
 FLAGS = flags.FLAGS
 
 
-class MSG(PLSExperiment):
+class StochasticPower(PLSExperiment):
     def __init__(
         self,
         mode,
@@ -44,19 +44,22 @@ class MSG(PLSExperiment):
         """Initialization function for a Jaxline experiment."""
         self._U = jax.random.normal(self.local_rng, (k_per_device, dims[0]))
         self._V = jax.random.normal(self.local_rng, (k_per_device, dims[1]))
-        self._M = self._U.T@self._V
-        self._optimizer = optax.sgd(learning_rate=1e-5, momentum=0.9, nesterov=True)
-        self._opt_state = self._optimizer.init(self._M)
+        self._optimizer_x = optax.sgd(learning_rate=1e-3, momentum=0.9, nesterov=True)
+        self._opt_state_x = self._optimizer_x.init(self._U)
+        self._optimizer_y = optax.sgd(learning_rate=1e-3, momentum=0.9, nesterov=True)
+        self._opt_state_y = self._optimizer_y.init(self._V)
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        self._M=self._U.T@self._V
-        grads=X_i.T@Y_i
-        updates, self._opt_state = self._optimizer.update(grads, self._opt_state)
-        self._M = optax.apply_updates(self._M, updates)
-        U,_,Vt=jnp.linalg.svd(self._M)
-        self._U=U[:,:self._total_k].T
-        self._V=Vt[:self._total_k]
+        C=X_i.T@Y_i
+        grads_x=self._V@C.T
+        grads_y=self._U@C
+        updates_x, self._opt_state_x = self._optimizer_x.update(grads_x, self._opt_state_x)
+        updates_y, self._opt_state_y = self._optimizer_y.update(grads_y, self._opt_state_y)
+        self._U = optax.apply_updates(self._U, updates_x)
+        self._V = optax.apply_updates(self._V, updates_y)
+        self._U = jnp.linalg.qr(self._U.T)[0].T
+        self._V = jnp.linalg.qr(self._V.T)[0].T
         return self._U,self._V
 
 
@@ -67,4 +70,4 @@ if __name__ == "__main__":
     k_per_device = 3
     FLAGS.config = get_config(input_data_iterator, CORES, k_per_device, [400, 384])
     flags.mark_flag_as_required("config")
-    app.run(functools.partial(platform.main, MSG))
+    app.run(functools.partial(platform.main, StochasticPower))
