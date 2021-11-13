@@ -25,6 +25,7 @@ copyright = "2021, James Chapman"
 author = "James Chapman"
 
 # -- General configuration ---------------------------------------------------
+master_doc = 'index'
 
 extensions = [
     "sphinx.ext.autodoc",
