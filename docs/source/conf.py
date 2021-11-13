@@ -14,7 +14,7 @@ import os
 import sys
 import warnings
 
-sys.path.insert(0, os.path.abspath("../.."))
+sys.path.insert(0, os.path.abspath(".."))
 warnings.filterwarnings("ignore", category=UserWarning,
                         message="Matplotlib is currently using agg, which is a"
                                 " non-GUI backend, so cannot show the figure.")
@@ -35,7 +35,7 @@ extensions = [
 ]
 
 sphinx_gallery_conf = {
-    "examples_dirs": "../examples",  # path to your example scripts
+    "examples_dirs": "../..examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
 }
 
