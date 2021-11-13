@@ -62,7 +62,7 @@ class PLSExperiment(BaseExperiment):
         return jnp.linalg.svd(Zx.T @ Zy)[1].sum() / dof
 
     def _correct_eigenvector_streak(self, U, V):
-        U = jnp.reshape(U, (-1, U.shape[-1]))
+        U = jnp.reshape(U, (-1, U.shape[-1]))#U@U.T
         V = jnp.reshape(V, (-1, V.shape[-1]))
         cosine_similarities_x = jnp.diag(self._correct_U.T @ U.T)
         cosine_similarities_y = jnp.diag(self._correct_Vt @ V.T)
