@@ -28,6 +28,7 @@ extensions = [
     "sphinx.ext.autosummary",
     'sphinx_autodoc_typehints',
     'sphinx.ext.viewcode'
+    'sphinx.ext.viewcodesphinx_gallery'
     'sphinx_gallery.gen_gallery',
 ]
 
