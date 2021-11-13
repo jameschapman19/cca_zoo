@@ -27,15 +27,16 @@ author = "James Chapman"
 # -- General configuration ---------------------------------------------------
 
 extensions = [
-    'sphinx.ext.autodoc',
+    "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    'sphinx_autodoc_typehints',
-    'sphinx.ext.viewcode',
+    "sphinx_autodoc_typehints",
+    "sphinx.ext.viewcode",
     "sphinx_gallery.gen_gallery",
 ]
 
 sphinx_gallery_conf = {
-    "examples_dirs": "../..examples",  # path to your example scripts
+    "doc_module": "cca-zoo",
+    "examples_dirs": "../examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
 }
 
