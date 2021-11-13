@@ -12,9 +12,12 @@
 #
 import os
 import sys
+import warnings
 
 sys.path.insert(0, os.path.abspath('../..'))
-
+warnings.filterwarnings("ignore", category=UserWarning,
+                        message='Matplotlib is currently using agg, which is a'
+                                ' non-GUI backend, so cannot show the figure.')
 # -- Project information -----------------------------------------------------
 
 project = 'cca-zoo'
@@ -30,6 +33,7 @@ extensions = [
     'sphinx.ext.viewcode'
     'sphinx.ext.viewcodesphinx_gallery'
     'sphinx_gallery.gen_gallery',
+    'sphinx.ext.viewcodesphinx'
 ]
 
 sphinx_gallery_conf = {
