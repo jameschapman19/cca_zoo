@@ -27,14 +27,11 @@ author = "James Chapman"
 # -- General configuration ---------------------------------------------------
 
 extensions = [
-    "sphinx.ext.autodoc",
+    'sphinx.ext.autodoc',
     "sphinx.ext.autosummary",
-    "sphinx_autodoc_typehints",
-    "sphinx.ext.intersphinx",
-    "sphinx.ext.viewcode"
-    "sphinx.ext.viewcodesphinx_gallery"
+    'sphinx_autodoc_typehints',
+    'sphinx.ext.viewcode',
     "sphinx_gallery.gen_gallery",
-    "sphinx.ext.viewcodesphinx"
 ]
 
 sphinx_gallery_conf = {
