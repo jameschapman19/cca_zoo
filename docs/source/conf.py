@@ -28,7 +28,13 @@ extensions = [
     "sphinx.ext.autosummary",
     'sphinx_autodoc_typehints',
     'sphinx.ext.viewcode'
+    'sphinx_gallery.gen_gallery',
 ]
+
+sphinx_gallery_conf = {
+    'examples_dirs': '../examples',  # path to your example scripts
+    'gallery_dirs': 'auto_examples',  # path to where to save gallery generated output
+}
 
 # -- sphinx.ext.autosummary
 autosummary_generate = True
