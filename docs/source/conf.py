@@ -14,7 +14,7 @@ import os
 import sys
 import warnings
 
-sys.path.insert(0, os.path.abspath(os.path.join("..", "..", "cca_zoo")))
+sys.path.insert(0, os.path.abspath(os.path.join("..", "..", "..", "cca_zoo")))
 warnings.filterwarnings("ignore", category=UserWarning,
                         message="Matplotlib is currently using agg, which is a"
                                 " non-GUI backend, so cannot show the figure.")
@@ -25,7 +25,6 @@ copyright = "2021, James Chapman"
 author = "James Chapman"
 
 # -- General configuration ---------------------------------------------------
-autodoc_mock_imports = ['torch', 'torchvision', 'jax', 'numpyro', 'PIL']
 
 extensions = [
     "sphinx.ext.autodoc",
