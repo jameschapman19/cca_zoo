@@ -17,6 +17,7 @@ class TCCA(_CCA_Base):
 
     Citation
     --------
+
     Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
 
     My own port from https://github.com/rciszek/mdr_tcca
@@ -153,6 +154,7 @@ class KTCCA(TCCA):
 
     Citation
     --------
+
     Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
 
     :Example:

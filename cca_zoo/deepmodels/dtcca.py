@@ -13,6 +13,11 @@ class DTCCA(DCCA):
 
     Is just a thin wrapper round DCCA with the DTCCA objective and a TCCA post-processing
 
+    Citation
+    --------
+
+    Wong, Hok Shing, et al. "Deep Tensor CCA for Multi-view Learning." IEEE Transactions on Big Data (2021).
+
     Examples
     --------
     >>> from cca_zoo.deepmodels import DTCCA
