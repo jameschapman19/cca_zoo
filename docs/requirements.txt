@@ -13,3 +13,9 @@ seaborn
 pandas
 tensorly
 joblib
+torch>=1.9.0
+torchvision
+Pillow
+jax~=0.2.20
+numpyro
+arviz
