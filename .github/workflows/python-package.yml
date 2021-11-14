@@ -44,3 +44,5 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
+    - name: Test examples
+      run: pytest test/test_examples.py
