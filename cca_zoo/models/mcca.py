@@ -15,6 +15,7 @@ class MCCA(rCCA):
 
     Citation
     --------
+
     Kettenring, Jon R. "Canonical analysis of several sets of variables." Biometrika 58.3 (1971): 433-451.
 
     :Example:

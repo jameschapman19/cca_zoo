@@ -17,6 +17,7 @@ class rCCA(_CCA_Base):
 
     Citation
     --------
+
     Vinod, Hrishikesh D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
 
     :Example:

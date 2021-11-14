@@ -37,18 +37,10 @@ TCCA and KTCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
-Iterative Models
---------------------------------
+.. toctree::
+   :maxdepth: 1
+   :caption: More Complex Regularisation using Iterative Models
 
-.. automodule:: cca_zoo.models.iterative
-    :inherited-members:
-    :exclude-members: get_params, set_params
-
-Inner Loops
---------------------------------
-
-.. automodule:: cca_zoo.models.innerloop
-    :inherited-members:
-    :exclude-members: get_params, set_params
+   iterative.rst
 
 

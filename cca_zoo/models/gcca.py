@@ -15,6 +15,7 @@ class GCCA(rCCA):
 
     Citation
     --------
+
     Tenenhaus, Arthur, and Michel Tenenhaus. "Regularized generalized canonical correlation analysis." Psychometrika 76.2 (2011): 257.
 
     :Example:
