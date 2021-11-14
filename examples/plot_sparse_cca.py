@@ -20,9 +20,9 @@ p = 100
 q = 100
 view_1_sparsity = 0.1
 view_2_sparsity = 0.1
-true_latent_dims = 1
+latent_dims = 1
 
-(X, Y), (tx, ty) = generate_covariance_data(n, view_features=[p, q], latent_dims=true_latent_dims,
+(X, Y), (tx, ty) = generate_covariance_data(n, view_features=[p, q], latent_dims=latent_dims,
                                             view_sparsity=[view_1_sparsity, view_2_sparsity], correlation=[0.9])
 tx /= np.sqrt(n)
 ty /= np.sqrt(n)
