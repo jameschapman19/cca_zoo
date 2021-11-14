@@ -14,11 +14,6 @@ import os
 import sys
 import warnings
 
-import mock
-
-MOCK_MODULES = ["numpy", "scipy", "torch"]
-for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = mock.Mock()
 sys.path.insert(0, os.path.abspath(os.path.join("..", "..", "cca_zoo")))
 warnings.filterwarnings("ignore", category=UserWarning,
                         message="Matplotlib is currently using agg, which is a"
