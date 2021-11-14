@@ -26,11 +26,11 @@ from cca_zoo.models import (
 from cca_zoo.utils.plotting import cv_plot
 
 rng = check_random_state(0)
-X = rng.rand(500, 20)
-Y = rng.rand(500, 21)
-Z = rng.rand(500, 22)
-X_sp = sp.random(500, 20, density=0.5, random_state=rng)
-Y_sp = sp.random(500, 21, density=0.5, random_state=rng)
+X = rng.rand(10, 9)
+Y = rng.rand(10, 8)
+Z = rng.rand(10, 7)
+X_sp = sp.random(10, 9, density=0.5, random_state=rng)
+Y_sp = sp.random(10, 8, density=0.5, random_state=rng)
 
 
 def test_unregularized_methods():
@@ -280,7 +280,7 @@ def test_VCCA():
         from cca_zoo.data import generate_simple_data
 
         # Tests tensor CCA methods
-        (X, Y), (_) = generate_simple_data(100, [10, 10], random_state=rng, eps=0.1)
+        (X, Y), (_) = generate_simple_data(10, [9, 9], random_state=rng, eps=0.1)
         latent_dims = 1
         cca = CCA(latent_dims=latent_dims).fit([X, Y])
         vcca = VariationalCCA(
