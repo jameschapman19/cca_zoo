@@ -4,3 +4,4 @@ sphinx-gallery
 pandas
 numpy
 matplotlib
+mock

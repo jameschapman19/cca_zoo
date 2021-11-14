@@ -14,7 +14,12 @@ import os
 import sys
 import warnings
 
-sys.path.insert(0, os.path.abspath("../.."))
+import mock
+
+MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'torch']
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = mock.Mock()
+sys.path.insert(0, os.path.abspath('../..'))
 warnings.filterwarnings("ignore", category=UserWarning,
                         message="Matplotlib is currently using agg, which is a"
                                 " non-GUI backend, so cannot show the figure.")
