@@ -21,7 +21,7 @@ from cca_zoo.models import (
     SpanCCA,
     SWCCA,
     PLS_ALS,
-    KGCCA,
+    KGCCA, NCCA,
 )
 from cca_zoo.utils.plotting import cv_plot
 
@@ -201,6 +201,10 @@ def test_non_negative_methods():
         (X, Y)
     )
 
+
+def test_ncca():
+    latent_dims = 2
+    ncca = NCCA(latent_dims=latent_dims).fit([X, Y])
 
 def test_sparse_methods():
     # Test sparsity inducing methods. At the moment just checks running.

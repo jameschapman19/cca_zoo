@@ -1,10 +1,13 @@
-jax
-numpyro
-arviz
+sphinx==1.8.5
+sphinx-autodoc-typehints
+sphinx-gallery
+pandas
 numpy
-scikit-learn
+matplotlib
+numpy
+scikit-learn>=0.23
 mvlearn
-scipy>=1.5
+scipy>=1.7
 matplotlib
 seaborn
 pandas
@@ -13,4 +16,6 @@ joblib
 torch>=1.9.0
 torchvision
 Pillow
-sphinx-autodoc-typehints
+jax~=0.2.20
+numpyro
+arviz

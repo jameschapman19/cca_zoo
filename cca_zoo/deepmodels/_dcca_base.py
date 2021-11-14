@@ -19,6 +19,13 @@ class _DCCA_base(nn.Module):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def loss(self, *args, **kwargs):
+        """
+        Required when using the LightningTrainer
+        """
+        raise NotImplementedError
+
     def post_transform(self, *z_list, train=False) -> Iterable[np.ndarray]:
         """
         Some models require a final linear CCA after model training.
