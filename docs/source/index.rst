@@ -13,7 +13,7 @@ Documentation
    documentation/install
    documentation/getting_started
    documentation/user_guide
-   documentation/tutorials
+   auto_examples/index
 
 
 .. toctree::
