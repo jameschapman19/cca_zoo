@@ -4,4 +4,12 @@ sphinx-gallery
 pandas
 numpy
 matplotlib
-mock
+numpy
+scikit-learn>=0.23
+mvlearn
+scipy>=1.7
+matplotlib
+seaborn
+pandas
+tensorly
+joblib

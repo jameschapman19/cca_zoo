@@ -25,6 +25,7 @@ copyright = "2021, James Chapman"
 author = "James Chapman"
 
 # -- General configuration ---------------------------------------------------
+autodoc_mock_imports = ['torch', 'torchvision', 'jax', 'numpyro', 'PIL']
 
 extensions = [
     "sphinx.ext.autodoc",
