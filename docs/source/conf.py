@@ -16,7 +16,7 @@ import warnings
 
 import mock
 
-MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'torch']
+MOCK_MODULES = ['numpy', 'scipy', 'torch']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 sys.path.insert(0, os.path.abspath('../..'))
