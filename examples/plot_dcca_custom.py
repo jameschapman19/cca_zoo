@@ -1,6 +1,6 @@
 """
-Deep CCA with Bespoke Encoders
-===============================
+Deep CCA with more customisation
+==================================
 
-This example doesn't do much, it just makes a simple plot
+Showing some examples of more advanced functionality
 """
