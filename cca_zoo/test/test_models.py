@@ -25,12 +25,13 @@ from cca_zoo.models import (
 )
 from cca_zoo.utils.plotting import cv_plot
 
+n = 50
 rng = check_random_state(0)
-X = rng.rand(20, 4)
-Y = rng.rand(20, 5)
-Z = rng.rand(20, 6)
-X_sp = sp.random(20, 4, density=0.5, random_state=rng)
-Y_sp = sp.random(20, 5, density=0.5, random_state=rng)
+X = rng.rand(n, 4)
+Y = rng.rand(n, 5)
+Z = rng.rand(n, 6)
+X_sp = sp.random(n, 4, density=0.5, random_state=rng)
+Y_sp = sp.random(n, 5, density=0.5, random_state=rng)
 
 
 def test_unregularized_methods():
@@ -67,49 +68,49 @@ def test_unregularized_methods():
     # Check standardized models have standard outputs
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(iter.transform((X, Y))[0], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(iter.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(cca.transform((X, Y))[0], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(cca.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(mcca.transform((X, Y))[0], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(mcca.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(kcca.transform((X, Y))[0], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(kcca.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(iter.transform((X, Y))[1], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(iter.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(cca.transform((X, Y))[1], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(cca.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(mcca.transform((X, Y))[1], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(mcca.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(kcca.transform((X, Y))[1], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(kcca.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
