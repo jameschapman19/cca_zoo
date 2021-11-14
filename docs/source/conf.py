@@ -16,10 +16,10 @@ import warnings
 
 import mock
 
-MOCK_MODULES = ['numpy', 'scipy', 'torch']
+MOCK_MODULES = ["numpy", "scipy", "torch"]
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
-sys.path.insert(0, os.path.abspath(os.path.join('..', '..', 'cca_zoo')))
+sys.path.insert(0, os.path.abspath(os.path.join("..", "..", "cca_zoo")))
 warnings.filterwarnings("ignore", category=UserWarning,
                         message="Matplotlib is currently using agg, which is a"
                                 " non-GUI backend, so cannot show the figure.")
@@ -37,6 +37,7 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx.ext.viewcode",
     "sphinx_gallery.gen_gallery",
+    "sphinx.ext.napoleon"
 ]
 
 sphinx_gallery_conf = {
