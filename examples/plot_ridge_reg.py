@@ -1,6 +1,5 @@
 """
-"This" is my example-script
+Ridge Regularised CCA: From CCA to PLS
 ===========================
 
-This example doesn't do much, it just makes a simple plot
 """
