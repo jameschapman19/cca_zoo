@@ -91,5 +91,3 @@ class DCCA_SDL(DCCA_NOI):
                 self.c = 1
                 self.covs = batch_covs
             self.covs = [cov / self.c for cov in self.covs]
-        else:
-            self.covs = batch_covs
