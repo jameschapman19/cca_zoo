@@ -21,7 +21,8 @@ from cca_zoo.models import (
     SpanCCA,
     SWCCA,
     PLS_ALS,
-    KGCCA, NCCA,
+    KGCCA,
+    NCCA,
 )
 from cca_zoo.utils.plotting import cv_plot
 
@@ -203,12 +204,13 @@ def test_non_negative_methods():
 
 
 def test_ncca():
-    #TODO sensible check
+    # TODO sensible check
     latent_dims = 2
     ncca = NCCA(latent_dims=latent_dims).fit([X, Y])
 
+
 def test_sparse_methods():
-    #TODO check these are sparse outputs and reasonable correlation
+    # TODO check these are sparse outputs and reasonable correlation
     c1 = [1, 3]
     c2 = [1, 3]
     param_grid = {"c": [c1, c2]}
@@ -233,7 +235,7 @@ def test_sparse_methods():
 
 
 def test_weighted_GCCA_methods():
-    #TODO we have view weighted GCCA and missing observation GCCA
+    # TODO we have view weighted GCCA and missing observation GCCA
     latent_dims = 2
     c = 0
     unweighted_gcca = GCCA(latent_dims=latent_dims, c=[c, c]).fit([X, Y])
@@ -255,7 +257,7 @@ def test_weighted_GCCA_methods():
 
 
 def test_TCCA():
-    #TODO Sensible check for kernel TCCA
+    # TODO Sensible check for kernel TCCA
     latent_dims = 2
     tcca = TCCA(latent_dims=latent_dims, c=[0.2, 0.2, 0.2]).fit([X, X, Y])
     ktcca = KTCCA(latent_dims=latent_dims, c=[0.2, 0.2]).fit([X, Y])

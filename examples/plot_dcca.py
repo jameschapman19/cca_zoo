@@ -11,12 +11,19 @@ from torch.utils.data import Subset
 
 # %%
 from cca_zoo.data import Split_MNIST_Dataset
-from cca_zoo.deepmodels import DCCA, CCALightning, get_dataloaders, architectures, DCCA_NOI, DCCA_SDL, \
-    BarlowTwins
+from cca_zoo.deepmodels import (
+    DCCA,
+    CCALightning,
+    get_dataloaders,
+    architectures,
+    DCCA_NOI,
+    DCCA_SDL,
+    BarlowTwins,
+)
 
 n_train = 500
 n_val = 100
-train_dataset = Split_MNIST_Dataset(mnist_type='MNIST', train=True)
+train_dataset = Split_MNIST_Dataset(mnist_type="MNIST", train=True)
 val_dataset = Subset(train_dataset, np.arange(n_train, n_train + n_val))
 train_dataset = Subset(train_dataset, np.arange(n_train))
 train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
@@ -36,13 +43,17 @@ trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
 
 # Deep CCA by Non-Linear Orthogonal Iterations
-dcca_noi = DCCA_NOI(latent_dims=latent_dims, N=len(train_dataset), encoders=[encoder_1, encoder_2])
+dcca_noi = DCCA_NOI(
+    latent_dims=latent_dims, N=len(train_dataset), encoders=[encoder_1, encoder_2]
+)
 dcca_noi = CCALightning(dcca_noi)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca_noi, train_loader, val_loader)
 
 # Deep CCA by Stochastic Decorrelation Loss
-dcca_sdl = DCCA_SDL(latent_dims=latent_dims, N=len(train_dataset), encoders=[encoder_1, encoder_2])
+dcca_sdl = DCCA_SDL(
+    latent_dims=latent_dims, N=len(train_dataset), encoders=[encoder_1, encoder_2]
+)
 dcca_sdl = CCALightning(dcca_sdl)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca_sdl, train_loader, val_loader)

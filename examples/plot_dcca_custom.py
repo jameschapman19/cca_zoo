@@ -15,7 +15,7 @@ from cca_zoo.deepmodels import DCCA, CCALightning, get_dataloaders, architecture
 
 n_train = 500
 n_val = 100
-train_dataset = Split_MNIST_Dataset(mnist_type='MNIST', train=True)
+train_dataset = Split_MNIST_Dataset(mnist_type="MNIST", train=True)
 val_dataset = Subset(train_dataset, np.arange(n_train, n_train + n_val))
 train_dataset = Subset(train_dataset, np.arange(n_train))
 train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
