@@ -211,13 +211,7 @@ class PLS(rCCA):
 
     .. math::
 
-    w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}
-
-    \text{subject to:}
-
-    \|w_1\|_2=1,
-
-    \|w_2\|_2=1
+    w_{opt}=w_1^TX_1^TX_2w_2
 
     :Example:
 
