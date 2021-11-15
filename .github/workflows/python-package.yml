@@ -13,6 +13,8 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    env:
+      MODULE_NAME: cca_zoo
     strategy:
       matrix:
         python-version: [3.7, 3.8, 3.9]
@@ -44,3 +46,6 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
+    - name: Run doctests
+      run: |
+        pytest --doctest-modules --ignore=$MODULE_NAME/tests $MODULE_NAME
