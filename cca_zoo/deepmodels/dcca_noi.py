@@ -23,7 +23,7 @@ class DCCA_NOI(DCCA):
             encoders=None,
             r: float = 0,
             rho: float = 0.2,
-            eps: float = 1e-3,
+            eps: float = 1e-9,
             shared_target: bool = False,
     ):
         """
@@ -76,25 +76,13 @@ class DCCA_NOI(DCCA):
         loss = self.mse(z[0], preds[1]) + self.mse(z[1], preds[0])
         return loss
 
-    def _update_mean(self, *z):
-        batch_means = [torch.mean(z_, dim=0).detach() for z_ in z]
-        if self.means is not None:
-            self.means = [
-                self.rho * self.means[i].detach() + (1 - self.rho) * batch_mean
-                for i, batch_mean in enumerate(batch_means)
-            ]
-        else:
-            self.means = batch_means
-        z = [z_ - mean for (z_, mean) in zip(z, self.means)]
-        return z
-
     def _update_covariances(self, *z, train=True):
         b = z[0].shape[0]
         batch_covs = [self.N * z_.T @ z_ / b for z_ in z]
         if train:
             if self.covs is not None:
                 self.covs = [
-                    self.rho * self.covs[i].detach() + (1 - self.rho) * batch_cov
+                    self.rho * self.covs[i] + (1 - self.rho) * batch_cov
                     for i, batch_cov in enumerate(batch_covs)
                 ]
             else:
