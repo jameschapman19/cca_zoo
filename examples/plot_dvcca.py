@@ -25,20 +25,14 @@ latent_dims = 2
 # number of epochs for deep models
 epochs = 10
 
-encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
-encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
+encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=392, variational=True)
+encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=392, variational=True)
 private_encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=392, variational=True)
 private_encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=392, variational=True)
 decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=392)
 decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=392)
 private_decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=392)
 private_decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=392)
-
-# DCCAE
-dccae_model = DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2])
-dccae_model = CCALightning(dccae_model)
-trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
-trainer.fit(dccae_model, train_loader, val_loader)
 
 # Deep VCCA
 dcca = DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2])
@@ -52,3 +46,9 @@ dcca = DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=
 dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
+
+# DCCAE
+dccae_model = DCCAE(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2])
+dccae_model = CCALightning(dccae_model)
+trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
+trainer.fit(dccae_model, train_loader, val_loader)
