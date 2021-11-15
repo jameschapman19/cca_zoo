@@ -24,6 +24,7 @@ class NCCA(_CCA_Base):
     >>> X2 = np.random.rand(10,5)
     >>> model = NCCA()
     >>> model.fit((X1,X2))
+    NCCA()
     """
 
     def __init__(
