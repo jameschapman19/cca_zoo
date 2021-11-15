@@ -26,7 +26,7 @@ class rCCA(_CCA_Base):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = rCCA(c=[0.1,0.1])
-    >>> model.fit([X1,X2])
+    >>> model.fit((X1,X2))
     """
 
     def __init__(
@@ -173,7 +173,7 @@ class CCA(rCCA):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = CCA()
-    >>> model.fit(X1,X2)
+    >>> model.fit((X1,X2))
     """
 
     def __init__(
@@ -213,8 +213,8 @@ class PLS(rCCA):
     >>> from cca_zoo.models import PLS
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
-    >>> model = CCA()
-    >>> model.fit([X1,X2])
+    >>> model = PLS()
+    >>> model.fit((X1,X2))
     """
 
     def __init__(

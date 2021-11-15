@@ -144,7 +144,7 @@ class PLS_ALS(_Iterative):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = PLS_ALS()
-    >>> model.fit([X1,X2])
+    >>> model.fit((X1,X2))
     """
 
     def __init__(
@@ -210,7 +210,7 @@ class ElasticCCA(_Iterative):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = ElasticCCA(c=[0.1,0.1],l1_ratio=[0.5,0.5])
-    >>> model.fit([X1,X2])
+    >>> model.fit((X1,X2))
     """
 
     def __init__(
@@ -303,7 +303,7 @@ class CCA_ALS(ElasticCCA):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = CCA_ALS()
-    >>> model.fit(X1,X2)
+    >>> model.fit((X1,X2))
     """
 
     def __init__(
@@ -368,7 +368,7 @@ class SCCA(ElasticCCA):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = SCCA(c=[0.001,0.001])
-    >>> model.fit(X1,X2)
+    >>> model.fit((X1,X2))
     """
 
     def __init__(
@@ -435,7 +435,7 @@ class PMD(_Iterative):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = PMD(c=[1,1])
-    >>> model.fit(X1,X2)
+    >>> model.fit((X1,X2))
     """
 
     def __init__(
@@ -508,7 +508,7 @@ class ParkhomenkoCCA(_Iterative):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = ParkhomenkoCCA(c=[0.001,0.001])
-    >>> model.fit(X1,X2)
+    >>> model.fit((X1,X2))
     """
 
     def __init__(
@@ -577,7 +577,7 @@ class SCCA_ADMM(_Iterative):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = SCCA_ADMM()
-    >>> model.fit(X1,X2)
+    >>> model.fit((X1,X2))
     """
 
     def __init__(
@@ -652,6 +652,14 @@ class SpanCCA(_Iterative):
 
     Asteris, Megasthenis, et al. "A simple and provable algorithm for sparse diagonal CCA." International Conference on Machine Learning. PMLR, 2016.
 
+
+    :Example:
+
+    >>> from cca_zoo.models import SpanCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = SpanCCA()
+    >>> model.fit((X1,X2))
     """
 
     def __init__(
@@ -726,6 +734,13 @@ class SWCCA(_Iterative):
     Wenwen, M. I. N., L. I. U. Juan, and Shihua Zhang. "Sparse Weighted Canonical Correlation Analysis." Chinese Journal of Electronics 27.3 (2018): 459-466.
 
 
+    :Example:
+
+    >>> from cca_zoo.models import SWCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> model = SWCCA()
+    >>> model.fit((X1,X2))
     """
 
     def __init__(

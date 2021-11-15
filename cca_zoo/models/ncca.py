@@ -19,11 +19,11 @@ class NCCA(_CCA_Base):
     Michaeli, Tomer, Weiran Wang, and Karen Livescu. "Nonparametric canonical correlation analysis." International conference on machine learning. PMLR, 2016.
 
     :Example:
-    >>> from cca_zoo.experimental import NCCA
+    >>> from cca_zoo.models import NCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = NCCA()
-    >>> model.fit([X1,X2])
+    >>> model.fit((X1,X2))
     """
 
     def __init__(
