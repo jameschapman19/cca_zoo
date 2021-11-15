@@ -32,7 +32,8 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx.ext.viewcode",
     "sphinx_gallery.gen_gallery",
-    "sphinx.ext.napoleon"
+    "sphinx.ext.napoleon",
+    "sphinx.ext.githubpages"
 ]
 
 sphinx_gallery_conf = {

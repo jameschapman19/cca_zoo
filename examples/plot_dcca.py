@@ -12,8 +12,8 @@ from cca_zoo.data import Noisy_MNIST_Dataset
 from cca_zoo.deepmodels import DCCA, CCALightning, get_dataloaders, architectures, DCCA_NOI, DCCA_SDL, \
     BarlowTwins
 
-train_dataset = Noisy_MNIST_Dataset(mnist_type='FashionMNIST', train=True)
-test_dataset = Noisy_MNIST_Dataset(mnist_type='FashionMNIST', train=False)
+train_dataset = Noisy_MNIST_Dataset(mnist_type='MNIST', train=True)
+test_dataset = Noisy_MNIST_Dataset(mnist_type='MNIST', train=False)
 train_loader, val_loader = get_dataloaders(train_dataset, test_dataset)
 
 # The number of latent dimensions across models
