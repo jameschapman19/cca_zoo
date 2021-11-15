@@ -37,6 +37,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "sphinx.ext.napoleon",
     "sphinx.ext.githubpages",
+    "sphinx.ext.mathjax",
 ]
 
 sphinx_gallery_conf = {

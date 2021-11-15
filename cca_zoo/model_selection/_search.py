@@ -51,7 +51,7 @@ def param2grid(params):
     ---------
     >>> params = {'regs': [[1, 2], [3, 4]]}
     >>> param2grid(params)
-    [[1,3], [1,4], [2,3], [2,4]]
+    {'regs': [[1, 3], [1, 4], [2, 3], [2, 4]]}
     """
     for k, v in params.items():
         if any([isinstance(v_, list) for v_ in v]):

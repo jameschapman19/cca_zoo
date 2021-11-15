@@ -208,6 +208,17 @@ class PLS(rCCA):
 
     Implements PLS by inheriting regularised CCA with maximal regularisation
 
+
+    .. math::
+
+    w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}
+
+    \text{subject to:}
+
+    \|w_1\|_2=1,
+
+    \|w_2\|_2=1
+
     :Example:
 
     >>> from cca_zoo.models import PLS
