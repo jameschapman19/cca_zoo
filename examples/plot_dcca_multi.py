@@ -7,6 +7,7 @@ This example demonstrates how to easily train Deep CCA models and variants
 
 import numpy as np
 import pytorch_lightning as pl
+from torch.utils.data import Subset
 
 # %%
 from cca_zoo.data import Split_MNIST_Dataset

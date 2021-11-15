@@ -8,6 +8,7 @@ Showing some examples of more advanced functionality
 import numpy as np
 # %%
 import pytorch_lightning as pl
+from torch.utils.data import Subset
 
 from cca_zoo.data import Split_MNIST_Dataset
 from cca_zoo.deepmodels import DCCA, CCALightning, get_dataloaders, architectures
