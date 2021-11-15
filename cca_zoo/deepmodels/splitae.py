@@ -17,7 +17,7 @@ class SplitAE(_DCCA_base):
     Examples
     --------
     >>> from cca_zoo.deepmodels import SplitAE
-    >>> model = SplitAE()
+    >>> model = SplitAE(1)
     """
 
     def __init__(self, latent_dims: int, encoder: BaseEncoder = Encoder, decoders=None):

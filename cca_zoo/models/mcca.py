@@ -20,11 +20,14 @@ class MCCA(rCCA):
 
     :Example:
     >>> from cca_zoo.models import MCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> X3 = np.random.rand(10,5)
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> X3 = rng.random((10,5))
     >>> model = MCCA()
     >>> model.fit((X1,X2,X3))
+    MCCA()
     """
 
     def __init__(
@@ -95,11 +98,14 @@ class KCCA(MCCA):
     :Example:
 
     >>> from cca_zoo.models import KCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> X3 = np.random.rand(10,5)
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> X3 = rng.random((10,5))
     >>> model = KCCA()
     >>> model.fit((X1,X2,X3))
+    KCCA()
     """
 
     def __init__(

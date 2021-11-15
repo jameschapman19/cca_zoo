@@ -145,6 +145,7 @@ class PLS_ALS(_Iterative):
     >>> X2 = np.random.rand(10,5)
     >>> model = PLS_ALS()
     >>> model.fit((X1,X2))
+    PLS_ALS()
     """
 
     def __init__(
@@ -211,6 +212,7 @@ class ElasticCCA(_Iterative):
     >>> X2 = np.random.rand(10,5)
     >>> model = ElasticCCA(c=[0.1,0.1],l1_ratio=[0.5,0.5])
     >>> model.fit((X1,X2))
+    ElasticCCA(c=[0.1,0.1],l1_ratio=[0.5,0.5])
     """
 
     def __init__(
@@ -304,6 +306,7 @@ class CCA_ALS(ElasticCCA):
     >>> X2 = np.random.rand(10,5)
     >>> model = CCA_ALS()
     >>> model.fit((X1,X2))
+    CCA_ALS()
     """
 
     def __init__(
@@ -369,6 +372,7 @@ class SCCA(ElasticCCA):
     >>> X2 = np.random.rand(10,5)
     >>> model = SCCA(c=[0.001,0.001])
     >>> model.fit((X1,X2))
+    SCCA(c=[0.001,0.001])
     """
 
     def __init__(
@@ -436,6 +440,7 @@ class PMD(_Iterative):
     >>> X2 = np.random.rand(10,5)
     >>> model = PMD(c=[1,1])
     >>> model.fit((X1,X2))
+    PMD(c=[1,1])
     """
 
     def __init__(
@@ -509,6 +514,7 @@ class ParkhomenkoCCA(_Iterative):
     >>> X2 = np.random.rand(10,5)
     >>> model = ParkhomenkoCCA(c=[0.001,0.001])
     >>> model.fit((X1,X2))
+    ParkhomenkoCCA(c=[0.001,0.001])
     """
 
     def __init__(
@@ -578,6 +584,7 @@ class SCCA_ADMM(_Iterative):
     >>> X2 = np.random.rand(10,5)
     >>> model = SCCA_ADMM()
     >>> model.fit((X1,X2))
+    SCCA_ADMM()
     """
 
     def __init__(
@@ -660,6 +667,7 @@ class SpanCCA(_Iterative):
     >>> X2 = np.random.rand(10,5)
     >>> model = SpanCCA()
     >>> model.fit((X1,X2))
+    SpanCCA()
     """
 
     def __init__(
@@ -741,6 +749,7 @@ class SWCCA(_Iterative):
     >>> X2 = np.random.rand(10,5)
     >>> model = SWCCA()
     >>> model.fit((X1,X2))
+    SWCCA()
     """
 
     def __init__(

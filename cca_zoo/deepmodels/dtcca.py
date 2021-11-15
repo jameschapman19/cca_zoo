@@ -21,7 +21,7 @@ class DTCCA(DCCA):
     Examples
     --------
     >>> from cca_zoo.deepmodels import DTCCA
-    >>> model = DTCCA()
+    >>> model = DTCCA(1)
     """
 
     def __init__(
