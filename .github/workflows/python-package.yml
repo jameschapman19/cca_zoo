@@ -5,14 +5,16 @@ name: Python package
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ main ]
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
+    env:
+      MODULE_NAME: cca_zoo
     strategy:
       matrix:
         python-version: [3.7, 3.8, 3.9]
@@ -44,5 +46,6 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
-    - name: Test examples
-      run: pytest test/test_examples.py
+    - name: Run doctests
+      run: |
+        pytest --doctest-modules --ignore=$MODULE_NAME/tests $MODULE_NAME
