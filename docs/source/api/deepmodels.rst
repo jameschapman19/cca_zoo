@@ -43,10 +43,10 @@ Split Autoencoders
     :members:
     :undoc-members:
 
-Deep Wrapper for Training
---------------------------------------
+CCALightning Module for training with pytorch-lightning
+---------------------------------------------------------
 
-.. automodule:: cca_zoo.deepmodels.deepwrapper
+.. automodule:: cca_zoo.deepmodels.CCALightning
     :members:
     :inherited-members:
     :exclude-members: get_params, set_params

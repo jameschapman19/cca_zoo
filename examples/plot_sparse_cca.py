@@ -59,7 +59,6 @@ plot_model_weights(pls.weights[0], pls.weights[1], tx, ty)
 pmd = PMD(c=[2, 2]).fit([X, Y])
 plot_model_weights(pmd.weights[0], pmd.weights[1], tx, ty)
 
-
 # %%
 plt.figure()
 plt.title('Objective Convergence')
@@ -132,4 +131,3 @@ plt.title('Objective Convergence')
 plt.plot(np.array(spancca.track[0]['objective']).T)
 plt.ylabel('Objective')
 plt.xlabel('#iterations')
-

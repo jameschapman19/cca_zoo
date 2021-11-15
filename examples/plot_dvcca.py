@@ -5,15 +5,19 @@ Deep CCA
 This example demonstrates how to easily train Deep CCA models and variants
 """
 
+import numpy as np
 import pytorch_lightning as pl
 
 # %%
 from cca_zoo.data import Split_MNIST_Dataset
 from cca_zoo.deepmodels import CCALightning, get_dataloaders, architectures, DCCAE, DVCCA
 
-train_dataset = Split_MNIST_Dataset(mnist_type='FashionMNIST', train=True)
-test_dataset = Split_MNIST_Dataset(mnist_type='FashionMNIST', train=False)
-train_loader, val_loader = get_dataloaders(train_dataset, test_dataset)
+n_train = 500
+n_val = 100
+train_dataset = Split_MNIST_Dataset(mnist_type='MNIST', train=True)
+val_dataset = Subset(train_dataset, np.arange(n_train, n_train + n_val))
+train_dataset = Subset(train_dataset, np.arange(n_train))
+train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
 
 # The number of latent dimensions across models
 latent_dims = 2
