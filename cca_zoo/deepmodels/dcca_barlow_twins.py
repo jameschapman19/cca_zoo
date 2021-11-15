@@ -40,10 +40,6 @@ class BarlowTwins(DCCA):
         )
 
     def forward(self, *args):
-        z = self.encode(*args)
-        return z
-
-    def encode(self, *args):
         z = []
         for i, (encoder, bn) in enumerate(zip(self.encoders, self.bns)):
             z.append(bn(encoder(args[i])))

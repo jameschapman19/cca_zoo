@@ -67,7 +67,7 @@ class DCCA_NOI(DCCA):
     def loss(self, *args):
         z = self(*args)
         z_copy = [z_.detach().clone() for z_ in z]
-        self.update_covariances(*z_copy)
+        self._update_covariances(*z_copy)
         covariance_inv = [
             torch.linalg.inv(objectives.MatrixSquareRoot.apply(cov))
             for cov in self.covs
@@ -76,7 +76,7 @@ class DCCA_NOI(DCCA):
         loss = self.mse(z[0], preds[1]) + self.mse(z[1], preds[0])
         return loss
 
-    def update_mean(self, *z):
+    def _update_mean(self, *z):
         batch_means = [torch.mean(z_, dim=0) for z_ in z]
         if self.means is not None:
             self.means = [
@@ -88,7 +88,7 @@ class DCCA_NOI(DCCA):
         z = [z_ - mean for (z_, mean) in zip(z, self.means)]
         return z
 
-    def update_covariances(self, *z):
+    def _update_covariances(self, *z):
         b = z[0].shape[0]
         batch_covs = [self.N * z_.T @ z_ / b for z_ in z]
         if self.covs is not None:

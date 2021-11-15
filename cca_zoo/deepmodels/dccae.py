@@ -62,7 +62,6 @@ class DCCAE(_DCCA_base):
         """
         This method is used to decode from the latent space to the best prediction of the original views
 
-        :param args:
         """
         recon = []
         for i, decoder in enumerate(self.decoders):
@@ -72,11 +71,11 @@ class DCCAE(_DCCA_base):
     def loss(self, *args):
         z = self(*args)
         recon = self.decode(*z)
-        recon_loss = self.recon_loss(args[: len(recon)], recon)
+        recon_loss = self._recon_loss(args[: len(recon)], recon)
         return self.lam * recon_loss + self.objective.loss(*z)
 
     @staticmethod
-    def recon_loss(x, recon):
+    def _recon_loss(x, recon):
         recons = [
             F.mse_loss(recon_, x_, reduction="mean") for recon_, x_ in zip(recon, x)
         ]

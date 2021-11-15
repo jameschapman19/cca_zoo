@@ -27,12 +27,8 @@ epochs = 10
 
 encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=392, variational=True)
 encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=392, variational=True)
-private_encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=392, variational=True)
-private_encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=392, variational=True)
 decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=392)
 decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=392)
-private_decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=392)
-private_decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=392)
 
 # Deep VCCA
 dcca = DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[decoder_1, decoder_2])
@@ -41,6 +37,12 @@ trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
 
 # Deep VCCA (private)
+# We need to add additional private encoders and change (double) the dimensionality of the decoders.
+private_encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=392, variational=True)
+private_encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=392, variational=True)
+private_decoder_1 = architectures.Decoder(latent_dims=2 * latent_dims, feature_size=392)
+private_decoder_2 = architectures.Decoder(latent_dims=2 * latent_dims, feature_size=392)
+
 dcca = DVCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], decoders=[private_decoder_1, private_decoder_2],
              private_encoders=[private_encoder_1, private_encoder_2])
 dcca = CCALightning(dcca)
