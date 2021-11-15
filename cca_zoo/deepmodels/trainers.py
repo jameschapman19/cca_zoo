@@ -137,13 +137,13 @@ class CCALightning(LightningModule):
 
     def on_train_epoch_end(self, unused: Optional = None) -> None:
         score = self.score(
-            self.train_dataloader(), train=True
+            self.trainer.train_dataloader, train=True
         ).sum()
         self.log('train corr', score)
 
     def on_validation_epoch_end(self, unused: Optional = None) -> None:
         score = self.score(
-            self.val_dataloader(), train=True
+            self.trainer.val_dataloaders[0], train=True
         ).sum()
         self.log('val corr', score)
 
