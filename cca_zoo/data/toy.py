@@ -34,7 +34,6 @@ class Split_MNIST_Dataset(Dataset):
             self.dataset = datasets.KMNIST("../../data", train=train, download=True)
 
         self.data = self.dataset.data
-        self.base_transform = transforms.ToTensor()
         self.targets = self.dataset.targets
         self.flatten = flatten
 

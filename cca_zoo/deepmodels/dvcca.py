@@ -52,7 +52,7 @@ class DVCCA(_DCCA_base):
         :return:
         """
         # Used when we get reconstructions
-        mu, logvar = self.encode(*args)
+        mu, logvar = self._encode(*args)
         if mle:
             z = mu
         else:
@@ -62,7 +62,7 @@ class DVCCA(_DCCA_base):
         if len(self.encoders) == 1:
             z = z * len(args)
         if self.private_encoders:
-            mu_p, logvar_p = self.encode_private(*args)
+            mu_p, logvar_p = self._encode_private(*args)
             if mle:
                 z_p = mu_p
             else:
@@ -71,7 +71,7 @@ class DVCCA(_DCCA_base):
             z = [torch.cat([z_] + z_p, dim=-1) for z_ in z]
         return z
 
-    def encode(self, *args):
+    def _encode(self, *args):
         """
         :param args:
         :return:
@@ -84,7 +84,7 @@ class DVCCA(_DCCA_base):
             logvar.append(logvar_i)
         return mu, logvar
 
-    def encode_private(self, *args):
+    def _encode_private(self, *args):
         """
         :param args:
         :return:
@@ -97,14 +97,14 @@ class DVCCA(_DCCA_base):
             logvar.append(logvar_i)
         return mu, logvar
 
-    def decode(self, z):
+    def _decode(self, z):
         """
         :param z:
         :return:
         """
         x = []
         for i, decoder in enumerate(self.decoders):
-            x_i = decoder(z)
+            x_i = F.sigmoid(decoder(z))
             x.append(x_i)
         return x
 
@@ -114,16 +114,16 @@ class DVCCA(_DCCA_base):
         :return:
         """
         z = self(*args)
-        return [self.decode(z_i) for z_i in z][0]
+        return [self._decode(z_i) for z_i in z][0]
 
     def loss(self, *args):
         """
         :param args:
         :return:
         """
-        mus, logvars = self.encode(*args)
+        mus, logvars = self._encode(*args)
         if self.private_encoders:
-            mus_p, logvars_p = self.encode_private(*args)
+            mus_p, logvars_p = self._encode_private(*args)
             losses = [
                 self.vcca_private_loss(
                     *args, mu=mu, logvar=logvar, mu_p=mu_p, logvar_p=logvar_p
@@ -150,7 +150,7 @@ class DVCCA(_DCCA_base):
         kl = torch.mean(
             -0.5 * torch.sum(1 + logvar - logvar.exp() - mu.pow(2), dim=1), dim=0
         )
-        recons = self.decode(z)
+        recons = self._decode(z)
         bces = torch.stack(
             [
                 F.binary_cross_entropy(recon, arg, reduction="sum") / batch_n
@@ -185,7 +185,7 @@ class DVCCA(_DCCA_base):
             -0.5 * torch.sum(1 + logvar - logvar.exp() - mu.pow(2), dim=1), dim=0
         )
         z_combined = torch.cat([z, z_p], dim=-1)
-        recon = self.decode(z_combined)
+        recon = self._decode(z_combined)
         bces = torch.stack(
             [
                 F.binary_cross_entropy(recon[i], args[i], reduction="sum") / batch_n

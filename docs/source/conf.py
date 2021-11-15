@@ -14,10 +14,13 @@ import os
 import sys
 import warnings
 
-sys.path.insert(0, os.path.abspath('../..'))
-warnings.filterwarnings("ignore", category=UserWarning,
-                        message="Matplotlib is currently using agg, which is a"
-                                " non-GUI backend, so cannot show the figure.")
+sys.path.insert(0, os.path.abspath("../.."))
+warnings.filterwarnings(
+    "ignore",
+    category=UserWarning,
+    message="Matplotlib is currently using agg, which is a"
+            " non-GUI backend, so cannot show the figure.",
+)
 # -- Project information -----------------------------------------------------
 
 project = "cca-zoo"
@@ -32,7 +35,9 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx.ext.viewcode",
     "sphinx_gallery.gen_gallery",
-    "sphinx.ext.napoleon"
+    "sphinx.ext.napoleon",
+    "sphinx.ext.githubpages",
+    "sphinx.ext.mathjax",
 ]
 
 sphinx_gallery_conf = {
@@ -78,4 +83,4 @@ html_theme = "sphinx_rtd_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-master_doc = 'index'
+master_doc = "index"

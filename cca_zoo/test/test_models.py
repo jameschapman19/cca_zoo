@@ -21,16 +21,18 @@ from cca_zoo.models import (
     SpanCCA,
     SWCCA,
     PLS_ALS,
-    KGCCA, NCCA,
+    KGCCA,
+    NCCA,
 )
 from cca_zoo.utils.plotting import cv_plot
 
+n = 50
 rng = check_random_state(0)
-X = rng.rand(20, 4)
-Y = rng.rand(20, 5)
-Z = rng.rand(20, 6)
-X_sp = sp.random(20, 4, density=0.5, random_state=rng)
-Y_sp = sp.random(20, 5, density=0.5, random_state=rng)
+X = rng.rand(n, 4)
+Y = rng.rand(n, 5)
+Z = rng.rand(n, 6)
+X_sp = sp.random(n, 4, density=0.5, random_state=rng)
+Y_sp = sp.random(n, 5, density=0.5, random_state=rng)
 
 
 def test_unregularized_methods():
@@ -67,49 +69,49 @@ def test_unregularized_methods():
     # Check standardized models have standard outputs
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(iter.transform((X, Y))[0], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(iter.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(cca.transform((X, Y))[0], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(cca.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(mcca.transform((X, Y))[0], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(mcca.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(kcca.transform((X, Y))[0], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(kcca.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(iter.transform((X, Y))[1], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(iter.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(cca.transform((X, Y))[1], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(cca.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(mcca.transform((X, Y))[1], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(mcca.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
     assert (
             np.testing.assert_allclose(
-                np.linalg.norm(kcca.transform((X, Y))[1], axis=0) ** 2, 500, rtol=0.1
+                np.linalg.norm(kcca.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
             )
             is None
     )
@@ -202,12 +204,13 @@ def test_non_negative_methods():
 
 
 def test_ncca():
-    #TODO sensible check
+    # TODO sensible check
     latent_dims = 2
     ncca = NCCA(latent_dims=latent_dims).fit([X, Y])
 
+
 def test_sparse_methods():
-    #TODO check these are sparse outputs and reasonable correlation
+    # TODO check these are sparse outputs and reasonable correlation
     c1 = [1, 3]
     c2 = [1, 3]
     param_grid = {"c": [c1, c2]}
@@ -232,7 +235,7 @@ def test_sparse_methods():
 
 
 def test_weighted_GCCA_methods():
-    #TODO we have view weighted GCCA and missing observation GCCA
+    # TODO we have view weighted GCCA and missing observation GCCA
     latent_dims = 2
     c = 0
     unweighted_gcca = GCCA(latent_dims=latent_dims, c=[c, c]).fit([X, Y])
@@ -254,7 +257,7 @@ def test_weighted_GCCA_methods():
 
 
 def test_TCCA():
-    #TODO Sensible check for kernel TCCA
+    # TODO Sensible check for kernel TCCA
     latent_dims = 2
     tcca = TCCA(latent_dims=latent_dims, c=[0.2, 0.2, 0.2]).fit([X, X, Y])
     ktcca = KTCCA(latent_dims=latent_dims, c=[0.2, 0.2]).fit([X, Y])

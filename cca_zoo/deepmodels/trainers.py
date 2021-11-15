@@ -14,7 +14,7 @@ class CCALightning(LightningModule):
     def __init__(
             self,
             model: _DCCA_base,
-            optimizer: Union[torch.optim.Optimizer, str] = 'Adam',
+            optimizer: Union[torch.optim.Optimizer, str] = "Adam",
             learning_rate: float = 1e-3,
             weight_decay: float = 0.1,
             lr_scheduler: torch.optim.lr_scheduler._LRScheduler = None,
@@ -85,13 +85,14 @@ class CCALightning(LightningModule):
 
         if self.hparams.lr_scheduler is None:
             return optimizer
-        elif isinstance(self.hparams.lr_scheduler, torch.optim.lr_scheduler._LRScheduler):
+        elif isinstance(
+                self.hparams.lr_scheduler, torch.optim.lr_scheduler._LRScheduler
+        ):
             scheduler = self.hparams.lr_scheduler
         elif self.hparams.lr_scheduler == "StepLR":
             step_size = self.hparams.StepLR_step_size
             gamma = self.hparams.StepLR_gamma
-            scheduler = torch.optim.lr_scheduler.StepLR(
-                optimizer, step_size, gamma)
+            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size, gamma)
         elif self.hparams.lr_scheduler == "ReduceLROnPlateau":
             factor = self.hparams.lr_factor
             patience = self.hparams.lr_patience
@@ -106,9 +107,7 @@ class CCALightning(LightningModule):
         elif self.hparams.lr_scheduler == "OneCycleLR":
             max_lr = self.hparams.OneCycleLR_max_lr
             epochs = self.hparams.OneCycleLR_epochs
-            steps_per_epoch = self.hparams.train_trajectories * (
-                    self.hparams.T + 1
-            )
+            steps_per_epoch = self.hparams.train_trajectories * (self.hparams.T + 1)
             scheduler = torch.optim.lr_scheduler.OneCycleLR(
                 optimizer,
                 max_lr=max_lr,
@@ -136,16 +135,12 @@ class CCALightning(LightningModule):
         return loss
 
     def on_train_epoch_end(self, unused: Optional = None) -> None:
-        score = self.score(
-            self.train_dataloader(), train=True
-        ).sum()
-        self.log('train corr', score)
+        score = self.score(self.trainer.train_dataloader, train=True).sum()
+        self.log("train corr", score)
 
     def on_validation_epoch_end(self, unused: Optional = None) -> None:
-        score = self.score(
-            self.val_dataloader(), train=True
-        ).sum()
-        self.log('val corr', score)
+        score = self.score(self.trainer.val_dataloaders[0], train=True).sum()
+        self.log("val corr", score)
 
     def correlations(
             self,
@@ -158,9 +153,7 @@ class CCALightning(LightningModule):
         :param train: if True and the model requires a final linear CCA this solves and stores the linear CCA
         :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
         """
-        transformed_views = self.transform(
-            loader, train=train
-        )
+        transformed_views = self.transform(loader, train=train)
         if len(transformed_views) < 2:
             return None
         all_corrs = []
@@ -207,16 +200,15 @@ class CCALightning(LightningModule):
         :param train: if True and the model requires a final linear CCA this solves and stores the linear CCA
         :return: by default returns the average pairwise correlation in each dimension (for 2 views just the correlation)
         """
-        pair_corrs = self.correlations(
-            loader, train=train
-        )
+        pair_corrs = self.correlations(loader, train=train)
         if pair_corrs is None:
             return np.zeros(1)
         # n views
         n_views = pair_corrs.shape[0]
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
-        dim_corrs = (pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
-                     ) / (n_views ** 2 - n_views)
+        dim_corrs = (
+                            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
+                    ) / (n_views ** 2 - n_views)
         return dim_corrs
 
     def predict_view(

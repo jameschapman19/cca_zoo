@@ -27,8 +27,9 @@ class TCCA(_CCA_Base):
     >>> from cca_zoo.models import TCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
+    >>> X3 = np.random.rand(10,5)
     >>> model = TCCA()
-    >>> model.fit([X1,X2])
+    >>> model.fit((X1,X2,X3))
     """
 
     def __init__(
@@ -162,8 +163,9 @@ class KTCCA(TCCA):
     >>> from cca_zoo.models import KTCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
+    >>> X3 = np.random.rand(10,5)
     >>> model = KTCCA()
-    >>> model.fit([X1,X2])
+    >>> model.fit((X1,X2,X3))
     """
 
     def __init__(

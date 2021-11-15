@@ -19,3 +19,4 @@ Pillow
 jax~=0.2.20
 numpyro
 arviz
+pytorch-lightning

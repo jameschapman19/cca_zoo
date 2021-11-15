@@ -37,6 +37,10 @@ TCCA and KTCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
+
+More Complex Regularisation using Iterative Models
+-----------------------------------------------------
+
 .. toctree::
    :maxdepth: 1
    :caption: More Complex Regularisation using Iterative Models

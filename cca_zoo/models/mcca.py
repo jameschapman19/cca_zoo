@@ -22,8 +22,9 @@ class MCCA(rCCA):
     >>> from cca_zoo.models import MCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
+    >>> X3 = np.random.rand(10,5)
     >>> model = MCCA()
-    >>> model.fit([X1,X2])
+    >>> model.fit((X1,X2,X3))
     """
 
     def __init__(
@@ -96,8 +97,9 @@ class KCCA(MCCA):
     >>> from cca_zoo.models import KCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
+    >>> X3 = np.random.rand(10,5)
     >>> model = KCCA()
-    >>> model.fit([X1,X2])
+    >>> model.fit((X1,X2,X3))
     """
 
     def __init__(

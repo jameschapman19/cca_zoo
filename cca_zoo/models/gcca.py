@@ -23,9 +23,10 @@ class GCCA(rCCA):
     >>> from cca_zoo.models import GCCA
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random(10,5)
-    >>> X2 = np.random.rand(10,5)
+    >>> X2 = rng.random(10,5)
+    >>> X3 = rng.random(10,5)
     >>> model = GCCA()
-    >>> model.fit([X1,X2])
+    >>> model.fit((X1,X2,X3))
     """
 
     def __init__(
@@ -108,9 +109,10 @@ class KGCCA(GCCA):
     >>> from cca_zoo.models import KGCCA
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random(10,5)
-    >>> X2 = np.random.rand(10,5)
+    >>> X2 = rng.random(10,5)
+    >>> X3 = rng.random(10,5)
     >>> model = KGCCA()
-    >>> model.fit([X1,X2])
+    >>> model.fit((X1,X2,X3))
     """
 
     def __init__(

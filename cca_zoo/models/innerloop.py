@@ -469,7 +469,7 @@ class ElasticInnerLoop(PLSInnerLoop):
 
     def _early_stop(self) -> bool:
         # Some kind of early stopping
-        if np.abs(self.track['objective'][-2] - self.track['objective'][-1]) < self.tol:
+        if np.abs(self.track["objective"][-2] - self.track["objective"][-1]) < self.tol:
             return True
         else:
             return False

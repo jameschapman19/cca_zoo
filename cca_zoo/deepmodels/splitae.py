@@ -56,5 +56,7 @@ class SplitAE(_DCCA_base):
 
     @staticmethod
     def recon_loss(x, recon):
-        recons = [F.mse_loss(recon[i], x[i], reduction="mean") for i in range(len(recon))]
+        recons = [
+            F.mse_loss(recon[i], x[i], reduction="mean") for i in range(len(recon))
+        ]
         return torch.stack(recons).sum(dim=0)
