@@ -45,7 +45,7 @@ class DCCA_NOI(DCCA):
         self.eps = eps
         self.rho = rho
         self.shared_target = shared_target
-        self.mse = torch.nn.MSELoss()
+        self.mse = torch.nn.MSELoss(reduction='sum')
         # Authors state that a final linear layer is an important part of their algorithmic implementation
         self.linear_layers = torch.nn.ModuleList(
             [
@@ -77,7 +77,7 @@ class DCCA_NOI(DCCA):
         return loss
 
     def _update_mean(self, *z):
-        batch_means = [torch.mean(z_, dim=0) for z_ in z]
+        batch_means = [torch.mean(z_, dim=0).detach() for z_ in z]
         if self.means is not None:
             self.means = [
                 self.rho * self.means[i].detach() + (1 - self.rho) * batch_mean
@@ -88,13 +88,14 @@ class DCCA_NOI(DCCA):
         z = [z_ - mean for (z_, mean) in zip(z, self.means)]
         return z
 
-    def _update_covariances(self, *z):
+    def _update_covariances(self, *z, train=True):
         b = z[0].shape[0]
         batch_covs = [self.N * z_.T @ z_ / b for z_ in z]
-        if self.covs is not None:
-            self.covs = [
-                self.rho * self.covs[i] + (1 - self.rho) * batch_cov
-                for i, batch_cov in enumerate(batch_covs)
-            ]
-        else:
-            self.covs = batch_covs
+        if train:
+            if self.covs is not None:
+                self.covs = [
+                    self.rho * self.covs[i].detach() + (1 - self.rho) * batch_cov
+                    for i, batch_cov in enumerate(batch_covs)
+                ]
+            else:
+                self.covs = batch_covs

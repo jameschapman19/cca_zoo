@@ -64,8 +64,8 @@ class DCCA_SDL(DCCA_NOI):
 
     def loss(self, *args):
         z = self(*args)
-        covs = self._update_covariances(*z, train=self.training)
-        SDL_loss = self._sdl_loss(covs)
+        self._update_covariances(*z, train=self.training)
+        SDL_loss = self._sdl_loss(self.covs)
         l2_loss = F.mse_loss(z[0], z[1])
         return l2_loss + self.lam * SDL_loss
 
@@ -90,6 +90,6 @@ class DCCA_SDL(DCCA_NOI):
             else:
                 self.c = 1
                 self.covs = batch_covs
-            return [cov / self.c for cov in self.covs]
+            self.covs = [cov / self.c for cov in self.covs]
         else:
-            return batch_covs
+            self.covs = batch_covs
