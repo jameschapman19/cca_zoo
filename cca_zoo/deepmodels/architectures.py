@@ -68,7 +68,7 @@ class Encoder(BaseEncoder):
     def forward(self, x):
         x = self.layers(x)
         if self.variational:
-            mu = self.fc_mu(x)
+            mu = F.relu(self.fc_mu(x))
             logvar = self.fc_var(x)
             return mu, logvar
         else:
