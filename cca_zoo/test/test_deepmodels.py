@@ -69,7 +69,9 @@ def test_DCCA_methods():
     dcca_noi = DCCA_NOI(latent_dims, N, encoders=[encoder_1, encoder_2], rho=0)
     optimizer = optim.Adam(dcca_noi.parameters(), lr=1e-3)
     dcca_noi = CCALightning(dcca_noi, optimizer=optimizer)
-    trainer = pl.Trainer(max_epochs=epochs, log_every_n_steps=10, enable_checkpointing=False)
+    trainer = pl.Trainer(
+        max_epochs=epochs, log_every_n_steps=10, enable_checkpointing=False
+    )
     trainer.fit(dcca_noi, train_loader)
     assert (
             np.testing.assert_array_less(
@@ -101,7 +103,9 @@ def test_DCCA_methods():
     )
     optimizer = optim.SGD(dcca.parameters(), lr=1e-2)
     dcca = CCALightning(dcca, optimizer=optimizer)
-    trainer = pl.Trainer(max_epochs=epochs, log_every_n_steps=10, enable_checkpointing=False)
+    trainer = pl.Trainer(
+        max_epochs=epochs, log_every_n_steps=10, enable_checkpointing=False
+    )
     trainer.fit(dcca, train_loader)
     assert (
             np.testing.assert_array_less(
@@ -119,7 +123,9 @@ def test_DCCA_methods():
     )
     optimizer = optim.SGD(dgcca.parameters(), lr=1e-2)
     dgcca = CCALightning(dgcca, optimizer=optimizer)
-    trainer = pl.Trainer(max_epochs=epochs, log_every_n_steps=10, enable_checkpointing=False)
+    trainer = pl.Trainer(
+        max_epochs=epochs, log_every_n_steps=10, enable_checkpointing=False
+    )
     trainer.fit(dgcca, train_loader)
     assert (
             np.testing.assert_array_less(
@@ -137,7 +143,9 @@ def test_DCCA_methods():
     )
     optimizer = optim.SGD(dmcca.parameters(), lr=1e-2)
     dmcca = CCALightning(dmcca, optimizer=optimizer)
-    trainer = pl.Trainer(max_epochs=epochs, log_every_n_steps=10, enable_checkpointing=False)
+    trainer = pl.Trainer(
+        max_epochs=epochs, log_every_n_steps=10, enable_checkpointing=False
+    )
     trainer.fit(dmcca, train_loader)
     assert (
             np.testing.assert_array_less(
@@ -154,7 +162,9 @@ def test_DCCA_methods():
     )
     optimizer = optim.SGD(barlowtwins.parameters(), lr=1e-2)
     barlowtwins = CCALightning(barlowtwins, optimizer=optimizer)
-    trainer = pl.Trainer(max_epochs=epochs, log_every_n_steps=10, enable_checkpointing=False)
+    trainer = pl.Trainer(
+        max_epochs=epochs, log_every_n_steps=10, enable_checkpointing=False
+    )
     trainer.fit(barlowtwins, train_loader)
     assert (
             np.testing.assert_array_less(
@@ -187,8 +197,7 @@ def test_scheduler():
     optimizer = optim.Adam(dcca.parameters(), lr=1e-3)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, 1)
     dcca = CCALightning(dcca, optimizer=optimizer, lr_scheduler=scheduler)
-    trainer = pl.Trainer(
-        max_epochs=5, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False)
     trainer.fit(dcca, train_loader)
 
 
@@ -203,8 +212,7 @@ def test_DCCAE_methods():
         latent_dims=latent_dims, encoder=encoder_1, decoders=[decoder_1, decoder_2]
     )
     splitae = CCALightning(splitae)
-    trainer = pl.Trainer(
-        max_epochs=5, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False)
     trainer.fit(splitae, train_loader)
     # DCCAE
     dccae = DCCAE(
@@ -213,8 +221,7 @@ def test_DCCAE_methods():
         decoders=[decoder_1, decoder_2],
     )
     dccae = CCALightning(dccae)
-    trainer = pl.Trainer(
-        max_epochs=5, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False)
     trainer.fit(dccae, train_loader)
 
 
@@ -231,8 +238,7 @@ def test_DCCAEconv_methods():
         decoders=[decoder_1, decoder_2],
     )
     dccae = CCALightning(dccae)
-    trainer = pl.Trainer(
-        max_epochs=5, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False)
     trainer.fit(dccae, conv_loader)
 
 
@@ -265,8 +271,7 @@ def test_DVCCA_p_methods():
     )
 
     dvcca = CCALightning(dvcca)
-    trainer = pl.Trainer(
-        max_epochs=5, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False)
     trainer.fit(dvcca, train_loader)
 
 
@@ -291,8 +296,7 @@ def test_DVCCA_methods():
     )
 
     dvcca = CCALightning(dvcca)
-    trainer = pl.Trainer(
-        max_epochs=5, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False)
     trainer.fit(dvcca, train_loader)
 
 
@@ -301,8 +305,7 @@ def test_linear():
     encoder_2 = architectures.LinearEncoder(latent_dims=1, feature_size=12)
     dcca = DCCA(latent_dims=1, encoders=[encoder_1, encoder_2])
     dcca = CCALightning(dcca, learning_rate=1e-1)
-    trainer = pl.Trainer(
-        max_epochs=50, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=50, enable_checkpointing=False)
     trainer.fit(dcca, loader)
     cca = CCA().fit((X, Y))
     # check linear encoder with SGD matches vanilla linear CCA
