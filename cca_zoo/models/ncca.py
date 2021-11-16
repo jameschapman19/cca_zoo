@@ -15,7 +15,7 @@ class NCCA(_CCA_Base):
 
     :Citation:
 
-    .. Michaeli, Tomer, Weiran Wang, and Karen Livescu. "Nonparametric canonical correlation analysis." International conference on machine learning. PMLR, 2016.
+    Michaeli, Tomer, Weiran Wang, and Karen Livescu. "Nonparametric canonical correlation analysis." International conference on machine learning. PMLR, 2016.
 
     :Example:
     >>> from cca_zoo.models import NCCA

@@ -9,10 +9,9 @@ class SplitAE(_DCCA_base):
     """
     A class used to fit a Split Autoencoder model.
 
-    Citation
-    --------
+    :Citation:
 
-    .. Ngiam, Jiquan, et al. "Multimodal deep learning." ICML. 2011.
+    Ngiam, Jiquan, et al. "Multimodal deep learning." ICML. 2011.
 
     """
 
