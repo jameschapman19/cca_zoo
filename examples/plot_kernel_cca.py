@@ -67,8 +67,8 @@ kernel_poly = (
 
 # %%
 # kernel cca (gaussian/rbf)
-gamma1 = [1e-1, 1e-2, 1e-3]
-gamma2 = [1e-1, 1e-2, 1e-3]
+gamma1 = [1e-1, 1e-2]
+gamma2 = [1e-1, 1e-2]
 param_grid = {"kernel": ["rbf"], "gamma": [gamma1, gamma2], "c": [c1, c2]}
 kernel_poly = (
     GridSearchCV(
