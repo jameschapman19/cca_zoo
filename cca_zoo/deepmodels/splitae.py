@@ -11,6 +11,7 @@ class SplitAE(_DCCA_base):
 
     Citation
     --------
+
     .. Ngiam, Jiquan, et al. "Multimodal deep learning." ICML. 2011.
 
     """

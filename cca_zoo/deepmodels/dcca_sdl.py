@@ -10,6 +10,7 @@ class DCCA_SDL(DCCA_NOI):
 
     Citation
     --------
+
     .. Chang, Xiaobin, Tao Xiang, and Timothy M. Hospedales. "Scalable and effective deep CCA via soft decorrelation." Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2018.
 
     """

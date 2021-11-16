@@ -12,6 +12,7 @@ class BarlowTwins(DCCA):
 
     Citation
     --------
+
     .. Zbontar, Jure, et al. "Barlow twins: Self-supervised learning via redundancy reduction." arXiv preprint arXiv:2103.03230 (2021).
 
     """

@@ -220,6 +220,7 @@ class CCA(rCCA):
     ):
         """
         Constructor for CCA
+
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample
@@ -276,7 +277,8 @@ class PLS(rCCA):
             random_state=None,
     ):
         """
-        Constructor for CCA
+        Constructor for PLS
+
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample

@@ -15,6 +15,7 @@ class DTCCA(DCCA):
 
     Citation
     --------
+
     .. Wong, Hok Shing, et al. "Deep Tensor CCA for Multi-view Learning." IEEE Transactions on Big Data (2021).
 
     """
