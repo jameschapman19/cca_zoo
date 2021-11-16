@@ -263,7 +263,7 @@ def test_TCCA():
 
 
 def test_NCCA():
-    latent_dims = 2
+    latent_dims = 1
     ncca = NCCA(latent_dims=latent_dims).fit((X, Y))
     corr_ncca = ncca.score((X, Y))
     assert corr_ncca > 0.9
