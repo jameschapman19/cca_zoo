@@ -374,11 +374,13 @@ class SCCA(ElasticCCA):
     :Example:
 
     >>> from cca_zoo.models import SCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = SCCA(c=[0.001,0.001])
-    >>> model.fit((X1,X2))
-    SCCA(c=[0.001,0.001])
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = SCCA(c=[0.001,0.001], random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.99998919])
     """
 
     def __init__(
@@ -442,11 +444,13 @@ class PMD(_Iterative):
     :Example:
 
     >>> from cca_zoo.models import PMD
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = PMD(c=[1,1])
-    >>> model.fit((X1,X2))
-    PMD(c=[1,1])
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = PMD(c=[1,1],random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.69792082])
     """
 
     def __init__(
@@ -516,11 +520,13 @@ class ParkhomenkoCCA(_Iterative):
     :Example:
 
     >>> from cca_zoo.models import ParkhomenkoCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = ParkhomenkoCCA(c=[0.001,0.001])
-    >>> model.fit((X1,X2))
-    ParkhomenkoCCA(c=[0.001,0.001])
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = ParkhomenkoCCA(c=[0.001,0.001],random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.81803543])
     """
 
     def __init__(
@@ -586,10 +592,12 @@ class SCCA_ADMM(_Iterative):
     :Example:
 
     >>> from cca_zoo.models import SCCA_ADMM
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = SCCA_ADMM()
-    >>> model.fit((X1,X2))
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = SCCA_ADMM(random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
     SCCA_ADMM()
     """
 
@@ -669,10 +677,12 @@ class SpanCCA(_Iterative):
     :Example:
 
     >>> from cca_zoo.models import SpanCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
     >>> model = SpanCCA()
-    >>> model.fit((X1,X2))
+    >>> model.fit((X1,X2)).score((X1,X2))
     SpanCCA()
     """
 
@@ -751,10 +761,12 @@ class SWCCA(_Iterative):
     :Example:
 
     >>> from cca_zoo.models import SWCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
     >>> model = SWCCA()
-    >>> model.fit((X1,X2))
+    >>> model.fit((X1,X2)).score((X1,X2))
     SWCCA()
     """
 
