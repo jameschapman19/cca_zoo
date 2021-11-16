@@ -1,6 +1,6 @@
 Normal CCA and PLS by alternating least squares
 --------------------------------------------------
-Potentially quicker for bery large data
+Potentially quicker for very large data
 
 .. automodule:: cca_zoo.models.CCA_ALS
     :inherited-members:
