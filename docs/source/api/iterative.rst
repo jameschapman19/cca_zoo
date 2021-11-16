@@ -14,7 +14,6 @@ Potentially quicker for bery large data
 Sparsity Inducing Models
 --------------------------------------------------
 
-
 .. automodule:: cca_zoo.models.PMD
     :inherited-members:
     :exclude-members: get_params, set_params
