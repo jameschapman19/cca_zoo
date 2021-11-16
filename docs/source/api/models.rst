@@ -18,13 +18,13 @@ Canonical Correlation Analysis
     :inherited-members:
     :exclude-members: get_params, set_params
 
-Generalized (MAXVAR) Canonical Correlation Analysis
+Partial Least Squares
 ****************************************************
 .. autoclass:: cca_zoo.models.rcca.PLS
     :inherited-members:
     :exclude-members: get_params, set_params
 
-Generalized (MAXVAR) Canonical Correlation Analysis
+Ridge Regularized Canonical Correlation Analysis
 ****************************************************
 .. autoclass:: cca_zoo.models.rcca.rCCA
     :inherited-members:
@@ -78,6 +78,8 @@ Kernel Tensor Canonical Correlation Analysis
 More Complex Regularisation using Iterative Models
 -----------------------------------------------------
 
+.. toctree::
+   :maxdepth: 4
    iterative.rst
 
 
