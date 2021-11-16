@@ -78,7 +78,7 @@ class DCCA_SDL(DCCA_NOI):
     def _update_covariances(self, *z, train=True):
         batch_covs = [z_.T @ z_ for z_ in z]
         if train:
-            if self.covs is not None:
+            if self.c is not None:
                 self.c = self.rho * self.c + 1
                 self.covs = [
                     self.rho * self.covs[i].detach() + (1 - self.rho) * batch_cov
