@@ -30,13 +30,17 @@ MCCA and KCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
-TCCA and KTCCA
----------------------------
+Tensor Canonical Correlation Analysis
+----------------------------------------
 
+Tensor Canonical Correlation Analysis
+**************************************
 .. autoclass:: cca_zoo.models.tcca.TCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
+Kernel Tensor Canonical Correlation Analysis
+**********************************************
 .. autoclass:: cca_zoo.models.tcca.KTCCA
     :inherited-members:
     :exclude-members: get_params, set_params
