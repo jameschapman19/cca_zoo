@@ -308,11 +308,11 @@ class CCA_ALS(ElasticCCA):
     >>> from cca_zoo.models import CCA_ALS
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
-    >>> X1 = rng.random((10,5))
-    >>> X2 = rng.random((10,5))
+    >>> X1 = rng.random((10,3))
+    >>> X2 = rng.random((10,3))
     >>> model = CCA_ALS(random_state=0)
     >>> model.fit((X1,X2)).score((X1,X2))
-    array([0.99998809])
+    array([0.85890619])
     """
 
     def __init__(
