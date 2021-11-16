@@ -4,8 +4,8 @@ from typing import Iterable, Union
 import numpy as np
 from scipy.linalg import block_diag, eigh
 
-from .cca_base import _CCA_Base
-from ..utils.check_values import _process_parameter, check_views
+from cca_zoo.models.cca_base import _CCA_Base
+from cca_zoo.utils.check_values import _process_parameter, check_views
 
 
 # from hyperopt import fmin, tpe, Trials
@@ -26,8 +26,8 @@ class rCCA(_CCA_Base):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = rCCA(c=[0.1,0.1])
-    >>> model.fit((X1,X2))
-    rCCA(c=[0.1,0.1])
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.95551491])
     """
 
     def __init__(
@@ -174,8 +174,8 @@ class CCA(rCCA):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = CCA()
-    >>> model.fit((X1,X2))
-    CCA()
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([1.])
     """
 
     def __init__(
@@ -221,8 +221,8 @@ class PLS(rCCA):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = PLS()
-    >>> model.fit((X1,X2))
-    PLS()
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.8229765])
     """
 
     def __init__(
