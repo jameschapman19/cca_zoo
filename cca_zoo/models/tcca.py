@@ -34,7 +34,6 @@ class TCCA(_CCA_Base):
     array([1.14595755])
     """
 
-
     def __init__(
             self,
             latent_dims: int = 1,

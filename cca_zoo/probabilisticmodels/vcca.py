@@ -20,9 +20,6 @@ class VariationalCCA(_CCA_Base):
 
     Wang, Chong. "Variational Bayesian approach to canonical correlation analysis." IEEE Transactions on Neural Networks 18.3 (2007): 905-910.
 
-    :Example:
-
-
     """
 
     def __init__(

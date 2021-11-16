@@ -72,6 +72,8 @@ trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
 
 # DCCAE
+encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
+encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
 dccae_model = DCCAE(
     latent_dims=latent_dims,
     encoders=[encoder_1, encoder_2],

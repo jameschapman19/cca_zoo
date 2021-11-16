@@ -45,7 +45,7 @@ class DCCA_NOI(DCCA):
         self.eps = eps
         self.rho = rho
         self.shared_target = shared_target
-        self.mse = torch.nn.MSELoss(reduction='sum')
+        self.mse = torch.nn.MSELoss(reduction="sum")
         # Authors state that a final linear layer is an important part of their algorithmic implementation
         self.linear_layers = torch.nn.ModuleList(
             [
