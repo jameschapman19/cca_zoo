@@ -17,8 +17,7 @@ class rCCA(_CCA_Base):
 
     Citation
     --------
-
-    Vinod, Hrishikesh D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
+    .. Vinod, Hrishikesh D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
 
     :Example:
 
@@ -168,7 +167,7 @@ class CCA(rCCA):
 
     Citation
     --------
-    Hotelling, Harold. "Relations between two sets of variates." Breakthroughs in statistics. Springer, New York, NY, 1992. 162-190.
+    .. Hotelling, Harold. "Relations between two sets of variates." Breakthroughs in statistics. Springer, New York, NY, 1992. 162-190.
 
     :Example:
 

@@ -12,8 +12,7 @@ class DCCAE(_DCCA_base):
 
     Citation
     --------
-
-    Wang, Weiran, et al. "On deep multi-view representation learning." International conference on machine learning. PMLR, 2015.
+    .. Wang, Weiran, et al. "On deep multi-view representation learning." International conference on machine learning. PMLR, 2015.
 
     """
 
