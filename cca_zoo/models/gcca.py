@@ -196,7 +196,7 @@ class KGCCA(GCCA):
         )
 
     def _get_kernel(self, view, X, Y=None):
-        if callable(self.kernel):
+        if callable(self.kernel[view]):
             params = self.kernel_params[view] or {}
         else:
             params = {
