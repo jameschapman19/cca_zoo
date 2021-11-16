@@ -15,6 +15,20 @@ class rCCA(_CCA_Base):
     """
     A class used to fit Regularised CCA (canonical ridge) model. Uses PCA to perform the optimization efficiently for high dimensional data.
 
+    Maths
+    ------
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
+
+        \text{subject to:}
+
+        w_1^Tw_1=1
+
+        w_2^Tw_2=1
+
+
     Citation
     --------
     .. Vinod, Hrishikesh D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
@@ -165,6 +179,19 @@ class CCA(rCCA):
 
     Implements CCA by inheriting regularised CCA with 0 regularisation
 
+    Maths
+    ------
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
+
+        \text{subject to:}
+
+        w_1^Tw_1=1
+
+        w_2^Tw_2=1
+
     Citation
     --------
     .. Hotelling, Harold. "Relations between two sets of variates." Breakthroughs in statistics. Springer, New York, NY, 1992. 162-190.
@@ -213,10 +240,18 @@ class PLS(rCCA):
 
     Implements PLS by inheriting regularised CCA with maximal regularisation
 
+    Maths
+    ------
 
     .. math::
 
-    w_{opt}=w_1^TX_1^TX_2w_2
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
+
+        \text{subject to:}
+
+        w_1^Tw_1=1
+
+        w_2^Tw_2=1
 
     :Example:
 
