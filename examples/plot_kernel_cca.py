@@ -86,7 +86,7 @@ def my_kernel(X, Y, param=0):
     We create a custom kernel:
 
     """
-    M = np.random.rand(X.shape[1], X.shape[1]) + param
+    M = np.random.rand(X.shape[0], X.shape[0]) + param
     return X @ M @ M.T @ Y.T
 
 
