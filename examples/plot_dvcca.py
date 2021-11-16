@@ -1,8 +1,8 @@
 """
-Deep CCA
-===========================
+Deep Variational CCA and Deep Canonically Correlated Autoencoders
+====================================================================
 
-This example demonstrates how to easily train Deep CCA models and variants
+This example demonstrates multiview models which can reconstruct their inputs
 """
 
 import numpy as np

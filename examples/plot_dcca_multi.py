@@ -1,6 +1,6 @@
 """
-Deep CCA
-===========================
+Deep CCA for more than 2 views
+=================================
 
 This example demonstrates how to easily train Deep CCA models and variants
 """

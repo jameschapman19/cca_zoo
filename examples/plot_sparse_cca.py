@@ -2,6 +2,7 @@
 Sparse CCA Methods
 ===========================
 
+This script shows how regularised methods can be used to extract sparse solutions to the CCA problem
 """
 
 # %%

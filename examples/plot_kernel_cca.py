@@ -1,6 +1,8 @@
 """
-Kernel CCA
-===============================
+Kernel CCA and Nonparametric CCA
+===================================
+
+This script demonstrates how to use kernel and nonparametric methods
 """
 
 # %%
