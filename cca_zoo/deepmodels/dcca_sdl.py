@@ -44,6 +44,7 @@ class DCCA_SDL(DCCA_NOI):
             eps=eps,
             shared_target=shared_target,
         )
+        self.c = None
         self.cross_cov = None
         self.lam = lam
         self.bns = torch.nn.ModuleList(
