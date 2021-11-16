@@ -35,6 +35,7 @@ epochs = 10
 encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
 encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
 
+# %%
 # Deep MCCA
 dcca = DCCA(
     latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=objectives.MCCA
@@ -43,6 +44,7 @@ dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
 
+# %%
 # Deep GCCA
 dcca = DCCA(
     latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=objectives.GCCA
@@ -51,6 +53,7 @@ dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
 
+# %%
 # Deep TCCA
 dcca = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
 dcca = CCALightning(dcca)

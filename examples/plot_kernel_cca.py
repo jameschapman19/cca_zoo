@@ -25,6 +25,7 @@ cv = 3
 )
 
 # %%
+# Linear
 c1 = [0.9, 0.99]
 c2 = [0.9, 0.99]
 param_grid = {"kernel": ["linear"], "c": [c1, c2]}
@@ -37,6 +38,7 @@ kernel_reg = (
 )
 
 # %%
+# Polynomial
 degree1 = [2, 3]
 degree2 = [2, 3]
 param_grid = {"kernel": ["poly"], "degree": [degree1, degree2], "c": [c1, c2]}
@@ -48,7 +50,8 @@ kernel_poly = (
         .best_estimator_
 )
 
-# kernel cca (gaussian)
+# %%
+# kernel cca (gaussian/rbf)
 gamma1 = [1e1, 1e2, 1e3]
 gamma2 = [1e1, 1e2, 1e3]
 param_grid = {"kernel": ["rbf"], "gamma": [gamma1, gamma2], "c": [c1, c2]}
