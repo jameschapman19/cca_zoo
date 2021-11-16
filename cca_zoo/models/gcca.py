@@ -13,8 +13,22 @@ class GCCA(rCCA):
     """
     A class used to fit GCCA model. For more than 2 views, GCCA optimizes the sum of correlations with a shared auxiliary vector
 
+    Maths
+    ------
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
+
+        \text{subject to:}
+
+        w_1^TX_1^TX_1w_1=1
+
+        w_2^TX_2^TX_2w_2=1
+
     Citation
     --------
+
     .. Tenenhaus, Arthur, and Michel Tenenhaus. "Regularized generalized canonical correlation analysis." Psychometrika 76.2 (2011): 257.
 
     :Example:
@@ -101,8 +115,22 @@ class KGCCA(GCCA):
     """
     A class used to fit KGCCA model. For more than 2 views, KGCCA optimizes the sum of correlations with a shared auxiliary vector
 
+    Maths
+    ------
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
+
+        \text{subject to:}
+
+        w_1^TX_1^TX_1w_1=1
+
+        w_2^TX_2^TX_2w_2=1
+
     Citation
-    --------
+    ---------
+
     .. Tenenhaus, Arthur, Cathy Philippe, and Vincent Frouin. "Kernel generalized canonical correlation analysis." Computational Statistics & Data Analysis 90 (2015): 114-131.
 
     :Example:

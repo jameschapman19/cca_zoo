@@ -13,8 +13,20 @@ class MCCA(rCCA):
     """
     A class used to fit MCCA model. For more than 2 views, MCCA optimizes the sum of pairwise correlations.
 
+    Maths
+    ------
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} w_i^TX_i^TX_jw_j  \}\\
+
+        \text{subject to:}
+
+        w_i^TX_i^TX_iw_i=1
+
     Citation
     --------
+
     .. Kettenring, Jon R. "Canonical analysis of several sets of variables." Biometrika 58.3 (1971): 433-451.
 
     :Example:
@@ -93,6 +105,17 @@ class MCCA(rCCA):
 class KCCA(MCCA):
     """
     A class used to fit KCCA model.
+
+    Maths
+    ------
+
+    .. math::
+
+        \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \alpha_i^TK_i^TK_j\alpha_j  \}\\
+
+        \text{subject to:}
+
+        \alpha_i^TK_i^TK_i\alpha_i=1
 
     :Example:
 
