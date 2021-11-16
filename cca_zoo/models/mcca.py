@@ -10,7 +10,7 @@ from cca_zoo.utils.check_values import _process_parameter, check_views
 
 
 class MCCA(rCCA):
-    """
+    r"""
     A class used to fit MCCA model. For more than 2 views, MCCA optimizes the sum of pairwise correlations.
 
     Maths
@@ -103,7 +103,7 @@ class MCCA(rCCA):
 
 
 class KCCA(MCCA):
-    """
+    r"""
     A class used to fit KCCA model.
 
     Maths

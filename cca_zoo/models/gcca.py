@@ -10,7 +10,7 @@ from cca_zoo.utils.check_values import _process_parameter, check_views
 
 
 class GCCA(rCCA):
-    """
+    r"""
     A class used to fit GCCA model. For more than 2 views, GCCA optimizes the sum of correlations with a shared auxiliary vector
 
     Maths
@@ -112,7 +112,7 @@ class GCCA(rCCA):
 
 
 class KGCCA(GCCA):
-    """
+    r"""
     A class used to fit KGCCA model. For more than 2 views, KGCCA optimizes the sum of correlations with a shared auxiliary vector
 
     Maths
