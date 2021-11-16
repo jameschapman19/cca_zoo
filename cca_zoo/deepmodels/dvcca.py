@@ -18,6 +18,7 @@ class DVCCA(_DCCA_base):
     Wang, Weiran, et al. "Deep variational canonical correlation analysis." arXiv preprint arXiv:1610.03454 (2016).
     https: // arxiv.org / pdf / 1610.03454.pdf
     https: // github.com / pytorch / examples / blob / master / vae / main.py
+
     """
 
     def __init__(

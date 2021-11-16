@@ -598,7 +598,7 @@ class SCCA_ADMM(_Iterative):
     >>> X2 = rng.random((10,5))
     >>> model = SCCA_ADMM(random_state=0)
     >>> model.fit((X1,X2)).score((X1,X2))
-    SCCA_ADMM()
+    array([0.99999997])
     """
 
     def __init__(
@@ -681,9 +681,9 @@ class SpanCCA(_Iterative):
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
-    >>> model = SpanCCA()
+    >>> model = SpanCCA(regularisation="l0", c=[2, 2])
     >>> model.fit((X1,X2)).score((X1,X2))
-    SpanCCA()
+    array([0.84556666])
     """
 
     def __init__(
@@ -765,9 +765,9 @@ class SWCCA(_Iterative):
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
-    >>> model = SWCCA()
+    >>> model = SWCCA(regularisation='l0',c=[2, 2], sample_support=5, random_state=0)
     >>> model.fit((X1,X2)).score((X1,X2))
-    SWCCA()
+    array([0.61620969])
     """
 
     def __init__(

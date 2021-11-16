@@ -18,10 +18,6 @@ class DTCCA(DCCA):
 
     Wong, Hok Shing, et al. "Deep Tensor CCA for Multi-view Learning." IEEE Transactions on Big Data (2021).
 
-    Examples
-    --------
-    >>> from cca_zoo.deepmodels import DTCCA
-    >>> model = DTCCA(1)
     """
 
     def __init__(

@@ -688,9 +688,11 @@ class SWCCAInnerLoop(PLSInnerLoop):
         self.positive = positive
 
     def _check_params(self):
+        if self.sample_support is None:
+            self.sample_support = self.views[0].shape[0]
         self.sample_weights = np.ones((self.views[0].shape[0], 1))
         self.sample_weights /= np.linalg.norm(self.sample_weights)
-        self.c = _process_parameter("c", self.c, 1, len(self.views))
+        self.c = _process_parameter("c", self.c, 2, len(self.views))
         self.positive = _process_parameter(
             "positive", self.positive, False, len(self.views)
         )

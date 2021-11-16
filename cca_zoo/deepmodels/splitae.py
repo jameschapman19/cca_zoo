@@ -14,10 +14,6 @@ class SplitAE(_DCCA_base):
 
     Ngiam, Jiquan, et al. "Multimodal deep learning." ICML. 2011.
 
-    Examples
-    --------
-    >>> from cca_zoo.deepmodels import SplitAE
-    >>> model = SplitAE(1)
     """
 
     def __init__(self, latent_dims: int, encoder: BaseEncoder = Encoder, decoders=None):

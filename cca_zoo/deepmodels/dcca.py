@@ -15,10 +15,6 @@ class DCCA(_DCCA_base):
 
     Andrew, Galen, et al. "Deep canonical correlation analysis." International conference on machine learning. PMLR, 2013.
 
-    Examples
-    --------
-    >>> from cca_zoo.deepmodels import DCCA
-    >>> model = DCCA(1)
     """
 
     def __init__(
