@@ -203,12 +203,6 @@ def test_non_negative_methods():
     )
 
 
-def test_ncca():
-    # TODO sensible check
-    latent_dims = 2
-    ncca = NCCA(latent_dims=latent_dims).fit([X, Y])
-
-
 def test_sparse_methods():
     # TODO check these are sparse outputs and reasonable correlation
     c1 = [1, 3]
@@ -264,6 +258,11 @@ def test_TCCA():
     corr_tcca = tcca.score((X, X, Y))
     corr_ktcca = ktcca.score((X, Y))
 
+def test_NCCA():
+    # TODO Sensible check for kernel TCCA
+    latent_dims = 2
+    ncca = NCCA(latent_dims=latent_dims).fit((X, Y))
+    corr_ncca = ncca.score((X, Y))
 
 def test_l0():
     span_cca = SpanCCA(latent_dims=1, regularisation="l0", c=[2, 2]).fit([X, Y])
