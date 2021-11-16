@@ -17,13 +17,11 @@ class GCCA(rCCA):
 
     .. math::
 
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ \sum_iw_i^TX_i^TT  \}\\
 
         \text{subject to:}
 
-        w_1^TX_1^TX_1w_1=1
-
-        w_2^TX_2^TX_2w_2=1
+        T^TT=1
 
     :Citation:
 
@@ -117,13 +115,11 @@ class KGCCA(GCCA):
 
     .. math::
 
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ \sum_i\alpha_i^TK_i^TT  \}\\
 
         \text{subject to:}
 
-        w_1^TX_1^TX_1w_1=1
-
-        w_2^TX_2^TX_2w_2=1
+        T^TT=1
 
     :Citation:
 

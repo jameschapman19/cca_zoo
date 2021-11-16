@@ -12,7 +12,7 @@ from cca_zoo.utils.check_values import _process_parameter, check_views
 
 
 class TCCA(_CCA_Base):
-    """
+    r"""
     Fits a Tensor CCA model. Tensor CCA maximises higher order correlations
 
     :Maths:
@@ -160,7 +160,7 @@ class TCCA(_CCA_Base):
 
 
 class KTCCA(TCCA):
-    """
+    r"""
     Fits a Kernel Tensor CCA model. Tensor CCA maximises higher order correlations
 
     :Maths:
