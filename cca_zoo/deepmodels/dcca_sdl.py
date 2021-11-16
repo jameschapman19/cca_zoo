@@ -87,4 +87,6 @@ class DCCA_SDL(DCCA_NOI):
             else:
                 self.c = 1
                 self.covs = batch_covs
-            self.covs = [cov / self.c for cov in self.covs]
+        # pytorch-lightning runs validation once so this just fixes the bug
+        elif self.covs is None:
+            self.covs = batch_covs
