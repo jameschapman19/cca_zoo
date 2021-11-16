@@ -15,10 +15,6 @@ class DCCAE(_DCCA_base):
 
     Wang, Weiran, et al. "On deep multi-view representation learning." International conference on machine learning. PMLR, 2015.
 
-    Examples
-    --------
-    >>> from cca_zoo.deepmodels import DCCAE
-    >>> model = DCCAE(1)
     """
 
     def __init__(
