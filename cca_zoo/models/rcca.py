@@ -12,7 +12,7 @@ from cca_zoo.utils.check_values import _process_parameter, check_views
 
 
 class rCCA(_CCA_Base):
-    """
+    r"""
     A class used to fit Regularised CCA (canonical ridge) model. Uses PCA to perform the optimization efficiently for high dimensional data.
 
     Maths
@@ -174,7 +174,7 @@ class rCCA(_CCA_Base):
 
 
 class CCA(rCCA):
-    """
+    r"""
     A class used to fit a simple CCA model
 
     Implements CCA by inheriting regularised CCA with 0 regularisation
@@ -235,7 +235,7 @@ class CCA(rCCA):
 
 
 class PLS(rCCA):
-    """
+    r"""
     A class used to fit a simple PLS model
 
     Implements PLS by inheriting regularised CCA with maximal regularisation
