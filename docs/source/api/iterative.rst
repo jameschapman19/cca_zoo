@@ -1,6 +1,3 @@
-Iterative Models
-=======================
-
 Normal CCA and PLS by alternating least squares
 --------------------------------------------------
 Potentially quicker for bery large data
