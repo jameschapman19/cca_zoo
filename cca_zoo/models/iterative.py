@@ -5,8 +5,8 @@ from typing import Union, Iterable
 
 import numpy as np
 
-from .cca_base import _CCA_Base
-from .innerloop import (
+from cca_zoo.models.cca_base import _CCA_Base
+from cca_zoo.models.innerloop import (
     PLSInnerLoop,
     PMDInnerLoop,
     ParkhomenkoInnerLoop,
@@ -15,7 +15,7 @@ from .innerloop import (
     SpanCCAInnerLoop,
     SWCCAInnerLoop,
 )
-from ..utils import check_views
+from cca_zoo.utils import check_views
 
 
 class _Iterative(_CCA_Base):
@@ -141,11 +141,13 @@ class PLS_ALS(_Iterative):
     :Example:
 
     >>> from cca_zoo.models import PLS
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = PLS_ALS()
-    >>> model.fit((X1,X2))
-    PLS_ALS()
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = PLS_ALS(random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.81796873])
     """
 
     def __init__(
@@ -208,11 +210,13 @@ class ElasticCCA(_Iterative):
     :Example:
 
     >>> from cca_zoo.models import ElasticCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = ElasticCCA(c=[0.1,0.1],l1_ratio=[0.5,0.5])
-    >>> model.fit((X1,X2))
-    ElasticCCA(c=[0.1,0.1],l1_ratio=[0.5,0.5])
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = ElasticCCA(c=[0.1,0.1],l1_ratio=[0.5,0.5], random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.95818397])
     """
 
     def __init__(
@@ -302,11 +306,13 @@ class CCA_ALS(ElasticCCA):
     :Example:
 
     >>> from cca_zoo.models import CCA_ALS
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = CCA_ALS()
-    >>> model.fit((X1,X2))
-    CCA_ALS()
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = CCA_ALS(random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.99998809])
     """
 
     def __init__(
