@@ -21,7 +21,7 @@ class MCCA(rCCA):
 
         \text{subject to:}
 
-        w_i^TX_i^TX_iw_i=1
+        (1-c_i)w_i^TX_i^TX_iw_i+c_iw_i^Tw_i=1
 
     :Citation:
 
@@ -112,7 +112,7 @@ class KCCA(MCCA):
 
         \text{subject to:}
 
-        \alpha_i^TK_i^TK_i\alpha_i=1
+        c_i\alpha_i^TK_i\alpha_i + (1-c_i)\alpha_i^TK_i^TK_i\alpha_i=1
 
     :Example:
 

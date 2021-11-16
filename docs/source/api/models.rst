@@ -1,13 +1,6 @@
 Models
 =======================
 
-Base Class
---------------------------------
-
-.. automodule:: cca_zoo.models.cca_base
-    :members:
-    :private-members: _CCA_Base
-    :exclude-members: get_params, set_params
 
 Regularized Canonical Correlation Analysis and Partial Least Squares
 ------------------------------------------------------------------------
@@ -82,4 +75,10 @@ More Complex Regularisation using Iterative Models
    :maxdepth: 4
    iterative.rst
 
+Base Class
+--------------------------------
 
+.. automodule:: cca_zoo.models.cca_base
+    :members:
+    :private-members: _CCA_Base
+    :exclude-members: get_params, set_params
