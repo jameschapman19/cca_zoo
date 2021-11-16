@@ -130,7 +130,7 @@ class _Iterative(_CCA_Base):
 
 
 class PLS_ALS(_Iterative):
-    """
+    r"""
     A class used to fit a PLS model
 
     Fits a partial least squares model with CCA deflation by NIPALS algorithm
@@ -200,7 +200,7 @@ class PLS_ALS(_Iterative):
 
 
 class ElasticCCA(_Iterative):
-    """
+    r"""
     Fits an elastic CCA by iterating elastic net regression
 
     .. math::
@@ -299,7 +299,7 @@ class ElasticCCA(_Iterative):
 
 
 class CCA_ALS(ElasticCCA):
-    """
+    r"""
     Fits a CCA model with CCA deflation by NIPALS algorithm. Implemented by ElasticCCA with 0 regularisation
 
     .. math::
@@ -371,7 +371,7 @@ class CCA_ALS(ElasticCCA):
 
 
 class SCCA(ElasticCCA):
-    """
+    r"""
     Fits a sparse CCA model by iterative rescaled lasso regression. Implemented by ElasticCCA with l1 ratio=1
 
     .. math::
@@ -447,7 +447,7 @@ class SCCA(ElasticCCA):
 
 
 class PMD(_Iterative):
-    """
+    r"""
     Fits a Sparse CCA (Penalized Matrix Decomposition) model.
 
     .. math::
@@ -528,7 +528,7 @@ class PMD(_Iterative):
 
 
 class ParkhomenkoCCA(_Iterative):
-    """
+    r"""
     Fits a sparse CCA (penalized CCA) model
 
     .. math::
@@ -603,7 +603,7 @@ class ParkhomenkoCCA(_Iterative):
 
 
 class SCCA_ADMM(_Iterative):
-    """
+    r"""
     Fits a sparse CCA model by alternating ADMM
 
     :Citation:
@@ -682,7 +682,7 @@ class SCCA_ADMM(_Iterative):
 
 
 class SpanCCA(_Iterative):
-    """
+    r"""
     Fits a Sparse CCA model using SpanCCA.
 
     :Citation:
@@ -761,7 +761,7 @@ class SpanCCA(_Iterative):
 
 
 class SWCCA(_Iterative):
-    """
+    r"""
     A class used to fit SWCCA model
 
     :Citation:
