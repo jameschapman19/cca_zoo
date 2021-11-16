@@ -9,24 +9,54 @@ Base Class
     :private-members: _CCA_Base
     :exclude-members: get_params, set_params
 
-rCCA
----------------------------
+Regularized Canonical Correlation Analysis and Partial Least Squares
+------------------------------------------------------------------------
 
-.. automodule:: cca_zoo.models.rcca
+Canonical Correlation Analysis
+****************************************************
+.. autoclass:: cca_zoo.models.rcca.CCA
+    :inherited-members:
+    :exclude-members: get_params, set_params
+
+Generalized (MAXVAR) Canonical Correlation Analysis
+****************************************************
+.. autoclass:: cca_zoo.models.rcca.PLS
+    :inherited-members:
+    :exclude-members: get_params, set_params
+
+Generalized (MAXVAR) Canonical Correlation Analysis
+****************************************************
+.. autoclass:: cca_zoo.models.rcca.rCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
 GCCA and KGCCA
 ---------------------------
 
-.. automodule:: cca_zoo.models.gcca
+Generalized (MAXVAR) Canonical Correlation Analysis
+****************************************************
+.. autoclass:: cca_zoo.models.gcca.GCCA
+    :inherited-members:
+    :exclude-members: get_params, set_params
+
+Kernel Generalized (MAXVAR) Canonical Correlation Analysis
+************************************************************
+.. autoclass:: cca_zoo.models.gcca.KGCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
 MCCA and KCCA
 ---------------------------
 
-.. automodule:: cca_zoo.models.mcca
+Multiset (SUMCOR) Canonical Correlation Analysis
+**************************************************
+.. autoclass:: cca_zoo.models.mcca.MCCA
+    :inherited-members:
+    :exclude-members: get_params, set_params
+
+Kernel Multiset (SUMCOR) Canonical Correlation Analysis
+********************************************************
+.. autoclass:: cca_zoo.models.mcca.KCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
@@ -47,10 +77,6 @@ Kernel Tensor Canonical Correlation Analysis
 
 More Complex Regularisation using Iterative Models
 -----------------------------------------------------
-
-.. toctree::
-   :maxdepth: 4
-   :caption: More Complex Regularisation using Iterative Models
 
    iterative.rst
 

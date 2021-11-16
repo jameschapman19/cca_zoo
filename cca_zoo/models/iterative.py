@@ -606,6 +606,14 @@ class SCCA_ADMM(_Iterative):
     r"""
     Fits a sparse CCA model by alternating ADMM
 
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 + \text{l1_ratio}\|w_i\|_1\}\\
+
+        \text{subject to:}
+
+        w_i^TX_i^TX_iw_i=1
+
     :Citation:
 
     Suo, Xiaotong, et al. "Sparse canonical correlation analysis." arXiv preprint arXiv:1705.10865 (2017).
@@ -684,6 +692,14 @@ class SCCA_ADMM(_Iterative):
 class SpanCCA(_Iterative):
     r"""
     Fits a Sparse CCA model using SpanCCA.
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 + \text{l1_ratio}\|w_i\|_1\}\\
+
+        \text{subject to:}
+
+        w_i^TX_i^TX_iw_i=1
 
     :Citation:
 

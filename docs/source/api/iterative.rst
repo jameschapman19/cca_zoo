@@ -1,12 +1,12 @@
 Normal CCA and PLS by alternating least squares
 --------------------------------------------------
-Potentially quicker for very large data
+Quicker and more memory efficient for very large data
 
-.. automodule:: cca_zoo.models.CCA_ALS
+.. autoclass:: cca_zoo.models.CCA_ALS
     :inherited-members:
     :exclude-members: get_params, set_params
 
-.. automodule:: cca_zoo.models.PLS_ALS
+.. autoclass:: cca_zoo.models.PLS_ALS
     :inherited-members:
     :exclude-members: get_params, set_params
 
@@ -14,33 +14,33 @@ Potentially quicker for very large data
 Sparsity Inducing Models
 --------------------------------------------------
 
-.. automodule:: cca_zoo.models.PMD
+.. autoclass:: cca_zoo.models.PMD
     :inherited-members:
     :exclude-members: get_params, set_params
 
-.. automodule:: cca_zoo.models.SCCA
+.. autoclass:: cca_zoo.models.SCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
-.. automodule:: cca_zoo.models.ElasticCCA
+.. autoclass:: cca_zoo.models.ElasticCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
-.. automodule:: cca_zoo.models.SpanCCA
+.. autoclass:: cca_zoo.models.SpanCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
-.. automodule:: cca_zoo.models.ParkhomenkoCCA
+.. autoclass:: cca_zoo.models.ParkhomenkoCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
-.. automodule:: cca_zoo.models.SCCA_ADMM
+.. autoclass:: cca_zoo.models.SCCA_ADMM
     :inherited-members:
     :exclude-members: get_params, set_params
 
 Miscellaneous
 --------------------------------------------------
 
-.. automodule:: cca_zoo.models.SWCCA
+.. autoclass:: cca_zoo.models.SWCCA
     :inherited-members:
     :exclude-members: get_params, set_params
