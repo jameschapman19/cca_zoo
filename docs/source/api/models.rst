@@ -42,7 +42,7 @@ More Complex Regularisation using Iterative Models
 -----------------------------------------------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
    :caption: More Complex Regularisation using Iterative Models
 
    iterative.rst

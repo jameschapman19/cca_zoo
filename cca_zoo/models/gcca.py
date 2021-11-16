@@ -104,6 +104,7 @@ class KGCCA(GCCA):
 
     Citation
     --------
+
     Tenenhaus, Arthur, Cathy Philippe, and Vincent Frouin. "Kernel generalized canonical correlation analysis." Computational Statistics & Data Analysis 90 (2015): 114-131.
 
     :Example:
