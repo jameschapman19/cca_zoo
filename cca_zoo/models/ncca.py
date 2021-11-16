@@ -13,8 +13,8 @@ class NCCA(_CCA_Base):
     """
     A class used to fit nonparametric (NCCA) model.
 
-    Citation
-    --------
+    :Citation:
+
     .. Michaeli, Tomer, Weiran Wang, and Karen Livescu. "Nonparametric canonical correlation analysis." International conference on machine learning. PMLR, 2016.
 
     :Example:

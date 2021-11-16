@@ -745,8 +745,8 @@ class SWCCA(_Iterative):
     """
     A class used to fit SWCCA model
 
-    Citation
-    --------
+    :Citation:
+
     .. Wenwen, M. I. N., L. I. U. Juan, and Shihua Zhang. "Sparse Weighted Canonical Correlation Analysis." Chinese Journal of Electronics 27.3 (2018): 459-466.
 
 

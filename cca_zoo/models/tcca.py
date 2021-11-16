@@ -15,8 +15,18 @@ class TCCA(_CCA_Base):
     """
     Fits a Tensor CCA model. Tensor CCA maximises higher order correlations
 
-    Citation
-    --------
+    :Maths:
+
+    .. math::
+
+        \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \alpha_i^TK_i^TK_j\alpha_j  \}\\
+
+        \text{subject to:}
+
+        \alpha_i^TK_i^TK_i\alpha_i=1
+
+    :Citation:
+
     .. Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
     .. https://github.com/rciszek/mdr_tcca
 
@@ -153,8 +163,18 @@ class KTCCA(TCCA):
     """
     Fits a Kernel Tensor CCA model. Tensor CCA maximises higher order correlations
 
-    Citation
-    --------
+    :Maths:
+
+    .. math::
+
+        \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \alpha_i^TK_i^TK_j\alpha_j  \}\\
+
+        \text{subject to:}
+
+        \alpha_i^TK_i^TK_i\alpha_i=1
+
+    :Citation:
+
     .. Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
 
     :Example:
