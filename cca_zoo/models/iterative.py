@@ -138,6 +138,14 @@ class PLS_ALS(_Iterative):
 
     Fits a partial least squares model with CCA deflation by NIPALS algorithm
 
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2\}\\
+
+        \text{subject to:}
+
+        w_i^Tw_i=1
+
     :Example:
 
     >>> from cca_zoo.models import PLS
@@ -201,6 +209,14 @@ class PLS_ALS(_Iterative):
 class ElasticCCA(_Iterative):
     """
     Fits an elastic CCA by iterative rescaled elastic net regression
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 + c\|w_i\|^2_2 + \text{l1_ratio}\|w_i\|_1\}\\
+
+        \text{subject to:}
+
+        w_i^TX_i^TX_iw_i=1
 
     Citation
     --------
@@ -297,6 +313,14 @@ class CCA_ALS(ElasticCCA):
     """
     Fits a CCA model with CCA deflation by NIPALS algorithm. Implemented by ElasticCCA with 0 regularisation
 
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 }\\
+
+        \text{subject to:}
+
+        w_i^TX_i^TX_iw_i=1
+
     Citation
     --------
     .. Golub, Gene H., and Hongyuan Zha. "The canonical correlations of matrix pairs and their numerical computation." Linear algebra for signal processing. Springer, New York, NY, 1995. 27-49.
@@ -363,6 +387,14 @@ class CCA_ALS(ElasticCCA):
 class SCCA(ElasticCCA):
     """
     Fits a sparse CCA model by iterative rescaled lasso regression. Implemented by ElasticCCA with l1 ratio=1
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 + \text{l1_ratio}\|w_i\|_1\}\\
+
+        \text{subject to:}
+
+        w_i^TX_i^TX_iw_i=1
 
     Citation
     --------
