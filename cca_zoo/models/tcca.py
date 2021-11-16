@@ -7,8 +7,8 @@ from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 from tensorly.decomposition import parafac
 
-from .cca_base import _CCA_Base
-from ..utils.check_values import _process_parameter, check_views
+from cca_zoo.models.cca_base import _CCA_Base
+from cca_zoo.utils.check_values import _process_parameter, check_views
 
 
 class TCCA(_CCA_Base):
@@ -30,16 +30,8 @@ class TCCA(_CCA_Base):
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = TCCA()
-    >>> model.fit((X1,X2,X3))
-    reconstruction error=0.8838021324565138
-    iteration 1, reconstruction error: 0.8731818276890014, decrease = 0.010620304767512412, unnormalized = 3.1347580657895002
-    iteration 2, reconstruction error: 0.873120428047091, decrease = 6.139964191043124e-05, unnormalized = 3.1345376385925388
-    iteration 3, reconstruction error: 0.8731199434782153, decrease = 4.845688756915933e-07, unnormalized = 3.134535898970683
-    iteration 4, reconstruction error: 0.8731198700799541, decrease = 7.339826124663773e-08, unnormalized = 3.1345356354679574
-    iteration 5, reconstruction error: 0.8731198477155876, decrease = 2.2364366469851404e-08, unnormalized = 3.1345355551789775
-    iteration 6, reconstruction error: 0.8731198408329391, decrease = 6.8826484511674835e-09, unnormalized = 3.134535530469991
-    PARAFAC converged after 6 iterations
-    TCCA(c=[0, 0, 0], random_state=RandomState(MT19937) at 0x7F9C70ED2AF0)
+    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
+    array([1.14595755])
     """
 
 
@@ -105,7 +97,7 @@ class TCCA(_CCA_Base):
                 M = np.expand_dims(M, -1) @ el
         M = np.mean(M, 0)
         tl.set_backend("numpy")
-        M_parafac = parafac(M, self.latent_dims, verbose=True)
+        M_parafac = parafac(M, self.latent_dims, verbose=False)
         self.weights = [
             cov_invsqrt @ fac
             for i, (view, cov_invsqrt, fac) in enumerate(
@@ -177,7 +169,8 @@ class KTCCA(TCCA):
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = KTCCA()
-    >>> model.fit((X1,X2,X3))
+    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
+    array([1.69896269])
     """
 
     def __init__(

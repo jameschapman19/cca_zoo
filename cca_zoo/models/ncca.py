@@ -23,8 +23,8 @@ class NCCA(_CCA_Base):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = NCCA()
-    >>> model.fit((X1,X2))
-    NCCA()
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([1.])
     """
 
     def __init__(
@@ -100,7 +100,7 @@ class NCCA(_CCA_Base):
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         :param kwargs: any additional keyword arguments required by the given model
         """
-        check_is_fitted(self, attributes=["U", "V", "f", "g"])
+        check_is_fitted(self, attributes=["f", "g"])
         views = check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )

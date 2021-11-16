@@ -273,6 +273,6 @@ class TCCA:
                 M = torch.unsqueeze(M, -1) @ el
         M = torch.mean(M, 0)
         tl.set_backend("pytorch")
-        M_parafac = parafac(M.detach(), self.latent_dims)
+        M_parafac = parafac(M.detach(), self.latent_dims, verbose=False)
         M_hat = cp_to_tensor(M_parafac)
         return torch.norm(M - M_hat)

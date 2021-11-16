@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo.models import rCCA
-from ..utils.check_values import _process_parameter, check_views
+from cca_zoo.utils.check_values import _process_parameter, check_views
 
 
 class MCCA(rCCA):
@@ -26,8 +26,8 @@ class MCCA(rCCA):
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = MCCA()
-    >>> model.fit((X1,X2,X3))
-    MCCA()
+    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
+    array([0.97200847])
     """
 
     def __init__(
@@ -104,8 +104,8 @@ class KCCA(MCCA):
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = KCCA()
-    >>> model.fit((X1,X2,X3))
-    KCCA()
+    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
+    array([0.96893666])
     """
 
     def __init__(
