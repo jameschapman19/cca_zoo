@@ -33,10 +33,13 @@ MCCA and KCCA
 TCCA and KTCCA
 ---------------------------
 
-.. automodule:: cca_zoo.models.tcca
+.. autoclass:: cca_zoo.models.tcca.TCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
+.. autoclass:: cca_zoo.models.tcca.KTCCA
+    :inherited-members:
+    :exclude-members: get_params, set_params
 
 More Complex Regularisation using Iterative Models
 -----------------------------------------------------
