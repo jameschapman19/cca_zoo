@@ -11,6 +11,7 @@ with open("./requirements/deep.txt", "r") as f:
     EXTRA_PACKAGES["deep"] = f.read()
 with open("./requirements/probabilistic.txt", "r") as f:
     EXTRA_PACKAGES["probabilistic"] = f.read()
+EXTRA_PACKAGES["all"] = EXTRA_PACKAGES["deep"]+'\n'+EXTRA_PACKAGES["probabilistic"]
 
 setup(
     name="cca_zoo",
@@ -22,7 +23,7 @@ setup(
     license="MIT",
     author="jameschapman",
     description=(
-        "Canonical Correlation Analysis Zoo: CCA, GCCA, MCCA, DCCA, DGCCA, DVCCA, DCCAE, KCCA and regularised variants including sparse CCA , ridge CCA and elastic CCA"
+        "Canonical Correlation Analysis Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic methods in a scikit-learn style framework"
     ),
     long_description=long_description,
     long_description_content_type="text/markdown",
