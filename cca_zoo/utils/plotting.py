@@ -9,7 +9,7 @@ import seaborn as sns
 from matplotlib import cm
 
 
-def post_process_cv_results(df):
+def _post_process_cv_results(df):
     cols = [col for col in df.columns if "param_" in col]
     for col in cols:
         df = df.join(
@@ -26,7 +26,7 @@ def cv_plot(cv_results_):
     """
     if isinstance(cv_results_, dict):
         cv_results_ = pd.DataFrame(cv_results_)
-    cv_results_ = post_process_cv_results(cv_results_)
+    cv_results_ = _post_process_cv_results(cv_results_)
     param_cols = [col for col in cv_results_.columns if "param_" in col]
     n_params = len(param_cols)
     n_uniques = [cv_results_[col].nunique() for col in param_cols]

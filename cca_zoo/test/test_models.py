@@ -17,7 +17,6 @@ from cca_zoo.models import (
     MCCA,
     GCCA,
     TCCA,
-    SCCA_ADMM,
     SpanCCA,
     SWCCA,
     PLS_ALS,
@@ -179,7 +178,6 @@ def test_regularized_methods():
     corr_pls = pls.score((X, Y))
     corr_rcca = rcca.score((X, Y))
     # Check the correlations from each unregularized method are the same
-    # assert np.testing.assert_array_almost_equal(corr_pls, corr_gcca, decimal=2))
     assert np.testing.assert_array_almost_equal(corr_pls, corr_mcca, decimal=1) is None
     assert (
             np.testing.assert_array_almost_equal(corr_pls, corr_kernel, decimal=1) is None
@@ -188,9 +186,8 @@ def test_regularized_methods():
 
 
 def test_non_negative_methods():
-    # TODO Check all weights positive
     latent_dims = 2
-    nnelasticca = ElasticCCA(
+    nnelastic = ElasticCCA(
         latent_dims=latent_dims,
         tol=1e-9,
         positive=True,
@@ -201,37 +198,36 @@ def test_non_negative_methods():
     nnscca = SCCA(latent_dims=latent_dims, tol=1e-9, positive=True, c=[1e-4, 1e-5]).fit(
         (X, Y)
     )
-
-
-def test_ncca():
-    # TODO sensible check
-    latent_dims = 2
-    ncca = NCCA(latent_dims=latent_dims).fit([X, Y])
+    assert np.testing.assert_array_less(-1e-9, nnelastic.weights[0]) is None
+    assert np.testing.assert_array_less(-1e-9, nnelastic.weights[1]) is None
+    assert np.testing.assert_array_less(-1e-9, nnals.weights[0]) is None
+    assert np.testing.assert_array_less(-1e-9, nnals.weights[1]) is None
+    assert np.testing.assert_array_less(-1e-9, nnscca.weights[0]) is None
+    assert np.testing.assert_array_less(-1e-9, nnscca.weights[1]) is None
 
 
 def test_sparse_methods():
-    # TODO check these are sparse outputs and reasonable correlation
     c1 = [1, 3]
     c2 = [1, 3]
     param_grid = {"c": [c1, c2]}
     pmd_cv = GridSearchCV(PMD(random_state=rng), param_grid=param_grid).fit([X, Y])
     cv_plot(pmd_cv.cv_results_)
-    c1 = [1e-4, 1e-5]
-    c2 = [1e-4, 1e-5]
+    c1 = [5e-1]
+    c2 = [1e-1]
     param_grid = {"c": [c1, c2]}
     scca_cv = GridSearchCV(SCCA(random_state=rng), param_grid=param_grid).fit([X, Y])
-
-    c1 = loguniform(1e-4, 1e0)
-    c2 = loguniform(1e-4, 1e0)
-    param_grid = {"c": [c1, c2]}
+    c1 = loguniform(1e-1, 2e-1)
+    c2 = loguniform(1e-1, 2e-1)
+    param_grid = {"c": [c1, c2], "l1_ratio": [[0.9], [0.9]]}
     elastic_cv = RandomizedSearchCV(
         ElasticCCA(random_state=rng), param_distributions=param_grid, n_iter=4
     ).fit([X, Y])
-    corr_pmd = pmd_cv.score((X, Y))
-    corr_scca = scca_cv.score((X, Y))
-    corr_elastic = elastic_cv.score((X, Y))
-    scca_admm = SCCA_ADMM(c=[1e-4, 1e-4]).fit([X, Y])
-    scca = SCCA(c=[1e-4, 1e-4]).fit([X, Y])
+    assert (pmd_cv.best_estimator_.weights[0] == 0).sum() > 0
+    assert (pmd_cv.best_estimator_.weights[1] == 0).sum() > 0
+    assert (scca_cv.best_estimator_.weights[0] == 0).sum() > 0
+    assert (scca_cv.best_estimator_.weights[1] == 0).sum() > 0
+    assert (elastic_cv.best_estimator_.weights[0] == 0).sum() > 0
+    assert (elastic_cv.best_estimator_.weights[1] == 0).sum() > 0
 
 
 def test_weighted_GCCA_methods():
@@ -257,12 +253,20 @@ def test_weighted_GCCA_methods():
 
 
 def test_TCCA():
-    # TODO Sensible check for kernel TCCA
-    latent_dims = 2
+    latent_dims = 1
     tcca = TCCA(latent_dims=latent_dims, c=[0.2, 0.2, 0.2]).fit([X, X, Y])
     ktcca = KTCCA(latent_dims=latent_dims, c=[0.2, 0.2]).fit([X, Y])
     corr_tcca = tcca.score((X, X, Y))
     corr_ktcca = ktcca.score((X, Y))
+    assert corr_tcca > 0.4
+    assert corr_ktcca > 0.4
+
+
+def test_NCCA():
+    latent_dims = 1
+    ncca = NCCA(latent_dims=latent_dims).fit((X, Y))
+    corr_ncca = ncca.score((X, Y))
+    assert corr_ncca > 0.9
 
 
 def test_l0():
