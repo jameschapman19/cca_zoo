@@ -8,6 +8,7 @@ Showing some examples of more advanced functionality
 import numpy as np
 # %%
 import pytorch_lightning as pl
+from torch import optim
 from torch.utils.data import Subset
 
 from cca_zoo.data import Split_MNIST_Dataset
@@ -25,12 +26,14 @@ latent_dims = 2
 # number of epochs for deep models
 epochs = 10
 
-# TODO
+# TODO add in custom architecture and schedulers and stuff to show it off
 encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
 encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
 
 # Deep CCA
 dcca = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
 dcca = CCALightning(dcca)
+optimizer = optim.Adam(dcca.parameters(), lr=1e-3)
+scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, 1)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
