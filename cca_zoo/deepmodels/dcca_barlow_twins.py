@@ -10,8 +10,7 @@ class BarlowTwins(DCCA):
     """
     A class used to fit a Barlow Twins model.
 
-    Citation
-    --------
+    :Citation:
 
     Zbontar, Jure, et al. "Barlow twins: Self-supervised learning via redundancy reduction." arXiv preprint arXiv:2103.03230 (2021).
 

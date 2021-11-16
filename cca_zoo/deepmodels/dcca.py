@@ -10,8 +10,7 @@ class DCCA(_DCCA_base):
     """
     A class used to fit a DCCA model.
 
-    Citation
-    --------
+    :Citation:
 
     Andrew, Galen, et al. "Deep canonical correlation analysis." International conference on machine learning. PMLR, 2013.
 
