@@ -10,8 +10,7 @@ class DCCAE(_DCCA_base):
     """
     A class used to fit a DCCAE model.
 
-    Citation
-    --------
+    :Citation:
 
     Wang, Weiran, et al. "On deep multi-view representation learning." International conference on machine learning. PMLR, 2015.
 

@@ -9,8 +9,7 @@ class DCCA_NOI(DCCA):
     A class used to fit a DCCA model by non-linear orthogonal iterations
 
 
-    Citation
-    --------
+    :Citation:
 
     Wang, Weiran, et al. "Stochastic optimization for deep CCA via nonlinear orthogonal iterations." 2015 53rd Annual Allerton Conference on Communication, Control, and Computing (Allerton). IEEE, 2015.
 

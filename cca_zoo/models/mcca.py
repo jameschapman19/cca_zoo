@@ -10,11 +10,20 @@ from cca_zoo.utils.check_values import _process_parameter, check_views
 
 
 class MCCA(rCCA):
-    """
+    r"""
     A class used to fit MCCA model. For more than 2 views, MCCA optimizes the sum of pairwise correlations.
 
-    Citation
-    --------
+    :Maths:
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} w_i^TX_i^TX_jw_j  \}\\
+
+        \text{subject to:}
+
+        (1-c_i)w_i^TX_i^TX_iw_i+c_iw_i^Tw_i=1
+
+    :Citation:
 
     Kettenring, Jon R. "Canonical analysis of several sets of variables." Biometrika 58.3 (1971): 433-451.
 
@@ -92,8 +101,18 @@ class MCCA(rCCA):
 
 
 class KCCA(MCCA):
-    """
+    r"""
     A class used to fit KCCA model.
+
+    :Maths:
+
+    .. math::
+
+        \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \alpha_i^TK_i^TK_j\alpha_j  \}\\
+
+        \text{subject to:}
+
+        c_i\alpha_i^TK_i\alpha_i + (1-c_i)\alpha_i^TK_i^TK_i\alpha_i=1
 
     :Example:
 
@@ -161,7 +180,7 @@ class KCCA(MCCA):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
 
     def _get_kernel(self, view, X, Y=None):
-        if callable(self.kernel):
+        if callable(self.kernel[view]):
             params = self.kernel_params[view] or {}
         else:
             params = {

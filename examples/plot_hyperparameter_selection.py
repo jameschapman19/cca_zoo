@@ -2,5 +2,5 @@
 Hyperparameter Selection
 ===========================
 
-This will compare MCCA, GCCA, TCCA
+This script will show how to perform hyperparameter selection
 """

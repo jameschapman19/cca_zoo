@@ -12,11 +12,23 @@ from cca_zoo.utils.check_values import _process_parameter, check_views
 
 
 class rCCA(_CCA_Base):
-    """
+    r"""
     A class used to fit Regularised CCA (canonical ridge) model. Uses PCA to perform the optimization efficiently for high dimensional data.
 
-    Citation
-    --------
+    :Maths:
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
+
+        \text{subject to:}
+
+        (1-c_1)w_1^TX_1^TX_1w_1+c_1w_1^Tw_1=1
+
+        (1-c_2)w_2^TX_2^TX_2w_2+c_2w_2^Tw_2=1
+
+
+    :Citation:
 
     Vinod, Hrishikesh D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
 
@@ -161,13 +173,25 @@ class rCCA(_CCA_Base):
 
 
 class CCA(rCCA):
-    """
+    r"""
     A class used to fit a simple CCA model
 
     Implements CCA by inheriting regularised CCA with 0 regularisation
 
-    Citation
-    --------
+    :Maths:
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
+
+        \text{subject to:}
+
+        w_1^TX_1^TX_1w_1=1
+
+        w_2^TX_2^TX_2w_2=1
+
+    :Citation:
+
     Hotelling, Harold. "Relations between two sets of variates." Breakthroughs in statistics. Springer, New York, NY, 1992. 162-190.
 
     :Example:
@@ -192,6 +216,7 @@ class CCA(rCCA):
     ):
         """
         Constructor for CCA
+
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample
@@ -209,15 +234,22 @@ class CCA(rCCA):
 
 
 class PLS(rCCA):
-    """
+    r"""
     A class used to fit a simple PLS model
 
     Implements PLS by inheriting regularised CCA with maximal regularisation
 
+    :Maths:
 
     .. math::
 
-    w_{opt}=w_1^TX_1^TX_2w_2
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
+
+        \text{subject to:}
+
+        w_1^Tw_1=1
+
+        w_2^Tw_2=1
 
     :Example:
 
@@ -240,7 +272,8 @@ class PLS(rCCA):
             random_state=None,
     ):
         """
-        Constructor for CCA
+        Constructor for PLS
+
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample

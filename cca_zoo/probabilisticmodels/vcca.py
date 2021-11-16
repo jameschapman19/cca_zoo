@@ -13,10 +13,9 @@ from cca_zoo.models import _CCA_Base
 
 class VariationalCCA(_CCA_Base):
     """
-    A class used to fit a variational bayesian CCA
+    A class used to fit a variational bayesian CCA. Not quite the same due to using VI methods rather than EM
 
-    Citation
-    --------
+    :Citation:
 
     Wang, Chong. "Variational Bayesian approach to canonical correlation analysis." IEEE Transactions on Neural Networks 18.3 (2007): 905-910.
 

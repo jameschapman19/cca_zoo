@@ -12,11 +12,12 @@ class DVCCA(_DCCA_base):
     """
     A class used to fit a DVCCA model.
 
-    Citation
-    --------
+    :Citation:
 
     Wang, Weiran, et al. "Deep variational canonical correlation analysis." arXiv preprint arXiv:1610.03454 (2016).
+
     https: // arxiv.org / pdf / 1610.03454.pdf
+
     https: // github.com / pytorch / examples / blob / master / vae / main.py
 
     """

@@ -26,17 +26,14 @@ class _InnerLoop:
             self,
             max_iter: int = 100,
             tol: float = 1e-5,
-            generalized: bool = False,
             initialization: str = "unregularized",
             random_state=None,
     ):
         """
         :param max_iter: maximum number of iterations to perform if tol is not reached
         :param tol: tolerance value used for stopping criteria
-        :param generalized: use an auxiliary variable to
         :param initialization: initialise the optimisation with either the 'unregularized' (CCA/PLS) solution, or a 'random' initialisation
         """
-        self.generalized = generalized
         self.initialization = initialization
         self.max_iter = max_iter
         self.tol = tol
@@ -124,14 +121,12 @@ class PLSInnerLoop(_InnerLoop):
             self,
             max_iter: int = 100,
             tol=1e-5,
-            generalized: bool = False,
             initialization: str = "unregularized",
             random_state=None,
     ):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            generalized=generalized,
             initialization=initialization,
             random_state=random_state,
         )
@@ -179,7 +174,6 @@ class PMDInnerLoop(PLSInnerLoop):
             self,
             max_iter: int = 100,
             tol=1e-5,
-            generalized: bool = False,
             initialization: str = "unregularized",
             c=None,
             positive=None,
@@ -188,7 +182,6 @@ class PMDInnerLoop(PLSInnerLoop):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            generalized=generalized,
             initialization=initialization,
             random_state=random_state,
         )
@@ -242,7 +235,6 @@ class ParkhomenkoInnerLoop(PLSInnerLoop):
             self,
             max_iter: int = 100,
             tol=1e-5,
-            generalized: bool = False,
             initialization: str = "unregularized",
             c=None,
             random_state=None,
@@ -250,7 +242,6 @@ class ParkhomenkoInnerLoop(PLSInnerLoop):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            generalized=generalized,
             initialization=initialization,
             random_state=random_state,
         )
@@ -283,11 +274,10 @@ class ElasticInnerLoop(PLSInnerLoop):
             self,
             max_iter: int = 100,
             tol=1e-5,
-            generalized: bool = False,
             initialization: str = "unregularized",
             c=None,
             l1_ratio=None,
-            constrained=False,
+            maxvar=True,
             stochastic=True,
             positive=None,
             random_state=None,
@@ -295,15 +285,14 @@ class ElasticInnerLoop(PLSInnerLoop):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            generalized=generalized,
             initialization=initialization,
             random_state=random_state,
         )
         self.stochastic = stochastic
-        self.constrained = constrained
         self.c = c
         self.l1_ratio = l1_ratio
         self.positive = positive
+        self.maxvar = maxvar
 
     def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, len(self.views))
@@ -313,8 +302,6 @@ class ElasticInnerLoop(PLSInnerLoop):
         self.positive = _process_parameter(
             "positive", self.positive, False, len(self.views)
         )
-        if self.constrained:
-            self.gamma = np.zeros(len(self.views))
         self.regressors = []
         for alpha, l1_ratio, positive in zip(self.c, self.l1_ratio, self.positive):
             if self.stochastic:
@@ -398,14 +385,12 @@ class ElasticInnerLoop(PLSInnerLoop):
         :param view_index: index of view being updated
         :return: updated weights
         """
-        if self.generalized:
+        if self.maxvar:
             target = self.scores.mean(axis=0)
+            target /= np.linalg.norm(target)
         else:
             target = self.scores[view_index - 1]
-        if self.constrained:
-            self._elastic_solver_constrained(self.views[view_index], target, view_index)
-        else:
-            self._elastic_solver(self.views[view_index], target, view_index)
+        self._elastic_solver(self.views[view_index], target, view_index)
         _check_converged_weights(self.weights[view_index], view_index)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
@@ -418,35 +403,6 @@ class ElasticInnerLoop(PLSInnerLoop):
             self.views[view_index] @ self.weights[view_index]
         ) / np.sqrt(self.n)
 
-    @ignore_warnings(category=ConvergenceWarning)
-    def _elastic_solver_constrained(self, X, y, view_index):
-        converged = False
-        min_ = -1
-        max_ = 1
-        previous = self.gamma[view_index]
-        previous_val = None
-        i = 0
-        while not converged:
-            i += 1
-            coef = (
-                self.regressors[view_index]
-                    .fit(
-                    np.sqrt(self.gamma[view_index] + 1) * X,
-                    y.ravel() / np.sqrt(self.gamma[view_index] + 1),
-                )
-                    .coef_
-            )
-            current_val = 1 - (np.linalg.norm(X @ coef) ** 2) / self.n
-            self.gamma[view_index], previous, min_, max_ = _bin_search(
-                self.gamma[view_index], previous, current_val, previous_val, min_, max_
-            )
-            previous_val = current_val
-            if np.abs(current_val) < 1e-5:
-                converged = True
-            elif np.abs(max_ - min_) < 1e-30 or i == 50:
-                converged = True
-        self.weights[view_index] = coef
-
     def _objective(self):
         views = len(self.views)
         c = np.array(self.c)
@@ -455,7 +411,6 @@ class ElasticInnerLoop(PLSInnerLoop):
         l2 = c * (1 - ratio)
         total_objective = 0
         for i in range(views):
-            # TODO this looks like it could be tidied up. In particular can we make the generalized objective correspond to the 2 view
             target = self.scores.mean(axis=0)
             objective = (
                     views
@@ -480,7 +435,6 @@ class ADMMInnerLoop(ElasticInnerLoop):
             self,
             max_iter: int = 100,
             tol=1e-5,
-            generalized: bool = False,
             initialization: str = "unregularized",
             mu=None,
             lam=None,
@@ -491,7 +445,6 @@ class ADMMInnerLoop(ElasticInnerLoop):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            generalized=generalized,
             initialization=initialization,
             random_state=random_state,
         )
@@ -601,7 +554,6 @@ class SpanCCAInnerLoop(_InnerLoop):
             self,
             max_iter: int = 100,
             tol=1e-5,
-            generalized: bool = False,
             initialization: str = "unregularized",
             c=None,
             regularisation="l0",
@@ -612,7 +564,6 @@ class SpanCCAInnerLoop(_InnerLoop):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            generalized=generalized,
             initialization=initialization,
             random_state=random_state,
         )
@@ -664,7 +615,6 @@ class SWCCAInnerLoop(PLSInnerLoop):
             self,
             max_iter: int = 100,
             tol=1e-20,
-            generalized: bool = False,
             initialization: str = "unregularized",
             regularisation="l0",
             c=None,
@@ -675,7 +625,6 @@ class SWCCAInnerLoop(PLSInnerLoop):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            generalized=generalized,
             initialization=initialization,
             random_state=random_state,
         )

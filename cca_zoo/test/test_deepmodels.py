@@ -37,27 +37,6 @@ conv_dataset = data.CCA_Dataset((X_conv, Y_conv))
 conv_loader = get_dataloaders(conv_dataset)
 
 
-def test_large_p():
-    large_p = 256
-    X = rng.rand(2000, large_p)
-    Y = rng.rand(2000, large_p)
-    dataset = data.CCA_Dataset([X, Y])
-    loader = get_dataloaders(dataset)
-    latent_dims = 32
-    encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=large_p)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=large_p)
-    dcca = DCCA(
-        latent_dims=latent_dims,
-        encoders=[encoder_1, encoder_2],
-        objective=objectives.MCCA,
-        eps=1e-3,
-    )
-    optimizer = optim.Adam(dcca.parameters(), lr=1e-3)
-    dcca = CCALightning(dcca, optimizer=optimizer)
-    trainer = pl.Trainer(fast_dev_run=True)
-    trainer.fit(dcca, loader)
-
-
 def test_DCCA_methods():
     N = len(train_dataset)
     latent_dims = 2
@@ -185,22 +164,6 @@ def test_DTCCA_methods():
     trainer.fit(dtcca, train_loader)
 
 
-def test_scheduler():
-    latent_dims = 2
-    encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
-    dcca = DCCA(
-        latent_dims=latent_dims,
-        encoders=[encoder_1, encoder_2],
-        objective=objectives.CCA,
-    )
-    optimizer = optim.Adam(dcca.parameters(), lr=1e-3)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, 1)
-    dcca = CCALightning(dcca, optimizer=optimizer, lr_scheduler=scheduler)
-    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False)
-    trainer.fit(dcca, train_loader)
-
-
 def test_DCCAE_methods():
     latent_dims = 2
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -223,23 +186,6 @@ def test_DCCAE_methods():
     dccae = CCALightning(dccae)
     trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False)
     trainer.fit(dccae, train_loader)
-
-
-def test_DCCAEconv_methods():
-    latent_dims = 2
-    encoder_1 = architectures.CNNEncoder(latent_dims=latent_dims, feature_size=[16, 16])
-    encoder_2 = architectures.CNNEncoder(latent_dims=latent_dims, feature_size=[16, 16])
-    decoder_1 = architectures.CNNDecoder(latent_dims=latent_dims, feature_size=[16, 16])
-    decoder_2 = architectures.CNNDecoder(latent_dims=latent_dims, feature_size=[16, 16])
-    # DCCAE
-    dccae = DCCAE(
-        latent_dims=latent_dims,
-        encoders=[encoder_1, encoder_2],
-        decoders=[decoder_1, decoder_2],
-    )
-    dccae = CCALightning(dccae)
-    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False)
-    trainer.fit(dccae, conv_loader)
 
 
 def test_DVCCA_p_methods():

@@ -1,8 +1,8 @@
 """
-Deep CCA
-===========================
+Deep Variational CCA and Deep Canonically Correlated Autoencoders
+====================================================================
 
-This example demonstrates how to easily train Deep CCA models and variants
+This example demonstrates multiview models which can reconstruct their inputs
 """
 
 import numpy as np
@@ -40,6 +40,7 @@ encoder_2 = architectures.Encoder(
 decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=392)
 decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=392)
 
+# %%
 # Deep VCCA
 dcca = DVCCA(
     latent_dims=latent_dims,
@@ -50,6 +51,7 @@ dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
 
+# %%
 # Deep VCCA (private)
 # We need to add additional private encoders and change (double) the dimensionality of the decoders.
 private_encoder_1 = architectures.Encoder(
@@ -71,6 +73,7 @@ dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
 
+# %%
 # DCCAE
 encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
 encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)

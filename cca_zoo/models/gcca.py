@@ -10,11 +10,20 @@ from cca_zoo.utils.check_values import _process_parameter, check_views
 
 
 class GCCA(rCCA):
-    """
+    r"""
     A class used to fit GCCA model. For more than 2 views, GCCA optimizes the sum of correlations with a shared auxiliary vector
 
-    Citation
-    --------
+    :Maths:
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ \sum_iw_i^TX_i^TT  \}\\
+
+        \text{subject to:}
+
+        T^TT=1
+
+    :Citation:
 
     Tenenhaus, Arthur, and Michel Tenenhaus. "Regularized generalized canonical correlation analysis." Psychometrika 76.2 (2011): 257.
 
@@ -99,11 +108,21 @@ class GCCA(rCCA):
 
 
 class KGCCA(GCCA):
-    """
+    r"""
     A class used to fit KGCCA model. For more than 2 views, KGCCA optimizes the sum of correlations with a shared auxiliary vector
 
-    Citation
-    --------
+    :Maths:
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ \sum_i\alpha_i^TK_i^TT  \}\\
+
+        \text{subject to:}
+
+        T^TT=1
+
+    :Citation:
+
     Tenenhaus, Arthur, Cathy Philippe, and Vincent Frouin. "Kernel generalized canonical correlation analysis." Computational Statistics & Data Analysis 90 (2015): 114-131.
 
     :Example:
@@ -135,6 +154,8 @@ class KGCCA(GCCA):
             kernel_params: Iterable[dict] = None,
     ):
         """
+        Constructor for PLS
+
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample
@@ -175,7 +196,7 @@ class KGCCA(GCCA):
         )
 
     def _get_kernel(self, view, X, Y=None):
-        if callable(self.kernel):
+        if callable(self.kernel[view]):
             params = self.kernel_params[view] or {}
         else:
             params = {

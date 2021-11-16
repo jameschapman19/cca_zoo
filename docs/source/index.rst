@@ -17,7 +17,7 @@ Documentation
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
    :caption: Reference
 
    api/data

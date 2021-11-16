@@ -2,7 +2,7 @@
 Deep CCA with more customisation
 ==================================
 
-Showing some examples of more advanced functionality
+Showing some examples of more advanced functionality with DCCA and pytorch-lightning
 """
 
 import numpy as np

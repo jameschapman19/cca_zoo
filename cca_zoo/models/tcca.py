@@ -12,15 +12,23 @@ from cca_zoo.utils.check_values import _process_parameter, check_views
 
 
 class TCCA(_CCA_Base):
-    """
+    r"""
     Fits a Tensor CCA model. Tensor CCA maximises higher order correlations
 
-    Citation
-    --------
+    :Maths:
+
+    .. math::
+
+        \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \alpha_i^TK_i^TK_j\alpha_j  \}\\
+
+        \text{subject to:}
+
+        \alpha_i^TK_i^TK_i\alpha_i=1
+
+    :Citation:
 
     Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
-
-    My own port from https://github.com/rciszek/mdr_tcca
+    https://github.com/rciszek/mdr_tcca
 
     :Example:
 
@@ -152,11 +160,20 @@ class TCCA(_CCA_Base):
 
 
 class KTCCA(TCCA):
-    """
+    r"""
     Fits a Kernel Tensor CCA model. Tensor CCA maximises higher order correlations
 
-    Citation
-    --------
+    :Maths:
+
+    .. math::
+
+        \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \alpha_i^TK_i^TK_j\alpha_j  \}\\
+
+        \text{subject to:}
+
+        \alpha_i^TK_i^TK_i\alpha_i=1
+
+    :Citation:
 
     Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
 
@@ -226,7 +243,7 @@ class KTCCA(TCCA):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
 
     def _get_kernel(self, view, X, Y=None):
-        if callable(self.kernel):
+        if callable(self.kernel[view]):
             params = self.kernel_params[view] or {}
         else:
             params = {
