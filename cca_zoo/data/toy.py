@@ -125,7 +125,7 @@ class Noisy_MNIST_Dataset(Dataset):
         x_a = transforms.functional.rotate(
             x_a, rot_a.item(), interpolation=InterpolationMode.BILINEAR
         )
-        x_a = self.base_transform(x_a)  # convert from PIL back to pytorch tensor
+        x_a = self.base_transform(x_a)
 
         label = self.targets[idx]
         # get random index of image with same class
@@ -139,26 +139,6 @@ class Noisy_MNIST_Dataset(Dataset):
             x_a = torch.flatten(x_a)
             x_b = torch.flatten(x_b)
         return (x_b, x_a), (rot_a, label)
-
-    def to_numpy(self, indices=None):
-        """
-        Converts dataset to numpy array form
-
-        :param indices: indices of the samples to extract into numpy arrays
-        """
-        if indices is None:
-            indices = np.arange(self.__len__())
-        view_1 = np.zeros((len(indices), 784))
-        view_2 = np.zeros((len(indices), 784))
-        labels = np.zeros(len(indices)).astype(int)
-        rotations = np.zeros(len(indices))
-        for i, n in enumerate(indices):
-            sample = self[n]
-            view_1[i] = sample[0][0].numpy().reshape((-1, 28 * 28))
-            view_2[i] = sample[0][1].numpy().reshape((-1, 28 * 28))
-            rotations[i] = sample[1][0].numpy()
-            labels[i] = sample[1][1].numpy().astype(int)
-        return (view_1, view_2), (rotations, labels)
 
 
 class Tangled_MNIST_Dataset(Dataset):
@@ -185,7 +165,6 @@ class Tangled_MNIST_Dataset(Dataset):
         self.data = self.dataset.data
         self.transform = transforms.Compose([transforms.ToTensor()])
         self.targets = self.dataset.targets
-        self.OHs = _OH_digits(self.targets.numpy().astype(int))
         self.filtered_classes = []
         self.filtered_nums = []
         for i in range(10):
@@ -222,38 +201,7 @@ class Tangled_MNIST_Dataset(Dataset):
             x_b_rotate = torch.flatten(x_b_rotate)
         return (x_a_rotate, x_b_rotate), (rot_a, rot_b, label)
 
-    def to_numpy(self, indices):
-        """
-        Converts dataset to numpy array form
-
-        :param indices: indices of the samples to extract into numpy arrays
-        """
-        view_1 = np.zeros((len(indices), 784))
-        view_2 = np.zeros((len(indices), 784))
-        labels = np.zeros(len(indices)).astype(int)
-        rotation_1 = np.zeros(len(indices))
-        rotation_2 = np.zeros(len(indices))
-        for i, n in enumerate(indices):
-            sample = self[n]
-            view_1[i] = sample[0][0].numpy().reshape((-1, 28 * 28))
-            view_2[i] = sample[0][1].numpy().reshape((-1, 28 * 28))
-            rotation_1[i] = sample[1][0].numpy()
-            rotation_2[i] = sample[1][1].numpy()
-            labels[i] = sample[1][2].numpy().astype(int)
-        return (view_1, view_2), (rotation_1, rotation_2, labels)
-
-
-def _OH_digits(digits):
-    """
-    One hot encode numpy array
-
-    :param digits:
-    """
-    b = np.zeros((digits.size, digits.max() + 1))
-    b[np.arange(digits.size), digits] = 1
-    return b
-
 
 def _add_mnist_noise(x):
-    x = x + torch.rand(28, 28)
+    x = x + torch.rand(size=(28, 28))
     return x

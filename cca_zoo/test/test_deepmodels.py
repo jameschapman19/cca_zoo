@@ -161,7 +161,7 @@ def test_DTCCA_methods():
     dtcca = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
     dtcca = CCALightning(dtcca)
     trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
-    trainer.fit(dtcca, train_loader)
+    trainer.fit(dtcca, conv_loader)
 
 
 def test_DCCAE_methods():

@@ -72,9 +72,9 @@ class CCALightning(LightningModule):
         self.log("val corr", score)
 
     def correlations(
-        self,
-        loader: torch.utils.data.DataLoader,
-        train: bool = False,
+            self,
+            loader: torch.utils.data.DataLoader,
+            train: bool = False,
     ):
         """
 
@@ -87,16 +87,16 @@ class CCALightning(LightningModule):
             return None
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
-            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], y.shape[1] :]))
+            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], y.shape[1]:]))
         all_corrs = np.array(all_corrs).reshape(
             (len(transformed_views), len(transformed_views), -1)
         )
         return all_corrs
 
     def transform(
-        self,
-        loader: torch.utils.data.DataLoader,
-        train: bool = False,
+            self,
+            loader: torch.utils.data.DataLoader,
+            train: bool = False,
     ):
         """
 
@@ -115,13 +115,13 @@ class CCALightning(LightningModule):
                         np.append(z_list[i], z_i.detach().cpu().numpy(), axis=0)
                         for i, z_i in enumerate(z)
                     ]
-        z_list = self.model.post_transform(*z_list, train=train)
+        z_list = self.model.post_transform(z_list, train=train)
         return z_list
 
     def score(
-        self,
-        loader: torch.utils.data.DataLoader,
-        train: bool = False,
+            self,
+            loader: torch.utils.data.DataLoader,
+            train: bool = False,
     ):
         """
 
@@ -136,13 +136,13 @@ class CCALightning(LightningModule):
         n_views = pair_corrs.shape[0]
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
         dim_corrs = (
-            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
-        ) / (n_views ** 2 - n_views)
+                            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
+                    ) / (n_views ** 2 - n_views)
         return dim_corrs
 
-    def predict_view(
-        self,
-        loader: torch.utils.data.DataLoader,
+    def recon(
+            self,
+            loader: torch.utils.data.DataLoader,
     ):
         with torch.no_grad():
             for batch_idx, (data, label) in enumerate(loader):

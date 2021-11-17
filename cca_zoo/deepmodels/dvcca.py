@@ -23,11 +23,11 @@ class DVCCA(_DCCA_base):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        encoders=None,
-        decoders=None,
-        private_encoders: Iterable[BaseEncoder] = None,
+            self,
+            latent_dims: int,
+            encoders=None,
+            decoders=None,
+            private_encoders: Iterable[BaseEncoder] = None,
     ):
         """
         :param latent_dims: # latent dimensions
@@ -69,8 +69,8 @@ class DVCCA(_DCCA_base):
                 z_p = mu_p
             else:
                 z_dist = dist.Normal(mu_p, torch.exp(0.5 * logvar_p))
-                z = z_dist.rsample()
-            z = [torch.cat([z_] + z_p, dim=-1) for z_ in z]
+                z_p = z_dist.rsample()
+            z = [torch.cat((z_, z_p_), dim=-1) for z_, z_p_ in zip(z, z_p)]
         return z
 
     def _encode(self, *args):
@@ -116,7 +116,7 @@ class DVCCA(_DCCA_base):
         :return:
         """
         z = self(*args)
-        return [self._decode(z_i) for z_i in z][0]
+        return [self._decode(z_) for z_ in z]
 
     def loss(self, *args):
         """
