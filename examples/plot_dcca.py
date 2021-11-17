@@ -21,7 +21,25 @@ from cca_zoo.deepmodels import (
     DCCA_SDL,
     BarlowTwins,
 )
-from examples.utils import plot_latent_label
+
+
+def plot_latent_label(model, dataloader, num_batches=100):
+    fig, ax = plt.subplots(ncols=model.latent_dims)
+    for j in range(model.latent_dims):
+        ax[j].set_title(f'Dimension {j}')
+        ax[j].set_xlabel('View 1')
+        ax[j].set_ylabel('View 2')
+    for i, (data, label) in enumerate(dataloader):
+        z = model(*data)
+        zx, zy = z
+        zx = zx.to('cpu').detach().numpy()
+        zy = zy.to('cpu').detach().numpy()
+        for j in range(model.latent_dims):
+            ax[j].scatter(zx[:, j], zy[:, j], c=label.numpy(), cmap='tab10')
+        if i > num_batches:
+            plt.colorbar()
+            break
+
 
 n_train = 500
 n_val = 100
