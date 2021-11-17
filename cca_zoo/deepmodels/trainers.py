@@ -14,7 +14,7 @@ class CCALightning(LightningModule):
             self,
             model: _DCCA_base,
             optimizer: torch.optim.Optimizer = None,
-            scheduler: torch.optim.lr_scheduler = None,
+            lr_scheduler: torch.optim.lr_scheduler = None,
     ):
         """
 
