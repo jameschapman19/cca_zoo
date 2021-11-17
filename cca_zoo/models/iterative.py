@@ -368,7 +368,7 @@ class CCA_ALS(ElasticCCA):
             scale=scale,
             positive=positive,
             random_state=random_state,
-            c=0,
+            c=1e-5,
             maxvar=False,
         )
 
