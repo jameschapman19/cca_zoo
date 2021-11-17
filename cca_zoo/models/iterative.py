@@ -99,6 +99,9 @@ class _Iterative(_CCA_Base):
                     residuals[i], self.scores[i][:, k], self.weights[i][:, k]
                 )
             self.track.append(self.loop.track)
+            if self.track[-1]['converged'] == False:
+                warnings.warn(f'Inner loop {k} did not converge or converged to nans')
+                break
         return self
 
     def _deflate(self, residual, score, loading):
@@ -222,9 +225,9 @@ class ElasticCCA(_Iterative):
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
-    >>> model = ElasticCCA(c=[0.1,0.1],l1_ratio=[0.5,0.5], random_state=0)
+    >>> model = ElasticCCA(c=[1e-1,1e-1],l1_ratio=[0.5,0.5], random_state=0)
     >>> model.fit((X1,X2)).score((X1,X2))
-    array([0.91599631])
+    array([0.9316638])
     """
 
     def __init__(
@@ -323,7 +326,7 @@ class CCA_ALS(ElasticCCA):
     >>> X2 = rng.random((10,3))
     >>> model = CCA_ALS(random_state=0)
     >>> model.fit((X1,X2)).score((X1,X2))
-    array([0.85890619])
+    array([0.858906])
     """
 
     def __init__(
@@ -365,7 +368,7 @@ class CCA_ALS(ElasticCCA):
             scale=scale,
             positive=positive,
             random_state=random_state,
-            c=1e-3,
+            c=0,
             maxvar=False,
         )
 
