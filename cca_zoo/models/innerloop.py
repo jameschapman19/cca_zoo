@@ -73,9 +73,6 @@ class _InnerLoop:
     def _fit(self, *views: np.ndarray):
         self.views = views
         self.n = views[0].shape[0]
-        if len(self.views) > 2:
-            self.generalized = True
-            warnings.warn("For more than 2 views require generalized=True")
 
         # Check that the parameters that have been passed are valid for these views given #views and #features
         self._check_params()

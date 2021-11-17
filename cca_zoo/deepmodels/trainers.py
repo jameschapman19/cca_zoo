@@ -1,6 +1,5 @@
 import itertools
-import sys
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 import torch
@@ -12,20 +11,10 @@ from cca_zoo.deepmodels import _DCCA_base
 
 class CCALightning(LightningModule):
     def __init__(
-        self,
-        model: _DCCA_base,
-        optimizer: Union[torch.optim.Optimizer, str] = "Adam",
-        learning_rate: float = 1e-3,
-        weight_decay: float = 0.1,
-        lr_scheduler: torch.optim.lr_scheduler._LRScheduler = None,
-        StepLR_step_size: float = None,
-        StepLR_gamma: float = None,
-        lr_factor: float = None,
-        lr_patience: float = None,
-        OneCycleLR_max_lr: float = None,
-        OneCycleLR_epochs: float = None,
-        train_trajectories: float = None,
-        T: float = None,
+            self,
+            model: _DCCA_base,
+            optimizer: torch.optim.Optimizer = None,
+            scheduler: torch.optim.lr_scheduler = None,
     ):
         """
 
@@ -33,15 +22,6 @@ class CCALightning(LightningModule):
         :param optimizer: a pytorch optimizer with parameters from model or a string like 'Adam' to use Adam optimizer with default parameters or those specified by the user
         :param learning_rate: learning rate used when optimizer is instantiated with a string
         :param weight_decay: weight decay used when optimizer is instantiated with a string
-        :param lr_scheduler: a pytorch learning rate scheduler or a string like "StepLR" or None
-        :param StepLR_step_size: step size used by "StepLR"
-        :param StepLR_gamma: gamma used by "StepLR"
-        :param lr_factor: factor used by "ReduceLROnPlateau"
-        :param lr_patience: patience used by "ReduceLROnPlateau"
-        :param OneCycleLR_max_lr: max lr used by "OneCycleLR"
-        :param OneCycleLR_epochs: epochs used by "OneCycleLR"
-        :param train_trajectories: train trajectories used by "OneCycleLR"
-        :param T: T used by "OneCycleLR"
         """
         super().__init__()
         self.save_hyperparameters()
@@ -58,65 +38,17 @@ class CCALightning(LightningModule):
     def configure_optimizers(self):
         if isinstance(self.hparams.optimizer, torch.optim.Optimizer):
             optimizer = self.hparams.optimizer
-        elif self.hparams.optimizer == "Adam":
+        else:
             optimizer = torch.optim.Adam(
                 self.parameters(),
                 lr=self.hparams.learning_rate,
                 weight_decay=self.hparams.weight_decay,
             )
-        elif self.hparams.optimizer == "SGD":
-            # Left out the momentum options for now
-            optimizer = torch.optim.SGD(
-                self.parameters(),
-                lr=self.hparams.learning_rate,
-                weight_decay=self.hparams.weight_decay,
-            )
-        elif self.hparams.optimizer == "LBFGS":
-            optimizer = torch.optim.LBFGS(
-                self.parameters(),
-                # or can have self.hparams.learning_rate with warning if too low.
-                lr=1,
-                tolerance_grad=1e-5,  # can add to parameters if useful.
-                tolerance_change=1e-9,  # can add to parameters if useful.
-            )
-        else:
-            print("Invalid optimizer.  See --help")
-            sys.exit()
 
         if self.hparams.lr_scheduler is None:
             return optimizer
-        elif isinstance(
-            self.hparams.lr_scheduler, torch.optim.lr_scheduler._LRScheduler
-        ):
-            scheduler = self.hparams.lr_scheduler
-        elif self.hparams.lr_scheduler == "StepLR":
-            step_size = self.hparams.StepLR_step_size
-            gamma = self.hparams.StepLR_gamma
-            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size, gamma)
-        elif self.hparams.lr_scheduler == "ReduceLROnPlateau":
-            factor = self.hparams.lr_factor
-            patience = self.hparams.lr_patience
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer, mode="min", factor=factor, patience=patience
-            )
-            return {
-                "optimizer": optimizer,
-                "lr_scheduler": scheduler,
-                "monitor": self.hparams.LRScheduler_metric,
-            }
-        elif self.hparams.lr_scheduler == "OneCycleLR":
-            max_lr = self.hparams.OneCycleLR_max_lr
-            epochs = self.hparams.OneCycleLR_epochs
-            steps_per_epoch = self.hparams.train_trajectories * (self.hparams.T + 1)
-            scheduler = torch.optim.lr_scheduler.OneCycleLR(
-                optimizer,
-                max_lr=max_lr,
-                epochs=epochs,
-                steps_per_epoch=steps_per_epoch,
-            )
         else:
-            print("Invalid scheduler configuration.  See --help")
-            raise
+            scheduler = self.hparams.lr_scheduler
         return [optimizer], [scheduler]
 
     def training_step(self, batch, batch_idx):
