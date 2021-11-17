@@ -248,7 +248,7 @@ class ParkhomenkoInnerLoop(PLSInnerLoop):
         self.c = c
 
     def _check_params(self):
-        self.c = _process_parameter("c", self.c, [0.0001], len(self.views))
+        self.c = _process_parameter("c", self.c, 0.0001, len(self.views))
         if any(c <= 0 for c in self.c):
             raise ("All regularisation parameters should be above 0. " f"c=[{self.c}]")
 
