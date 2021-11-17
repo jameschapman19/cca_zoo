@@ -20,7 +20,7 @@ class CCALightning(LightningModule):
 
         :param model: a model instance from deepmodels
         :param optimizer: a pytorch optimizer with parameters from model
-        :param scheduler: a pytorch scheduler
+        :param lr_scheduler: a pytorch scheduler
         """
         super().__init__()
         self.save_hyperparameters()

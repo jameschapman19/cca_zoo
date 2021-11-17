@@ -250,14 +250,15 @@ def test_linear():
     encoder_1 = architectures.LinearEncoder(latent_dims=1, feature_size=10)
     encoder_2 = architectures.LinearEncoder(latent_dims=1, feature_size=12)
     dcca = DCCA(latent_dims=1, encoders=[encoder_1, encoder_2])
-    dcca = CCALightning(dcca, learning_rate=1e-1)
+    optimizer = optim.Adam(dcca.parameters(), lr=1e-1)
+    dcca = CCALightning(dcca, optimizer=optimizer)
     trainer = pl.Trainer(max_epochs=50, enable_checkpointing=False)
     trainer.fit(dcca, loader)
     cca = CCA().fit((X, Y))
     # check linear encoder with SGD matches vanilla linear CCA
     assert (
-        np.testing.assert_array_almost_equal(
-            cca.score((X, Y)), trainer.model.score(loader), decimal=2
-        )
-        is None
+            np.testing.assert_array_almost_equal(
+                cca.score((X, Y)), trainer.model.score(loader), decimal=2
+            )
+            is None
     )
