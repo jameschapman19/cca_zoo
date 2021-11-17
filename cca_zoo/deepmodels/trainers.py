@@ -40,7 +40,6 @@ class CCALightning(LightningModule):
             optimizer = torch.optim.Adam(
                 self.parameters(),
                 lr=1e-3,
-                weight_decay=self.hparams.weight_decay,
             )
 
         if self.hparams.lr_scheduler is None:
