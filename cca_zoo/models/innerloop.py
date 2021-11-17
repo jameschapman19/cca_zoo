@@ -342,24 +342,25 @@ class ElasticInnerLoop(PLSInnerLoop):
         if self.maxvar:
             # For MAXVAR we rescale the targets
             target = self.scores.mean(axis=0)
-            target /= (np.linalg.norm(target) / np.sqrt(self.n))
+            target /= np.linalg.norm(target) / np.sqrt(self.n)
         else:
             target = self.scores[view_index - 1]
         # Solve the elastic regression
-        self.weights[view_index] = self._elastic_solver(self.views[view_index], target, view_index)
+        self.weights[view_index] = self._elastic_solver(
+            self.views[view_index], target, view_index
+        )
         # For SUMCOR we rescale the projections
         if not self.maxvar:
             _check_converged_weights(self.weights[view_index], view_index)
-            self.weights[view_index] = self.weights[view_index] / (np.linalg.norm(
-                self.views[view_index] @ self.weights[view_index]
-            ) / np.sqrt(self.n))
+            self.weights[view_index] = self.weights[view_index] / (
+                    np.linalg.norm(self.views[view_index] @ self.weights[view_index])
+                    / np.sqrt(self.n)
+            )
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
     @ignore_warnings(category=ConvergenceWarning)
     def _elastic_solver(self, X, y, view_index):
-        return np.expand_dims(
-            self.regressors[view_index].fit(X, y.ravel()).coef_, 1
-        )
+        return np.expand_dims(self.regressors[view_index].fit(X, y.ravel()).coef_, 1)
 
     def _objective(self):
         views = len(self.views)
@@ -371,8 +372,10 @@ class ElasticInnerLoop(PLSInnerLoop):
         target = self.scores.mean(axis=0)
         for i in range(views):
             if self.maxvar:
-                target /= (np.linalg.norm(target) / np.sqrt(self.n))
-            objective = np.linalg.norm(self.views[i] @ self.weights[i] - target) ** 2 / (2 * self.n)
+                target /= np.linalg.norm(target) / np.sqrt(self.n)
+            objective = np.linalg.norm(
+                self.views[i] @ self.weights[i] - target
+            ) ** 2 / (2 * self.n)
             l1_pen = l1[i] * np.linalg.norm(self.weights[i], ord=1)
             l2_pen = l2[i] * np.linalg.norm(self.weights[i], ord=2)
             total_objective += objective + l1_pen + l2_pen
@@ -609,8 +612,9 @@ class SWCCAInnerLoop(PLSInnerLoop):
         """
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
-        self.weights[view_index] = (self.views[view_index] * self.sample_weights
-                                    ).T @ targets.sum(axis=0).filled()
+        self.weights[view_index] = (
+                                           self.views[view_index] * self.sample_weights
+                                   ).T @ targets.sum(axis=0).filled()
         self.weights[view_index] = self.update(
             self.weights[view_index],
             self.c[view_index],

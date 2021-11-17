@@ -99,8 +99,8 @@ class _Iterative(_CCA_Base):
                     residuals[i], self.scores[i][:, k], self.weights[i][:, k]
                 )
             self.track.append(self.loop.track)
-            if self.track[-1]['converged'] == False:
-                warnings.warn(f'Inner loop {k} did not converge or converged to nans')
+            if self.track[-1]["converged"] == False:
+                warnings.warn(f"Inner loop {k} did not converge or converged to nans")
                 break
         return self
 
