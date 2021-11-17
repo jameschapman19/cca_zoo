@@ -22,6 +22,8 @@ from cca_zoo.models import (
     PLS_ALS,
     KGCCA,
     NCCA,
+    ParkhomenkoCCA,
+    SCCA_ADMM,
 )
 from cca_zoo.utils.plotting import cv_plot
 
@@ -216,6 +218,14 @@ def test_sparse_methods():
     c2 = [1e-1]
     param_grid = {"c": [c1, c2]}
     scca_cv = GridSearchCV(SCCA(random_state=rng), param_grid=param_grid).fit([X, Y])
+    c1 = [1e-1]
+    c2 = [1e-1]
+    param_grid = {"c": [c1, c2]}
+    parkhomenko_cv = GridSearchCV(ParkhomenkoCCA(random_state=rng), param_grid=param_grid).fit([X, Y])
+    c1 = [2e-2]
+    c2 = [1e-2]
+    param_grid = {"c": [c1, c2]}
+    admm_cv = GridSearchCV(SCCA_ADMM(random_state=rng), param_grid=param_grid).fit([X, Y])
     c1 = loguniform(1e-1, 2e-1)
     c2 = loguniform(1e-1, 2e-1)
     param_grid = {"c": [c1, c2], "l1_ratio": [[0.9], [0.9]]}
@@ -226,6 +236,10 @@ def test_sparse_methods():
     assert (pmd_cv.best_estimator_.weights[1] == 0).sum() > 0
     assert (scca_cv.best_estimator_.weights[0] == 0).sum() > 0
     assert (scca_cv.best_estimator_.weights[1] == 0).sum() > 0
+    assert (admm_cv.best_estimator_.weights[0] == 0).sum() > 0
+    assert (admm_cv.best_estimator_.weights[1] == 0).sum() > 0
+    assert (parkhomenko_cv.best_estimator_.weights[0] == 0).sum() > 0
+    assert (parkhomenko_cv.best_estimator_.weights[1] == 0).sum() > 0
     assert (elastic_cv.best_estimator_.weights[0] == 0).sum() > 0
     assert (elastic_cv.best_estimator_.weights[1] == 0).sum() > 0
 
