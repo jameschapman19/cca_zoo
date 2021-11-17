@@ -39,7 +39,7 @@ class CCALightning(LightningModule):
         else:
             optimizer = torch.optim.Adam(
                 self.parameters(),
-                lr=self.hparams.learning_rate,
+                lr=1e-3,
                 weight_decay=self.hparams.weight_decay,
             )
 
