@@ -39,8 +39,8 @@ encoder_1 = architectures.Encoder(
 encoder_2 = architectures.Encoder(
     latent_dims=latent_dims, feature_size=784, variational=True
 )
-decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=784)
-decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=784)
+decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=784, norm_output=True)
+decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=784, norm_output=True)
 
 # %%
 # Deep VCCA
