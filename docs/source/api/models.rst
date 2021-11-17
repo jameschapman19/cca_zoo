@@ -72,7 +72,7 @@ More Complex Regularisation using Iterative Models
 -----------------------------------------------------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 6
    iterative.rst
 
 Base Class
