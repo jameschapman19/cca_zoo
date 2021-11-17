@@ -53,10 +53,10 @@ def test_DCCA_methods():
     )
     trainer.fit(dcca_noi, train_loader)
     assert (
-            np.testing.assert_array_less(
-                cca.score((X, Y)).sum(), trainer.model.score(train_loader).sum()
-            )
-            is None
+        np.testing.assert_array_less(
+            cca.score((X, Y)).sum(), trainer.model.score(train_loader).sum()
+        )
+        is None
     )
     # Soft Decorrelation (stochastic Decorrelation Loss)
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -67,10 +67,10 @@ def test_DCCA_methods():
     trainer = pl.Trainer(max_epochs=epochs, log_every_n_steps=10)
     trainer.fit(sdl, train_loader)
     assert (
-            np.testing.assert_array_less(
-                cca.score((X, Y)).sum(), trainer.model.score(train_loader).sum()
-            )
-            is None
+        np.testing.assert_array_less(
+            cca.score((X, Y)).sum(), trainer.model.score(train_loader).sum()
+        )
+        is None
     )
     # DCCA
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -87,10 +87,10 @@ def test_DCCA_methods():
     )
     trainer.fit(dcca, train_loader)
     assert (
-            np.testing.assert_array_less(
-                cca.score((X, Y)).sum(), trainer.model.score(train_loader).sum()
-            )
-            is None
+        np.testing.assert_array_less(
+            cca.score((X, Y)).sum(), trainer.model.score(train_loader).sum()
+        )
+        is None
     )
     # DGCCA
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -107,10 +107,10 @@ def test_DCCA_methods():
     )
     trainer.fit(dgcca, train_loader)
     assert (
-            np.testing.assert_array_less(
-                cca.score((X, Y)).sum(), trainer.model.score(train_loader).sum()
-            )
-            is None
+        np.testing.assert_array_less(
+            cca.score((X, Y)).sum(), trainer.model.score(train_loader).sum()
+        )
+        is None
     )
     # DMCCA
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -127,10 +127,10 @@ def test_DCCA_methods():
     )
     trainer.fit(dmcca, train_loader)
     assert (
-            np.testing.assert_array_less(
-                cca.score((X, Y)).sum(), trainer.model.score(train_loader).sum()
-            )
-            is None
+        np.testing.assert_array_less(
+            cca.score((X, Y)).sum(), trainer.model.score(train_loader).sum()
+        )
+        is None
     )
     # Barlow Twins
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -146,10 +146,10 @@ def test_DCCA_methods():
     )
     trainer.fit(barlowtwins, train_loader)
     assert (
-            np.testing.assert_array_less(
-                cca.score((X, Y)).sum(), trainer.model.score(train_loader).sum()
-            )
-            is None
+        np.testing.assert_array_less(
+            cca.score((X, Y)).sum(), trainer.model.score(train_loader).sum()
+        )
+        is None
     )
 
 
@@ -256,8 +256,8 @@ def test_linear():
     cca = CCA().fit((X, Y))
     # check linear encoder with SGD matches vanilla linear CCA
     assert (
-            np.testing.assert_array_almost_equal(
-                cca.score((X, Y)), trainer.model.score(loader), decimal=2
-            )
-            is None
+        np.testing.assert_array_almost_equal(
+            cca.score((X, Y)), trainer.model.score(loader), decimal=2
+        )
+        is None
     )

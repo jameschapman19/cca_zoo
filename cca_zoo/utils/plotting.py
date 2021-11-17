@@ -47,7 +47,7 @@ def cv_plot(cv_results_):
         param_pairs = list(itertools.product(unique_x, unique_y))
         for pair in param_pairs:
             mask = (cv_results_[param_cols[-2]] == pair[0]) & (
-                    cv_results_[param_cols[-1]] == pair[1]
+                cv_results_[param_cols[-1]] == pair[1]
             )
             sub_dfs.append(cv_results_.loc[mask].iloc[:, :-2])
             sub_scores.append(cv_results_[mask].mean_test_score)
@@ -85,9 +85,9 @@ def cv_plot(cv_results_):
 
 
 def plot_latent_train_test(
-        train_scores: Union[Tuple[np.ndarray], List[np.ndarray]],
-        test_scores: Union[Tuple[np.ndarray], List[np.ndarray]] = None,
-        title="",
+    train_scores: Union[Tuple[np.ndarray], List[np.ndarray]],
+    test_scores: Union[Tuple[np.ndarray], List[np.ndarray]] = None,
+    title="",
 ):
     """
     Makes a pair plot showing the projections of each view against each other for each dimensions. Coloured by train and test
@@ -116,10 +116,10 @@ def plot_latent_train_test(
 
 
 def plot_latent_label(
-        scores: Union[Tuple[np.ndarray], List[np.ndarray]],
-        labels=None,
-        label_name=None,
-        title="",
+    scores: Union[Tuple[np.ndarray], List[np.ndarray]],
+    labels=None,
+    label_name=None,
+    title="",
 ):
     """
     Makes a pair plot showing the projections of each view against each other for each dimensions. Coloured by categorical label
