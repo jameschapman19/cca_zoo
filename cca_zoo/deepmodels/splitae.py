@@ -9,10 +9,10 @@ class SplitAE(_DCCA_base):
     """
     A class used to fit a Split Autoencoder model.
 
-    Examples
-    --------
-    >>> from cca_zoo.deepmodels import SplitAE
-    >>> model = SplitAE()
+    :Citation:
+
+    Ngiam, Jiquan, et al. "Multimodal deep learning." ICML. 2011.
+
     """
 
     def __init__(self, latent_dims: int, encoder: BaseEncoder = Encoder, decoders=None):
@@ -30,7 +30,7 @@ class SplitAE(_DCCA_base):
 
     def forward(self, *args):
         z = self.encoder(args[0])
-        return z
+        return [z]
 
     def decode(self, z):
         """
@@ -45,11 +45,13 @@ class SplitAE(_DCCA_base):
 
     def loss(self, *args):
         z = self(*args)
-        recon = self.decode(z)
+        recon = self.decode(*z)
         recon_loss = self.recon_loss(args, recon)
         return recon_loss
 
     @staticmethod
     def recon_loss(x, recon):
-        recons = [F.mse_loss(recon[i], x[i], reduction="mean") for i in range(len(x))]
+        recons = [
+            F.mse_loss(recon[i], x[i], reduction="mean") for i in range(len(recon))
+        ]
         return torch.stack(recons).sum(dim=0)

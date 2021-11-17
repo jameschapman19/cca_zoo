@@ -7,27 +7,39 @@ from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 from tensorly.decomposition import parafac
 
-from .cca_base import _CCA_Base
-from ..utils.check_values import _process_parameter, check_views
+from cca_zoo.models.cca_base import _CCA_Base
+from cca_zoo.utils.check_values import _process_parameter, check_views
 
 
 class TCCA(_CCA_Base):
-    """
+    r"""
     Fits a Tensor CCA model. Tensor CCA maximises higher order correlations
 
-    Citation
-    --------
-    Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
+    :Maths:
 
-    My own port from https://github.com/rciszek/mdr_tcca
+    .. math::
+
+        \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \alpha_i^TK_i^TK_j\alpha_j  \}\\
+
+        \text{subject to:}
+
+        \alpha_i^TK_i^TK_i\alpha_i=1
+
+    :Citation:
+
+    Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
+    https://github.com/rciszek/mdr_tcca
 
     :Example:
 
     >>> from cca_zoo.models import TCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> X3 = rng.random((10,5))
     >>> model = TCCA()
-    >>> model.fit([X1,X2])
+    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
+    array([1.14595755])
     """
 
     def __init__(
@@ -92,7 +104,7 @@ class TCCA(_CCA_Base):
                 M = np.expand_dims(M, -1) @ el
         M = np.mean(M, 0)
         tl.set_backend("numpy")
-        M_parafac = parafac(M, self.latent_dims, verbose=True)
+        M_parafac = parafac(M, self.latent_dims, verbose=False)
         self.weights = [
             cov_invsqrt @ fac
             for i, (view, cov_invsqrt, fac) in enumerate(
@@ -148,20 +160,33 @@ class TCCA(_CCA_Base):
 
 
 class KTCCA(TCCA):
-    """
+    r"""
     Fits a Kernel Tensor CCA model. Tensor CCA maximises higher order correlations
 
-    Citation
-    --------
+    :Maths:
+
+    .. math::
+
+        \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \alpha_i^TK_i^TK_j\alpha_j  \}\\
+
+        \text{subject to:}
+
+        \alpha_i^TK_i^TK_i\alpha_i=1
+
+    :Citation:
+
     Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
 
     :Example:
 
     >>> from cca_zoo.models import KTCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> X3 = rng.random((10,5))
     >>> model = KTCCA()
-    >>> model.fit([X1,X2])
+    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
+    array([1.69896269])
     """
 
     def __init__(
@@ -218,7 +243,7 @@ class KTCCA(TCCA):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
 
     def _get_kernel(self, view, X, Y=None):
-        if callable(self.kernel):
+        if callable(self.kernel[view]):
             params = self.kernel_params[view] or {}
         else:
             params = {

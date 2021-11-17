@@ -54,7 +54,7 @@ def _check_parameter_number(parameter_name: str, parameter, n_views: int):
 def _check_converged_weights(weights, view_index):
     """check the converged weights are not zero."""
     if np.linalg.norm(weights) <= 0:
-        raise ValueError(
+        warnings.warn(
             f"All result weights are zero in view {view_index}. "
             "Try less regularisation or another initialisation"
         )

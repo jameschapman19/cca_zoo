@@ -5,8 +5,8 @@ from typing import Union, Iterable
 
 import numpy as np
 
-from .cca_base import _CCA_Base
-from .innerloop import (
+from cca_zoo.models.cca_base import _CCA_Base
+from cca_zoo.models.innerloop import (
     PLSInnerLoop,
     PMDInnerLoop,
     ParkhomenkoInnerLoop,
@@ -15,7 +15,7 @@ from .innerloop import (
     SpanCCAInnerLoop,
     SWCCAInnerLoop,
 )
-from ..utils import check_views
+from cca_zoo.utils import check_views
 
 
 class _Iterative(_CCA_Base):
@@ -33,7 +33,6 @@ class _Iterative(_CCA_Base):
             random_state=None,
             deflation="cca",
             max_iter: int = 100,
-            generalized: bool = False,
             initialization: str = "unregularized",
             tol: float = 1e-9,
     ):
@@ -47,7 +46,7 @@ class _Iterative(_CCA_Base):
         :param random_state: Pass for reproducible output across multiple function calls
         :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized: use auxiliary variables (required for >2 views)
+
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         """
@@ -59,7 +58,6 @@ class _Iterative(_CCA_Base):
             accept_sparse=["csc", "csr"],
         )
         self.max_iter = max_iter
-        self.generalized = generalized
         self.initialization = initialization
         self.tol = tol
         self.deflation = deflation
@@ -126,25 +124,35 @@ class _Iterative(_CCA_Base):
         """
         self.loop = PLSInnerLoop(
             max_iter=self.max_iter,
-            generalized=self.generalized,
             initialization=self.initialization,
             random_state=self.random_state,
         )
 
 
 class PLS_ALS(_Iterative):
-    """
+    r"""
     A class used to fit a PLS model
 
     Fits a partial least squares model with CCA deflation by NIPALS algorithm
 
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2\}\\
+
+        \text{subject to:}
+
+        w_i^Tw_i=1
+
     :Example:
 
     >>> from cca_zoo.models import PLS
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = PLS_ALS()
-    >>> model.fit([X1,X2])
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = PLS_ALS(random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.81796873])
     """
 
     def __init__(
@@ -155,7 +163,6 @@ class PLS_ALS(_Iterative):
             copy_data=True,
             random_state=None,
             max_iter: int = 100,
-            generalized: bool = False,
             initialization: str = "unregularized",
             tol: float = 1e-9,
     ):
@@ -168,7 +175,6 @@ class PLS_ALS(_Iterative):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         """
@@ -179,7 +185,6 @@ class PLS_ALS(_Iterative):
             copy_data=copy_data,
             deflation="pls",
             max_iter=max_iter,
-            generalized=generalized,
             initialization=initialization,
             tol=tol,
             random_state=random_state,
@@ -188,7 +193,6 @@ class PLS_ALS(_Iterative):
     def _set_loop_params(self):
         self.loop = PLSInnerLoop(
             max_iter=self.max_iter,
-            generalized=self.generalized,
             initialization=self.initialization,
             tol=self.tol,
             random_state=self.random_state,
@@ -196,20 +200,31 @@ class PLS_ALS(_Iterative):
 
 
 class ElasticCCA(_Iterative):
-    """
-    Fits an elastic CCA by iterative rescaled elastic net regression
+    r"""
+    Fits an elastic CCA by iterating elastic net regression
 
-    Citation
-    --------
-    Waaijenborg, Sandra, Philip C. Verselewel de Witt Hamer, and Aeilko H. Zwinderman. "Quantifying the association between gene expressions and DNA-markers by penalized canonical correlation analysis." Statistical applications in genetics and molecular biology 7.1 (2008).
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 + c\|w_i\|^2_2 + \text{l1_ratio}\|w_i\|_1\}\\
+
+        \text{subject to:}
+
+        w_i^TX_i^TX_iw_i=1
+
+    :Citation:
+
+    Fu, Xiao, et al. "Scalable and flexible multiview MAX-VAR canonical correlation analysis." IEEE Transactions on Signal Processing 65.16 (2017): 4150-4165.
 
     :Example:
 
     >>> from cca_zoo.models import ElasticCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = ElasticCCA(c=[0.1,0.1],l1_ratio=[0.5,0.5])
-    >>> model.fit([X1,X2])
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = ElasticCCA(c=[0.1,0.1],l1_ratio=[0.5,0.5], random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.95818397])
     """
 
     def __init__(
@@ -221,12 +236,11 @@ class ElasticCCA(_Iterative):
             random_state=None,
             deflation="cca",
             max_iter: int = 100,
-            generalized: bool = False,
             initialization: str = "unregularized",
             tol: float = 1e-9,
             c: Union[Iterable[float], float] = None,
             l1_ratio: Union[Iterable[float], float] = None,
-            constrained: bool = False,
+            maxvar: bool = True,
             stochastic=False,
             positive: Union[Iterable[bool], bool] = None,
     ):
@@ -240,18 +254,17 @@ class ElasticCCA(_Iterative):
         :param random_state: Pass for reproducible output across multiple function calls
         :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         :param c: lasso alpha
         :param l1_ratio: l1 ratio in lasso subproblems
-        :param constrained: force unit norm constraint with binary search
+        :param maxvar: use auxiliary variable "maxvar" formulation
         :param stochastic: use stochastic regression optimisers for subproblems
         :param positive: constrain model weights to be positive
         """
         self.c = c
         self.l1_ratio = l1_ratio
-        self.constrained = constrained
+        self.maxvar = maxvar
         self.stochastic = stochastic
         self.positive = positive
         if self.positive is not None and stochastic:
@@ -266,7 +279,6 @@ class ElasticCCA(_Iterative):
             copy_data=copy_data,
             deflation=deflation,
             max_iter=max_iter,
-            generalized=generalized,
             initialization=initialization,
             tol=tol,
             random_state=random_state,
@@ -277,10 +289,9 @@ class ElasticCCA(_Iterative):
             max_iter=self.max_iter,
             c=self.c,
             l1_ratio=self.l1_ratio,
-            generalized=self.generalized,
+            maxvar=self.maxvar,
             initialization=self.initialization,
             tol=self.tol,
-            constrained=self.constrained,
             stochastic=self.stochastic,
             positive=self.positive,
             random_state=self.random_state,
@@ -288,20 +299,31 @@ class ElasticCCA(_Iterative):
 
 
 class CCA_ALS(ElasticCCA):
-    """
+    r"""
     Fits a CCA model with CCA deflation by NIPALS algorithm. Implemented by ElasticCCA with 0 regularisation
 
-    Citation
-    --------
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 }\\
+
+        \text{subject to:}
+
+        w_i^TX_i^TX_iw_i=1
+
+    :Citation:
+
     Golub, Gene H., and Hongyuan Zha. "The canonical correlations of matrix pairs and their numerical computation." Linear algebra for signal processing. Springer, New York, NY, 1995. 27-49.
 
     :Example:
 
     >>> from cca_zoo.models import CCA_ALS
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = CCA_ALS()
-    >>> model.fit(X1,X2)
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,3))
+    >>> X2 = rng.random((10,3))
+    >>> model = CCA_ALS(random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.85890619])
     """
 
     def __init__(
@@ -312,7 +334,6 @@ class CCA_ALS(ElasticCCA):
             copy_data=True,
             random_state=None,
             max_iter: int = 100,
-            generalized: bool = False,
             initialization: str = "random",
             tol: float = 1e-9,
             stochastic=True,
@@ -327,8 +348,7 @@ class CCA_ALS(ElasticCCA):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized: use auxiliary variables (required for >2 views)
-        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param initialization: initialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         :param stochastic: use stochastic regression optimisers for subproblems
         :param positive: constrain model weights to be positive
@@ -337,10 +357,8 @@ class CCA_ALS(ElasticCCA):
         super().__init__(
             latent_dims=latent_dims,
             max_iter=max_iter,
-            generalized=generalized,
             initialization=initialization,
             tol=tol,
-            constrained=False,
             stochastic=stochastic,
             centre=centre,
             copy_data=copy_data,
@@ -348,24 +366,36 @@ class CCA_ALS(ElasticCCA):
             positive=positive,
             random_state=random_state,
             c=1e-3,
+            maxvar=False,
         )
 
 
 class SCCA(ElasticCCA):
-    """
+    r"""
     Fits a sparse CCA model by iterative rescaled lasso regression. Implemented by ElasticCCA with l1 ratio=1
 
-    Citation
-    --------
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 + \text{l1_ratio}\|w_i\|_1\}\\
+
+        \text{subject to:}
+
+        w_i^TX_i^TX_iw_i=1
+
+    :Citation:
+
     Mai, Qing, and Xin Zhang. "An iterative penalized least squares approach to sparse canonical correlation analysis." Biometrics 75.3 (2019): 734-744.
 
     :Example:
 
     >>> from cca_zoo.models import SCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = SCCA(c=[0.001,0.001])
-    >>> model.fit(X1,X2)
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = SCCA(c=[0.001,0.001], random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.99998919])
     """
 
     def __init__(
@@ -377,7 +407,7 @@ class SCCA(ElasticCCA):
             random_state=None,
             c: Union[Iterable[float], float] = None,
             max_iter: int = 100,
-            generalized: bool = False,
+            maxvar: bool = False,
             initialization: str = "unregularized",
             tol: float = 1e-9,
             stochastic=False,
@@ -392,7 +422,7 @@ class SCCA(ElasticCCA):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized: use auxiliary variables (required for >2 views)
+        :param maxvar: use auxiliary variable "maxvar" form
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         :param c: lasso alpha
@@ -405,12 +435,11 @@ class SCCA(ElasticCCA):
             centre=centre,
             copy_data=copy_data,
             max_iter=max_iter,
-            generalized=generalized,
             initialization=initialization,
             tol=tol,
             c=c,
             l1_ratio=1,
-            constrained=False,
+            maxvar=maxvar,
             stochastic=stochastic,
             positive=positive,
             random_state=random_state,
@@ -418,20 +447,33 @@ class SCCA(ElasticCCA):
 
 
 class PMD(_Iterative):
-    """
+    r"""
     Fits a Sparse CCA (Penalized Matrix Decomposition) model.
 
-    Citation
-    --------
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
+
+        \text{subject to:}
+
+        w_i^Tw_i=1
+
+        \|w_i\|<=c_i
+
+    :Citation:
+
     Witten, Daniela M., Robert Tibshirani, and Trevor Hastie. "A penalized matrix decomposition, with applications to sparse principal components and canonical correlation analysis." Biostatistics 10.3 (2009): 515-534.
 
     :Example:
 
     >>> from cca_zoo.models import PMD
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = PMD(c=[1,1])
-    >>> model.fit(X1,X2)
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = PMD(c=[1,1],random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.69792082])
     """
 
     def __init__(
@@ -443,7 +485,6 @@ class PMD(_Iterative):
             random_state=None,
             c: Union[Iterable[float], float] = None,
             max_iter: int = 100,
-            generalized: bool = False,
             initialization: str = "unregularized",
             tol: float = 1e-9,
             positive: Union[Iterable[bool], bool] = None,
@@ -458,7 +499,6 @@ class PMD(_Iterative):
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter between 1 and sqrt(number of features) for each view
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         :param positive: constrain model weights to be positive
@@ -471,7 +511,6 @@ class PMD(_Iterative):
             centre=centre,
             copy_data=copy_data,
             max_iter=max_iter,
-            generalized=generalized,
             initialization=initialization,
             tol=tol,
             random_state=random_state,
@@ -481,7 +520,6 @@ class PMD(_Iterative):
         self.loop = PMDInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
-            generalized=self.generalized,
             initialization=self.initialization,
             tol=self.tol,
             positive=self.positive,
@@ -490,20 +528,31 @@ class PMD(_Iterative):
 
 
 class ParkhomenkoCCA(_Iterative):
-    """
+    r"""
     Fits a sparse CCA (penalized CCA) model
 
-    Citation
-    --------
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \} + c_i\|w_i\|\\
+
+        \text{subject to:}
+
+        w_i^Tw_i=1
+
+    :Citation:
+
     Parkhomenko, Elena, David Tritchler, and Joseph Beyene. "Sparse canonical correlation analysis with application to genomic data integration." Statistical applications in genetics and molecular biology 8.1 (2009).
 
     :Example:
 
     >>> from cca_zoo.models import ParkhomenkoCCA
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = ParkhomenkoCCA(c=[0.001,0.001])
-    >>> model.fit(X1,X2)
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = ParkhomenkoCCA(c=[0.001,0.001],random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.81803543])
     """
 
     def __init__(
@@ -515,7 +564,6 @@ class ParkhomenkoCCA(_Iterative):
             random_state=None,
             c: Union[Iterable[float], float] = None,
             max_iter: int = 100,
-            generalized: bool = False,
             initialization: str = "unregularized",
             tol: float = 1e-9,
     ):
@@ -529,7 +577,6 @@ class ParkhomenkoCCA(_Iterative):
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         """
@@ -540,7 +587,6 @@ class ParkhomenkoCCA(_Iterative):
             centre=centre,
             copy_data=copy_data,
             max_iter=max_iter,
-            generalized=generalized,
             initialization=initialization,
             tol=tol,
             random_state=random_state,
@@ -550,7 +596,6 @@ class ParkhomenkoCCA(_Iterative):
         self.loop = ParkhomenkoInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
-            generalized=self.generalized,
             initialization=self.initialization,
             tol=self.tol,
             random_state=self.random_state,
@@ -558,20 +603,31 @@ class ParkhomenkoCCA(_Iterative):
 
 
 class SCCA_ADMM(_Iterative):
-    """
+    r"""
     Fits a sparse CCA model by alternating ADMM
 
-    Citation
-    --------
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 + \text{l1_ratio}\|w_i\|_1\}\\
+
+        \text{subject to:}
+
+        w_i^TX_i^TX_iw_i=1
+
+    :Citation:
+
     Suo, Xiaotong, et al. "Sparse canonical correlation analysis." arXiv preprint arXiv:1705.10865 (2017).
 
     :Example:
 
     >>> from cca_zoo.models import SCCA_ADMM
-    >>> X1 = np.random.rand(10,5)
-    >>> X2 = np.random.rand(10,5)
-    >>> model = SCCA_ADMM()
-    >>> model.fit(X1,X2)
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = SCCA_ADMM(random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.99999997])
     """
 
     def __init__(
@@ -586,7 +642,6 @@ class SCCA_ADMM(_Iterative):
             lam: Union[Iterable[float], float] = None,
             eta: Union[Iterable[float], float] = None,
             max_iter: int = 100,
-            generalized: bool = False,
             initialization: str = "unregularized",
             tol: float = 1e-9,
     ):
@@ -600,7 +655,6 @@ class SCCA_ADMM(_Iterative):
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         :param mu:
@@ -617,7 +671,6 @@ class SCCA_ADMM(_Iterative):
             centre=centre,
             copy_data=copy_data,
             max_iter=max_iter,
-            generalized=generalized,
             initialization=initialization,
             tol=tol,
             random_state=random_state,
@@ -630,7 +683,6 @@ class SCCA_ADMM(_Iterative):
             mu=self.mu,
             lam=self.lam,
             eta=self.eta,
-            generalized=self.generalized,
             initialization=self.initialization,
             tol=self.tol,
             random_state=self.random_state,
@@ -638,13 +690,32 @@ class SCCA_ADMM(_Iterative):
 
 
 class SpanCCA(_Iterative):
-    """
+    r"""
     Fits a Sparse CCA model using SpanCCA.
 
-    Citation
-    --------
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 + \text{l1_ratio}\|w_i\|_1\}\\
+
+        \text{subject to:}
+
+        w_i^TX_i^TX_iw_i=1
+
+    :Citation:
+
     Asteris, Megasthenis, et al. "A simple and provable algorithm for sparse diagonal CCA." International Conference on Machine Learning. PMLR, 2016.
 
+
+    :Example:
+
+    >>> from cca_zoo.models import SpanCCA
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = SpanCCA(regularisation="l0", c=[2, 2])
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.84556666])
     """
 
     def __init__(
@@ -654,7 +725,6 @@ class SpanCCA(_Iterative):
             centre=True,
             copy_data=True,
             max_iter: int = 100,
-            generalized: bool = False,
             initialization: str = "uniform",
             tol: float = 1e-9,
             regularisation="l0",
@@ -671,7 +741,6 @@ class SpanCCA(_Iterative):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         :param regularisation:
@@ -685,7 +754,6 @@ class SpanCCA(_Iterative):
             centre=centre,
             copy_data=copy_data,
             max_iter=max_iter,
-            generalized=generalized,
             initialization=initialization,
             tol=tol,
             random_state=random_state,
@@ -699,7 +767,6 @@ class SpanCCA(_Iterative):
         self.loop = SpanCCAInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
-            generalized=self.generalized,
             initialization=self.initialization,
             tol=self.tol,
             regularisation=self.regularisation,
@@ -710,14 +777,23 @@ class SpanCCA(_Iterative):
 
 
 class SWCCA(_Iterative):
-    """
+    r"""
     A class used to fit SWCCA model
 
-    Citation
-    --------
-    Wenwen, M. I. N., L. I. U. Juan, and Shihua Zhang. "Sparse Weighted Canonical Correlation Analysis." Chinese Journal of Electronics 27.3 (2018): 459-466.
+    :Citation:
 
+    .. Wenwen, M. I. N., L. I. U. Juan, and Shihua Zhang. "Sparse Weighted Canonical Correlation Analysis." Chinese Journal of Electronics 27.3 (2018): 459-466.
 
+    :Example:
+
+    >>> from cca_zoo.models import SWCCA
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = SWCCA(regularisation='l0',c=[2, 2], sample_support=5, random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.61620969])
     """
 
     def __init__(
@@ -728,7 +804,6 @@ class SWCCA(_Iterative):
             copy_data=True,
             random_state=None,
             max_iter: int = 500,
-            generalized: bool = False,
             initialization: str = "uniform",
             tol: float = 1e-9,
             regularisation="l0",
@@ -744,7 +819,6 @@ class SWCCA(_Iterative):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param generalized: use auxiliary variables (required for >2 views)
         :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
         :param tol: tolerance value used for early stopping
         :param regularisation: the type of regularisation on the weights either 'l0' or 'l1'
@@ -763,7 +837,6 @@ class SWCCA(_Iterative):
             centre=centre,
             copy_data=copy_data,
             max_iter=max_iter,
-            generalized=generalized,
             initialization=initialization,
             tol=tol,
             random_state=random_state,
@@ -772,7 +845,6 @@ class SWCCA(_Iterative):
     def _set_loop_params(self):
         self.loop = SWCCAInnerLoop(
             max_iter=self.max_iter,
-            generalized=self.generalized,
             initialization=self.initialization,
             tol=self.tol,
             regularisation=self.regularisation,

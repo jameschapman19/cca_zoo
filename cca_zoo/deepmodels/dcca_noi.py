@@ -8,6 +8,11 @@ class DCCA_NOI(DCCA):
     """
     A class used to fit a DCCA model by non-linear orthogonal iterations
 
+
+    :Citation:
+
+    Wang, Weiran, et al. "Stochastic optimization for deep CCA via nonlinear orthogonal iterations." 2015 53rd Annual Allerton Conference on Communication, Control, and Computing (Allerton). IEEE, 2015.
+
     """
 
     def __init__(
@@ -17,7 +22,7 @@ class DCCA_NOI(DCCA):
             encoders=None,
             r: float = 0,
             rho: float = 0.2,
-            eps: float = 1e-3,
+            eps: float = 1e-9,
             shared_target: bool = False,
     ):
         """
@@ -39,7 +44,7 @@ class DCCA_NOI(DCCA):
         self.eps = eps
         self.rho = rho
         self.shared_target = shared_target
-        self.mse = torch.nn.MSELoss()
+        self.mse = torch.nn.MSELoss(reduction="sum")
         # Authors state that a final linear layer is an important part of their algorithmic implementation
         self.linear_layers = torch.nn.ModuleList(
             [
@@ -61,7 +66,7 @@ class DCCA_NOI(DCCA):
     def loss(self, *args):
         z = self(*args)
         z_copy = [z_.detach().clone() for z_ in z]
-        self.update_covariances(*z_copy)
+        self._update_covariances(*z_copy)
         covariance_inv = [
             torch.linalg.inv(objectives.MatrixSquareRoot.apply(cov))
             for cov in self.covs
@@ -70,25 +75,14 @@ class DCCA_NOI(DCCA):
         loss = self.mse(z[0], preds[1]) + self.mse(z[1], preds[0])
         return loss
 
-    def update_mean(self, *z):
-        batch_means = [torch.mean(z_, dim=0) for z_ in z]
-        if self.means is not None:
-            self.means = [
-                self.rho * self.means[i].detach() + (1 - self.rho) * batch_mean
-                for i, batch_mean in enumerate(batch_means)
-            ]
-        else:
-            self.means = batch_means
-        z = [z_ - mean for (z_, mean) in zip(z, self.means)]
-        return z
-
-    def update_covariances(self, *z):
+    def _update_covariances(self, *z, train=True):
         b = z[0].shape[0]
         batch_covs = [self.N * z_.T @ z_ / b for z_ in z]
-        if self.covs is not None:
-            self.covs = [
-                self.rho * self.covs[i] + (1 - self.rho) * batch_cov
-                for i, batch_cov in enumerate(batch_covs)
-            ]
-        else:
-            self.covs = batch_covs
+        if train:
+            if self.covs is not None:
+                self.covs = [
+                    self.rho * self.covs[i] + (1 - self.rho) * batch_cov
+                    for i, batch_cov in enumerate(batch_covs)
+                ]
+            else:
+                self.covs = batch_covs

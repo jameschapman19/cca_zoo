@@ -10,10 +10,10 @@ class DCCA(_DCCA_base):
     """
     A class used to fit a DCCA model.
 
-    Examples
-    --------
-    >>> from cca_zoo.deepmodels import DCCA
-    >>> model = DCCA()
+    :Citation:
+
+    Andrew, Galen, et al. "Deep canonical correlation analysis." International conference on machine learning. PMLR, 2013.
+
     """
 
     def __init__(
