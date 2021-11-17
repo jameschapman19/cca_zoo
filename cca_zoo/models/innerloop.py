@@ -85,12 +85,16 @@ class _InnerLoop:
         self._initialize()
 
         self.track = {}
+        self.track["converged"] = False
         # Iterate until convergence
         self.track["objective"] = []
         for _ in range(self.max_iter):
             self._inner_iteration()
+            if np.isnan(self.scores).sum() > 0:
+                break
             self.track["objective"].append(self._objective())
             if _ > 0 and self._early_stop():
+                self.track["converged"] = True
                 break
             self.old_scores = self.scores.copy()
         return self
@@ -261,11 +265,11 @@ class ParkhomenkoInnerLoop(PLSInnerLoop):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         w = self.views[view_index].T @ targets.sum(axis=0).filled()
-        _check_converged_weights(w, view_index)
         w /= np.linalg.norm(w)
-        w = _soft_threshold(w, self.c[view_index] / 2)
         _check_converged_weights(w, view_index)
+        w = _soft_threshold(w, self.c[view_index] / 2)
         self.weights[view_index] = w / np.linalg.norm(w)
+        _check_converged_weights(w, view_index)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
 
