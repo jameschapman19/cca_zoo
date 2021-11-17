@@ -19,9 +19,8 @@ class CCALightning(LightningModule):
         """
 
         :param model: a model instance from deepmodels
-        :param optimizer: a pytorch optimizer with parameters from model or a string like 'Adam' to use Adam optimizer with default parameters or those specified by the user
-        :param learning_rate: learning rate used when optimizer is instantiated with a string
-        :param weight_decay: weight decay used when optimizer is instantiated with a string
+        :param optimizer: a pytorch optimizer with parameters from model
+        :param scheduler: a pytorch scheduler
         """
         super().__init__()
         self.save_hyperparameters()
@@ -34,7 +33,6 @@ class CCALightning(LightningModule):
     def loss(self, *args, **kwargs):
         return self.model.loss(*args, **kwargs)
 
-    # Configuration.  Add more for learning schedulers, etc.?
     def configure_optimizers(self):
         if isinstance(self.hparams.optimizer, torch.optim.Optimizer):
             optimizer = self.hparams.optimizer

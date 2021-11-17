@@ -12,10 +12,10 @@ from cca_zoo.models import MCCA, GCCA, TCCA, KCCA, KGCCA, KTCCA, PMD
 
 # %%
 np.random.seed(42)
-n = 200
-p = 10
-q = 10
-r = 10
+n = 30
+p = 3
+q = 3
+r = 3
 latent_dims = 1
 cv = 3
 
