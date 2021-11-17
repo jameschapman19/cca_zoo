@@ -6,9 +6,6 @@ import numpy as np
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import (
     ElasticNet,
-    Lasso,
-    LinearRegression,
-    Ridge,
     SGDRegressor,
 )
 from sklearn.utils._testing import ignore_warnings
@@ -91,9 +88,12 @@ class _InnerLoop:
         for _ in range(self.max_iter):
             self._inner_iteration()
             if np.isnan(self.scores).sum() > 0:
+                warnings.warn(
+                    f"Some scores are nan. Usually regularisation is too high."
+                )
                 break
             self.track["objective"].append(self._objective())
-            if _ > 0 and self._early_stop():
+            if _ > 1 and self._early_stop():
                 self.track["converged"] = True
                 break
             self.old_scores = self.scores.copy()
@@ -142,6 +142,7 @@ class PLSInnerLoop(_InnerLoop):
     def _inner_iteration(self):
         # Update each view using loop update function
         for i, view in enumerate(self.views):
+            # if no nans
             if np.isnan(self.scores).sum() == 0:
                 self._update_view(i)
 
@@ -310,80 +311,28 @@ class ElasticInnerLoop(PLSInnerLoop):
         self.regressors = []
         for alpha, l1_ratio, positive in zip(self.c, self.l1_ratio, self.positive):
             if self.stochastic:
-                if l1_ratio == 0:
-                    self.regressors.append(
-                        SGDRegressor(
-                            penalty="l2",
-                            alpha=alpha / len(self.views),
-                            fit_intercept=False,
-                            tol=self.tol,
-                            warm_start=True,
-                            random_state=self.random_state,
-                        )
+                self.regressors.append(
+                    SGDRegressor(
+                        penalty="elasticnet",
+                        alpha=alpha / len(self.views),
+                        l1_ratio=l1_ratio,
+                        fit_intercept=False,
+                        tol=self.tol,
+                        warm_start=True,
+                        random_state=self.random_state,
                     )
-                elif l1_ratio == 1:
-                    self.regressors.append(
-                        SGDRegressor(
-                            penalty="l1",
-                            alpha=alpha / len(self.views),
-                            fit_intercept=False,
-                            tol=self.tol,
-                            warm_start=True,
-                            random_state=self.random_state,
-                        )
-                    )
-                else:
-                    self.regressors.append(
-                        SGDRegressor(
-                            penalty="elasticnet",
-                            alpha=alpha / len(self.views),
-                            l1_ratio=l1_ratio,
-                            fit_intercept=False,
-                            tol=self.tol,
-                            warm_start=True,
-                            random_state=self.random_state,
-                        )
-                    )
+                )
             else:
-                if alpha == 0:
-                    self.regressors.append(LinearRegression(fit_intercept=False))
-                elif l1_ratio == 0:
-                    if positive:
-                        self.regressors.append(
-                            ElasticNet(
-                                alpha=alpha / len(self.views),
-                                l1_ratio=0,
-                                fit_intercept=False,
-                                warm_start=True,
-                                positive=positive,
-                                random_state=self.random_state,
-                            )
-                        )
-                    else:
-                        self.regressors.append(
-                            Ridge(alpha=alpha / len(self.views), fit_intercept=False)
-                        )
-                elif l1_ratio == 1:
-                    self.regressors.append(
-                        Lasso(
-                            alpha=alpha / len(self.views),
-                            fit_intercept=False,
-                            warm_start=True,
-                            positive=positive,
-                            random_state=self.random_state,
-                        )
+                self.regressors.append(
+                    ElasticNet(
+                        alpha=alpha / len(self.views),
+                        l1_ratio=l1_ratio,
+                        fit_intercept=False,
+                        warm_start=True,
+                        positive=positive,
+                        random_state=self.random_state,
                     )
-                else:
-                    self.regressors.append(
-                        ElasticNet(
-                            alpha=alpha / len(self.views),
-                            l1_ratio=l1_ratio,
-                            fit_intercept=False,
-                            warm_start=True,
-                            positive=positive,
-                            random_state=self.random_state,
-                        )
-                    )
+                )
 
     def _update_view(self, view_index: int):
         """
@@ -391,22 +340,26 @@ class ElasticInnerLoop(PLSInnerLoop):
         :return: updated weights
         """
         if self.maxvar:
+            # For MAXVAR we rescale the targets
             target = self.scores.mean(axis=0)
-            target /= np.linalg.norm(target)
+            target /= (np.linalg.norm(target) / np.sqrt(self.n))
         else:
             target = self.scores[view_index - 1]
-        self._elastic_solver(self.views[view_index], target, view_index)
-        _check_converged_weights(self.weights[view_index], view_index)
+        # Solve the elastic regression
+        self.weights[view_index] = self._elastic_solver(self.views[view_index], target, view_index)
+        # For SUMCOR we rescale the projections
+        if not self.maxvar:
+            _check_converged_weights(self.weights[view_index], view_index)
+            self.weights[view_index] = self.weights[view_index] / (np.linalg.norm(
+                self.views[view_index] @ self.weights[view_index]
+            ) / np.sqrt(self.n))
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
     @ignore_warnings(category=ConvergenceWarning)
     def _elastic_solver(self, X, y, view_index):
-        self.weights[view_index] = np.expand_dims(
+        return np.expand_dims(
             self.regressors[view_index].fit(X, y.ravel()).coef_, 1
         )
-        self.weights[view_index] /= np.linalg.norm(
-            self.views[view_index] @ self.weights[view_index]
-        ) / np.sqrt(self.n)
 
     def _objective(self):
         views = len(self.views)
@@ -415,13 +368,11 @@ class ElasticInnerLoop(PLSInnerLoop):
         l1 = c * ratio
         l2 = c * (1 - ratio)
         total_objective = 0
+        target = self.scores.mean(axis=0)
         for i in range(views):
-            target = self.scores.mean(axis=0)
-            objective = (
-                    views
-                    * np.linalg.norm(self.views[i] @ self.weights[i] - target) ** 2
-                    / (2 * self.n)
-            )
+            if self.maxvar:
+                target /= (np.linalg.norm(target) / np.sqrt(self.n))
+            objective = np.linalg.norm(self.views[i] @ self.weights[i] - target) ** 2 / (2 * self.n)
             l1_pen = l1[i] * np.linalg.norm(self.weights[i], ord=1)
             l2_pen = l2[i] * np.linalg.norm(self.weights[i], ord=2)
             total_objective += objective + l1_pen + l2_pen
@@ -658,9 +609,8 @@ class SWCCAInnerLoop(PLSInnerLoop):
         """
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
-        self.weights[view_index] = (
-                                           self.views[view_index] * self.sample_weights
-                                   ).T @ targets.sum(axis=0).filled()
+        self.weights[view_index] = (self.views[view_index] * self.sample_weights
+                                    ).T @ targets.sum(axis=0).filled()
         self.weights[view_index] = self.update(
             self.weights[view_index],
             self.c[view_index],
