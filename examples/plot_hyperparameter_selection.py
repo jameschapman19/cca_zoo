@@ -26,20 +26,17 @@ cv = 3
     n, view_features=[p, q], latent_dims=latent_dims, correlation=[0.9]
 )
 
-"""
-Grid Search
---------------------
-
-Hyperparameter selection works in a very similar way to in scikit-learn where the main difference is in how we enter the parameter grid.
-We form a parameter grid with the search space for each view for each parameter.
-This search space must be entered as a list but can be any of
-- a single value (as in "kernel") where this value will be used for each view
-- a list for each view
-- a mixture of a single value for one view and a distribution or list for the other
-"""
+# %%
+# Grid Search
+# ^^^^^^^^^^^^^
+# Hyperparameter selection works in a very similar way to in scikit-learn where the main difference is in how we enter the parameter grid.
+# We form a parameter grid with the search space for each view for each parameter.
+# This search space must be entered as a list but can be any of
+# - a single value (as in "kernel") where this value will be used for each view
+# - a list for each view
+# - a mixture of a single value for one view and a distribution or list for the other
 
 # %%
-# Linear Grid Search
 param_grid = {"kernel": ["poly"], "c": [[1e-1], [1e-1, 2e-1]], "degree": [[2], [2, 3]]}
 kernel_reg = (
     GridSearchCV(
@@ -47,16 +44,16 @@ kernel_reg = (
     )
         .fit([X, Y])
 )
-
-"""
-Randomized Search
---------------------
-
-With Randomized Search we can additionally use distributions from scikit-learn to define the parameter search space
-"""
+print(pd.DataFrame(kernel_reg.cv_results_))
 
 # %%
-# Linear Randomized Search
+# Randomized Search
+# ^^^^^^^^^^^^^^^^^^^
+
+# With Randomized Search we can additionally use distributions from scikit-learn to define the parameter search space
+
+# %%
+# Randomized Search
 param_grid = {"kernel": ["poly"], "c": [loguniform(1e-1, 2e-1), [1e-1]], "degree": [[2], [2, 3]]}
 kernel_reg = (
     RandomizedSearchCV(
@@ -64,6 +61,4 @@ kernel_reg = (
     )
         .fit([X, Y])
 )
-
-# %%
 print(pd.DataFrame(kernel_reg.cv_results_))

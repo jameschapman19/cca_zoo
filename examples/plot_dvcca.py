@@ -50,7 +50,7 @@ train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
 # The number of latent dimensions across models
 latent_dims = 2
 # number of epochs for deep models
-epochs = 20
+epochs = 50
 
 encoder_1 = architectures.Encoder(
     latent_dims=latent_dims, feature_size=784, variational=True
