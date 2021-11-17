@@ -12,20 +12,20 @@ from cca_zoo.deepmodels import _DCCA_base
 
 class CCALightning(LightningModule):
     def __init__(
-            self,
-            model: _DCCA_base,
-            optimizer: Union[torch.optim.Optimizer, str] = "Adam",
-            learning_rate: float = 1e-3,
-            weight_decay: float = 0.1,
-            lr_scheduler: torch.optim.lr_scheduler._LRScheduler = None,
-            StepLR_step_size: float = None,
-            StepLR_gamma: float = None,
-            lr_factor: float = None,
-            lr_patience: float = None,
-            OneCycleLR_max_lr: float = None,
-            OneCycleLR_epochs: float = None,
-            train_trajectories: float = None,
-            T: float = None,
+        self,
+        model: _DCCA_base,
+        optimizer: Union[torch.optim.Optimizer, str] = "Adam",
+        learning_rate: float = 1e-3,
+        weight_decay: float = 0.1,
+        lr_scheduler: torch.optim.lr_scheduler._LRScheduler = None,
+        StepLR_step_size: float = None,
+        StepLR_gamma: float = None,
+        lr_factor: float = None,
+        lr_patience: float = None,
+        OneCycleLR_max_lr: float = None,
+        OneCycleLR_epochs: float = None,
+        train_trajectories: float = None,
+        T: float = None,
     ):
         """
 
@@ -86,7 +86,7 @@ class CCALightning(LightningModule):
         if self.hparams.lr_scheduler is None:
             return optimizer
         elif isinstance(
-                self.hparams.lr_scheduler, torch.optim.lr_scheduler._LRScheduler
+            self.hparams.lr_scheduler, torch.optim.lr_scheduler._LRScheduler
         ):
             scheduler = self.hparams.lr_scheduler
         elif self.hparams.lr_scheduler == "StepLR":
@@ -143,9 +143,9 @@ class CCALightning(LightningModule):
         self.log("val corr", score)
 
     def correlations(
-            self,
-            loader: torch.utils.data.DataLoader,
-            train: bool = False,
+        self,
+        loader: torch.utils.data.DataLoader,
+        train: bool = False,
     ):
         """
 
@@ -158,16 +158,16 @@ class CCALightning(LightningModule):
             return None
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
-            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], y.shape[1]:]))
+            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], y.shape[1] :]))
         all_corrs = np.array(all_corrs).reshape(
             (len(transformed_views), len(transformed_views), -1)
         )
         return all_corrs
 
     def transform(
-            self,
-            loader: torch.utils.data.DataLoader,
-            train: bool = False,
+        self,
+        loader: torch.utils.data.DataLoader,
+        train: bool = False,
     ):
         """
 
@@ -190,9 +190,9 @@ class CCALightning(LightningModule):
         return z_list
 
     def score(
-            self,
-            loader: torch.utils.data.DataLoader,
-            train: bool = False,
+        self,
+        loader: torch.utils.data.DataLoader,
+        train: bool = False,
     ):
         """
 
@@ -207,13 +207,13 @@ class CCALightning(LightningModule):
         n_views = pair_corrs.shape[0]
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
         dim_corrs = (
-                            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
-                    ) / (n_views ** 2 - n_views)
+            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
+        ) / (n_views ** 2 - n_views)
         return dim_corrs
 
     def predict_view(
-            self,
-            loader: torch.utils.data.DataLoader,
+        self,
+        loader: torch.utils.data.DataLoader,
     ):
         with torch.no_grad():
             for batch_idx, (data, label) in enumerate(loader):
