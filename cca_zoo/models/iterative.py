@@ -224,7 +224,7 @@ class ElasticCCA(_Iterative):
     >>> X2 = rng.random((10,5))
     >>> model = ElasticCCA(c=[0.1,0.1],l1_ratio=[0.5,0.5], random_state=0)
     >>> model.fit((X1,X2)).score((X1,X2))
-    array([0.95818397])
+    array([0.91599631])
     """
 
     def __init__(
