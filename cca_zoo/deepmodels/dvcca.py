@@ -155,7 +155,7 @@ class DVCCA(_DCCA_base):
         recons = self._decode(z)
         bces = torch.stack(
             [
-                F.binary_cross_entropy(recon, arg, reduction="sum") / batch_n
+                F.binary_cross_entropy(recon, arg, reduction="mean")
                 for recon, arg in zip(recons, args)
             ]
         ).sum()
