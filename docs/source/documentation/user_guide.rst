@@ -1,8 +1,6 @@
 User Guide
 ===========
 
-
-
 Model Fit
 ----------
 
@@ -78,6 +76,16 @@ In applications of cca, we are often interested in the model weights. These can 
 
    view_1_weights=ridge.weights[0]
    view_2_weights=ridge.weights[1]
+
+Model Loadings
+-----------------
+
+Similarly we can access the loadings for a given set of samples
+
+.. sourcecode:: python
+
+   view_1_loadings, view_2_loadings=ridge.get_loadings([train_view_1, train_view_2])
+
 
 Deep Models
 ------------
