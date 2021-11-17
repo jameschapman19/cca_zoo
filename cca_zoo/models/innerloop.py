@@ -142,7 +142,8 @@ class PLSInnerLoop(_InnerLoop):
     def _inner_iteration(self):
         # Update each view using loop update function
         for i, view in enumerate(self.views):
-            self._update_view(i)
+            if np.isnan(self.scores).sum() == 0:
+                self._update_view(i)
 
     @abstractmethod
     def _update_view(self, view_index: int):
