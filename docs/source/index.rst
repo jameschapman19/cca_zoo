@@ -12,6 +12,7 @@ Documentation
 
    documentation/install
    documentation/getting_started
+   documentation/maths
    documentation/user_guide
    auto_examples/index
 
