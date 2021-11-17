@@ -36,8 +36,11 @@ def my_kernel(X, Y, param=0):
     return np.random.normal(0, param)
 
 
-kernel_custom = KCCA(latent_dims=latent_dims, kernel=[my_kernel, my_kernel],
-                     kernel_params=[{'param': 1}, {'param': 1}]).fit((X, Y))
+kernel_custom = KCCA(
+    latent_dims=latent_dims,
+    kernel=[my_kernel, my_kernel],
+    kernel_params=[{"param": 1}, {"param": 1}],
+).fit((X, Y))
 
 # %%
 # Linear
@@ -90,5 +93,8 @@ def my_kernel(X, Y, param=0):
     return X @ M @ M.T @ Y.T
 
 
-kernel_custom = KCCA(latent_dims=latent_dims, kernel=[my_kernel, my_kernel],
-                     kernel_params=[{'param': 1}, {'param': 1}]).fit((X, Y))
+kernel_custom = KCCA(
+    latent_dims=latent_dims,
+    kernel=[my_kernel, my_kernel],
+    kernel_params=[{"param": 1}, {"param": 1}],
+).fit((X, Y))
