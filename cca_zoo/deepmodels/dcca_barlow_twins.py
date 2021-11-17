@@ -17,10 +17,10 @@ class BarlowTwins(DCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int,
-            encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
-            lam=1,
+        self,
+        latent_dims: int,
+        encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
+        lam=1,
     ):
         """
         Constructor class for Barlow Twins

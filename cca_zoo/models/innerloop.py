@@ -6,9 +6,6 @@ import numpy as np
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import (
     ElasticNet,
-    Lasso,
-    LinearRegression,
-    Ridge,
     SGDRegressor,
 )
 from sklearn.utils._testing import ignore_warnings
@@ -23,11 +20,11 @@ from ..utils.check_values import (
 
 class _InnerLoop:
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol: float = 1e-5,
-            initialization: str = "unregularized",
-            random_state=None,
+        self,
+        max_iter: int = 100,
+        tol: float = 1e-5,
+        initialization: str = "unregularized",
+        random_state=None,
     ):
         """
         :param max_iter: maximum number of iterations to perform if tol is not reached
@@ -59,15 +56,15 @@ class _InnerLoop:
                     random_state=self.random_state,
                     tol=self.tol,
                 )
-                    ._fit(*self.views)
-                    .scores
+                ._fit(*self.views)
+                .scores
             )
         else:
             raise ValueError("initialize must be random, uniform or unregularized")
         self.scores = (
-                self.scores
-                * np.sqrt(self.n - 1)
-                / np.linalg.norm(self.scores, axis=1)[:, np.newaxis]
+            self.scores
+            * np.sqrt(self.n - 1)
+            / np.linalg.norm(self.scores, axis=1)[:, np.newaxis]
         )
         self.weights = [
             self.random_state.randn(view.shape[1], 1) for view in self.views
@@ -85,12 +82,19 @@ class _InnerLoop:
         self._initialize()
 
         self.track = {}
+        self.track["converged"] = False
         # Iterate until convergence
         self.track["objective"] = []
         for _ in range(self.max_iter):
             self._inner_iteration()
+            if np.isnan(self.scores).sum() > 0:
+                warnings.warn(
+                    f"Some scores are nan. Usually regularisation is too high."
+                )
+                break
             self.track["objective"].append(self._objective())
-            if _ > 0 and self._early_stop():
+            if _ > 1 and self._early_stop():
+                self.track["converged"] = True
                 break
             self.old_scores = self.scores.copy()
         return self
@@ -118,11 +122,11 @@ class _InnerLoop:
 
 class PLSInnerLoop(_InnerLoop):
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol=1e-5,
-            initialization: str = "unregularized",
-            random_state=None,
+        self,
+        max_iter: int = 100,
+        tol=1e-5,
+        initialization: str = "unregularized",
+        random_state=None,
     ):
         super().__init__(
             max_iter=max_iter,
@@ -138,7 +142,9 @@ class PLSInnerLoop(_InnerLoop):
     def _inner_iteration(self):
         # Update each view using loop update function
         for i, view in enumerate(self.views):
-            self._update_view(i)
+            # if no nans
+            if np.isnan(self.scores).sum() == 0:
+                self._update_view(i)
 
     @abstractmethod
     def _update_view(self, view_index: int):
@@ -153,7 +159,7 @@ class PLSInnerLoop(_InnerLoop):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         self.weights[view_index] = (
-                self.views[view_index].T @ targets.sum(axis=0).filled()
+            self.views[view_index].T @ targets.sum(axis=0).filled()
         )
         self.weights[view_index] /= np.linalg.norm(self.weights[view_index])
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
@@ -161,8 +167,8 @@ class PLSInnerLoop(_InnerLoop):
     def _early_stop(self) -> bool:
         # Some kind of early stopping
         if all(
-                _cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol)
-                for n, view in enumerate(self.scores)
+            _cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol)
+            for n, view in enumerate(self.scores)
         ):
             return True
         else:
@@ -171,13 +177,13 @@ class PLSInnerLoop(_InnerLoop):
 
 class PMDInnerLoop(PLSInnerLoop):
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol=1e-5,
-            initialization: str = "unregularized",
-            c=None,
-            positive=None,
-            random_state=None,
+        self,
+        max_iter: int = 100,
+        tol=1e-5,
+        initialization: str = "unregularized",
+        c=None,
+        positive=None,
+        random_state=None,
     ):
         super().__init__(
             max_iter=max_iter,
@@ -219,7 +225,7 @@ class PMDInnerLoop(PLSInnerLoop):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         self.weights[view_index] = (
-                self.views[view_index].T @ targets.sum(axis=0).filled()
+            self.views[view_index].T @ targets.sum(axis=0).filled()
         )
         self.weights[view_index] = _delta_search(
             self.weights[view_index],
@@ -232,12 +238,12 @@ class PMDInnerLoop(PLSInnerLoop):
 
 class ParkhomenkoInnerLoop(PLSInnerLoop):
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol=1e-5,
-            initialization: str = "unregularized",
-            c=None,
-            random_state=None,
+        self,
+        max_iter: int = 100,
+        tol=1e-5,
+        initialization: str = "unregularized",
+        c=None,
+        random_state=None,
     ):
         super().__init__(
             max_iter=max_iter,
@@ -261,26 +267,26 @@ class ParkhomenkoInnerLoop(PLSInnerLoop):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         w = self.views[view_index].T @ targets.sum(axis=0).filled()
-        _check_converged_weights(w, view_index)
         w /= np.linalg.norm(w)
-        w = _soft_threshold(w, self.c[view_index] / 2)
         _check_converged_weights(w, view_index)
+        w = _soft_threshold(w, self.c[view_index] / 2)
         self.weights[view_index] = w / np.linalg.norm(w)
+        _check_converged_weights(w, view_index)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
 
 class ElasticInnerLoop(PLSInnerLoop):
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol=1e-5,
-            initialization: str = "unregularized",
-            c=None,
-            l1_ratio=None,
-            maxvar=True,
-            stochastic=True,
-            positive=None,
-            random_state=None,
+        self,
+        max_iter: int = 100,
+        tol=1e-5,
+        initialization: str = "unregularized",
+        c=None,
+        l1_ratio=None,
+        maxvar=True,
+        stochastic=True,
+        positive=None,
+        random_state=None,
     ):
         super().__init__(
             max_iter=max_iter,
@@ -305,80 +311,28 @@ class ElasticInnerLoop(PLSInnerLoop):
         self.regressors = []
         for alpha, l1_ratio, positive in zip(self.c, self.l1_ratio, self.positive):
             if self.stochastic:
-                if l1_ratio == 0:
-                    self.regressors.append(
-                        SGDRegressor(
-                            penalty="l2",
-                            alpha=alpha / len(self.views),
-                            fit_intercept=False,
-                            tol=self.tol,
-                            warm_start=True,
-                            random_state=self.random_state,
-                        )
+                self.regressors.append(
+                    SGDRegressor(
+                        penalty="elasticnet",
+                        alpha=alpha / len(self.views),
+                        l1_ratio=l1_ratio,
+                        fit_intercept=False,
+                        tol=self.tol,
+                        warm_start=True,
+                        random_state=self.random_state,
                     )
-                elif l1_ratio == 1:
-                    self.regressors.append(
-                        SGDRegressor(
-                            penalty="l1",
-                            alpha=alpha / len(self.views),
-                            fit_intercept=False,
-                            tol=self.tol,
-                            warm_start=True,
-                            random_state=self.random_state,
-                        )
-                    )
-                else:
-                    self.regressors.append(
-                        SGDRegressor(
-                            penalty="elasticnet",
-                            alpha=alpha / len(self.views),
-                            l1_ratio=l1_ratio,
-                            fit_intercept=False,
-                            tol=self.tol,
-                            warm_start=True,
-                            random_state=self.random_state,
-                        )
-                    )
+                )
             else:
-                if alpha == 0:
-                    self.regressors.append(LinearRegression(fit_intercept=False))
-                elif l1_ratio == 0:
-                    if positive:
-                        self.regressors.append(
-                            ElasticNet(
-                                alpha=alpha / len(self.views),
-                                l1_ratio=0,
-                                fit_intercept=False,
-                                warm_start=True,
-                                positive=positive,
-                                random_state=self.random_state,
-                            )
-                        )
-                    else:
-                        self.regressors.append(
-                            Ridge(alpha=alpha / len(self.views), fit_intercept=False)
-                        )
-                elif l1_ratio == 1:
-                    self.regressors.append(
-                        Lasso(
-                            alpha=alpha / len(self.views),
-                            fit_intercept=False,
-                            warm_start=True,
-                            positive=positive,
-                            random_state=self.random_state,
-                        )
+                self.regressors.append(
+                    ElasticNet(
+                        alpha=alpha / len(self.views),
+                        l1_ratio=l1_ratio,
+                        fit_intercept=False,
+                        warm_start=True,
+                        positive=positive,
+                        random_state=self.random_state,
                     )
-                else:
-                    self.regressors.append(
-                        ElasticNet(
-                            alpha=alpha / len(self.views),
-                            l1_ratio=l1_ratio,
-                            fit_intercept=False,
-                            warm_start=True,
-                            positive=positive,
-                            random_state=self.random_state,
-                        )
-                    )
+                )
 
     def _update_view(self, view_index: int):
         """
@@ -386,22 +340,27 @@ class ElasticInnerLoop(PLSInnerLoop):
         :return: updated weights
         """
         if self.maxvar:
+            # For MAXVAR we rescale the targets
             target = self.scores.mean(axis=0)
-            target /= np.linalg.norm(target)
+            target /= np.linalg.norm(target) / np.sqrt(self.n)
         else:
             target = self.scores[view_index - 1]
-        self._elastic_solver(self.views[view_index], target, view_index)
-        _check_converged_weights(self.weights[view_index], view_index)
+        # Solve the elastic regression
+        self.weights[view_index] = self._elastic_solver(
+            self.views[view_index], target, view_index
+        )
+        # For SUMCOR we rescale the projections
+        if not self.maxvar:
+            _check_converged_weights(self.weights[view_index], view_index)
+            self.weights[view_index] = self.weights[view_index] / (
+                np.linalg.norm(self.views[view_index] @ self.weights[view_index])
+                / np.sqrt(self.n)
+            )
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
     @ignore_warnings(category=ConvergenceWarning)
     def _elastic_solver(self, X, y, view_index):
-        self.weights[view_index] = np.expand_dims(
-            self.regressors[view_index].fit(X, y.ravel()).coef_, 1
-        )
-        self.weights[view_index] /= np.linalg.norm(
-            self.views[view_index] @ self.weights[view_index]
-        ) / np.sqrt(self.n)
+        return np.expand_dims(self.regressors[view_index].fit(X, y.ravel()).coef_, 1)
 
     def _objective(self):
         views = len(self.views)
@@ -410,13 +369,13 @@ class ElasticInnerLoop(PLSInnerLoop):
         l1 = c * ratio
         l2 = c * (1 - ratio)
         total_objective = 0
+        target = self.scores.mean(axis=0)
         for i in range(views):
-            target = self.scores.mean(axis=0)
-            objective = (
-                    views
-                    * np.linalg.norm(self.views[i] @ self.weights[i] - target) ** 2
-                    / (2 * self.n)
-            )
+            if self.maxvar:
+                target /= np.linalg.norm(target) / np.sqrt(self.n)
+            objective = np.linalg.norm(
+                self.views[i] @ self.weights[i] - target
+            ) ** 2 / (2 * self.n)
             l1_pen = l1[i] * np.linalg.norm(self.weights[i], ord=1)
             l2_pen = l2[i] * np.linalg.norm(self.weights[i], ord=2)
             total_objective += objective + l1_pen + l2_pen
@@ -432,15 +391,15 @@ class ElasticInnerLoop(PLSInnerLoop):
 
 class ADMMInnerLoop(ElasticInnerLoop):
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol=1e-5,
-            initialization: str = "unregularized",
-            mu=None,
-            lam=None,
-            c=None,
-            eta=None,
-            random_state=None,
+        self,
+        max_iter: int = 100,
+        tol=1e-5,
+        initialization: str = "unregularized",
+        mu=None,
+        lam=None,
+        c=None,
+        eta=None,
+        random_state=None,
     ):
         super().__init__(
             max_iter=max_iter,
@@ -499,9 +458,9 @@ class ADMMInnerLoop(ElasticInnerLoop):
                 / lam
                 * self.views[view_index].T
                 @ (
-                        self.views[view_index] @ self.weights[view_index]
-                        - self.z[view_index]
-                        + self.eta[view_index]
+                    self.views[view_index] @ self.weights[view_index]
+                    - self.z[view_index]
+                    + self.eta[view_index]
                 ),
                 mu,
                 gradient,
@@ -517,9 +476,9 @@ class ADMMInnerLoop(ElasticInnerLoop):
                 self.views[view_index] @ self.weights[view_index] + self.eta[view_index]
             )
             self.eta[view_index] = (
-                    self.eta[view_index]
-                    + self.views[view_index] @ self.weights[view_index]
-                    - self.z[view_index]
+                self.eta[view_index]
+                + self.views[view_index] @ self.weights[view_index]
+                - self.z[view_index]
             )
             norm_eta.append(np.linalg.norm(self.eta[view_index]))
             norm_proj.append(
@@ -551,15 +510,15 @@ class ADMMInnerLoop(ElasticInnerLoop):
 
 class SpanCCAInnerLoop(_InnerLoop):
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol=1e-5,
-            initialization: str = "unregularized",
-            c=None,
-            regularisation="l0",
-            rank=1,
-            random_state=None,
-            positive=False,
+        self,
+        max_iter: int = 100,
+        tol=1e-5,
+        initialization: str = "unregularized",
+        c=None,
+        regularisation="l0",
+        rank=1,
+        random_state=None,
+        positive=False,
     ):
         super().__init__(
             max_iter=max_iter,
@@ -612,15 +571,15 @@ class SpanCCAInnerLoop(_InnerLoop):
 
 class SWCCAInnerLoop(PLSInnerLoop):
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol=1e-20,
-            initialization: str = "unregularized",
-            regularisation="l0",
-            c=None,
-            sample_support: int = None,
-            random_state=None,
-            positive=False,
+        self,
+        max_iter: int = 100,
+        tol=1e-20,
+        initialization: str = "unregularized",
+        regularisation="l0",
+        c=None,
+        sample_support: int = None,
+        random_state=None,
+        positive=False,
     ):
         super().__init__(
             max_iter=max_iter,
@@ -654,8 +613,8 @@ class SWCCAInnerLoop(PLSInnerLoop):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         self.weights[view_index] = (
-                                           self.views[view_index] * self.sample_weights
-                                   ).T @ targets.sum(axis=0).filled()
+            self.views[view_index] * self.sample_weights
+        ).T @ targets.sum(axis=0).filled()
         self.weights[view_index] = self.update(
             self.weights[view_index],
             self.c[view_index],

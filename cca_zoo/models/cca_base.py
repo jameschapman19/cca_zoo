@@ -23,13 +23,13 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale=True,
-            centre=True,
-            copy_data=True,
-            accept_sparse=False,
-            random_state: Union[int, np.random.RandomState] = None,
+        self,
+        latent_dims: int = 1,
+        scale=True,
+        centre=True,
+        copy_data=True,
+        accept_sparse=False,
+        random_state: Union[int, np.random.RandomState] = None,
     ):
         """
         Constructor for _CCA_Base
@@ -113,7 +113,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(
-                np.diag(np.corrcoef(x.T, y.T)[: self.latent_dims, self.latent_dims:])
+                np.diag(np.corrcoef(x.T, y.T)[: self.latent_dims, self.latent_dims :])
             )
         all_corrs = np.array(all_corrs).reshape(
             (len(views), len(views), self.latent_dims)
@@ -121,10 +121,10 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         return all_corrs
 
     def plot_latent(
-            self,
-            views: Iterable[np.ndarray],
-            test_views: Iterable[np.ndarray] = None,
-            title="",
+        self,
+        views: Iterable[np.ndarray],
+        test_views: Iterable[np.ndarray] = None,
+        title="",
     ):
         scores = self.transform(views)
         if test_views is not None:
@@ -140,8 +140,8 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         n_views = pair_corrs.shape[0]
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
         dim_corrs = (
-                            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
-                    ) / (n_views ** 2 - n_views)
+            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
+        ) / (n_views ** 2 - n_views)
         return dim_corrs
 
     def _centre_scale(self, views: Iterable[np.ndarray]):
