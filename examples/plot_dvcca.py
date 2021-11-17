@@ -23,7 +23,7 @@ from examples.utils import plot_reconstruction
 
 n_train = 500
 n_val = 100
-train_dataset = Noisy_MNIST_Dataset(mnist_type="MNIST", train=True, flatten=False)
+train_dataset = Noisy_MNIST_Dataset(mnist_type="MNIST", train=True, flatten=True)
 val_dataset = Subset(train_dataset, np.arange(n_train, n_train + n_val))
 train_dataset = Subset(train_dataset, np.arange(n_train))
 train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
@@ -31,18 +31,16 @@ train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
 # The number of latent dimensions across models
 latent_dims = 2
 # number of epochs for deep models
-epochs = 10
-# channels in encoders and decoders
-channels = [16, 16]
+epochs = 20
 
-encoder_1 = architectures.CNNEncoder(
-    latent_dims=latent_dims, feature_size=(28, 28), variational=True, channels=channels,
+encoder_1 = architectures.Encoder(
+    latent_dims=latent_dims, feature_size=784, variational=True
 )
-encoder_2 = architectures.CNNEncoder(
-    latent_dims=latent_dims, feature_size=(28, 28), variational=True, channels=channels,
+encoder_2 = architectures.Encoder(
+    latent_dims=latent_dims, feature_size=784, variational=True
 )
-decoder_1 = architectures.CNNDecoder(latent_dims=latent_dims, feature_size=(28, 28))
-decoder_2 = architectures.CNNDecoder(latent_dims=latent_dims, feature_size=(28, 28))
+decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=784)
+decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=784)
 
 # %%
 # Deep VCCA
@@ -61,14 +59,14 @@ plt.show()
 # %%
 # Deep VCCA (private)
 # We need to add additional private encoders and change (double) the dimensionality of the decoders.
-private_encoder_1 = architectures.CNNEncoder(
-    latent_dims=latent_dims, feature_size=(28, 28), variational=True, channels=channels,
+private_encoder_1 = architectures.Encoder(
+    latent_dims=latent_dims, feature_size=784, variational=True
 )
-private_encoder_2 = architectures.CNNEncoder(
-    latent_dims=latent_dims, feature_size=(28, 28), variational=True, channels=channels,
+private_encoder_2 = architectures.Encoder(
+    latent_dims=latent_dims, feature_size=784, variational=True
 )
-private_decoder_1 = architectures.CNNDecoder(latent_dims=2 * latent_dims, feature_size=(28, 28))
-private_decoder_2 = architectures.CNNDecoder(latent_dims=2 * latent_dims, feature_size=(28, 28))
+private_decoder_1 = architectures.Decoder(latent_dims=2 * latent_dims, feature_size=784)
+private_decoder_2 = architectures.Decoder(latent_dims=2 * latent_dims, feature_size=784)
 dcca = DVCCA(
     latent_dims=latent_dims,
     encoders=[encoder_1, encoder_2],
@@ -84,8 +82,8 @@ plt.show()
 
 # %%
 # DCCAE
-encoder_1 = architectures.CNNEncoder(latent_dims=latent_dims, feature_size=(28, 28), channels=channels, )
-encoder_2 = architectures.CNNEncoder(latent_dims=latent_dims, feature_size=(28, 28), channels=channels, )
+encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
+encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
 dcca = DCCAE(
     latent_dims=latent_dims,
     encoders=[encoder_1, encoder_2],

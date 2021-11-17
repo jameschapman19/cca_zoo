@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 def plot_reconstruction(model, dataset, idx):
     (x, y), _ = dataset[idx]
-    recon_x, recon_y = model.recon(x[None, :, :, :], y[None, :, :, :])
+    recon_x, recon_y = model.recon(x, y)
     if isinstance(recon_x, list):
         recon_x = recon_x[0]
         recon_y = recon_y[0]
@@ -14,10 +14,10 @@ def plot_reconstruction(model, dataset, idx):
     ax[1].set_title('Original View 2')
     ax[2].set_title('Reconstruction View 1')
     ax[3].set_title('Reconstruction View 2')
-    ax[0].imshow(x[0].detach().numpy())
-    ax[1].imshow(y[0].detach().numpy())
-    ax[2].imshow(recon_x[0, 0])
-    ax[3].imshow(recon_y[0, 0])
+    ax[0].imshow(x.detach().numpy().reshape((28, 28)))
+    ax[1].imshow(y.detach().numpy().reshape((28, 28)))
+    ax[2].imshow(recon_x.reshape((28, 28)))
+    ax[3].imshow(recon_y.reshape((28, 28)))
 
 
 def plot_latent_label(model, dataloader, num_batches=100):
