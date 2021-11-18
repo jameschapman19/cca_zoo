@@ -17,7 +17,7 @@ environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={CORES}"
 FLAGS = flags.FLAGS
 
 
-class Game(PLSExperiment):
+class Oja(PLSExperiment):
     def __init__(
         self,
         mode,
