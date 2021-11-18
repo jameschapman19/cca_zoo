@@ -1,15 +1,13 @@
 checks:
     python:
+        version: "3.7.1"
+        # Whether to setup a virtualenv in the repository root directory.
+        virtualenv: true
         code_rating: true
         duplicate_code: true
 
 build:
   nodes:
-    python:
-        version: "3.7.1"
-
-        # Whether to setup a virtualenv in the repository root directory.
-        virtualenv: true
     analysis:
       tests:
         override:
