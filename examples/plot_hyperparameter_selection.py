@@ -49,11 +49,9 @@ print(pd.DataFrame(kernel_reg.cv_results_))
 # %%
 # Randomized Search
 # ^^^^^^^^^^^^^^^^^^^
-
 # With Randomized Search we can additionally use distributions from scikit-learn to define the parameter search space
 
 # %%
-# Randomized Search
 param_grid = {"kernel": ["poly"], "c": [loguniform(1e-1, 2e-1), [1e-1]], "degree": [[2], [2, 3]]}
 kernel_reg = (
     RandomizedSearchCV(
