@@ -2,7 +2,6 @@ from abc import abstractmethod
 from typing import Optional
 import jax.numpy as jnp
 from ccagame.baseexperiment import BaseExperiment
-from jax._src.random import PRNGKey
 from jaxline import utils
 
 
@@ -12,18 +11,18 @@ class PLSExperiment(BaseExperiment):
         mode,
         init_rng=None,
         num_devices=1,
-        k_per_device=1,
-        dims=1,
-        data_stream=None,
-        whole_batch=False
+        n_components=1,
+        dims=None,
+        data=None,
+        batch_size=None
     ):
         super(PLSExperiment, self).__init__(
             mode=mode,
             init_rng=init_rng,
             num_devices=num_devices,
-            k_per_device=k_per_device,
-            data_stream=data_stream,
-            whole_batch=whole_batch
+            n_components=n_components,
+            data=data,
+            batch_size=batch_size
         )
         """Constructs the experiment.
         Args:
@@ -31,13 +30,12 @@ class PLSExperiment(BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._dims = dims
-        X, Y = next(self.data_stream)
-        self._correct_U, self._correct_S, self._correct_Vt = jnp.linalg.svd(X.T @ Y)
-        self._correct_U = self._correct_U[:, : self._total_k]
-        self._correct_Vt = self._correct_Vt[: self._total_k, :]
-        if self.whole_batch:
-            self.inputs=next(self.data_stream)
+        self.dims = dims
+        self._correct_U, self._correct_S, self._correct_Vt = jnp.linalg.svd(self.data[0].T @ self.data[1])
+        self._correct_U = self._correct_U[:, : self.n_components]
+        self._correct_Vt = self._correct_Vt[: self.n_components, :]
+        if self.batch_size:
+            self.inputs=self.data
 
     @abstractmethod
     def _update(self, views, global_step):
@@ -68,12 +66,12 @@ class PLSExperiment(BaseExperiment):
         cosine_similarities_y = jnp.diag(self._correct_Vt @ V.T)
         x_idx = jnp.where(jnp.abs(cosine_similarities_x) < jnp.cos(jnp.pi / 8))[0]
         if len(x_idx) == 0:
-            x_idx = self._total_k
+            x_idx = self.n_components
         else:
             x_idx = x_idx[0]
         y_idx = jnp.where(jnp.abs(cosine_similarities_y) < jnp.cos(jnp.pi / 8))[0]
         if len(y_idx) == 0:
-            y_idx = self._total_k
+            y_idx = self.n_components
         else:
             y_idx = y_idx[0]
         return {"correct x": x_idx, "correct y": y_idx}

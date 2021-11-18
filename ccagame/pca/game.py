@@ -1,20 +1,9 @@
-import functools
 from os import environ
 import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
-from absl import app, flags
-from ccagame.baseexperiment import get_config
-from ccagame.pca.experiments import PCAExperiment
-from ccagame.utils import data_stream
-from datasets.mnist import mnist
-from jax._src.random import PRNGKey
-from jaxline import platform
-
-CORES = 1
-environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={CORES}"
-FLAGS = flags.FLAGS
+from . import PCAExperiment
 
 
 class Game(PCAExperiment):
@@ -23,19 +12,24 @@ class Game(PCAExperiment):
         mode,
         init_rng=None,
         num_devices=1,
-        k_per_device=15,
-        dims=1,
-        data_stream=None,
-        whole_batch=False
+        n_components=1,
+        dims=None,
+        data=None,
+        batch_size=None,
+        learning_rate=1e-3,
+        momentum=0.9,
+        nesterov=True,
+        **kwargs
     ):
         super(Game, self).__init__(
             mode,
             init_rng=init_rng,
             num_devices=num_devices,
-            k_per_device=k_per_device,
+            n_components=n_components,
             dims=dims,
-            data_stream=data_stream,
-            whole_batch=whole_batch
+            data=data,
+            batch_size=batch_size,
+            **kwargs
         )
         """
         Constructs the experiment.
@@ -46,9 +40,10 @@ class Game(PCAExperiment):
         """
         Initialization function for a Jaxline experiment.
         """
-        weights = np.eye(self._total_k) * 2 - np.ones((self._total_k, self._total_k))
-        weights[np.triu_indices(self._total_k, 1)] = 0
-        self._weights = jnp.reshape(weights, [num_devices, k_per_device, self._total_k])
+        k_per_device=int(self.n_components/self.num_devices)
+        weights = np.eye(self.n_components) * 2 - np.ones((self.n_components, self.n_components))
+        weights[np.triu_indices(self.n_components, 1)] = 0
+        self._weights = jnp.reshape(weights, [num_devices, k_per_device, self.n_components])
         # generates a key for each device
         keys = jax.random.split(self.local_rng, num_devices)
         # generates weights for each component on each device
@@ -65,16 +60,16 @@ class Game(PCAExperiment):
             self._grads_and_utils, in_axes=(0, 0, None, None)
         )
         # self._update_with_grads = jax.vmap(self._update_with_grads, in_axes=(0, 0, None))
-        self._optimizer = optax.sgd(learning_rate=1e-1, momentum=0.9, nesterov=True)
+        self._optimizer = optax.sgd(learning_rate=learning_rate, momentum=momentum, nesterov=nesterov)
         self._opt_state = jax.pmap(lambda V: self._optimizer.init(V))(self._V)
 
     def _update(self, inputs, global_step):
-        inputs = jnp.reshape(inputs, (self._num_devices, -1, self._dims))
-        self._local_V = jnp.reshape(self._V, (self._total_k, self._dims))
+        inputs = jnp.reshape(inputs, (self.num_devices, -1, self._dims))
+        self._local_V = jnp.reshape(self._V, (self.n_components, self._dims))
         self._V, self._opt_state = self._grads_and_update(
             self._V, self._weights, self._local_V, inputs, self._opt_state
         )
-        return jnp.reshape(self._V, (self._total_k, self._dims))
+        return jnp.reshape(self._V, (self.n_components, self._dims))
 
     def _grads_and_update(self, vi, weights, V, input, opt_state):
         """
@@ -148,13 +143,3 @@ class Game(PCAExperiment):
         utilities = Game.utility(vi, weights, V, inputs)
         grads = Game.eg_grads(vi, weights, V, inputs)
         return grads, utilities
-
-
-# TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
-if __name__ == "__main__":
-    X, _, X_te, _ = mnist()
-    input_data_iterator = data_stream(X, Y=None, batch_size=None)
-    k_per_device = 5
-    FLAGS.config = get_config(input_data_iterator, CORES, X.shape[1],k_per_device=k_per_device)
-    flags.mark_flag_as_required("config")
-    app.run(functools.partial(platform.main, Game))

@@ -10,18 +10,18 @@ class PCAExperiment(BaseExperiment):
         mode,
         init_rng=None,
         num_devices=1,
-        k_per_device=1,
-        dims=1,
-        data_stream=None,
-        whole_batch=False
+        n_components=1,
+        dims=None,
+        data=None,
+        batch_size=False
     ):
         super(PCAExperiment, self).__init__(
             mode=mode,
             init_rng=init_rng,
             num_devices=num_devices,
-            k_per_device=k_per_device,
-            data_stream=data_stream,
-            whole_batch=whole_batch
+            n_components=n_components,
+            data=data,
+            batch_size=batch_size
         )
         """Constructs the experiment.
         Args:
@@ -30,11 +30,11 @@ class PCAExperiment(BaseExperiment):
         """
         """Initialization function for a Jaxline experiment."""
         self._dims = dims
-        X = next(self.data_stream)
+        X = list(self.data_stream)
         _, vals, vecs = jnp.linalg.svd(X.T @ X)
-        self._correct_eigenvectors = vecs[: self._total_k, :]
-        self._correct_eigenvalues = vals[: self._total_k] / X.shape[0]
-        if self.whole_batch:
+        self._correct_eigenvectors = vecs[: self.n_components, :]
+        self._correct_eigenvalues = vals[: self.n_components] / X.shape[0]
+        if self.batch_size:
             self.inputs=next(self.data_stream)
 
     @abstractmethod
@@ -60,6 +60,6 @@ class PCAExperiment(BaseExperiment):
         cosine_similarities = jnp.diag(self._correct_eigenvectors @ V.T)#V.T@V
         close = jnp.where(jnp.abs(cosine_similarities) < jnp.cos(jnp.pi / 8))[0]
         if len(close) == 0:
-            return self._total_k
+            return self.n_components
         else:
             return close[0]
