@@ -15,7 +15,7 @@ def get_num_batches(X, Y=None, batch_size=None):
     return num_batches
 
 
-def data_stream(views, batch_size=None):
+def data_stream(*views, batch_size=None):
     num = views[0].shape[0]
     if batch_size is None:
         batch_size = num

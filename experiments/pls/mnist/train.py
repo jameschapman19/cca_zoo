@@ -13,7 +13,7 @@ import argparse
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 
 #These are the defaults for the above arguments
-CORES=4
+DEVICES=4
 N_COMPONENTS=4
 BATCH_SIZE=None
 LR=1e-3
@@ -29,7 +29,7 @@ TRAINING_STEPS=1000
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cores", type=int, default=CORES)
+    parser.add_argument("--devices", type=int, default=DEVICES)
     parser.add_argument("--n_components", type=int, default=N_COMPONENTS)
     parser.add_argument("--batch_size", type=int, default=N_COMPONENTS)
     parser.add_argument("--lr", type=float, default=LR)
@@ -71,9 +71,9 @@ def get_config(
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
     args = parse_args()
-    environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={args.cores}"
+    environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={args.devices}"
     FLAGS = flags.FLAGS
     X, _, X_te, _ = mnist()
-    FLAGS.config = get_config((X[:, :400], X[:, 400:]), [400,384],args.cores,n_components=args.n_components, training_steps=args.training_steps)
+    FLAGS.config = get_config((X[:, :400], X[:, 400:]), [400,384],num_devices=args.devices,n_components=args.n_components, training_steps=args.training_steps)
     flags.mark_flag_as_required("config")
     app.run(functools.partial(platform.main, MODEL_DICT[args.model]))

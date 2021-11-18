@@ -30,12 +30,11 @@ class PCAExperiment(BaseExperiment):
         """
         """Initialization function for a Jaxline experiment."""
         self._dims = dims
-        X = list(self.data_stream)
-        _, vals, vecs = jnp.linalg.svd(X.T @ X)
+        _, vals, vecs = jnp.linalg.svd(self.data.T @ self.data)
         self._correct_eigenvectors = vecs[: self.n_components, :]
-        self._correct_eigenvalues = vals[: self.n_components] / X.shape[0]
+        self._correct_eigenvalues = vals[: self.n_components] / self.dims
         if self.batch_size:
-            self.inputs=next(self.data_stream)
+            self.inputs=self.data
 
     @abstractmethod
     def _update(self, X_i, Y_i, global_step):

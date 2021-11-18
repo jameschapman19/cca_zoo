@@ -30,7 +30,7 @@ class BaseExperiment(AbstractExperiment):
         self.data = data
         self.local_rng = jax.random.fold_in(PRNGKey(123), jax.host_id())
         self.num_devices = num_devices
-        self.inputs=data_stream(self.data,batch_size=batch_size)
+        self.inputs=data_stream(*self.data,batch_size=batch_size)
         
 
     def step(

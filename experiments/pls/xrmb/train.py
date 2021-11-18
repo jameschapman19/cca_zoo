@@ -1,8 +1,4 @@
 from ccagame import pls
-from ccagame.pca.game import Game
-from ccagame.pca.oja import Oja
-from ccagame.pls.stochasticpower import StochasticPower
-from ccagame.pls.msg import MSG
 from jaxline import platform
 import functools
 from os import environ
@@ -17,46 +13,50 @@ import argparse
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 
 #These are the defaults for the above arguments
-CORES=4
+DEVICES=4
 N_COMPONENTS=4
 BATCH_SIZE=None
 LR=1e-3
 MODEL='game'
 #This is used to turn name of model on command line into model class
 MODEL_DICT={
-    'game':Game,
-    'msg':MSG,
-    'oja':Oja,
-    'power':StochasticPower,
+    'game':pls.Game,
+    'msg':pls.MSG,
+    'oja':pls.Oja,
+    'power':pls.StochasticPower,
 }
+TRAINING_STEPS=1000
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cores", type=int, default=CORES)
+    parser.add_argument("--devices", type=int, default=DEVICES)
     parser.add_argument("--n_components", type=int, default=N_COMPONENTS)
     parser.add_argument("--batch_size", type=int, default=N_COMPONENTS)
     parser.add_argument("--lr", type=float, default=LR)
-    parser.add_argument("--model", type=float, default=MODEL)
+    parser.add_argument("--model", type=str, default=MODEL)
+    parser.add_argument("--training_steps", type=int, default=TRAINING_STEPS)
     return parser.parse_args()
 
 #THIS IS ALL OF THE PARAMETERS OF JAXLINE EXPERIMENT
 #ITS BASICALLY A DICTIONARY
 def get_config(
     data,
-    devices,
-    dims,
-    k_per_device=1,
+    dims=None,
+    num_devices=1,
+    n_components=1,
     log_tensors_interval=1,
     log_train_data_interval=1,
     training_steps=100,
+    batch_size=8
 ):
     """Return config object for training."""
     config = get_base_config()
     config.experiment_kwargs = {
-        "k_per_device": k_per_device,
-        "num_devices": devices,
+        "n_components": n_components,
+        "num_devices": num_devices,
         "dims": dims,
         "data": data,
+        "batch_size":batch_size
     }
     config.training_steps = training_steps
     config.checkpoint_dir = "jaxlog"
