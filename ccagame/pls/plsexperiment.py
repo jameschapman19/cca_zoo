@@ -60,7 +60,7 @@ class PLSExperiment(BaseExperiment):
     def _correct_eigenvector_streak(self, U, V):
         U = jnp.reshape(U, (-1, U.shape[-1]))
         V = jnp.reshape(V, (-1, V.shape[-1]))
-        cosine_similarities_x = jnp.diag(self.correct_eigenvectors[0].T @ U.T)
+        cosine_similarities_x = jnp.diag(self.correct_eigenvectors[0].T @ U.T)#U@U.T
         cosine_similarities_y = jnp.diag(self.correct_eigenvectors[1].T @ V.T)
         x_idx = jnp.where(jnp.abs(cosine_similarities_x) < jnp.cos(jnp.pi / 8))[0]
         if len(x_idx) == 0:
