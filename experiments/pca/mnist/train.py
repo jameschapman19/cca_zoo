@@ -14,18 +14,19 @@ import jax.numpy as jnp
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 
 # These are the defaults for the above arguments
-DEVICES = 1
+DEVICES = 4
 N_COMPONENTS = 4
 BATCH_SIZE = None
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 1e-7
 MODEL = "game"
 # This is used to turn name of model on command line into model class
 MODEL_DICT = {
     "game": pca.Game,
-    "oha": pca.Oja,
-    "gha": pca.GHA,
+    "msg": pca.MSG,
+    "oja": pca.Oja,
+    "power": pca.StochasticPower,
 }
-TRAINING_STEPS = 5000
+TRAINING_STEPS = 1000
 
 
 def parse_args():
