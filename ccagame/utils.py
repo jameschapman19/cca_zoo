@@ -15,8 +15,8 @@ def get_num_batches(X, Y=None, batch_size=None):
     return num_batches
 
 
-def data_stream(*views, batch_size=None):
-    num = views[0].shape[0]
+def data_stream(X, Y=None, batch_size=None):
+    num = X.shape[0]
     if batch_size is None:
         batch_size = num
     num_complete_batches, leftover = divmod(num, batch_size)
@@ -26,7 +26,10 @@ def data_stream(*views, batch_size=None):
         perm = rng.permutation(num)
         for i in range(num_batches):
             batch_idx = perm[i * batch_size : (i + 1) * batch_size]
-            yield [view[batch_idx] for view in views]
+            if Y is None:
+                yield X[batch_idx]
+            else:
+                yield X[batch_idx], Y[batch_idx]
 
 
 def check_random_state(seed):

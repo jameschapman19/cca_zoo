@@ -4,10 +4,8 @@ from typing import Optional
 import jax
 import jax.numpy as jnp
 from jax._src.random import PRNGKey
-from six import b
 from jaxline import utils
 from jaxline.experiment import AbstractExperiment
-from ccagame.utils import data_stream
 
 class BaseExperiment(AbstractExperiment):
     def __init__(
@@ -26,11 +24,14 @@ class BaseExperiment(AbstractExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
+        
+        self.batch_size=batch_size
         self.n_components=n_components
         self.data = data
         self.local_rng = jax.random.fold_in(PRNGKey(123), jax.host_id())
         self.num_devices = num_devices
-        self.inputs=data_stream(*self.data,batch_size=batch_size)
+        if self.batch_size is None:
+            self.inputs=next(self.data)
         
 
     def step(
@@ -41,10 +42,10 @@ class BaseExperiment(AbstractExperiment):
         writer: Optional[utils.Writer],
     ):
         """Step function for a Jaxline experiment"""
-        if self.whole_batch:
+        if self.batch_size is None:
             outputs = self._update(self.inputs, global_step)
         else:
-            inputs = next(self.data_stream)
+            inputs = next(self.data)
             outputs = self._update(inputs, global_step)
         return self._get_scalars(outputs)
 

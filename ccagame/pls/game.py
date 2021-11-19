@@ -73,16 +73,16 @@ class Game(PLSExperiment):
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        X_i = jnp.reshape(X_i, (self.num_devices, -1, self._dims[0]))
-        Y_i = jnp.reshape(Y_i, (self.num_devices, -1, self._dims[1]))
-        self._local_U = jnp.reshape(self._U, (self.n_components, self._dims[0]))
-        self._local_V = jnp.reshape(self._V, (self.n_components, self._dims[1]))
+        X_i = jnp.reshape(X_i, (self.num_devices, -1, self.dims[0]))
+        Y_i = jnp.reshape(Y_i, (self.num_devices, -1, self.dims[1]))
+        self._local_U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
+        self._local_V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
         grads_x = self._grads(self._U, self._V, self._weights, self._local_U,self._local_V, X_i, Y_i)
         grads_y = self._grads(self._V, self._U, self._weights, self._local_V, self._local_U, Y_i, X_i)
         self._U, self._opt_state_x = self._update_with_grads(self._U, grads_x, self._opt_state_x)
         self._V, self._opt_state_y = self._update_with_grads(self._V, grads_y, self._opt_state_y)
-        return jnp.reshape(self._U, (self.n_components, self._dims[0])), jnp.reshape(
-            self._V, (self.n_components, self._dims[1])
+        return jnp.reshape(self._U, (self.n_components, self.dims[0])), jnp.reshape(
+            self._V, (self.n_components, self.dims[1])
         )
 
     @staticmethod

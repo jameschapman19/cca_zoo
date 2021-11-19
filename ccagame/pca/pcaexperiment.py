@@ -13,7 +13,8 @@ class PCAExperiment(BaseExperiment):
         n_components=1,
         dims=None,
         data=None,
-        batch_size=False
+        batch_size=None,
+        correct_eigenvectors=None
     ):
         super(PCAExperiment, self).__init__(
             mode=mode,
@@ -30,11 +31,7 @@ class PCAExperiment(BaseExperiment):
         """
         """Initialization function for a Jaxline experiment."""
         self._dims = dims
-        _, vals, vecs = jnp.linalg.svd(self.data.T @ self.data)
-        self._correct_eigenvectors = vecs[: self.n_components, :]
-        self._correct_eigenvalues = vals[: self.n_components] / self.dims
-        if self.batch_size:
-            self.inputs=self.data
+        self.correct_eigenvectors = correct_eigenvectors
 
     @abstractmethod
     def _update(self, X_i, Y_i, global_step):
@@ -44,6 +41,7 @@ class PCAExperiment(BaseExperiment):
         return {
             # "TV": self.TV(V),
             "Correct Eigenvector Streak": self._correct_eigenvector_streak(V),
+            "Normalized Subspace Distance":self._normalized_subspace_distance(V),
         }
 
     def TV(self, V):
@@ -56,9 +54,14 @@ class PCAExperiment(BaseExperiment):
 
     def _correct_eigenvector_streak(self, V):
         V = jnp.reshape(V, (-1, V.shape[-1]))
-        cosine_similarities = jnp.diag(self._correct_eigenvectors @ V.T)#V.T@V
+        cosine_similarities = jnp.diag(self.correct_eigenvectors.T @ V.T)#V.T@V
         close = jnp.where(jnp.abs(cosine_similarities) < jnp.cos(jnp.pi / 8))[0]
         if len(close) == 0:
             return self.n_components
         else:
             return close[0]
+    
+    def _normalized_subspace_distance(self,V):
+        P=self.correct_eigenvectors @ self.correct_eigenvectors.T
+        U_star=V.T @ V
+        return 1-jnp.trace(U_star@P)/self.n_components

@@ -14,7 +14,8 @@ class PLSExperiment(BaseExperiment):
         n_components=1,
         dims=None,
         data=None,
-        batch_size=None
+        batch_size=None,
+        correct_eigenvectors=None
     ):
         super(PLSExperiment, self).__init__(
             mode=mode,
@@ -22,7 +23,7 @@ class PLSExperiment(BaseExperiment):
             num_devices=num_devices,
             n_components=n_components,
             data=data,
-            batch_size=batch_size
+            batch_size=batch_size,
         )
         """Constructs the experiment.
         Args:
@@ -31,11 +32,7 @@ class PLSExperiment(BaseExperiment):
         """
         """Initialization function for a Jaxline experiment."""
         self.dims = dims
-        self._correct_U, self._correct_S, self._correct_Vt = jnp.linalg.svd(self.data[0].T @ self.data[1])
-        self._correct_U = self._correct_U[:, : self.n_components]
-        self._correct_Vt = self._correct_Vt[: self.n_components, :]
-        if self.batch_size:
-            self.inputs=self.data
+        self.correct_eigenvectors = correct_eigenvectors
 
     @abstractmethod
     def _update(self, views, global_step):
@@ -46,6 +43,7 @@ class PLSExperiment(BaseExperiment):
         return {
             # "TV": self.TV(X, V),
             **self._correct_eigenvector_streak(U, V),
+            **self._normalized_subspace_distance(U,V),
         }
 
     def TV(self, U, V):
@@ -60,10 +58,10 @@ class PLSExperiment(BaseExperiment):
         return jnp.linalg.svd(Zx.T @ Zy)[1].sum() / dof
 
     def _correct_eigenvector_streak(self, U, V):
-        U = jnp.reshape(U, (-1, U.shape[-1]))#U@U.T
+        U = jnp.reshape(U, (-1, U.shape[-1]))
         V = jnp.reshape(V, (-1, V.shape[-1]))
-        cosine_similarities_x = jnp.diag(self._correct_U.T @ U.T)
-        cosine_similarities_y = jnp.diag(self._correct_Vt @ V.T)
+        cosine_similarities_x = jnp.diag(self.correct_eigenvectors[0].T @ U.T)
+        cosine_similarities_y = jnp.diag(self.correct_eigenvectors[1].T @ V.T)
         x_idx = jnp.where(jnp.abs(cosine_similarities_x) < jnp.cos(jnp.pi / 8))[0]
         if len(x_idx) == 0:
             x_idx = self.n_components
@@ -75,6 +73,16 @@ class PLSExperiment(BaseExperiment):
         else:
             y_idx = y_idx[0]
         return {"correct x": x_idx, "correct y": y_idx}
+
+    def _normalized_subspace_distance(self,U,V):
+        subspace_distances={}
+        P=self.correct_eigenvectors[0] @ self.correct_eigenvectors[0].T
+        U_star=U.T @ U
+        subspace_distances['x_distance']=1-jnp.trace(U_star@P)/self.n_components
+        P=self.correct_eigenvectors[1] @ self.correct_eigenvectors[1].T
+        U_star=V.T @ V
+        subspace_distances['y_distance']=1-jnp.trace(U_star@P)/self.n_components
+        return subspace_distances
 
     def evaluate(
         self,

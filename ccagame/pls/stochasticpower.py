@@ -4,6 +4,7 @@ import jax.numpy as jnp
 import optax
 from . import PLSExperiment
 
+
 class StochasticPower(PLSExperiment):
     def __init__(
         self,
@@ -37,20 +38,25 @@ class StochasticPower(PLSExperiment):
         """Initialization function for a Jaxline experiment."""
         self._U = jax.random.normal(self.local_rng, (self.n_components, dims[0]))
         self._V = jax.random.normal(self.local_rng, (self.n_components, dims[1]))
-        self._optimizer =  optax.sgd(learning_rate=learning_rate, momentum=momentum, nesterov=nesterov)
+        self._optimizer = optax.sgd(
+            learning_rate=learning_rate, momentum=momentum, nesterov=nesterov
+        )
         self._opt_state_x = self._optimizer.init(self._U)
         self._opt_state_y = self._optimizer.init(self._V)
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        C=X_i.T@Y_i
-        grads_x=self._V@C.T
-        grads_y=self._U@C
-        updates_x, self._opt_state_x = self._optimizer_x.update(grads_x, self._opt_state_x)
-        updates_y, self._opt_state_y = self._optimizer_y.update(grads_y, self._opt_state_y)
+        C = X_i.T @ Y_i
+        grads_x = self._V @ C.T
+        grads_y = self._U @ C
+        updates_x, self._opt_state_x = self._optimizer.update(
+            grads_x, self._opt_state_x
+        )
+        updates_y, self._opt_state_y = self._optimizer.update(
+            grads_y, self._opt_state_y
+        )
         self._U = optax.apply_updates(self._U, updates_x)
         self._V = optax.apply_updates(self._V, updates_y)
         self._U = jnp.linalg.qr(self._U.T)[0].T
         self._V = jnp.linalg.qr(self._V.T)[0].T
-        return self._U,self._V
-
+        return self._U, self._V

@@ -8,44 +8,50 @@ from datasets.mnist import mnist
 from jaxline import platform
 from jaxline.base_config import get_base_config
 import argparse
+import jax.numpy as jnp
 
-#Right so basically this should run from command line/bash script
+# Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 
-#These are the defaults for the above arguments
-CORES=4
-N_COMPONENTS=4
-BATCH_SIZE=None
-LR=1e-3
-MODEL='game'
-#This is used to turn name of model on command line into model class
-MODEL_DICT={
-    'game':pca.Game,
-    'gha':pca.GHA,
-    'oja':pca.Oja,
+# These are the defaults for the above arguments
+DEVICES = 1
+N_COMPONENTS = 4
+BATCH_SIZE = None
+LEARNING_RATE = 1e-3
+MODEL = "game"
+# This is used to turn name of model on command line into model class
+MODEL_DICT = {
+    "game": pca.Game,
+    "oha": pca.Oja,
+    "gha": pca.GHA,
 }
-TRAINING_STEPS=1000
+TRAINING_STEPS = 5000
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cores", type=int, default=CORES)
+    parser.add_argument("--devices", type=int, default=DEVICES)
     parser.add_argument("--n_components", type=int, default=N_COMPONENTS)
-    parser.add_argument("--batch_size", type=int, default=N_COMPONENTS)
-    parser.add_argument("--lr", type=float, default=LR)
+    parser.add_argument("--batch_size", type=int, default=BATCH_SIZE)
+    parser.add_argument("--learning_rate", type=float, default=LEARNING_RATE)
     parser.add_argument("--model", type=str, default=MODEL)
     parser.add_argument("--training_steps", type=int, default=TRAINING_STEPS)
     return parser.parse_args()
 
-#THIS IS ALL OF THE PARAMETERS OF JAXLINE EXPERIMENT
-#ITS BASICALLY A DICTIONARY
+
+# THIS IS ALL OF THE PARAMETERS OF JAXLINE EXPERIMENT
+# ITS BASICALLY A DICTIONARY
 def get_config(
-    data_stream,
+    data,
     dims=None,
     num_devices=1,
     n_components=1,
     log_tensors_interval=1,
     log_train_data_interval=1,
     training_steps=100,
+    batch_size=None,
+    correct_eigenvectors=None,
+    **kwargs,
 ):
     """Return config object for training."""
     config = get_base_config()
@@ -53,7 +59,10 @@ def get_config(
         "n_components": n_components,
         "num_devices": num_devices,
         "dims": dims,
-        "data_stream": data_stream,
+        "data": data,
+        "batch_size": batch_size,
+        "correct_eigenvectors": correct_eigenvectors,
+        **kwargs,
     }
     config.training_steps = training_steps
     config.checkpoint_dir = "jaxlog"
@@ -64,14 +73,24 @@ def get_config(
     return config
 
 
-
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
     args = parse_args()
-    environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={args.cores}"
+    environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={args.devices}"
     FLAGS = flags.FLAGS
     X, _, X_te, _ = mnist()
+    correct_U, correct_S, correct_V = jnp.linalg.svd(X.T @ X)
+    correct_U = correct_U[:, :args.n_components]
     input_data_iterator = data_stream(X, batch_size=args.batch_size)
-    FLAGS.config = get_config(input_data_iterator, 784,args.cores,n_components=args.n_components, training_steps=args.training_steps)
+    FLAGS.config = get_config(
+        input_data_iterator,
+        dims=784,
+        num_devices=args.devices,
+        n_components=args.n_components,
+        training_steps=args.training_steps,
+        correct_eigenvectors=correct_U,
+        learning_rate=args.learning_rate,
+        batch_size=args.batch_size
+    )
     flags.mark_flag_as_required("config")
     app.run(functools.partial(platform.main, MODEL_DICT[args.model]))
