@@ -51,9 +51,9 @@ def get_num_batches(X, Y=None, batch_size=None):
     return num_batches
 
 
-def data_stream(X, Y=None, batch_size=None):
+def data_stream(X, Y=None, batch_size=0):
     num = X.shape[0]
-    if batch_size is None:
+    if batch_size is 0:
         batch_size = num
     num_complete_batches, leftover = divmod(num, batch_size)
     num_batches = num_complete_batches + bool(leftover)

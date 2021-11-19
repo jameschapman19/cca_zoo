@@ -1,4 +1,3 @@
-from experiments.pca.mnist.train import BATCH_SIZE
 from jaxline.base_config import get_base_config
 import argparse
 
@@ -7,7 +6,7 @@ DEVICES = 1
 N_COMPONENTS = 4
 LEARNING_RATE = 1e-5
 MODEL = "game"
-BATCH_SIZE = None
+BATCH_SIZE = 0
 # This is used to turn name of model on command line into model class
 TRAINING_STEPS = 1000
 

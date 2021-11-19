@@ -15,7 +15,7 @@ class BaseExperiment(AbstractExperiment):
         num_devices=1,
         n_components=1,
         data=None,
-        batch_size=None,
+        batch_size=0,
     ):
         super(BaseExperiment, self).__init__(mode=mode, init_rng=init_rng)
         """Constructs the experiment.
@@ -30,7 +30,7 @@ class BaseExperiment(AbstractExperiment):
         self.data = data
         self.local_rng = jax.random.fold_in(PRNGKey(123), jax.host_id())
         self.num_devices = num_devices
-        if self.batch_size is None:
+        if self.batch_size is None or 0:
             self.inputs=next(self.data)
         
 

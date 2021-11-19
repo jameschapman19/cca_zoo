@@ -17,7 +17,7 @@ class StochasticPower(PLSExperiment):
         learning_rate=1e-3,
         momentum=0.9,
         nesterov=True,
-        batch_size=None,
+        batch_size=0,
         **kwargs
     ):
         super(StochasticPower, self).__init__(

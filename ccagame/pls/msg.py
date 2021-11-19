@@ -20,7 +20,7 @@ class MSG(PLSExperiment):
         learning_rate=1e-3,
         momentum=0.9,
         nesterov=True,
-        batch_size=None,
+        batch_size=0,
         **kwargs
     ):
         super(MSG, self).__init__(

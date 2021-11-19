@@ -14,7 +14,7 @@ class PLSExperiment(BaseExperiment):
         n_components=1,
         dims=None,
         data=None,
-        batch_size=None,
+        batch_size=0,
         correct_eigenvectors=None
     ):
         super(PLSExperiment, self).__init__(

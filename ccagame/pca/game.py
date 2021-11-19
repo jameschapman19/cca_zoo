@@ -15,7 +15,7 @@ class Game(PCAExperiment):
         n_components=1,
         dims=None,
         data=None,
-        batch_size=None,
+        batch_size=0,
         learning_rate=1e-3,
         momentum=0.9,
         nesterov=True,

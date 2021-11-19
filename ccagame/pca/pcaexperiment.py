@@ -13,8 +13,9 @@ class PCAExperiment(BaseExperiment):
         n_components=1,
         dims=None,
         data=None,
-        batch_size=None,
-        correct_eigenvectors=None
+        batch_size=0,
+        correct_eigenvectors=None,
+        **kwargs,
     ):
         super(PCAExperiment, self).__init__(
             mode=mode,

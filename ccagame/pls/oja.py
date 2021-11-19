@@ -14,7 +14,7 @@ class Oja(PLSExperiment):
         n_components=1,
         dims=None,
         data=None,
-        batch_size=None,
+        batch_size=0,
         **kwargs
     ):
         super(Oja, self).__init__(
