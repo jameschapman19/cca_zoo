@@ -18,7 +18,7 @@ from datasets.xrmb import xrmb
 DEVICES = 4
 N_COMPONENTS = 4
 BATCH_SIZE = None
-LEARNING_RATE = 1e-2
+LEARNING_RATE = 1e-7
 MODEL = "game"
 # This is used to turn name of model on command line into model class
 MODEL_DICT = {
