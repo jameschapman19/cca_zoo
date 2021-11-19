@@ -25,6 +25,7 @@ class Oja(PLSExperiment):
             n_components=n_components,
             data=data,
             batch_size=batch_size,
+            **kwargs
         )
         """Constructs the experiment.
         Args:

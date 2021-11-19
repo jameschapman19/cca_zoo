@@ -1,4 +1,5 @@
 from ccagame import pls
+from experiments.experiment_config import LEARNING_RATE
 from jaxline import platform
 import functools
 from os import environ
@@ -13,8 +14,7 @@ from experiments import parse_args, get_config
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 DEVICES = 1
-N_COMPONENTS = 4
-MODEL = "game"
+MODEL = "msg"
 MODEL_DICT = {
     "game": pls.Game,
     "msg": pls.MSG,
@@ -48,5 +48,6 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
     )
     flags.mark_flag_as_required("config")
+    #magic function which does what pytorch-lightning does which is to make a new numbered version in the directory for each run
     os.chdir(log_dir())
-    app.run(functools.partial(platform.main, MODEL_DICT[args.model]))
+    app.run(functools.partial(platform.main, MODEL_DICT['oja']))

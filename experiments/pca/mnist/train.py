@@ -3,15 +3,15 @@ from jaxline import platform
 import functools
 from os import environ
 from absl import app, flags
-from ccagame.utils import data_stream
+from ccagame.utils import data_stream, log_dir
 from datasets.mnist import mnist
 from jaxline import platform
 import jax.numpy as jnp
 from experiments import parse_args, get_config
-
+import os
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
-DEVICES = 2
+DEVICES = 4
 N_COMPONENTS = 4
 MODEL = "game"
 MODEL_DICT = {
@@ -42,4 +42,6 @@ if __name__ == "__main__":
         model=args.model,
     )
     flags.mark_flag_as_required("config")
+    #magic function which does what pytorch-lightning does which is to make a new numbered version in the directory for each run
+    os.chdir(log_dir())
     app.run(functools.partial(platform.main, MODEL_DICT[args.model]))

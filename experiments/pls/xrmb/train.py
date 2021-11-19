@@ -3,7 +3,7 @@ from jaxline import platform
 import functools
 from os import environ
 from absl import app, flags
-from ccagame.utils import data_stream
+from ccagame.utils import data_stream, log_dir
 from datasets.xrmb import xrmb
 from jaxline import platform
 import jax.numpy as jnp
@@ -47,4 +47,6 @@ if __name__ == "__main__":
         model=args.model,
     )
     flags.mark_flag_as_required("config")
+    #magic function which does what pytorch-lightning does which is to make a new numbered version in the directory for each run
+    os.chdir(log_dir())
     app.run(functools.partial(platform.main, MODEL_DICT[args.model]))

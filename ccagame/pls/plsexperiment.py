@@ -46,7 +46,7 @@ class PLSExperiment(BaseExperiment):
             **self._normalized_subspace_distance(self._U,self._V),
         }
 
-    def TV(self, U, V):
+    def _TV(self, U, V):
         X, Y = next(self.data_stream)
         X = jnp.reshape(X, (-1, X.shape[-1]))
         Y = jnp.reshape(Y, (-1, X.shape[-1]))
