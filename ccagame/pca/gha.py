@@ -52,7 +52,6 @@ class GHA(PCAExperiment):
         self._V, self._opt_state = self._update_with_grads(
             self._V, dv, self._optimizer, self._opt_state
         )
-        return self._V
 
     def _update_with_grads(self, vi, grads, opt, opt_state):
         """Compute and apply updates with optax optimizer.

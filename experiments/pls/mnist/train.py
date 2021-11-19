@@ -12,6 +12,9 @@ from experiments import parse_args, get_config
 
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
+DEVICES = 1
+N_COMPONENTS = 4
+MODEL = "game"
 MODEL_DICT = {
     "game": pls.Game,
     "msg": pls.MSG,
@@ -43,7 +46,6 @@ if __name__ == "__main__":
         learning_rate=args.learning_rate,
         model=args.model,
         batch_size=args.batch_size,
-        model=args.model,
     )
     flags.mark_flag_as_required("config")
     os.chdir(log_dir())

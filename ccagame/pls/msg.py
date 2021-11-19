@@ -54,4 +54,3 @@ class MSG(PLSExperiment):
         U,_,Vt=jnp.linalg.svd(self._M)
         self._U=U[:,:self.n_components].T
         self._V=Vt[:self.n_components]
-        return self._U,self._V

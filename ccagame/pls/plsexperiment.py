@@ -15,7 +15,8 @@ class PLSExperiment(BaseExperiment):
         dims=None,
         data=None,
         batch_size=0,
-        correct_eigenvectors=None
+        correct_eigenvectors=None,
+        **kwargs,
     ):
         super(PLSExperiment, self).__init__(
             mode=mode,
@@ -38,12 +39,11 @@ class PLSExperiment(BaseExperiment):
     def _update(self, views, global_step):
         raise NotImplementedError
 
-    def _get_scalars(self, ouputs):
-        U, V = ouputs
+    def _get_scalars(self):
         return {
             # "TV": self.TV(X, V),
-            **self._correct_eigenvector_streak(U, V),
-            **self._normalized_subspace_distance(U,V),
+            **self._correct_eigenvector_streak(self._U, self._V),
+            **self._normalized_subspace_distance(self._U,self._V),
         }
 
     def TV(self, U, V):
@@ -75,6 +75,8 @@ class PLSExperiment(BaseExperiment):
         return {"correct x": x_idx, "correct y": y_idx}
 
     def _normalized_subspace_distance(self,U,V):
+        U = jnp.reshape(U, (-1, U.shape[-1]))
+        V = jnp.reshape(V, (-1, V.shape[-1]))
         subspace_distances={}
         P=self.correct_eigenvectors[0] @ self.correct_eigenvectors[0].T
         U_star=U.T @ U

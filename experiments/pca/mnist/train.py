@@ -6,13 +6,14 @@ from absl import app, flags
 from ccagame.utils import data_stream
 from datasets.mnist import mnist
 from jaxline import platform
-from jaxline.base_config import get_base_config
 import jax.numpy as jnp
 from experiments import parse_args, get_config
 
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
-
+DEVICES = 2
+N_COMPONENTS = 4
+MODEL = "game"
 MODEL_DICT = {
     "game": pca.Game,
     "oja": pca.Oja,

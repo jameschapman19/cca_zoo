@@ -42,4 +42,3 @@ class Oja(PLSExperiment):
         self._V = self._U @ C
         self._U = jnp.linalg.qr(self._U.T)[0].T
         self._V = jnp.linalg.qr(self._V.T)[0].T
-        return self._U, self._V

@@ -3,7 +3,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
-from . import PCAExperiment
+from .pcaexperiment import PCAExperiment
 
 
 class Game(PCAExperiment):
@@ -64,12 +64,11 @@ class Game(PCAExperiment):
         self._opt_state = jax.pmap(lambda V: self._optimizer.init(V))(self._V)
 
     def _update(self, inputs, global_step):
-        inputs = jnp.reshape(inputs, (self.num_devices, -1, self._dims))
-        self._local_V = jnp.reshape(self._V, (self.n_components, self._dims))
+        inputs = jnp.reshape(inputs, (self.num_devices, -1, self.dims))
+        self._local_V = jnp.reshape(self._V, (self.n_components, self.dims))
         self._V, self._opt_state = self._grads_and_update(
             self._V, self._weights, self._local_V, inputs, self._opt_state
         )
-        return jnp.reshape(self._V, (self.n_components, self._dims))
 
     def _grads_and_update(self, vi, weights, V, input, opt_state):
         """
@@ -87,7 +86,7 @@ class Game(PCAExperiment):
         opt_state: new optax state
         utilities: shape (1,), utilities
         """
-        grads, utilities = self._grads_and_utils(vi, weights, V, input)
+        grads = self._grads_and_utils(vi, weights, V, input)
         # avg_grads = jax.lax.psum(
         #    grads, axis_name='i', axis_index_groups=axis_index_groups)
         vi_new, opt_state = self._update_with_grads(vi, grads, opt_state)
@@ -140,6 +139,6 @@ class Game(PCAExperiment):
     def _grads_and_utils(vi, weights, V, inputs):
         """Compute utiltiies and update directions ("grads").
         23 Wrap in jax.vmap for k_per_device dimension."""
-        utilities = Game.utility(vi, weights, V, inputs)
+        #utilities = Game.utility(vi, weights, V, inputs)
         grads = Game.eg_grads(vi, weights, V, inputs)
-        return grads, utilities
+        return grads

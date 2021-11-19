@@ -30,7 +30,7 @@ class BaseExperiment(AbstractExperiment):
         self.data = data
         self.local_rng = jax.random.fold_in(PRNGKey(123), jax.host_id())
         self.num_devices = num_devices
-        if self.batch_size is None or 0:
+        if self.batch_size == 0:
             self.inputs=next(self.data)
         
 
@@ -42,14 +42,14 @@ class BaseExperiment(AbstractExperiment):
         writer: Optional[utils.Writer],
     ):
         """Step function for a Jaxline experiment"""
-        if self.batch_size is None:
-            outputs = self._update(self.inputs, global_step)
+        if self.batch_size == 0:
+            self._update(self.inputs, global_step)
         else:
             inputs = next(self.data)
-            outputs = self._update(inputs, global_step)
-        return self._get_scalars(outputs)
+            self._update(inputs, global_step)
+        return self._get_scalars()
 
-    def _get_scalars(self, outputs):
+    def _get_scalars(self, *args, **kwargs):
         return {}
 
     @abstractmethod
@@ -63,4 +63,4 @@ class BaseExperiment(AbstractExperiment):
         rng: jnp.ndarray,
         writer: Optional[utils.Writer],
     ):
-        return {}
+        return self._get_scalars()

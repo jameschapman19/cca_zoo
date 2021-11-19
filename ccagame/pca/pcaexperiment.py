@@ -31,18 +31,17 @@ class PCAExperiment(BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._dims = dims
+        self.dims = dims
         self.correct_eigenvectors = correct_eigenvectors
 
     @abstractmethod
     def _update(self, X_i, Y_i, global_step):
         raise NotImplementedError
 
-    def _get_scalars(self, V):
+    def _get_scalars(self):
         return {
-            # "TV": self.TV(V),
-            "Correct Eigenvector Streak": self._correct_eigenvector_streak(V),
-            "Normalized Subspace Distance":self._normalized_subspace_distance(V),
+            "Correct Eigenvector Streak": self._correct_eigenvector_streak(self._V),
+            "Normalized Subspace Distance":self._normalized_subspace_distance(self._V),
         }
 
     def TV(self, V):
@@ -63,6 +62,7 @@ class PCAExperiment(BaseExperiment):
             return close[0]
     
     def _normalized_subspace_distance(self,V):
+        V = jnp.reshape(V, (-1, V.shape[-1]))
         P=self.correct_eigenvectors @ self.correct_eigenvectors.T
         U_star=V.T @ V
         return 1-jnp.trace(U_star@P)/self.n_components

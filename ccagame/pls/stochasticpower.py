@@ -59,4 +59,3 @@ class StochasticPower(PLSExperiment):
         self._V = optax.apply_updates(self._V, updates_y)
         self._U = jnp.linalg.qr(self._U.T)[0].T
         self._V = jnp.linalg.qr(self._V.T)[0].T
-        return self._U, self._V
