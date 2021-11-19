@@ -43,6 +43,7 @@ if __name__ == "__main__":
         learning_rate=args.learning_rate,
         model=args.model,
         batch_size=args.batch_size,
+        model=args.model,
     )
     flags.mark_flag_as_required("config")
     os.chdir(log_dir())

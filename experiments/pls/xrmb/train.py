@@ -96,6 +96,7 @@ if __name__ == "__main__":
         correct_eigenvectors=[correct_U,correct_V],
         learning_rate=args.learning_rate,
         batch_size=args.batch_size,
+        model=args.model,
     )
     flags.mark_flag_as_required("config")
     app.run(functools.partial(platform.main, MODEL_DICT[args.model]))
