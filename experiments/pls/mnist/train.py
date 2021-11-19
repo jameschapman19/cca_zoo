@@ -11,8 +11,6 @@ import jax.numpy as jnp
 import os
 from experiments import parse_args, get_config
 
-from jax.config import config
-config.update('jax_disable_jit', True)
 
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game

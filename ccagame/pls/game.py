@@ -15,7 +15,7 @@ class Game(PLSExperiment):
         n_components=1,
         dims=None,
         data=None,
-        learning_rate=1e-3,
+        learning_rate=1e-6,
         momentum=0.9,
         nesterov=True,
         batch_size=0,

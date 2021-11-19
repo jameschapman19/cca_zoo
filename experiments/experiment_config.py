@@ -2,13 +2,14 @@ from jaxline.base_config import get_base_config
 import argparse
 
 # These are the defaults for the above arguments
-DEVICES = 1
+DEVICES = 4
 N_COMPONENTS = 4
-LEARNING_RATE = 1e-7
+LEARNING_RATE = 1e-4
 MODEL = "game"
 BATCH_SIZE = 0
 # This is used to turn name of model on command line into model class
 TRAINING_STEPS = 1000
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -42,7 +43,7 @@ def get_config(
         "num_devices": num_devices,
         "dims": dims,
         "data": data,
-        "model":model,
+        "model": model,
         "correct_eigenvectors": correct_eigenvectors,
         **kwargs,
     }
