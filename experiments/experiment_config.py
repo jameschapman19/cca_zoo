@@ -3,8 +3,8 @@ import argparse
 
 # These are the defaults for the above arguments
 DEVICES = 4
-N_COMPONENTS = 4
-LEARNING_RATE = 1e-4
+N_COMPONENTS = 16
+LEARNING_RATE = 1e-6
 MODEL = "game"
 BATCH_SIZE = 0
 # This is used to turn name of model on command line into model class
