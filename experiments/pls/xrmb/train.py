@@ -46,4 +46,4 @@ if __name__ == "__main__":
     flags.mark_flag_as_required("config")
     #magic function which does what pytorch-lightning does which is to make a new numbered version in the directory for each run
     os.chdir(log_dir())
-    app.run(functools.partial(platform.main, MODEL_DICT['game']))
+    app.run(functools.partial(platform.main, MODEL_DICT['incremental']))
