@@ -44,7 +44,7 @@ class PCAExperiment(BaseExperiment):
             "Normalized Subspace Distance":self._normalized_subspace_distance(self._V),
         }
 
-    def TV(self, V):
+    def _TV(self, V):
         X = next(self.data_stream)
         X = jnp.reshape(X, (-1, X.shape[-1]))
         V = jnp.reshape(V, (-1, X.shape[-1]))

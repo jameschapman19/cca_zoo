@@ -14,12 +14,12 @@ from experiments import parse_args, get_config
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 DEVICES = 4
 N_COMPONENTS = 16
-MODEL = "power"
 MODEL_DICT = {
     "game": pls.Game,
     "msg": pls.MSG,
     "oja": pls.Oja,
     "power": pls.StochasticPower,
+    "incremental":pls.Incremental
 }
 
 
@@ -49,4 +49,4 @@ if __name__ == "__main__":
     flags.mark_flag_as_required("config")
     #magic function which does what pytorch-lightning does which is to make a new numbered version in the directory for each run
     os.chdir(log_dir())
-    app.run(functools.partial(platform.main, MODEL_DICT[args.model]))
+    app.run(functools.partial(platform.main, MODEL_DICT['game']))

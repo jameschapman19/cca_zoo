@@ -2,9 +2,9 @@ from jaxline.base_config import get_base_config
 import argparse
 
 # These are the defaults for the above arguments
-DEVICES = 4
+DEVICES = 1
 N_COMPONENTS = 16
-LEARNING_RATE = 1e-6
+LEARNING_RATE = 1e-2
 MODEL = "game"
 BATCH_SIZE = 1
 # This is used to turn name of model on command line into model class

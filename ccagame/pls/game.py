@@ -1,10 +1,11 @@
+from functools import partial
 from os import environ
 import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
 from . import PLSExperiment
-
+from jax import jit
 
 class Game(PLSExperiment):
     def __init__(
@@ -71,6 +72,7 @@ class Game(PLSExperiment):
         self._opt_state_x = jax.pmap(lambda U: self._optimizer.init(U))(self._U)
         self._opt_state_y = jax.pmap(lambda V: self._optimizer.init(V))(self._V)
 
+    @partial(jit, static_argnums=(0))
     def _update(self, views, global_step):
         X_i, Y_i = views
         X_i = jnp.reshape(X_i, (self.num_devices, -1, self.dims[0]))
@@ -83,6 +85,7 @@ class Game(PLSExperiment):
         self._V, self._opt_state_y = self._update_with_grads(self._V, grads_y, self._opt_state_y)
 
     @staticmethod
+    @jit
     def _grads(ui, vi, weights, U, V, X, Y):
         """Compute utiltiies and update directions ("grads").
         23 Wrap in jax.vmap for k_per_device dimension."""
@@ -91,6 +94,7 @@ class Game(PLSExperiment):
         grads = Game.eg_grads(ui,zi, weights, U, Z, X)
         return grads
 
+    @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
         """Compute and apply updates with optax optimizer.
         Wrap in jax.vmap for k_per_device dimension."""
@@ -100,6 +104,7 @@ class Game(PLSExperiment):
         return ui_new, opt_state
 
     @staticmethod
+    @jit
     def eg_grads(
         ui: jnp.ndarray, zi, weights: jnp.ndarray, U, Z, X: jnp.ndarray) -> jnp.ndarray:
         """
@@ -118,6 +123,7 @@ class Game(PLSExperiment):
         return grads
 
     @staticmethod
+    @jit
     def utility(ui, weights, U,Z, X):
         """Compute Eigengame utilities.
         util: shape (1,), utility for vi

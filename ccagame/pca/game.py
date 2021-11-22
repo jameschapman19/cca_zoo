@@ -4,7 +4,8 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 from .pcaexperiment import PCAExperiment
-
+from jax import jit
+from functools import partial
 
 class Game(PCAExperiment):
     def __init__(
@@ -51,56 +52,46 @@ class Game(PCAExperiment):
         # normalizes the weights for each component
         self._V = jax.pmap(lambda V: V / jnp.linalg.norm(V, axis=1, keepdims=True))(V)
         # This line parallelizes over data sending different data to each device
-        if num_devices > 0:
-            self._grads_and_update = jax.pmap(
-                self._grads_and_update, in_axes=(0, 0, None, 0, 0), axis_name="i"
-            )
+        # This line parallelizes over data sending different data to each device
+        self._update_with_grads = jax.pmap(
+            jax.vmap(
+            self._update_with_grads,
+            in_axes=(0, 0, 0),
+            ),
+            in_axes=(0, 0, 0),
+            axis_name="i",
+        )
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
-        self._grads_and_utils = jax.vmap(
-            self._grads_and_utils, in_axes=(0, 0, None, None)
+        self._grads = jax.pmap(
+            jax.vmap(
+            self._grads, 
+            in_axes=(0, 0, 0, None,None,None,None),
+            ),
+            in_axes=(0, 0, 0, None,None,0,0),
+            axis_name="i"
         )
         # self._update_with_grads = jax.vmap(self._update_with_grads, in_axes=(0, 0, None))
         self._optimizer = optax.sgd(learning_rate=learning_rate, momentum=momentum, nesterov=nesterov)
         self._opt_state = jax.pmap(lambda V: self._optimizer.init(V))(self._V)
 
+    @partial(jit, static_argnums=(0))
     def _update(self, inputs, global_step):
         inputs = jnp.reshape(inputs, (self.num_devices, -1, self.dims))
         self._local_V = jnp.reshape(self._V, (self.n_components, self.dims))
-        self._V, self._opt_state = self._grads_and_update(
-            self._V, self._weights, self._local_V, inputs, self._opt_state
-        )
+        grads = self._grads(self._V, self._weights, self._local_V, inputs)
+        self._V, self._opt_state_y = self._update_with_grads(self._V, grads, self._opt_state)
 
-    def _grads_and_update(self, vi, weights, V, input, opt_state):
-        """
-        Compute utilities and update directions, psum and apply.
-        Args:
-        vi: shape (k_per_device,d,), eigenvector to be updated
-        weights: shape (k_per_device, k,), mask for penalty coefficients,
-        V: shape (k, d), i.e., vectors on rows
-        input: shape (N, d), minibatch X_t
-        opt_state: optax state
-        axis_index_groups: For multi-host parallelism https://jax.readthedocs.io/en/latest/
-        _modules/jax/_src/lax/parallel.html
-        Returns:
-        vi_new: shape (d,), eigenvector to be updated
-        opt_state: new optax state
-        utilities: shape (1,), utilities
-        """
-        grads = self._grads_and_utils(vi, weights, V, input)
-        # avg_grads = jax.lax.psum(
-        #    grads, axis_name='i', axis_index_groups=axis_index_groups)
-        vi_new, opt_state = self._update_with_grads(vi, grads, opt_state)
-        return vi_new, opt_state
-
+    @partial(jit, static_argnums=(0))
     def _update_with_grads(self, vi, grads, opt_state):
         """Compute and apply updates with optax optimizer.
         Wrap in jax.vmap for k_per_device dimension."""
         updates, opt_state = self._optimizer.update(-grads, opt_state)
         vi_new = optax.apply_updates(vi, updates)
-        vi_new = jnp.diag(1 / jnp.linalg.norm(vi_new, axis=1)) @ vi_new
+        vi_new /= jnp.linalg.norm(vi_new)
         return vi_new, opt_state
 
     @staticmethod
+    @jit
     def eg_grads(
         vi: jnp.ndarray, weights: jnp.ndarray, eigs: jnp.ndarray, data: jnp.ndarray
     ) -> jnp.ndarray:
@@ -123,6 +114,7 @@ class Game(PCAExperiment):
         return grads
 
     @staticmethod
+    @jit
     def utility(vi, weights, eigs, data):
         """Compute Eigengame utilities.
         util: shape (1,), utility for vi
@@ -136,7 +128,8 @@ class Game(PCAExperiment):
         return util
 
     @staticmethod
-    def _grads_and_utils(vi, weights, V, inputs):
+    @jit
+    def _grads(vi, weights, V, inputs):
         """Compute utiltiies and update directions ("grads").
         23 Wrap in jax.vmap for k_per_device dimension."""
         #utilities = Game.utility(vi, weights, V, inputs)

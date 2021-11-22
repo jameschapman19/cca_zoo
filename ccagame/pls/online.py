@@ -4,6 +4,8 @@ import jax.numpy as jnp
 from . import PLSExperiment
 import optax
 import jax.scipy as jsp
+from jax import jit
+from functools import partial
 
 def logm(M):
     #TODO
@@ -52,6 +54,7 @@ class Online(PLSExperiment):
         )
         self._opt_state = self._optimizer.init(self._M)
 
+    @partial(jit, static_argnums=(0))
     def _update(self, views, global_step):
         X_i, Y_i = views
         Z_t=0.5*jnp.hstack((X_i,Y_i)).T@jnp.hstack((X_i,Y_i))-0.5*jnp.hstack((X_i,-Y_i)).T@jnp.hstack((X_i,-Y_i))

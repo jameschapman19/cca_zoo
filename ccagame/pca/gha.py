@@ -4,7 +4,8 @@ import jax.numpy as jnp
 import jax
 from . import PCAExperiment
 import optax
-
+from functools import partial
+from jax import jit
 
 class GHA(PCAExperiment):
     def __init__(
@@ -44,6 +45,7 @@ class GHA(PCAExperiment):
         self._optimizer =  optax.sgd(learning_rate=learning_rate, momentum=momentum, nesterov=nesterov)
         self._opt_state = self._optimizer.init(self._V)
 
+    @partial(jit, static_argnums=(0))
     def _update(self, inputs, global_step):
         dv = (
             self._V @ inputs.T @ inputs
@@ -53,6 +55,7 @@ class GHA(PCAExperiment):
             self._V, dv, self._optimizer, self._opt_state
         )
 
+    @partial(jit, static_argnums=(0))
     def _update_with_grads(self, vi, grads, opt, opt_state):
         """Compute and apply updates with optax optimizer.
         Wrap in jax.vmap for k_per_device dimension."""

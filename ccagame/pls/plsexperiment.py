@@ -42,8 +42,8 @@ class PLSExperiment(BaseExperiment):
     def _get_scalars(self):
         return {
             # "TV": self.TV(X, V),
-            **self._correct_eigenvector_streak(self._U, self._V),
-            **self._normalized_subspace_distance(self._U,self._V),
+            # **self._correct_eigenvector_streak(self._U, self._V),
+            # **self._normalized_subspace_distance(self._U,self._V),
         }
 
     def _TV(self, U, V):
@@ -58,9 +58,9 @@ class PLSExperiment(BaseExperiment):
         return jnp.linalg.svd(Zx.T @ Zy)[1].sum() / dof
 
     def _correct_eigenvector_streak(self, U, V):
-        U = jnp.reshape(U, (-1, U.shape[-1]))
-        V = jnp.reshape(V, (-1, V.shape[-1]))
-        cosine_similarities_x = jnp.diag(self.correct_eigenvectors[0].T @ U.T)#U@U.T
+        U = jnp.reshape(U, (self.n_components, U.shape[-1]))
+        V = jnp.reshape(V, (self.n_components, V.shape[-1]))
+        cosine_similarities_x = jnp.diag(self.correct_eigenvectors[0].T @ U.T)
         cosine_similarities_y = jnp.diag(self.correct_eigenvectors[1].T @ V.T)
         x_idx = jnp.where(jnp.abs(cosine_similarities_x) < jnp.cos(jnp.pi / 8))[0]
         if len(x_idx) == 0:
@@ -74,16 +74,16 @@ class PLSExperiment(BaseExperiment):
             y_idx = y_idx[0]
         return {"correct x": x_idx, "correct y": y_idx}
 
-    def _normalized_subspace_distance(self,U,V):
+    def _normalized_subspace_distance(self, U, V):
         U = jnp.reshape(U, (-1, U.shape[-1]))
         V = jnp.reshape(V, (-1, V.shape[-1]))
-        subspace_distances={}
-        P=self.correct_eigenvectors[0] @ self.correct_eigenvectors[0].T
-        U_star=U.T @ U
-        subspace_distances['x_distance']=1-jnp.trace(U_star@P)/self.n_components
-        P=self.correct_eigenvectors[1] @ self.correct_eigenvectors[1].T
-        U_star=V.T @ V
-        subspace_distances['y_distance']=1-jnp.trace(U_star@P)/self.n_components
+        subspace_distances = {}
+        P = self.correct_eigenvectors[0] @ self.correct_eigenvectors[0].T
+        U_star = U.T @ U
+        subspace_distances["x_distance"] = 1 - jnp.trace(U_star @ P) / self.n_components
+        P = self.correct_eigenvectors[1] @ self.correct_eigenvectors[1].T
+        U_star = V.T @ V
+        subspace_distances["y_distance"] = 1 - jnp.trace(U_star @ P) / self.n_components
         return subspace_distances
 
     def evaluate(

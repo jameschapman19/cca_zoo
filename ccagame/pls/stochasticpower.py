@@ -3,7 +3,8 @@ import jax
 import jax.numpy as jnp
 import optax
 from . import PLSExperiment
-
+from functools import partial
+from jax import jit
 
 class StochasticPower(PLSExperiment):
     def __init__(
@@ -44,6 +45,7 @@ class StochasticPower(PLSExperiment):
         self._opt_state_x = self._optimizer.init(self._U)
         self._opt_state_y = self._optimizer.init(self._V)
 
+    @partial(jit, static_argnums=(0))
     def _update(self, views, global_step):
         X_i, Y_i = views
         C = X_i.T @ Y_i
