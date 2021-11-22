@@ -19,6 +19,7 @@ MODEL_DICT = {
     "msg": pls.MSG,
     "oja": pls.Oja,
     "power": pls.StochasticPower,
+    "incremental":pls.Incremental
 }
 
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
@@ -50,4 +51,4 @@ if __name__ == "__main__":
     #magic function which does what pytorch-lightning does which is to make a new numbered version in the directory for each run
     os.chdir(log_dir())
     #TODO THIS IS CURRENTLY A HACK WHI
-    app.run(functools.partial(platform.main, MODEL_DICT['game']))
+    app.run(functools.partial(platform.main, MODEL_DICT['incremental']))
