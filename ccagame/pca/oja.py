@@ -39,7 +39,6 @@ class Oja(PCAExperiment):
         """
         self._V = jax.random.normal(self.local_rng, (self.n_components, dims))
 
-    @partial(jit, static_argnums=(0))
     def _update(self, inputs, global_step):
         self._V = self._V @ inputs.T @ inputs
         self._V = (jnp.linalg.qr(self._V.T)[0]).T

@@ -72,7 +72,7 @@ class Game(PLSExperiment):
         self._opt_state_x = jax.pmap(lambda U: self._optimizer.init(U))(self._U)
         self._opt_state_y = jax.pmap(lambda V: self._optimizer.init(V))(self._V)
 
-    @partial(jit, static_argnums=(0))
+    #@partial(jit, static_argnums=(0))
     def _update(self, views, global_step):
         X_i, Y_i = views
         X_i = jnp.reshape(X_i, (self.num_devices, -1, self.dims[0]))

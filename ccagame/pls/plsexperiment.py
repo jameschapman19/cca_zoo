@@ -1,9 +1,11 @@
 from abc import abstractmethod
 from typing import Optional
+from jax._src.numpy.lax_numpy import zeros_like
 import jax.numpy as jnp
 from ccagame.baseexperiment import BaseExperiment
 from jaxline import utils
-
+from jax import jit
+from functools import partial
 
 class PLSExperiment(BaseExperiment):
     def __init__(
@@ -40,12 +42,17 @@ class PLSExperiment(BaseExperiment):
         raise NotImplementedError
 
     def _get_scalars(self):
+        U = jnp.reshape(self._U, (self.n_components, self._U.shape[-1]))#U
+        V = jnp.reshape(self._V, (self.n_components, self._V.shape[-1]))
         return {
-            # "TV": self.TV(X, V),
-            # **self._correct_eigenvector_streak(self._U, self._V),
-            # **self._normalized_subspace_distance(self._U,self._V),
+            #"TV": self._TV(self., V),
+            "correct x":self._correct_eigenvector_streak(U, self.correct_eigenvectors[0]),
+            "correct y":self._correct_eigenvector_streak(V, self.correct_eigenvectors[1]),
+            "subspace x":self._normalized_subspace_distance(U, self.correct_eigenvectors[0]),
+            "subspace y":self._normalized_subspace_distance(V, self.correct_eigenvectors[1]),
         }
 
+    @partial(jit, static_argnums=(0))
     def _TV(self, U, V):
         X, Y = next(self.data_stream)
         X = jnp.reshape(X, (-1, X.shape[-1]))
@@ -57,34 +64,19 @@ class PLSExperiment(BaseExperiment):
         Zy = Y @ V.T
         return jnp.linalg.svd(Zx.T @ Zy)[1].sum() / dof
 
-    def _correct_eigenvector_streak(self, U, V):
-        U = jnp.reshape(U, (self.n_components, U.shape[-1]))
-        V = jnp.reshape(V, (self.n_components, V.shape[-1]))
-        cosine_similarities_x = jnp.diag(self.correct_eigenvectors[0].T @ U.T)
-        cosine_similarities_y = jnp.diag(self.correct_eigenvectors[1].T @ V.T)
-        x_idx = jnp.where(jnp.abs(cosine_similarities_x) < jnp.cos(jnp.pi / 8))[0]
-        if len(x_idx) == 0:
-            x_idx = self.n_components
-        else:
-            x_idx = x_idx[0]
-        y_idx = jnp.where(jnp.abs(cosine_similarities_y) < jnp.cos(jnp.pi / 8))[0]
-        if len(y_idx) == 0:
-            y_idx = self.n_components
-        else:
-            y_idx = y_idx[0]
-        return {"correct x": x_idx, "correct y": y_idx}
+    @staticmethod
+    @jit
+    def _correct_eigenvector_streak(U, U_correct):
+        cosine_similarities_x = jnp.diag(U_correct.T @ U.T)
+        x_idx = jnp.where(jnp.abs(cosine_similarities_x) > jnp.cos(jnp.pi / 8),jnp.ones_like(cosine_similarities_x),jnp.zeros_like(cosine_similarities_x))
+        return x_idx.sum()
 
-    def _normalized_subspace_distance(self, U, V):
-        U = jnp.reshape(U, (-1, U.shape[-1]))
-        V = jnp.reshape(V, (-1, V.shape[-1]))
-        subspace_distances = {}
-        P = self.correct_eigenvectors[0] @ self.correct_eigenvectors[0].T
+    @staticmethod
+    #@jit
+    def _normalized_subspace_distance(U, U_correct):
+        P = U_correct @ U_correct.T
         U_star = U.T @ U
-        subspace_distances["x_distance"] = 1 - jnp.trace(U_star @ P) / self.n_components
-        P = self.correct_eigenvectors[1] @ self.correct_eigenvectors[1].T
-        U_star = V.T @ V
-        subspace_distances["y_distance"] = 1 - jnp.trace(U_star @ P) / self.n_components
-        return subspace_distances
+        return 1 - jnp.trace(U_star @ P) / U_correct.shape[0]
 
     def evaluate(
         self,

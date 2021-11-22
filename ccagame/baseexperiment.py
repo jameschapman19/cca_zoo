@@ -49,7 +49,7 @@ class BaseExperiment(AbstractExperiment):
             self._update(inputs, global_step)
         return self._get_scalars()
 
-    def _get_scalars(self, *args, **kwargs):
+    def _get_scalars(self):
         return {}
 
     @abstractmethod

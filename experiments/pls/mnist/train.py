@@ -1,12 +1,11 @@
 from ccagame import pls
 from experiments.experiment_config import LEARNING_RATE
-from jaxline import platform
 import functools
 from os import environ
 from absl import app, flags
 from ccagame.utils import data_stream, log_dir
 from datasets.mnist import mnist
-from jaxline import platform
+from jaxline_fork import platform
 import jax.numpy as jnp
 import os
 from experiments import parse_args, get_config
@@ -51,4 +50,4 @@ if __name__ == "__main__":
     #magic function which does what pytorch-lightning does which is to make a new numbered version in the directory for each run
     os.chdir(log_dir())
     #TODO THIS IS CURRENTLY A HACK WHI
-    app.run(functools.partial(platform.main, MODEL_DICT['incremental']))
+    app.run(functools.partial(platform.main, MODEL_DICT['game']))

@@ -65,16 +65,15 @@ class Game(PCAExperiment):
         self._grads = jax.pmap(
             jax.vmap(
             self._grads, 
-            in_axes=(0, 0, 0, None,None,None,None),
+            in_axes=(0, 0,None,None),
             ),
-            in_axes=(0, 0, 0, None,None,0,0),
+            in_axes=(0, 0, None,0),
             axis_name="i"
         )
         # self._update_with_grads = jax.vmap(self._update_with_grads, in_axes=(0, 0, None))
         self._optimizer = optax.sgd(learning_rate=learning_rate, momentum=momentum, nesterov=nesterov)
         self._opt_state = jax.pmap(lambda V: self._optimizer.init(V))(self._V)
 
-    @partial(jit, static_argnums=(0))
     def _update(self, inputs, global_step):
         inputs = jnp.reshape(inputs, (self.num_devices, -1, self.dims))
         self._local_V = jnp.reshape(self._V, (self.n_components, self.dims))

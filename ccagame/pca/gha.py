@@ -45,7 +45,6 @@ class GHA(PCAExperiment):
         self._optimizer =  optax.sgd(learning_rate=learning_rate, momentum=momentum, nesterov=nesterov)
         self._opt_state = self._optimizer.init(self._V)
 
-    @partial(jit, static_argnums=(0))
     def _update(self, inputs, global_step):
         dv = (
             self._V @ inputs.T @ inputs

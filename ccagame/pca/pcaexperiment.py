@@ -2,7 +2,8 @@ from abc import abstractmethod
 
 import jax.numpy as jnp
 from ccagame.baseexperiment import BaseExperiment
-
+from jax import jit
+from functools import partial
 
 class PCAExperiment(BaseExperiment):
     def __init__(
@@ -39,11 +40,13 @@ class PCAExperiment(BaseExperiment):
         raise NotImplementedError
 
     def _get_scalars(self):
+        V = jnp.reshape(self._V, (self.n_components, self._V.shape[-1]))
         return {
-            "Correct Eigenvector Streak": self._correct_eigenvector_streak(self._V),
-            "Normalized Subspace Distance":self._normalized_subspace_distance(self._V),
+            "Correct Eigenvector Streak": self._correct_eigenvector_streak(V, self.correct_eigenvectors),
+            "Normalized Subspace Distance":self._normalized_subspace_distance(V, self.correct_eigenvectors),
         }
 
+    @partial(jit, static_argnums=(0))
     def _TV(self, V):
         X = next(self.data_stream)
         X = jnp.reshape(X, (-1, X.shape[-1]))
@@ -52,17 +55,16 @@ class PCAExperiment(BaseExperiment):
         U = X @ V.T
         return jnp.linalg.svd(U.T @ U)[1].sum() / dof
 
-    def _correct_eigenvector_streak(self, V):
-        V = jnp.reshape(V, (-1, V.shape[-1]))
-        cosine_similarities = jnp.diag(self.correct_eigenvectors.T @ V.T)#V.T@V
-        close = jnp.where(jnp.abs(cosine_similarities) < jnp.cos(jnp.pi / 8))[0]
-        if len(close) == 0:
-            return self.n_components
-        else:
-            return close[0]
-    
-    def _normalized_subspace_distance(self,V):
-        V = jnp.reshape(V, (-1, V.shape[-1]))
-        P=self.correct_eigenvectors @ self.correct_eigenvectors.T
-        U_star=V.T @ V
-        return 1-jnp.trace(U_star@P)/self.n_components
+    @staticmethod
+    @jit
+    def _correct_eigenvector_streak(U, U_correct):
+        cosine_similarities_x = jnp.diag(U_correct.T @ U.T)
+        x_idx = jnp.where(jnp.abs(cosine_similarities_x) > jnp.cos(jnp.pi / 8),jnp.ones_like(cosine_similarities_x),jnp.zeros_like(cosine_similarities_x))
+        return x_idx.sum()
+
+    @staticmethod
+    @jit
+    def _normalized_subspace_distance(U, U_correct):
+        P = U_correct @ U_correct.T
+        U_star = U.T @ U
+        return 1 - jnp.trace(U_star @ P) / U_correct.shape[0]

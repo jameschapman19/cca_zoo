@@ -1,11 +1,10 @@
 from ccagame import pls
-from jaxline import platform
 import functools
 from os import environ
 from absl import app, flags
 from ccagame.utils import data_stream, log_dir
 from datasets.xrmb import xrmb
-from jaxline import platform
+from jaxline_fork import platform
 import jax.numpy as jnp
 import os
 from experiments import parse_args, get_config

@@ -1,11 +1,10 @@
 from ccagame import pca
-from jaxline import platform
+from jaxline_fork import platform
 import functools
 from os import environ
 from absl import app, flags
 from ccagame.utils import data_stream, log_dir
 from datasets.mnist import mnist
-from jaxline import platform
 import jax.numpy as jnp
 from experiments import parse_args, get_config
 import os

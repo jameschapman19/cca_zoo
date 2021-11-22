@@ -38,7 +38,7 @@ class Incremental(PLSExperiment):
         self._V=(1/jnp.linalg.norm(self._V,axis=1)*self._V.T).T
         self._S = jax.random.normal(self.local_rng, (self.n_components,))
 
-    @partial(jit, static_argnums=(0))
+    #@partial(jit, static_argnums=(0))
     def _update(self, views, global_step):
         X_i, Y_i = views
         xhat = X_i @ self._U.T
