@@ -2,7 +2,6 @@ from os import environ
 import jax
 import jax.numpy as jnp
 import optax
-from six import b
 from . import PLSExperiment
 
 
