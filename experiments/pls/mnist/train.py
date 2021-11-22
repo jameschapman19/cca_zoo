@@ -29,10 +29,14 @@ if __name__ == "__main__":
     X, _, X_te, _ = mnist()
     Y=X[:, 400:]
     X=X[:, :400]
+    Y_te=X_te[:,400:]
+    X_te=X_te[:,:400]
     input_data_iterator = data_stream(
         X, Y=Y, batch_size=args.batch_size
     )
     correct_U, correct_S, correct_V = jnp.linalg.svd(X.T @ Y)
+    dof=X.shape[0]
+    print(f"TV : {correct_S[:args.n_components].sum()/dof}")
     correct_U = correct_U[:, :args.n_components]
     correct_V = correct_V[:args.n_components, :].T
     FLAGS.config = get_config(
@@ -45,9 +49,10 @@ if __name__ == "__main__":
         learning_rate=args.learning_rate,
         model=args.model,
         batch_size=args.batch_size,
+        holdout=[X_te,Y_te]
     )
     flags.mark_flag_as_required("config")
     #magic function which does what pytorch-lightning does which is to make a new numbered version in the directory for each run
     os.chdir(log_dir())
     #TODO THIS IS CURRENTLY A HACK WHI
-    app.run(functools.partial(platform.main, MODEL_DICT['power']))
+    app.run(functools.partial(platform.main, MODEL_DICT['game']))

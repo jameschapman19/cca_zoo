@@ -42,6 +42,7 @@ if __name__ == "__main__":
         learning_rate=args.learning_rate,
         batch_size=args.batch_size,
         model=args.model,
+        holdout=[X_te,Y_te]
     )
     flags.mark_flag_as_required("config")
     #magic function which does what pytorch-lightning does which is to make a new numbered version in the directory for each run

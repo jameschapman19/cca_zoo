@@ -18,6 +18,7 @@ class PLSExperiment(BaseExperiment):
         data=None,
         batch_size=0,
         correct_eigenvectors=None,
+        holdout=None,
         **kwargs,
     ):
         super(PLSExperiment, self).__init__(
@@ -36,6 +37,7 @@ class PLSExperiment(BaseExperiment):
         """Initialization function for a Jaxline experiment."""
         self.dims = dims
         self.correct_eigenvectors = correct_eigenvectors
+        self.holdout = holdout
 
     @abstractmethod
     def _update(self, views, global_step):
@@ -46,7 +48,7 @@ class PLSExperiment(BaseExperiment):
         U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
         V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
         return {
-            #"TV": self._TV(self., V),
+            "TV": self._TV(U,V),
             "correct x":self._correct_eigenvector_streak(U, self.correct_eigenvectors[0]),
             "correct y":self._correct_eigenvector_streak(V, self.correct_eigenvectors[1]),
             "subspace x":self._normalized_subspace_distance(U, self.correct_eigenvectors[0]),
@@ -55,15 +57,14 @@ class PLSExperiment(BaseExperiment):
 
     @partial(jit, static_argnums=(0))
     def _TV(self, U, V):
-        X, Y = next(self.data_stream)
-        X = jnp.reshape(X, (-1, X.shape[-1]))
-        Y = jnp.reshape(Y, (-1, X.shape[-1]))
-        U = jnp.reshape(U, (-1, X.shape[-1]))
-        V = jnp.reshape(V, (-1, X.shape[-1]))
-        dof = X.shape[0]
-        Zx = X @ U.T
-        Zy = Y @ V.T
-        return jnp.linalg.svd(Zx.T @ Zy)[1].sum() / dof
+        if self.holdout is None:
+            return 0
+        else:
+            X, Y = self.holdout
+            dof = X.shape[0]
+            Zx = X @ U.T
+            Zy = Y @ V.T
+            return jnp.linalg.svd(Zx.T @ Zy)[1].sum() / dof
 
     @staticmethod
     @jit

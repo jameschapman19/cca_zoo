@@ -17,6 +17,7 @@ class PCAExperiment(BaseExperiment):
         data=None,
         batch_size=0,
         correct_eigenvectors=None,
+        holdout=None,
         **kwargs,
     ):
         super(PCAExperiment, self).__init__(
@@ -35,6 +36,7 @@ class PCAExperiment(BaseExperiment):
         """Initialization function for a Jaxline experiment."""
         self.dims = dims
         self.correct_eigenvectors = correct_eigenvectors
+        self.holdout=holdout
 
     @abstractmethod
     def _update(self, X_i, Y_i, global_step):
@@ -43,6 +45,7 @@ class PCAExperiment(BaseExperiment):
     def _get_scalars(self):
         V = jnp.reshape(self._V, (self.n_components, self.dims))
         return {
+            "TV": self._TV(V),
             "Correct Eigenvector Streak": self._correct_eigenvector_streak(
                 V, self.correct_eigenvectors
             ),
@@ -52,13 +55,14 @@ class PCAExperiment(BaseExperiment):
         }
 
     @partial(jit, static_argnums=(0))
-    def _TV(self, V):
-        X = next(self.data_stream)
-        X = jnp.reshape(X, (-1, X.shape[-1]))
-        V = jnp.reshape(V, (-1, X.shape[-1]))
-        dof = X.shape[0]
-        U = X @ V.T
-        return jnp.linalg.svd(U.T @ U)[1].sum() / dof
+    def _TV(self, U):
+        if self.holdout is None:
+            return 0
+        else:
+            X = self.holdout
+            dof = X.shape[0]
+            Zx = X @ U.T
+            return jnp.linalg.svd(Zx.T @ Zx)[1].sum() / dof
 
     @staticmethod
     @jit
