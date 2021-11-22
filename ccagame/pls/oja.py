@@ -37,7 +37,6 @@ class Oja(PLSExperiment):
         self._U = jax.random.normal(self.local_rng, (self.n_components, dims[0]))
         self._V = jax.random.normal(self.local_rng, (self.n_components, dims[1]))
 
-    @partial(jit, static_argnums=(0))
     def _update(self, views, global_step):
         X_i, Y_i = views
         C = X_i.T @ Y_i

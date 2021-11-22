@@ -5,6 +5,7 @@ from ccagame.baseexperiment import BaseExperiment
 from jax import jit
 from functools import partial
 
+
 class PCAExperiment(BaseExperiment):
     def __init__(
         self,
@@ -24,7 +25,7 @@ class PCAExperiment(BaseExperiment):
             num_devices=num_devices,
             n_components=n_components,
             data=data,
-            batch_size=batch_size
+            batch_size=batch_size,
         )
         """Constructs the experiment.
         Args:
@@ -40,10 +41,14 @@ class PCAExperiment(BaseExperiment):
         raise NotImplementedError
 
     def _get_scalars(self):
-        V = jnp.reshape(self._V, (self.n_components, self._V.shape[-1]))
+        V = jnp.reshape(self._V, (self.n_components, self.dims))
         return {
-            "Correct Eigenvector Streak": self._correct_eigenvector_streak(V, self.correct_eigenvectors),
-            "Normalized Subspace Distance":self._normalized_subspace_distance(V, self.correct_eigenvectors),
+            "Correct Eigenvector Streak": self._correct_eigenvector_streak(
+                V, self.correct_eigenvectors
+            ),
+            "Normalized Subspace Distance": self._normalized_subspace_distance(
+                V, self.correct_eigenvectors
+            ),
         }
 
     @partial(jit, static_argnums=(0))
@@ -59,7 +64,11 @@ class PCAExperiment(BaseExperiment):
     @jit
     def _correct_eigenvector_streak(U, U_correct):
         cosine_similarities_x = jnp.diag(U_correct.T @ U.T)
-        x_idx = jnp.where(jnp.abs(cosine_similarities_x) > jnp.cos(jnp.pi / 8),jnp.ones_like(cosine_similarities_x),jnp.zeros_like(cosine_similarities_x))
+        x_idx = jnp.where(
+            jnp.abs(cosine_similarities_x) > jnp.cos(jnp.pi / 8),
+            jnp.ones_like(cosine_similarities_x),
+            jnp.zeros_like(cosine_similarities_x),
+        )
         return x_idx.sum()
 
     @staticmethod
@@ -67,4 +76,4 @@ class PCAExperiment(BaseExperiment):
     def _normalized_subspace_distance(U, U_correct):
         P = U_correct @ U_correct.T
         U_star = U.T @ U
-        return 1 - jnp.trace(U_star @ P) / U_correct.shape[0]
+        return 1 - jnp.trace(U_star @ P) / U_correct.shape[1]

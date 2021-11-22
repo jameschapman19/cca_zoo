@@ -45,7 +45,6 @@ class MSG(PLSExperiment):
         self._optimizer =  optax.sgd(learning_rate=learning_rate, momentum=momentum, nesterov=nesterov)
         self._opt_state = self._optimizer.init(self._M)
 
-    @partial(jit, static_argnums=(0))
     def _update(self, views, global_step):
         X_i, Y_i = views
         self._M=self._U.T@self._V

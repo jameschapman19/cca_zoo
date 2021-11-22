@@ -11,8 +11,6 @@ from experiments import parse_args, get_config
 
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
-DEVICES = 4
-N_COMPONENTS = 16
 MODEL_DICT = {
     "game": pls.Game,
     "msg": pls.MSG,

@@ -41,9 +41,10 @@ class PLSExperiment(BaseExperiment):
     def _update(self, views, global_step):
         raise NotImplementedError
 
+    #@partial(jit, static_argnums=(0))
     def _get_scalars(self):
-        U = jnp.reshape(self._U, (self.n_components, self._U.shape[-1]))#U
-        V = jnp.reshape(self._V, (self.n_components, self._V.shape[-1]))
+        U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
+        V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
         return {
             #"TV": self._TV(self., V),
             "correct x":self._correct_eigenvector_streak(U, self.correct_eigenvectors[0]),
@@ -72,11 +73,11 @@ class PLSExperiment(BaseExperiment):
         return x_idx.sum()
 
     @staticmethod
-    #@jit
+    @jit
     def _normalized_subspace_distance(U, U_correct):
         P = U_correct @ U_correct.T
         U_star = U.T @ U
-        return 1 - jnp.trace(U_star @ P) / U_correct.shape[0]
+        return 1 - jnp.trace(U_star @ P) / U_correct.shape[1]
 
     def evaluate(
         self,
