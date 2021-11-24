@@ -55,6 +55,7 @@ _JAXLINE_ENSURE_TPU = flags.DEFINE_bool(
 )
 
 
+
 def create_checkpointer(
     config: config_dict.ConfigDict,
     mode: str,
@@ -111,6 +112,7 @@ def main(experiment_class, argv, checkpointer_factory=create_checkpointer):
     # to prevent people depending on this flag to have strange bugs. Instead
     # it will raise a clear `AttributeError`. This can safely be removed from
     # April 2020.
+    
     if "mode" in FLAGS:
         del FLAGS.mode
 
@@ -130,6 +132,7 @@ def main(experiment_class, argv, checkpointer_factory=create_checkpointer):
         # acceptable failures per-task to allow for this.
         # TODO(tomhennigan) This test will eventually be part of JAX itself.
         chex.assert_tpu_available()
+
     config = FLAGS.config
 
     jaxline_mode = _JAXLINE_MODE.value
