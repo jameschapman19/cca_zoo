@@ -46,7 +46,7 @@ n_val = 100
 train_dataset = Split_MNIST_Dataset(mnist_type="MNIST", train=True)
 val_dataset = Subset(train_dataset, np.arange(n_train, n_train + n_val))
 train_dataset = Subset(train_dataset, np.arange(n_train))
-train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
+train_loader, val_loader = get_dataloaders(train_dataset, val_dataset, batch_size=128)
 
 # The number of latent dimensions across models
 latent_dims = 2
