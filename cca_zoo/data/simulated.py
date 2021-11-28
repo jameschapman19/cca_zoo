@@ -10,16 +10,16 @@ from ..utils.check_values import _process_parameter
 
 
 def generate_covariance_data(
-    n: int,
-    view_features: List[int],
-    latent_dims: int = 1,
-    view_sparsity: List[Union[int, float]] = None,
-    correlation: Union[List[float], float] = 1,
-    structure: Union[str, List[str]] = None,
-    sigma: List[float] = None,
-    decay: float = 0.5,
-    positive=None,
-    random_state: Union[int, np.random.RandomState] = None,
+        n: int,
+        view_features: List[int],
+        latent_dims: int = 1,
+        view_sparsity: List[Union[int, float]] = None,
+        correlation: Union[List[float], float] = 1,
+        structure: Union[str, List[str]] = None,
+        sigma: Union[List[float], float] = None,
+        decay: float = 0.5,
+        positive=None,
+        random_state: Union[int, np.random.RandomState] = None,
 ):
     """
     Function to generate CCA dataset with defined population correlations
@@ -29,7 +29,7 @@ def generate_covariance_data(
     :param view_features: number of features in each view
     :param latent_dims: number of latent dimensions
     :param correlation: correlation either as list with element for each latent dimension or as float which is scaled by 'decay'
-    :param structure: within view covariance structure
+    :param structure: within view covariance structure ('identity','gaussian','toeplitz','random')
     :param sigma: gaussian sigma
     :param decay: ratio of second signal to first signal
     :return: tuple of numpy arrays: view_1, view_2, true weights from view 1, true weights from view 2, overall covariance structure
@@ -58,7 +58,7 @@ def generate_covariance_data(
             covs = []
             true_features = []
             for view_p, sparsity, view_structure, view_positive, view_sigma in zip(
-                view_features, view_sparsity, structure, positive, sigma
+                    view_features, view_sparsity, structure, positive, sigma
             ):
                 # Covariance Bit
                 if view_structure == "identity":
@@ -86,12 +86,9 @@ def generate_covariance_data(
                         * latent_dims,
                         axis=0,
                     ).T
+                    mask = mask.flatten()
                     random_state.shuffle(mask)
-                    while (
-                        np.sum(np.unique(mask, axis=1, return_counts=True)[1] > 1) > 0
-                        or np.sum(np.sum(mask, axis=0) == 0) > 0
-                    ):
-                        random_state.shuffle(mask)
+                    mask = mask.reshape(weights.shape)
                     weights = weights * mask
                     if view_positive:
                         weights[weights < 0] = 0
@@ -113,12 +110,12 @@ def generate_covariance_data(
                     # Cross Bit
                     cross += covs[i] @ A @ covs[j]
                 cov[
-                    splits[i] : splits[i] + view_features[i],
-                    splits[j] : splits[j] + view_features[j],
+                splits[i]: splits[i] + view_features[i],
+                splits[j]: splits[j] + view_features[j],
                 ] = cross
                 cov[
-                    splits[j] : splits[j] + view_features[j],
-                    splits[i] : splits[i] + view_features[i],
+                splits[j]: splits[j] + view_features[j],
+                splits[i]: splits[i] + view_features[i],
                 ] = cross.T
 
             X = np.zeros((n, sum(view_features)))
@@ -133,12 +130,12 @@ def generate_covariance_data(
 
 
 def generate_simple_data(
-    n: int,
-    view_features: List[int],
-    view_sparsity: List[int] = None,
-    eps: float = 0,
-    transform=True,
-    random_state=None,
+        n: int,
+        view_features: List[int],
+        view_sparsity: List[Union[int, float]] = None,
+        eps: float = 0,
+        transform=True,
+        random_state=None,
 ):
     """
     Simple latent variable model to generate data with one latent factor
@@ -165,9 +162,8 @@ def generate_simple_data(
     )
     for p, sparsity in zip(view_features, view_sparsity):
         weights = random_state.randn(p, 1)
-        if sparsity > 0:
-            if sparsity < 1:
-                sparsity = np.ceil(sparsity * p).astype("int")
+        if sparsity <= 1:
+            sparsity = np.ceil(sparsity * p).astype("int")
             weights[random_state.choice(np.arange(p), p - sparsity, replace=False)] = 0
         gaussian_x = random_state.randn(n, p) * eps
         view = np.outer(z, weights)
@@ -200,9 +196,9 @@ def _gaussian(x, mu, sig, dn):
     :param dn:
     """
     return (
-        np.exp(-np.power(x - mu, 2.0) / (2 * np.power(sig, 2.0)))
-        * dn
-        / (np.sqrt(2 * np.pi) * sig)
+            np.exp(-np.power(x - mu, 2.0) / (2 * np.power(sig, 2.0)))
+            * dn
+            / (np.sqrt(2 * np.pi) * sig)
     )
 
 

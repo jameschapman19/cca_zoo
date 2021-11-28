@@ -159,15 +159,16 @@ class PLS_ALS(_Iterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        max_iter: int = 100,
-        initialization: str = "unregularized",
-        tol: float = 1e-9,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            max_iter: int = 100,
+            initialization: str = "unregularized",
+            tol: float = 1e-9,
     ):
         """
         Constructor for PLS
@@ -330,17 +331,18 @@ class CCA_ALS(ElasticCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        max_iter: int = 100,
-        initialization: str = "random",
-        tol: float = 1e-9,
-        stochastic=True,
-        positive: Union[Iterable[bool], bool] = None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            max_iter: int = 100,
+            initialization: str = "random",
+            tol: float = 1e-9,
+            stochastic=True,
+            positive: Union[Iterable[bool], bool] = None,
     ):
         """
         Constructor for CCA_ALS
@@ -368,6 +370,7 @@ class CCA_ALS(ElasticCCA):
             scale=scale,
             positive=positive,
             random_state=random_state,
+            deflation=deflation,
             c=1e-5,
             maxvar=False,
         )
@@ -402,19 +405,20 @@ class SCCA(ElasticCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        max_iter: int = 100,
-        maxvar: bool = False,
-        initialization: str = "unregularized",
-        tol: float = 1e-9,
-        stochastic=False,
-        positive: Union[Iterable[bool], bool] = None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            c: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            maxvar: bool = False,
+            initialization: str = "unregularized",
+            tol: float = 1e-9,
+            stochastic=False,
+            positive: Union[Iterable[bool], bool] = None,
     ):
         """
         Constructor for SCCA
@@ -446,6 +450,7 @@ class SCCA(ElasticCCA):
             stochastic=stochastic,
             positive=positive,
             random_state=random_state,
+            deflation=deflation,
         )
 
 
@@ -480,17 +485,18 @@ class PMD(_Iterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        max_iter: int = 100,
-        initialization: str = "unregularized",
-        tol: float = 1e-9,
-        positive: Union[Iterable[bool], bool] = None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            c: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            initialization: str = "unregularized",
+            tol: float = 1e-9,
+            positive: Union[Iterable[bool], bool] = None,
     ):
         """
         Constructor for PMD
@@ -517,6 +523,7 @@ class PMD(_Iterative):
             initialization=initialization,
             tol=tol,
             random_state=random_state,
+            deflation=deflation,
         )
 
     def _set_loop_params(self):
@@ -559,16 +566,17 @@ class ParkhomenkoCCA(_Iterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        max_iter: int = 100,
-        initialization: str = "unregularized",
-        tol: float = 1e-9,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            c: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            initialization: str = "unregularized",
+            tol: float = 1e-9,
     ):
         """
         Constructor for ParkhomenkoCCA
@@ -593,6 +601,7 @@ class ParkhomenkoCCA(_Iterative):
             initialization=initialization,
             tol=tol,
             random_state=random_state,
+            deflation=deflation,
         )
 
     def _set_loop_params(self):
@@ -634,19 +643,20 @@ class SCCA_ADMM(_Iterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        mu: Union[Iterable[float], float] = None,
-        lam: Union[Iterable[float], float] = None,
-        eta: Union[Iterable[float], float] = None,
-        max_iter: int = 100,
-        initialization: str = "unregularized",
-        tol: float = 1e-9,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            c: Union[Iterable[float], float] = None,
+            mu: Union[Iterable[float], float] = None,
+            lam: Union[Iterable[float], float] = None,
+            eta: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            initialization: str = "unregularized",
+            tol: float = 1e-9,
     ):
         """
         Constructor for SCCA_ADMM
@@ -677,6 +687,7 @@ class SCCA_ADMM(_Iterative):
             initialization=initialization,
             tol=tol,
             random_state=random_state,
+            deflation=deflation,
         )
 
     def _set_loop_params(self):
@@ -725,16 +736,17 @@ class SpanCCA(_Iterative):
         self,
         latent_dims: int = 1,
         scale: bool = True,
-        centre=True,
-        copy_data=True,
-        max_iter: int = 100,
-        initialization: str = "uniform",
-        tol: float = 1e-9,
-        regularisation="l0",
-        c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
-        rank=1,
-        positive: Union[Iterable[bool], bool] = None,
-        random_state=None,
+            centre=True,
+            copy_data=True,
+            max_iter: int = 100,
+            initialization: str = "uniform",
+            tol: float = 1e-9,
+            regularisation="l0",
+            c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+            rank=1,
+            positive: Union[Iterable[bool], bool] = None,
+            random_state=None,
+            deflation="cca",
     ):
         """
 
@@ -760,6 +772,7 @@ class SpanCCA(_Iterative):
             initialization=initialization,
             tol=tol,
             random_state=random_state,
+            deflation=deflation,
         )
         self.c = c
         self.regularisation = regularisation
