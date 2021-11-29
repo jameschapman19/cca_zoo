@@ -48,7 +48,7 @@ class CCAExperiment(BaseExperiment):
         U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
         V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
         return {
-            "TV": self._TV(U,V),
+            "TC": self._TC(U,V),
             "correct x":self._correct_eigenvector_streak(U, self.correct_eigenvectors[0],self.holdout[0]),
             "correct y":self._correct_eigenvector_streak(V, self.correct_eigenvectors[1],self.holdout[1]),
             "subspace x":self._normalized_subspace_distance(U, self.correct_eigenvectors[0]),
@@ -56,28 +56,25 @@ class CCAExperiment(BaseExperiment):
         }
 
     #@partial(jit, static_argnums=(0))
-    def _TV(self, U, V):
+    def _TC(self, U, V):
         if self.holdout is None:
             return 0
         else:
             X, Y = self.holdout
-            dof = X.shape[0]
             Zx = X @ U.T
             Zy = Y @ V.T
-            return jnp.trace(jnp.abs(jnp.corrcoef(Zx.T,Zy.T)[self.n_components:,:self.n_components]))
+            return jnp.trace(jnp.corrcoef(Zx.T,Zy.T)[self.n_components:,:self.n_components])
 
 
-    #@partial(jit, static_argnums=(0))
+    @partial(jit, static_argnums=(0))
     def _correct_eigenvector_streak(self,U, U_correct,X):
-        n_components=U.shape[0]#U_correct.shape
-        a=jnp.linalg.norm(U,axis=1)
-        b=jnp.linalg.norm(X@U.T,axis=0)
-        cosine_similarities_x = jnp.diag(jnp.corrcoef(U_correct.T, U)[n_components:,:n_components])
+        n_components=U.shape[0]
+        cosine_similarities_x = jnp.diag(jnp.corrcoef(U_correct.T, U)[n_components:,:n_components])#jnp.corrcoef(U@X.T)
         x_idx = jnp.where(jnp.abs(cosine_similarities_x) > jnp.cos(jnp.pi / 8),jnp.ones_like(cosine_similarities_x),jnp.zeros_like(cosine_similarities_x))
         return x_idx.sum()
 
     @staticmethod
-    #@jit
+    @jit
     def _normalized_subspace_distance(U, U_correct):
         P = U_correct @ U_correct.T
         U_star = U.T @ U

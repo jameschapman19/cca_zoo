@@ -1,12 +1,10 @@
 from ccagame import cca
-from experiments.experiment_config import LEARNING_RATE
 import functools
 from os import environ
 from absl import app, flags
 from ccagame.utils import data_stream, log_dir
 from datasets.mnist import mnist
 from jaxline_fork import platform
-import jax.numpy as jnp
 import os
 from experiments import parse_args, get_config
 from cca_zoo.models import rCCA

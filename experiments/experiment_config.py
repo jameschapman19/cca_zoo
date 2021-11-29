@@ -3,13 +3,12 @@ import argparse
 
 # These are the defaults for the above arguments
 DEVICES = 1
-N_COMPONENTS = 1
-LEARNING_RATE = 1e-1
-MODEL = "game"
-BATCH_SIZE = 10
+N_COMPONENTS = 5
+LEARNING_RATE = 1e-3
+BATCH_SIZE = 64
 # This is used to turn name of model on command line into model class
-TRAINING_STEPS = 1000
-
+TRAINING_STEPS = 5000
+MODEL='game'
 
 def parse_args():
     parser = argparse.ArgumentParser()
