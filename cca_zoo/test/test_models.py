@@ -305,7 +305,7 @@ def test_pls():
     pls = PLS(latent_dims=3)
     pls_als.fit((X, Y))
     pls.fit((X, Y))
-    assert (np.allclose(np.abs(pls_als.weights[0]), np.abs(pls.weights[0]), rtol=1e-3))
+    assert np.allclose(np.abs(pls_als.weights[0]), np.abs(pls.weights[0]), rtol=1e-3)
 
 
 def test_VCCA():

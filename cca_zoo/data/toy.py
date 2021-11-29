@@ -80,29 +80,42 @@ class Noisy_MNIST_Dataset(Dataset):
         :param flatten: whether to flatten the data into array or use 2d images
         """
         if mnist_type == "MNIST":
-            self.dataset = datasets.MNIST("../../data", train=train, download=True,
-                                          transform=torchvision.transforms.Compose([
-                                              torchvision.transforms.ToTensor()]))
+            self.dataset = datasets.MNIST(
+                "../../data",
+                train=train,
+                download=True,
+                transform=torchvision.transforms.Compose(
+                    [torchvision.transforms.ToTensor()]
+                ),
+            )
         elif mnist_type == "FashionMNIST":
             self.dataset = datasets.FashionMNIST(
-                "../../data", train=train, download=True, transform=torchvision.transforms.Compose([
-                    torchvision.transforms.ToTensor()]))
+                "../../data",
+                train=train,
+                download=True,
+                transform=torchvision.transforms.Compose(
+                    [torchvision.transforms.ToTensor()]
+                ),
+            )
         elif mnist_type == "KMNIST":
-            self.dataset = datasets.KMNIST("../../data", train=train, download=True,
-                                           transform=torchvision.transforms.Compose([
-                                               torchvision.transforms.ToTensor(),
-                                               transforms.Normalize((0.1307,), (0.3081,))]))
+            self.dataset = datasets.KMNIST(
+                "../../data",
+                train=train,
+                download=True,
+                transform=torchvision.transforms.Compose(
+                    [
+                        torchvision.transforms.ToTensor(),
+                        transforms.Normalize((0.1307,), (0.3081,)),
+                    ]
+                ),
+            )
 
         self.base_transform = transforms.ToTensor()
         self.a_transform = transforms.Compose(
-            [
-                torchvision.transforms.RandomRotation((-45, 45))
-            ]
+            [torchvision.transforms.RandomRotation((-45, 45))]
         )
         self.a_transform = transforms.Compose(
-            [
-                torchvision.transforms.RandomRotation((-45, 45))
-            ]
+            [torchvision.transforms.RandomRotation((-45, 45))]
         )
         self.b_transform = transforms.Compose(
             [
@@ -149,22 +162,37 @@ class Tangled_MNIST_Dataset(Dataset):
         :param flatten: whether to flatten the data into array or use 2d images
         """
         if mnist_type == "MNIST":
-            self.dataset = datasets.MNIST("../../data", train=train, download=True,
-                                          transform=torchvision.transforms.Compose([
-                                              torchvision.transforms.ToTensor()]))
+            self.dataset = datasets.MNIST(
+                "../../data",
+                train=train,
+                download=True,
+                transform=torchvision.transforms.Compose(
+                    [torchvision.transforms.ToTensor()]
+                ),
+            )
         elif mnist_type == "FashionMNIST":
             self.dataset = datasets.FashionMNIST(
-                "../../data", train=train, download=True, transform=torchvision.transforms.Compose([
-                    torchvision.transforms.ToTensor()]))
+                "../../data",
+                train=train,
+                download=True,
+                transform=torchvision.transforms.Compose(
+                    [torchvision.transforms.ToTensor()]
+                ),
+            )
         elif mnist_type == "KMNIST":
-            self.dataset = datasets.KMNIST("../../data", train=train, download=True,
-                                           transform=torchvision.transforms.Compose([
-                                               torchvision.transforms.ToTensor(),
-                                               transforms.Normalize((0.1307,), (0.3081,))]))
+            self.dataset = datasets.KMNIST(
+                "../../data",
+                train=train,
+                download=True,
+                transform=torchvision.transforms.Compose(
+                    [
+                        torchvision.transforms.ToTensor(),
+                        transforms.Normalize((0.1307,), (0.3081,)),
+                    ]
+                ),
+            )
         self.transform = transforms.Compose(
-            [
-                torchvision.transforms.RandomRotation((-45, 45))
-            ]
+            [torchvision.transforms.RandomRotation((-45, 45))]
         )
         self.targets = self.dataset.targets
         self.filtered_classes = []

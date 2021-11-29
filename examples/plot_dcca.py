@@ -26,16 +26,16 @@ from cca_zoo.deepmodels import (
 def plot_latent_label(model, dataloader, num_batches=100):
     fig, ax = plt.subplots(ncols=model.latent_dims)
     for j in range(model.latent_dims):
-        ax[j].set_title(f'Dimension {j}')
-        ax[j].set_xlabel('View 1')
-        ax[j].set_ylabel('View 2')
+        ax[j].set_title(f"Dimension {j}")
+        ax[j].set_xlabel("View 1")
+        ax[j].set_ylabel("View 2")
     for i, (data, label) in enumerate(dataloader):
         z = model(*data)
         zx, zy = z
-        zx = zx.to('cpu').detach().numpy()
-        zy = zy.to('cpu').detach().numpy()
+        zx = zx.to("cpu").detach().numpy()
+        zy = zy.to("cpu").detach().numpy()
         for j in range(model.latent_dims):
-            ax[j].scatter(zx[:, j], zy[:, j], c=label.numpy(), cmap='tab10')
+            ax[j].scatter(zx[:, j], zy[:, j], c=label.numpy(), cmap="tab10")
         if i > num_batches:
             plt.colorbar()
             break
@@ -63,7 +63,7 @@ dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
 plot_latent_label(dcca.model, train_loader)
-plt.suptitle('DCCA')
+plt.suptitle("DCCA")
 plt.show()
 
 # %%
@@ -75,7 +75,7 @@ dcca_noi = CCALightning(dcca_noi)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca_noi, train_loader, val_loader)
 plot_latent_label(dcca_noi.model, train_loader)
-plt.title('DCCA by Non-Linear Orthogonal Iterations')
+plt.title("DCCA by Non-Linear Orthogonal Iterations")
 plt.show()
 
 # %%
@@ -87,7 +87,7 @@ dcca_sdl = CCALightning(dcca_sdl)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca_sdl, train_loader, val_loader)
 plot_latent_label(dcca_sdl.model, train_loader)
-plt.title('DCCA by Stochastic Decorrelation')
+plt.title("DCCA by Stochastic Decorrelation")
 plt.show()
 
 # %%
@@ -97,5 +97,5 @@ barlowtwins = CCALightning(barlowtwins)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
 plot_latent_label(dcca_sdl.model, train_loader)
-plt.title('DCCA by Barlow Twins')
+plt.title("DCCA by Barlow Twins")
 plt.show()

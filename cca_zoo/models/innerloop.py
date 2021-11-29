@@ -45,7 +45,10 @@ class _InnerLoop:
     def _initialize(self):
         if self.initialization == "random":
             self.scores = np.array(
-                [self.random_state.normal(0, 1, size=(view.shape[0], 1)) for view in self.views]
+                [
+                    self.random_state.normal(0, 1, size=(view.shape[0], 1))
+                    for view in self.views
+                ]
             )
         elif self.initialization == "uniform":
             self.scores = np.array([np.ones((view.shape[0], 1)) for view in self.views])
@@ -230,7 +233,7 @@ class PMDInnerLoop(PLSInnerLoop):
             self.weights[view_index],
             self.c[view_index],
             positive=self.positive[view_index],
-            tol=self.tol
+            tol=self.tol,
         )
         _check_converged_weights(self.weights[view_index], view_index)
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]

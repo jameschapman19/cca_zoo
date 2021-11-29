@@ -119,7 +119,7 @@ class _Iterative(_CCA_Base):
         elif self.deflation == "pls":
             return residual - np.outer(score, loading)
         else:
-            raise ValueError(f'deflation method {self.deflation} not implemented yet.')
+            raise ValueError(f"deflation method {self.deflation} not implemented yet.")
 
     @abstractmethod
     def _set_loop_params(self):
@@ -187,7 +187,7 @@ class PLS_ALS(_Iterative):
             scale=scale,
             centre=centre,
             copy_data=copy_data,
-            deflation='pls',
+            deflation="pls",
             max_iter=max_iter,
             initialization=initialization,
             tol=tol,
@@ -733,9 +733,9 @@ class SpanCCA(_Iterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
             centre=True,
             copy_data=True,
             max_iter: int = 100,
