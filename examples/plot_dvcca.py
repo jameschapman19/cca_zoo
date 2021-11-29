@@ -30,10 +30,10 @@ def plot_reconstruction(model, dataset, idx):
     recon_x = recon_x.detach().numpy()
     recon_y = recon_y.detach().numpy()
     fig, ax = plt.subplots(ncols=4)
-    ax[0].set_title('Original View 1')
-    ax[1].set_title('Original View 2')
-    ax[2].set_title('Reconstruction View 1')
-    ax[3].set_title('Reconstruction View 2')
+    ax[0].set_title("Original View 1")
+    ax[1].set_title("Original View 2")
+    ax[2].set_title("Reconstruction View 1")
+    ax[3].set_title("Reconstruction View 2")
     ax[0].imshow(x.detach().numpy().reshape((28, 28)))
     ax[1].imshow(y.detach().numpy().reshape((28, 28)))
     ax[2].imshow(recon_x.reshape((28, 28)))
@@ -58,8 +58,12 @@ encoder_1 = architectures.Encoder(
 encoder_2 = architectures.Encoder(
     latent_dims=latent_dims, feature_size=784, variational=True
 )
-decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=784, norm_output=True)
-decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=784, norm_output=True)
+decoder_1 = architectures.Decoder(
+    latent_dims=latent_dims, feature_size=784, norm_output=True
+)
+decoder_2 = architectures.Decoder(
+    latent_dims=latent_dims, feature_size=784, norm_output=True
+)
 
 # %%
 # Deep VCCA
@@ -72,7 +76,7 @@ dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
 plot_reconstruction(dcca.model, train_dataset, 0)
-plt.suptitle('DVCCA')
+plt.suptitle("DVCCA")
 plt.show()
 
 # %%
@@ -96,7 +100,7 @@ dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
 plot_reconstruction(dcca.model, train_dataset, 0)
-plt.suptitle('DVCCA Private')
+plt.suptitle("DVCCA Private")
 plt.show()
 
 # %%
@@ -112,5 +116,5 @@ dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
 plot_reconstruction(dcca.model, train_dataset, 0)
-plt.suptitle('DCCAE')
+plt.suptitle("DCCAE")
 plt.show()

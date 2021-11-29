@@ -11,7 +11,7 @@ with open("./requirements/deep.txt", "r") as f:
     EXTRA_PACKAGES["deep"] = f.read()
 with open("./requirements/probabilistic.txt", "r") as f:
     EXTRA_PACKAGES["probabilistic"] = f.read()
-EXTRA_PACKAGES["all"] = EXTRA_PACKAGES["deep"]+'\n'+EXTRA_PACKAGES["probabilistic"]
+EXTRA_PACKAGES["all"] = EXTRA_PACKAGES["deep"] + "\n" + EXTRA_PACKAGES["probabilistic"]
 
 setup(
     name="cca_zoo",

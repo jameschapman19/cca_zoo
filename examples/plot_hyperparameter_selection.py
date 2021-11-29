@@ -38,12 +38,9 @@ cv = 3
 
 # %%
 param_grid = {"kernel": ["poly"], "c": [[1e-1], [1e-1, 2e-1]], "degree": [[2], [2, 3]]}
-kernel_reg = (
-    GridSearchCV(
-        KCCA(latent_dims=latent_dims), param_grid=param_grid, cv=cv, verbose=True
-    )
-        .fit([X, Y])
-)
+kernel_reg = GridSearchCV(
+    KCCA(latent_dims=latent_dims), param_grid=param_grid, cv=cv, verbose=True
+).fit([X, Y])
 print(pd.DataFrame(kernel_reg.cv_results_))
 
 # %%
@@ -52,11 +49,12 @@ print(pd.DataFrame(kernel_reg.cv_results_))
 # With Randomized Search we can additionally use distributions from scikit-learn to define the parameter search space
 
 # %%
-param_grid = {"kernel": ["poly"], "c": [loguniform(1e-1, 2e-1), [1e-1]], "degree": [[2], [2, 3]]}
-kernel_reg = (
-    RandomizedSearchCV(
-        KCCA(latent_dims=latent_dims), param_distributions=param_grid, cv=cv, verbose=True
-    )
-        .fit([X, Y])
-)
+param_grid = {
+    "kernel": ["poly"],
+    "c": [loguniform(1e-1, 2e-1), [1e-1]],
+    "degree": [[2], [2, 3]],
+}
+kernel_reg = RandomizedSearchCV(
+    KCCA(latent_dims=latent_dims), param_distributions=param_grid, cv=cv, verbose=True
+).fit([X, Y])
 print(pd.DataFrame(kernel_reg.cv_results_))

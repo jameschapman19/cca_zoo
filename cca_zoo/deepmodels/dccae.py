@@ -80,6 +80,7 @@ class DCCAE(_DCCA_base):
     @staticmethod
     def _recon_loss(x, recon):
         recons = [
-            F.binary_cross_entropy(recon_, x_, reduction="mean") for recon_, x_ in zip(recon, x)
+            F.binary_cross_entropy(recon_, x_, reduction="mean")
+            for recon_, x_ in zip(recon, x)
         ]
         return torch.stack(recons).sum(dim=0)
