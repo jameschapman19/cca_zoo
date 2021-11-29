@@ -101,7 +101,6 @@ class _Iterative(_CCA_Base):
             self.track.append(self.loop.track)
             if self.track[-1]["converged"] == False:
                 warnings.warn(f"Inner loop {k} did not converge or converged to nans")
-                break
         return self
 
     def _deflate(self, residual, score, loading):
@@ -114,11 +113,13 @@ class _Iterative(_CCA_Base):
         """
         if self.deflation == "cca":
             return (
-                residual
-                - np.outer(score, score) @ residual / np.dot(score, score).item()
+                    residual
+                    - np.outer(score, score) @ residual / np.dot(score, score).item()
             )
         elif self.deflation == "pls":
             return residual - np.outer(score, loading)
+        else:
+            raise ValueError(f'deflation method {self.deflation} not implemented yet.')
 
     @abstractmethod
     def _set_loop_params(self):
@@ -165,7 +166,6 @@ class PLS_ALS(_Iterative):
             centre=True,
             copy_data=True,
             random_state=None,
-            deflation="cca",
             max_iter: int = 100,
             initialization: str = "unregularized",
             tol: float = 1e-9,
@@ -187,7 +187,7 @@ class PLS_ALS(_Iterative):
             scale=scale,
             centre=centre,
             copy_data=copy_data,
-            deflation="pls",
+            deflation='pls',
             max_iter=max_iter,
             initialization=initialization,
             tol=tol,

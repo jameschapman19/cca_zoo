@@ -68,19 +68,18 @@ class CCALightning(LightningModule):
         self.log("train corr", score)
 
     def on_validation_epoch_end(self, unused: Optional = None) -> None:
-        score = self.score(self.trainer.val_dataloaders[0], train=True).sum()
+        score = self.score(self.trainer.val_dataloaders[0]).sum()
         self.log("val corr", score)
 
     def correlations(
             self,
             loader: torch.utils.data.DataLoader,
-            train: bool = False,
+            train=False,
     ):
         """
 
         :param loader: a dataloader that matches the structure of that used for training
-        :param train: if True and the model requires a final linear CCA this solves and stores the linear CCA
-        :return: numpy array containing correlations between each pair of views for each dimension (#views*#views*#latent_dimensions)
+        :param train: whether to fit final linear transformation
         """
         transformed_views = self.transform(loader, train=train)
         if len(transformed_views) < 2:
@@ -96,12 +95,12 @@ class CCALightning(LightningModule):
     def transform(
             self,
             loader: torch.utils.data.DataLoader,
-            train: bool = False,
+            train=False,
     ):
         """
 
         :param loader: a dataloader that matches the structure of that used for training
-        :param train: if True and the model requires a final linear CCA this solves and stores the linear CCA
+        :param train: whether to fit final linear transformation
         :return: transformed views
         """
         with torch.no_grad():
@@ -121,12 +120,12 @@ class CCALightning(LightningModule):
     def score(
             self,
             loader: torch.utils.data.DataLoader,
-            train: bool = False,
+            train=False,
     ):
         """
 
         :param loader: a dataloader that matches the structure of that used for training
-        :param train: if True and the model requires a final linear CCA this solves and stores the linear CCA
+        :param train: whether to fit final linear transformation
         :return: by default returns the average pairwise correlation in each dimension (for 2 views just the correlation)
         """
         pair_corrs = self.correlations(loader, train=train)
