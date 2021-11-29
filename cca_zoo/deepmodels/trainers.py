@@ -25,6 +25,7 @@ class CCALightning(LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = model
+        self.sanity_check = True
 
     def forward(self, *args):
         z = self.encode(*args)
@@ -68,8 +69,13 @@ class CCALightning(LightningModule):
         self.log("train corr", score)
 
     def on_validation_epoch_end(self, unused: Optional = None) -> None:
-        score = self.score(self.trainer.val_dataloaders[0]).sum()
-        self.log("val corr", score)
+        try:
+            score = self.score(self.trainer.val_dataloaders[0]).sum()
+            self.log("val corr", score)
+        except:
+            # Should only be during sanity check
+            score = self.score(self.trainer.val_dataloaders[0], train=True).sum()
+            self.log("val corr", score)
 
     def correlations(
             self,

@@ -85,7 +85,7 @@ def test_DCCA_methods():
     trainer = pl.Trainer(
         max_epochs=epochs, log_every_n_steps=10, enable_checkpointing=False
     )
-    trainer.fit(dcca, train_loader)
+    trainer.fit(dcca, train_loader, val_dataloaders=val_loader)
     assert (
             np.testing.assert_array_less(
                 cca.score((X, Y)).sum(), trainer.model.score(train_loader).sum()
