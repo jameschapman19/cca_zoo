@@ -1,9 +1,13 @@
+from ccagame import pca
+from ccagame.utils import data_stream
 from abc import abstractmethod
 
 import jax.numpy as jnp
 from ccagame.baseexperiment import BaseExperiment
 from jax import jit
 from functools import partial
+
+from datasets.mnist import mnist_iterator
 
 
 class PCAExperiment(BaseExperiment):
@@ -20,12 +24,16 @@ class PCAExperiment(BaseExperiment):
         holdout=None,
         **kwargs,
     ):
+        if data=='mnist':
+            self.data,self.holdout, self.correct_eigenvectors, self.dims=mnist_iterator(batch_size=batch_size, n_components=n_components, pca=True)
+        else:
+            raise ValueError('Data {data} not implemented yet')
         super(PCAExperiment, self).__init__(
             mode=mode,
             init_rng=init_rng,
             num_devices=num_devices,
             n_components=n_components,
-            data=data,
+            data=self.data,
             batch_size=batch_size,
         )
         """Constructs the experiment.
@@ -35,8 +43,6 @@ class PCAExperiment(BaseExperiment):
         """
         """Initialization function for a Jaxline experiment."""
         self.dims = dims
-        self.correct_eigenvectors = correct_eigenvectors
-        self.holdout=holdout
 
     @abstractmethod
     def _update(self, X_i, Y_i, global_step):

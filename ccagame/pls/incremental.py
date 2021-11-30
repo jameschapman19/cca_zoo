@@ -11,7 +11,6 @@ class Incremental(PLSExperiment):
         init_rng=None,
         num_devices=1,
         n_components=1,
-        dims=None,
         data=None,
         batch_size=1,
         **kwargs
@@ -20,7 +19,6 @@ class Incremental(PLSExperiment):
             mode,
             init_rng=init_rng,
             num_devices=num_devices,
-            dims=dims,
             n_components=n_components,
             data=data,
             batch_size=batch_size,

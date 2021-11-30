@@ -7,6 +7,10 @@ from jaxline import utils
 from jax import jit
 from functools import partial
 
+from ccagame.utils import data_stream
+from datasets.mnist import mnist_iterator
+from datasets.xrmb import xrmb_iterator
+
 class CCAExperiment(BaseExperiment):
     def __init__(
         self,
@@ -37,7 +41,12 @@ class CCAExperiment(BaseExperiment):
         """Initialization function for a Jaxline experiment."""
         self.dims = dims
         self.correct_eigenvectors = correct_eigenvectors
-        self.holdout = holdout
+        if data=='mnist':
+            self.data,self.holdout=mnist_iterator(batch_size=batch_size)
+        elif data=='xrmb':
+            self.data,self.holdout=xrmb_iterator(batch_size=batch_size)
+        else:
+            raise ValueError('Data {data} not implemented yet')
 
     @abstractmethod
     def _update(self, views, global_step):

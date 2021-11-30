@@ -36,9 +36,6 @@ from tensorboard.plugins.hparams import api as hp
 
 FLAGS = flags.FLAGS
 
-
-# TODO(tomhennigan) Add support for ipdb and pudb.
-config_flags.DEFINE_config_file("config", help_string="Training configuration file.")
 # This flag is expected to be used only internally by jaxline.
 # It is prefixed by "jaxline" to prevent a conflict with a "mode" flag defined
 # by Monarch.

@@ -14,7 +14,6 @@ class Game(PCAExperiment):
         init_rng=None,
         num_devices=1,
         n_components=1,
-        dims=None,
         data=None,
         batch_size=0,
         learning_rate=1e-3,
@@ -27,7 +26,6 @@ class Game(PCAExperiment):
             init_rng=init_rng,
             num_devices=num_devices,
             n_components=n_components,
-            dims=dims,
             data=data,
             batch_size=batch_size,
             **kwargs

@@ -14,7 +14,6 @@ class Game(PLSExperiment):
         init_rng=None,
         num_devices=1,
         n_components=1,
-        dims=None,
         data=None,
         learning_rate=1e-6,
         momentum=0.9,
@@ -26,7 +25,6 @@ class Game(PLSExperiment):
             mode,
             init_rng=init_rng,
             num_devices=num_devices,
-            dims=dims,
             n_components=n_components,
             data=data,
             batch_size=batch_size,
@@ -45,8 +43,8 @@ class Game(PLSExperiment):
         # generates a key for each device
         keys = jax.random.split(self.local_rng, num_devices)
         # generates weights for each component on each device
-        U = jax.pmap(lambda key: jax.random.normal(key, (k_per_device, dims[0])))(keys)
-        V = jax.pmap(lambda key: jax.random.normal(key, (k_per_device, dims[1])))(keys)
+        U = jax.pmap(lambda key: jax.random.normal(key, (k_per_device, self.dims[0])))(keys)
+        V = jax.pmap(lambda key: jax.random.normal(key, (k_per_device, self.dims[1])))(keys)
         # normalizes the weights for each component
         self._U = jax.pmap(lambda U: U / jnp.linalg.norm(U, axis=1, keepdims=True))(U)
         self._V = jax.pmap(lambda V: V / jnp.linalg.norm(V, axis=1, keepdims=True))(V)
@@ -120,7 +118,7 @@ class Game(PLSExperiment):
         penalty_grads = ui @ X.T @ Z * U.T
         penalty_grads = penalty_grads @ weights_ij
         grads = X.T@zi + penalty_grads
-        return grads
+        return grads/X.shape[0]
 
     @staticmethod
     @jit
