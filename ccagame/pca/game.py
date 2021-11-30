@@ -52,7 +52,6 @@ class Game(PCAExperiment):
         # normalizes the weights for each component
         self._V = jax.pmap(lambda V: V / jnp.linalg.norm(V, axis=1, keepdims=True))(V)
         # This line parallelizes over data sending different data to each device
-        # This line parallelizes over data sending different data to each device
         self._update_with_grads = jax.pmap(
             jax.vmap(
             self._update_with_grads,

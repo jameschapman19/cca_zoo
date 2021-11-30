@@ -1,5 +1,7 @@
+from re import I
+import os
+os.chdir('/mnt/c/users/chapm/PycharmProjects/ccagame')
 from ccagame import pls
-from experiments.experiment_config import LEARNING_RATE
 import functools
 from os import environ
 from absl import app, flags
@@ -9,7 +11,7 @@ from jaxline_fork import platform
 import jax.numpy as jnp
 import os
 from experiments import parse_args, get_config
-
+import wandb
 
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
@@ -21,38 +23,38 @@ MODEL_DICT = {
     "incremental":pls.Incremental
 }
 
+
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
     args = parse_args()
-    environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={args.devices}"
+    wandb.init(config=args,sync_tensorboard=True)
+    config = wandb.config
+    environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={config.devices}"
     FLAGS = flags.FLAGS
     X, _, X_te, _ = mnist()
-    Y=X[:, 400:]
-    X=X[:, :400]
-    Y_te=X_te[:,400:]
-    X_te=X_te[:,:400]
+    Y=X[:,392:]
+    X=X[:,:392]
+    Y_te=X_te[:,392:]
+    X_te=X_te[:,:392]
     input_data_iterator = data_stream(
-        X, Y=Y, batch_size=args.batch_size
+        X, Y=Y, batch_size=config.batch_size
     )
     correct_U, correct_S, correct_V = jnp.linalg.svd(X.T @ Y)
-    dof=X.shape[0]
-    print(f"TV : {correct_S[:args.n_components].sum()/dof}")
-    correct_U = correct_U[:, :args.n_components]
-    correct_V = correct_V[:args.n_components, :].T
+    correct_U = correct_U[:, :config.n_components]
+    correct_V = correct_V[:config.n_components, :].T
     FLAGS.config = get_config(
         input_data_iterator,
-        dims=[400, 384],
-        num_devices=args.devices,
-        n_components=args.n_components,
-        training_steps=args.training_steps,
+        dims=[X.shape[1], Y.shape[1]],
+        num_devices=config.devices,
+        n_components=config.n_components,
+        training_steps=config.training_steps,
         correct_eigenvectors=[correct_U,correct_V],
-        learning_rate=args.learning_rate,
-        model=args.model,
-        batch_size=args.batch_size,
+        learning_rate=config.learning_rate,
+        batch_size=config.batch_size,
+        model=config.model,
         holdout=[X_te,Y_te]
     )
     flags.mark_flag_as_required("config")
     #magic function which does what pytorch-lightning does which is to make a new numbered version in the directory for each run
     os.chdir(log_dir())
-    #TODO THIS IS CURRENTLY A HACK WHI
-    app.run(functools.partial(platform.main, MODEL_DICT['game']))
+    app.run(functools.partial(platform.main, MODEL_DICT[config.model]))
