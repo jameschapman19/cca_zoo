@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup,  find_packages
 
 with open("README.md") as fp:
     long_description = fp.read()
@@ -7,7 +7,7 @@ def setup_package():
     data = dict(
     name='ccagame',
     version='0',
-    packages=['ccagame', 'ccagame.cca', 'ccagame.pca', 'ccagame.pls', 'ccagame.solver', 'ccagame.datasets'],
+    packages=find_packages(exclude=['test']),
     url='https://github.com/jameschapman19/ccagame',
     license='',
     author='James Chapman',
@@ -22,6 +22,8 @@ def setup_package():
         "jaxlib~=0.1.73",
         "scikit-learn~=1.0",
         "scipy~=1.7.1",    
+        "optax~=0.1.0",
+        "tensorflow~=2.4.1",
     ]
     )
 
