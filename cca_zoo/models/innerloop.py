@@ -170,18 +170,12 @@ class PMDInnerLoop(PLSInnerLoop):
                 "c parameter not set. Setting to c=1 i.e. maximum regularisation of l1 norm"
             )
         self.c = _process_parameter("c", self.c, 1, len(self.views))
-        if any(c < 1 for c in self.c):
+        if any(c < 0 or c > 1 for c in self.c):
             raise ValueError(
-                "All regulariation parameters should be at least " f"1. c=[{self.c}]"
+                "All regularisation parameters should be between 0 and 1 " f"1. c=[{self.c}]"
             )
         shape_sqrts = [np.sqrt(view.shape[1]) for view in self.views]
-        if any(c > shape_sqrt for c, shape_sqrt in zip(self.c, shape_sqrts)):
-            raise ValueError(
-                "All regulariation parameters should be less than"
-                " the square root of number of the respective"
-                f" view. c=[{self.c}], limit of each view: "
-                f"{shape_sqrts}"
-            )
+        self.t = [max(1, x * y) for x, y in zip(self.c, shape_sqrts)]
         self.positive = _process_parameter(
             "positive", self.positive, False, len(self.views)
         )
@@ -199,7 +193,7 @@ class PMDInnerLoop(PLSInnerLoop):
         )
         self.weights[view_index] = _delta_search(
             self.weights[view_index],
-            self.c[view_index],
+            self.t[view_index],
             positive=self.positive[view_index],
             tol=self.tol,
         )
@@ -674,7 +668,7 @@ def _delta_search(w, c, positive=False, init=0, tol=1e-9):
             current, previous, current_val, previous_val, min_, max_
         )
         previous_val = current_val
-        if np.abs(current_val) < tol or np.abs(max_ - min_) < tol or i == 50:
+        if np.abs(current_val) < tol or np.abs(max_ - min_) < tol or i == 150:
             converged = True
     return coef
 

@@ -214,8 +214,8 @@ def test_non_negative_methods():
 
 
 def test_sparse_methods():
-    c1 = [1, 3]
-    c2 = [1, 3]
+    c1 = [0.1, 0.3]
+    c2 = [0.1, 0.3]
     param_grid = {"c": [c1, c2]}
     pmd_cv = GridSearchCV(PMD(random_state=rng), param_grid=param_grid).fit([X, Y])
     cv_plot(pmd_cv.cv_results_)
