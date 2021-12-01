@@ -5,6 +5,7 @@ from typing import Union, Iterable
 
 import numpy as np
 
+from cca_zoo.models import PLS, CCA
 from cca_zoo.models.cca_base import _CCA_Base
 from cca_zoo.models.innerloop import (
     PLSInnerLoop,
@@ -25,16 +26,16 @@ class _Iterative(_CCA_Base):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        max_iter: int = 100,
-        initialization: str = "unregularized",
-        tol: float = 1e-9,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "random",
+            tol: float = 1e-9,
     ):
         """
         Constructor for _Iterative
@@ -56,12 +57,12 @@ class _Iterative(_CCA_Base):
             centre=centre,
             copy_data=copy_data,
             accept_sparse=["csc", "csr"],
+            random_state=random_state,
         )
         self.max_iter = max_iter
         self.initialization = initialization
         self.tol = tol
         self.deflation = deflation
-        self.random_state = random_state
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
@@ -75,7 +76,8 @@ class _Iterative(_CCA_Base):
         views = self._centre_scale(views)
         self.n_views = len(views)
         self.n = views[0].shape[0]
-        self._set_loop_params()
+        if isinstance(self.initialization, str):
+            self.initialization = self._initialization(views, self.initialization)
         n = views[0].shape[0]
         p = [view.shape[1] for view in views]
         # List of d: p x k
@@ -86,10 +88,10 @@ class _Iterative(_CCA_Base):
         self.scores = [np.zeros((n, self.latent_dims)) for _ in views]
 
         residuals = copy.deepcopy(list(views))
-
         self.track = []
         # For each of the dimensions
         for k in range(self.latent_dims):
+            self._set_loop_params()
             self.loop = self.loop._fit(*residuals)
             for i, residual in enumerate(residuals):
                 self.weights[i][:, k] = self.loop.weights[i].ravel()
@@ -128,9 +130,44 @@ class _Iterative(_CCA_Base):
         """
         self.loop = PLSInnerLoop(
             max_iter=self.max_iter,
-            initialization=self.initialization,
+            initial_scores=next(self.initialization),
             random_state=self.random_state,
         )
+
+    def _initialization(self, views, initialization):
+        if initialization == "random":
+            while True:
+                yield np.array(
+                    [
+                        self.random_state.normal(0, 1, size=(view.shape[0]))
+                        for view in views
+                    ]
+                )
+        elif initialization == "uniform":
+            while True:
+                yield np.array([np.ones(view.shape[0]) for view in views])
+        elif initialization == "pls":
+            latent_dim = 0
+            pls_scores = PLS(self.latent_dims).fit_transform(views)
+            pls_weights = PLS(self.latent_dims).fit(views).weights
+            print()
+            while True:
+                yield np.stack(
+                    (pls_scores[0][:, latent_dim], pls_scores[1][:, latent_dim])
+                )
+                latent_dim += 1
+        elif initialization == "cca":
+            latent_dim = 0
+            cca_scores = CCA(self.latent_dims).fit_transform(views)
+            while True:
+                yield np.stack(
+                    (cca_scores[0][:, latent_dim], cca_scores[1][:, latent_dim])
+                )
+                latent_dim += 1
+        else:
+            raise ValueError(
+                "Initialization {type} not supported. Pass a generator implementing this method"
+            )
 
 
 class PLS_ALS(_Iterative):
@@ -167,7 +204,7 @@ class PLS_ALS(_Iterative):
             copy_data=True,
             random_state=None,
             max_iter: int = 100,
-            initialization: str = "unregularized",
+            initialization: Union[str, callable] = "random",
             tol: float = 1e-9,
     ):
         """
@@ -197,7 +234,7 @@ class PLS_ALS(_Iterative):
     def _set_loop_params(self):
         self.loop = PLSInnerLoop(
             max_iter=self.max_iter,
-            initialization=self.initialization,
+            initial_scores=next(self.initialization),
             tol=self.tol,
             random_state=self.random_state,
         )
@@ -232,21 +269,21 @@ class ElasticCCA(_Iterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        max_iter: int = 100,
-        initialization: str = "unregularized",
-        tol: float = 1e-9,
-        c: Union[Iterable[float], float] = None,
-        l1_ratio: Union[Iterable[float], float] = None,
-        maxvar: bool = True,
-        stochastic=False,
-        positive: Union[Iterable[bool], bool] = None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            c: Union[Iterable[float], float] = None,
+            l1_ratio: Union[Iterable[float], float] = None,
+            maxvar: bool = True,
+            stochastic=False,
+            positive: Union[Iterable[bool], bool] = None,
     ):
         """
         Constructor for ElasticCCA
@@ -294,7 +331,7 @@ class ElasticCCA(_Iterative):
             c=self.c,
             l1_ratio=self.l1_ratio,
             maxvar=self.maxvar,
-            initialization=self.initialization,
+            initial_scores=next(self.initialization),
             tol=self.tol,
             stochastic=self.stochastic,
             positive=self.positive,
@@ -415,7 +452,7 @@ class SCCA(ElasticCCA):
             c: Union[Iterable[float], float] = None,
             max_iter: int = 100,
             maxvar: bool = False,
-            initialization: str = "unregularized",
+            initialization: Union[str, callable] = "pls",
             tol: float = 1e-9,
             stochastic=False,
             positive: Union[Iterable[bool], bool] = None,
@@ -494,7 +531,7 @@ class PMD(_Iterative):
             deflation="cca",
             c: Union[Iterable[float], float] = None,
             max_iter: int = 100,
-            initialization: str = "unregularized",
+            initialization: Union[str, callable] = "pls",
             tol: float = 1e-9,
             positive: Union[Iterable[bool], bool] = None,
     ):
@@ -530,7 +567,7 @@ class PMD(_Iterative):
         self.loop = PMDInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
-            initialization=self.initialization,
+            initial_scores=next(self.initialization),
             tol=self.tol,
             positive=self.positive,
             random_state=self.random_state,
@@ -575,7 +612,7 @@ class ParkhomenkoCCA(_Iterative):
             deflation="cca",
             c: Union[Iterable[float], float] = None,
             max_iter: int = 100,
-            initialization: str = "unregularized",
+            initialization: Union[str, callable] = "pls",
             tol: float = 1e-9,
     ):
         """
@@ -608,7 +645,7 @@ class ParkhomenkoCCA(_Iterative):
         self.loop = ParkhomenkoInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
-            initialization=self.initialization,
+            initial_scores=next(self.initialization),
             tol=self.tol,
             random_state=self.random_state,
         )
@@ -655,7 +692,7 @@ class SCCA_ADMM(_Iterative):
             lam: Union[Iterable[float], float] = None,
             eta: Union[Iterable[float], float] = None,
             max_iter: int = 100,
-            initialization: str = "unregularized",
+            initialization: Union[str, callable] = "pls",
             tol: float = 1e-9,
     ):
         """
@@ -697,7 +734,7 @@ class SCCA_ADMM(_Iterative):
             mu=self.mu,
             lam=self.lam,
             eta=self.eta,
-            initialization=self.initialization,
+            initial_scores=next(self.initialization),
             tol=self.tol,
             random_state=self.random_state,
         )
@@ -783,7 +820,7 @@ class SpanCCA(_Iterative):
         self.loop = SpanCCAInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
-            initialization=self.initialization,
+            initial_scores=next(self.initialization),
             tol=self.tol,
             regularisation=self.regularisation,
             rank=self.rank,
@@ -861,7 +898,7 @@ class SWCCA(_Iterative):
     def _set_loop_params(self):
         self.loop = SWCCAInnerLoop(
             max_iter=self.max_iter,
-            initialization=self.initialization,
+            initial_scores=next(self.initialization),
             tol=self.tol,
             regularisation=self.regularisation,
             c=self.c,

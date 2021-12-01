@@ -40,12 +40,8 @@ def test_unregularized_methods():
     # Tests unregularized CCA methods. The idea is that all of these should give the same result.
     latent_dims = 2
     cca = CCA(latent_dims=latent_dims).fit([X, Y])
-    iter = CCA_ALS(
-        latent_dims=latent_dims, tol=1e-9, random_state=rng, stochastic=False
-    ).fit([X, Y])
-    iter_pls = PLS_ALS(
-        latent_dims=latent_dims, tol=1e-9, initialization="unregularized", centre=False
-    ).fit([X, Y])
+    iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9, stochastic=False).fit([X, Y])
+    iter_pls = PLS_ALS(latent_dims=latent_dims, tol=1e-9, centre=False).fit([X, Y])
     gcca = GCCA(latent_dims=latent_dims).fit([X, Y])
     mcca = MCCA(latent_dims=latent_dims, eps=1e-9).fit([X, Y])
     kcca = KCCA(latent_dims=latent_dims).fit([X, Y])
@@ -125,9 +121,9 @@ def test_sparse_input():
     iter = CCA_ALS(
         latent_dims=latent_dims, tol=1e-9, stochastic=False, centre=False
     ).fit((X_sp, Y_sp))
-    iter_pls = PLS_ALS(
-        latent_dims=latent_dims, tol=1e-9, initialization="unregularized", centre=False
-    ).fit((X_sp, Y_sp))
+    iter_pls = PLS_ALS(latent_dims=latent_dims, tol=1e-9, centre=False).fit(
+        (X_sp, Y_sp)
+    )
     gcca = GCCA(latent_dims=latent_dims, centre=False).fit((X_sp, Y_sp))
     mcca = MCCA(latent_dims=latent_dims, centre=False).fit((X_sp, Y_sp))
     kcca = KCCA(latent_dims=latent_dims, centre=False).fit((X_sp, Y_sp))
@@ -190,15 +186,21 @@ def test_regularized_methods():
 def test_non_negative_methods():
     latent_dims = 2
     nnscca = SCCA(
-        latent_dims=latent_dims, tol=1e-9, positive=True, c=[1e-1, 1e-1], random_state=0
+        latent_dims=latent_dims,
+        tol=1e-9,
+        positive=True,
+        c=[1e-6, 1e-6],
+        random_state=0,
+        initialization="random",
     ).fit((X, Y))
     nnelastic = ElasticCCA(
         latent_dims=latent_dims,
         tol=1e-9,
         positive=True,
         l1_ratio=[0.5, 0.5],
-        c=[1e-4, 1e-5],
+        c=[1e-5, 1e-5],
         random_state=0,
+        initialization="random",
     ).fit([X, Y])
     nnals = CCA_ALS(
         latent_dims=latent_dims, tol=1e-9, positive=True, random_state=0
