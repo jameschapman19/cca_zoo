@@ -40,12 +40,8 @@ def test_unregularized_methods():
     # Tests unregularized CCA methods. The idea is that all of these should give the same result.
     latent_dims = 2
     cca = CCA(latent_dims=latent_dims).fit([X, Y])
-    iter = CCA_ALS(
-        latent_dims=latent_dims, tol=1e-9, random_state=rng, stochastic=False
-    ).fit([X, Y])
-    iter_pls = PLS_ALS(
-        latent_dims=latent_dims, tol=1e-9, initialization="unregularized", centre=False
-    ).fit([X, Y])
+    iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9, stochastic=False).fit([X, Y])
+    iter_pls = PLS_ALS(latent_dims=latent_dims, tol=1e-9, centre=False).fit([X, Y])
     gcca = GCCA(latent_dims=latent_dims).fit([X, Y])
     mcca = MCCA(latent_dims=latent_dims, eps=1e-9).fit([X, Y])
     kcca = KCCA(latent_dims=latent_dims).fit([X, Y])
@@ -65,56 +61,56 @@ def test_unregularized_methods():
     assert np.testing.assert_array_almost_equal(corr_cca, corr_kcca, decimal=1) is None
     assert np.testing.assert_array_almost_equal(corr_cca, corr_tcca, decimal=1) is None
     assert (
-        np.testing.assert_array_almost_equal(corr_kgcca, corr_gcca, decimal=1) is None
+            np.testing.assert_array_almost_equal(corr_kgcca, corr_gcca, decimal=1) is None
     )
     # Check standardized models have standard outputs
     assert (
-        np.testing.assert_allclose(
-            np.linalg.norm(iter.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
-        )
-        is None
+            np.testing.assert_allclose(
+                np.linalg.norm(iter.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
+            )
+            is None
     )
     assert (
-        np.testing.assert_allclose(
-            np.linalg.norm(cca.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
-        )
-        is None
+            np.testing.assert_allclose(
+                np.linalg.norm(cca.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
+            )
+            is None
     )
     assert (
-        np.testing.assert_allclose(
-            np.linalg.norm(mcca.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
-        )
-        is None
+            np.testing.assert_allclose(
+                np.linalg.norm(mcca.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
+            )
+            is None
     )
     assert (
-        np.testing.assert_allclose(
-            np.linalg.norm(kcca.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
-        )
-        is None
+            np.testing.assert_allclose(
+                np.linalg.norm(kcca.transform((X, Y))[0], axis=0) ** 2, n, rtol=0.2
+            )
+            is None
     )
     assert (
-        np.testing.assert_allclose(
-            np.linalg.norm(iter.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
-        )
-        is None
+            np.testing.assert_allclose(
+                np.linalg.norm(iter.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
+            )
+            is None
     )
     assert (
-        np.testing.assert_allclose(
-            np.linalg.norm(cca.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
-        )
-        is None
+            np.testing.assert_allclose(
+                np.linalg.norm(cca.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
+            )
+            is None
     )
     assert (
-        np.testing.assert_allclose(
-            np.linalg.norm(mcca.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
-        )
-        is None
+            np.testing.assert_allclose(
+                np.linalg.norm(mcca.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
+            )
+            is None
     )
     assert (
-        np.testing.assert_allclose(
-            np.linalg.norm(kcca.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
-        )
-        is None
+            np.testing.assert_allclose(
+                np.linalg.norm(kcca.transform((X, Y))[1], axis=0) ** 2, n, rtol=0.2
+            )
+            is None
     )
 
 
@@ -125,9 +121,9 @@ def test_sparse_input():
     iter = CCA_ALS(
         latent_dims=latent_dims, tol=1e-9, stochastic=False, centre=False
     ).fit((X_sp, Y_sp))
-    iter_pls = PLS_ALS(
-        latent_dims=latent_dims, tol=1e-9, initialization="unregularized", centre=False
-    ).fit((X_sp, Y_sp))
+    iter_pls = PLS_ALS(latent_dims=latent_dims, tol=1e-9, centre=False).fit(
+        (X_sp, Y_sp)
+    )
     gcca = GCCA(latent_dims=latent_dims, centre=False).fit((X_sp, Y_sp))
     mcca = MCCA(latent_dims=latent_dims, centre=False).fit((X_sp, Y_sp))
     kcca = KCCA(latent_dims=latent_dims, centre=False).fit((X_sp, Y_sp))
@@ -182,7 +178,7 @@ def test_regularized_methods():
     # Check the correlations from each unregularized method are the same
     assert np.testing.assert_array_almost_equal(corr_pls, corr_mcca, decimal=1) is None
     assert (
-        np.testing.assert_array_almost_equal(corr_pls, corr_kernel, decimal=1) is None
+            np.testing.assert_array_almost_equal(corr_pls, corr_kernel, decimal=1) is None
     )
     assert np.testing.assert_array_almost_equal(corr_pls, corr_rcca, decimal=1) is None
 
@@ -190,15 +186,21 @@ def test_regularized_methods():
 def test_non_negative_methods():
     latent_dims = 2
     nnscca = SCCA(
-        latent_dims=latent_dims, tol=1e-9, positive=True, c=[1e-1, 1e-1], random_state=0
+        latent_dims=latent_dims,
+        tol=1e-9,
+        positive=True,
+        c=[1e-6, 1e-6],
+        random_state=0,
+        initialization="random",
     ).fit((X, Y))
     nnelastic = ElasticCCA(
         latent_dims=latent_dims,
         tol=1e-9,
         positive=True,
         l1_ratio=[0.5, 0.5],
-        c=[1e-4, 1e-5],
+        c=[1e-5, 1e-5],
         random_state=0,
+        initialization="random",
     ).fit([X, Y])
     nnals = CCA_ALS(
         latent_dims=latent_dims, tol=1e-9, positive=True, random_state=0
@@ -212,8 +214,8 @@ def test_non_negative_methods():
 
 
 def test_sparse_methods():
-    c1 = [1, 3]
-    c2 = [1, 3]
+    c1 = [0.1, 0.3]
+    c2 = [0.1, 0.3]
     param_grid = {"c": [c1, c2]}
     pmd_cv = GridSearchCV(PMD(random_state=rng), param_grid=param_grid).fit([X, Y])
     cv_plot(pmd_cv.cv_results_)
@@ -266,10 +268,10 @@ def test_weighted_GCCA_methods():
     K[0, 200:] = 0
     unobserved_gcca = GCCA(latent_dims=latent_dims, c=[c, c]).fit((X, Y), K=K)
     assert (
-        np.testing.assert_array_almost_equal(
-            corr_unweighted_gcca, corr_deweighted_gcca, decimal=1
-        )
-        is None
+            np.testing.assert_array_almost_equal(
+                corr_unweighted_gcca, corr_deweighted_gcca, decimal=1
+            )
+            is None
     )
 
 
@@ -300,6 +302,14 @@ def test_l0():
     assert (np.abs(swcca.loop.sample_weights) > 1e-5).sum() == 5
 
 
+def test_pls():
+    pls_als = PLS_ALS(latent_dims=3)
+    pls = PLS(latent_dims=3)
+    pls_als.fit((X, Y))
+    pls.fit((X, Y))
+    assert np.allclose(np.abs(pls_als.weights[0]), np.abs(pls.weights[0]), rtol=1e-3)
+
+
 def test_VCCA():
     try:
         from cca_zoo.probabilisticmodels import VariationalCCA
@@ -314,11 +324,11 @@ def test_VCCA():
         ).fit([X, Y])
         # Test that vanilla CCA and VCCA produce roughly similar latent space
         assert (
-            np.corrcoef(
-                cca.transform([X, Y])[1].T,
-                vcca.posterior_samples["z"].mean(axis=0)[:, 0],
-            )[0, 1]
-            > 0.9
+                np.corrcoef(
+                    cca.transform([X, Y])[1].T,
+                    vcca.posterior_samples["z"].mean(axis=0)[:, 0],
+                )[0, 1]
+                > 0.9
         )
     except:
         # some might not have access to jax/numpyro so leave this as an optional test locally.

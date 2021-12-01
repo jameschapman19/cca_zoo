@@ -32,7 +32,15 @@ class SplitAE(_DCCA_base):
         z = self.encoder(args[0])
         return [z]
 
-    def decode(self, z):
+    def recon(self, *args):
+        """
+        :param args:
+        :return:
+        """
+        z = self(*args)
+        return self._decode(z)
+
+    def _decode(self, *z):
         """
         This method is used to decode from the latent space to the best prediction of the original views
 
@@ -40,12 +48,12 @@ class SplitAE(_DCCA_base):
         """
         recon = []
         for i, decoder in enumerate(self.decoders):
-            recon.append(decoder(z))
+            recon.append(decoder(*z))
         return tuple(recon)
 
     def loss(self, *args):
         z = self(*args)
-        recon = self.decode(*z)
+        recon = self._decode(*z)
         recon_loss = self.recon_loss(args, recon)
         return recon_loss
 

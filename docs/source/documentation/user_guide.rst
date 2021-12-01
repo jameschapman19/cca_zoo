@@ -1,8 +1,6 @@
 User Guide
 ===========
 
-
-
 Model Fit
 ----------
 
@@ -44,7 +42,7 @@ to use a data driven approach.
 Model Transforms
 -----------------
 
-One models are fit we can transform the data to latent projections for each view
+Once models are fit we can transform the data to latent projections for each view
 
 .. sourcecode:: python
 
@@ -79,6 +77,16 @@ In applications of cca, we are often interested in the model weights. These can 
    view_1_weights=ridge.weights[0]
    view_2_weights=ridge.weights[1]
 
+Model Loadings
+-----------------
+
+Similarly we can access the loadings for a given set of samples
+
+.. sourcecode:: python
+
+   view_1_loadings, view_2_loadings=ridge.get_loadings([train_view_1, train_view_2])
+
+
 Deep Models
 ------------
 
@@ -97,25 +105,5 @@ We build our deep cca model using these encoders as inputs:
    from cca_zoo.deepmodels import DCCA
    dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
 
-This produces a PyTorch.nn.Module object which can be updated in a customised training loop. As a quick start, we also
-provide a DeepWrapper class which wraps the deep cca model and its training loop so that it shares the fit(), transform()
-and score() methods of the other models in the package.
-
-.. sourcecode:: python
-
-   from cca_zoo.deepmodels import DeepWrapper
-   dcca_model = DeepWrapper(dcca_model)
-   #datasets can be pytorch datasets which output ((view_1,view_2),label) or 2 or more numpy arrays
-   dcca_model.fit(train_dataset, val_dataset=val_dataset, epochs=epochs)
-
-We can now use:
-
-.. sourcecode:: python
-
-   dcca_model.score(train_dataset)
-
-And:
-
-.. sourcecode:: python
-
-   projection_1,projection_2=dcca_model.transform(train_dataset)
+This produces a PyTorch.nn.Module object which can be updated in a customised training loop. We also provide a LightningModule
+class from pytorch-lightning which can be used to train any of these models.

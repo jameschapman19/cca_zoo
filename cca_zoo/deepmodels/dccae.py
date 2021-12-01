@@ -53,7 +53,15 @@ class DCCAE(_DCCA_base):
             z.append(encoder(args[i]))
         return z
 
-    def decode(self, *z):
+    def recon(self, *args):
+        """
+        :param args:
+        :return:
+        """
+        z = self(*args)
+        return self._decode(*z)
+
+    def _decode(self, *z):
         """
         This method is used to decode from the latent space to the best prediction of the original views
 
@@ -65,13 +73,14 @@ class DCCAE(_DCCA_base):
 
     def loss(self, *args):
         z = self(*args)
-        recon = self.decode(*z)
+        recon = self._decode(*z)
         recon_loss = self._recon_loss(args[: len(recon)], recon)
         return self.lam * recon_loss + self.objective.loss(*z)
 
     @staticmethod
     def _recon_loss(x, recon):
         recons = [
-            F.mse_loss(recon_, x_, reduction="mean") for recon_, x_ in zip(recon, x)
+            F.binary_cross_entropy(recon_, x_, reduction="mean")
+            for recon_, x_ in zip(recon, x)
         ]
         return torch.stack(recons).sum(dim=0)

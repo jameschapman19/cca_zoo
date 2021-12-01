@@ -1,9 +1,8 @@
 from abc import abstractmethod
 from math import sqrt
-from typing import Iterable, Tuple
+from typing import Iterable
 
 import torch
-from torch.nn import functional as F
 
 
 class BaseEncoder(torch.nn.Module):
@@ -271,92 +270,6 @@ class CNNDecoder(BaseDecoder):
         return x
 
 
-# https://github.com/nicofarr/brainnetcnnVis_pytorch/blob/master/BrainNetCnnGoldMSI.py
-class E2EBlock(torch.nn.Module):
-    def __init__(self, in_planes, planes, size, bias=False):
-        super(E2EBlock, self).__init__()
-        self.d = size
-        self.cnn1 = torch.nn.Conv2d(in_planes, planes, (1, self.d), bias=bias)
-        self.cnn2 = torch.nn.Conv2d(in_planes, planes, (self.d, 1), bias=bias)
-
-    def forward(self, x):
-        a = self.cnn1(x)
-        b = self.cnn2(x)
-        return torch.cat([a] * self.d, 3) + torch.cat([b] * self.d, 2)
-
-
-class E2EBlockReverse(torch.nn.Module):
-    def __init__(self, in_planes, planes, size, bias=False):
-        super(E2EBlockReverse, self).__init__()
-
-        self.d = size
-        self.cnn1 = torch.nn.ConvTranspose2d(in_planes, planes, (1, self.d), bias=bias)
-        self.cnn2 = torch.nn.ConvTranspose2d(in_planes, planes, (self.d, 1), bias=bias)
-
-    def forward(self, x):
-        a = self.cnn1(x)
-        b = self.cnn2(x)
-        return torch.cat([a] * self.d, 3) + torch.cat([b] * self.d, 2)
-
-
-# BrainNetCNN Network for fitting Gold-MSI on LSD dataset
-class BrainNetEncoder(BaseEncoder):
-    def __init__(
-        self,
-        latent_dims: int,
-        variational: bool = False,
-        feature_size: Tuple[int] = (200, ...),
-    ):
-        super(BrainNetEncoder, self).__init__(latent_dims, variational=variational)
-        _check_feature_size(feature_size)
-        self.d = feature_size[0]
-        self.e2econv1 = E2EBlock(1, 32, self.d, bias=True)
-        self.e2econv2 = E2EBlock(32, 64, self.d, bias=True)
-        self.E2N = torch.nn.Conv2d(64, 1, (1, self.d))
-        self.N2G = torch.nn.Conv2d(1, 256, (self.d, 1))
-        self.dense1 = torch.nn.Linear(256, 128)
-        self.dense2 = torch.nn.Linear(128, 30)
-        self.dense3 = torch.nn.Linear(30, latent_dims)
-
-    def forward(self, x):
-        out = F.leaky_relu(self.e2econv1(x), negative_slope=0.33)  # B,32,200,200
-        out = F.leaky_relu(self.e2econv2(out), negative_slope=0.33)  # B,64,200,200
-        out = F.leaky_relu(self.E2N(out), negative_slope=0.33)  # B,1,200,1
-        out = F.dropout(
-            F.leaky_relu(self.N2G(out), negative_slope=0.33), p=0.5
-        )  # B,256,1,1
-        out = out.view(out.shape[0], -1)  # B,256
-        out = F.dropout(F.leaky_relu(self.dense1(out), negative_slope=0.33), p=0.5)
-        out = F.dropout(F.leaky_relu(self.dense2(out), negative_slope=0.33), p=0.5)
-        out = F.leaky_relu(self.dense3(out), negative_slope=0.33)
-        return out
-
-
-class BrainNetDecoder(BaseDecoder):
-    def __init__(self, latent_dims: int, feature_size: Tuple[int] = (200, ...)):
-        super(BrainNetDecoder, self).__init__(latent_dims)
-        _check_feature_size(feature_size)
-        self.d = feature_size[0]
-        self.e2econv1 = E2EBlock(32, 1, self.d, bias=True)
-        self.e2econv2 = E2EBlock(64, 32, self.d, bias=True)
-        self.E2N = torch.nn.ConvTranspose2d(1, 64, (1, self.d))
-        self.N2G = torch.nn.ConvTranspose2d(256, 1, (self.d, 1))
-        self.dense1 = torch.nn.Linear(128, 256)
-        self.dense2 = torch.nn.Linear(30, 128)
-        self.dense3 = torch.nn.Linear(latent_dims, 30)
-
-    def forward(self, x):
-        out = F.dropout(F.leaky_relu(self.dense3(x), negative_slope=0.33), p=0.5)
-        out = F.dropout(F.leaky_relu(self.dense2(out), negative_slope=0.33), p=0.5)
-        out = F.leaky_relu(self.dense1(out), negative_slope=0.33)
-        out = out.view(out.size(0), out.size(1), 1, 1)
-        out = F.dropout(F.leaky_relu(self.N2G(out), negative_slope=0.33), p=0.5)
-        out = F.leaky_relu(self.E2N(out), negative_slope=0.33)
-        out = F.leaky_relu(self.e2econv2(out), negative_slope=0.33)
-        out = F.leaky_relu(self.e2econv1(out), negative_slope=0.33)
-        return out
-
-
 class LinearEncoder(BaseEncoder):
     def __init__(self, latent_dims: int, feature_size: int, variational: bool = False):
         super(LinearEncoder, self).__init__(latent_dims, variational=variational)
@@ -386,11 +299,3 @@ class LinearDecoder(BaseDecoder):
     def forward(self, x):
         out = self.linear(x)
         return out
-
-
-def _check_feature_size(feature_size):
-    if feature_size[0] != feature_size[1]:
-        raise ValueError(
-            "BrainNetCNN requires a pair of feature_size of the"
-            f"same value. feature_size={feature_size}."
-        )

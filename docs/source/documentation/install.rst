@@ -25,6 +25,7 @@ with windows installation, we do not install them by default. To access these,
 
 * [deep]: ``Deep Learning Based Models``
 * [probabilistic]: ``Probabilistic Models``
+* [all]: ``Include both Probabilistic and Deep Learning Based Models``
 
 If you wish to use these functions, you must install their required dependencies. These are listed in the package requirements folder with corresponding keyword names for manual installation or can be installed from PyPI by simply calling::
 

@@ -12,12 +12,10 @@ Look how easy it is to use:
    from cca_zoo.models import CCA
    from cca_zoo.data import generate_covariance_data
    # %%
-   (train_view_1,train_view_2),(true_weights_1,true_weights_2)=generate_covariance_data(n=200,view_features=[10,10],latent_dims=1,correlation=1)
+   n_samples=100
+   (train_view_1,train_view_2),(true_weights_1,true_weights_2)=generate_covariance_data(n=n_samples,view_features=[10,10],latent_dims=1,correlation=1)
 
    linear_cca = CCA(latent_dims=latent_dims, max_iter=max_iter)
 
    linear_cca.fit((train_view_1, train_view_2))
-
-In addition to the code snippets in the user guide section, we provide a number of tutorial notebooks hosted on google
-colab at https://github.com/jameschapman19/cca_zoo/tree/main/tutorial_notebooks
 

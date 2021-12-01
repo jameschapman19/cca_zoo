@@ -8,11 +8,11 @@ from cca_zoo.data.utils import CCA_Dataset
 
 
 def process_data(
-    dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
-    val_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]] = None,
-    labels=None,
-    val_labels=None,
-    val_split: float = 0,
+        dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
+        val_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]] = None,
+        labels=None,
+        val_labels=None,
+        val_split: float = 0,
 ):
     # Ensure datasets are in the right form (e.g. if numpy arrays are passed turn them into
     if isinstance(dataset, tuple):
@@ -29,7 +29,7 @@ def process_data(
 
 
 def get_dataloaders(
-    dataset, val_dataset=None, batch_size=None, val_batch_size=None, num_workers=0
+        dataset, val_dataset=None, batch_size=None, val_batch_size=None, num_workers=0
 ):
     if batch_size is None:
         batch_size = len(dataset)
