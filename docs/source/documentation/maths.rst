@@ -12,7 +12,7 @@ The first principle component can be written as the solution to the convex optim
 
 .. math::
 
-    \w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_1w_1  \}
+    w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_1w_1  \}
 
     \text{subject to:}
 
@@ -28,7 +28,7 @@ It is tempting to write a slightly different optimisation problem:
 
 .. math::
 
-    \w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}
+    w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}
 
     \text{subject to:}
 
@@ -47,7 +47,7 @@ in each view as well as the weights. This makes them data dependent.
 
 .. math::
 
-    \w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}
+    w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}
 
     \text{subject to:}
 
@@ -66,7 +66,7 @@ way to the 'ridge' regularisation in Ridge Regression.
 
 .. math::
 
-    \w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}
+    w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}
 
     \text{subject to:}
 
@@ -82,7 +82,7 @@ sparsity on the weights. In general these can be written in a form somewhat simi
 
 .. math::
 
-    \w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2 + \lambda_1f_1(w_1) + \lambda_2f_2(w_2)  \}
+    w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2 + \lambda_1f_1(w_1) + \lambda_2f_2(w_2)  \}
 
     \text{subject to:}
 
@@ -100,7 +100,7 @@ By expressing the weights as :math:`w_i=\alpha_iX_i` we can transform the CCA pr
 
 .. math::
 
-    \\alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{ \alpha_1^TK_1^TK_2\alpha_2  \}
+    \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{ \alpha_1^TK_1^TK_2\alpha_2  \}
 
     \text{subject to:}
 
@@ -111,6 +111,39 @@ By expressing the weights as :math:`w_i=\alpha_iX_i` we can transform the CCA pr
 Finally we can also consider more general kernel matrices without loss of generalisation. A similar reparameterization
 exists for PLS and therefore for ridge regularized CCA.
 
+Multiset CCA
+----------------
+
+Ridge Regularized CCA can be generalized to find correlations between more than one view with the formulation:
+
+.. math::
+
+    w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} w_i^TX_i^TX_jw_j  \}\\
+
+    \text{subject to:}
+
+    (1-c_i)w_i^TX_i^TX_iw_i+c_iw_i^Tw_i=1
+
+This form is often referred to as SUMCOR CCA because it optimizes for the pairwise sum of . This can be formulated as a
+generalized eigenvalue problem and therefore solved efficiently.
+
+Generalized CCA
+-----------------
+
+Ridge Regularized CCA can be generalized to find correlations between more than one view with the formulation:
+
+.. math::
+
+    w_{opt}=\underset{w}{\mathrm{argmax}}\{ \sum_iw_i^TX_i^TT  \}\\
+
+    \text{subject to:}
+
+    T^TT=1
+
+This form is often referred to as MAXVAR CCA since it finds an auxiliary vector :math:`T` with fixed unit norm that has
+maximum sum of variance with each view. This can also be formulated as a generalized eigenvalue problem and
+therefore solved efficiently.
+
 Deep CCA
 ----------
 
@@ -119,7 +152,7 @@ The ideas behind CCA can be extended to a general form where instead of linear w
 
 .. math::
 
-    \w_{opt}=\underset{w}{\mathrm{argmax}}\{ f(X_1)^Tf(X_2)  \}
+    w_{opt}=\underset{w}{\mathrm{argmax}}\{ f(X_1)^Tf(X_2)  \}
 
     \text{subject to:}
 
