@@ -3,6 +3,8 @@ import scipy.sparse as sp
 from sklearn.utils.fixes import loguniform
 from sklearn.utils.validation import check_random_state
 import pytest
+
+from cca_zoo.data import generate_covariance_data
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.models import (
     rCCA,
@@ -330,12 +332,10 @@ def test_VCCA():
     from cca_zoo.data import generate_simple_data
 
     # Tests tensor CCA methods
-    (X, Y), (_) = generate_simple_data(20, [9, 9], random_state=rng, eps=0.1)
+    (X, Y), (_) = generate_covariance_data(20, [9, 9])
     latent_dims = 1
     cca = CCA(latent_dims=latent_dims).fit([X, Y])
-    vcca = VariationalCCA(latent_dims=latent_dims, num_warmup=500, num_samples=500).fit(
-        [X, Y]
-    )
+    vcca = VariationalCCA(latent_dims=latent_dims, num_warmup=1000, num_samples=1000).fit([X, Y])
     # Test that vanilla CCA and VCCA produce roughly similar latent space
     assert (
         np.corrcoef(
