@@ -153,16 +153,16 @@ class _Iterative(_CCA_Base):
             pls_scores = MCCA(self.latent_dims,c=1).fit_transform(views)
             while True:
                 yield np.stack(
-                    (pls_scores[0][:, latent_dim], pls_scores[1][:, latent_dim])
-                )
+                    pls_scores
+                )[:,:, latent_dim]
                 latent_dim += 1
         elif initialization == "cca":
             latent_dim = 0
             cca_scores = MCCA(self.latent_dims).fit_transform(views)
             while True:
                 yield np.stack(
-                    (cca_scores[0][:, latent_dim], cca_scores[1][:, latent_dim])
-                )
+                    cca_scores
+                )[:,:, latent_dim]
                 latent_dim += 1
         else:
             raise ValueError(
