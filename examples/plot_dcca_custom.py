@@ -6,6 +6,7 @@ Showing some examples of more advanced functionality with DCCA and pytorch-light
 """
 
 import numpy as np
+
 # %%
 import pytorch_lightning as pl
 from torch import optim

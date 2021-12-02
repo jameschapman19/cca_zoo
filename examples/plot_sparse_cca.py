@@ -62,7 +62,7 @@ pls = PLS().fit([X, Y])
 plot_model_weights(pls.weights[0], pls.weights[1], tx, ty)
 
 # %%
-pmd = PMD(c=[2, 2]).fit([X, Y])
+pmd = PMD(c=[0.5, 0.5]).fit([X, Y])
 plot_model_weights(pmd.weights[0], pmd.weights[1], tx, ty)
 
 # %%
@@ -73,8 +73,8 @@ plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
 # %%
-c1 = [1, 3, 7, 9]
-c2 = [1, 3, 7, 9]
+c1 = [0.1, 0.3, 0.7, 0.9]
+c2 = [0.1, 0.3, 0.7, 0.9]
 param_grid = {"c": [c1, c2]}
 pmd = GridSearchCV(PMD(), param_grid=param_grid, cv=3, verbose=True).fit([X, Y])
 
