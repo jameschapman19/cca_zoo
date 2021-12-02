@@ -114,11 +114,11 @@ class ParameterSampler:
             for key in dist:
                 if isinstance(dist[key], Iterable):
                     if any(
-                        [
-                            not isinstance(view_param, Iterable)
-                            and not hasattr(view_param, "rvs")
-                            for view_param in dist[key]
-                        ]
+                            [
+                                not isinstance(view_param, Iterable)
+                                and not hasattr(view_param, "rvs")
+                                for view_param in dist[key]
+                            ]
                     ):
                         raise TypeError(
                             "Parameter value for at least one view is not iterable "
@@ -148,11 +148,11 @@ class ParameterSampler:
                 if isinstance(v, Iterable):
                     # if each element is a distribution for each view (i.e. it is a non-string Iterable) then call return_param for each view
                     if any(
-                        [
-                            (isinstance(v_, Iterable) and not isinstance(v_, str))
-                            or hasattr(v_, "rvs")
-                            for v_ in v
-                        ]
+                            [
+                                (isinstance(v_, Iterable) and not isinstance(v_, str))
+                                or hasattr(v_, "rvs")
+                                for v_ in v
+                            ]
                     ):
                         params[k] = [self.return_param(v_) for v_ in v]
                     # if the parameter is shared across views then the list will just contain non-iterable values
@@ -180,17 +180,17 @@ class ParameterSampler:
 
 class BaseSearchCV(SKBaseSearchCV):
     def __init__(
-        self,
-        estimator,
-        *,
-        scoring=None,
-        n_jobs=None,
-        refit=True,
-        cv=None,
-        verbose=0,
-        pre_dispatch="2*n_jobs",
-        error_score=np.nan,
-        return_train_score=True,
+            self,
+            estimator,
+            *,
+            scoring=None,
+            n_jobs=None,
+            refit=True,
+            cv=None,
+            verbose=0,
+            pre_dispatch="2*n_jobs",
+            error_score=np.nan,
+            return_train_score=True,
     ):
         super().__init__(
             estimator=estimator,
@@ -625,18 +625,18 @@ class GridSearchCV(BaseSearchCV):
     _required_parameters = ["estimator", "param_grid"]
 
     def __init__(
-        self,
-        estimator,
-        param_grid,
-        *,
-        scoring=None,
-        n_jobs=None,
-        refit=True,
-        cv=None,
-        verbose=0,
-        pre_dispatch="2*n_jobs",
-        error_score=np.nan,
-        return_train_score=False,
+            self,
+            estimator,
+            param_grid,
+            *,
+            scoring=None,
+            n_jobs=None,
+            refit=True,
+            cv=None,
+            verbose=0,
+            pre_dispatch="2*n_jobs",
+            error_score=np.nan,
+            return_train_score=False,
     ):
         super().__init__(
             estimator=estimator,
@@ -889,20 +889,20 @@ class RandomizedSearchCV(BaseSearchCV):
     _required_parameters = ["estimator", "param_distributions"]
 
     def __init__(
-        self,
-        estimator,
-        param_distributions,
-        *,
-        n_iter=10,
-        scoring=None,
-        n_jobs=None,
-        refit=True,
-        cv=None,
-        verbose=0,
-        pre_dispatch="2*n_jobs",
-        random_state=None,
-        error_score=np.nan,
-        return_train_score=False,
+            self,
+            estimator,
+            param_distributions,
+            *,
+            n_iter=10,
+            scoring=None,
+            n_jobs=None,
+            refit=True,
+            cv=None,
+            verbose=0,
+            pre_dispatch="2*n_jobs",
+            random_state=None,
+            error_score=np.nan,
+            return_train_score=False,
     ):
         self.param_distributions = param_distributions
         self.n_iter = n_iter

@@ -11,7 +11,7 @@ from sklearn.linear_model import (
 from sklearn.utils._testing import ignore_warnings
 from sklearn.utils.validation import check_random_state
 
-from ..utils.check_values import (
+from cca_zoo.utils.check_values import (
     _check_converged_weights,
     _check_Parikh2014,
     _process_parameter,
@@ -29,8 +29,8 @@ class _InnerLoop:
         """
         :param max_iter: maximum number of iterations to perform if tol is not reached
         :param tol: tolerance value used for stopping criteria
-        :param initialization: initialise the optimisation with either the 'unregularized' (CCA/PLS) solution, or a 'random' initialisation
         """
+        self.track = {"converged": False, "objective": []}
         self.scores = initial_scores
         self.max_iter = max_iter
         self.tol = tol
@@ -42,17 +42,14 @@ class _InnerLoop:
         """
         pass
 
-    def _fit(self, *views: np.ndarray):
+    def fit(self, *views: np.ndarray):
         self.views = views
         self.n = views[0].shape[0]
 
         # Check that the parameters that have been passed are valid for these views given #views and #features
         self._check_params()
         self.weights = [self.random_state.randn(view.shape[1]) for view in self.views]
-        self.track = {}
-        self.track["converged"] = False
         # Iterate until convergence
-        self.track["objective"] = []
         for _ in range(self.max_iter):
             self._inner_iteration()
             if np.isnan(self.scores).sum() > 0:
@@ -88,7 +85,7 @@ class _InnerLoop:
         return obj.item()
 
 
-class PLSInnerLoop(_InnerLoop):
+class _PLSInnerLoop(_InnerLoop):
     def __init__(
             self,
             max_iter: int = 100,
@@ -145,7 +142,7 @@ class PLSInnerLoop(_InnerLoop):
             return False
 
 
-class PMDInnerLoop(PLSInnerLoop):
+class _PMDInnerLoop(_PLSInnerLoop):
     def __init__(
             self,
             max_iter: int = 100,
@@ -172,7 +169,8 @@ class PMDInnerLoop(PLSInnerLoop):
         self.c = _process_parameter("c", self.c, 1, len(self.views))
         if any(c < 0 or c > 1 for c in self.c):
             raise ValueError(
-                "All regularisation parameters should be between 0 and 1 " f"1. c=[{self.c}]"
+                "All regularisation parameters should be between 0 and 1 "
+                f"1. c=[{self.c}]"
             )
         shape_sqrts = [np.sqrt(view.shape[1]) for view in self.views]
         self.t = [max(1, x * y) for x, y in zip(self.c, shape_sqrts)]
@@ -201,7 +199,7 @@ class PMDInnerLoop(PLSInnerLoop):
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
 
-class ParkhomenkoInnerLoop(PLSInnerLoop):
+class _ParkhomenkoInnerLoop(_PLSInnerLoop):
     def __init__(
             self,
             max_iter: int = 100,
@@ -240,7 +238,7 @@ class ParkhomenkoInnerLoop(PLSInnerLoop):
         self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
 
 
-class ElasticInnerLoop(PLSInnerLoop):
+class _ElasticInnerLoop(_PLSInnerLoop):
     def __init__(
             self,
             max_iter: int = 100,
@@ -354,7 +352,7 @@ class ElasticInnerLoop(PLSInnerLoop):
             return False
 
 
-class ADMMInnerLoop(ElasticInnerLoop):
+class _ADMMInnerLoop(_ElasticInnerLoop):
     def __init__(
             self,
             max_iter: int = 100,
@@ -473,7 +471,7 @@ class ADMMInnerLoop(ElasticInnerLoop):
             return x / max(1, norm)
 
 
-class SpanCCAInnerLoop(_InnerLoop):
+class _SpanCCAInnerLoop(_InnerLoop):
     def __init__(
             self,
             max_iter: int = 100,
@@ -534,7 +532,7 @@ class SpanCCAInnerLoop(_InnerLoop):
             self.weights[1] = v
 
 
-class SWCCAInnerLoop(PLSInnerLoop):
+class _SWCCAInnerLoop(_PLSInnerLoop):
     def __init__(
             self,
             max_iter: int = 100,

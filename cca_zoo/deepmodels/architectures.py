@@ -30,11 +30,11 @@ class BaseDecoder(torch.nn.Module):
 
 class Encoder(BaseEncoder):
     def __init__(
-        self,
-        latent_dims: int,
-        variational: bool = False,
-        feature_size: int = 784,
-        layer_sizes: Iterable = None,
+            self,
+            latent_dims: int,
+            variational: bool = False,
+            feature_size: int = 784,
+            layer_sizes: Iterable = None,
     ):
         super(Encoder, self).__init__(latent_dims, variational=variational)
         if layer_sizes is None:
@@ -77,11 +77,11 @@ class Encoder(BaseEncoder):
 
 class Decoder(BaseDecoder):
     def __init__(
-        self,
-        latent_dims: int,
-        feature_size: int = 784,
-        layer_sizes: list = None,
-        norm_output: bool = False,
+            self,
+            latent_dims: int,
+            feature_size: int = 784,
+            layer_sizes: list = None,
+            norm_output: bool = False,
     ):
         super(Decoder, self).__init__(latent_dims)
         if layer_sizes is None:
@@ -125,14 +125,14 @@ class Decoder(BaseDecoder):
 
 class CNNEncoder(BaseEncoder):
     def __init__(
-        self,
-        latent_dims: int,
-        variational: bool = False,
-        feature_size: Iterable = (28, 28),
-        channels: list = None,
-        kernel_sizes: list = None,
-        stride: list = None,
-        padding: list = None,
+            self,
+            latent_dims: int,
+            variational: bool = False,
+            feature_size: Iterable = (28, 28),
+            channels: list = None,
+            kernel_sizes: list = None,
+            stride: list = None,
+            padding: list = None,
     ):
         super(CNNEncoder, self).__init__(latent_dims, variational=variational)
         if channels is None:
@@ -198,14 +198,14 @@ class CNNEncoder(BaseEncoder):
 
 class CNNDecoder(BaseDecoder):
     def __init__(
-        self,
-        latent_dims: int,
-        feature_size: Iterable = (28, 28),
-        channels: list = None,
-        kernel_sizes=None,
-        strides=None,
-        paddings=None,
-        norm_output: bool = False,
+            self,
+            latent_dims: int,
+            feature_size: Iterable = (28, 28),
+            channels: list = None,
+            kernel_sizes=None,
+            strides=None,
+            paddings=None,
+            norm_output: bool = False,
     ):
         super(CNNDecoder, self).__init__(latent_dims)
         if channels is None:
@@ -228,7 +228,7 @@ class CNNDecoder(BaseDecoder):
         # Loop backward through decoding layers in order to work out the dimensions at each layer - in particular the first
         # linear layer needs to know B*current_size*current_size*channels
         for l_id, (channel, kernel, stride, padding) in reversed(
-            list(enumerate(zip(channels, kernel_sizes, strides, paddings)))
+                list(enumerate(zip(channels, kernel_sizes, strides, paddings)))
         ):
             conv_layers.append(
                 torch.nn.Sequential(

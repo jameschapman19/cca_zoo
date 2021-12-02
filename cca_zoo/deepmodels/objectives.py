@@ -199,10 +199,10 @@ class CCA:
 
         SigmaHat12 = (1.0 / (n - 1)) * H1bar.T @ H2bar
         SigmaHat11 = (1 - self.r) * (
-            1.0 / (n - 1)
+                1.0 / (n - 1)
         ) * H1bar.T @ H1bar + self.r * torch.eye(o1, device=H1.device)
         SigmaHat22 = (1 - self.r) * (
-            1.0 / (n - 1)
+                1.0 / (n - 1)
         ) * H2bar.T @ H2bar + self.r * torch.eye(o2, device=H2.device)
 
         SigmaHat11RootInv = torch.linalg.inv(

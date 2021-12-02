@@ -17,14 +17,14 @@ class DCCAE(_DCCA_base):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        objective=objectives.MCCA,
-        encoders=None,
-        decoders=None,
-        r: float = 0,
-        eps: float = 1e-3,
-        lam=0.5,
+            self,
+            latent_dims: int,
+            objective=objectives.MCCA,
+            encoders=None,
+            decoders=None,
+            r: float = 0,
+            eps: float = 1e-3,
+            lam=0.5,
     ):
         """
         :param latent_dims: # latent dimensions

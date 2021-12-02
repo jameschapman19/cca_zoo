@@ -6,17 +6,17 @@ from typing import Union, Iterable
 import numpy as np
 
 from cca_zoo.models import PLS, CCA
-from cca_zoo.models.cca_base import _CCA_Base
-from cca_zoo.models.innerloop import (
-    PLSInnerLoop,
-    PMDInnerLoop,
-    ParkhomenkoInnerLoop,
-    ElasticInnerLoop,
-    ADMMInnerLoop,
-    SpanCCAInnerLoop,
-    SWCCAInnerLoop,
+from cca_zoo.models._cca_base import _CCA_Base
+from cca_zoo.models._innerloop import (
+    _PLSInnerLoop,
+    _PMDInnerLoop,
+    _ParkhomenkoInnerLoop,
+    _ElasticInnerLoop,
+    _ADMMInnerLoop,
+    _SpanCCAInnerLoop,
+    _SWCCAInnerLoop,
 )
-from cca_zoo.utils import check_views
+from cca_zoo.utils.check_values import _check_views
 
 
 class _Iterative(_CCA_Base):
@@ -47,8 +47,7 @@ class _Iterative(_CCA_Base):
         :param random_state: Pass for reproducible output across multiple function calls
         :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-
-        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for iterative methods
         :param tol: tolerance value used for early stopping
         """
         super().__init__(
@@ -70,7 +69,7 @@ class _Iterative(_CCA_Base):
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
-        views = check_views(
+        views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )
         views = self._centre_scale(views)
@@ -92,7 +91,7 @@ class _Iterative(_CCA_Base):
         # For each of the dimensions
         for k in range(self.latent_dims):
             self._set_loop_params()
-            self.loop = self.loop._fit(*residuals)
+            self.loop = self.loop.fit(*residuals)
             for i, residual in enumerate(residuals):
                 self.weights[i][:, k] = self.loop.weights[i].ravel()
                 self.scores[i][:, k] = self.loop.scores[i].ravel()
@@ -101,8 +100,10 @@ class _Iterative(_CCA_Base):
                     residuals[i], self.scores[i][:, k], self.weights[i][:, k]
                 )
             self.track.append(self.loop.track)
-            if self.track[-1]["converged"] == False:
-                warnings.warn(f"Inner loop {k} did not converge or converged to nans")
+            if not self.track[-1]["converged"]:
+                warnings.warn(
+                    f"Inner loop {k} not converged. Increase number of iterations."
+                )
         return self
 
     def _deflate(self, residual, score, loading):
@@ -128,7 +129,7 @@ class _Iterative(_CCA_Base):
         """
         Sets up the inner optimization loop for the method. By default uses the PLS inner loop.
         """
-        self.loop = PLSInnerLoop(
+        self.loop = _PLSInnerLoop(
             max_iter=self.max_iter,
             initial_scores=next(self.initialization),
             random_state=self.random_state,
@@ -149,8 +150,6 @@ class _Iterative(_CCA_Base):
         elif initialization == "pls":
             latent_dim = 0
             pls_scores = PLS(self.latent_dims).fit_transform(views)
-            pls_weights = PLS(self.latent_dims).fit(views).weights
-            print()
             while True:
                 yield np.stack(
                     (pls_scores[0][:, latent_dim], pls_scores[1][:, latent_dim])
@@ -193,7 +192,7 @@ class PLS_ALS(_Iterative):
     >>> X2 = rng.random((10,5))
     >>> model = PLS_ALS(random_state=0)
     >>> model.fit((X1,X2)).score((X1,X2))
-    array([0.81796873])
+    array([0.81796854])
     """
 
     def __init__(
@@ -216,7 +215,7 @@ class PLS_ALS(_Iterative):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for iterative methods
         :param tol: tolerance value used for early stopping
         """
         super().__init__(
@@ -232,7 +231,7 @@ class PLS_ALS(_Iterative):
         )
 
     def _set_loop_params(self):
-        self.loop = PLSInnerLoop(
+        self.loop = _PLSInnerLoop(
             max_iter=self.max_iter,
             initial_scores=next(self.initialization),
             tol=self.tol,
@@ -295,7 +294,7 @@ class ElasticCCA(_Iterative):
         :param random_state: Pass for reproducible output across multiple function calls
         :param deflation: the type of deflation.
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for iterative methods
         :param tol: tolerance value used for early stopping
         :param c: lasso alpha
         :param l1_ratio: l1 ratio in lasso subproblems
@@ -326,7 +325,7 @@ class ElasticCCA(_Iterative):
         )
 
     def _set_loop_params(self):
-        self.loop = ElasticInnerLoop(
+        self.loop = _ElasticInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
             l1_ratio=self.l1_ratio,
@@ -390,7 +389,7 @@ class CCA_ALS(ElasticCCA):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: initialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for iterative methods
         :param tol: tolerance value used for early stopping
         :param stochastic: use stochastic regression optimisers for subproblems
         :param positive: constrain model weights to be positive
@@ -438,7 +437,7 @@ class SCCA(ElasticCCA):
     >>> X2 = rng.random((10,5))
     >>> model = SCCA(c=[0.001,0.001], random_state=0)
     >>> model.fit((X1,X2)).score((X1,X2))
-    array([0.99998919])
+    array([0.99998761])
     """
 
     def __init__(
@@ -467,7 +466,7 @@ class SCCA(ElasticCCA):
         :param random_state: Pass for reproducible output across multiple function calls
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
         :param maxvar: use auxiliary variable "maxvar" form
-        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for iterative methods
         :param tol: tolerance value used for early stopping
         :param c: lasso alpha
         :param stochastic: use stochastic regression optimisers for subproblems
@@ -518,7 +517,7 @@ class PMD(_Iterative):
     >>> X2 = rng.random((10,5))
     >>> model = PMD(c=[1,1],random_state=0)
     >>> model.fit((X1,X2)).score((X1,X2))
-    array([0.69792082])
+    array([0.81796873])
     """
 
     def __init__(
@@ -545,7 +544,7 @@ class PMD(_Iterative):
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter between 1 and sqrt(number of features) for each view
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for iterative methods
         :param tol: tolerance value used for early stopping
         :param positive: constrain model weights to be positive
         """
@@ -564,7 +563,7 @@ class PMD(_Iterative):
         )
 
     def _set_loop_params(self):
-        self.loop = PMDInnerLoop(
+        self.loop = _PMDInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
             initial_scores=next(self.initialization),
@@ -599,7 +598,7 @@ class ParkhomenkoCCA(_Iterative):
     >>> X2 = rng.random((10,5))
     >>> model = ParkhomenkoCCA(c=[0.001,0.001],random_state=0)
     >>> model.fit((X1,X2)).score((X1,X2))
-    array([0.81803543])
+    array([0.81803527])
     """
 
     def __init__(
@@ -625,7 +624,7 @@ class ParkhomenkoCCA(_Iterative):
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for iterative methods
         :param tol: tolerance value used for early stopping
         """
         self.c = c
@@ -642,7 +641,7 @@ class ParkhomenkoCCA(_Iterative):
         )
 
     def _set_loop_params(self):
-        self.loop = ParkhomenkoInnerLoop(
+        self.loop = _ParkhomenkoInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
             initial_scores=next(self.initialization),
@@ -674,9 +673,9 @@ class SCCA_ADMM(_Iterative):
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
-    >>> model = SCCA_ADMM(random_state=0)
+    >>> model = SCCA_ADMM(random_state=0,c=[1e-1,1e-1])
     >>> model.fit((X1,X2)).score((X1,X2))
-    array([0.99999997])
+    array([0.84348183])
     """
 
     def __init__(
@@ -705,7 +704,7 @@ class SCCA_ADMM(_Iterative):
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for iterative methods
         :param tol: tolerance value used for early stopping
         :param mu:
         :param lam:
@@ -728,7 +727,7 @@ class SCCA_ADMM(_Iterative):
         )
 
     def _set_loop_params(self):
-        self.loop = ADMMInnerLoop(
+        self.loop = _ADMMInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
             mu=self.mu,
@@ -793,7 +792,7 @@ class SpanCCA(_Iterative):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for iterative methods
         :param tol: tolerance value used for early stopping
         :param regularisation:
         :param c: regularisation parameter
@@ -817,7 +816,7 @@ class SpanCCA(_Iterative):
         self.positive = positive
 
     def _set_loop_params(self):
-        self.loop = SpanCCAInnerLoop(
+        self.loop = _SpanCCAInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
             initial_scores=next(self.initialization),
@@ -850,19 +849,19 @@ class SWCCA(_Iterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        max_iter: int = 500,
-        initialization: str = "uniform",
-        tol: float = 1e-9,
-        regularisation="l0",
-        c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
-        sample_support=None,
-        positive=False,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            max_iter: int = 500,
+            initialization: str = "uniform",
+            tol: float = 1e-9,
+            regularisation="l0",
+            c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+            sample_support=None,
+            positive=False,
     ):
         """
 
@@ -872,7 +871,7 @@ class SWCCA(_Iterative):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: intialization for optimisation. 'unregularized' uses CCA or PLS solution,'random' uses random initialization,'uniform' uses uniform initialization of weights and scores
+        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for iterative methods
         :param tol: tolerance value used for early stopping
         :param regularisation: the type of regularisation on the weights either 'l0' or 'l1'
         :param c: regularisation parameter
@@ -896,7 +895,7 @@ class SWCCA(_Iterative):
         )
 
     def _set_loop_params(self):
-        self.loop = SWCCAInnerLoop(
+        self.loop = _SWCCAInnerLoop(
             max_iter=self.max_iter,
             initial_scores=next(self.initialization),
             tol=self.tol,

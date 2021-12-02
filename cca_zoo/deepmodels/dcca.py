@@ -17,12 +17,12 @@ class DCCA(_DCCA_base):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        objective=objectives.MCCA,
-        encoders=None,
-        r: float = 0,
-        eps: float = 1e-3,
+            self,
+            latent_dims: int,
+            objective=objectives.MCCA,
+            encoders=None,
+            r: float = 0,
+            eps: float = 1e-3,
     ):
         """
         Constructor class for DCCA

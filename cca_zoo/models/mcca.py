@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo.models import rCCA
-from cca_zoo.utils.check_values import _process_parameter, check_views
+from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 
 class MCCA(rCCA):
@@ -40,14 +40,14 @@ class MCCA(rCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        eps=1e-3,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            eps=1e-3,
     ):
         """
         Constructor for MCCA
@@ -95,7 +95,7 @@ class MCCA(rCCA):
         eigvecs = eigvecs * eigvals
         eigvecs = eigvecs[:, idx].real
         self.weights = [
-            eigvecs[split : self.splits[i + 1]]
+            eigvecs[split: self.splits[i + 1]]
             for i, split in enumerate(self.splits[:-1])
         ]
 
@@ -128,19 +128,19 @@ class KCCA(MCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        eps=1e-3,
-        kernel: Iterable[Union[float, callable]] = None,
-        gamma: Iterable[float] = None,
-        degree: Iterable[float] = None,
-        coef0: Iterable[float] = None,
-        kernel_params: Iterable[dict] = None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            eps=1e-3,
+            kernel: Iterable[Union[float, callable]] = None,
+            gamma: Iterable[float] = None,
+            degree: Iterable[float] = None,
+            coef0: Iterable[float] = None,
+            kernel_params: Iterable[dict] = None,
     ):
         """
         :param latent_dims: number of latent dimensions to fit
@@ -222,7 +222,7 @@ class KCCA(MCCA):
         :param kwargs: any additional keyword arguments required by the given model
         """
         check_is_fitted(self, attributes=["weights"])
-        views = check_views(
+        views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )
         views = self._centre_scale_transform(views)

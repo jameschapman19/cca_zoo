@@ -6,7 +6,7 @@ from scipy import linalg
 from scipy.linalg import block_diag
 from sklearn.utils.validation import check_random_state
 
-from ..utils.check_values import _process_parameter
+from ..utils import _process_parameter
 
 
 def generate_covariance_data(
