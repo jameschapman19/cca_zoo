@@ -285,7 +285,7 @@ class PLS(rCCA):
             scale=scale,
             centre=centre,
             copy_data=copy_data,
-            c=[1.0, 1.0],
+            c=1,
             random_state=random_state,
         )
 

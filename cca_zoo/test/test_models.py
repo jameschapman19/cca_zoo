@@ -24,6 +24,7 @@ from cca_zoo.models import (
     NCCA,
     ParkhomenkoCCA,
     SCCA_ADMM,
+    PartialCCA,
 )
 from cca_zoo.utils.plotting import cv_plot
 
@@ -300,6 +301,12 @@ def test_l0():
     assert (np.abs(swcca.weights[0]) > 1e-5).sum() == 2
     assert (np.abs(swcca.weights[1]) > 1e-5).sum() == 2
     assert (np.abs(swcca.loop.sample_weights) > 1e-5).sum() == 5
+
+
+def test_partialcca():
+    pcca = PartialCCA(latent_dims=3)
+    pcca.fit((X, Y), confounds=Z)
+    assert np.allclose(np.corrcoef(pcca.transform((X, Y))[0], Z, rowvar=False), 0)
 
 
 def test_pls():

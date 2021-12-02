@@ -5,7 +5,7 @@ from typing import Union, Iterable
 
 import numpy as np
 
-from cca_zoo.models import PLS, CCA
+from cca_zoo.models import CCA, PLS
 from cca_zoo.models._cca_base import _CCA_Base
 from cca_zoo.models._innerloop import (
     _PLSInnerLoop,
@@ -149,6 +149,7 @@ class _Iterative(_CCA_Base):
                 yield np.array([np.ones(view.shape[0]) for view in views])
         elif initialization == "pls":
             latent_dim = 0
+            # use rCCA to use multiple views
             pls_scores = PLS(self.latent_dims).fit_transform(views)
             while True:
                 yield np.stack(
