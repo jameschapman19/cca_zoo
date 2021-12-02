@@ -11,7 +11,11 @@ from sklearn.linear_model import (
 from sklearn.utils._testing import ignore_warnings
 from sklearn.utils.validation import check_random_state
 
-from cca_zoo.utils.check_values import _check_converged_weights, _check_Parikh2014, _process_parameter
+from cca_zoo.utils.check_values import (
+    _check_converged_weights,
+    _check_Parikh2014,
+    _process_parameter,
+)
 
 
 class _InnerLoop:
@@ -165,7 +169,8 @@ class _PMDInnerLoop(_PLSInnerLoop):
         self.c = _process_parameter("c", self.c, 1, len(self.views))
         if any(c < 0 or c > 1 for c in self.c):
             raise ValueError(
-                "All regularisation parameters should be between 0 and 1 " f"1. c=[{self.c}]"
+                "All regularisation parameters should be between 0 and 1 "
+                f"1. c=[{self.c}]"
             )
         shape_sqrts = [np.sqrt(view.shape[1]) for view in self.views]
         self.t = [max(1, x * y) for x, y in zip(self.c, shape_sqrts)]

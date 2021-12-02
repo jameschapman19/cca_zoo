@@ -101,7 +101,9 @@ class _Iterative(_CCA_Base):
                 )
             self.track.append(self.loop.track)
             if not self.track[-1]["converged"]:
-                warnings.warn(f"Inner loop {k} not converged. Increase number of iterations.")
+                warnings.warn(
+                    f"Inner loop {k} not converged. Increase number of iterations."
+                )
         return self
 
     def _deflate(self, residual, score, loading):
