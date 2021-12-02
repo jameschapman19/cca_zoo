@@ -4,7 +4,6 @@
 [![Documentation Status](https://readthedocs.org/projects/cca-zoo/badge/?version=latest)](https://cca-zoo.readthedocs.io/en/latest/?badge=latest)
 [![version](https://img.shields.io/pypi/v/cca-zoo)](https://pypi.org/project/cca-zoo/)
 [![downloads](https://img.shields.io/pypi/dm/cca-zoo)](https://pypi.org/project/cca-zoo/)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/jameschapman19/cca_zoo/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/jameschapman19/cca_zoo/?branch=master)
 
 # Installation
 Note: for standard install use: 
