@@ -4,8 +4,8 @@ from typing import Iterable, Union
 import numpy as np
 from scipy.linalg import block_diag, eigh
 
-from cca_zoo.models.cca_base import _CCA_Base
-from cca_zoo.utils.check_values import _process_parameter, check_views
+from cca_zoo.models._cca_base import _CCA_Base
+from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 
 # from hyperopt import fmin, tpe, Trials
@@ -89,7 +89,7 @@ class rCCA(_CCA_Base):
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
-        views = check_views(
+        views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )
         views = self._centre_scale(views)
@@ -285,7 +285,7 @@ class PLS(rCCA):
             scale=scale,
             centre=centre,
             copy_data=copy_data,
-            c=[1.0, 1.0],
+            c=1,
             random_state=random_state,
         )
 

@@ -140,7 +140,7 @@ Sparse Weighted CCA
 Base Class
 --------------------------------
 
-.. automodule:: cca_zoo.models.cca_base
+.. automodule:: cca_zoo.models._cca_base
     :members:
     :private-members: _CCA_Base
     :exclude-members: get_params, set_params

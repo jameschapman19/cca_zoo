@@ -23,11 +23,11 @@ class DVCCA(_DCCA_base):
     """
 
     def __init__(
-            self,
-            latent_dims: int,
-            encoders=None,
-            decoders=None,
-            private_encoders: Iterable[BaseEncoder] = None,
+        self,
+        latent_dims: int,
+        encoders=None,
+        decoders=None,
+        private_encoders: Iterable[BaseEncoder] = None,
     ):
         """
         :param latent_dims: # latent dimensions

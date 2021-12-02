@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.utils import check_array
 
 
-def check_views(*views: Iterable[np.ndarray], copy=False, accept_sparse=False):
+def _check_views(*views: Iterable[np.ndarray], copy=False, accept_sparse=False):
     """
 
     :param views:

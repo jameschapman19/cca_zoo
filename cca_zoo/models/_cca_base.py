@@ -8,7 +8,8 @@ from sklearn.base import BaseEstimator, MultiOutputMixin, RegressorMixin
 from sklearn.utils.sparsefuncs import mean_variance_axis
 from sklearn.utils.validation import check_random_state, check_is_fitted
 
-from cca_zoo.utils import check_views, plot_latent_train_test
+from cca_zoo.utils.check_values import _check_views
+from cca_zoo.utils.plotting import plot_latent_train_test
 
 
 class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
@@ -66,7 +67,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         :param kwargs: any additional keyword arguments required by the given model
         """
         check_is_fitted(self, attributes=["weights"])
-        views = check_views(
+        views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )
         views = self._centre_scale_transform(views)

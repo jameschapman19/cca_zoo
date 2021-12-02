@@ -7,8 +7,8 @@ from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 from tensorly.decomposition import parafac
 
-from cca_zoo.models.cca_base import _CCA_Base
-from cca_zoo.utils.check_values import _process_parameter, check_views
+from cca_zoo.models._cca_base import _CCA_Base
+from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 
 class TCCA(_CCA_Base):
@@ -79,7 +79,7 @@ class TCCA(_CCA_Base):
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
-        views = check_views(
+        views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )
         views = self._centre_scale(views)
@@ -284,7 +284,7 @@ class KTCCA(TCCA):
         :param kwargs: any additional keyword arguments required by the given model
         """
         check_is_fitted(self, attributes=["weights"])
-        views = check_views(
+        views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )
         views = self._centre_scale_transform(views)
