@@ -76,7 +76,9 @@ class _Iterative(_CCA_Base):
         self.n_views = len(views)
         self.n = views[0].shape[0]
         if isinstance(self.initialization, str):
-            self.initialization = self._initialization(views, self.initialization)
+            self.initializer = self._initializer(views, self.initialization)
+        else:
+            self.initializer=self.initialization()
         n = views[0].shape[0]
         p = [view.shape[1] for view in views]
         # List of d: p x k
@@ -91,7 +93,9 @@ class _Iterative(_CCA_Base):
         # For each of the dimensions
         for k in range(self.latent_dims):
             self._set_loop_params()
-            self.loop = self.loop.fit(*residuals)
+            self.loop = self.loop.fit(
+                *residuals, initial_scores=next(self.initializer)
+            )
             for i, residual in enumerate(residuals):
                 self.weights[i][:, k] = self.loop.weights[i].ravel()
                 self.scores[i][:, k] = self.loop.scores[i].ravel()
@@ -131,11 +135,10 @@ class _Iterative(_CCA_Base):
         """
         self.loop = _PLSInnerLoop(
             max_iter=self.max_iter,
-            initial_scores=next(self.initialization),
             random_state=self.random_state,
         )
 
-    def _initialization(self, views, initialization):
+    def _initializer(self, views, initialization):
         if initialization == "random":
             while True:
                 yield np.array(
@@ -150,19 +153,15 @@ class _Iterative(_CCA_Base):
         elif initialization == "pls":
             latent_dim = 0
             # use rCCA to use multiple views
-            pls_scores = MCCA(self.latent_dims,c=1).fit_transform(views)
+            pls_scores = MCCA(self.latent_dims, c=1).fit_transform(views)
             while True:
-                yield np.stack(
-                    pls_scores
-                )[:,:, latent_dim]
+                yield np.stack(pls_scores)[:, :, latent_dim]
                 latent_dim += 1
         elif initialization == "cca":
             latent_dim = 0
             cca_scores = MCCA(self.latent_dims).fit_transform(views)
             while True:
-                yield np.stack(
-                    cca_scores
-                )[:,:, latent_dim]
+                yield np.stack(cca_scores)[:, :, latent_dim]
                 latent_dim += 1
         else:
             raise ValueError(
@@ -234,7 +233,6 @@ class PLS_ALS(_Iterative):
     def _set_loop_params(self):
         self.loop = _PLSInnerLoop(
             max_iter=self.max_iter,
-            initial_scores=next(self.initialization),
             tol=self.tol,
             random_state=self.random_state,
         )
@@ -331,7 +329,7 @@ class ElasticCCA(_Iterative):
             c=self.c,
             l1_ratio=self.l1_ratio,
             maxvar=self.maxvar,
-            initial_scores=next(self.initialization),
+
             tol=self.tol,
             stochastic=self.stochastic,
             positive=self.positive,
@@ -567,7 +565,7 @@ class PMD(_Iterative):
         self.loop = _PMDInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
-            initial_scores=next(self.initialization),
+
             tol=self.tol,
             positive=self.positive,
             random_state=self.random_state,
@@ -645,7 +643,7 @@ class ParkhomenkoCCA(_Iterative):
         self.loop = _ParkhomenkoInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
-            initial_scores=next(self.initialization),
+
             tol=self.tol,
             random_state=self.random_state,
         )
@@ -734,7 +732,7 @@ class SCCA_ADMM(_Iterative):
             mu=self.mu,
             lam=self.lam,
             eta=self.eta,
-            initial_scores=next(self.initialization),
+
             tol=self.tol,
             random_state=self.random_state,
         )
@@ -820,7 +818,7 @@ class SpanCCA(_Iterative):
         self.loop = _SpanCCAInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
-            initial_scores=next(self.initialization),
+
             tol=self.tol,
             regularisation=self.regularisation,
             rank=self.rank,
@@ -898,7 +896,7 @@ class SWCCA(_Iterative):
     def _set_loop_params(self):
         self.loop = _SWCCAInnerLoop(
             max_iter=self.max_iter,
-            initial_scores=next(self.initialization),
+
             tol=self.tol,
             regularisation=self.regularisation,
             c=self.c,
