@@ -304,9 +304,10 @@ def test_l0():
 
 
 def test_partialcca():
+    #Tests that partial CCA scores are not correlated with confounds.
     pcca = PartialCCA(latent_dims=3)
     pcca.fit((X, Y), confounds=Z)
-    assert np.allclose(np.corrcoef(pcca.transform((X, Y))[0], Z, rowvar=False), 0)
+    assert np.allclose(np.corrcoef(pcca.transform((X, Y),confounds=Z)[0], Z, rowvar=False)[:3,:3]-np.eye(3), 0, atol=0.001)
 
 
 def test_pls():
