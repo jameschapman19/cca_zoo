@@ -78,7 +78,7 @@ class _Iterative(_CCA_Base):
         if isinstance(self.initialization, str):
             self.initializer = self._initializer(views, self.initialization)
         else:
-            self.initializer=self.initialization()
+            self.initializer = self.initialization()
         n = views[0].shape[0]
         p = [view.shape[1] for view in views]
         # List of d: p x k
@@ -93,9 +93,7 @@ class _Iterative(_CCA_Base):
         # For each of the dimensions
         for k in range(self.latent_dims):
             self._set_loop_params()
-            self.loop = self.loop.fit(
-                *residuals, initial_scores=next(self.initializer)
-            )
+            self.loop = self.loop.fit(*residuals, initial_scores=next(self.initializer))
             for i, residual in enumerate(residuals):
                 self.weights[i][:, k] = self.loop.weights[i].ravel()
                 self.scores[i][:, k] = self.loop.scores[i].ravel()
@@ -329,7 +327,6 @@ class ElasticCCA(_Iterative):
             c=self.c,
             l1_ratio=self.l1_ratio,
             maxvar=self.maxvar,
-
             tol=self.tol,
             stochastic=self.stochastic,
             positive=self.positive,
@@ -565,7 +562,6 @@ class PMD(_Iterative):
         self.loop = _PMDInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
-
             tol=self.tol,
             positive=self.positive,
             random_state=self.random_state,
@@ -643,7 +639,6 @@ class ParkhomenkoCCA(_Iterative):
         self.loop = _ParkhomenkoInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
-
             tol=self.tol,
             random_state=self.random_state,
         )
@@ -732,7 +727,6 @@ class SCCA_ADMM(_Iterative):
             mu=self.mu,
             lam=self.lam,
             eta=self.eta,
-
             tol=self.tol,
             random_state=self.random_state,
         )
@@ -818,7 +812,6 @@ class SpanCCA(_Iterative):
         self.loop = _SpanCCAInnerLoop(
             max_iter=self.max_iter,
             c=self.c,
-
             tol=self.tol,
             regularisation=self.regularisation,
             rank=self.rank,
@@ -896,7 +889,6 @@ class SWCCA(_Iterative):
     def _set_loop_params(self):
         self.loop = _SWCCAInnerLoop(
             max_iter=self.max_iter,
-
             tol=self.tol,
             regularisation=self.regularisation,
             c=self.c,
