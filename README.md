@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/303801602.svg)](https://zenodo.org/badge/latestdoi/303801602)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5748062.svg)](https://doi.org/10.5281/zenodo.4382739)
 [![codecov](https://codecov.io/gh/jameschapman19/cca_zoo/branch/master/graph/badge.svg?token=JHG9VUB0L8)](https://codecov.io/gh/jameschapman19/cca_zoo)
 ![Build Status](https://github.com/jameschapman19/cca_zoo/actions/workflows/python-package.yml/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/cca-zoo/badge/?version=latest)](https://cca-zoo.readthedocs.io/en/latest/?badge=latest)
@@ -33,9 +33,8 @@ In case this work is used as part of research I attach a DOI bibtex entry:
   month        = jun,
   year         = 2021,
   publisher    = {Zenodo},
-  version      = {v1.6.1},
-  doi          = {10.5281/zenodo.4925892},
-  url          = {https://doi.org/10.5281/zenodo.4925892}
+  doi          = {10.5281/zenodo.4382739},
+  url          = {https://doi.org/10.5281/zenodo.4382739}
 }
 ```
 
