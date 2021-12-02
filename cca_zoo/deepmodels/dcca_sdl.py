@@ -15,15 +15,15 @@ class DCCA_SDL(DCCA_NOI):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        N: int,
-        encoders=None,
-        r: float = 0,
-        rho: float = 0.2,
-        eps: float = 1e-3,
-        shared_target: bool = False,
-        lam=0.5,
+            self,
+            latent_dims: int,
+            N: int,
+            encoders=None,
+            r: float = 0,
+            rho: float = 0.2,
+            eps: float = 1e-3,
+            shared_target: bool = False,
+            lam=0.5,
     ):
         """
         Constructor class for DCCA

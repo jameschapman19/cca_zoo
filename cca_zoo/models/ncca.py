@@ -5,8 +5,8 @@ from sklearn.metrics import pairwise_kernels
 from sklearn.neighbors import NearestNeighbors
 from sklearn.utils.validation import check_is_fitted
 
-from cca_zoo.models.cca_base import _CCA_Base
-from cca_zoo.utils.check_values import _process_parameter, check_views
+from cca_zoo.models._cca_base import _CCA_Base
+from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 
 class NCCA(_CCA_Base):
@@ -27,15 +27,15 @@ class NCCA(_CCA_Base):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale=True,
-        centre=True,
-        copy_data=True,
-        accept_sparse=False,
-        random_state: Union[int, np.random.RandomState] = None,
-        nearest_neighbors=None,
-        gamma: Iterable[float] = None,
+            self,
+            latent_dims: int = 1,
+            scale=True,
+            centre=True,
+            copy_data=True,
+            accept_sparse=False,
+            random_state: Union[int, np.random.RandomState] = None,
+            nearest_neighbors=None,
+            gamma: Iterable[float] = None,
     ):
         """
         Constructor for NCCA
@@ -46,7 +46,7 @@ class NCCA(_CCA_Base):
         :param copy_data: If True, X will be copied; else, it may be overwritten
         :param accept_sparse: Whether model can take sparse data as input
         :param random_state: Pass for reproducible output across multiple function calls
-        :param nearest_neighbors: Number of neaest neighbors (l2 distance) to consider when constructing affinity
+        :param nearest_neighbors: Number of nearest neighbors (l2 distance) to consider when constructing affinity
         :param gamma: Bandwidth parameter for rbf kernel
         """
         super().__init__(
@@ -63,7 +63,7 @@ class NCCA(_CCA_Base):
         self.kernel = _process_parameter("kernel", None, "rbf", self.n_views)
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        views = check_views(
+        views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )
         views = self._centre_scale(views)
@@ -71,25 +71,25 @@ class NCCA(_CCA_Base):
         self.n = views[0].shape[0]
         self._check_params()
         self.train_views = views
-        self.KNs = [
+        self.knns = [
             NearestNeighbors(n_neighbors=self.nearest_neighbors[i]).fit(view)
             for i, view in enumerate(views)
         ]
         NNs = [
-            self.KNs[i].kneighbors(view, self.nearest_neighbors[i])
+            self.knns[i].kneighbors(view, self.nearest_neighbors[i])
             for i, view in enumerate(views)
         ]
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
-        self.Ws = [fill_W(kernel, inds) for kernel, (dists, inds) in zip(kernels, NNs)]
+        self.Ws = [fill_w(kernel, inds) for kernel, (dists, inds) in zip(kernels, NNs)]
         self.Ws = [
             self.Ws[0] / self.Ws[0].sum(axis=1, keepdims=True),
             self.Ws[1] / self.Ws[1].sum(axis=0, keepdims=True),
         ]
         S = self.Ws[0] @ self.Ws[1]
         U, S, Vt = np.linalg.svd(S)
-        self.f = U[:, 1 : self.latent_dims + 1] * np.sqrt(self.n)
-        self.g = Vt[1 : self.latent_dims + 1, :].T * np.sqrt(self.n)
-        self.S = S[1 : self.latent_dims + 1]
+        self.f = U[:, 1: self.latent_dims + 1] * np.sqrt(self.n)
+        self.g = Vt[1: self.latent_dims + 1, :].T * np.sqrt(self.n)
+        self.S = S[1: self.latent_dims + 1]
         return self
 
     def transform(self, views: Iterable[np.ndarray], y=None, **kwargs):
@@ -100,19 +100,19 @@ class NCCA(_CCA_Base):
         :param kwargs: any additional keyword arguments required by the given model
         """
         check_is_fitted(self, attributes=["f", "g"])
-        views = check_views(
+        views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )
         views = self._centre_scale_transform(views)
-        NNs = [
-            self.KNs[i].kneighbors(view, self.nearest_neighbors[i])
+        nns = [
+            self.knns[i].kneighbors(view, self.nearest_neighbors[i])
             for i, view in enumerate(views)
         ]
         kernels = [
             self._get_kernel(i, self.train_views[i], Y=view)
             for i, view in enumerate(views)
         ]
-        Wst = [fill_W(kernel, inds) for kernel, (dists, inds) in zip(kernels, NNs)]
+        Wst = [fill_w(kernel, inds) for kernel, (dists, inds) in zip(kernels, nns)]
         Wst = [
             Wst[0] / Wst[0].sum(axis=1, keepdims=True),
             Wst[1] / Wst[1].sum(axis=1, keepdims=True),
@@ -129,8 +129,8 @@ class NCCA(_CCA_Base):
         )
 
 
-def fill_W(kernels, inds):
-    W = np.zeros_like(kernels)
+def fill_w(kernels, inds):
+    w = np.zeros_like(kernels)
     for i, ind in enumerate(inds):
-        W[ind, i] = kernels[ind, i]
-    return W.T
+        w[ind, i] = kernels[ind, i]
+    return w.T

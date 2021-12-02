@@ -1,5 +1,3 @@
-from .cca_base import _CCA_Base
-from .rcca import rCCA, CCA, PLS
 from .gcca import GCCA, KGCCA
 from .iterative import (
     _Iterative,
@@ -15,4 +13,5 @@ from .iterative import (
 )
 from .mcca import MCCA, KCCA
 from .ncca import NCCA
+from .rcca import rCCA, CCA, PLS
 from .tcca import TCCA, KTCCA

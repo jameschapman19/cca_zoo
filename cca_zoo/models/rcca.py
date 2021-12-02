@@ -4,8 +4,8 @@ from typing import Iterable, Union
 import numpy as np
 from scipy.linalg import block_diag, eigh
 
-from cca_zoo.models.cca_base import _CCA_Base
-from cca_zoo.utils.check_values import _process_parameter, check_views
+from cca_zoo.models._cca_base import _CCA_Base
+from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 
 # from hyperopt import fmin, tpe, Trials
@@ -45,15 +45,15 @@ class rCCA(_CCA_Base):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        eps=1e-3,
-        accept_sparse=None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            eps=1e-3,
+            accept_sparse=None,
     ):
         """
         Constructor for rCCA
@@ -89,7 +89,7 @@ class rCCA(_CCA_Base):
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
-        views = check_views(
+        views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )
         views = self._centre_scale(views)
@@ -124,12 +124,12 @@ class rCCA(_CCA_Base):
             eigvecs = eigvecs[:, idx].real
             w_y = views[1].T @ np.diag(1 / np.sqrt(self.Bs[1])) @ eigvecs
             w_x = (
-                views[0].T
-                @ np.diag(1 / self.Bs[0])
-                @ self.R_12
-                @ np.diag(1 / np.sqrt(self.Bs[1]))
-                @ eigvecs
-                / np.sqrt(eigvals[idx])
+                    views[0].T
+                    @ np.diag(1 / self.Bs[0])
+                    @ self.R_12
+                    @ np.diag(1 / np.sqrt(self.Bs[1]))
+                    @ eigvecs
+                    / np.sqrt(eigvals[idx])
             )
             self.weights = [w_x, w_y]
         else:
@@ -141,7 +141,7 @@ class rCCA(_CCA_Base):
             self.weights = [
                 Vt.T
                 @ np.diag(1 / np.sqrt(B))
-                @ eigvecs[split : self.splits[i + 1], : self.latent_dims]
+                @ eigvecs[split: self.splits[i + 1], : self.latent_dims]
                 for i, (split, Vt, B) in enumerate(
                     zip(self.splits[:-1], views, self.Bs)
                 )
@@ -151,11 +151,11 @@ class rCCA(_CCA_Base):
         Rs = [U @ np.diag(S) for U, S in zip(Us, Ss)]
         self.R_12 = Rs[0].T @ Rs[1]
         M = (
-            np.diag(1 / np.sqrt(self.Bs[1]))
-            @ self.R_12.T
-            @ np.diag(1 / self.Bs[0])
-            @ self.R_12
-            @ np.diag(1 / np.sqrt(self.Bs[1]))
+                np.diag(1 / np.sqrt(self.Bs[1]))
+                @ self.R_12.T
+                @ np.diag(1 / self.Bs[0])
+                @ self.R_12
+                @ np.diag(1 / np.sqrt(self.Bs[1]))
         )
         return M, None
 
@@ -207,12 +207,12 @@ class CCA(rCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
     ):
         """
         Constructor for CCA
@@ -264,12 +264,12 @@ class PLS(rCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
     ):
         """
         Constructor for PLS
