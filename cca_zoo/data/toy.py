@@ -15,7 +15,7 @@ class Split_MNIST_Dataset(Dataset):
     """
 
     def __init__(
-            self, mnist_type: str = "MNIST", train: bool = True, flatten: bool = True
+        self, mnist_type: str = "MNIST", train: bool = True, flatten: bool = True
     ):
         """
 
@@ -71,7 +71,7 @@ class Noisy_MNIST_Dataset(Dataset):
     """
 
     def __init__(
-            self, mnist_type: str = "MNIST", train: bool = True, flatten: bool = True
+        self, mnist_type: str = "MNIST", train: bool = True, flatten: bool = True
     ):
         """
 

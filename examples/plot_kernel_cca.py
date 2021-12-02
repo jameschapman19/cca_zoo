@@ -51,8 +51,8 @@ kernel_reg = (
     GridSearchCV(
         KCCA(latent_dims=latent_dims), param_grid=param_grid, cv=cv, verbose=True
     )
-        .fit([X, Y])
-        .best_estimator_
+    .fit([X, Y])
+    .best_estimator_
 )
 
 # %%
@@ -64,8 +64,8 @@ kernel_poly = (
     GridSearchCV(
         KCCA(latent_dims=latent_dims), param_grid=param_grid, cv=cv, verbose=True
     )
-        .fit([X, Y])
-        .best_estimator_
+    .fit([X, Y])
+    .best_estimator_
 )
 
 # %%
@@ -77,8 +77,8 @@ kernel_poly = (
     GridSearchCV(
         KCCA(latent_dims=latent_dims), param_grid=param_grid, cv=cv, verbose=True
     )
-        .fit([X, Y])
-        .best_estimator_
+    .fit([X, Y])
+    .best_estimator_
 )
 
 

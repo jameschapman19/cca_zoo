@@ -22,12 +22,12 @@ class VariationalCCA(_CCA_Base):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            copy_data=True,
-            random_state: int = 0,
-            num_samples=100,
-            num_warmup=100,
+        self,
+        latent_dims: int = 1,
+        copy_data=True,
+        random_state: int = 0,
+        num_samples=100,
+        num_warmup=100,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -101,6 +101,6 @@ class VariationalCCA(_CCA_Base):
                     obs=X_,
                 )
                 for i, (X_, psi_, mu_, W_) in enumerate(
-                zip(views, psi, mu, self.weights_list)
-            )
+                    zip(views, psi, mu, self.weights_list)
+                )
             ]
