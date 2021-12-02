@@ -23,7 +23,6 @@ class _InnerLoop:
         self,
         max_iter: int = 100,
         tol: float = 1e-9,
-        initial_scores: np.ndarray = None,
         random_state=None,
     ):
         """
@@ -31,7 +30,6 @@ class _InnerLoop:
         :param tol: tolerance value used for stopping criteria
         """
         self.track = {"converged": False, "objective": []}
-        self.scores = initial_scores
         self.max_iter = max_iter
         self.tol = tol
         self.random_state = check_random_state(random_state)
@@ -42,7 +40,8 @@ class _InnerLoop:
         """
         pass
 
-    def fit(self, *views: np.ndarray):
+    def fit(self, *views: np.ndarray, initial_scores):
+        self.scores = initial_scores
         self.views = views
         self.n = views[0].shape[0]
 
@@ -90,13 +89,11 @@ class _PLSInnerLoop(_InnerLoop):
         self,
         max_iter: int = 100,
         tol=1e-9,
-        initial_scores: np.ndarray = None,
         random_state=None,
     ):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            initial_scores=initial_scores,
             random_state=random_state,
         )
 
@@ -147,7 +144,6 @@ class _PMDInnerLoop(_PLSInnerLoop):
         self,
         max_iter: int = 100,
         tol=1e-9,
-        initial_scores: np.ndarray = None,
         c=None,
         positive=None,
         random_state=None,
@@ -155,7 +151,6 @@ class _PMDInnerLoop(_PLSInnerLoop):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            initial_scores=initial_scores,
             random_state=random_state,
         )
         self.c = c
@@ -204,14 +199,12 @@ class _ParkhomenkoInnerLoop(_PLSInnerLoop):
         self,
         max_iter: int = 100,
         tol=1e-9,
-        initial_scores: np.ndarray = None,
         c=None,
         random_state=None,
     ):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            initial_scores=initial_scores,
             random_state=random_state,
         )
         self.c = c
@@ -243,7 +236,6 @@ class _ElasticInnerLoop(_PLSInnerLoop):
         self,
         max_iter: int = 100,
         tol=1e-9,
-        initial_scores: np.ndarray = None,
         c=None,
         l1_ratio=None,
         maxvar=True,
@@ -254,7 +246,6 @@ class _ElasticInnerLoop(_PLSInnerLoop):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            initial_scores=initial_scores,
             random_state=random_state,
         )
         self.stochastic = stochastic
@@ -357,7 +348,6 @@ class _ADMMInnerLoop(_ElasticInnerLoop):
         self,
         max_iter: int = 100,
         tol=1e-9,
-        initial_scores: np.ndarray = None,
         mu=None,
         lam=None,
         c=None,
@@ -367,7 +357,6 @@ class _ADMMInnerLoop(_ElasticInnerLoop):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            initial_scores=initial_scores,
             random_state=random_state,
         )
         self.c = c
@@ -476,7 +465,6 @@ class _SpanCCAInnerLoop(_InnerLoop):
         self,
         max_iter: int = 100,
         tol=1e-9,
-        initial_scores: np.ndarray = None,
         c=None,
         regularisation="l0",
         rank=1,
@@ -486,7 +474,6 @@ class _SpanCCAInnerLoop(_InnerLoop):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            initial_scores=initial_scores,
             random_state=random_state,
         )
         self.c = c
@@ -537,7 +524,6 @@ class _SWCCAInnerLoop(_PLSInnerLoop):
         self,
         max_iter: int = 100,
         tol=1e-9,
-        initial_scores: np.ndarray = None,
         regularisation="l0",
         c=None,
         sample_support: int = None,
@@ -547,7 +533,6 @@ class _SWCCAInnerLoop(_PLSInnerLoop):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
-            initial_scores=initial_scores,
             random_state=random_state,
         )
         self.c = c
