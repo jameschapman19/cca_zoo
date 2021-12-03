@@ -109,39 +109,3 @@ class PartialCCA(MCCA):
             ) @ self.weights[i]
             transformed_views.append(transformed_view)
         return transformed_views
-
-
-def main():
-    import numpy as np
-
-    n = 100
-    p = 10
-    q = 10
-    Z = np.random.rand(100, 1)
-    Z -= Z.mean(axis=0)
-    C = np.random.rand(100, 1)
-    C -= C.mean(axis=0)
-    Wx = np.random.rand(1, p)
-    Wxc = np.random.rand(1, p)
-    Wy = np.random.rand(1, q)
-    Wyc = np.random.rand(1, q)
-    X = Z @ Wx + C @ Wxc + 2 * np.random.rand(n, p)
-    Y = Z @ Wy + C @ Wyc + 2 * np.random.rand(n, q)
-    pcca = PartialCCA(centre=False, scale=False).fit((X, Y), confounds=C)
-    a = pcca.score((X, Y), confounds=C)
-    from cca_zoo.models import MCCA
-
-    cca = MCCA(centre=False, scale=False).fit((X, Y), confounds=C)
-    b = cca.score((X, Y))
-    bb = np.corrcoef(cca.transform((X, Y))[0], C, rowvar=False)
-    X_deconf = (np.eye(n) - C @ np.linalg.inv(C.T @ C) @ C.T) @ X
-    Y_deconf = (np.eye(n) - C @ np.linalg.inv(C.T @ C) @ C.T) @ Y
-    m = MCCA(centre=False, scale=False).fit((X_deconf, Y_deconf))
-    c = m.score((X_deconf, Y_deconf))
-    cc = np.corrcoef(m.transform((X_deconf, Y_deconf))[0], C, rowvar=False)
-    aa = np.corrcoef(pcca.transform((X, Y), confounds=C)[0], C, rowvar=False)
-    print()
-
-
-if __name__ == "__main__":
-    main()
