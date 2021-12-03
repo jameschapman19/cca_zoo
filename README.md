@@ -96,9 +96,6 @@ A guide to contributions is available at https://cca-zoo.readthedocs.io/en/lates
 I've added this section to give due credit to the repositories that helped me in addition to their copyright notices in
 the code where relevant.
 
-Models can be tested on data from MNIST datasets provided by the torch package (https://pytorch.org/) and the UCI
-dataset provided by mvlearn package (https://mvlearn.github.io/)
-
 ### Other Implementations of (regularised)CCA/PLS
 
 [MATLAB implementation](https://github.com/anaston/PLS_CCA_framework)
