@@ -9,7 +9,24 @@ from cca_zoo.utils import _check_views
 
 
 class PartialCCA(MCCA):
-    r""" """
+    r"""
+    A class used to fit a partial cca model. The key difference between this and a vanilla CCA or MCCA is that
+    the canonical score vectors must be orthogonal to the supplied confounding variables.
+
+    :Citation:
+
+    Rao, B. Raja. "Partial canonical correlations." Trabajos de estadistica y de investigación operativa 20.2-3 (1969): 211-219.
+
+    :Example:
+    >>> from cca_zoo.models import PartialCCA
+    >>> X1 = np.random.rand(10,5)
+    >>> X2 = np.random.rand(10,5)
+    >>> confounds = np.random.rand(10,3)
+    >>> model = PartialCCA()
+    >>> model.fit((X1,X2),confounds=confounds).score((X1,X2),confounds=confounds)
+    array([0.99993046])
+
+    """
 
     def __init__(
         self,
