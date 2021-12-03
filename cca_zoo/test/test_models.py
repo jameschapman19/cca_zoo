@@ -43,8 +43,9 @@ def test_unregularized_methods():
     # Tests unregularized CCA methods. The idea is that all of these should give the same result.
     latent_dims = 2
     cca = CCA(latent_dims=latent_dims).fit([X, Y])
-    iter = CCA_ALS(latent_dims=latent_dims, tol=1e-9, stochastic=False).fit([X, Y])
-    iter_pls = PLS_ALS(latent_dims=latent_dims, tol=1e-9, centre=False).fit([X, Y])
+    iter = CCA_ALS(
+        latent_dims=latent_dims, tol=1e-9, stochastic=False, random_state=rng
+    ).fit([X, Y])
     gcca = GCCA(latent_dims=latent_dims).fit([X, Y])
     mcca = MCCA(latent_dims=latent_dims, eps=1e-9).fit([X, Y])
     kcca = KCCA(latent_dims=latent_dims).fit([X, Y])
@@ -57,7 +58,6 @@ def test_unregularized_methods():
     corr_kcca = kcca.score((X, Y))
     corr_kgcca = kgcca.score((X, Y))
     corr_tcca = tcca.score((X, Y))
-    # Check the correlations from each unregularized method are the same
     assert np.testing.assert_array_almost_equal(corr_cca, corr_iter, decimal=1) is None
     assert np.testing.assert_array_almost_equal(corr_cca, corr_mcca, decimal=1) is None
     assert np.testing.assert_array_almost_equal(corr_cca, corr_gcca, decimal=1) is None
@@ -122,7 +122,11 @@ def test_sparse_input():
     latent_dims = 2
     cca = CCA(latent_dims=latent_dims, centre=False).fit((X_sp, Y_sp))
     iter = CCA_ALS(
-        latent_dims=latent_dims, tol=1e-9, stochastic=False, centre=False
+        latent_dims=latent_dims,
+        tol=1e-9,
+        stochastic=False,
+        centre=False,
+        random_state=rng,
     ).fit((X_sp, Y_sp))
     iter_pls = PLS_ALS(latent_dims=latent_dims, tol=1e-9, centre=False).fit(
         (X_sp, Y_sp)
@@ -146,7 +150,9 @@ def test_unregularized_multi():
     # Tests unregularized CCA methods for more than 2 views. The idea is that all of these should give the same result.
     latent_dims = 2
     cca = rCCA(latent_dims=latent_dims).fit((X, Y, Z))
-    iter = CCA_ALS(latent_dims=latent_dims, stochastic=False, tol=1e-12).fit((X, Y, Z))
+    iter = CCA_ALS(
+        latent_dims=latent_dims, stochastic=False, tol=1e-12, random_state=rng
+    ).fit((X, Y, Z))
     gcca = GCCA(latent_dims=latent_dims).fit((X, Y, Z))
     mcca = MCCA(latent_dims=latent_dims).fit((X, Y, Z))
     kcca = KCCA(latent_dims=latent_dims).fit((X, Y, Z))
@@ -193,7 +199,7 @@ def test_non_negative_methods():
         tol=1e-9,
         positive=True,
         c=[1e-6, 1e-6],
-        random_state=0,
+        random_state=rng,
         initialization="random",
     ).fit((X, Y))
     nnelastic = ElasticCCA(
@@ -202,12 +208,12 @@ def test_non_negative_methods():
         positive=True,
         l1_ratio=[0.5, 0.5],
         c=[1e-5, 1e-5],
-        random_state=0,
+        random_state=rng,
         initialization="random",
-    ).fit([X, Y])
+    ).fit((X, Y))
     nnals = CCA_ALS(
-        latent_dims=latent_dims, tol=1e-9, positive=True, random_state=0
-    ).fit([X, Y])
+        latent_dims=latent_dims, tol=1e-9, positive=True, random_state=rng, initialization='pls'
+    ).fit((X, Y))
     assert np.testing.assert_array_less(-1e-9, nnelastic.weights[0]) is None
     assert np.testing.assert_array_less(-1e-9, nnelastic.weights[1]) is None
     assert np.testing.assert_array_less(-1e-9, nnals.weights[0]) is None
@@ -296,8 +302,12 @@ def test_NCCA():
 
 
 def test_l0():
-    span_cca = SpanCCA(latent_dims=1, regularisation="l0", c=[2, 2]).fit([X, Y])
-    swcca = SWCCA(latent_dims=1, c=[2, 2], sample_support=5).fit([X, Y])
+    span_cca = SpanCCA(
+        latent_dims=1, regularisation="l0", c=[2, 2], random_state=rng
+    ).fit([X, Y])
+    swcca = SWCCA(latent_dims=1, c=[2, 2], sample_support=5, random_state=rng).fit(
+        [X, Y]
+    )
     assert (np.abs(span_cca.weights[0]) > 1e-5).sum() == 2
     assert (np.abs(span_cca.weights[1]) > 1e-5).sum() == 2
     assert (np.abs(swcca.weights[0]) > 1e-5).sum() == 2
@@ -330,17 +340,22 @@ def test_VCCA():
     numpyro = pytest.importorskip("numpyro")
     from cca_zoo.probabilisticmodels import VariationalCCA
     from cca_zoo.data import generate_simple_data
+
     np.random.seed(0)
     # Tests tensor CCA methods
     (X, Y), (_) = generate_covariance_data(20, [5, 5])
     latent_dims = 1
     cca = CCA(latent_dims=latent_dims).fit([X, Y])
-    vcca = VariationalCCA(latent_dims=latent_dims, num_warmup=1000, num_samples=1000).fit([X, Y])
+    vcca = VariationalCCA(
+        latent_dims=latent_dims, num_warmup=1000, num_samples=1000
+    ).fit([X, Y])
     # Test that vanilla CCA and VCCA produce roughly similar latent space ie they are correlated
     assert (
-        np.abs(np.corrcoef(
-            cca.transform([X, Y])[1].T,
-            vcca.posterior_samples["z"].mean(axis=0)[:, 0],
-        )[0, 1])
+        np.abs(
+            np.corrcoef(
+                cca.transform([X, Y])[1].T,
+                vcca.posterior_samples["z"].mean(axis=0)[:, 0],
+            )[0, 1]
+        )
         > 0.9
     )

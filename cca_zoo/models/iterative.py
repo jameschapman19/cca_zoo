@@ -405,7 +405,6 @@ class CCA_ALS(ElasticCCA):
             positive=positive,
             random_state=random_state,
             deflation=deflation,
-            c=0,
             maxvar=False,
         )
 

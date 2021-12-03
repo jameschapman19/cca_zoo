@@ -10,16 +10,16 @@ from ..utils import _process_parameter
 
 
 def generate_covariance_data(
-        n: int,
-        view_features: List[int],
-        latent_dims: int = 1,
-        view_sparsity: List[Union[int, float]] = None,
-        correlation: Union[List[float], float] = 1,
-        structure: Union[str, List[str]] = None,
-        sigma: Union[List[float], float] = None,
-        decay: float = 0.5,
-        positive=None,
-        random_state: Union[int, np.random.RandomState] = None,
+    n: int,
+    view_features: List[int],
+    latent_dims: int = 1,
+    view_sparsity: List[Union[int, float]] = None,
+    correlation: Union[List[float], float] = 1,
+    structure: Union[str, List[str]] = None,
+    sigma: Union[List[float], float] = None,
+    decay: float = 0.5,
+    positive=None,
+    random_state: Union[int, np.random.RandomState] = None,
 ):
     """
     Function to generate CCA dataset with defined population correlations
@@ -59,7 +59,7 @@ def generate_covariance_data(
             covs = []
             true_features = []
             for view_p, sparsity, view_structure, view_positive, view_sigma in zip(
-                    view_features, view_sparsity, structure, positive, sigma
+                view_features, view_sparsity, structure, positive, sigma
             ):
                 # Covariance Bit
                 if view_structure == "identity":
@@ -111,12 +111,12 @@ def generate_covariance_data(
                     # Cross Bit
                     cross += covs[i] @ A @ covs[j]
                 cov[
-                splits[i]: splits[i] + view_features[i],
-                splits[j]: splits[j] + view_features[j],
+                    splits[i] : splits[i] + view_features[i],
+                    splits[j] : splits[j] + view_features[j],
                 ] = cross
                 cov[
-                splits[j]: splits[j] + view_features[j],
-                splits[i]: splits[i] + view_features[i],
+                    splits[j] : splits[j] + view_features[j],
+                    splits[i] : splits[i] + view_features[i],
                 ] = cross.T
 
             X = np.zeros((n, sum(view_features)))
@@ -129,17 +129,19 @@ def generate_covariance_data(
             completed = False
             attempts += 1
     if not completed:
-        raise ValueError('Could not generate positive definite covariance matrix for supplied parameters.')
+        raise ValueError(
+            "Could not generate positive definite covariance matrix for supplied parameters."
+        )
     return views, true_features
 
 
 def generate_simple_data(
-        n: int,
-        view_features: List[int],
-        view_sparsity: List[Union[int, float]] = None,
-        eps: float = 0,
-        transform=False,
-        random_state=None,
+    n: int,
+    view_features: List[int],
+    view_sparsity: List[Union[int, float]] = None,
+    eps: float = 0,
+    transform=False,
+    random_state=None,
 ):
     """
     Simple latent variable model to generate data with one latent factor
@@ -200,9 +202,9 @@ def _gaussian(x, mu, sig, dn):
     :param dn:
     """
     return (
-            np.exp(-np.power(x - mu, 2.0) / (2 * np.power(sig, 2.0)))
-            * dn
-            / (np.sqrt(2 * np.pi) * sig)
+        np.exp(-np.power(x - mu, 2.0) / (2 * np.power(sig, 2.0)))
+        * dn
+        / (np.sqrt(2 * np.pi) * sig)
     )
 
 
