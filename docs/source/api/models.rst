@@ -129,22 +129,22 @@ Sparse CCA by ADMM
     :exclude-members: get_params, set_params
 
 Miscellaneous
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------------------------
 
 Nonparametric CCA
-"""""""""""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models.NCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
 Partial CCA
-"""""""""""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models.PartialCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
 Sparse Weighted CCA
-"""""""""""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models.SWCCA
     :inherited-members:
     :exclude-members: get_params, set_params

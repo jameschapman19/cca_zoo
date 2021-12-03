@@ -336,11 +336,13 @@ class ElasticCCA(_Iterative):
 
 class CCA_ALS(ElasticCCA):
     r"""
-    Fits a CCA model with CCA deflation by NIPALS algorithm. Implemented by ElasticCCA with 0 regularisation
+    Fits a CCA model with CCA deflation by NIPALS algorithm. Implemented by ElasticCCA with no regularisation
+
+    :Maths:
 
     .. math::
 
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 }\\
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2\}\\
 
         \text{subject to:}
 
@@ -403,7 +405,7 @@ class CCA_ALS(ElasticCCA):
             positive=positive,
             random_state=random_state,
             deflation=deflation,
-            c=1e-5,
+            c=0,
             maxvar=False,
         )
 
@@ -411,6 +413,8 @@ class CCA_ALS(ElasticCCA):
 class SCCA(ElasticCCA):
     r"""
     Fits a sparse CCA model by iterative rescaled lasso regression. Implemented by ElasticCCA with l1 ratio=1
+
+    :Maths:
 
     .. math::
 
@@ -489,6 +493,8 @@ class SCCA(ElasticCCA):
 class PMD(_Iterative):
     r"""
     Fits a Sparse CCA (Penalized Matrix Decomposition) model.
+
+    :Maths:
 
     .. math::
 
