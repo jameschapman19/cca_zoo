@@ -332,7 +332,7 @@ def test_VCCA():
     from cca_zoo.data import generate_simple_data
 
     # Tests tensor CCA methods
-    (X, Y), (_) = generate_covariance_data(20, [9, 9])
+    (X, Y), (_) = generate_covariance_data(20, [5, 5])
     latent_dims = 1
     cca = CCA(latent_dims=latent_dims).fit([X, Y])
     vcca = VariationalCCA(latent_dims=latent_dims, num_warmup=1000, num_samples=1000).fit([X, Y])
