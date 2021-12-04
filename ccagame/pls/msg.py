@@ -37,8 +37,8 @@ class MSG(PLSExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._U = jax.random.normal(self.local_rng, (self.n_components, dims[0]))
-        self._V = jax.random.normal(self.local_rng, (self.n_components, dims[1]))
+        self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
+        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
         self._M = self._U.T@self._V
         self._optimizer =  optax.sgd(learning_rate=learning_rate, momentum=momentum, nesterov=nesterov)
         self._opt_state = self._optimizer.init(self._M)

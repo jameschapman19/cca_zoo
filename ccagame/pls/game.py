@@ -81,6 +81,7 @@ class Game(PLSExperiment):
         grads_y = self._grads(self._V, self._U, self._weights, self._local_V, self._local_U, Y_i, X_i)
         self._U, self._opt_state_x = self._update_with_grads(self._U, grads_x, self._opt_state_x)
         self._V, self._opt_state_y = self._update_with_grads(self._V, grads_y, self._opt_state_y)
+        return None
 
     @staticmethod
     @jit

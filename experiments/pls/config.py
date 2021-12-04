@@ -1,7 +1,4 @@
 from jaxline.base_config import get_base_config
-from ccagame.utils import data_stream
-from datasets.mnist import mnist
-import jax.numpy as jnp
 from ml_collections import config_dict
 
 
@@ -12,7 +9,7 @@ def get_config() -> config_dict.ConfigDict:
     #these are given by wandb
     config.learning_rate=1e-3
     config.num_devices=1
-    config.n_components=4
+    config.n_components=16
     config.batch_size=0
     config.training_steps = 10000
     config.data='mnist'

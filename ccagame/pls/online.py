@@ -44,9 +44,9 @@ class Online(PLSExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._U = jax.random.normal(self.local_rng, (self.n_components, dims[0]))
-        self._V = jax.random.normal(self.local_rng, (self.n_components, dims[1]))
-        self._M = jax.random.normal(self.local_rng, (dims[0]+dims[1], dims[0]+dims[1]))
+        self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
+        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
+        self._M = jax.random.normal(self.local_rng, (self.dims[0]+self.dims[1], self.dims[0]+self.dims[1]))
         self._optimizer = optax.sgd(
             learning_rate=learning_rate, momentum=momentum, nesterov=nesterov
         )

@@ -108,3 +108,6 @@ optax
 ml_collections
 wrapt
 tensorflow
+
+
+#jc edit: tensorflow, optax, scikit-learn, jax, jaxlib, pandas wandb

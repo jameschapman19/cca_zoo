@@ -32,8 +32,8 @@ class Oja(PLSExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._U = jax.random.normal(self.local_rng, (self.n_components, dims[0]))
-        self._V = jax.random.normal(self.local_rng, (self.n_components, dims[1]))
+        self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
+        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
 
     def _update(self, views, global_step):
         X_i, Y_i = views
