@@ -1,25 +1,24 @@
 from os.path import join
 
 import pandas as pd
+import array
+import gzip
+import os
+import struct
+import urllib.request
+from os import path
+import jax.numpy as jnp
+import numpy as np
+from ccagame.utils import data_stream_UKBB
 
-
-# TODO
-def ukbiobank(path):
-    """
-    Download, parse and process UKBiobank data
-    Examples
-    --------
-    from ccagame import datasets
-
-    train_view_1, train_view_2, test_view_1, test_view_2 = datasets.ukbiobank()
-
-    Returns
-    -------
-    train_view_1, train_view_2, test_view_1, test_view_2
-    """
-    brain_train = pd.read_csv(join(path, 'Epilepsy_MRI_train_zscores.csv'), header=None).to_numpy()
-    genetics_train = pd.read_csv(join(path, 'Epilepsy_genetics_train_processed.csv'), header=None).to_numpy()
-    brain_test = pd.read_csv(join(path, 'Epilepsy_MRI_test_zscores.csv'), header=None).to_numpy()
-    genetics_test = pd.read_csv(join(path, 'Epilepsy_genetics_test_processed.csv'), header=None).to_numpy()
-
-    return brain_train, genetics_train, brain_test, genetics_test
+def ukbb_iterator(path, batch_size, pca=False):
+    #batch_ids = list(range(1,67)) #file naming starts at 1
+    batch_ids = list(range(1,4)) 
+    #load one batch to get no. of features and use as holdout data
+    #X is brain data
+    X = pd.read_csv(join(path, 'pack_1_img_sd.tab'), delimiter=' ').to_numpy().T
+    f = gzip.GzipFile(join(path, 'pack_1_norm.tab.gz'), "r")
+    #Y is genetics data
+    Y = pd.read_csv(f, delimiter=" ").to_numpy().T 
+    batch_ids.remove(1)
+    return data_stream_UKBB(batch_ids, path, batch_size=batch_size), (X, Y), (X.shape[1], Y.shape[1])

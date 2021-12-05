@@ -8,7 +8,7 @@ from functools import partial
 
 from datasets.mnist import mnist_iterator
 from datasets.xrmb import xrmb_iterator
-
+from datasets.ukbiobank import ukbb_iterator
 class PLSExperiment(BaseExperiment):
     def __init__(
         self,
@@ -18,12 +18,16 @@ class PLSExperiment(BaseExperiment):
         n_components=1,
         data=None,
         batch_size=0,
+        path=None,
         **kwargs,
     ):
         if data=='mnist':
             self.data,self.holdout, self.correct_eigenvectors, self.dims=mnist_iterator(batch_size=batch_size, n_components=n_components)
         elif data=='xrmb':
-            self.data,self.holdout, self.correct_eigenvectors,self.dims=xrmb_iterator(batch_size=batch_size, n_components=n_components)
+            self.data,self.holdout, self.correct_eigenvectors, self.dims=xrmb_iterator(batch_size=batch_size, n_components=n_components)
+        elif data=='ukbb':
+            self.data,self.holdout, self.dims=ukbb_iterator(path, batch_size=batch_size)
+            self.correct_eigenvectors = None
         else:
             raise ValueError('Data {data} not implemented yet')
         super(PLSExperiment, self).__init__(
@@ -50,13 +54,16 @@ class PLSExperiment(BaseExperiment):
     def _get_scalars(self):
         U = jnp.reshape(self._U, (self.n_components, self.dims[0]))#self.correct_eigenvectors[0].T @ U.T
         V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
-        return {
-            "TV": self._TV(U,V),
-            "correct x":self._correct_eigenvector_streak(U, self.correct_eigenvectors[0]),
-            "correct y":self._correct_eigenvector_streak(V, self.correct_eigenvectors[1]),
-            "subspace x":self._normalized_subspace_distance(U, self.correct_eigenvectors[0]),
-            "subspace y":self._normalized_subspace_distance(V, self.correct_eigenvectors[1]),
-        }
+        if self.correct_eigenvectors == None:
+            return {"TV": self._TV(U,V)}
+        else:
+            return {
+                "TV": self._TV(U,V),
+                "correct x":self._correct_eigenvector_streak(U, self.correct_eigenvectors[0]),
+                "correct y":self._correct_eigenvector_streak(V, self.correct_eigenvectors[1]),
+                "subspace x":self._normalized_subspace_distance(U, self.correct_eigenvectors[0]),
+                "subspace y":self._normalized_subspace_distance(V, self.correct_eigenvectors[1]),
+            }
 
     @partial(jit, static_argnums=(0))
     def _TV(self, U, V):
