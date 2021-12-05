@@ -1,0 +1,13 @@
+program: train.py
+method: grid
+parameters:
+  model:
+    values: ['game','msg','oja', 'power']
+  config.data:
+    values: ['mnist']
+  config.training_steps:
+    values: [5000]
+  config.learning_rate:
+    values: [1e-3,1e-4,1e-5,1e-6]
+  config.batch_size:
+    values: [1024,512,256]
