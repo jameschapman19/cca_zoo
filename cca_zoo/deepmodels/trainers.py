@@ -27,12 +27,9 @@ class CCALightning(LightningModule):
         self.model = model
         self.sanity_check = True
 
-    def forward(self, *args):
-        z = self.encode(*args)
+    def forward(self, *args, **kwargs):
+        z = self.model(*args, **kwargs)
         return z
-
-    def loss(self, *args, **kwargs):
-        return self.model.loss(*args, **kwargs)
 
     def configure_optimizers(self):
         if isinstance(self.hparams.optimizer, torch.optim.Optimizer):
