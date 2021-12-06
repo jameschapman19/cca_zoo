@@ -110,4 +110,4 @@ wrapt
 tensorflow
 
 
-#jc edit: tensorflow, optax, scikit-learn, jax, jaxlib, pandas wandb
+#jc edit: tensorflow, optax, scikit-learn, jax, jaxlib, pandas wandb, jaxline

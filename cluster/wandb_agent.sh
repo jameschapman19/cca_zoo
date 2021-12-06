@@ -7,8 +7,8 @@
 #$ -wd /home/jchapman/projects/barlowtwins
 hostname
 date
-source /home/rbarbano/source_file # source
-source /home/jchapman/venvs/barlowtwins/bin/activate
+source /home/jchapmanbarbano/jaxsourcefile # source
+source /home/jchapman/venvs/ccagame/bin/activate
 wandb login --relogin f6437b9357053a0a34efc60cbfaa03087e8984f9
 wandb agent blah
 done
