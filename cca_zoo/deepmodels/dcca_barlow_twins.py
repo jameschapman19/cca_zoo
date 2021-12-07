@@ -44,8 +44,8 @@ class BarlowTwins(DCCA):
     def loss(self, *args):
         z = self(*args)
         cross_cov = z[0].T @ z[1] / (z[0].shape[0] - 1)
-        invariance = torch.mean(torch.pow(1 - torch.diag(cross_cov), 2))
-        covariance = torch.mean(
+        invariance = torch.sum(torch.pow(1 - torch.diag(cross_cov), 2))
+        covariance = torch.sum(
             torch.triu(torch.pow(cross_cov, 2), diagonal=1)
-        ) + torch.mean(torch.tril(torch.pow(cross_cov, 2), diagonal=-1))
+        ) + torch.sum(torch.tril(torch.pow(cross_cov, 2), diagonal=-1))
         return invariance + covariance

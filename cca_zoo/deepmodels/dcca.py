@@ -22,7 +22,7 @@ class DCCA(_DCCA_base):
         objective=objectives.MCCA,
         encoders=None,
         r: float = 0,
-        eps: float = 1e-3,
+        eps: float = 1e-5,
     ):
         """
         Constructor class for DCCA

@@ -49,16 +49,19 @@ class CCALightning(LightningModule):
     def training_step(self, batch, batch_idx):
         data, label = batch
         loss = self.model.loss(*data)
+        self.log("train loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
         data, label = batch
         loss = self.model.loss(*data)
+        self.log("val loss", loss)
         return loss
 
     def test_step(self, batch, batch_idx):
         data, label = batch
         loss = self.model.loss(*data)
+        self.log("test loss", loss)
         return loss
 
     def on_train_epoch_end(self, unused: Optional = None) -> None:

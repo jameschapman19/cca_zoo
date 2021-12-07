@@ -21,9 +21,9 @@ class PartialCCA(MCCA):
     >>> from cca_zoo.models import PartialCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
-    >>> confounds = np.random.rand(10,3)
+    >>> partials = np.random.rand(10,3)
     >>> model = PartialCCA()
-    >>> model.fit((X1,X2),confounds=confounds).score((X1,X2),confounds=confounds)
+    >>> model.fit((X1,X2),partials=partials).score((X1,X2),partials=partials)
     array([0.99993046])
 
     """
@@ -59,15 +59,15 @@ class PartialCCA(MCCA):
         self.c = c
         self.eps = eps
 
-    def _setup_evp(self, views: Iterable[np.ndarray], confounds=None):
-        if confounds is None:
+    def _setup_evp(self, views: Iterable[np.ndarray], partials=None):
+        if partials is None:
             raise ValueError(
-                f"confounds is {confounds}. Require matching confounds to transform with"
+                f"partials is {partials}. Require matching partials to transform with"
                 f"partial CCA."
             )
-        self.confound_betas = [np.linalg.pinv(confounds) @ view for view in views]
+        self.confound_betas = [np.linalg.pinv(partials) @ view for view in views]
         views = [
-            view - confounds @ np.linalg.pinv(confounds) @ view
+            view - partials @ np.linalg.pinv(partials) @ view
             for view, confound_beta in zip(views, self.confound_betas)
         ]
         all_views = np.concatenate(views, axis=1)
@@ -86,15 +86,15 @@ class PartialCCA(MCCA):
         return views, C, D
 
     # TODO TRANSFORM
-    def transform(self, views: Iterable[np.ndarray], y=None, confounds=None):
+    def transform(self, views: Iterable[np.ndarray], y=None, partials=None):
         """
         Transforms data given a fit model
 
         :param views: numpy arrays with the same number of rows (samples) separated by commas
         """
-        if confounds is None:
+        if partials is None:
             raise ValueError(
-                f"confounds is {confounds}. Require matching confounds to transform with"
+                f"partials is {partials}. Require matching partials to transform with"
                 f"partial CCA."
             )
         check_is_fitted(self, attributes=["weights"])
@@ -105,7 +105,7 @@ class PartialCCA(MCCA):
         transformed_views = []
         for i, (view) in enumerate(views):
             transformed_view = (
-                view - confounds @ self.confound_betas[i]
+                view - partials @ self.confound_betas[i]
             ) @ self.weights[i]
             transformed_views.append(transformed_view)
         return transformed_views

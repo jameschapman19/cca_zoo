@@ -84,7 +84,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param kwargs: any additional keyword arguments required by the given model
         """
-        return self.fit(views, **kwargs).transform(views)
+        return self.fit(views, **kwargs).transform(views, **kwargs)
 
     def get_loadings(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """

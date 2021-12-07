@@ -4,44 +4,15 @@ import tensorly as tl
 import torch
 from tensorly.cp_tensor import cp_to_tensor
 from tensorly.decomposition import parafac
-from torch.autograd import Function
+from torch import diag
 
 
-class MatrixSquareRoot(Function):
-    """Square root of a positive definite matrix.
-    NOTE: matrix square root is not differentiable for matrices with
-          zero eigenvalues.
-    """
-
-    @staticmethod
-    def forward(ctx, input):
-        m = input.detach().cpu().numpy().astype(np.float_)
-        sqrtm = torch.from_numpy(scipy.linalg.sqrtm(m).real).to(input)
-        ctx.save_for_backward(sqrtm)
-        return sqrtm
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        grad_input = None
-        if ctx.needs_input_grad[0]:
-            (sqrtm,) = ctx.saved_tensors
-            sqrtm = sqrtm.data.cpu().numpy().astype(np.float_)
-            gm = grad_output.data.cpu().numpy().astype(np.float_)
-
-            # Given a positive semi-definite matrix X,
-            # since X = X^{1/2}X^{1/2}, we can compute the gradient of the
-            # matrix square root dX^{1/2} by solving the Sylvester equation:
-            # dX = (d(X^{1/2})X^{1/2} + X^{1/2}(dX^{1/2}).
-            grad_sqrtm = scipy.linalg.solve_sylvester(sqrtm, sqrtm, gm)
-
-            grad_input = torch.from_numpy(grad_sqrtm).to(grad_output)
-        return grad_input
-
-
-def _minimal_regularisation(M, eps):
-    M_smallest_eig = torch.relu(-torch.min(torch.linalg.eigvalsh(M))) + eps
-    M = M + M_smallest_eig * torch.eye(M.shape[0], device=M.device)
-    return M
+def mat_pow(mat, pow_, epsilon):
+    # Computing matrix to the power of pow (pow can be negative as well)
+    [D, V] = torch.linalg.eigh(mat)
+    mat_pow = V @ diag((D + epsilon).pow(pow_)) @ V.T
+    mat_pow[mat_pow != mat_pow] = epsilon  # For stability
+    return mat_pow
 
 
 def _demean(*views):
@@ -87,11 +58,7 @@ class MCCA:
 
         C = C - torch.block_diag(*[view.T @ view for view in views]) + D
 
-        D = _minimal_regularisation(D, self.eps)
-
-        R = torch.linalg.inv(
-            MatrixSquareRoot.apply(_minimal_regularisation(D, self.eps))
-        )
+        R = mat_pow(D, -0.5, self.eps)
 
         # In MCCA our eigenvalue problem Cv = lambda Dv
         C_whitened = R @ C @ R.T
@@ -139,7 +106,7 @@ class GCCA:
 
         eigen_views = [
             view
-            @ torch.inverse(_minimal_regularisation(view.T @ view, self.eps))
+            @ mat_pow(view.T @ view, -1, self.eps)
             @ view.T
             for view in views
         ]
@@ -199,18 +166,14 @@ class CCA:
 
         SigmaHat12 = (1.0 / (n - 1)) * H1bar.T @ H2bar
         SigmaHat11 = (1 - self.r) * (
-            1.0 / (n - 1)
+                1.0 / (n - 1)
         ) * H1bar.T @ H1bar + self.r * torch.eye(o1, device=H1.device)
         SigmaHat22 = (1 - self.r) * (
-            1.0 / (n - 1)
+                1.0 / (n - 1)
         ) * H2bar.T @ H2bar + self.r * torch.eye(o2, device=H2.device)
 
-        SigmaHat11RootInv = torch.linalg.inv(
-            MatrixSquareRoot.apply(_minimal_regularisation(SigmaHat11, self.eps))
-        )
-        SigmaHat22RootInv = torch.linalg.inv(
-            MatrixSquareRoot.apply(_minimal_regularisation(SigmaHat22, self.eps))
-        )
+        SigmaHat11RootInv = mat_pow(SigmaHat11, -0.5, self.eps)
+        SigmaHat22RootInv = mat_pow(SigmaHat22, -0.5, self.eps)
 
         Tval = SigmaHat11RootInv @ SigmaHat12 @ SigmaHat22RootInv
         trace_TT = Tval.T @ Tval
@@ -250,13 +213,7 @@ class TCCA:
             + self.r * torch.eye(z_.size(1), device=z_.device)
             for z_ in z
         ]
-        whitened_z = [
-            z_
-            @ torch.linalg.inv(
-                MatrixSquareRoot.apply(_minimal_regularisation(cov, self.eps))
-            )
-            for z_, cov in zip(z, covs)
-        ]
+        whitened_z = [z_ @ mat_pow(cov, -0.5, self.eps) for z_, cov in zip(z, covs)]
         # The idea here is to form a matrix with M dimensions one for each view where at index
         # M[p_i,p_j,p_k...] we have the sum over n samples of the product of the pth feature of the
         # ith, jth, kth view etc.

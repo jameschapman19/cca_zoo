@@ -46,7 +46,7 @@ def test_DCCA_methods():
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
     encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     dcca_noi = DCCA_NOI(latent_dims, N, encoders=[encoder_1, encoder_2], rho=0)
-    optimizer = optim.Adam(dcca_noi.parameters(), lr=1e-3)
+    optimizer = optim.Adam(dcca_noi.parameters(), lr=1e-2)
     dcca_noi = CCALightning(dcca_noi, optimizer=optimizer)
     trainer = pl.Trainer(
         max_epochs=epochs, log_every_n_steps=10, enable_checkpointing=False
@@ -80,7 +80,7 @@ def test_DCCA_methods():
         encoders=[encoder_1, encoder_2],
         objective=objectives.CCA,
     )
-    optimizer = optim.SGD(dcca.parameters(), lr=1e-2)
+    optimizer = optim.SGD(dcca.parameters(), lr=1e-1)
     dcca = CCALightning(dcca, optimizer=optimizer)
     trainer = pl.Trainer(
         max_epochs=epochs, log_every_n_steps=10, enable_checkpointing=False

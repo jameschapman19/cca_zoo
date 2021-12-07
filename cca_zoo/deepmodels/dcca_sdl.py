@@ -21,7 +21,7 @@ class DCCA_SDL(DCCA_NOI):
         encoders=None,
         r: float = 0,
         rho: float = 0.2,
-        eps: float = 1e-3,
+        eps: float = 1e-5,
         shared_target: bool = False,
         lam=0.5,
     ):

@@ -23,7 +23,7 @@ class DCCAE(_DCCA_base):
         encoders=None,
         decoders=None,
         r: float = 0,
-        eps: float = 1e-3,
+        eps: float = 1e-5,
         lam=0.5,
     ):
         """
