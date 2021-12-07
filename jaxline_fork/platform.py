@@ -68,12 +68,8 @@ class TensorBoardLogger:
         """Initializes the writer."""
         log_dir = os.path.join(config.checkpoint_dir, mode)
         self._writer = tf.summary.create_file_writer(log_dir)
-        self.hparams = {
-            "batch_size": config.experiment_kwargs.get("batch_size", "N/A"),
-            "learning_rate": config.experiment_kwargs.get("learning_rate", "N/A"),
-            "momentum": config.experiment_kwargs.get("momentum", "N/A"),
-            "model": config.experiment_kwargs.get("model","model?")
-        }
+        self.hparams = {**config.experiment_kwargs,
+                        'model':FLAGS.model}
 
     def write_scalars(self, global_step: int, scalars: Mapping[str, Any]):
         """Writes scalars to stdout."""

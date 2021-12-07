@@ -23,14 +23,22 @@ MODEL_DICT = {
 
 
 def main(argv):
+    print(f"MODEL IS {FLAGS.model}")
+    FLAGS.config.experiment_kwargs = {
+        "n_components": FLAGS.config.n_components,
+        "num_devices": FLAGS.config.num_devices,
+        "data": 'mnist',
+        "batch_size":FLAGS.config.batch_size,
+        "learning_rate":FLAGS.config.learning_rate,
+    }
     platform.main(MODEL_DICT[FLAGS.model],argv)
 
 
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
+    os.chdir(log_dir())
     wandb.init(sync_tensorboard=True)
     wandb_config = wandb.config
     # environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={config.devices}"
     # magic function which does what pytorch-lightning does which is to make a new numbered version in the directory for each run
-    os.chdir(log_dir())
     app.run(main)

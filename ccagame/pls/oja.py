@@ -3,8 +3,7 @@ from os import environ
 import jax
 import jax.numpy as jnp
 from . import PLSExperiment
-from functools import partial
-from jax import jit
+
 
 class Oja(PLSExperiment):
     def __init__(

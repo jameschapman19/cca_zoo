@@ -1,24 +1,24 @@
 from re import I
 import os
-from ccagame import pca
-from absl import flags, app
+from ccagame import cca
+from absl import app, flags
 from ccagame.utils import log_dir
-from jaxline import platform
+from jaxline_fork import platform
 import os
 import wandb
-from jaxline_fork import platform
 from absl import flags
 from ml_collections import config_flags
 FLAGS = flags.FLAGS
-config_flags.DEFINE_config_file("config", help_string="Training configuration file.", default="/mnt/c/users/chapm/PycharmProjects/ccagame/experiments/pca/config.py")
+config_flags.DEFINE_config_file("config", help_string="Training configuration file.", default="/mnt/c/users/chapm/PycharmProjects/ccagame/experiments/pls/config.py")
 flags.DEFINE_string(name="model", default="game", help="model name")
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 MODEL_DICT = {
-    "game": pca.Game,
-    "oja": pca.Oja,
-    "gha": pca.GHA,
+    "game": cca.Game,
+    "msg": cca.MSG,
+    "oja": cca.Oja,
 }
+
 
 def main(argv):
     print(f"MODEL IS {FLAGS.model}")
@@ -30,6 +30,7 @@ def main(argv):
         "learning_rate":FLAGS.config.learning_rate,
     }
     platform.main(MODEL_DICT[FLAGS.model],argv)
+
 
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
