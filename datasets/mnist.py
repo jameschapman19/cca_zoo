@@ -24,7 +24,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from ccagame.utils import data_stream
-
+from cca_zoo.models import cca_base, rCCA
 _DATA = "/tmp/jax_example_data/"
 
 
@@ -97,17 +97,24 @@ def mnist(permute_train=False):
 
     return train_images, train_labels, test_images, test_labels
 
-def mnist_iterator(batch_size, n_components,pca=False):
+def mnist_iterator(batch_size, n_components,pca=False, cca=False):
     X, _, X_te, _ = mnist()
     if pca:
         correct_U, _, _ = jnp.linalg.svd(X.T @ X)
         correct_U = correct_U[:, :n_components]
         return data_stream(X, batch_size=batch_size), X_te, correct_U, X.shape[1]
-    Y=X[:,392:]
-    X=X[:,:392]
-    Y_te=X_te[:,392:]
-    X_te=X_te[:,:392]
-    correct_U, _, correct_V = jnp.linalg.svd(X.T @ Y)
-    correct_U = correct_U[:, :n_components]
-    correct_V = correct_V[:n_components, :].T
-    return data_stream(X, Y=Y, batch_size=batch_size), (X_te,Y_te), (correct_U, correct_V),(X.shape[1], Y.shape[1])
+    else:
+        Y=X[:,392:]+np.random.normal(size=X[:,392:].shape)
+        X=X[:,:392]+np.random.normal(size=X[:,392:].shape)
+        Y_te=X_te[:,392:]+np.random.normal(size=X_te[:,392:].shape)
+        X_te=X_te[:,:392]+np.random.normal(size=X_te[:,392:].shape)
+        if cca:
+            cca=rCCA(latent_dims=n_components, scale=False,centre=False,c=0.01).fit((X,Y))
+            correct_U,correct_V=cca.weights
+            correct_U/=jnp.linalg.norm(correct_U,axis=0)
+            correct_V/=jnp.linalg.norm(correct_V,axis=0)
+        else:
+            correct_U, _, correct_V = jnp.linalg.svd(X.T @ Y)
+            correct_U = correct_U[:, :n_components]
+            correct_V = correct_V[:n_components, :].T#cca.score((X,Y))
+        return data_stream(X, Y=Y, batch_size=batch_size), (X_te,Y_te), (correct_U, correct_V),(X.shape[1], Y.shape[1])

@@ -9,14 +9,12 @@ import wandb
 from absl import flags
 from ml_collections import config_flags
 FLAGS = flags.FLAGS
-config_flags.DEFINE_config_file("config", help_string="Training configuration file.", default="/mnt/c/users/chapm/PycharmProjects/ccagame/experiments/pls/config.py")
+config_flags.DEFINE_config_file("config", help_string="Training configuration file.", default="/mnt/c/users/chapm/PycharmProjects/ccagame/experiments/cca/config.py")
 flags.DEFINE_string(name="model", default="game", help="model name")
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 MODEL_DICT = {
     "game": cca.Game,
-    "msg": cca.MSG,
-    "oja": cca.Oja,
 }
 
 
@@ -25,7 +23,7 @@ def main(argv):
     FLAGS.config.experiment_kwargs = {
         "n_components": FLAGS.config.n_components,
         "num_devices": FLAGS.config.num_devices,
-        "data": 'mnist',
+        "data": FLAGS.config.data,
         "batch_size":FLAGS.config.batch_size,
         "learning_rate":FLAGS.config.learning_rate,
     }

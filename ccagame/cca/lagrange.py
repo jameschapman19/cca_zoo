@@ -36,16 +36,11 @@ class GenOja(CCAExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self.W = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]+self.dims[1]))
-        self.V = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]+self.dims[1]))
-        self._optimizer_ls = optax.sgd(
+        self._W = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]+self.dims[1]))
+        self._optimizer = optax.sgd(
             learning_rate=learning_rate, momentum=momentum, nesterov=nesterov
         )
-        self._optimizer_oja = optax.sgd(
-            learning_rate=learning_rate, momentum=momentum, nesterov=nesterov
-        )
-        self._opt_state_ls = self._optimizer_ls.init(self._U)
-        self._opt_state_oja = self._optimizer_oja.init(self._V)
+        self._opt_state = self._optimizer.init(self._W)
 
 
     # @partial(jit, static_argnums=(0))
@@ -56,15 +51,12 @@ class GenOja(CCAExperiment):
         B=jsp.linalg.block_diag(X_i.T@X_i,Y_i.T@Y_i)
         A=jnp.hstack((X_i,Y_i)).T@jnp.hstack((X_i,Y_i))
         A=A-B
-        w_grad=B@self._W-A@self._V
-        updates_w, self._opt_state_ls = self._optimizer_ls.update(
-            w_grad, self._opt_state_ls
+        Y=self._W@A@self._W.T
+        w_grad=B@self._W@Y-A@self._W.T
+        updates_w, self._opt_state = self._optimizer.update(
+            w_grad, self._opt_state
         )
         self._W = optax.apply_updates(self._W, updates_w)
-        updates_v, self._opt_state_oja = self._optimizer_oja.update(
-            self._W, self._opt_state_oja
-        )
-        self._V = optax.apply_updates(self._V, updates_v)
-        self._V = jnp.linalg.qr(self._V.T)[0].T
+        self._W = jnp.linalg.qr(self._W.T)[0].T
         self._U=self._V[:,:self.dims[0]]
         self._V=self._V[:,:self.dims[1]]

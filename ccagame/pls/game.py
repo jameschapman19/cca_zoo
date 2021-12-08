@@ -37,7 +37,7 @@ class Game(PLSExperiment):
         """
         """Initialization function for a Jaxline experiment."""
         k_per_device=int(n_components/num_devices)
-        weights = np.eye(self.n_components) * 2 - np.ones((self.n_components, self.n_components))
+        weights = np.eye(self.n_components) - np.ones((self.n_components, self.n_components))
         weights[np.triu_indices(self.n_components, 1)] = 0
         self._weights = jnp.reshape(weights, [num_devices, k_per_device, self.n_components])
         # generates a key for each device

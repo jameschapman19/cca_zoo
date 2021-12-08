@@ -40,13 +40,13 @@ class Game(PCAExperiment):
         Initialization function for a Jaxline experiment.
         """
         k_per_device=int(self.n_components/self.num_devices)
-        weights = np.eye(self.n_components) * 2 - np.ones((self.n_components, self.n_components))
+        weights = np.eye(self.n_components) - np.ones((self.n_components, self.n_components))
         weights[np.triu_indices(self.n_components, 1)] = 0
         self._weights = jnp.reshape(weights, [num_devices, k_per_device, self.n_components])
         # generates a key for each device
         keys = jax.random.split(self.local_rng, num_devices)
         # generates weights for each component on each device
-        V = jax.pmap(lambda key: jax.random.normal(key, (k_per_device, dims)))(keys)
+        V = jax.pmap(lambda key: jax.random.normal(key, (k_per_device, self.dims)))(keys)
         # normalizes the weights for each component
         self._V = jax.pmap(lambda V: V / jnp.linalg.norm(V, axis=1, keepdims=True))(V)
         # This line parallelizes over data sending different data to each device

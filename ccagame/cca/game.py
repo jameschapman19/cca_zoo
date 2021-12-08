@@ -5,7 +5,7 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 from jax import jit
-from . import CCAExperiment
+from ccagame.cca import CCAExperiment
 
 
 class Game(CCAExperiment):
@@ -40,7 +40,7 @@ class Game(CCAExperiment):
         """
         """Initialization function for a Jaxline experiment."""
         k_per_device = int(n_components / num_devices)
-        weights = np.eye(self.n_components) * 2 - np.ones(
+        weights = np.eye(self.n_components) - np.ones(
             (self.n_components, self.n_components)
         )
         weights[np.triu_indices(self.n_components, 1)] = 0
@@ -51,10 +51,10 @@ class Game(CCAExperiment):
         keys = jax.random.split(self.local_rng, num_devices)
         # generates weights for each component on each device
         self._U = jax.pmap(
-            lambda key: jax.random.normal(key, (k_per_device, dims[0])) / 100
+            lambda key: jax.random.normal(key, (k_per_device, self.dims[0])) / 10000
         )(keys)
         self._V = jax.pmap(
-            lambda key: jax.random.normal(key, (k_per_device, dims[1])) / 100
+            lambda key: jax.random.normal(key, (k_per_device, self.dims[1])) / 10000
         )(keys)
         # This line parallelizes over data sending different data to each device
         self._update_with_grads = jax.pmap(
@@ -75,7 +75,7 @@ class Game(CCAExperiment):
             axis_name="i",
         )
         self._optimizer = optax.sgd(
-            learning_rate=learning_rate, momentum=0, nesterov=False
+            learning_rate=learning_rate
         )
         self._opt_state_x = jax.pmap(lambda U: self._optimizer.init(U))(self._U)
         self._opt_state_y = jax.pmap(lambda V: self._optimizer.init(V))(self._V)
@@ -88,16 +88,14 @@ class Game(CCAExperiment):
         Y_i = jnp.reshape(Y_i, (self.num_devices, -1, self.dims[1]))
         self._local_U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
         self._local_V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
-        #TODO batchnorm views separately like barlowtwins
-        Zx= X_i @ self._local_U.T
-        Zx=Zx / jnp.linalg.norm(Zx, axis=1)
-        Zy= Y_i @ self._local_V.T
-        Zy=Zy / jnp.linalg.norm(Zy, axis=1)
-        T = Zx+Zy
-        T = jnp.reshape(T, (self.num_devices, -1, T.shape[1]))
-        local_T = jnp.reshape(T, (self.n_components, -1))
-        grads_x = self._grads(self._U, T, self._weights, local_T, X_i)
-        grads_y = self._grads(self._V, T, self._weights, local_T, Y_i)
+        Zx = X_i @ self._local_U.T
+        Zy = Y_i @ self._local_V.T
+        T = Zx + Zy
+        T = T / jnp.linalg.norm(T, axis=1)
+        T = jnp.reshape(T, (self.num_devices, -1, T.shape[1]))#jnp.linalg.norm(X_i[0]@self._U[0][0]-local_T.T[:,0])
+        local_T = jnp.reshape(T, (self.n_components, -1))#jnp.linalg.norm(self._U[0][0]@X_i[0].T)
+        grads_x = self._grads(self._U, T, self._weights, local_T, X_i)#self._U[0][1]@X_i[0].T@local_T.T@self._weights[0][1]
+        grads_y = self._grads(self._V, T, self._weights, local_T, Y_i)#jnp.linalg.norm(local_T.T[:,0])
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
@@ -109,9 +107,8 @@ class Game(CCAExperiment):
     @jit
     def _grads(ui, ti, weights, T, X):
         weights_ij = (jnp.sign(weights + 0.5) - 1.0) / 2.0  # maps -1 to -1 else to 0
-        rewards = X.T @ ti# - X.T @ X @ ui
-        penalty_grads = (ui @ X.T @ T.T) * (T @ X).T
-        penalty_grads = penalty_grads @ weights_ij
+        rewards = X.T @ ti - (1-weights_ij.sum())*X.T @ X @ ui
+        penalty_grads = ui@ X.T @ T.T * (X.T@T.T) @ weights_ij
         grads = rewards + penalty_grads
         return grads
 
@@ -119,5 +116,4 @@ class Game(CCAExperiment):
     def _update_with_grads(self, ui, grads, opt_state):
         updates, opt_state = self._optimizer.update(grads, opt_state)
         ui_new = optax.apply_updates(ui, updates)
-        #ui_new = ui + grads * self.learning_rate
         return ui_new, opt_state
