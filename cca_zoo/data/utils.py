@@ -8,22 +8,16 @@ class CCA_Dataset(Dataset):
 
     """
 
-    def __init__(self, views, labels=None):
+    def __init__(self, views):
         """
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        :param labels: optional labels
         """
         self.views = [view for view in views]
-        if labels is None:
-            self.labels = np.zeros(len(self.views[0]))
-        else:
-            self.labels = labels
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.views[0])
 
     def __getitem__(self, idx):
-        label = self.labels[idx]
         views = [view[idx].astype(np.float32) for view in self.views]
-        return tuple(views), label
+        return tuple(views)

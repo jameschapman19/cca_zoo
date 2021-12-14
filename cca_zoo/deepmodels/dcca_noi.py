@@ -67,10 +67,7 @@ class DCCA_NOI(DCCA):
         z = self(*args)
         z_copy = [z_.detach().clone() for z_ in z]
         self._update_covariances(*z_copy)
-        covariance_inv = [
-            mat_pow(cov,-0.5,self.eps)
-            for cov in self.covs
-        ]
+        covariance_inv = [mat_pow(cov, -0.5, self.eps) for cov in self.covs]
         preds = [z_ @ covariance_inv[i] for i, z_ in enumerate(z_copy)]
         loss = self.mse(z[0], preds[1]) + self.mse(z[1], preds[0])
         return loss

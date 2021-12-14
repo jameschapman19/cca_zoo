@@ -47,19 +47,19 @@ class CCALightning(LightningModule):
         return [optimizer], [scheduler]
 
     def training_step(self, batch, batch_idx):
-        data, label = batch
+        data = batch
         loss = self.model.loss(*data)
         self.log("train loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        data, label = batch
+        data = batch
         loss = self.model.loss(*data)
         self.log("val loss", loss)
         return loss
 
     def test_step(self, batch, batch_idx):
-        data, label = batch
+        data = batch
         loss = self.model.loss(*data)
         self.log("test loss", loss)
         return loss
@@ -110,7 +110,7 @@ class CCALightning(LightningModule):
         :return: transformed views
         """
         with torch.no_grad():
-            for batch_idx, (data, label) in enumerate(loader):
+            for batch_idx, data in enumerate(loader):
                 data = [d.to(self.device) for d in list(data)]
                 z = self.model(*data)
                 if batch_idx == 0:
@@ -150,7 +150,7 @@ class CCALightning(LightningModule):
         loader: torch.utils.data.DataLoader,
     ):
         with torch.no_grad():
-            for batch_idx, (data, label) in enumerate(loader):
+            for batch_idx, data in enumerate(loader):
                 data = [d.to(self.device) for d in list(data)]
                 x = self.model.recon(*data)
                 if batch_idx == 0:

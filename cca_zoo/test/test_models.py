@@ -212,7 +212,11 @@ def test_non_negative_methods():
         initialization="random",
     ).fit((X, Y))
     nnals = CCA_ALS(
-        latent_dims=latent_dims, tol=1e-9, positive=True, random_state=rng, initialization='pls'
+        latent_dims=latent_dims,
+        tol=1e-9,
+        positive=True,
+        random_state=rng,
+        initialization="pls",
     ).fit((X, Y))
     assert np.testing.assert_array_less(-1e-9, nnelastic.weights[0]) is None
     assert np.testing.assert_array_less(-1e-9, nnelastic.weights[1]) is None

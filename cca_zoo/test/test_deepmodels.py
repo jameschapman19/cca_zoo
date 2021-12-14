@@ -18,7 +18,7 @@ from cca_zoo.deepmodels import (
     DCCA_SDL,
 )
 from cca_zoo.deepmodels import objectives, architectures
-from cca_zoo.models import CCA
+from cca_zoo.models import CCA, TCCA
 
 manual_seed(0)
 rng = check_random_state(0)
@@ -29,12 +29,11 @@ X_conv = rng.rand(200, 1, 16, 16)
 Y_conv = rng.rand(200, 1, 16, 16)
 dataset = data.CCA_Dataset([X, Y, Z])
 train_dataset, val_dataset = process_data(dataset, val_split=0.2)
-train_dataset_numpy, val_dataset_numpy = process_data((X, Y, Z), val_split=0.2)
 loader = get_dataloaders(dataset)
 train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
-train_loader_numpy, val_loader_numpy = get_dataloaders(train_dataset, val_dataset)
 conv_dataset = data.CCA_Dataset((X_conv, Y_conv))
 conv_loader = get_dataloaders(conv_dataset)
+train_ids = train_dataset.indices
 
 
 def test_DCCA_methods():
@@ -154,14 +153,28 @@ def test_DCCA_methods():
 
 
 def test_DTCCA_methods():
+    # check that DTCCA is equivalent to CCA for 2 views with linear encoders
     latent_dims = 2
-    epochs = 5
-    encoder_1 = architectures.CNNEncoder(latent_dims=10, feature_size=(16, 16))
-    encoder_2 = architectures.CNNEncoder(latent_dims=10, feature_size=(16, 16))
+    epochs = 100
+    cca = CCA(latent_dims=latent_dims)
+    encoder_1 = architectures.LinearEncoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.LinearEncoder(latent_dims=latent_dims, feature_size=12)
     dtcca = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
-    dtcca = CCALightning(dtcca)
+    optimizer = optim.Adam(dtcca.parameters(), lr=1e-1)
+    dtcca = CCALightning(dtcca, optimizer=optimizer)
     trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
-    trainer.fit(dtcca, conv_loader)
+    trainer.fit(dtcca, train_loader)
+    z = dtcca.transform(train_loader)
+    assert (
+        np.testing.assert_array_almost_equal(
+            cca.fit((X[train_ids], Y[train_ids]))
+            .score((X[train_ids], Y[train_ids]))
+            .sum(),
+            cca.fit((z)).score((z)).sum(),
+            decimal=3,
+        )
+        is None
+    )
 
 
 def test_DCCAE_methods():

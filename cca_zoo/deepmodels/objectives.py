@@ -1,5 +1,3 @@
-import numpy as np
-import scipy.linalg
 import tensorly as tl
 import torch
 from tensorly.cp_tensor import cp_to_tensor
@@ -105,10 +103,7 @@ class GCCA:
         views = _demean(*views)
 
         eigen_views = [
-            view
-            @ mat_pow(view.T @ view, -1, self.eps)
-            @ view.T
-            for view in views
+            view @ mat_pow(view.T @ view, -1, self.eps) @ view.T for view in views
         ]
 
         Q = torch.stack(eigen_views, dim=0).sum(dim=0)
@@ -166,10 +161,10 @@ class CCA:
 
         SigmaHat12 = (1.0 / (n - 1)) * H1bar.T @ H2bar
         SigmaHat11 = (1 - self.r) * (
-                1.0 / (n - 1)
+            1.0 / (n - 1)
         ) * H1bar.T @ H1bar + self.r * torch.eye(o1, device=H1.device)
         SigmaHat22 = (1 - self.r) * (
-                1.0 / (n - 1)
+            1.0 / (n - 1)
         ) * H2bar.T @ H2bar + self.r * torch.eye(o2, device=H2.device)
 
         SigmaHat11RootInv = mat_pow(SigmaHat11, -0.5, self.eps)
@@ -194,7 +189,7 @@ class TCCA:
 
     """
 
-    def __init__(self, latent_dims: int, r: float = 0, eps: float = 1e-3):
+    def __init__(self, latent_dims: int, r: float = 0, eps: float = 1e-4):
         """
 
         :param latent_dims: the number of latent dimensions
@@ -205,15 +200,17 @@ class TCCA:
         self.r = r
         self.eps = eps
 
-    def loss(self, *z):
-        m = z[0].size(0)
-        z = [z_ - z_.mean(dim=0).unsqueeze(dim=0) for z_ in z]
+    def loss(self, *views):
+        m = views[0].size(0)
+        views = _demean(*views)
         covs = [
-            (1 - self.r) * (1.0 / (m - 1)) * z_.T @ z_
-            + self.r * torch.eye(z_.size(1), device=z_.device)
-            for z_ in z
+            (1 - self.r) * view.T @ view
+            + self.r * torch.eye(view.size(1), device=view.device)
+            for view in views
         ]
-        whitened_z = [z_ @ mat_pow(cov, -0.5, self.eps) for z_, cov in zip(z, covs)]
+        whitened_z = [
+            view @ mat_pow(cov, -0.5, self.eps) for view, cov in zip(views, covs)
+        ]
         # The idea here is to form a matrix with M dimensions one for each view where at index
         # M[p_i,p_j,p_k...] we have the sum over n samples of the product of the pth feature of the
         # ith, jth, kth view etc.
@@ -230,6 +227,9 @@ class TCCA:
                 M = torch.unsqueeze(M, -1) @ el
         M = torch.mean(M, 0)
         tl.set_backend("pytorch")
-        M_parafac = parafac(M.detach(), self.latent_dims, verbose=False)
+        M_parafac = parafac(
+            M.detach(), self.latent_dims, verbose=False, normalize_factors=True
+        )
+        M_parafac.weights = 1
         M_hat = cp_to_tensor(M_parafac)
-        return torch.norm(M - M_hat)
+        return torch.linalg.norm(M - M_hat)
