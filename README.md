@@ -5,16 +5,16 @@
 [![version](https://img.shields.io/pypi/v/cca-zoo)](https://pypi.org/project/cca-zoo/)
 [![downloads](https://img.shields.io/pypi/dm/cca-zoo)](https://pypi.org/project/cca-zoo/)
 
-# CCA zoo
+# CCA-Zoo
 
 `cca-zoo` is a collection of linear, kernel, and deep methods for canonical correlation analysis of multiview data. 
-Where possible I have followed the `scikit-learn`/`mvlearn` APIs and models therefore have `fit`/`transform`/`fit_transform` methods as standard.
+Where possible it follows the `scikit-learn`/`mvlearn` APIs and models therefore have `fit`/`transform`/`fit_transform` methods as standard.
 
 ## Installation
 
 Dependency of some implemented algorithms are heavy, such as `pytorch` and `numpyro`. 
-We provide several options to accomandate the user's needs.
-For full details of algoritms inclused, please refere to section [Implemented Methods](#implemented-methods)
+We provide several options to accomodate the user's needs.
+For full details of algorithms included, please refer to section [Implemented Methods](#implemented-methods)
 
 Standard installation: 
 

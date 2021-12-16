@@ -1,5 +1,5 @@
 ---
-title: 'cca-zoo: a python package for implementing models from the canonical correlation analysis family'
+title: 'CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods in a scikit-learn style framework'
 tags:
   - Python
   - Multiview
@@ -45,14 +45,14 @@ data that have previously only been available in installable packages in R. Nati
 Python users convenient access to these powerful models for both application and the development of new algorithms. 
 Secondly,`cca-zoo` contains several deep CCA variants written in PyTorch [@paszke2019pytorch]. We adopted a modular 
 style allowing users to apply their desired neural network architectures for each view for their own training pipeline. 
-Thirdly, `cca-zoo` contains generative models including variational and deep variational CCA. This class of variations 
+Thirdly, `cca-zoo` contains generative models including probabilistic and deep variational CCA. This class of variations 
 can be used to model the multiview data generation process and even generate new synthetic samples. Finally, `cca-zoo` 
-provides data simulation utilites to synthesize data containing specified correlation structures as well as the paired 
+provides data simulation utilities to synthesize data containing specified correlation structures as well as the paired 
 MNIST data commonly used as a toy dataset in deep multiview learning.
 
 # Statement of need
 
-The python ecosystem for multiview learning currently provides a few options for implementing CCA and PLS models.
+The Python ecosystem for multiview learning currently provides a few options for implementing CCA and PLS models.
 `scikit-learn` [@pedregosa2011scikit] contains standard implementations of both CCA and PLS for two-view data which plug
 into their mature API. `pyrcca` [@bilenko2016pyrcca] contains implementations of ridge regularised and kernelized
 two-view CCA. The embed module of `mvlearn` [@perry2020mvlearn] is perhaps the closest relative of `cca-zoo`, containing
@@ -115,7 +115,7 @@ A complete model list at the time of publication:
 | DTCCA   | Deep Tensor Canonical Correlation Analysis | \>=2   | deep |
 | SplitAE   | Split Autoencoders [@ngiam2011multimodal] | 2   | deep |
 | DVCCA   | Deep Variational Canonical Correlation Analysis | \>=2   | deep |
-| VCCA   | Variational Canonical Correlation Analysis | 2   | probabilistic |
+| ProbabilisticCCA   | Probabilistic Canonical Correlation Analysis | 2   | probabilistic |
 
 ## Documentation
 

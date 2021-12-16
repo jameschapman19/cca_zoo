@@ -1,1 +1,1 @@
-from .vcca import VariationalCCA
+from .probabilisticcca import ProbabilisticCCA

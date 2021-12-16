@@ -11,12 +11,13 @@ from sklearn.utils.validation import check_is_fitted
 from cca_zoo.models._cca_base import _CCA_Base
 
 
-class VariationalCCA(_CCA_Base):
+class ProbabilisticCCA(_CCA_Base):
     """
-    A class used to fit a variational bayesian CCA. Not quite the same due to using VI methods rather than EM
+    A class used to fit a Probabilistic CCA. Not quite the same due to using VI methods rather than EM
 
     :Citation:
 
+    Bach, Francis R., and Michael I. Jordan. "A probabilistic interpretation of canonical correlation analysis." (2005).
     Wang, Chong. "Variational Bayesian approach to canonical correlation analysis." IEEE Transactions on Neural Networks 18.3 (2007): 905-910.
 
     """

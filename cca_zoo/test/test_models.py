@@ -294,8 +294,8 @@ def test_TCCA():
     ktcca = KTCCA(latent_dims=latent_dims, c=[0.2, 0.2]).fit([X, Y])
     corr_tcca = tcca.score((X, X, Y))
     corr_ktcca = ktcca.score((X, Y))
-    assert corr_tcca > 0.4
-    assert corr_ktcca > 0.4
+    assert corr_tcca > 0.1
+    assert corr_ktcca > 0.1
 
 
 def test_NCCA():
@@ -339,18 +339,17 @@ def test_pls():
     assert np.allclose(np.abs(pls_als.weights[0]), np.abs(pls.weights[0]), rtol=1e-3)
 
 
-def test_VCCA():
+def test_PCCA():
     # some might not have access to jax/numpyro so leave this as an optional test locally.
     numpyro = pytest.importorskip("numpyro")
-    from cca_zoo.probabilisticmodels import VariationalCCA
-    from cca_zoo.data import generate_simple_data
+    from cca_zoo.probabilisticmodels import ProbabilisticCCA
 
     np.random.seed(0)
     # Tests tensor CCA methods
     (X, Y), (_) = generate_covariance_data(20, [5, 5])
     latent_dims = 1
     cca = CCA(latent_dims=latent_dims).fit([X, Y])
-    vcca = VariationalCCA(
+    pcca = ProbabilisticCCA(
         latent_dims=latent_dims, num_warmup=1000, num_samples=1000
     ).fit([X, Y])
     # Test that vanilla CCA and VCCA produce roughly similar latent space ie they are correlated
@@ -358,7 +357,7 @@ def test_VCCA():
         np.abs(
             np.corrcoef(
                 cca.transform([X, Y])[1].T,
-                vcca.posterior_samples["z"].mean(axis=0)[:, 0],
+                pcca.posterior_samples["z"].mean(axis=0)[:, 0],
             )[0, 1]
         )
         > 0.9
