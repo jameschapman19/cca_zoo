@@ -24,45 +24,47 @@ class Split_MNIST_Dataset(Dataset):
         :param flatten: whether to flatten the data into array or use 2d images
         """
         if mnist_type == "MNIST":
-            self.dataset = datasets.MNIST("../../data", train=train, download=True)
+            self.dataset = datasets.MNIST(
+                "../../data",
+                train=train,
+                download=True,
+                transform=torchvision.transforms.Compose(
+                    [torchvision.transforms.ToTensor()]
+                ),
+            )
         elif mnist_type == "FashionMNIST":
             self.dataset = datasets.FashionMNIST(
-                "../../data", train=train, download=True
+                "../../data",
+                train=train,
+                download=True,
+                transform=torchvision.transforms.Compose(
+                    [torchvision.transforms.ToTensor()]
+                ),
             )
         elif mnist_type == "KMNIST":
-            self.dataset = datasets.KMNIST("../../data", train=train, download=True)
-
-        self.data = self.dataset.data
-        self.targets = self.dataset.targets
+            self.dataset = datasets.KMNIST(
+                "../../data",
+                train=train,
+                download=True,
+                transform=torchvision.transforms.Compose(
+                    [
+                        torchvision.transforms.ToTensor(),
+                    ]
+                ),
+            )
         self.flatten = flatten
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        x = self.data[idx].flatten()
-        x_a = x[:392] / 255
-        x_b = x[392:] / 255
-        label = self.targets[idx]
-        return (x_a, x_b), label
-
-    def to_numpy(self, indices=None):
-        """
-        Converts dataset to numpy array form
-
-        :param indices: indices of the samples to extract into numpy arrays
-        """
-        if indices is None:
-            indices = np.arange(self.__len__())
-        view_1 = np.zeros((len(indices), 392))
-        view_2 = np.zeros((len(indices), 392))
-        labels = np.zeros(len(indices)).astype(int)
-        for i, n in enumerate(indices):
-            sample = self[n]
-            view_1[i] = sample[0][0].numpy()
-            view_2[i] = sample[0][1].numpy()
-            labels[i] = sample[1].numpy().astype(int)
-        return (view_1, view_2), labels
+        x_a, label = self.dataset[idx]
+        x_b = x_a[:, :, 14:] / 255
+        x_a = x_a[:, :, :14] / 255
+        if self.flatten:
+            x_a = torch.flatten(x_a)
+            x_b = torch.flatten(x_b)
+        return {"views": (x_a, x_b), "label": label}
 
 
 class Noisy_MNIST_Dataset(Dataset):
@@ -146,7 +148,7 @@ class Noisy_MNIST_Dataset(Dataset):
         if self.flatten:
             x_a = torch.flatten(x_a)
             x_b = torch.flatten(x_b)
-        return (x_b, x_a), label
+        return {"views": (x_a, x_b), "label": label}
 
 
 class Tangled_MNIST_Dataset(Dataset):
@@ -213,7 +215,7 @@ class Tangled_MNIST_Dataset(Dataset):
         if self.flatten:
             x_a = torch.flatten(x_a)
             x_b = torch.flatten(x_b)
-        return (x_b, x_a), label
+        return {"views": (x_a, x_b), "label": label}
 
 
 def _add_mnist_noise(x):

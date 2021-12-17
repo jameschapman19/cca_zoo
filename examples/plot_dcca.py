@@ -29,13 +29,13 @@ def plot_latent_label(model, dataloader, num_batches=100):
         ax[j].set_title(f"Dimension {j}")
         ax[j].set_xlabel("View 1")
         ax[j].set_ylabel("View 2")
-    for i, (data, label) in enumerate(dataloader):
-        z = model(*data)
+    for i, batch in enumerate(dataloader):
+        z = model(*batch['views'])
         zx, zy = z
         zx = zx.to("cpu").detach().numpy()
         zy = zy.to("cpu").detach().numpy()
         for j in range(model.latent_dims):
-            ax[j].scatter(zx[:, j], zy[:, j], c=label.numpy(), cmap="tab10")
+            ax[j].scatter(zx[:, j], zy[:, j], c=batch['label'].numpy(), cmap="tab10")
         if i > num_batches:
             plt.colorbar()
             break
@@ -75,7 +75,7 @@ dcca_noi = CCALightning(dcca_noi)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca_noi, train_loader, val_loader)
 plot_latent_label(dcca_noi.model, train_loader)
-plt.title("DCCA by Non-Linear Orthogonal Iterations")
+plt.suptitle("DCCA by Non-Linear Orthogonal Iterations")
 plt.show()
 
 # %%
@@ -87,7 +87,7 @@ dcca_sdl = CCALightning(dcca_sdl)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca_sdl, train_loader, val_loader)
 plot_latent_label(dcca_sdl.model, train_loader)
-plt.title("DCCA by Stochastic Decorrelation")
+plt.suptitle("DCCA by Stochastic Decorrelation")
 plt.show()
 
 # %%
@@ -97,5 +97,5 @@ barlowtwins = CCALightning(barlowtwins)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
 plot_latent_label(dcca_sdl.model, train_loader)
-plt.title("DCCA by Barlow Twins")
+plt.suptitle("DCCA by Barlow Twins")
 plt.show()

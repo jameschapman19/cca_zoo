@@ -47,20 +47,17 @@ class CCALightning(LightningModule):
         return [optimizer], [scheduler]
 
     def training_step(self, batch, batch_idx):
-        data = batch
-        loss = self.model.loss(*data)
+        loss = self.model.loss(*batch["views"])
         self.log("train loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        data = batch
-        loss = self.model.loss(*data)
+        loss = self.model.loss(*batch["views"])
         self.log("val loss", loss)
         return loss
 
     def test_step(self, batch, batch_idx):
-        data = batch
-        loss = self.model.loss(*data)
+        loss = self.model.lossloss(*batch["views"])
         self.log("test loss", loss)
         return loss
 
@@ -110,9 +107,9 @@ class CCALightning(LightningModule):
         :return: transformed views
         """
         with torch.no_grad():
-            for batch_idx, data in enumerate(loader):
-                data = [d.to(self.device) for d in list(data)]
-                z = self.model(*data)
+            for batch_idx, batch in enumerate(loader):
+                views = [view.to(self.device) for view in batch["views"]]
+                z = self.model(*views)
                 if batch_idx == 0:
                     z_list = [z_i.detach().cpu().numpy() for i, z_i in enumerate(z)]
                 else:
@@ -150,9 +147,9 @@ class CCALightning(LightningModule):
         loader: torch.utils.data.DataLoader,
     ):
         with torch.no_grad():
-            for batch_idx, data in enumerate(loader):
-                data = [d.to(self.device) for d in list(data)]
-                x = self.model.recon(*data)
+            for batch_idx, batch in enumerate(loader):
+                views = [view.to(self.device) for view in batch["views"]]
+                x = self.model.recon(*views)
                 if batch_idx == 0:
                     x_list = [x_i.detach().cpu().numpy() for i, x_i in enumerate(x)]
                 else:
