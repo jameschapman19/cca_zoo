@@ -24,7 +24,7 @@ from cca_zoo.deepmodels import (
 def plot_reconstruction(model, dataloader):
     for i, batch in enumerate(dataloader):
         x, y = batch['views']
-        recon_x, recon_y = model.recon(*batch['views'])
+        recon_x, recon_y = model.recon(x[0],y[0])
     recon_x = recon_x.detach().numpy()
     recon_y = recon_y.detach().numpy()
     fig, ax = plt.subplots(ncols=4)
@@ -73,7 +73,7 @@ dcca = DVCCA(
 dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
-plot_reconstruction(dcca.model, train_dataset, 0)
+plot_reconstruction(dcca.model, train_loader)
 plt.suptitle("DVCCA")
 plt.show()
 
@@ -97,7 +97,7 @@ dcca = DVCCA(
 dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
-plot_reconstruction(dcca.model, train_dataset, 0)
+plot_reconstruction(dcca.model, train_loader)
 plt.suptitle("DVCCA Private")
 plt.show()
 
@@ -113,6 +113,6 @@ dcca = DCCAE(
 dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
 trainer.fit(dcca, train_loader, val_loader)
-plot_reconstruction(dcca.model, train_dataset, 0)
+plot_reconstruction(dcca.model, train_loader)
 plt.suptitle("DCCAE")
 plt.show()
