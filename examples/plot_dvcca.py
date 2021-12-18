@@ -23,12 +23,12 @@ from cca_zoo.deepmodels import (
 
 def plot_reconstruction(model, dataloader):
     for i, batch in enumerate(dataloader):
-        x, y = batch['views']
-        recon_x, recon_y = model.recon(x[0],y[0])
-    if isinstance(recon_x,list):
-        recon_x=recon_x[0]
-    if isinstance(recon_y,list):
-        recon_y=recon_y[0]
+        x, y = batch["views"]
+        recon_x, recon_y = model.recon(x[0], y[0])
+    if isinstance(recon_x, list):
+        recon_x = recon_x[0]
+    if isinstance(recon_y, list):
+        recon_y = recon_y[0]
     recon_x = recon_x.detach().numpy()
     recon_y = recon_y.detach().numpy()
     fig, ax = plt.subplots(ncols=4)
@@ -36,8 +36,8 @@ def plot_reconstruction(model, dataloader):
     ax[1].set_title("Original View 2")
     ax[2].set_title("Reconstruction View 1")
     ax[3].set_title("Reconstruction View 2")
-    ax[0].imshow(x.detach().numpy().reshape((28, 28)))
-    ax[1].imshow(y.detach().numpy().reshape((28, 28)))
+    ax[0].imshow(x[0].detach().numpy().reshape((28, 28)))
+    ax[1].imshow(y[0].detach().numpy().reshape((28, 28)))
     ax[2].imshow(recon_x.reshape((28, 28)))
     ax[3].imshow(recon_y.reshape((28, 28)))
 
