@@ -25,6 +25,10 @@ def plot_reconstruction(model, dataloader):
     for i, batch in enumerate(dataloader):
         x, y = batch['views']
         recon_x, recon_y = model.recon(x[0],y[0])
+    if isinstance(recon_x,list):
+        recon_x=recon_x[0]
+    if isinstance(recon_y,list):
+        recon_y=recon_y[0]
     recon_x = recon_x.detach().numpy()
     recon_y = recon_y.detach().numpy()
     fig, ax = plt.subplots(ncols=4)
