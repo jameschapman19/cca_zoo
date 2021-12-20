@@ -31,7 +31,7 @@ class CCAExperiment(BaseExperiment):
                 self.holdout,
                 self.correct_eigenvectors,
                 self.dims,
-            ) = mnist_iterator(batch_size=batch_size, n_components=n_components, cca=True)
+            ) = mnist_iterator(batch_size=batch_size, n_components=n_components, cca=True, p=400)
         elif data == "xrmb":
             (
                 self.data,
@@ -99,7 +99,7 @@ class CCAExperiment(BaseExperiment):
 
     #@partial(jit, static_argnums=(0))
     def _correct_eigenvector_streak(self, U, U_correct, X):
-        n_components = U.shape[0]
+        n_components = U.shape[0]#jnp.cov(X@U.T,rowvar=False)*60000
         cosine_similarities_x = jnp.diag(
             jnp.corrcoef(X@U.T,X@U_correct,rowvar=False)[n_components:, :n_components]
         )
@@ -108,7 +108,7 @@ class CCAExperiment(BaseExperiment):
             jnp.ones_like(cosine_similarities_x),
             jnp.zeros_like(cosine_similarities_x),
         )
-        return x_idx.sum()#jnp.max(U)
+        return x_idx.sum()
 
     @staticmethod
     @jit

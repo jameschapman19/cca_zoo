@@ -4,7 +4,7 @@ parameters:
   model:
     values: ['game','oja', 'power']
   config.data:
-    values: ['mnist']
+    values: ['mnist', 'xrmb']
   config.training_steps:
     values: [2000]
   config.learning_rate:

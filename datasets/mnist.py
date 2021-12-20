@@ -97,17 +97,17 @@ def mnist(permute_train=False):
 
     return train_images, train_labels, test_images, test_labels
 
-def mnist_iterator(batch_size, n_components,pca=False, cca=False):
+def mnist_iterator(batch_size, n_components,pca=False, cca=False, p=392):
     X, _, X_te, _ = mnist()
     if pca:
         correct_U, _, _ = jnp.linalg.svd(X.T @ X)
         correct_U = correct_U[:, :n_components]
         return data_stream(X, batch_size=batch_size), X_te, correct_U, X.shape[1]
     else:
-        Y=X[:,392:]+np.random.normal(size=X[:,392:].shape)
-        X=X[:,:392]+np.random.normal(size=X[:,392:].shape)
-        Y_te=X_te[:,392:]+np.random.normal(size=X_te[:,392:].shape)
-        X_te=X_te[:,:392]+np.random.normal(size=X_te[:,392:].shape)
+        Y=X[:,p:]+np.random.normal(size=X[:,p:].shape)
+        X=X[:,:p]+np.random.normal(size=X[:,:p].shape)
+        Y_te=X_te[:,p:]+np.random.normal(size=X_te[:,p:].shape)
+        X_te=X_te[:,:p]+np.random.normal(size=X_te[:,:p].shape)
         if cca:
             cca=rCCA(latent_dims=n_components, scale=False,centre=False,c=0.01).fit((X,Y))
             correct_U,correct_V=cca.weights

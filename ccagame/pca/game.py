@@ -81,6 +81,7 @@ class Game(PCAExperiment):
     def _update_with_grads(self, vi, grads, opt_state):
         """Compute and apply updates with optax optimizer.
         Wrap in jax.vmap for k_per_device dimension."""
+        #we have gradient of utilities so we negate for gradient descent
         updates, opt_state = self._optimizer.update(-grads, opt_state)
         vi_new = optax.apply_updates(vi, updates)
         vi_new /= jnp.linalg.norm(vi_new)
@@ -88,8 +89,8 @@ class Game(PCAExperiment):
 
     @staticmethod
     @jit
-    def eg_grads(
-        vi: jnp.ndarray, weights: jnp.ndarray, eigs: jnp.ndarray, data: jnp.ndarray
+    def _grads(
+        vi: jnp.ndarray, weights: jnp.ndarray, V: jnp.ndarray, X: jnp.ndarray
     ) -> jnp.ndarray:
         """
         Args:
@@ -100,14 +101,10 @@ class Game(PCAExperiment):
         Returns:
         grads: shape (d,), gradient for vi
         """
-        weights_ij = (jnp.sign(weights + 0.5) - 1.0) / 2.0  # maps -1 to -1 else to 0
-        data_vi = data @ vi
-        data_eigs = (data @ eigs.T).T  # Xvj on row j
-        vi_m_vj = data_eigs @ data_vi
-        penalty_grads = vi_m_vj * eigs.T
-        penalty_grads = penalty_grads @ weights_ij
-        grads = data.T @ data_vi + penalty_grads
-        return grads
+        penalty_grads = vi @ X.T @ X * V.T
+        penalty_grads = penalty_grads @ weights
+        grads = X.T@vi + penalty_grads
+        return grads/X.shape[0]
 
     @staticmethod
     @jit
@@ -122,12 +119,3 @@ class Game(PCAExperiment):
         r_ij = vi_m_vj2 / vj_m_vj
         util = r_ij @ weights
         return util
-
-    @staticmethod
-    @jit
-    def _grads(vi, weights, V, inputs):
-        """Compute utiltiies and update directions ("grads").
-        23 Wrap in jax.vmap for k_per_device dimension."""
-        #utilities = Game.utility(vi, weights, V, inputs)
-        grads = Game.eg_grads(vi, weights, V, inputs)
-        return grads

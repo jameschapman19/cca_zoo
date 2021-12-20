@@ -77,9 +77,9 @@ class PLSExperiment(BaseExperiment):
             return jnp.linalg.svd(Zx.T @ Zy)[1].sum() / dof
 
     @staticmethod
-    @jit
+    #@jit
     def _correct_eigenvector_streak(U, U_correct):
-        cosine_similarities_x = jnp.diag(U_correct.T @ U.T)
+        cosine_similarities_x = jnp.diag(U_correct.T @ U.T)#U@ U.T
         x_idx = jnp.where(jnp.abs(cosine_similarities_x) > jnp.cos(jnp.pi / 8),jnp.ones_like(cosine_similarities_x),jnp.zeros_like(cosine_similarities_x))
         return x_idx.sum()
 

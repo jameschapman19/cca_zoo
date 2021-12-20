@@ -39,22 +39,26 @@ class Game(CCAExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        k_per_device = int(n_components / num_devices)
-        weights = np.eye(self.n_components) - np.ones(
-            (self.n_components, self.n_components)
+        self.k_per_device = int(n_components / num_devices)
+        weights = np.ones((self.n_components, self.n_components)) - np.eye(
+            self.n_components
         )
-        weights[np.triu_indices(self.n_components, 1)] = 0
+        weights[
+            np.triu_indices(self.n_components, 1)
+        ] = 0  # np.reshape(weights,(num_devices,k_per_device,self.n_components))[0][2]
         self._weights = jnp.reshape(
-            weights, [num_devices, k_per_device, self.n_components]
+            weights, [num_devices, self.k_per_device, self.n_components]
         )
         # generates a key for each device
         keys = jax.random.split(self.local_rng, num_devices)
         # generates weights for each component on each device
         self._U = jax.pmap(
-            lambda key: jax.random.normal(key, (k_per_device, self.dims[0])) / 10000
+            lambda key: jax.random.normal(key, (self.k_per_device, self.dims[0]))
+            / 10000
         )(keys)
         self._V = jax.pmap(
-            lambda key: jax.random.normal(key, (k_per_device, self.dims[1])) / 10000
+            lambda key: jax.random.normal(key, (self.k_per_device, self.dims[1]))
+            / 10000
         )(keys)
         # This line parallelizes over data sending different data to each device
         self._update_with_grads = jax.pmap(
@@ -71,12 +75,10 @@ class Game(CCAExperiment):
                 self._grads,
                 in_axes=(0, 0, 0, None, None),
             ),
-            in_axes=(0, 0, 0, None, 0),
+            in_axes=(0, 0, 0, 0, None),
             axis_name="i",
         )
-        self._optimizer = optax.sgd(
-            learning_rate=learning_rate
-        )
+        self._optimizer = optax.sgd(learning_rate=learning_rate)
         self._opt_state_x = jax.pmap(lambda U: self._optimizer.init(U))(self._U)
         self._opt_state_y = jax.pmap(lambda V: self._optimizer.init(V))(self._V)
         self.learning_rate = learning_rate
@@ -88,14 +90,12 @@ class Game(CCAExperiment):
         Y_i = jnp.reshape(Y_i, (self.num_devices, -1, self.dims[1]))
         self._local_U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
         self._local_V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
-        Zx = X_i @ self._local_U.T
-        Zy = Y_i @ self._local_V.T
-        T = Zx + Zy
-        T = T / jnp.linalg.norm(T, axis=1)
-        T = jnp.reshape(T, (self.num_devices, -1, T.shape[1]))#jnp.linalg.norm(X_i[0]@self._U[0][0]-local_T.T[:,0])
-        local_T = jnp.reshape(T, (self.n_components, -1))#jnp.linalg.norm(self._U[0][0]@X_i[0].T)
-        grads_x = self._grads(self._U, T, self._weights, local_T, X_i)#self._U[0][1]@X_i[0].T@local_T.T@self._weights[0][1]
-        grads_y = self._grads(self._V, T, self._weights, local_T, Y_i)#jnp.linalg.norm(local_T.T[:,0])
+        Zx = jnp.transpose(X_i @ self._local_U.T, axes=[0, 2, 1])
+        Zy = jnp.transpose(
+            Y_i @ self._local_V.T, axes=[0, 2, 1]
+        )  # jnp.linalg.norm(Zx,axis=2)
+        grads_x = self._grads(self._U, Zy, self._weights, X_i, self._local_U)
+        grads_y = self._grads(self._V, Zx, self._weights, Y_i, self._local_V)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
@@ -105,15 +105,16 @@ class Game(CCAExperiment):
 
     @staticmethod
     @jit
-    def _grads(ui, ti, weights, T, X):
-        weights_ij = (jnp.sign(weights + 0.5) - 1.0) / 2.0  # maps -1 to -1 else to 0
-        rewards = X.T @ ti - (1-weights_ij.sum())*X.T @ X @ ui
-        penalty_grads = ui@ X.T @ T.T * (X.T@T.T) @ weights_ij
-        grads = rewards + penalty_grads
-        return grads
+    def _grads(ui, ti, weights, X, U):
+        rewards = -X.T @ ti
+        variance = -((ui.T @ X.T @ X @ ui) - 1) * (X.T @ X @ ui)
+        covariance = -((ui.T @ X.T @ X @ U.T) * (X.T @ X @ U.T)) @ weights
+        grads = rewards + variance + covariance
+        return grads / X.shape[0]
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
-        updates, opt_state = self._optimizer.update(grads, opt_state)
+        # we have gradient of utilities so we negate for gradient descent
+        updates, opt_state = self._optimizer.update(-grads, opt_state)
         ui_new = optax.apply_updates(ui, updates)
         return ui_new, opt_state

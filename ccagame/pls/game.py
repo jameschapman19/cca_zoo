@@ -7,6 +7,7 @@ import optax
 from . import PLSExperiment
 from jax import jit
 
+
 class Game(PLSExperiment):
     def __init__(
         self,
@@ -90,36 +91,18 @@ class Game(PLSExperiment):
         23 Wrap in jax.vmap for k_per_device dimension."""
         Z=Y@V.T
         zi=Y@vi
-        grads = Game.eg_grads(ui,zi, weights, U, Z, X)
-        return grads
+        penalty_grads = (ui @ X.T @ Z * U.T)@ weights
+        grads = X.T@zi + penalty_grads
+        return grads/X.shape[0]
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
         """Compute and apply updates with optax optimizer.
         Wrap in jax.vmap for k_per_device dimension."""
-        updates, opt_state = self._optimizer.update(grads, opt_state)
+        updates, opt_state = self._optimizer.update(-grads, opt_state)
         ui_new = optax.apply_updates(ui, updates)
         ui_new /= jnp.linalg.norm(ui_new)
         return ui_new, opt_state
-
-    @staticmethod
-    @jit
-    def eg_grads(
-        ui: jnp.ndarray, zi, weights: jnp.ndarray, U, Z, X: jnp.ndarray) -> jnp.ndarray:
-        """
-        Args:
-        vi: shape (d,), eigenvector to be updated
-        weights: shape (k,), mask for penalty coefficients,
-        eigs: shape (k, d), i.e., vectors on rows
-        data: shape (N, d), minibatch X_t
-        Returns:
-        grads: shape (d,), gradient for vi
-        """
-        weights_ij = (jnp.sign(weights + 0.5) - 1.0) / 2.0  # maps -1 to -1 else to 0
-        penalty_grads = ui @ X.T @ Z * U.T
-        penalty_grads = penalty_grads @ weights_ij
-        grads = X.T@zi + penalty_grads
-        return grads/X.shape[0]
 
     @staticmethod
     @jit

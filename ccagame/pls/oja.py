@@ -1,9 +1,10 @@
 from os import environ
-
 import jax
 import jax.numpy as jnp
+import optax
 from . import PLSExperiment
-
+from functools import partial
+from jax import jit
 
 class Oja(PLSExperiment):
     def __init__(
@@ -13,6 +14,9 @@ class Oja(PLSExperiment):
         num_devices=1,
         n_components=1,
         data=None,
+        learning_rate=1e-3,
+        momentum=0.9,
+        nesterov=True,
         batch_size=0,
         **kwargs
     ):
@@ -33,11 +37,24 @@ class Oja(PLSExperiment):
         """Initialization function for a Jaxline experiment."""
         self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
         self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
+        self._optimizer = optax.sgd(
+            learning_rate=learning_rate, momentum=momentum, nesterov=nesterov
+        )
+        self._opt_state_x = self._optimizer.init(self._U)
+        self._opt_state_y = self._optimizer.init(self._V)
 
     def _update(self, views, global_step):
         X_i, Y_i = views
         C = X_i.T @ Y_i
-        self._U = self._V @ C.T
-        self._V = self._U @ C
+        grads_x = self._V @ C.T
+        grads_y = self._U @ C
+        updates_x, self._opt_state_x = self._optimizer.update(
+            grads_x, self._opt_state_x
+        )
+        updates_y, self._opt_state_y = self._optimizer.update(
+            grads_y, self._opt_state_y
+        )
+        self._U = optax.apply_updates(self._U, updates_x)
+        self._V = optax.apply_updates(self._V, updates_y)
         self._U = jnp.linalg.qr(self._U.T)[0].T
         self._V = jnp.linalg.qr(self._V.T)[0].T
