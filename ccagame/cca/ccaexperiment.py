@@ -94,11 +94,12 @@ class CCAExperiment(BaseExperiment):
             Zx = X @ U.T
             Zy = Y @ V.T#jnp.corrcoef(Zx.T)
             return jnp.trace(
-                jnp.corrcoef(Zx.T, Zy.T)[self.n_components :, : self.n_components]
+                jnp.abs(jnp.corrcoef(Zx.T, Zy.T)[self.n_components :, : self.n_components])
             )
 
     #@partial(jit, static_argnums=(0))
     def _correct_eigenvector_streak(self, U, U_correct, X):
+        a=jnp.cov(X@U.T,rowvar=False)*60000
         n_components = U.shape[0]#jnp.cov(X@U.T,rowvar=False)*60000
         cosine_similarities_x = jnp.diag(
             jnp.corrcoef(X@U.T,X@U_correct,rowvar=False)[n_components:, :n_components]

@@ -8,7 +8,7 @@ from jax import jit
 from ccagame.cca import CCAExperiment
 
 
-class Game(CCAExperiment):
+class Game2(CCAExperiment):
     def __init__(
         self,
         mode,
@@ -23,7 +23,7 @@ class Game(CCAExperiment):
         batch_size=0,
         **kwargs
     ):
-        super(Game, self).__init__(
+        super(Game2, self).__init__(
             mode,
             init_rng=init_rng,
             num_devices=num_devices,
@@ -73,9 +73,9 @@ class Game(CCAExperiment):
         self._grads = jax.pmap(
             jax.vmap(
                 self._grads,
-                in_axes=(0, 0, 0, None, None,None),
+                in_axes=(0, 0, 0, None, None),
             ),
-            in_axes=(0, 0, 0, 0, None, None),
+            in_axes=(0, 0, 0, 0, None),
             axis_name="i",
         )
         self._optimizer = optax.sgd(learning_rate=learning_rate)
@@ -88,15 +88,14 @@ class Game(CCAExperiment):
         X_i, Y_i = views
         X_i = jnp.reshape(X_i, (self.num_devices, -1, self.dims[0]))
         Y_i = jnp.reshape(Y_i, (self.num_devices, -1, self.dims[1]))
-        _local_U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
-        _local_V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
-        Zx = jnp.transpose(X_i @ _local_U.T, axes=[0, 2, 1])
-        Zy = jnp.transpose(Y_i @ _local_V.T, axes=[0, 2, 1])#jnp.linalg.norm(Zy, axis=2, keepdims=True)
-        Z = Zx + Zy
-        Z = Z / jnp.linalg.norm(Z, axis=2, keepdims=True)
-        _local_Z=jnp.reshape(Z,(self.n_components,-1))
-        grads_x = self._grads(self._U, Z, self._weights, X_i, _local_Z, _local_U)
-        grads_y = self._grads(self._V, Z, self._weights, Y_i, _local_Z, _local_V)
+        self._local_U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
+        self._local_V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
+        Zx = jnp.transpose(X_i @ self._local_U.T, axes=[0, 2, 1])
+        Zy = jnp.transpose(
+            Y_i @ self._local_V.T, axes=[0, 2, 1]
+        )  # jnp.linalg.norm(Zx,axis=2)
+        grads_x = self._grads(self._U, Zy, self._weights, X_i, self._local_U)
+        grads_y = self._grads(self._V, Zx, self._weights, Y_i, self._local_V)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
@@ -106,15 +105,16 @@ class Game(CCAExperiment):
 
     @staticmethod
     @jit
-    def _grads(ui, ti, weights, X, Z,U):
-        rewards = -X.T @ ti+X.T @ X @ ui#+X.T @ ti - X.T @ X @ ui
-        covariance = ((ui.T @ X.T @ Z.T) * (X.T @ X@U.T)) @ weights
-        grads = rewards + covariance
+    def _grads(ui, ti, weights, X, U):
+        rewards = -X.T @ ti
+        variance = -((ui.T @ X.T @ X @ ui) - 1) * (X.T @ X @ ui)
+        covariance = -((ui.T @ X.T @ X @ U.T) * (X.T @ X @ U.T)) @ weights
+        grads = rewards + variance + covariance
         return grads / X.shape[0]
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
         # we have gradient of utilities so we negate for gradient descent
-        updates, opt_state = self._optimizer.update(grads, opt_state)
+        updates, opt_state = self._optimizer.update(-grads, opt_state)
         ui_new = optax.apply_updates(ui, updates)
         return ui_new, opt_state

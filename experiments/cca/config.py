@@ -7,11 +7,11 @@ def get_config() -> config_dict.ConfigDict:
     config = get_base_config()
 
     # these are given by wandb
-    config.learning_rate = 5e-3
+    config.learning_rate = 1e-2
     config.num_devices = 1
     config.n_components = 4
     config.batch_size = 0
-    config.training_steps = 1000
+    config.training_steps = 2000
     config.data = "mnist"
 
     # defaults
