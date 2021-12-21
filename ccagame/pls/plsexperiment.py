@@ -19,6 +19,7 @@ class PLSExperiment(BaseExperiment):
         data=None,
         batch_size=0,
         path=None,
+        num_batches=None,
         **kwargs,
     ):
         if data=='mnist':
@@ -26,7 +27,7 @@ class PLSExperiment(BaseExperiment):
         elif data=='xrmb':
             self.data,self.holdout, self.correct_eigenvectors, self.dims=xrmb_iterator(batch_size=batch_size, n_components=n_components)
         elif data=='ukbb':
-            self.data,self.holdout, self.dims=ukbb_iterator(path, batch_size=batch_size)
+            self.data,self.holdout, self.dims=ukbb_iterator(num_batches, path, batch_size=batch_size)
             self.correct_eigenvectors = None
         else:
             raise ValueError('Data {data} not implemented yet')
