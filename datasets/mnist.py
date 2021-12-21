@@ -24,7 +24,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from ccagame.utils import data_stream
-from cca_zoo.models import cca_base, rCCA
+from cca_zoo.models import _cca_base, rCCA
 _DATA = "/tmp/jax_example_data/"
 
 
