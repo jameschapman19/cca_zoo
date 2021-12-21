@@ -16,17 +16,8 @@ def get_config() -> config_dict.ConfigDict:
     config.batch_size=1
     config.training_steps = 10
     config.data='ukbb'
-    """
-    This shouldn't need to be changed
-    """
-    config.experiment_kwargs = {
-        "n_components": config.n_components,
-        "num_devices": config.num_devices,
-        "data": 'ukbb',
-        "path": '/mnt/c/Users/anala/Documents/PhD/ccagame_data', 
-        "batch_size":config.batch_size,
-        "learning_rate":config.learning_rate,
-    }
+    config.num_batches = 3 #testing out with 3 batches of ukbb data for now
+    config.path = '/mnt/c/Users/anala/Documents/PhD/ccagame_data'  #data path
     config.checkpoint_dir = "jaxlog"
     config.train_checkpoint_all_hosts = True
     config.log_tensors_interval = 1
