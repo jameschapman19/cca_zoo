@@ -5,7 +5,7 @@ from ccagame.baseexperiment import BaseExperiment
 from jaxline import utils
 from jax import jit
 from functools import partial
-
+import numpy as np
 from datasets.mnist import mnist_iterator
 from datasets.xrmb import xrmb_iterator
 from datasets.ukbiobank import ukbb_iterator
@@ -76,6 +76,12 @@ class PLSExperiment(BaseExperiment):
             Zx = X @ U.T
             Zy = Y @ V.T
             return jnp.linalg.svd(Zx.T @ Zy)[1].sum() / dof
+    
+    def save_outputs(self):
+        U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
+        V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
+        np.savetxt("U.csv", U, delimiter=",")
+        np.savetxt("V.csv", V, delimiter=",")
 
     @staticmethod
     #@jit
