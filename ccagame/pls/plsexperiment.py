@@ -6,11 +6,17 @@ from jaxline import utils
 from jax import jit
 from functools import partial
 import numpy as np
+<<<<<<< HEAD
 from ..datasets.mnist import mnist_iterator
 from ..datasets.xrmb import xrmb_iterator
 from ..datasets.ukbiobank import ukbb_iterator
 
 
+=======
+from datasets.mnist import mnist_iterator
+from datasets.xrmb import xrmb_iterator
+from datasets.ukbiobank import ukbb_iterator
+>>>>>>> 25b2646bf8998782b949af0e54bd12ee3717ba49
 class PLSExperiment(BaseExperiment):
     def __init__(
         self,
@@ -21,26 +27,15 @@ class PLSExperiment(BaseExperiment):
         data=None,
         batch_size=0,
         path=None,
+        num_batches=None,
         **kwargs,
     ):
-        if data == "mnist":
-            (
-                self.data,
-                self.holdout,
-                self.correct_eigenvectors,
-                self.dims,
-            ) = mnist_iterator(batch_size=batch_size, n_components=n_components)
-        elif data == "xrmb":
-            (
-                self.data,
-                self.holdout,
-                self.correct_eigenvectors,
-                self.dims,
-            ) = xrmb_iterator(batch_size=batch_size, n_components=n_components)
-        elif data == "ukbb":
-            self.data, self.holdout, self.dims = ukbb_iterator(
-                path, batch_size=batch_size
-            )
+        if data=='mnist':
+            self.data,self.holdout, self.correct_eigenvectors, self.dims=mnist_iterator(batch_size=batch_size, n_components=n_components)
+        elif data=='xrmb':
+            self.data,self.holdout, self.correct_eigenvectors, self.dims=xrmb_iterator(batch_size=batch_size, n_components=n_components)
+        elif data=='ukbb':
+            self.data,self.holdout, self.dims=ukbb_iterator(num_batches, path, batch_size=batch_size)
             self.correct_eigenvectors = None
         else:
             raise ValueError("Data {data} not implemented yet")
@@ -99,6 +94,12 @@ class PLSExperiment(BaseExperiment):
             Zx = X @ U.T
             Zy = Y @ V.T
             return jnp.linalg.svd(Zx.T @ Zy)[1].sum() / dof
+    
+    def save_outputs(self):
+        U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
+        V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
+        np.savetxt("U.csv", U, delimiter=",")
+        np.savetxt("V.csv", V, delimiter=",")
 
     def save_outputs(self):
         U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
