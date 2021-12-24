@@ -6,17 +6,11 @@ from jaxline import utils
 from jax import jit
 from functools import partial
 import numpy as np
-<<<<<<< HEAD
 from ..datasets.mnist import mnist_iterator
 from ..datasets.xrmb import xrmb_iterator
 from ..datasets.ukbiobank import ukbb_iterator
 
 
-=======
-from datasets.mnist import mnist_iterator
-from datasets.xrmb import xrmb_iterator
-from datasets.ukbiobank import ukbb_iterator
->>>>>>> 25b2646bf8998782b949af0e54bd12ee3717ba49
 class PLSExperiment(BaseExperiment):
     def __init__(
         self,
