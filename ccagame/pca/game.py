@@ -7,6 +7,7 @@ from .pcaexperiment import PCAExperiment
 from jax import jit
 from functools import partial
 
+
 class Game(PCAExperiment):
     def __init__(
         self,
@@ -39,49 +40,42 @@ class Game(PCAExperiment):
         """
         Initialization function for a Jaxline experiment.
         """
-        k_per_device=int(self.n_components/self.num_devices)
-        weights = np.eye(self.n_components) - np.ones((self.n_components, self.n_components))
-        weights[np.triu_indices(self.n_components, 1)] = 0
-        self._weights = jnp.reshape(weights, [num_devices, k_per_device, self.n_components])
-        # generates a key for each device
-        keys = jax.random.split(self.local_rng, num_devices)
-        # generates weights for each component on each device
-        V = jax.pmap(lambda key: jax.random.normal(key, (k_per_device, self.dims)))(keys)
-        # normalizes the weights for each component
-        self._V = jax.pmap(lambda V: V / jnp.linalg.norm(V, axis=1, keepdims=True))(V)
+        self._weights = jnp.ones((self.n_components, self.n_components)) - jnp.eye(
+            self.n_components
+        )
+        self._weights = self._weights.at[jnp.triu_indices(self.n_components, 1)].set(0)
+        self._V = (
+            jax.random.normal(self.local_rng, (self.n_components, self.dims))
+        )
+        self._V/=jnp.linalg.norm(self._V,axis=1,keepdims=True)
         # This line parallelizes over data sending different data to each device
-        self._update_with_grads = jax.pmap(
-            jax.vmap(
-            self._update_with_grads,
-            in_axes=(0, 0, 0),
-            ),
-            in_axes=(0, 0, 0),
-            axis_name="i",
-        )
+        self._update_with_grads = jax.vmap(
+                self._update_with_grads,
+                in_axes=(0, 0, 0),
+            )
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
-        self._grads = jax.pmap(
-            jax.vmap(
-            self._grads, 
-            in_axes=(0, 0,None,None),
-            ),
-            in_axes=(0, 0, None,0),
-            axis_name="i"
-        )
+        self._grads = jax.vmap(
+                self._grads,
+                in_axes=(0, 0, None,None, None),
+            )
         # self._update_with_grads = jax.vmap(self._update_with_grads, in_axes=(0, 0, None))
-        self._optimizer = optax.sgd(learning_rate=learning_rate, momentum=momentum, nesterov=nesterov)
-        self._opt_state = jax.pmap(lambda V: self._optimizer.init(V))(self._V)
+        self._optimizer = optax.sgd(
+            learning_rate=learning_rate, momentum=momentum, nesterov=nesterov
+        )
+        self._opt_state = self._optimizer.init(self._V)
 
     def _update(self, inputs, global_step):
-        inputs = jnp.reshape(inputs, (self.num_devices, -1, self.dims))
-        self._local_V = jnp.reshape(self._V, (self.n_components, self.dims))
-        grads = self._grads(self._V, self._weights, self._local_V, inputs)
-        self._V, self._opt_state_y = self._update_with_grads(self._V, grads, self._opt_state)
+        Zx=inputs@self._V.T
+        grads = self._grads(Zx.T,self._weights, self._V, inputs,Zx)
+        self._V, self._opt_state_y = self._update_with_grads(
+            self._V, grads, self._opt_state
+        )
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, vi, grads, opt_state):
         """Compute and apply updates with optax optimizer.
         Wrap in jax.vmap for k_per_device dimension."""
-        #we have gradient of utilities so we negate for gradient descent
+        # we have gradient of utilities so we negate for gradient descent
         updates, opt_state = self._optimizer.update(-grads, opt_state)
         vi_new = optax.apply_updates(vi, updates)
         vi_new /= jnp.linalg.norm(vi_new)
@@ -90,21 +84,11 @@ class Game(PCAExperiment):
     @staticmethod
     @jit
     def _grads(
-        vi: jnp.ndarray, weights: jnp.ndarray, V: jnp.ndarray, X: jnp.ndarray
+        zi: jnp.ndarray, weights: jnp.ndarray, V: jnp.ndarray, X: jnp.ndarray,Z
     ) -> jnp.ndarray:
-        """
-        Args:
-        vi: shape (d,), eigenvector to be updated
-        weights: shape (k,), mask for penalty coefficients,
-        eigs: shape (k, d), i.e., vectors on rows
-        data: shape (N, d), minibatch X_t
-        Returns:
-        grads: shape (d,), gradient for vi
-        """
-        penalty_grads = vi @ X.T @ X * V.T
-        penalty_grads = penalty_grads @ weights
-        grads = X.T@vi + penalty_grads
-        return grads/X.shape[0]
+        penalty_grads = -(zi @ Z * V.T)@ weights
+        grads = X.T @ zi + penalty_grads
+        return grads / X.shape[0]
 
     @staticmethod
     @jit

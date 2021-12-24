@@ -9,14 +9,13 @@ import jax
 import jax.numpy as jnp
 import optax
 
-from ccagame.cca.utils import _get_AB, _gram_schmidt
-
+from ccagame.cca.utils import _get_AB
 from . import CCAExperiment
 import jax.scipy as jsp
 from jax import jit
 
 
-class GenOja(CCAExperiment):
+class SGHA(CCAExperiment):
     def __init__(
         self,
         mode,
@@ -25,12 +24,13 @@ class GenOja(CCAExperiment):
         n_components=1,
         dims=None,
         data=None,
-        alpha=1 / 871,
-        beta0=1000,
+        learning_rate=1e-6,
+        momentum=0.9,
+        nesterov=True,
         batch_size=0,
         **kwargs
     ):
-        super(GenOja, self).__init__(
+        super(SGHA, self).__init__(
             mode,
             init_rng=init_rng,
             num_devices=num_devices,
@@ -50,45 +50,28 @@ class GenOja(CCAExperiment):
             jax.random.normal(
                 self.local_rng, (self.n_components, self.dims[0] + self.dims[1])
             )
-            / 10000
-        )
-        self.V = jax.random.normal(
-            self.local_rng, (self.n_components, self.dims[0] + self.dims[1])
-        )
-        self.V = self.V / jnp.linalg.norm(self.V, keepdims=True, axis=1)
-        self._optimizer_ls = optax.sgd(learning_rate=alpha)
-        self._optimizer_oja = optax.sgd(learning_rate=beta0)
-        self._opt_state_ls = self._optimizer_ls.init(self.W)
-        self._opt_state_oja = self._optimizer_oja.init(self.V)
+        ) / 1000
+        self._optimizer = optax.sgd(learning_rate=learning_rate)
+        self._opt_state = self._optimizer.init(self.W)
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        w_grad = self._grad(X_i, Y_i, self.W, self.V)
-        self.W, self._opt_state_ls = self._update_with_grads_ls(
-            self.W, w_grad.T, self._opt_state_ls
+        w_grad = self._grad(X_i, Y_i, self.W)
+        self.W, self._opt_state = self._update_with_grads(
+            self.W, w_grad.T, self._opt_state
         )
-        self.V, self._opt_state_oja = self._update_with_grads_oja(
-            self.V, self.W / (global_step + 1), self._opt_state_oja
-        )
-        self.V = _gram_schmidt(self.V, _get_AB(X_i, Y_i)[1])
         self._U = self.W[:, : self.dims[0]]
         self._V = self.W[:, self.dims[0] :]
 
     @jit
-    def _grad(X_i, Y_i, W, V):
+    def _grad(X_i, Y_i, W):
         A, B = _get_AB(X_i, Y_i)
-        return B @ W.T - A @ V.T
+        Y = W @ A @ W.T
+        return B @ W.T @ jnp.triu(Y) - A @ W.T
 
     @partial(jit, static_argnums=(0))
-    def _update_with_grads_ls(self, wi, grads, opt_state):
+    def _update_with_grads(self, wi, grads, opt_state):
         # we have gradient of utilities so we negate for gradient descent
-        updates, opt_state = self._optimizer_ls.update(grads, opt_state)
+        updates, opt_state = self._optimizer.update(-grads, opt_state)
         wi_new = optax.apply_updates(wi, updates)
         return wi_new, opt_state
-
-    @partial(jit, static_argnums=(0))
-    def _update_with_grads_oja(self, vi, grads, opt_state):
-        # we have gradient of utilities so we negate for gradient descent
-        updates, opt_state = self._optimizer_oja.update(-grads, opt_state)
-        vi_new = optax.apply_updates(vi, updates)
-        return vi_new, opt_state

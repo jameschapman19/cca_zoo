@@ -3,6 +3,7 @@ from os import environ
 import jax
 import jax.numpy as jnp
 from . import PLSExperiment
+from jax import jit
 
 
 class StochasticPower(PLSExperiment):
@@ -36,8 +37,14 @@ class StochasticPower(PLSExperiment):
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        C = X_i.T @ Y_i
-        self._U = self._V @ C.T
-        self._V = self._U @ C
-        self._U = jnp.linalg.qr(self._U.T)[0].T
-        self._V = jnp.linalg.qr(self._V.T)[0].T
+        self._U, self._V = self._grads(X_i, Y_i, self._U, self._V)
+
+    @staticmethod
+    @jit
+    def _grads(X, Y, U, V):
+        C = X.T @ Y
+        U = V @ C.T
+        V = U @ C
+        U = jnp.linalg.qr(U.T)[0].T
+        V = jnp.linalg.qr(V.T)[0].T
+        return U, V

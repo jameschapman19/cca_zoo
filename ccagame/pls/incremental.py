@@ -4,6 +4,7 @@ from . import PLSExperiment
 from functools import partial
 from jax import jit
 
+
 class Incremental(PLSExperiment):
     def __init__(
         self,
@@ -31,12 +32,12 @@ class Incremental(PLSExperiment):
         """
         """Initialization function for a Jaxline experiment."""
         self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
-        self._U=(1/jnp.linalg.norm(self._U,axis=1)*self._U.T).T
+        self._U = (1 / jnp.linalg.norm(self._U, axis=1) * self._U.T).T
         self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
-        self._V=(1/jnp.linalg.norm(self._V,axis=1)*self._V.T).T
+        self._V = (1 / jnp.linalg.norm(self._V, axis=1) * self._V.T).T
         self._S = jax.random.normal(self.local_rng, (self.n_components,))
 
-    #@partial(jit, static_argnums=(0))
+    # @partial(jit, static_argnums=(0))
     def _update(self, views, global_step):
         X_i, Y_i = views
         xhat = X_i @ self._U.T
@@ -62,6 +63,10 @@ class Incremental(PLSExperiment):
             )
         )
         U_, S, Vt_ = jnp.linalg.svd(Q)
-        self._U = U_[:, : self.n_components].T @ jnp.vstack((self._U, x_orth / jnp.linalg.norm(x_orth)))
-        self._V = Vt_.T[:, : self.n_components].T @ jnp.vstack((self._V, y_orth / jnp.linalg.norm(y_orth)))
+        self._U = U_[:, : self.n_components].T @ jnp.vstack(
+            (self._U, x_orth / jnp.linalg.norm(x_orth))
+        )
+        self._V = Vt_.T[:, : self.n_components].T @ jnp.vstack(
+            (self._V, y_orth / jnp.linalg.norm(y_orth))
+        )
         self._S = S[: self.n_components]

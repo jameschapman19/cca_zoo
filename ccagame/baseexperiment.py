@@ -7,6 +7,7 @@ from jax._src.random import PRNGKey
 from jaxline import utils
 from jaxline.experiment import AbstractExperiment
 
+
 class BaseExperiment(AbstractExperiment):
     def __init__(
         self,
@@ -16,6 +17,8 @@ class BaseExperiment(AbstractExperiment):
         n_components=1,
         data=None,
         batch_size=0,
+        validate=True,
+        **kwargs,
     ):
         super(BaseExperiment, self).__init__(mode=mode, init_rng=init_rng)
         """Constructs the experiment.
@@ -24,15 +27,16 @@ class BaseExperiment(AbstractExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        
-        self.batch_size=batch_size
-        self.n_components=n_components
+
+        self.batch_size = batch_size
+        self.n_components = n_components
         self.data = data
         self.local_rng = jax.random.fold_in(PRNGKey(123), jax.host_id())
         self.num_devices = num_devices
         if self.batch_size == 0:
-            self.inputs=next(self.data)
-        
+            self.inputs = next(self.data)
+        #This will be used to run fast without validation stuff
+        self.validate=validate
 
     def step(
         self,
@@ -47,7 +51,10 @@ class BaseExperiment(AbstractExperiment):
         else:
             inputs = next(self.data)
             self._update(inputs, global_step)
-        return self._get_scalars()
+        if self.validate:
+            return self._get_scalars()
+        else:
+            return {}
 
     def _get_scalars(self):
         return {}

@@ -8,7 +8,7 @@ from jax import jit
 from ccagame.cca import CCAExperiment
 
 
-class Game(CCAExperiment):
+class VicRegGame(CCAExperiment):
     def __init__(
         self,
         mode,
@@ -23,7 +23,7 @@ class Game(CCAExperiment):
         batch_size=0,
         **kwargs
     ):
-        super(Game, self).__init__(
+        super(VicRegGame, self).__init__(
             mode,
             init_rng=init_rng,
             num_devices=num_devices,
@@ -76,13 +76,15 @@ class Game(CCAExperiment):
         self._V, self._opt_state_y = self._update_with_grads(
             self._V, grads_y, self._opt_state_y
         )
+        
 
     @staticmethod
     @jit
     def _grads(zi, weights, X, Ti, T):
-        rewards = X.T @ (Ti - zi)
+        rewards = -X.T @ Ti
+        variance = -((zi.T @ zi) - 1) * (X.T @ zi)
         covariance = -((zi.T @ T) * (X.T @ T)) @ weights
-        grads = rewards + covariance
+        grads = rewards + variance + covariance
         return grads / X.shape[0]
 
     @staticmethod
@@ -90,8 +92,7 @@ class Game(CCAExperiment):
     def _get_target(X, Y, U, V):
         Zx = X @ U
         Zy = Y @ V
-        T = Zx + Zy
-        T /= jnp.linalg.norm(T, axis=0)
+        T = (Zx + Zy)/2
         return Zx, Zy, T
 
     @partial(jit, static_argnums=(0))

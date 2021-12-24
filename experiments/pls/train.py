@@ -17,8 +17,12 @@ Anything that is defined in the python script gets put into the FLAGS dictionary
 """
 
 FLAGS = flags.FLAGS
-#change the default to your own config file path if you
-config_flags.DEFINE_config_file("config", help_string="Training configuration file.", default="/mnt/c/users/chapm/PycharmProjects/ccagame/experiments/pls/config.py")
+# change the default to your own config file path if you
+config_flags.DEFINE_config_file(
+    "config",
+    help_string="Training configuration file.",
+    default="/home/chapmajw/ccagame/experiments/pls/config.py",
+)
 flags.DEFINE_string(name="model", default="game", help="model name")
 
 MODEL_DICT = {
@@ -32,23 +36,23 @@ MODEL_DICT = {
 
 def main(argv):
     print(f"MODEL IS {FLAGS.model}")
-    #we now need to put some of the stuff from config into 
-    # config.experiment_kwargs because this is what jaxline 
+    # we now need to put some of the stuff from config into
+    # config.experiment_kwargs because this is what jaxline
     # gives to our experiment objects
     FLAGS.config.experiment_kwargs = {
         "n_components": FLAGS.config.n_components,
         "num_devices": FLAGS.config.num_devices,
         "data": FLAGS.config.data,
-        "batch_size":FLAGS.config.batch_size,
-        "learning_rate":FLAGS.config.learning_rate,
+        "batch_size": FLAGS.config.batch_size,
+        "learning_rate": FLAGS.config.learning_rate,
     }
-    platform.main(MODEL_DICT[FLAGS.model],argv)
+    platform.main(MODEL_DICT[FLAGS.model], argv)
 
 
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
     os.chdir(log_dir())
-    #wandb gets initialized now because wandb generates command line arguments which are used by flags
+    # wandb gets initialized now because wandb generates command line arguments which are used by flags
     wandb.init(sync_tensorboard=True)
-    #app basically tells flags to process things that are defined now and run main
+    # app basically tells flags to process things that are defined now and run main
     app.run(main)

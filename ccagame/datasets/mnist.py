@@ -24,7 +24,8 @@ import jax.numpy as jnp
 import numpy as np
 
 from ccagame.utils import data_stream
-from cca_zoo.models import cca_base, rCCA
+from cca_zoo.models import rCCA
+
 _DATA = "/tmp/jax_example_data/"
 
 
@@ -97,24 +98,36 @@ def mnist(permute_train=False):
 
     return train_images, train_labels, test_images, test_labels
 
-def mnist_iterator(batch_size, n_components,pca=False, cca=False, p=392):
+
+def mnist_iterator(batch_size, n_components, pca=False, cca=False, p=392):
     X, _, X_te, _ = mnist()
+    X=X.astype(np.float32)
+    X_te=X_te.astype(np.float32)
+    X += np.random.normal(size=X.shape)
+    X_te += np.random.normal(size=X_te.shape)
     if pca:
-        correct_U, _, _ = jnp.linalg.svd(X.T @ X)
+        correct_U, _, _ = np.linalg.svd(X.T @ X)
         correct_U = correct_U[:, :n_components]
         return data_stream(X, batch_size=batch_size), X_te, correct_U, X.shape[1]
     else:
-        Y=X[:,p:]+np.random.normal(size=X[:,p:].shape)
-        X=X[:,:p]+np.random.normal(size=X[:,:p].shape)
-        Y_te=X_te[:,p:]+np.random.normal(size=X_te[:,p:].shape)
-        X_te=X_te[:,:p]+np.random.normal(size=X_te[:,:p].shape)
+        Y = X[:, p:]
+        X = X[:, :p]
+        Y_te = X_te[:, p:]
+        X_te = X_te[:, :p]
         if cca:
-            cca=rCCA(latent_dims=n_components, scale=False,centre=False,c=0.01).fit((X,Y))
-            correct_U,correct_V=cca.weights
-            correct_U/=jnp.linalg.norm(correct_U,axis=0)
-            correct_V/=jnp.linalg.norm(correct_V,axis=0)
+            cca = rCCA(latent_dims=n_components, scale=False, centre=False, c=0.01).fit(
+                (X, Y)
+            )
+            correct_U, correct_V = cca.weights
+            correct_U /= jnp.linalg.norm(correct_U, axis=0)
+            correct_V /= jnp.linalg.norm(correct_V, axis=0)
         else:
-            correct_U, _, correct_V = jnp.linalg.svd(X.T @ Y)
+            correct_U, _, correct_V = np.linalg.svd(X.T @ Y)
             correct_U = correct_U[:, :n_components]
-            correct_V = correct_V[:n_components, :].T#cca.score((X,Y))
-        return data_stream(X, Y=Y, batch_size=batch_size), (X_te,Y_te), (correct_U, correct_V),(X.shape[1], Y.shape[1])
+            correct_V = correct_V[:n_components, :].T  # cca.score((X,Y))
+        return (
+            data_stream(X, Y=Y, batch_size=batch_size),
+            (X_te, Y_te),
+            (correct_U, correct_V),
+            (X.shape[1], Y.shape[1]),
+        )

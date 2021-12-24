@@ -6,6 +6,7 @@ from . import PLSExperiment
 from functools import partial
 from jax import jit
 
+
 class Oja(PLSExperiment):
     def __init__(
         self,
@@ -43,18 +44,30 @@ class Oja(PLSExperiment):
         self._opt_state_x = self._optimizer.init(self._U)
         self._opt_state_y = self._optimizer.init(self._V)
 
+    # @partial(jit, static_argnums=(0))#jnp.linalg.norm(self._U,axis=1)
     def _update(self, views, global_step):
         X_i, Y_i = views
+        grads_x, grads_y = self._grads(X_i, Y_i, self._U, self._V)
+        self._U, self._opt_state_x = self._update_with_grads(
+            self._U, grads_x, self._opt_state_x
+        )
+        self._V, self._opt_state_y = self._update_with_grads(
+            self._V, grads_y, self._opt_state_y
+        )
+
+    @staticmethod
+    @jit
+    def _grads(X_i, Y_i, U, V):
         C = X_i.T @ Y_i
-        grads_x = self._V @ C.T
-        grads_y = self._U @ C
-        updates_x, self._opt_state_x = self._optimizer.update(
-            grads_x, self._opt_state_x
-        )
-        updates_y, self._opt_state_y = self._optimizer.update(
-            grads_y, self._opt_state_y
-        )
-        self._U = optax.apply_updates(self._U, updates_x)
-        self._V = optax.apply_updates(self._V, updates_y)
-        self._U = jnp.linalg.qr(self._U.T)[0].T
-        self._V = jnp.linalg.qr(self._V.T)[0].T
+        grads_x = V @ C.T
+        grads_y = U @ C
+        return grads_x, grads_y
+
+    @partial(jit, static_argnums=(0))
+    def _update_with_grads(self, ui, grads, opt_state):
+        """Compute and apply updates with optax optimizer.
+        Wrap in jax.vmap for k_per_device dimension."""
+        updates, opt_state = self._optimizer.update(grads, opt_state)
+        ui_new = optax.apply_updates(ui, updates)
+        ui_new = jnp.linalg.qr(ui_new.T)[0].T
+        return ui_new, opt_state

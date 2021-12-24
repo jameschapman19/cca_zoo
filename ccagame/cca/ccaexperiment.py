@@ -1,13 +1,15 @@
 from abc import abstractmethod
+from functools import partial
 from typing import Optional
+
 import jax.numpy as jnp
 from ccagame.baseexperiment import BaseExperiment
-from jaxline import utils
+from ..datasets.ukbiobank import ukbb_iterator
+from ..datasets.xrmb import xrmb_iterator
 from jax import jit
-from functools import partial
-from datasets.mnist import mnist_iterator
-from datasets.ukbiobank import ukbb_iterator
-from datasets.xrmb import xrmb_iterator
+from jaxline import utils
+import numpy as np
+from ..datasets.mnist import mnist_iterator
 
 
 class CCAExperiment(BaseExperiment):
@@ -31,14 +33,18 @@ class CCAExperiment(BaseExperiment):
                 self.holdout,
                 self.correct_eigenvectors,
                 self.dims,
-            ) = mnist_iterator(batch_size=batch_size, n_components=n_components, cca=True, p=400)
+            ) = mnist_iterator(
+                batch_size=batch_size, n_components=n_components, cca=True, p=400
+            )
         elif data == "xrmb":
             (
                 self.data,
                 self.holdout,
                 self.correct_eigenvectors,
                 self.dims,
-            ) = xrmb_iterator(batch_size=batch_size, n_components=n_components, cca=True)
+            ) = xrmb_iterator(
+                batch_size=batch_size, n_components=n_components, cca=True
+            )
         elif data == "ukbb":
             self.data, self.holdout, self.dims = ukbb_iterator(
                 path, batch_size=batch_size
@@ -53,6 +59,7 @@ class CCAExperiment(BaseExperiment):
             n_components=n_components,
             data=self.data,
             batch_size=batch_size,
+            **kwargs,
         )
         """Constructs the experiment.
         Args:
@@ -65,17 +72,16 @@ class CCAExperiment(BaseExperiment):
     def _update(self, views, global_step):
         raise NotImplementedError
 
-    # @partial(jit, static_argnums=(0))
     def _get_scalars(self):
         U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
         V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
         return {
             "TC": self._TC(U, V),
             "correct x": self._correct_eigenvector_streak(
-                U, self.correct_eigenvectors[0], self.holdout[0]
+                U, self.correct_eigenvectors[0]
             ),
             "correct y": self._correct_eigenvector_streak(
-                V, self.correct_eigenvectors[1], self.holdout[1]
+                V, self.correct_eigenvectors[1]
             ),
             "subspace x": self._normalized_subspace_distance(
                 U, self.correct_eigenvectors[0]
@@ -85,24 +91,33 @@ class CCAExperiment(BaseExperiment):
             ),
         }
 
-    #@partial(jit, static_argnums=(0))
+    @partial(jit, static_argnums=(0))
     def _TC(self, U, V):
         if self.holdout is None:
             return 0
         else:
             X, Y = self.holdout
-            Zx = X @ U.T
-            Zy = Y @ V.T#jnp.corrcoef(Zx.T)
+            Zx = X @ U.T  # jnp.linalg.norm(Zx,axis=0)
+            Zy = (
+                Y @ V.T
+            )  # jnp.corrcoef(X @ self.correct_eigenvectors[0], Y @ self.correct_eigenvectors[1], rowvar=False)[self.n_components :, : self.n_components]
             return jnp.trace(
-                jnp.abs(jnp.corrcoef(Zx.T, Zy.T)[self.n_components :, : self.n_components])
+                jnp.abs(
+                    jnp.corrcoef(Zx.T, Zy.T)[self.n_components :, : self.n_components]
+                )
             )
 
-    #@partial(jit, static_argnums=(0))
-    def _correct_eigenvector_streak(self, U, U_correct, X):
-        a=jnp.cov(X@U.T,rowvar=False)*60000
-        n_components = U.shape[0]#jnp.cov(X@U.T,rowvar=False)*60000
+    def save_outputs(self):
+        U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
+        V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
+        np.savetxt("U.csv", U, delimiter=",")
+        np.savetxt("V.csv", V, delimiter=",")
+
+    @partial(jit, static_argnums=(0))
+    def _correct_eigenvector_streak(self, U, U_correct):
+        n_components = U.shape[0]
         cosine_similarities_x = jnp.diag(
-            jnp.corrcoef(X@U.T,X@U_correct,rowvar=False)[n_components:, :n_components]
+            jnp.corrcoef(U.T, U_correct, rowvar=False)[n_components:, :n_components]
         )
         x_idx = jnp.where(
             jnp.abs(cosine_similarities_x) > jnp.cos(jnp.pi / 8),
@@ -114,9 +129,9 @@ class CCAExperiment(BaseExperiment):
     @staticmethod
     @jit
     def _normalized_subspace_distance(U, U_correct):
-        U=U.T/jnp.linalg.norm(U,axis=1)
+        U = U.T / jnp.linalg.norm(U, axis=1)
         P = U_correct @ U_correct.T
-        U_star = U @ U.T#jnp.linalg.norm(U,axis=0)
+        U_star = U @ U.T  # jnp.linalg.norm(U,axis=0)
         return 1 - jnp.trace(U_star @ P) / U_correct.shape[1]
 
     def evaluate(

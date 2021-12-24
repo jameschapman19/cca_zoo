@@ -6,8 +6,8 @@ import jax.numpy as jnp
 from ccagame.baseexperiment import BaseExperiment
 from jax import jit
 from functools import partial
-
-from datasets.mnist import mnist_iterator
+import numpy as np
+from ..datasets.mnist import mnist_iterator
 
 
 class PCAExperiment(BaseExperiment):
@@ -24,10 +24,17 @@ class PCAExperiment(BaseExperiment):
         holdout=None,
         **kwargs,
     ):
-        if data=='mnist':
-            self.data,self.holdout, self.correct_eigenvectors, self.dims=mnist_iterator(batch_size=batch_size, n_components=n_components, pca=True)
+        if data == "mnist":
+            (
+                self.data,
+                self.holdout,
+                self.correct_eigenvectors,
+                self.dims,
+            ) = mnist_iterator(
+                batch_size=batch_size, n_components=n_components, pca=True
+            )
         else:
-            raise ValueError('Data {data} not implemented yet')
+            raise ValueError("Data {data} not implemented yet")
         super(PCAExperiment, self).__init__(
             mode=mode,
             init_rng=init_rng,
@@ -35,6 +42,7 @@ class PCAExperiment(BaseExperiment):
             n_components=n_components,
             data=self.data,
             batch_size=batch_size,
+            **kwargs
         )
         """Constructs the experiment.
         Args:
@@ -42,7 +50,6 @@ class PCAExperiment(BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self.dims = dims
 
     @abstractmethod
     def _update(self, X_i, Y_i, global_step):
@@ -69,6 +76,10 @@ class PCAExperiment(BaseExperiment):
             dof = X.shape[0]
             Zx = X @ U.T
             return jnp.linalg.svd(Zx.T @ Zx)[1].sum() / dof
+
+    def save_outputs(self):
+        V = jnp.reshape(self._V, (self.n_components, self.dims))
+        np.savetxt("V.csv", V, delimiter=",")
 
     @staticmethod
     @jit

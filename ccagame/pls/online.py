@@ -1,4 +1,3 @@
-
 import jax
 import jax.numpy as jnp
 from . import PLSExperiment
@@ -7,13 +6,16 @@ import jax.scipy as jsp
 from jax import jit
 from functools import partial
 
+
 def logm(M):
-    #TODO
+    # TODO
     pass
 
+
 def expm(M):
-    #TODO
+    # TODO
     pass
+
 
 class Online(PLSExperiment):
     def __init__(
@@ -46,7 +48,9 @@ class Online(PLSExperiment):
         """Initialization function for a Jaxline experiment."""
         self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
         self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
-        self._M = jax.random.normal(self.local_rng, (self.dims[0]+self.dims[1], self.dims[0]+self.dims[1]))
+        self._M = jax.random.normal(
+            self.local_rng, (self.dims[0] + self.dims[1], self.dims[0] + self.dims[1])
+        )
         self._optimizer = optax.sgd(
             learning_rate=learning_rate, momentum=momentum, nesterov=nesterov
         )
@@ -55,15 +59,22 @@ class Online(PLSExperiment):
     @partial(jit, static_argnums=(0))
     def _update(self, views, global_step):
         X_i, Y_i = views
-        Z_t=0.5*jnp.hstack((X_i,Y_i)).T@jnp.hstack((X_i,Y_i))-0.5*jnp.hstack((X_i,-Y_i)).T@jnp.hstack((X_i,-Y_i))
-        updates, self._opt_state = self._optimizer.update(
-                    Z_t, self._opt_state
-                )
+        Z_t = 0.5 * jnp.hstack((X_i, Y_i)).T @ jnp.hstack(
+            (X_i, Y_i)
+        ) - 0.5 * jnp.hstack((X_i, -Y_i)).T @ jnp.hstack((X_i, -Y_i))
+        updates, self._opt_state = self._optimizer.update(Z_t, self._opt_state)
         M = jsp.linalg.expm(optax.apply_updates(jsp.linalg.logm(self._M), updates))
-        #set largest d-k eigenvalues to 1/d-k and remaining to satisfy normalization
-        self._U,S,V=jnp.linalg.svd(M)
-        d=self.dims[0]+self.dims[1]
-        scaled=self.n_components/d*S[-self.n_components:]/S[-self.n_components:].sum()
-        S=jnp.stack(jnp.ones((d-self.n_components))/(d+self.n_components),scaled)#jnp.sum(scaled.sum()+(jnp.ones((d-self.n_components))/(d+self.n_components)).sum())
-        self._M=self._U@S@self._V.T
-        self._V=V.T
+        # set largest d-k eigenvalues to 1/d-k and remaining to satisfy normalization
+        self._U, S, V = jnp.linalg.svd(M)
+        d = self.dims[0] + self.dims[1]
+        scaled = (
+            self.n_components
+            / d
+            * S[-self.n_components :]
+            / S[-self.n_components :].sum()
+        )
+        S = jnp.stack(
+            jnp.ones((d - self.n_components)) / (d + self.n_components), scaled
+        )  # jnp.sum(scaled.sum()+(jnp.ones((d-self.n_components))/(d+self.n_components)).sum())
+        self._M = self._U @ S @ self._V.T
+        self._V = V.T

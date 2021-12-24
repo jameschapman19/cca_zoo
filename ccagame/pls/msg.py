@@ -7,7 +7,6 @@ from functools import partial
 from jax import jit
 
 
-
 class MSG(PLSExperiment):
     def __init__(
         self,
@@ -39,16 +38,18 @@ class MSG(PLSExperiment):
         """Initialization function for a Jaxline experiment."""
         self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
         self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
-        self._M = self._U.T@self._V
-        self._optimizer =  optax.sgd(learning_rate=learning_rate, momentum=momentum, nesterov=nesterov)
+        self._M = self._U.T @ self._V
+        self._optimizer = optax.sgd(
+            learning_rate=learning_rate, momentum=momentum, nesterov=nesterov
+        )
         self._opt_state = self._optimizer.init(self._M)
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        self._M=self._U.T@self._V
-        grads=X_i.T@Y_i
+        self._M = self._U.T @ self._V
+        grads = X_i.T @ Y_i
         updates, self._opt_state = self._optimizer.update(grads, self._opt_state)
         self._M = optax.apply_updates(self._M, updates)
-        U,_,Vt=jnp.linalg.svd(self._M)
-        self._U=U[:,:self.n_components].T
-        self._V=Vt[:self.n_components]
+        U, _, Vt = jnp.linalg.svd(self._M)
+        self._U = U[:, : self.n_components].T
+        self._V = Vt[: self.n_components]
