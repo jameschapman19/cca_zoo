@@ -78,7 +78,7 @@ class Game(PLSExperiment):
             self._V, grads_y, self._opt_state_y
         )
         return None
-
+        
     @staticmethod
     @jit
     def _grads(zi, weights, U, X, Z):
@@ -88,7 +88,6 @@ class Game(PLSExperiment):
         grads = X.T @ zi + penalty_grads
         return grads / X.shape[0]
 
-    @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
         """Compute and apply updates with optax optimizer.
         Wrap in jax.vmap for k_per_device dimension."""

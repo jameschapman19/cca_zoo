@@ -73,48 +73,45 @@ class CCAExperiment(BaseExperiment):
         raise NotImplementedError
 
     def _get_scalars(self):
-        U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
-        V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
-        return {
-            "TC": self._TC(U, V),
+        if self.correct_eigenvectors == None:
+            return {}
+        else:
+            return {
+            "TC": self._TC(self._U, self._V,self.holdout[0],self.holdout[1]),
             "correct x": self._correct_eigenvector_streak(
-                U, self.correct_eigenvectors[0]
+                self._U, self.correct_eigenvectors[0]
             ),
             "correct y": self._correct_eigenvector_streak(
-                V, self.correct_eigenvectors[1]
+                self._V, self.correct_eigenvectors[1]
             ),
             "subspace x": self._normalized_subspace_distance(
-                U, self.correct_eigenvectors[0]
+                self._U, self.correct_eigenvectors[0]
             ),
             "subspace y": self._normalized_subspace_distance(
-                V, self.correct_eigenvectors[1]
+                self._V, self.correct_eigenvectors[1]
             ),
-        }
+            }
 
-    @partial(jit, static_argnums=(0))
-    def _TC(self, U, V):
-        if self.holdout is None:
-            return 0
-        else:
-            X, Y = self.holdout
-            Zx = X @ U.T  # jnp.linalg.norm(Zx,axis=0)
-            Zy = (
-                Y @ V.T
-            )  # jnp.corrcoef(X @ self.correct_eigenvectors[0], Y @ self.correct_eigenvectors[1], rowvar=False)[self.n_components :, : self.n_components]
-            return jnp.trace(
-                jnp.abs(
-                    jnp.corrcoef(Zx.T, Zy.T)[self.n_components :, : self.n_components]
-                )
+    @staticmethod
+    @jit
+    def _TC(U, V,X_val, Y_val):
+        Zx = X_val @ U.T
+        Zy = (
+            Y_val @ V.T
+        )
+        return jnp.trace(
+            jnp.abs(
+                jnp.corrcoef(Zx.T, Zy.T)[U.shape[0] :, : U.shape[0]]
             )
+        )
 
     def save_outputs(self):
-        U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
-        V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
-        np.savetxt("U.csv", U, delimiter=",")
-        np.savetxt("V.csv", V, delimiter=",")
+        np.savetxt("U.csv", self._U, delimiter=",")
+        np.savetxt("V.csv", self._V, delimiter=",")
 
-    @partial(jit, static_argnums=(0))
-    def _correct_eigenvector_streak(self, U, U_correct):
+    @staticmethod
+    @jit
+    def _correct_eigenvector_streak(U, U_correct):
         n_components = U.shape[0]
         cosine_similarities_x = jnp.diag(
             jnp.corrcoef(U.T, U_correct, rowvar=False)[n_components:, :n_components]

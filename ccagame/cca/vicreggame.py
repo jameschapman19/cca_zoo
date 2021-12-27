@@ -95,7 +95,6 @@ class VicRegGame(CCAExperiment):
         T = (Zx + Zy)/2
         return Zx, Zy, T
 
-    @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
         # we have gradient of utilities so we negate for gradient descent
         updates, opt_state = self._optimizer.update(-grads, opt_state)

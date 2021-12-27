@@ -63,7 +63,6 @@ class Oja(PLSExperiment):
         grads_y = U @ C
         return grads_x, grads_y
 
-    @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
         """Compute and apply updates with optax optimizer.
         Wrap in jax.vmap for k_per_device dimension."""

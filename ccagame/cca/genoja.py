@@ -86,7 +86,6 @@ class GenOja(CCAExperiment):
         wi_new = optax.apply_updates(wi, updates)
         return wi_new, opt_state
 
-    @partial(jit, static_argnums=(0))
     def _update_with_grads_oja(self, vi, grads, opt_state):
         # we have gradient of utilities so we negate for gradient descent
         updates, opt_state = self._optimizer_oja.update(-grads, opt_state)

@@ -89,17 +89,3 @@ class Game(PCAExperiment):
         penalty_grads = -(zi @ Z * V.T)@ weights
         grads = X.T @ zi + penalty_grads
         return grads / X.shape[0]
-
-    @staticmethod
-    @jit
-    def utility(vi, weights, eigs, data):
-        """Compute Eigengame utilities.
-        util: shape (1,), utility for vi
-        """
-        data_vi = data @ vi
-        data_eigs = (data @ eigs.T).T  # Xvj on row j
-        vi_m_vj2 = data_eigs @ data_vi ** 2.0
-        vj_m_vj = jnp.sum(data_eigs * data_eigs, axis=1)
-        r_ij = vi_m_vj2 / vj_m_vj
-        util = r_ij @ weights
-        return util

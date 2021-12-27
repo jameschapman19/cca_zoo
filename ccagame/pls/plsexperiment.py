@@ -55,46 +55,33 @@ class PLSExperiment(BaseExperiment):
 
     # @partial(jit, static_argnums=(0))
     def _get_scalars(self):
-        U = jnp.reshape(
-            self._U, (self.n_components, self.dims[0])
-        )  # self.correct_eigenvectors[0].T @ U.T
-        V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
         if self.correct_eigenvectors == None:
-            return {"TV": self._TV(U, V)}
+            return {}
         else:
             return {
-                "TV": self._TV(U, V),
+                "TV": self._TV(self._U, self._V, self.holdout[0],self.holdout[1]),
                 "correct x": self._correct_eigenvector_streak(
-                    U, self.correct_eigenvectors[0]
+                    self._U, self.correct_eigenvectors[0]
                 ),
                 "correct y": self._correct_eigenvector_streak(
-                    V, self.correct_eigenvectors[1]
+                    self._V, self.correct_eigenvectors[1]
                 ),
                 "subspace x": self._normalized_subspace_distance(
-                    U, self.correct_eigenvectors[0]
+                    self._U, self.correct_eigenvectors[0]
                 ),
                 "subspace y": self._normalized_subspace_distance(
-                    V, self.correct_eigenvectors[1]
+                    self._V, self.correct_eigenvectors[1]
                 ),
             }
 
-    @partial(jit, static_argnums=(0))
-    def _TV(self, U, V):
-        if self.holdout is None:
-            return 0
-        else:
-            X, Y = self.holdout
-            dof = X.shape[0]
-            Zx = X @ U.T
-            Zy = Y @ V.T
-            return jnp.linalg.svd(Zx.T @ Zy)[1].sum() / dof
+    @staticmethod
+    @jit
+    def _TV(U, V, X_val, Y_val):
+        dof = X_val.shape[0]
+        Zx = X_val @ U.T
+        Zy = Y_val @ V.T
+        return jnp.linalg.svd(Zx.T @ Zy)[1].sum() / dof
     
-    def save_outputs(self):
-        U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
-        V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
-        np.savetxt("U.csv", U, delimiter=",")
-        np.savetxt("V.csv", V, delimiter=",")
-
     def save_outputs(self):
         U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
         V = jnp.reshape(self._V, (self.n_components, self.dims[1]))

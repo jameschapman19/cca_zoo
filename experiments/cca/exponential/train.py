@@ -34,7 +34,7 @@ def main(argv):
         "data": FLAGS.config.data,
         "batch_size": FLAGS.config.batch_size,
         "learning_rate": FLAGS.config.learning_rate,
-        "validate":FLAGS.config.validate
+        
     }
     platform.main(MODEL_DICT[FLAGS.model], argv)
 

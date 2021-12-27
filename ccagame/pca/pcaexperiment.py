@@ -56,26 +56,25 @@ class PCAExperiment(BaseExperiment):
         raise NotImplementedError
 
     def _get_scalars(self):
-        V = jnp.reshape(self._V, (self.n_components, self.dims))
-        return {
-            "TV": self._TV(V),
+        if self.correct_eigenvectors == None:
+            return {}
+        else:
+            return {
+            "TV": self._TV(self._V, self.holdout),
             "Correct Eigenvector Streak": self._correct_eigenvector_streak(
-                V, self.correct_eigenvectors
+                self._V, self.correct_eigenvectors
             ),
             "Normalized Subspace Distance": self._normalized_subspace_distance(
-                V, self.correct_eigenvectors
+                self._V, self.correct_eigenvectors
             ),
-        }
+            }
 
-    @partial(jit, static_argnums=(0))
-    def _TV(self, U):
-        if self.holdout is None:
-            return 0
-        else:
-            X = self.holdout
-            dof = X.shape[0]
-            Zx = X @ U.T
-            return jnp.linalg.svd(Zx.T @ Zx)[1].sum() / dof
+    @staticmethod
+    @jit
+    def _TV(U, X_val):
+        dof = X_val.shape[0]
+        Zx = X_val @ U.T
+        return jnp.linalg.svd(Zx.T @ Zx)[1].sum() / dof
 
     def save_outputs(self):
         V = jnp.reshape(self._V, (self.n_components, self.dims))
