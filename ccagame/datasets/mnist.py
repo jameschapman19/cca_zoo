@@ -101,8 +101,6 @@ def mnist(permute_train=False):
 
 def mnist_iterator(batch_size, n_components, pca=False, cca=False, p=392):
     X, _, X_te, _ = mnist()
-    X=X.astype(np.float32)
-    X_te=X_te.astype(np.float32)
     X += np.random.normal(size=X.shape)
     X_te += np.random.normal(size=X_te.shape)
     if pca:
@@ -119,12 +117,12 @@ def mnist_iterator(batch_size, n_components, pca=False, cca=False, p=392):
                 (X, Y)
             )
             correct_U, correct_V = cca.weights
-            correct_U /= jnp.linalg.norm(correct_U, axis=0)
-            correct_V /= jnp.linalg.norm(correct_V, axis=0)
+            correct_U /= np.linalg.norm(correct_U, axis=0)
+            correct_V /= np.linalg.norm(correct_V, axis=0)
         else:
             correct_U, _, correct_V = np.linalg.svd(X.T @ Y)
             correct_U = correct_U[:, :n_components]
-            correct_V = correct_V[:n_components, :].T  # cca.score((X,Y))
+            correct_V = correct_V[:n_components, :].T  
         return (
             data_stream(X, Y=Y, batch_size=batch_size),
             (X_te, Y_te),

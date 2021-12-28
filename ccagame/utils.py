@@ -7,7 +7,7 @@ import os
 import gzip
 import pandas as pd
 from os.path import join
-
+import jax.numpy as jnp
 log = logging.getLogger(__name__)
 
 
@@ -67,9 +67,9 @@ def data_stream(X, Y=None, batch_size=0):
         for i in range(num_batches):
             batch_idx = perm[i * batch_size : (i + 1) * batch_size]
             if Y is None:
-                yield X[batch_idx]
+                yield jnp.array(X[batch_idx])
             else:
-                yield X[batch_idx], Y[batch_idx]
+                yield np.array(X[batch_idx]), np.array(Y[batch_idx])
 
 
 def data_stream_UKBB(batch_ids, path, batch_size=0):

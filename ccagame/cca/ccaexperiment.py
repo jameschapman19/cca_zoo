@@ -7,7 +7,6 @@ from ccagame.baseexperiment import BaseExperiment
 from ..datasets.ukbiobank import ukbb_iterator
 from ..datasets.xrmb import xrmb_iterator
 from jax import jit
-from jaxline import utils
 import numpy as np
 from ..datasets.mnist import mnist_iterator
 
@@ -136,6 +135,6 @@ class CCAExperiment(BaseExperiment):
         *,
         global_step: jnp.ndarray,
         rng: jnp.ndarray,
-        writer: Optional[utils.Writer],
+        writer,
     ):
         return {}

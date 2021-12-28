@@ -50,55 +50,55 @@ class Game(PLSExperiment):
         self._V = (
             jax.random.normal(self.local_rng, (self.n_components, self.dims[1])) / 10000
         )
-        # This line parallelizes over data sending different data to each device
-        self._update_with_grads = jax.vmap(
-            self._update_with_grads,
-            in_axes=(0, 0, 0),
-        )
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
-        self._grads = jax.vmap(
+        self._grads = jax.jit(jax.vmap(
             self._grads,
-            in_axes=(0, 0, None, None, None),
+            in_axes=(1, 0, None, None, None),
+        ))
+        self._update_with_grads = jax.jit(
+            jax.vmap(
+                self._update_with_grads,
+                in_axes=(0, 0, 0),
+            )
         )
         self._optimizer = optax.sgd(learning_rate=learning_rate)
         self._opt_state_x = self._optimizer.init(self._U)
         self._opt_state_y = self._optimizer.init(self._V)
         self.learning_rate = learning_rate
 
-    # @partial(jit, static_argnums=(0))
+
     def _update(self, views, global_step):
         X_i, Y_i = views
-        Zx, Zy = self._get_target(X_i, Y_i, self._U.T, self._V.T)
-        grads_x = self._grads(Zx.T, self._weights, self._U, X_i, Zy)
-        grads_y = self._grads(Zy.T, self._weights, self._V, Y_i, Zx)
+        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
+        grads_x = self._grads(Zx, self._weights, self._U, X_i, Zy)
+        grads_y = self._grads(Zy, self._weights, self._V, Y_i, Zx)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
         self._V, self._opt_state_y = self._update_with_grads(
             self._V, grads_y, self._opt_state_y
         )
-        return None
         
     @staticmethod
-    @jit
     def _grads(zi, weights, U, X, Z):
         """Compute utiltiies and update directions ("grads").
         23 Wrap in jax.vmap for k_per_device dimension."""
-        penalty_grads = -(zi.T @ Z * U.T) @ weights
+        penalty_grads = -(zi @ Z * U.T) @ weights
         grads = X.T @ zi + penalty_grads
         return grads / X.shape[0]
 
+    @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
         """Compute and apply updates with optax optimizer.
         Wrap in jax.vmap for k_per_device dimension."""
         updates, opt_state = self._optimizer.update(-grads, opt_state)
         ui_new = optax.apply_updates(ui, updates)
-        ui_new /= jnp.linalg.norm(ui_new)
+        ui_new /= jnp.linalg.norm(ui_new,keepdims=True)
         return ui_new, opt_state
 
     @staticmethod
     @jit
     def _get_target(X, Y, U, V):
-        Zx = X @ U
-        Zy = Y @ V
+        Zx = X @ U.T
+        Zy = Y @ V.T
         return Zx, Zy

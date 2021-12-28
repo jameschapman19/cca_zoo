@@ -46,10 +46,22 @@ class MSG(PLSExperiment):
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        self._M = self._U.T @ self._V
-        grads = X_i.T @ Y_i
-        updates, self._opt_state = self._optimizer.update(grads, self._opt_state)
-        self._M = optax.apply_updates(self._M, updates)
-        U, _, Vt = jnp.linalg.svd(self._M)
-        self._U = U[:, : self.n_components].T
-        self._V = Vt[: self.n_components]
+        grads = self._grads(X_i,Y_i)
+        self._M,self._U,self._V,self._opt_state=self._update_with_grads(self._M,grads,self._opt_state)
+    
+    @staticmethod
+    @jit
+    def _grads(X_i,Y_i):
+        return X_i.T @ Y_i
+
+    @partial(jit, static_argnums=(0))
+    def _update_with_grads(self, Mi, grads, opt_state):
+        """Compute and apply updates with optax optimizer.
+        Wrap in jax.vmap for k_per_device dimension."""
+        updates, opt_state = self._optimizer.update(grads, opt_state)
+        Mi_new = optax.apply_updates(Mi, updates)
+        U, _, Vt = jnp.linalg.svd(Mi_new)
+        U = U[:, : self.n_components].T
+        V = Vt[: self.n_components]
+        return Mi_new, U,V,opt_state
+

@@ -6,16 +6,16 @@ from ccagame import cca
 from ccagame.utils import log_dir
 from jaxline_fork import platform
 from ml_collections import config_flags
-
+from jax import profiler
 import wandb
 
 FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file(
     "config",
     help_string="Training configuration file.",
-    default="/home/chapmajw/ccagame/experiments/cca/config.py",
+    default="/home/chapmajw/ccagame/experiments/cca/mnist/config.py",
 )
-flags.DEFINE_string(name="model", default="game", help="model name")
+flags.DEFINE_string(name="model", default="vicreggame", help="model name")
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 MODEL_DICT = {
@@ -34,16 +34,18 @@ def main(argv):
         "data": FLAGS.config.data,
         "batch_size": FLAGS.config.batch_size,
         "learning_rate": FLAGS.config.learning_rate,
-        
+        "validate":FLAGS.config.validate
     }
+    os.chdir(FLAGS.config.data)
+    os.chdir(log_dir())
+    profiler.start_trace("tmp")
     platform.main(MODEL_DICT[FLAGS.model], argv)
+    profiler.stop_trace()
 
 
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
-    # os.chdir(log_dir())
     wandb.init(sync_tensorboard=True)
     wandb_config = wandb.config
     # environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={config.devices}"
-    # magic function which does what pytorch-lightning does which is to make a new numbered version in the directory for each run
     app.run(main)

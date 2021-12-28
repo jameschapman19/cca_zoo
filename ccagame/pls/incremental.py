@@ -1,3 +1,4 @@
+from os import stat
 import jax
 import jax.numpy as jnp
 from . import PLSExperiment
@@ -40,33 +41,40 @@ class Incremental(PLSExperiment):
     # @partial(jit, static_argnums=(0))
     def _update(self, views, global_step):
         X_i, Y_i = views
-        xhat = X_i @ self._U.T
-        x_orth = X_i - X_i @ self._U.T @ self._U
-        yhat = Y_i @ self._V.T
-        y_orth = Y_i - Y_i @ self._V.T @ self._V
+        self._U,self._V,self._S=self._grads(X_i,Y_i,self._U,self._V,self._S)
+
+    @staticmethod
+    @jit
+    def _grads(X_i,Y_i,U,V,S):
+        n_components=U.shape[0]
+        xhat = X_i @ U.T
+        x_orth = X_i - X_i @ U.T @ U
+        yhat = Y_i @ V.T
+        y_orth = Y_i - Y_i @ V.T @ V
         Q = jnp.vstack(
             (
                 jnp.hstack(
                     (
-                        jnp.diag(self._S) + xhat.T @ yhat,
-                        jnp.linalg.norm(y_orth) * xhat.T,
+                        jnp.diag(S) + xhat.T @ yhat,
+                        jnp.linalg.norm(y_orth,axis=1).T * xhat.T,
                     )
                 ),
                 jnp.hstack(
                     (
-                        jnp.linalg.norm(x_orth) * yhat,
+                        (jnp.linalg.norm(x_orth,axis=1).T * yhat.T).T,
                         jnp.atleast_2d(
-                            jnp.linalg.norm(x_orth) * jnp.linalg.norm(y_orth)
+                            jnp.linalg.norm(x_orth,axis=1,keepdims=True) @ jnp.linalg.norm(y_orth,axis=1,keepdims=True).T
                         ),
                     )
                 ),
             )
         )
         U_, S, Vt_ = jnp.linalg.svd(Q)
-        self._U = U_[:, : self.n_components].T @ jnp.vstack(
-            (self._U, x_orth / jnp.linalg.norm(x_orth))
+        U = U_[:, : n_components].T @ jnp.vstack(
+            (U, x_orth / jnp.linalg.norm(x_orth))
         )
-        self._V = Vt_.T[:, : self.n_components].T @ jnp.vstack(
-            (self._V, y_orth / jnp.linalg.norm(y_orth))
+        V = Vt_.T[:, : n_components].T @ jnp.vstack(
+            (V, y_orth / jnp.linalg.norm(y_orth))
         )
-        self._S = S[: self.n_components]
+        S = S[: n_components]
+        return U,V,S

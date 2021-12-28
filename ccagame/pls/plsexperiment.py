@@ -2,7 +2,6 @@ from abc import abstractmethod
 from typing import Optional
 import jax.numpy as jnp
 from ccagame.baseexperiment import BaseExperiment
-from jaxline import utils
 from jax import jit
 from functools import partial
 import numpy as np
@@ -111,6 +110,6 @@ class PLSExperiment(BaseExperiment):
         *,
         global_step: jnp.ndarray,
         rng: jnp.ndarray,
-        writer: Optional[utils.Writer],
+        writer,
     ):
         return {}

@@ -1,6 +1,6 @@
 from jaxline.base_config import get_base_config
 from ccagame.utils import data_stream
-from datasets.mnist import mnist
+from ccagame.datasets.mnist import mnist
 import jax.numpy as jnp
 from ml_collections import config_dict
 
@@ -13,10 +13,11 @@ def get_config() -> config_dict.ConfigDict:
     # these are given by wandb
     config.learning_rate = 1e-2
     config.num_devices = 1
-    config.n_components = 16
-    config.batch_size = 0
+    config.n_components = 4
+    config.batch_size = 1000
     config.training_steps = 1000
     config.data = "mnist"
+    config.validate=False
 
     # defaults
     config.checkpoint_dir = "jaxlog"

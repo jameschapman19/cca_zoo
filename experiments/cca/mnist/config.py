@@ -10,9 +10,10 @@ def get_config() -> config_dict.ConfigDict:
     config.learning_rate = 1e-2
     config.num_devices = 1
     config.n_components = 4
-    config.batch_size = 0
-    config.training_steps = 10000
+    config.batch_size = 1024
+    config.training_steps = 1000
     config.data = "mnist"
+    config.validate=False
 
     # defaults
     config.checkpoint_dir = "jaxlog"

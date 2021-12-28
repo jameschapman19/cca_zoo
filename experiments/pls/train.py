@@ -8,7 +8,7 @@ import os
 import wandb
 from absl import flags
 from ml_collections import config_flags
-
+from jax import profiler
 
 """
 So in general flags are things from the command line
@@ -23,7 +23,7 @@ config_flags.DEFINE_config_file(
     help_string="Training configuration file.",
     default="/home/chapmajw/ccagame/experiments/pls/mnist/config.py",
 )
-flags.DEFINE_string(name="model", default="game", help="model name")
+flags.DEFINE_string(name="model", default="incremental", help="model name")
 
 MODEL_DICT = {
     "game": pls.Game,
@@ -45,14 +45,18 @@ def main(argv):
         "data": FLAGS.config.data,
         "batch_size": FLAGS.config.batch_size,
         "learning_rate": FLAGS.config.learning_rate,
+        "validate":FLAGS.config.validate
     }
+    os.chdir(FLAGS.config.data)
+    os.chdir(log_dir())
+    profiler.start_trace("tmp")
     platform.main(MODEL_DICT[FLAGS.model], argv)
+    profiler.stop_trace()
 
 
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
-    os.chdir(log_dir())
-    # wandb gets initialized now because wandb generates command line arguments which are used by flags
     wandb.init(sync_tensorboard=True)
-    # app basically tells flags to process things that are defined now and run main
+    wandb_config = wandb.config
+    # environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={config.devices}"
     app.run(main)

@@ -51,6 +51,12 @@ class SGHA(CCAExperiment):
                 self.local_rng, (self.n_components, self.dims[0] + self.dims[1])
             )
         ) / 1000
+        self._update_with_grads = jax.jit(
+            jax.vmap(
+                self._update_with_grads,
+                in_axes=(0, 1, 0),
+            )
+        )
         self._optimizer = optax.sgd(learning_rate=learning_rate)
         self._opt_state = self._optimizer.init(self.W)
 
@@ -58,19 +64,24 @@ class SGHA(CCAExperiment):
         X_i, Y_i = views
         w_grad = self._grad(X_i, Y_i, self.W)
         self.W, self._opt_state = self._update_with_grads(
-            self.W, w_grad.T, self._opt_state
+            self.W, w_grad, self._opt_state
         )
-        self._U = self.W[:, : self.dims[0]]
-        self._V = self.W[:, self.dims[0] :]
+        self._U, self._V = self._split_eigenvector(self.W)
 
+    @staticmethod
     @jit
     def _grad(X_i, Y_i, W):
         A, B = _get_AB(X_i, Y_i)
         Y = W @ A @ W.T
         return B @ W.T @ jnp.triu(Y) - A @ W.T
 
+    @partial(jit, static_argnums=(0))
     def _update_with_grads(self, wi, grads, opt_state):
         # we have gradient of utilities so we negate for gradient descent
         updates, opt_state = self._optimizer.update(-grads, opt_state)
         wi_new = optax.apply_updates(wi, updates)
         return wi_new, opt_state
+
+    @partial(jit, static_argnums=(0))
+    def _split_eigenvector(self,V):
+        return self.W[:, : self.dims[0]], self.W[:, self.dims[0] :]

@@ -50,15 +50,16 @@ class Game(CCAExperiment):
         self._V = (
             jax.random.normal(self.local_rng, (self.n_components, self.dims[1])) / 10000
         )
-        # This line parallelizes over data sending different data to each device
-        self._update_with_grads = jax.vmap(
-            self._update_with_grads,
-            in_axes=(0, 0, 0),
-        )
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
-        self._grads = jax.vmap(
+        self._grads = jax.jit(jax.vmap(
             self._grads,
-            in_axes=(0, 0, None, 0, None),
+            in_axes=(1, 0, None, 1, None),
+        ))
+        self._update_with_grads = jax.jit(
+            jax.vmap(
+                self._update_with_grads,
+                in_axes=(0, 0, 0),
+            )
         )
         self._optimizer = optax.sgd(learning_rate=learning_rate)
         self._opt_state_x = self._optimizer.init(self._U)
@@ -67,9 +68,9 @@ class Game(CCAExperiment):
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        Zx, Zy, T = self._get_target(X_i, Y_i, self._U.T, self._V.T)
-        grads_x = self._grads(Zx.T, self._weights, X_i, T.T, T)
-        grads_y = self._grads(Zy.T, self._weights, Y_i, T.T, T)
+        Zx, Zy, T = self._get_target(X_i, Y_i, self._U, self._V)
+        grads_x = self._grads(Zx, self._weights, X_i, T, T)
+        grads_y = self._grads(Zy, self._weights, Y_i, T, T)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
@@ -78,22 +79,22 @@ class Game(CCAExperiment):
         )
 
     @staticmethod
-    @jit
     def _grads(zi, weights, X, Ti, T):
         rewards = X.T @ (Ti - zi)
-        covariance = -((zi.T @ T) * (X.T @ T)) @ weights
+        covariance = -((zi @ T) * (X.T @ T)) @ weights
         grads = rewards + covariance
         return grads / X.shape[0]
 
     @staticmethod
     @jit
     def _get_target(X, Y, U, V):
-        Zx = X @ U
-        Zy = Y @ V
+        Zx = X @ U.T
+        Zy = Y @ V.T
         T = Zx + Zy
         T /= jnp.linalg.norm(T, axis=0)
         return Zx, Zy, T
 
+    @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
         # we have gradient of utilities so we negate for gradient descent
         updates, opt_state = self._optimizer.update(-grads, opt_state)

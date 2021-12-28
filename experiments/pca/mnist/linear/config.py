@@ -1,6 +1,6 @@
 from jaxline.base_config import get_base_config
 from ccagame.utils import data_stream
-from datasets.mnist import mnist
+from ccagame.datasets.mnist import mnist
 import jax.numpy as jnp
 from ml_collections import config_dict
 

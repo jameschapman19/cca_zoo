@@ -56,7 +56,7 @@ class PCAExperiment(BaseExperiment):
         raise NotImplementedError
 
     def _get_scalars(self):
-        if self.correct_eigenvectors == None:
+        if self.correct_eigenvectors is None:
             return {}
         else:
             return {
