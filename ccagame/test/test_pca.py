@@ -10,11 +10,6 @@ from ml_collections import config_flags
 from ccagame.test.config import get_config
 
 FLAGS = flags.FLAGS
-config_flags.DEFINE_config_file(
-    "config",
-    help_string="Training configuration file.",
-    default="",
-)
 MODEL_DICT = {
     "game": pca.Game,
     "oja": pca.Oja,
@@ -28,6 +23,8 @@ class PCATest(parameterized.TestCase):
             'model': 'gha'},
             )
     def test_pca(self,model):
+        flags.DEFINE_string(name="model", default="game", help="model name")
+        FLAGS.model=model
         FLAGS.config = get_config()
         FLAGS.config.experiment_kwargs = {
             "n_components": FLAGS.config.n_components,

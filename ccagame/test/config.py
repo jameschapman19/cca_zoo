@@ -1,6 +1,11 @@
 from jaxline.base_config import get_base_config
 from ml_collections import config_dict
-
+from ml_collections import config_flags
+config_flags.DEFINE_config_file(
+    "config",
+    help_string="Training configuration file.",
+    default="/home/chapmajw/ccagame/experiments/pls/mnist/config.py",
+)
 
 def get_config() -> config_dict.ConfigDict:
     # get the basic jax config

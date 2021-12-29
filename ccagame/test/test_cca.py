@@ -10,11 +10,6 @@ from ml_collections import config_flags
 from ccagame.test.config import get_config
 
 FLAGS = flags.FLAGS
-config_flags.DEFINE_config_file(
-    "config",
-    help_string="Training configuration file.",
-    default="",
-)
 MODEL_DICT = {
             "game": cca.Game,
             "vicreggame": cca.VicRegGame,
@@ -32,6 +27,8 @@ class CCATest(parameterized.TestCase):
        'model': 'vicreggame',},
     )
     def test_cca(self,model):
+        flags.DEFINE_string(name="model", default="game", help="model name")
+        FLAGS.model=model
         FLAGS.config = get_config()#FLAGS.config.is_type_safe
         FLAGS.config.experiment_kwargs = {
             "n_components": FLAGS.config.n_components,

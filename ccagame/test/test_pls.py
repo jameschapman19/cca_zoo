@@ -5,15 +5,9 @@ from absl import flags
 from absl.testing import absltest, parameterized
 from ccagame import cca, pca, pls
 from jaxline_fork import platform
-from ml_collections import config_flags
 from ccagame.test.config import get_config
 
 FLAGS = flags.FLAGS
-config_flags.DEFINE_config_file(
-    "config",
-    help_string="Training configuration file.",
-    default="",
-)
 MODEL_DICT = {
     "game": pls.Game,
     "msg": pls.MSG,
@@ -31,6 +25,8 @@ class PLSTest(parameterized.TestCase):
             'model': 'incremental'},
             )
     def test_pls(self,model):
+        flags.DEFINE_string(name="model", default="game", help="model name")
+        FLAGS.model=model
         FLAGS.config = get_config()
         FLAGS.config.experiment_kwargs = {
             "n_components": FLAGS.config.n_components,
