@@ -8,12 +8,13 @@ from ccagame import cca, pca, pls
 from jaxline_fork import platform
 from ml_collections import config_flags
 from ccagame.test.config import get_config
-
+import os
+print(os.getcwd())
 FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file(
     "config",
     help_string="Training configuration file.",
-    default="/home/chapmajw/ccagame/experiments/pls/mnist/config.py",
+    default="ccagame/test/config.py",
 )
 flags.DEFINE_string(name="model", default="game", help="model name")
 
