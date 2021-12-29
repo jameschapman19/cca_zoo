@@ -28,4 +28,4 @@ jobs:
         python -m pip install pytest-cov
         python -m pip install -r requirements.txt
     - name: Run Test
-      run: pytest --cov-report=xml --cov=ccagame ./ccagame/test/
+      run: pytest --cov-report=xml --cov=ccagame ./ccagame/test/test_all
