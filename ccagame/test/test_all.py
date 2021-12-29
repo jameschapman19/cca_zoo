@@ -55,7 +55,6 @@ class TestAll(parameterized.TestCase):
             "sgha": cca.SGHA,
             "appgrad": cca.AppGrad,
         }
-        flags.DEFINE_string(name="model", default="game", help="model name")
         FLAGS.model=model
         FLAGS.config = get_config()#FLAGS.config.is_type_safe
         FLAGS.config.experiment_kwargs = {
@@ -82,7 +81,6 @@ class TestAll(parameterized.TestCase):
             "power": pls.StochasticPower,
             "incremental": pls.Incremental,
         }
-        flags.DEFINE_string(name="model", default="game", help="model name")
         FLAGS.model=model
         FLAGS.config = get_config()
         FLAGS.config.experiment_kwargs = {
