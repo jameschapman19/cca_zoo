@@ -7,7 +7,7 @@ from absl.testing import absltest
 from ccagame import cca, pca, pls
 from jaxline_fork import platform
 from ml_collections import config_flags
-from ccagame.test import get_config
+from ccagame.test.config import get_config
 
 FLAGS = flags.FLAGS
 
