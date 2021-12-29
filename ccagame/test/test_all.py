@@ -10,7 +10,7 @@ from ml_collections import config_flags
 from ccagame.test.config import get_config
 
 FLAGS = flags.FLAGS
-
+flags.DEFINE_string(name="model", default="game", help="model name")
 
 class TestAll(parameterized.TestCase):
     @parameterized.parameters(
@@ -24,7 +24,6 @@ class TestAll(parameterized.TestCase):
             "oja": pca.Oja,
             "gha": pca.GHA,
         }
-        flags.DEFINE_string(name="model", default="game", help="model name")
         FLAGS.model=model
         FLAGS.config = get_config()
         FLAGS.config.experiment_kwargs = {
