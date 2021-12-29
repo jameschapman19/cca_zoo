@@ -52,13 +52,14 @@ class GHA(PCAExperiment):
     def _update(self, inputs, global_step):
         grads=self._grads(inputs,self._V)
         self._V, self._opt_state = self._update_with_grads(
-            self._V, grads, self._optimizer, self._opt_state
+            self._V, grads, self._opt_state
         )
 
     @staticmethod
     @jit
     def _grads(inputs,V):
         return V @ inputs.T @ inputs - jnp.triu(V @ inputs.T @ inputs @ V.T) @ V
+
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, vi, grads, opt_state):

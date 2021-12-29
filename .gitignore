@@ -145,3 +145,4 @@ ccagame/pca/experiments/jaxlog/train/
 jaxlog/
 wandb/
 events*
+tmp/
