@@ -10,8 +10,6 @@ from ml_collections import config_flags
 from ccagame.test.config import get_config
 
 FLAGS = flags.FLAGS
-
-flags.DEFINE_string(name="model", default="game", help="model name")
 config_flags.DEFINE_config_file(
     "config",
     help_string="Training configuration file.",
