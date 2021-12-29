@@ -12,9 +12,12 @@ def get_config() -> config_dict.ConfigDict:
     config.num_devices = 1
     config.n_components = 4
     config.batch_size = 1000
-    config.training_steps = 10
+    config.training_steps = 1000
+    config.epochs=50
     config.data = "mnist"
     config.validate=True
+    if config.data=='mnist':
+        config.training_steps=int(config.epochs*60000/config.batch_size)
 
     # defaults
     config.checkpoint_dir = "jaxlog"

@@ -17,11 +17,9 @@ class PCAExperiment(BaseExperiment):
         init_rng=None,
         num_devices=1,
         n_components=1,
-        dims=None,
         data=None,
         batch_size=0,
-        correct_eigenvectors=None,
-        holdout=None,
+        TV=False,
         **kwargs,
     ):
         if data == "mnist":
@@ -50,31 +48,30 @@ class PCAExperiment(BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
+        self.TV=TV
 
     @abstractmethod
     def _update(self, X_i, Y_i, global_step):
         raise NotImplementedError
 
     def _get_scalars(self):
-        if self.correct_eigenvectors is None:
-            return {}
-        else:
-            return {
-            "TV": self._TV(self._V, self.holdout),
-            "Correct Eigenvector Streak": self._correct_eigenvector_streak(
+        scalars={}
+        if self.TV:
+            scalars['TV']=self._TV(self._V, self.holdout)
+        scalars['correct_x']=self._correct_eigenvector_streak(
                 self._V, self.correct_eigenvectors
-            ),
-            "Normalized Subspace Distance": self._normalized_subspace_distance(
+            )
+        scalars['subspace']=self._normalized_subspace_distance(
                 self._V, self.correct_eigenvectors
-            ),
-            }
+            )
+        return scalars
 
     @staticmethod
     @jit
     def _TV(U, X_val):
         dof = X_val.shape[0]
         Zx = X_val @ U.T
-        return jnp.linalg.svd(Zx.T @ Zx)[1].sum() / dof
+        return jnp.sum(jnp.diag(Zx.T @ Zx)) / dof
 
     def save_outputs(self):
         V = jnp.reshape(self._V, (self.n_components, self.dims))
@@ -89,7 +86,7 @@ class PCAExperiment(BaseExperiment):
             jnp.ones_like(cosine_similarities_x),
             jnp.zeros_like(cosine_similarities_x),
         )
-        return x_idx.sum()
+        return jnp.sum(x_idx)
 
     @staticmethod
     @jit

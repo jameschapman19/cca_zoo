@@ -144,3 +144,4 @@ ccagame/pca/experiments/jaxlog/train/
 .vscode/
 jaxlog/
 wandb/
+events*

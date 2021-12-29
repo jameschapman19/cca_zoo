@@ -13,8 +13,11 @@ def _get_AB(X_i, Y_i):
     B = B.at[p:, :p].set(0)
     return A, B
 
-
 @jit
-def _gram_schmidt(W, M):
-    # TODO
-    raise NotImplementedError
+def _gram_schmidt(V, B):
+    n_components = V.shape[0]
+    for i in range(n_components):
+        T = V[i] @ B @ V[:i].T / jnp.diag(V[:i] @ B @ V[:i].T)
+        V=V.at[i].set(V[i] - T @ V[:i])
+        V=V.at[i].set(V[i]/ jnp.sqrt(V[i] @ B @ V[i].T))
+    return V#V @ B @ V.T

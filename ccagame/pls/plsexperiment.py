@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from re import sub
 from typing import Optional
 import jax.numpy as jnp
 from ccagame.baseexperiment import BaseExperiment
@@ -21,6 +22,7 @@ class PLSExperiment(BaseExperiment):
         batch_size=0,
         path=None,
         num_batches=None,
+        TV=False,
         **kwargs,
     ):
         if data=='mnist':
@@ -47,6 +49,7 @@ class PLSExperiment(BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
+        self.TV=TV
 
     @abstractmethod
     def _update(self, views, global_step):
@@ -54,24 +57,20 @@ class PLSExperiment(BaseExperiment):
 
     # @partial(jit, static_argnums=(0))
     def _get_scalars(self):
-        if self.correct_eigenvectors == None:
-            return {}
-        else:
-            return {
-                "TV": self._TV(self._U, self._V, self.holdout[0],self.holdout[1]),
-                "correct x": self._correct_eigenvector_streak(
-                    self._U, self.correct_eigenvectors[0]
-                ),
-                "correct y": self._correct_eigenvector_streak(
+        scalars={}
+        if self.TV:
+            scalars['tv']=self._TV(self._U, self._V, self.holdout[0],self.holdout[1])
+        scalars['correct_x']=self._correct_eigenvector_streak(
+                    self._U, self.correct_eigenvectors[0])
+        scalars['correct_y']=self._correct_eigenvector_streak(
                     self._V, self.correct_eigenvectors[1]
-                ),
-                "subspace x": self._normalized_subspace_distance(
+                )
+        scalars['subspace_x']=self._normalized_subspace_distance(
                     self._U, self.correct_eigenvectors[0]
-                ),
-                "subspace y": self._normalized_subspace_distance(
-                    self._V, self.correct_eigenvectors[1]
-                ),
-            }
+                )
+        scalars['subspace_y']=self._normalized_subspace_distance(
+                    self._V, self.correct_eigenvectors[1])
+        return scalars
 
     @staticmethod
     @jit
@@ -79,13 +78,11 @@ class PLSExperiment(BaseExperiment):
         dof = X_val.shape[0]
         Zx = X_val @ U.T
         Zy = Y_val @ V.T
-        return jnp.linalg.svd(Zx.T @ Zy)[1].sum() / dof
+        return jnp.sum(jnp.diag(Zx.T @ Zy)) / dof
     
     def save_outputs(self):
-        U = jnp.reshape(self._U, (self.n_components, self.dims[0]))
-        V = jnp.reshape(self._V, (self.n_components, self.dims[1]))
-        np.savetxt("U.csv", U, delimiter=",")
-        np.savetxt("V.csv", V, delimiter=",")
+        np.savetxt("U.csv", self._U, delimiter=",")
+        np.savetxt("V.csv", self._V, delimiter=",")
 
     @staticmethod
     @jit
@@ -96,7 +93,7 @@ class PLSExperiment(BaseExperiment):
             jnp.ones_like(cosine_similarities_x),
             jnp.zeros_like(cosine_similarities_x),
         )
-        return x_idx.sum()
+        return jnp.sum(x_idx)
 
     @staticmethod
     @jit

@@ -1,11 +1,10 @@
 """
-Gen-Oja: A Simple and Efficient Algorithm for
-Streaming Generalized Eigenvector Computation
-https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-Paper.pdf
+Appgrad
 """
 from functools import partial
 from os import environ
 import jax
+from jax._src.lax.lax import sqrt
 import jax.numpy as jnp
 import optax
 
@@ -15,7 +14,7 @@ import jax.scipy as jsp
 from jax import jit
 
 
-class SGHA(CCAExperiment):
+class AppGrad(CCAExperiment):
     def __init__(
         self,
         mode,
@@ -28,9 +27,10 @@ class SGHA(CCAExperiment):
         momentum=0.9,
         nesterov=True,
         batch_size=0,
+        c=None,
         **kwargs
     ):
-        super(SGHA, self).__init__(
+        super(AppGrad, self).__init__(
             mode,
             init_rng=init_rng,
             num_devices=num_devices,
@@ -46,34 +46,47 @@ class SGHA(CCAExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self.W = (
-            jax.random.normal(
-                self.local_rng, (self.n_components, self.dims[0] + self.dims[1])
-            )
-        ) / 1000
+        self._U = (
+            jax.random.normal(self.local_rng, (self.n_components, self.dims[0])) / 10000
+        )
+        self._V = (
+            jax.random.normal(self.local_rng, (self.n_components, self.dims[1])) / 10000
+        )
+        self._U_tilde=jnp.zeros_like(self._U)
+        self._V_tilde=jnp.zeros_like(self._V)
         self._update_with_grads = jax.jit(
             jax.vmap(
                 self._update_with_grads,
-                in_axes=(0, 1, 0),
+                in_axes=(0, 0, 0),
             )
         )
         self._optimizer = optax.sgd(learning_rate=learning_rate)
-        self._opt_state = self._optimizer.init(self.W)
+        self._opt_state_x = self._optimizer.init(self._U_tilde)
+        self._opt_state_y = self._optimizer.init(self._V_tilde)
+        self.c=c
+        if self.c is None:
+            self.c=[0,0]
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        w_grad = self._grad(X_i, Y_i, self.W)
-        self.W, self._opt_state = self._update_with_grads(
-            self.W, w_grad, self._opt_state
+        x_grads = self._grad(X_i, Y_i, self._V,self._U_tilde,self.c[0])
+        self._U_tilde, self._opt_state_x = self._update_with_grads(
+            self._U, x_grads, self._opt_state_x
         )
-        self._U, self._V = self._split_eigenvector(self.W)
+        self._U=self._normalize(X_i,self._U_tilde,self.c[0])
+        y_grads = self._grad(Y_i, X_i, self._U,self._V_tilde,self.c[1])
+        self._V_tilde, self._opt_state_y = self._update_with_grads(
+            self._V, y_grads, self._opt_state_y
+        )
+        self._V=self._normalize(Y_i,self._V_tilde,self.c[1])
+
 
     @staticmethod
     @jit
-    def _grad(X_i, Y_i, W):
-        A, B = _get_AB(X_i, Y_i)
-        Y = W @ A @ W.T
-        return B @ W.T @ jnp.triu(Y) - A @ W.T
+    def _grad(X_i,Y_i,V,U_tilde,c):
+        n=X_i.shape[0]
+        grads=(U_tilde@X_i.T@X_i-V@Y_i.T@X_i)/n+U_tilde*c
+        return grads
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, wi, grads, opt_state):
@@ -82,6 +95,14 @@ class SGHA(CCAExperiment):
         wi_new = optax.apply_updates(wi, updates)
         return wi_new, opt_state
 
-    @partial(jit, static_argnums=(0))
-    def _split_eigenvector(self,V):
-        return V[:, : self.dims[0]], V[:, self.dims[0] :]
+    @staticmethod
+    @jit
+    def _normalize(X_i,U,c):
+        n=X_i.shape[0]
+        M=U@X_i.T@X_i@U.T+n*c*jnp.eye(U.shape[0])
+        return _sqrtm(M).T@U
+
+@jit
+def _sqrtm(M):
+    U,S,_=jnp.linalg.svd(M)
+    return U@jnp.diag(1/jnp.sqrt(S))

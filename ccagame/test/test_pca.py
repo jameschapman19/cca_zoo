@@ -2,6 +2,7 @@ from re import I
 from sys import argv
 
 from absl import flags
+from absl.testing import parameterized
 from absl.testing import absltest
 from ccagame import cca, pca, pls
 from jaxline_fork import platform
@@ -17,11 +18,19 @@ config_flags.DEFINE_config_file(
     help_string="Training configuration file.",
     default="",
 )
+MODEL_DICT = {
+    "game": pca.Game,
+    "oja": pca.Oja,
+    "gha": pca.GHA,
+}
 
-
-class PCATest(absltest.TestCase):
-
-    def test_pca(self):
+class PCATest(parameterized.TestCase):
+    @parameterized.parameters(
+            {'model': 'game',
+            'model': 'oja',
+            'model': 'gha'},
+            )
+    def test_pca(self,model):
         FLAGS.config = get_config()
         FLAGS.config.experiment_kwargs = {
             "n_components": FLAGS.config.n_components,
@@ -31,7 +40,7 @@ class PCATest(absltest.TestCase):
             "learning_rate": FLAGS.config.learning_rate,
             "validate": FLAGS.config.validate,
         }
-        platform.main(pca.Game, argv)
+        platform.main(MODEL_DICT[model], argv)
 
 
 if __name__ == "__main__":

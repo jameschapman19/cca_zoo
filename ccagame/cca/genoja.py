@@ -26,7 +26,7 @@ class GenOja(CCAExperiment):
         dims=None,
         data=None,
         alpha=1 / 871,
-        beta0=1000,
+        beta0=1,
         batch_size=0,
         **kwargs
     ):

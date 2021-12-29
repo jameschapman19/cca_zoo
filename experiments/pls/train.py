@@ -23,7 +23,7 @@ config_flags.DEFINE_config_file(
     help_string="Training configuration file.",
     default="/home/chapmajw/ccagame/experiments/pls/mnist/config.py",
 )
-flags.DEFINE_string(name="model", default="incremental", help="model name")
+flags.DEFINE_string(name="model", default="game", help="model name")
 
 MODEL_DICT = {
     "game": pls.Game,

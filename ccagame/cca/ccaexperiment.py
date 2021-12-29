@@ -18,12 +18,10 @@ class CCAExperiment(BaseExperiment):
         init_rng=None,
         num_devices=1,
         n_components=1,
-        dims=None,
         data=None,
         batch_size=0,
-        correct_eigenvectors=None,
-        holdout=None,
         path=None,
+        TCC=False,
         **kwargs,
     ):
         if data == "mnist":
@@ -66,30 +64,29 @@ class CCAExperiment(BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
+        self.TCC=TCC
 
     @abstractmethod
     def _update(self, views, global_step):
         raise NotImplementedError
 
     def _get_scalars(self):
-        if self.correct_eigenvectors == None:
-            return {}
-        else:
-            return {
-            "TC": self._TC(self._U, self._V,self.holdout[0],self.holdout[1]),
-            "correct x": self._correct_eigenvector_streak(
-                self._U, self.correct_eigenvectors[0]
-            ),
-            "correct y": self._correct_eigenvector_streak(
-                self._V, self.correct_eigenvectors[1]
-            ),
-            "subspace x": self._normalized_subspace_distance(
-                self._U, self.correct_eigenvectors[0]
-            ),
-            "subspace y": self._normalized_subspace_distance(
-                self._V, self.correct_eigenvectors[1]
-            ),
-            }
+        scalars={}
+        if self.TCC:
+            scalars['TCC']=self._TC(self._U, self._V,self.holdout[0],self.holdout[1])
+        scalars["correct x"]= self._correct_eigenvector_streak(
+            self._U, self.correct_eigenvectors[0]
+        )
+        scalars["correct y"]= self._correct_eigenvector_streak(
+            self._V, self.correct_eigenvectors[1]
+        )
+        scalars["subspace x"]= self._normalized_subspace_distance(
+            self._U, self.correct_eigenvectors[0]
+        )
+        scalars["subspace y"]= self._normalized_subspace_distance(
+            self._V, self.correct_eigenvectors[1]
+        )
+        return scalars
 
     @staticmethod
     @jit
@@ -100,7 +97,7 @@ class CCAExperiment(BaseExperiment):
         )
         return jnp.trace(
             jnp.abs(
-                jnp.corrcoef(Zx.T, Zy.T)[U.shape[0] :, : U.shape[0]]
+                jnp.corrcoef(Zx, Zy,rowvar=False)[U.shape[0] :, : U.shape[0]]
             )
         )
 
@@ -109,7 +106,7 @@ class CCAExperiment(BaseExperiment):
         np.savetxt("V.csv", self._V, delimiter=",")
 
     @staticmethod
-    @jit
+    #@jit
     def _correct_eigenvector_streak(U, U_correct):
         n_components = U.shape[0]
         cosine_similarities_x = jnp.diag(
@@ -120,14 +117,14 @@ class CCAExperiment(BaseExperiment):
             jnp.ones_like(cosine_similarities_x),
             jnp.zeros_like(cosine_similarities_x),
         )
-        return x_idx.sum()
+        return jnp.sum(x_idx)
 
     @staticmethod
     @jit
     def _normalized_subspace_distance(U, U_correct):
         U = U.T / jnp.linalg.norm(U, axis=1)
         P = U_correct @ U_correct.T
-        U_star = U @ U.T  # jnp.linalg.norm(U,axis=0)
+        U_star = U @ U.T
         return 1 - jnp.trace(U_star @ P) / U_correct.shape[1]
 
     def evaluate(

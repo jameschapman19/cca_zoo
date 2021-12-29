@@ -7,13 +7,16 @@ def get_config() -> config_dict.ConfigDict:
     config = get_base_config()
 
     # these are given by wandb
-    config.learning_rate = 1e-2
+    config.learning_rate = 1e-3
     config.num_devices = 1
     config.n_components = 4
-    config.batch_size = 1024
+    config.batch_size = 256
     config.training_steps = 1000
+    config.epochs=50
     config.data = "mnist"
-    config.validate=False
+    config.validate=True
+    if config.data=='mnist':
+        config.training_steps=int(config.epochs*60000/config.batch_size)
 
     # defaults
     config.checkpoint_dir = "jaxlog"
