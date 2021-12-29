@@ -9,7 +9,6 @@ from jaxline_fork import platform
 from ml_collections import config_flags
 from ccagame.test.config import get_config
 
-FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file(
     "config",
     help_string="Training configuration file.",
@@ -29,6 +28,7 @@ class TestAll(parameterized.TestCase):
             "oja": pca.Oja,
             "gha": pca.GHA,
         }
+        FLAGS = flags.FLAGS
         FLAGS.model=model
         FLAGS.config = get_config()
         FLAGS.config.experiment_kwargs = {
@@ -55,6 +55,7 @@ class TestAll(parameterized.TestCase):
             "sgha": cca.SGHA,
             "appgrad": cca.AppGrad,
         }
+        FLAGS = flags.FLAGS
         FLAGS.model=model
         FLAGS.config = get_config()#FLAGS.config.is_type_safe
         FLAGS.config.experiment_kwargs = {
@@ -81,6 +82,7 @@ class TestAll(parameterized.TestCase):
             "power": pls.StochasticPower,
             "incremental": pls.Incremental,
         }
+        FLAGS = flags.FLAGS
         FLAGS.model=model
         FLAGS.config = get_config()
         FLAGS.config.experiment_kwargs = {
