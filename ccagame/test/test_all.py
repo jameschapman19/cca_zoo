@@ -9,6 +9,7 @@ from jaxline_fork import platform
 from ml_collections import config_flags
 from ccagame.test.config import get_config
 
+FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file(
     "config",
     help_string="Training configuration file.",
@@ -16,7 +17,7 @@ config_flags.DEFINE_config_file(
 )
 flags.DEFINE_string(name="model", default="game", help="model name")
 
-class TestAll(parameterized.TestCase):
+class TestPCA(parameterized.TestCase):
     @parameterized.parameters(
             {'model': 'game',
             'model': 'oja',
@@ -28,9 +29,7 @@ class TestAll(parameterized.TestCase):
             "oja": pca.Oja,
             "gha": pca.GHA,
         }
-        FLAGS = flags.FLAGS
         FLAGS.model=model
-        FLAGS.config = get_config()
         FLAGS.config.experiment_kwargs = {
             "n_components": FLAGS.config.n_components,
             "num_devices": FLAGS.config.num_devices,
@@ -40,6 +39,8 @@ class TestAll(parameterized.TestCase):
             "validate": FLAGS.config.validate,
         }
         platform.main(MODEL_DICT[model], argv)
+
+class TestCCA(parameterized.TestCase):
     @parameterized.parameters(
        {'model': 'game',
        'model': 'appgrad',
@@ -55,9 +56,7 @@ class TestAll(parameterized.TestCase):
             "sgha": cca.SGHA,
             "appgrad": cca.AppGrad,
         }
-        FLAGS = flags.FLAGS
         FLAGS.model=model
-        FLAGS.config = get_config()#FLAGS.config.is_type_safe
         FLAGS.config.experiment_kwargs = {
             "n_components": FLAGS.config.n_components,
             "num_devices": FLAGS.config.num_devices,
@@ -67,6 +66,8 @@ class TestAll(parameterized.TestCase):
             "validate": FLAGS.config.validate,
         }
         platform.main(MODEL_DICT[model], argv)
+    
+class TestPLS(parameterized.TestCase):
     @parameterized.parameters(
             {'model': 'game',
             'model': 'msg',
@@ -82,9 +83,7 @@ class TestAll(parameterized.TestCase):
             "power": pls.StochasticPower,
             "incremental": pls.Incremental,
         }
-        FLAGS = flags.FLAGS
         FLAGS.model=model
-        FLAGS.config = get_config()
         FLAGS.config.experiment_kwargs = {
             "n_components": FLAGS.config.n_components,
             "num_devices": FLAGS.config.num_devices,
