@@ -4,6 +4,8 @@
 #
 #    pip-compile setup.py
 #
+jaxline
+cca-zoo
 absl-py==0.15.0
     # via
     #   jax
