@@ -36,6 +36,8 @@ MODEL_DICT = {
 
 def main(argv):
     print(f"MODEL IS {FLAGS.model}")
+    if FLAGS.config.data=='mnist':
+        FLAGS.config.training_steps=int(FLAGS.config.epochs*60000/FLAGS.config.batch_size)
     # we now need to put some of the stuff from config into
     # config.experiment_kwargs because this is what jaxline
     # gives to our experiment objects
@@ -45,18 +47,16 @@ def main(argv):
         "data": FLAGS.config.data,
         "batch_size": FLAGS.config.batch_size,
         "learning_rate": FLAGS.config.learning_rate,
-        "validate":FLAGS.config.validate
+        "validate":FLAGS.config.validate,
     }
     os.chdir(os.path.join(os.path.dirname(os.path.realpath(__file__)),FLAGS.config.data))
     os.chdir(log_dir())
-    profiler.start_trace("tmp")
+    FLAGS.config.checkpoint_dir = os.getcwd()
     platform.main(MODEL_DICT[FLAGS.model], argv)
-    profiler.stop_trace()
 
 
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
     wandb.init(sync_tensorboard=True)
     wandb_config = wandb.config
-    # environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={config.devices}"
     app.run(main)

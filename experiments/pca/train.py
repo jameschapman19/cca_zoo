@@ -37,14 +37,11 @@ def main(argv):
     }
     os.chdir(os.path.join(os.path.dirname(os.path.realpath(__file__)),FLAGS.config.data))
     os.chdir(log_dir())
-    profiler.start_trace("tmp")
     platform.main(MODEL_DICT[FLAGS.model], argv)
-    profiler.stop_trace()
 
 
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
     wandb.init(sync_tensorboard=True)
     wandb_config = wandb.config
-    # environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={config.devices}"
     app.run(main)
