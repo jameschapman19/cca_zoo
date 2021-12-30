@@ -48,6 +48,7 @@ def main(argv):
         "batch_size": FLAGS.config.batch_size,
         "learning_rate": FLAGS.config.learning_rate,
         "validate":FLAGS.config.validate,
+        "TV":FLAGS.config.TV,
     }
     os.chdir(os.path.join(os.path.dirname(os.path.realpath(__file__)),FLAGS.config.data))
     os.chdir(log_dir())
