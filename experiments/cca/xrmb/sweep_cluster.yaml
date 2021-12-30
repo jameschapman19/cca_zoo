@@ -1,4 +1,4 @@
-program: /home/jchapman/projects/ccagame/experiments/cca/train.py
+program: /experiments/cca/train.py
 method: grid
 parameters:
   model:
