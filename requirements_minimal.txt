@@ -1,0 +1,8 @@
+tensorflow
+optax
+scikit-learn
+jax
+pandas
+wandb
+jaxline
+cca-zoo

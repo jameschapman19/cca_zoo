@@ -1,0 +1,15 @@
+program: /home/jchapman/projects/ccagame/experiments/pls/train.py
+method: grid
+parameters:
+  model:
+    values: ['game','oja', 'power', 'msg']
+  config.n_components:
+    values: [16]
+  config.data:
+    values: ['mnist']
+  config.epochs:
+    values: [50]
+  config.learning_rate:
+    values: [1e-1,1e-2,1e-3, 1e-4, 1e-5]
+  config.batch_size:
+    values: [256, 512, 1024]

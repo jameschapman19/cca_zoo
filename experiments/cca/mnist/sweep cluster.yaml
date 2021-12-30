@@ -1,8 +1,8 @@
-program: /home/chapmajw/ccagame/experiments/pls/train.py
+program: /home/jchapman/projects/ccagame/experiments/cca/train.py
 method: grid
 parameters:
   model:
-    values: ['game','oja', 'power', 'msg']
+    values: ['game','sgha','appgrad','genoja','vicreggame']
   config.n_components:
     values: [16]
   config.data:
@@ -12,4 +12,4 @@ parameters:
   config.learning_rate:
     values: [1e-1,1e-2,1e-3, 1e-4, 1e-5]
   config.batch_size:
-    values: [60000]
+    values: [256, 512, 1024]

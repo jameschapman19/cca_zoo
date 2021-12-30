@@ -40,7 +40,6 @@ def main(argv):
     platform.main(MODEL_DICT[FLAGS.model], argv)
 
 
-# TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
     wandb.init(sync_tensorboard=True)
     wandb_config = wandb.config
