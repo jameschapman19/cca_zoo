@@ -24,7 +24,8 @@ class PCAExperiment(BaseExperiment):
             init_rng=init_rng,
             num_devices=num_devices,
             n_components=n_components,
-            data=self.data,
+            data=data,
+            pca=True,
             batch_size=batch_size,
             **kwargs
         )
@@ -37,8 +38,8 @@ class PCAExperiment(BaseExperiment):
         self.TV=TV
 
     def _init_ground_truth(self,X,Y=None):
-        correct_U, _, _ = np.linalg.svd(X.T @ X)
-        self.correct_U = correct_U[:, :self.n_components]
+        correct_V, _, _ = np.linalg.svd(X.T @ X)
+        self.correct_V = correct_V[:, :self.n_components]
 
     @abstractmethod
     def _update(self, X_i, Y_i, global_step):
@@ -47,12 +48,12 @@ class PCAExperiment(BaseExperiment):
     def _get_scalars(self):
         scalars={}
         if self.TV:
-            scalars['TV']=self._TV(self._V, self.holdout)
+            scalars['TV']=self._TV(self._V, self.X_val)
         scalars['correct_x']=self._correct_eigenvector_streak(
-                self._V, self.correct_eigenvectors
+                self._V, self.correct_V
             )
         scalars['subspace']=self._normalized_subspace_distance(
-                self._V, self.correct_eigenvectors
+                self._V, self.correct_V
             )
         return scalars
 

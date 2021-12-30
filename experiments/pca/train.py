@@ -22,7 +22,7 @@ MODEL_DICT = {
 def main(argv):
     print(f"MODEL IS {FLAGS.model}")
     if FLAGS.config.data=='mnist':
-        FLAGS.config.training_steps=2#int(FLAGS.config.epochs*60000/FLAGS.config.batch_size)
+        FLAGS.config.training_steps=int(FLAGS.config.epochs*60000/FLAGS.config.batch_size)
     # we now need to put some of the stuff from config into
     # config.experiment_kwargs because this is what jaxline
     # gives to our experiment objects
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     config_flags.DEFINE_config_file(
     "config",
     help_string="Training configuration file.",
-    default=os.getcwd()+"/experiments/pca/mnist/mnist/config.py",
+    default=os.getcwd()+"/experiments/pca/config.py",
     )
     wandb.init(sync_tensorboard=True)
     wandb_config = wandb.config

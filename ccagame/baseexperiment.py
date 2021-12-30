@@ -29,6 +29,7 @@ class BaseExperiment(AbstractExperiment):
         validate=True,
         path=None,
         num_batches=None,
+        pca=False,
         **kwargs,
     ):
         super(BaseExperiment, self).__init__(mode=mode, init_rng=init_rng)
@@ -45,26 +46,29 @@ class BaseExperiment(AbstractExperiment):
         self.local_rng = jax.random.fold_in(PRNGKey(123), jax.host_id())
         self.num_devices = num_devices
         self.validate=validate
-        self.data_stream=self._init_data(self.data,self.batch_size,path=path,num_batches=num_batches)
+        self.data_stream=self._init_data(self.data,self.batch_size,path=path,num_batches=num_batches,pca=pca)
 
     @abstractmethod
     def _init_ground_truth(self,X,Y=None):
         raise NotImplementedError
 
-    def _init_data(self,data,batch_size,path=None, num_batches=None, **kwargs):
+    def _init_data(self,data,batch_size,path=None, num_batches=None, pca=False,**kwargs):
         if data == "mnist":
-            X,Y,self.X_val,self.Y_val=mnist_dataset()
+            X,Y,self.X_val,self.Y_val=mnist_dataset(pca=pca)
         elif data == "xrmb":
             X,Y,self.X_val,self.Y_val=xrmb_dataset()
         elif data == 'linear':
-            X,Y,self.X_val,self.Y_val=linear_dataset()
+            X,Y,self.X_val,self.Y_val=linear_dataset(pca=pca)
         elif data == 'exponential':
-            X,Y,self.X_val,self.Y_val=exponential_dataset()
+            X,Y,self.X_val,self.Y_val=exponential_dataset(pca=pca)
         elif data == "ukbb":
             X,Y,self.X_val,self.Y_val, batch_ids=ukbb_dataset(num_batches, path, batch_size)
         else:
             raise ValueError("Data {data} not implemented yet")
-        self.dims=[X.shape[1],Y.shape[1]]
+        if pca:
+            self.dims=X.shape[1]
+        else:
+            self.dims=[X.shape[1],Y.shape[1]]
         if self.validate:
             self._init_ground_truth(X,Y=Y)
         if data=='ukbb':
@@ -73,7 +77,7 @@ class BaseExperiment(AbstractExperiment):
             return data_stream(X, Y=Y, batch_size=batch_size)
 
     @staticmethod
-    #@jit
+    @jit
     def _correct_eigenvector_streak(U, U_correct):
         n_components = U.shape[0]
         cosine_similarities = jnp.diag(
