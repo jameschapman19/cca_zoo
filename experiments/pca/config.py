@@ -1,7 +1,4 @@
 from jaxline.base_config import get_base_config
-from ccagame.utils import data_stream
-from ccagame.datasets.mnist import mnist
-import jax.numpy as jnp
 from ml_collections import config_dict
 
 
@@ -14,14 +11,17 @@ def get_config() -> config_dict.ConfigDict:
     config.learning_rate = 1e-2
     config.num_devices = 1
     config.n_components = 4
-    config.batch_size = 1000
-    config.training_steps = 1000
+    config.batch_size = 60000
+    config.training_steps = 10
+    config.epochs=10
     config.data = "mnist"
-    config.validate=False
+    config.validate=True
+    config.TV=True
+    config.TCC=True
 
     # defaults
     config.checkpoint_dir = "jaxlog"
-    config.train_checkpoint_all_hosts = True
+    config.train_checkpoint_all_hosts = False
     config.log_tensors_interval = 1
     config.log_train_data_interval = 1
     config.lock()

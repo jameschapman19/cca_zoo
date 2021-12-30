@@ -1,4 +1,4 @@
-program: /experiments/pls/train.py
+program: experiments/pls/train.py
 method: grid
 parameters:
   model:

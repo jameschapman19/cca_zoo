@@ -27,16 +27,23 @@ MODEL_DICT = {
 
 def main(argv):
     print(f"MODEL IS {FLAGS.model}")
+    if FLAGS.config.data=='mnist':
+        FLAGS.config.training_steps=2#int(FLAGS.config.epochs*60000/FLAGS.config.batch_size)
+    # we now need to put some of the stuff from config into
+    # config.experiment_kwargs because this is what jaxline
+    # gives to our experiment objects
     FLAGS.config.experiment_kwargs = {
         "n_components": FLAGS.config.n_components,
         "num_devices": FLAGS.config.num_devices,
-        "data": "mnist",
+        "data": FLAGS.config.data,
         "batch_size": FLAGS.config.batch_size,
         "learning_rate": FLAGS.config.learning_rate,
         "validate":FLAGS.config.validate,
+        "TV":FLAGS.config.TV,
     }
     os.chdir(os.path.join(os.path.dirname(os.path.realpath(__file__)),FLAGS.config.data))
     os.chdir(log_dir())
+    FLAGS.config.checkpoint_dir = os.getcwd()
     platform.main(MODEL_DICT[FLAGS.model], argv)
 
 
