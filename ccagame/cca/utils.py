@@ -33,7 +33,7 @@ def _gram_schmidt(V, B):
     return V  # V @ B @ V.T
 
 
-@jit
+#@jit
 def _TCC(X, Y, U, V):
     Zx = X @ U.T
     Zy = Y @ V.T
@@ -41,6 +41,6 @@ def _TCC(X, Y, U, V):
     n = X.shape[0]
     all = jnp.hstack((Zx, Zy))
     C = all.T @ all / n
-    D = jsp.linalg.block_diag(1e-3*jnp.eye(k)+Zx.T @ Zx / n, 1e-3*jnp.eye(k)+Zy.T @ Zy / n)
+    D = jsp.linalg.block_diag(Zx.T @ Zx / n, Zy.T @ Zy / n)
     C -= D
-    return jnp.sum(jsp.linalg.eigh(jnp.linalg.inv(D)@C, eigvals_only=True)[-k:])
+    return jnp.sum(jsp.linalg.eigh(jnp.linalg.pinv(D)@C,eigvals_only=True)[-k:])

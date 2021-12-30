@@ -6,11 +6,8 @@ import jax.numpy as jnp
 from jax._src.random import PRNGKey
 from jaxline import utils
 from jaxline.experiment import AbstractExperiment
-
-from ccagame.datasets.mnist import mnist_dataset
-from ccagame.datasets.ukbiobank import ukbb_dataset
-from ccagame.datasets.xrmb import xrmb_dataset
-from ccagame.utils import data_stream, data_stream_UKBB
+from ccagame.utils import data_stream
+from ccagame.datasets import mnist_dataset,ukbb_dataset,xrmb_dataset, linear_dataset, exponential_dataset
 from jax import jit
 
 class BaseExperiment(AbstractExperiment):
@@ -58,9 +55,9 @@ class BaseExperiment(AbstractExperiment):
         elif data == "xrmb":
             X,Y,self.X_val,self.Y_val=xrmb_dataset()
         elif data == 'linear':
-            X,Y,self.X_val,self.Y_val=linear_dataset(pca=pca)
+            X,Y,self.X_val,self.Y_val=linear_dataset()
         elif data == 'exponential':
-            X,Y,self.X_val,self.Y_val=exponential_dataset(pca=pca)
+            X,Y,self.X_val,self.Y_val=exponential_dataset()
         elif data == "ukbb":
             X,Y,self.X_val,self.Y_val, batch_ids=ukbb_dataset(num_batches, path, batch_size)
         else:
@@ -106,11 +103,8 @@ class BaseExperiment(AbstractExperiment):
         writer: Optional[utils.Writer],
     ):
         """Step function for a Jaxline experiment"""
-        if self.batch_size == 0:
-            self._update(self.inputs, global_step)
-        else:
-            inputs = next(self.data_stream)
-            self._update(inputs, global_step)
+        inputs = next(self.data_stream)
+        self._update(inputs, global_step)
         if self.validate:
             return self._get_scalars()
         else:

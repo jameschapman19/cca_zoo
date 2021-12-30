@@ -10,11 +10,11 @@ def get_config() -> config_dict.ConfigDict:
     # these are given by wandb
     config.learning_rate = 1e-2
     config.num_devices = 1
-    config.n_components = 4
-    config.batch_size = 128
-    config.training_steps = 10
+    config.n_components = 50
+    config.batch_size = 0
+    config.training_steps = 1000
     config.epochs=10
-    config.data = "mnist"
+    config.data = "linear"
     config.validate=True
     config.TV=True
     config.TCC=True
