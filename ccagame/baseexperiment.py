@@ -14,6 +14,10 @@ from ccagame.utils import data_stream, data_stream_UKBB
 from jax import jit
 
 class BaseExperiment(AbstractExperiment):
+    CHECKPOINT_ATTRS = {
+      '_U': 'U',
+      '_V': 'V'
+    }
     def __init__(
         self,
         mode,
@@ -69,7 +73,7 @@ class BaseExperiment(AbstractExperiment):
             return data_stream(X, Y=Y, batch_size=batch_size)
 
     @staticmethod
-    @jit
+    #@jit
     def _correct_eigenvector_streak(U, U_correct):
         n_components = U.shape[0]
         cosine_similarities = jnp.diag(

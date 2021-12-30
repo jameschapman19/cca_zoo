@@ -73,7 +73,7 @@ class VicRegGame(CCAExperiment):
         X_i, Y_i = views
         Zx, Zy, T = self._get_target(X_i, Y_i, self._U, self._V)
         grads_x = self._grads(Zx, self._weights, X_i, T, T)
-        grads_y = self._grads(Zy, self._weights, Y_i, T, T)
+        grads_y = self._grads(Zy, self._weights, Y_i, T, T)#jnp.linalg.norm(Zx,axis=1)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
@@ -84,7 +84,7 @@ class VicRegGame(CCAExperiment):
 
     @staticmethod
     def _grads(zi, weights, X, Ti, T):
-        rewards = -X.T @ Ti
+        rewards = X.T @ Ti
         variance = -(jnp.dot(zi, zi) - 1) * (X.T @ zi)
         covariance = -((zi @ T.T) * (T@X).T) @ weights
         grads = rewards + variance + covariance

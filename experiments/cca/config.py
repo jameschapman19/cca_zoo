@@ -21,7 +21,7 @@ def get_config() -> config_dict.ConfigDict:
 
     # defaults
     config.checkpoint_dir = "jaxlog"
-    config.train_checkpoint_all_hosts = True
+    config.train_checkpoint_all_hosts = False
     config.log_tensors_interval = 1
     config.log_train_data_interval = 1
     config.lock()
