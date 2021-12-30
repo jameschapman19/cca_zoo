@@ -12,7 +12,7 @@ FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file(
     "config",
     help_string="Training configuration file.",
-    default="/home/chapmajw/ccagame/experiments/cca/config.py",
+    default=os.getcwd()+"/experiments/cca/config.py",
 )
 flags.DEFINE_string(name="model", default="appgrad", help="model name")
 # Right so basically this should run from command line/bash script

@@ -13,7 +13,7 @@ FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file(
     "config",
     help_string="Training configuration file.",
-    default="/home/chapmajw/ccagame/experiments/pca/mnist/mnist/config.py",
+    default=os.getcwd()+"/experiments/pca/mnist/mnist/config.py",
 )
 flags.DEFINE_string(name="model", default="gha", help="model name")
 # Right so basically this should run from command line/bash script

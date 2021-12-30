@@ -1,7 +1,6 @@
 tensorflow
 optax
 jax
-pandas
 wandb
 jaxline
 cca-zoo

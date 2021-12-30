@@ -11,7 +11,7 @@ def get_config() -> config_dict.ConfigDict:
     config.learning_rate = 1e-2
     config.num_devices = 1
     config.n_components = 4
-    config.batch_size = 60000
+    config.batch_size = 128
     config.training_steps = 10
     config.epochs=10
     config.data = "mnist"

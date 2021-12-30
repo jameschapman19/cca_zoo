@@ -21,7 +21,7 @@ FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file(
     "config",
     help_string="Training configuration file.",
-    default="/home/chapmajw/ccagame/experiments/pls/config.py",
+    default=os.getcwd()+"/experiments/pls/config.py",
 )
 flags.DEFINE_string(name="model", default="game", help="model name")
 
