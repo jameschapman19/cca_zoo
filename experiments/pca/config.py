@@ -13,11 +13,11 @@ def get_config() -> config_dict.ConfigDict:
     config.n_components = 4
     config.batch_size = 60000
     config.training_steps = 10
-    config.epochs=10
+    config.epochs = 10
     config.data = "mnist"
-    config.validate=True
-    config.TV=True
-    config.TCC=True
+    config.validate = True
+    config.TV = True
+    config.TCC = True
 
     # defaults
     config.checkpoint_dir = "jaxlog"

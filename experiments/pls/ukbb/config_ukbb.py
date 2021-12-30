@@ -12,9 +12,9 @@ def get_config() -> config_dict.ConfigDict:
     config.n_components = 4
     config.batch_size = 1
     config.training_steps = 10
-    config.data='ukbb'
-    config.num_batches = 3 #testing out with 3 batches of ukbb data for now
-    config.path = '/mnt/c/Users/anala/Documents/PhD/ccagame_data'  #data path
+    config.data = "ukbb"
+    config.num_batches = 3  # testing out with 3 batches of ukbb data for now
+    config.path = "/mnt/c/Users/anala/Documents/PhD/ccagame_data"  # data path
     config.checkpoint_dir = "jaxlog"
     config.train_checkpoint_all_hosts = True
     config.log_tensors_interval = 1

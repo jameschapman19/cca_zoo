@@ -53,8 +53,8 @@ class AppGrad(CCAExperiment):
         self._V = (
             jax.random.normal(self.local_rng, (self.n_components, self.dims[1])) / 10000
         )
-        self._U_tilde=jnp.zeros_like(self._U)
-        self._V_tilde=jnp.zeros_like(self._V)
+        self._U_tilde = jnp.zeros_like(self._U)
+        self._V_tilde = jnp.zeros_like(self._V)
         self._update_with_grads = jax.jit(
             jax.vmap(
                 self._update_with_grads,
@@ -64,33 +64,34 @@ class AppGrad(CCAExperiment):
         self._optimizer = optax.sgd(learning_rate=learning_rate)
         self._opt_state_x = self._optimizer.init(self._U_tilde)
         self._opt_state_y = self._optimizer.init(self._V_tilde)
-        self.c=c
+        self.c = c
         if self.c is None:
-            self.c=[5e-3,5e-3]
+            self.c = [5e-3, 5e-3]
         if whitening_batch_size is None:
-            whitening_batch_size=10*n_components
-        self.whitening_data=self._init_data(data,whitening_batch_size,n_components,**kwargs)
+            whitening_batch_size = 10 * n_components
+        self.whitening_data = self._init_data(
+            data, whitening_batch_size, n_components, **kwargs
+        )
 
     def _update(self, views, global_step):
         X_i, Y_i = views
         X_iw, Y_iw = next(self.whitening_data)
-        x_grads = self._grad(X_i, Y_i, self._V,self._U_tilde,self.c[0])
+        x_grads = self._grad(X_i, Y_i, self._V, self._U_tilde, self.c[0])
         self._U_tilde, self._opt_state_x = self._update_with_grads(
             self._U, x_grads, self._opt_state_x
         )
-        self._U=self._normalize(X_iw,self._U_tilde,self.c[0])
-        y_grads = self._grad(Y_i, X_i, self._U,self._V_tilde,self.c[1])
+        self._U = self._normalize(X_iw, self._U_tilde, self.c[0])
+        y_grads = self._grad(Y_i, X_i, self._U, self._V_tilde, self.c[1])
         self._V_tilde, self._opt_state_y = self._update_with_grads(
             self._V, y_grads, self._opt_state_y
         )
-        self._V=self._normalize(Y_iw,self._V_tilde,self.c[1])
-
+        self._V = self._normalize(Y_iw, self._V_tilde, self.c[1])
 
     @staticmethod
     @jit
-    def _grad(X_i,Y_i,V,U_tilde,c):
-        n=X_i.shape[0]
-        grads=(U_tilde@X_i.T@X_i-V@Y_i.T@X_i)/n+U_tilde*c
+    def _grad(X_i, Y_i, V, U_tilde, c):
+        n = X_i.shape[0]
+        grads = (U_tilde @ X_i.T @ X_i - V @ Y_i.T @ X_i) / n + U_tilde * c
         return grads
 
     @partial(jit, static_argnums=(0))
@@ -102,7 +103,7 @@ class AppGrad(CCAExperiment):
 
     @staticmethod
     @jit
-    def _normalize(X_i,U,c):
-        n=X_i.shape[0]
-        M=(U@X_i.T@X_i@U.T)/n+c*jnp.eye(U.shape[0])
-        return mat_pow(M,-0.5, 0).T@U
+    def _normalize(X_i, U, c):
+        n = X_i.shape[0]
+        M = (U @ X_i.T @ X_i @ U.T) / n + c * jnp.eye(U.shape[0])
+        return mat_pow(M, -0.5, 0).T @ U

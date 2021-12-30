@@ -50,10 +50,12 @@ class Game(CCAExperiment):
             jax.random.normal(self.local_rng, (self.n_components, self.dims[1])) / 10000
         )
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
-        self._grads = jax.jit(jax.vmap(
-            self._grads,
-            in_axes=(1, 0, None, 1, None),
-        ))
+        self._grads = jax.jit(
+            jax.vmap(
+                self._grads,
+                in_axes=(1, 0, None, 1, None),
+            )
+        )
         self._update_with_grads = jax.jit(
             jax.vmap(
                 self._update_with_grads,

@@ -5,6 +5,7 @@ from ccagame.utils import data_stream
 import jax.numpy as jnp
 import numpy as np
 
+
 def xrmb(datadir="/mnt/c/Users/chapm/PycharmProjects/barlowtwins/data/XRMB/"):
     """
     Download, parse and process xrmb data
@@ -26,8 +27,8 @@ def xrmb(datadir="/mnt/c/Users/chapm/PycharmProjects/barlowtwins/data/XRMB/"):
 
 def xrmb_dataset():
     X, Y, X_te, Y_te = xrmb()
-    X=X.astype(np.float32)
-    Y=Y.astype(np.float32)
-    X_te=X_te.astype(np.float32)
-    Y_te=Y_te.astype(np.float32)
-    return X,Y,X_te,Y_te
+    X = X.astype(np.float32)
+    Y = Y.astype(np.float32)
+    X_te = X_te.astype(np.float32)
+    Y_te = Y_te.astype(np.float32)
+    return X, Y, X_te, Y_te

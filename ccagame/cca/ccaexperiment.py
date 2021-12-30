@@ -7,6 +7,7 @@ from ccagame.baseexperiment import BaseExperiment
 from jax import jit
 from .utils import _TCC
 
+
 class CCAExperiment(BaseExperiment):
     def __init__(
         self,
@@ -20,7 +21,7 @@ class CCAExperiment(BaseExperiment):
         TCC=False,
         **kwargs,
     ):
-        
+
         super(CCAExperiment, self).__init__(
             mode=mode,
             init_rng=init_rng,
@@ -28,6 +29,7 @@ class CCAExperiment(BaseExperiment):
             n_components=n_components,
             data=data,
             batch_size=batch_size,
+            cca=True,
             **kwargs,
         )
         """Constructs the experiment.
@@ -36,12 +38,12 @@ class CCAExperiment(BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self.TCC=TCC
+        self.TCC = TCC
 
-    def _init_ground_truth(self,X,Y):
-        cca = rCCA(latent_dims=self.n_components, scale=False, centre=False, c=0.01).fit(
-                (X, Y)
-            )
+    def _init_ground_truth(self, X, Y):
+        cca = rCCA(
+            latent_dims=self.n_components, scale=False, centre=False, c=0.01
+        ).fit((X, Y))
         self.correct_U, self.correct_V = cca.weights
         self.correct_U /= np.linalg.norm(self.correct_U, axis=0)
         self.correct_V /= np.linalg.norm(self.correct_V, axis=0)
@@ -51,19 +53,15 @@ class CCAExperiment(BaseExperiment):
         raise NotImplementedError
 
     def _get_scalars(self):
-        scalars={}
+        scalars = {}
         if self.TCC:
-            scalars['TCC']=_TCC(self.X_val,self.Y_val,self._U, self._V)
-        scalars["correct x"]= self._correct_eigenvector_streak(
+            scalars["TCC"] = _TCC(self.X_val, self.Y_val, self._U, self._V)
+        scalars["correct x"] = self._correct_eigenvector_streak(self._U, self.correct_U)
+        scalars["correct y"] = self._correct_eigenvector_streak(self._V, self.correct_V)
+        scalars["subspace x"] = self._normalized_subspace_distance(
             self._U, self.correct_U
         )
-        scalars["correct y"]= self._correct_eigenvector_streak(
-            self._V, self.correct_V
-        )
-        scalars["subspace x"]= self._normalized_subspace_distance(
-            self._U, self.correct_U
-        )
-        scalars["subspace y"]= self._normalized_subspace_distance(
+        scalars["subspace y"] = self._normalized_subspace_distance(
             self._V, self.correct_V
         )
         return scalars

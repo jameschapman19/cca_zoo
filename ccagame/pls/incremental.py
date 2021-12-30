@@ -40,12 +40,12 @@ class Incremental(PLSExperiment):
     # @partial(jit, static_argnums=(0))
     def _update(self, views, global_step):
         X_i, Y_i = views
-        self._U,self._V,self._S=self._grads(X_i,Y_i,self._U,self._V,self._S)
+        self._U, self._V, self._S = self._grads(X_i, Y_i, self._U, self._V, self._S)
 
     @staticmethod
     @jit
-    def _grads(X_i,Y_i,U,V,S):
-        n_components=U.shape[0]
+    def _grads(X_i, Y_i, U, V, S):
+        n_components = U.shape[0]
         xhat = X_i @ U.T
         x_orth = X_i - X_i @ U.T @ U
         yhat = Y_i @ V.T
@@ -55,25 +55,24 @@ class Incremental(PLSExperiment):
                 jnp.hstack(
                     (
                         jnp.diag(S) + xhat.T @ yhat,
-                        jnp.linalg.norm(y_orth,axis=1).T * xhat.T,
+                        jnp.linalg.norm(y_orth, axis=1).T * xhat.T,
                     )
                 ),
                 jnp.hstack(
                     (
-                        (jnp.linalg.norm(x_orth,axis=1).T * yhat.T).T,
+                        (jnp.linalg.norm(x_orth, axis=1).T * yhat.T).T,
                         jnp.atleast_2d(
-                            jnp.linalg.norm(x_orth,axis=1,keepdims=True) @ jnp.linalg.norm(y_orth,axis=1,keepdims=True).T
+                            jnp.linalg.norm(x_orth, axis=1, keepdims=True)
+                            @ jnp.linalg.norm(y_orth, axis=1, keepdims=True).T
                         ),
                     )
                 ),
             )
         )
         U_, S, Vt_ = jnp.linalg.svd(Q)
-        U = U_[:, : n_components].T @ jnp.vstack(
-            (U, x_orth / jnp.linalg.norm(x_orth))
-        )
-        V = Vt_.T[:, : n_components].T @ jnp.vstack(
+        U = U_[:, :n_components].T @ jnp.vstack((U, x_orth / jnp.linalg.norm(x_orth)))
+        V = Vt_.T[:, :n_components].T @ jnp.vstack(
             (V, y_orth / jnp.linalg.norm(y_orth))
         )
-        S = S[: n_components]
-        return U,V,S
+        S = S[:n_components]
+        return U, V, S

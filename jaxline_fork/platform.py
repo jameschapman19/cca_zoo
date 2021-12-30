@@ -52,7 +52,6 @@ _JAXLINE_ENSURE_TPU = flags.DEFINE_bool(
 )
 
 
-
 def create_checkpointer(
     config: config_dict.ConfigDict,
     mode: str,
@@ -68,8 +67,7 @@ class TensorBoardLogger:
         """Initializes the writer."""
         log_dir = os.path.join(config.checkpoint_dir, mode)
         self._writer = tf.summary.create_file_writer(log_dir)
-        self.hparams = {**config.experiment_kwargs,
-                        'model':FLAGS.model}
+        self.hparams = {**config.experiment_kwargs, "model": FLAGS.model}
 
     def write_scalars(self, global_step: int, scalars: Mapping[str, Any]):
         """Writes scalars to stdout."""
@@ -105,7 +103,7 @@ def main(experiment_class, argv, checkpointer_factory=create_checkpointer):
     # to prevent people depending on this flag to have strange bugs. Instead
     # it will raise a clear `AttributeError`. This can safely be removed from
     # April 2020.
-    
+
     if "mode" in FLAGS:
         del FLAGS.mode
 

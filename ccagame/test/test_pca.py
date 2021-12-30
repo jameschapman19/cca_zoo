@@ -8,6 +8,7 @@ from ccagame import cca, pca, pls
 from jaxline_fork import platform
 from ml_collections import config_flags
 import os
+
 FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file(
     "config",
@@ -16,15 +17,15 @@ config_flags.DEFINE_config_file(
 )
 flags.DEFINE_string(name="model", default="game", help="model name")
 
-class TestPCA(parameterized.TestCase):
 
-    def test_pca(self,model='game'):
+class TestPCA(parameterized.TestCase):
+    def test_pca(self, model="game"):
         MODEL_DICT = {
             "game": pca.Game,
             "oja": pca.Oja,
             "gha": pca.GHA,
         }
-        FLAGS.model=model
+        FLAGS.model = model
         FLAGS.config.experiment_kwargs = {
             "n_components": FLAGS.config.n_components,
             "num_devices": FLAGS.config.num_devices,
@@ -35,5 +36,6 @@ class TestPCA(parameterized.TestCase):
         }
         platform.main(MODEL_DICT[model], argv)
 
-if __name__ == '__main__':
-  absltest.main()
+
+if __name__ == "__main__":
+    absltest.main()

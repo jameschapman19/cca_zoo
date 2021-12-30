@@ -1,6 +1,7 @@
 from jaxline.base_config import get_base_config
 from ml_collections import config_dict
 
+
 def get_config() -> config_dict.ConfigDict:
     # get the basic jax config
     config = get_base_config()
@@ -13,7 +14,7 @@ def get_config() -> config_dict.ConfigDict:
     config.batch_size = 128
     config.training_steps = 10
     config.data = "mnist"
-    config.validate=False
+    config.validate = False
 
     # defaults
     config.checkpoint_dir = "jaxlog"

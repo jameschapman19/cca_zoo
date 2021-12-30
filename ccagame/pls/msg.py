@@ -48,12 +48,14 @@ class MSG(PLSExperiment):
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        grads = self._grads(X_i,Y_i)
-        self._M,self._U,self._V,self._opt_state=self._update_with_grads(self._M,grads,self._opt_state)
-    
+        grads = self._grads(X_i, Y_i)
+        self._M, self._U, self._V, self._opt_state = self._update_with_grads(
+            self._M, grads, self._opt_state
+        )
+
     @staticmethod
     @jit
-    def _grads(X_i,Y_i):
+    def _grads(X_i, Y_i):
         return X_i.T @ Y_i
 
     @partial(jit, static_argnums=(0))
@@ -65,5 +67,4 @@ class MSG(PLSExperiment):
         U, _, Vt = jnp.linalg.svd(Mi_new)
         U = U[:, : self.n_components].T
         V = Vt[: self.n_components]
-        return Mi_new, U,V,opt_state
-
+        return Mi_new, U, V, opt_state

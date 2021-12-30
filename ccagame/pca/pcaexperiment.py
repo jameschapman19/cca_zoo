@@ -6,7 +6,6 @@ from ccagame.baseexperiment import BaseExperiment
 from jax import jit
 
 
-
 class PCAExperiment(BaseExperiment):
     def __init__(
         self,
@@ -27,7 +26,7 @@ class PCAExperiment(BaseExperiment):
             data=data,
             pca=True,
             batch_size=batch_size,
-            **kwargs
+            **kwargs,
         )
         """Constructs the experiment.
         Args:
@@ -35,26 +34,24 @@ class PCAExperiment(BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self.TV=TV
+        self.TV = TV
 
-    def _init_ground_truth(self,X,Y=None):
+    def _init_ground_truth(self, X, Y=None):
         correct_V, _, _ = np.linalg.svd(X.T @ X)
-        self.correct_V = correct_V[:, :self.n_components]
+        self.correct_V = correct_V[:, : self.n_components]
 
     @abstractmethod
     def _update(self, X_i, Y_i, global_step):
         raise NotImplementedError
 
     def _get_scalars(self):
-        scalars={}
+        scalars = {}
         if self.TV:
-            scalars['TV']=self._TV(self._V, self.X_val)
-        scalars['correct_x']=self._correct_eigenvector_streak(
-                self._V, self.correct_V
-            )
-        scalars['subspace']=self._normalized_subspace_distance(
-                self._V, self.correct_V
-            )
+            scalars["TV"] = self._TV(self._V, self.X_val)
+        scalars["correct_x"] = self._correct_eigenvector_streak(self._V, self.correct_V)
+        scalars["subspace"] = self._normalized_subspace_distance(
+            self._V, self.correct_V
+        )
         return scalars
 
     @staticmethod

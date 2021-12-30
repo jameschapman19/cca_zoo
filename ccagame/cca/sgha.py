@@ -83,5 +83,5 @@ class SGHA(CCAExperiment):
         return wi_new, opt_state
 
     @partial(jit, static_argnums=(0))
-    def _split_eigenvector(self,V):
+    def _split_eigenvector(self, V):
         return V[:, : self.dims[0]], V[:, self.dims[0] :]

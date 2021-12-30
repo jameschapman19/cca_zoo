@@ -104,10 +104,10 @@ def mnist_dataset(pca=False, p=392):
     X += np.random.normal(size=X.shape)
     X_te += np.random.normal(size=X_te.shape)
     if pca:
-        return X,None,X_te,None
+        return X, None, X_te, None
     else:
         Y = X[:, p:]
         X = X[:, :p]
         Y_te = X_te[:, p:]
         X_te = X_te[:, :p]
-        return X,Y, X_te, Y_te
+        return X, Y, X_te, Y_te

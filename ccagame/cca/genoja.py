@@ -56,10 +56,12 @@ class GenOja(CCAExperiment):
         )
         self.V = self.V / jnp.linalg.norm(self.V, keepdims=True, axis=1)
 
-        self._grads = jax.jit(jax.vmap(
-                    self._grads,
-                    in_axes=(None,None,0,0),
-                ))
+        self._grads = jax.jit(
+            jax.vmap(
+                self._grads,
+                in_axes=(None, None, 0, 0),
+            )
+        )
         self._update_with_grads_ls = jax.jit(
             jax.vmap(
                 self._update_with_grads_ls,
@@ -110,5 +112,5 @@ class GenOja(CCAExperiment):
         return vi_new, opt_state
 
     @partial(jit, static_argnums=(0))
-    def _split_eigenvector(self,V):
+    def _split_eigenvector(self, V):
         return self.W[:, : self.dims[0]], self.W[:, self.dims[0] :]

@@ -50,21 +50,24 @@ class Game(PLSExperiment):
             jax.random.normal(self.local_rng, (self.n_components, self.dims[1])) / 10000
         )
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
-        self._grads = jax.jit(jax.vmap(
-            self._grads,
-            in_axes=(1, 0, None, None, None),
-        ))
+        self._grads = jax.jit(
+            jax.vmap(
+                self._grads,
+                in_axes=(1, 0, None, None, None),
+            )
+        )
         self._update_with_grads = jax.jit(
             jax.vmap(
                 self._update_with_grads,
                 in_axes=(0, 0, 0),
             )
         )
-        self._optimizer = optax.sgd(learning_rate=learning_rate, momentum=momentum, nesterov=nesterov)
+        self._optimizer = optax.sgd(
+            learning_rate=learning_rate, momentum=momentum, nesterov=nesterov
+        )
         self._opt_state_x = self._optimizer.init(self._U)
         self._opt_state_y = self._optimizer.init(self._V)
         self.learning_rate = learning_rate
-
 
     def _update(self, views, global_step):
         X_i, Y_i = views
@@ -77,7 +80,8 @@ class Game(PLSExperiment):
         self._V, self._opt_state_y = self._update_with_grads(
             self._V, grads_y, self._opt_state_y
         )
-        
+        #
+
     @staticmethod
     def _grads(zi, weights, U, X, Z):
         """Compute utiltiies and update directions ("grads").
@@ -92,7 +96,7 @@ class Game(PLSExperiment):
         Wrap in jax.vmap for k_per_device dimension."""
         updates, opt_state = self._optimizer.update(-grads, opt_state)
         ui_new = optax.apply_updates(ui, updates)
-        ui_new /= jnp.linalg.norm(ui_new,keepdims=True)
+        ui_new /= jnp.linalg.norm(ui_new, keepdims=True)
         return ui_new, opt_state
 
     @staticmethod

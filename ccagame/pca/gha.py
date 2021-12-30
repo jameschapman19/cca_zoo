@@ -40,26 +40,23 @@ class GHA(PCAExperiment):
         """
         Initialization function for a Jaxline experiment.
         """
-        self._V = (
-            jax.random.normal(self.local_rng, (self.n_components, self.dims))
-        )
-        self._V/=jnp.linalg.norm(self._V,axis=1,keepdims=True)
+        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims))
+        self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._optimizer = optax.sgd(
             learning_rate=learning_rate, momentum=momentum, nesterov=nesterov
         )
         self._opt_state = self._optimizer.init(self._V)
 
     def _update(self, inputs, global_step):
-        grads=self._grads(inputs,self._V)
+        grads = self._grads(inputs, self._V)
         self._V, self._opt_state = self._update_with_grads(
             self._V, grads, self._opt_state
         )
 
     @staticmethod
     @jit
-    def _grads(inputs,V):
+    def _grads(inputs, V):
         return V @ inputs.T @ inputs - jnp.triu(V @ inputs.T @ inputs @ V.T) @ V
-
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, vi, grads, opt_state):
@@ -67,5 +64,5 @@ class GHA(PCAExperiment):
         Wrap in jax.vmap for k_per_device dimension."""
         updates, opt_state = self._optimizer.update(-grads, opt_state)
         vi_new = optax.apply_updates(vi, updates)
-        vi_new /= jnp.linalg.norm(vi_new, axis=1,keepdims=True)
+        vi_new /= jnp.linalg.norm(vi_new, axis=1, keepdims=True)
         return vi_new, opt_state

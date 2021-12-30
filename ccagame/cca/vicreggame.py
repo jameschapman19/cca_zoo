@@ -50,14 +50,18 @@ class VicRegGame(CCAExperiment):
             jax.random.normal(self.local_rng, (self.n_components, self.dims[1])) / 10000
         )
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
-        self._get_target = jax.jit(jax.vmap(
-            self._get_target,
-            in_axes=(None,None,0,0),
-        ))
-        self._grads = jax.jit(jax.vmap(
-            self._grads,
-            in_axes=(0, 0, None, 0, None),
-        ))
+        self._get_target = jax.jit(
+            jax.vmap(
+                self._get_target,
+                in_axes=(None, None, 0, 0),
+            )
+        )
+        self._grads = jax.jit(
+            jax.vmap(
+                self._grads,
+                in_axes=(0, 0, None, 0, None),
+            )
+        )
         self._update_with_grads = jax.jit(
             jax.vmap(
                 self._update_with_grads,
@@ -73,20 +77,21 @@ class VicRegGame(CCAExperiment):
         X_i, Y_i = views
         Zx, Zy, T = self._get_target(X_i, Y_i, self._U, self._V)
         grads_x = self._grads(Zx, self._weights, X_i, T, T)
-        grads_y = self._grads(Zy, self._weights, Y_i, T, T)#jnp.linalg.norm(Zx,axis=1)
+        grads_y = self._grads(
+            Zy, self._weights, Y_i, T, T
+        )  # jnp.linalg.norm(Zx,axis=1)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
         self._V, self._opt_state_y = self._update_with_grads(
             self._V, grads_y, self._opt_state_y
         )
-        
 
     @staticmethod
     def _grads(zi, weights, X, Ti, T):
         rewards = X.T @ Ti
         variance = -(jnp.dot(zi, zi) - 1) * (X.T @ zi)
-        covariance = -((zi @ T.T) * (T@X).T) @ weights
+        covariance = -((zi @ T.T) * (T @ X).T) @ weights
         grads = rewards + variance + covariance
         return grads / X.shape[0]
 
@@ -94,10 +99,10 @@ class VicRegGame(CCAExperiment):
     def _get_target(X, Y, U, V):
         Zx = X @ U
         Zy = Y @ V
-        T = (Zx + Zy)/2
+        T = (Zx + Zy) / 2
         return Zx, Zy, T
 
-    @partial(jit, static_argnums=(0)) 
+    @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
         # we have gradient of utilities so we negate for gradient descent
         updates, opt_state = self._optimizer.update(-grads, opt_state)
