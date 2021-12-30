@@ -5,7 +5,7 @@ import numpy as np
 from cca_zoo.models import rCCA
 from ccagame.baseexperiment import BaseExperiment
 from jax import jit
-
+from .utils import _TCC
 
 class CCAExperiment(BaseExperiment):
     def __init__(
@@ -53,7 +53,7 @@ class CCAExperiment(BaseExperiment):
     def _get_scalars(self):
         scalars={}
         if self.TCC:
-            scalars['TCC']=self._TC(self._U, self._V,self.X_val,self.Y_val)
+            scalars['TCC']=_TCC(self.X_val,self.Y_val,self._U, self._V)
         scalars["correct x"]= self._correct_eigenvector_streak(
             self._U, self.correct_U
         )
@@ -67,19 +67,6 @@ class CCAExperiment(BaseExperiment):
             self._V, self.correct_V
         )
         return scalars
-
-    @staticmethod
-    @jit
-    def _TC(U, V,X_val, Y_val):
-        Zx = X_val @ U.T
-        Zy = (
-            Y_val @ V.T
-        )
-        return jnp.trace(
-            jnp.abs(
-                jnp.corrcoef(Zx, Zy,rowvar=False)[U.shape[0] :, : U.shape[0]]
-            )
-        )
 
     def save_outputs(self):
         np.savetxt("U.csv", self._U, delimiter=",")

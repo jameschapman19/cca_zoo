@@ -1,12 +1,15 @@
-from jax import jit
 import jax.numpy as jnp
+import jax.scipy as jsp
+from jax import jit
+
 
 @jit
 def mat_pow(mat, pow_, epsilon):
     # Computing matrix to the power of pow (pow can be negative as well)
     [D, V] = jnp.linalg.eigh(mat)
-    mat_pow = V @ jnp.diag(jnp.power((D + epsilon),pow_)) @ V.T
+    mat_pow = V @ jnp.diag(jnp.power((D + epsilon), pow_)) @ V.T
     return mat_pow
+
 
 @jit
 def _get_AB(X_i, Y_i):
@@ -19,11 +22,25 @@ def _get_AB(X_i, Y_i):
     B = B.at[p:, :p].set(0)
     return A, B
 
+
 @jit
 def _gram_schmidt(V, B):
     n_components = V.shape[0]
     for i in range(n_components):
         T = V[i] @ B @ V[:i].T / jnp.diag(V[:i] @ B @ V[:i].T)
-        V=V.at[i].set(V[i] - T @ V[:i])
-        V=V.at[i].set(V[i]/ jnp.sqrt(V[i] @ B @ V[i].T))
-    return V#V @ B @ V.T
+        V = V.at[i].set(V[i] - T @ V[:i])
+        V = V.at[i].set(V[i] / jnp.sqrt(V[i] @ B @ V[i].T))
+    return V  # V @ B @ V.T
+
+
+@jit
+def _TCC(X, Y, U, V):
+    Zx = X @ U.T
+    Zy = Y @ V.T
+    k=U.shape[0]
+    n = X.shape[0]
+    all = jnp.hstack((Zx, Zy))
+    C = all.T @ all / n
+    D = jsp.linalg.block_diag(Zx.T @ Zx / n, Zy.T @ Zy / n)
+    C -= D
+    return jnp.sum(jsp.linalg.eigh(jnp.linalg.inv(D)@C, eigvals_only=True)[-k:])
