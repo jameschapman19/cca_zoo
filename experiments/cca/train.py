@@ -13,7 +13,7 @@ FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file(
     "config",
     help_string="Training configuration file.",
-    default="/home/chapmajw/ccagame/experiments/cca/mnist/config.py",
+    default="/home/chapmajw/ccagame/experiments/cca/config.py",
 )
 flags.DEFINE_string(name="model", default="appgrad", help="model name")
 # Right so basically this should run from command line/bash script
@@ -38,7 +38,7 @@ def main(argv):
         "validate":FLAGS.config.validate,
         "TCC":FLAGS.config.TCC,
     }
-    os.chdir(FLAGS.config.data)
+    os.chdir(os.path.join(os.path.dirname(os.path.realpath(__file__)),FLAGS.config.data))
     os.chdir(log_dir())
     profiler.start_trace("tmp")
     platform.main(MODEL_DICT[FLAGS.model], argv)

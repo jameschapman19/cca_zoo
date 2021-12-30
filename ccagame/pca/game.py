@@ -3,7 +3,6 @@ from os import environ
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import optax
 from jax import jit
 

@@ -21,7 +21,7 @@ FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file(
     "config",
     help_string="Training configuration file.",
-    default="/home/chapmajw/ccagame/experiments/pls/mnist/config.py",
+    default="/home/chapmajw/ccagame/experiments/pls/config.py",
 )
 flags.DEFINE_string(name="model", default="game", help="model name")
 
@@ -47,7 +47,7 @@ def main(argv):
         "learning_rate": FLAGS.config.learning_rate,
         "validate":FLAGS.config.validate
     }
-    os.chdir(FLAGS.config.data)
+    os.chdir(os.path.join(os.path.dirname(os.path.realpath(__file__)),FLAGS.config.data))
     os.chdir(log_dir())
     profiler.start_trace("tmp")
     platform.main(MODEL_DICT[FLAGS.model], argv)

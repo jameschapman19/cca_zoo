@@ -5,15 +5,14 @@ https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-
 """
 from functools import partial
 from os import environ
+
 import jax
 import jax.numpy as jnp
 import optax
-
 from ccagame.cca.utils import _get_AB, _gram_schmidt
+from jax import jit
 
 from . import CCAExperiment
-import jax.scipy as jsp
-from jax import jit
 
 
 class GenOja(CCAExperiment):

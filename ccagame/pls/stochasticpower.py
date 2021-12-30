@@ -2,8 +2,9 @@ from os import environ
 
 import jax
 import jax.numpy as jnp
-from . import PLSExperiment
 from jax import jit
+
+from . import PLSExperiment
 
 
 class StochasticPower(PLSExperiment):

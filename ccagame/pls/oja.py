@@ -1,10 +1,12 @@
+from functools import partial
 from os import environ
+
 import jax
 import jax.numpy as jnp
 import optax
-from . import PLSExperiment
-from functools import partial
 from jax import jit
+
+from . import PLSExperiment
 
 
 class Oja(PLSExperiment):

@@ -5,7 +5,6 @@ import jax
 import jax.numpy as jnp
 import optax
 from jax import jit
-from optax._src.base import GradientTransformation
 
 from . import PCAExperiment
 

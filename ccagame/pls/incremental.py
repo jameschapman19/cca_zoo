@@ -2,7 +2,6 @@ from os import stat
 import jax
 import jax.numpy as jnp
 from . import PLSExperiment
-from functools import partial
 from jax import jit
 
 

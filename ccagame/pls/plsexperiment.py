@@ -25,7 +25,7 @@ class PLSExperiment(BaseExperiment):
             init_rng=init_rng,
             num_devices=num_devices,
             n_components=n_components,
-            data=self.data,
+            data=data,
             batch_size=batch_size,
             **kwargs
         )
@@ -37,10 +37,10 @@ class PLSExperiment(BaseExperiment):
         """Initialization function for a Jaxline experiment."""
         self.TV=TV
 
-    def _init_groundtruth(self,X,Y):
+    def _init_ground_truth(self,X,Y):
         correct_U, _, correct_V = np.linalg.svd(X.T @ Y)
-        correct_U = correct_U[:, :self.n_components]
-        correct_V = correct_V[:self.n_components, :].T  
+        self.correct_U = correct_U[:, :self.n_components]
+        self.correct_V = correct_V[:self.n_components, :].T  
 
     @abstractmethod
     def _update(self, views, global_step):

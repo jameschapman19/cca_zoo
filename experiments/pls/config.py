@@ -16,6 +16,7 @@ def get_config() -> config_dict.ConfigDict:
     config.epochs=50
     config.data = "mnist"
     config.validate=True
+    config.TV=True
     if config.data=='mnist':
         config.training_steps=int(config.epochs*60000/config.batch_size)
 

@@ -1,6 +1,12 @@
 from jax import jit
 import jax.numpy as jnp
 
+@jit
+def mat_pow(mat, pow_, epsilon):
+    # Computing matrix to the power of pow (pow can be negative as well)
+    [D, V] = jnp.linalg.eigh(mat)
+    mat_pow = V @ jnp.diag(jnp.power((D + epsilon),pow_)) @ V.T
+    return mat_pow
 
 @jit
 def _get_AB(X_i, Y_i):

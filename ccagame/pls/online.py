@@ -1,10 +1,12 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
-from . import PLSExperiment
-import optax
 import jax.scipy as jsp
+import optax
 from jax import jit
-from functools import partial
+
+from . import PLSExperiment
 
 
 def logm(M):

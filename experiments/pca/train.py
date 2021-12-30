@@ -35,7 +35,7 @@ def main(argv):
         "learning_rate": FLAGS.config.learning_rate,
         "validate":FLAGS.config.validate,
     }
-    os.chdir(FLAGS.config.data)
+    os.chdir(os.path.join(os.path.dirname(os.path.realpath(__file__)),FLAGS.config.data))
     os.chdir(log_dir())
     profiler.start_trace("tmp")
     platform.main(MODEL_DICT[FLAGS.model], argv)
