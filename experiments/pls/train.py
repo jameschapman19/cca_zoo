@@ -8,7 +8,6 @@ import os
 import wandb
 from absl import flags
 from ml_collections import config_flags
-from jax import profiler
 
 """
 So in general flags are things from the command line
@@ -18,11 +17,6 @@ Anything that is defined in the python script gets put into the FLAGS dictionary
 
 FLAGS = flags.FLAGS
 # change the default to your own config file path if you
-config_flags.DEFINE_config_file(
-    "config",
-    help_string="Training configuration file.",
-    default=os.getcwd()+"/experiments/pls/config.py",
-)
 flags.DEFINE_string(name="model", default="game", help="model name")
 
 MODEL_DICT = {
@@ -58,6 +52,11 @@ def main(argv):
 
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
+    config_flags.DEFINE_config_file(
+    "config",
+    help_string="Training configuration file.",
+    default=os.getcwd()+"/experiments/pls/config.py",
+    )
     wandb.init(sync_tensorboard=True)
     wandb_config = wandb.config
     app.run(main)
