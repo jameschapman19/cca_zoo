@@ -69,7 +69,7 @@ class PLSExperiment(BaseExperiment):
         dof = X_val.shape[0]
         Zx = X_val @ U.T
         Zy = Y_val @ V.T
-        return jnp.sum(jnp.diag(Zx.T @ Zy)) / dof
+        return jnp.sum(jnp.linalg.svd(Zx.T @ Zy)[1]) / dof
     
     def save_outputs(self):
         np.savetxt("U.csv", self._U, delimiter=",")

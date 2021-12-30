@@ -52,6 +52,10 @@ class BaseExperiment(AbstractExperiment):
             X,Y,self.X_val,self.Y_val=mnist_dataset()
         elif data == "xrmb":
             X,Y,self.X_val,self.Y_val=xrmb_dataset()
+        elif data == 'linear':
+            X,Y,self.X_val,self.Y_val=linear_dataset()
+        elif data == 'exponential':
+            X,Y,self.X_val,self.Y_val=exponential_dataset()
         elif data == "ukbb":
             X,Y,self.X_val,self.Y_val, batch_ids=ukbb_dataset(num_batches, path, batch_size)
         else:

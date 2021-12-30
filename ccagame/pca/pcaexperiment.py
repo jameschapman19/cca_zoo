@@ -61,7 +61,7 @@ class PCAExperiment(BaseExperiment):
     def _TV(U, X_val):
         dof = X_val.shape[0]
         Zx = X_val @ U.T
-        return jnp.sum(jnp.diag(Zx.T @ Zx)) / dof
+        return jnp.sum(jnp.linalg.svd(Zx.T @ Zx)[1]) / dof
 
     def save_outputs(self):
         V = jnp.reshape(self._V, (self.n_components, self.dims))
