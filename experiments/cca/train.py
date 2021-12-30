@@ -15,7 +15,7 @@ config_flags.DEFINE_config_file(
     help_string="Training configuration file.",
     default="/home/chapmajw/ccagame/experiments/cca/mnist/config.py",
 )
-flags.DEFINE_string(name="model", default="game", help="model name")
+flags.DEFINE_string(name="model", default="appgrad", help="model name")
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 MODEL_DICT = {
@@ -35,7 +35,8 @@ def main(argv):
         "data": FLAGS.config.data,
         "batch_size": FLAGS.config.batch_size,
         "learning_rate": FLAGS.config.learning_rate,
-        "validate":FLAGS.config.validate
+        "validate":FLAGS.config.validate,
+        "TCC":FLAGS.config.TCC,
     }
     os.chdir(FLAGS.config.data)
     os.chdir(log_dir())

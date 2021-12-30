@@ -3,15 +3,15 @@ Appgrad
 """
 from functools import partial
 from os import environ
+
 import jax
-from jax._src.lax.lax import sqrt
 import jax.numpy as jnp
 import optax
-
-from ccagame.cca.utils import _get_AB
-from . import CCAExperiment
-import jax.scipy as jsp
 from jax import jit
+
+from ccagame.cca.utils import mat_pow
+
+from . import CCAExperiment
 
 
 class AppGrad(CCAExperiment):
@@ -27,6 +27,7 @@ class AppGrad(CCAExperiment):
         momentum=0.9,
         nesterov=True,
         batch_size=0,
+        whitening_batch_size=None,
         c=None,
         **kwargs
     ):
@@ -65,20 +66,24 @@ class AppGrad(CCAExperiment):
         self._opt_state_y = self._optimizer.init(self._V_tilde)
         self.c=c
         if self.c is None:
-            self.c=[0,0]
+            self.c=[5e-3,5e-3]
+        if whitening_batch_size is None:
+            whitening_batch_size=10*n_components
+        self.whitening_data=self._init_data(data,whitening_batch_size,n_components,**kwargs)
 
     def _update(self, views, global_step):
         X_i, Y_i = views
+        X_iw, Y_iw = next(self.whitening_data)
         x_grads = self._grad(X_i, Y_i, self._V,self._U_tilde,self.c[0])
         self._U_tilde, self._opt_state_x = self._update_with_grads(
             self._U, x_grads, self._opt_state_x
         )
-        self._U=self._normalize(X_i,self._U_tilde,self.c[0])
+        self._U=self._normalize(X_iw,self._U_tilde,self.c[0])
         y_grads = self._grad(Y_i, X_i, self._U,self._V_tilde,self.c[1])
         self._V_tilde, self._opt_state_y = self._update_with_grads(
             self._V, y_grads, self._opt_state_y
         )
-        self._V=self._normalize(Y_i,self._V_tilde,self.c[1])
+        self._V=self._normalize(Y_iw,self._V_tilde,self.c[1])
 
 
     @staticmethod
@@ -99,10 +104,5 @@ class AppGrad(CCAExperiment):
     @jit
     def _normalize(X_i,U,c):
         n=X_i.shape[0]
-        M=U@X_i.T@X_i@U.T+n*c*jnp.eye(U.shape[0])
-        return _sqrtm(M).T@U
-
-@jit
-def _sqrtm(M):
-    U,S,_=jnp.linalg.svd(M)
-    return U@jnp.diag(1/jnp.sqrt(S))
+        M=(U@X_i.T@X_i@U.T)/n+c*jnp.eye(U.shape[0])
+        return mat_pow(M,-0.5, 0).T@U

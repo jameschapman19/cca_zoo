@@ -4,7 +4,7 @@ from sys import argv
 from absl import flags
 from absl.testing import parameterized
 from absl.testing import absltest
-from ccagame import cca, pca, pls
+from ccagame import cca
 from jaxline_fork import platform
 from ml_collections import config_flags
 import os

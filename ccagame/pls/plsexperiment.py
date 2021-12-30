@@ -1,14 +1,9 @@
 from abc import abstractmethod
-from re import sub
-from typing import Optional
+
 import jax.numpy as jnp
+import numpy as np
 from ccagame.baseexperiment import BaseExperiment
 from jax import jit
-from functools import partial
-import numpy as np
-from ..datasets.mnist import mnist_iterator
-from ..datasets.xrmb import xrmb_iterator
-from ..datasets.ukbiobank import ukbb_iterator
 
 
 class PLSExperiment(BaseExperiment):
@@ -25,15 +20,6 @@ class PLSExperiment(BaseExperiment):
         TV=False,
         **kwargs,
     ):
-        if data=='mnist':
-            self.data,self.holdout, self.correct_eigenvectors, self.dims=mnist_iterator(batch_size=batch_size, n_components=n_components)
-        elif data=='xrmb':
-            self.data,self.holdout, self.correct_eigenvectors, self.dims=xrmb_iterator(batch_size=batch_size, n_components=n_components)
-        elif data=='ukbb':
-            self.data,self.holdout, self.dims=ukbb_iterator(num_batches, path, batch_size=batch_size)
-            self.correct_eigenvectors = None
-        else:
-            raise ValueError("Data {data} not implemented yet")
         super(PLSExperiment, self).__init__(
             mode=mode,
             init_rng=init_rng,
@@ -51,6 +37,11 @@ class PLSExperiment(BaseExperiment):
         """Initialization function for a Jaxline experiment."""
         self.TV=TV
 
+    def _init_groundtruth(self,X,Y):
+        correct_U, _, correct_V = np.linalg.svd(X.T @ Y)
+        correct_U = correct_U[:, :self.n_components]
+        correct_V = correct_V[:self.n_components, :].T  
+
     @abstractmethod
     def _update(self, views, global_step):
         raise NotImplementedError
@@ -59,17 +50,17 @@ class PLSExperiment(BaseExperiment):
     def _get_scalars(self):
         scalars={}
         if self.TV:
-            scalars['tv']=self._TV(self._U, self._V, self.holdout[0],self.holdout[1])
+            scalars['tv']=self._TV(self._U, self._V, self.X_val,self.Y_val)
         scalars['correct_x']=self._correct_eigenvector_streak(
-                    self._U, self.correct_eigenvectors[0])
+                    self._U, self.correct_U)
         scalars['correct_y']=self._correct_eigenvector_streak(
-                    self._V, self.correct_eigenvectors[1]
+                    self._V, self.correct_V
                 )
         scalars['subspace_x']=self._normalized_subspace_distance(
-                    self._U, self.correct_eigenvectors[0]
+                    self._U, self.correct_U
                 )
         scalars['subspace_y']=self._normalized_subspace_distance(
-                    self._V, self.correct_eigenvectors[1])
+                    self._V, self.correct_V)
         return scalars
 
     @staticmethod
@@ -83,24 +74,6 @@ class PLSExperiment(BaseExperiment):
     def save_outputs(self):
         np.savetxt("U.csv", self._U, delimiter=",")
         np.savetxt("V.csv", self._V, delimiter=",")
-
-    @staticmethod
-    @jit
-    def _correct_eigenvector_streak(U, U_correct):
-        cosine_similarities_x = jnp.diag(U_correct.T @ U.T)  # U@ U.T
-        x_idx = jnp.where(
-            jnp.abs(cosine_similarities_x) > jnp.cos(jnp.pi / 8),
-            jnp.ones_like(cosine_similarities_x),
-            jnp.zeros_like(cosine_similarities_x),
-        )
-        return jnp.sum(x_idx)
-
-    @staticmethod
-    @jit
-    def _normalized_subspace_distance(U, U_correct):
-        P = U_correct @ U_correct.T
-        U_star = U.T @ U
-        return 1 - jnp.trace(U_star @ P) / U_correct.shape[1]
 
     def evaluate(
         self,

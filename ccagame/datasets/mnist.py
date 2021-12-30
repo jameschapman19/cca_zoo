@@ -99,33 +99,15 @@ def mnist(permute_train=False):
     return train_images, train_labels, test_images, test_labels
 
 
-def mnist_iterator(batch_size, n_components, pca=False, cca=False, p=392):
+def mnist_dataset(pca=False, p=392):
     X, _, X_te, _ = mnist()
     X += np.random.normal(size=X.shape)
     X_te += np.random.normal(size=X_te.shape)
     if pca:
-        correct_U, _, _ = np.linalg.svd(X.T @ X)
-        correct_U = correct_U[:, :n_components]
-        return data_stream(X, batch_size=batch_size), X_te, correct_U, X.shape[1]
+        return X,None,X_te,None
     else:
         Y = X[:, p:]
         X = X[:, :p]
         Y_te = X_te[:, p:]
         X_te = X_te[:, :p]
-        if cca:
-            cca = rCCA(latent_dims=n_components, scale=False, centre=False, c=0.01).fit(
-                (X, Y)
-            )
-            correct_U, correct_V = cca.weights
-            correct_U /= np.linalg.norm(correct_U, axis=0)
-            correct_V /= np.linalg.norm(correct_V, axis=0)
-        else:
-            correct_U, _, correct_V = np.linalg.svd(X.T @ Y)
-            correct_U = correct_U[:, :n_components]
-            correct_V = correct_V[:n_components, :].T  
-        return (
-            data_stream(X, Y=Y, batch_size=batch_size),
-            (X_te, Y_te),
-            (correct_U, correct_V),
-            (X.shape[1], Y.shape[1]),
-        )
+        return X,Y, X_te, Y_te

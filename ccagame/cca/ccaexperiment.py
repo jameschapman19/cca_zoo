@@ -1,14 +1,10 @@
 from abc import abstractmethod
-from functools import partial
-from typing import Optional
 
 import jax.numpy as jnp
-from ccagame.baseexperiment import BaseExperiment
-from ..datasets.ukbiobank import ukbb_iterator
-from ..datasets.xrmb import xrmb_iterator
-from jax import jit
 import numpy as np
-from ..datasets.mnist import mnist_iterator
+from cca_zoo.models import rCCA
+from ccagame.baseexperiment import BaseExperiment
+from jax import jit
 
 
 class CCAExperiment(BaseExperiment):
@@ -24,37 +20,13 @@ class CCAExperiment(BaseExperiment):
         TCC=False,
         **kwargs,
     ):
-        if data == "mnist":
-            (
-                self.data,
-                self.holdout,
-                self.correct_eigenvectors,
-                self.dims,
-            ) = mnist_iterator(
-                batch_size=batch_size, n_components=n_components, cca=True, p=400
-            )
-        elif data == "xrmb":
-            (
-                self.data,
-                self.holdout,
-                self.correct_eigenvectors,
-                self.dims,
-            ) = xrmb_iterator(
-                batch_size=batch_size, n_components=n_components, cca=True
-            )
-        elif data == "ukbb":
-            self.data, self.holdout, self.dims = ukbb_iterator(
-                path, batch_size=batch_size
-            )
-            self.correct_eigenvectors = None
-        else:
-            raise ValueError("Data {data} not implemented yet")
+        
         super(CCAExperiment, self).__init__(
             mode=mode,
             init_rng=init_rng,
             num_devices=num_devices,
             n_components=n_components,
-            data=self.data,
+            data=data,
             batch_size=batch_size,
             **kwargs,
         )
@@ -66,6 +38,14 @@ class CCAExperiment(BaseExperiment):
         """Initialization function for a Jaxline experiment."""
         self.TCC=TCC
 
+    def _init_ground_truth(self,X,Y):
+        cca = rCCA(latent_dims=self.n_components, scale=False, centre=False, c=0.01).fit(
+                (X, Y)
+            )
+        self.correct_U, self.correct_V = cca.weights
+        self.correct_U /= np.linalg.norm(self.correct_U, axis=0)
+        self.correct_V /= np.linalg.norm(self.correct_V, axis=0)
+
     @abstractmethod
     def _update(self, views, global_step):
         raise NotImplementedError
@@ -73,18 +53,18 @@ class CCAExperiment(BaseExperiment):
     def _get_scalars(self):
         scalars={}
         if self.TCC:
-            scalars['TCC']=self._TC(self._U, self._V,self.holdout[0],self.holdout[1])
+            scalars['TCC']=self._TC(self._U, self._V,self.X_val,self.Y_val)
         scalars["correct x"]= self._correct_eigenvector_streak(
-            self._U, self.correct_eigenvectors[0]
+            self._U, self.correct_U
         )
         scalars["correct y"]= self._correct_eigenvector_streak(
-            self._V, self.correct_eigenvectors[1]
+            self._V, self.correct_V
         )
         scalars["subspace x"]= self._normalized_subspace_distance(
-            self._U, self.correct_eigenvectors[0]
+            self._U, self.correct_U
         )
         scalars["subspace y"]= self._normalized_subspace_distance(
-            self._V, self.correct_eigenvectors[1]
+            self._V, self.correct_V
         )
         return scalars
 
@@ -104,28 +84,6 @@ class CCAExperiment(BaseExperiment):
     def save_outputs(self):
         np.savetxt("U.csv", self._U, delimiter=",")
         np.savetxt("V.csv", self._V, delimiter=",")
-
-    @staticmethod
-    #@jit
-    def _correct_eigenvector_streak(U, U_correct):
-        n_components = U.shape[0]
-        cosine_similarities_x = jnp.diag(
-            jnp.corrcoef(U.T, U_correct, rowvar=False)[n_components:, :n_components]
-        )
-        x_idx = jnp.where(
-            jnp.abs(cosine_similarities_x) > jnp.cos(jnp.pi / 8),
-            jnp.ones_like(cosine_similarities_x),
-            jnp.zeros_like(cosine_similarities_x),
-        )
-        return jnp.sum(x_idx)
-
-    @staticmethod
-    @jit
-    def _normalized_subspace_distance(U, U_correct):
-        U = U.T / jnp.linalg.norm(U, axis=1)
-        P = U_correct @ U_correct.T
-        U_star = U @ U.T
-        return 1 - jnp.trace(U_star @ P) / U_correct.shape[1]
 
     def evaluate(
         self,
