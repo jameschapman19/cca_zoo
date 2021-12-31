@@ -8,6 +8,6 @@ parameters:
   config.training_steps:
     values: [1000]
   config.learning_rate:
-    values: [1e-1,1e-2,1e-3, 1e-4, 1e-5]
+    values: [1e-1,5e-2,1e-2, 5e-3, 1e-3]
   config.batch_size:
     values: [0]

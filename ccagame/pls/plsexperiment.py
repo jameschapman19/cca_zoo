@@ -62,7 +62,7 @@ class PLSExperiment(BaseExperiment):
         return scalars
 
     @staticmethod
-    # @jit
+    @jit
     def _TV(U, V, X_val, Y_val):
         dof = X_val.shape[0]
         Zx = X_val @ U.T

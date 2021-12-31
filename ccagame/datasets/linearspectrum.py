@@ -15,7 +15,7 @@ def linear_dataset(cca=False):
         )
     else:
         (X, Y), _ = generate_covariance_data(
-            1000,
+            5000,
             [50, 50],
             latent_dims=50,
             correlation=np.linspace(0, 1, 50),

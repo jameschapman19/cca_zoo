@@ -42,11 +42,12 @@ class CCAExperiment(BaseExperiment):
 
     def _init_ground_truth(self, X, Y):
         cca = rCCA(
-            latent_dims=self.n_components, scale=False, centre=False, c=0.01
-        ).fit((X, Y))
+            latent_dims=self.n_components, scale=False, centre=False, c=0.001
+        ).fit((X, Y))#cca.score((X,Y)).sum()
         self.correct_U, self.correct_V = cca.weights
         self.correct_U /= np.linalg.norm(self.correct_U, axis=0)
         self.correct_V /= np.linalg.norm(self.correct_V, axis=0)
+        self.holdout_TCC = _TCC(self.X_val,self.Y_val,self.correct_U.T,self.correct_V.T)
 
     @abstractmethod
     def _update(self, views, global_step):

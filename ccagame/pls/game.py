@@ -71,7 +71,7 @@ class Game(PLSExperiment):
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
+        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)#Zx.T@Zx
         grads_x = self._grads(Zx, self._weights, self._U, X_i, Zy)
         grads_y = self._grads(Zy, self._weights, self._V, Y_i, Zx)
         self._U, self._opt_state_x = self._update_with_grads(

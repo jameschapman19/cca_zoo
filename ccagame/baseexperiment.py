@@ -93,7 +93,7 @@ class BaseExperiment(AbstractExperiment):
             return data_stream(X, Y=Y, batch_size=batch_size)
 
     @staticmethod
-    # @jit
+    @jit
     def _correct_eigenvector_streak(U, U_correct):
         n_components = U.shape[0]
         cosine_similarities = jnp.diag(
