@@ -58,7 +58,7 @@ class CCAExperiment(BaseExperiment):
         raise NotImplementedError
 
     def _get_scalars(self):#(self.X_val@self.correct_U).T@(self.X_val@self.correct_U)
-        scalars = {}#np.corrcoef(self.X_val@self.correct_U, self.Y_val@self.correct_V)[16:,:16]
+        scalars = {}#(self.X@self._U.T).T@(self.X@self._U.T)
         if self.TCC:#_TCC(self.X_val, self.Y_val, self.correct_U.T, self.correct_V.T)
             scalars["TCC train"] = _TCC(self.X, self.Y, self._U, self._V)
             scalars["TCC val"] = _TCC(self.X_val, self.Y_val, self._U, self._V)

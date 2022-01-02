@@ -2,11 +2,11 @@ program: experiments/cca/train.py
 method: grid
 parameters:
   model:
-    values: ['game','oja', 'power']
+    values: ['game','oja', 'power', 'appgrad']
   config.data:
-    values: ['linear','exponential', 'mnist']
+    values: ['linear']
   config.training_steps:
-    values: [1000]
+    values: [4000]
   config.learning_rate:
     values: [1e-1,5e-2,1e-2, 5e-3, 1e-3]
   config.batch_size:

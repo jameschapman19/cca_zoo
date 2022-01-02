@@ -54,7 +54,7 @@ class BaseExperiment(AbstractExperiment):
         )
         self.batch_ids=batch_ids
         self.path=path
-        self.data_stream=self._init_data_stream()
+        self.data_stream=self._init_data_stream(self.batch_size)
 
     @abstractmethod
     def _init_ground_truth(self, X, Y=None):
@@ -87,11 +87,11 @@ class BaseExperiment(AbstractExperiment):
             raise ValueError("Data {data} not implemented yet")
         return X,Y,X_val,Y_val, batch_ids
 
-    def _init_data_stream(self, random_state=0):
+    def _init_data_stream(self, batch_size,random_state=0):
         if self.data == "ukbb":
-            return data_stream_UKBB(self.batch_ids, self.path, batch_size=self.batch_size)
+            return data_stream_UKBB(self.batch_ids, self.path, batch_size=batch_size)
         else:
-            return data_stream(self.X, Y=self.Y, batch_size=self.batch_size, random_state=random_state)
+            return data_stream(self.X, Y=self.Y, batch_size=batch_size, random_state=random_state)
 
     @staticmethod
     @jit
