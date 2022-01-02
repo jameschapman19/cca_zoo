@@ -69,8 +69,8 @@ class AppGrad(CCAExperiment):
             self.c = [5e-3, 5e-3]
         if whitening_batch_size is None:
             whitening_batch_size = 10 * n_components
-        self.whitening_data = self._init_data(
-            data, whitening_batch_size, n_components, **kwargs
+        self.whitening_data = self._init_data_stream(
+        random_state=1
         )
 
     def _update(self, views, global_step):

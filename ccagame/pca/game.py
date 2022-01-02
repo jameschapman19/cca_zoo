@@ -84,13 +84,13 @@ class Game(PCAExperiment):
         """Compute and apply updates with optax optimizer.
         Wrap in jax.vmap for k_per_device dimension."""
         # we have gradient of utilities so we negate for gradient descent
-        updates, opt_state = self._optimizer.update(-grads, opt_state)
+        updates, opt_state = self._optimizer.update(grads, opt_state)
         vi_new = optax.apply_updates(vi, updates)
         vi_new /= jnp.linalg.norm(vi_new, keepdims=True)
         return vi_new, opt_state
 
     @staticmethod
     def _grads(zi, weights, V, X, Z):
-        penalty_grads = -(zi @ Z * V.T) @ weights
+        penalty_grads = -((zi @ Z) * V.T) @ weights
         grads = X.T @ zi + penalty_grads
         return grads / X.shape[0]

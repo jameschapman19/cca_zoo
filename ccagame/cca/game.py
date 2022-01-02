@@ -20,6 +20,7 @@ class Game(CCAExperiment):
         momentum=0.9,
         nesterov=True,
         batch_size=0,
+        alpha=True,
         **kwargs
     ):
         super(Game, self).__init__(
@@ -53,7 +54,7 @@ class Game(CCAExperiment):
         self._grads = jax.jit(
             jax.vmap(
                 self._grads,
-                in_axes=(1, 0, None, 1, None),
+                in_axes=(1,1, 0, None, 1,1,None, None)
             )
         )
         self._update_with_grads = jax.jit(
@@ -66,12 +67,16 @@ class Game(CCAExperiment):
         self._opt_state_x = self._optimizer.init(self._U)
         self._opt_state_y = self._optimizer.init(self._V)
         self.learning_rate = learning_rate
+        self.alpha=alpha
+        self.auxiliary_data = self._init_data_stream(random_state=1)
 
     def _update(self, views, global_step):
         X_i, Y_i = views
+        X_i_aux,Y_i_aux= next(self.auxiliary_data)
         Zx, Zy, T = self._get_target(X_i, Y_i, self._U, self._V)
-        grads_x = self._grads(Zx, self._weights, X_i, T, T)
-        grads_y = self._grads(Zy, self._weights, Y_i, T, T)
+        Zx_aux, Zy_aux, T_aux = self._get_target(X_i_aux, Y_i_aux, self._U, self._V)
+        grads_x = self._grads(Zx,Zx_aux, self._weights, X_i, T,T_aux, T,T_aux)
+        grads_y = self._grads(Zy,Zy_aux, self._weights, Y_i, T,T_aux, T,T_aux)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
@@ -80,9 +85,9 @@ class Game(CCAExperiment):
         )
 
     @staticmethod
-    def _grads(zi, weights, X, Ti, T):
+    def _grads(zi,zi_aux, weights, X, Ti,Ti_aux, T,T_aux):
         rewards = X.T @ (Ti - zi)
-        covariance = -((zi @ T) * (X.T @ T)) @ weights
+        covariance = -((zi_aux @ T_aux) * (X.T @ T)) @ weights
         grads = rewards + covariance
         return grads / X.shape[0]
 

@@ -21,6 +21,7 @@ class Game(PLSExperiment):
         momentum=0.9,
         nesterov=True,
         batch_size=0,
+        alpha=False,
         **kwargs
     ):
         super(Game, self).__init__(
@@ -43,17 +44,21 @@ class Game(PLSExperiment):
         )
         self._weights = self._weights.at[jnp.triu_indices(self.n_components, 1)].set(0)
         # generates weights for each component on each device
-        self._U = (
-            jax.random.normal(self.local_rng, (self.n_components, self.dims[0])) / 10000
-        )
-        self._V = (
-            jax.random.normal(self.local_rng, (self.n_components, self.dims[1])) / 10000
-        )
+        self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
+        self._U = (1 / jnp.linalg.norm(self._U, axis=1) * self._U.T).T
+        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
+        self._V = (1 / jnp.linalg.norm(self._V, axis=1) * self._V.T).T
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
-        self._grads = jax.jit(
+        self._alpha_grads = jax.jit(
+                jax.vmap(
+                    jax.grad(self._utils),
+                    in_axes=(0, 1, 0, None, None),
+                )
+            )
+        self._mu_grads = jax.jit(
             jax.vmap(
                 self._grads,
-                in_axes=(1, 0, None, None, None),
+                in_axes=(1, 1, 1, 0, None, None, None),
             )
         )
         self._update_with_grads = jax.jit(
@@ -68,27 +73,48 @@ class Game(PLSExperiment):
         self._opt_state_x = self._optimizer.init(self._U)
         self._opt_state_y = self._optimizer.init(self._V)
         self.learning_rate = learning_rate
+        self.alpha = alpha
+        self.auxiliary_data = self._init_data_stream(
+        random_state=1
+        )
 
     def _update(self, views, global_step):
-        X_i, Y_i = views
-        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)#Zx.T@Zx
-        grads_x = self._grads(Zx, self._weights, self._U, X_i, Zy)
-        grads_y = self._grads(Zy, self._weights, self._V, Y_i, Zx)
+        (
+            X_i,
+            Y_i,
+        ) = views
+        X_aux_i,Y_aux_i= next(self.auxiliary_data)
+        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
+        Zx_aux, Zy_aux = self._get_target(X_aux_i, Y_aux_i, self._U, self._V)
+        if self.alpha:
+            grads_x = self._alpha_grads(self._U, Zy, self._weights, X_i, Zy)
+            grads_y = self._alpha_grads(self._V, Zx, self._weights, Y_i, Zx)
+        else:
+            grads_x = self._mu_grads(Zx, Zy,Zy_aux,self._weights, X_aux_i, Zy,Zy_aux)
+            grads_y = self._mu_grads(Zy, Zx,Zx_aux,self._weights, Y_aux_i, Zx,Zx_aux)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
         self._V, self._opt_state_y = self._update_with_grads(
             self._V, grads_y, self._opt_state_y
         )
-        #
 
     @staticmethod
-    def _grads(zi, weights, U, X, Z):
+    def _grads(zx, zy, zy_aux, weights, X_aux, Zy, Zy_aux):
+        rewards = jnp.dot(zx, zy) * (X_aux.T @ zy_aux)
+        covariance = -((zx @ Zy) * (X_aux.T @ Zy_aux)) @ weights
+        grads = rewards + covariance
+        return grads / zx.shape[0]**2
+
+    @staticmethod
+    def _utils(ui, zy, weights, X, Zy):
         """Compute utiltiies and update directions ("grads").
         23 Wrap in jax.vmap for k_per_device dimension."""
-        penalty_grads = -(zi @ Z * U.T) @ weights
-        grads = X.T @ zi + penalty_grads
-        return grads / X.shape[0]
+        zx = X @ ui
+        rewards = jnp.dot(zx, zy)**2
+        covariance = -((zx @ Zy) ** 2) @ weights
+        grads = rewards + covariance
+        return grads / X.shape[0]**2
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):

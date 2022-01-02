@@ -5,6 +5,8 @@ parameters:
     values: ['game','oja', 'power']
   config.n_components:
     values: [16]
+  config.TV:
+    values: [False]
   config.data:
     values: ['xrmb']
   config.epochs:

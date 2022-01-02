@@ -24,7 +24,6 @@ class PCAExperiment(BaseExperiment):
             num_devices=num_devices,
             n_components=n_components,
             data=data,
-            pca=True,
             batch_size=batch_size,
             **kwargs,
         )
@@ -34,7 +33,10 @@ class PCAExperiment(BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
+        self.dims = self.X.shape[1]
         self.TV = TV
+        if self.validate:
+            self._init_ground_truth(self.X, self.Y)
 
     def _init_ground_truth(self, X, Y=None):
         correct_V, _, _ = np.linalg.svd(X.T @ X)

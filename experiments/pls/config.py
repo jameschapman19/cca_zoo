@@ -14,10 +14,11 @@ def get_config() -> config_dict.ConfigDict:
     config.batch_size = 0
     config.training_steps = 20000
     config.epochs = 10
-    config.data = "exponential"
+    config.data = "linear"
     config.validate = True
     config.TV = True
     config.TCC = True
+    config.alpha = True
 
     # defaults
     config.checkpoint_dir = "jaxlog"

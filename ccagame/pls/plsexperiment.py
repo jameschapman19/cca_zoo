@@ -4,6 +4,7 @@ import jax.numpy as jnp
 import numpy as np
 from ccagame.baseexperiment import BaseExperiment
 from jax import jit
+from cca_zoo.models import PLS
 
 
 class PLSExperiment(BaseExperiment):
@@ -35,22 +36,31 @@ class PLSExperiment(BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
+        self.dims = [self.X.shape[1], self.Y.shape[1]]
         self.TV = TV
+        if self.validate:
+            self._init_ground_truth(self.X, self.Y)
 
     def _init_ground_truth(self, X, Y):
-        correct_U, _, correct_V = np.linalg.svd(X.T @ Y)  # X.T@X
-        self.correct_U = correct_U[:, : self.n_components]
-        self.correct_V = correct_V[: self.n_components, :].T
+        pls = PLS(
+            latent_dims=self.n_components, scale=False, centre=False
+        ).fit((X, Y))
+        self.correct_U, self.correct_V = pls.weights
+        self.correct_U/=np.linalg.norm(self.correct_U,axis=0)
+        self.correct_V/=np.linalg.norm(self.correct_V,axis=0)
+        if self.TV:
+            self.TV_train = self._TV(self.correct_U.T,self.correct_V.T,self.X,self.Y)
+            self.TV_val = self._TV(self.correct_U.T,self.correct_V.T,self.X_val,self.Y_val)
 
     @abstractmethod
     def _update(self, views, global_step):
         raise NotImplementedError
 
-    # @partial(jit, static_argnums=(0))
-    def _get_scalars(self):
-        scalars = {}
-        if self.TV:
-            scalars["tv"] = self._TV(self._U, self._V, self.X_val, self.Y_val)
+    def _get_scalars(self):#(self.X_val@self.correct_U).T@(self.X_val@self.correct_U)/4000
+        scalars = {}#(self.X_val@self._U.T).T@(self.X_val@self._U.T)/4000
+        if self.TV:#self._TV(self.correct_U.T, self.correct_V.T, self.X, self.Y)
+            scalars["tv train"] = self._TV(self._U, self._V, self.X, self.Y)
+            scalars["tv val"] = self._TV(self._U, self._V, self.X_val, self.Y_val)
         scalars["correct_x"] = self._correct_eigenvector_streak(self._U, self.correct_U)
         scalars["correct_y"] = self._correct_eigenvector_streak(self._V, self.correct_V)
         scalars["subspace_x"] = self._normalized_subspace_distance(
@@ -62,7 +72,7 @@ class PLSExperiment(BaseExperiment):
         return scalars
 
     @staticmethod
-    @jit
+    #@jit
     def _TV(U, V, X_val, Y_val):
         dof = X_val.shape[0]
         Zx = X_val @ U.T

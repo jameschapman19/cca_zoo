@@ -6,7 +6,7 @@ import jax.numpy as jnp
 from jax._src.random import PRNGKey
 from jaxline import utils
 from jaxline.experiment import AbstractExperiment
-from ccagame.utils import data_stream
+from ccagame.utils import data_stream, data_stream_UKBB
 from ccagame.datasets import (
     mnist_dataset,
     ukbb_dataset,
@@ -49,9 +49,12 @@ class BaseExperiment(AbstractExperiment):
         self.local_rng = jax.random.fold_in(PRNGKey(123), jax.host_id())
         self.num_devices = num_devices
         self.validate = validate
-        self.data_stream = self._init_data(
-            self.data, self.batch_size, path=path, num_batches=num_batches, pca=pca
+        self.X,self.Y,self.X_val,self.Y_val, batch_ids = self._init_data(
+            self.data, self.batch_size, path=path, num_batches=num_batches, pca=pca,cca=cca,
         )
+        self.batch_ids=batch_ids
+        self.path=path
+        self.data_stream=self._init_data_stream()
 
     @abstractmethod
     def _init_ground_truth(self, X, Y=None):
@@ -67,30 +70,28 @@ class BaseExperiment(AbstractExperiment):
         cca=False,
         **kwargs,
     ):
+        batch_ids=None
         if data == "mnist":
-            X, Y, self.X_val, self.Y_val = mnist_dataset(pca=pca)
+            X, Y, X_val, Y_val = mnist_dataset(pca=pca)
         elif data == "xrmb":
-            X, Y, self.X_val, self.Y_val = xrmb_dataset()
+            X, Y, X_val, Y_val = xrmb_dataset()
         elif data == "linear":
-            X, Y, self.X_val, self.Y_val = linear_dataset(cca=cca)
+            X, Y, X_val, Y_val = linear_dataset(cca=cca)
         elif data == "exponential":
-            X, Y, self.X_val, self.Y_val = exponential_dataset(cca=cca)
+            X, Y, X_val, Y_val = exponential_dataset(cca=cca)
         elif data == "ukbb":
-            X, Y, self.X_val, self.Y_val, batch_ids = ukbb_dataset(
+            X, Y, X_val, Y_val, batch_ids = ukbb_dataset(
                 num_batches, path, batch_size
             )
         else:
             raise ValueError("Data {data} not implemented yet")
-        if pca:
-            self.dims = X.shape[1]
+        return X,Y,X_val,Y_val, batch_ids
+
+    def _init_data_stream(self, random_state=0):
+        if self.data == "ukbb":
+            return data_stream_UKBB(self.batch_ids, self.path, batch_size=self.batch_size)
         else:
-            self.dims = [X.shape[1], Y.shape[1]]
-        if self.validate:
-            self._init_ground_truth(X, Y=Y)
-        if data == "ukbb":
-            return data_stream_UKBB(batch_ids, path, batch_size=batch_size)
-        else:
-            return data_stream(X, Y=Y, batch_size=batch_size)
+            return data_stream(self.X, Y=self.Y, batch_size=self.batch_size, random_state=random_state)
 
     @staticmethod
     @jit

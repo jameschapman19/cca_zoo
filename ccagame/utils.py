@@ -56,13 +56,13 @@ def get_num_batches(X, Y=None, batch_size=None):
     return num_batches
 
 
-def data_stream(X, Y=None, batch_size=0):
+def data_stream(X, Y=None, batch_size=0,random_state=0):
     num = X.shape[0]
     if batch_size == 0:
         batch_size = num
     num_complete_batches, leftover = divmod(num, batch_size)
     num_batches = num_complete_batches + bool(leftover)
-    rng = np.random.RandomState(0)
+    rng = np.random.RandomState(random_state)
     while True:
         perm = rng.permutation(num)
         for i in range(num_batches):

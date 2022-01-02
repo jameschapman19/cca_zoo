@@ -45,6 +45,7 @@ def main(argv):
         "learning_rate": FLAGS.config.learning_rate,
         "validate": FLAGS.config.validate,
         "TV": FLAGS.config.TV,
+        "alpha":FLAGS.config.alpha
     }
     os.chdir(
         os.path.join(os.path.dirname(os.path.realpath(__file__)), FLAGS.config.data)

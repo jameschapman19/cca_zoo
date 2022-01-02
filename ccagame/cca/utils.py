@@ -38,4 +38,8 @@ def _TCC(X, Y, U, V):
     k=U.shape[0]
     Zx = X @ U.T
     Zy = Y @ V.T
-    return jnp.sum(jnp.abs(jnp.diag(jnp.corrcoef(Zx,Zy,rowvar=False)[k:,:k])))
+    all=jnp.hstack((Zx,Zy))
+    C=all.T@all
+    D=jsp.linalg.block_diag(Zx.T@Zx,Zy.T@Zy)
+    C=C-D
+    return jnp.sum(jnp.linalg.svd(jnp.linalg.pinv(D)@C)[1])/2

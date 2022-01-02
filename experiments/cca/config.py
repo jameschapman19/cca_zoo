@@ -11,7 +11,7 @@ def get_config() -> config_dict.ConfigDict:
     config.num_devices = 1
     config.n_components = 16
     config.batch_size = 0
-    config.training_steps = 20000
+    config.training_steps = 1000
     config.epochs = 50
     config.data = "linear"
     config.validate = True
