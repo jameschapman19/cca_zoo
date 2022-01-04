@@ -1,13 +1,14 @@
 import jax.numpy as jnp
 import jax.scipy as jsp
 from jax import jit
-
+from scipy.linalg import eigh
+import numpy as np
 
 @jit
 def mat_pow(mat, pow_, epsilon):
     # Computing matrix to the power of pow (pow can be negative as well)
-    [D, V] = jnp.linalg.eigh(mat)
-    mat_pow = V @ jnp.diag(jnp.power((D + epsilon), pow_)) @ V.T
+    U,S,Vt = jnp.linalg.svd(mat)
+    mat_pow = U @ jnp.diag(jnp.power((S + epsilon), pow_)) @ Vt
     return mat_pow
 
 
@@ -33,13 +34,21 @@ def _gram_schmidt(V, B):
     return V  # V @ B @ V.T
 
 
-@jit
+#@jit
 def _TCC(X, Y, U, V):
     k=U.shape[0]
+    n=X.shape[0]
     Zx = X @ U.T
     Zy = Y @ V.T
     all=jnp.hstack((Zx,Zy))
     C=all.T@all
     D=jsp.linalg.block_diag(Zx.T@Zx,Zy.T@Zy)
     C=C-D
-    return jnp.sum(jnp.linalg.svd(jnp.linalg.pinv(D)@C)[1])/2
+    D=D+1e-3 * jnp.eye(C.shape[0])
+    p=C.shape[0]
+    try:
+        return eigh(
+                    C, D, subset_by_index=[p - k, p - 1]
+                )[0].sum()
+    except:
+        return np.nan

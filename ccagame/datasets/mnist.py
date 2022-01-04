@@ -99,10 +99,14 @@ def mnist(permute_train=False):
     return train_images, train_labels, test_images, test_labels
 
 
-def mnist_dataset(pca=False, p=392):
+def mnist_dataset(pca=False, p=392, random_state=0):
     X, _, X_te, _ = mnist()
-    X += np.random.normal(size=X.shape)
-    X_te += np.random.normal(size=X_te.shape)
+    rng=np.random.default_rng(random_state)
+    X += rng.normal(size=X.shape)
+    X_te += rng.normal(size=X_te.shape)
+    #from scipy.io import loadmat
+    #X=loadmat('XRMB/train_images.mat')['train_images']
+    #X_te=loadmat('XRMB/test_images.mat')['test_images']
     if pca:
         return X, None, X_te, None
     else:

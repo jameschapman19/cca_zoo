@@ -8,6 +8,7 @@ from cca_zoo.models import PLS
 
 
 class PLSExperiment(BaseExperiment):
+    NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
     def __init__(
         self,
         mode,
@@ -38,16 +39,13 @@ class PLSExperiment(BaseExperiment):
         """Initialization function for a Jaxline experiment."""
         self.dims = [self.X.shape[1], self.Y.shape[1]]
         self.TV = TV
-        if self.validate:
+        if self.val_interval>0:
             self._init_ground_truth(self.X, self.Y)
 
     def _init_ground_truth(self, X, Y):
-        pls = PLS(
-            latent_dims=self.n_components, scale=False, centre=False
-        ).fit((X, Y))
-        self.correct_U, self.correct_V = pls.weights
-        self.correct_U/=np.linalg.norm(self.correct_U,axis=0)
-        self.correct_V/=np.linalg.norm(self.correct_V,axis=0)
+        U,_,Vt=jnp.linalg.svd(X.T@Y)
+        self.correct_U=U[:,:self.n_components]#jnp.linalg.norm(self.correct_U,axis=0)
+        self.correct_V=Vt[:self.n_components,:].T
         if self.TV:
             self.TV_train = self._TV(self.correct_U.T,self.correct_V.T,self.X,self.Y)
             self.TV_val = self._TV(self.correct_U.T,self.correct_V.T,self.X_val,self.Y_val)
@@ -56,23 +54,20 @@ class PLSExperiment(BaseExperiment):
     def _update(self, views, global_step):
         raise NotImplementedError
 
-    def _get_scalars(self):#(self.X_val@self.correct_U).T@(self.X_val@self.correct_U)/4000
-        scalars = {}#(self.X_val@self._U.T).T@(self.X_val@self._U.T)/4000
-        if self.TV:#self._TV(self.correct_U.T, self.correct_V.T, self.X, self.Y)
-            scalars["tv train"] = self._TV(self._U, self._V, self.X, self.Y)
-            scalars["tv val"] = self._TV(self._U, self._V, self.X_val, self.Y_val)
-        scalars["correct_x"] = self._correct_eigenvector_streak(self._U, self.correct_U)
-        scalars["correct_y"] = self._correct_eigenvector_streak(self._V, self.correct_V)
-        scalars["subspace_x"] = self._normalized_subspace_distance(
-            self._U, self.correct_U
-        )
-        scalars["subspace_y"] = self._normalized_subspace_distance(
-            self._V, self.correct_V
-        )
+    def _get_scalars(self,global_step):
+        scalars = {}
+        if (global_step+1)%self.val_interval==0:
+            if self.TV:
+                scalars["tv train"] = self._TV(self._U, self._V, self.X, self.Y)
+                scalars["tv val"] = self._TV(self._U, self._V, self.X_val, self.Y_val)
+            scalars["correct x"] = self._correct_eigenvector_streak(self._U, self.correct_U)
+            scalars["correct y"] = self._correct_eigenvector_streak(self._V, self.correct_V)
+            scalars["sum cosine similarities x"] = self._sum_cosine_similarities(self._U, self.correct_U)
+            scalars["sum cosine similarities y"] = self._sum_cosine_similarities(self._V, self.correct_V)
         return scalars
 
     @staticmethod
-    #@jit
+    @jit
     def _TV(U, V, X_val, Y_val):
         dof = X_val.shape[0]
         Zx = X_val @ U.T
@@ -82,6 +77,15 @@ class PLSExperiment(BaseExperiment):
     def save_outputs(self):
         np.savetxt("U.csv", self._U, delimiter=",")
         np.savetxt("V.csv", self._V, delimiter=",")
+
+    @staticmethod
+    #@jit
+    def _sum_cosine_similarities(U, U_correct):#U@U.T
+        n_components = U.shape[0]#U_correct.T@U_correct
+        cosine_similarities = jnp.diag(
+            jnp.corrcoef(U.T, U_correct, rowvar=False)[n_components:, :n_components]
+        )
+        return jnp.sum(jnp.abs(cosine_similarities))
 
     def evaluate(
         self,

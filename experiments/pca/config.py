@@ -1,6 +1,6 @@
 from jaxline.base_config import get_base_config
 from ml_collections import config_dict
-
+from ccagame.datasets.utils import get_training_steps
 
 def get_config() -> config_dict.ConfigDict:
     # get the basic jax config
@@ -12,9 +12,11 @@ def get_config() -> config_dict.ConfigDict:
     config.num_devices = 1
     config.n_components = 4
     config.batch_size = 60000
-    config.training_steps = 10
-    config.epochs = 10
     config.data = "mnist"
+    config.training_steps = 1000
+    config.epochs = None
+    if config.epochs is not None:
+        config.training_steps=get_training_steps()
     config.validate = True
     config.TV = True
     config.TCC = True

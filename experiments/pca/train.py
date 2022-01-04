@@ -22,10 +22,6 @@ MODEL_DICT = {
 
 def main(argv):
     print(f"MODEL IS {FLAGS.model}")
-    if FLAGS.config.data == "mnist":
-        FLAGS.config.training_steps = int(
-            FLAGS.config.epochs * 60000 / FLAGS.config.batch_size
-        )
     # we now need to put some of the stuff from config into
     # config.experiment_kwargs because this is what jaxline
     # gives to our experiment objects

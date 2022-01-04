@@ -3,22 +3,23 @@ from typing import Optional
 
 import jax
 import jax.numpy as jnp
+from jax import jit
 from jax._src.random import PRNGKey
 from jaxline import utils
 from jaxline.experiment import AbstractExperiment
-from ccagame.utils import data_stream, data_stream_UKBB
+
 from ccagame.datasets import (
+    exponential_dataset,
+    linear_dataset,
     mnist_dataset,
     ukbb_dataset,
     xrmb_dataset,
-    linear_dataset,
-    exponential_dataset,
 )
-from jax import jit
+from ccagame.utils import data_stream, data_stream_UKBB
 
 
 class BaseExperiment(AbstractExperiment):
-    CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
+    NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
 
     def __init__(
         self,
@@ -28,11 +29,11 @@ class BaseExperiment(AbstractExperiment):
         n_components=1,
         data=None,
         batch_size=0,
-        validate=True,
         path=None,
         num_batches=None,
         pca=False,
         cca=False,
+        val_interval=0,
         **kwargs,
     ):
         super(BaseExperiment, self).__init__(mode=mode, init_rng=init_rng)
@@ -48,13 +49,18 @@ class BaseExperiment(AbstractExperiment):
         self.data = data
         self.local_rng = jax.random.fold_in(PRNGKey(123), jax.host_id())
         self.num_devices = num_devices
-        self.validate = validate
-        self.X,self.Y,self.X_val,self.Y_val, batch_ids = self._init_data(
-            self.data, self.batch_size, path=path, num_batches=num_batches, pca=pca,cca=cca,
+        self.X, self.Y, self.X_val, self.Y_val, batch_ids = self._init_data(
+            self.data,
+            self.batch_size,
+            path=path,
+            num_batches=num_batches,
+            pca=pca,
+            cca=cca,
         )
-        self.batch_ids=batch_ids
-        self.path=path
-        self.data_stream=self._init_data_stream(self.batch_size)
+        self.batch_ids = batch_ids
+        self.path = path
+        self.data_stream = self._init_data_stream(self.batch_size)
+        self.val_interval = val_interval
 
     @abstractmethod
     def _init_ground_truth(self, X, Y=None):
@@ -70,7 +76,7 @@ class BaseExperiment(AbstractExperiment):
         cca=False,
         **kwargs,
     ):
-        batch_ids=None
+        batch_ids = None
         if data == "mnist":
             X, Y, X_val, Y_val = mnist_dataset(pca=pca)
         elif data == "xrmb":
@@ -80,18 +86,18 @@ class BaseExperiment(AbstractExperiment):
         elif data == "exponential":
             X, Y, X_val, Y_val = exponential_dataset(cca=cca)
         elif data == "ukbb":
-            X, Y, X_val, Y_val, batch_ids = ukbb_dataset(
-                num_batches, path, batch_size
-            )
+            X, Y, X_val, Y_val, batch_ids = ukbb_dataset(num_batches, path, batch_size)
         else:
             raise ValueError("Data {data} not implemented yet")
-        return X,Y,X_val,Y_val, batch_ids
+        return X, Y, X_val, Y_val, batch_ids
 
-    def _init_data_stream(self, batch_size,random_state=0):
+    def _init_data_stream(self, batch_size, random_state=0):
         if self.data == "ukbb":
             return data_stream_UKBB(self.batch_ids, self.path, batch_size=batch_size)
         else:
-            return data_stream(self.X, Y=self.Y, batch_size=batch_size, random_state=random_state)
+            return data_stream(
+                self.X, Y=self.Y, batch_size=batch_size, random_state=random_state
+            )
 
     @staticmethod
     @jit
@@ -125,12 +131,9 @@ class BaseExperiment(AbstractExperiment):
         """Step function for a Jaxline experiment"""
         inputs = next(self.data_stream)
         self._update(inputs, global_step)
-        if self.validate:
-            return self._get_scalars()
-        else:
-            return {}
+        return self._get_scalars(global_step)
 
-    def _get_scalars(self):
+    def _get_scalars(self,global_step):
         return {}
 
     @abstractmethod

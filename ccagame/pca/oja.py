@@ -10,6 +10,7 @@ from . import PCAExperiment
 
 
 class Oja(PCAExperiment):
+    NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
     def __init__(
         self,
         mode,
@@ -57,7 +58,7 @@ class Oja(PCAExperiment):
     @staticmethod
     @jit
     def _grads(X_i, V):
-        C = X_i.T @ X_i
+        C = X_i.T @ X_i/X_i.shape[0]
         grads = V @ C
         return grads
 

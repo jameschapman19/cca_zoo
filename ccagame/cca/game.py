@@ -8,6 +8,7 @@ from ccagame.cca import CCAExperiment
 
 
 class Game(CCAExperiment):
+    NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
     def __init__(
         self,
         mode,
@@ -68,7 +69,7 @@ class Game(CCAExperiment):
         self._opt_state_y = self._optimizer.init(self._V)
         self.learning_rate = learning_rate
         self.alpha=alpha
-        self.auxiliary_data = self._init_data_stream(random_state=1)
+        self.auxiliary_data = self._init_data_stream(self.batch_size,random_state=1)
 
     def _update(self, views, global_step):
         X_i, Y_i = views

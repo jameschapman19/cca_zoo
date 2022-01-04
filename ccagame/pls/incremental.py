@@ -6,6 +6,7 @@ from jax import jit
 
 
 class Incremental(PLSExperiment):
+    NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
     def __init__(
         self,
         mode,

@@ -2,13 +2,13 @@ from abc import abstractmethod
 
 import jax.numpy as jnp
 import numpy as np
-from cca_zoo.models import rCCA
+from cca_zoo.models import CCA
 from ccagame.baseexperiment import BaseExperiment
 from jax import jit
 from .utils import _TCC
 
-
 class CCAExperiment(BaseExperiment):
+    NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
     def __init__(
         self,
         mode,
@@ -40,12 +40,12 @@ class CCAExperiment(BaseExperiment):
         """Initialization function for a Jaxline experiment."""
         self.dims = [self.X.shape[1], self.Y.shape[1]]
         self.TCC = TCC
-        if self.validate:
+        if self.val_interval>0:
             self._init_ground_truth(self.X, self.Y)
             
     def _init_ground_truth(self, X, Y):
-        cca = rCCA(
-            latent_dims=self.n_components, scale=False, centre=False, c=0
+        cca = CCA(
+            latent_dims=self.n_components, scale=False, centre=False
         ).fit((X, Y))
         self.correct_U, self.correct_V = cca.weights
         self.correct_Zx,self.correct_Zy = cca.transform((self.X_val,self.Y_val))
@@ -57,19 +57,20 @@ class CCAExperiment(BaseExperiment):
     def _update(self, views, global_step):
         raise NotImplementedError
 
-    def _get_scalars(self):#(self.X_val@self.correct_U).T@(self.X_val@self.correct_U)
-        scalars = {}#(self.X@self._U.T).T@(self.X@self._U.T)
-        if self.TCC:#_TCC(self.X_val, self.Y_val, self.correct_U.T, self.correct_V.T)
-            scalars["TCC train"] = _TCC(self.X, self.Y, self._U, self._V)
-            scalars["TCC val"] = _TCC(self.X_val, self.Y_val, self._U, self._V)
-        scalars["correct x"] = self._correct_eigenvector_streak(self._U, self.correct_U)
-        scalars["correct y"] = self._correct_eigenvector_streak(self._V, self.correct_V)
-        scalars["sum cosine similarities x"] = self._sum_cosine_similarities(self._U, self.correct_U)
-        scalars["sum cosine similarities y"] = self._sum_cosine_similarities(self._V, self.correct_V)
+    def _get_scalars(self,global_step):
+        scalars = {}
+        if (global_step+1)%self.val_interval==0:
+            if self.TCC:
+                scalars["TCC train"] = _TCC(self.X, self.Y, self._U, self._V)/self.TCC_train
+                scalars["TCC val"] = _TCC(self.X_val, self.Y_val, self._U, self._V)/self.TCC_val
+            scalars["correct x"] = self._correct_eigenvector_streak(self._U, self.correct_U)
+            scalars["correct y"] = self._correct_eigenvector_streak(self._V, self.correct_V)
+            scalars["sum cosine similarities x"] = self._sum_cosine_similarities(self._U, self.correct_U)
+            scalars["sum cosine similarities y"] = self._sum_cosine_similarities(self._V, self.correct_V)
         return scalars
 
     @staticmethod
-    #@jit
+    @jit
     def _sum_cosine_similarities(U, U_correct):
         n_components = U.shape[0]
         cosine_similarities = jnp.diag(
