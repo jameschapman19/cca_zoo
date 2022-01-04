@@ -1,14 +1,16 @@
 from functools import partial
 from os import environ
+
 import jax
 import jax.numpy as jnp
 import optax
-from jax import jit
 from ccagame.cca import CCAExperiment
+from jax import jit
 
 
 class VicRegGame(CCAExperiment):
     NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
+
     def __init__(
         self,
         mode,
@@ -51,16 +53,10 @@ class VicRegGame(CCAExperiment):
             jax.random.normal(self.local_rng, (self.n_components, self.dims[1])) / 10000
         )
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
-        self._get_target = jax.jit(
-            jax.vmap(
-                self._get_target,
-                in_axes=(None, None, 0, 0),
-            )
-        )
         self._grads = jax.jit(
             jax.vmap(
                 self._grads,
-                in_axes=(0, 0, None, 0, None),
+                in_axes=(1, 1, 0, None, 1, None, None),
             )
         )
         self._update_with_grads = jax.jit(
@@ -73,14 +69,15 @@ class VicRegGame(CCAExperiment):
         self._opt_state_x = self._optimizer.init(self._U)
         self._opt_state_y = self._optimizer.init(self._V)
         self.learning_rate = learning_rate
+        self.auxiliary_data = self._init_data_stream(self.batch_size, random_state=1)
 
     def _update(self, views, global_step):
         X_i, Y_i = views
+        X_i_aux, Y_i_aux = next(self.auxiliary_data)
         Zx, Zy, T = self._get_target(X_i, Y_i, self._U, self._V)
-        grads_x = self._grads(Zx, self._weights, X_i, T, T)
-        grads_y = self._grads(
-            Zy, self._weights, Y_i, T, T
-        )  # jnp.linalg.norm(Zx,axis=1)
+        Zx_aux, Zy_aux, T_aux = self._get_target(X_i_aux, Y_i_aux, self._U, self._V)
+        grads_x = self._grads(Zx, Zx_aux, self._weights, X_i, T, T, T_aux)
+        grads_y = self._grads(Zy, Zy_aux, self._weights, Y_i, T, T, T_aux)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
@@ -89,17 +86,17 @@ class VicRegGame(CCAExperiment):
         )
 
     @staticmethod
-    def _grads(zi, weights, X, Ti, T):
+    def _grads(zi, zi_aux, weights, X, Ti, T, T_aux):
         rewards = X.T @ Ti
         variance = -(jnp.dot(zi, zi) - 1) * (X.T @ zi)
-        covariance = -((zi @ T.T) * (T @ X).T) @ weights
+        covariance = -((zi_aux @ T_aux) * (X.T @ T)) @ weights
         grads = rewards + variance + covariance
         return grads / X.shape[0]
 
     @staticmethod
     def _get_target(X, Y, U, V):
-        Zx = X @ U
-        Zy = Y @ V
+        Zx = X @ U.T
+        Zy = Y @ V.T
         T = (Zx + Zy) / 2
         return Zx, Zy, T
 

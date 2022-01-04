@@ -55,7 +55,13 @@ class Game(CCAExperiment):
         self._grads = jax.jit(
             jax.vmap(
                 self._grads,
-                in_axes=(1,1, 0, None, 1,1,None, None)
+                in_axes=(1,1, 0, None, 1,None, None)
+            )
+        )
+        self._alpha_grads = jax.jit(
+            jax.vmap(
+                jax.grad(self._utils),
+                in_axes=(0,1, 0, None, 1,None, None)
             )
         )
         self._update_with_grads = jax.jit(
@@ -76,8 +82,12 @@ class Game(CCAExperiment):
         X_i_aux,Y_i_aux= next(self.auxiliary_data)
         Zx, Zy, T = self._get_target(X_i, Y_i, self._U, self._V)
         Zx_aux, Zy_aux, T_aux = self._get_target(X_i_aux, Y_i_aux, self._U, self._V)
-        grads_x = self._grads(Zx,Zx_aux, self._weights, X_i, T,T_aux, T,T_aux)
-        grads_y = self._grads(Zy,Zy_aux, self._weights, Y_i, T,T_aux, T,T_aux)
+        if self.alpha:
+            grads_x = self._alpha_grads(self._U,Zx_aux, self._weights, X_i, T, T,T_aux)
+            grads_y = self._alpha_grads(self._V,Zy_aux, self._weights, Y_i, T, T,T_aux)
+        else:
+            grads_x = self._grads(Zx,Zx_aux, self._weights, X_i, T, T,T_aux)
+            grads_y = self._grads(Zy,Zy_aux, self._weights, Y_i, T, T,T_aux)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
@@ -86,9 +96,17 @@ class Game(CCAExperiment):
         )
 
     @staticmethod
-    def _grads(zi,zi_aux, weights, X, Ti,Ti_aux, T,T_aux):
+    def _grads(zi,zi_aux, weights, X, Ti,T,T_aux):
         rewards = X.T @ (Ti - zi)
         covariance = -((zi_aux @ T_aux) * (X.T @ T)) @ weights
+        grads = rewards + covariance
+        return grads / X.shape[0]
+
+    @staticmethod
+    def _utils(ui,zi_aux, weights, X, Ti,T,T_aux):
+        zi=X@ui
+        rewards = jnp.linalg.norm(zi-Ti)**2
+        covariance = -(zi_aux @ T_aux)**2 @ weights
         grads = rewards + covariance
         return grads / X.shape[0]
 

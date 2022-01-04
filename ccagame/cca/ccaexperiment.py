@@ -59,10 +59,12 @@ class CCAExperiment(BaseExperiment):
 
     def _get_scalars(self,global_step):
         scalars = {}
-        if (global_step+1)%self.val_interval==0:
+        if global_step==0 or (global_step+1)%self.val_interval==0:
             if self.TCC:
-                scalars["TCC train"] = _TCC(self.X, self.Y, self._U, self._V)/self.TCC_train
-                scalars["TCC val"] = _TCC(self.X_val, self.Y_val, self._U, self._V)/self.TCC_val
+                scalars["TCC train"] = _TCC(self.X, self.Y, self._U, self._V)
+                scalars["TCC val"] = _TCC(self.X_val, self.Y_val, self._U, self._V)
+                scalars["PCC train"] = scalars["TCC train"]/self.TCC_train
+                scalars["PCC val"] = scalars["TCC val"]/self.TCC_val
             scalars["correct x"] = self._correct_eigenvector_streak(self._U, self.correct_U)
             scalars["correct y"] = self._correct_eigenvector_streak(self._V, self.correct_V)
             scalars["sum cosine similarities x"] = self._sum_cosine_similarities(self._U, self.correct_U)

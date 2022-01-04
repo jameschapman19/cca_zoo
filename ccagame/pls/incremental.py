@@ -44,7 +44,7 @@ class Incremental(PLSExperiment):
         self._U, self._V, self._S = self._grads(X_i, Y_i, self._U, self._V, self._S)
 
     @staticmethod
-    @jit
+    #@jit
     def _grads(X_i, Y_i, U, V, S):
         n_components = U.shape[0]
         xhat = X_i @ U.T

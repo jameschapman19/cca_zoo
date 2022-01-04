@@ -43,7 +43,7 @@ class PLSExperiment(BaseExperiment):
             self._init_ground_truth(self.X, self.Y)
 
     def _init_ground_truth(self, X, Y):
-        U,_,Vt=jnp.linalg.svd(X.T@Y)
+        U,_,Vt=jnp.linalg.svd(X.T@Y)#U.T@X.T@Y@Vt.T
         self.correct_U=U[:,:self.n_components]#jnp.linalg.norm(self.correct_U,axis=0)
         self.correct_V=Vt[:self.n_components,:].T
         if self.TV:
@@ -56,10 +56,12 @@ class PLSExperiment(BaseExperiment):
 
     def _get_scalars(self,global_step):
         scalars = {}
-        if (global_step+1)%self.val_interval==0:
+        if global_step==0 or (global_step+1)%self.val_interval==0:
             if self.TV:
-                scalars["tv train"] = self._TV(self._U, self._V, self.X, self.Y)
-                scalars["tv val"] = self._TV(self._U, self._V, self.X_val, self.Y_val)
+                scalars["TV train"] = self._TV(self._U, self._V, self.X, self.Y)
+                scalars["TV val"] = self._TV(self._U, self._V, self.X_val, self.Y_val)
+                scalars["PV train"] = scalars["TV train"]/self.TV_train
+                scalars["PV val"] = scalars["TV val"]/self.TV_val
             scalars["correct x"] = self._correct_eigenvector_streak(self._U, self.correct_U)
             scalars["correct y"] = self._correct_eigenvector_streak(self._V, self.correct_V)
             scalars["sum cosine similarities x"] = self._sum_cosine_similarities(self._U, self.correct_U)
