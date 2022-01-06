@@ -30,12 +30,12 @@ def plot_latent_label(model, dataloader, num_batches=100):
         ax[j].set_xlabel("View 1")
         ax[j].set_ylabel("View 2")
     for i, batch in enumerate(dataloader):
-        z = model(*batch['views'])
+        z = model(*batch["views"])
         zx, zy = z
         zx = zx.to("cpu").detach().numpy()
         zy = zy.to("cpu").detach().numpy()
         for j in range(model.latent_dims):
-            ax[j].scatter(zx[:, j], zy[:, j], c=batch['label'].numpy(), cmap="tab10")
+            ax[j].scatter(zx[:, j], zy[:, j], c=batch["label"].numpy(), cmap="tab10")
         if i > num_batches:
             plt.colorbar()
             break

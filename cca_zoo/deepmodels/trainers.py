@@ -57,7 +57,7 @@ class CCALightning(LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        loss = self.model.lossloss(*batch["views"])
+        loss = self.model.loss(*batch["views"])
         self.log("test loss", loss)
         return loss
 

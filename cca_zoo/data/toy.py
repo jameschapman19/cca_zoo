@@ -55,7 +55,7 @@ class Split_MNIST_Dataset(Dataset):
         self.flatten = flatten
 
     def __len__(self):
-        return len(self.data)
+        return len(self.dataset)
 
     def __getitem__(self, idx):
         x_a, label = self.dataset[idx]
