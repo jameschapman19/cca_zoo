@@ -101,12 +101,12 @@ def mnist(permute_train=False):
 
 def mnist_dataset(pca=False, p=392, random_state=0):
     X, _, X_te, _ = mnist()
-    rng=np.random.default_rng(random_state)
+    rng = np.random.default_rng(random_state)
     X += rng.normal(size=X.shape)
     X_te += rng.normal(size=X_te.shape)
-    #from scipy.io import loadmat
-    #X=loadmat('XRMB/train_images.mat')['train_images']
-    #X_te=loadmat('XRMB/test_images.mat')['test_images']
+    # from scipy.io import loadmat
+    # X=loadmat('XRMB/train_images.mat')['train_images']
+    # X_te=loadmat('XRMB/test_images.mat')['test_images']
     if pca:
         return X, None, X_te, None
     else:

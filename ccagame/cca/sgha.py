@@ -17,6 +17,7 @@ from . import CCAExperiment
 
 class SGHA(CCAExperiment):
     NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
+
     def __init__(
         self,
         mode,
@@ -79,7 +80,7 @@ class SGHA(CCAExperiment):
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, wi, grads, opt_state):
         # we have gradient of utilities so we negate for gradient descent
-        updates, opt_state = self._optimizer.update(-grads, opt_state)
+        updates, opt_state = self._optimizer.update(grads, opt_state)
         wi_new = optax.apply_updates(wi, updates)
         return wi_new, opt_state
 

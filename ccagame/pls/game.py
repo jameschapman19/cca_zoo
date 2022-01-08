@@ -11,6 +11,7 @@ from . import PLSExperiment
 
 class Game(PLSExperiment):
     NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
+
     def __init__(
         self,
         mode,
@@ -46,20 +47,20 @@ class Game(PLSExperiment):
         self._weights = self._weights.at[jnp.triu_indices(self.n_components, 1)].set(0)
         # generates weights for each component on each device
         self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
-        self._U = (1 / jnp.linalg.norm(self._U, axis=1) * self._U.T).T
+        self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
         self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
-        self._V = (1 / jnp.linalg.norm(self._V, axis=1) * self._V.T).T
+        self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
         self._grads = jax.jit(
             jax.vmap(
                 self._grads,
-                in_axes=(1,1, 0, None, None, None),
+                in_axes=(1, 1, 0, None, None, None, None),
             )
         )
         self._alpha_grads = jax.jit(
-            jax.vmap(jax.grad(
-                self._utils),
-                in_axes=(0,1, 0, None, None, None),
+            jax.vmap(
+                jax.grad(self._utils),
+                in_axes=(0, 1, 0, None, None, None),
             )
         )
         self._update_with_grads = jax.jit(
@@ -83,11 +84,11 @@ class Game(PLSExperiment):
         ) = views
         Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
         if self.alpha:
-            grads_x = self._alpha_grads(self._U,Zy, self._weights,X_i,self._U, Zy)
-            grads_y = self._alpha_grads(self._V,Zx, self._weights,Y_i,self._V, Zx)
+            grads_x = self._alpha_grads(self._U, Zy, self._weights, X_i, Zx, Zy)
+            grads_y = self._alpha_grads(self._V, Zx, self._weights, Y_i, Zy, Zx)
         else:
-            grads_x = self._grads(Zx,Zy, self._weights, X_i,self._U, Zy)
-            grads_y = self._grads(Zy,Zx, self._weights, Y_i,self._V, Zx)
+            grads_x = self._grads(Zx, Zy, self._weights, X_i, self._U, Zx, Zy)
+            grads_y = self._grads(Zy, Zx, self._weights, Y_i, self._V, Zy, Zx)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
@@ -96,9 +97,9 @@ class Game(PLSExperiment):
         )
 
     @staticmethod
-    def _grads(zx,zy, weights, X,U, Zy):
-        rewards = X.T@zy
-        covariance = -((zx @ Zy) * U.T) @ weights
+    def _grads(zx, zy, weights, X, U, Zx, Zy):
+        rewards = X.T @ zy
+        covariance = -((zx.T @ Zy) * U.T) @ weights
         grads = rewards + covariance
         return grads / zy.shape[0]
 
@@ -119,9 +120,9 @@ class Game(PLSExperiment):
         return Zx, Zy
 
     @staticmethod
-    def _utils(ux,zy, weights, X,U, Zy):
-        zx=X@ux
-        rewards = zx@zy
-        covariance = -((ux @ U.T)* (zx@Zy)) @ weights
+    def _utils(ux, zy, weights, X, Zx, Zy):
+        zx = X @ ux
+        rewards = zx @ zy
+        covariance = -((zx @ Zy) ** 2) / jnp.diag(Zx.T @ Zy) @ weights
         grads = rewards + covariance
         return grads / zy.shape[0]

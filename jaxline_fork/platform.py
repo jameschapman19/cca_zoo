@@ -24,7 +24,7 @@ from absl import logging
 import chex
 import jax
 
-from jaxline import base_config, utils,train
+from jaxline import base_config, utils, train
 from ml_collections import config_dict
 from ml_collections import config_flags
 import numpy as np

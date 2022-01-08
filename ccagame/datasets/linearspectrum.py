@@ -5,15 +5,14 @@ from scipy.sparse.construct import rand
 from sklearn.model_selection import train_test_split
 
 
-def linear_dataset(cca=False,random_state=0):
+def linear_dataset(cca=False, random_state=0):
     if cca:
         (X, Y), _ = generate_covariance_data(
             5000,
             [50, 50],
             latent_dims=16,
-            correlation=1,
-            decay=0.95,
-            structure='toeplitz',
+            correlation=list(np.linspace(0, 1, 16)),
+            structure="toeplitz",
             sigma=0.5,
             random_state=random_state,
         )

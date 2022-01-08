@@ -88,8 +88,17 @@ class VicRegGame(CCAExperiment):
     @staticmethod
     def _grads(zi, zi_aux, weights, X, Ti, T, T_aux):
         rewards = X.T @ Ti
-        variance = -(jnp.dot(zi, zi) - 1) * (X.T @ zi)
+        variance = -(jnp.dot(zi_aux, zi_aux) - 1) * (X.T @ zi)
         covariance = -((zi_aux @ T_aux) * (X.T @ T)) @ weights
+        grads = rewards + variance + covariance
+        return grads / X.shape[0]
+
+    @staticmethod
+    def _utils(ui, zi_aux, weights, X, Ti, T, T_aux):
+        zi = X @ ui
+        rewards = zi @ Ti
+        variance = -(jnp.dot(zi_aux, zi_aux) / X.shape[0] - 1) * (X.T @ zi)
+        covariance = -((zi_aux @ T_aux) / X.shape[0] * (X.T @ T)) @ weights
         grads = rewards + variance + covariance
         return grads / X.shape[0]
 

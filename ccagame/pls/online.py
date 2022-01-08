@@ -21,6 +21,7 @@ def expm(M):
 
 class Online(PLSExperiment):
     NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
+
     def __init__(
         self,
         mode,
@@ -50,7 +51,9 @@ class Online(PLSExperiment):
         """
         """Initialization function for a Jaxline experiment."""
         self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
+        self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
         self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
+        self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._M = jax.random.normal(
             self.local_rng, (self.dims[0] + self.dims[1], self.dims[0] + self.dims[1])
         )

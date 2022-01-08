@@ -1,14 +1,16 @@
 from functools import partial
 from os import environ
+
 import jax
 import jax.numpy as jnp
 import optax
-from jax import jit
 from ccagame.cca import CCAExperiment
+from jax import jit
 
 
 class Game(CCAExperiment):
     NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
+
     def __init__(
         self,
         mode,
@@ -53,16 +55,10 @@ class Game(CCAExperiment):
         )
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
         self._grads = jax.jit(
-            jax.vmap(
-                self._grads,
-                in_axes=(1,1, 0, None, 1,None, None)
-            )
+            jax.vmap(self._grads, in_axes=(1, 1, 0, None, 1, None, None))
         )
         self._alpha_grads = jax.jit(
-            jax.vmap(
-                jax.grad(self._utils),
-                in_axes=(0,1, 0, None, 1,None, None)
-            )
+            jax.vmap(jax.grad(self._utils), in_axes=(0, 0, None, 1, None))
         )
         self._update_with_grads = jax.jit(
             jax.vmap(
@@ -74,20 +70,20 @@ class Game(CCAExperiment):
         self._opt_state_x = self._optimizer.init(self._U)
         self._opt_state_y = self._optimizer.init(self._V)
         self.learning_rate = learning_rate
-        self.alpha=alpha
-        self.auxiliary_data = self._init_data_stream(self.batch_size,random_state=1)
+        self.alpha = alpha
+        self.auxiliary_data = self._init_data_stream(self.batch_size, random_state=1)
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        X_i_aux,Y_i_aux= next(self.auxiliary_data)
+        X_i_aux, Y_i_aux = next(self.auxiliary_data)  # T.T@T
         Zx, Zy, T = self._get_target(X_i, Y_i, self._U, self._V)
         Zx_aux, Zy_aux, T_aux = self._get_target(X_i_aux, Y_i_aux, self._U, self._V)
         if self.alpha:
-            grads_x = self._alpha_grads(self._U,Zx_aux, self._weights, X_i, T, T,T_aux)
-            grads_y = self._alpha_grads(self._V,Zy_aux, self._weights, Y_i, T, T,T_aux)
+            grads_x = self._alpha_grads(self._U, self._weights, X_i, T, T)
+            grads_y = self._alpha_grads(self._V, self._weights, Y_i, T, T)
         else:
-            grads_x = self._grads(Zx,Zx_aux, self._weights, X_i, T, T,T_aux)
-            grads_y = self._grads(Zy,Zy_aux, self._weights, Y_i, T, T,T_aux)
+            grads_x = self._grads(Zx, Zx_aux, self._weights, X_i, T, T, T_aux)
+            grads_y = self._grads(Zy, Zy_aux, self._weights, Y_i, T, T, T_aux)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
@@ -96,17 +92,17 @@ class Game(CCAExperiment):
         )
 
     @staticmethod
-    def _grads(zi,zi_aux, weights, X, Ti,T,T_aux):
+    def _grads(zi, zi_aux, weights, X, Ti, T, T_aux):
         rewards = X.T @ (Ti - zi)
         covariance = -((zi_aux @ T_aux) * (X.T @ T)) @ weights
         grads = rewards + covariance
         return grads / X.shape[0]
 
     @staticmethod
-    def _utils(ui,zi_aux, weights, X, Ti,T,T_aux):
-        zi=X@ui
-        rewards = jnp.linalg.norm(zi-Ti)**2
-        covariance = -(zi_aux @ T_aux)**2 @ weights
+    def _utils(ui, weights, X, Ti, T):
+        zi = X @ ui
+        rewards = jnp.linalg.norm(zi - Ti) ** 2
+        covariance = -((zi @ T) ** 2) @ weights
         grads = rewards + covariance
         return grads / X.shape[0]
 

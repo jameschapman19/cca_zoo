@@ -2,6 +2,7 @@ from re import I
 import os
 from ccagame import pls
 from absl import app, flags
+from ccagame.datasets.utils import get_training_steps
 from ccagame.utils import log_dir
 from jaxline_fork import platform
 import os
@@ -9,6 +10,7 @@ import wandb
 from absl import flags
 from ml_collections import config_flags
 from jax import profiler
+
 """
 So in general flags are things from the command line
 When we flags.define_(x) we basically tell python if one of the command line arguments is x then process it
@@ -24,6 +26,7 @@ MODEL_DICT = {
     "msg": pls.MSG,
     "power": pls.StochasticPower,
     "incremental": pls.Incremental,
+    "sgha":pls.SGHA
 }
 
 
@@ -39,9 +42,15 @@ def main(argv):
         "batch_size": FLAGS.config.batch_size,
         "learning_rate": FLAGS.config.learning_rate,
         "TV": FLAGS.config.TV,
-        "alpha":FLAGS.config.alpha,
-        "val_interval": FLAGS.config.val_interval
+        "alpha": FLAGS.config.alpha,
+        "val_interval": FLAGS.config.val_interval,
     }
+    FLAGS.config.log_train_data_interval = FLAGS.config.val_interval
+    FLAGS.config.log_tensors_interval = FLAGS.config.val_interval
+    if FLAGS.config.epochs > 0:
+        FLAGS.config.training_steps = get_training_steps(
+            FLAGS.config.data, FLAGS.config.epochs, FLAGS.config.batch_size
+        )
     os.chdir(
         os.path.join(os.path.dirname(os.path.realpath(__file__)), FLAGS.config.data)
     )

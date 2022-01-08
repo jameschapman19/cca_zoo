@@ -7,6 +7,7 @@ from jax import jit
 
 class Incremental(PLSExperiment):
     NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
+
     def __init__(
         self,
         mode,
@@ -33,9 +34,9 @@ class Incremental(PLSExperiment):
         """
         """Initialization function for a Jaxline experiment."""
         self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
-        self._U = (1 / jnp.linalg.norm(self._U, axis=1) * self._U.T).T
+        self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
         self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
-        self._V = (1 / jnp.linalg.norm(self._V, axis=1) * self._V.T).T
+        self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._S = jax.random.normal(self.local_rng, (self.n_components,))
 
     # @partial(jit, static_argnums=(0))
@@ -44,7 +45,7 @@ class Incremental(PLSExperiment):
         self._U, self._V, self._S = self._grads(X_i, Y_i, self._U, self._V, self._S)
 
     @staticmethod
-    #@jit
+    # @jit
     def _grads(X_i, Y_i, U, V, S):
         n_components = U.shape[0]
         xhat = X_i @ U.T

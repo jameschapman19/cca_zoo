@@ -10,13 +10,14 @@ from absl import flags
 from ml_collections import config_flags
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string(name="model", default="game", help="model name")
+flags.DEFINE_string(name="model", default="sgha", help="model name")
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 MODEL_DICT = {
     "game": pca.Game,
     "oja": pca.Oja,
     "gha": pca.GHA,
+    "sgha": pca.SGHA
 }
 
 
@@ -31,8 +32,9 @@ def main(argv):
         "data": FLAGS.config.data,
         "batch_size": FLAGS.config.batch_size,
         "learning_rate": FLAGS.config.learning_rate,
-        "validate": FLAGS.config.validate,
         "TV": FLAGS.config.TV,
+        "alpha": FLAGS.config.alpha,
+        "val_interval": FLAGS.config.val_interval,
     }
     os.chdir(
         os.path.join(os.path.dirname(os.path.realpath(__file__)), FLAGS.config.data)

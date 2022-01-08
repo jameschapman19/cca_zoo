@@ -1,15 +1,18 @@
+project: PLS_MNIST
 program: experiments/pls/train.py
 method: grid
 parameters:
   model:
-    values: ['game','oja', 'power']
+    values: ['game', 'power','msg','sgha']
   config.n_components:
     values: [16]
   config.data:
     values: ['mnist']
   config.epochs:
-    values: [50]
+    values: [10]
   config.learning_rate:
-    values: [1e-1,5e-2,1e-2, 5e-3, 1e-3]
+    values: [1e-2,5e-3, 1e-3, 1e-4]
+  config.val_interval:
+    values: [50]
   config.batch_size:
     values: [256, 512, 1024]

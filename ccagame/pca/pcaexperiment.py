@@ -8,6 +8,7 @@ from jax import jit
 
 class PCAExperiment(BaseExperiment):
     NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
+
     def __init__(
         self,
         mode,
@@ -26,6 +27,7 @@ class PCAExperiment(BaseExperiment):
             n_components=n_components,
             data=data,
             batch_size=batch_size,
+            pca=True,
             **kwargs,
         )
         """Constructs the experiment.
@@ -36,7 +38,7 @@ class PCAExperiment(BaseExperiment):
         """Initialization function for a Jaxline experiment."""
         self.dims = self.X.shape[1]
         self.TV = TV
-        if self.validate:
+        if self.val_interval > 0:
             self._init_ground_truth(self.X, self.Y)
 
     def _init_ground_truth(self, X, Y=None):
@@ -47,7 +49,7 @@ class PCAExperiment(BaseExperiment):
     def _update(self, X_i, Y_i, global_step):
         raise NotImplementedError
 
-    def _get_scalars(self):
+    def _get_scalars(self, global_step):
         scalars = {}
         if self.TV:
             scalars["TV"] = self._TV(self._V, self.X_val)

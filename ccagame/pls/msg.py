@@ -11,6 +11,7 @@ from . import PLSExperiment
 
 class MSG(PLSExperiment):
     NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
+
     def __init__(
         self,
         mode,
@@ -39,14 +40,10 @@ class MSG(PLSExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._U = (
-            jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
-        )
-        self._U = (1 / jnp.linalg.norm(self._U, axis=1) * self._U.T).T
-        self._V = (
-            jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
-        )
-        self._V = (1 / jnp.linalg.norm(self._V, axis=1) * self._V.T).T
+        self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
+        self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
+        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
+        self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._M = self._U.T @ self._V
         self._optimizer = optax.sgd(
             learning_rate=learning_rate, momentum=momentum, nesterov=nesterov

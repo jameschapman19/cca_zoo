@@ -11,7 +11,7 @@ def exponential_dataset(cca=False):
             latent_dims=16,
             correlation=1,
             decay=0.95,
-            structure='toeplitz',
+            structure="toeplitz",
             sigma=0.5,
             random_state=0,
         )

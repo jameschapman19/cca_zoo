@@ -1,4 +1,3 @@
-from ccagame.datasets.utils import get_training_steps
 from jaxline.base_config import get_base_config
 from ml_collections import config_dict
 
@@ -8,15 +7,13 @@ def get_config() -> config_dict.ConfigDict:
     config = get_base_config()
 
     # these are given by wandb
-    config.learning_rate = 1e-3
+    config.learning_rate = 5e-3
     config.num_devices = 1
     config.n_components = 16
-    config.batch_size = 256
+    config.batch_size = 64
     config.data = "linear"
     config.training_steps = 10000
-    config.epochs = None
-    if config.epochs is not None:
-        config.training_steps = get_training_steps()
+    config.epochs = 100
     config.val_interval = 50
     config.TCC = True
     config.alpha = False
@@ -25,6 +22,7 @@ def get_config() -> config_dict.ConfigDict:
     config.checkpoint_dir = "jaxlog"
     config.train_checkpoint_all_hosts = False
     config.interval_type = "steps"
+    config.log_train_data_interval = 50
     config.log_tensors_interval = 50
     config.lock()
     return config

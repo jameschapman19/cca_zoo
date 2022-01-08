@@ -3,13 +3,14 @@ from re import I
 
 from absl import app, flags
 from ccagame import cca
+from ccagame.datasets.utils import get_training_steps
 from ccagame.utils import log_dir
 from jaxline_fork import platform
 from ml_collections import config_flags
 import wandb
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string(name="model", default="game", help="model name")
+flags.DEFINE_string(name="model", default="sgha", help="model name")
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 MODEL_DICT = {
@@ -33,10 +34,18 @@ def main(argv):
         "batch_size": FLAGS.config.batch_size,
         "learning_rate": FLAGS.config.learning_rate,
         "TCC": FLAGS.config.TCC,
-        "alpha":FLAGS.config.alpha,
-        "val_interval": FLAGS.config.val_interval
+        "alpha": FLAGS.config.alpha,
+        "val_interval": FLAGS.config.val_interval,
     }
-    os.chdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), FLAGS.config.data))
+    FLAGS.config.log_train_data_interval = FLAGS.config.val_interval
+    FLAGS.config.log_tensors_interval = FLAGS.config.val_interval
+    if FLAGS.config.epochs > 0:
+        FLAGS.config.training_steps = get_training_steps(
+            FLAGS.config.data, FLAGS.config.epochs, FLAGS.config.batch_size
+        )
+    os.chdir(
+        os.path.join(os.path.dirname(os.path.realpath(__file__)), FLAGS.config.data)
+    )
     os.chdir(log_dir())
     FLAGS.config.checkpoint_dir = os.getcwd()
     platform.main(MODEL_DICT[FLAGS.model], argv)
