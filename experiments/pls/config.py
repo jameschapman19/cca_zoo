@@ -8,14 +8,14 @@ def get_config() -> config_dict.ConfigDict:
     config.random_seed = 42
 
     # these are given by wandb
-    config.learning_rate = 1e-3
+    config.learning_rate = 5e-2
     config.num_devices = 1
     config.n_components = 16
-    config.batch_size = 1
+    config.batch_size = 1000
     config.data = "exponential"
-    config.training_steps = 10000
-    config.epochs = 5
-    config.val_interval = 50
+    config.training_steps = 1000
+    config.epochs = 0
+    config.val_interval = 10
     config.TV = True
     config.alpha = False
 

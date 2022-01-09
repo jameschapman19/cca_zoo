@@ -9,7 +9,7 @@ from jax import jit
 from . import PLSExperiment
 
 
-class Game(PLSExperiment):
+class AlphaGame(PLSExperiment):
     NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
 
     def __init__(
@@ -25,7 +25,7 @@ class Game(PLSExperiment):
         batch_size=0,
         **kwargs
     ):
-        super(Game, self).__init__(
+        super(AlphaGame, self).__init__(
             mode,
             init_rng=init_rng,
             num_devices=num_devices,
@@ -52,8 +52,8 @@ class Game(PLSExperiment):
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
         self._grads = jax.jit(
             jax.vmap(
-                self._grads,
-                in_axes=(1, 1, 0, None, None, None, None),
+                jax.grad(self._utils),
+                in_axes=(0, 1, 0, None, None, None),
             )
         )
         self._update_with_grads = jax.jit(
@@ -75,21 +75,14 @@ class Game(PLSExperiment):
             Y_i,
         ) = views
         Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)#jnp.corrcoef(Zx,Zy,rowvar=False)
-        grads_x = self._grads(Zx, Zy, self._weights, X_i, self._U, Zx, Zy)
-        grads_y = self._grads(Zy, Zx, self._weights, Y_i, self._V, Zy, Zx)
+        grads_x = self._grads(self._U, Zy, self._weights, X_i, Zx, Zy)
+        grads_y = self._grads(self._V, Zx, self._weights, Y_i, Zy, Zx)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
         self._V, self._opt_state_y = self._update_with_grads(
             self._V, grads_y, self._opt_state_y
         )
-
-    @staticmethod
-    def _grads(zx, zy, weights, X, U, Zx, Zy):
-        rewards = X.T @ zy
-        covariance = -((zx.T @ Zy) * U.T) @ weights
-        grads = rewards + covariance
-        return grads / zy.shape[0]
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
@@ -106,3 +99,11 @@ class Game(PLSExperiment):
         Zx = X @ U.T
         Zy = Y @ V.T
         return Zx, Zy
+
+    @staticmethod
+    def _utils(ux, zy, weights, X, Zx, Zy):
+        zx = X @ ux
+        rewards = zx @ zy
+        covariance = -((zx @ Zy) ** 2) / jnp.diag(Zx.T @ Zy) @ weights
+        grads = rewards + covariance
+        return grads / zy.shape[0]

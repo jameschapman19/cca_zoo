@@ -3,14 +3,14 @@ program: experiments/pls/train.py
 method: grid
 parameters:
   model:
-    values: ['game']
+    values: ['game','alphagame']
   config.data:
     values: ['linear']
-  config.alpha:
-    values: [True, False]
   config.training_steps:
     values: [10000]
   config.learning_rate:
     values: [1e-1,1e-2,1e-3,1e-4,1e-5]
   config.batch_size:
     values: [5000]
+  config.val_interval:
+    values: [50]
