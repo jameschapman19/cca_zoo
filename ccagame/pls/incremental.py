@@ -1,6 +1,8 @@
 from os import stat
 import jax
 import jax.numpy as jnp
+
+from ccagame.pls.utils import incrsvd
 from . import PLSExperiment
 from jax import jit
 
@@ -37,44 +39,30 @@ class Incremental(PLSExperiment):
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
         self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
-        self._S = jax.random.normal(self.local_rng, (self.n_components,))
+        self._S = jnp.zeros(self.n_components)
+        if (max(self.dims[0],self.dims[1])*min(self.dims[0],self.dims[1])**2)<((self.n_components+batch_size)**3):
+            self._grads=self._mat_grads
+        else:
+            self._grads=self._incr_grads
 
-    # @partial(jit, static_argnums=(0))
     def _update(self, views, global_step):
         X_i, Y_i = views
-        self._U, self._V, self._S = self._grads(X_i, Y_i, self._U, self._V, self._S)
+        self._U, self._V, self._S = self._grads(X_i, Y_i, self._U, self._V, self.batch_size*(global_step+1)*self._S)
+        self._S/=(self.batch_size*(global_step+2))
 
     @staticmethod
-    # @jit
-    def _grads(X_i, Y_i, U, V, S):
-        n_components = U.shape[0]
-        xhat = X_i @ U.T
-        x_orth = X_i - X_i @ U.T @ U
-        yhat = Y_i @ V.T
-        y_orth = Y_i - Y_i @ V.T @ V
-        Q = jnp.vstack(
-            (
-                jnp.hstack(
-                    (
-                        jnp.diag(S) + xhat.T @ yhat,
-                        jnp.linalg.norm(y_orth, axis=1).T * xhat.T,
-                    )
-                ),
-                jnp.hstack(
-                    (
-                        (jnp.linalg.norm(x_orth, axis=1).T * yhat.T).T,
-                        jnp.atleast_2d(
-                            jnp.linalg.norm(x_orth, axis=1, keepdims=True)
-                            @ jnp.linalg.norm(y_orth, axis=1, keepdims=True).T
-                        ),
-                    )
-                ),
-            )
-        )
-        U_, S, Vt_ = jnp.linalg.svd(Q)
-        U = U_[:, :n_components].T @ jnp.vstack((U, x_orth / jnp.linalg.norm(x_orth)))
-        V = Vt_.T[:, :n_components].T @ jnp.vstack(
-            (V, y_orth / jnp.linalg.norm(y_orth))
-        )
-        S = S[:n_components]
-        return U, V, S
+    @jit
+    def _incr_grads(X_i, Y_i, U, V, S):
+        x_hat = X_i @ U.T
+        x_orth = X_i - x_hat @ U
+        y_hat = Y_i @ V.T
+        y_orth = Y_i - y_hat @ V
+        return incrsvd(x_hat,y_hat,x_orth,y_orth,U,V,S)
+
+    @staticmethod
+    @jit
+    def _mat_grads(X_i, Y_i, U, V, S):
+        n_components=U.shape[0]
+        M_hat=X_i.T@Y_i+U.T@jnp.diag(S)@V
+        U,S,Vt=jnp.linalg.svd(M_hat)
+        return U[:, :n_components].T,Vt[:n_components,:],S[:n_components]

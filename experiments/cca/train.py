@@ -10,7 +10,7 @@ from ml_collections import config_flags
 import wandb
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string(name="model", default="sgha", help="model name")
+flags.DEFINE_string(name="model", default="altgame", help="model name")
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 MODEL_DICT = {
@@ -19,6 +19,7 @@ MODEL_DICT = {
     "genoja": cca.GenOja,
     "sgha": cca.SGHA,
     "appgrad": cca.AppGrad,
+    "altgame": cca.AltGame,
 }
 
 

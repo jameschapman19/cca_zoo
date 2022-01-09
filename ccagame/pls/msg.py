@@ -6,6 +6,8 @@ import jax.numpy as jnp
 import optax
 from jax import jit
 
+from ccagame.pls.utils import incrsvd
+
 from . import PLSExperiment
 
 
@@ -44,31 +46,31 @@ class MSG(PLSExperiment):
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
         self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
-        self._M = self._U.T @ self._V
-        self._optimizer = optax.sgd(
-            learning_rate=learning_rate, momentum=momentum, nesterov=nesterov
-        )
-        self._opt_state = self._optimizer.init(self._M)
+        self._S = jax.random.normal(self.local_rng, (self.n_components,))
+        if (max(self.dims[0],self.dims[1])*min(self.dims[0],self.dims[1])**2)<((self.n_components+batch_size)**3):
+            self._grads=self._mat_grads
+        else:
+            self._grads=self._incr_grads
+        self.learning_rate=learning_rate
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        grads = self._grads(X_i, Y_i)
-        self._M, self._U, self._V, self._opt_state = self._update_with_grads(
-            self._M, grads, self._opt_state
-        )
-
+        self._U, self._V, self._S = self._grads(X_i, Y_i, self._U, self._V, self.learning_rate)
+        
     @staticmethod
     @jit
-    def _grads(X_i, Y_i):
-        return X_i.T @ Y_i
+    def _incr_grads(X_i, Y_i, U, V, lr):
+        x_hat = jnp.sqrt(lr)*X_i @ U.T
+        x_orth = jnp.sqrt(lr)*X_i - x_hat @ U
+        y_hat = jnp.sqrt(lr)*Y_i @ V.T
+        y_orth = jnp.sqrt(lr)*Y_i - y_hat @ V
+        return incrsvd(x_hat,y_hat,x_orth,y_orth,U,V, jnp.ones(U.shape[0]))
+    
+    @staticmethod
+    @jit
+    def _mat_grads(X_i, Y_i, U, V, lr):
+        n_components=U.shape[0]
+        M_hat=lr*X_i.T@Y_i+U.T@V
+        U,S,Vt=jnp.linalg.svd(M_hat)
+        return U[:, :n_components].T,Vt[:n_components,:],S[:n_components]
 
-    @partial(jit, static_argnums=(0))
-    def _update_with_grads(self, Mi, grads, opt_state):
-        """Compute and apply updates with optax optimizer.
-        Wrap in jax.vmap for k_per_device dimension."""
-        updates, opt_state = self._optimizer.update(grads, opt_state)
-        Mi_new = optax.apply_updates(Mi, updates)
-        U, _, Vt = jnp.linalg.svd(Mi_new)
-        U = U[:, : self.n_components].T
-        V = Vt[: self.n_components]
-        return Mi_new, U, V, opt_state

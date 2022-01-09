@@ -59,8 +59,8 @@ class PLSExperiment(BaseExperiment):
     def _update(self, views, global_step):
         raise NotImplementedError
 
-    def _get_scalars(self, global_step):  # self._U@self._U.T
-        scalars = {}  # self._U@self.X.T@self.Y@self._V.T
+    def _get_scalars(self, global_step):
+        scalars = {}
         if global_step == 0 or (global_step + 1) % self.val_interval == 0:
             if self.TV:
                 scalars["TV train"] = self._TV(self._U, self._V, self.X, self.Y)
@@ -88,18 +88,27 @@ class PLSExperiment(BaseExperiment):
         return scalars
 
     @staticmethod
-    @jit
+    #@jit
     def _TV(U, V, X_val, Y_val):
         dof = X_val.shape[0]
         Qu, Ru = jnp.linalg.qr(U.T)
         Su = jnp.sign(jnp.sign(jnp.diag(Ru)) + 0.5)
         Qv, Rv = jnp.linalg.qr(V.T)
         Sv = jnp.sign(jnp.sign(jnp.diag(Rv)) + 0.5)
-        return jnp.sum(jnp.abs((Qu @ jnp.diag(Su)).T @ X_val.T @ Y_val @ (Qv @ jnp.diag(Sv)))) / dof
+        return jnp.trace(jnp.atleast_2d((Qu @ jnp.diag(Su)).T @ X_val.T @ Y_val @ (Qv @ jnp.diag(Sv)))) / dof
 
     def save_outputs(self):
         np.savetxt("U.csv", self._U, delimiter=",")
         np.savetxt("V.csv", self._V, delimiter=",")
+
+    @staticmethod
+    @jit
+    def _sum_cosine_similarities(U, U_correct):
+        n_components = U.shape[0]
+        cosine_similarities = jnp.diag(
+            jnp.corrcoef(U.T, U_correct, rowvar=False)[n_components:, :n_components]
+        )
+        return jnp.sum(jnp.abs(cosine_similarities))
 
     def evaluate(
         self,

@@ -82,7 +82,7 @@ class Game(PLSExperiment):
             X_i,
             Y_i,
         ) = views
-        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
+        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)#jnp.corrcoef(Zx,Zy,rowvar=False)
         if self.alpha:
             grads_x = self._alpha_grads(self._U, Zy, self._weights, X_i, Zx, Zy)
             grads_y = self._alpha_grads(self._V, Zx, self._weights, Y_i, Zy, Zx)

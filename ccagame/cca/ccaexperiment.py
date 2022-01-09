@@ -5,6 +5,7 @@ import numpy as np
 from cca_zoo.models import CCA
 from ccagame.baseexperiment import BaseExperiment
 from jax import jit
+
 from .utils import _TCC
 
 
@@ -80,6 +81,15 @@ class CCAExperiment(BaseExperiment):
                 self._V, self.correct_V
             )
         return scalars
+
+    @staticmethod
+    @jit
+    def _sum_cosine_similarities(U, U_correct):
+        n_components = U.shape[0]
+        cosine_similarities = jnp.diag(
+            jnp.corrcoef(U.T, U_correct, rowvar=False)[n_components:, :n_components]
+        )
+        return jnp.sum(jnp.abs(cosine_similarities))
 
     def save_outputs(self):
         np.savetxt("U.csv", self._U, delimiter=",")

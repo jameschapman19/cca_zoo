@@ -48,11 +48,10 @@ class SGHA(CCAExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self.W = (
-            jax.random.normal(
-                self.local_rng, (self.n_components, self.dims[0] + self.dims[1])
-            )
-        ) / 1000
+        self._W = jax.random.normal(
+            self.local_rng, (self.n_components, self.dims[0] + self.dims[1])
+        )
+        self._W /= jnp.linalg.norm(self._W, axis=1, keepdims=True)
         self._update_with_grads = jax.jit(
             jax.vmap(
                 self._update_with_grads,
@@ -60,15 +59,15 @@ class SGHA(CCAExperiment):
             )
         )
         self._optimizer = optax.sgd(learning_rate=learning_rate)
-        self._opt_state = self._optimizer.init(self.W)
+        self._opt_state = self._optimizer.init(self._W)
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        w_grad = self._grad(X_i, Y_i, self.W)
-        self.W, self._opt_state = self._update_with_grads(
-            self.W, w_grad, self._opt_state
+        w_grad = self._grad(X_i, Y_i, self._W)
+        self._W, self._opt_state = self._update_with_grads(
+            self._W, w_grad, self._opt_state
         )
-        self._U, self._V = self._split_eigenvector(self.W)
+        self._U, self._V = self._split_eigenvector(self._W)
 
     @staticmethod
     @jit

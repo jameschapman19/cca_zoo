@@ -100,7 +100,7 @@ class BaseExperiment(AbstractExperiment):
             )
 
     @staticmethod
-    #@jit
+    @jit
     def _correct_eigenvector_streak(U, U_correct):
         n_components = U.shape[0]
         cosine_similarities = jnp.diag(
