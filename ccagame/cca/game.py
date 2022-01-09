@@ -75,7 +75,7 @@ class Game(CCAExperiment):
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        X_i_aux, Y_i_aux = next(self.auxiliary_data)  # T.T@T
+        X_i_aux, Y_i_aux = next(self.auxiliary_data)
         Zx, Zy, T = self._get_target(X_i, Y_i, self._U, self._V)
         Zx_aux, Zy_aux, T_aux = self._get_target(X_i_aux, Y_i_aux, self._U, self._V)
         if self.alpha:
@@ -93,10 +93,10 @@ class Game(CCAExperiment):
 
     @staticmethod
     def _grads(zi, zi_aux, weights, X, Ti, T, T_aux):
-        rewards = X.T @ (Ti - zi)
+        rewards = X.T @ Ti
         covariance = -((zi_aux @ T_aux) * (X.T @ T)) @ weights
         grads = rewards + covariance
-        return grads / X.shape[0]
+        return grads
 
     @staticmethod
     def _utils(ui, weights, X, Ti, T):
@@ -104,7 +104,7 @@ class Game(CCAExperiment):
         rewards = jnp.linalg.norm(zi - Ti) ** 2
         covariance = -((zi @ T) ** 2) @ weights
         grads = rewards + covariance
-        return grads / X.shape[0]
+        return grads
 
     @staticmethod
     @jit

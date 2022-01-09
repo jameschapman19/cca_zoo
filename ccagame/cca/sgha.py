@@ -67,6 +67,9 @@ class SGHA(CCAExperiment):
         self._W, self._opt_state = self._update_with_grads(
             self._W, w_grad, self._opt_state
         )
+        norm = jnp.linalg.norm(self._W, axis=1, keepdims=True)
+        norm = norm.at[norm < 1].set(1)
+        self._W /= norm
         self._U, self._V = self._split_eigenvector(self._W)
 
     @staticmethod

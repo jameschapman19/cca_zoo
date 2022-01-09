@@ -42,7 +42,9 @@ class AltGame(CCAExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._weights = jnp.ones((self.n_components, self.n_components))
+        self._weights = jnp.ones((self.n_components, self.n_components)) - jnp.eye(
+            self.n_components
+        )
         self._weights = self._weights.at[jnp.triu_indices(self.n_components, 1)].set(0)
         # generates weights for each component on each device
         self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
@@ -51,7 +53,7 @@ class AltGame(CCAExperiment):
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
         self._grads = jax.jit(
-            jax.vmap(self._grads, in_axes=(1,0, None, None, 1, 1, None))
+            jax.vmap(self._grads, in_axes=(1, 0, None, 1, None, None))
         )
         self._update_with_grads = jax.jit(
             jax.vmap(
@@ -66,12 +68,12 @@ class AltGame(CCAExperiment):
         self.auxiliary_data = self._init_data_stream(self.batch_size, random_state=1)
 
     def _update(self, views, global_step):
-        X_i, Y_i = views#jnp.corrcoef(Zx,rowvar=False)[16:,:16]
-        X_i_aux, Y_i_aux = next(self.auxiliary_data)#T.T@T[:,1]
-        Zx, Zy, T = self._get_target(X_i, Y_i, self._U, self._V)
-        _, _, T_aux = self._get_target(X_i_aux, Y_i_aux, self._U, self._V)
-        grads_x = self._grads(Zx,self._weights, X_i, self._U, T, T_aux, T_aux)
-        grads_y = self._grads(Zy,self._weights, Y_i, self._V, T, T_aux, T_aux)
+        X_i, Y_i = views
+        X_i_aux, Y_i_aux = next(self.auxiliary_data)  # jnp.corrcoef(Zx,Zy,rowvar=False)
+        Zx, Zy, T = self._get_target(X_i, Y_i, self._U, self._V)#T.T@T
+        Zx_aux, Zy_aux, T_aux = self._get_target(X_i_aux, Y_i_aux, self._U, self._V)
+        grads_x = self._grads(Zx, self._weights, X_i, T, T, Zx)
+        grads_y = self._grads(Zy, self._weights, Y_i, T, T, Zy)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
@@ -80,10 +82,10 @@ class AltGame(CCAExperiment):
         )
 
     @staticmethod
-    def _grads(zi,weights, X, U, Ti, Ti_aux, T_aux):
+    def _grads(zi, weights, X, Ti, T, Z):
         n = X.shape[0]
-        rewards = X.T @ Ti
-        covariance = -((X.T@X @ U.T)*(Ti_aux @ T_aux)) @ weights
+        rewards = X.T @ (Ti - zi)
+        covariance = -((Ti @ T) * (X.T @ (T - Z))) @ weights
         grads = rewards + covariance
         return grads/n
 
@@ -97,7 +99,7 @@ class AltGame(CCAExperiment):
         Zx = X @ U.T
         Zy = Y @ V.T
         T = Zx + Zy
-        T/=jnp.linalg.norm(T,axis=0,keepdims=True)
+        T /= jnp.linalg.norm(T, axis=0, keepdims=True)
         return Zx, Zy, T
 
     @partial(jit, static_argnums=(0))
@@ -105,5 +107,5 @@ class AltGame(CCAExperiment):
         # we have gradient of utilities so we negate for gradient descent
         updates, opt_state = self._optimizer.update(-grads, opt_state)
         ui_new = optax.apply_updates(ui, updates)
-        #ui_new /= jnp.linalg.norm(ui_new, keepdims=True)
+        # ui_new /= jnp.linalg.norm(ui_new, keepdims=True)
         return ui_new, opt_state

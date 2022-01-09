@@ -11,10 +11,10 @@ def get_config() -> config_dict.ConfigDict:
     config.learning_rate = 1e-3
     config.num_devices = 1
     config.n_components = 16
-    config.batch_size = 128
-    config.data = "mnist"
+    config.batch_size = 1
+    config.data = "exponential"
     config.training_steps = 10000
-    config.epochs = 1
+    config.epochs = 5
     config.val_interval = 50
     config.TV = True
     config.alpha = False

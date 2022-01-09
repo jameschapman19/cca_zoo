@@ -44,10 +44,10 @@ class PLSExperiment(BaseExperiment):
             self._init_ground_truth(self.X, self.Y)
 
     def _init_ground_truth(self, X, Y):
-        U, _, Vt = jnp.linalg.svd(X.T @ Y)  # U.T@X.T@Y@Vt.T
+        U, _, Vt = jnp.linalg.svd(X.T @ Y)
         self.correct_U = U[
             :, : self.n_components
-        ]  # jnp.linalg.norm(self.correct_U,axis=0)
+        ]
         self.correct_V = Vt[: self.n_components, :].T
         if self.TV:
             self.TV_train = self._TV(self.correct_U.T, self.correct_V.T, self.X, self.Y)
@@ -88,7 +88,7 @@ class PLSExperiment(BaseExperiment):
         return scalars
 
     @staticmethod
-    #@jit
+    @jit
     def _TV(U, V, X_val, Y_val):
         dof = X_val.shape[0]
         Qu, Ru = jnp.linalg.qr(U.T)

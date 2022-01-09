@@ -34,6 +34,7 @@ class BaseExperiment(AbstractExperiment):
         pca=False,
         cca=False,
         val_interval=0,
+        random_state=0,
         **kwargs,
     ):
         super(BaseExperiment, self).__init__(mode=mode, init_rng=init_rng)
@@ -56,10 +57,10 @@ class BaseExperiment(AbstractExperiment):
             num_batches=num_batches,
             pca=pca,
             cca=cca,
-        )
+            random_state=random_state)
         self.batch_ids = batch_ids
         self.path = path
-        self.data_stream = self._init_data_stream(self.batch_size)
+        self.data_stream = self._init_data_stream(self.batch_size,random_state=random_state)
         self.val_interval = val_interval
 
     @abstractmethod
@@ -74,17 +75,18 @@ class BaseExperiment(AbstractExperiment):
         num_batches=None,
         pca=False,
         cca=False,
+        random_state=0,
         **kwargs,
     ):
         batch_ids = None
         if data == "mnist":
-            X, Y, X_val, Y_val = mnist_dataset(pca=pca)
+            X, Y, X_val, Y_val = mnist_dataset(pca=pca, random_state=random_state)
         elif data == "xrmb":
             X, Y, X_val, Y_val = xrmb_dataset()
         elif data == "linear":
-            X, Y, X_val, Y_val = linear_dataset(cca=cca)
+            X, Y, X_val, Y_val = linear_dataset(cca=cca, random_state=random_state)
         elif data == "exponential":
-            X, Y, X_val, Y_val = exponential_dataset(cca=cca)
+            X, Y, X_val, Y_val = exponential_dataset(cca=cca, random_state=random_state)
         elif data == "ukbb":
             X, Y, X_val, Y_val, batch_ids = ukbb_dataset(num_batches, path, batch_size)
         else:
