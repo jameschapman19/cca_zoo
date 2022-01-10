@@ -49,8 +49,10 @@ class AppGrad(CCAExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
-        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
+        self._U = jax.random.normal(self.init_rng, (self.n_components, self.dims[0]))
+        self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
+        self._V = jax.random.normal(self.init_rng, (self.n_components, self.dims[1]))
+        self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._U_tilde = jnp.zeros_like(self._U)
         self._V_tilde = jnp.zeros_like(self._V)
         self._update_with_grads = jax.jit(

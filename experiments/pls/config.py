@@ -5,14 +5,14 @@ from ml_collections import config_dict
 def get_config() -> config_dict.ConfigDict:
     # get the basic jax config
     config = get_base_config()
-    config.random_seed = 42
+    config.random_seed = 0
 
     # these are given by wandb
-    config.learning_rate = 5e-2
+    config.learning_rate = 1e-3
     config.num_devices = 1
     config.n_components = 16
-    config.batch_size = 1000
-    config.data = "exponential"
+    config.batch_size = 1
+    config.data = "linear"
     config.training_steps = 1000
     config.epochs = 0
     config.val_interval = 10

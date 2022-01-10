@@ -42,11 +42,11 @@ class MSG(PLSExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
+        self._U = jax.random.normal(self.init_rng, (self.n_components, self.dims[0]))
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
-        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
+        self._V = jax.random.normal(self.init_rng, (self.n_components, self.dims[1]))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
-        self._S = jax.random.normal(self.local_rng, (self.n_components,))
+        self._S = jax.random.normal(self.init_rng, (self.n_components,))
         if (max(self.dims[0],self.dims[1])*min(self.dims[0],self.dims[1])**2)<((self.n_components+batch_size)**3):
             self._grads=self._mat_grads
         else:

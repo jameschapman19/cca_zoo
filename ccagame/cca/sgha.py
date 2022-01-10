@@ -49,7 +49,7 @@ class SGHA(CCAExperiment):
         """
         """Initialization function for a Jaxline experiment."""
         self._W = jax.random.normal(
-            self.local_rng, (self.n_components, self.dims[0] + self.dims[1])
+            self.init_rng, (self.n_components, self.dims[0] + self.dims[1])
         )
         self._W /= jnp.linalg.norm(self._W, axis=1, keepdims=True)
         self._update_with_grads = jax.jit(

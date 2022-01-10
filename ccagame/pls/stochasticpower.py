@@ -38,9 +38,9 @@ class StochasticPower(PLSExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
+        self._U = jax.random.normal(self.init_rng, (self.n_components, self.dims[0]))
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
-        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
+        self._V = jax.random.normal(self.init_rng, (self.n_components, self.dims[1]))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._optimizer = optax.sgd(
             learning_rate=learning_rate, momentum=momentum, nesterov=nesterov

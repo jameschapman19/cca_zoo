@@ -49,12 +49,11 @@ class GenOja(CCAExperiment):
         """Initialization function for a Jaxline experiment."""
         self.W = (
             jax.random.normal(
-                self.local_rng, (self.n_components, self.dims[0] + self.dims[1])
+                self.init_rng, (self.n_components, self.dims[0] + self.dims[1])
             )
-            / 10000
         )
         self.V = jax.random.normal(
-            self.local_rng, (self.n_components, self.dims[0] + self.dims[1])
+            self.init_rng, (self.n_components, self.dims[0] + self.dims[1])
         )
         self.V = self.V / jnp.linalg.norm(self.V, keepdims=True, axis=1)
 

@@ -46,12 +46,10 @@ class VicRegGame(CCAExperiment):
         )
         self._weights = self._weights.at[jnp.triu_indices(self.n_components, 1)].set(0)
         # generates weights for each component on each device
-        self._U = (
-            jax.random.normal(self.local_rng, (self.n_components, self.dims[0])) / 10000
-        )
-        self._V = (
-            jax.random.normal(self.local_rng, (self.n_components, self.dims[1])) / 10000
-        )
+        self._U = jax.random.normal(self.init_rng, (self.n_components, self.dims[0]))
+        self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
+        self._V = jax.random.normal(self.init_rng, (self.n_components, self.dims[1]))
+        self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
         self._grads = jax.jit(
             jax.vmap(

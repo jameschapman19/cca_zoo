@@ -45,10 +45,10 @@ class BaseExperiment(AbstractExperiment):
         """
         """Initialization function for a Jaxline experiment."""
 
+        self.init_rng=init_rng
         self.batch_size = batch_size
         self.n_components = n_components
         self.data = data
-        self.local_rng = jax.random.fold_in(PRNGKey(123), jax.host_id())
         self.num_devices = num_devices
         self.X, self.Y, self.X_val, self.Y_val, batch_ids = self._init_data(
             self.data,

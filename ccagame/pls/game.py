@@ -45,9 +45,9 @@ class Game(PLSExperiment):
         )
         self._weights = self._weights.at[jnp.triu_indices(self.n_components, 1)].set(0)
         # generates weights for each component on each device
-        self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
+        self._U = jax.random.normal(self.init_rng, (self.n_components, self.dims[0]))
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
-        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
+        self._V = jax.random.normal(self.init_rng, (self.n_components, self.dims[1]))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
         self._grads = jax.jit(
@@ -74,7 +74,7 @@ class Game(PLSExperiment):
             X_i,
             Y_i,
         ) = views
-        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)#jnp.corrcoef(Zx,Zy,rowvar=False)
+        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
         grads_x = self._grads(Zx, Zy, self._weights, X_i, self._U, Zx, Zy)
         grads_y = self._grads(Zy, Zx, self._weights, Y_i, self._V, Zy, Zx)
         self._U, self._opt_state_x = self._update_with_grads(

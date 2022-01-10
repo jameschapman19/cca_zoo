@@ -10,6 +10,7 @@ import wandb
 from absl import flags
 from ml_collections import config_flags
 from jax import profiler
+import numpy as np
 
 """
 So in general flags are things from the command line
@@ -19,7 +20,7 @@ Anything that is defined in the python script gets put into the FLAGS dictionary
 
 FLAGS = flags.FLAGS
 # change the default to your own config file path if you
-flags.DEFINE_string(name="model", default="power", help="model name")
+flags.DEFINE_string(name="model", default="sgha", help="model name")
 
 MODEL_DICT = {
     "game": pls.Game,
