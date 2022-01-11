@@ -5,7 +5,7 @@ import numpy as np
 from cca_zoo.models import PLS
 from ccagame.baseexperiment import BaseExperiment
 from jax import jit
-
+from ccagame.datasets.xrmb import xrmb_true
 
 class PLSExperiment(BaseExperiment):
     NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
@@ -44,13 +44,17 @@ class PLSExperiment(BaseExperiment):
             self._init_ground_truth(self.X, self.Y)
 
     def _init_ground_truth(self, X, Y):
-        U, _, Vt = jnp.linalg.svd(X.T @ Y)
-        self.correct_U = U[
-            :, : self.n_components
-        ]
-        self.correct_V = Vt[: self.n_components, :].T
+        if self.data=='xrmb':
+            self.correct_U,self.correct_V=xrmb_true()
+        else:
+            U, _, Vt = jnp.linalg.svd(X.T @ Y)
+            self.correct_U = U[
+                :, : self.n_components
+            ]
+            self.correct_V = Vt[: self.n_components, :].T
         if self.TV:
-            self.TV_train = self._TV(self.correct_U.T, self.correct_V.T, self.X, self.Y)
+            if self.data!='xrmb':
+                self.TV_train = self._TV(self.correct_U.T, self.correct_V.T, self.X, self.Y)
             self.TV_val = self._TV(
                 self.correct_U.T, self.correct_V.T, self.X_val, self.Y_val
             )
@@ -63,9 +67,10 @@ class PLSExperiment(BaseExperiment):
         scalars = {}
         if global_step == 0 or (global_step + 1) % self.val_interval == 0:
             if self.TV:
-                scalars["TV train"] = self._TV(self._U, self._V, self.X, self.Y)
+                if self.data!='xrmb':
+                    scalars["TV train"] = self._TV(self._U, self._V, self.X, self.Y)
+                    scalars["PV train"] = scalars["TV train"] / self.TV_train
                 scalars["TV val"] = self._TV(self._U, self._V, self.X_val, self.Y_val)
-                scalars["PV train"] = scalars["TV train"] / self.TV_train
                 scalars["PV val"] = scalars["TV val"] / self.TV_val
             scalars["correct x"] = self._correct_eigenvector_streak(
                 self._U, self.correct_U

@@ -91,7 +91,7 @@ class Game(CCAExperiment):
 
     @staticmethod
     def _grads(zi, zi_aux, weights, X, Ti, T, T_aux):
-        rewards = X.T @ Ti
+        rewards = X.T @ (Ti-zi)
         covariance = -((zi_aux @ T_aux) * (X.T @ T)) @ weights
         grads = rewards + covariance
         return grads

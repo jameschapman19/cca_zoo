@@ -10,7 +10,7 @@ def exponential_dataset(cca=False,random_state=0):
             [50, 50],
             latent_dims=16,
             correlation=1,
-            decay=0.95,
+            decay=0.9,
             structure="toeplitz",
             sigma=0.5,
             random_state=random_state,
@@ -20,7 +20,7 @@ def exponential_dataset(cca=False,random_state=0):
             1000,
             [50, 50],
             latent_dims=16,
-            decay=0.95,
+            decay=0.9,
             random_state=random_state,
         )
     X, X_te, Y, Y_te = train_test_split(X, Y, test_size=0.2)

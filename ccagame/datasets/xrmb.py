@@ -1,6 +1,7 @@
-from scipy.io import loadmat
-import numpy as np
 import os
+
+import numpy as np
+from scipy.io import loadmat
 
 
 def xrmb():
@@ -34,3 +35,9 @@ def xrmb_dataset():
     X_te = X_te.astype(np.float32)
     Y_te = Y_te.astype(np.float32)
     return X, Y, X_te, Y_te
+
+
+def xrmb_true():
+    U = np.load(os.path.dirname(os.path.realpath(__file__)) + "/U.npy")
+    V = np.load(os.path.dirname(os.path.realpath(__file__)) + "/V.npy")
+    return U, V
