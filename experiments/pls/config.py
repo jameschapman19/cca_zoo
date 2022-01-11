@@ -12,7 +12,7 @@ def get_config() -> config_dict.ConfigDict:
     config.num_devices = 1
     config.n_components = 16
     config.batch_size = 60000
-    config.data = "mnist"
+    config.data = "xrmb"
     config.training_steps = 10000
     config.epochs = 1
     config.val_interval = 1
