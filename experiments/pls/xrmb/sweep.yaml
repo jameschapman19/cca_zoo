@@ -11,9 +11,9 @@ parameters:
   config.TV:
     values: [False]
   config.epochs:
-    values: [5]
+    values: [10]
   config.learning_rate:
-    values: [1e-2,1e-3,1e-4]
+    values: [1e-2,1e-3,1e-4, 1e-5]
   config.val_interval:
     values: [50]
   config.batch_size:
