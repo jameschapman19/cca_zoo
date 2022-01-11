@@ -17,4 +17,4 @@ parameters:
   config.val_interval:
     values: [50]
   config.batch_size:
-    values: [32, 256, 1024]
+    values: [16, 256, 1024]

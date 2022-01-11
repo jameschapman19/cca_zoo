@@ -7,10 +7,10 @@ parameters:
   config.data:
     values: ['linear']
   config.training_steps:
-    values: [1000]
+    values: [10000]
   config.val_interval:
     values: [10]
   config.learning_rate:
-    values: [5e-2,5e-3,5e-4]
+    values: [1e-3,1e-2]
   config.batch_size:
     values: [1]

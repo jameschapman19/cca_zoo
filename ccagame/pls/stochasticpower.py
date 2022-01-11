@@ -43,7 +43,7 @@ class StochasticPower(PLSExperiment):
         self._V = jax.random.normal(self.init_rng, (self.n_components, self.dims[1]))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._optimizer = optax.sgd(
-            learning_rate=learning_rate, momentum=momentum, nesterov=nesterov
+            learning_rate=learning_rate
         )
         self._opt_state_x = self._optimizer.init(self._U)
         self._opt_state_y = self._optimizer.init(self._V)
