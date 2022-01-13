@@ -5,7 +5,7 @@ parameters:
   model:
     values: ['gameR','alphagameR']
   config.data:
-    values: ['linear']
+    values: ['exponential']
   config.training_steps:
     values: [2000]
   config.val_interval:
