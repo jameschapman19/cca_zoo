@@ -41,3 +41,11 @@ def xrmb_true():
     U = np.load(os.path.dirname(os.path.realpath(__file__)) + "/U.npy")
     V = np.load(os.path.dirname(os.path.realpath(__file__)) + "/V.npy")
     return U, V
+
+def main():
+    X, Y, X_te, Y_te=xrmb_dataset()
+    _,S,_=np.linalg.svd(X.T@Y)
+    print()
+
+if __name__ == "__main__":
+    main()

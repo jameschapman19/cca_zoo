@@ -9,7 +9,7 @@ from jax import jit
 from . import PLSExperiment
 
 
-class AlphaGame(PLSExperiment):
+class AlphaGameR(PLSExperiment):
     NON_BROADCAST_CHECKPOINT_ATTRS = {"_U": "U", "_V": "V"}
 
     def __init__(
@@ -25,7 +25,7 @@ class AlphaGame(PLSExperiment):
         batch_size=0,
         **kwargs
     ):
-        super(AlphaGame, self).__init__(
+        super(AlphaGameR, self).__init__(
             mode,
             init_rng=init_rng,
             num_devices=num_devices,
@@ -84,10 +84,12 @@ class AlphaGame(PLSExperiment):
             self._V, grads_y, self._opt_state_y
         )
 
+
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
         """Compute and apply updates with optax optimizer.
         Wrap in jax.vmap for k_per_device dimension."""
+        grads=grads-jnp.dot(grads,ui)*ui
         updates, opt_state = self._optimizer.update(-grads, opt_state)
         ui_new = optax.apply_updates(ui, updates)
         ui_new /= jnp.linalg.norm(ui_new, keepdims=True)

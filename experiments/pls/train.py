@@ -1,16 +1,15 @@
-from re import I
 import os
-from ccagame import pls
+from re import I
+
+import numpy as np
+import wandb
 from absl import app, flags
+from ccagame import pls
 from ccagame.datasets.utils import get_training_steps
 from ccagame.utils import log_dir
-from jaxline_fork import platform
-import os
-import wandb
-from absl import flags
-from ml_collections import config_flags
 from jax import profiler
-import numpy as np
+from jaxline_fork import platform
+from ml_collections import config_flags
 
 """
 So in general flags are things from the command line
@@ -24,11 +23,13 @@ flags.DEFINE_string(name="model", default="game", help="model name")
 
 MODEL_DICT = {
     "game": pls.Game,
-    "alphagame" : pls.AlphaGame,
+    "alphagame": pls.AlphaGame,
     "msg": pls.MSG,
     "power": pls.StochasticPower,
     "incremental": pls.Incremental,
-    "sgha":pls.SGHA
+    "sgha": pls.SGHA,
+    "gameR":pls.GameR,
+    "alphagameR":pls.AlphaGameR
 }
 
 
@@ -44,7 +45,6 @@ def main(argv):
         "batch_size": FLAGS.config.batch_size,
         "learning_rate": FLAGS.config.learning_rate,
         "TV": FLAGS.config.TV,
-        "alpha": FLAGS.config.alpha,
         "val_interval": FLAGS.config.val_interval,
     }
     FLAGS.config.log_train_data_interval = FLAGS.config.val_interval

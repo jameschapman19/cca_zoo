@@ -115,3 +115,11 @@ def mnist_dataset(pca=False, p=392, random_state=0):
         Y_te = X_te[:, p:]
         X_te = X_te[:, :p]
         return X, Y, X_te, Y_te
+
+def main():
+    X, Y, X_te, Y_te=mnist_dataset()
+    _,S,_=np.linalg.svd(X.T@Y)
+    print()
+
+if __name__ == "__main__":
+    main()

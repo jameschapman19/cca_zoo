@@ -5,3 +5,5 @@ from .stochasticpower import StochasticPower
 from .incremental import Incremental
 from .sgha import SGHA
 from .alphagame import AlphaGame
+from .alphagame_r import AlphaGameR
+from .game_r import GameR
