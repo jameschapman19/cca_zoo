@@ -1,4 +1,4 @@
-project: PLS_MNIST
+project: PLS_XRMB
 program: experiments/pls/train.py
 method: grid
 parameters:

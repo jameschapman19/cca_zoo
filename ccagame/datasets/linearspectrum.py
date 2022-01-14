@@ -1,16 +1,16 @@
-from jax._src import random
 import numpy as np
 from cca_zoo.data import generate_covariance_data
+from jax._src import random
 from sklearn.model_selection import train_test_split
 
 
 def linear_dataset(cca=False, random_state=0):
-    N=1000
-    COMPONENTS=16
+    N = 1000
+    COMPONENTS = 50
     if cca:
         (X, Y), _ = generate_covariance_data(
             N,
-            [50, 50],
+            [COMPONENTS, COMPONENTS],
             latent_dims=COMPONENTS,
             correlation=list(np.linspace(0, 1, COMPONENTS)),
             structure="toeplitz",
@@ -18,12 +18,9 @@ def linear_dataset(cca=False, random_state=0):
             random_state=random_state,
         )
     else:
-        (X, Y), _ = generate_covariance_data(
-            N,
-            [50, 50],
-            latent_dims=COMPONENTS,
-            correlation=list(np.linspace(0, 1, COMPONENTS)),
-            random_state=random_state,
-        )
+        k = np.linspace(0, 100, COMPONENTS + 1)
+        Z = np.linalg.qr(np.random.rand(N, COMPONENTS))[0] * k[1:]
+        X = Z @ np.linalg.pinv(np.linalg.qr(np.random.rand(COMPONENTS, COMPONENTS))[0])
+        Y = Z @ np.linalg.pinv(np.linalg.qr(np.random.rand(COMPONENTS, COMPONENTS))[0])
     X, X_te, Y, Y_te = train_test_split(X, Y, test_size=0.2, random_state=random_state)
     return X, Y, X_te, Y_te

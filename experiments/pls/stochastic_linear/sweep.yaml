@@ -1,4 +1,4 @@
-project: PLS_EXPONENTIAL
+project: PLS_Linear
 program: experiments/pls/train.py
 method: grid
 parameters:
@@ -7,7 +7,7 @@ parameters:
   config.data:
     values: ['linear']
   config.training_steps:
-    values: [2000]
+    values: [5000]
   config.val_interval:
     values: [10]
   config.n_components:
@@ -16,3 +16,5 @@ parameters:
     values: [1e-1,1e-2,1e-3]
   config.batch_size:
     values: [1]
+  config.n_components:
+    values: [50]

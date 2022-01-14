@@ -13,7 +13,7 @@ def get_config() -> config_dict.ConfigDict:
     config.n_components = 16
     config.batch_size = 1000
     config.data = "linear"
-    config.training_steps = 1000
+    config.training_steps = 2000
     config.epochs = 0
     config.val_interval = 50
     config.TV = True
