@@ -85,7 +85,7 @@ class SGHA(PLSExperiment):
             - jsp.linalg.block_diag(X_i.T @ X_i, Y_i.T @ Y_i)
         )/ n
         Y = W @ A @ W.T
-        return  W.T @ jnp.triu(Y) - A @ W.T
+        return  W.T @ Y - A @ W.T
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, wi, grads, opt_state):
