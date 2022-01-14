@@ -1,9 +1,9 @@
-project: PLS_XRMB
+project: PLS_MNIST
 program: experiments/pls/train.py
 method: grid
 parameters:
   model:
-    values: ['gameR','alphagameR']
+    values: ['game','alphagame','gameR','alphagameR','sgha','power','msg','incremental']
   config.n_components:
     values: [16]
   config.data:
@@ -11,7 +11,7 @@ parameters:
   config.epochs:
     values: [1]
   config.learning_rate:
-    values: [1e-2,1e-3,1e-4, 1e-5]
+    values: [1e-1,1e-2,1e-3]
   config.val_interval:
     values: [50]
   config.batch_size:
