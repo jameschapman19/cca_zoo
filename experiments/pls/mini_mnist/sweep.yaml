@@ -9,7 +9,7 @@ parameters:
   config.data:
     values: ['mnist']
   config.epochs:
-    values: [10]
+    values: [50]
   config.learning_rate:
     values: [1e-2,1e-3,1e-4,1e-5]
   config.val_interval:

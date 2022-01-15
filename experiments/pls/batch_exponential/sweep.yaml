@@ -7,7 +7,7 @@ parameters:
   config.data:
     values: ['exponential']
   config.training_steps:
-    values: [5000]
+    values: [10000]
   config.val_interval:
     values: [10]
   config.n_components:

@@ -117,7 +117,7 @@ def mnist_dataset(pca=False, p=392, random_state=0):
         return X, Y, X_te, Y_te
 
 def main():
-    X, Y, X_te, Y_te=mnist_dataset()
+    X, Y, X_te, Y_te=mnist_dataset()#S*1
     _,S,_=np.linalg.svd(X.T@Y)
     print()
 

@@ -7,7 +7,7 @@ parameters:
   config.data:
     values: ['linear']
   config.epochs:
-    values: [1]
+    values: [10]
   config.val_interval:
     values: [10]
   config.n_components:

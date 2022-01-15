@@ -6,8 +6,8 @@ parameters:
     values: ['game','alphagame','gameR','alphagameR','sgha','power','msg','incremental']
   config.data:
     values: ['exponential']
-  config.training_steps:
-    values: [10000]
+  config.epochs:
+    values: [10]
   config.val_interval:
     values: [10]
   config.n_components:
