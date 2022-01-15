@@ -10,7 +10,7 @@ from absl import flags
 from ml_collections import config_flags
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string(name="model", default="sgha", help="model name")
+flags.DEFINE_string(name="model", default="oja", help="model name")
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 MODEL_DICT = {

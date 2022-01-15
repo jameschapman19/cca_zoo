@@ -7,13 +7,13 @@ parameters:
   config.data:
     values: ['exponential']
   config.training_steps:
-    values: [5000]
+    values: [10000]
   config.val_interval:
     values: [10]
   config.n_components:
-    values: [16]
+    values: [50]
   config.learning_rate:
-    values: [1e-1,1e-2,1e-3]
+    values: [1e-2,1e-3,1e-4,1e-5]
   config.batch_size:
     values: [1]
   config.n_components:

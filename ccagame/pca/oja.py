@@ -43,18 +43,19 @@ class Oja(PCAExperiment):
         """
         Initialization function for a Jaxline experiment.
         """
-        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims))
+        self._V = jax.random.normal(init_rng, (self.n_components, self.dims))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._optimizer = optax.sgd(
-            learning_rate=learning_rate, momentum=momentum, nesterov=nesterov
+            learning_rate=learning_rate
         )
-        self._opt_state = self._optimizer.init(self._U)
+        self._opt_state = self._optimizer.init(self._V)
 
     def _update(self, inputs, global_step):
         grads = self._grads(inputs, self._V)
         self._V, self._opt_state = self._update_with_grads(
             self._V, grads, self._opt_state
         )
+        self._V = self._orth(self._V)
 
     @staticmethod
     @jit
@@ -67,7 +68,13 @@ class Oja(PCAExperiment):
     def _update_with_grads(self, vi, grads, opt_state):
         """Compute and apply updates with optax optimizer.
         Wrap in jax.vmap for k_per_device dimension."""
-        updates, opt_state = self._optimizer.update(grads, opt_state)
+        updates, opt_state = self._optimizer.update(-grads, opt_state)
         vi_new = optax.apply_updates(vi, updates)
-        vi_new = jnp.linalg.qr(vi_new.T)[0].T
         return vi_new, opt_state
+
+    @staticmethod
+    @jit
+    def _orth(U):
+        Qu, Ru = jnp.linalg.qr(U.T)
+        Su = jnp.sign(jnp.sign(jnp.diag(Ru)) + 0.5)
+        return (Qu @ jnp.diag(Su)).T

@@ -11,8 +11,8 @@ parameters:
   config.epochs:
     values: [10]
   config.learning_rate:
-   values: [1e-1,1e-2,1e-3]
+    values: [1e-2,1e-3,1e-4,1e-5]
   config.val_interval:
     values: [50]
   config.batch_size:
-    values: [16, 256, 1024]
+    values: [1024, 256]

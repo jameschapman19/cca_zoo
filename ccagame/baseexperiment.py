@@ -120,7 +120,7 @@ class BaseExperiment(AbstractExperiment):
     def _normalized_subspace_distance(U, U_correct):
         U = U.T / jnp.linalg.norm(U, axis=1)
         P = U_correct @ U_correct.T
-        U_star = U @ U.T
+        U_star = U @ U.T#P[13,13]
         return 1 - jnp.trace(U_star @ P) / U_correct.shape[1]
 
     def step(
