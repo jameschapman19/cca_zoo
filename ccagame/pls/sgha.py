@@ -50,10 +50,8 @@ class SGHA(PLSExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._W = (
-            jax.random.normal(
-                self.init_rng, (self.n_components, self.dims[0] + self.dims[1])
-            )
+        self._W = jax.random.normal(
+            self.init_rng, (self.n_components, self.dims[0] + self.dims[1])
         )
         self._W /= jnp.linalg.norm(self._W, axis=1, keepdims=True)
         self._update_with_grads = jax.jit(
@@ -83,9 +81,9 @@ class SGHA(PLSExperiment):
         A = (
             jnp.hstack((X_i, Y_i)).T @ jnp.hstack((X_i, Y_i))
             - jsp.linalg.block_diag(X_i.T @ X_i, Y_i.T @ Y_i)
-        )/ n
+        ) / n
         Y = W @ A @ W.T
-        return  W.T @ Y - A @ W.T
+        return W.T @ jnp.triu(Y) - A @ W.T
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, wi, grads, opt_state):

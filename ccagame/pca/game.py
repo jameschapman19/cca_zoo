@@ -47,7 +47,7 @@ class Game(PCAExperiment):
             self.n_components
         )
         self._weights = self._weights.at[jnp.triu_indices(self.n_components, 1)].set(0)
-        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims))
+        self._V = jax.random.normal(self.init_rng, (self.n_components, self.dims))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
 
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
@@ -86,7 +86,7 @@ class Game(PCAExperiment):
         """Compute and apply updates with optax optimizer.
         Wrap in jax.vmap for k_per_device dimension."""
         # we have gradient of utilities so we negate for gradient descent
-        updates, opt_state = self._optimizer.update(grads, opt_state)
+        updates, opt_state = self._optimizer.update(-grads, opt_state)
         vi_new = optax.apply_updates(vi, updates)
         vi_new /= jnp.linalg.norm(vi_new, keepdims=True)
         return vi_new, opt_state

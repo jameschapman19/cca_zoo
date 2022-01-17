@@ -51,12 +51,13 @@ class PCAExperiment(BaseExperiment):
 
     def _get_scalars(self, global_step):
         scalars = {}
-        if self.TV:
-            scalars["TV"] = self._TV(self._V, self.X_val)
-        scalars["correct_x"] = self._correct_eigenvector_streak(self._V, self.correct_V)
-        scalars["subspace"] = self._normalized_subspace_distance(
-            self._V, self.correct_V
-        )
+        if global_step == 0 or (global_step + 1) % self.val_interval == 0:
+            if self.TV:
+                scalars["TV"] = self._TV(self._V, self.X_val)
+            scalars["correct_x"] = self._correct_eigenvector_streak(self._V, self.correct_V)
+            scalars["subspace"] = self._normalized_subspace_distance(
+                self._V, self.correct_V
+            )
         return scalars
 
     @staticmethod

@@ -43,7 +43,7 @@ class Oja(PCAExperiment):
         """
         Initialization function for a Jaxline experiment.
         """
-        self._V = jax.random.normal(init_rng, (self.n_components, self.dims))
+        self._V = jax.random.normal(self.init_rng, (self.n_components, self.dims))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._optimizer = optax.sgd(
             learning_rate=learning_rate
