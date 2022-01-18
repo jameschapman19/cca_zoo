@@ -105,5 +105,5 @@ class AlphaGame(PLSExperiment):
         zx = X @ ux
         rewards = zx @ zy
         covariance = -((zx @ Zy) ** 2) / jnp.diag(Zx.T @ Zy) @ weights
-        grads = rewards + covariance
+        grads = rewards + covariance/2
         return grads / zy.shape[0]

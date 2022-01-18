@@ -3,7 +3,7 @@ program: experiments/pls/train.py
 method: grid
 parameters:
   model:
-    values: ['sgha']
+    values: ['power','game','alphagame','sgha']
   config.data:
     values: ['linear']
   config.training_steps:
@@ -13,7 +13,7 @@ parameters:
   config.n_components:
     values: [16]
   config.learning_rate:
-    values: [1e-2,1e-3,1e-4,1e-5]
+    values: [1,1e-1]
   config.batch_size:
     values: [1000]
   config.n_components:
