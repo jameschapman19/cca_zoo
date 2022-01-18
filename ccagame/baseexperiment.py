@@ -45,7 +45,7 @@ class BaseExperiment(AbstractExperiment):
         """
         """Initialization function for a Jaxline experiment."""
 
-        self.init_rng=init_rng
+        self.init_rng = init_rng
         self.batch_size = batch_size
         self.n_components = n_components
         self.data = data
@@ -57,10 +57,13 @@ class BaseExperiment(AbstractExperiment):
             num_batches=num_batches,
             pca=pca,
             cca=cca,
-            random_state=random_state)
+            random_state=random_state,
+        )
         self.batch_ids = batch_ids
         self.path = path
-        self.data_stream = self._init_data_stream(self.batch_size,random_state=random_state)
+        self.data_stream = self._init_data_stream(
+            self.batch_size, random_state=random_state
+        )
         self.val_interval = val_interval
 
     @abstractmethod
@@ -120,7 +123,7 @@ class BaseExperiment(AbstractExperiment):
     def _normalized_subspace_distance(U, U_correct):
         U = U.T / jnp.linalg.norm(U, axis=1)
         P = U_correct @ U_correct.T
-        U_star = U @ U.T#P[13,13]
+        U_star = U @ U.T
         return 1 - jnp.trace(U_star @ P) / U_correct.shape[1]
 
     def step(

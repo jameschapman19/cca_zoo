@@ -46,6 +46,8 @@ class PLSExperiment(BaseExperiment):
     def _init_ground_truth(self, X, Y):
         if self.data=='xrmb':
             self.correct_U,self.correct_V=xrmb_true()
+            self.correct_U=self.correct_U[:,:self.n_components]
+            self.correct_V=self.correct_V[:,:self.n_components]
         else:
             U, _, Vt = jnp.linalg.svd(X.T @ Y)
             self.correct_U = U[

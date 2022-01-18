@@ -36,7 +36,6 @@ def xrmb_dataset():
     Y_te = Y_te.astype(np.float32)
     return X, Y, X_te, Y_te
 
-
 def xrmb_true():
     U = np.load(os.path.dirname(os.path.realpath(__file__)) + "/U.npy")
     V = np.load(os.path.dirname(os.path.realpath(__file__)) + "/V.npy")

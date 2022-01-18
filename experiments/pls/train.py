@@ -19,7 +19,7 @@ Anything that is defined in the python script gets put into the FLAGS dictionary
 
 FLAGS = flags.FLAGS
 # change the default to your own config file path if you
-flags.DEFINE_string(name="model", default="sgha", help="model name")
+flags.DEFINE_string(name="model", default="power", help="model name")
 
 MODEL_DICT = {
     "game": pls.Game,
