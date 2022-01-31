@@ -35,20 +35,26 @@ pip install cca-zoo[probabilistic]
 Available at https://cca-zoo.readthedocs.io/en/latest/
   
 ## Citation:
-If this repository was helpful to you please do give a star.
+CCA-Zoo is intended as research software. Citations and use of our software help us justify the effort which has gone into, and will keep going into, maintaining and growing this project. Stars on the repo are also greatly appreciated :)
 
-In case this work is used as part of research I attach a DOI bibtex entry:
+If you have used CCA-Zoo in your research, please consider citing our JOSS paper:
+
+Chapman et al., (2021). CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods in a scikit-learn style framework. Journal of Open Source Software, 6(68), 3823, https://doi.org/10.21105/joss.03823
+
+With bibtex entry:
 
 ```bibtex
-@software{james_chapman_2021_4925892,
-  author       = {James Chapman and
-                  Hao-Ting Wang},
-  title        = {jameschapman19/cca\_zoo:},
-  month        = jun,
-  year         = 2021,
-  publisher    = {Zenodo},
-  doi          = {10.5281/zenodo.4382739},
-  url          = {https://doi.org/10.5281/zenodo.4382739}
+@article{Chapman2021,
+  doi = {10.21105/joss.03823},
+  url = {https://doi.org/10.21105/joss.03823},
+  year = {2021},
+  publisher = {The Open Journal},
+  volume = {6},
+  number = {68},
+  pages = {3823},
+  author = {James Chapman and Hao-Ting Wang},
+  title = {CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods in a scikit-learn style framework},
+  journal = {Journal of Open Source Software}
 }
 ```
 
