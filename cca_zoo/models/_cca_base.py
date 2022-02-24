@@ -92,15 +92,19 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param kwargs: any additional keyword arguments required by the given model
+        :param normalize: scales loadings to ensure that they represent correlations between features and scores
         """
         transformed_views = self.transform(views, **kwargs)
-        loadings = [
-            view.T @ transformed_view
-            for view, transformed_view in zip(views, transformed_views)
-        ]
         if normalize:
-            n = views[0].shape[0]
-            loadings = [loading / n ** 0.5 for loading in loadings]
+            loadings = [
+                np.corrcoef(view, transformed_view,rowvar=False)[:view.shape[1],view.shape[1]:]
+                for view, transformed_view in zip(views, transformed_views)
+            ]
+        else:
+            loadings = [
+                view.T @ transformed_view
+                for view, transformed_view in zip(views, transformed_views)
+            ]
         return loadings
 
     def correlations(self, views: Iterable[np.ndarray], y=None, **kwargs):

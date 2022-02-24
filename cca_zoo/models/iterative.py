@@ -248,7 +248,24 @@ class PLS_ALS(_Iterative):
 
 class ElasticCCA(_Iterative):
     r"""
-    Fits an elastic CCA by iterating elastic net regression
+    Fits an elastic CCA by iterating elastic net regressions.
+
+    By default, ElasticCCA uses CCA with an auxiliary variable target i.e. MAXVAR configuration
+
+    .. math::
+
+        w_{opt}, t_{opt}=\underset{w,t}{\mathrm{argmax}}\{\sum_i \|X_iw_i-t\|^2 + c\|w_i\|^2_2 + \text{l1_ratio}\|w_i\|_1\}\\
+
+        \text{subject to:}
+
+        t^Tt=n
+
+
+    :Citation:
+
+    Fu, Xiao, et al. "Scalable and flexible multiview MAX-VAR canonical correlation analysis." IEEE Transactions on Signal Processing 65.16 (2017): 4150-4165.
+
+    But we can force it to attempt to use the SUMCOR form which will approximate a solution to the problem:
 
     .. math::
 
@@ -256,11 +273,12 @@ class ElasticCCA(_Iterative):
 
         \text{subject to:}
 
-        w_i^TX_i^TX_iw_i=1
+        w_i^TX_i^TX_iw_i=n
 
     :Citation:
 
     Fu, Xiao, et al. "Scalable and flexible multiview MAX-VAR canonical correlation analysis." IEEE Transactions on Signal Processing 65.16 (2017): 4150-4165.
+
 
     :Example:
 
@@ -356,7 +374,7 @@ class CCA_ALS(ElasticCCA):
 
         \text{subject to:}
 
-        w_i^TX_i^TX_iw_i=1
+        w_i^TX_i^TX_iw_i=n
 
     :Citation:
 
@@ -423,6 +441,8 @@ class SCCA(ElasticCCA):
     r"""
     Fits a sparse CCA model by iterative rescaled lasso regression. Implemented by ElasticCCA with l1 ratio=1
 
+    For default maxvar=False, the optimisation is given by:
+
     :Maths:
 
     .. math::
@@ -431,11 +451,28 @@ class SCCA(ElasticCCA):
 
         \text{subject to:}
 
-        w_i^TX_i^TX_iw_i=1
+        w_i^TX_i^TX_iw_i=n
 
     :Citation:
 
     Mai, Qing, and Xin Zhang. "An iterative penalized least squares approach to sparse canonical correlation analysis." Biometrics 75.3 (2019): 734-744.
+
+    For maxvar=True, the optimisation is given by the ElasticCCA problem with no l2 regularisation:
+
+    :Maths:
+
+    .. math::
+
+        w_{opt}, t_{opt}=\underset{w,t}{\mathrm{argmax}}\{\sum_i \|X_iw_i-t\|^2 + \text{l1_ratio}\|w_i\|_1\}\\
+
+        \text{subject to:}
+
+        t^Tt=n
+
+    :Citation:
+
+    Fu, Xiao, et al. "Scalable and flexible multiview MAX-VAR canonical correlation analysis." IEEE Transactions on Signal Processing 65.16 (2017): 4150-4165.
+
 
     :Example:
 

@@ -23,9 +23,9 @@ class rCCA(_CCA_Base):
 
         \text{subject to:}
 
-        (1-c_1)w_1^TX_1^TX_1w_1+c_1w_1^Tw_1=1
+        (1-c_1)w_1^TX_1^TX_1w_1+c_1w_1^Tw_1=n
 
-        (1-c_2)w_2^TX_2^TX_2w_2+c_2w_2^Tw_2=1
+        (1-c_2)w_2^TX_2^TX_2w_2+c_2w_2^Tw_2=n
 
 
     :Citation:
@@ -186,9 +186,9 @@ class CCA(rCCA):
 
         \text{subject to:}
 
-        w_1^TX_1^TX_1w_1=1
+        w_1^TX_1^TX_1w_1=n
 
-        w_2^TX_2^TX_2w_2=1
+        w_2^TX_2^TX_2w_2=n
 
     :Citation:
 
