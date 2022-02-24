@@ -275,11 +275,6 @@ class ElasticCCA(_Iterative):
 
         w_i^TX_i^TX_iw_i=n
 
-    :Citation:
-
-    Fu, Xiao, et al. "Scalable and flexible multiview MAX-VAR canonical correlation analysis." IEEE Transactions on Signal Processing 65.16 (2017): 4150-4165.
-
-
     :Example:
 
     >>> from cca_zoo.models import ElasticCCA
