@@ -238,7 +238,6 @@ class BaseSearchCV(SKBaseSearchCV):
             self._check_refit_for_multimetric(scorers)
             refit_metric = self.refit
 
-        Xs[0], y, groups = indexable(Xs[0], y, groups)
         fit_params = _check_fit_params(Xs[0], fit_params)
 
         cv_orig = check_cv(self.cv, y, classifier=is_classifier(estimator))
@@ -286,7 +285,7 @@ class BaseSearchCV(SKBaseSearchCV):
                         ("estimator", clone(base_estimator)),
                     ]
                 )
-
+                pipeline.fit(np.hstack(Xs))
                 out = parallel(
                     delayed(_fit_and_score)(
                         pipeline,

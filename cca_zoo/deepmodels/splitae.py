@@ -55,7 +55,7 @@ class SplitAE(_DCCA_base):
         z = self(*args)
         recon = self._decode(*z)
         recon_loss = self.recon_loss(args, recon)
-        return {'objective':recon_loss}
+        return {"objective": recon_loss}
 
     @staticmethod
     def recon_loss(x, recon):

@@ -40,20 +40,16 @@ kernel_custom = KCCA(
     latent_dims=latent_dims,
     kernel=[my_kernel, my_kernel],
     kernel_params=[{"param": 1}, {"param": 1}],
-).fit((X, Y))
+).fit([X, Y])
 
 # %%
 # Linear
 c1 = [0.9, 0.99]
 c2 = [0.9, 0.99]
 param_grid = {"kernel": ["linear"], "c": [c1, c2]}
-kernel_reg = (
-    GridSearchCV(
-        KCCA(latent_dims=latent_dims), param_grid=param_grid, cv=cv, verbose=True
-    )
-    .fit([X, Y])
-    .best_estimator_
-)
+kernel_reg = GridSearchCV(
+    KCCA(latent_dims=latent_dims), param_grid=param_grid, cv=cv, verbose=True
+).fit([X, Y])
 
 # %%
 # Polynomial
@@ -97,4 +93,4 @@ kernel_custom = KCCA(
     latent_dims=latent_dims,
     kernel=[my_kernel, my_kernel],
     kernel_params=[{"param": 1}, {"param": 1}],
-).fit((X, Y))
+).fit([X, Y])

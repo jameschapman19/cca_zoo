@@ -40,7 +40,7 @@ class ProbabilisticCCA(_CCA_Base):
         self.num_warmup = num_warmup
         self.rng_key = PRNGKey(random_state)
 
-    def fit(self, views: Iterable[np.ndarray], **kwargs):
+    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Infer the parameters (mu: mean, psi: within view variance) and latent variables (z) of the generative CCA model
 

@@ -17,14 +17,14 @@ class DCCAE(_DCCA_base):
     """
 
     def __init__(
-            self,
-            latent_dims: int,
-            objective=objectives.MCCA,
-            encoders=None,
-            decoders=None,
-            r: float = 0,
-            eps: float = 1e-5,
-            lam=0.5,
+        self,
+        latent_dims: int,
+        objective=objectives.MCCA,
+        encoders=None,
+        decoders=None,
+        r: float = 0,
+        eps: float = 1e-5,
+        lam=0.5,
     ):
         """
         :param latent_dims: # latent dimensions
@@ -75,8 +75,12 @@ class DCCAE(_DCCA_base):
         z = self(*args)
         recon = self._decode(*z)
         recon_loss = self._recon_loss(args[: len(recon)], recon)
-        return {'objective': self.lam * recon_loss + (1 - self.lam) * self.objective.loss(*z),
-                'reconstruction': recon_loss, 'correlation loss': self.objective.loss(*z)}
+        return {
+            "objective": self.lam * recon_loss
+            + (1 - self.lam) * self.objective.loss(*z),
+            "reconstruction": recon_loss,
+            "correlation loss": self.objective.loss(*z),
+        }
 
     @staticmethod
     def _recon_loss(x, recon):

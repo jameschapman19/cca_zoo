@@ -24,13 +24,13 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale=True,
-            centre=True,
-            copy_data=True,
-            accept_sparse=False,
-            random_state: Union[int, np.random.RandomState] = None,
+        self,
+        latent_dims: int = 1,
+        scale=True,
+        centre=True,
+        copy_data=True,
+        accept_sparse=False,
+        random_state: Union[int, np.random.RandomState] = None,
     ):
         """
         Constructor for _CCA_Base
@@ -51,15 +51,16 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self.n_views = None
 
     @abstractmethod
-    def fit(self, views: Iterable[np.ndarray], **kwargs):
+    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Fits a given model
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        :param y: unused but needed to integrate with scikit-learn
         """
         raise NotImplementedError
 
-    def transform(self, views: Iterable[np.ndarray], y=None, **kwargs):
+    def transform(self, views: Iterable[np.ndarray], **kwargs):
         """
         Transforms data given a fit model
 
@@ -97,7 +98,9 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         transformed_views = self.transform(views, **kwargs)
         if normalize:
             loadings = [
-                np.corrcoef(view, transformed_view,rowvar=False)[:view.shape[1],view.shape[1]:]
+                np.corrcoef(view, transformed_view, rowvar=False)[
+                    : view.shape[1], view.shape[1] :
+                ]
                 for view, transformed_view in zip(views, transformed_views)
             ]
         else:
@@ -114,13 +117,12 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param kwargs: any additional keyword arguments required by the given model
         :return: all_corrs: an array of the pairwise correlations (k,k,self.latent_dims) where k is the number of views
-        :rtype: np.ndarray
         """
         transformed_views = self.transform(views, **kwargs)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(
-                np.diag(np.corrcoef(x.T, y.T)[: self.latent_dims, self.latent_dims:])
+                np.diag(np.corrcoef(x.T, y.T)[: self.latent_dims, self.latent_dims :])
             )
         all_corrs = np.array(all_corrs).reshape(
             (len(views), len(views), self.latent_dims)
@@ -128,10 +130,10 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         return all_corrs
 
     def plot_latent(
-            self,
-            views: Iterable[np.ndarray],
-            test_views: Iterable[np.ndarray] = None,
-            title="",
+        self,
+        views: Iterable[np.ndarray],
+        test_views: Iterable[np.ndarray] = None,
+        title="",
     ):
         scores = self.transform(views)
         if test_views is not None:
@@ -140,15 +142,21 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
             test_scores = None
         plot_latent_train_test(scores, test_scores, title=title)
 
-    def score(self, views: Iterable[np.ndarray], **kwargs):
+    def score(self, views: Iterable[np.ndarray], y=None, **kwargs):
+        """
+        Returns average correlation in each dimension (averages over all pairs for multiview)
+
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        :param y: unused but needed to integrate with scikit-learn
+        """
         # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
         pair_corrs = self.correlations(views, **kwargs)
         # n views
         n_views = pair_corrs.shape[0]
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
         dim_corrs = (
-                            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
-                    ) / (n_views ** 2 - n_views)
+            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
+        ) / (n_views ** 2 - n_views)
         return dim_corrs
 
     def _centre_scale(self, views: Iterable[np.ndarray]):

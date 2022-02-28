@@ -62,7 +62,7 @@ class NCCA(_CCA_Base):
         self.gamma = _process_parameter("gamma", self.gamma, None, self.n_views)
         self.kernel = _process_parameter("kernel", None, "rbf", self.n_views)
 
-    def fit(self, views: Iterable[np.ndarray], **kwargs):
+    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )

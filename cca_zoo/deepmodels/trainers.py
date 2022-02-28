@@ -11,10 +11,10 @@ from cca_zoo.deepmodels import _DCCA_base
 
 class CCALightning(LightningModule):
     def __init__(
-            self,
-            model: _DCCA_base,
-            optimizer: torch.optim.Optimizer = None,
-            lr_scheduler: torch.optim.lr_scheduler = None,
+        self,
+        model: _DCCA_base,
+        optimizer: torch.optim.Optimizer = None,
+        lr_scheduler: torch.optim.lr_scheduler = None,
     ):
         """
 
@@ -49,17 +49,17 @@ class CCALightning(LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self.model.loss(*batch["views"])
         self.log("train", loss, prog_bar=True)
-        return loss['objective']
+        return loss["objective"]
 
     def validation_step(self, batch, batch_idx):
         loss = self.model.loss(*batch["views"])
         self.log("val", loss)
-        return loss['objective']
+        return loss["objective"]
 
     def test_step(self, batch, batch_idx):
         loss = self.model.loss(*batch["views"])
         self.log("test", loss)
-        return loss['objective']
+        return loss["objective"]
 
     def on_train_epoch_end(self, unused: Optional = None) -> None:
         score = self.score(self.trainer.train_dataloader, train=True).sum()
@@ -75,9 +75,9 @@ class CCALightning(LightningModule):
             self.log("val corr", score)
 
     def correlations(
-            self,
-            loader: torch.utils.data.DataLoader,
-            train=False,
+        self,
+        loader: torch.utils.data.DataLoader,
+        train=False,
     ):
         """
 
@@ -89,16 +89,16 @@ class CCALightning(LightningModule):
             return None
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
-            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], y.shape[1]:]))
+            all_corrs.append(np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], y.shape[1] :]))
         all_corrs = np.array(all_corrs).reshape(
             (len(transformed_views), len(transformed_views), -1)
         )
         return all_corrs
 
     def transform(
-            self,
-            loader: torch.utils.data.DataLoader,
-            train=False,
+        self,
+        loader: torch.utils.data.DataLoader,
+        train=False,
     ):
         """
 
@@ -111,7 +111,7 @@ class CCALightning(LightningModule):
                 views = [view.to(self.device) for view in batch["views"]]
                 z = self.model(*views)
                 if isinstance(z[0], dict):
-                    z = z[0]['shared']
+                    z = z[0]["shared"]
                 if batch_idx == 0:
                     z_list = [z_i.detach().cpu().numpy() for i, z_i in enumerate(z)]
                 else:
@@ -123,9 +123,9 @@ class CCALightning(LightningModule):
         return z_list
 
     def score(
-            self,
-            loader: torch.utils.data.DataLoader,
-            train=False,
+        self,
+        loader: torch.utils.data.DataLoader,
+        train=False,
     ):
         """
 
@@ -140,13 +140,13 @@ class CCALightning(LightningModule):
         n_views = pair_corrs.shape[0]
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
         dim_corrs = (
-                            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
-                    ) / (n_views ** 2 - n_views)
+            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
+        ) / (n_views ** 2 - n_views)
         return dim_corrs
 
     def recon(
-            self,
-            loader: torch.utils.data.DataLoader,
+        self,
+        loader: torch.utils.data.DataLoader,
     ):
         with torch.no_grad():
             for batch_idx, batch in enumerate(loader):

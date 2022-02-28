@@ -23,11 +23,11 @@ class DVCCA(_DCCA_base):
     """
 
     def __init__(
-            self,
-            latent_dims: int,
-            encoders=None,
-            decoders=None,
-            private_encoders: Iterable[BaseEncoder] = None,
+        self,
+        latent_dims: int,
+        encoders=None,
+        decoders=None,
+        private_encoders: Iterable[BaseEncoder] = None,
     ):
         """
         :param latent_dims: # latent dimensions
@@ -57,14 +57,14 @@ class DVCCA(_DCCA_base):
         mu = dict()
         logvar = dict()
         # Used when we get reconstructions
-        mu['shared'], logvar['shared'] = self._encode(*args)
-        z['shared'] = self._sample(mu['shared'], logvar['shared'], mle)
+        mu["shared"], logvar["shared"] = self._encode(*args)
+        z["shared"] = self._sample(mu["shared"], logvar["shared"], mle)
         # If using single encoder repeat representation n times
         if len(self.encoders) == 1:
-            z['shared'] = z['shared'] * len(args)
+            z["shared"] = z["shared"] * len(args)
         if self.private_encoders:
-            mu['private'], logvar['private'] = self._encode_private(*args)
-            z['private'] = self._sample(mu['private'], logvar['private'], mle)
+            mu["private"], logvar["private"] = self._encode_private(*args)
+            z["private"] = self._sample(mu["private"], logvar["private"], mle)
         return z, mu, logvar
 
     def _sample(self, mu, logvar, mle):
@@ -78,8 +78,10 @@ class DVCCA(_DCCA_base):
         if mle:
             return mu
         else:
-            return [dist.Normal(mu_, torch.exp(0.5 * logvar_)).rsample() for mu_, logvar_ in
-                    zip(mu, logvar)]
+            return [
+                dist.Normal(mu_, torch.exp(0.5 * logvar_)).rsample()
+                for mu_, logvar_ in zip(mu, logvar)
+            ]
 
     def _encode(self, *args):
         """
@@ -114,10 +116,12 @@ class DVCCA(_DCCA_base):
         """
         x = []
         for i, decoder in enumerate(self.decoders):
-            if 'private' in z:
-                x_i = F.sigmoid(decoder(torch.cat((z['shared'][i], z['private'][i]),dim=-1)))
+            if "private" in z:
+                x_i = F.sigmoid(
+                    decoder(torch.cat((z["shared"][i], z["private"][i]), dim=-1))
+                )
             else:
-                x_i = F.sigmoid(decoder(z['shared'][i]))
+                x_i = F.sigmoid(decoder(z["shared"][i]))
             x.append(x_i)
         return x
 
@@ -136,20 +140,24 @@ class DVCCA(_DCCA_base):
         """
         z, mu, logvar = self(*args, mle=False)
         loss = dict()
-        loss['reconstruction'] = self.recon_loss(args, z)
-        loss['kl shared'] = self.kl_loss(mu['shared'], logvar['shared'])
-        if 'private' in z:
-            loss['kl private'] = self.kl_loss(mu['private'], logvar['private'])
-        loss['objective'] = torch.stack(tuple(loss.values())).sum()
+        loss["reconstruction"] = self.recon_loss(args, z)
+        loss["kl shared"] = self.kl_loss(mu["shared"], logvar["shared"])
+        if "private" in z:
+            loss["kl private"] = self.kl_loss(mu["private"], logvar["private"])
+        loss["objective"] = torch.stack(tuple(loss.values())).sum()
         return loss
 
     @staticmethod
     def kl_loss(mu, logvar):
-        return torch.stack([torch.mean(
-            -0.5
-            * torch.sum(1 + logvar_ - logvar_.exp() - mu_.pow(2), dim=1),
-            dim=0,
-        ) for mu_, logvar_ in zip(mu, logvar)]).sum()
+        return torch.stack(
+            [
+                torch.mean(
+                    -0.5 * torch.sum(1 + logvar_ - logvar_.exp() - mu_.pow(2), dim=1),
+                    dim=0,
+                )
+                for mu_, logvar_ in zip(mu, logvar)
+            ]
+        ).sum()
 
     def recon_loss(self, x, z):
         recon = self._decode(z)

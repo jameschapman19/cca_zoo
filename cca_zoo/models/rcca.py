@@ -83,7 +83,7 @@ class rCCA(_CCA_Base):
     def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
 
-    def fit(self, views: Iterable[np.ndarray], **kwargs):
+    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Fits a regularised CCA (canonical ridge) model
 
