@@ -50,7 +50,7 @@ train_dataset = Subset(train_dataset, np.arange(n_train))
 train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
 
 # The number of latent dimensions across models
-latent_dims = 2
+latent_dims = 5
 # number of epochs for deep models
 epochs = 50
 
@@ -67,19 +67,6 @@ decoder_2 = architectures.Decoder(
     latent_dims=latent_dims, feature_size=784, norm_output=True
 )
 
-# %%
-# Deep VCCA
-dcca = DVCCA(
-    latent_dims=latent_dims,
-    encoders=[encoder_1, encoder_2],
-    decoders=[decoder_1, decoder_2],
-)
-dcca = CCALightning(dcca)
-trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
-trainer.fit(dcca, train_loader, val_loader)
-plot_reconstruction(dcca.model, train_loader)
-plt.suptitle("DVCCA")
-plt.show()
 
 # %%
 # Deep VCCA (private)
@@ -104,6 +91,20 @@ trainer.fit(dcca, train_loader, val_loader)
 plot_reconstruction(dcca.model, train_loader)
 plt.suptitle("DVCCA Private")
 plt.show()
+# %%
+# Deep VCCA
+dcca = DVCCA(
+    latent_dims=latent_dims,
+    encoders=[encoder_1, encoder_2],
+    decoders=[decoder_1, decoder_2],
+)
+dcca = CCALightning(dcca)
+trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
+trainer.fit(dcca, train_loader, val_loader)
+plot_reconstruction(dcca.model, train_loader)
+plt.suptitle("DVCCA")
+plt.show()
+
 
 # %%
 # DCCAE

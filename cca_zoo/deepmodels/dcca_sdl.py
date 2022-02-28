@@ -15,15 +15,15 @@ class DCCA_SDL(DCCA_NOI):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        N: int,
-        encoders=None,
-        r: float = 0,
-        rho: float = 0.2,
-        eps: float = 1e-5,
-        shared_target: bool = False,
-        lam=0.5,
+            self,
+            latent_dims: int,
+            N: int,
+            encoders=None,
+            r: float = 0,
+            rho: float = 0.2,
+            eps: float = 1e-5,
+            shared_target: bool = False,
+            lam=0.5,
     ):
         """
         Constructor class for DCCA
@@ -64,7 +64,8 @@ class DCCA_SDL(DCCA_NOI):
         self._update_covariances(*z, train=self.training)
         SDL_loss = self._sdl_loss(self.covs)
         l2_loss = F.mse_loss(z[0], z[1])
-        return l2_loss + self.lam * SDL_loss
+        loss = l2_loss + self.lam * SDL_loss
+        return {'objective': loss, 'l2':l2_loss, 'sdl':SDL_loss}
 
     def _sdl_loss(self, covs):
         loss = 0

@@ -74,7 +74,7 @@ class TCCA(_CCA_Base):
     def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
 
-    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
+    def fit(self, views: Iterable[np.ndarray], **kwargs):
         """
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
@@ -113,7 +113,7 @@ class TCCA(_CCA_Base):
         ]
         return self
 
-    def correlations(self, views: Iterable[np.ndarray], y=None, **kwargs):
+    def correlations(self, views: Iterable[np.ndarray], **kwargs):
         """
         Predicts the correlation for the given data using the fit model
 
@@ -136,7 +136,7 @@ class TCCA(_CCA_Base):
         corrs = multiplied_views / norms
         return corrs
 
-    def score(self, views: Iterable[np.ndarray], y=None, **kwargs):
+    def score(self, views: Iterable[np.ndarray], **kwargs):
         """
         Returns the higher order correlations in each dimension
 
@@ -279,7 +279,7 @@ class KTCCA(TCCA):
         ]
         return kernels, self.covs_invsqrt
 
-    def transform(self, views: np.ndarray, y=None, **kwargs):
+    def transform(self, views: np.ndarray, **kwargs):
         """
         Transforms data given a fit k=KCCA model
 

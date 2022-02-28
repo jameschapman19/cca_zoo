@@ -70,7 +70,7 @@ class DCCA_NOI(DCCA):
         covariance_inv = [mat_pow(cov, -0.5, self.eps) for cov in self.covs]
         preds = [z_ @ covariance_inv[i] for i, z_ in enumerate(z_copy)]
         loss = self.mse(z[0], preds[1]) + self.mse(z[1], preds[0])
-        return loss
+        return {'objective':loss}
 
     def _update_covariances(self, *z, train=True):
         b = z[0].shape[0]

@@ -63,7 +63,7 @@ class _Iterative(_CCA_Base):
         self.tol = tol
         self.deflation = deflation
 
-    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
+    def fit(self, views: Iterable[np.ndarray], **kwargs):
         """
         Fits the model by running an inner loop to convergence and then using either CCA or PLS deflation
 

@@ -23,11 +23,11 @@ class DVCCA(_DCCA_base):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        encoders=None,
-        decoders=None,
-        private_encoders: Iterable[BaseEncoder] = None,
+            self,
+            latent_dims: int,
+            encoders=None,
+            decoders=None,
+            private_encoders: Iterable[BaseEncoder] = None,
     ):
         """
         :param latent_dims: # latent dimensions
@@ -53,25 +53,33 @@ class DVCCA(_DCCA_base):
         :param mle:
         :return:
         """
+        z = dict()
+        mu = dict()
+        logvar = dict()
         # Used when we get reconstructions
-        mu, logvar = self._encode(*args)
-        if mle:
-            z = mu
-        else:
-            z_dist = dist.Normal(mu, torch.exp(0.5 * logvar))
-            z = z_dist.rsample()
+        mu['shared'], logvar['shared'] = self._encode(*args)
+        z['shared'] = self._sample(mu['shared'], logvar['shared'], mle)
         # If using single encoder repeat representation n times
         if len(self.encoders) == 1:
-            z = z * len(args)
+            z['shared'] = z['shared'] * len(args)
         if self.private_encoders:
-            mu_p, logvar_p = self._encode_private(*args)
-            if mle:
-                z_p = mu_p
-            else:
-                z_dist = dist.Normal(mu_p, torch.exp(0.5 * logvar_p))
-                z_p = z_dist.rsample()
-            z = [torch.cat((z_, z_p_), dim=-1) for z_, z_p_ in zip(z, z_p)]
-        return z
+            mu['private'], logvar['private'] = self._encode_private(*args)
+            z['private'] = self._sample(mu['private'], logvar['private'], mle)
+        return z, mu, logvar
+
+    def _sample(self, mu, logvar, mle):
+        """
+
+        :param mu:
+        :param logvar:
+        :param mle: whether to return the maximum likelihood (i.e. mean) or whether to sample
+        :return: a sample from latent vector
+        """
+        if mle:
+            return mu
+        else:
+            return [dist.Normal(mu_, torch.exp(0.5 * logvar_)).rsample() for mu_, logvar_ in
+                    zip(mu, logvar)]
 
     def _encode(self, *args):
         """
@@ -106,92 +114,48 @@ class DVCCA(_DCCA_base):
         """
         x = []
         for i, decoder in enumerate(self.decoders):
-            x_i = F.sigmoid(decoder(z))
+            if 'private' in z:
+                x_i = F.sigmoid(decoder(torch.cat((z['shared'][i], z['private'][i]),dim=-1)))
+            else:
+                x_i = F.sigmoid(decoder(z['shared'][i]))
             x.append(x_i)
         return x
 
-    def recon(self, *args):
+    def recon(self, *args, mle=True):
         """
         :param args:
         :return:
         """
-        z = self(*args)
-        return [self._decode(z_) for z_ in z]
+        z, _, _ = self(*args, mle=mle)
+        return self._decode(z)
 
     def loss(self, *args):
         """
         :param args:
         :return:
         """
-        mus, logvars = self._encode(*args)
-        if self.private_encoders:
-            mus_p, logvars_p = self._encode_private(*args)
-            losses = [
-                self.vcca_private_loss(
-                    *args, mu=mu, logvar=logvar, mu_p=mu_p, logvar_p=logvar_p
-                )
-                for (mu, logvar, mu_p, logvar_p) in zip(mus, logvars, mus_p, logvars_p)
-            ]
-        else:
-            losses = [
-                self.vcca_loss(*args, mu=mu, logvar=logvar)
-                for (mu, logvar) in zip(mus, logvars)
-            ]
-        return torch.stack(losses).mean()
+        z, mu, logvar = self(*args, mle=False)
+        loss = dict()
+        loss['reconstruction'] = self.recon_loss(args, z)
+        loss['kl shared'] = self.kl_loss(mu['shared'], logvar['shared'])
+        if 'private' in z:
+            loss['kl private'] = self.kl_loss(mu['private'], logvar['private'])
+        loss['objective'] = torch.stack(tuple(loss.values())).sum()
+        return loss
 
-    def vcca_loss(self, *args, mu, logvar):
-        """
-        :param args:
-        :param mu:
-        :param logvar:
-        :return:
-        """
-        batch_n = mu.shape[0]
-        z_dist = dist.Normal(mu, torch.exp(0.5 * logvar))
-        z = z_dist.rsample()
-        kl = torch.mean(
-            -0.5 * torch.sum(1 + logvar - logvar.exp() - mu.pow(2), dim=1), dim=0
-        )
-        recons = self._decode(z)
-        bces = torch.stack(
+    @staticmethod
+    def kl_loss(mu, logvar):
+        return torch.stack([torch.mean(
+            -0.5
+            * torch.sum(1 + logvar_ - logvar_.exp() - mu_.pow(2), dim=1),
+            dim=0,
+        ) for mu_, logvar_ in zip(mu, logvar)]).sum()
+
+    def recon_loss(self, x, z):
+        recon = self._decode(z)
+        return torch.stack(
             [
                 F.binary_cross_entropy(recon, arg, reduction="mean")
-                for recon, arg in zip(recons, args)
+                for recon, arg in zip(recon, x)
             ]
         ).sum()
-        return kl + bces
-
-    def vcca_private_loss(self, *args, mu, logvar, mu_p, logvar_p):
-        """
-        :param args:
-        :param mu:
-        :param logvar:
-        :return:
-        """
-        batch_n = mu.shape[0]
-        z_dist = dist.Normal(mu, torch.exp(0.5 * logvar))
-        z = z_dist.rsample()
-        z_p_dist = dist.Normal(mu_p, torch.exp(0.5 * logvar_p))
-        z_p = z_p_dist.rsample()
-        kl_p = torch.stack(
-            [
-                torch.mean(
-                    -0.5
-                    * torch.sum(1 + logvar_p - logvar_p.exp() - mu_p.pow(2), dim=1),
-                    dim=0,
-                )
-                for i, _ in enumerate(self.private_encoders)
-            ]
-        ).sum()
-        kl = torch.mean(
-            -0.5 * torch.sum(1 + logvar - logvar.exp() - mu.pow(2), dim=1), dim=0
-        )
-        z_combined = torch.cat([z, z_p], dim=-1)
-        recon = self._decode(z_combined)
-        bces = torch.stack(
-            [
-                F.binary_cross_entropy(recon[i], args[i], reduction="sum") / batch_n
-                for i, _ in enumerate(self.decoders)
-            ]
-        ).sum()
-        return kl + kl_p + bces

@@ -214,7 +214,7 @@ class KCCA(MCCA):
         self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
         return kernels, C, D
 
-    def transform(self, views: np.ndarray, y=None, **kwargs):
+    def transform(self, views: np.ndarray, **kwargs):
         """
         Transforms data given a fit KCCA model
 

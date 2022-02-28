@@ -17,12 +17,12 @@ class DCCA(_DCCA_base):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        objective=objectives.MCCA,
-        encoders=None,
-        r: float = 0,
-        eps: float = 1e-5,
+            self,
+            latent_dims: int,
+            objective=objectives.MCCA,
+            encoders=None,
+            r: float = 0,
+            eps: float = 1e-5,
     ):
         """
         Constructor class for DCCA
@@ -53,7 +53,7 @@ class DCCA(_DCCA_base):
         :return:
         """
         z = self(*args)
-        return self.objective.loss(*z)
+        return {'objective': self.objective.loss(*z)}
 
     def post_transform(self, z_list, train=False):
         if train:

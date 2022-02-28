@@ -51,7 +51,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self.n_views = None
 
     @abstractmethod
-    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
+    def fit(self, views: Iterable[np.ndarray], **kwargs):
         """
         Fits a given model
 
@@ -77,7 +77,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
             transformed_views.append(transformed_view)
         return transformed_views
 
-    def fit_transform(self, views: Iterable[np.ndarray], y=None, **kwargs):
+    def fit_transform(self, views: Iterable[np.ndarray], **kwargs):
         """
         Fits and then transforms the training data
 
@@ -86,7 +86,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         return self.fit(views, **kwargs).transform(views, **kwargs)
 
-    def get_loadings(self, views: Iterable[np.ndarray], y=None, normalize=False, **kwargs):
+    def get_loadings(self, views: Iterable[np.ndarray], normalize=False, **kwargs):
         """
         Returns the model loadings for each view for the given data
 
@@ -107,9 +107,9 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
             ]
         return loadings
 
-    def correlations(self, views: Iterable[np.ndarray], y=None, **kwargs):
+    def correlations(self, views: Iterable[np.ndarray], **kwargs):
         """
-        Predicts the correlation for the given data using the fit model
+        Predicts the correlations between each view for each dimension for the given data using the fit model
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         :param kwargs: any additional keyword arguments required by the given model
@@ -140,7 +140,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
             test_scores = None
         plot_latent_train_test(scores, test_scores, title=title)
 
-    def score(self, views: Iterable[np.ndarray], y=None, **kwargs):
+    def score(self, views: Iterable[np.ndarray], **kwargs):
         # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
         pair_corrs = self.correlations(views, **kwargs)
         # n views

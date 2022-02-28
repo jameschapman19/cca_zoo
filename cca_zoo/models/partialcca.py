@@ -86,7 +86,7 @@ class PartialCCA(MCCA):
         return views, C, D
 
     # TODO TRANSFORM
-    def transform(self, views: Iterable[np.ndarray], y=None, partials=None):
+    def transform(self, views: Iterable[np.ndarray], partials=None):
         """
         Transforms data given a fit model
 

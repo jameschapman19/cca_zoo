@@ -17,10 +17,10 @@ class BarlowTwins(DCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
-        lam=1,
+            self,
+            latent_dims: int,
+            encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
+            lam=1,
     ):
         """
         Constructor class for Barlow Twins
@@ -48,4 +48,4 @@ class BarlowTwins(DCCA):
         covariance = torch.sum(
             torch.triu(torch.pow(cross_cov, 2), diagonal=1)
         ) + torch.sum(torch.tril(torch.pow(cross_cov, 2), diagonal=-1))
-        return invariance + covariance
+        return {'objective': invariance + covariance, 'invariance': invariance, 'covariance': covariance}
