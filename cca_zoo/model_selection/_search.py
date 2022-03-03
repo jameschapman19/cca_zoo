@@ -38,15 +38,12 @@ from sklearn.utils.validation import _check_fit_params, check_random_state
 def param2grid(params):
     """
     Converts parameters with a list for each view into a scikit-learn friendly form
-
     Parameters
     ----------
     params : a dictionary of parameters where some parameters may contain a list of lists (one list for each 'view')
-
     Returns : a parameter grid in the form expected by scikit-learn where each element is a single candidate
     (a single value or a list with one value for each view)
     -------
-
     Examples
     ---------
     >>> params = {'regs': [[1, 2], [3, 4]]}
@@ -594,7 +591,6 @@ class GridSearchCV(BaseSearchCV):
         `best_estimator_` is defined (see the documentation for the `refit`
         parameter for more details) and that `best_estimator_` exposes
         `feature_names_in_` when fit.
-
     Examples
     ---------
     >>> from cca_zoo.model_selection import GridSearchCV
@@ -606,7 +602,6 @@ class GridSearchCV(BaseSearchCV):
     >>> params = {'c': [[0.1, 0.2], [0.3, 0.4], 0.1]}
     >>> GridSearchCV(model,param_grid=params, cv=3).fit([X1,X2,X3]).best_estimator_.c
     [0.1, 0.3, 0.1]
-
     Notes
     -----
     The parameters selected are those that maximize the score of the left out
@@ -618,7 +613,6 @@ class GridSearchCV(BaseSearchCV):
     this case is to set `pre_dispatch`. Then, the memory is copied only
     `pre_dispatch` many times. A reasonable value for `pre_dispatch` is `2 *
     n_jobs`.
-
     """
 
     _required_parameters = ["estimator", "param_grid"]
@@ -673,7 +667,6 @@ class RandomizedSearchCV(BaseSearchCV):
     is given as a distribution, sampling with replacement is used.
     It is highly recommended to use continuous distributions for continuous
     parameters.
-
     Parameters
     ----------
     estimator : estimator object.
@@ -855,7 +848,6 @@ class RandomizedSearchCV(BaseSearchCV):
         Names of features seen during :term:`fit`. Only defined if
         `best_estimator_` is defined and that `best_estimator_` exposes
         `feature_names_in_` when fit.
-
     Examples
     ---------
     >>> from cca_zoo.model_selection import RandomizedSearchCV
@@ -871,7 +863,6 @@ class RandomizedSearchCV(BaseSearchCV):
     ...    return np.mean(scores)
     >>> RandomizedSearchCV(model,param_distributions=params, cv=3, scoring=scorer,n_iter=10).fit([X1,X2,X3]).n_iter
     10
-
     Notes
     -----
     The parameters selected are those that maximize the score of the held-out

@@ -18,6 +18,6 @@ class CCA_Dataset(Dataset):
     def __len__(self):
         return len(self.views[0])
 
-    def __getitem__(self, idx):
-        views = [view[idx].astype(np.float32) for view in self.views]
-        return {"views": views}
+    def __getitem__(self, index):
+        views = [view[index].astype(np.float32) for view in self.views]
+        return {"views": views, "index": index}

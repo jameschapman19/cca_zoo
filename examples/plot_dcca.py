@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from torch.utils.data import Subset
 
 # %%
-from cca_zoo.data import Split_MNIST_Dataset
+from cca_zoo.data import SplitMNISTDataset
 from cca_zoo.deepmodels import (
     DCCA,
     CCALightning,
@@ -43,7 +43,7 @@ def plot_latent_label(model, dataloader, num_batches=100):
 
 n_train = 500
 n_val = 100
-train_dataset = Split_MNIST_Dataset(mnist_type="MNIST", train=True)
+train_dataset = SplitMNISTDataset(mnist_type="MNIST", train=True)
 val_dataset = Subset(train_dataset, np.arange(n_train, n_train + n_val))
 train_dataset = Subset(train_dataset, np.arange(n_train))
 train_loader, val_loader = get_dataloaders(train_dataset, val_dataset, batch_size=128)
