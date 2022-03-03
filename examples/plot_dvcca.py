@@ -44,7 +44,7 @@ def plot_reconstruction(model, dataloader):
 
 n_train = 500
 n_val = 100
-train_dataset = NoisyMNISTDataset(mnist_type="MNIST", train=True, flatten=True)
+train_dataset = NoisyMNISTDataset(root="",mnist_type="MNIST", train=True, flatten=True)
 val_dataset = Subset(train_dataset, np.arange(n_train, n_train + n_val))
 train_dataset = Subset(train_dataset, np.arange(n_train))
 train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
