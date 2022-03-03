@@ -12,12 +12,12 @@ import pytorch_lightning as pl
 from torch import optim
 from torch.utils.data import Subset
 
-from cca_zoo.data import SplitMNISTDataset
+from multiviewdata.torchdatasets import SplitMNISTDataset
 from cca_zoo.deepmodels import DCCA, CCALightning, get_dataloaders, architectures
 
 n_train = 500
 n_val = 100
-train_dataset = SplitMNISTDataset(root="",mnist_type="MNIST", train=True)
+train_dataset = SplitMNISTDataset(root="",mnist_type="MNIST", train=True, download=True)
 val_dataset = Subset(train_dataset, np.arange(n_train, n_train + n_val))
 train_dataset = Subset(train_dataset, np.arange(n_train))
 train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
