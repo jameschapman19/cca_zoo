@@ -43,14 +43,6 @@ Split Autoencoders
     :members:
     :undoc-members:
 
-CCALightning Module for training with pytorch-lightning
----------------------------------------------------------
-
-.. automodule:: cca_zoo.deepmodels.CCALightning
-    :members:
-    :inherited-members:
-    :exclude-members: get_params, set_params
-
 Deep Objectives
 -------------------------------------
 
