@@ -13,7 +13,6 @@ from torch.utils.data import Subset
 from multiviewdata.torchdatasets import SplitMNIST
 from cca_zoo.deepmodels import (
     DCCA,
-    CCALightning,
     get_dataloaders,
     architectures,
     objectives,
