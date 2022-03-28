@@ -1,8 +1,8 @@
 import numpy as np
+import pytest
 import scipy.sparse as sp
 from sklearn.utils.fixes import loguniform
 from sklearn.utils.validation import check_random_state
-import pytest
 
 from cca_zoo.data import generate_covariance_data
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV

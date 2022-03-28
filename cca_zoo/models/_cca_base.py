@@ -110,7 +110,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
             ]
         return loadings
 
-    def correlations(self, views: Iterable[np.ndarray], **kwargs):
+    def pairwise_correlations(self, views: Iterable[np.ndarray], **kwargs):
         """
         Predicts the correlations between each view for each dimension for the given data using the fit model
 
@@ -150,7 +150,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         :param y: unused but needed to integrate with scikit-learn
         """
         # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
-        pair_corrs = self.correlations(views, **kwargs)
+        pair_corrs = self.pairwise_correlations(views, **kwargs)
         # n views
         n_views = pair_corrs.shape[0]
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation

@@ -3,10 +3,10 @@ from torch.nn import functional as F
 
 from cca_zoo.deepmodels import objectives
 from cca_zoo.deepmodels.architectures import Encoder, Decoder
-from cca_zoo.deepmodels.dcca import _DCCA_base
+from cca_zoo.deepmodels.dcca import DCCA
 
 
-class DCCAE(_DCCA_base):
+class DCCAE(DCCA):
     """
     A class used to fit a DCCAE model.
 
@@ -25,6 +25,7 @@ class DCCAE(_DCCA_base):
         r: float = 0,
         eps: float = 1e-5,
         lam=0.5,
+        **kwargs,
     ):
         """
         :param latent_dims: # latent dimensions
@@ -35,33 +36,22 @@ class DCCAE(_DCCA_base):
         :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
         :param lam: weight of reconstruction loss (1 minus weight of correlation loss)
         """
-        super().__init__(latent_dims=latent_dims)
-        if decoders is None:
-            decoders = [Decoder, Decoder]
-        if encoders is None:
-            encoders = [Encoder, Encoder]
-        self.encoders = torch.nn.ModuleList(encoders)
+        super().__init__(
+            latent_dims=latent_dims, encoders=encoders, r=r, eps=eps, **kwargs
+        )
         self.decoders = torch.nn.ModuleList(decoders)
         if lam < 0 or lam > 1:
             raise ValueError(f"lam should be between 0 and 1. rho={lam}")
         self.lam = lam
         self.objective = objective(latent_dims, r=r, eps=eps)
 
-    def forward(self, *args):
+    def forward(self, *args, **kwargs):
         z = []
         for i, encoder in enumerate(self.encoders):
             z.append(encoder(args[i]))
         return z
 
-    def recon(self, *args):
-        """
-        :param args:
-        :return:
-        """
-        z = self(*args)
-        return self._decode(*z)
-
-    def _decode(self, *z):
+    def _decode(self, z):
         """
         This method is used to decode from the latent space to the best prediction of the original views
 
@@ -73,19 +63,16 @@ class DCCAE(_DCCA_base):
 
     def loss(self, *args):
         z = self(*args)
-        recon = self._decode(*z)
-        recon_loss = self._recon_loss(args[: len(recon)], recon)
-        return {
-            "objective": self.lam * recon_loss
-            + (1 - self.lam) * self.objective.loss(*z),
-            "reconstruction": recon_loss,
-            "correlation loss": self.objective.loss(*z),
-        }
+        recons = self._decode(z)
+        loss = dict()
+        loss["reconstruction"] = torch.stack(
+            [self.recon_loss(x, recon) for x, recon in zip(args, recons)]
+        ).sum()
+        loss["correlation"] = self.objective.loss(*z)
+        loss["objective"] = (
+            self.lam * loss["reconstruction"] + (1 - self.lam) * loss["correlation"]
+        )
+        return loss
 
-    @staticmethod
-    def _recon_loss(x, recon):
-        recons = [
-            F.binary_cross_entropy(recon_, x_, reduction="mean")
-            for recon_, x_ in zip(recon, x)
-        ]
-        return torch.stack(recons).sum(dim=0)
+    def recon_loss(self, x, recon):
+        return F.mse_loss(recon, x, reduction="mean")

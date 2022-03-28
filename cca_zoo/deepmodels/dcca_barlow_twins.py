@@ -19,8 +19,9 @@ class BarlowTwins(DCCA):
     def __init__(
         self,
         latent_dims: int,
-        encoders: Iterable[BaseEncoder] = [Encoder, Encoder],
+        encoders=None,
         lam=1,
+        **kwargs,
     ):
         """
         Constructor class for Barlow Twins
@@ -29,21 +30,21 @@ class BarlowTwins(DCCA):
         :param encoders: list of encoder networks
         :param lam: weighting of off diagonal loss terms
         """
-        super().__init__(latent_dims=latent_dims, encoders=encoders)
+        super().__init__(latent_dims=latent_dims, encoders=encoders, **kwargs)
         self.lam = lam
         self.bns = torch.nn.ModuleList(
             [torch.nn.BatchNorm1d(latent_dims, affine=False) for _ in self.encoders]
         )
 
-    def forward(self, *args):
+    def forward(self, *args, **kwargs):
         z = []
         for i, (encoder, bn) in enumerate(zip(self.encoders, self.bns)):
             z.append(bn(encoder(args[i])))
-        return tuple(z)
+        return z
 
     def loss(self, *args):
         z = self(*args)
-        cross_cov = z[0].T @ z[1] / (z[0].shape[0] - 1)
+        cross_cov = z[0].T @ z[1] / z[0].shape[0]
         invariance = torch.sum(torch.pow(1 - torch.diag(cross_cov), 2))
         covariance = torch.sum(
             torch.triu(torch.pow(cross_cov, 2), diagonal=1)

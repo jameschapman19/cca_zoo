@@ -20,7 +20,7 @@ class DTCCA(DCCA):
     """
 
     def __init__(
-        self, latent_dims: int, encoders=None, r: float = 0, eps: float = 1e-5
+        self, latent_dims: int, encoders=None, r: float = 0, eps: float = 1e-5, **kwargs
     ):
         """
 
@@ -35,6 +35,7 @@ class DTCCA(DCCA):
             encoders=encoders,
             r=r,
             eps=eps,
+            **kwargs
         )
 
     def post_transform(self, z_list, train=False) -> Iterable[np.ndarray]:

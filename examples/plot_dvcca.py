@@ -4,33 +4,26 @@ Deep Variational CCA and Deep Canonically Correlated Autoencoders
 
 This example demonstrates multiview models which can reconstruct their inputs
 """
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pytorch_lightning as pl
-from torch.utils.data import Subset
+from multiviewdata.torchdatasets import NoisyMNIST
 
 # %%
-from multiviewdata.torchdatasets import NoisyMNISTDataset
-from cca_zoo.deepmodels import (
-    CCALightning,
-    get_dataloaders,
-    architectures,
-    DCCAE,
-    DVCCA,
-)
+from torch.utils.data import Subset
+
+from cca_zoo.deepmodels import get_dataloaders, architectures, DCCAE, DVCCA, SplitAE
 
 
 def plot_reconstruction(model, dataloader):
     for i, batch in enumerate(dataloader):
         x, y = batch["views"]
-        recon_x, recon_y = model.recon(x[0], y[0])
-    if isinstance(recon_x, list):
-        recon_x = recon_x[0]
-    if isinstance(recon_y, list):
-        recon_y = recon_y[0]
-    recon_x = recon_x.detach().numpy()
-    recon_y = recon_y.detach().numpy()
+        output = model(x[0], y[0], mle=True)
+        if isinstance(output, tuple):
+            z = output[0]
+        else:
+            z = output
+    recons = model._decode(z)
     fig, ax = plt.subplots(ncols=4)
     ax[0].set_title("Original View 1")
     ax[1].set_title("Original View 2")
@@ -38,86 +31,177 @@ def plot_reconstruction(model, dataloader):
     ax[3].set_title("Reconstruction View 2")
     ax[0].imshow(x[0].detach().numpy().reshape((28, 28)))
     ax[1].imshow(y[0].detach().numpy().reshape((28, 28)))
-    ax[2].imshow(recon_x.reshape((28, 28)))
-    ax[3].imshow(recon_y.reshape((28, 28)))
+    ax[2].imshow(recons[0].detach().numpy().reshape((28, 28)))
+    ax[3].imshow(recons[1].detach().numpy().reshape((28, 28)))
 
 
-n_train = 500
-n_val = 100
-train_dataset = NoisyMNISTDataset(root="",mnist_type="MNIST", train=True, flatten=True, download=True)
+n_train = 1024
+n_val = 64
+batch_size = 64
+train_dataset = NoisyMNIST(
+    root="", mnist_type="MNIST", train=True, flatten=True, download=True
+)
 val_dataset = Subset(train_dataset, np.arange(n_train, n_train + n_val))
 train_dataset = Subset(train_dataset, np.arange(n_train))
-train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
+train_loader, val_loader = get_dataloaders(
+    train_dataset,
+    val_dataset,
+    batch_size=batch_size,
+    val_batch_size=batch_size,
+    shuffle_train=True,
+)
 
 # The number of latent dimensions across models
-latent_dims = 5
+latent_dims = 20
 # number of epochs for deep models
-epochs = 50
-
+epochs = 10
+# learning rate
+lr = 0.0001
+dropout = 0.1
+layer_sizes = (1024, 1024, 1024)
+"""
+DVCCA
+"""
 encoder_1 = architectures.Encoder(
-    latent_dims=latent_dims, feature_size=784, variational=True
-)
-encoder_2 = architectures.Encoder(
-    latent_dims=latent_dims, feature_size=784, variational=True
+    latent_dims=latent_dims,
+    feature_size=784,
+    variational=True,
+    layer_sizes=layer_sizes,
+    dropout=dropout,
 )
 decoder_1 = architectures.Decoder(
-    latent_dims=latent_dims, feature_size=784, norm_output=True
+    latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
 decoder_2 = architectures.Decoder(
-    latent_dims=latent_dims, feature_size=784, norm_output=True
+    latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
-
-
-# %%
-# Deep VCCA (private)
-# We need to add additional private encoders and change (double) the dimensionality of the decoders.
-private_encoder_1 = architectures.Encoder(
-    latent_dims=latent_dims, feature_size=784, variational=True
-)
-private_encoder_2 = architectures.Encoder(
-    latent_dims=latent_dims, feature_size=784, variational=True
-)
-private_decoder_1 = architectures.Decoder(latent_dims=2 * latent_dims, feature_size=784)
-private_decoder_2 = architectures.Decoder(latent_dims=2 * latent_dims, feature_size=784)
-dcca = DVCCA(
+dvcca = DVCCA(
     latent_dims=latent_dims,
-    encoders=[encoder_1, encoder_2],
-    decoders=[private_decoder_1, private_decoder_2],
-    private_encoders=[private_encoder_1, private_encoder_2],
-)
-dcca = CCALightning(dcca)
-trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
-trainer.fit(dcca, train_loader, val_loader)
-plot_reconstruction(dcca.model, train_loader)
-plt.suptitle("DVCCA Private")
-plt.show()
-# %%
-# Deep VCCA
-dcca = DVCCA(
-    latent_dims=latent_dims,
-    encoders=[encoder_1, encoder_2],
+    encoders=[encoder_1],
     decoders=[decoder_1, decoder_2],
+    lr=lr,
 )
-dcca = CCALightning(dcca)
-trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
-trainer.fit(dcca, train_loader, val_loader)
-plot_reconstruction(dcca.model, train_loader)
+trainer = pl.Trainer(
+    max_epochs=epochs,
+    enable_checkpointing=False,
+    log_every_n_steps=1,
+    flush_logs_every_n_steps=1,
+)
+trainer.fit(dvcca, train_loader, val_loader)
+dvcca.plot_latent_label(train_loader)
+plot_reconstruction(dvcca, train_loader)
 plt.suptitle("DVCCA")
 plt.show()
 
-
-# %%
-# DCCAE
-encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
-encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
-dcca = DCCAE(
+"""
+DVCCA Private
+"""
+private_encoder_1 = architectures.Encoder(
+    latent_dims=latent_dims,
+    feature_size=784,
+    variational=True,
+    layer_sizes=layer_sizes,
+    dropout=dropout,
+)
+private_encoder_2 = architectures.Encoder(
+    latent_dims=latent_dims,
+    feature_size=784,
+    variational=True,
+    layer_sizes=layer_sizes,
+    dropout=dropout,
+)
+private_decoder_1 = architectures.Decoder(
+    latent_dims=2 * latent_dims,
+    feature_size=784,
+    layer_sizes=layer_sizes,
+    dropout=dropout,
+)
+private_decoder_2 = architectures.Decoder(
+    latent_dims=2 * latent_dims,
+    feature_size=784,
+    layer_sizes=layer_sizes,
+    dropout=dropout,
+)
+dvccap = DVCCA(
+    latent_dims=latent_dims,
+    encoders=[encoder_1],
+    decoders=[private_decoder_1, private_decoder_2],
+    private_encoders=[private_encoder_1, private_encoder_2],
+    lr=lr,
+)
+trainer = pl.Trainer(
+    max_epochs=epochs,
+    enable_checkpointing=False,
+    log_every_n_steps=1,
+    flush_logs_every_n_steps=1,
+)
+trainer.fit(dvccap, train_loader, val_loader)
+plot_reconstruction(dvccap, train_loader)
+plt.suptitle("DVCCA Private")
+plt.show()
+"""
+DCCAE
+"""
+encoder_1 = architectures.Encoder(
+    latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes
+)
+encoder_2 = architectures.Encoder(
+    latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes
+)
+decoder_1 = architectures.Decoder(
+    latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+)
+decoder_2 = architectures.Decoder(
+    latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+)
+dccae = DCCAE(
     latent_dims=latent_dims,
     encoders=[encoder_1, encoder_2],
     decoders=[decoder_1, decoder_2],
+    lr=lr,
+    lam=0.5,
+    optimizer="adam",
 )
-dcca = CCALightning(dcca)
-trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
-trainer.fit(dcca, train_loader, val_loader)
-plot_reconstruction(dcca.model, train_loader)
+trainer = pl.Trainer(
+    max_epochs=epochs,
+    enable_checkpointing=False,
+    log_every_n_steps=1,
+    flush_logs_every_n_steps=1,
+)
+trainer.fit(dccae, train_loader, val_loader)
+dccae.plot_latent_label(train_loader)
 plt.suptitle("DCCAE")
+plot_reconstruction(dccae, train_loader)
+plt.suptitle("DCCAE")
+plt.show()
+
+"""
+SplitAE
+"""
+encoder_1 = architectures.Encoder(
+    latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes
+)
+decoder_1 = architectures.Decoder(
+    latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+)
+decoder_2 = architectures.Decoder(
+    latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+)
+splitae = SplitAE(
+    latent_dims=latent_dims,
+    encoder=encoder_1,
+    decoders=[decoder_1, decoder_2],
+    lr=lr,
+    optimizer="adam",
+)
+trainer = pl.Trainer(
+    max_epochs=epochs,
+    enable_checkpointing=False,
+    log_every_n_steps=1,
+    flush_logs_every_n_steps=1,
+)
+trainer.fit(splitae, train_loader, val_loader)
+plt.suptitle("SplitAE")
+plot_reconstruction(splitae, train_loader)
+plt.suptitle("SplitAE")
 plt.show()

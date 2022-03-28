@@ -4,7 +4,7 @@ from itertools import combinations
 
 import numpy as np
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.linear_model import ElasticNet, SGDRegressor, LinearRegression, Ridge
+from sklearn.linear_model import ElasticNet, SGDRegressor, Ridge
 from sklearn.utils._testing import ignore_warnings
 from sklearn.utils.validation import check_random_state
 

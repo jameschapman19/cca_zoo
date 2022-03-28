@@ -30,7 +30,6 @@ from sklearn.model_selection._search import (
 )
 from sklearn.model_selection._validation import _fit_and_score, _insert_error_scores
 from sklearn.pipeline import Pipeline
-from sklearn.utils import indexable
 from sklearn.utils.fixes import delayed
 from sklearn.utils.validation import _check_fit_params, check_random_state
 

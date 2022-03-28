@@ -15,32 +15,29 @@ class SplitAE(_DCCA_base):
 
     """
 
-    def __init__(self, latent_dims: int, encoder: BaseEncoder = Encoder, decoders=None):
+    def __init__(
+        self,
+        latent_dims: int,
+        encoder: BaseEncoder = Encoder,
+        decoders=None,
+        latent_dropout=0,
+        **kwargs
+    ):
         """
 
         :param latent_dims: # latent dimensions
         :param encoder: list of encoder networks
         :param decoders:  list of decoder networks
         """
-        super().__init__(latent_dims=latent_dims)
-        if decoders is None:
-            decoders = [Decoder, Decoder]
+        super().__init__(latent_dims=latent_dims, **kwargs)
         self.encoder = encoder
         self.decoders = torch.nn.ModuleList(decoders)
 
-    def forward(self, *args):
+    def forward(self, *args, **kwargs):
         z = self.encoder(args[0])
-        return [z]
+        return z
 
-    def recon(self, *args):
-        """
-        :param args:
-        :return:
-        """
-        z = self(*args)
-        return self._decode(z)
-
-    def _decode(self, *z):
+    def _decode(self, z):
         """
         This method is used to decode from the latent space to the best prediction of the original views
 
@@ -48,18 +45,19 @@ class SplitAE(_DCCA_base):
         """
         recon = []
         for i, decoder in enumerate(self.decoders):
-            recon.append(decoder(*z))
+            recon.append(decoder(z))
         return tuple(recon)
 
     def loss(self, *args):
         z = self(*args)
-        recon = self._decode(*z)
-        recon_loss = self.recon_loss(args, recon)
-        return {"objective": recon_loss}
+        recons = self._decode(z)
+        loss = dict()
+        loss["reconstruction"] = torch.stack(
+            [self.recon_loss(x, recon) for x, recon in zip(args, recons)]
+        ).sum()
+        loss["objective"] = loss["reconstruction"]
+        return loss
 
     @staticmethod
     def recon_loss(x, recon):
-        recons = [
-            F.mse_loss(recon[i], x[i], reduction="mean") for i in range(len(recon))
-        ]
-        return torch.stack(recons).sum(dim=0)
+        return F.mse_loss(recon, x, reduction="mean")
