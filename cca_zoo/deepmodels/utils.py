@@ -1,31 +1,4 @@
-from typing import Union, Iterable
-
-import numpy as np
-import torch
 from torch.utils.data import DataLoader
-
-from cca_zoo.data.utils import CCA_Dataset
-
-
-def process_data(
-    dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]],
-    val_dataset: Union[torch.utils.data.Dataset, Iterable[np.ndarray]] = None,
-    labels=None,
-    val_labels=None,
-    val_split: float = 0,
-):
-    # Ensure datasets are in the right form (e.g. if numpy arrays are passed turn them into
-    if isinstance(dataset, tuple):
-        dataset = CCA_Dataset(dataset, labels=labels)
-    if val_dataset is None and val_split > 0:
-        lengths = [
-            len(dataset) - int(len(dataset) * val_split),
-            int(len(dataset) * val_split),
-        ]
-        dataset, val_dataset = torch.utils.data.random_split(dataset, lengths)
-    elif isinstance(val_dataset, tuple):
-        val_dataset = CCA_Dataset(val_dataset, labels=val_labels)
-    return dataset, val_dataset
 
 
 def get_dataloaders(

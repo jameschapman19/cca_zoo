@@ -15,7 +15,7 @@ from multiviewdata.torchdatasets import SplitMNIST
 from cca_zoo.deepmodels import (
     DCCA,
     get_dataloaders,
-    architectures,
+    _architectures,
     DCCA_NOI,
     DCCA_SDL,
     BarlowTwins,
@@ -33,8 +33,8 @@ latent_dims = 2
 # number of epochs for deep models
 epochs = 50
 
-encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
-encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
+encoder_1 = _architectures.Encoder(latent_dims=latent_dims, feature_size=392)
+encoder_2 = _architectures.Encoder(latent_dims=latent_dims, feature_size=392)
 
 # %%
 # Deep CCA

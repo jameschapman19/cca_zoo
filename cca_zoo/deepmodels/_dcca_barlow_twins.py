@@ -1,9 +1,6 @@
-from typing import Iterable
-
 import torch
 
 from cca_zoo.deepmodels import DCCA
-from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
 
 
 class BarlowTwins(DCCA):

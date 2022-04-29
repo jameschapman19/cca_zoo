@@ -12,7 +12,7 @@ from cca_zoo.utils.check_values import _check_views
 from cca_zoo.utils.plotting import plot_latent_train_test
 
 
-class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
+class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
     """
     A class used as the base for methods in the package. Allows methods to inherit fit_transform, predict_corr,
     and gridsearch_fit when only fit (and transform where it is different to the default) is provided.
@@ -33,7 +33,7 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         random_state: Union[int, np.random.RandomState] = None,
     ):
         """
-        Constructor for _CCA_Base
+        Constructor for _BaseCCA
 
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
@@ -201,3 +201,6 @@ class _CCA_Base(BaseEstimator, MultiOutputMixin, RegressorMixin):
         if self.scale:
             views = [view / std for view, std in zip(views, self.view_stds)]
         return views
+
+    def _check_params(self):
+        pass

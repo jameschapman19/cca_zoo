@@ -1,17 +1,16 @@
 import itertools
 from typing import Optional
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from cca_zoo.deepmodels import objectives
-from cca_zoo.deepmodels.architectures import Encoder
+from cca_zoo.deepmodels import _objectives
 from cca_zoo.models import MCCA
-from ._dcca_base import _DCCA_base
-import matplotlib.pyplot as plt
+from ._base import _BaseDCCA
 
 
-class DCCA(_DCCA_base):
+class DCCA(_BaseDCCA):
     """
     A class used to fit a DCCA model.
 
@@ -24,7 +23,7 @@ class DCCA(_DCCA_base):
     def __init__(
         self,
         latent_dims: int,
-        objective=objectives.MCCA,
+        objective=_objectives.MCCA,
         encoders=None,
         r: float = 0,
         eps: float = 1e-5,

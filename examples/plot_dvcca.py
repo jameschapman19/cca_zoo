@@ -12,7 +12,7 @@ from multiviewdata.torchdatasets import NoisyMNIST
 # %%
 from torch.utils.data import Subset
 
-from cca_zoo.deepmodels import get_dataloaders, architectures, DCCAE, DVCCA, SplitAE
+from cca_zoo.deepmodels import get_dataloaders, _architectures, DCCAE, DVCCA, SplitAE
 
 
 def plot_reconstruction(model, dataloader):
@@ -62,17 +62,17 @@ layer_sizes = (1024, 1024, 1024)
 """
 DVCCA
 """
-encoder_1 = architectures.Encoder(
+encoder_1 = _architectures.Encoder(
     latent_dims=latent_dims,
     feature_size=784,
     variational=True,
     layer_sizes=layer_sizes,
     dropout=dropout,
 )
-decoder_1 = architectures.Decoder(
+decoder_1 = _architectures.Decoder(
     latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
-decoder_2 = architectures.Decoder(
+decoder_2 = _architectures.Decoder(
     latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
 dvcca = DVCCA(
@@ -96,27 +96,27 @@ plt.show()
 """
 DVCCA Private
 """
-private_encoder_1 = architectures.Encoder(
+private_encoder_1 = _architectures.Encoder(
     latent_dims=latent_dims,
     feature_size=784,
     variational=True,
     layer_sizes=layer_sizes,
     dropout=dropout,
 )
-private_encoder_2 = architectures.Encoder(
+private_encoder_2 = _architectures.Encoder(
     latent_dims=latent_dims,
     feature_size=784,
     variational=True,
     layer_sizes=layer_sizes,
     dropout=dropout,
 )
-private_decoder_1 = architectures.Decoder(
+private_decoder_1 = _architectures.Decoder(
     latent_dims=2 * latent_dims,
     feature_size=784,
     layer_sizes=layer_sizes,
     dropout=dropout,
 )
-private_decoder_2 = architectures.Decoder(
+private_decoder_2 = _architectures.Decoder(
     latent_dims=2 * latent_dims,
     feature_size=784,
     layer_sizes=layer_sizes,
@@ -142,16 +142,16 @@ plt.show()
 """
 DCCAE
 """
-encoder_1 = architectures.Encoder(
+encoder_1 = _architectures.Encoder(
     latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes
 )
-encoder_2 = architectures.Encoder(
+encoder_2 = _architectures.Encoder(
     latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes
 )
-decoder_1 = architectures.Decoder(
+decoder_1 = _architectures.Decoder(
     latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
-decoder_2 = architectures.Decoder(
+decoder_2 = _architectures.Decoder(
     latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
 dccae = DCCAE(
@@ -178,13 +178,13 @@ plt.show()
 """
 SplitAE
 """
-encoder_1 = architectures.Encoder(
+encoder_1 = _architectures.Encoder(
     latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes
 )
-decoder_1 = architectures.Decoder(
+decoder_1 = _architectures.Decoder(
     latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
-decoder_2 = architectures.Decoder(
+decoder_2 = _architectures.Decoder(
     latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
 splitae = SplitAE(

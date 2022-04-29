@@ -13,7 +13,7 @@ from torch import optim
 from torch.utils.data import Subset
 
 from multiviewdata.torchdatasets import SplitMNIST
-from cca_zoo.deepmodels import DCCA, get_dataloaders, architectures
+from cca_zoo.deepmodels import DCCA, get_dataloaders, _architectures
 
 n_train = 500
 n_val = 100
@@ -28,8 +28,8 @@ latent_dims = 2
 epochs = 10
 
 # TODO add in custom architecture and schedulers and stuff to show it off
-encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
-encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
+encoder_1 = _architectures.Encoder(latent_dims=latent_dims, feature_size=392)
+encoder_2 = _architectures.Encoder(latent_dims=latent_dims, feature_size=392)
 
 # Deep CCA
 dcca = DCCA(

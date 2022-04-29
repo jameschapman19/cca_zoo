@@ -1,11 +1,11 @@
 import torch
 import torch.nn.functional as F
 
-from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder, Decoder
-from cca_zoo.deepmodels.dcca import _DCCA_base
+from cca_zoo.deepmodels._architectures import BaseEncoder, Encoder
+from cca_zoo.deepmodels._dcca import _BaseDCCA
 
 
-class SplitAE(_DCCA_base):
+class SplitAE(_BaseDCCA):
     """
     A class used to fit a Split Autoencoder model.
 

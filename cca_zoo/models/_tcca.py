@@ -2,16 +2,16 @@ from typing import Iterable, Union
 
 import numpy as np
 import tensorly as tl
+from cca_zoo.models._base import _BaseCCA
 from scipy.linalg import sqrtm
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 from tensorly.decomposition import parafac
 
-from cca_zoo.models._cca_base import _CCA_Base
 from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 
-class TCCA(_CCA_Base):
+class TCCA(_BaseCCA):
     r"""
     Fits a Tensor CCA model. Tensor CCA maximises higher order correlations
 
@@ -83,8 +83,6 @@ class TCCA(_CCA_Base):
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )
         views = self._centre_scale(views)
-        self.n_views = len(views)
-        self.n = views[0].shape[0]
         self._check_params()
         # returns whitened views along with whitening matrices
         whitened_views, covs_invsqrt = self._setup_tensor(*views)

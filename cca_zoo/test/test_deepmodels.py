@@ -2,6 +2,7 @@ import numpy as np
 import pytorch_lightning as pl
 from sklearn.utils.validation import check_random_state
 from torch import manual_seed
+from torch.utils.data import random_split
 
 from cca_zoo import data
 from cca_zoo.deepmodels import (
@@ -12,11 +13,10 @@ from cca_zoo.deepmodels import (
     DTCCA,
     SplitAE,
     get_dataloaders,
-    process_data,
     BarlowTwins,
     DCCA_SDL,
 )
-from cca_zoo.deepmodels import objectives, architectures
+from cca_zoo.deepmodels import _objectives, _architectures
 from cca_zoo.models import CCA
 
 manual_seed(0)
@@ -27,7 +27,7 @@ Z = rng.rand(256, 14)
 X_conv = rng.rand(256, 1, 16, 16)
 Y_conv = rng.rand(256, 1, 16, 16)
 dataset = data.CCA_Dataset([X, Y, Z])
-train_dataset, val_dataset = process_data(dataset, val_split=0.2)
+train_dataset, val_dataset = random_split(dataset, [200, 56])
 loader = get_dataloaders(dataset)
 train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
 conv_dataset = data.CCA_Dataset((X_conv, Y_conv))
@@ -41,8 +41,8 @@ def test_DCCA_methods():
     epochs = 100
     cca = CCA(latent_dims=latent_dims).fit((X, Y))
     # DCCA_NOI
-    encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
+    encoder_1 = _architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = _architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     dcca_noi = DCCA_NOI(latent_dims, N, encoders=[encoder_1, encoder_2], rho=0)
     trainer = pl.Trainer(
         max_epochs=epochs, log_every_n_steps=1, enable_checkpointing=False
@@ -55,12 +55,12 @@ def test_DCCA_methods():
         is None
     )
     # DCCA
-    encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
+    encoder_1 = _architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = _architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     dcca = DCCA(
         latent_dims=latent_dims,
         encoders=[encoder_1, encoder_2],
-        objective=objectives.CCA,
+        objective=_objectives.CCA,
     )
     trainer = pl.Trainer(
         max_epochs=epochs, log_every_n_steps=1, enable_checkpointing=False
@@ -72,9 +72,9 @@ def test_DCCA_methods():
         )
         is None
     )
-    # Soft Decorrelation (stochastic Decorrelation Loss)
-    encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
+    # Soft Decorrelation (_stochastic Decorrelation Loss)
+    encoder_1 = _architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = _architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     sdl = DCCA_SDL(latent_dims, N, encoders=[encoder_1, encoder_2], lam=1e-2, lr=1e-3)
     trainer = pl.Trainer(max_epochs=epochs, log_every_n_steps=1)
     trainer.fit(sdl, train_loader)
@@ -85,8 +85,8 @@ def test_DCCA_methods():
         is None
     )
     # Barlow Twins
-    encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
+    encoder_1 = _architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = _architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     barlowtwins = BarlowTwins(
         latent_dims=latent_dims,
         encoders=[encoder_1, encoder_2],
@@ -102,12 +102,12 @@ def test_DCCA_methods():
         is None
     )
     # DGCCA
-    encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
+    encoder_1 = _architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = _architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     dgcca = DCCA(
         latent_dims=latent_dims,
         encoders=[encoder_1, encoder_2],
-        objective=objectives.GCCA,
+        objective=_objectives.GCCA,
     )
     trainer = pl.Trainer(
         max_epochs=epochs, log_every_n_steps=1, enable_checkpointing=False
@@ -120,12 +120,12 @@ def test_DCCA_methods():
         is None
     )
     # DMCCA
-    encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
+    encoder_1 = _architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = _architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     dmcca = DCCA(
         latent_dims=latent_dims,
         encoders=[encoder_1, encoder_2],
-        objective=objectives.MCCA,
+        objective=_objectives.MCCA,
     )
     trainer = pl.Trainer(
         max_epochs=epochs, log_every_n_steps=1, enable_checkpointing=False
@@ -144,8 +144,8 @@ def test_DTCCA_methods():
     latent_dims = 2
     epochs = 100
     cca = CCA(latent_dims=latent_dims)
-    encoder_1 = architectures.LinearEncoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.LinearEncoder(latent_dims=latent_dims, feature_size=12)
+    encoder_1 = _architectures.LinearEncoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = _architectures.LinearEncoder(latent_dims=latent_dims, feature_size=12)
     dtcca = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], lr=1e-2)
     trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
     trainer.fit(dtcca, train_loader)
@@ -164,10 +164,18 @@ def test_DTCCA_methods():
 
 def test_DCCAE_methods():
     latent_dims = 2
-    encoder_1 = architectures.CNNEncoder(latent_dims=latent_dims, feature_size=(16, 16))
-    encoder_2 = architectures.CNNEncoder(latent_dims=latent_dims, feature_size=(16, 16))
-    decoder_1 = architectures.CNNDecoder(latent_dims=latent_dims, feature_size=(16, 16))
-    decoder_2 = architectures.CNNDecoder(latent_dims=latent_dims, feature_size=(16, 16))
+    encoder_1 = _architectures.CNNEncoder(
+        latent_dims=latent_dims, feature_size=(16, 16)
+    )
+    encoder_2 = _architectures.CNNEncoder(
+        latent_dims=latent_dims, feature_size=(16, 16)
+    )
+    decoder_1 = _architectures.CNNDecoder(
+        latent_dims=latent_dims, feature_size=(16, 16)
+    )
+    decoder_2 = _architectures.CNNDecoder(
+        latent_dims=latent_dims, feature_size=(16, 16)
+    )
     # SplitAE
     splitae = SplitAE(
         latent_dims=latent_dims, encoder=encoder_1, decoders=[decoder_1, decoder_2]
@@ -186,20 +194,20 @@ def test_DCCAE_methods():
 
 def test_DVCCA_p_methods():
     latent_dims = 2
-    encoder_1 = architectures.Encoder(
+    encoder_1 = _architectures.Encoder(
         latent_dims=latent_dims, feature_size=10, variational=True
     )
-    encoder_2 = architectures.Encoder(
+    encoder_2 = _architectures.Encoder(
         latent_dims=latent_dims, feature_size=12, variational=True
     )
-    private_encoder_1 = architectures.Encoder(
+    private_encoder_1 = _architectures.Encoder(
         latent_dims=latent_dims, feature_size=10, variational=True
     )
-    private_encoder_2 = architectures.Encoder(
+    private_encoder_2 = _architectures.Encoder(
         latent_dims=latent_dims, feature_size=12, variational=True
     )
-    decoder_1 = architectures.Decoder(latent_dims=2 * latent_dims, feature_size=10)
-    decoder_2 = architectures.Decoder(latent_dims=2 * latent_dims, feature_size=12)
+    decoder_1 = _architectures.Decoder(latent_dims=2 * latent_dims, feature_size=10)
+    decoder_2 = _architectures.Decoder(latent_dims=2 * latent_dims, feature_size=12)
     # DVCCA
     dvcca = DVCCA(
         latent_dims=latent_dims,
@@ -213,14 +221,14 @@ def test_DVCCA_p_methods():
 
 def test_DVCCA_methods():
     latent_dims = 2
-    encoder_1 = architectures.Encoder(
+    encoder_1 = _architectures.Encoder(
         latent_dims=latent_dims, feature_size=10, variational=True
     )
-    encoder_2 = architectures.Encoder(
+    encoder_2 = _architectures.Encoder(
         latent_dims=latent_dims, feature_size=12, variational=True
     )
-    decoder_1 = architectures.Decoder(latent_dims=latent_dims, feature_size=10)
-    decoder_2 = architectures.Decoder(latent_dims=latent_dims, feature_size=12)
+    decoder_1 = _architectures.Decoder(latent_dims=latent_dims, feature_size=10)
+    decoder_2 = _architectures.Decoder(latent_dims=latent_dims, feature_size=12)
     dvcca = DVCCA(
         latent_dims=latent_dims,
         encoders=[encoder_1, encoder_2],
@@ -231,8 +239,8 @@ def test_DVCCA_methods():
 
 
 def test_linear():
-    encoder_1 = architectures.LinearEncoder(latent_dims=1, feature_size=10)
-    encoder_2 = architectures.LinearEncoder(latent_dims=1, feature_size=12)
+    encoder_1 = _architectures.LinearEncoder(latent_dims=1, feature_size=10)
+    encoder_2 = _architectures.LinearEncoder(latent_dims=1, feature_size=12)
     dcca = DCCA(latent_dims=1, encoders=[encoder_1, encoder_2], lr=1e-1)
     trainer = pl.Trainer(max_epochs=100, enable_checkpointing=False)
     trainer.fit(dcca, loader)

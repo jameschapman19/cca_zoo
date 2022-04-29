@@ -1,16 +1,16 @@
 from typing import Iterable
 
+import matplotlib.pyplot as plt
 import torch
 import torchvision
 from torch.autograd import Variable
 from torch.nn import functional as F
 
-from cca_zoo.deepmodels.architectures import BaseEncoder
-from cca_zoo.deepmodels.dcca import _DCCA_base
-import matplotlib.pyplot as plt
+from cca_zoo.deepmodels._architectures import BaseEncoder
+from cca_zoo.deepmodels._dcca import _BaseDCCA
 
 
-class DVCCA(_DCCA_base):
+class DVCCA(_BaseDCCA):
     """
     A class used to fit a DVCCA model.
 

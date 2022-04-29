@@ -2,16 +2,13 @@ from abc import abstractmethod
 from typing import Iterable, Union
 
 import numpy as np
+from cca_zoo.models._base import _BaseCCA
 from scipy.linalg import block_diag, eigh
 
-from cca_zoo.models._cca_base import _CCA_Base
 from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 
-# from hyperopt import fmin, tpe, Trials
-
-
-class rCCA(_CCA_Base):
+class rCCA(_BaseCCA):
     r"""
     A class used to fit Regularised CCA (canonical ridge) model. Uses PCA to perform the optimization efficiently for high dimensional data.
 
@@ -93,8 +90,7 @@ class rCCA(_CCA_Base):
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )
         views = self._centre_scale(views)
-        self.n_views = len(views)
-        self.n = views[0].shape[0]
+        self.n_views=len(views)
         self._check_params()
         views, C, D = self._setup_evp(views, **kwargs)
         self._solve_evp(views, C, D, **kwargs)
@@ -102,9 +98,10 @@ class rCCA(_CCA_Base):
 
     @abstractmethod
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
+        n=views[0].shape[0]
         Us, Ss, Vts = _pca_data(*views)
         self.Bs = [
-            (1 - self.c[i]) * S * S / self.n + self.c[i] for i, S in enumerate(Ss)
+            (1 - self.c[i]) * S * S / n + self.c[i] for i, S in enumerate(Ss)
         ]
         if len(views) == 2:
             self._two_view = True

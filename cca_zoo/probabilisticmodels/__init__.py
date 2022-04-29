@@ -1,1 +1,1 @@
-from .probabilisticcca import ProbabilisticCCA
+from ._probabilisticcca import ProbabilisticCCA

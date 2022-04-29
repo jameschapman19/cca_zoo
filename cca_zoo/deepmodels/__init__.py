@@ -1,12 +1,11 @@
-import cca_zoo.deepmodels.architectures
-import cca_zoo.deepmodels.objectives
-from ._dcca_base import _DCCA_base
-from .dcca import DCCA
-from .dcca_barlow_twins import BarlowTwins
-from .dcca_noi import DCCA_NOI
-from .dcca_sdl import DCCA_SDL
-from .dccae import DCCAE
-from .dtcca import DTCCA
-from .dvcca import DVCCA
-from .splitae import SplitAE
-from .utils import get_dataloaders, process_data
+import cca_zoo.deepmodels._architectures
+import cca_zoo.deepmodels._objectives
+from ._dcca import DCCA
+from ._dcca_barlow_twins import BarlowTwins
+from ._dcca_noi import DCCA_NOI
+from ._dcca_sdl import DCCA_SDL
+from ._dccae import DCCAE
+from ._dtcca import DTCCA
+from ._dvcca import DVCCA
+from ._splitae import SplitAE
+from .utils import get_dataloaders

@@ -14,8 +14,8 @@ from multiviewdata.torchdatasets import SplitMNIST
 from cca_zoo.deepmodels import (
     DCCA,
     get_dataloaders,
-    architectures,
-    objectives,
+    _architectures,
+    _objectives,
     DTCCA,
 )
 
@@ -31,13 +31,13 @@ latent_dims = 2
 # number of epochs for deep models
 epochs = 10
 
-encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
-encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=392)
+encoder_1 = _architectures.Encoder(latent_dims=latent_dims, feature_size=392)
+encoder_2 = _architectures.Encoder(latent_dims=latent_dims, feature_size=392)
 
 # %%
 # Deep MCCA
 dcca = DCCA(
-    latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=objectives.MCCA
+    latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=_objectives.MCCA
 )
 dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
@@ -46,7 +46,7 @@ trainer.fit(dcca, train_loader, val_loader)
 # %%
 # Deep GCCA
 dcca = DCCA(
-    latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=objectives.GCCA
+    latent_dims=latent_dims, encoders=[encoder_1, encoder_2], objective=_objectives.GCCA
 )
 dcca = CCALightning(dcca)
 trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)

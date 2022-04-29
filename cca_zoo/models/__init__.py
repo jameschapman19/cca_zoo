@@ -1,18 +1,17 @@
-from .rcca import rCCA, CCA, PLS
-from .mcca import MCCA, KCCA
-from .gcca import GCCA, KGCCA
-from .iterative import (
-    _Iterative,
-    PLS_ALS,
+from ._rcca import rCCA, CCA, PLS
+from ._gcca import GCCA, KGCCA
+from ._iterative import (
+    _BaseIterative,
+    PLSALS,
     PMD,
-    CCA_ALS,
     ElasticCCA,
-    ParkhomenkoCCA,
+    SCCAParkhomenko,
     SCCA,
-    SCCA_ADMM,
+    SCCAADMM,
     SpanCCA,
     SWCCA,
 )
-from .ncca import NCCA
-from .partialcca import PartialCCA
-from .tcca import TCCA, KTCCA
+from ._mcca import MCCA, KCCA
+from ._ncca import NCCA
+from ._partialcca import PartialCCA
+from ._tcca import TCCA, KTCCA

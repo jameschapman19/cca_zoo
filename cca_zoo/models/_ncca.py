@@ -1,15 +1,15 @@
 from typing import Union, Iterable
 
 import numpy as np
+from cca_zoo.models._base import _BaseCCA
 from sklearn.metrics import pairwise_kernels
 from sklearn.neighbors import NearestNeighbors
 from sklearn.utils.validation import check_is_fitted
 
-from cca_zoo.models._cca_base import _CCA_Base
 from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 
-class NCCA(_CCA_Base):
+class NCCA(_BaseCCA):
     """
     A class used to fit nonparametric (NCCA) model.
 
@@ -67,8 +67,6 @@ class NCCA(_CCA_Base):
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )
         views = self._centre_scale(views)
-        self.n_views = len(views)
-        self.n = views[0].shape[0]
         self._check_params()
         self.train_views = views
         self.knns = [

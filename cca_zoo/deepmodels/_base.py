@@ -7,7 +7,7 @@ import torch
 from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 
 
-class _DCCA_base(pl.LightningModule):
+class _BaseDCCA(pl.LightningModule):
     def __init__(
         self,
         latent_dims: int,

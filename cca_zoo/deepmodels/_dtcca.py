@@ -2,8 +2,8 @@ from typing import Iterable
 
 import numpy as np
 
-from cca_zoo.deepmodels import objectives
-from cca_zoo.deepmodels.dcca import DCCA
+from cca_zoo.deepmodels import _objectives
+from cca_zoo.deepmodels._dcca import DCCA
 from cca_zoo.models import TCCA
 
 
@@ -31,7 +31,7 @@ class DTCCA(DCCA):
         """
         super().__init__(
             latent_dims=latent_dims,
-            objective=objectives.TCCA,
+            objective=_objectives.TCCA,
             encoders=encoders,
             r=r,
             eps=eps,

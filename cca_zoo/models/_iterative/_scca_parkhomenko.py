@@ -1,0 +1,120 @@
+from typing import Union, Iterable
+
+from . import _BaseIterative
+from ._pls_als import _PLSInnerLoop
+from cca_zoo.models._iterative.utils import _soft_threshold
+from cca_zoo.utils import _process_parameter, _check_converged_weights
+import numpy as np
+
+
+class SCCAParkhomenko(_BaseIterative):
+    r"""
+    Fits a sparse CCA (penalized CCA) model
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \} + c_i\|w_i\|\\
+
+        \text{subject to:}
+
+        w_i^Tw_i=1
+
+    :Citation:
+
+    Parkhomenko, Elena, David Tritchler, and Joseph Beyene. "Sparse canonical correlation analysis with application to genomic data integration." Statistical applications in genetics and molecular biology 8.1 (2009).
+
+    :Example:
+
+    >>> from cca_zoo.models import SCCAParkhomenko
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = SCCAParkhomenko(c=[0.001,0.001],random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
+    array([0.81803527])
+    """
+
+    def __init__(
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        deflation="cca",
+        c: Union[Iterable[float], float] = None,
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "pls",
+        tol: float = 1e-9,
+    ):
+        """
+        Constructor for ParkhomenkoCCA
+
+        :param latent_dims: number of latent dimensions to fit
+        :param scale: normalize variance in each column before fitting
+        :param centre: demean data by column before fitting (and before transforming out of sample
+        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param random_state: Pass for reproducible output across multiple function calls
+        :param c: l1 regularisation parameter
+        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
+        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for _iterative methods
+        :param tol: tolerance value used for early stopping
+        """
+        self.c = c
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            max_iter=max_iter,
+            initialization=initialization,
+            tol=tol,
+            random_state=random_state,
+            deflation=deflation,
+        )
+
+    def _set_loop_params(self):
+        self.loop = _ParkhomenkoInnerLoop(
+            max_iter=self.max_iter,
+            c=self.c,
+            tol=self.tol,
+            random_state=self.random_state,
+        )
+
+
+class _ParkhomenkoInnerLoop(_PLSInnerLoop):
+    def __init__(
+        self,
+        max_iter: int = 100,
+        tol=1e-9,
+        c=None,
+        random_state=None,
+    ):
+        super().__init__(
+            max_iter=max_iter,
+            tol=tol,
+            random_state=random_state,
+        )
+        self.c = c
+
+    def _check_params(self):
+        self.c = _process_parameter("c", self.c, 0.0001, len(self.views))
+        if any(c <= 0 for c in self.c):
+            raise ("All regularisation parameters should be above 0. " f"c=[{self.c}]")
+
+    def _update_view(self, view_index: int):
+        """
+        :param view_index: index of view being updated
+        :return: updated weights
+        """
+        # mask off the current view and sum the rest
+        targets = np.ma.array(self.scores, mask=False)
+        targets.mask[view_index] = True
+        w = self.views[view_index].T @ targets.sum(axis=0).filled()
+        w /= np.linalg.norm(w)
+        _check_converged_weights(w, view_index)
+        w = _soft_threshold(w, self.c[view_index] / 2)
+        self.weights[view_index] = w / np.linalg.norm(w)
+        _check_converged_weights(w, view_index)
+        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]

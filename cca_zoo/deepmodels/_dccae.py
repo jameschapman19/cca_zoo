@@ -1,9 +1,8 @@
 import torch
 from torch.nn import functional as F
 
-from cca_zoo.deepmodels import objectives
-from cca_zoo.deepmodels.architectures import Encoder, Decoder
-from cca_zoo.deepmodels.dcca import DCCA
+from cca_zoo.deepmodels import _objectives
+from cca_zoo.deepmodels._dcca import DCCA
 
 
 class DCCAE(DCCA):
@@ -19,7 +18,7 @@ class DCCAE(DCCA):
     def __init__(
         self,
         latent_dims: int,
-        objective=objectives.MCCA,
+        objective=_objectives.MCCA,
         encoders=None,
         decoders=None,
         r: float = 0,

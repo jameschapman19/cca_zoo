@@ -154,5 +154,5 @@ Base Class
 
 .. automodule:: cca_zoo.models._cca_base
     :members:
-    :private-members: _CCA_Base
+    :private-members: _BaseCCA
     :exclude-members: get_params, set_params

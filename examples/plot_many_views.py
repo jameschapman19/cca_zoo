@@ -59,6 +59,6 @@ ktcca = KTCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 # Iterative Methods
 # ^^^^^^^^^^^^^^^^^^^^^^
 #
-# Most of the iterative methods can also use multiple views e.g.
+# Most of the _iterative methods can also use multiple views e.g.
 
 pmd = PMD(latent_dims=latent_dims, c=1).fit((X, Y, X)).score((X, Y, Z))
