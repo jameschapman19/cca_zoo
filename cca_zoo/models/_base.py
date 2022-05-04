@@ -204,3 +204,12 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     def _check_params(self):
         pass
+
+    def _validate_inputs(self, views):
+        views = _check_views(
+            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
+        )
+        views = self._centre_scale(views)
+        self.n = views[0].shape[0]
+        self.n_views = len(views)
+        return views

@@ -35,7 +35,7 @@ class MCCA(rCCA):
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = MCCA()
-    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
+    >>> model._fit((X1,X2,X3)).score((X1,X2,X3))
     array([0.97200847])
     """
 
@@ -123,7 +123,7 @@ class KCCA(MCCA):
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = KCCA()
-    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
+    >>> model._fit((X1,X2,X3)).score((X1,X2,X3))
     array([0.96893666])
     """
 

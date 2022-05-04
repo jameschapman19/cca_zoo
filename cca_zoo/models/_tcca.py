@@ -2,12 +2,12 @@ from typing import Iterable, Union
 
 import numpy as np
 import tensorly as tl
-from cca_zoo.models._base import _BaseCCA
 from scipy.linalg import sqrtm
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 from tensorly.decomposition import parafac
 
+from cca_zoo.models._base import _BaseCCA
 from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 
@@ -38,7 +38,7 @@ class TCCA(_BaseCCA):
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = TCCA()
-    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
+    >>> model._fit((X1,X2,X3)).score((X1,X2,X3))
     array([1.14595755])
     """
 
@@ -79,10 +79,7 @@ class TCCA(_BaseCCA):
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
-        views = _check_views(
-            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
-        )
-        views = self._centre_scale(views)
+        views = self._validate_inputs(views)
         self._check_params()
         # returns whitened views along with whitening matrices
         whitened_views, covs_invsqrt = self._setup_tensor(*views)
@@ -186,7 +183,7 @@ class KTCCA(TCCA):
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = KTCCA()
-    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
+    >>> model._fit((X1,X2,X3)).score((X1,X2,X3))
     array([1.69896269])
     """
 

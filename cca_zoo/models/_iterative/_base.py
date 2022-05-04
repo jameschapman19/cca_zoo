@@ -10,7 +10,6 @@ from sklearn.utils.validation import check_random_state
 from cca_zoo.models import rCCA
 from cca_zoo.models._base import _BaseCCA
 from cca_zoo.models._iterative.utils import _cosine_similarity
-from cca_zoo.utils.check_values import _check_views
 
 
 class _BaseIterative(_BaseCCA):
@@ -33,7 +32,7 @@ class _BaseIterative(_BaseCCA):
     ):
         """
         Constructor for _BaseIterative
-
+        :param inner_loop: an inner loop
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample
@@ -63,19 +62,10 @@ class _BaseIterative(_BaseCCA):
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
-        views = _check_views(
-            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
-        )
-        views = self._centre_scale(views)
-        self.n_views = len(views)
-        self.n=views[0].shape[0]
+        views = self._validate_inputs(views)
         self._check_params()
-        p = [view.shape[1] for view in views]
-        # List of d: p x k
-        self.weights = [np.zeros((p_, self.latent_dims)) for p_ in p]
-        self.loadings = [np.zeros((p_, self.latent_dims)) for p_ in p]
-        # List of d: n x k
-        self.scores = [np.zeros((self.n, self.latent_dims)) for _ in views]
+        self.weights = [np.zeros((view.shape[1], self.latent_dims)) for view in views]
+        self._outer_loop(views)
         return self
 
     def _outer_loop(self, views):
@@ -89,12 +79,10 @@ class _BaseIterative(_BaseCCA):
         residuals = copy.deepcopy(list(views))
         for k in range(self.latent_dims):
             self._set_loop_params()
-            self.loop = self.loop.fit(*residuals, initial_scores=next(initializer))
+            self.loop = self.loop._fit(residuals, initial_scores=next(initializer))
             for i, residual in enumerate(residuals):
                 self.weights[i][:, k] = self.loop.weights[i].ravel()
-                residuals[i] = self._deflate(
-                    residuals[i], self.weights[i][:, k]
-                )
+                residuals[i] = self._deflate(residuals[i], self.weights[i][:, k])
             self.track.append(self.loop.track)
             if not self.track[-1]["converged"]:
                 warnings.warn(
@@ -106,9 +94,10 @@ class _BaseIterative(_BaseCCA):
         Deflate view residual by CCA deflation (https://ars.els-cdn.com/content/image/1-s2.0-S0006322319319183-mmc1.pdf)
 
         :param residual: the current residual data matrix
-        :param score: the score for that view
 
         """
+        score = residual @ weights
+        loading = np.dot(score, residual)
         if self.deflation == "cca":
 
             return (
@@ -145,10 +134,13 @@ class _BaseInnerLoop:
         self.random_state = check_random_state(random_state)
 
     def _initialize(self, views):
-        self.weights = [self.random_state.randn(view.shape[1]) for view in views]
+        self.n_views=len(views)
 
-    def fit(self, views: np.ndarray, initial_scores):
+    def _fit(self, views: np.ndarray, initial_scores):
         self.scores = initial_scores
+        self.weights = [np.zeros(view.shape[1]) for view in views]
+        self.n = views[0].shape[0]
+        self.n_views = len(views)
         self._initialize(views)
         # Iterate until convergence
         for _ in range(self.max_iter):

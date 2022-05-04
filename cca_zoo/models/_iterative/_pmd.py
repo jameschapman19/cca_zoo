@@ -1,11 +1,12 @@
 import warnings
 from typing import Union, Iterable
 
-from . import _BaseIterative
-from ._pls_als import _PLSInnerLoop
+import numpy as np
+
 from cca_zoo.models._iterative.utils import _delta_search
 from cca_zoo.utils import _process_parameter, _check_converged_weights
-import numpy as np
+from . import _BaseIterative
+from ._pls_als import _PLSInnerLoop
 
 
 class PMD(_BaseIterative):
@@ -36,7 +37,7 @@ class PMD(_BaseIterative):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = PMD(c=[1,1],random_state=0)
-    >>> model.fit((X1,X2)).score((X1,X2))
+    >>> model._fit((X1,X2)).score((X1,X2))
     array([0.81796873])
     """
 
@@ -90,6 +91,21 @@ class PMD(_BaseIterative):
             positive=self.positive,
             random_state=self.random_state,
         )
+        
+    def _check_params(self):
+        if self.c is None:
+            warnings.warn(
+                "c parameter not set. Setting to c=1 i.e. maximum regularisation of l1 norm"
+            )
+        self.c = _process_parameter("c", self.c, 1, self.n_views)
+        if any(c < 0 or c > 1 for c in self.c):
+            raise ValueError(
+                "All regularisation parameters should be between 0 and 1 "
+                f"1. c=[{self.c}]"
+            )
+        self.positive = _process_parameter(
+            "positive", self.positive, False, self.n_views
+        )
 
 
 class _PMDInnerLoop(_PLSInnerLoop):
@@ -109,24 +125,11 @@ class _PMDInnerLoop(_PLSInnerLoop):
         self.c = c
         self.positive = positive
 
-    def _check_params(self):
-        if self.c is None:
-            warnings.warn(
-                "c parameter not set. Setting to c=1 i.e. maximum regularisation of l1 norm"
-            )
-        self.c = _process_parameter("c", self.c, 1, len(self.views))
-        if any(c < 0 or c > 1 for c in self.c):
-            raise ValueError(
-                "All regularisation parameters should be between 0 and 1 "
-                f"1. c=[{self.c}]"
-            )
-        shape_sqrts = [np.sqrt(view.shape[1]) for view in self.views]
+    def _initialize(self, views):
+        shape_sqrts = [np.sqrt(view.shape[1]) for view in views]
         self.t = [max(1, x * y) for x, y in zip(self.c, shape_sqrts)]
-        self.positive = _process_parameter(
-            "positive", self.positive, False, len(self.views)
-        )
 
-    def _update_view(self, view_index: int):
+    def _update_view(self, views, view_index: int):
         """
         :param view_index: index of view being updated
         :return: updated weights
@@ -135,7 +138,7 @@ class _PMDInnerLoop(_PLSInnerLoop):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         self.weights[view_index] = (
-            self.views[view_index].T @ targets.sum(axis=0).filled()
+            views[view_index].T @ targets.sum(axis=0).filled()
         )
         self.weights[view_index] = _delta_search(
             self.weights[view_index],
@@ -144,4 +147,4 @@ class _PMDInnerLoop(_PLSInnerLoop):
             tol=self.tol,
         )
         _check_converged_weights(self.weights[view_index], view_index)
-        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
+        self.scores[view_index] = views[view_index] @ self.weights[view_index]

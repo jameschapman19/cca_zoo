@@ -1,12 +1,12 @@
 from itertools import combinations
 from typing import Union, Iterable
 
-from . import _BaseIterative
-from ._pls_als import _PLSInnerLoop
-from cca_zoo.models._iterative.utils import _support_soft_thresh, _delta_search
 import numpy as np
 
+from cca_zoo.models._iterative.utils import _support_soft_thresh, _delta_search
 from cca_zoo.utils import _process_parameter
+from . import _BaseIterative
+from ._pls_als import _PLSInnerLoop
 
 
 class SWCCA(_BaseIterative):
@@ -25,24 +25,24 @@ class SWCCA(_BaseIterative):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = SWCCA(regularisation='l0',c=[2, 2], sample_support=5, random_state=0)
-    >>> model.fit((X1,X2)).score((X1,X2))
+    >>> model._fit((X1,X2)).score((X1,X2))
     array([0.61620969])
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        max_iter: int = 500,
-        initialization: str = "uniform",
-        tol: float = 1e-9,
-        regularisation="l0",
-        c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
-        sample_support=None,
-        positive=False,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            max_iter: int = 500,
+            initialization: str = "uniform",
+            tol: float = 1e-9,
+            regularisation="l0",
+            c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+            sample_support=None,
+            positive=False,
     ):
         """
 
@@ -86,17 +86,25 @@ class SWCCA(_BaseIterative):
             positive=self.positive,
         )
 
+    def _check_params(self):
+        if self.sample_support is None:
+            self.sample_support = self.n
+        self.c = _process_parameter("c", self.c, 2, self.n_views)
+        self.positive = _process_parameter(
+            "positive", self.positive, False, self.n_views
+        )
+
 
 class _SWCCAInnerLoop(_PLSInnerLoop):
     def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        regularisation="l0",
-        c=None,
-        sample_support: int = None,
-        random_state=None,
-        positive=False,
+            self,
+            max_iter: int = 100,
+            tol=1e-9,
+            regularisation="l0",
+            c=None,
+            sample_support: int = None,
+            random_state=None,
+            positive=False,
     ):
         super().__init__(
             max_iter=max_iter,
@@ -111,17 +119,11 @@ class _SWCCAInnerLoop(_PLSInnerLoop):
             self.update = _delta_search
         self.positive = positive
 
-    def _check_params(self):
-        if self.sample_support is None:
-            self.sample_support = self.views[0].shape[0]
-        self.sample_weights = np.ones(self.views[0].shape[0])
+    def _initialize(self, views):
+        self.sample_weights = np.ones(self.n)
         self.sample_weights /= np.linalg.norm(self.sample_weights)
-        self.c = _process_parameter("c", self.c, 2, len(self.views))
-        self.positive = _process_parameter(
-            "positive", self.positive, False, len(self.views)
-        )
 
-    def _update_view(self, view_index: int):
+    def _update_view(self, views, view_index: int):
         """
         :param view_index: index of view being updated
         :return: updated weights
@@ -129,17 +131,17 @@ class _SWCCAInnerLoop(_PLSInnerLoop):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         self.weights[view_index] = (
-            self.views[view_index] * self.sample_weights[:, np.newaxis]
-        ).T @ targets.sum(axis=0).filled()
+                                           views[view_index] * self.sample_weights[:, np.newaxis]
+                                   ).T @ targets.sum(axis=0).filled()
         self.weights[view_index] = self.update(
             self.weights[view_index],
             self.c[view_index],
             positive=self.positive[view_index],
         )
         self.weights[view_index] /= np.linalg.norm(self.weights[view_index])
-        if view_index == len(self.views) - 1:
+        if view_index == self.n_views - 1:
             self._update_sample_weights()
-        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
+        self.scores[view_index] = views[view_index] @ self.weights[view_index]
 
     def _update_sample_weights(self):
         w = self.scores.prod(axis=0)
@@ -150,7 +152,7 @@ class _SWCCAInnerLoop(_PLSInnerLoop):
     def _early_stop(self) -> bool:
         return False
 
-    def _objective(self) -> int:
+    def _objective(self, views) -> int:
         """
         Function used to calculate the objective function for the given. If we do not override then returns the covariance
          between projections

@@ -1,15 +1,14 @@
 import warnings
 from typing import Union, Iterable
 
+import numpy as np
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import SGDRegressor, Ridge, ElasticNet
 from sklearn.utils._testing import ignore_warnings
 
-from . import _BaseIterative
-import numpy as np
-
-from ._pls_als import _PLSInnerLoop
 from cca_zoo.utils import _process_parameter, _check_converged_weights
+from . import _BaseIterative
+from ._pls_als import _PLSInnerLoop
 
 
 class ElasticCCA(_BaseIterative):
@@ -49,7 +48,7 @@ class ElasticCCA(_BaseIterative):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = ElasticCCA(c=[1e-1,1e-1],l1_ratio=[0.5,0.5], random_state=0)
-    >>> model.fit((X1,X2)).score((X1,X2))
+    >>> model._fit((X1,X2)).score((X1,X2))
     array([0.9316638])
     """
 
@@ -123,12 +122,10 @@ class ElasticCCA(_BaseIterative):
         )
 
     def _check_params(self):
-        self.c = _process_parameter("c", self.c, 0, len(self.views))
-        self.l1_ratio = _process_parameter(
-            "l1_ratio", self.l1_ratio, 0, len(self.views)
-        )
+        self.c = _process_parameter("c", self.c, 0, self.n_views)
+        self.l1_ratio = _process_parameter("l1_ratio", self.l1_ratio, 0, self.n_views)
         self.positive = _process_parameter(
-            "positive", self.positive, False, len(self.views)
+            "positive", self.positive, False, self.n_views
         )
 
 
@@ -177,7 +174,7 @@ class SCCA(ElasticCCA):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = SCCA(c=[0.001,0.001], random_state=0)
-    >>> model.fit((X1,X2)).score((X1,X2))
+    >>> model._fit((X1,X2)).score((X1,X2))
     array([0.99998761])
     """
 
@@ -324,7 +321,7 @@ class _ElasticInnerLoop(_PLSInnerLoop):
         l2 = c * (1 - ratio)
         total_objective = 0
         target = self.scores.mean(axis=0)
-        for i in range(views):
+        for i,_ in enumerate(views):
             if self.maxvar:
                 target /= np.linalg.norm(target) / np.sqrt(self.n)
             objective = np.linalg.norm(views[i] @ self.weights[i] - target) ** 2 / (

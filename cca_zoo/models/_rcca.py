@@ -2,10 +2,10 @@ from abc import abstractmethod
 from typing import Iterable, Union
 
 import numpy as np
-from cca_zoo.models._base import _BaseCCA
 from scipy.linalg import block_diag, eigh
 
-from cca_zoo.utils.check_values import _process_parameter, _check_views
+from cca_zoo.models._base import _BaseCCA
+from cca_zoo.utils.check_values import _process_parameter
 
 
 class rCCA(_BaseCCA):
@@ -37,7 +37,7 @@ class rCCA(_BaseCCA):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = rCCA(c=[0.1,0.1])
-    >>> model.fit((X1,X2)).score((X1,X2))
+    >>> model._fit((X1,X2)).score((X1,X2))
     array([0.95222128])
     """
 
@@ -86,11 +86,7 @@ class rCCA(_BaseCCA):
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
-        views = _check_views(
-            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
-        )
-        views = self._centre_scale(views)
-        self.n_views=len(views)
+        views = self._validate_inputs(views)
         self._check_params()
         views, C, D = self._setup_evp(views, **kwargs)
         self._solve_evp(views, C, D, **kwargs)
@@ -98,12 +94,10 @@ class rCCA(_BaseCCA):
 
     @abstractmethod
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
-        n=views[0].shape[0]
+        n = views[0].shape[0]
         Us, Ss, Vts = _pca_data(*views)
-        self.Bs = [
-            (1 - self.c[i]) * S * S / n + self.c[i] for i, S in enumerate(Ss)
-        ]
-        if len(views) == 2:
+        self.Bs = [(1 - self.c[i]) * S * S / n + self.c[i] for i, S in enumerate(Ss)]
+        if self.n_views == 2:
             self._two_view = True
             C, D = self._two_view_evp(Us, Ss)
         else:
@@ -199,7 +193,7 @@ class CCA(rCCA):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = CCA()
-    >>> model.fit((X1,X2)).score((X1,X2))
+    >>> model._fit((X1,X2)).score((X1,X2))
     array([1.])
     """
 
@@ -256,7 +250,7 @@ class PLS(rCCA):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = PLS()
-    >>> model.fit((X1,X2)).score((X1,X2))
+    >>> model._fit((X1,X2)).score((X1,X2))
     array([0.81796873])
     """
 

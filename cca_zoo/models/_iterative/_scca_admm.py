@@ -4,6 +4,7 @@ import numpy as np
 
 from . import _BaseIterative
 from ._elastic import _ElasticInnerLoop
+from ...utils import _process_parameter, _check_converged_weights, _check_Parikh2014
 
 
 class SCCAADMM(_BaseIterative):
@@ -30,7 +31,7 @@ class SCCAADMM(_BaseIterative):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = SCCAADMM(random_state=0,c=[1e-1,1e-1])
-    >>> model.fit((X1,X2)).score((X1,X2))
+    >>> model._fit((X1,X2)).score((X1,X2))
     array([0.84348183])
     """
 
@@ -92,6 +93,25 @@ class SCCAADMM(_BaseIterative):
             tol=self.tol,
             random_state=self.random_state,
         )
+        
+    def _check_params(self):
+        self.c = _process_parameter("c", self.c, 0, self.n_views)
+        self.lam = _process_parameter("lam", self.lam, 1, self.n_views)
+        if self.mu is None:
+            self.mu = [
+                lam / np.linalg.norm(view) ** 2
+                for lam, view in zip(self.lam, self.views)
+            ]
+        else:
+            self.mu = _process_parameter("mu", self.mu, 0, self.n_views)
+        self.eta = _process_parameter("eta", self.eta, 0, self.n_views)
+
+        if any(mu <= 0 for mu in self.mu):
+            raise ValueError("At least one mu is less than zero.")
+
+        _check_Parikh2014(self.mu, self.lam, self.views)
+
+        self.l1_ratio = [1] * self.n_views
 
 
 class _ADMMInnerLoop(_ElasticInnerLoop):
@@ -115,40 +135,23 @@ class _ADMMInnerLoop(_ElasticInnerLoop):
         self.mu = mu
         self.eta = eta
 
-    def _check_params(self):
-        self.c = _process_parameter("c", self.c, 0, len(self.views))
-        self.lam = _process_parameter("lam", self.lam, 1, len(self.views))
-        if self.mu is None:
-            self.mu = [
-                lam / np.linalg.norm(view) ** 2
-                for lam, view in zip(self.lam, self.views)
-            ]
-        else:
-            self.mu = _process_parameter("mu", self.mu, 0, len(self.views))
-        self.eta = _process_parameter("eta", self.eta, 0, len(self.views))
-
-        if any(mu <= 0 for mu in self.mu):
-            raise ValueError("At least one mu is less than zero.")
-
-        _check_Parikh2014(self.mu, self.lam, self.views)
-
+    def _initialize(self, views):
         self.eta = [
-            np.ones(view.shape[0]) * eta for view, eta in zip(self.views, self.eta)
+            np.ones(view.shape[0]) * eta for view, eta in zip(views, self.eta)
         ]
-        self.z = [np.zeros(view.shape[0]) for view in self.views]
-        self.l1_ratio = [1] * len(self.views)
+        self.z = [np.zeros(view.shape[0]) for view in views]
 
-    def _update_view(self, view_index: int):
+    def _update_view(self, views, view_index: int):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         # Suo uses parameter tau whereas we use parameter c to penalize the 1-norm of the weights.
         # Suo uses c to refer to the gradient where we now use gradient
-        gradient = self.views[view_index].T @ targets.sum(axis=0).filled()
+        gradient = views[view_index].T @ targets.sum(axis=0).filled()
         # reset eta each loop?
         # self.eta[view_index][:] = 0
         mu = self.mu[view_index]
         lam = self.lam[view_index]
-        N = self.views[view_index].shape[0]
+        N = views[view_index].shape[0]
         unnorm_z = []
         norm_eta = []
         norm_weights = []
@@ -159,9 +162,9 @@ class _ADMMInnerLoop(_ElasticInnerLoop):
                 self.weights[view_index]
                 - mu
                 / lam
-                * self.views[view_index].T
+                * views[view_index].T
                 @ (
-                    self.views[view_index] @ self.weights[view_index]
+                    views[view_index] @ self.weights[view_index]
                     - self.z[view_index]
                     + self.eta[view_index]
                 ),
@@ -171,25 +174,25 @@ class _ADMMInnerLoop(_ElasticInnerLoop):
             )
             unnorm_z.append(
                 np.linalg.norm(
-                    self.views[view_index] @ self.weights[view_index]
+                    views[view_index] @ self.weights[view_index]
                     + self.eta[view_index]
                 )
             )
             self.z[view_index] = self._prox_lam_g(
-                self.views[view_index] @ self.weights[view_index] + self.eta[view_index]
+                views[view_index] @ self.weights[view_index] + self.eta[view_index]
             )
             self.eta[view_index] = (
                 self.eta[view_index]
-                + self.views[view_index] @ self.weights[view_index]
+                + views[view_index] @ self.weights[view_index]
                 - self.z[view_index]
             )
             norm_eta.append(np.linalg.norm(self.eta[view_index]))
             norm_proj.append(
-                np.linalg.norm(self.views[view_index] @ self.weights[view_index])
+                np.linalg.norm(views[view_index] @ self.weights[view_index])
             )
             norm_weights.append(np.linalg.norm(self.weights[view_index], 1))
         _check_converged_weights(self.weights[view_index], view_index)
-        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
+        self.scores[view_index] = views[view_index] @ self.weights[view_index]
 
     def _prox_mu_f(self, x, mu, c, tau):
         u_update = x.copy()

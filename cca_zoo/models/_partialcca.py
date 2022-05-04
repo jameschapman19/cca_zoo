@@ -23,7 +23,7 @@ class PartialCCA(MCCA):
     >>> X2 = np.random.rand(10,5)
     >>> partials = np.random.rand(10,3)
     >>> model = PartialCCA()
-    >>> model.fit((X1,X2),partials=partials).score((X1,X2),partials=partials)
+    >>> model._fit((X1,X2),partials=partials).score((X1,X2),partials=partials)
     array([0.99993046])
 
     """

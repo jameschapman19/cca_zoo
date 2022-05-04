@@ -1,10 +1,10 @@
 from abc import abstractmethod
 from typing import Union
 
-from . import _BaseIterative
 import numpy as np
 
 from . import _BaseInnerLoop
+from . import _BaseIterative
 
 
 class PLSALS(_BaseIterative):
@@ -29,7 +29,7 @@ class PLSALS(_BaseIterative):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = PLSALS(random_state=0)
-    >>> model.fit((X1,X2)).score((X1,X2))
+    >>> model._fit((X1,X2)).score((X1,X2))
     array([0.81796854])
     """
 

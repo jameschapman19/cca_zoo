@@ -115,7 +115,7 @@ plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
 # %%
-scca_admm = SCCA_ADMM(c=[1e-3, 1e-3]).fit([X, Y])
+scca_admm = SCCA_ADMM(c=[1e-3, 1e-3])._fit([X, Y])
 plot_model_weights(scca_admm.weights[0], scca_admm.weights[1], tx, ty)
 
 # Convergence

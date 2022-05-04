@@ -1,11 +1,11 @@
 from typing import Union, Iterable
 
 import numpy as np
-from cca_zoo.models._base import _BaseCCA
 from sklearn.metrics import pairwise_kernels
 from sklearn.neighbors import NearestNeighbors
 from sklearn.utils.validation import check_is_fitted
 
+from cca_zoo.models._base import _BaseCCA
 from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 
@@ -22,7 +22,7 @@ class NCCA(_BaseCCA):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = NCCA()
-    >>> model.fit((X1,X2)).score((X1,X2))
+    >>> model._fit((X1,X2)).score((X1,X2))
     array([1.])
     """
 
@@ -63,10 +63,7 @@ class NCCA(_BaseCCA):
         self.kernel = _process_parameter("kernel", None, "rbf", self.n_views)
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        views = _check_views(
-            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
-        )
-        views = self._centre_scale(views)
+        views = self._validate_inputs(views)
         self._check_params()
         self.train_views = views
         self.knns = [

@@ -1,10 +1,11 @@
 from typing import Union, Iterable
 
-from . import _BaseIterative
-from ._pls_als import _PLSInnerLoop
+import numpy as np
+
 from cca_zoo.models._iterative.utils import _soft_threshold
 from cca_zoo.utils import _process_parameter, _check_converged_weights
-import numpy as np
+from . import _BaseIterative
+from ._pls_als import _PLSInnerLoop
 
 
 class SCCAParkhomenko(_BaseIterative):
@@ -31,7 +32,7 @@ class SCCAParkhomenko(_BaseIterative):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = SCCAParkhomenko(c=[0.001,0.001],random_state=0)
-    >>> model.fit((X1,X2)).score((X1,X2))
+    >>> model._fit((X1,X2)).score((X1,X2))
     array([0.81803527])
     """
 
@@ -99,11 +100,11 @@ class _ParkhomenkoInnerLoop(_PLSInnerLoop):
         self.c = c
 
     def _check_params(self):
-        self.c = _process_parameter("c", self.c, 0.0001, len(self.views))
+        self.c = _process_parameter("c", self.c, 0.0001, self.n_views)
         if any(c <= 0 for c in self.c):
             raise ("All regularisation parameters should be above 0. " f"c=[{self.c}]")
 
-    def _update_view(self, view_index: int):
+    def _update_view(self, views, view_index: int):
         """
         :param view_index: index of view being updated
         :return: updated weights
@@ -111,10 +112,10 @@ class _ParkhomenkoInnerLoop(_PLSInnerLoop):
         # mask off the current view and sum the rest
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
-        w = self.views[view_index].T @ targets.sum(axis=0).filled()
+        w = views[view_index].T @ targets.sum(axis=0).filled()
         w /= np.linalg.norm(w)
         _check_converged_weights(w, view_index)
         w = _soft_threshold(w, self.c[view_index] / 2)
         self.weights[view_index] = w / np.linalg.norm(w)
         _check_converged_weights(w, view_index)
-        self.scores[view_index] = self.views[view_index] @ self.weights[view_index]
+        self.scores[view_index] = views[view_index] @ self.weights[view_index]

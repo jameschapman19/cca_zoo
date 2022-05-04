@@ -1,10 +1,11 @@
 from typing import Union, Iterable
 
-from . import _BaseIterative
-from . import _BaseInnerLoop
+import numpy as np
+
 from cca_zoo.models._iterative.utils import _support_soft_thresh, _delta_search
 from cca_zoo.utils import _process_parameter
-import numpy as np
+from . import _BaseInnerLoop
+from . import _BaseIterative
 
 
 class SpanCCA(_BaseIterative):
@@ -32,25 +33,25 @@ class SpanCCA(_BaseIterative):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = SpanCCA(regularisation="l0", c=[2, 2])
-    >>> model.fit((X1,X2)).score((X1,X2))
+    >>> model._fit((X1,X2)).score((X1,X2))
     array([0.84556666])
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        max_iter: int = 100,
-        initialization: str = "uniform",
-        tol: float = 1e-9,
-        regularisation="l0",
-        c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
-        rank=1,
-        positive: Union[Iterable[bool], bool] = None,
-        random_state=None,
-        deflation="cca",
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            max_iter: int = 100,
+            initialization: str = "uniform",
+            tol: float = 1e-9,
+            regularisation="l0",
+            c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+            rank=1,
+            positive: Union[Iterable[bool], bool] = None,
+            random_state=None,
+            deflation="cca",
     ):
         """
 
@@ -85,59 +86,62 @@ class SpanCCA(_BaseIterative):
 
     def _set_loop_params(self):
         self.loop = _SpanCCAInnerLoop(
+            self.update,
             max_iter=self.max_iter,
             c=self.c,
             tol=self.tol,
-            regularisation=self.regularisation,
             rank=self.rank,
             random_state=self.random_state,
             positive=self.positive,
         )
 
+    def _check_params(self):
+        """check number of views=2"""
+        if self.n_views != 2:
+            raise ValueError(f"SpanCCA requires only 2 views")
+        self.max_obj = 0
+        if self.regularisation == "l0":
+            self.update = _support_soft_thresh
+            self.c = _process_parameter("c", self.c, 0, self.n_views)
+        elif self.regularisation == "l1":
+            self.update = _delta_search
+            self.c = _process_parameter("c", self.c, 0, self.n_views)
+        self.positive = _process_parameter(
+            "positive", self.positive, False, self.n_views
+        )
+
 
 class _SpanCCAInnerLoop(_BaseInnerLoop):
     def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        c=None,
-        regularisation="l0",
-        rank=1,
-        random_state=None,
-        positive=False,
+            self,
+            update,
+            max_iter: int = 100,
+            tol=1e-9,
+            c=None,
+            rank=1,
+            random_state=None,
+            positive=False,
     ):
         super().__init__(
             max_iter=max_iter,
             tol=tol,
             random_state=random_state,
         )
+        self.update = update
         self.c = c
-        self.regularisation = regularisation
         self.rank = rank
         self.positive = positive
 
-    def _check_params(self):
-        """check number of views=2"""
-        if len(self.views) != 2:
-            raise ValueError(f"SpanCCA requires only 2 views")
-        cov = self.views[0].T @ self.views[1] / self.n
+    def _initialize(self, views):
+        self.max_obj = 0
+        cov = views[0].T @ views[1] / views[0].shape[0]
         # Perform SVD on im and obtain individual matrices
         P, D, Q = np.linalg.svd(cov, full_matrices=True)
         self.P = P[:, : self.rank]
         self.D = D[: self.rank]
         self.Q = Q[: self.rank, :].T
-        self.max_obj = 0
-        if self.regularisation == "l0":
-            self.update = _support_soft_thresh
-            self.c = _process_parameter("c", self.c, 0, len(self.views))
-        elif self.regularisation == "l1":
-            self.update = _delta_search
-            self.c = _process_parameter("c", self.c, 0, len(self.views))
-        self.positive = _process_parameter(
-            "positive", self.positive, False, len(self.views)
-        )
 
-    def _inner_iteration(self):
+    def _inner_iteration(self, views):
         c = self.random_state.randn(self.rank)
         c /= np.linalg.norm(c)
         a = self.P @ np.diag(self.D) @ c
@@ -148,7 +152,7 @@ class _SpanCCAInnerLoop(_BaseInnerLoop):
         v /= np.linalg.norm(v)
         if b.T @ v > self.max_obj:
             self.max_obj = b.T @ v
-            self.scores[0] = self.views[0] @ u
-            self.scores[1] = self.views[1] @ v
+            self.scores[0] = views[0] @ u
+            self.scores[1] = views[1] @ v
             self.weights[0] = u
             self.weights[1] = v
