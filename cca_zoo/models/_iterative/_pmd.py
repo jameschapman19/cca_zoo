@@ -9,7 +9,7 @@ from . import _BaseIterative
 from ._pls_als import _PLSInnerLoop
 
 
-class PMD(_BaseIterative):
+class SCCA_PMD(_BaseIterative):
     r"""
     Fits a Sparse CCA (Penalized Matrix Decomposition) model.
 
@@ -31,13 +31,13 @@ class PMD(_BaseIterative):
 
     :Example:
 
-    >>> from cca_zoo.models import PMD
+    >>> from cca_zoo.models import SCCA_PMD
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
-    >>> model = PMD(c=[1,1],random_state=0)
-    >>> model._fit((X1,X2)).score((X1,X2))
+    >>> model = SCCA_PMD(c=[1,1],random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
     array([0.81796873])
     """
 
@@ -56,7 +56,7 @@ class PMD(_BaseIterative):
         positive: Union[Iterable[bool], bool] = None,
     ):
         """
-        Constructor for PMD
+        Constructor for SCCA_PMD
 
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting

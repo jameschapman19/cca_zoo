@@ -48,7 +48,7 @@ class ElasticCCA(_BaseIterative):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = ElasticCCA(c=[1e-1,1e-1],l1_ratio=[0.5,0.5], random_state=0)
-    >>> model._fit((X1,X2)).score((X1,X2))
+    >>> model.fit((X1,X2)).score((X1,X2))
     array([0.9316638])
     """
 
@@ -129,7 +129,7 @@ class ElasticCCA(_BaseIterative):
         )
 
 
-class SCCA(ElasticCCA):
+class SCCA_IPLS(ElasticCCA):
     r"""
     Fits a sparse CCA model by _iterative rescaled lasso regression. Implemented by ElasticCCA with l1 ratio=1
 
@@ -168,13 +168,13 @@ class SCCA(ElasticCCA):
 
     :Example:
 
-    >>> from cca_zoo.models import SCCA
+    >>> from cca_zoo.models import SCCA_IPLS
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
-    >>> model = SCCA(c=[0.001,0.001], random_state=0)
-    >>> model._fit((X1,X2)).score((X1,X2))
+    >>> model = SCCA_IPLS(c=[0.001,0.001], random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
     array([0.99998761])
     """
 
@@ -195,7 +195,7 @@ class SCCA(ElasticCCA):
         positive: Union[Iterable[bool], bool] = None,
     ):
         """
-        Constructor for SCCA
+        Constructor for SCCA_IPLS
 
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting

@@ -100,12 +100,12 @@ A complete model list at the time of publication:
 | PLS   | Partial Least Squares | \>=2   | standard |
 | CCA_ALS   | Canonical Correlation Analysis by Alternating Least Squares) [@golub1995canonical] | \>=2   | standard |
 | PLS_ALS   | Partial Least Squares by Alternating Least Squares)  | \>=2   | standard |
-| PMD   | Sparse CCA by Penalized Matrix Decomposition | \>=2   | standard |
+| SCCA_PMD   | Sparse CCA by Penalized Matrix Decomposition | \>=2   | standard |
 | ElasticCCA   | Sparse Penalized CCA [@waaijenborg2008quantifying] | \>=2   | standard |
 | ParkhomenkoCCA   | Sparse CCA [@parkhomenko2009sparse] | \>=2   | standard |
-| SCCA   | Sparse Canonical Correlation Analysis by Iterative Least Squares [@mai2019iterative] | \>=2   | standard |
+| SCCA_IPLS   | Sparse Canonical Correlation Analysis by Iterative Least Squares [@mai2019iterative] | \>=2   | standard |
 | SCCA_ADMM   | Sparse Canonical Correlation Analysis by Altnerating Direction Method of Multipliers [@suo2017sparse] | \>=2   | standard |
-| SpanCCA   | Sparse Diagonal Canonical Correlation Analysis [@asteris2016simple] | \>=2   | standard |
+| SCCA_Span   | Sparse Diagonal Canonical Correlation Analysis [@asteris2016simple] | \>=2   | standard |
 | SWCCA   | Sparse Weighted Canonical Correlation Analysis [@wenwen2018sparse] | \>=2   | standard |
 | TCCA   | Tensor Canonical Correlation Analysis | \>=2   | standard |
 | KTCCA   | Kernel Tensor Canonical Correlation Analysis [@kim2007tensor] | \>=2   | standard |

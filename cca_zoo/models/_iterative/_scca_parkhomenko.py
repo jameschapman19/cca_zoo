@@ -8,7 +8,7 @@ from . import _BaseIterative
 from ._pls_als import _PLSInnerLoop
 
 
-class SCCAParkhomenko(_BaseIterative):
+class SCCA_Parkhomenko(_BaseIterative):
     r"""
     Fits a sparse CCA (penalized CCA) model
 
@@ -26,13 +26,13 @@ class SCCAParkhomenko(_BaseIterative):
 
     :Example:
 
-    >>> from cca_zoo.models import SCCAParkhomenko
+    >>> from cca_zoo.models import SCCA_Parkhomenko
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
-    >>> model = SCCAParkhomenko(c=[0.001,0.001],random_state=0)
-    >>> model._fit((X1,X2)).score((X1,X2))
+    >>> model = SCCA_Parkhomenko(c=[0.001,0.001],random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
     array([0.81803527])
     """
 
@@ -83,6 +83,11 @@ class SCCAParkhomenko(_BaseIterative):
             random_state=self.random_state,
         )
 
+    def _check_params(self):
+        self.c = _process_parameter("c", self.c, 0.0001, self.n_views)
+        if any(c <= 0 for c in self.c):
+            raise ("All regularisation parameters should be above 0. " f"c=[{self.c}]")
+
 
 class _ParkhomenkoInnerLoop(_PLSInnerLoop):
     def __init__(
@@ -98,11 +103,6 @@ class _ParkhomenkoInnerLoop(_PLSInnerLoop):
             random_state=random_state,
         )
         self.c = c
-
-    def _check_params(self):
-        self.c = _process_parameter("c", self.c, 0.0001, self.n_views)
-        if any(c <= 0 for c in self.c):
-            raise ("All regularisation parameters should be above 0. " f"c=[{self.c}]")
 
     def _update_view(self, views, view_index: int):
         """

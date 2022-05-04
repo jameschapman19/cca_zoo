@@ -7,13 +7,13 @@ from ._elastic import _ElasticInnerLoop
 from ...utils import _process_parameter, _check_converged_weights, _check_Parikh2014
 
 
-class SCCAADMM(_BaseIterative):
+class SCCA_ADMM(_BaseIterative):
     r"""
     Fits a sparse CCA model by alternating ADMM
 
     .. math::
 
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 + \text{l1_ratio}\|w_i\|_1\}\\
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 + \|w_i\|_1\}\\
 
         \text{subject to:}
 
@@ -25,13 +25,13 @@ class SCCAADMM(_BaseIterative):
 
     :Example:
 
-    >>> from cca_zoo.models import SCCAADMM
+    >>> from cca_zoo.models import SCCA_ADMM
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
-    >>> model = SCCAADMM(random_state=0,c=[1e-1,1e-1])
-    >>> model._fit((X1,X2)).score((X1,X2))
+    >>> model = SCCA_ADMM(random_state=0,c=[1e-1,1e-1])
+    >>> model.fit((X1,X2)).score((X1,X2))
     array([0.84348183])
     """
 
@@ -97,21 +97,7 @@ class SCCAADMM(_BaseIterative):
     def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
         self.lam = _process_parameter("lam", self.lam, 1, self.n_views)
-        if self.mu is None:
-            self.mu = [
-                lam / np.linalg.norm(view) ** 2
-                for lam, view in zip(self.lam, self.views)
-            ]
-        else:
-            self.mu = _process_parameter("mu", self.mu, 0, self.n_views)
         self.eta = _process_parameter("eta", self.eta, 0, self.n_views)
-
-        if any(mu <= 0 for mu in self.mu):
-            raise ValueError("At least one mu is less than zero.")
-
-        _check_Parikh2014(self.mu, self.lam, self.views)
-
-        self.l1_ratio = [1] * self.n_views
 
 
 class _ADMMInnerLoop(_ElasticInnerLoop):
@@ -138,6 +124,15 @@ class _ADMMInnerLoop(_ElasticInnerLoop):
     def _initialize(self, views):
         self.eta = [np.ones(view.shape[0]) * eta for view, eta in zip(views, self.eta)]
         self.z = [np.zeros(view.shape[0]) for view in views]
+        if self.mu is None:
+            self.mu = [
+                lam / np.linalg.norm(view) ** 2
+                for lam, view in zip(self.lam, views)
+            ]
+        else:
+            self.mu = _process_parameter("mu", self.mu, 0, self.n_views)
+        _check_Parikh2014(self.mu, self.lam, views)
+        self.l1_ratio =_process_parameter("c", self.c, 1, self.n_views)
 
     def _update_view(self, views, view_index: int):
         targets = np.ma.array(self.scores, mask=False)

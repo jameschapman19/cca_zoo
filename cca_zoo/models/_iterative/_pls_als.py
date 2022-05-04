@@ -7,7 +7,7 @@ from . import _BaseInnerLoop
 from . import _BaseIterative
 
 
-class PLSALS(_BaseIterative):
+class PLS_ALS(_BaseIterative):
     r"""
     A class used to fit a PLS model
 
@@ -28,8 +28,8 @@ class PLSALS(_BaseIterative):
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
-    >>> model = PLSALS(random_state=0)
-    >>> model._fit((X1,X2)).score((X1,X2))
+    >>> model = PLS_ALS(random_state=0)
+    >>> model.fit((X1,X2)).score((X1,X2))
     array([0.81796854])
     """
 

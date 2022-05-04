@@ -69,11 +69,11 @@ With bibtex entry:
 - K(M)CCA (kernel Multiset CCA)
 - [TCCA (Tensor CCA)](https://arxiv.org/pdf/1502.02330.pdf)
 - [KTCCA (kernel Tensor CCA)](https://arxiv.org/pdf/1502.02330.pdf)
-- [SCCA (Sparse CCA)](https://onlinelibrary.wiley.com/doi/abs/10.1111/biom.13043)
+- [SCCA_IPLS (Sparse CCA)](https://onlinelibrary.wiley.com/doi/abs/10.1111/biom.13043)
 - [SPLS (Sparse PLS/Penalized Matrix Decomposition](https://web.stanford.edu/~hastie/Papers/PMD_Witten.pdf)
 - [ElasticCCA (Penalized CCA)](https://pubmed.ncbi.nlm.nih.gov/19689958/)
 - [SWCCA (Sparse Weighted CCA)](https://arxiv.org/abs/1710.04792v1#:~:text=However%2C%20classical%20and%20sparse%20CCA%20models%20consider%20the,where%20weights%20are%20used%20for%20regularizing%20different%20samples)
-- [SpanCCA](http://akyrillidis.github.io/pubs/Conferences/cca.pdf)
+- [SCCA_Span](http://akyrillidis.github.io/pubs/Conferences/cca.pdf)
 
 ### `[deep]` Install
 - DCCA (Deep CCA)

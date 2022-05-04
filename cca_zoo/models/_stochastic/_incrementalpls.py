@@ -1,6 +1,5 @@
 import numpy as np
-
-from cca_zoo.models._stochastic import _BaseStochastic, StochasticPowerPLS
+from cca_zoo.models._stochastic import _BaseStochastic
 
 
 class IncrementalPLS(_BaseStochastic):
@@ -87,12 +86,10 @@ class IncrementalPLS(_BaseStochastic):
 
     def incremental_update(self, views):
         hats = np.stack([view @ weight for view, weight in zip(views, self.weights)])
-        orths = np.stack(
-            [
+        orths = [
                 view - hat @ weight.T
                 for view, weight, hat in zip(views, self.weights, hats)
             ]
-        )
         self.incrsvd(hats, orths)
 
     def simple_update(self, views):
@@ -147,43 +144,3 @@ class IncrementalPLS(_BaseStochastic):
             )
         )
 
-
-def main():
-    from cca_zoo.models import PLS
-
-    rng = np.random.default_rng(0)
-    np.random.seed(42)
-    COMPONENTS = 50
-    LATENT_DIMS = 3
-    k = np.linspace(0, 100, COMPONENTS + 1)
-    Z = np.linalg.qr(rng.standard_normal(size=(1000, COMPONENTS)))[0] * k[1:]
-    X = Z @ np.linalg.pinv(
-        np.linalg.qr(rng.standard_normal(size=(COMPONENTS, COMPONENTS)))[0]
-    )
-    Y = Z @ np.linalg.pinv(
-        np.linalg.qr(rng.standard_normal(size=(COMPONENTS, COMPONENTS)))[0]
-    )
-    ipls = IncrementalPLS(
-        latent_dims=LATENT_DIMS, epochs=1, simple=False, batch_size=1, shuffle=True
-    ).fit((X, Y))
-    print(
-        f"ipls score: {np.sum(np.diag(np.cov(*ipls.transform((X, Y)), rowvar=False)[:LATENT_DIMS, LATENT_DIMS:]))}"
-    )
-    pls = PLS(latent_dims=LATENT_DIMS).fit((X, Y))
-    print(
-        f"pls score: {np.sum(np.diag(np.cov(*pls.transform((X, Y)), rowvar=False)[:LATENT_DIMS, LATENT_DIMS:]))}"
-    )
-    spls = StochasticPowerPLS(latent_dims=LATENT_DIMS).fit((X, Y))
-    print(
-        f"spls score: {np.sum(np.diag(np.cov(*spls.transform((X, Y)), rowvar=False)[:LATENT_DIMS, LATENT_DIMS:]))}"
-    )
-    import matplotlib.pyplot as plt
-
-    plt.plot(ipls.track)
-    plt.plot(spls.track)
-    plt.show()
-    print()
-
-
-if __name__ == "__main__":
-    main()

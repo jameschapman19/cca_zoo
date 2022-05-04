@@ -88,13 +88,13 @@ Sparsity Inducing Models
 
 Penalized Matrix Decomposition (Sparse PLS)
 """""""""""""""""""""""""""""""""""""""""""""""
-.. autoclass:: cca_zoo.models.PMD
+.. autoclass:: cca_zoo.models.SCCA_PMD
     :inherited-members:
     :exclude-members: get_params, set_params
 
 Sparse CCA by iterative lasso regression
 """""""""""""""""""""""""""""""""""""""""""""""
-.. autoclass:: cca_zoo.models.SCCA
+.. autoclass:: cca_zoo.models.SCCA_IPLS
     :inherited-members:
     :exclude-members: get_params, set_params
 
@@ -106,7 +106,7 @@ Elastic CCA by MAXVAR
 
 Span CCA
 """""""""""""""""""""""""""""""""""""""""""""""
-.. autoclass:: cca_zoo.models.SpanCCA
+.. autoclass:: cca_zoo.models.SCCA_Span
     :inherited-members:
     :exclude-members: get_params, set_params
 
@@ -146,7 +146,7 @@ Sparse Weighted CCA
 Base Class
 --------------------------------
 
-.. automodule:: cca_zoo.models._cca_base
+.. automodule:: cca_zoo.models._base
     :members:
     :private-members: _BaseCCA
     :exclude-members: get_params, set_params

@@ -8,7 +8,7 @@ from . import _BaseInnerLoop
 from . import _BaseIterative
 
 
-class SpanCCA(_BaseIterative):
+class SCCA_Span(_BaseIterative):
     r"""
     Fits a Sparse CCA model using SpanCCA.
 
@@ -27,13 +27,13 @@ class SpanCCA(_BaseIterative):
 
     :Example:
 
-    >>> from cca_zoo.models import SpanCCA
+    >>> from cca_zoo.models import SCCA_Span
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
-    >>> model = SpanCCA(regularisation="l0", c=[2, 2])
-    >>> model._fit((X1,X2)).score((X1,X2))
+    >>> model = SCCA_Span(regularisation="l0", c=[2, 2])
+    >>> model.fit((X1,X2)).score((X1,X2))
     array([0.84556666])
     """
 
@@ -98,7 +98,7 @@ class SpanCCA(_BaseIterative):
     def _check_params(self):
         """check number of views=2"""
         if self.n_views != 2:
-            raise ValueError(f"SpanCCA requires only 2 views")
+            raise ValueError(f"SCCA_Span requires only 2 views")
         self.max_obj = 0
         if self.regularisation == "l0":
             self.update = _support_soft_thresh

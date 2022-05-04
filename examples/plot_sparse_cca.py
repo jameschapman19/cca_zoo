@@ -12,7 +12,7 @@ import pandas as pd
 
 from cca_zoo.data import generate_covariance_data
 from cca_zoo.model_selection import GridSearchCV
-from cca_zoo.models import PMD, SCCA, ElasticCCA, CCA, PLS, SCCA_ADMM, SpanCCA
+from cca_zoo.models import SCCA_PMD, SCCA_IPLS, ElasticCCA, CCA, PLS, SCCA_ADMM, SCCA_Span
 
 # %%
 np.random.seed(42)
@@ -62,7 +62,7 @@ pls = PLS().fit([X, Y])
 plot_model_weights(pls.weights[0], pls.weights[1], tx, ty)
 
 # %%
-pmd = PMD(c=[0.5, 0.5]).fit([X, Y])
+pmd = SCCA_PMD(c=[0.5, 0.5]).fit([X, Y])
 plot_model_weights(pmd.weights[0], pmd.weights[1], tx, ty)
 
 # %%
@@ -76,13 +76,13 @@ plt.xlabel("#iterations")
 c1 = [0.1, 0.3, 0.7, 0.9]
 c2 = [0.1, 0.3, 0.7, 0.9]
 param_grid = {"c": [c1, c2]}
-pmd = GridSearchCV(PMD(), param_grid=param_grid, cv=3, verbose=True).fit([X, Y])
+pmd = GridSearchCV(SCCA_PMD(), param_grid=param_grid, cv=3, verbose=True).fit([X, Y])
 
 # %%
 pd.DataFrame(pmd.cv_results_)
 
 # %%
-scca = SCCA(c=[1e-3, 1e-3]).fit([X, Y])
+scca = SCCA_IPLS(c=[1e-3, 1e-3]).fit([X, Y])
 plot_model_weights(scca.weights[0], scca.weights[1], tx, ty)
 
 # Convergence
@@ -93,7 +93,7 @@ plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
 # %%
-scca_pos = SCCA(c=[1e-3, 1e-3], positive=[True, True]).fit([X, Y])
+scca_pos = SCCA_IPLS(c=[1e-3, 1e-3], positive=[True, True]).fit([X, Y])
 plot_model_weights(scca_pos.weights[0], scca_pos.weights[1], tx, ty)
 
 # Convergence
@@ -115,7 +115,7 @@ plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
 # %%
-scca_admm = SCCA_ADMM(c=[1e-3, 1e-3])._fit([X, Y])
+scca_admm = SCCA_ADMM(c=[1e-3, 1e-3]).fit([X, Y])
 plot_model_weights(scca_admm.weights[0], scca_admm.weights[1], tx, ty)
 
 # Convergence
@@ -126,7 +126,7 @@ plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
 # %%
-spancca = SpanCCA(c=[10, 10], max_iter=2000, rank=20).fit([X, Y])
+spancca = SCCA_Span(c=[10, 10], max_iter=2000, rank=20).fit([X, Y])
 plot_model_weights(spancca.weights[0], spancca.weights[1], tx, ty)
 
 # Convergence

@@ -19,16 +19,16 @@ class _BaseIterative(_BaseCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "random",
-        tol: float = 1e-9,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "random",
+            tol: float = 1e-9,
     ):
         """
         Constructor for _BaseIterative
@@ -97,15 +97,10 @@ class _BaseIterative(_BaseCCA):
 
         """
         score = residual @ weights
-        loading = np.dot(score, residual)
         if self.deflation == "cca":
-
-            return (
-                residual
-                - np.outer(score, score) @ residual / np.dot(score, score).item()
-            )
+            return residual - np.outer(score, score) @ residual / np.dot(score, score)
         elif self.deflation == "pls":
-            return residual - np.outer(score, loading)
+            return residual - np.outer(residual@weights,weights)
         else:
             raise ValueError(f"deflation method {self.deflation} not implemented yet.")
 
@@ -119,10 +114,10 @@ class _BaseIterative(_BaseCCA):
 
 class _BaseInnerLoop:
     def __init__(
-        self,
-        max_iter: int = 100,
-        tol: float = 1e-9,
-        random_state=None,
+            self,
+            max_iter: int = 100,
+            tol: float = 1e-9,
+            random_state=None,
     ):
         """
         :param max_iter: maximum number of iterations to perform if tol is not reached
@@ -160,8 +155,8 @@ class _BaseInnerLoop:
     def _early_stop(self) -> bool:
         # Some kind of early stopping
         if all(
-            _cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol)
-            for n, view in enumerate(self.scores)
+                _cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol)
+                for n, view in enumerate(self.scores)
         ):
             return True
         else:

@@ -25,7 +25,7 @@ class SWCCA(_BaseIterative):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = SWCCA(regularisation='l0',c=[2, 2], sample_support=5, random_state=0)
-    >>> model._fit((X1,X2)).score((X1,X2))
+    >>> model.fit((X1,X2)).score((X1,X2))
     array([0.61620969])
     """
 
