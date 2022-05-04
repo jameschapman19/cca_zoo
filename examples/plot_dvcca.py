@@ -59,9 +59,8 @@ epochs = 10
 lr = 0.0001
 dropout = 0.1
 layer_sizes = (1024, 1024, 1024)
-"""
-DVCCA
-"""
+# %%
+# Deep Variational CCA
 encoder_1 = _architectures.Encoder(
     latent_dims=latent_dims,
     feature_size=784,
@@ -93,9 +92,8 @@ plot_reconstruction(dvcca, train_loader)
 plt.suptitle("DVCCA")
 plt.show()
 
-"""
-DVCCA Private
-"""
+# %%
+# Deep Variational CCA Private
 private_encoder_1 = _architectures.Encoder(
     latent_dims=latent_dims,
     feature_size=784,
@@ -139,9 +137,9 @@ trainer.fit(dvccap, train_loader, val_loader)
 plot_reconstruction(dvccap, train_loader)
 plt.suptitle("DVCCA Private")
 plt.show()
-"""
-DCCAE
-"""
+
+# %%
+# Deep Canonically Correlated Autoencoders
 encoder_1 = _architectures.Encoder(
     latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes
 )
@@ -175,9 +173,8 @@ plot_reconstruction(dccae, train_loader)
 plt.suptitle("DCCAE")
 plt.show()
 
-"""
-SplitAE
-"""
+# %%
+# Split Autoencoders
 encoder_1 = _architectures.Encoder(
     latent_dims=latent_dims, feature_size=784, layer_sizes=layer_sizes
 )

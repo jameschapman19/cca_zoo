@@ -142,11 +142,11 @@ def test_DCCA_methods():
 def test_DTCCA_methods():
     # check that DTCCA is equivalent to CCA for 2 views with linear encoders
     latent_dims = 2
-    epochs = 100
+    epochs = 150
     cca = CCA(latent_dims=latent_dims)
     encoder_1 = _architectures.LinearEncoder(latent_dims=latent_dims, feature_size=10)
     encoder_2 = _architectures.LinearEncoder(latent_dims=latent_dims, feature_size=12)
-    dtcca = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], lr=1e-3)
+    dtcca = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], lr=1e-2)
     trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
     trainer.fit(dtcca, train_loader)
     z = dtcca.transform(train_loader)
@@ -156,7 +156,7 @@ def test_DTCCA_methods():
             .score((X[train_ids], Y[train_ids]))
             .sum(),
             cca.fit((z)).score((z)).sum(),
-            decimal=2,
+            decimal=1,
         )
         is None
     )

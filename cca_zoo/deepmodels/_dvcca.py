@@ -159,7 +159,7 @@ class DVCCA(_BaseDCCA):
 
     @staticmethod
     def kl_loss(mu, logvar):
-        return -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        return -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
 
     def recon_loss(self, x, recon):
         return F.mse_loss(recon, x, reduction="mean")
