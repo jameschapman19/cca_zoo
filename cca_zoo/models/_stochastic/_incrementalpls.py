@@ -4,7 +4,7 @@ from cca_zoo.models._stochastic import _BaseStochastic
 
 class IncrementalPLS(_BaseStochastic):
     r"""
-    A class used to fit Stochastic PLS
+    A class used to fit Incremental PLS
 
     :Maths:
 
@@ -13,7 +13,7 @@ class IncrementalPLS(_BaseStochastic):
 
     :Citation:
 
-
+    Arora, Raman, et al. "Stochastic optimization for PCA and PLS." 2012 50th Annual Allerton Conference on Communication, Control, and Computing (Allerton). IEEE, 2012.
 
     :Example:
 

@@ -14,7 +14,7 @@ class StochasticPowerPLS(_BaseStochastic):
 
     :Citation:
 
-
+    Arora, Raman, et al. "Stochastic optimization for PCA and PLS." 2012 50th Annual Allerton Conference on Communication, Control, and Computing (Allerton). IEEE, 2012.
 
     :Example:
 
