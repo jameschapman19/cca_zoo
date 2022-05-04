@@ -7,19 +7,19 @@ Regularized Canonical Correlation Analysis and Partial Least Squares
 
 Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: cca_zoo.models.rcca.CCA
+.. autoclass:: cca_zoo.models._rcca.CCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
 Partial Least Squares
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: cca_zoo.models.rcca.PLS
+.. autoclass:: cca_zoo.models._rcca.PLS
     :inherited-members:
     :exclude-members: get_params, set_params
 
 Ridge Regularized Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: cca_zoo.models.rcca.rCCA
+.. autoclass:: cca_zoo.models._rcca.rCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
@@ -28,13 +28,13 @@ GCCA and KGCCA
 
 Generalized (MAXVAR) Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: cca_zoo.models.gcca.GCCA
+.. autoclass:: cca_zoo.models._gcca.GCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
 Kernel Generalized (MAXVAR) Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: cca_zoo.models.gcca.KGCCA
+.. autoclass:: cca_zoo.models._gcca.KGCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
@@ -43,13 +43,13 @@ MCCA and KCCA
 
 Multiset (SUMCOR) Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: cca_zoo.models.mcca.MCCA
+.. autoclass:: cca_zoo.models._mcca.MCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
 Kernel Multiset (SUMCOR) Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: cca_zoo.models.mcca.KCCA
+.. autoclass:: cca_zoo.models._mcca.KCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
@@ -58,13 +58,13 @@ Tensor Canonical Correlation Analysis
 
 Tensor Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: cca_zoo.models.tcca.TCCA
+.. autoclass:: cca_zoo.models._tcca.TCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
 Kernel Tensor Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: cca_zoo.models.tcca.KTCCA
+.. autoclass:: cca_zoo.models._tcca.KTCCA
     :inherited-members:
     :exclude-members: get_params, set_params
 
@@ -75,12 +75,6 @@ Normal CCA and PLS by alternating least squares
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Quicker and more memory efficient for very large data
 
-
-CCA by Alternating Least Squares
-""""""""""""""""""""""""""""""""""""
-.. autoclass:: cca_zoo.models.CCA_ALS
-    :inherited-members:
-    :exclude-members: get_params, set_params
 
 PLS by Alternating Least Squares
 """"""""""""""""""""""""""""""""""""

@@ -93,7 +93,7 @@ class SCCAADMM(_BaseIterative):
             tol=self.tol,
             random_state=self.random_state,
         )
-        
+
     def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
         self.lam = _process_parameter("lam", self.lam, 1, self.n_views)
@@ -136,9 +136,7 @@ class _ADMMInnerLoop(_ElasticInnerLoop):
         self.eta = eta
 
     def _initialize(self, views):
-        self.eta = [
-            np.ones(view.shape[0]) * eta for view, eta in zip(views, self.eta)
-        ]
+        self.eta = [np.ones(view.shape[0]) * eta for view, eta in zip(views, self.eta)]
         self.z = [np.zeros(view.shape[0]) for view in views]
 
     def _update_view(self, views, view_index: int):
@@ -174,8 +172,7 @@ class _ADMMInnerLoop(_ElasticInnerLoop):
             )
             unnorm_z.append(
                 np.linalg.norm(
-                    views[view_index] @ self.weights[view_index]
-                    + self.eta[view_index]
+                    views[view_index] @ self.weights[view_index] + self.eta[view_index]
                 )
             )
             self.z[view_index] = self._prox_lam_g(

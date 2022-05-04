@@ -38,20 +38,20 @@ class SpanCCA(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            max_iter: int = 100,
-            initialization: str = "uniform",
-            tol: float = 1e-9,
-            regularisation="l0",
-            c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
-            rank=1,
-            positive: Union[Iterable[bool], bool] = None,
-            random_state=None,
-            deflation="cca",
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        max_iter: int = 100,
+        initialization: str = "uniform",
+        tol: float = 1e-9,
+        regularisation="l0",
+        c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+        rank=1,
+        positive: Union[Iterable[bool], bool] = None,
+        random_state=None,
+        deflation="cca",
     ):
         """
 
@@ -113,14 +113,14 @@ class SpanCCA(_BaseIterative):
 
 class _SpanCCAInnerLoop(_BaseInnerLoop):
     def __init__(
-            self,
-            update,
-            max_iter: int = 100,
-            tol=1e-9,
-            c=None,
-            rank=1,
-            random_state=None,
-            positive=False,
+        self,
+        update,
+        max_iter: int = 100,
+        tol=1e-9,
+        c=None,
+        rank=1,
+        random_state=None,
+        positive=False,
     ):
         super().__init__(
             max_iter=max_iter,

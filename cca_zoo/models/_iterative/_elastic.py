@@ -321,7 +321,7 @@ class _ElasticInnerLoop(_PLSInnerLoop):
         l2 = c * (1 - ratio)
         total_objective = 0
         target = self.scores.mean(axis=0)
-        for i,_ in enumerate(views):
+        for i, _ in enumerate(views):
             if self.maxvar:
                 target /= np.linalg.norm(target) / np.sqrt(self.n)
             objective = np.linalg.norm(views[i] @ self.weights[i] - target) ** 2 / (

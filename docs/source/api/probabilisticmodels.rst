@@ -4,6 +4,6 @@ Probabilistic Models
 Variational CCA
 ----------------------------------------
 
-.. automodule:: cca_zoo.probabilisticmodels.probabilisticcca
+.. automodule:: cca_zoo.probabilisticmodels._probabilisticcca
     :inherited-members:
     :exclude-members: get_params, set_params

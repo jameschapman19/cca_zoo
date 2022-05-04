@@ -91,7 +91,7 @@ class PMD(_BaseIterative):
             positive=self.positive,
             random_state=self.random_state,
         )
-        
+
     def _check_params(self):
         if self.c is None:
             warnings.warn(
@@ -137,9 +137,7 @@ class _PMDInnerLoop(_PLSInnerLoop):
         # mask off the current view and sum the rest
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
-        self.weights[view_index] = (
-            views[view_index].T @ targets.sum(axis=0).filled()
-        )
+        self.weights[view_index] = views[view_index].T @ targets.sum(axis=0).filled()
         self.weights[view_index] = _delta_search(
             self.weights[view_index],
             self.t[view_index],
