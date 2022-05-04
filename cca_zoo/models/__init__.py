@@ -15,3 +15,8 @@ from ._mcca import MCCA, KCCA
 from ._ncca import NCCA
 from ._partialcca import PartialCCA
 from ._tcca import TCCA, KTCCA
+
+try:
+    from ._stochastic import StochasticPowerPLS, IncrementalPLS
+except:
+    pass

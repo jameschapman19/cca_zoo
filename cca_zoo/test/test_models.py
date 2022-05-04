@@ -22,10 +22,8 @@ from cca_zoo.models import (
     SWCCA,
     KGCCA,
     NCCA,
-    PartialCCA, PLS_ALS, SCCA_ADMM, SCCA_Parkhomenko,
+    PartialCCA, PLS_ALS, SCCA_ADMM, SCCA_Parkhomenko,StochasticPowerPLS, IncrementalPLS
 )
-from cca_zoo.models._stochastic import StochasticPowerPLS, IncrementalPLS
-from cca_zoo.utils.plotting import cv_plot
 
 n = 50
 rng = check_random_state(0)
