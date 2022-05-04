@@ -146,7 +146,7 @@ def test_DTCCA_methods():
     cca = CCA(latent_dims=latent_dims)
     encoder_1 = _architectures.LinearEncoder(latent_dims=latent_dims, feature_size=10)
     encoder_2 = _architectures.LinearEncoder(latent_dims=latent_dims, feature_size=12)
-    dtcca = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], lr=1e-2)
+    dtcca = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], lr=1e-3)
     trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
     trainer.fit(dtcca, train_loader)
     z = dtcca.transform(train_loader)
