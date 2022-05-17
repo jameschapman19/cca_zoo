@@ -50,7 +50,7 @@ def test_DCCA_methods():
     trainer.fit(dcca_noi, train_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dcca_noi.score(train_loader).sum()
+            cca.score((X, Y)).sum(), dcca_noi.batch_correlation(train_loader).sum()
         )
         is None
     )
@@ -68,7 +68,7 @@ def test_DCCA_methods():
     trainer.fit(dcca, train_loader, val_dataloaders=val_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dcca.score(train_loader).sum()
+            cca.score((X, Y)).sum(), dcca.batch_correlation(train_loader).sum()
         )
         is None
     )
@@ -80,7 +80,7 @@ def test_DCCA_methods():
     trainer.fit(sdl, train_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), sdl.score(train_loader).sum()
+            cca.score((X, Y)).sum(), sdl.batch_correlation(train_loader).sum()
         )
         is None
     )
@@ -97,7 +97,7 @@ def test_DCCA_methods():
     trainer.fit(barlowtwins, train_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), barlowtwins.score(train_loader).sum()
+            cca.score((X, Y)).sum(), barlowtwins.batch_correlation(train_loader).sum()
         )
         is None
     )
@@ -115,7 +115,7 @@ def test_DCCA_methods():
     trainer.fit(dgcca, train_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dgcca.score(train_loader).sum()
+            cca.score((X, Y)).sum(), dgcca.batch_correlation(train_loader).sum()
         )
         is None
     )
@@ -133,7 +133,7 @@ def test_DCCA_methods():
     trainer.fit(dmcca, train_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dmcca.score(train_loader).sum()
+            cca.score((X, Y)).sum(), dmcca.batch_correlation(train_loader).sum()
         )
         is None
     )
@@ -248,7 +248,7 @@ def test_linear():
     # check linear encoder with SGD matches vanilla linear CCA
     assert (
         np.testing.assert_array_almost_equal(
-            cca.score((X, Y)), dcca.score(loader), decimal=2
+            cca.score((X, Y)), dcca.batch_correlation(loader), decimal=2
         )
         is None
     )

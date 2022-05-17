@@ -22,7 +22,12 @@ from cca_zoo.models import (
     SWCCA,
     KGCCA,
     NCCA,
-    PartialCCA, PLS_ALS, SCCA_ADMM, SCCA_Parkhomenko,StochasticPowerPLS, IncrementalPLS
+    PartialCCA,
+    PLS_ALS,
+    SCCA_ADMM,
+    SCCA_Parkhomenko,
+    StochasticPowerPLS,
+    IncrementalPLS,
 )
 
 n = 50
@@ -140,7 +145,9 @@ def test_sparse_methods():
     c1 = [1e-1]
     c2 = [1e-1]
     param_grid = {"c": [c1, c2]}
-    scca_cv = GridSearchCV(SCCA_IPLS(random_state=rng), param_grid=param_grid).fit([X, Y])
+    scca_cv = GridSearchCV(SCCA_IPLS(random_state=rng), param_grid=param_grid).fit(
+        [X, Y]
+    )
     c1 = [0.1, 0.2]
     c2 = [0.1, 0.2]
     param_grid = {"c": [c1, c2]}
@@ -174,12 +181,14 @@ def test_sparse_methods():
     assert (elastic_cv.best_estimator_.weights[0] == 0).sum() > 0
     assert (elastic_cv.best_estimator_.weights[1] == 0).sum() > 0
 
+
 def test_pls():
     pls_als = PLS_ALS(latent_dims=3)
     pls = PLS(latent_dims=3)
     pls_als.fit((X, Y))
     pls.fit((X, Y))
     assert np.allclose(np.abs(pls_als.weights[0]), np.abs(pls.weights[0]), rtol=1e-3)
+
 
 def test_weighted_GCCA_methods():
     # TODO we have view weighted GCCA and missing observation GCCA
@@ -248,15 +257,21 @@ def test_partialcca():
 
 def test_stochastic():
     pls = PLS(latent_dims=1).fit((X, Y))
-    ipls = IncrementalPLS(
-        latent_dims=1, epochs=10, simple=False, batch_size=1
-    ).fit((X, Y))
-    spls = StochasticPowerPLS(latent_dims=1, epochs=10, batch_size=1,lr=1e-1).fit((X, Y))
+    ipls = IncrementalPLS(latent_dims=1, epochs=10, simple=False, batch_size=1).fit(
+        (X, Y)
+    )
+    spls = StochasticPowerPLS(latent_dims=1, epochs=10, batch_size=1, lr=1e-1).fit(
+        (X, Y)
+    )
     pls_score = pls.score((X, Y))
     ipls_score = ipls.score((X, Y))
     spls_score = spls.score((X, Y))
-    assert np.testing.assert_array_almost_equal(pls_score, ipls_score, decimal=1) is None
-    assert np.testing.assert_array_almost_equal(pls_score, spls_score, decimal=1) is None
+    assert (
+            np.testing.assert_array_almost_equal(pls_score, ipls_score, decimal=1) is None
+    )
+    assert (
+            np.testing.assert_array_almost_equal(pls_score, spls_score, decimal=1) is None
+    )
 
 
 def test_PCCA():

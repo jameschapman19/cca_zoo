@@ -2,7 +2,7 @@ from typing import Union, Iterable
 
 import numpy as np
 
-from cca_zoo.models._iterative.utils import _support_soft_thresh, _delta_search
+from cca_zoo.models._iterative.utils import _delta_search, support_threshold
 from cca_zoo.utils import _process_parameter
 from . import _BaseInnerLoop
 from . import _BaseIterative
@@ -101,7 +101,7 @@ class SCCA_Span(_BaseIterative):
             raise ValueError(f"SCCA_Span requires only 2 views")
         self.max_obj = 0
         if self.regularisation == "l0":
-            self.update = _support_soft_thresh
+            self.update = support_threshold
             self.c = _process_parameter("c", self.c, 0, self.n_views)
         elif self.regularisation == "l1":
             self.update = _delta_search

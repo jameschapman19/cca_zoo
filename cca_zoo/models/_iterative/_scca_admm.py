@@ -126,13 +126,12 @@ class _ADMMInnerLoop(_ElasticInnerLoop):
         self.z = [np.zeros(view.shape[0]) for view in views]
         if self.mu is None:
             self.mu = [
-                lam / np.linalg.norm(view) ** 2
-                for lam, view in zip(self.lam, views)
+                lam / np.linalg.norm(view) ** 2 for lam, view in zip(self.lam, views)
             ]
         else:
             self.mu = _process_parameter("mu", self.mu, 0, self.n_views)
         _check_Parikh2014(self.mu, self.lam, views)
-        self.l1_ratio =_process_parameter("c", self.c, 1, self.n_views)
+        self.l1_ratio = _process_parameter("c", self.c, 1, self.n_views)
 
     def _update_view(self, views, view_index: int):
         targets = np.ma.array(self.scores, mask=False)

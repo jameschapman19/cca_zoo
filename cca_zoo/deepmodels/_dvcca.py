@@ -1,22 +1,20 @@
 from typing import Iterable
 
-import matplotlib.pyplot as plt
 import torch
 import torchvision
 from torch.autograd import Variable
-from torch.nn import functional as F
 
 from cca_zoo.deepmodels._architectures import BaseEncoder
-from cca_zoo.deepmodels._dcca import _BaseDCCA
+from cca_zoo.deepmodels._base import _BaseDeep, _GenerativeMixin
 
 
-class DVCCA(_BaseDCCA):
+class DVCCA(_GenerativeMixin, _BaseDeep):
     """
     A class used to fit a DVCCA model.
 
     :Citation:
 
-    Wang, Weiran, et al. "Deep variational canonical correlation analysis." arXiv preprint arXiv:1610.03454 (2016).
+    Wang, Weiran, et al. 'Deep variational canonical correlation analysis.' arXiv preprint arXiv:1610.03454 (2016).
 
     https: // arxiv.org / pdf / 1610.03454.pdf
 
@@ -25,15 +23,16 @@ class DVCCA(_BaseDCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        encoders=None,
-        decoders=None,
-        private_encoders: Iterable[BaseEncoder] = None,
-        latent_dropout=0,
-        log_images=True,
-        img_dim=(1, 28, 28),
-        **kwargs,
+            self,
+            latent_dims: int,
+            encoders=None,
+            decoders=None,
+            private_encoders: Iterable[BaseEncoder] = None,
+            latent_dropout=0,
+            log_images=True,
+            img_dim=(1, 28, 28),
+            recon_loss="mse",
+            **kwargs,
     ):
         """
         :param latent_dims: # latent dimensions
@@ -41,7 +40,7 @@ class DVCCA(_BaseDCCA):
         :param decoders:  list of decoder networks
         :param private_encoders: list of private (view specific) encoder networks
         """
-        super().__init__(latent_dims=latent_dims, **kwargs)
+        super().__init__(latent_dims=latent_dims, recon_loss=recon_loss, **kwargs)
         self.log_images = log_images
         self.img_dim = img_dim
         self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
@@ -52,25 +51,23 @@ class DVCCA(_BaseDCCA):
         else:
             self.private_encoders = None
 
-    def forward(self, *args, mle=True, **kwargs):
+    def forward(self, views, mle=True, **kwargs):
         """
-        :param args:
+        :param views:
         :param mle:
         :return:
         """
-        z = dict()
-        mu = dict()
-        logvar = dict()
+        z = {}
         # Used when we get reconstructions
-        mu["shared"], logvar["shared"] = self._encode(*args)
-        z["shared"] = self._sample(mu["shared"], logvar["shared"], mle)
-        if self.private_encoders:
-            mu["private"], logvar["private"] = self._encode_private(*args)
+        z["mu_shared"], z["logvar_shared"] = self._encode(views)
+        z["shared"] = self._sample(z["mu_shared"], z["logvar_shared"], mle)
+        if self.private_encoders is not None:
+            z["mu_private"], z["logvar_private"] = self._encode_private(views)
             z["private"] = [
                 self._sample(mu_, logvar_, mle)
-                for mu_, logvar_ in zip(mu["private"], logvar["private"])
+                for mu_, logvar_ in zip(z["mu_private"], z["logvar_private"])
             ]
-        return z, mu, logvar
+        return z
 
     def _sample(self, mu, logvar, mle):
         """
@@ -85,7 +82,7 @@ class DVCCA(_BaseDCCA):
         else:
             return mu + torch.randn_like(logvar) * torch.exp(0.5 * logvar)
 
-    def _encode(self, *args):
+    def _encode(self, views):
         """
         :param args:
         :return:
@@ -93,12 +90,12 @@ class DVCCA(_BaseDCCA):
         mu = []
         logvar = []
         for i, encoder in enumerate(self.encoders):
-            mu_i, logvar_i = encoder(args[i])
+            mu_i, logvar_i = encoder(views[i])
             mu.append(mu_i)
             logvar.append(logvar_i)
         return torch.stack(mu).sum(dim=0), torch.stack(logvar).sum(dim=0)
 
-    def _encode_private(self, *args):
+    def _encode_private(self, views):
         """
         :param args:
         :return:
@@ -106,7 +103,7 @@ class DVCCA(_BaseDCCA):
         mu = []
         logvar = []
         for i, private_encoder in enumerate(self.private_encoders):
-            mu_i, logvar_i = private_encoder(args[i])
+            mu_i, logvar_i = private_encoder(views[i])
             mu.append(mu_i)
             logvar.append(logvar_i)
         return mu, logvar
@@ -122,47 +119,40 @@ class DVCCA(_BaseDCCA):
                 x_i = decoder(
                     torch.cat(
                         (
-                            z["shared"],
-                            z["private"][i],
+                            self.latent_dropout(z["shared"]),
+                            self.latent_dropout(z["private"][i]),
                         ),
                         dim=-1,
                     )
                 )
             else:
-                x_i = decoder(z["shared"])
+                x_i = decoder(self.latent_dropout(z["shared"]))
             x.append(x_i)
         return x
 
-    def loss(self, *args):
+    def loss(self, views, **kwargs):
         """
         :param args:
         :return:
         """
-        z, mu, logvar = self(*args, mle=False)
+        z = self(views, mle=False)
         recons = self._decode(z)
         loss = dict()
         loss["reconstruction"] = torch.stack(
-            [self.recon_loss(x, recon) for x, recon in zip(args, recons)]
+            [self.recon_loss(x, recon) for x, recon in zip(views, recons)]
         ).sum()
         loss["kl shared"] = (
-            self.kl_loss(mu["shared"], logvar["shared"]) / args[0].numel()
+                self.kl_loss(z["mu_shared"], z["logvar_shared"]) / views[0].numel()
         )
         if "private" in z:
             loss["kl private"] = torch.stack(
                 [
-                    self.kl_loss(mu_, logvar_) / args[0].numel()
-                    for mu_, logvar_ in zip(mu["private"], logvar["private"])
+                    self.kl_loss(mu_, logvar_) / views[0].numel()
+                    for mu_, logvar_ in zip(z["mu_private"], z["logvar_private"])
                 ]
             ).sum()
         loss["objective"] = torch.stack(tuple(loss.values())).sum()
         return loss
-
-    @staticmethod
-    def kl_loss(mu, logvar):
-        return -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
-
-    def recon_loss(self, x, recon):
-        return F.mse_loss(recon, x, reduction="mean")
 
     def on_validation_epoch_end(self) -> None:
         if self.log_images:
@@ -183,9 +173,3 @@ class DVCCA(_BaseDCCA):
             self.logger.experiment.add_image(
                 "generated_images_2", grid2, self.current_epoch
             )
-
-    def plot_latent_label(self, loader: torch.utils.data.DataLoader):
-        fig, ax = plt.subplots(ncols=1)
-        for i, batch in enumerate(loader):
-            z = self(*batch["views"])[0]["shared"].cpu().detach().numpy()
-            im = ax.scatter(z[:, 0], z[:, 1], c=batch["label"].numpy(), cmap="tab10")

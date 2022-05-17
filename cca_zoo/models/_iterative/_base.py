@@ -9,7 +9,6 @@ from sklearn.utils.validation import check_random_state
 
 from cca_zoo.models import rCCA
 from cca_zoo.models._base import _BaseCCA
-from cca_zoo.models._iterative.utils import _cosine_similarity
 
 
 class _BaseIterative(_BaseCCA):
@@ -32,7 +31,6 @@ class _BaseIterative(_BaseCCA):
     ):
         """
         Constructor for _BaseIterative
-        :param inner_loop: an inner loop
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample
@@ -100,7 +98,7 @@ class _BaseIterative(_BaseCCA):
         if self.deflation == "cca":
             return residual - np.outer(score, score) @ residual / np.dot(score, score)
         elif self.deflation == "pls":
-            return residual - np.outer(residual@weights,weights)
+            return residual - np.outer(residual @ weights, weights)
         else:
             raise ValueError(f"deflation method {self.deflation} not implemented yet.")
 
@@ -214,3 +212,14 @@ def _default_initializer(views, initialization, random_state, latent_dims):
         raise ValueError(
             "Initialization {type} not supported. Pass a generator implementing this method"
         )
+
+
+def _cosine_similarity(a, b):
+    """
+    Calculates the cosine similarity between vectors
+    :param a: 1d numpy array
+    :param b: 1d numpy array
+    :return: cosine similarity
+    """
+    # https: // www.statology.org / cosine - similarity - python /
+    return a.T @ b / (np.linalg.norm(a) * np.linalg.norm(b))

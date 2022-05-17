@@ -1,5 +1,7 @@
 import numpy as np
 
+from cca_zoo.models._iterative.utils import soft_threshold
+
 
 def _bin_search(current, previous, current_val, previous_val, min_, max_):
     """Binary search helper function:
@@ -48,7 +50,7 @@ def _delta_search(w, c, positive=False, init=0, tol=1e-9):
     i = 0
     while not converged:
         i += 1
-        coef = _soft_threshold(w, current, positive=positive)
+        coef = soft_threshold(w, current)
         if np.linalg.norm(coef) > 0:
             coef /= np.linalg.norm(coef)
         current_val = c - np.linalg.norm(coef, 1)
@@ -59,41 +61,3 @@ def _delta_search(w, c, positive=False, init=0, tol=1e-9):
         if np.abs(current_val) < tol or np.abs(max_ - min_) < tol or i == 150:
             converged = True
     return coef
-
-
-def _soft_threshold(x, threshold, positive=False, **kwargs):
-    """
-    if absolute value of x less than threshold replace with zero
-    :param x: input
-    :return: x soft-thresholded by threshold
-    """
-    if positive:
-        u = np.clip(x, 0, None)
-    else:
-        u = np.abs(x)
-    u = u - threshold
-    u[u < 0] = 0
-    return u * np.sign(x)
-
-
-def _support_soft_thresh(x, support, positive=False, **kwargs):
-    if x.shape[0] <= support or np.linalg.norm(x) == 0:
-        return x
-    if positive:
-        u = np.clip(x, 0, None)
-    else:
-        u = np.abs(x)
-    idx = np.argpartition(x.ravel(), x.shape[0] - support)
-    u[idx[:-support]] = 0
-    return u * np.sign(x)
-
-
-def _cosine_similarity(a, b):
-    """
-    Calculates the cosine similarity between vectors
-    :param a: 1d numpy array
-    :param b: 1d numpy array
-    :return: cosine similarity
-    """
-    # https: // www.statology.org / cosine - similarity - python /
-    return a.T @ b / (np.linalg.norm(a) * np.linalg.norm(b))

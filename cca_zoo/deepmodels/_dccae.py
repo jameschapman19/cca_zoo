@@ -1,11 +1,11 @@
 import torch
-from torch.nn import functional as F
 
 from cca_zoo.deepmodels import _objectives
+from cca_zoo.deepmodels._base import _GenerativeMixin
 from cca_zoo.deepmodels._dcca import DCCA
 
 
-class DCCAE(DCCA):
+class DCCAE(_GenerativeMixin, DCCA):
     """
     A class used to fit a DCCAE model.
 
@@ -16,15 +16,17 @@ class DCCAE(DCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        objective=_objectives.MCCA,
-        encoders=None,
-        decoders=None,
-        r: float = 0,
-        eps: float = 1e-5,
-        lam=0.5,
-        **kwargs,
+            self,
+            latent_dims: int,
+            objective=_objectives.MCCA,
+            encoders=None,
+            decoders=None,
+            r: float = 0,
+            eps: float = 1e-5,
+            lam=0.5,
+            latent_dropout=0,
+            recon_loss="mse",
+            **kwargs,
     ):
         """
         :param latent_dims: # latent dimensions
@@ -36,18 +38,24 @@ class DCCAE(DCCA):
         :param lam: weight of reconstruction loss (1 minus weight of correlation loss)
         """
         super().__init__(
-            latent_dims=latent_dims, encoders=encoders, r=r, eps=eps, **kwargs
+            latent_dims=latent_dims,
+            encoders=encoders,
+            r=r,
+            eps=eps,
+            recon_loss=recon_loss,
+            **kwargs,
         )
         self.decoders = torch.nn.ModuleList(decoders)
         if lam < 0 or lam > 1:
             raise ValueError(f"lam should be between 0 and 1. rho={lam}")
         self.lam = lam
         self.objective = objective(latent_dims, r=r, eps=eps)
+        self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
 
-    def forward(self, *args, **kwargs):
+    def forward(self, views, **kwargs):
         z = []
         for i, encoder in enumerate(self.encoders):
-            z.append(encoder(args[i]))
+            z.append(encoder(views[i]))
         return z
 
     def _decode(self, z):
@@ -57,21 +65,18 @@ class DCCAE(DCCA):
         """
         recon = []
         for i, decoder in enumerate(self.decoders):
-            recon.append(decoder(z[i]))
+            recon.append(decoder(self.latent_dropout(z[i])))
         return recon
 
-    def loss(self, *args):
-        z = self(*args)
+    def loss(self, views, **kwargs):
+        z = self(views)
         recons = self._decode(z)
         loss = dict()
         loss["reconstruction"] = torch.stack(
-            [self.recon_loss(x, recon) for x, recon in zip(args, recons)]
+            [self.recon_loss(x, recon) for x, recon in zip(views, recons)]
         ).sum()
-        loss["correlation"] = self.objective.loss(*z)
+        loss["correlation"] = self.objective.loss(z)
         loss["objective"] = (
-            self.lam * loss["reconstruction"] + (1 - self.lam) * loss["correlation"]
+                self.lam * loss["reconstruction"] + (1 - self.lam) * loss["correlation"]
         )
         return loss
-
-    def recon_loss(self, x, recon):
-        return F.mse_loss(recon, x, reduction="mean")

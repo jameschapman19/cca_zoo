@@ -4,22 +4,25 @@ from typing import Iterable
 import numpy as np
 import pytorch_lightning as pl
 import torch
+from torch.nn import functional as F
 from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 
 
-class _BaseDCCA(pl.LightningModule):
+class _BaseDeep(pl.LightningModule):
     def __init__(
-        self,
-        latent_dims: int,
-        optimizer="adam",
-        scheduler=None,
-        lr=1e-3,
-        weight_decay=0,
-        extra_optimizer_kwargs=None,
-        max_epochs=1000,
-        min_lr=1e-9,
-        lr_decay_steps=None,
-        correlation=True,
+            self,
+            latent_dims: int,
+            optimizer="adam",
+            scheduler=None,
+            lr=1e-3,
+            weight_decay=0,
+            extra_optimizer_kwargs=None,
+            max_epochs=1000,
+            min_lr=1e-9,
+            lr_decay_steps=None,
+            correlation=True,
+            *args,
+            **kwargs,
     ):
         super().__init__()
         if extra_optimizer_kwargs is None:
@@ -36,44 +39,44 @@ class _BaseDCCA(pl.LightningModule):
         self.correlation = correlation
 
     @abstractmethod
-    def forward(self, *args, **kwargs):
+    def forward(self, views, *args, **kwargs):
         """
         We use the forward model to define the transformation of views to the latent space
 
-        :param args: batches for each view separated by commas
+        :param views: batches for each view separated by commas
         """
         raise NotImplementedError
 
     @abstractmethod
-    def loss(self, *args, **kwargs):
+    def loss(self, views, *args, **kwargs):
         """
         Required when using the LightningTrainer
         """
         raise NotImplementedError
 
-    def post_transform(self, z_list, train=False) -> Iterable[np.ndarray]:
+    def post_transform(self, z, train=False) -> Iterable[np.ndarray]:
         """
         Some models require a final linear CCA after model training.
 
-        :param z_list: a list of all of the latent space embeddings for each view
+        :param z: a list of all of the latent space embeddings for each view
         :param train: if the train flag is True this fits a new post transformation
         """
-        return z_list
+        return z
 
     def training_step(self, batch, batch_idx):
-        loss = self.loss(*batch["views"])
+        loss = self.loss(batch["views"])
         for k, v in loss.items():
             self.log("train/" + k, v, prog_bar=True)
         return loss["objective"]
 
     def validation_step(self, batch, batch_idx):
-        loss = self.loss(*batch["views"])
+        loss = self.loss(batch["views"])
         for k, v in loss.items():
             self.log("val/" + k, v)
         return loss["objective"]
 
     def test_step(self, batch, batch_idx):
-        loss = self.loss(*batch["views"])
+        loss = self.loss(batch["views"])
         for k, v in loss.items():
             self.log("test/" + k, v)
         return loss["objective"]
@@ -92,18 +95,13 @@ class _BaseDCCA(pl.LightningModule):
         with torch.no_grad():
             for batch_idx, batch in enumerate(loader):
                 views = [view.to(self.device) for view in batch["views"]]
-                z = self(*views)
-                if isinstance(z[0], dict):
-                    z = z[0]["shared"]
+                z_ = detach_all(self(views))
                 if batch_idx == 0:
-                    z_list = [z_i.detach().cpu().numpy() for i, z_i in enumerate(z)]
+                    z = z_
                 else:
-                    z_list = [
-                        np.append(z_list[i], z_i.detach().cpu().numpy(), axis=0)
-                        for i, z_i in enumerate(z)
-                    ]
-        z_list = self.post_transform(z_list, train=train)
-        return z_list
+                    z = collate_all(z, z_)
+        z = self.post_transform(z, train=train)
+        return z
 
     def configure_optimizers(self):
         """Collects learnable parameters and configures the optimizer and learning rate scheduler.
@@ -142,3 +140,62 @@ class _BaseDCCA(pl.LightningModule):
 
     def on_train_end(self) -> None:
         pass
+
+
+class _GenerativeMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        recon_loss = kwargs.get("recon_loss", "mse")
+        if recon_loss == "mse":
+            self.recon_loss = self.mse_loss
+        elif recon_loss == "bce":
+            self.recon_loss = self.bce_loss
+        elif recon_loss == "nll":
+            self.recon_loss = self.nll_loss
+
+    def mse_loss(self, x, recon):
+        return F.mse_loss(recon, x, reduction="mean")
+
+    def bce_loss(self, x, recon):
+        return F.binary_cross_entropy(recon, x, reduction="mean")
+
+    def nll_loss(self, x, recon):
+        return F.nll_loss(recon, x, reduction="mean")
+
+    @staticmethod
+    def kl_loss(mu, logvar):
+        return -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
+
+    @abstractmethod
+    def forward(self, views, mle=True, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _decode(self, z):
+        raise NotImplementedError
+
+    def recon(self, *args, mle=True):
+        z = self.forward(*args, mle=mle)
+        return self._decode(z)
+
+
+def detach_all(z):
+    if isinstance(z, dict):
+        for k, v in z.items():
+            v.detach().cpu().numpy()
+    elif isinstance(z, list):
+        z = [z_.detach().cpu().numpy() for z_ in z]
+    else:
+        z = z.detach().cpu().numpy()
+    return z
+
+
+def collate_all(z, z_):
+    if isinstance(z, dict):
+        for k, v in z_.items():
+            z[k] = np.append(z[k], v, axis=0)
+    elif isinstance(z, list):
+        z = [np.append(z[i], z_i, axis=0) for i, z_i in enumerate(z_)]
+    else:
+        z = np.append(z, z_, axis=0)
+    return z

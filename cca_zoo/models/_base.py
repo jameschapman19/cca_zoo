@@ -9,7 +9,6 @@ from sklearn.utils.sparsefuncs import mean_variance_axis
 from sklearn.utils.validation import check_random_state, check_is_fitted
 
 from cca_zoo.utils.check_values import _check_views
-from cca_zoo.utils.plotting import plot_latent_train_test
 
 
 class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
@@ -17,9 +16,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
     A class used as the base for methods in the package. Allows methods to inherit fit_transform, predict_corr,
     and gridsearch_fit when only fit (and transform where it is different to the default) is provided.
 
-    Attributes
-    ----------
-    weights : list of weights for each view
+    :var weights : list of weights for each view
 
     """
 
@@ -128,19 +125,6 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
             (len(views), len(views), self.latent_dims)
         )
         return all_corrs
-
-    def plot_latent(
-        self,
-        views: Iterable[np.ndarray],
-        test_views: Iterable[np.ndarray] = None,
-        title="",
-    ):
-        scores = self.transform(views)
-        if test_views is not None:
-            test_scores = self.transform(test_views)
-        else:
-            test_scores = None
-        plot_latent_train_test(scores, test_scores, title=title)
 
     def score(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """

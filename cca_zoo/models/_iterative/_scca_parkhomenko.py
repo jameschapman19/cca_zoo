@@ -2,10 +2,10 @@ from typing import Union, Iterable
 
 import numpy as np
 
-from cca_zoo.models._iterative.utils import _soft_threshold
 from cca_zoo.utils import _process_parameter, _check_converged_weights
 from . import _BaseIterative
 from ._pls_als import _PLSInnerLoop
+from .utils import soft_threshold
 
 
 class SCCA_Parkhomenko(_BaseIterative):
@@ -115,7 +115,7 @@ class _ParkhomenkoInnerLoop(_PLSInnerLoop):
         w = views[view_index].T @ targets.sum(axis=0).filled()
         w /= np.linalg.norm(w)
         _check_converged_weights(w, view_index)
-        w = _soft_threshold(w, self.c[view_index] / 2)
+        w = soft_threshold(w, self.c[view_index] / 2)
         self.weights[view_index] = w / np.linalg.norm(w)
         _check_converged_weights(w, view_index)
         self.scores[view_index] = views[view_index] @ self.weights[view_index]

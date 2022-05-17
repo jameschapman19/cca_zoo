@@ -13,7 +13,7 @@ def mat_pow(mat, pow_, epsilon):
     return mat_pow
 
 
-def _demean(*views):
+def _demean(views):
     return tuple([view - view.mean(dim=0) for view in views])
 
 
@@ -38,9 +38,9 @@ class MCCA:
         self.r = r
         self.eps = eps
 
-    def loss(self, *views):
+    def loss(self, views):
         # Subtract the mean from each output
-        views = _demean(*views)
+        views = _demean(views)
 
         # Concatenate all views and from this get the cross-covariance matrix
         all_views = torch.cat(views, dim=1)
@@ -97,10 +97,10 @@ class GCCA:
         self.r = r
         self.eps = eps
 
-    def loss(self, *views):
+    def loss(self, views):
         # https: // www.uta.edu / math / _docs / preprint / 2014 / rep2014_04.pdf
         # H is n_views * n_samples * k
-        views = _demean(*views)
+        views = _demean(views)
 
         eigen_views = [
             view @ mat_pow(view.T @ view, -1, self.eps) @ view.T for view in views
@@ -151,21 +151,21 @@ class CCA:
         self.r = r
         self.eps = eps
 
-    def loss(self, H1, H2):
-        o1 = H1.shape[1]
-        o2 = H2.shape[1]
+    def loss(self, views):
+        o1 = views[0].shape[1]
+        o2 = views[1].shape[1]
 
-        n = H1.shape[0]
+        n = views[0].shape[0]
 
-        H1bar, H2bar = _demean(H1, H2)
+        views = _demean(views)
 
-        SigmaHat12 = (1.0 / (n - 1)) * H1bar.T @ H2bar
-        SigmaHat11 = (1 - self.r) * (
-            1.0 / (n - 1)
-        ) * H1bar.T @ H1bar + self.r * torch.eye(o1, device=H1.device)
-        SigmaHat22 = (1 - self.r) * (
-            1.0 / (n - 1)
-        ) * H2bar.T @ H2bar + self.r * torch.eye(o2, device=H2.device)
+        SigmaHat12 = (1.0 / (n - 1)) * views[0].T @ views[1]
+        SigmaHat11 = (1 - self.r) * (1.0 / (n - 1)) * views[0].T @ views[
+            0
+        ] + self.r * torch.eye(o1, device=views[0].device)
+        SigmaHat22 = (1 - self.r) * (1.0 / (n - 1)) * views[1].T @ views[
+            1
+        ] + self.r * torch.eye(o2, device=views[1].device)
 
         SigmaHat11RootInv = mat_pow(SigmaHat11, -0.5, self.eps)
         SigmaHat22RootInv = mat_pow(SigmaHat22, -0.5, self.eps)
@@ -200,9 +200,8 @@ class TCCA:
         self.r = r
         self.eps = eps
 
-    def loss(self, *views):
-        m = views[0].size(0)
-        views = _demean(*views)
+    def loss(self, views):
+        views = _demean(views)
         covs = [
             (1 - self.r) * view.T @ view
             + self.r * torch.eye(view.size(1), device=view.device)

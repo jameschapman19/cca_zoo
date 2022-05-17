@@ -1,4 +1,5 @@
 import numpy as np
+
 from cca_zoo.models._stochastic import _BaseStochastic
 
 
@@ -87,9 +88,9 @@ class IncrementalPLS(_BaseStochastic):
     def incremental_update(self, views):
         hats = np.stack([view @ weight for view, weight in zip(views, self.weights)])
         orths = [
-                view - hat @ weight.T
-                for view, weight, hat in zip(views, self.weights, hats)
-            ]
+            view - hat @ weight.T
+            for view, weight, hat in zip(views, self.weights, hats)
+        ]
         self.incrsvd(hats, orths)
 
     def simple_update(self, views):
@@ -143,4 +144,3 @@ class IncrementalPLS(_BaseStochastic):
                 ]
             )
         )
-

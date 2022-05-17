@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import cm
+from sklearn.manifold import TSNE
 
 
 def _post_process_cv_results(df):
@@ -84,10 +85,10 @@ def cv_plot(cv_results_):
     return fig
 
 
-def plot_latent_train_test(
-    train_scores: Union[Tuple[np.ndarray], List[np.ndarray]],
-    test_scores: Union[Tuple[np.ndarray], List[np.ndarray]] = None,
-    title="",
+def pairplot_train_test(
+        train_scores: Union[Tuple[np.ndarray], List[np.ndarray]],
+        test_scores: Union[Tuple[np.ndarray], List[np.ndarray]] = None,
+        title="",
 ):
     """
     Makes a pair plot showing the projections of each view against each other for each dimensions. Coloured by train and test
@@ -115,11 +116,11 @@ def plot_latent_train_test(
     return cca_pp
 
 
-def plot_latent_label(
-    scores: Union[Tuple[np.ndarray], List[np.ndarray]],
-    labels=None,
-    label_name=None,
-    title="",
+def pairplot_label(
+        scores: Union[Tuple[np.ndarray], List[np.ndarray]],
+        labels=None,
+        label_name=None,
+        title="",
 ):
     """
     Makes a pair plot showing the projections of each view against each other for each dimensions. Coloured by categorical label
@@ -141,3 +142,32 @@ def plot_latent_label(
     )
     cca_pp.fig.suptitle(title)
     return cca_pp
+
+
+def tsne_label(
+        scores: np.ndarray,
+        labels=None,
+        label_name=None,
+        title="",
+        verbose=1,
+        perplexity=40,
+        n_iter=300,
+        ax=None,
+):
+    """
+    Makes a tsne plot of the projections from one view with optional labels
+
+    :param scores: projections of data obtained by model.transform(*data)
+    :param labels: array of labels
+    :param label_name: name of label for legend
+    :param title: Figure title
+    """
+    if label_name is None:
+        label_name = "label"
+    data = pd.DataFrame({label_name: labels})
+    data[label_name] = data[label_name].astype("category")
+    tsne = TSNE(n_components=2, verbose=verbose, perplexity=perplexity, n_iter=n_iter)
+    data[["x", "y"]] = tsne.fit_transform(scores)
+    cca_tp = sns.scatterplot(data=data, x="x", y="y", hue=label_name, ax=ax)
+    cca_tp.set(title=title)
+    return cca_tp

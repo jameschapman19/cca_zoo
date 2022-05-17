@@ -52,16 +52,16 @@ class DCCA_SDL(DCCA_NOI):
             [torch.nn.BatchNorm1d(latent_dims, affine=False) for _ in self.encoders]
         )
 
-    def forward(self, *args, **kwargs):
+    def forward(self, views, **kwargs):
         z = []
         for i, (encoder, bn) in enumerate(zip(self.encoders, self.bns)):
-            z.append(bn(encoder(args[i])))
+            z.append(bn(encoder(views[i])))
         return z
 
-    def loss(self, *args):
-        z = self(*args)
+    def loss(self, views, **kwargs):
+        z = self(views)
         l2_loss = F.mse_loss(z[0], z[1])
-        self._update_covariances(*z, train=self.training)
+        self._update_covariances(z, train=self.training)
         SDL_loss = self._sdl_loss(self.covs)
         loss = l2_loss + self.lam * SDL_loss
         self.covs = [cov.detach() for cov in self.covs]
@@ -75,7 +75,7 @@ class DCCA_SDL(DCCA_NOI):
             loss += torch.mean(cov * sgn)
         return loss
 
-    def _update_covariances(self, *z, train=True):
+    def _update_covariances(self, z, train=True):
         b = z[0].shape[0]
         batch_covs = [self.N * z_.T @ z_ / b for z_ in z]
         if train:

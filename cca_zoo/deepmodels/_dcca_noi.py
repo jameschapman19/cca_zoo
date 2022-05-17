@@ -57,26 +57,26 @@ class DCCA_NOI(DCCA):
         )
         self.rand = torch.rand(N, self.latent_dims)
 
-    def forward(self, *args, **kwargs):
+    def forward(self, views, **kwargs):
         z = []
         # Users architecture + final linear layer
         for i, (encoder, linear_layer) in enumerate(
-            zip(self.encoders, self.linear_layers)
+                zip(self.encoders, self.linear_layers)
         ):
-            z.append(linear_layer(encoder(args[i])))
+            z.append(linear_layer(encoder(views[i])))
         return z
 
-    def loss(self, *args):
-        z = self(*args)
+    def loss(self, views, **kwargs):
+        z = self(views)
         z_copy = [z_.detach().clone() for z_ in z]
-        self._update_covariances(*z_copy, train=self.training)
+        self._update_covariances(z_copy, train=self.training)
         covariance_inv = [mat_pow(cov, -0.5, self.eps) for cov in self.covs]
         preds = [z_ @ covariance_inv[i] for i, z_ in enumerate(z_copy)]
         loss = self.mse(z[0], preds[1]) + self.mse(z[1], preds[0])
         self.covs = [cov.detach() for cov in self.covs]
         return {"objective": loss}
 
-    def _update_covariances(self, *z, train=True):
+    def _update_covariances(self, z, train=True):
         b = z[0].shape[0]
         batch_covs = [self.N * z_.T @ z_ / b for z_ in z]
         if train:

@@ -1,11 +1,10 @@
 import torch
-import torch.nn.functional as F
 
 from cca_zoo.deepmodels._architectures import BaseEncoder, Encoder
-from cca_zoo.deepmodels._dcca import _BaseDCCA
+from cca_zoo.deepmodels._base import _BaseDeep, _GenerativeMixin
 
 
-class SplitAE(_BaseDCCA):
+class SplitAE(_GenerativeMixin, _BaseDeep):
     """
     A class used to fit a Split Autoencoder model.
 
@@ -16,12 +15,13 @@ class SplitAE(_BaseDCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        encoder: BaseEncoder = Encoder,
-        decoders=None,
-        latent_dropout=0,
-        **kwargs
+            self,
+            latent_dims: int,
+            encoder: BaseEncoder = Encoder,
+            decoders=None,
+            latent_dropout=0,
+            recon_loss="mse",
+            **kwargs
     ):
         """
 
@@ -29,12 +29,13 @@ class SplitAE(_BaseDCCA):
         :param encoder: list of encoder networks
         :param decoders:  list of decoder networks
         """
-        super().__init__(latent_dims=latent_dims, **kwargs)
+        super().__init__(latent_dims=latent_dims, recon_loss=recon_loss, **kwargs)
         self.encoder = encoder
         self.decoders = torch.nn.ModuleList(decoders)
+        self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
 
-    def forward(self, *args, **kwargs):
-        z = self.encoder(args[0])
+    def forward(self, views, **kwargs):
+        z = self.encoder(views[0])
         return z
 
     def _decode(self, z):
@@ -45,19 +46,15 @@ class SplitAE(_BaseDCCA):
         """
         recon = []
         for i, decoder in enumerate(self.decoders):
-            recon.append(decoder(z))
+            recon.append(decoder(self.latent_dropout(z)))
         return tuple(recon)
 
-    def loss(self, *args):
-        z = self(*args)
+    def loss(self, views, **kwargs):
+        z = self(views)
         recons = self._decode(z)
         loss = dict()
         loss["reconstruction"] = torch.stack(
-            [self.recon_loss(x, recon) for x, recon in zip(args, recons)]
+            [self.recon_loss(x, recon) for x, recon in zip(views, recons)]
         ).sum()
         loss["objective"] = loss["reconstruction"]
         return loss
-
-    @staticmethod
-    def recon_loss(x, recon):
-        return F.mse_loss(recon, x, reduction="mean")

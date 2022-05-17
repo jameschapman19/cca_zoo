@@ -12,7 +12,15 @@ import pandas as pd
 
 from cca_zoo.data import generate_covariance_data
 from cca_zoo.model_selection import GridSearchCV
-from cca_zoo.models import SCCA_PMD, SCCA_IPLS, ElasticCCA, CCA, PLS, SCCA_ADMM, SCCA_Span
+from cca_zoo.models import (
+    SCCA_PMD,
+    SCCA_IPLS,
+    ElasticCCA,
+    CCA,
+    PLS,
+    SCCA_ADMM,
+    SCCA_Span,
+)
 
 # %%
 np.random.seed(42)

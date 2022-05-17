@@ -3,10 +3,11 @@ from typing import Union, Iterable
 
 import numpy as np
 
-from cca_zoo.models._iterative.utils import _support_soft_thresh, _delta_search
 from cca_zoo.utils import _process_parameter
 from . import _BaseIterative
 from ._pls_als import _PLSInnerLoop
+from .utils import soft_threshold
+from .utils._search import _delta_search
 
 
 class SWCCA(_BaseIterative):
@@ -114,7 +115,7 @@ class _SWCCAInnerLoop(_PLSInnerLoop):
         self.c = c
         self.sample_support = sample_support
         if regularisation == "l0":
-            self.update = _support_soft_thresh
+            self.update = soft_threshold
         elif regularisation == "l1":
             self.update = _delta_search
         self.positive = positive
@@ -145,7 +146,7 @@ class _SWCCAInnerLoop(_PLSInnerLoop):
 
     def _update_sample_weights(self):
         w = self.scores.prod(axis=0)
-        self.sample_weights = _support_soft_thresh(w, self.sample_support)
+        self.sample_weights = _soft_thresh(w, self.sample_support)
         self.sample_weights /= np.linalg.norm(self.sample_weights)
         self.track["sample_weights"] = self.sample_weights
 

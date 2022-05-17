@@ -38,10 +38,10 @@ class DTCCA(DCCA):
             **kwargs
         )
 
-    def post_transform(self, z_list, train=False) -> Iterable[np.ndarray]:
+    def post_transform(self, z, train=False) -> Iterable[np.ndarray]:
         if train:
             self.cca = TCCA(latent_dims=self.latent_dims)
-            z_list = self.cca.fit_transform(z_list)
+            z = self.cca.fit_transform(z)
         else:
-            z_list = self.cca.transform(z_list)
-        return z_list
+            z = self.cca.transform(z)
+        return z

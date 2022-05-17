@@ -33,14 +33,14 @@ class BarlowTwins(DCCA):
             [torch.nn.BatchNorm1d(latent_dims, affine=False) for _ in self.encoders]
         )
 
-    def forward(self, *args, **kwargs):
+    def forward(self, views, **kwargs):
         z = []
         for i, (encoder, bn) in enumerate(zip(self.encoders, self.bns)):
-            z.append(bn(encoder(args[i])))
+            z.append(bn(encoder(views[i])))
         return z
 
-    def loss(self, *args):
-        z = self(*args)
+    def loss(self, views, **kwargs):
+        z = self(views)
         cross_cov = z[0].T @ z[1] / z[0].shape[0]
         invariance = torch.sum(torch.pow(1 - torch.diag(cross_cov), 2))
         covariance = torch.sum(
