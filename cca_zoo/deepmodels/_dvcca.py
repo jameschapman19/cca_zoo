@@ -173,3 +173,10 @@ class DVCCA(_GenerativeMixin, _BaseDeep):
             self.logger.experiment.add_image(
                 "generated_images_2", grid2, self.current_epoch
             )
+
+    def recon_uncertainty(self, views, **kwargs):
+        z = self.forward(views, **kwargs)
+        z['shared']=z["logvar_shared"]
+        if self.private_encoders is not None:
+            z['private'] = z["logvar_private"]
+        return self._decode(z)

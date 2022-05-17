@@ -26,7 +26,6 @@ from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import (
     BaseSearchCV as SKBaseSearchCV,
     ParameterGrid,
-    _check_param_grid,
 )
 from sklearn.model_selection._validation import _fit_and_score, _insert_error_scores
 from sklearn.pipeline import Pipeline
@@ -642,7 +641,6 @@ class GridSearchCV(BaseSearchCV):
             return_train_score=return_train_score,
         )
         self.param_grid = param2grid(param_grid)
-        _check_param_grid(param_grid)
 
     def _run_search(self, evaluate_candidates):
         """Search all candidates in param_grid"""

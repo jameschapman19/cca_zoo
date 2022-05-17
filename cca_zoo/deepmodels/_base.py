@@ -174,15 +174,15 @@ class _GenerativeMixin:
     def _decode(self, z):
         raise NotImplementedError
 
-    def recon(self, *args, mle=True):
-        z = self.forward(*args, mle=mle)
+    def recon(self, views, **kwargs):
+        z = self.forward(views, **kwargs)
         return self._decode(z)
 
 
 def detach_all(z):
     if isinstance(z, dict):
         for k, v in z.items():
-            v.detach().cpu().numpy()
+            detach_all(v)
     elif isinstance(z, list):
         z = [z_.detach().cpu().numpy() for z_ in z]
     else:

@@ -8,37 +8,33 @@ import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 
 from cca_zoo.deepmodels import _architectures, DCCAE, DVCCA, SplitAE
+from cca_zoo.utils import tsne_label
 from examples.utils import example_mnist_data
 
 
 # %%
-
-
-def plot_reconstruction(model, dataloader):
-    for i, batch in enumerate(dataloader):
-        x, y = batch["views"]
-        z = model(x[0], y[0], mle=True)
-    recons = model._decode(z)
-    fig, ax = plt.subplots(ncols=4)
+def plot_reconstruction(model, x, uncertainty=False):
+    recons = model.recon(x['views'], mle=True)
+    n_cols=2+uncertainty
+    fig, ax = plt.subplots(ncols=n_cols)
     ax[0].set_title("Original View 1")
-    ax[1].set_title("Original View 2")
-    ax[2].set_title("Reconstruction View 1")
-    ax[3].set_title("Reconstruction View 2")
-    ax[0].imshow(x[0].detach().numpy().reshape((28, 28)))
-    ax[1].imshow(y[0].detach().numpy().reshape((28, 28)))
-    ax[2].imshow(recons[0].detach().numpy().reshape((28, 28)))
-    ax[3].imshow(recons[1].detach().numpy().reshape((28, 28)))
-
+    ax[1].set_title("Mean View 1")
+    ax[0].imshow(x['views'][0].detach().numpy().reshape((28, 28)))
+    ax[1].imshow(recons[0].detach().numpy().reshape((28, 28)))
+    if uncertainty:
+        ax[2].set_title("Std View 1")
+        uncertainty_recons = model.recon_uncertainty(x['views'])
+        ax[2].imshow(uncertainty_recons[0].detach().numpy().reshape((28, 28)))
 
 LATENT_DIMS = 2
-EPOCHS = 10
+EPOCHS = 1
 N_TRAIN = 500
 N_VAL = 100
 lr = 0.0001
 dropout = 0.1
 layer_sizes = (1024, 1024, 1024)
 
-train_loader, val_loader, train_labels = example_mnist_data(N_TRAIN, N_VAL)
+train_loader, val_loader, train_labels = example_mnist_data(N_TRAIN, N_VAL, type='noisy')
 
 # %%
 # Deep Variational CCA
@@ -68,8 +64,8 @@ trainer = pl.Trainer(
     flush_logs_every_n_steps=1,
 )
 trainer.fit(dvcca, train_loader, val_loader)
-dvcca.plot_latent_label(train_loader)
-plot_reconstruction(dvcca, train_loader)
+tsne_label(dvcca.transform(train_loader)['shared'], train_labels)
+plot_reconstruction(dvcca, train_loader.dataset[0], uncertainty=True)
 plt.suptitle("DVCCA")
 plt.show()
 
@@ -115,7 +111,8 @@ trainer = pl.Trainer(
     flush_logs_every_n_steps=1,
 )
 trainer.fit(dvccap, train_loader, val_loader)
-plot_reconstruction(dvccap, train_loader)
+tsne_label(dvccap.transform(train_loader)['shared'], train_labels)
+plot_reconstruction(dvccap, train_loader.dataset[0], uncertainty=True)
 plt.suptitle("DVCCA Private")
 plt.show()
 
@@ -148,9 +145,8 @@ trainer = pl.Trainer(
     flush_logs_every_n_steps=1,
 )
 trainer.fit(dccae, train_loader, val_loader)
-dccae.plot_latent_label(train_loader)
-plt.suptitle("DCCAE")
-plot_reconstruction(dccae, train_loader)
+tsne_label(dccae.transform(train_loader)[0], train_labels)
+plot_reconstruction(dccae, train_loader.dataset[0])
 plt.suptitle("DCCAE")
 plt.show()
 
@@ -179,7 +175,7 @@ trainer = pl.Trainer(
     flush_logs_every_n_steps=1,
 )
 trainer.fit(splitae, train_loader, val_loader)
-plt.suptitle("SplitAE")
-plot_reconstruction(splitae, train_loader)
+tsne_label(splitae.transform(train_loader), train_labels)
+plot_reconstruction(splitae, train_loader.dataset[0])
 plt.suptitle("SplitAE")
 plt.show()
