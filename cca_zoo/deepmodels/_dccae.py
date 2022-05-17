@@ -2,7 +2,7 @@ import torch
 
 from cca_zoo.deepmodels import _objectives
 from cca_zoo.deepmodels._base import _GenerativeMixin
-from cca_zoo.deepmodels._dcca import DCCA
+from ._dcca import DCCA
 
 
 class DCCAE(_GenerativeMixin, DCCA):

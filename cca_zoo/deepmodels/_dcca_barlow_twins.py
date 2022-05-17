@@ -1,6 +1,6 @@
 import torch
 
-from cca_zoo.deepmodels import DCCA
+from ._dcca import DCCA
 
 
 class BarlowTwins(DCCA):

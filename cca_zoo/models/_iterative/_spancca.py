@@ -4,8 +4,7 @@ import numpy as np
 
 from cca_zoo.models._iterative.utils import _delta_search, support_threshold
 from cca_zoo.utils import _process_parameter
-from . import _BaseInnerLoop
-from . import _BaseIterative
+from ._base import _BaseInnerLoop,_BaseIterative
 
 
 class SCCA_Span(_BaseIterative):

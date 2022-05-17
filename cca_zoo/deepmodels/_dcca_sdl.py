@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from cca_zoo.deepmodels import DCCA_NOI
+from ._dcca_noi import DCCA_NOI
 
 
 class DCCA_SDL(DCCA_NOI):

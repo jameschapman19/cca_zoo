@@ -3,7 +3,7 @@ from typing import Union, Iterable
 import numpy as np
 
 from cca_zoo.utils import _process_parameter, _check_converged_weights
-from . import _BaseIterative
+from ._base import _BaseIterative
 from ._pls_als import _PLSInnerLoop
 from .utils import soft_threshold
 

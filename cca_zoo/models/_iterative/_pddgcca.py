@@ -2,20 +2,24 @@ from typing import Union
 
 import numpy as np
 
-from cca_zoo.models._iterative import AltMaxVar
+from ._altmaxvar import AltMaxVar
 from cca_zoo.models._iterative._base import _BaseInnerLoop
 
 
 class PDD_GCCA(AltMaxVar):
     r"""
 
+    .. math::
 
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 + c\|w_i\|^2_2 + \text{l1_ratio}\|w_i\|_1\}\\
+
+        \text{subject to:}
+
+        w_i^TX_i^TX_iw_i=n
 
     :Citation:
 
-
-
-    .. math::
+        Kanatsoulis, Charilaos I., et al. "Structured SUMCOR multiview canonical correlation analysis for large-scale data." IEEE Transactions on Signal Processing 67.2 (2018): 306-319.
 
 
     :Example:

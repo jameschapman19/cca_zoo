@@ -7,7 +7,7 @@ from sklearn.linear_model import SGDRegressor, Ridge, ElasticNet
 from sklearn.utils._testing import ignore_warnings
 
 from cca_zoo.utils import _process_parameter, _check_converged_weights
-from . import _BaseIterative
+from ._base import _BaseIterative
 from ._pls_als import _PLSInnerLoop
 
 
@@ -24,11 +24,6 @@ class ElasticCCA(_BaseIterative):
         \text{subject to:}
 
         t^Tt=n
-
-
-    :Citation:
-
-    Fu, Xiao, et al. "Scalable and flexible multiview MAX-VAR canonical correlation analysis." IEEE Transactions on Signal Processing 65.16 (2017): 4150-4165.
 
     But we can force it to attempt to use the SUMCOR form which will approximate a solution to the problem:
 

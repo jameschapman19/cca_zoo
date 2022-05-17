@@ -3,8 +3,7 @@ from typing import Union
 
 import numpy as np
 
-from . import _BaseInnerLoop
-from . import _BaseIterative
+from ._base import _BaseInnerLoop,_BaseIterative
 
 
 class PLS_ALS(_BaseIterative):

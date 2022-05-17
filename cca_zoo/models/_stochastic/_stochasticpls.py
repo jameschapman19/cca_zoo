@@ -1,6 +1,6 @@
 import numpy as np
 
-from cca_zoo.models._stochastic import _BaseStochastic
+from ._base import _BaseStochastic
 
 
 class StochasticPowerPLS(_BaseStochastic):

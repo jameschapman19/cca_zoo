@@ -51,47 +51,45 @@ def plot_true_weights_coloured(ax, weights, true_weights, title=""):
     ax.set_title(title)
 
 
-def plot_model_weights(wx, wy, tx, ty):
+def plot_model_weights(wx, wy, tx, ty,title=""):
     fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
     plot_true_weights_coloured(axs[0, 0], tx, tx, title="true x weights")
     plot_true_weights_coloured(axs[0, 1], ty, ty, title="true y weights")
     plot_true_weights_coloured(axs[1, 0], wx, tx, title="model x weights")
     plot_true_weights_coloured(axs[1, 1], wy, ty, title="model y weights")
     plt.tight_layout()
+    fig.suptitle(title)
     plt.show()
 
 
 # %%
 cca = CCA().fit([X, Y])
-plot_model_weights(cca.weights[0], cca.weights[1], tx, ty)
+plot_model_weights(cca.weights[0], cca.weights[1], tx, ty,title='CCA')
 
 # %%
 pls = PLS().fit([X, Y])
-plot_model_weights(pls.weights[0], pls.weights[1], tx, ty)
-
-# %%
-pmd = SCCA_PMD(c=[0.5, 0.5]).fit([X, Y])
-plot_model_weights(pmd.weights[0], pmd.weights[1], tx, ty)
-
-# %%
-plt.figure()
-plt.title("Objective Convergence")
-plt.plot(np.array(pmd.track[0]["objective"]).T)
-plt.ylabel("Objective")
-plt.xlabel("#iterations")
+plot_model_weights(pls.weights[0], pls.weights[1], tx, ty,title='PLS')
 
 # %%
 c1 = [0.1, 0.3, 0.7, 0.9]
 c2 = [0.1, 0.3, 0.7, 0.9]
 param_grid = {"c": [c1, c2]}
 pmd = GridSearchCV(SCCA_PMD(), param_grid=param_grid, cv=3, verbose=True).fit([X, Y])
+# %%
+plt.figure()
+plt.title("Objective Convergence")
+plt.plot(np.array(pmd.best_estimator_.track[0]["objective"]).T)
+plt.ylabel("Objective")
+plt.xlabel("#iterations")
+#%%
+plot_model_weights(pmd.best_estimator_.weights[0], pmd.best_estimator_.weights[1], tx, ty,title='PMD')
 
 # %%
 pd.DataFrame(pmd.cv_results_)
 
 # %%
-scca = SCCA_IPLS(c=[1e-3, 1e-3]).fit([X, Y])
-plot_model_weights(scca.weights[0], scca.weights[1], tx, ty)
+scca = SCCA_IPLS(c=[1e-2, 1e-2]).fit([X, Y])
+plot_model_weights(scca.weights[0], scca.weights[1], tx, ty,title='SCCA_IPLS')
 
 # Convergence
 plt.figure()
@@ -101,8 +99,8 @@ plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
 # %%
-scca_pos = SCCA_IPLS(c=[1e-3, 1e-3], positive=[True, True]).fit([X, Y])
-plot_model_weights(scca_pos.weights[0], scca_pos.weights[1], tx, ty)
+scca_pos = SCCA_IPLS(c=[1e-2, 1e-2], positive=[True, True]).fit([X, Y])
+plot_model_weights(scca_pos.weights[0], scca_pos.weights[1], tx, ty,title='SCCA_IPLS (Positive)')
 
 # Convergence
 plt.figure()
@@ -112,8 +110,8 @@ plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
 # %%
-elasticcca = ElasticCCA(c=[10000, 10000], l1_ratio=[0.000001, 0.000001]).fit([X, Y])
-plot_model_weights(elasticcca.weights[0], elasticcca.weights[1], tx, ty)
+elasticcca = ElasticCCA(c=[1e-2, 1e-2], l1_ratio=[0.5, 0.5]).fit([X, Y])
+plot_model_weights(elasticcca.weights[0], elasticcca.weights[1], tx, ty,title='ELastic CCA')
 
 # Convergence
 plt.figure()
@@ -123,19 +121,8 @@ plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
 # %%
-scca_admm = SCCA_ADMM(c=[1e-3, 1e-3]).fit([X, Y])
-plot_model_weights(scca_admm.weights[0], scca_admm.weights[1], tx, ty)
-
-# Convergence
-plt.figure()
-plt.title("Objective Convergence")
-plt.plot(np.array(scca_admm.track[0]["objective"]).T)
-plt.ylabel("Objective")
-plt.xlabel("#iterations")
-
-# %%
 spancca = SCCA_Span(c=[10, 10], max_iter=2000, rank=20).fit([X, Y])
-plot_model_weights(spancca.weights[0], spancca.weights[1], tx, ty)
+plot_model_weights(spancca.weights[0], spancca.weights[1], tx, ty,title='Span CCA')
 
 # Convergence
 plt.figure()

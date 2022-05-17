@@ -1,6 +1,6 @@
 import torch
 
-from cca_zoo.deepmodels._dcca import DCCA
+from ._dcca import DCCA
 from cca_zoo.deepmodels._objectives import mat_pow
 
 

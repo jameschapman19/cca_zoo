@@ -7,7 +7,7 @@ from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 from tensorly.decomposition import parafac
 
-from cca_zoo.models._base import _BaseCCA
+from ._base import _BaseCCA
 from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 

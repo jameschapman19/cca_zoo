@@ -1,7 +1,7 @@
 import torch
 
 from cca_zoo.deepmodels._architectures import BaseEncoder, Encoder
-from cca_zoo.deepmodels._base import _BaseDeep, _GenerativeMixin
+from ._base import _BaseDeep, _GenerativeMixin
 
 
 class SplitAE(_GenerativeMixin, _BaseDeep):

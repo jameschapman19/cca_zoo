@@ -3,7 +3,7 @@ from typing import Iterable
 import numpy as np
 
 from cca_zoo.deepmodels import _objectives
-from cca_zoo.deepmodels._dcca import DCCA
+from ._dcca import DCCA
 from cca_zoo.models import TCCA
 
 

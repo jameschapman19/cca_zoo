@@ -4,7 +4,7 @@ from typing import Iterable, Union
 import numpy as np
 from scipy.linalg import block_diag, eigh
 
-from cca_zoo.models._base import _BaseCCA
+from ._base import _BaseCCA
 from cca_zoo.utils.check_values import _process_parameter
 
 

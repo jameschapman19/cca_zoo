@@ -5,7 +5,7 @@ from scipy.linalg import eigh
 from sklearn.metrics import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
-from cca_zoo.models import rCCA
+from ._rcca import rCCA
 from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 
@@ -36,7 +36,7 @@ class GCCA(rCCA):
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = GCCA()
-    >>> model._fit((X1,X2,X3)).score((X1,X2,X3))
+    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
     array([0.97229856])
     """
 
@@ -49,6 +49,7 @@ class GCCA(rCCA):
         random_state=None,
         c: Union[Iterable[float], float] = None,
         view_weights: Iterable[float] = None,
+        eps=1e-9,
     ):
         """
         Constructor for GCCA
@@ -68,6 +69,7 @@ class GCCA(rCCA):
             copy_data=copy_data,
             accept_sparse=["csc", "csr"],
             random_state=random_state,
+            eps=eps,
         )
         self.c = c
         self.view_weights = view_weights
@@ -134,7 +136,7 @@ class KGCCA(GCCA):
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = KGCCA()
-    >>> model._fit((X1,X2,X3)).score((X1,X2,X3))
+    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
     array([0.97019284])
     """
 

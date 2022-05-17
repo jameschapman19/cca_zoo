@@ -2,7 +2,7 @@ from typing import Union, Iterable
 
 import numpy as np
 
-from . import _BaseIterative
+from ._base import _BaseIterative
 from ._elastic import _ElasticInnerLoop
 from ...utils import _process_parameter, _check_converged_weights, _check_Parikh2014
 

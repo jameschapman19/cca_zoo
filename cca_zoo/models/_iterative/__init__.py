@@ -1,5 +1,4 @@
 from ._altmaxvar import AltMaxVar
-from ._base import _BaseIterative, _BaseInnerLoop
 from ._elastic import ElasticCCA, SCCA_IPLS
 from ._pddgcca import PDD_GCCA
 from ._pls_als import PLS_ALS

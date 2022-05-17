@@ -5,7 +5,7 @@ import torchvision
 from torch.autograd import Variable
 
 from cca_zoo.deepmodels._architectures import BaseEncoder
-from cca_zoo.deepmodels._base import _BaseDeep, _GenerativeMixin
+from ._base import _BaseDeep, _GenerativeMixin
 
 
 class DVCCA(_GenerativeMixin, _BaseDeep):

@@ -1,7 +1,6 @@
 from ._rcca import rCCA, CCA, PLS
 from ._gcca import GCCA, KGCCA
 from ._iterative import (
-    _BaseIterative,
     PLS_ALS,
     SCCA_PMD,
     ElasticCCA,

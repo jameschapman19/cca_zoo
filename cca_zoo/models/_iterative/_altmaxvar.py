@@ -4,20 +4,25 @@ from typing import Union
 import numpy as np
 
 from cca_zoo.models import rCCA
-from . import _BaseInnerLoop
-from . import _BaseIterative
+from ._base import _BaseInnerLoop
+from ._base import _BaseIterative
 
 
 class AltMaxVar(_BaseIterative):
     r"""
 
 
+    .. math::
+
+        w_{opt}, t_{opt}=\underset{w,t}{\mathrm{argmax}}\{\sum_i \|X_iw_i-t\|^2 + c\|w_i\|^2_2 + \text{l1_ratio}\|w_i\|_1\}\\
+
+        \text{subject to:}
+
+        t^Tt=n
 
     :Citation:
 
-
-
-    .. math::
+        Fu, Xiao, et al. "Scalable and flexible multiview MAX-VAR canonical correlation analysis." IEEE Transactions on Signal Processing 65.16 (2017): 4150-4165.
 
 
     :Example:

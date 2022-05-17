@@ -5,7 +5,7 @@ from scipy.linalg import block_diag, eigh
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
-from cca_zoo.models import rCCA
+from ._rcca import rCCA
 from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 
@@ -35,7 +35,7 @@ class MCCA(rCCA):
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = MCCA()
-    >>> model._fit((X1,X2,X3)).score((X1,X2,X3))
+    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
     array([0.97200847])
     """
 
@@ -47,7 +47,7 @@ class MCCA(rCCA):
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
-        eps=1e-3,
+        eps=1e-9,
     ):
         """
         Constructor for MCCA
@@ -123,7 +123,7 @@ class KCCA(MCCA):
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = KCCA()
-    >>> model._fit((X1,X2,X3)).score((X1,X2,X3))
+    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
     array([0.96893666])
     """
 
