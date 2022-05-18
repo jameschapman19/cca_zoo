@@ -14,7 +14,7 @@ from cca_zoo.deepmodels import (
     _objectives,
     DTCCA,
 )
-from . import example_mnist_data
+from examples import example_mnist_data
 
 LATENT_DIMS = 2
 EPOCHS = 10
