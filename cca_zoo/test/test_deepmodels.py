@@ -215,7 +215,7 @@ def test_DVCCA_p_methods():
         decoders=[decoder_1, decoder_2],
         private_encoders=[private_encoder_1, private_encoder_2],
     )
-    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=5,log_every_n_steps=1, enable_checkpointing=False)
     trainer.fit(dvcca, train_loader)
 
 
@@ -234,7 +234,7 @@ def test_DVCCA_methods():
         encoders=[encoder_1, encoder_2],
         decoders=[decoder_1, decoder_2],
     )
-    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=5,log_every_n_steps=1, enable_checkpointing=False)
     trainer.fit(dvcca, train_loader)
 
 

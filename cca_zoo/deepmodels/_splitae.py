@@ -2,9 +2,10 @@ import torch
 
 from cca_zoo.deepmodels._architectures import BaseEncoder, Encoder
 from ._base import _BaseDeep, _GenerativeMixin
+from ._callbacks import GenerativeCallback
 
 
-class SplitAE(_GenerativeMixin, _BaseDeep):
+class SplitAE(_BaseDeep,_GenerativeMixin):
     """
     A class used to fit a Split Autoencoder model.
 
@@ -20,7 +21,7 @@ class SplitAE(_GenerativeMixin, _BaseDeep):
             encoder: BaseEncoder = Encoder,
             decoders=None,
             latent_dropout=0,
-            recon_loss="mse",
+            recon_loss_type="mse",
             **kwargs
     ):
         """
@@ -29,16 +30,17 @@ class SplitAE(_GenerativeMixin, _BaseDeep):
         :param encoder: list of encoder networks
         :param decoders:  list of decoder networks
         """
-        super().__init__(latent_dims=latent_dims, recon_loss=recon_loss, **kwargs)
+        super().__init__(latent_dims=latent_dims, **kwargs)
         self.encoder = encoder
         self.decoders = torch.nn.ModuleList(decoders)
         self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
+        self.recon_loss_type = recon_loss_type
 
     def forward(self, views, **kwargs):
         z = self.encoder(views[0])
         return z
 
-    def _decode(self, z):
+    def _decode(self, z, **kwargs):
         """
         This method is used to decode from the latent space to the best prediction of the original views
 
@@ -54,7 +56,10 @@ class SplitAE(_GenerativeMixin, _BaseDeep):
         recons = self._decode(z)
         loss = dict()
         loss["reconstruction"] = torch.stack(
-            [self.recon_loss(x, recon) for x, recon in zip(views, recons)]
+            [self.recon_loss(x, recon, loss_type=self.recon_loss_type) for x, recon in zip(views, recons)]
         ).sum()
         loss["objective"] = loss["reconstruction"]
         return loss
+
+    def configure_callbacks(self):
+        return [GenerativeCallback()]

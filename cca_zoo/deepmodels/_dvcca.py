@@ -1,14 +1,13 @@
 from typing import Iterable
 
 import torch
-import torchvision
-from torch.autograd import Variable
 
 from cca_zoo.deepmodels._architectures import BaseEncoder
 from ._base import _BaseDeep, _GenerativeMixin
+from ._callbacks import GenerativeCallback
 
 
-class DVCCA(_GenerativeMixin, _BaseDeep):
+class DVCCA(_BaseDeep, _GenerativeMixin):
     """
     A class used to fit a DVCCA model.
 
@@ -31,7 +30,7 @@ class DVCCA(_GenerativeMixin, _BaseDeep):
             latent_dropout=0,
             log_images=True,
             img_dim=(1, 28, 28),
-            recon_loss="mse",
+            recon_loss_type="mse",
             **kwargs,
     ):
         """
@@ -40,7 +39,7 @@ class DVCCA(_GenerativeMixin, _BaseDeep):
         :param decoders:  list of decoder networks
         :param private_encoders: list of private (view specific) encoder networks
         """
-        super().__init__(latent_dims=latent_dims, recon_loss=recon_loss, **kwargs)
+        super().__init__(latent_dims=latent_dims, **kwargs)
         self.log_images = log_images
         self.img_dim = img_dim
         self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
@@ -50,6 +49,7 @@ class DVCCA(_GenerativeMixin, _BaseDeep):
             self.private_encoders = torch.nn.ModuleList(private_encoders)
         else:
             self.private_encoders = None
+        self.recon_loss_type = recon_loss_type
 
     def forward(self, views, mle=True, **kwargs):
         """
@@ -108,7 +108,7 @@ class DVCCA(_GenerativeMixin, _BaseDeep):
             logvar.append(logvar_i)
         return mu, logvar
 
-    def _decode(self, z):
+    def _decode(self, z, **kwargs):
         """
         :param z:
         :return:
@@ -139,7 +139,7 @@ class DVCCA(_GenerativeMixin, _BaseDeep):
         recons = self._decode(z)
         loss = dict()
         loss["reconstruction"] = torch.stack(
-            [self.recon_loss(x, recon) for x, recon in zip(views, recons)]
+            [self.recon_loss(x, recon, loss_type=self.recon_loss_type) for x, recon in zip(views, recons)]
         ).sum()
         loss["kl shared"] = (
                 self.kl_loss(z["mu_shared"], z["logvar_shared"]) / views[0].numel()
@@ -154,29 +154,12 @@ class DVCCA(_GenerativeMixin, _BaseDeep):
         loss["objective"] = torch.stack(tuple(loss.values())).sum()
         return loss
 
-    def on_validation_epoch_end(self) -> None:
-        if self.log_images:
-            z = dict()
-            z["shared"] = Variable(torch.randn(64, self.latent_dims))
-            if self.private_encoders:
-                z["private"] = [Variable(torch.randn(64, self.latent_dims))] * len(
-                    self.private_encoders
-                )
-            sample = self._decode(z)
-            sample[0] = torch.reshape(sample[0], (64,) + self.img_dim)
-            sample[1] = torch.reshape(sample[1], (64,) + self.img_dim)
-            grid1 = torchvision.utils.make_grid(sample[0])
-            grid2 = torchvision.utils.make_grid(sample[1])
-            self.logger.experiment.add_image(
-                "generated_images_1", grid1, self.current_epoch
-            )
-            self.logger.experiment.add_image(
-                "generated_images_2", grid2, self.current_epoch
-            )
-
     def recon_uncertainty(self, views, **kwargs):
         z = self.forward(views, **kwargs)
-        z['shared']=z["logvar_shared"]
+        z['shared'] = z["logvar_shared"]
         if self.private_encoders is not None:
             z['private'] = z["logvar_private"]
         return self._decode(z)
+
+    def configure_callbacks(self):
+        return [GenerativeCallback()]

@@ -1,5 +1,4 @@
 import itertools
-from typing import Optional
 
 import numpy as np
 import torch
@@ -7,6 +6,7 @@ import torch
 from cca_zoo.deepmodels import _objectives
 from cca_zoo.models import MCCA
 from ._base import _BaseDeep
+from ._callbacks import CorrelationCallback
 
 
 class DCCA(_BaseDeep):
@@ -20,13 +20,13 @@ class DCCA(_BaseDeep):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        objective=_objectives.MCCA,
-        encoders=None,
-        r: float = 0,
-        eps: float = 1e-5,
-        **kwargs,
+            self,
+            latent_dims: int,
+            objective=_objectives.MCCA,
+            encoders=None,
+            r: float = 0,
+            eps: float = 1e-5,
+            **kwargs,
     ):
         """
         Constructor class for DCCA
@@ -65,27 +65,6 @@ class DCCA(_BaseDeep):
             z = self.cca.transform(z)
         return z
 
-    def on_train_epoch_end(self, unused: Optional = None) -> None:
-        self.log(
-            "train/corr",
-            self.batch_correlation(self.trainer.train_dataloader, train=True).sum(),
-        )
-
-    def on_validation_epoch_end(self, unused: Optional = None) -> None:
-        try:
-            self.log(
-                "val/corr",
-                self.batch_correlation(self.trainer.val_dataloaders[0]).sum(),
-            )
-        except:
-            # Should only be during sanity check
-            self.log(
-                "val/corr",
-                self.batch_correlation(
-                    self.trainer.val_dataloaders[0], train=True
-                ).sum(),
-            )
-
     def batch_correlation(
             self,
             loader: torch.utils.data.DataLoader,
@@ -111,3 +90,11 @@ class DCCA(_BaseDeep):
                             pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
                     ) / (n_views ** 2 - n_views)
         return dim_corrs
+
+    def configure_callbacks(self):
+        return [CorrelationCallback()]
+
+
+
+
+

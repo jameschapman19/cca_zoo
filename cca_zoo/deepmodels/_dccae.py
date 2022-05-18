@@ -2,10 +2,11 @@ import torch
 
 from cca_zoo.deepmodels import _objectives
 from cca_zoo.deepmodels._base import _GenerativeMixin
+from ._callbacks import CorrelationCallback, GenerativeCallback
 from ._dcca import DCCA
 
 
-class DCCAE(_GenerativeMixin, DCCA):
+class DCCAE(DCCA,_GenerativeMixin):
     """
     A class used to fit a DCCAE model.
 
@@ -25,7 +26,7 @@ class DCCAE(_GenerativeMixin, DCCA):
             eps: float = 1e-5,
             lam=0.5,
             latent_dropout=0,
-            recon_loss="mse",
+            recon_loss_type="mse",
             **kwargs,
     ):
         """
@@ -39,10 +40,10 @@ class DCCAE(_GenerativeMixin, DCCA):
         """
         super().__init__(
             latent_dims=latent_dims,
+            objective=objective,
             encoders=encoders,
             r=r,
             eps=eps,
-            recon_loss=recon_loss,
             **kwargs,
         )
         self.decoders = torch.nn.ModuleList(decoders)
@@ -51,6 +52,7 @@ class DCCAE(_GenerativeMixin, DCCA):
         self.lam = lam
         self.objective = objective(latent_dims, r=r, eps=eps)
         self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
+        self.recon_loss_type=recon_loss_type
 
     def forward(self, views, **kwargs):
         z = []
@@ -58,7 +60,7 @@ class DCCAE(_GenerativeMixin, DCCA):
             z.append(encoder(views[i]))
         return z
 
-    def _decode(self, z):
+    def _decode(self, z, **kwargs):
         """
         This method is used to decode from the latent space to the best prediction of the original views
 
@@ -73,10 +75,13 @@ class DCCAE(_GenerativeMixin, DCCA):
         recons = self._decode(z)
         loss = dict()
         loss["reconstruction"] = torch.stack(
-            [self.recon_loss(x, recon) for x, recon in zip(views, recons)]
+            [self.recon_loss(x, recon, loss_type=self.recon_loss_type) for x, recon in zip(views, recons)]
         ).sum()
         loss["correlation"] = self.objective.loss(z)
         loss["objective"] = (
                 self.lam * loss["reconstruction"] + (1 - self.lam) * loss["correlation"]
         )
         return loss
+
+    def configure_callbacks(self):
+        return [CorrelationCallback(), GenerativeCallback()]

@@ -9,7 +9,7 @@ import pytorch_lightning as pl
 
 from cca_zoo.deepmodels import _architectures, DCCAE, DVCCA, SplitAE
 from cca_zoo.utils import tsne_label
-from examples.utils import example_mnist_data
+from . import example_mnist_data
 
 
 # %%

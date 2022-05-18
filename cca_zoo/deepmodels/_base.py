@@ -82,9 +82,9 @@ class _BaseDeep(pl.LightningModule):
         return loss["objective"]
 
     def transform(
-        self,
-        loader: torch.utils.data.DataLoader,
-        train=False,
+            self,
+            loader: torch.utils.data.DataLoader,
+            train=False,
     ):
         """
 
@@ -138,44 +138,38 @@ class _BaseDeep(pl.LightningModule):
             raise ValueError(f"{self.scheduler} not in (warmup_cosine, cosine, step)")
         return [optimizer], [scheduler]
 
-    def on_train_end(self) -> None:
+    def configure_callbacks(self):
         pass
 
 
 class _GenerativeMixin:
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        recon_loss = kwargs.get("recon_loss", "mse")
-        if recon_loss == "mse":
-            self.recon_loss = self.mse_loss
-        elif recon_loss == "bce":
-            self.recon_loss = self.bce_loss
-        elif recon_loss == "nll":
-            self.recon_loss = self.nll_loss
+    def recon_loss(self, x, recon, loss='mse',reduction='mean', **kwargs):
+        if loss == "mse":
+            return self.mse_loss(x, recon,reduction=reduction)
+        elif loss == "bce":
+            return self.mse_loss(x, recon,reduction=reduction)
+        elif loss == "nll":
+            return self.mse_loss(x, recon,reduction=reduction)
 
-    def mse_loss(self, x, recon):
-        return F.mse_loss(recon, x, reduction="mean")
+    def mse_loss(self, x, recon,reduction='mean'):
+        return F.mse_loss(recon, x, reduction=reduction)
 
-    def bce_loss(self, x, recon):
-        return F.binary_cross_entropy(recon, x, reduction="mean")
+    def bce_loss(self, x, recon,reduction='mean'):
+        return F.binary_cross_entropy(recon, x, reduction=reduction)
 
-    def nll_loss(self, x, recon):
-        return F.nll_loss(recon, x, reduction="mean")
+    def nll_loss(self, x, recon,reduction='mean'):
+        return F.nll_loss(recon, x, reduction=reduction)
 
     @staticmethod
     def kl_loss(mu, logvar):
         return -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
 
     @abstractmethod
-    def forward(self, views, mle=True, **kwargs):
-        raise NotImplementedError
-
-    @abstractmethod
-    def _decode(self, z):
+    def _decode(self, z, **kwargs):
         raise NotImplementedError
 
     def recon(self, views, **kwargs):
-        z = self.forward(views, **kwargs)
+        z = self(views, **kwargs)
         return self._decode(z)
 
 
@@ -193,7 +187,7 @@ def detach_all(z):
 def collate_all(z, z_):
     if isinstance(z, dict):
         for k, v in z_.items():
-            z[k] = np.append(z[k], v, axis=0)
+            z[k] = collate_all(z[k], v)
     elif isinstance(z, list):
         z = [np.append(z[i], z_i, axis=0) for i, z_i in enumerate(z_)]
     else:

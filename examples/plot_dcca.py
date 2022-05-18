@@ -17,7 +17,7 @@ from cca_zoo.deepmodels import (
     BarlowTwins,
 )
 from cca_zoo.utils.plotting import pairplot_label
-from utils import example_mnist_data
+from examples import example_mnist_data
 
 LATENT_DIMS = 2
 EPOCHS = 10
@@ -39,8 +39,7 @@ trainer = pl.Trainer(
     flush_logs_every_n_steps=1,
 )
 trainer.fit(dcca, train_loader, val_loader)
-pairplot_label(dcca.transform(train_loader), train_labels)
-plt.suptitle("DCCA")
+pairplot_label(dcca.transform(train_loader), train_labels, title='DCCA')
 plt.show()
 
 # %%
@@ -53,8 +52,7 @@ trainer = pl.Trainer(
     flush_logs_every_n_steps=1,
 )
 trainer.fit(dcca_noi, train_loader, val_loader)
-pairplot_label(dcca_noi.transform(train_loader), train_labels)
-plt.suptitle("DCCA by Non-Linear Orthogonal Iterations")
+pairplot_label(dcca_noi.transform(train_loader), train_labels,title="DCCA by Non-Linear Orthogonal Iterations")
 plt.show()
 
 # %%
@@ -67,8 +65,7 @@ trainer = pl.Trainer(
     flush_logs_every_n_steps=1,
 )
 trainer.fit(dcca_sdl, train_loader, val_loader)
-pairplot_label(dcca_sdl.transform(train_loader), train_labels)
-plt.suptitle("DCCA by Stochastic Decorrelation")
+pairplot_label(dcca_sdl.transform(train_loader), train_labels,title="DCCA by Stochastic Decorrelation")
 plt.show()
 
 # %%
@@ -81,6 +78,5 @@ trainer = pl.Trainer(
     flush_logs_every_n_steps=1,
 )
 trainer.fit(barlowtwins, train_loader, val_loader)
-pairplot_label(barlowtwins.transform(train_loader), train_labels)
-plt.suptitle("DCCA by Barlow Twins")
+pairplot_label(barlowtwins.transform(train_loader), train_labels,title="DCCA by Barlow Twins")
 plt.show()

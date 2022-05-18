@@ -100,8 +100,8 @@ def pairplot_train_test(
     data = pd.DataFrame(
         {"phase": np.asarray(["train"] * train_scores[0].shape[0]).astype(str)}
     )
-    x_vars = [f"view 1 projection {f}" for f in range(train_scores[0].shape[1])]
-    y_vars = [f"view 2 projection {f}" for f in range(train_scores[1].shape[1])]
+    x_vars = [f"view 1 projection {f+1}" for f in range(train_scores[0].shape[1])]
+    y_vars = [f"view 2 projection {f+1}" for f in range(train_scores[1].shape[1])]
     data[x_vars] = train_scores[0]
     data[y_vars] = train_scores[1]
     if test_scores is not None:
@@ -111,7 +111,7 @@ def pairplot_train_test(
         test_data[x_vars] = test_scores[0]
         test_data[y_vars] = test_scores[1]
         data = pd.concat([data, test_data], axis=0)
-    cca_pp = sns.pairplot(data, hue="phase", x_vars=x_vars, y_vars=y_vars, corner=True)
+    cca_pp = sns.pairplot(data, hue="phase", x_vars=x_vars, y_vars=y_vars)
     cca_pp.fig.suptitle(title)
     return cca_pp
 
@@ -132,13 +132,14 @@ def pairplot_label(
     """
     if label_name is None:
         label_name = "label"
-    data = pd.DataFrame({label_name: labels.astype(str)})
-    x_vars = [f"view 1 projection {f}" for f in range(scores[0].shape[1])]
-    y_vars = [f"view 2 projection {f}" for f in range(scores[1].shape[1])]
+    data = pd.DataFrame({label_name: labels})
+    data[label_name] = data[label_name].astype("category")
+    x_vars = [f"view 1 projection {f+1}" for f in range(scores[0].shape[1])]
+    y_vars = [f"view 2 projection {f+1}" for f in range(scores[1].shape[1])]
     data[x_vars] = scores[0]
     data[y_vars] = scores[1]
     cca_pp = sns.pairplot(
-        data, hue=label_name, x_vars=x_vars, y_vars=y_vars, corner=True
+        data, hue=label_name, x_vars=x_vars, y_vars=y_vars
     )
     cca_pp.fig.suptitle(title)
     return cca_pp
