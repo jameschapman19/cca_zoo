@@ -48,21 +48,21 @@ class ElasticCCA(_BaseIterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-9,
-        c: Union[Iterable[float], float] = None,
-        l1_ratio: Union[Iterable[float], float] = None,
-        maxvar: bool = True,
-        stochastic=False,
-        positive: Union[Iterable[bool], bool] = None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            c: Union[Iterable[float], float] = None,
+            l1_ratio: Union[Iterable[float], float] = None,
+            maxvar: bool = True,
+            stochastic=False,
+            positive: Union[Iterable[bool], bool] = None,
     ):
         """
         Constructor for ElasticCCA
@@ -174,20 +174,20 @@ class SCCA_IPLS(ElasticCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        c: Union[Iterable[float], float] = None,
-        max_iter: int = 100,
-        maxvar: bool = False,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-9,
-        stochastic=False,
-        positive: Union[Iterable[bool], bool] = None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            c: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            maxvar: bool = False,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            stochastic=False,
+            positive: Union[Iterable[bool], bool] = None,
     ):
         """
         Constructor for SCCA_IPLS
@@ -225,15 +225,15 @@ class SCCA_IPLS(ElasticCCA):
 
 class _ElasticInnerLoop(_PLSInnerLoop):
     def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        c=None,
-        l1_ratio=None,
-        maxvar=True,
-        stochastic=True,
-        positive=None,
-        random_state=None,
+            self,
+            max_iter: int = 100,
+            tol=1e-9,
+            c=None,
+            l1_ratio=None,
+            maxvar=True,
+            stochastic=True,
+            positive=None,
+            random_state=None,
     ):
         super().__init__(
             max_iter=max_iter,
@@ -300,8 +300,8 @@ class _ElasticInnerLoop(_PLSInnerLoop):
         if not self.maxvar:
             _check_converged_weights(self.weights[view_index], view_index)
             self.weights[view_index] = self.weights[view_index] / (
-                np.linalg.norm(views[view_index] @ self.weights[view_index])
-                / np.sqrt(self.n)
+                    np.linalg.norm(views[view_index] @ self.weights[view_index])
+                    / np.sqrt(self.n)
             )
         self.scores[view_index] = views[view_index] @ self.weights[view_index]
 
@@ -320,7 +320,7 @@ class _ElasticInnerLoop(_PLSInnerLoop):
             if self.maxvar:
                 target /= np.linalg.norm(target) / np.sqrt(self.n)
             objective = np.linalg.norm(views[i] @ self.weights[i] - target) ** 2 / (
-                2 * self.n
+                    2 * self.n
             )
             l1_pen = l1[i] * np.linalg.norm(self.weights[i], ord=1)
             l2_pen = l2[i] * np.linalg.norm(self.weights[i], ord=2)

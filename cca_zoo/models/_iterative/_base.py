@@ -7,8 +7,8 @@ from typing import Union, Iterable
 import numpy as np
 from sklearn.utils.validation import check_random_state
 
-from cca_zoo.models import rCCA
-from cca_zoo.models._base import _BaseCCA
+from .._rcca import rCCA
+from .._base import _BaseCCA
 
 
 class _BaseIterative(_BaseCCA):

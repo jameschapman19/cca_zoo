@@ -48,7 +48,7 @@ def cv_plot(cv_results_):
         param_pairs = list(itertools.product(unique_x, unique_y))
         for pair in param_pairs:
             mask = (cv_results_[param_cols[-2]] == pair[0]) & (
-                cv_results_[param_cols[-1]] == pair[1]
+                    cv_results_[param_cols[-1]] == pair[1]
             )
             sub_dfs.append(cv_results_.loc[mask].iloc[:, :-2])
             sub_scores.append(cv_results_[mask].mean_test_score)
@@ -100,8 +100,8 @@ def pairplot_train_test(
     data = pd.DataFrame(
         {"phase": np.asarray(["train"] * train_scores[0].shape[0]).astype(str)}
     )
-    x_vars = [f"view 1 projection {f+1}" for f in range(train_scores[0].shape[1])]
-    y_vars = [f"view 2 projection {f+1}" for f in range(train_scores[1].shape[1])]
+    x_vars = [f"view 1 projection {f + 1}" for f in range(train_scores[0].shape[1])]
+    y_vars = [f"view 2 projection {f + 1}" for f in range(train_scores[1].shape[1])]
     data[x_vars] = train_scores[0]
     data[y_vars] = train_scores[1]
     if test_scores is not None:
@@ -134,8 +134,8 @@ def pairplot_label(
         label_name = "label"
     data = pd.DataFrame({label_name: labels})
     data[label_name] = data[label_name].astype("category")
-    x_vars = [f"view 1 projection {f+1}" for f in range(scores[0].shape[1])]
-    y_vars = [f"view 2 projection {f+1}" for f in range(scores[1].shape[1])]
+    x_vars = [f"view 1 projection {f + 1}" for f in range(scores[0].shape[1])]
+    y_vars = [f"view 2 projection {f + 1}" for f in range(scores[1].shape[1])]
     data[x_vars] = scores[0]
     data[y_vars] = scores[1]
     cca_pp = sns.pairplot(

@@ -4,10 +4,11 @@ import jax.numpy as jnp
 import numpy as np
 import numpyro
 import numpyro.distributions as dist
-from cca_zoo.models._base import _BaseCCA
 from jax.random import PRNGKey
 from numpyro.infer import MCMC, NUTS, Predictive
 from sklearn.utils.validation import check_is_fitted
+
+from cca_zoo.models._base import _BaseCCA
 
 
 class ProbabilisticCCA(_BaseCCA):
@@ -22,12 +23,12 @@ class ProbabilisticCCA(_BaseCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        copy_data=True,
-        random_state: int = 0,
-        num_samples=100,
-        num_warmup=100,
+            self,
+            latent_dims: int = 1,
+            copy_data=True,
+            random_state: int = 0,
+            num_samples=100,
+            num_warmup=100,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -101,6 +102,6 @@ class ProbabilisticCCA(_BaseCCA):
                     obs=X_,
                 )
                 for i, (X_, psi_, mu_, W_) in enumerate(
-                    zip(views, psi, mu, self.weights_list)
-                )
+                zip(views, psi, mu, self.weights_list)
+            )
             ]

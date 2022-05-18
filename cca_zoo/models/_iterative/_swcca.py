@@ -31,19 +31,19 @@ class SWCCA(_BaseIterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        max_iter: int = 500,
-        initialization: str = "random",
-        tol: float = 1e-9,
-        regularisation="l0",
-        c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
-        sample_support=None,
-        positive=False,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            max_iter: int = 500,
+            initialization: str = "random",
+            tol: float = 1e-9,
+            regularisation="l0",
+            c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+            sample_support=None,
+            positive=False,
     ):
         """
 
@@ -98,14 +98,14 @@ class SWCCA(_BaseIterative):
 
 class _SWCCAInnerLoop(_PLSInnerLoop):
     def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        regularisation="l0",
-        c=None,
-        sample_support: int = None,
-        random_state=None,
-        positive=False,
+            self,
+            max_iter: int = 100,
+            tol=1e-9,
+            regularisation="l0",
+            c=None,
+            sample_support: int = None,
+            random_state=None,
+            positive=False,
     ):
         super().__init__(
             max_iter=max_iter,
@@ -132,8 +132,8 @@ class _SWCCAInnerLoop(_PLSInnerLoop):
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True
         self.weights[view_index] = (
-            views[view_index] * self.sample_weights[:, np.newaxis]
-        ).T @ targets.sum(axis=0).filled()
+                                           views[view_index] * self.sample_weights[:, np.newaxis]
+                                   ).T @ targets.sum(axis=0).filled()
         self.weights[view_index] = self.update(
             self.weights[view_index],
             self.c[view_index],

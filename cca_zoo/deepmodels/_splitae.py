@@ -5,7 +5,7 @@ from ._base import _BaseDeep, _GenerativeMixin
 from ._callbacks import GenerativeCallback
 
 
-class SplitAE(_BaseDeep,_GenerativeMixin):
+class SplitAE(_BaseDeep, _GenerativeMixin):
     """
     A class used to fit a Split Autoencoder model.
 

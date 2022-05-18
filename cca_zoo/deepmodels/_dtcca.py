@@ -3,8 +3,8 @@ from typing import Iterable
 import numpy as np
 
 from cca_zoo.deepmodels import _objectives
-from ._dcca import DCCA
 from cca_zoo.models import TCCA
+from ._dcca import DCCA
 
 
 class DTCCA(DCCA):
@@ -20,7 +20,7 @@ class DTCCA(DCCA):
     """
 
     def __init__(
-        self, latent_dims: int, encoders=None, r: float = 0, eps: float = 1e-5, **kwargs
+            self, latent_dims: int, encoders=None, r: float = 0, eps: float = 1e-5, **kwargs
     ):
         """
 

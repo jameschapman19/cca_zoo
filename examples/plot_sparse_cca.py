@@ -51,7 +51,7 @@ def plot_true_weights_coloured(ax, weights, true_weights, title=""):
     ax.set_title(title)
 
 
-def plot_model_weights(wx, wy, tx, ty,title=""):
+def plot_model_weights(wx, wy, tx, ty, title=""):
     fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
     plot_true_weights_coloured(axs[0, 0], tx, tx, title="true x weights")
     plot_true_weights_coloured(axs[0, 1], ty, ty, title="true y weights")
@@ -64,11 +64,11 @@ def plot_model_weights(wx, wy, tx, ty,title=""):
 
 # %%
 cca = CCA().fit([X, Y])
-plot_model_weights(cca.weights[0], cca.weights[1], tx, ty,title='CCA')
+plot_model_weights(cca.weights[0], cca.weights[1], tx, ty, title="CCA")
 
 # %%
 pls = PLS().fit([X, Y])
-plot_model_weights(pls.weights[0], pls.weights[1], tx, ty,title='PLS')
+plot_model_weights(pls.weights[0], pls.weights[1], tx, ty, title="PLS")
 
 # %%
 c1 = [0.1, 0.3, 0.7, 0.9]
@@ -82,14 +82,16 @@ plt.plot(np.array(pmd.best_estimator_.track[0]["objective"]).T)
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
 #%%
-plot_model_weights(pmd.best_estimator_.weights[0], pmd.best_estimator_.weights[1], tx, ty,title='PMD')
+plot_model_weights(
+    pmd.best_estimator_.weights[0], pmd.best_estimator_.weights[1], tx, ty, title="PMD"
+)
 
 # %%
 pd.DataFrame(pmd.cv_results_)
 
 # %%
 scca = SCCA_IPLS(c=[1e-2, 1e-2]).fit([X, Y])
-plot_model_weights(scca.weights[0], scca.weights[1], tx, ty,title='SCCA_IPLS')
+plot_model_weights(scca.weights[0], scca.weights[1], tx, ty, title="SCCA_IPLS")
 
 # Convergence
 plt.figure()
@@ -100,7 +102,9 @@ plt.xlabel("#iterations")
 
 # %%
 scca_pos = SCCA_IPLS(c=[1e-2, 1e-2], positive=[True, True]).fit([X, Y])
-plot_model_weights(scca_pos.weights[0], scca_pos.weights[1], tx, ty,title='SCCA_IPLS (Positive)')
+plot_model_weights(
+    scca_pos.weights[0], scca_pos.weights[1], tx, ty, title="SCCA_IPLS (Positive)"
+)
 
 # Convergence
 plt.figure()
@@ -111,7 +115,9 @@ plt.xlabel("#iterations")
 
 # %%
 elasticcca = ElasticCCA(c=[1e-2, 1e-2], l1_ratio=[0.5, 0.5]).fit([X, Y])
-plot_model_weights(elasticcca.weights[0], elasticcca.weights[1], tx, ty,title='ELastic CCA')
+plot_model_weights(
+    elasticcca.weights[0], elasticcca.weights[1], tx, ty, title="ELastic CCA"
+)
 
 # Convergence
 plt.figure()
@@ -122,7 +128,7 @@ plt.xlabel("#iterations")
 
 # %%
 spancca = SCCA_Span(c=[10, 10], max_iter=2000, rank=20).fit([X, Y])
-plot_model_weights(spancca.weights[0], spancca.weights[1], tx, ty,title='Span CCA')
+plot_model_weights(spancca.weights[0], spancca.weights[1], tx, ty, title="Span CCA")
 
 # Convergence
 plt.figure()

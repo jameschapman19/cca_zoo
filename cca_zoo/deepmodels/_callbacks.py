@@ -12,7 +12,9 @@ class CorrelationCallback(Callback):
             pl_module.batch_correlation(trainer.train_dataloader, train=True).sum(),
         )
 
-    def on_validation_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_validation_epoch_end(
+        self, trainer: Trainer, pl_module: LightningModule
+    ) -> None:
         try:
             pl_module.log(
                 "val/corr",
@@ -29,7 +31,9 @@ class CorrelationCallback(Callback):
 
 
 class GenerativeCallback(Callback):
-    def on_validation_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_validation_epoch_end(
+        self, trainer: Trainer, pl_module: LightningModule
+    ) -> None:
         if pl_module.log_images:
             z = dict()
             z["shared"] = Variable(torch.randn(64, pl_module.latent_dims))

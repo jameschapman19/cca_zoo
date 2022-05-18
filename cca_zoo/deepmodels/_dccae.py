@@ -6,7 +6,7 @@ from ._callbacks import CorrelationCallback, GenerativeCallback
 from ._dcca import DCCA
 
 
-class DCCAE(DCCA,_GenerativeMixin):
+class DCCAE(DCCA, _GenerativeMixin):
     """
     A class used to fit a DCCAE model.
 
@@ -52,7 +52,7 @@ class DCCAE(DCCA,_GenerativeMixin):
         self.lam = lam
         self.objective = objective(latent_dims, r=r, eps=eps)
         self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
-        self.recon_loss_type=recon_loss_type
+        self.recon_loss_type = recon_loss_type
 
     def forward(self, views, **kwargs):
         z = []

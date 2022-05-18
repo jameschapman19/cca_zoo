@@ -14,11 +14,11 @@ class BarlowTwins(DCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        encoders=None,
-        lam=1,
-        **kwargs,
+            self,
+            latent_dims: int,
+            encoders=None,
+            lam=1,
+            **kwargs,
     ):
         """
         Constructor class for Barlow Twins

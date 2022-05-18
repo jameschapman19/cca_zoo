@@ -2,8 +2,8 @@ from typing import Union
 
 import numpy as np
 
-from ._altmaxvar import AltMaxVar
 from cca_zoo.models._iterative._base import _BaseInnerLoop
+from ._altmaxvar import AltMaxVar
 
 
 class PDD_GCCA(AltMaxVar):

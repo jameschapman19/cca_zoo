@@ -5,11 +5,15 @@ import numpy as np
 from cca_zoo.deepmodels import get_dataloaders
 
 
-def example_mnist_data(n_train, n_val, batch_size=50, val_batch_size=10, type='split'):
-    if type == 'split':
-        train_dataset = SplitMNIST(root="", mnist_type="MNIST", train=True, download=True)
+def example_mnist_data(n_train, n_val, batch_size=50, val_batch_size=10, type="split"):
+    if type == "split":
+        train_dataset = SplitMNIST(
+            root="", mnist_type="MNIST", train=True, download=True
+        )
     else:
-        train_dataset = NoisyMNIST(root="", mnist_type="MNIST", train=True, download=True)
+        train_dataset = NoisyMNIST(
+            root="", mnist_type="MNIST", train=True, download=True
+        )
     val_dataset = Subset(train_dataset, np.arange(n_train, n_train + n_val))
     train_dataset = Subset(train_dataset, np.arange(n_train))
     train_loader, val_loader = get_dataloaders(

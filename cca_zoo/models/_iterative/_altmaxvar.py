@@ -3,7 +3,7 @@ from typing import Union
 
 import numpy as np
 
-from cca_zoo.models import rCCA
+from .._rcca import rCCA
 from ._base import _BaseInnerLoop
 from ._base import _BaseIterative
 

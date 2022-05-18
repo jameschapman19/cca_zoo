@@ -1,7 +1,7 @@
 import torch
 
-from ._dcca import DCCA
 from cca_zoo.deepmodels._objectives import mat_pow
+from ._dcca import DCCA
 
 
 class DCCA_NOI(DCCA):
@@ -16,15 +16,15 @@ class DCCA_NOI(DCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        N: int,
-        encoders=None,
-        r: float = 0,
-        rho: float = 0.2,
-        eps: float = 1e-9,
-        shared_target: bool = False,
-        **kwargs,
+            self,
+            latent_dims: int,
+            N: int,
+            encoders=None,
+            r: float = 0,
+            rho: float = 0.2,
+            eps: float = 1e-9,
+            shared_target: bool = False,
+            **kwargs,
     ):
         """
         Constructor class for DCCA

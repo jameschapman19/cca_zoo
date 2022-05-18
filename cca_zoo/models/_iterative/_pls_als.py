@@ -3,7 +3,7 @@ from typing import Union
 
 import numpy as np
 
-from ._base import _BaseInnerLoop,_BaseIterative
+from ._base import _BaseInnerLoop, _BaseIterative
 
 
 class PLS_ALS(_BaseIterative):
@@ -33,15 +33,15 @@ class PLS_ALS(_BaseIterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "random",
-        tol: float = 1e-9,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "random",
+            tol: float = 1e-9,
     ):
         """
         Constructor for PLS
@@ -77,10 +77,10 @@ class PLS_ALS(_BaseIterative):
 
 class _PLSInnerLoop(_BaseInnerLoop):
     def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        random_state=None,
+            self,
+            max_iter: int = 100,
+            tol=1e-9,
+            random_state=None,
     ):
         super().__init__(
             max_iter=max_iter,

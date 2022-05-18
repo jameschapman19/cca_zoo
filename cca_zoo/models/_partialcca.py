@@ -29,14 +29,14 @@ class PartialCCA(MCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        eps=1e-3,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            eps=1e-3,
     ):
         """
         Constructor for Partial CCA
@@ -105,7 +105,7 @@ class PartialCCA(MCCA):
         transformed_views = []
         for i, (view) in enumerate(views):
             transformed_view = (
-                view - partials @ self.confound_betas[i]
-            ) @ self.weights[i]
+                                       view - partials @ self.confound_betas[i]
+                               ) @ self.weights[i]
             transformed_views.append(transformed_view)
         return transformed_views

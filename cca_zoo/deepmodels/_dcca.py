@@ -93,8 +93,3 @@ class DCCA(_BaseDeep):
 
     def configure_callbacks(self):
         return [CorrelationCallback()]
-
-
-
-
-
