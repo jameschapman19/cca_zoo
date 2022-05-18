@@ -44,7 +44,7 @@ sphinx_gallery_conf = {
     "doc_module": "cca-zoo",
     "examples_dirs": "../../examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
-    "ignore_pattern": "utils.py",
+    "ignore_pattern": "__init__.py",
 }
 
 # -- sphinx.ext.intersphinx
