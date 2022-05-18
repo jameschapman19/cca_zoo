@@ -22,6 +22,7 @@ class SplitAE(_BaseDeep, _GenerativeMixin):
             decoders=None,
             latent_dropout=0,
             recon_loss_type="mse",
+            img_dim=None,
             **kwargs
     ):
         """
@@ -31,6 +32,7 @@ class SplitAE(_BaseDeep, _GenerativeMixin):
         :param decoders:  list of decoder networks
         """
         super().__init__(latent_dims=latent_dims, **kwargs)
+        self.img_dim = img_dim
         self.encoder = encoder
         self.decoders = torch.nn.ModuleList(decoders)
         self.latent_dropout = torch.nn.Dropout(p=latent_dropout)

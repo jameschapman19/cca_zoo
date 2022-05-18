@@ -26,6 +26,7 @@ class DCCAE(DCCA, _GenerativeMixin):
             eps: float = 1e-5,
             lam=0.5,
             latent_dropout=0,
+            img_dim=None,
             recon_loss_type="mse",
             **kwargs,
     ):
@@ -46,6 +47,7 @@ class DCCAE(DCCA, _GenerativeMixin):
             eps=eps,
             **kwargs,
         )
+        self.img_dim = img_dim
         self.decoders = torch.nn.ModuleList(decoders)
         if lam < 0 or lam > 1:
             raise ValueError(f"lam should be between 0 and 1. rho={lam}")

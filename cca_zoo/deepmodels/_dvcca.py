@@ -28,8 +28,7 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
             decoders=None,
             private_encoders: Iterable[BaseEncoder] = None,
             latent_dropout=0,
-            log_images=True,
-            img_dim=(1, 28, 28),
+            img_dim=None,
             recon_loss_type="mse",
             **kwargs,
     ):
@@ -40,7 +39,6 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
         :param private_encoders: list of private (view specific) encoder networks
         """
         super().__init__(latent_dims=latent_dims, **kwargs)
-        self.log_images = log_images
         self.img_dim = img_dim
         self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
         self.encoders = torch.nn.ModuleList(encoders)
