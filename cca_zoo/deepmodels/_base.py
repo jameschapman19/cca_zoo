@@ -42,7 +42,6 @@ class _BaseDeep(pl.LightningModule):
     def forward(self, views, *args, **kwargs):
         """
         We use the forward model to define the transformation of views to the latent space
-
         :param views: batches for each view separated by commas
         """
         raise NotImplementedError
@@ -57,7 +56,6 @@ class _BaseDeep(pl.LightningModule):
     def post_transform(self, z, train=False) -> Iterable[np.ndarray]:
         """
         Some models require a final linear CCA after model training.
-
         :param z: a list of all of the latent space embeddings for each view
         :param train: if the train flag is True this fits a new post transformation
         """
@@ -87,7 +85,6 @@ class _BaseDeep(pl.LightningModule):
             train=False,
     ):
         """
-
         :param loader: a dataloader that matches the structure of that used for training
         :param train: whether to fit final linear transformation
         :return: transformed views
