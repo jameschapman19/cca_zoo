@@ -1,1 +1,16 @@
-
+numpy
+scipy
+torch
+scikit-learn
+pytest
+matplotlib
+pandas
+seaborn
+tensorly
+torchvision
+joblib
+mvlearn
+tqdm
+multiviewdata
+setuptools
+data
