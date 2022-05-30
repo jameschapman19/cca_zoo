@@ -9,6 +9,4 @@ tensorly
 joblib
 mvlearn
 tqdm
-multiviewdata
 setuptools
-data
