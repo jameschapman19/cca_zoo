@@ -3,7 +3,7 @@ import warnings
 from abc import abstractmethod
 from itertools import combinations
 from typing import Union, Iterable
-
+from tqdm import tqdm
 import numpy as np
 from sklearn.utils.validation import check_random_state
 
@@ -18,16 +18,17 @@ class _BaseIterative(_BaseCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            deflation="cca",
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "random",
-            tol: float = 1e-9,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        deflation="cca",
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "random",
+        tol: float = 1e-9,
+        verbose=0,
     ):
         """
         Constructor for _BaseIterative
@@ -53,6 +54,7 @@ class _BaseIterative(_BaseCCA):
         self.initialization = initialization
         self.tol = tol
         self.deflation = deflation
+        self.verbose = verbose
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
@@ -75,7 +77,11 @@ class _BaseIterative(_BaseCCA):
             initializer = self.initialization()
         self.track = []
         residuals = copy.deepcopy(list(views))
-        for k in range(self.latent_dims):
+        for k in (
+            tqdm(range(self.latent_dims), desc="latent dimension")
+            if self.verbose > 0
+            else range(self.latent_dims)
+        ):
             self._set_loop_params()
             self.loop = self.loop._fit(residuals, initial_scores=next(initializer))
             for i, residual in enumerate(residuals):
@@ -112,10 +118,11 @@ class _BaseIterative(_BaseCCA):
 
 class _BaseInnerLoop:
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol: float = 1e-9,
-            random_state=None,
+        self,
+        max_iter: int = 100,
+        tol: float = 1e-9,
+        random_state=None,
+        verbose=0,
     ):
         """
         :param max_iter: maximum number of iterations to perform if tol is not reached
@@ -125,6 +132,7 @@ class _BaseInnerLoop:
         self.max_iter = max_iter
         self.tol = tol
         self.random_state = check_random_state(random_state)
+        self.verbose = verbose
 
     def _initialize(self, views):
         self.n_views = len(views)
@@ -136,7 +144,11 @@ class _BaseInnerLoop:
         self.n_views = len(views)
         self._initialize(views)
         # Iterate until convergence
-        for _ in range(self.max_iter):
+        for _ in (
+            tqdm(range(self.max_iter), desc="inner loop iterations")
+            if self.verbose > 1
+            else range(self.max_iter)
+        ):
             self._inner_iteration(views)
             if np.isnan(self.scores).sum() > 0:
                 warnings.warn(
@@ -153,8 +165,8 @@ class _BaseInnerLoop:
     def _early_stop(self) -> bool:
         # Some kind of early stopping
         if all(
-                _cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol)
-                for n, view in enumerate(self.scores)
+            _cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol)
+            for n, view in enumerate(self.scores)
         ):
             return True
         else:

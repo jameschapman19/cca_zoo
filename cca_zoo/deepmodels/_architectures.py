@@ -31,13 +31,13 @@ class BaseDecoder(torch.nn.Module):
 
 class Encoder(BaseEncoder):
     def __init__(
-            self,
-            latent_dims: int,
-            variational: bool = False,
-            feature_size: int = 784,
-            layer_sizes: tuple = None,
-            activation=nn.LeakyReLU(),
-            dropout=0,
+        self,
+        latent_dims: int,
+        variational: bool = False,
+        feature_size: int = 784,
+        layer_sizes: tuple = None,
+        activation=nn.LeakyReLU(),
+        dropout=0,
     ):
         super(Encoder, self).__init__(latent_dims, variational=variational)
         if layer_sizes is None:
@@ -80,12 +80,12 @@ class Encoder(BaseEncoder):
 
 class Decoder(BaseDecoder):
     def __init__(
-            self,
-            latent_dims: int,
-            feature_size: int = 784,
-            layer_sizes: tuple = None,
-            activation=nn.LeakyReLU(),
-            dropout=0,
+        self,
+        latent_dims: int,
+        feature_size: int = 784,
+        layer_sizes: tuple = None,
+        activation=nn.LeakyReLU(),
+        dropout=0,
     ):
         super(Decoder, self).__init__(latent_dims)
         if layer_sizes is None:
@@ -109,16 +109,16 @@ class Decoder(BaseDecoder):
 
 class CNNEncoder(BaseEncoder):
     def __init__(
-            self,
-            latent_dims: int,
-            variational: bool = False,
-            feature_size: Iterable = (28, 28),
-            channels: tuple = None,
-            kernel_sizes: tuple = None,
-            stride: tuple = None,
-            padding: tuple = None,
-            activation=nn.LeakyReLU(),
-            dropout=0,
+        self,
+        latent_dims: int,
+        variational: bool = False,
+        feature_size: Iterable = (28, 28),
+        channels: tuple = None,
+        kernel_sizes: tuple = None,
+        stride: tuple = None,
+        padding: tuple = None,
+        activation=nn.LeakyReLU(),
+        dropout=0,
     ):
         super(CNNEncoder, self).__init__(latent_dims, variational=variational)
         if channels is None:
@@ -187,15 +187,15 @@ class CNNEncoder(BaseEncoder):
 
 class CNNDecoder(BaseDecoder):
     def __init__(
-            self,
-            latent_dims: int,
-            feature_size: Iterable = (28, 28),
-            channels: tuple = None,
-            kernel_sizes=None,
-            strides=None,
-            paddings=None,
-            activation=nn.LeakyReLU(),
-            dropout=0,
+        self,
+        latent_dims: int,
+        feature_size: Iterable = (28, 28),
+        channels: tuple = None,
+        kernel_sizes=None,
+        strides=None,
+        paddings=None,
+        activation=nn.LeakyReLU(),
+        dropout=0,
     ):
         super(CNNDecoder, self).__init__(latent_dims)
         if channels is None:
@@ -210,7 +210,7 @@ class CNNDecoder(BaseDecoder):
         current_channels = 1
         current_size = feature_size[0]
         for l_id, (channel, kernel, stride, padding) in reversed(
-                list(enumerate(zip(channels, kernel_sizes, strides, paddings)))
+            list(enumerate(zip(channels, kernel_sizes, strides, paddings)))
         ):
             conv_layers.append(
                 torch.nn.Sequential(

@@ -37,20 +37,21 @@ class SCCA_Span(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            max_iter: int = 100,
-            initialization: str = "uniform",
-            tol: float = 1e-9,
-            regularisation="l0",
-            c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
-            rank=1,
-            positive: Union[Iterable[bool], bool] = None,
-            random_state=None,
-            deflation="cca",
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        max_iter: int = 100,
+        initialization: str = "uniform",
+        tol: float = 1e-9,
+        regularisation="l0",
+        c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+        rank=1,
+        positive: Union[Iterable[bool], bool] = None,
+        random_state=None,
+        deflation="cca",
+        verbose=0,
     ):
         """
 
@@ -77,6 +78,7 @@ class SCCA_Span(_BaseIterative):
             tol=tol,
             random_state=random_state,
             deflation=deflation,
+            verbose=verbose,
         )
         self.c = c
         self.regularisation = regularisation
@@ -92,6 +94,7 @@ class SCCA_Span(_BaseIterative):
             rank=self.rank,
             random_state=self.random_state,
             positive=self.positive,
+            verbose=self.verbose,
         )
 
     def _check_params(self):
@@ -112,19 +115,18 @@ class SCCA_Span(_BaseIterative):
 
 class _SpanCCAInnerLoop(_BaseInnerLoop):
     def __init__(
-            self,
-            update,
-            max_iter: int = 100,
-            tol=1e-9,
-            c=None,
-            rank=1,
-            random_state=None,
-            positive=False,
+        self,
+        update,
+        max_iter: int = 100,
+        tol=1e-9,
+        c=None,
+        rank=1,
+        random_state=None,
+        positive=False,
+        verbose=0,
     ):
         super().__init__(
-            max_iter=max_iter,
-            tol=tol,
-            random_state=random_state,
+            max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
         )
         self.update = update
         self.c = c

@@ -20,13 +20,13 @@ class DCCA(_BaseDeep):
     """
 
     def __init__(
-            self,
-            latent_dims: int,
-            objective=_objectives.MCCA,
-            encoders=None,
-            r: float = 0,
-            eps: float = 1e-5,
-            **kwargs,
+        self,
+        latent_dims: int,
+        objective=_objectives.MCCA,
+        encoders=None,
+        r: float = 0,
+        eps: float = 1e-5,
+        **kwargs,
     ):
         """
         Constructor class for DCCA
@@ -66,9 +66,9 @@ class DCCA(_BaseDeep):
         return z
 
     def batch_correlation(
-            self,
-            loader: torch.utils.data.DataLoader,
-            train=False,
+        self,
+        loader: torch.utils.data.DataLoader,
+        train=False,
     ):
         """
 
@@ -80,15 +80,15 @@ class DCCA(_BaseDeep):
         pair_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             pair_corrs.append(
-                np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], y.shape[1]:])
+                np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], y.shape[1] :])
             )
         pair_corrs = np.array(pair_corrs).reshape(
             (len(transformed_views), len(transformed_views), -1)
         )
         n_views = pair_corrs.shape[0]
         dim_corrs = (
-                            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
-                    ) / (n_views ** 2 - n_views)
+            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
+        ) / (n_views ** 2 - n_views)
         return dim_corrs
 
     def configure_callbacks(self):

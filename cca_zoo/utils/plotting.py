@@ -48,7 +48,7 @@ def cv_plot(cv_results_):
         param_pairs = list(itertools.product(unique_x, unique_y))
         for pair in param_pairs:
             mask = (cv_results_[param_cols[-2]] == pair[0]) & (
-                    cv_results_[param_cols[-1]] == pair[1]
+                cv_results_[param_cols[-1]] == pair[1]
             )
             sub_dfs.append(cv_results_.loc[mask].iloc[:, :-2])
             sub_scores.append(cv_results_[mask].mean_test_score)
@@ -86,9 +86,9 @@ def cv_plot(cv_results_):
 
 
 def pairplot_train_test(
-        train_scores: Union[Tuple[np.ndarray], List[np.ndarray]],
-        test_scores: Union[Tuple[np.ndarray], List[np.ndarray]] = None,
-        title="",
+    train_scores: Union[Tuple[np.ndarray], List[np.ndarray]],
+    test_scores: Union[Tuple[np.ndarray], List[np.ndarray]] = None,
+    title="",
 ):
     """
     Makes a pair plot showing the projections of each view against each other for each dimensions. Coloured by train and test
@@ -117,10 +117,10 @@ def pairplot_train_test(
 
 
 def pairplot_label(
-        scores: Union[Tuple[np.ndarray], List[np.ndarray]],
-        labels=None,
-        label_name=None,
-        title="",
+    scores: Union[Tuple[np.ndarray], List[np.ndarray]],
+    labels=None,
+    label_name=None,
+    title="",
 ):
     """
     Makes a pair plot showing the projections of each view against each other for each dimensions. Coloured by categorical label
@@ -138,22 +138,20 @@ def pairplot_label(
     y_vars = [f"view 2 projection {f + 1}" for f in range(scores[1].shape[1])]
     data[x_vars] = scores[0]
     data[y_vars] = scores[1]
-    cca_pp = sns.pairplot(
-        data, hue=label_name, x_vars=x_vars, y_vars=y_vars
-    )
+    cca_pp = sns.pairplot(data, hue=label_name, x_vars=x_vars, y_vars=y_vars)
     cca_pp.fig.suptitle(title)
     return cca_pp
 
 
 def tsne_label(
-        scores: np.ndarray,
-        labels=None,
-        label_name=None,
-        title="",
-        verbose=1,
-        perplexity=40,
-        n_iter=300,
-        ax=None,
+    scores: np.ndarray,
+    labels=None,
+    label_name=None,
+    title="",
+    verbose=1,
+    perplexity=40,
+    n_iter=300,
+    ax=None,
 ):
     """
     Makes a tsne plot of the projections from one view with optional labels

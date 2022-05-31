@@ -21,24 +21,24 @@ class StochasticPowerPLS(_BaseStochastic):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            accept_sparse=None,
-            batch_size=1,
-            shuffle=False,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            pin_memory=False,
-            drop_last=False,
-            timeout=0,
-            worker_init_fn=None,
-            epochs=1,
-            lr=1e-2,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        accept_sparse=None,
+        batch_size=1,
+        shuffle=False,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=False,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        lr=1e-2,
     ):
         """
         Constructor for StochasticPowerPLS
@@ -82,7 +82,7 @@ class StochasticPowerPLS(_BaseStochastic):
             projections = np.ma.array(projections, mask=False, keep_mask=False)
             projections.mask[i] = True
             self.weights[i] += (
-                    self.lr * (view.T @ projections.sum(axis=0).filled()) / view.shape[0]
+                self.lr * (view.T @ projections.sum(axis=0).filled()) / view.shape[0]
             )
         self.weights = [
             weight / np.linalg.norm(weight, axis=0) for weight in self.weights
@@ -92,7 +92,7 @@ class StochasticPowerPLS(_BaseStochastic):
         return np.sum(
             np.diag(
                 np.cov(*self.transform(views), rowvar=False)[
-                : self.latent_dims, self.latent_dims:
+                    : self.latent_dims, self.latent_dims :
                 ]
             )
         )

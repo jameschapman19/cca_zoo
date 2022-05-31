@@ -16,14 +16,14 @@ class SplitAE(_BaseDeep, _GenerativeMixin):
     """
 
     def __init__(
-            self,
-            latent_dims: int,
-            encoder: BaseEncoder = Encoder,
-            decoders=None,
-            latent_dropout=0,
-            recon_loss_type="mse",
-            img_dim=None,
-            **kwargs
+        self,
+        latent_dims: int,
+        encoder: BaseEncoder = Encoder,
+        decoders=None,
+        latent_dropout=0,
+        recon_loss_type="mse",
+        img_dim=None,
+        **kwargs
     ):
         """
 
@@ -58,7 +58,10 @@ class SplitAE(_BaseDeep, _GenerativeMixin):
         recons = self._decode(z)
         loss = dict()
         loss["reconstruction"] = torch.stack(
-            [self.recon_loss(x, recon, loss_type=self.recon_loss_type) for x, recon in zip(views, recons)]
+            [
+                self.recon_loss(x, recon, loss_type=self.recon_loss_type)
+                for x, recon in zip(views, recons)
+            ]
         ).sum()
         loss["objective"] = loss["reconstruction"]
         return loss

@@ -17,18 +17,18 @@ class DCCAE(DCCA, _GenerativeMixin):
     """
 
     def __init__(
-            self,
-            latent_dims: int,
-            objective=_objectives.MCCA,
-            encoders=None,
-            decoders=None,
-            r: float = 0,
-            eps: float = 1e-5,
-            lam=0.5,
-            latent_dropout=0,
-            img_dim=None,
-            recon_loss_type="mse",
-            **kwargs,
+        self,
+        latent_dims: int,
+        objective=_objectives.MCCA,
+        encoders=None,
+        decoders=None,
+        r: float = 0,
+        eps: float = 1e-5,
+        lam=0.5,
+        latent_dropout=0,
+        img_dim=None,
+        recon_loss_type="mse",
+        **kwargs,
     ):
         """
         :param latent_dims: # latent dimensions
@@ -77,11 +77,14 @@ class DCCAE(DCCA, _GenerativeMixin):
         recons = self._decode(z)
         loss = dict()
         loss["reconstruction"] = torch.stack(
-            [self.recon_loss(x, recon, loss_type=self.recon_loss_type) for x, recon in zip(views, recons)]
+            [
+                self.recon_loss(x, recon, loss_type=self.recon_loss_type)
+                for x, recon in zip(views, recons)
+            ]
         ).sum()
         loss["correlation"] = self.objective.loss(z)
         loss["objective"] = (
-                self.lam * loss["reconstruction"] + (1 - self.lam) * loss["correlation"]
+            self.lam * loss["reconstruction"] + (1 - self.lam) * loss["correlation"]
         )
         return loss
 

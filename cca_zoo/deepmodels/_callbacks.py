@@ -34,7 +34,7 @@ class GenerativeCallback(Callback):
     def on_validation_epoch_end(
         self, trainer: Trainer, pl_module: LightningModule
     ) -> None:
-        if hasattr(pl_module, 'img_dim') and pl_module.img_dim is not None:
+        if hasattr(pl_module, "img_dim") and pl_module.img_dim is not None:
             z = dict()
             z["shared"] = Variable(torch.randn(64, pl_module.latent_dims))
             if pl_module.private_encoders:

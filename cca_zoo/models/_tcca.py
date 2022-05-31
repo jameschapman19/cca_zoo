@@ -43,13 +43,13 @@ class TCCA(_BaseCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale=True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            c: Union[Iterable[float], float] = None,
+        self,
+        latent_dims: int = 1,
+        scale=True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        c: Union[Iterable[float], float] = None,
     ):
         """
         Constructor for TCCA
@@ -188,19 +188,19 @@ class KTCCA(TCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            eps=1e-3,
-            c: Union[Iterable[float], float] = None,
-            kernel: Iterable[Union[float, callable]] = None,
-            gamma: Iterable[float] = None,
-            degree: Iterable[float] = None,
-            coef0: Iterable[float] = None,
-            kernel_params: Iterable[dict] = None,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        eps=1e-3,
+        c: Union[Iterable[float], float] = None,
+        kernel: Iterable[Union[float, callable]] = None,
+        gamma: Iterable[float] = None,
+        degree: Iterable[float] = None,
+        coef0: Iterable[float] = None,
+        kernel_params: Iterable[dict] = None,
     ):
         """
         Constructor for TCCA

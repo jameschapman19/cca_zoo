@@ -16,15 +16,15 @@ class DCCA_NOI(DCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int,
-            N: int,
-            encoders=None,
-            r: float = 0,
-            rho: float = 0.2,
-            eps: float = 1e-9,
-            shared_target: bool = False,
-            **kwargs,
+        self,
+        latent_dims: int,
+        N: int,
+        encoders=None,
+        r: float = 0,
+        rho: float = 0.2,
+        eps: float = 1e-9,
+        shared_target: bool = False,
+        **kwargs,
     ):
         """
         Constructor class for DCCA
@@ -61,7 +61,7 @@ class DCCA_NOI(DCCA):
         z = []
         # Users architecture + final linear layer
         for i, (encoder, linear_layer) in enumerate(
-                zip(self.encoders, self.linear_layers)
+            zip(self.encoders, self.linear_layers)
         ):
             z.append(linear_layer(encoder(views[i])))
         return z

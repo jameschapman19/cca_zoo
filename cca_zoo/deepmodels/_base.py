@@ -10,19 +10,19 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 
 class _BaseDeep(pl.LightningModule):
     def __init__(
-            self,
-            latent_dims: int,
-            optimizer="adam",
-            scheduler=None,
-            lr=1e-3,
-            weight_decay=0,
-            extra_optimizer_kwargs=None,
-            max_epochs=1000,
-            min_lr=1e-9,
-            lr_decay_steps=None,
-            correlation=True,
-            *args,
-            **kwargs,
+        self,
+        latent_dims: int,
+        optimizer="adam",
+        scheduler=None,
+        lr=1e-3,
+        weight_decay=0,
+        extra_optimizer_kwargs=None,
+        max_epochs=1000,
+        min_lr=1e-9,
+        lr_decay_steps=None,
+        correlation=True,
+        *args,
+        **kwargs,
     ):
         super().__init__()
         if extra_optimizer_kwargs is None:
@@ -80,9 +80,9 @@ class _BaseDeep(pl.LightningModule):
         return loss["objective"]
 
     def transform(
-            self,
-            loader: torch.utils.data.DataLoader,
-            train=False,
+        self,
+        loader: torch.utils.data.DataLoader,
+        train=False,
     ):
         """
         :param loader: a dataloader that matches the structure of that used for training
@@ -140,7 +140,7 @@ class _BaseDeep(pl.LightningModule):
 
 
 class _GenerativeMixin:
-    def recon_loss(self, x, recon, loss='mse', reduction='mean', **kwargs):
+    def recon_loss(self, x, recon, loss="mse", reduction="mean", **kwargs):
         if loss == "mse":
             return self.mse_loss(x, recon, reduction=reduction)
         elif loss == "bce":
@@ -148,13 +148,13 @@ class _GenerativeMixin:
         elif loss == "nll":
             return self.mse_loss(x, recon, reduction=reduction)
 
-    def mse_loss(self, x, recon, reduction='mean'):
+    def mse_loss(self, x, recon, reduction="mean"):
         return F.mse_loss(recon, x, reduction=reduction)
 
-    def bce_loss(self, x, recon, reduction='mean'):
+    def bce_loss(self, x, recon, reduction="mean"):
         return F.binary_cross_entropy(recon, x, reduction=reduction)
 
-    def nll_loss(self, x, recon, reduction='mean'):
+    def nll_loss(self, x, recon, reduction="mean"):
         return F.nll_loss(recon, x, reduction=reduction)
 
     @staticmethod

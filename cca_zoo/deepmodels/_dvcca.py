@@ -22,15 +22,15 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
     """
 
     def __init__(
-            self,
-            latent_dims: int,
-            encoders=None,
-            decoders=None,
-            private_encoders: Iterable[BaseEncoder] = None,
-            latent_dropout=0,
-            img_dim=None,
-            recon_loss_type="mse",
-            **kwargs,
+        self,
+        latent_dims: int,
+        encoders=None,
+        decoders=None,
+        private_encoders: Iterable[BaseEncoder] = None,
+        latent_dropout=0,
+        img_dim=None,
+        recon_loss_type="mse",
+        **kwargs,
     ):
         """
         :param latent_dims: # latent dimensions
@@ -137,10 +137,13 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
         recons = self._decode(z)
         loss = dict()
         loss["reconstruction"] = torch.stack(
-            [self.recon_loss(x, recon, loss_type=self.recon_loss_type) for x, recon in zip(views, recons)]
+            [
+                self.recon_loss(x, recon, loss_type=self.recon_loss_type)
+                for x, recon in zip(views, recons)
+            ]
         ).sum()
         loss["kl shared"] = (
-                self.kl_loss(z["mu_shared"], z["logvar_shared"]) / views[0].numel()
+            self.kl_loss(z["mu_shared"], z["logvar_shared"]) / views[0].numel()
         )
         if "private" in z:
             loss["kl private"] = torch.stack(
@@ -154,9 +157,9 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
 
     def recon_uncertainty(self, views, **kwargs):
         z = self.forward(views, **kwargs)
-        z['shared'] = z["logvar_shared"]
+        z["shared"] = z["logvar_shared"]
         if self.private_encoders is not None:
-            z['private'] = z["logvar_private"]
+            z["private"] = z["logvar_private"]
         return self._decode(z)
 
     def configure_callbacks(self):

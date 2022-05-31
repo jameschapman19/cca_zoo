@@ -21,13 +21,13 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale=True,
-            centre=True,
-            copy_data=True,
-            accept_sparse=False,
-            random_state: Union[int, np.random.RandomState] = None,
+        self,
+        latent_dims: int = 1,
+        scale=True,
+        centre=True,
+        copy_data=True,
+        accept_sparse=False,
+        random_state: Union[int, np.random.RandomState] = None,
     ):
         """
         Constructor for _BaseCCA
@@ -96,7 +96,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
         if normalize:
             loadings = [
                 np.corrcoef(view, transformed_view, rowvar=False)[
-                : view.shape[1], view.shape[1]:
+                    : view.shape[1], view.shape[1] :
                 ]
                 for view, transformed_view in zip(views, transformed_views)
             ]
@@ -119,7 +119,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(
-                np.diag(np.corrcoef(x.T, y.T)[: self.latent_dims, self.latent_dims:])
+                np.diag(np.corrcoef(x.T, y.T)[: self.latent_dims, self.latent_dims :])
             )
         all_corrs = np.array(all_corrs).reshape(
             (len(views), len(views), self.latent_dims)
@@ -139,8 +139,8 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
         n_views = pair_corrs.shape[0]
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
         dim_corrs = (
-                            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
-                    ) / (n_views ** 2 - n_views)
+            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
+        ) / (n_views ** 2 - n_views)
         return dim_corrs
 
     def _centre_scale(self, views: Iterable[np.ndarray]):

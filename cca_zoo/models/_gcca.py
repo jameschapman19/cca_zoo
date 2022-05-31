@@ -41,15 +41,15 @@ class GCCA(rCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            c: Union[Iterable[float], float] = None,
-            view_weights: Iterable[float] = None,
-            eps=1e-9,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        c: Union[Iterable[float], float] = None,
+        view_weights: Iterable[float] = None,
+        eps=1e-9,
     ):
         """
         Constructor for GCCA
@@ -93,9 +93,9 @@ class GCCA(rCCA):
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
         Q = (
-                np.diag(np.sqrt(np.sum(K, axis=0)))
-                @ Q
-                @ np.diag(np.sqrt(np.sum(K, axis=0)))
+            np.diag(np.sqrt(np.sum(K, axis=0)))
+            @ Q
+            @ np.diag(np.sqrt(np.sum(K, axis=0)))
         )
         return views, Q, None
 
@@ -141,19 +141,19 @@ class KGCCA(GCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            c: Union[Iterable[float], float] = None,
-            eps=1e-3,
-            kernel: Iterable[Union[float, callable]] = None,
-            gamma: Iterable[float] = None,
-            degree: Iterable[float] = None,
-            coef0: Iterable[float] = None,
-            kernel_params: Iterable[dict] = None,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        c: Union[Iterable[float], float] = None,
+        eps=1e-3,
+        kernel: Iterable[Union[float, callable]] = None,
+        gamma: Iterable[float] = None,
+        degree: Iterable[float] = None,
+        coef0: Iterable[float] = None,
+        kernel_params: Iterable[dict] = None,
     ):
         """
         Constructor for PLS
@@ -227,9 +227,9 @@ class KGCCA(GCCA):
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
         Q = (
-                np.diag(np.sqrt(np.sum(K, axis=0)))
-                @ Q
-                @ np.diag(np.sqrt(np.sum(K, axis=0)))
+            np.diag(np.sqrt(np.sum(K, axis=0)))
+            @ Q
+            @ np.diag(np.sqrt(np.sum(K, axis=0)))
         )
         return kernels, Q, None
 

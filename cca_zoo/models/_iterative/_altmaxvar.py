@@ -30,16 +30,17 @@ class AltMaxVar(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "pls",
-            tol: float = 1e-9,
-            view_regs=None,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "pls",
+        tol: float = 1e-9,
+        view_regs=None,
+        verbose=0,
     ):
         """
         Constructor for ElasticCCA
@@ -62,6 +63,7 @@ class AltMaxVar(_BaseIterative):
             initialization=initialization,
             tol=tol,
             random_state=random_state,
+            verbose=verbose,
         )
         self.view_regs = view_regs
 
@@ -79,12 +81,13 @@ class AltMaxVar(_BaseIterative):
         if not self.track["converged"]:
             warnings.warn(f"Inner loop not converged. Increase number of iterations.")
 
-    def _set_loop_params(self):
+    def _set_loop_params(self, **kwargs):
         self.loop = _AltMaxVarLoop(
             max_iter=self.max_iter,
             tol=self.tol,
             random_state=self.random_state,
             view_regs=self.view_regs,
+            verbose=self.verbose,
         )
 
     def _initialization(self, views, initialization, random_state, latent_dims):
@@ -108,17 +111,17 @@ class AltMaxVar(_BaseIterative):
 
 class _AltMaxVarLoop(_BaseInnerLoop):
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol=1e-9,
-            random_state=None,
-            view_regs=None,
-            alpha=1e-3,
+        self,
+        max_iter: int = 100,
+        tol=1e-9,
+        random_state=None,
+        view_regs=None,
+        alpha=1e-3,
+        verbose=0,
+        **kwargs,
     ):
         super().__init__(
-            max_iter=max_iter,
-            tol=tol,
-            random_state=random_state,
+            max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
         )
         self.alpha = alpha
         self.view_regs = view_regs
@@ -149,7 +152,7 @@ class _AltMaxVarLoop(_BaseInnerLoop):
         total_objective = 0
         for i, _ in enumerate(views):
             objective = np.linalg.norm(views[i] @ self.weights[i] - self.G) ** 2 / (
-                    2 * self.n
+                2 * self.n
             )
             total_objective += objective + self.view_regs[i].cost(
                 views[i], self.weights[i]
