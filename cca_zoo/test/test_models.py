@@ -105,6 +105,12 @@ def test_regularized_methods():
 
 
 def test_sparse_methods():
+    c1 = loguniform(1e-1, 2e-1)
+    c2 = loguniform(1e-1, 2e-1)
+    param_grid = {"c": [c1, c2], "l1_ratio": [[0.9], [0.9]]}
+    elastic_cv = RandomizedSearchCV(
+        ElasticCCA(random_state=rng), param_distributions=param_grid, n_iter=4
+    ).fit([X, Y])
     c1 = [1e-1]
     c2 = [1e-1]
     param_grid = {"c": [c1, c2]}
@@ -115,12 +121,6 @@ def test_sparse_methods():
     c2 = [0.1, 0.2]
     param_grid = {"c": [c1, c2]}
     pmd_cv = GridSearchCV(SCCA_PMD(random_state=rng), param_grid=param_grid).fit([X, Y])
-    c1 = loguniform(1e-1, 2e-1)
-    c2 = loguniform(1e-1, 2e-1)
-    param_grid = {"c": [c1, c2], "l1_ratio": [[0.9], [0.9]]}
-    elastic_cv = RandomizedSearchCV(
-        ElasticCCA(random_state=rng), param_distributions=param_grid, n_iter=4
-    ).fit([X, Y])
     c1 = [1e-1]
     c2 = [1e-1]
     param_grid = {"c": [c1, c2]}
