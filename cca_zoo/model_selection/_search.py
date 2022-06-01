@@ -393,7 +393,7 @@ class GridSearchCV(BaseSearchCV):
         )
         self = BaseSearchCV.fit(self, np.hstack(X), y=None, groups=None, **fit_params)
         self.best_estimator_ = self.best_estimator_['estimator']
-        self.best_params_ = {key.removeprefix('estimator__'): val for key, val in self.best_params_.items()}
+        self.best_params_ = {key[len('estimator__'):]: val for key, val in self.best_params_.items()}
         return self
 
 
@@ -673,5 +673,5 @@ class RandomizedSearchCV(BaseSearchCV):
         )
         self = BaseSearchCV.fit(self, np.hstack(X), y=None, groups=None, **fit_params)
         self.best_estimator_ = self.best_estimator_['estimator']
-        self.best_params_ = {key.removeprefix('estimator__'): val for key, val in self.best_params_.items()}
+        self.best_params_ = {key[len('estimator__'):]: val for key, val in self.best_params_.items()}
         return self
