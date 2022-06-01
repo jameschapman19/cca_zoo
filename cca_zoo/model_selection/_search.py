@@ -377,12 +377,13 @@ class GridSearchCV(BaseSearchCV):
             self.param_grid = param2grid(param_grid)
         else:
             self.param_grid = param_grid
-        self.param_grid = [{f"estimator__{key}": val for key, val in param_grid.items()} for param_grid in
-                           self.param_grid]
 
     def _run_search(self, evaluate_candidates):
         """Search all candidates in param_grid"""
-        evaluate_candidates(self.param_grid)
+        param_grid=self.param_grid
+        param_grid.param_grid = [{f"estimator__{key}": val for key, val in subgrid.items()} for subgrid in
+                                      param_grid.param_grid]
+        evaluate_candidates(param_grid)
 
     def fit(self, X, y=None, *, groups=None, **fit_params):
         self.estimator = Pipeline(
