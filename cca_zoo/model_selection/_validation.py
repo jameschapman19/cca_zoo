@@ -28,7 +28,8 @@ def cross_validate(
         return_estimator=False,
         error_score=np.nan,
 ):
-    """Evaluate metric(s) by cross-validation and also record fit/score times.
+    """
+    Evaluate metric(s) by cross-validation and also record fit/score times.
     Read more in the :ref:`User Guide <multimetric_cross_validation>`.
 
     :param estimator: estimator object implementing 'fit'
@@ -133,7 +134,8 @@ def permutation_test_score(
         scoring=None,
         fit_params=None,
 ):
-    """Evaluate the significance of a cross-validated score with permutations
+    """
+    Evaluate the significance of a cross-validated score with permutations
     Permutes targets to generate 'randomized data' and compute the empirical
     p-value against the null hypothesis that features and targets are
     independent.
@@ -265,7 +267,8 @@ def learning_curve(
         return_times=False,
         fit_params=None,
 ):
-    """Learning curve.
+    """
+    Learning curve.
     Determines cross-validated training and test scores for different training
     set sizes.
     A cross-validation generator splits the whole dataset k times in training
