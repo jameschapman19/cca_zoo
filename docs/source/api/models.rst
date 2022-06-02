@@ -8,17 +8,17 @@ Regularized Canonical Correlation Analysis and Partial Least Squares
 Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models._rcca.CCA
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Partial Least Squares
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models._rcca.PLS
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Ridge Regularized Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models._rcca.rCCA
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 GCCA and KGCCA
 ---------------------------
@@ -26,12 +26,12 @@ GCCA and KGCCA
 Generalized (MAXVAR) Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models._gcca.GCCA
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Kernel Generalized (MAXVAR) Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models._gcca.KGCCA
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 MCCA and KCCA
 ---------------------------
@@ -39,12 +39,12 @@ MCCA and KCCA
 Multiset (SUMCOR) Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models._mcca.MCCA
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Kernel Multiset (SUMCOR) Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models._mcca.KCCA
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Tensor Canonical Correlation Analysis
 ----------------------------------------
@@ -52,12 +52,12 @@ Tensor Canonical Correlation Analysis
 Tensor Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models._tcca.TCCA
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Kernel Tensor Canonical Correlation Analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models._tcca.KTCCA
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 More Complex Regularisation using Iterative Models
 -----------------------------------------------------
@@ -70,7 +70,7 @@ Quicker and more memory efficient for very large data
 PLS by Alternating Least Squares
 """"""""""""""""""""""""""""""""""""
 .. autoclass:: cca_zoo.models.PLS_ALS
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 
 Sparsity Inducing Models
@@ -79,32 +79,32 @@ Sparsity Inducing Models
 Penalized Matrix Decomposition (Sparse PLS)
 """""""""""""""""""""""""""""""""""""""""""""""
 .. autoclass:: cca_zoo.models.SCCA_PMD
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Sparse CCA by iterative lasso regression
 """""""""""""""""""""""""""""""""""""""""""""""
 .. autoclass:: cca_zoo.models.SCCA_IPLS
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Elastic CCA by MAXVAR
 """""""""""""""""""""""""""""""""""""""""""""""
 .. autoclass:: cca_zoo.models.ElasticCCA
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Span CCA
 """""""""""""""""""""""""""""""""""""""""""""""
 .. autoclass:: cca_zoo.models.SCCA_Span
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Parkhomenko (penalized) CCA
 """""""""""""""""""""""""""""""""""""""""
 .. autoclass:: cca_zoo.models.ParkhomenkoCCA
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Sparse CCA by ADMM
 """""""""""""""""""""""""""""""""""""""""""
 .. autoclass:: cca_zoo.models.SCCA_ADMM
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Miscellaneous
 -----------------------------------------------------
@@ -112,20 +112,20 @@ Miscellaneous
 Nonparametric CCA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models.NCCA
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Partial CCA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models.PartialCCA
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Sparse Weighted CCA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: cca_zoo.models.SWCCA
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
 
 Base Class
 --------------------------------
 
 .. automodule:: cca_zoo.models._base
-    :inherited-members:BaseEstimator
+    :inherited-members: BaseEstimator
