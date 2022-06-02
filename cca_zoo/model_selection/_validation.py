@@ -31,18 +31,18 @@ def cross_validate(
     """Evaluate metric(s) by cross-validation and also record fit/score times.
     Read more in the :ref:`User Guide <multimetric_cross_validation>`.
 
-    :param estimator : estimator object implementing 'fit'
+    :param estimator: estimator object implementing 'fit'
         The object to use to fit the data.
-    :param X : array-like of shape (n_samples, n_features)
+    :param X: array-like of shape (n_samples, n_features)
         The data to fit. Can be for example a list, or an array.
-    :param y : array-like of shape (n_samples,) or (n_samples, n_outputs), default=None
+    :param y: array-like of shape (n_samples,) or (n_samples, n_outputs), default=None
         The target variable to try to predict in the case of
         supervised learning.
-    :param groups : array-like of shape (n_samples,), default=None
+    :param groups: array-like of shape (n_samples,), default=None
         Group labels for the samples used while splitting the dataset into
         train/test set. Only used in conjunction with a "Group" :term:`cv`
         instance (e.g., :class:`GroupKFold`).
-    :param scoring : str, callable, list, tuple, or dict, default=None
+    :param scoring: str, callable, list, tuple, or dict, default=None
         Strategy to evaluate the performance of the cross-validated model on
         the test set.
         If `scoring` represents a single score, one can use:
@@ -54,7 +54,7 @@ def cross_validate(
           names and the values are the metric scores;
         - a dictionary with metric names as keys and callables a values.
         See :ref:`multimetric_grid_search` for an example.
-    :param cv : int, cross-validation generator or an iterable, default=None
+    :param cv: int, cross-validation generator or an iterable, default=None
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
         - None, to use the default 5-fold cross validation,
@@ -69,17 +69,17 @@ def cross_validate(
         cross-validation strategies that can be used here.
         .. versionchanged:: 0.22
             ``cv`` default value if None changed from 3-fold to 5-fold.
-    :param n_jobs : int, default=None
+    :param n_jobs: int, default=None
         Number of jobs to run in parallel. Training the estimator and computing
         the score are parallelized over the cross-validation splits.
         ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
         ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
         for more details.
-    :param verbose : int, default=0
+    :param verbose: int, default=0
         The verbosity level.
-    :param fit_params : dict, default=None
+    :param fit_params: dict, default=None
         Parameters to pass to the fit method of the estimator.
-    :param pre_dispatch : int or str, default='2*n_jobs'
+    :param pre_dispatch: int or str, default='2*n_jobs'
         Controls the number of jobs that get dispatched during parallel
         execution. Reducing this number can be useful to avoid an
         explosion of memory consumption when more jobs get dispatched
@@ -146,14 +146,14 @@ def permutation_test_score(
     give good predictions.
     Read more in the :ref:`User Guide <permutation_test_score>`.
 
-    :param estimator : estimator object implementing 'fit'
+    :param estimator: estimator object implementing 'fit'
         The object to use to fit the data.
-    :param X : array-like of shape at least 2D
+    :param X: array-like of shape at least 2D
         The data to fit.
-    :param y : array-like of shape (n_samples,) or (n_samples, n_outputs) or None
+    :param y: array-like of shape (n_samples,) or (n_samples, n_outputs) or None
         The target variable to try to predict in the case of
         supervised learning.
-    :param groups : array-like of shape (n_samples,), default=None
+    :param groups: array-like of shape (n_samples,), default=None
         Labels to constrain permutation within groups, i.e. ``y`` values
         are permuted among samples with the same group identifier.
         When not specified, ``y`` values are permuted among all samples.
@@ -161,11 +161,11 @@ def permutation_test_score(
         also passed on to the ``split`` method of the cross-validator. The
         cross-validator uses them for grouping the samples  while splitting
         the dataset into train/test set.
-    :param scoring : str or callable, default=None
+    :param scoring: str or callable, default=None
         A single str (see :ref:`scoring_parameter`) or a callable
         (see :ref:`scoring`) to evaluate the predictions on the test set.
         If `None` the estimator's score method is used.
-    :param cv : int, cross-validation generator or an iterable, default=None
+    :param cv: int, cross-validation generator or an iterable, default=None
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
         - `None`, to use the default 5-fold cross validation,
@@ -180,20 +180,20 @@ def permutation_test_score(
         cross-validation strategies that can be used here.
         .. versionchanged:: 0.22
             `cv` default value if `None` changed from 3-fold to 5-fold.
-    :param n_permutations : int, default=100
+    :param n_permutations: int, default=100
         Number of times to permute ``y``.
-    :param n_jobs : int, default=None
+    :param n_jobs: int, default=None
         Number of jobs to run in parallel. Training the estimator and computing
         the cross-validated score are parallelized over the permutations.
         ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
         ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
         for more details.
-    :param random_state : int, RandomState instance or None, default=0
+    :param random_state: int, RandomState instance or None, default=0
         Pass an int for reproducible output for permutation of
         ``y`` values among samples. See :term:`Glossary <random_state>`.
-    :param verbose : int, default=0
+    :param verbose: int, default=0
         The verbosity level.
-    :param fit_params : dict, default=None
+    :param fit_params: dict, default=None
         Parameters to pass to the fit method of the estimator.
         .. versionadded:: 0.24
 
@@ -275,19 +275,19 @@ def learning_curve(
     all k runs for each training subset size.
     Read more in the :ref:`User Guide <learning_curve>`.
 
-    :param estimator : object type that implements the "fit" and "predict" methods
+    :param estimator: object type that implements the "fit" and "predict" methods
         An object of that type which is cloned for each validation.
-    :param X : array-like of shape (n_samples, n_features)
+    :param X: array-like of shape (n_samples, n_features)
         Training vector, where `n_samples` is the number of samples and
         `n_features` is the number of features.
-    :param y : array-like of shape (n_samples,) or (n_samples, n_outputs)
+    :param y: array-like of shape (n_samples,) or (n_samples, n_outputs)
         Target relative to X for classification or regression;
         None for unsupervised learning.
-    :param groups : array-like of  shape (n_samples,), default=None
+    :param groups: array-like of  shape (n_samples,), default=None
         Group labels for the samples used while splitting the dataset into
         train/test set. Only used in conjunction with a "Group" :term:`cv`
         instance (e.g., :class:`GroupKFold`).
-    :param train_sizes : array-like of shape (n_ticks,), \
+    :param train_sizes: array-like of shape (n_ticks,), \
             default=np.linspace(0.1, 1.0, 5)
         Relative or absolute numbers of training examples that will be used to
         generate the learning curve. If the dtype is float, it is regarded as a
@@ -296,7 +296,7 @@ def learning_curve(
         Otherwise it is interpreted as absolute sizes of the training sets.
         Note that for classification the number of samples usually have to
         be big enough to contain at least one sample from each class.
-    :param cv : int, cross-validation generator or an iterable, default=None
+    :param cv: int, cross-validation generator or an iterable, default=None
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
         - None, to use the default 5-fold cross validation,
@@ -311,40 +311,40 @@ def learning_curve(
         cross-validation strategies that can be used here.
         .. versionchanged:: 0.22
             ``cv`` default value if None changed from 3-fold to 5-fold.
-    :param scoring : str or callable, default=None
+    :param scoring: str or callable, default=None
         A str (see model evaluation documentation) or
         a scorer callable object / function with signature
         ``scorer(estimator, X, y)``.
-    :param exploit_incremental_learning : bool, default=False
+    :param exploit_incremental_learning: bool, default=False
         If the estimator supports incremental learning, this will be
         used to speed up fitting for different training set sizes.
-    :param n_jobs : int, default=None
+    :param n_jobs: int, default=None
         Number of jobs to run in parallel. Training the estimator and computing
         the score are parallelized over the different training and test sets.
         ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
         ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
         for more details.
-    :param pre_dispatch : int or str, default='all'
+    :param pre_dispatch: int or str, default='all'
         Number of predispatched jobs for parallel execution (default is
         all). The option can reduce the allocated memory. The str can
         be an expression like '2*n_jobs'.
-    :param verbose : int, default=0
+    :param verbose: int, default=0
         Controls the verbosity: the higher, the more messages.
-    :param shuffle : bool, default=False
+    :param shuffle: bool, default=False
         Whether to shuffle training data before taking prefixes of it
         based on``train_sizes``.
-    :param random_state : int, RandomState instance or None, default=None
+    :param random_state: int, RandomState instance or None, default=None
         Used when ``shuffle`` is True. Pass an int for reproducible
         output across multiple function calls.
         See :term:`Glossary <random_state>`.
-    :param error_score : 'raise' or numeric, default=np.nan
+    :param error_score: 'raise' or numeric, default=np.nan
         Value to assign to the score if an error occurs in estimator fitting.
         If set to 'raise', the error is raised.
         If a numeric value is given, FitFailedWarning is raised.
         .. versionadded:: 0.20
-    :param return_times : bool, default=False
+    :param return_times: bool, default=False
         Whether to return the fit and score times.
-    :param fit_params : dict, default=None
+    :param fit_params: dict, default=None
         Parameters to pass to the fit method of the estimator.
         .. versionadded:: 0.24
 
