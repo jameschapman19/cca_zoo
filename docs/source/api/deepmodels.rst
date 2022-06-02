@@ -36,6 +36,20 @@ Deep Variational CCA
     :members:
     :undoc-members:
 
+Deep CCA by Stochastic Decorrelation Loss
+-----------------------------------------------
+
+.. automodule:: cca_zoo.deepmodels._dcca_sdl
+    :members:
+    :undoc-members:
+
+Deep CCA by Barlow Twins
+--------------------------------
+
+.. automodule:: cca_zoo.deepmodels._dcca_barlow_twins
+    :members:
+    :undoc-members:
+
 Split Autoencoders
 ----------------------------------
 
@@ -58,6 +72,14 @@ Deep Objectives
 .. autoclass:: cca_zoo.deepmodels._objectives.TCCA
     :members:
 
+Callbacks
+-------------------------------------
+
+.. autoclass:: cca_zoo.deepmodels._callbacks.CorrelationCallback
+    :members:
+
+.. autoclass:: cca_zoo.deepmodels._callbacks.GenerativeCallback
+    :members:
 
 Model Architectures
 ----------------------------------------
