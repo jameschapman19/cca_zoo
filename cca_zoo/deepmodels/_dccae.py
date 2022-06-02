@@ -57,6 +57,13 @@ class DCCAE(DCCA, _GenerativeMixin):
         self.recon_loss_type = recon_loss_type
 
     def forward(self, views, **kwargs):
+        """
+        Forward method for the model. Outputs latent encoding for each view
+
+        :param views:
+        :param kwargs:
+        :return:
+        """
         z = []
         for i, encoder in enumerate(self.encoders):
             z.append(encoder(views[i]))

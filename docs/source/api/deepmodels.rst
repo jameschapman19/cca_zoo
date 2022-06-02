@@ -4,58 +4,50 @@ Deep Models
 DCCA
 -------------------------------
 
-.. automodule:: cca_zoo.deepmodels._dcca
-    :members:
-    :undoc-members:
+.. autoclass:: cca_zoo.deepmodels._dcca.DCCA
+    :inherited-members:
 
 DCCA by Non-Linear Orthogonal Iterations
 -----------------------------------------
 
-.. automodule:: cca_zoo.deepmodels._dcca_noi
-    :members:
-    :undoc-members:
+.. autoclass:: cca_zoo.deepmodels._dcca_noi.DCCA_NOI
+    :inherited-members:
 
 Deep Canonically Correlated Autoencoders
 -----------------------------------------
 
-.. automodule:: cca_zoo.deepmodels._dccae
-    :members:
-    :undoc-members:
+.. autoclass:: cca_zoo.deepmodels._dccae.DCCAE
+    :inherited-members:
 
 Deep Tensor CCA
 --------------------------------
 
-.. automodule:: cca_zoo.deepmodels._dtcca
-    :members:
-    :undoc-members:
+.. autoclass:: cca_zoo.deepmodels._dtcca.DTCCA
+    :inherited-members:
 
 Deep Variational CCA
 --------------------------------
 
-.. automodule:: cca_zoo.deepmodels._dvcca
-    :members:
-    :undoc-members:
+.. autoclass:: cca_zoo.deepmodels._dvcca.DVCCA
+    :inherited-members:
 
 Deep CCA by Stochastic Decorrelation Loss
 -----------------------------------------------
 
-.. automodule:: cca_zoo.deepmodels._dcca_sdl
-    :members:
-    :undoc-members:
+.. autoclass:: cca_zoo.deepmodels._dcca_sdl.DCCA_SDL
+    :inherited-members:
 
 Deep CCA by Barlow Twins
 --------------------------------
 
-.. automodule:: cca_zoo.deepmodels._dcca_barlow_twins
-    :members:
-    :undoc-members:
+.. autoclass:: cca_zoo.deepmodels._dcca_barlow_twins.BarlowTwins
+    :inherited-members:
 
 Split Autoencoders
 ----------------------------------
 
-.. automodule:: cca_zoo.deepmodels._splitae
-    :members:
-    :undoc-members:
+.. autoclass:: cca_zoo.deepmodels._splitae.SplitAE
+    :inherited-members:
 
 Deep Objectives
 -------------------------------------

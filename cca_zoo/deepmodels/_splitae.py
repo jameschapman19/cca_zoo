@@ -39,6 +39,13 @@ class SplitAE(_BaseDeep, _GenerativeMixin):
         self.recon_loss_type = recon_loss_type
 
     def forward(self, views, **kwargs):
+        """
+        Forward method for the model. Outputs latent encoding for each view
+
+        :param views:
+        :param kwargs:
+        :return:
+        """
         z = self.encoder(views[0])
         return z
 

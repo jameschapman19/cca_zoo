@@ -58,6 +58,13 @@ class DCCA_NOI(DCCA):
         self.rand = torch.rand(N, self.latent_dims)
 
     def forward(self, views, **kwargs):
+        """
+        Forward method for the model. Outputs latent encoding for each view
+
+        :param views:
+        :param kwargs:
+        :return:
+        """
         z = []
         # Users architecture + final linear layer
         for i, (encoder, linear_layer) in enumerate(

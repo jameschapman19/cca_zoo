@@ -4,14 +4,15 @@ Model Selection
 GridSearchCV
 ---------------------------------------
 
-.. automodule:: cca_zoo.model_selection.GridSearchCV
+.. autoclass:: cca_zoo.model_selection.GridSearchCV
+    :inherited-members:
 
 
 RandomizedSearchCV
 ---------------------------------------------
 
-.. automodule:: cca_zoo.model_selection.RandomizedSearchCV
-
+.. autoclass:: cca_zoo.model_selection.RandomizedSearchCV
+    :inherited-members:
 
 cross_validate
 ---------------------------------------------

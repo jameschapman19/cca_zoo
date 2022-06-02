@@ -34,6 +34,13 @@ class BarlowTwins(DCCA):
         )
 
     def forward(self, views, **kwargs):
+        """
+        Forward method for the model. Outputs latent encoding for each view
+
+        :param views:
+        :param kwargs:
+        :return:
+        """
         z = []
         for i, (encoder, bn) in enumerate(zip(self.encoders, self.bns)):
             z.append(bn(encoder(views[i])))

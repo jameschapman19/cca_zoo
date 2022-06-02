@@ -51,8 +51,10 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
 
     def forward(self, views, mle=True, **kwargs):
         """
+        Forward method for the model. Outputs latent encoding for each view
+
         :param views:
-        :param mle:
+        :param kwargs:
         :return:
         """
         z = {}
@@ -81,10 +83,6 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
             return mu + torch.randn_like(logvar) * torch.exp(0.5 * logvar)
 
     def _encode(self, views):
-        """
-        :param args:
-        :return:
-        """
         mu = []
         logvar = []
         for i, encoder in enumerate(self.encoders):
@@ -94,10 +92,6 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
         return torch.stack(mu).sum(dim=0), torch.stack(logvar).sum(dim=0)
 
     def _encode_private(self, views):
-        """
-        :param args:
-        :return:
-        """
         mu = []
         logvar = []
         for i, private_encoder in enumerate(self.private_encoders):
@@ -107,10 +101,6 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
         return mu, logvar
 
     def _decode(self, z, **kwargs):
-        """
-        :param z:
-        :return:
-        """
         x = []
         for i, decoder in enumerate(self.decoders):
             if "private" in z:
@@ -129,10 +119,6 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
         return x
 
     def loss(self, views, **kwargs):
-        """
-        :param args:
-        :return:
-        """
         z = self(views, mle=False)
         recons = self._decode(z)
         loss = dict()

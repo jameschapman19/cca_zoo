@@ -42,6 +42,13 @@ class DCCA(_BaseDeep):
         self.objective = objective(latent_dims, r=r, eps=eps)
 
     def forward(self, views, **kwargs):
+        """
+        Forward method for the model. Outputs latent encoding for each view
+
+        :param views:
+        :param kwargs:
+        :return:
+        """
         z = []
         for i, encoder in enumerate(self.encoders):
             z.append(encoder(views[i]))
@@ -71,6 +78,7 @@ class DCCA(_BaseDeep):
         train=False,
     ):
         """
+        Calculates correlation for entire batch from dataloader
 
         :param loader: a dataloader that matches the structure of that used for training
         :param train: whether to fit final linear transformation
