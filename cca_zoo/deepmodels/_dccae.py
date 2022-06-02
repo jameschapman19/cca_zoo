@@ -31,6 +31,8 @@ class DCCAE(DCCA, _GenerativeMixin):
         **kwargs,
     ):
         """
+        Constructor class for DCCAE
+
         :param latent_dims: # latent dimensions
         :param objective: # CCA objective: normal tracenorm CCA by default
         :param encoders: list of encoder networks

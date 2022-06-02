@@ -23,6 +23,7 @@ class DTCCA(DCCA):
         self, latent_dims: int, encoders=None, r: float = 0, eps: float = 1e-5, **kwargs
     ):
         """
+        Constructor class for DTCCA
 
         :param latent_dims: # latent dimensions
         :param encoders: list of encoder networks

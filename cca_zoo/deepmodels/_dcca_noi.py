@@ -27,7 +27,7 @@ class DCCA_NOI(DCCA):
         **kwargs,
     ):
         """
-        Constructor class for DCCA
+        Constructor class for DCCA_NOI
 
         :param latent_dims: # latent dimensions
         :param N: # samples used to estimate covariance

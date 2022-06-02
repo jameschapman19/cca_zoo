@@ -27,7 +27,8 @@ class DCCA_SDL(DCCA_NOI):
         **kwargs
     ):
         """
-        Constructor class for DCCA
+        Constructor class for DCCA_SDL
+
         :param latent_dims: # latent dimensions
         :param encoders: list of encoder networks
         :param r: regularisation parameter of tracenorm CCA like ridge CCA

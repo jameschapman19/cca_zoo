@@ -33,6 +33,8 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
         **kwargs,
     ):
         """
+        Constructor class for DVCCA
+
         :param latent_dims: # latent dimensions
         :param encoders: list of encoder networks
         :param decoders:  list of decoder networks
