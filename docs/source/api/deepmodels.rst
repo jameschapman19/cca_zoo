@@ -5,51 +5,51 @@ DCCA
 -------------------------------
 
 .. autoclass:: cca_zoo.deepmodels._dcca.DCCA
-    :inherited-members: LightningModule
+    :inherited-members: LightningModule, Module
 
 
 DCCA by Non-Linear Orthogonal Iterations
 -----------------------------------------
 
 .. autoclass:: cca_zoo.deepmodels._dcca_noi.DCCA_NOI
-    :inherited-members: LightningModule
+    :inherited-members: LightningModule, Module
 
 
 Deep Canonically Correlated Autoencoders
 -----------------------------------------
 
 .. autoclass:: cca_zoo.deepmodels._dccae.DCCAE
-    :inherited-members: LightningModule
+    :inherited-members: LightningModule, Module
 
 Deep Tensor CCA
 --------------------------------
 
 .. autoclass:: cca_zoo.deepmodels._dtcca.DTCCA
-    :inherited-members: LightningModule
+    :inherited-members: LightningModule, Module
 
 Deep Variational CCA
 --------------------------------
 
 .. autoclass:: cca_zoo.deepmodels._dvcca.DVCCA
-    :inherited-members: LightningModule
+    :inherited-members: LightningModule, Module
 
 Deep CCA by Stochastic Decorrelation Loss
 -----------------------------------------------
 
 .. autoclass:: cca_zoo.deepmodels._dcca_sdl.DCCA_SDL
-    :inherited-members: LightningModule
+    :inherited-members: LightningModule, Module
 
 Deep CCA by Barlow Twins
 --------------------------------
 
 .. autoclass:: cca_zoo.deepmodels._dcca_barlow_twins.BarlowTwins
-    :inherited-members: LightningModule
+    :inherited-members: LightningModule, Module
 
 Split Autoencoders
 ----------------------------------
 
 .. autoclass:: cca_zoo.deepmodels._splitae.SplitAE
-    :inherited-members: LightningModule
+    :inherited-members: LightningModule, Module
 
 Deep Objectives
 -------------------------------------
