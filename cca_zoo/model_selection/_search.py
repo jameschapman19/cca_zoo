@@ -43,7 +43,8 @@ def param2grid(params):
 
 
 class ParameterSampler_(ParameterSampler):
-    """Generator on parameters sampled from given distributions.
+    """
+    Generator on parameters sampled from given distributions.
     Non-deterministic iterable over random candidate combinations for hyper-
     parameter search. If all parameters are presented as a list,
     sampling without replacement is performed. If at least one parameter
@@ -129,7 +130,8 @@ class ParameterSampler_(ParameterSampler):
 
 
 class GridSearchCV(BaseSearchCV):
-    """Exhaustive search over specified parameter values for an estimator.
+    """
+    Exhaustive search over specified parameter values for an estimator.
     Important members are fit, predict.
     GridSearchCV implements a "fit" and a "score" method.
     It also implements "score_samples", "predict", "predict_proba",
@@ -137,8 +139,7 @@ class GridSearchCV(BaseSearchCV):
     implemented in the estimator used.
     The parameters of the estimator used to apply these methods are optimized
     by cross-validated grid-search over a parameter grid.
-    Parameters
-    ----------
+
     :param estimator: estimator object
         This is assumed to implement the scikit-learn estimator interface.
         Either estimator needs to provide a ``score`` function,
@@ -309,7 +310,8 @@ class GridSearchCV(BaseSearchCV):
 
 
 class RandomizedSearchCV(BaseSearchCV):
-    """Randomized search on hyper parameters.
+    """
+    Randomized search on hyper parameters.
     RandomizedSearchCV implements a "fit" and a "score" method.
     It also implements "score_samples", "predict", "predict_proba",
     "decision_function", "transform" and "inverse_transform" if they are
