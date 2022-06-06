@@ -1,5 +1,5 @@
-import cca_zoo.deepmodels._architectures
-import cca_zoo.deepmodels._objectives
+import cca_zoo.deepmodels.architectures
+import cca_zoo.deepmodels.objectives
 from ._dcca import DCCA
 from ._dcca_barlow_twins import BarlowTwins
 from ._dcca_noi import DCCA_NOI

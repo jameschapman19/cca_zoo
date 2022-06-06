@@ -7,7 +7,7 @@ This example demonstrates multiview models which can reconstruct their inputs
 import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 
-from cca_zoo.deepmodels import _architectures, DCCAE, DVCCA, SplitAE
+from cca_zoo.deepmodels import architectures, DCCAE, DVCCA, SplitAE
 from cca_zoo.utils import tsne_label
 from examples import example_mnist_data
 
@@ -41,17 +41,17 @@ train_loader, val_loader, train_labels = example_mnist_data(
 
 # %%
 # Deep Variational CCA
-encoder_1 = _architectures.Encoder(
+encoder_1 = architectures.Encoder(
     latent_dims=LATENT_DIMS,
     feature_size=784,
     variational=True,
     layer_sizes=layer_sizes,
     dropout=dropout,
 )
-decoder_1 = _architectures.Decoder(
+decoder_1 = architectures.Decoder(
     latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
-decoder_2 = _architectures.Decoder(
+decoder_2 = architectures.Decoder(
     latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
 dvcca = DVCCA(
@@ -74,27 +74,27 @@ plt.show()
 
 # %%
 # Deep Variational CCA Private
-private_encoder_1 = _architectures.Encoder(
+private_encoder_1 = architectures.Encoder(
     latent_dims=LATENT_DIMS,
     feature_size=784,
     variational=True,
     layer_sizes=layer_sizes,
     dropout=dropout,
 )
-private_encoder_2 = _architectures.Encoder(
+private_encoder_2 = architectures.Encoder(
     latent_dims=LATENT_DIMS,
     feature_size=784,
     variational=True,
     layer_sizes=layer_sizes,
     dropout=dropout,
 )
-private_decoder_1 = _architectures.Decoder(
+private_decoder_1 = architectures.Decoder(
     latent_dims=2 * LATENT_DIMS,
     feature_size=784,
     layer_sizes=layer_sizes,
     dropout=dropout,
 )
-private_decoder_2 = _architectures.Decoder(
+private_decoder_2 = architectures.Decoder(
     latent_dims=2 * LATENT_DIMS,
     feature_size=784,
     layer_sizes=layer_sizes,
@@ -121,16 +121,16 @@ plt.show()
 
 # %%
 # Deep Canonically Correlated Autoencoders
-encoder_1 = _architectures.Encoder(
+encoder_1 = architectures.Encoder(
     latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes
 )
-encoder_2 = _architectures.Encoder(
+encoder_2 = architectures.Encoder(
     latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes
 )
-decoder_1 = _architectures.Decoder(
+decoder_1 = architectures.Decoder(
     latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
-decoder_2 = _architectures.Decoder(
+decoder_2 = architectures.Decoder(
     latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
 dccae = DCCAE(
@@ -155,13 +155,13 @@ plt.show()
 
 # %%
 # Split Autoencoders
-encoder_1 = _architectures.Encoder(
+encoder_1 = architectures.Encoder(
     latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes
 )
-decoder_1 = _architectures.Decoder(
+decoder_1 = architectures.Decoder(
     latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
-decoder_2 = _architectures.Decoder(
+decoder_2 = architectures.Decoder(
     latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
 splitae = SplitAE(

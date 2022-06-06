@@ -1,6 +1,6 @@
 import torch
 
-from cca_zoo.deepmodels import _objectives
+from cca_zoo.deepmodels import objectives
 from cca_zoo.deepmodels._base import _GenerativeMixin
 from ._callbacks import CorrelationCallback, GenerativeCallback
 from ._dcca import DCCA
@@ -19,7 +19,7 @@ class DCCAE(DCCA, _GenerativeMixin):
     def __init__(
         self,
         latent_dims: int,
-        objective=_objectives.MCCA,
+        objective=objectives.MCCA,
         encoders=None,
         decoders=None,
         r: float = 0,

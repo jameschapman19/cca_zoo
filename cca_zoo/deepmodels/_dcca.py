@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 import torch
 
-from cca_zoo.deepmodels import _objectives
+from cca_zoo.deepmodels import objectives
 from cca_zoo.models import MCCA
 from ._base import _BaseDeep
 from ._callbacks import CorrelationCallback
@@ -22,7 +22,7 @@ class DCCA(_BaseDeep):
     def __init__(
         self,
         latent_dims: int,
-        objective=_objectives.MCCA,
+        objective=objectives.MCCA,
         encoders=None,
         r: float = 0,
         eps: float = 1e-5,

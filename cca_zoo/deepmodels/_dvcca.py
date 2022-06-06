@@ -2,7 +2,7 @@ from typing import Iterable
 
 import torch
 
-from cca_zoo.deepmodels._architectures import BaseEncoder
+from cca_zoo.deepmodels.architectures import BaseEncoder
 from ._base import _BaseDeep, _GenerativeMixin
 from ._callbacks import GenerativeCallback
 
