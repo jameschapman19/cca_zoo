@@ -57,13 +57,13 @@ Deep Objectives
 .. autoclass:: cca_zoo.deepmodels._objectives.CCA
 
 
-.. autoclass:: cca_zoo.deepmodels._objectives.MCCA
+.. autoclass:: cca_zoo.deepmodels.objectives.MCCA
 
 
-.. autoclass:: cca_zoo.deepmodels._objectives.GCCA
+.. autoclass:: cca_zoo.deepmodels.objectives.GCCA
 
 
-.. autoclass:: cca_zoo.deepmodels._objectives.TCCA
+.. autoclass:: cca_zoo.deepmodels.objectives.TCCA
 
 
 Callbacks
@@ -78,4 +78,4 @@ Callbacks
 Model Architectures
 ----------------------------------------
 
-.. automodule:: cca_zoo.deepmodels._architectures
+.. automodule:: cca_zoo.deepmodels.architectures
