@@ -59,10 +59,9 @@ intersphinx_mapping = {
 autosummary_generate = True
 
 # -- sphinx.ext.autodoc
+autodoc_default_options = {'inherited-members': 'Module, LightningModule', 'show-inheritance': True}
 autoclass_content = "both"
-autodoc_default_flags = "show-inheritance"
-autodoc_member_order = "bysource"  # default is alphabetical
-special_members = "--init__"
+autodoc_member_order = "bysource"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
