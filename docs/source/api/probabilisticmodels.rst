@@ -1,6 +1,9 @@
 Probabilistic Models
 ====================================
 
+.. contents:: Contents
+    :local:
+
 Variational CCA
 ----------------------------------------
 

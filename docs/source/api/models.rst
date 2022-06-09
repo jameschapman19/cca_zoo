@@ -1,6 +1,9 @@
 Models
 ==================
 
+.. contents:: Contents
+    :local:
+
 .. currentmodule:: cca_zoo.models
 .. autosummary::
    :nosignatures:

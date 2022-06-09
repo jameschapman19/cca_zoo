@@ -1,6 +1,9 @@
 Model Selection
 ==================
 
+.. contents:: Contents
+    :local:
+
 .. currentmodule:: cca_zoo.model_selection
 .. autosummary::
    :nosignatures:
