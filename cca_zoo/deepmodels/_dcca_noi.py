@@ -1,6 +1,6 @@
 import torch
 
-from cca_zoo.deepmodels.objectives import mat_pow
+from cca_zoo.deepmodels.objectives import _mat_pow
 from ._dcca import DCCA
 
 
@@ -77,7 +77,7 @@ class DCCA_NOI(DCCA):
         z = self(views)
         z_copy = [z_.detach().clone() for z_ in z]
         self._update_covariances(z_copy, train=self.training)
-        covariance_inv = [mat_pow(cov, -0.5, self.eps) for cov in self.covs]
+        covariance_inv = [_mat_pow(cov, -0.5, self.eps) for cov in self.covs]
         preds = [z_ @ covariance_inv[i] for i, z_ in enumerate(z_copy)]
         loss = self.mse(z[0], preds[1]) + self.mse(z[1], preds[0])
         self.covs = [cov.detach() for cov in self.covs]

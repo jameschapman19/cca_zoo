@@ -1,6 +1,6 @@
 import torch
 
-from cca_zoo.deepmodels.architectures import BaseEncoder, Encoder
+from cca_zoo.deepmodels.architectures import _BaseEncoder, Encoder
 from ._base import _BaseDeep, _GenerativeMixin
 from ._callbacks import GenerativeCallback
 
@@ -18,7 +18,7 @@ class SplitAE(_BaseDeep, _GenerativeMixin):
     def __init__(
         self,
         latent_dims: int,
-        encoder: BaseEncoder = Encoder,
+        encoder: _BaseEncoder = Encoder,
         decoders=None,
         latent_dropout=0,
         recon_loss_type="mse",

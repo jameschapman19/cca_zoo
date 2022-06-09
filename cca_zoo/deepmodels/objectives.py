@@ -2,13 +2,12 @@ import tensorly as tl
 import torch
 from tensorly.cp_tensor import cp_to_tensor
 from tensorly.decomposition import parafac
-from torch import diag
 
 
-def mat_pow(mat, pow_, epsilon):
+def _mat_pow(mat, pow_, epsilon):
     # Computing matrix to the power of pow (pow can be negative as well)
     [D, V] = torch.linalg.eigh(mat)
-    mat_pow = V @ diag((D + epsilon).pow(pow_)) @ V.T
+    mat_pow = V @ torch.diag((D + epsilon).pow(pow_)) @ V.T
     mat_pow[mat_pow != mat_pow] = epsilon  # For stability
     return mat_pow
 
@@ -56,7 +55,7 @@ class MCCA:
 
         C = C - torch.block_diag(*[view.T @ view for view in views]) + D
 
-        R = mat_pow(D, -0.5, self.eps)
+        R = _mat_pow(D, -0.5, self.eps)
 
         # In MCCA our eigenvalue problem Cv = lambda Dv
         C_whitened = R @ C @ R.T
@@ -103,7 +102,7 @@ class GCCA:
         views = _demean(views)
 
         eigen_views = [
-            view @ mat_pow(view.T @ view, -1, self.eps) @ view.T for view in views
+            view @ _mat_pow(view.T @ view, -1, self.eps) @ view.T for view in views
         ]
 
         Q = torch.stack(eigen_views, dim=0).sum(dim=0)
@@ -167,8 +166,8 @@ class CCA:
             1
         ] + self.r * torch.eye(o2, device=views[1].device)
 
-        SigmaHat11RootInv = mat_pow(SigmaHat11, -0.5, self.eps)
-        SigmaHat22RootInv = mat_pow(SigmaHat22, -0.5, self.eps)
+        SigmaHat11RootInv = _mat_pow(SigmaHat11, -0.5, self.eps)
+        SigmaHat22RootInv = _mat_pow(SigmaHat22, -0.5, self.eps)
 
         Tval = SigmaHat11RootInv @ SigmaHat12 @ SigmaHat22RootInv
         trace_TT = Tval.T @ Tval
@@ -208,7 +207,7 @@ class TCCA:
             for view in views
         ]
         whitened_z = [
-            view @ mat_pow(cov, -0.5, self.eps) for view, cov in zip(views, covs)
+            view @ _mat_pow(cov, -0.5, self.eps) for view, cov in zip(views, covs)
         ]
         # The idea here is to form a matrix with M dimensions one for each view where at index
         # M[p_i,p_j,p_k...] we have the sum over n samples of the product of the pth feature of the

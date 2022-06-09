@@ -6,10 +6,10 @@ import torch
 from torch import nn
 
 
-class BaseEncoder(torch.nn.Module):
+class _BaseEncoder(torch.nn.Module):
     @abstractmethod
     def __init__(self, latent_dims: int, variational: bool = False):
-        super(BaseEncoder, self).__init__()
+        super(_BaseEncoder, self).__init__()
         self.variational = variational
         self.latent_dims = latent_dims
 
@@ -18,10 +18,10 @@ class BaseEncoder(torch.nn.Module):
         pass
 
 
-class BaseDecoder(torch.nn.Module):
+class _BaseDecoder(torch.nn.Module):
     @abstractmethod
     def __init__(self, latent_dims: int):
-        super(BaseDecoder, self).__init__()
+        super(_BaseDecoder, self).__init__()
         self.latent_dims = latent_dims
 
     @abstractmethod
@@ -29,7 +29,7 @@ class BaseDecoder(torch.nn.Module):
         pass
 
 
-class Encoder(BaseEncoder):
+class Encoder(_BaseEncoder):
     def __init__(
         self,
         latent_dims: int,
@@ -78,7 +78,7 @@ class Encoder(BaseEncoder):
             return x
 
 
-class Decoder(BaseDecoder):
+class Decoder(_BaseDecoder):
     def __init__(
         self,
         latent_dims: int,
@@ -107,7 +107,7 @@ class Decoder(BaseDecoder):
         return x
 
 
-class CNNEncoder(BaseEncoder):
+class CNNEncoder(_BaseEncoder):
     def __init__(
         self,
         latent_dims: int,
@@ -185,7 +185,7 @@ class CNNEncoder(BaseEncoder):
             return x
 
 
-class CNNDecoder(BaseDecoder):
+class CNNDecoder(_BaseDecoder):
     def __init__(
         self,
         latent_dims: int,
@@ -254,7 +254,7 @@ class CNNDecoder(BaseDecoder):
         return x
 
 
-class LinearEncoder(BaseEncoder):
+class LinearEncoder(_BaseEncoder):
     def __init__(self, latent_dims: int, feature_size: int, variational: bool = False):
         super(LinearEncoder, self).__init__(latent_dims, variational=variational)
         self.variational = variational
@@ -275,7 +275,7 @@ class LinearEncoder(BaseEncoder):
             return x
 
 
-class LinearDecoder(BaseDecoder):
+class LinearDecoder(_BaseDecoder):
     def __init__(self, latent_dims: int, feature_size: int):
         super(LinearDecoder, self).__init__(latent_dims)
         self.linear = torch.nn.Linear(latent_dims, feature_size)
