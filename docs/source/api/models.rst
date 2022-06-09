@@ -7,10 +7,11 @@ Models
 .. currentmodule:: cca_zoo.models
 .. autosummary::
    :nosignatures:
+    :toctree: _autosummary
 
-    CCA
-    GCCA
-    MCCA
+    {% for model in models.classes %}
+    {{ model }}
+    {% endfor %}
 
 .. automodule:: cca_zoo.models
    :members:

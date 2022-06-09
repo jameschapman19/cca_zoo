@@ -9,10 +9,12 @@ Models
 
 .. currentmodule:: cca_zoo.deepmodels
 .. autosummary::
+    :nosignatures:
+    :toctree: _autosummary
 
-   {% for cls in cca_zoo.deepmodels.classes %}
-     {{ cls }}
-   {% endfor %}
+    {% for cls in deepmodels.classes %}
+    {{ cls }}
+    {% endfor %}
 
 .. automodule:: cca_zoo.deepmodels
    :members:

@@ -10,5 +10,3 @@ __all__ = [
     "generate_simple_data",
     "CCA_Dataset",
 ]
-
-classes = __all__

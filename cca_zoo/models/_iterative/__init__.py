@@ -8,3 +8,5 @@ from ._scca_parkhomenko import SCCA_Parkhomenko
 from ._spancca import SCCA_Span
 from ._swcca import SWCCA
 from .utils import ProxFrobenius, ProxLasso
+
+__all__= ['AltMaxVar', 'ElasticCCA', 'SCCA_IPLS', 'PDD_GCCA', 'PLS_ALS', 'SCCA_PMD', 'SCCA_ADMM', 'SCCA_Parkhomenko', 'SCCA_Span', 'SWCCA', 'ProxFrobenius', 'ProxLasso']
