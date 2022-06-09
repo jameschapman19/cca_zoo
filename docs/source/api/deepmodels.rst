@@ -1,6 +1,9 @@
 Deep Models
 ================================================================================
 
+Models
+--------------------------------------------------------------------------------
+
 .. currentmodule:: cca_zoo.deepmodels
 .. autosummary::
    :nosignatures:
@@ -16,28 +19,17 @@ Deep Models
 Deep Objectives
 -------------------------------------
 
-.. autoclass:: cca_zoo.deepmodels._objectives.CCA
-
-
-.. autoclass:: cca_zoo.deepmodels.objectives.MCCA
-
-
-.. autoclass:: cca_zoo.deepmodels.objectives.GCCA
-
-
-.. autoclass:: cca_zoo.deepmodels.objectives.TCCA
-
+.. automodule:: cca_zoo.deepmodels._objectives
+   :members:
 
 Callbacks
 -------------------------------------
 
-.. autoclass:: cca_zoo.deepmodels._callbacks.CorrelationCallback
-    :members:
-
-.. autoclass:: cca_zoo.deepmodels._callbacks.GenerativeCallback
-    :members:
+.. automodule:: cca_zoo.deepmodels._callbacks
+   :members:
 
 Model Architectures
 ----------------------------------------
 
 .. automodule:: cca_zoo.deepmodels.architectures
+   :members:
