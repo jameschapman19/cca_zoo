@@ -51,16 +51,11 @@ sphinx_gallery_conf = {
 intersphinx_mapping = {
     "numpy": ("https://docs.scipy.org/doc/numpy", None),
     "python": ("https://docs.python.org/3", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
     "sklearn": ("http://scikit-learn.org/dev", None),
+    'torch': ('https://pytorch.org/docs/master', None),
 }
 
-# -- sphinx.ext.autosummary
-autosummary_generate = True
-
 # -- sphinx.ext.autodoc
-autodoc_default_options = {'inherited-members': 'Module, LightningModule', 'show-inheritance': True}
-autoclass_content = "both"
 autodoc_member_order = "bysource"
 
 # Add any paths that contain templates here, relative to this directory.
