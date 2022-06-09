@@ -1,5 +1,5 @@
 Models
-------
+==================
 
 .. currentmodule:: cca_zoo.models
 .. autosummary::

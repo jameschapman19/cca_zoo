@@ -1,5 +1,5 @@
 Model Selection
------------------
+==================
 
 .. currentmodule:: cca_zoo.model_selection
 .. autosummary::
