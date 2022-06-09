@@ -1,14 +1,16 @@
 Deep Models
 ================================================================================
 
+.. contents:: Contents
+    :local:
+
 Models
 --------------------------------------------------------------------------------
 
 .. currentmodule:: cca_zoo.deepmodels
 .. autosummary::
    :nosignatures:
-
-   {% for cls in cca_zoo.deepmodels %}
+   {% for cls in cca_zoo.deepmodels.classes %}
      {{ cls }}
    {% endfor %}
 

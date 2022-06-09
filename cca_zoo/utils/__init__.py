@@ -14,5 +14,3 @@ __all__ = [
     "tsne_label",
     "cv_plot",
 ]
-
-classes = __all__

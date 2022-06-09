@@ -13,6 +13,7 @@
 import os
 import sys
 import warnings
+import datetime
 
 sys.path.insert(0, os.path.abspath("../.."))
 warnings.filterwarnings(
@@ -23,21 +24,19 @@ warnings.filterwarnings(
 )
 # -- Project information -----------------------------------------------------
 
-project = "cca-zoo"
-copyright = "2021, James Chapman"
+project = "CCA-Zoo"
 author = "James Chapman"
+copyright = f'{datetime.datetime.now().year}, {author}'
 
 # -- General configuration ---------------------------------------------------
 
 extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx_autodoc_typehints",
-    "sphinx.ext.viewcode",
-    "sphinx_gallery.gen_gallery",
-    "sphinx.ext.napoleon",
-    "sphinx.ext.githubpages",
-    "sphinx.ext.mathjax",
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
 ]
 
 sphinx_gallery_conf = {
@@ -53,6 +52,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "sklearn": ("http://scikit-learn.org/dev", None),
     'torch': ('https://pytorch.org/docs/master', None),
+    'pytorch_lightning': ('https://pytorch-lightning.readthedocs.io/en/stable/index.html#', None),
 }
 
 # -- sphinx.ext.autodoc
