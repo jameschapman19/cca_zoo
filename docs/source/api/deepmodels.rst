@@ -12,7 +12,7 @@ Models
     :nosignatures:
     :toctree: _autosummary
 
-    {% for cls in deepmodels.classes %}
+    {% for cls in cca_zoo.deepmodels.classes %}
     {{ cls }}
     {% endfor %}
 

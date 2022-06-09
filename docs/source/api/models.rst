@@ -9,8 +9,8 @@ Models
    :nosignatures:
     :toctree: _autosummary
 
-    {% for model in models.classes %}
-    {{ model }}
+    {% for cls in cca_zoo.models.classes %}
+    {{ cls }}
     {% endfor %}
 
 .. automodule:: cca_zoo.models
