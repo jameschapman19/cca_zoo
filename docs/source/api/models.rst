@@ -11,4 +11,4 @@ Models
 
 .. automodule:: cca_zoo.models
    :members:
-   :undoc-members:
+   :inherited-members:
