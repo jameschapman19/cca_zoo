@@ -29,4 +29,4 @@ classes = ["DCCA",
     "DVCCA",
     "BarlowTwins",
     "DTCCA",
-    "SplitAE",]
+    "SplitAE"]
