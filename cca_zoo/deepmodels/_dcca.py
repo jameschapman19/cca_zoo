@@ -7,9 +7,10 @@ from cca_zoo.deepmodels import objectives
 from cca_zoo.models import MCCA
 from ._base import _BaseDeep
 from ._callbacks import CorrelationCallback
+from ..models._base import _BaseCCA
 
 
-class DCCA(_BaseDeep):
+class DCCA(_BaseDeep, _BaseCCA):
     """
     A class used to fit a DCCA model.
 
@@ -20,13 +21,13 @@ class DCCA(_BaseDeep):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        objective=objectives.MCCA,
-        encoders=None,
-        r: float = 0,
-        eps: float = 1e-5,
-        **kwargs,
+            self,
+            latent_dims: int,
+            objective=objectives.MCCA,
+            encoders=None,
+            r: float = 0,
+            eps: float = 1e-5,
+            **kwargs,
     ):
         """
         Constructor class for DCCA
@@ -72,10 +73,10 @@ class DCCA(_BaseDeep):
             z = self.cca.transform(z)
         return z
 
-    def batch_correlation(
-        self,
-        loader: torch.utils.data.DataLoader,
-        train=False,
+    def pairwise_correlations(
+            self,
+            loader: torch.utils.data.DataLoader,
+            train=False,
     ):
         """
         Calculates correlation for entire batch from dataloader
@@ -84,20 +85,18 @@ class DCCA(_BaseDeep):
         :param train: whether to fit final linear transformation
         :return: by default returns the average pairwise correlation in each dimension (for 2 views just the correlation)
         """
-        transformed_views = self.transform(loader, train=train)
-        pair_corrs = []
-        for x, y in itertools.product(transformed_views, repeat=2):
-            pair_corrs.append(
-                np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], y.shape[1] :])
-            )
-        pair_corrs = np.array(pair_corrs).reshape(
-            (len(transformed_views), len(transformed_views), -1)
-        )
-        n_views = pair_corrs.shape[0]
-        dim_corrs = (
-            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
-        ) / (n_views ** 2 - n_views)
-        return dim_corrs
+        return _BaseCCA.pairwise_correlations(self, loader, train=train)
+
+    def score(self,
+              loader: torch.utils.data.DataLoader,
+              train=False):
+        """
+        Returns average correlation in each dimension (averages over all pairs for multiview)
+
+        :param loader: a dataloader that matches the structure of that used for training
+        :param train: whether to fit final linear transformation
+        """
+        return _BaseCCA.score(self, loader, train=train)
 
     def configure_callbacks(self):
         return [CorrelationCallback()]

@@ -71,6 +71,7 @@ PLS by Alternating Least Squares
 """"""""""""""""""""""""""""""""""""
 .. autoclass:: cca_zoo.models.PLS_ALS
     :inherited-members: BaseEstimator
+    :show-inheritance:
 
 
 Sparsity Inducing Models
@@ -80,16 +81,19 @@ Penalized Matrix Decomposition (Sparse PLS)
 """""""""""""""""""""""""""""""""""""""""""""""
 .. autoclass:: cca_zoo.models.SCCA_PMD
     :inherited-members: BaseEstimator
+    :show-inheritance:
 
 Sparse CCA by iterative lasso regression
 """""""""""""""""""""""""""""""""""""""""""""""
 .. autoclass:: cca_zoo.models.SCCA_IPLS
     :inherited-members: BaseEstimator
+    :show-inheritance:
 
 Elastic CCA by MAXVAR
 """""""""""""""""""""""""""""""""""""""""""""""
 .. autoclass:: cca_zoo.models.ElasticCCA
     :inherited-members: BaseEstimator
+    :show-inheritance:
 
 Span CCA
 """""""""""""""""""""""""""""""""""""""""""""""

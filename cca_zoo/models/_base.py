@@ -122,7 +122,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
                 np.diag(np.corrcoef(x.T, y.T)[: self.latent_dims, self.latent_dims :])
             )
         all_corrs = np.array(all_corrs).reshape(
-            (len(views), len(views), self.latent_dims)
+            (len(transformed_views), len(transformed_views), self.latent_dims)
         )
         return all_corrs
 
