@@ -19,3 +19,29 @@ try:
     from ._stochastic import StochasticPowerPLS, IncrementalPLS
 except:
     pass
+
+__all__ = [
+    "GCCA",
+    "KGCCA",
+    "PLS_ALS",
+    "SCCA_PMD",
+    "ElasticCCA",
+    "SCCA_Parkhomenko",
+    "SCCA_IPLS",
+    "SCCA_ADMM",
+    "SCCA_Span",
+    "SWCCA",
+    "MCCA",
+    "KCCA",
+    "NCCA",
+    "PartialCCA",
+    "rCCA",
+    "CCA",
+    "PLS",
+    "TCCA",
+    "KTCCA",
+    "StochasticPowerPLS",
+    "IncrementalPLS",
+]
+
+classes = __all__

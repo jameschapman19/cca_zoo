@@ -9,3 +9,17 @@ from ._dtcca import DTCCA
 from ._dvcca import DVCCA
 from ._splitae import SplitAE
 from .utils import get_dataloaders
+
+__all__ = [
+    "DCCA",
+    "DCCAE",
+    "DCCA_NOI",
+    "DCCA_SDL",
+    "DVCCA",
+    "BarlowTwins",
+    "DTCCA",
+    "SplitAE",
+    "get_dataloaders",
+]
+
+classes = __all__

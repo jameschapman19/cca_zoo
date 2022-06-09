@@ -1,12 +1,12 @@
-import cca_zoo.data
-import cca_zoo.model_selection
-import cca_zoo.models
+from .data import *
+from .model_selection import *
+from .models import *
 
 try:
-    import cca_zoo.deepmodels
+    from cca_zoo.deepmodels import *
 except ModuleNotFoundError:
     pass
 try:
-    import cca_zoo.probabilisticmodels
+    from cca_zoo.probabilisticmodels import *
 except ModuleNotFoundError:
     pass
