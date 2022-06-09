@@ -11,8 +11,8 @@ Model Fit
    # %%
    (train_view_1,train_view_2),(true_weights_1,true_weights_2)=generate_covariance_data(n=200,view_features=[10,10],latent_dims=1,correlation=1)
 
-
-   linear_cca = CCA(latent_dims=latent_dims, max_iter=max_iter)
+   latent_dims=3
+   linear_cca = CCA(latent_dims=latent_dims)
 
    linear_cca.fit([train_view_1, train_view_2])
 
@@ -25,7 +25,7 @@ to use a data driven approach.
 .. sourcecode:: python
 
    from cca_zoo.models import rCCA
-   from cca_zoo.model_selection import GridsearchCV
+   from cca_zoo.model_selection import GridSearchCV
 
     def scorer(estimator,X):
       dim_corrs=estimator.score(X)
@@ -34,6 +34,7 @@ to use a data driven approach.
     c1 = [0.1, 0.3, 0.7, 0.9]
     c2 = [0.1, 0.3, 0.7, 0.9]
     param_grid = {'c': [c1,c2]}
+    cv = 5 #number of folds
 
     ridge = GridSearchCV(rCCA(latent_dims=latent_dims),param_grid=param_grid,
         cv=cv,
