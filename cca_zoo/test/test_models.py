@@ -251,8 +251,8 @@ def test_validation():
 
 def test_plotting():
     pls = PLS(latent_dims=1).fit((X, Y))
-    X_te = np.random.rand(X.shape)
-    Y_te = np.random.rand(Y.shape)
+    X_te = np.random.rand(*X.shape)
+    Y_te = np.random.rand(*Y.shape)
     pairplot_train_test(pls.transform((X, Y)), pls.transform((X_te, Y_te)))
 
 
