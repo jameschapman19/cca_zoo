@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 
 from cca_zoo.deepmodels import architectures, DCCAE, DVCCA, SplitAE
-from cca_zoo.utils import tsne_label
+from cca_zoo.plotting import tsne_label
 from examples import example_mnist_data
 
 def plot_reconstruction(model, x, uncertainty=False):
