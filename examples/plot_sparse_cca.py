@@ -41,11 +41,9 @@ def plot_model_weights(wx, wy, tx, ty, title=""):
     plt.show()
 
 
-"""
-Data
------
-"""
 # %%
+# Data
+# -----
 np.random.seed(42)
 n = 200
 p = 100

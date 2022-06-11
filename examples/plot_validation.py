@@ -12,10 +12,9 @@ from cca_zoo import CCA, learning_curve
 from cca_zoo.data import generate_covariance_data
 import matplotlib.pyplot as plt
 
-"""
-Data
-------
-"""
+# %%
+# Data
+# ------
 np.random.seed(42)
 n = 200
 p = 25
@@ -26,11 +25,10 @@ latent_dims = 1
     n, view_features=[p, q], latent_dims=latent_dims, correlation=[0.9]
 )
 
-"""
-Permutation Testing
--------------------
-"""
 # %%
+# Permutation Testing
+# -------------------
+
 from cca_zoo.model_selection import permutation_test_score
 from sklearn.model_selection import KFold, ShuffleSplit
 
@@ -50,10 +48,10 @@ ax.set_xlabel("Correlation")
 _ = ax.set_ylabel("Probability")
 plt.show()
 
-"""
-Learning Curves
--------------------
-"""
+# %%
+# Learning Curves
+# -------------------
+
 import numpy as np
 import matplotlib.pyplot as plt
 

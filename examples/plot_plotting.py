@@ -14,10 +14,9 @@ import matplotlib.pyplot as plt
 
 from cca_zoo.plotting import pairplot_train_test
 
-"""
-Data
-------
-"""
+
+# Data
+# ------
 np.random.seed(42)
 n = 200
 p = 25
@@ -30,15 +29,15 @@ latent_dims = 3
 
 X_tr, X_te, Y_tr, Y_te = train_test_split(X, Y, test_size=0.2, random_state=42)
 
-"""
-Model
-------
-"""
+# %%
+# Model
+# ------
 
 cca = CCA(latent_dims=latent_dims).fit((X_tr, Y_tr))
 
-"""
-Plotting
-"""
+#%%
+# Plotting
+# ---------
+
 pairplot_train_test(cca.transform((X_tr, Y_tr)), cca.transform((X_te, Y_te)))
 plt.show()

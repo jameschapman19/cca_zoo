@@ -26,15 +26,13 @@ cv = 3
     n, view_features=[p, q, r], latent_dims=latent_dims, correlation=[0.9]
 )
 
-"""
-Eigendecomposition-Based Methods
----------------------------------
-"""
+# %%
+# Eigendecomposition-Based Methods
+# ---------------------------------
 
-"""
-Linear
-^^^^^^^^
-"""
+# %%
+# Linear
+# ^^^^^^^^
 
 # %%
 mcca = MCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
@@ -42,10 +40,9 @@ mcca = MCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 # %%
 gcca = GCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
-"""
-Kernel
-^^^^^^^^
-"""
+# %%
+# Kernel
+# ^^^^^^^^
 
 # %%
 kcca = KCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
@@ -53,21 +50,18 @@ kcca = KCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 # %%
 kgcca = KGCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
-"""
-Iterative Methods
-^^^^^^^^^^^^^^^^^^
+# %%
+# Iterative Methods
+# ^^^^^^^^^^^^^^^^^^
 
-Most of the _iterative methods can also use multiple views e.g.
-"""
+# Most of the _iterative methods can also use multiple views e.g.
 
 pmd = SCCA_PMD(latent_dims=latent_dims, c=1).fit((X, Y, X)).score((X, Y, Z))
 
 
-"""
-Higher Order Correlations
--------------------------
-"""
-
+# %%
+# Higher Order Correlations
+# -------------------------
 
 # %%
 # Tensor CCA finds higher order correlations so scores are not comparable (but TCCA is equivalent for 2 views)

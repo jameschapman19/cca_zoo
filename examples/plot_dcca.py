@@ -20,11 +20,9 @@ from cca_zoo.plotting import pairplot_label
 from examples import example_mnist_data
 
 
-"""
-Data
------
-"""
 # %%
+# Data
+# -----
 LATENT_DIMS = 2
 EPOCHS = 10
 N_TRAIN = 500
@@ -35,11 +33,10 @@ train_loader, val_loader, train_labels = example_mnist_data(N_TRAIN, N_VAL)
 encoder_1 = architectures.Encoder(latent_dims=LATENT_DIMS, feature_size=392)
 encoder_2 = architectures.Encoder(latent_dims=LATENT_DIMS, feature_size=392)
 
-"""
-Deep CCA
-----------------------------
-"""
+
 # %%
+# Deep CCA
+# ----------------------------
 dcca = DCCA(latent_dims=LATENT_DIMS, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
@@ -51,11 +48,10 @@ trainer.fit(dcca, train_loader, val_loader)
 pairplot_label(dcca.transform(train_loader), train_labels, title="DCCA")
 plt.show()
 
-"""
-Deep CCA by Non-Linear Orthogonal Iterations
-----------------------------------------------
-"""
+
 # %%
+# Deep CCA by Non-Linear Orthogonal Iterations
+# ----------------------------------------------
 dcca_noi = DCCA_NOI(latent_dims=LATENT_DIMS, N=N_TRAIN, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
@@ -71,11 +67,10 @@ pairplot_label(
 )
 plt.show()
 
-"""
-Deep CCA by Stochastic Decorrelation Loss
-----------------------------------------------
-"""
+
 # %%
+# Deep CCA by Stochastic Decorrelation Loss
+# ----------------------------------------------
 dcca_sdl = DCCA_SDL(latent_dims=LATENT_DIMS, N=N_TRAIN, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
@@ -91,11 +86,10 @@ pairplot_label(
 )
 plt.show()
 
-"""
-Deep CCA by Barlow Twins
-----------------------------------------------
-"""
+
 # %%
+# Deep CCA by Barlow Twins
+# ----------------------------------------------
 barlowtwins = BarlowTwins(latent_dims=LATENT_DIMS, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,

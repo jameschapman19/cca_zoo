@@ -26,11 +26,9 @@ def plot_reconstruction(model, x, uncertainty=False):
         ax[2].imshow(uncertainty_recons[0].detach().numpy().reshape((28, 28)))
 
 
-"""
-Data
------
-"""
 # %%
+# Data
+# -----
 LATENT_DIMS = 2
 EPOCHS = 10
 N_TRAIN = 500
@@ -43,11 +41,10 @@ train_loader, val_loader, train_labels = example_mnist_data(
     N_TRAIN, N_VAL, type="noisy"
 )
 
-"""
-Deep Variational CCA
-----------------------------
-"""
+
 # %%
+# Deep Variational CCA
+# ----------------------------
 encoder_1 = architectures.Encoder(
     latent_dims=LATENT_DIMS,
     feature_size=784,
@@ -79,11 +76,10 @@ plot_reconstruction(dvcca, train_loader.dataset[0], uncertainty=True)
 plt.suptitle("DVCCA")
 plt.show()
 
-"""
-Deep Variational CCA (Private)
--------------------------------
-"""
+
 # %%
+# Deep Variational CCA (Private)
+# -------------------------------
 private_encoder_1 = architectures.Encoder(
     latent_dims=LATENT_DIMS,
     feature_size=784,
@@ -129,11 +125,10 @@ plot_reconstruction(dvccap, train_loader.dataset[0], uncertainty=True)
 plt.suptitle("DVCCA Private")
 plt.show()
 
-"""
-Deep Canonically Correlated Autoencoders
------------------------------------------
-"""
+
 # %%
+# Deep Canonically Correlated Autoencoders
+# -----------------------------------------
 encoder_1 = architectures.Encoder(
     latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes
 )
@@ -166,11 +161,10 @@ plot_reconstruction(dccae, train_loader.dataset[0])
 plt.suptitle("DCCAE")
 plt.show()
 
-"""
-Split Autoencoders
--------------------
-"""
+
 # %%
+# Split Autoencoders
+# -------------------
 encoder_1 = architectures.Encoder(
     latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes
 )
