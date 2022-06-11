@@ -153,8 +153,8 @@ def scatterplot_label(scores: np.ndarray,labels=None,
         label_name = "label"
     data = pd.DataFrame({label_name: labels})
     data[label_name] = data[label_name].astype("category")
-    data[['x']] = scores[:,0]
-    data[['y']] = scores[:,1]
+    data['x'] = scores[:,0]
+    data['y'] = scores[:,1]
     cca_tp = sns.scatterplot(data=data, x="x", y="y", hue=label_name, ax=ax)
     cca_tp.set(title=title)
     return cca_tp
