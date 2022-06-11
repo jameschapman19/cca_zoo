@@ -147,14 +147,14 @@ def scatterplot_label(scores: np.ndarray,labels=None,
         label_name=None,
         title="", ax=None):
     """
-    Makes a scatter plot showing the projections of each view against each other for each dimensions. Coloured by categorical label
+    Makes a scatter plot showing projections coloured by categorical label
     """
     if label_name is None:
         label_name = "label"
     data = pd.DataFrame({label_name: labels})
     data[label_name] = data[label_name].astype("category")
-    data[['x']] = scores[0]
-    data[['y']] = scores[1]
+    data[['x']] = scores[:,0]
+    data[['y']] = scores[:,1]
     cca_tp = sns.scatterplot(data=data, x="x", y="y", hue=label_name, ax=ax)
     cca_tp.set(title=title)
     return cca_tp

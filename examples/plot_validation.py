@@ -44,7 +44,7 @@ fig, ax = plt.subplots()
 ax.hist(perm_scores, bins=20, density=True)
 ax.axvline(score, ls="--", color="r")
 score_label = f"Score on original\ndata: {score:.2f}\n(p-value: {pvalue:.3f})"
-ax.text(score_label, fontsize=12)
+ax.text(0.7, 10, score_label, fontsize=12)
 ax.set_xlabel("Correlation")
 _ = ax.set_ylabel("Probability")
 plt.show()
