@@ -14,7 +14,7 @@ from sklearn.utils.fixes import delayed
 
 def cross_validate(
         estimator,
-        X,
+        views,
         y=None,
         *,
         groups=None,
@@ -34,8 +34,7 @@ def cross_validate(
 
     :param estimator: estimator object implementing 'fit'
         The object to use to fit the data.
-    :param X: array-like of shape (n_samples, n_features)
-        The data to fit. Can be for example a list, or an array.
+    :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
     :param y: array-like of shape (n_samples,) or (n_samples, n_outputs), default=None
         The target variable to try to predict in the case of
         supervised learning.
@@ -99,12 +98,12 @@ def cross_validate(
     """
     estimator = Pipeline(
         [
-            ("splitter", SimpleSplitter([X_.shape[1] for X_ in X])),
+            ("splitter", SimpleSplitter([X_.shape[1] for X_ in views])),
             ("estimator", clone(estimator)),
         ]
     )
     ret = cross_validate_(estimator,
-                          np.hstack(X),
+                          np.hstack(views),
                           y=y,
                           groups=groups,
                           scoring=scoring,
@@ -123,7 +122,7 @@ def cross_validate(
 
 def permutation_test_score(
         estimator,
-        X,
+        views,
         y=None,
         groups=None,
         cv=None,
@@ -150,8 +149,7 @@ def permutation_test_score(
 
     :param estimator: estimator object implementing 'fit'
         The object to use to fit the data.
-    :param X: array-like of shape at least 2D
-        The data to fit.
+    :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
     :param y: array-like of shape (n_samples,) or (n_samples, n_outputs) or None
         The target variable to try to predict in the case of
         supervised learning.
@@ -202,11 +200,11 @@ def permutation_test_score(
     """
     estimator = Pipeline(
         [
-            ("splitter", SimpleSplitter([X_.shape[1] for X_ in X])),
+            ("splitter", SimpleSplitter([X_.shape[1] for X_ in views])),
             ("estimator", clone(estimator)),
         ]
     )
-    X, y, groups = indexable(np.hstack(X), y, groups)
+    views, y, groups = indexable(np.hstack(views), y, groups)
 
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
     scorer = check_scoring(estimator, scoring=scoring)
@@ -215,12 +213,12 @@ def permutation_test_score(
     # We clone the estimator to make sure that all the folds are
     # independent, and that it is pickle-able.
     score = _permutation_test_score(
-        clone(estimator), X, y, groups, cv, scorer, fit_params=fit_params
+        clone(estimator), views, y, groups, cv, scorer, fit_params=fit_params
     )
     permutation_scores = Parallel(n_jobs=n_jobs, verbose=verbose)(
         delayed(_permutation_test_score)(
             clone(estimator),
-            _shuffle(X, groups, random_state, estimator['splitter']),
+            _shuffle(views, groups, random_state, estimator['splitter']),
             y,
             groups,
             cv,
@@ -251,7 +249,7 @@ def _shuffle(X, groups, random_state, splitter):
 
 def learning_curve(
         estimator,
-        X,
+        views,
         y=None,
         groups=None,
         train_sizes=np.linspace(0.1, 1.0, 5),
@@ -280,11 +278,9 @@ def learning_curve(
 
     :param estimator: object type that implements the "fit" and "predict" methods
         An object of that type which is cloned for each validation.
-    :param X: array-like of shape (n_samples, n_features)
-        Training vector, where `n_samples` is the number of samples and
-        `n_features` is the number of features.
+    :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
     :param y: array-like of shape (n_samples,) or (n_samples, n_outputs)
-        Target relative to X for classification or regression;
+        Target relative to views for classification or regression;
         None for unsupervised learning.
     :param groups: array-like of  shape (n_samples,), default=None
         Group labels for the samples used while splitting the dataset into
@@ -317,7 +313,7 @@ def learning_curve(
     :param scoring: str or callable, default=None
         A str (see model evaluation documentation) or
         a scorer callable object / function with signature
-        ``scorer(estimator, X, y)``.
+        ``scorer(estimator, views, y)``.
     :param exploit_incremental_learning: bool, default=False
         If the estimator supports incremental learning, this will be
         used to speed up fitting for different training set sizes.
@@ -354,13 +350,13 @@ def learning_curve(
     """
     estimator = Pipeline(
         [
-            ("splitter", SimpleSplitter([X_.shape[1] for X_ in X])),
+            ("splitter", SimpleSplitter([X_.shape[1] for X_ in views])),
             ("estimator", clone(estimator)),
         ]
     )
     return learning_curve_(
         estimator,
-        np.hstack(X),
+        np.hstack(views),
         y,
         groups=groups,
         train_sizes=train_sizes,

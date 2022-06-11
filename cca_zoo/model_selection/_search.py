@@ -220,8 +220,8 @@ class RandomizedSearchCV(BaseSearchCV):
     >>> X3 = [[0, 1, 0], [1, 9, 0], [4, 3, 3,], [12, 8, 10]]
     >>> model = MCCA()
     >>> params = {'c': [loguniform(1e-4, 1e0), loguniform(1e-4, 1e0), [0.1]]}
-    >>> def scorer(estimator, X):
-    ...    scores = estimator.score(X)
+    >>> def scorer(estimator, views):
+    ...    scores = estimator.score(views)
     ...    return np.mean(scores)
     >>> RandomizedSearchCV(model,param_distributions=params, cv=3, scoring=scorer,n_iter=10).fit([X1,X2,X3]).n_iter
     10

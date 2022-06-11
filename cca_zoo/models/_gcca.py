@@ -57,7 +57,7 @@ class GCCA(rCCA):
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param copy_data: If True, views will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: regularisation between 0 (CCA) and 1 (PLS)
         :param view_weights: list of weights of each view
@@ -161,11 +161,11 @@ class KGCCA(GCCA):
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param copy_data: If True, views will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
         :param eps: epsilon for stability
-        :param kernel: Iterable of kernel mappings used internally. This parameter is directly passed to :class:`~sklearn.metrics.pairwise.pairwise_kernel`. If element of `kernel` is a string, it must be one of the metrics in `pairwise.PAIRWISE_KERNEL_FUNCTIONS`. Alternatively, if element of `kernel` is a callable function, it is called on each pair of instances (rows) and the resulting value recorded. The callable should take two rows from X as input and return the corresponding kernel value as a single number. This means that callables from :mod:`sklearn.metrics.pairwise` are not allowed, as they operate on matrices, not single samples. Use the string identifying the kernel instead.
+        :param kernel: Iterable of kernel mappings used internally. This parameter is directly passed to :class:`~sklearn.metrics.pairwise.pairwise_kernel`. If element of `kernel` is a string, it must be one of the metrics in `pairwise.PAIRWISE_KERNEL_FUNCTIONS`. Alternatively, if element of `kernel` is a callable function, it is called on each pair of instances (rows) and the resulting value recorded. The callable should take two rows from views as input and return the corresponding kernel value as a single number. This means that callables from :mod:`sklearn.metrics.pairwise` are not allowed, as they operate on matrices, not single samples. Use the string identifying the kernel instead.
         :param gamma: Iterable of gamma parameters for the RBF, laplacian, polynomial, exponential chi2 and sigmoid kernels. Interpretation of the default value is left to the kernel; see the documentation for sklearn.metrics.pairwise. Ignored by other kernels.
         :param degree: Iterable of degree parameters of the polynomial kernel. Ignored by other kernels.
         :param coef0: Iterable of zero coefficients for polynomial and sigmoid kernels. Ignored by other kernels.

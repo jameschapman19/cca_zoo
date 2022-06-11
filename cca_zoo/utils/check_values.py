@@ -13,7 +13,7 @@ def _check_views(*views: Iterable[np.ndarray], copy=False, accept_sparse=False):
     """
     if len(views) == 2:
         # This is a bit of a hack to try to match up with the way mvlearn takes views which in turn is a bit of a hack to match up with sklearn.
-        # Sklearn expects fit(X,y) so if we want multiview X in sklearn functions we need X to be a list
+        # Sklearn expects fit(views,y) so if we want multiview views in sklearn functions we need views to be a list
         if isinstance(views[0], list) and views[1] is None:
             views = views[0]
 
@@ -71,7 +71,7 @@ def _check_Parikh2014(mus, lams, views):
     if failed_check:
         raise ValueError(
             "mu, lam, view not matching condition specified "
-            "from Parikh 2014 (mu<lam/frobenius(X)**2)."
+            "from Parikh 2014 (mu<lam/frobenius(views)**2)."
             "Index of view(s) not meeting the condition: "
             f"{failed_check}."
         )

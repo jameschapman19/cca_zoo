@@ -4,12 +4,15 @@ More than 2 views
 
 This will compare MCCA, GCCA, TCCA for linear models with more than 2 views
 """
-# %%
 import numpy as np
 
 from cca_zoo.data import generate_covariance_data
 from cca_zoo.models import MCCA, GCCA, TCCA, KCCA, KGCCA, KTCCA, SCCA_PMD
 
+"""
+Data
+-----
+"""
 # %%
 np.random.seed(42)
 n = 30
@@ -23,9 +26,15 @@ cv = 3
     n, view_features=[p, q, r], latent_dims=latent_dims, correlation=[0.9]
 )
 
-# %%
-# Eigendecomposition-Based Methods
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""
+Eigendecomposition-Based Methods
+---------------------------------
+"""
+
+"""
+Linear
+^^^^^^^^
+"""
 
 # %%
 mcca = MCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
@@ -33,9 +42,10 @@ mcca = MCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 # %%
 gcca = GCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
-# %%
-# We can also use kernel versions of these methods
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""
+Kernel
+^^^^^^^^
+"""
 
 # %%
 kcca = KCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
@@ -43,9 +53,20 @@ kcca = KCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 # %%
 kgcca = KGCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
-# %%
-# Higher order correlation methods
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""
+Iterative Methods
+^^^^^^^^^^^^^^^^^^
+
+Most of the _iterative methods can also use multiple views e.g.
+"""
+
+pmd = SCCA_PMD(latent_dims=latent_dims, c=1).fit((X, Y, X)).score((X, Y, Z))
+
+
+"""
+Higher Order Correlations
+-------------------------
+"""
 
 
 # %%
@@ -54,11 +75,3 @@ tcca = TCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
 # %%
 ktcca = KTCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
-
-# %%
-# Iterative Methods
-# ^^^^^^^^^^^^^^^^^^^^^^
-#
-# Most of the _iterative methods can also use multiple views e.g.
-
-pmd = SCCA_PMD(latent_dims=latent_dims, c=1).fit((X, Y, X)).score((X, Y, Z))

@@ -12,6 +12,10 @@ from cca_zoo.data import generate_covariance_data
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.models import KCCA
 
+"""
+Data
+-----
+"""
 # %%
 np.random.seed(42)
 n = 200

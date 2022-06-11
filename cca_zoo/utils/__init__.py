@@ -6,11 +6,3 @@ from .check_values import (
     _check_parameter_number,
     _check_converged_weights,
 )
-from .plotting import pairplot_label, pairplot_train_test, tsne_label, cv_plot
-
-__all__ = [
-    "pairplot_label",
-    "pairplot_train_test",
-    "tsne_label",
-    "cv_plot",
-]

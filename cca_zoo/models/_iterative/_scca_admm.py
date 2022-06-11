@@ -58,7 +58,7 @@ class SCCA_ADMM(_BaseIterative):
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param copy_data: If True, views will be copied; else, it may be overwritten
         :param random_state: Pass for reproducible output across multiple function calls
         :param c: l1 regularisation parameter
         :param max_iter: the maximum number of iterations to perform in the inner optimization loop

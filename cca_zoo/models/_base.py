@@ -35,7 +35,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
         :param latent_dims: number of latent dimensions to fit
         :param scale: normalize variance in each column before fitting
         :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, X will be copied; else, it may be overwritten
+        :param copy_data: If True, views will be copied; else, it may be overwritten
         :param accept_sparse: Whether model can take sparse data as input
         :param random_state: Pass for reproducible output across multiple function calls
         """

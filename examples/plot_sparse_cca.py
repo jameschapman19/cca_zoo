@@ -5,7 +5,6 @@ Sparse CCA Methods
 This script shows how regularised methods can be used to extract sparse solutions to the CCA problem
 """
 
-# %%
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -21,7 +20,28 @@ from cca_zoo.models import (
     SCCA_ADMM,
     SCCA_Span,
 )
+def plot_true_weights_coloured(ax, weights, true_weights, title=""):
+    ind = np.arange(len(true_weights))
+    mask = np.squeeze(true_weights == 0)
+    ax.scatter(ind[~mask], weights[~mask], c="b")
+    ax.scatter(ind[mask], weights[mask], c="r")
+    ax.set_title(title)
 
+
+def plot_model_weights(wx, wy, tx, ty, title=""):
+    fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
+    plot_true_weights_coloured(axs[0, 0], tx, tx, title="true x weights")
+    plot_true_weights_coloured(axs[0, 1], ty, ty, title="true y weights")
+    plot_true_weights_coloured(axs[1, 0], wx, tx, title="model x weights")
+    plot_true_weights_coloured(axs[1, 1], wy, ty, title="model y weights")
+    plt.tight_layout()
+    fig.suptitle(title)
+    plt.show()
+
+"""
+Data
+-----
+"""
 # %%
 np.random.seed(42)
 n = 200
@@ -41,25 +61,6 @@ latent_dims = 1
 tx /= np.sqrt(n)
 ty /= np.sqrt(n)
 
-
-# %%
-def plot_true_weights_coloured(ax, weights, true_weights, title=""):
-    ind = np.arange(len(true_weights))
-    mask = np.squeeze(true_weights == 0)
-    ax.scatter(ind[~mask], weights[~mask], c="b")
-    ax.scatter(ind[mask], weights[mask], c="r")
-    ax.set_title(title)
-
-
-def plot_model_weights(wx, wy, tx, ty, title=""):
-    fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
-    plot_true_weights_coloured(axs[0, 0], tx, tx, title="true x weights")
-    plot_true_weights_coloured(axs[0, 1], ty, ty, title="true y weights")
-    plot_true_weights_coloured(axs[1, 0], wx, tx, title="model x weights")
-    plot_true_weights_coloured(axs[1, 1], wy, ty, title="model y weights")
-    plt.tight_layout()
-    fig.suptitle(title)
-    plt.show()
 
 
 # %%
