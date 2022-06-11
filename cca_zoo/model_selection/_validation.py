@@ -13,20 +13,20 @@ from sklearn.utils.fixes import delayed
 
 
 def cross_validate(
-        estimator,
-        views,
-        y=None,
-        *,
-        groups=None,
-        scoring=None,
-        cv=None,
-        n_jobs=None,
-        verbose=0,
-        fit_params=None,
-        pre_dispatch="2*n_jobs",
-        return_train_score=False,
-        return_estimator=False,
-        error_score=np.nan,
+    estimator,
+    views,
+    y=None,
+    *,
+    groups=None,
+    scoring=None,
+    cv=None,
+    n_jobs=None,
+    verbose=0,
+    fit_params=None,
+    pre_dispatch="2*n_jobs",
+    return_train_score=False,
+    return_estimator=False,
+    error_score=np.nan,
 ):
     """
     Evaluate metric(s) by cross-validation and also record fit/score times.
@@ -102,36 +102,38 @@ def cross_validate(
             ("estimator", clone(estimator)),
         ]
     )
-    ret = cross_validate_(estimator,
-                          np.hstack(views),
-                          y=y,
-                          groups=groups,
-                          scoring=scoring,
-                          cv=cv,
-                          n_jobs=n_jobs,
-                          verbose=verbose,
-                          fit_params=fit_params,
-                          pre_dispatch=pre_dispatch,
-                          return_train_score=return_train_score,
-                          return_estimator=return_estimator,
-                          error_score=error_score)
+    ret = cross_validate_(
+        estimator,
+        np.hstack(views),
+        y=y,
+        groups=groups,
+        scoring=scoring,
+        cv=cv,
+        n_jobs=n_jobs,
+        verbose=verbose,
+        fit_params=fit_params,
+        pre_dispatch=pre_dispatch,
+        return_train_score=return_train_score,
+        return_estimator=return_estimator,
+        error_score=error_score,
+    )
     if return_estimator:
-        ret['estimator'] = [estimator['estimator'] for estimator in ret['estimator']]
+        ret["estimator"] = [estimator["estimator"] for estimator in ret["estimator"]]
     return ret
 
 
 def permutation_test_score(
-        estimator,
-        views,
-        y=None,
-        groups=None,
-        cv=None,
-        n_permutations=100,
-        n_jobs=None,
-        random_state=0,
-        verbose=0,
-        scoring=None,
-        fit_params=None,
+    estimator,
+    views,
+    y=None,
+    groups=None,
+    cv=None,
+    n_permutations=100,
+    n_jobs=None,
+    random_state=0,
+    verbose=0,
+    scoring=None,
+    fit_params=None,
 ):
     """
     Evaluate the significance of a cross-validated score with permutations
@@ -218,7 +220,7 @@ def permutation_test_score(
     permutation_scores = Parallel(n_jobs=n_jobs, verbose=verbose)(
         delayed(_permutation_test_score)(
             clone(estimator),
-            _shuffle(views, groups, random_state, estimator['splitter']),
+            _shuffle(views, groups, random_state, estimator["splitter"]),
             y,
             groups,
             cv,
@@ -248,22 +250,22 @@ def _shuffle(X, groups, random_state, splitter):
 
 
 def learning_curve(
-        estimator,
-        views,
-        y=None,
-        groups=None,
-        train_sizes=np.linspace(0.1, 1.0, 5),
-        cv=None,
-        scoring=None,
-        exploit_incremental_learning=False,
-        n_jobs=None,
-        pre_dispatch="all",
-        verbose=0,
-        shuffle=False,
-        random_state=None,
-        error_score=np.nan,
-        return_times=False,
-        fit_params=None,
+    estimator,
+    views,
+    y=None,
+    groups=None,
+    train_sizes=np.linspace(0.1, 1.0, 5),
+    cv=None,
+    scoring=None,
+    exploit_incremental_learning=False,
+    n_jobs=None,
+    pre_dispatch="all",
+    verbose=0,
+    shuffle=False,
+    random_state=None,
+    error_score=np.nan,
+    return_times=False,
+    fit_params=None,
 ):
     """
     Learning curve.

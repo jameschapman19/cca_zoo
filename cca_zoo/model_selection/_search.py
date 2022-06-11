@@ -99,11 +99,11 @@ class ParameterSampler_(ParameterSampler):
                 if isinstance(v, Iterable):
                     # if each element is a distribution for each view (i.e. it is a non-string Iterable) then call return_param for each view
                     if any(
-                            [
-                                (isinstance(v_, Iterable) and not isinstance(v_, str))
-                                or hasattr(v_, "rvs")
-                                for v_ in v
-                            ]
+                        [
+                            (isinstance(v_, Iterable) and not isinstance(v_, str))
+                            or hasattr(v_, "rvs")
+                            for v_ in v
+                        ]
                     ):
                         params[k] = [self.return_param(v_) for v_ in v]
                     # if the parameter is shared across views then the list will just contain non-iterable values
@@ -159,18 +159,18 @@ class GridSearchCV(BaseSearchCV):
     _required_parameters = ["estimator", "param_grid"]
 
     def __init__(
-            self,
-            estimator,
-            param_grid,
-            *,
-            scoring=None,
-            n_jobs=None,
-            refit=True,
-            cv=None,
-            verbose=0,
-            pre_dispatch="2*n_jobs",
-            error_score=np.nan,
-            return_train_score=False,
+        self,
+        estimator,
+        param_grid,
+        *,
+        scoring=None,
+        n_jobs=None,
+        refit=True,
+        cv=None,
+        verbose=0,
+        pre_dispatch="2*n_jobs",
+        error_score=np.nan,
+        return_train_score=False,
     ):
         super().__init__(
             estimator=estimator,
@@ -190,9 +190,11 @@ class GridSearchCV(BaseSearchCV):
 
     def _run_search(self, evaluate_candidates):
         """Search all candidates in param_grid"""
-        param_grid=self.param_grid
-        param_grid.param_grid = [{f"estimator__{key}": val for key, val in subgrid.items()} for subgrid in
-                                      param_grid.param_grid]
+        param_grid = self.param_grid
+        param_grid.param_grid = [
+            {f"estimator__{key}": val for key, val in subgrid.items()}
+            for subgrid in param_grid.param_grid
+        ]
         evaluate_candidates(param_grid)
 
     def fit(self, X, y=None, *, groups=None, **fit_params):
@@ -203,8 +205,10 @@ class GridSearchCV(BaseSearchCV):
             ]
         )
         self = BaseSearchCV.fit(self, np.hstack(X), y=None, groups=None, **fit_params)
-        self.best_estimator_ = self.best_estimator_['estimator']
-        self.best_params_ = {key[len('estimator__'):]: val for key, val in self.best_params_.items()}
+        self.best_estimator_ = self.best_estimator_["estimator"]
+        self.best_params_ = {
+            key[len("estimator__") :]: val for key, val in self.best_params_.items()
+        }
         return self
 
 
@@ -242,22 +246,24 @@ class RandomizedSearchCV(BaseSearchCV):
     _required_parameters = ["estimator", "param_distributions"]
 
     def __init__(
-            self,
-            estimator,
-            param_distributions,
-            *,
-            n_iter=10,
-            scoring=None,
-            n_jobs=None,
-            refit=True,
-            cv=None,
-            verbose=0,
-            pre_dispatch="2*n_jobs",
-            random_state=None,
-            error_score=np.nan,
-            return_train_score=False,
+        self,
+        estimator,
+        param_distributions,
+        *,
+        n_iter=10,
+        scoring=None,
+        n_jobs=None,
+        refit=True,
+        cv=None,
+        verbose=0,
+        pre_dispatch="2*n_jobs",
+        random_state=None,
+        error_score=np.nan,
+        return_train_score=False,
     ):
-        self.param_distributions = {f"estimator__{key}": val for key, val in param_distributions.items()}
+        self.param_distributions = {
+            f"estimator__{key}": val for key, val in param_distributions.items()
+        }
         self.n_iter = n_iter
         self.random_state = random_state
         super().__init__(
@@ -288,6 +294,8 @@ class RandomizedSearchCV(BaseSearchCV):
             ]
         )
         self = BaseSearchCV.fit(self, np.hstack(X), y=None, groups=None, **fit_params)
-        self.best_estimator_ = self.best_estimator_['estimator']
-        self.best_params_ = {key[len('estimator__'):]: val for key, val in self.best_params_.items()}
+        self.best_estimator_ = self.best_estimator_["estimator"]
+        self.best_params_ = {
+            key[len("estimator__") :]: val for key, val in self.best_params_.items()
+        }
         return self

@@ -12,6 +12,7 @@ from cca_zoo.deepmodels import (
     objectives,
     DTCCA,
 )
+
 """
 Data
 -----

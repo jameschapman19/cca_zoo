@@ -26,18 +26,18 @@ warnings.filterwarnings(
 
 project = "CCA-Zoo"
 author = "James Chapman"
-copyright = f'{datetime.datetime.now().year}, {author}'
+copyright = f"{datetime.datetime.now().year}, {author}"
 
 # -- General configuration ---------------------------------------------------
 
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.viewcode',
-    'sphinx_gallery.gen_gallery'
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.viewcode",
+    "sphinx_gallery.gen_gallery",
 ]
 
 sphinx_gallery_conf = {
@@ -52,8 +52,11 @@ intersphinx_mapping = {
     "numpy": ("https://docs.scipy.org/doc/numpy", None),
     "python": ("https://docs.python.org/3", None),
     "sklearn": ("http://scikit-learn.org/dev", None),
-    'torch': ('https://pytorch.org/docs/master', None),
-    'pytorch_lightning': ('https://pytorch-lightning.readthedocs.io/en/stable/index.html#', None),
+    "torch": ("https://pytorch.org/docs/master", None),
+    "pytorch_lightning": (
+        "https://pytorch-lightning.readthedocs.io/en/stable/index.html#",
+        None,
+    ),
 }
 
 # -- sphinx.ext.autodoc

@@ -9,5 +9,7 @@ __all__ = [
     "permutation_test_score",
 ]
 
-classes = ["GridSearchCV",
-    "RandomizedSearchCV",]
+classes = [
+    "GridSearchCV",
+    "RandomizedSearchCV",
+]

@@ -164,18 +164,10 @@ def test_DTCCA_methods():
 
 def test_DCCAE_methods():
     latent_dims = 2
-    encoder_1 = architectures.CNNEncoder(
-        latent_dims=latent_dims, feature_size=(16, 16)
-    )
-    encoder_2 = architectures.CNNEncoder(
-        latent_dims=latent_dims, feature_size=(16, 16)
-    )
-    decoder_1 = architectures.CNNDecoder(
-        latent_dims=latent_dims, feature_size=(16, 16)
-    )
-    decoder_2 = architectures.CNNDecoder(
-        latent_dims=latent_dims, feature_size=(16, 16)
-    )
+    encoder_1 = architectures.CNNEncoder(latent_dims=latent_dims, feature_size=(16, 16))
+    encoder_2 = architectures.CNNEncoder(latent_dims=latent_dims, feature_size=(16, 16))
+    decoder_1 = architectures.CNNDecoder(latent_dims=latent_dims, feature_size=(16, 16))
+    decoder_2 = architectures.CNNDecoder(latent_dims=latent_dims, feature_size=(16, 16))
     # SplitAE
     splitae = SplitAE(
         latent_dims=latent_dims, encoder=encoder_1, decoders=[decoder_1, decoder_2]

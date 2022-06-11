@@ -21,13 +21,13 @@ class DCCA(_BaseDeep, _BaseCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int,
-            objective=objectives.MCCA,
-            encoders=None,
-            r: float = 0,
-            eps: float = 1e-5,
-            **kwargs,
+        self,
+        latent_dims: int,
+        objective=objectives.MCCA,
+        encoders=None,
+        r: float = 0,
+        eps: float = 1e-5,
+        **kwargs,
     ):
         """
         Constructor class for DCCA
@@ -74,9 +74,9 @@ class DCCA(_BaseDeep, _BaseCCA):
         return z
 
     def pairwise_correlations(
-            self,
-            loader: torch.utils.data.DataLoader,
-            train=False,
+        self,
+        loader: torch.utils.data.DataLoader,
+        train=False,
     ):
         """
         Calculates correlation for entire batch from dataloader
@@ -87,9 +87,7 @@ class DCCA(_BaseDeep, _BaseCCA):
         """
         return _BaseCCA.pairwise_correlations(self, loader, train=train)
 
-    def score(self,
-              loader: torch.utils.data.DataLoader,
-              train=False):
+    def score(self, loader: torch.utils.data.DataLoader, train=False):
         """
         Returns average correlation in each dimension (averages over all pairs for multiview)
 

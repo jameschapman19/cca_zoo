@@ -20,6 +20,8 @@ from cca_zoo.models import (
     SCCA_ADMM,
     SCCA_Span,
 )
+
+
 def plot_true_weights_coloured(ax, weights, true_weights, title=""):
     ind = np.arange(len(true_weights))
     mask = np.squeeze(true_weights == 0)
@@ -37,6 +39,7 @@ def plot_model_weights(wx, wy, tx, ty, title=""):
     plt.tight_layout()
     fig.suptitle(title)
     plt.show()
+
 
 """
 Data
@@ -60,7 +63,6 @@ latent_dims = 1
 )
 tx /= np.sqrt(n)
 ty /= np.sqrt(n)
-
 
 
 # %%

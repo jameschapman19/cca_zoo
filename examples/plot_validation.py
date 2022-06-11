@@ -11,6 +11,7 @@ import numpy as np
 from cca_zoo import CCA, learning_curve
 from cca_zoo.data import generate_covariance_data
 import matplotlib.pyplot as plt
+
 """
 Data
 ------
@@ -58,14 +59,14 @@ import matplotlib.pyplot as plt
 
 
 def plot_learning_curve(
-        estimator,
-        title,
-        views,
-        axes=None,
-        ylim=None,
-        cv=None,
-        n_jobs=None,
-        train_sizes=np.linspace(0.1, 1.0, 5),
+    estimator,
+    title,
+    views,
+    axes=None,
+    ylim=None,
+    cv=None,
+    n_jobs=None,
+    train_sizes=np.linspace(0.1, 1.0, 5),
 ):
     """
     Generate 3 plots: the test and training learning curve, the training
@@ -215,8 +216,6 @@ title = "Learning Curves CCA"
 cv = ShuffleSplit(n_splits=50, test_size=0.2, random_state=0)
 
 model = CCA()
-plot_learning_curve(
-    model, title, (X,Y), axes=axes, ylim=(0.7, 1.01), cv=cv, n_jobs=4
-)
+plot_learning_curve(model, title, (X, Y), axes=axes, ylim=(0.7, 1.01), cv=cv, n_jobs=4)
 
 plt.show()

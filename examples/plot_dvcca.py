@@ -11,6 +11,7 @@ from cca_zoo.deepmodels import architectures, DCCAE, DVCCA, SplitAE
 from cca_zoo.plotting import tsne_label
 from examples import example_mnist_data
 
+
 def plot_reconstruction(model, x, uncertainty=False):
     recons = model.recon(x["views"], mle=True)
     n_cols = 2 + uncertainty

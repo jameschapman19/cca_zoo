@@ -22,11 +22,13 @@ __all__ = [
     "get_dataloaders",
 ]
 
-classes = ["DCCA",
+classes = [
+    "DCCA",
     "DCCAE",
     "DCCA_NOI",
     "DCCA_SDL",
     "DVCCA",
     "BarlowTwins",
     "DTCCA",
-    "SplitAE"]
+    "SplitAE",
+]

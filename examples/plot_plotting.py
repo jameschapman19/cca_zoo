@@ -1,15 +1,14 @@
 """
-Model Validation
+Model Plotting
 ===========================
 
-This script will show how to use the model validation methods in CCA-Zoo including
-permutation testing, learning curves, and cross-validation.
+This script will show how to use the plotting functions of the CCA-Zoo package.
 """
 
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from cca_zoo import CCA, learning_curve
+from cca_zoo import CCA
 from cca_zoo.data import generate_covariance_data
 import matplotlib.pyplot as plt
 
@@ -29,17 +28,17 @@ latent_dims = 3
     n, view_features=[p, q], latent_dims=latent_dims, correlation=[0.9, 0.8, 0.7]
 )
 
-X_tr,X_te,Y_tr,Y_te = train_test_split(X,Y,test_size=0.2,random_state=42)
+X_tr, X_te, Y_tr, Y_te = train_test_split(X, Y, test_size=0.2, random_state=42)
 
 """
 Model
 ------
 """
 
-cca=CCA(latent_dims=latent_dims).fit((X_tr,Y_tr))
+cca = CCA(latent_dims=latent_dims).fit((X_tr, Y_tr))
 
 """
 Plotting
 """
-pairplot_train_test(cca.transform((X_tr,Y_tr)),cca.transform((X_te,Y_te)))
+pairplot_train_test(cca.transform((X_tr, Y_tr)), cca.transform((X_te, Y_te)))
 plt.show()
