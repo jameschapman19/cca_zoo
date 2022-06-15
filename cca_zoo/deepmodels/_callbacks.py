@@ -9,7 +9,7 @@ class CorrelationCallback(Callback):
     def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         pl_module.log(
             "train/corr",
-            pl_module.pairwise_correlations(trainer.train_dataloader, train=True).sum(),
+            pl_module.score(trainer.train_dataloader, train=True).sum(),
         )
 
     def on_validation_epoch_end(
@@ -18,16 +18,10 @@ class CorrelationCallback(Callback):
         try:
             pl_module.log(
                 "val/corr",
-                pl_module.batch_correlation(trainer.val_dataloaders[0]).sum(),
+                pl_module.score(trainer.val_dataloaders[0]).sum(),
             )
         except:
-            # Should only be during sanity check
-            pl_module.log(
-                "val/corr",
-                pl_module.pairwise_correlations(
-                    trainer.val_dataloaders[0], train=True
-                ).sum(),
-            )
+            pass
 
 
 class GenerativeCallback(Callback):

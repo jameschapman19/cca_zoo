@@ -1,4 +1,5 @@
 import itertools
+from typing import Iterable
 
 import numpy as np
 import torch
@@ -66,6 +67,11 @@ class DCCA(_BaseDeep, _BaseCCA):
         return {"objective": self.objective.loss(z)}
 
     def post_transform(self, z, train=False):
+        """
+        Some models require a final linear CCA after model training.
+        :param z: a list of all of the latent space embeddings for each view
+        :param train: if the train flag is True this fits a new post transformation
+        """
         if train:
             self.cca = MCCA(latent_dims=self.latent_dims)
             z = self.cca.fit_transform(z)

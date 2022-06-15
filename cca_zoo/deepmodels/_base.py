@@ -57,14 +57,6 @@ class _BaseDeep(pl.LightningModule):
         """
         raise NotImplementedError
 
-    def post_transform(self, z, train=False) -> Iterable[np.ndarray]:
-        """
-        Some models require a final linear CCA after model training.
-        :param z: a list of all of the latent space embeddings for each view
-        :param train: if the train flag is True this fits a new post transformation
-        """
-        return z
-
     def training_step(self, batch, batch_idx):
         loss = self.loss(batch["views"])
         for k, v in loss.items():
@@ -82,6 +74,14 @@ class _BaseDeep(pl.LightningModule):
         for k, v in loss.items():
             self.log("test/" + k, v)
         return loss["objective"]
+
+    def post_transform(self, z, train=False):
+        """
+        Some models require a final linear CCA after model training.
+        :param z: a list of all of the latent space embeddings for each view
+        :param train: if the train flag is True this fits a new post transformation
+        """
+        return z
 
     def transform(
             self,
@@ -169,9 +169,17 @@ class _GenerativeMixin:
     def _decode(self, z, **kwargs):
         raise NotImplementedError
 
-    def recon(self, views, **kwargs):
-        z = self(views, **kwargs)
-        return self._decode(z)
+    def recon(self,
+            loader: torch.utils.data.DataLoader, **kwargs):
+        with torch.no_grad():
+            for batch_idx, batch in enumerate(loader):
+                views = [view.to(self.device) for view in batch["views"]]
+                x_ = detach_all(self._decode(self(views, **kwargs)))
+                if batch_idx == 0:
+                    x = x_
+                else:
+                    x = collate_all(x, x_)
+        return x
 
 
 def detach_all(z):

@@ -29,7 +29,7 @@ Y_conv = rng.rand(256, 1, 16, 16)
 dataset = data.CCA_Dataset([X, Y, Z])
 train_dataset, val_dataset = random_split(dataset, [200, 56])
 loader = get_dataloaders(dataset)
-train_loader, val_loader = get_dataloaders(train_dataset, val_dataset, batch_size=16)
+train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
 conv_dataset = data.CCA_Dataset((X_conv, Y_conv))
 conv_loader = get_dataloaders(conv_dataset)
 train_ids = train_dataset.indices
@@ -40,20 +40,6 @@ def test_DCCA_methods():
     latent_dims = 2
     epochs = 100
     cca = CCA(latent_dims=latent_dims).fit((X, Y))
-    # DCCA_NOI
-    encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
-    dcca_noi = DCCA_NOI(latent_dims, N, encoders=[encoder_1, encoder_2], rho=0)
-    trainer = pl.Trainer(
-        max_epochs=epochs, log_every_n_steps=1, enable_checkpointing=False
-    )
-    trainer.fit(dcca_noi, train_loader)
-    assert (
-        np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dcca_noi.score(train_loader).sum()
-        )
-        is None
-    )
     # DCCA
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
     encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
@@ -67,8 +53,22 @@ def test_DCCA_methods():
     )
     trainer.fit(dcca, train_loader, val_dataloaders=val_loader)
     assert (
+            np.testing.assert_array_less(
+                cca.score((X, Y)).sum(), dcca.score(train_loader, train=True).sum()
+            )
+            is None
+    )
+    # DCCA_NOI
+    encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
+    dcca_noi = DCCA_NOI(latent_dims, N, encoders=[encoder_1, encoder_2], rho=0)
+    trainer = pl.Trainer(
+        max_epochs=epochs, log_every_n_steps=1, enable_checkpointing=False
+    )
+    trainer.fit(dcca_noi, train_loader)
+    assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dcca.score(train_loader).sum()
+            cca.score((X, Y)).sum(), dcca_noi.score(train_loader).sum()
         )
         is None
     )
@@ -210,7 +210,6 @@ def test_DVCCA_p_methods():
     trainer = pl.Trainer(max_epochs=5, log_every_n_steps=1, enable_checkpointing=False)
     trainer.fit(dvcca, train_loader)
     dvcca.transform(train_loader)
-    print()
 
 
 def test_DVCCA_methods():
