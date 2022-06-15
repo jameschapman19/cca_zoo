@@ -29,7 +29,7 @@ Y_conv = rng.rand(256, 1, 16, 16)
 dataset = data.CCA_Dataset([X, Y, Z])
 train_dataset, val_dataset = random_split(dataset, [200, 56])
 loader = get_dataloaders(dataset)
-train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
+train_loader, val_loader = get_dataloaders(train_dataset, val_dataset, batch_size=16)
 conv_dataset = data.CCA_Dataset((X_conv, Y_conv))
 conv_loader = get_dataloaders(conv_dataset)
 train_ids = train_dataset.indices
@@ -209,6 +209,8 @@ def test_DVCCA_p_methods():
     )
     trainer = pl.Trainer(max_epochs=5, log_every_n_steps=1, enable_checkpointing=False)
     trainer.fit(dvcca, train_loader)
+    dvcca.transform(train_loader)
+    print()
 
 
 def test_DVCCA_methods():

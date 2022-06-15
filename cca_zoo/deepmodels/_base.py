@@ -10,19 +10,19 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 
 class _BaseDeep(pl.LightningModule):
     def __init__(
-        self,
-        latent_dims: int,
-        optimizer="adam",
-        scheduler=None,
-        lr=1e-3,
-        weight_decay=0,
-        extra_optimizer_kwargs=None,
-        max_epochs=1000,
-        min_lr=1e-9,
-        lr_decay_steps=None,
-        correlation=True,
-        *args,
-        **kwargs,
+            self,
+            latent_dims: int,
+            optimizer="adam",
+            scheduler=None,
+            lr=1e-3,
+            weight_decay=0,
+            extra_optimizer_kwargs=None,
+            max_epochs=1000,
+            min_lr=1e-9,
+            lr_decay_steps=None,
+            correlation=True,
+            *args,
+            **kwargs,
     ):
         super().__init__()
         if extra_optimizer_kwargs is None:
@@ -42,7 +42,6 @@ class _BaseDeep(pl.LightningModule):
     def forward(self, views, *args, **kwargs):
         """
         We use the forward model to define the transformation of views to the latent space
-
         :param views: batches for each view separated by commas
         """
         raise NotImplementedError
@@ -51,7 +50,6 @@ class _BaseDeep(pl.LightningModule):
     def loss(self, views, *args, **kwargs):
         """
         Loss for model
-
         :param views:
         :param args:
         :param kwargs:
@@ -62,7 +60,6 @@ class _BaseDeep(pl.LightningModule):
     def post_transform(self, z, train=False) -> Iterable[np.ndarray]:
         """
         Some models require a final linear CCA after model training.
-
         :param z: a list of all of the latent space embeddings for each view
         :param train: if the train flag is True this fits a new post transformation
         """
@@ -87,9 +84,9 @@ class _BaseDeep(pl.LightningModule):
         return loss["objective"]
 
     def transform(
-        self,
-        loader: torch.utils.data.DataLoader,
-        train=False,
+            self,
+            loader: torch.utils.data.DataLoader,
+            train=False,
     ):
         """
         :param loader: a dataloader that matches the structure of that used for training
