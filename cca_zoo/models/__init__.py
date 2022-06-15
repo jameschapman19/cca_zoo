@@ -15,11 +15,6 @@ from ._partialcca import PartialCCA
 from ._rcca import rCCA, CCA, PLS
 from ._tcca import TCCA, KTCCA
 
-try:
-    from ._stochastic import StochasticPowerPLS, IncrementalPLS
-except:
-    pass
-
 __all__ = [
     "GCCA",
     "KGCCA",
@@ -40,8 +35,14 @@ __all__ = [
     "PLS",
     "TCCA",
     "KTCCA",
-    "StochasticPowerPLS",
-    "IncrementalPLS",
 ]
+
+try:
+    from ._stochastic import StochasticPowerPLS, IncrementalPLS
+
+    __all__.extend("StochasticPowerPLS",
+                   "IncrementalPLS")
+except:
+    pass
 
 classes = __all__
