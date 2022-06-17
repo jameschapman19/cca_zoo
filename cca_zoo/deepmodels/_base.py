@@ -186,7 +186,7 @@ def detach_all(z):
     if isinstance(z, dict):
         for k, v in z.items():
             detach_all(v)
-    elif isinstance(z, ):
+    elif isinstance(z, list):
         z = [z_.detach().cpu().numpy() for z_ in z]
     else:
         z = z.detach().cpu().numpy()
