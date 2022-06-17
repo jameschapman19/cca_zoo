@@ -12,18 +12,23 @@ from cca_zoo.plotting import tsne_label
 from examples import example_mnist_data
 
 
-def plot_reconstruction(model, x, uncertainty=False):
-    recons = model.recon(x["views"], mle=True)
+def plot_reconstruction(model, loader, uncertainty=False):
+    recons = model.recon(loader, mle=True)
+    recons = [recon[0] for recon in recons]
+    originals = loader.dataset.dataset[0]['views']
     n_cols = 2 + uncertainty
-    fig, ax = plt.subplots(ncols=n_cols)
-    ax[0].set_title("Original View 1")
-    ax[1].set_title("Mean View 1")
-    ax[0].imshow(x["views"][0].detach().numpy().reshape((28, 28)))
-    ax[1].imshow(recons[0].detach().numpy().reshape((28, 28)))
+    fig, ax = plt.subplots(ncols=n_cols,nrows=2)
+    for i,(recon,original) in enumerate(zip(recons,originals)):
+        ax[i,0].set_title(f"Original View {i}")
+        ax[i,1].set_title(f"Mean View {i}")
+        ax[i,0].imshow(original.reshape((28, 28)))
+        ax[i,1].imshow(recon.reshape((28, 28)))
     if uncertainty:
-        ax[2].set_title("Std View 1")
-        uncertainty_recons = model.recon_uncertainty(x["views"])
-        ax[2].imshow(uncertainty_recons[0].detach().numpy().reshape((28, 28)))
+        uncertainty_recons = model.recon(loader, uncertainty=True)
+        uncertainty_recons = [uncertainty_recon[0] for uncertainty_recon in uncertainty_recons]
+        for i,uncertainty_recon in enumerate(uncertainty_recons):
+            ax[i,2].set_title(f"Variance View {i}")
+            ax[i,2].imshow(uncertainty_recon.reshape((28, 28)))
 
 
 # %%
@@ -72,7 +77,7 @@ trainer = pl.Trainer(
 )
 trainer.fit(dvcca, train_loader, val_loader)
 tsne_label(dvcca.transform(train_loader)["shared"], train_labels)
-plot_reconstruction(dvcca, train_loader.dataset[0], uncertainty=True)
+plot_reconstruction(dvcca, train_loader, uncertainty=True)
 plt.suptitle("DVCCA")
 plt.show()
 
@@ -121,7 +126,7 @@ trainer = pl.Trainer(
 )
 trainer.fit(dvccap, train_loader, val_loader)
 tsne_label(dvccap.transform(train_loader)["shared"], train_labels)
-plot_reconstruction(dvccap, train_loader.dataset[0], uncertainty=True)
+plot_reconstruction(dvccap, train_loader, uncertainty=True)
 plt.suptitle("DVCCA Private")
 plt.show()
 
@@ -157,7 +162,7 @@ trainer = pl.Trainer(
 )
 trainer.fit(dccae, train_loader, val_loader)
 tsne_label(dccae.transform(train_loader)[0], train_labels)
-plot_reconstruction(dccae, train_loader.dataset[0])
+plot_reconstruction(dccae, train_loader)
 plt.suptitle("DCCAE")
 plt.show()
 
@@ -189,6 +194,6 @@ trainer = pl.Trainer(
 )
 trainer.fit(splitae, train_loader, val_loader)
 tsne_label(splitae.transform(train_loader), train_labels)
-plot_reconstruction(splitae, train_loader.dataset[0])
+plot_reconstruction(splitae, train_loader)
 plt.suptitle("SplitAE")
 plt.show()

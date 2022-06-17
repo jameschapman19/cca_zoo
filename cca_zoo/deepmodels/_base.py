@@ -170,11 +170,11 @@ class _GenerativeMixin:
         raise NotImplementedError
 
     def recon(self,
-            loader: torch.utils.data.DataLoader, **kwargs):
+              loader: torch.utils.data.DataLoader, **kwargs):
         with torch.no_grad():
             for batch_idx, batch in enumerate(loader):
                 views = [view.to(self.device) for view in batch["views"]]
-                x_ = detach_all(self._decode(self(views, **kwargs)))
+                x_ = detach_all(self._decode(self(views, **kwargs), **kwargs))
                 if batch_idx == 0:
                     x = x_
                 else:
@@ -186,7 +186,7 @@ def detach_all(z):
     if isinstance(z, dict):
         for k, v in z.items():
             detach_all(v)
-    elif isinstance(z, list):
+    elif isinstance(z, ):
         z = [z_.detach().cpu().numpy() for z_ in z]
     else:
         z = z.detach().cpu().numpy()

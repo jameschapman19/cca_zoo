@@ -102,8 +102,12 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
             logvar.append(logvar_i)
         return mu, logvar
 
-    def _decode(self, z, **kwargs):
+    def _decode(self, z, uncertainty=False, **kwargs):
         x = []
+        if uncertainty:
+            z["shared"] = z["logvar_shared"]
+            if self.private_encoders is not None:
+                z["private"] = z["logvar_private"]
         for i, decoder in enumerate(self.decoders):
             if "private" in z:
                 x_i = decoder(
@@ -142,13 +146,6 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
             ).sum()
         loss["objective"] = torch.stack(tuple(loss.values())).sum()
         return loss
-
-    def recon_uncertainty(self, views, **kwargs):
-        z = self.forward(views, **kwargs)
-        z["shared"] = z["logvar_shared"]
-        if self.private_encoders is not None:
-            z["private"] = z["logvar_private"]
-        return self._decode(z)
 
     def configure_callbacks(self):
         return [GenerativeCallback()]

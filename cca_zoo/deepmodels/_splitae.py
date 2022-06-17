@@ -58,7 +58,7 @@ class SplitAE(_BaseDeep, _GenerativeMixin):
         recon = []
         for i, decoder in enumerate(self.decoders):
             recon.append(decoder(self.latent_dropout(z)))
-        return tuple(recon)
+        return recon
 
     def loss(self, views, **kwargs):
         z = self(views)
