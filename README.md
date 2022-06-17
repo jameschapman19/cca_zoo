@@ -70,6 +70,7 @@ With bibtex entry:
 - MCCA (Multiset CCA)
 - K(M)CCA (kernel Multiset CCA)
 - NCCA (Nonparametric CCA)
+- PartialCCA (Partial CCA)
 - [TCCA (Tensor CCA)](https://arxiv.org/pdf/1502.02330.pdf)
 - [KTCCA (kernel Tensor CCA)](https://arxiv.org/pdf/1502.02330.pdf)
 - [SCCA_IPLS (Sparse CCA)](https://onlinelibrary.wiley.com/doi/abs/10.1111/biom.13043)
