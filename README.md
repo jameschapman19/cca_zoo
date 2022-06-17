@@ -69,6 +69,7 @@ With bibtex entry:
 - [GCCA (Generalized CCA)](https://academic.oup.com/biomet/article-abstract/58/3/433/233349?redirectedFrom=fulltext)
 - MCCA (Multiset CCA)
 - K(M)CCA (kernel Multiset CCA)
+- NCCA (Nonparametric CCA)
 - [TCCA (Tensor CCA)](https://arxiv.org/pdf/1502.02330.pdf)
 - [KTCCA (kernel Tensor CCA)](https://arxiv.org/pdf/1502.02330.pdf)
 - [SCCA_IPLS (Sparse CCA)](https://onlinelibrary.wiley.com/doi/abs/10.1111/biom.13043)
