@@ -3,7 +3,7 @@ program: experiments/pls/train.py
 method: grid
 parameters:
   model:
-    values: ['game','alphagame','sgha','power','incremental','msg']
+    values: ['gameA']
   config.n_components:
     values: [16]
   config.data:
@@ -15,4 +15,4 @@ parameters:
   config.val_interval:
     values: [50]
   config.batch_size:
-    values: [32,16]
+    values: [1024,256,32,16]

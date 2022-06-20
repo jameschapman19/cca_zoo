@@ -1,20 +1,22 @@
 from jaxline.base_config import get_base_config
 from ml_collections import config_dict
 
+def get_training_steps(batch_size, n_epochs):
+  return (N_TRAIN_EXAMPLES * n_epochs) // batch_size
 
 def get_config() -> config_dict.ConfigDict:
     # get the basic jax config
     config = get_base_config()
 
     # these are given by wandb
-    config.learning_rate = 5e-3
+    config.learning_rate = 1e-6
     config.num_devices = 1
-    config.n_components = 2
-    config.batch_size = 1024
-    config.data = "mnist"
-    config.training_steps = 10000
+    config.n_components = 1
+    config.batch_size = 256
     config.epochs = 10000
-    config.val_interval = 50
+    config.data = "mnist"
+    config.training_steps = get_training_steps(config.batch_size,config.epochs)
+    config.val_interval = 1
     config.TCC = True
     config.alpha = False
 

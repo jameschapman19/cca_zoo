@@ -35,6 +35,7 @@ def main(argv):
         "TV": FLAGS.config.TV,
         "alpha": FLAGS.config.alpha,
         "val_interval": FLAGS.config.val_interval,
+        "random_state": FLAGS.config.random_seed
     }
     os.chdir(
         os.path.join(os.path.dirname(os.path.realpath(__file__)), FLAGS.config.data)

@@ -19,7 +19,7 @@ Anything that is defined in the python script gets put into the FLAGS dictionary
 
 FLAGS = flags.FLAGS
 # change the default to your own config file path if you
-flags.DEFINE_string(name="model", default="power", help="model name")
+flags.DEFINE_string(name="model", default="incremental", help="model name")
 
 MODEL_DICT = {
     "game": pls.Game,
@@ -28,8 +28,6 @@ MODEL_DICT = {
     "power": pls.StochasticPower,
     "incremental": pls.Incremental,
     "sgha": pls.SGHA,
-    "gameR":pls.GameR,
-    "alphagameR":pls.AlphaGameR
 }
 
 
@@ -46,6 +44,7 @@ def main(argv):
         "learning_rate": FLAGS.config.learning_rate,
         "TV": FLAGS.config.TV,
         "val_interval": FLAGS.config.val_interval,
+        "random_state": FLAGS.config.random_seed
     }
     FLAGS.config.log_train_data_interval = FLAGS.config.val_interval
     FLAGS.config.log_tensors_interval = FLAGS.config.val_interval

@@ -2,24 +2,23 @@ import os
 from re import I
 
 from absl import app, flags
-from ccagame import cca
-from ccagame.datasets.utils import get_training_steps
-from ccagame.utils import log_dir
+from blockeigengame import cca
 from jaxline_fork import platform
 from ml_collections import config_flags
 import wandb
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string(name="model", default="altgame", help="model name")
+flags.DEFINE_string(name="model", default="sghagame", help="model name")
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
 MODEL_DICT = {
     "game": cca.Game,
-    "vicreggame": cca.VicRegGame,
     "genoja": cca.GenOja,
     "sgha": cca.SGHA,
     "appgrad": cca.AppGrad,
-    "altgame": cca.AltGame,
+    "ssgd":cca.SSGD,
+    "ssgdgame":cca.SSGDGame,
+    "sghagame":cca.SGHAGame
 }
 
 
@@ -37,6 +36,7 @@ def main(argv):
         "TCC": FLAGS.config.TCC,
         "alpha": FLAGS.config.alpha,
         "val_interval": FLAGS.config.val_interval,
+        "random_state": FLAGS.config.random_seed
     }
     FLAGS.config.log_train_data_interval = FLAGS.config.val_interval
     FLAGS.config.log_tensors_interval = FLAGS.config.val_interval
