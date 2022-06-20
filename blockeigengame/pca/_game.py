@@ -22,11 +22,13 @@ class Game(_PCAMixin):
         """
         Initialization function for a Jaxline experiment.
         """
-        self._weights = jnp.ones((self.n_components, self.n_components)) - jnp.eye(
-            self.n_components
+        self._weights = jnp.ones((config.n_components, config.n_components)) - jnp.eye(
+            config.n_components
         )
-        self._weights = self._weights.at[jnp.triu_indices(self.n_components, 1)].set(0)
-        self._V = jax.random.normal(self.init_rng, (self.n_components, self.dims))
+        self._weights = self._weights.at[jnp.triu_indices(config.n_components, 1)].set(
+            0
+        )
+        self._V = jax.random.normal(self.init_rng, (config.n_components, self.dims))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
 
         # This parallelizes gradient calcs and updates for eigenvectors within a given device

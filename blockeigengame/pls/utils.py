@@ -1,9 +1,10 @@
-from jax import jit 
+from jax import jit
 import jax.numpy as jnp
 
+
 @jit
-def incrsvd(x_hat,yhat,x_orth,y_orth,U,V,S):
-    n_components=U.shape[0]
+def incrsvd(x_hat, yhat, x_orth, y_orth, U, V, S):
+    n_components = U.shape[0]
     Q = jnp.vstack(
         (
             jnp.hstack(
@@ -25,8 +26,6 @@ def incrsvd(x_hat,yhat,x_orth,y_orth,U,V,S):
     )
     U_, S, Vt_ = jnp.linalg.svd(Q)
     U = U_[:, :n_components].T @ jnp.vstack((U, x_orth / jnp.linalg.norm(x_orth)))
-    V = Vt_.T[:, :n_components].T @ jnp.vstack(
-        (V, y_orth / jnp.linalg.norm(y_orth))
-    )
+    V = Vt_.T[:, :n_components].T @ jnp.vstack((V, y_orth / jnp.linalg.norm(y_orth)))
     S = S[:n_components]
-    return U,V, S
+    return U, V, S

@@ -22,9 +22,7 @@ import urllib.request
 from os import path
 import jax.numpy as jnp
 import numpy as np
-from ccagame.datasets.utils import demean
-
-from ccagame.utils import data_stream
+from ._utils import demean, data_stream
 from cca_zoo.models import rCCA
 
 _DATA = "/tmp/jax_example_data/"
@@ -105,7 +103,7 @@ def mnist_dataset(pca=False, p=392, random_state=0):
     rng = np.random.default_rng(random_state)
     X += rng.normal(size=X.shape)
     X_te += rng.normal(size=X_te.shape)
-    X,X_te=demean(X,X_te)
+    X, X_te = demean(X, X_te)
     if pca:
         return X, None, X_te, None
     else:
@@ -115,10 +113,12 @@ def mnist_dataset(pca=False, p=392, random_state=0):
         X_te = X_te[:, :p]
         return X, Y, X_te, Y_te
 
+
 def main():
-    X, Y, X_te, Y_te=mnist_dataset()
-    _,S,_=np.linalg.svd(X.T@Y)
+    X, Y, X_te, Y_te = mnist_dataset()
+    _, S, _ = np.linalg.svd(X.T @ Y)
     print()
+
 
 if __name__ == "__main__":
     main()

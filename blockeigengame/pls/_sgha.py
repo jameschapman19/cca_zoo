@@ -14,15 +14,13 @@ from jax import jit
 from numpy import linalg
 from scipy.linalg.misc import norm
 
-from . import PLSExperiment
+from ._plsmixin import _PLSMixin
+from .._baseexperiment import _BaseExperiment
 
 
-class SGHA(PLSExperiment):
-    def __init__(
-        self,
-        mode, init_rng, config):
-        super(SGHA, self).__init__(
-            mode, init_rng, config)
+class SGHA(_BaseExperiment,_PLSMixin):
+    def __init__(self, mode, init_rng, config):
+        super(SGHA, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
         Args:
           mode: A string, equivalent to FLAGS.jaxline_mode when running normally.
@@ -30,7 +28,7 @@ class SGHA(PLSExperiment):
         """
         """Initialization function for a Jaxline experiment."""
         self._W = jax.random.normal(
-            self.init_rng, (self.n_components, self.dims[0] + self.dims[1])
+            self.init_rng, (config.n_components, self.dims[0] + self.dims[1])
         )
         self._W /= jnp.linalg.norm(self._W, axis=1, keepdims=True)
         self._update_with_grads = jax.jit(

@@ -24,7 +24,7 @@ class SGHA(_PCAMixin):
         """
         """Initialization function for a Jaxline experiment."""
         self._V = (
-            jax.random.normal(self.local_rng, (self.n_components, self.dims))
+            jax.random.normal(self.local_rng, (config.n_components, self.dims))
         ) / 1000
         self._update_with_grads = jax.jit(
             jax.vmap(

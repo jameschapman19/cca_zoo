@@ -20,20 +20,17 @@ def expm(M):
 
 
 class Online(PLSExperiment):
-    def __init__(
-        self,
-        mode, init_rng, config):
-        super(Online, self).__init__(
-            mode, init_rng, config)
+    def __init__(self, mode, init_rng, config):
+        super(Online, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
         Args:
           mode: A string, equivalent to FLAGS.jaxline_mode when running normally.
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._U = jax.random.normal(self.local_rng, (self.n_components, self.dims[0]))
+        self._U = jax.random.normal(self.local_rng, (config.n_components, self.dims[0]))
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
-        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims[1]))
+        self._V = jax.random.normal(self.local_rng, (config.n_components, self.dims[1]))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._M = jax.random.normal(
             self.local_rng, (self.dims[0] + self.dims[1], self.dims[0] + self.dims[1])
@@ -55,13 +52,13 @@ class Online(PLSExperiment):
         self._U, S, V = jnp.linalg.svd(M)
         d = self.dims[0] + self.dims[1]
         scaled = (
-            self.n_components
+            config.n_components
             / d
-            * S[-self.n_components :]
-            / S[-self.n_components :].sum()
+            * S[-config.n_components :]
+            / S[-config.n_components :].sum()
         )
         S = jnp.stack(
-            jnp.ones((d - self.n_components)) / (d + self.n_components), scaled
-        )  # jnp.sum(scaled.sum()+(jnp.ones((d-self.n_components))/(d+self.n_components)).sum())
+            jnp.ones((d - config.n_components)) / (d + config.n_components), scaled
+        )  # jnp.sum(scaled.sum()+(jnp.ones((d-config.n_components))/(d+config.n_components)).sum())
         self._M = self._U @ S @ self._V.T
         self._V = V.T

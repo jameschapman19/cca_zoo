@@ -4,8 +4,6 @@ Streaming Generalized Eigenvector Computation
 https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-Paper.pdf
 """
 from functools import partial
-from os import environ
-from pyexpat.errors import XML_ERROR_FINISHED
 
 import jax
 import jax.numpy as jnp
@@ -16,7 +14,8 @@ from jax import jit
 from ._ccamixin import _CCAMixin
 from .._baseexperiment import _BaseExperiment
 
-class SGHA(_BaseExperiment,_CCAMixin):
+
+class SGHA(_BaseExperiment, _CCAMixin):
     def __init__(self, mode, init_rng, config):
         super(SGHA, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -26,7 +25,7 @@ class SGHA(_BaseExperiment,_CCAMixin):
         """
         """Initialization function for a Jaxline experiment."""
         self._W = jax.random.normal(
-            self.init_rng, (self.n_components, self.dims[0] + self.dims[1])
+            self.init_rng, (config.n_components, self.dims[0] + self.dims[1])
         )
         self._W /= jnp.linalg.norm(self._W, axis=1, keepdims=True)
         self._update_with_grads = jax.jit(

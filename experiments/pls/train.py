@@ -44,7 +44,7 @@ def main(argv):
         "learning_rate": FLAGS.config.learning_rate,
         "TV": FLAGS.config.TV,
         "val_interval": FLAGS.config.val_interval,
-        "random_state": FLAGS.config.random_seed
+        "random_state": FLAGS.config.random_seed,
     }
     FLAGS.config.log_train_data_interval = FLAGS.config.val_interval
     FLAGS.config.log_tensors_interval = FLAGS.config.val_interval

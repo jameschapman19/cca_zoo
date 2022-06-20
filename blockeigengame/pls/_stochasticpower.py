@@ -6,28 +6,24 @@ import jax.numpy as jnp
 import optax
 from jax import jit
 
-from . import PLSExperiment
+from ._plsmixin import _PLSMixin
+from .._baseexperiment import _BaseExperiment
 
 
-class StochasticPower(PLSExperiment):
-    def __init__(
-        self,
-        mode, init_rng, config):
-        super(StochasticPower, self).__init__(
-            mode, init_rng, config)
+class StochasticPower(_BaseExperiment,_PLSMixin):
+    def __init__(self, mode, init_rng, config):
+        super(StochasticPower, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
         Args:
           mode: A string, equivalent to FLAGS.jaxline_mode when running normally.
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._U = jax.random.normal(self.init_rng, (self.n_components, self.dims[0]))
+        self._U = jax.random.normal(self.init_rng, (config.n_components, self.dims[0]))
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
-        self._V = jax.random.normal(self.init_rng, (self.n_components, self.dims[1]))
+        self._V = jax.random.normal(self.init_rng, (config.n_components, self.dims[1]))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
-        self._optimizer = optax.sgd(
-            learning_rate=learning_rate
-        )
+        self._optimizer = optax.sgd(learning_rate=learning_rate)
         self._opt_state_x = self._optimizer.init(self._U)
         self._opt_state_y = self._optimizer.init(self._V)
 
@@ -40,7 +36,7 @@ class StochasticPower(PLSExperiment):
         self._V, self._opt_state_y = self._update_with_grads(
             self._V, grads_y, self._opt_state_y
         )
-        if global_step%100==0:
+        if global_step % 100 == 0:
             self._U = self._orth(self._U)
             self._V = self._orth(self._V)
 

@@ -11,16 +11,11 @@ from .datasets import (
     ukbb_dataset,
     xrmb_dataset,
 )
-from ._utils import data_stream
+from .datasets._utils import data_stream
 
 
 class _BaseExperiment(AbstractExperiment):
-    def __init__(
-        self,
-        mode,
-        init_rng,
-        config
-    ):
+    def __init__(self, mode, init_rng, config):
         super(_BaseExperiment, self).__init__(mode, init_rng)
         """Constructs the experiment.
         Args:
@@ -40,10 +35,6 @@ class _BaseExperiment(AbstractExperiment):
     def _initialize_model(self):
         pass
 
-    @abstractmethod
-    def _init_ground_truth(self, X, Y=None):
-        raise NotImplementedError
-
     def _build_input(self) -> Generator:
         """See base class."""
         num_devices = jax.device_count()
@@ -52,39 +43,48 @@ class _BaseExperiment(AbstractExperiment):
 
         if ragged:
             raise ValueError(
-                f'Global batch size {global_batch_size} must be divisible by '
-                f'num devices {num_devices}')
+                f"Global batch size {global_batch_size} must be divisible by "
+                f"num devices {num_devices}"
+            )
         X, Y, X_val, Y_val = self._load_data()
-        self._train_input=data_stream(
-                X, Y, batch_size=per_device_batch_size, random_state=self.config.random_state
-            )
-        self._eval_input=data_stream(
-                X_val, Y_val, batch_size=self.config.eval.batch_size, random_state=self.config.random_state
-            )
-        return self._load_data(per_device_batch_size,mode='train')
+        self._train_input = data_stream(
+            X,
+            Y,
+            batch_size=per_device_batch_size,
+            random_state=self.config.random_state,
+        )
+        self._eval_input = data_stream(
+            X_val,
+            Y_val,
+            batch_size=self.config.eval.batch_size,
+            random_state=self.config.random_state,
+        )
 
     def _load_data(
         self,
     ):
         if self.config.data == "mnist":
-            X, Y, X_val, Y_val = mnist_dataset(model=self.config.model, random_state=self.config.random_state)
+            X, Y, X_val, Y_val = mnist_dataset(
+                model=self.config.model, random_state=self.config.random_state
+            )
         elif self.config.data == "xrmb":
             X, Y, X_val, Y_val = xrmb_dataset()
         elif self.config.data == "linear":
-            X, Y, X_val, Y_val = linear_dataset(model=self.config.model, random_state=self.config.random_state)
+            X, Y, X_val, Y_val = linear_dataset(
+                model=self.config.model, random_state=self.config.random_state
+            )
         elif self.config.data == "exponential":
-            X, Y, X_val, Y_val = exponential_dataset(model=self.config.model, random_state=self.config.random_state)
+            X, Y, X_val, Y_val = exponential_dataset(
+                model=self.config.model, random_state=self.config.random_state
+            )
         elif self.config.data == "ukbb":
             X, Y, X_val, Y_val = ukbb_dataset(self.config.path)
         else:
             raise ValueError("Data {data} not implemented yet")
-        return X,Y,X_val,Y_val
+        return X, Y, X_val, Y_val
 
     def step(
-        self,
-        global_step: jnp.ndarray,
-        rng: jnp.ndarray,
-        *unused_args, **unused_kwargs
+        self, global_step: jnp.ndarray, rng: jnp.ndarray, *unused_args, **unused_kwargs
     ):
         if self._train_input is None:
             self._build_input()
@@ -102,10 +102,5 @@ class _BaseExperiment(AbstractExperiment):
     def _update(self, inputs, global_step):
         raise NotImplementedError
 
-    def evaluate(
-        self,
-        global_step: jnp.ndarray,
-        rng: jnp.ndarray,
-        **unused_kwargs
-    ):
+    def evaluate(self, global_step: jnp.ndarray, rng: jnp.ndarray, **unused_kwargs):
         return self._get_scalars()

@@ -3,7 +3,7 @@ import os
 import numpy as np
 from scipy.io import loadmat
 
-from ccagame.datasets.utils import demean
+from ._utils import demean
 
 
 def xrmb():
@@ -32,22 +32,25 @@ def xrmb():
 
 def xrmb_dataset():
     X, Y, X_te, Y_te = xrmb()
-    X,X_te,Y,Y_te=demean(X,X_te,Y,Y_te)
+    X, X_te, Y, Y_te = demean(X, X_te, Y, Y_te)
     X = X.astype(np.float32)
     Y = Y.astype(np.float32)
     X_te = X_te.astype(np.float32)
     Y_te = Y_te.astype(np.float32)
     return X, Y, X_te, Y_te
 
+
 def xrmb_true():
     U = np.load(os.path.dirname(os.path.realpath(__file__)) + "/U.npy")
     V = np.load(os.path.dirname(os.path.realpath(__file__)) + "/V.npy")
     return U, V
 
+
 def main():
-    X, Y, X_te, Y_te=xrmb_dataset()
-    _,S,_=np.linalg.svd(X.T@Y)
+    X, Y, X_te, Y_te = xrmb_dataset()
+    _, S, _ = np.linalg.svd(X.T @ Y)
     print()
+
 
 if __name__ == "__main__":
     main()

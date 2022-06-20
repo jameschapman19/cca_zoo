@@ -47,56 +47,6 @@ def log_dir(version=None) -> str:
     return log_dir
 
 
-def get_num_batches(X, Y=None, batch_size=None):
-    num = X.shape[0]
-    if batch_size is None:
-        batch_size = num
-    num_complete_batches, leftover = divmod(num, batch_size)
-    num_batches = num_complete_batches + bool(leftover)
-    return num_batches
-
-
-def data_stream(X, Y=None, batch_size=0, random_state=0):
-    num = X.shape[0]
-    if batch_size == 0:
-        batch_size = num
-    num_complete_batches, leftover = divmod(num, batch_size)
-    num_batches = num_complete_batches + bool(leftover)
-    rng = np.random.RandomState(random_state)
-    while True:
-        perm = rng.permutation(num)
-        for i in range(num_batches):
-            batch_idx = perm[i * batch_size : (i + 1) * batch_size]
-            if Y is None:
-                yield jnp.array(X[batch_idx])
-            else:
-                yield np.array(X[batch_idx]), np.array(Y[batch_idx])
-
-
-def data_stream_UKBB(batch_ids, path, batch_size=0):
-    num = len(batch_ids)
-    if batch_size == 0:
-        batch_size = num
-    num_complete_batches, leftover = divmod(num, batch_size)
-    num_batches = num_complete_batches + bool(leftover)
-    rng = np.random.RandomState(0)
-    while True:
-        perm = rng.permutation(batch_ids)
-        for i in range(num_batches):
-            batch_idx = perm[i]
-            # load batch - batches are in groups of 500 subjects
-            # X is brain data
-            X = (
-                pd.read_csv(join(path, f"pack_{batch_idx}_img_sd.tab"), delimiter=" ")
-                .to_numpy()
-                .T
-            )
-            f = gzip.GzipFile(join(path, f"pack_{batch_idx}_norm.tab.gz"), "r")
-            # Y is genetics data
-            Y = pd.read_csv(f, delimiter=" ").to_numpy().T
-            yield X, Y
-
-
 def check_random_state(seed):
     """Turn seed into a prng. instance
     Parameters

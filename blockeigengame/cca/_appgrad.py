@@ -2,20 +2,20 @@
 Appgrad
 """
 from functools import partial
-from os import environ
 from re import I
 
 import jax
 import jax.numpy as jnp
+import jax.scipy as jsp
 import optax
 from jax import jit
-import jax.scipy as jsp
-from ._utils import mat_pow
 from scipy.linalg import sqrtm
-from ._ccamixin import _CCAMixin
-from .._baseexperiment import _BaseExperiment
 
-class AppGrad(_BaseExperiment,_CCAMixin):
+from .._baseexperiment import _BaseExperiment
+from ._ccamixin import _CCAMixin
+
+
+class AppGrad(_BaseExperiment, _CCAMixin):
     def __init__(self, mode, init_rng, config):
         super(AppGrad, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -24,9 +24,9 @@ class AppGrad(_BaseExperiment,_CCAMixin):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._U = jax.random.normal(self.init_rng, (self.n_components, self.dims[0]))
+        self._U = jax.random.normal(self.init_rng, (config.n_components, self.dims[0]))
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
-        self._V = jax.random.normal(self.init_rng, (self.n_components, self.dims[1]))
+        self._V = jax.random.normal(self.init_rng, (config.n_components, self.dims[1]))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._U_tilde = jnp.zeros_like(self._U)
         self._V_tilde = jnp.zeros_like(self._V)
@@ -36,7 +36,7 @@ class AppGrad(_BaseExperiment,_CCAMixin):
                 in_axes=(0, 0, 0),
             )
         )
-        self._optimizer = optax.sgd(learning_rate=learning_rate)
+        self._optimizer = optax.sgd(learning_rate=config.learning_rate)
         self._opt_state_x = self._optimizer.init(self._U_tilde)
         self._opt_state_y = self._optimizer.init(self._V_tilde)
         self.c = c

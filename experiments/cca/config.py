@@ -1,8 +1,11 @@
 from jaxline.base_config import get_base_config
 from ml_collections import config_dict
 
+N_TRAIN_EXAMPLES=1000
+
 def get_training_steps(batch_size, n_epochs):
-  return (N_TRAIN_EXAMPLES * n_epochs) // batch_size
+    return (N_TRAIN_EXAMPLES * n_epochs) // batch_size
+
 
 def get_config() -> config_dict.ConfigDict:
     # get the basic jax config
@@ -15,7 +18,7 @@ def get_config() -> config_dict.ConfigDict:
     config.batch_size = 256
     config.epochs = 10000
     config.data = "mnist"
-    config.training_steps = get_training_steps(config.batch_size,config.epochs)
+    config.training_steps = get_training_steps(config.batch_size, config.epochs)
     config.val_interval = 1
     config.TCC = True
     config.alpha = False

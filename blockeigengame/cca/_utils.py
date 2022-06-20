@@ -10,8 +10,7 @@ import numpy as np
 def mat_pow(mat, pow_, epsilon):
     # Computing matrix to the power of pow (pow can be negative as well)
     U, S, Vt = jnp.linalg.svd(mat)
-    mat_pow = U @ jnp.diag(jnp.power((S + epsilon), pow_)) @ Vt
-    return mat_pow
+    return U @ jnp.diag(jnp.power((S + epsilon), pow_)) @ Vt
 
 
 @jit
@@ -39,7 +38,6 @@ def _gram_schmidt(V, B):
 @jit
 def _TCC(X, Y, U, V):
     k = U.shape[0]
-    n = X.shape[0]#jnp.corrcoef(Zx,Zy,rowvar=False)
     Zx = X @ U.T
     Zy = Y @ V.T
     all = jnp.hstack((Zx, Zy))
@@ -53,9 +51,11 @@ def _TCC(X, Y, U, V):
     except:
         return np.nan
 
+
 @partial(jit, static_argnums=(1))
-def _split_eigenvector(W,dim):
-    return W[:, : dim], W[:, dim :]
+def _split_eigenvector(W, dim):
+    return W[:, :dim], W[:, dim:]
+
 
 @jit
 def _get_target(X, Y, U, V):

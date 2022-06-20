@@ -9,12 +9,10 @@ from ._utils import _get_AB, _split_eigenvector
 from jax import jit
 from .._baseexperiment import _BaseExperiment
 
-class SSGD(_BaseExperiment,_CCAMixin):
-    def __init__(
-        self,
-        mode, init_rng, config):
-        super(SSGD, self).__init__(
-            mode, init_rng, config)
+
+class SSGD(_BaseExperiment, _CCAMixin):
+    def __init__(self, mode, init_rng, config):
+        super(SSGD, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
         Args:
           mode: A string, equivalent to FLAGS.jaxline_mode when running normally.
@@ -22,7 +20,7 @@ class SSGD(_BaseExperiment,_CCAMixin):
         """
         """Initialization function for a Jaxline experiment."""
         self._W = jax.random.normal(
-            self.init_rng, (self.n_components, self.dims[0] + self.dims[1])
+            self.init_rng, (config.n_components, self.dims[0] + self.dims[1])
         )
         self._W = self._W / jnp.linalg.norm(self._W, keepdims=True, axis=1)
         self._grads = self._grads

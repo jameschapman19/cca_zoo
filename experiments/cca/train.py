@@ -1,9 +1,8 @@
 import os
 from re import I
-
+from jaxline import platform
 from absl import app, flags
 from blockeigengame import cca
-from jaxline_fork import platform
 from ml_collections import config_flags
 import wandb
 
@@ -16,9 +15,9 @@ MODEL_DICT = {
     "genoja": cca.GenOja,
     "sgha": cca.SGHA,
     "appgrad": cca.AppGrad,
-    "ssgd":cca.SSGD,
-    "ssgdgame":cca.SSGDGame,
-    "sghagame":cca.SGHAGame
+    "ssgd": cca.SSGD,
+    "ssgdgame": cca.SSGDGame,
+    "sghagame": cca.SGHAGame,
 }
 
 
@@ -36,25 +35,21 @@ def main(argv):
         "TCC": FLAGS.config.TCC,
         "alpha": FLAGS.config.alpha,
         "val_interval": FLAGS.config.val_interval,
-        "random_state": FLAGS.config.random_seed
+        "random_state": FLAGS.config.random_seed,
     }
     FLAGS.config.log_train_data_interval = FLAGS.config.val_interval
     FLAGS.config.log_tensors_interval = FLAGS.config.val_interval
-    if FLAGS.config.epochs > 0:
-        FLAGS.config.training_steps = get_training_steps(
-            FLAGS.config.data, FLAGS.config.epochs, FLAGS.config.batch_size
-        )
     os.chdir(
         os.path.join(os.path.dirname(os.path.realpath(__file__)), FLAGS.config.data)
     )
-    os.chdir(log_dir())
+    #os.chdir(log_dir())
     FLAGS.config.checkpoint_dir = os.getcwd()
     platform.main(MODEL_DICT[FLAGS.model], argv)
 
 
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
-    config_flags.DEFINE_config_file(
+t    config_flags.DEFINE_config_file(
         "config",
         help_string="Training configuration file.",
         default=os.getcwd() + "/experiments/cca/config.py",

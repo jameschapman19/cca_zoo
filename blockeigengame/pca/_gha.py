@@ -20,7 +20,7 @@ class GHA(_PCAMixin):
         """
         Initialization function for a Jaxline experiment.
         """
-        self._V = jax.random.normal(self.local_rng, (self.n_components, self.dims))
+        self._V = jax.random.normal(self.local_rng, (config.n_components, self.dims))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._optimizer = optax.sgd(
             learning_rate=learning_rate, momentum=momentum, nesterov=nesterov

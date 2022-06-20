@@ -13,12 +13,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string(name="model", default="oja", help="model name")
 # Right so basically this should run from command line/bash script
 # mnist.py --cores 4 --n_components 4 --batch_size 16 --lr 0.001 --model game
-MODEL_DICT = {
-    "game": pca.Game,
-    "oja": pca.Oja,
-    "gha": pca.GHA,
-    "sgha": pca.SGHA
-}
+MODEL_DICT = {"game": pca.Game, "oja": pca.Oja, "gha": pca.GHA, "sgha": pca.SGHA}
 
 
 def main(argv):
@@ -35,7 +30,7 @@ def main(argv):
         "TV": FLAGS.config.TV,
         "alpha": FLAGS.config.alpha,
         "val_interval": FLAGS.config.val_interval,
-        "random_state": FLAGS.config.random_seed
+        "random_state": FLAGS.config.random_seed,
     }
     os.chdir(
         os.path.join(os.path.dirname(os.path.realpath(__file__)), FLAGS.config.data)

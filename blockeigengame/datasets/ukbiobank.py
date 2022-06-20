@@ -9,7 +9,7 @@ import urllib.request
 from os import path
 import jax.numpy as jnp
 import numpy as np
-from ccagame.utils import data_stream_UKBB
+from ._utils import data_stream
 
 
 def ukbb_dataset(num_batches, path, batch_size, **kwargs):
@@ -28,4 +28,4 @@ def ukbb_dataset(num_batches, path, batch_size, **kwargs):
         X,
         Y,
         batch_ids,
-    )  # data_stream_UKBB(batch_ids, path, batch_size=batch_size), (X, Y), (X.shape[1], Y.shape[1])
+    )

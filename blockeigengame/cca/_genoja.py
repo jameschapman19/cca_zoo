@@ -15,7 +15,7 @@ from .._baseexperiment import _BaseExperiment
 from ._ccamixin import _CCAMixin
 
 
-class GenOja(_BaseExperiment,_CCAMixin):
+class GenOja(_BaseExperiment, _CCAMixin):
     def __init__(self, mode, init_rng, config):
         super(GenOja, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -25,10 +25,10 @@ class GenOja(_BaseExperiment,_CCAMixin):
         """
         """Initialization function for a Jaxline experiment."""
         self._W = jax.random.normal(
-            self.init_rng, (self.n_components, self.dims[0] + self.dims[1])
+            self.init_rng, (config.n_components, self.dims[0] + self.dims[1])
         )
         self._Z = jax.random.normal(
-            self.init_rng, (self.n_components, self.dims[0] + self.dims[1])
+            self.init_rng, (config.n_components, self.dims[0] + self.dims[1])
         )
         self._Z = self._Z / jnp.linalg.norm(self._Z, keepdims=True, axis=1)
 

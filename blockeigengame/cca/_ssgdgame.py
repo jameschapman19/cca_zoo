@@ -9,24 +9,24 @@ from ._utils import _get_target
 from jax import jit
 from .._baseexperiment import _BaseExperiment
 
-class SSGDGame(_BaseExperiment,_CCAMixin):
-    def __init__(
-        self,
-        mode, init_rng, config):
-        super(SSGDGame, self).__init__(
-            mode, init_rng, config)
+
+class SSGDGame(_BaseExperiment, _CCAMixin):
+    def __init__(self, mode, init_rng, config):
+        super(SSGDGame, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
         Args:
           mode: A string, equivalent to FLAGS.jaxline_mode when running normally.
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._weights = jnp.ones((self.n_components, self.n_components))
-        self._weights = self._weights.at[jnp.triu_indices(self.n_components, 1)].set(0)
+        self._weights = jnp.ones((config.n_components, config.n_components))
+        self._weights = self._weights.at[jnp.triu_indices(config.n_components, 1)].set(
+            0
+        )
         # generates weights for each component on each device
-        self._U = jax.random.normal(self.init_rng, (self.n_components, self.dims[0]))
+        self._U = jax.random.normal(self.init_rng, (config.n_components, self.dims[0]))
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
-        self._V = jax.random.normal(self.init_rng, (self.n_components, self.dims[1]))
+        self._V = jax.random.normal(self.init_rng, (config.n_components, self.dims[1]))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
         self._grads = jax.jit(
@@ -59,9 +59,9 @@ class SSGDGame(_BaseExperiment,_CCAMixin):
     @staticmethod
     def _grads(ui, U, weights, X, Zx, Zy, zi):
         zx = X @ ui
-        rewards = X.T @ zi * jnp.linalg.norm(zx)**2
+        rewards = X.T @ zi * jnp.linalg.norm(zx) ** 2
         penalties = ((zx.T @ Zy) * (X.T @ Zx)) @ weights
-        return (rewards - penalties)/zx.shape[0]
+        return (rewards - penalties) / zx.shape[0]
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
