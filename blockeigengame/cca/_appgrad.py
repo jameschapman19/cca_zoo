@@ -15,7 +15,7 @@ from .._baseexperiment import _BaseExperiment
 from ._ccamixin import _CCAMixin
 
 
-class AppGrad(_BaseExperiment, _CCAMixin):
+class AppGrad(_CCAMixin,_BaseExperiment):
     def __init__(self, mode, init_rng, config):
         super(AppGrad, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -47,6 +47,17 @@ class AppGrad(_BaseExperiment, _CCAMixin):
         self.whitening_data_stream = self._init_data_stream(
             whitening_batch_size, random_state=1
         )
+
+    def _init_train(self):
+        self._init_ground_truth()
+        views = next(self._train_input)
+        self._U = jax.random.normal(self.init_rng, (self.config.n_components, views[0].shape[1]))
+        self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
+        self._V = jax.random.normal(self.init_rng, (self.config.n_components, views[1].shape[1]))
+        self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
+        self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
+        self._opt_state_x = self._optimizer.init(self._U)
+        self._opt_state_y = self._optimizer.init(self._V)
 
     def _update(self, views, global_step):
         X_i, Y_i = views

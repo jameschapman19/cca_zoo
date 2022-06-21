@@ -6,11 +6,11 @@ from sklearn.model_selection import train_test_split
 from ._utils import demean
 
 
-def linear_dataset(cca=False, random_state=0):
+def linear_dataset(model='cca', random_state=0):
     N = 1000
     COMPONENTS = 50
     rng = np.random.default_rng(random_state)
-    if cca:
+    if model=='cca':
         (X, Y), _ = generate_covariance_data(
             N,
             [COMPONENTS, COMPONENTS],

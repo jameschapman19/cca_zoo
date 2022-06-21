@@ -35,23 +35,6 @@ def _gram_schmidt(V, B):
     return V  # V @ B @ V.T
 
 
-@jit
-def _TCC(X, Y, U, V):
-    k = U.shape[0]
-    Zx = X @ U.T
-    Zy = Y @ V.T
-    all = jnp.hstack((Zx, Zy))
-    C = all.T @ all
-    D = jsp.linalg.block_diag(Zx.T @ Zx, Zy.T @ Zy)
-    C = C - D
-    D = D + 1e-3 * jnp.eye(C.shape[0])
-    p = C.shape[0]
-    try:
-        return eigh(C, D, subset_by_index=[p - k, p - 1])[0].sum()
-    except:
-        return np.nan
-
-
 @partial(jit, static_argnums=(1))
 def _split_eigenvector(W, dim):
     return W[:, :dim], W[:, dim:]

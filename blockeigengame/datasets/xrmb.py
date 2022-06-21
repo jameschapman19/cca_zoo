@@ -30,7 +30,7 @@ def xrmb():
     return view_1["X1"], view_2["X2"], view_1["XTe1"], view_2["XTe2"]
 
 
-def xrmb_dataset():
+def xrmb_dataset(model='cca'):
     X, Y, X_te, Y_te = xrmb()
     X, X_te, Y, Y_te = demean(X, X_te, Y, Y_te)
     X = X.astype(np.float32)
@@ -44,13 +44,3 @@ def xrmb_true():
     U = np.load(os.path.dirname(os.path.realpath(__file__)) + "/U.npy")
     V = np.load(os.path.dirname(os.path.realpath(__file__)) + "/V.npy")
     return U, V
-
-
-def main():
-    X, Y, X_te, Y_te = xrmb_dataset()
-    _, S, _ = np.linalg.svd(X.T @ Y)
-    print()
-
-
-if __name__ == "__main__":
-    main()

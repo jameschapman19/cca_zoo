@@ -15,7 +15,7 @@ from ._ccamixin import _CCAMixin
 from .._baseexperiment import _BaseExperiment
 
 
-class SGHA(_BaseExperiment, _CCAMixin):
+class SGHA(_CCAMixin,_BaseExperiment):
     def __init__(self, mode, init_rng, config):
         super(SGHA, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -24,36 +24,44 @@ class SGHA(_BaseExperiment, _CCAMixin):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._W = jax.random.normal(
-            self.init_rng, (config.n_components, self.dims[0] + self.dims[1])
+        self._weights = jnp.ones((config.n_components, config.n_components))
+        self._weights = self._weights.at[jnp.triu_indices(config.n_components, 1)].set(
+            0
         )
-        self._W /= jnp.linalg.norm(self._W, axis=1, keepdims=True)
         self._update_with_grads = jax.jit(
             jax.vmap(
                 self._update_with_grads,
                 in_axes=(0, 1, 0),
             )
         )
-        self._optimizer = optax.sgd(learning_rate=learning_rate)
-        self._opt_state = self._optimizer.init(self._W)
+
+    def _init_train(self):
+        self._init_ground_truth()
+        views = next(self._train_input)
+        self.W = jax.random.normal(
+            self.init_rng, (self.config.n_components, views[0].shape[1] + views[1].shape[1])
+        )
+        self.W /= jnp.linalg.norm(self.W, axis=1, keepdims=True)
+        self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
+        self._opt_state = self._optimizer.init(self.W)
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        w_grad = self._grad(X_i, Y_i, self._W)
-        self._W, self._opt_state = self._update_with_grads(
-            self._W, w_grad, self._opt_state
+        w_grad = self._grad(X_i, Y_i, self.W, self._weights)
+        self.W, self._opt_state = self._update_with_grads(
+            self.W, w_grad, self._opt_state
         )
-        norm = jnp.linalg.norm(self._W, axis=1, keepdims=True)
+        norm = jnp.linalg.norm(self.W, axis=1, keepdims=True)
         norm = norm.at[norm < 1].set(1)
-        self._W /= norm
-        self._U, self._V = _split_eigenvector(self._W, X_i.shape[1])
+        self.W /= norm
+        self._U, self._V = _split_eigenvector(self.W,X_i.shape[1])
 
     @staticmethod
     @jit
-    def _grad(X_i, Y_i, W):
+    def _grad(X_i, Y_i, W, weights):
         A, B = _get_AB(X_i, Y_i)
         Y = W @ A @ W.T
-        return B @ W.T @ Y - A @ W.T
+        return B @ W.T @ jnp.triu(Y)@weights - A @ W.T
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, wi, grads, opt_state):

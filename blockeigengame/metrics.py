@@ -2,7 +2,6 @@ import jax.numpy as jnp
 from jax import jit
 
 
-@staticmethod
 @jit
 def _correct_eigenvector_streak(U, U_correct):
     n_components = U.shape[0]
@@ -17,7 +16,6 @@ def _correct_eigenvector_streak(U, U_correct):
     return jnp.sum(x_idx)
 
 
-@staticmethod
 @jit
 def _normalized_subspace_distance(U, U_correct):
     U = U.T / jnp.linalg.norm(U, axis=1)
@@ -26,7 +24,6 @@ def _normalized_subspace_distance(U, U_correct):
     return 1 - jnp.trace(U_star @ P) / U_correct.shape[1]
 
 
-@staticmethod
 @jit
 def _sum_cosine_similarities(U, U_correct):
     n_components = U.shape[0]

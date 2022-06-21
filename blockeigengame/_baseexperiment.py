@@ -32,13 +32,13 @@ class _BaseExperiment(AbstractExperiment):
         self._train_input = None
         self._eval_input = None
 
-    def _initialize_model(self):
+    def _init_train(self):
         pass
 
     def _build_input(self) -> Generator:
         """See base class."""
         num_devices = jax.device_count()
-        global_batch_size = self.config.training.batch_size
+        global_batch_size = self.config.batch_size
         per_device_batch_size, ragged = divmod(global_batch_size, num_devices)
 
         if ragged:
@@ -46,17 +46,17 @@ class _BaseExperiment(AbstractExperiment):
                 f"Global batch size {global_batch_size} must be divisible by "
                 f"num devices {num_devices}"
             )
-        X, Y, X_val, Y_val = self._load_data()
+        self.X, self.Y, self.X_val, self.Y_val = self._load_data()
         self._train_input = data_stream(
-            X,
-            Y,
+            self.X,
+            self.Y,
             batch_size=per_device_batch_size,
             random_state=self.config.random_state,
         )
         self._eval_input = data_stream(
-            X_val,
-            Y_val,
-            batch_size=self.config.eval.batch_size,
+            self.X_val,
+            self.Y_val,
+            batch_size=self.config.batch_size,
             random_state=self.config.random_state,
         )
 
@@ -88,14 +88,14 @@ class _BaseExperiment(AbstractExperiment):
     ):
         if self._train_input is None:
             self._build_input()
-            self._initialize_model()
+            self._init_train()
 
         inputs = next(self._train_input)
         self._update(inputs, global_step)
 
-        return self._get_scalars()
+        return self._get_scalars(global_step)
 
-    def _get_scalars(self):
+    def _get_scalars(self,global_step):
         return {}
 
     @abstractmethod

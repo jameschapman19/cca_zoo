@@ -5,11 +5,11 @@ import numpy as np
 from ._utils import demean
 
 
-def exponential_dataset(cca=False, random_state=0):
+def exponential_dataset(model='cca', random_state=0):
     N = 1000
     COMPONENTS = 50
     rng = np.random.default_rng(random_state)
-    if cca:
+    if model=='cca':
         (X, Y), _ = generate_covariance_data(
             1000,
             [COMPONENTS, COMPONENTS],

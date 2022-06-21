@@ -1,33 +1,43 @@
-from jaxline.base_config import get_base_config
+from jaxline import base_config
 from ml_collections import config_dict
 
 N_TRAIN_EXAMPLES=1000
 
 def get_training_steps(batch_size, n_epochs):
+    if batch_size==0:
+        batch_size=N_TRAIN_EXAMPLES
     return (N_TRAIN_EXAMPLES * n_epochs) // batch_size
 
-
-def get_config() -> config_dict.ConfigDict:
-    # get the basic jax config
-    config = get_base_config()
-
+def get_config():
+    config = base_config.get_base_config()
     # these are given by wandb
-    config.learning_rate = 1e-6
+    config.learning_rate = 1e-3
     config.num_devices = 1
-    config.n_components = 1
-    config.batch_size = 256
+    config.n_components = 4
+    config.batch_size = 128
     config.epochs = 10000
-    config.data = "mnist"
+    config.data = "linear"
     config.training_steps = get_training_steps(config.batch_size, config.epochs)
-    config.val_interval = 1
     config.TCC = True
     config.alpha = False
+    config.beta0=1e-3
 
     # defaults
     config.checkpoint_dir = "jaxlog"
-    config.train_checkpoint_all_hosts = False
     config.interval_type = "steps"
-    config.log_train_data_interval = 50
-    config.log_tensors_interval = 50
+    config.log_tensors_interval = 10
+    config.experiment_kwargs.config = {
+            "model": 'cca',
+            "n_components": config.n_components,
+            "num_devices": config.num_devices,
+            "data": config.data,
+            "batch_size": config.batch_size,
+            "learning_rate": config.learning_rate,
+            "TCC": config.TCC,
+            "alpha": config.alpha,
+            "beta0": config.beta0,
+            "random_state": config.random_seed,
+        }
+    # Prevents accidentally setting keys that aren't recognized (e.g. in tests).
     config.lock()
     return config
