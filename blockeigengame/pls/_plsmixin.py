@@ -29,27 +29,19 @@ class _PLSMixin:
 
     def _get_scalars(self, global_step):
         scalars = {}
-        if global_step == 0 or (global_step + 1) % self.val_interval == 0:
-            if self.TV:
-                if self.data != "xrmb":
-                    scalars["TV train"] = _TV(self._U, self._V, self.X, self.Y)
-                    scalars["PV train"] = scalars["TV train"] / self.TV_train
-                scalars["TV val"] = _TV(self._U, self._V, self.X_val, self.Y_val)
-                scalars["PV val"] = scalars["TV val"] / self.TV_val
-            scalars["correct x"] = _correct_eigenvector_streak(self._U, self.correct_U)
-            scalars["correct y"] = _correct_eigenvector_streak(self._V, self.correct_V)
-            scalars["sum cosine similarities x"] = _sum_cosine_similarities(
-                self._U, self.correct_U
-            )
-            scalars["sum cosine similarities y"] = _sum_cosine_similarities(
-                self._V, self.correct_V
-            )
-            scalars["subspace x"] = _normalized_subspace_distance(
-                self._U, self.correct_U
-            )
-            scalars["subspace y"] = _normalized_subspace_distance(
-                self._V, self.correct_V
-            )
+        if global_step == 0 or (global_step + 1) % self.config.val_interval == 0:
+            scalars["TV train"] = _TV(self._U, self._V, self.X, self.Y)
+            scalars["PV train"] = scalars["TV train"] / self.TV_train
+            scalars["TV val"] = _TV(self._U, self._V, self.X_val, self.Y_val)
+            scalars["PV val"] = scalars["TV val"] / self.TV_val
+        scalars["correct x"] = _correct_eigenvector_streak(self._U, self.correct_U)
+        scalars["correct y"] = _correct_eigenvector_streak(self._V, self.correct_V)
+        scalars["sum cosine similarities x"] = _sum_cosine_similarities(
+            self._U, self.correct_U
+        )
+        scalars["sum cosine similarities y"] = _sum_cosine_similarities(
+            self._V, self.correct_V
+        )
         return scalars
 
 

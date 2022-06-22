@@ -13,8 +13,8 @@ from jax import jit
 
 from .._baseexperiment import _BaseExperiment
 from ._ccamixin import _CCAMixin
-from ._utils import _get_AB, _gram_schmidt, _split_eigenvector
-
+from ._utils import _get_AB, _gram_schmidt
+from .._utils import _split_eigenvector
 
 class GenOja(_CCAMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):

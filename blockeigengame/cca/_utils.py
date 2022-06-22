@@ -35,11 +35,6 @@ def _gram_schmidt(V, B):
     return V  # V @ B @ V.T
 
 
-@partial(jit, static_argnums=(1))
-def _split_eigenvector(W, dim):
-    return W[:, :dim], W[:, dim:]
-
-
 @jit
 def _get_target(X, Y, U, V):
     Zx = X @ U.T

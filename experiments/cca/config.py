@@ -38,7 +38,8 @@ def get_config():
             "beta0": config.beta0,
             "c":5e-3,
             "random_state": config.random_seed,
-            "whitening_batch_size":10 * config.n_components
+            "whitening_batch_size":10 * config.n_components,
+            "val_interval":10
         }
     # Prevents accidentally setting keys that aren't recognized (e.g. in tests).
     config.lock()

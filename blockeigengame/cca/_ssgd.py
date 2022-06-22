@@ -8,7 +8,8 @@ from jax import jit
 
 from .._baseexperiment import _BaseExperiment
 from ._ccamixin import _CCAMixin
-from ._utils import _get_AB, _split_eigenvector
+from ._utils import _get_AB
+from .._utils import _split_eigenvector
 
 
 class SSGD(_CCAMixin, _BaseExperiment):

@@ -11,7 +11,7 @@ def get_training_steps(batch_size, n_epochs):
 def get_config():
     config = base_config.get_base_config()
     # these are given by wandb
-    config.learning_rate = 1e-2
+    config.learning_rate = 1e-3
     config.num_devices = 1
     config.n_components = 4
     config.batch_size = 16
@@ -39,7 +39,8 @@ def get_config():
             "c":5e-3,
             "random_state": config.random_seed,
             "whitening_batch_size":10 * config.n_components,
-            "riemann":False
+            "riemann":False,
+            "val_interval":10,
         }
     # Prevents accidentally setting keys that aren't recognized (e.g. in tests).
     config.lock()

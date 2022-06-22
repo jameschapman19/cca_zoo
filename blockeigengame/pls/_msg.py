@@ -26,12 +26,12 @@ class MSG(_PLSMixin,_BaseExperiment):
     def _init_train(self):
         self._init_ground_truth()
         views = next(self._train_input)
-        self._U = jax.random.normal(self.init_rng, (self.config.n_components, views[0].dims[0]))
+        self._U = jax.random.normal(self.init_rng, (self.config.n_components, views[0].shape[1]))
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
-        self._V = jax.random.normal(self.init_rng, (self.config.n_components, views[1].dims[1]))
+        self._V = jax.random.normal(self.init_rng, (self.config.n_components, views[1].shape[1]))
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._S = jax.random.normal(self.init_rng, (self.config.n_components,))
-        if (max(self.dims[0], self.dims[1]) * min(self.dims[0], self.dims[1]) ** 2) < (
+        if (max(views[0].shape[1], views[1].shape[1]) * min(views[0].shape[1], views[1].shape[1]) ** 2) < (
             (self.config.n_components + self.config.batch_size) ** 3
         ):
             self._grads = self._mat_grads
@@ -40,7 +40,7 @@ class MSG(_PLSMixin,_BaseExperiment):
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        self._U, self._V, self._S = self._grads(X_i, Y_i, self._U, self._V, self.learning_rate)
+        self._U, self._V, self._S = self._grads(X_i, Y_i, self._U, self._V, self.config.learning_rate)
         
     @staticmethod
     @jit

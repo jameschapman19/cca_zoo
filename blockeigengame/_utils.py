@@ -1,5 +1,7 @@
+from functools import partial
 import numbers
 import logging
+from jax import jit
 from jax._src import prng
 from jax._src.random import PRNGKey
 import numpy as np
@@ -66,3 +68,7 @@ def check_random_state(seed):
     raise ValueError(
         "%r cannot be used to seed a numpy.random.RandomState instance" % seed
     )
+
+@partial(jit, static_argnums=(1))
+def _split_eigenvector(W, dim):
+    return W[:, :dim], W[:, dim:]

@@ -23,6 +23,6 @@ MODEL_DICT = {
 if __name__ == "__main__":
     wandb.init(sync_tensorboard=True)
     wandb_config = wandb.config
-    Experiment = MODEL_DICT["msg"]
+    Experiment = MODEL_DICT["game"]
     flags.mark_flag_as_required("config")
     app.run(functools.partial(platform.main, Experiment))

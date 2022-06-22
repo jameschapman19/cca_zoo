@@ -14,11 +14,12 @@ from jax import jit
 from numpy import linalg
 from scipy.linalg.misc import norm
 
-from ._plsmixin import _PLSMixin
 from .._baseexperiment import _BaseExperiment
+from .._utils import _split_eigenvector
+from ._plsmixin import _PLSMixin
 
 
-class SGHA(_PLSMixin,_BaseExperiment):
+class SGHA(_PLSMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
         super(SGHA, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -38,7 +39,8 @@ class SGHA(_PLSMixin,_BaseExperiment):
         self._init_ground_truth()
         views = next(self._train_input)
         self._W = jax.random.normal(
-            self.init_rng, (self.config.n_components, views[0].dims[0] + views[1].dims[1])
+            self.init_rng,
+            (self.config.n_components, views[0].shape[1] + views[1].shape[1]),
         )
         self._W /= jnp.linalg.norm(self._W, axis=1, keepdims=True)
         self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
@@ -53,7 +55,7 @@ class SGHA(_PLSMixin,_BaseExperiment):
         norm = jnp.linalg.norm(self._W, axis=1, keepdims=True)
         norm = norm.at[norm < 1].set(1)
         self._W /= norm
-        self._U, self._V = self._split_eigenvector(self._W)
+        self._U, self._V = _split_eigenvector(self._W, X_i.shape[1])
 
     @staticmethod
     @jit
@@ -71,7 +73,3 @@ class SGHA(_PLSMixin,_BaseExperiment):
         updates, opt_state = self._optimizer.update(grads, opt_state)
         wi_new = optax.apply_updates(wi, updates)
         return wi_new, opt_state
-
-    @partial(jit, static_argnums=(0))
-    def _split_eigenvector(self, V):
-        return V[:, : self.dims[0]], V[:, self.dims[0] :]

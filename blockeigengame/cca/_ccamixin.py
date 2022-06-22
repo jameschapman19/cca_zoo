@@ -16,7 +16,7 @@ class _CCAMixin:
 
     def _get_scalars(self, global_step):
         scalars = {}
-        if global_step == 0 or (global_step + 1) % 10 == 0:
+        if global_step == 0 or (global_step + 1) % self.config.val_interval == 0:
             scalars["TCC train"] = _TCC(self.X, self.Y, self._U, self._V)
             scalars["TCC val"] = _TCC(self.X_val, self.Y_val, self._U, self._V)
             scalars["PCC train"] = scalars["TCC train"] / self.TCC_train
