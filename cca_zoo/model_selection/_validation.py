@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np
 from joblib import Parallel
 from mvlearn.compose import SimpleSplitter
@@ -6,27 +8,49 @@ from sklearn.base import is_classifier
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import cross_validate as cross_validate_, check_cv
 from sklearn.model_selection import learning_curve as learning_curve_
-from sklearn.model_selection._validation import _permutation_test_score
 from sklearn.pipeline import Pipeline
 from sklearn.utils import indexable, check_random_state, _safe_indexing
 from sklearn.utils.fixes import delayed
+from sklearn.utils.metaestimators import _safe_split
+from sklearn.utils.validation import _check_fit_params
+
+
+def default_scoring(estimator, scoring, views):
+    if callable(scoring):
+        return scoring
+    elif scoring is None:
+        if len(views) > 2:
+            def scoring(estimator: Pipeline, X, y):
+                transformed_views = estimator.transform(X)
+                all_corrs = []
+                for x, y in itertools.product(transformed_views, repeat=2):
+                    all_corrs.append(
+                        np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], x.shape[1]:])
+                    )
+                all_corrs = np.array(all_corrs).reshape(
+                    (len(transformed_views), len(transformed_views), x.shape[1])
+                )
+                return all_corrs
+        else:
+            scoring = check_scoring(estimator, scoring=scoring)
+    return scoring
 
 
 def cross_validate(
-    estimator,
-    views,
-    y=None,
-    *,
-    groups=None,
-    scoring=None,
-    cv=None,
-    n_jobs=None,
-    verbose=0,
-    fit_params=None,
-    pre_dispatch="2*n_jobs",
-    return_train_score=False,
-    return_estimator=False,
-    error_score=np.nan,
+        estimator,
+        views,
+        y=None,
+        *,
+        groups=None,
+        scoring=None,
+        cv=None,
+        n_jobs=None,
+        verbose=0,
+        fit_params=None,
+        pre_dispatch="2*n_jobs",
+        return_train_score=False,
+        return_estimator=False,
+        error_score=np.nan,
 ):
     """
     Evaluate metric(s) by cross-validation and also record fit/score times.
@@ -123,17 +147,17 @@ def cross_validate(
 
 
 def permutation_test_score(
-    estimator,
-    views,
-    y=None,
-    groups=None,
-    cv=None,
-    n_permutations=100,
-    n_jobs=None,
-    random_state=0,
-    verbose=0,
-    scoring=None,
-    fit_params=None,
+        estimator,
+        views,
+        y=None,
+        groups=None,
+        cv=None,
+        n_permutations=100,
+        n_jobs=None,
+        random_state=0,
+        verbose=0,
+        scoring=None,
+        fit_params=None,
 ):
     """
     Evaluate the significance of a cross-validated score with permutations
@@ -200,6 +224,7 @@ def permutation_test_score(
         .. versionadded:: 0.24
 
     """
+    scorer=default_scoring(estimator, scoring, views)
     estimator = Pipeline(
         [
             ("splitter", SimpleSplitter([X_.shape[1] for X_ in views])),
@@ -209,7 +234,7 @@ def permutation_test_score(
     views, y, groups = indexable(np.hstack(views), y, groups)
 
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
-    scorer = check_scoring(estimator, scoring=scoring)
+
     random_state = check_random_state(random_state)
 
     # We clone the estimator to make sure that all the folds are
@@ -230,8 +255,22 @@ def permutation_test_score(
         for _ in range(n_permutations)
     )
     permutation_scores = np.array(permutation_scores)
-    pvalue = (np.sum(permutation_scores >= score) + 1.0) / (n_permutations + 1)
+    pvalue = (np.sum(permutation_scores >= score, axis=0) + 1.0) / (n_permutations + 1)
     return score, permutation_scores, pvalue
+
+
+def _permutation_test_score(estimator, X, y, groups, cv, scorer, fit_params):
+    """Auxiliary function for permutation_test_score"""
+    # Adjust length of sample weights
+    fit_params = fit_params if fit_params is not None else {}
+    avg_score = []
+    for train, test in cv.split(X, y, groups):
+        X_train, y_train = _safe_split(estimator, X, y, train)
+        X_test, y_test = _safe_split(estimator, X, y, test, train)
+        fit_params = _check_fit_params(X, fit_params, train)
+        estimator.fit(X_train, y_train, **fit_params)
+        avg_score.append(scorer(estimator, X_test, y_test))
+    return np.mean(avg_score, axis=0)
 
 
 def _shuffle(X, groups, random_state, splitter):
@@ -250,22 +289,22 @@ def _shuffle(X, groups, random_state, splitter):
 
 
 def learning_curve(
-    estimator,
-    views,
-    y=None,
-    groups=None,
-    train_sizes=np.linspace(0.1, 1.0, 5),
-    cv=None,
-    scoring=None,
-    exploit_incremental_learning=False,
-    n_jobs=None,
-    pre_dispatch="all",
-    verbose=0,
-    shuffle=False,
-    random_state=None,
-    error_score=np.nan,
-    return_times=False,
-    fit_params=None,
+        estimator,
+        views,
+        y=None,
+        groups=None,
+        train_sizes=np.linspace(0.1, 1.0, 5),
+        cv=None,
+        scoring=None,
+        exploit_incremental_learning=False,
+        n_jobs=None,
+        pre_dispatch="all",
+        verbose=0,
+        shuffle=False,
+        random_state=None,
+        error_score=np.nan,
+        return_times=False,
+        fit_params=None,
 ):
     """
     Learning curve.

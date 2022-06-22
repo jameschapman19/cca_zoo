@@ -219,7 +219,7 @@ class CCA(rCCA):
             scale=scale,
             centre=centre,
             copy_data=copy_data,
-            c=[0.0, 0.0],
+            c=0.0,
             random_state=random_state,
         )
 

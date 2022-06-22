@@ -32,20 +32,24 @@ latent_dims = 1
 from cca_zoo.model_selection import permutation_test_score
 from sklearn.model_selection import KFold, ShuffleSplit
 
-model = CCA()
+LATENT_DIMS = 3
+model = CCA(latent_dims=LATENT_DIMS)
 cv = KFold(2, shuffle=True, random_state=0)
 score, perm_scores, pvalue = permutation_test_score(
     model, (X, Y), cv=cv, n_permutations=100
 )
-plt.show()
+
 # %%
-fig, ax = plt.subplots()
-ax.hist(perm_scores, bins=20, density=True)
-ax.axvline(score, ls="--", color="r")
-score_label = f"Score on original\ndata: {score:.2f}\n(p-value: {pvalue:.3f})"
-ax.text(0.7, 10, score_label, fontsize=12)
-ax.set_xlabel("Correlation")
-_ = ax.set_ylabel("Probability")
+fig, ax = plt.subplots(LATENT_DIMS, figsize=[6,10])
+for k in range(LATENT_DIMS):
+    ax[k].hist(perm_scores[k])
+    ax[k].axvline(score[k], ls="--", color="r")
+    score_label = f"Score on original\ndata: {score[k]:.2f}\n(p-value: {pvalue[k]:.3f})"
+    ax[k].text(1, 8, score_label, fontsize=12)
+    ax[k].set_xlabel("Correlation")
+    _ = ax[k].set_ylabel("Probability")
+    ax[k].set_title(f"Dimension {k + 1}")
+plt.tight_layout()
 plt.show()
 
 # %%
@@ -57,14 +61,14 @@ import matplotlib.pyplot as plt
 
 
 def plot_learning_curve(
-    estimator,
-    title,
-    views,
-    axes=None,
-    ylim=None,
-    cv=None,
-    n_jobs=None,
-    train_sizes=np.linspace(0.1, 1.0, 5),
+        estimator,
+        title,
+        views,
+        axes=None,
+        ylim=None,
+        cv=None,
+        n_jobs=None,
+        train_sizes=np.linspace(0.1, 1.0, 5),
 ):
     """
     Generate 3 plots: the test and training learning curve, the training
