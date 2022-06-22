@@ -18,7 +18,7 @@ from ._plsmixin import _PLSMixin
 from .._baseexperiment import _BaseExperiment
 
 
-class SGHA(_BaseExperiment,_PLSMixin):
+class SGHA(_PLSMixin,_BaseExperiment):
     def __init__(self, mode, init_rng, config):
         super(SGHA, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -27,17 +27,21 @@ class SGHA(_BaseExperiment,_PLSMixin):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._W = jax.random.normal(
-            self.init_rng, (config.n_components, self.dims[0] + self.dims[1])
-        )
-        self._W /= jnp.linalg.norm(self._W, axis=1, keepdims=True)
         self._update_with_grads = jax.jit(
             jax.vmap(
                 self._update_with_grads,
                 in_axes=(0, 1, 0),
             )
         )
-        self._optimizer = optax.sgd(learning_rate=learning_rate)
+
+    def _init_train(self):
+        self._init_ground_truth()
+        views = next(self._train_input)
+        self._W = jax.random.normal(
+            self.init_rng, (self.config.n_components, views[0].dims[0] + views[1].dims[1])
+        )
+        self._W /= jnp.linalg.norm(self._W, axis=1, keepdims=True)
+        self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
         self._opt_state = self._optimizer.init(self._W)
 
     def _update(self, views, global_step):

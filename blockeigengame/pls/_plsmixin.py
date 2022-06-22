@@ -2,36 +2,30 @@ from abc import abstractmethod
 
 import jax.numpy as jnp
 import numpy as np
-from cca_zoo.models import PLS
-
 from blockeigengame.datasets.xrmb import xrmb_true
 from blockeigengame.metrics import (
     _correct_eigenvector_streak,
     _normalized_subspace_distance,
     _sum_cosine_similarities,
 )
-from .._baseexperiment import _BaseExperiment
+from cca_zoo.models import PLS
 from jax import jit
+
+from .._baseexperiment import _BaseExperiment
 
 
 class _PLSMixin:
-    def _init_ground_truth(self, X, Y):
-        if self.data == "xrmb":
+    def _init_ground_truth(self):
+        if self.config.data == "xrmb":
             self.correct_U, self.correct_V = xrmb_true()
             self.correct_U = self.correct_U[:, : self.config.n_components]
             self.correct_V = self.correct_V[:, : self.config.n_components]
         else:
-            U, _, Vt = jnp.linalg.svd(X.T @ Y)
+            U, _, Vt = jnp.linalg.svd(self.X.T @ self.Y)
             self.correct_U = U[:, : self.config.n_components]
             self.correct_V = Vt[: self.config.n_components, :].T
-        if self.TV:
-            if self.data != "xrmb":
-                self.TV_train = self._TV(
-                    self.correct_U.T, self.correct_V.T, self.X, self.Y
-                )
-            self.TV_val = self._TV(
-                self.correct_U.T, self.correct_V.T, self.X_val, self.Y_val
-            )
+        self.TV_train = _TV(self.correct_U.T, self.correct_V.T, self.X, self.Y)
+        self.TV_val = _TV(self.correct_U.T, self.correct_V.T, self.X_val, self.Y_val)
 
     def _get_scalars(self, global_step):
         scalars = {}
@@ -59,7 +53,6 @@ class _PLSMixin:
         return scalars
 
 
-@staticmethod
 @jit
 def _TV(U, V, X_val, Y_val):
     dof = X_val.shape[0]

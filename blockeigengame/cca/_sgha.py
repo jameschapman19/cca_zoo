@@ -61,7 +61,7 @@ class SGHA(_CCAMixin,_BaseExperiment):
     def _grad(X_i, Y_i, W, weights):
         A, B = _get_AB(X_i, Y_i)
         Y = W @ A @ W.T
-        return B @ W.T @ jnp.triu(Y)@weights - A @ W.T
+        return B @ W.T @ jnp.triu(Y) - A @ W.T
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, wi, grads, opt_state):

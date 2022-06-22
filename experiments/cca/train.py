@@ -15,12 +15,13 @@ MODEL_DICT = {
     "sgha": cca.SGHA,
     "appgrad": cca.AppGrad,
     "ssgd": cca.SSGD,
+    "msg":cca.MSG
 }
 
 # TO RUN AN EXPERIMENT YOU HAVE TO TINKER HERE A BIT.
 if __name__ == "__main__":
     wandb.init(sync_tensorboard=True)
     wandb_config = wandb.config
-    Experiment = MODEL_DICT["game"]
+    Experiment = MODEL_DICT["msg"]
     flags.mark_flag_as_required("config")
     app.run(functools.partial(platform.main, Experiment))
