@@ -17,12 +17,12 @@ import matplotlib.pyplot as plt
 # ------
 np.random.seed(42)
 n = 200
-p = 25
-q = 25
-latent_dims = 1
+p = 15
+q = 15
+latent_dims = 3
 
 (X, Y), (tx, ty) = generate_covariance_data(
-    n, view_features=[p, q], latent_dims=latent_dims, correlation=[0.9]
+    n, view_features=[p, q], latent_dims=latent_dims, correlation=[0.9,0.5,0.1]
 )
 
 # %%
@@ -40,12 +40,12 @@ score, perm_scores, pvalue = permutation_test_score(
 )
 
 # %%
-fig, ax = plt.subplots(LATENT_DIMS, figsize=[6,10])
+fig, ax = plt.subplots(LATENT_DIMS, figsize=[12, 8])
 for k in range(LATENT_DIMS):
     ax[k].hist(perm_scores[k])
     ax[k].axvline(score[k], ls="--", color="r")
     score_label = f"Score on original\ndata: {score[k]:.2f}\n(p-value: {pvalue[k]:.3f})"
-    ax[k].text(1, 8, score_label, fontsize=12)
+    ax[k].text(0, 0.5, score_label, fontsize=12)
     ax[k].set_xlabel("Correlation")
     _ = ax[k].set_ylabel("Probability")
     ax[k].set_title(f"Dimension {k + 1}")
