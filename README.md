@@ -1,4 +1,4 @@
-# ccagame
+# Block Eigengame
 
 ## How to run an experiment
 
