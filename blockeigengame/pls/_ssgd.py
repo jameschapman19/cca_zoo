@@ -7,11 +7,11 @@ import optax
 from jax import jit
 
 from .._baseexperiment import _BaseExperiment
-from ._ccamixin import _CCAMixin
-from .._utils import _split_eigenvector,_get_AB
+from .._utils import _get_AB, _split_eigenvector
+from ._plsmixin import _PLSMixin
 
 
-class SSGD(_CCAMixin, _BaseExperiment):
+class SSGD(_PLSMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
         super(SSGD, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -24,7 +24,6 @@ class SSGD(_CCAMixin, _BaseExperiment):
         self._weights = self._weights.at[jnp.triu_indices(config.n_components, 1)].set(
             0
         )
-        self._grads = self._grads
         self._update_with_grads = jax.jit(
             jax.vmap(
                 self._update_with_grads,
@@ -46,19 +45,17 @@ class SSGD(_CCAMixin, _BaseExperiment):
     def _update(self, views, global_step):
         X_i, Y_i = views
         grad = self._grads(X_i, Y_i, self.W, self._weights)
-        self.W, self._opt_state = self._update_with_grads(
-            self.W, grad, self._opt_state
-        )
+        self.W, self._opt_state = self._update_with_grads(self.W, grad, self._opt_state)
         self._U, self._V = _split_eigenvector(self.W, X_i.shape[1])
 
     @staticmethod
-    def _grads(X_i, Y_i, V,weights):
-        A, B = _get_AB(X_i, Y_i)
-        return ((A @ V.T@V @ B @ V.T -  B @ V.T@V @ A @ V.T)@weights).T
+    def _grads(X_i, Y_i, V, weights):
+        A, _ = _get_AB(X_i, Y_i)
+        return ((A @ V.T @ V @ V.T - V.T @ V @ A @ V.T)@weights).T
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
-        updates, opt_state = self._optimizer.update(-grads, opt_state)
+        updates, opt_state = self._optimizer.update(grads, opt_state)
         ui_new = optax.apply_updates(ui, updates)
         ui_new /= jnp.linalg.norm(ui_new, keepdims=True)
         return ui_new, opt_state

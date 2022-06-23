@@ -8,12 +8,11 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 import optax
-from ._utils import _get_AB
 from jax import jit
 
 from ._ccamixin import _CCAMixin
 from .._baseexperiment import _BaseExperiment
-from .._utils import _split_eigenvector
+from .._utils import _split_eigenvector,_get_AB
 
 class SGHA(_CCAMixin,_BaseExperiment):
     def __init__(self, mode, init_rng, config):

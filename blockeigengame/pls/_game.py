@@ -95,7 +95,7 @@ class Game(_PLSMixin,_BaseExperiment):
     @staticmethod
     def _grads(ux, zx, zy, weights, X, Zx, Zy, U):
         rewards = X.T @ zy
-        covariance = -((zx.T @ Zy) * U.T) @ weights
+        covariance = -(((zx.T @ Zy)+(zy.T@Zx)) * U.T) @ weights
         grads = rewards + covariance
         return grads / zy.shape[0]
 

@@ -3,7 +3,7 @@ import jax
 import jax.numpy as jnp
 import optax
 
-from .utils import incrsvd
+from ._utils import incrsvd
 from ._plsmixin import _PLSMixin
 from .._baseexperiment import _BaseExperiment
 from jax import jit

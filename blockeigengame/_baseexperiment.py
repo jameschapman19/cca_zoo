@@ -70,11 +70,11 @@ class _BaseExperiment(AbstractExperiment):
         elif self.config.data == "xrmb":
             X, Y, X_val, Y_val = xrmb_dataset()
         elif self.config.data == "linear":
-            X, Y, X_val, Y_val = linear_dataset(
+            X, Y, X_val, Y_val = linear_dataset(self.config.n_components,
                 model=self.config.model, random_state=self.config.random_state
             )
         elif self.config.data == "exponential":
-            X, Y, X_val, Y_val = exponential_dataset(
+            X, Y, X_val, Y_val = exponential_dataset(self.config.n_components,
                 model=self.config.model, random_state=self.config.random_state
             )
         elif self.config.data == "ukbb":

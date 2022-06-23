@@ -7,24 +7,30 @@ import optax
 from jax import jit
 
 from .._baseexperiment import _BaseExperiment
+from .._utils import _get_AB, _split_eigenvector
 from ._ccamixin import _CCAMixin
-from .._utils import _split_eigenvector,_get_AB
+from ._utils import _get_target
 
 
-class SSGD(_CCAMixin, _BaseExperiment):
+class DMGame(_CCAMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
-        super(SSGD, self).__init__(mode, init_rng, config)
+        super(DMGame, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
         Args:
           mode: A string, equivalent to FLAGS.jaxline_mode when running normally.
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._weights = jnp.ones((config.n_components, config.n_components))
+        self._weights = jnp.ones(
+            (config.n_components, config.n_components)
+        )  # - jnp.eye(
+        #    config.n_components
+        # )
         self._weights = self._weights.at[jnp.triu_indices(config.n_components, 1)].set(
             0
         )
-        self._grads = self._grads
+        # generates weights for each component on each device
+        self._grads = jax.jit(jax.vmap(self._grads, in_axes=(None, None, 0, None, 0)))
         self._update_with_grads = jax.jit(
             jax.vmap(
                 self._update_with_grads,
@@ -45,19 +51,20 @@ class SSGD(_CCAMixin, _BaseExperiment):
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        grad = self._grads(X_i, Y_i, self.W, self._weights)
-        self.W, self._opt_state = self._update_with_grads(
-            self.W, grad, self._opt_state
-        )
+        grad = self._grads(X_i, Y_i, self.W, self.W, self._weights)
+        self.W, self._opt_state = self._update_with_grads(self.W, grad, self._opt_state)
         self._U, self._V = _split_eigenvector(self.W, X_i.shape[1])
 
     @staticmethod
-    def _grads(X_i, Y_i, V,weights):
+    def _grads(X_i, Y_i, vi, V, weights):
         A, B = _get_AB(X_i, Y_i)
-        return ((A @ V.T@V @ B @ V.T -  B @ V.T@V @ A @ V.T)@weights).T
+        rewards = A @ V.T @ ((V @ B @ vi) * weights)
+        penalties = B @ V.T @ ((V @ A @ vi) * weights)
+        return rewards - penalties
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
+        # we have gradient of utilities so we negate for gradient descent
         updates, opt_state = self._optimizer.update(-grads, opt_state)
         ui_new = optax.apply_updates(ui, updates)
         ui_new /= jnp.linalg.norm(ui_new, keepdims=True)
