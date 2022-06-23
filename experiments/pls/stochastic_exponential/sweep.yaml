@@ -1,0 +1,20 @@
+project: PLS_EXPONENTIAL
+program: experiments/pls/train.py
+method: grid
+parameters:
+  model:
+    values: ['game','alphagame','gameR','alphagameR','sgha','power','msg','incremental']
+  config.data:
+    values: ['exponential']
+  config.epochs:
+    values: [10]
+  config.val_interval:
+    values: [10]
+  config.n_components:
+    values: [50]
+  config.learning_rate:
+    values: [1e-2,1e-3,1e-4,1e-5]
+  config.batch_size:
+    values: [1]
+  config.n_components:
+    values: [50]

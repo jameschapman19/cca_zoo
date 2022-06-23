@@ -4,6 +4,8 @@
 #
 #    pip-compile setup.py
 #
+jaxline
+cca-zoo
 absl-py==0.15.0
     # via
     #   jax
@@ -104,3 +106,10 @@ wandb==0.12.5
     # via ccagame (setup.py)
 yaspin==2.1.0
     # via wandb
+optax
+ml_collections
+wrapt
+tensorflow
+
+
+#jc edit: tensorflow, optax, scikit-learn, jax, jaxlib, pandas wandb, jaxline, cca-zoo

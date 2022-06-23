@@ -1,0 +1,14 @@
+project: PCA_LINEAR
+program: experiments/pca/train.py
+method: grid
+parameters:
+  model:
+    values: ['oja','game']
+  config.data:
+    values: ['mnist']
+  config.training_steps:
+    values: [2000]
+  config.learning_rate:
+    values: [1e-2,1e-3, 1e-4]
+  config.batch_size:
+    values: [1024]

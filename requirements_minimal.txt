@@ -1,0 +1,6 @@
+tensorflow
+optax
+jax
+wandb
+jaxline
+cca-zoo
