@@ -56,7 +56,7 @@ class SGHA(_CCAMixin,_BaseExperiment):
         self._U, self._V = _split_eigenvector(self.W,X_i.shape[1])
 
     @staticmethod
-    @jit
+    #@jit
     def _grad(X_i, Y_i, W, weights):
         A, B = _get_AB(X_i, Y_i)
         Y = W @ A @ W.T

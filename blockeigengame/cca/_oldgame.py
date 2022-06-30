@@ -8,13 +8,12 @@ from jax import jit
 
 from .._baseexperiment import _BaseExperiment
 from ._ccamixin import _CCAMixin
-from ._sgha import SGHA
 from ._utils import _get_target
 
 
-class Game(_CCAMixin, _BaseExperiment):
+class OldGame(_CCAMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
-        super(Game, self).__init__(mode, init_rng, config)
+        super(OldGame, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
         Args:
           mode: A string, equivalent to FLAGS.jaxline_mode when running normally.
@@ -66,15 +65,11 @@ class Game(_CCAMixin, _BaseExperiment):
             self._V, grads_y, self._opt_state_y
         )
 
-        # cons=jnp.linalg.norm(jnp.hstack((self._U,self._V)),axis=1,keepdims=True)
-        # self._U/=cons
-        # self._V/=cons
-
     @staticmethod
-    def _grads(ui, zx, zy, Zx, Zy, weights, X):
-        rewards = (X.T @ zy) * jnp.dot(zx, zx)
-        penalties = (X.T @ Zx) @ (jnp.dot(zx, Zy) * weights)  # cross terms
-        return (rewards - penalties) / (X.shape[0] ** 2)
+    def _grads(ui, zx_i, zy_i, Zx, Zy, weights, X):
+        rewards = (X.T @ zy_i) * ((jnp.dot(zx_i, zx_i) + jnp.dot(zy_i, zy_i))) #just the diagonal terms
+        penalties = (X.T @ Zx) @ ((jnp.dot(zx_i, Zy) + jnp.dot(zy_i, Zx)) * weights) #cross terms
+        return (rewards - penalties) / X.shape[0]
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):

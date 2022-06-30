@@ -16,8 +16,8 @@ def get_config():
     # these are given by wandb
     config.learning_rate = 1e-2
     config.num_devices = 1
-    config.n_components = 2
-    config.batch_size = 32
+    config.n_components = 16
+    config.batch_size = 0
     config.epochs = 10000
     config.data = "linear"
     config.training_steps = get_training_steps(config.batch_size, config.epochs)
@@ -41,6 +41,7 @@ def get_config():
         "alpha": config.alpha,
         "beta0": config.beta0,
         "c": 5e-3,
+        "tau": [0.7, 0.7],
         "random_state": config.random_seed,
         "whitening_batch_size": 10 * config.n_components,
         "riemann": False,

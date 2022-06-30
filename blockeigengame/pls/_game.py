@@ -19,9 +19,9 @@ class Game(_PLSMixin,_BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._weights = jnp.ones((config.n_components, config.n_components)) - jnp.eye(
-            config.n_components
-        )
+        self._weights = jnp.ones((config.n_components, config.n_components))# - jnp.eye(
+        #    config.n_components
+        #)
         self._weights = self._weights.at[jnp.triu_indices(config.n_components, 1)].set(
             0
         )
@@ -30,15 +30,12 @@ class Game(_PLSMixin,_BaseExperiment):
             self._grads = jax.jit(
                 jax.vmap(
                     jax.grad(self._utils),
-                    in_axes=(0, 1,1, 0, None, None, None, None),
+                    in_axes=(0, 1, 1, None, None, 0, None, None),
                 )
             )
         else:
             self._grads = jax.jit(
-                jax.vmap(
-                    self._grads,
-                    in_axes=(0, 1,1, 0, None, None, None, None),
-                )
+                jax.vmap(self._grads, in_axes=(0, 1, 1, None, None, 0, None, None))
             )
         self._update_with_grads = jax.jit(
             jax.vmap(
@@ -64,8 +61,8 @@ class Game(_PLSMixin,_BaseExperiment):
             Y_i,
         ) = views
         Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
-        grads_x = self._grads(self._U, Zx,Zy, self._weights, X_i, Zx, Zy, self._U)
-        grads_y = self._grads(self._V, Zy,Zx, self._weights, Y_i, Zy, Zx, self._V)
+        grads_x = self._grads(self._U, Zx, Zy, Zx, Zy, self._weights, X_i, self._U)
+        grads_y = self._grads(self._V, Zy, Zx, Zy, Zx, self._weights, Y_i, self._V)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
@@ -93,15 +90,14 @@ class Game(_PLSMixin,_BaseExperiment):
 
     
     @staticmethod
-    def _grads(ux, zx, zy, weights, X, Zx, Zy, U):
+    def _grads(ui, zx, zy, Zx, Zy, weights, X,U):
         rewards = X.T @ zy
-        covariance = -(((zx.T @ Zy)+(zy.T@Zx)) * U.T) @ weights
-        grads = rewards + covariance
-        return grads / zy.shape[0]
+        penalties = U.T @ (jnp.dot(zx, Zy) * weights) #cross terms#-(((zx.T @ Zy)+(zy.T@Zx)) * U.T) @ weights
+        return (rewards - penalties) / X.shape[0]
 
     @staticmethod
-    def _utils(ux, zx, zy, weights, X, Zx, Zy, U):
-        zx = X @ ux
+    def _utils(ui, zx, zy, Zx, Zy, weights, X):
+        zx = X @ ui
         rewards = zx @ zy
         covariance = -((zx @ Zy) ** 2) / jnp.diag(Zx.T @ Zy) @ weights
         grads = rewards + covariance

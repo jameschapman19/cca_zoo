@@ -6,7 +6,7 @@ from re import I
 import jax
 import wandb
 from absl import app, flags
-from blockeigengame import cca, pls
+from blockeigengame import cca, pls, rcca
 from blockeigengame._utils import log_dir
 from jaxline import base_config, platform
 from ml_collections import config_flags
@@ -19,7 +19,8 @@ MODEL_DICT = {
         "appgrad": cca.AppGrad,
         "ssgd": cca.SSGD,
         "msg": cca.MSG,
-        "dmgame": cca.DMGame,
+        "oldgame": cca.OldGame,
+        "rcca":rcca.Game,
     },
     "PLS": {
         "game": pls.Game,
@@ -35,6 +36,6 @@ MODEL_DICT = {
 if __name__ == "__main__":
     wandb.init(sync_tensorboard=True)
     wandb_config = wandb.config
-    Experiment = MODEL_DICT["CCA"]["dmgame"]
+    Experiment = MODEL_DICT["CCA"]["rcca"]
     flags.mark_flag_as_required("config")
     app.run(functools.partial(platform.main, Experiment))
