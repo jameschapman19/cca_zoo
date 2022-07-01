@@ -1,18 +1,22 @@
 import functools
-from re import I
-import wandb
-from absl import app
-from blockeigengame import cca, pls, rcca
-from jaxline import platform
-from absl import flags
 import os
+from re import I
+
+import wandb
+from absl import app, flags
+from blockeigengame import cca, pls, rcca
 from blockeigengame._utils import log_dir
-flags.DEFINE_integer('batch_size',0,'batch size')
-flags.DEFINE_string('data','linear','dataset name')
-flags.DEFINE_string('experiment','CCA','whether to run a PLS or CCA experiment')
-flags.DEFINE_integer('training_steps',1000,'training steps')
-flags.DEFINE_integer('n_components',3,'number of components')
-flags.DEFINE_float('learning_rate',1e-1,'learning rate')
+from jaxline import platform
+
+_BATCH_SIZE = flags.DEFINE_integer("batch_size", 256, "batch size")
+_MODEL = flags.DEFINE_string("model", "msg", "model")
+_DATA = flags.DEFINE_string("data", "mnist", "dataset name")
+_EXPERIMENT = flags.DEFINE_string(
+    "experiment", "CCA", "whether to run a PLS or CCA experiment"
+)
+_N_COMPONENTS = flags.DEFINE_integer("n_components", 3, "number of components")
+_LEARNING_RATE = flags.DEFINE_float("learning_rate", 5e-3, "learning rate")
+_EPOCHS = flags.DEFINE_integer("epochs", 100, "epochs")
 
 MODEL_DICT = {
     "CCA": {
@@ -22,7 +26,8 @@ MODEL_DICT = {
         "appgrad": cca.AppGrad,
         "ssgd": cca.SSGD,
         "msg": cca.MSG,
-        "rcca":rcca.Game,
+        "rcca": rcca.Game,
+        "saa": cca.SAA,
     },
     "PLS": {
         "game": pls.Game,
@@ -31,17 +36,22 @@ MODEL_DICT = {
         "incremental": pls.Incremental,
         "sgha": pls.SGHA,
         "ssgd": pls.SSGD,
+        "saa": pls.SAA,
     },
 }
 
-defaults={
-    'experiment':'CCA',
-    'model':'ssgd',
-    'data':'linear'
+defaults = {
+    "experiment": _EXPERIMENT.default,
+    "model": _MODEL.default,
+    "data": _DATA.default,
+    "epochs": _EPOCHS.default,
+    "batch_size": _BATCH_SIZE.default,
+    "n_components": _N_COMPONENTS.default,
+    "learning_rate": _LEARNING_RATE.default,
 }
 
 
 if __name__ == "__main__":
-    wandb.init(config=defaults)
+    wandb.init(config=defaults, sync_tensorboard=True)
     Experiment = MODEL_DICT[wandb.config.experiment][wandb.config.model]
     app.run(functools.partial(platform.main, Experiment))

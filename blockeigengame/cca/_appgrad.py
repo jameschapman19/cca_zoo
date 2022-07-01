@@ -15,9 +15,11 @@ from .._baseexperiment import _BaseExperiment
 from ._ccamixin import _CCAMixin
 from ..datasets._utils import data_stream
 from absl import flags
-flags.DEFINE_list('c',[0,0],'batch size')
 
-class AppGrad(_CCAMixin,_BaseExperiment):
+flags.DEFINE_list("c", [0, 0], "batch size")
+
+
+class AppGrad(_CCAMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
         super(AppGrad, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -32,14 +34,17 @@ class AppGrad(_CCAMixin,_BaseExperiment):
                 in_axes=(0, 0, 0),
             )
         )
-        
 
     def _init_train(self):
         self._init_ground_truth()
         views = next(self._train_input)
-        self._U = jax.random.normal(self.init_rng, (self.config.n_components, views[0].shape[1]))
+        self._U = jax.random.normal(
+            self.init_rng, (self.config.n_components, views[0].shape[1])
+        )
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
-        self._V = jax.random.normal(self.init_rng, (self.config.n_components, views[1].shape[1]))
+        self._V = jax.random.normal(
+            self.init_rng, (self.config.n_components, views[1].shape[1])
+        )
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._U_tilde = jnp.zeros_like(self._U)
         self._V_tilde = jnp.zeros_like(self._V)
@@ -74,7 +79,7 @@ class AppGrad(_CCAMixin,_BaseExperiment):
         return wi_new, opt_state
 
     @staticmethod
-    #@jit
+    # @jit
     def _normalize(X_i, U, c):
         n = X_i.shape[0]
         M = (U @ X_i.T @ X_i @ U.T) / n + c * jnp.eye(U.shape[0])

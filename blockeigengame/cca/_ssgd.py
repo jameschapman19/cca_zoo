@@ -8,7 +8,7 @@ from jax import jit
 
 from .._baseexperiment import _BaseExperiment
 from ._ccamixin import _CCAMixin
-from .._utils import _split_eigenvector,_get_AB
+from .._utils import _split_eigenvector, _get_AB
 
 
 class SSGD(_CCAMixin, _BaseExperiment):
@@ -46,16 +46,14 @@ class SSGD(_CCAMixin, _BaseExperiment):
     def _update(self, views, global_step):
         X_i, Y_i = views
         grad = self._grads(X_i, Y_i, self.W, self._weights)
-        self.W, self._opt_state = self._update_with_grads(
-            self.W, grad, self._opt_state
-        )
+        self.W, self._opt_state = self._update_with_grads(self.W, grad, self._opt_state)
         self._U, self._V = _split_eigenvector(self.W, X_i.shape[1])
 
     @staticmethod
     @jit
-    def _grads(X_i, Y_i, V,weights):
+    def _grads(X_i, Y_i, V, weights):
         A, B = _get_AB(X_i, Y_i)
-        return ((A @ V.T@V @ B @ V.T -  B @ V.T@V @ A @ V.T)@weights).T
+        return (A @ V.T @ V @ B @ V.T - (B @ V.T @ V @ A @ V.T)).T
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):

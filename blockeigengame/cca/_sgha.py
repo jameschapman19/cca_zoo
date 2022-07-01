@@ -12,9 +12,10 @@ from jax import jit
 
 from ._ccamixin import _CCAMixin
 from .._baseexperiment import _BaseExperiment
-from .._utils import _split_eigenvector,_get_AB
+from .._utils import _split_eigenvector, _get_AB
 
-class SGHA(_CCAMixin,_BaseExperiment):
+
+class SGHA(_CCAMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
         super(SGHA, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -38,7 +39,8 @@ class SGHA(_CCAMixin,_BaseExperiment):
         self._init_ground_truth()
         views = next(self._train_input)
         self.W = jax.random.normal(
-            self.init_rng, (self.config.n_components, views[0].shape[1] + views[1].shape[1])
+            self.init_rng,
+            (self.config.n_components, views[0].shape[1] + views[1].shape[1]),
         )
         self.W /= jnp.linalg.norm(self.W, axis=1, keepdims=True)
         self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
@@ -53,7 +55,7 @@ class SGHA(_CCAMixin,_BaseExperiment):
         norm = jnp.linalg.norm(self.W, axis=1, keepdims=True)
         norm = norm.at[norm < 1].set(1)
         self.W /= norm
-        self._U, self._V = _split_eigenvector(self.W,X_i.shape[1])
+        self._U, self._V = _split_eigenvector(self.W, X_i.shape[1])
 
     @staticmethod
     @jit

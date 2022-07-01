@@ -16,8 +16,10 @@ from ._ccamixin import _CCAMixin
 from ._utils import _gram_schmidt
 from .._utils import _split_eigenvector, _get_AB
 from absl import flags
-flags.DEFINE_float('lr_alpha',1e-3,'batch size')
-flags.DEFINE_float('lr_beta',1e-3,'batch size')
+
+flags.DEFINE_float("lr_alpha", 1e-3, "batch size")
+flags.DEFINE_float("lr_beta", 1e-3, "batch size")
+
 
 class GenOja(_CCAMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
@@ -51,10 +53,12 @@ class GenOja(_CCAMixin, _BaseExperiment):
         self._init_ground_truth()
         views = next(self._train_input)
         self.W = jax.random.normal(
-            self.init_rng, (self.config.n_components, views[0].shape[1] + views[1].shape[1])
+            self.init_rng,
+            (self.config.n_components, views[0].shape[1] + views[1].shape[1]),
         )
         self.V = jax.random.normal(
-            self.init_rng, (self.config.n_components, views[0].shape[1] + views[1].shape[1])
+            self.init_rng,
+            (self.config.n_components, views[0].shape[1] + views[1].shape[1]),
         )
         self.V = self.V / jnp.linalg.norm(self.V, keepdims=True, axis=1)
         self._optimizer_ls = optax.sgd(learning_rate=self.config.lr_alpha)
@@ -72,7 +76,7 @@ class GenOja(_CCAMixin, _BaseExperiment):
             self.V, self.W / (global_step + 1), self._opt_state_oja
         )
         self.V = _gram_schmidt(self.V, _get_AB(X_i, Y_i)[1])
-        self._U, self._V = _split_eigenvector(self.V,X_i.shape[1])
+        self._U, self._V = _split_eigenvector(self.V, X_i.shape[1])
 
     @staticmethod
     def _grads(X_i, Y_i, W, V):

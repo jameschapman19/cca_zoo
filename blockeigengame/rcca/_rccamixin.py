@@ -8,7 +8,9 @@ from jax import jit
 
 class _RCCAMixin:
     def _init_ground_truth(self):
-        cca = rCCA(latent_dims=self.config.n_components,c=self.config.tau).fit((self.X, self.Y))
+        cca = rCCA(latent_dims=self.config.n_components, c=self.config.tau).fit(
+            (self.X, self.Y)
+        )
         self.correct_U, self.correct_V = cca.weights
         self.correct_Zx, self.correct_Zy = cca.transform((self.X_val, self.Y_val))
         self.TCC_train = _TCC(self.X, self.Y, self.correct_U.T, self.correct_V.T)

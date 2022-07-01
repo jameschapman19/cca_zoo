@@ -10,7 +10,7 @@ from ._plsmixin import _PLSMixin
 from .._baseexperiment import _BaseExperiment
 
 
-class StochasticPower(_PLSMixin,_BaseExperiment):
+class StochasticPower(_PLSMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
         super(StochasticPower, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -19,14 +19,17 @@ class StochasticPower(_PLSMixin,_BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        
 
     def _init_train(self):
         self._init_ground_truth()
         views = next(self._train_input)
-        self._U = jax.random.normal(self.init_rng, (self.config.n_components, views[0].shape[1]))
+        self._U = jax.random.normal(
+            self.init_rng, (self.config.n_components, views[0].shape[1])
+        )
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
-        self._V = jax.random.normal(self.init_rng, (self.config.n_components, views[0].shape[1]))
+        self._V = jax.random.normal(
+            self.init_rng, (self.config.n_components, views[0].shape[1])
+        )
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
         self._opt_state_x = self._optimizer.init(self._U)

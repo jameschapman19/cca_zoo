@@ -10,7 +10,7 @@ from ._plsmixin import _PLSMixin
 from .._baseexperiment import _BaseExperiment
 
 
-class Game(_PLSMixin,_BaseExperiment):
+class Game(_PLSMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
         super(Game, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -19,9 +19,11 @@ class Game(_PLSMixin,_BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._weights = jnp.ones((config.n_components, config.n_components))# - jnp.eye(
+        self._weights = jnp.ones(
+            (config.n_components, config.n_components)
+        )  # - jnp.eye(
         #    config.n_components
-        #)
+        # )
         self._weights = self._weights.at[jnp.triu_indices(config.n_components, 1)].set(
             0
         )
@@ -47,9 +49,13 @@ class Game(_PLSMixin,_BaseExperiment):
     def _init_train(self):
         self._init_ground_truth()
         views = next(self._train_input)
-        self._U = jax.random.normal(self.init_rng, (self.config.n_components, views[0].shape[1]))
+        self._U = jax.random.normal(
+            self.init_rng, (self.config.n_components, views[0].shape[1])
+        )
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
-        self._V = jax.random.normal(self.init_rng, (self.config.n_components, views[1].shape[1]))
+        self._V = jax.random.normal(
+            self.init_rng, (self.config.n_components, views[1].shape[1])
+        )
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
         self._opt_state_x = self._optimizer.init(self._U)
@@ -88,11 +94,12 @@ class Game(_PLSMixin,_BaseExperiment):
         Zy = Y @ V.T
         return Zx, Zy
 
-    
     @staticmethod
-    def _grads(ui, zx, zy, Zx, Zy, weights, X,U):
+    def _grads(ui, zx, zy, Zx, Zy, weights, X, U):
         rewards = X.T @ zy
-        penalties = U.T @ (jnp.dot(zx, Zy) * weights) #cross terms#-(((zx.T @ Zy)+(zy.T@Zx)) * U.T) @ weights
+        penalties = U.T @ (
+            jnp.dot(zx, Zy) * weights
+        )  # cross terms#-(((zx.T @ Zy)+(zy.T@Zx)) * U.T) @ weights
         return (rewards - penalties) / X.shape[0]
 
     @staticmethod

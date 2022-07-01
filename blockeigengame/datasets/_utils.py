@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def get_num_batches(X, Y=None, batch_size=None):
     num = X.shape[0]
     if batch_size is None:
@@ -24,6 +25,7 @@ def data_stream(X, Y=None, batch_size=0, random_state=0):
                 yield jnp.array(X[batch_idx])
             else:
                 yield np.array(X[batch_idx]), np.array(Y[batch_idx])
+
 
 def get_training_steps(data, epochs, batch_size):
     if data == "mnist":

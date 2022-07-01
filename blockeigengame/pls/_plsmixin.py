@@ -34,15 +34,15 @@ class _PLSMixin:
             scalars["PV train"] = scalars["TV train"] / self.TV_train
             scalars["TV val"] = _TV(self._U, self._V, self.X_val, self.Y_val)
             scalars["PV val"] = scalars["TV val"] / self.TV_val
-        scalars["correct x"] = _correct_eigenvector_streak(self._U, self.correct_U)
-        scalars["correct y"] = _correct_eigenvector_streak(self._V, self.correct_V)
-        scalars["sum cosine similarities x"] = _sum_cosine_similarities(
-            self._U, self.correct_U
-        )
-        scalars["sum cosine similarities y"] = _sum_cosine_similarities(
-            self._V, self.correct_V
-        )
-        return scalars
+            scalars["correct x"] = _correct_eigenvector_streak(self._U, self.correct_U)
+            scalars["correct y"] = _correct_eigenvector_streak(self._V, self.correct_V)
+            scalars["sum cosine similarities x"] = _sum_cosine_similarities(
+                self._U, self.correct_U
+            )
+            scalars["sum cosine similarities y"] = _sum_cosine_similarities(
+                self._V, self.correct_V
+            )
+            return scalars
 
 
 @jit

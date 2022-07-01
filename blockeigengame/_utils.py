@@ -10,6 +10,7 @@ import gzip
 import pandas as pd
 from os.path import join
 import jax.numpy as jnp
+from scipy.linalg import sqrtm
 
 log = logging.getLogger(__name__)
 
@@ -69,9 +70,11 @@ def check_random_state(seed):
         "%r cannot be used to seed a numpy.random.RandomState instance" % seed
     )
 
+
 @partial(jit, static_argnums=(1))
 def _split_eigenvector(W, dim):
     return W[:, :dim], W[:, dim:]
+
 
 @jit
 def _get_AB(X_i, Y_i):
@@ -83,3 +86,7 @@ def _get_AB(X_i, Y_i):
     B = C.at[:p, p:].set(0)
     B = B.at[p:, :p].set(0)
     return A, B
+
+
+def invsqrtm(C):
+    return jnp.linalg.inv(sqrtm(C))

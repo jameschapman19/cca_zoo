@@ -6,15 +6,15 @@ from sklearn.model_selection import train_test_split
 from ._utils import demean
 
 
-def linear_dataset(components,model='cca', random_state=0):
+def linear_dataset(components, model="cca", random_state=0):
     N = 1000
     rng = np.random.default_rng(random_state)
-    if model=='cca':
+    if model == "cca":
         (X, Y), _ = generate_covariance_data(
             N,
             [50, 50],
             latent_dims=components,
-            correlation=list(np.linspace(0, 0.9, components+1))[1:],
+            correlation=list(np.linspace(0, 0.9, components + 1))[1:],
             structure="toeplitz",
             sigma=0.5,
             random_state=random_state,

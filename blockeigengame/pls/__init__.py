@@ -4,3 +4,4 @@ from ._stochasticpower import StochasticPower
 from ._incremental import Incremental
 from ._sgha import SGHA
 from ._ssgd import SSGD
+from ._saa import SAA

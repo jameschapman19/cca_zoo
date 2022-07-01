@@ -9,7 +9,7 @@ from .._baseexperiment import _BaseExperiment
 from jax import jit
 
 
-class Incremental(_PLSMixin,_BaseExperiment):
+class Incremental(_PLSMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
         super(Incremental, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -22,9 +22,13 @@ class Incremental(_PLSMixin,_BaseExperiment):
     def _init_train(self):
         self._init_ground_truth()
         views = next(self._train_input)
-        self._U = jax.random.normal(self.init_rng, (self.config.n_components, views[0].shape[1]))
+        self._U = jax.random.normal(
+            self.init_rng, (self.config.n_components, views[0].shape[1])
+        )
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
-        self._V = jax.random.normal(self.init_rng, (self.config.n_components, views[1].shape[1]))
+        self._V = jax.random.normal(
+            self.init_rng, (self.config.n_components, views[1].shape[1])
+        )
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
         self._opt_state_x = self._optimizer.init(self._U)
@@ -41,7 +45,7 @@ class Incremental(_PLSMixin,_BaseExperiment):
         x_orth = X_i - x_hat @ U
         y_hat = Y_i @ V.T
         y_orth = Y_i - y_hat @ V
-        return incrsvd(x_hat, y_hat, x_orth, y_orth, U, V, S)
+        return incrsvd(x_hat, y_hat, x_orth, y_orth, S)
 
     @staticmethod
     @jit

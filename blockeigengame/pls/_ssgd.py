@@ -51,7 +51,7 @@ class SSGD(_PLSMixin, _BaseExperiment):
     @staticmethod
     def _grads(X_i, Y_i, V, weights):
         A, _ = _get_AB(X_i, Y_i)
-        return ((A @ V.T @ V @ V.T - V.T @ V @ A @ V.T)@weights).T
+        return ((A @ V.T @ V @ V.T - V.T @ V @ A @ V.T) @ weights).T
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):

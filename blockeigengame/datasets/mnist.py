@@ -98,13 +98,13 @@ def mnist(permute_train=False):
     return train_images, train_labels, test_images, test_labels
 
 
-def mnist_dataset(model='cca', p=392, random_state=0):
+def mnist_dataset(model="cca", p=392, random_state=0):
     X, _, X_te, _ = mnist()
     rng = np.random.default_rng(random_state)
     X += rng.normal(size=X.shape)
     X_te += rng.normal(size=X_te.shape)
     X, X_te = demean(X, X_te)
-    if model=='pca':
+    if model == "pca":
         return X, None, X_te, None
     else:
         Y = X[:, p:]
