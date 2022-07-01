@@ -12,7 +12,7 @@ flags.DEFINE_string('data','linear','dataset name')
 flags.DEFINE_string('experiment','CCA','whether to run a PLS or CCA experiment')
 flags.DEFINE_integer('training_steps',1000,'training steps')
 flags.DEFINE_integer('n_components',3,'number of components')
-flags.DEFINE_float('learning_rate',1e-3,'number of components')
+flags.DEFINE_float('learning_rate',1e-1,'learning rate')
 
 MODEL_DICT = {
     "CCA": {

@@ -1,0 +1,15 @@
+program: experiments/cca/train.py
+method: grid
+parameters:
+  model:
+    values: ['game','sgha','appgrad','genoja','vicreggame']
+  config.n_components:
+    values: [16]
+  config.data:
+    values: ['mnist']
+  config.epochs:
+    values: [50]
+  config.learning_rate:
+    values: [1e-1,5e-2,1e-2, 5e-3, 1e-3]
+  config.batch_size:
+    values: [256, 512, 1024]

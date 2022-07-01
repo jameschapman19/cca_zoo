@@ -52,6 +52,7 @@ class SSGD(_CCAMixin, _BaseExperiment):
         self._U, self._V = _split_eigenvector(self.W, X_i.shape[1])
 
     @staticmethod
+    @jit
     def _grads(X_i, Y_i, V,weights):
         A, B = _get_AB(X_i, Y_i)
         return ((A @ V.T@V @ B @ V.T -  B @ V.T@V @ A @ V.T)@weights).T

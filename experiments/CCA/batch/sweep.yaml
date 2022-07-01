@@ -1,0 +1,15 @@
+program: experiments/train.py
+method: grid
+parameters:
+  experiment:
+    values: 'cca'
+  model:
+    values: ['game', 'power']
+  data:
+    values: ['linear']
+  training_steps:
+    values: [4000]
+  learning_rate:
+    values: [1e-1,5e-2,1e-2, 5e-3, 1e-3]
+  batch_size:
+    values: [0]

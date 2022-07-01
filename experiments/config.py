@@ -23,7 +23,7 @@ def get_config():
         "num_devices": wandb.config.get('num_devices',1),
         "data": wandb.config.get('data','linear'),
         "batch_size": wandb.config.get('batch_size',0),
-        "learning_rate": wandb.config.get('learning_rate',1e-2),
+        "learning_rate": wandb.config.get('learning_rate',1e-1),
         "alpha": wandb.config.get('alpha',False),
         "beta0": wandb.config.get('beta0',1e-3),
         "c": wandb.config.get('c',5e-3),
@@ -33,7 +33,7 @@ def get_config():
         "riemann": False,
         "val_interval": 10,
     }
-    config.epochs = wandb.config.get('epochs',1000)
+    config.epochs = wandb.config.get('epochs',2000)
     config.training_steps = get_training_steps(config.experiment_kwargs.config['batch_size'], config.epochs)
     # Prevents accidentally setting keys that aren't recognized (e.g. in tests).
     exp_dir=os.path.join('experiments',wandb.config.experiment,wandb.config.data)

@@ -72,7 +72,7 @@ class Game(_CCAMixin, _BaseExperiment):
 
     @staticmethod
     def _grads(ui, zx, zy, Zx, Zy, weights, X):
-        rewards = (X.T @ zy)
+        rewards = (X.T @ zy) * jnp.dot(zx, zx)
         penalties = (X.T @ Zx) @ (jnp.dot(zx, Zy) * weights)  # cross terms
         return (rewards - penalties) / (X.shape[0] ** 2)
 
