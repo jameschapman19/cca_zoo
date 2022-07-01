@@ -72,6 +72,7 @@ class MSG(_CCAMixin, _BaseExperiment):
         wi_new = optax.apply_updates(wi, updates)
         return wi_new, opt_state
 
+    @staticmethod
     def update_cov(U, S, X):
         n_components=len(S)
         x_hat = X @ U.T
