@@ -8,7 +8,7 @@
 hostname
 date
 source /home/jchapman/jaxsourcefile # source
-source /home/jchapman/venvs/ccagame/bin/activate
+source /home/jchapman/venvs/blockeigengame/bin/activate
 wandb login --relogin f6437b9357053a0a34efc60cbfaa03087e8984f9
 wandb agent blah
 done

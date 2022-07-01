@@ -14,7 +14,8 @@ from scipy.linalg import sqrtm
 from .._baseexperiment import _BaseExperiment
 from ._ccamixin import _CCAMixin
 from ..datasets._utils import data_stream
-
+from absl import flags
+flags.DEFINE_list('c',[0,0],'batch size')
 
 class AppGrad(_CCAMixin,_BaseExperiment):
     def __init__(self, mode, init_rng, config):
@@ -48,12 +49,12 @@ class AppGrad(_CCAMixin,_BaseExperiment):
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        x_grads = self._grad(X_i, Y_i, self._V, self._U_tilde, self.config.c)
+        x_grads = self._grad(X_i, Y_i, self._V, self._U_tilde, self.config.c[0])
         self._U_tilde, self._opt_state_x = self._update_with_grads(
             self._U, x_grads, self._opt_state_x
         )
         self._U = self._U_tilde / jnp.linalg.norm(self._U_tilde, axis=1, keepdims=True)
-        y_grads = self._grad(Y_i, X_i, self._U, self._V_tilde, self.config.c)
+        y_grads = self._grad(Y_i, X_i, self._U, self._V_tilde, self.config.c[1])
         self._V_tilde, self._opt_state_y = self._update_with_grads(
             self._V, y_grads, self._opt_state_y
         )

@@ -1,7 +1,7 @@
+import wandb
+from jaxline.base_config import get_base_config
 from blockeigengame._utils import log_dir
-from jaxline import base_config
-from ml_collections import config_dict
-
+import os
 N_TRAIN_EXAMPLES = 1000
 
 
@@ -12,41 +12,35 @@ def get_training_steps(batch_size, n_epochs):
 
 
 def get_config():
-    config = base_config.get_base_config()
-    # these are given by wandb
-    config.learning_rate = 1e-2
-    config.num_devices = 1
-    config.n_components = 16
-    config.batch_size = 0
-    config.epochs = 10000
-    config.data = "linear"
-    config.training_steps = get_training_steps(config.batch_size, config.epochs)
-    config.TCC = True
-    config.alpha = False
-    config.beta0 = 1e-3
-
+    config=get_base_config()
     # defaults
-
     config.checkpoint_dir = "jaxlog"
     config.interval_type = "steps"
     config.log_tensors_interval = 10
     config.experiment_kwargs.config = {
         "model": "cca",
-        "n_components": config.n_components,
-        "num_devices": config.num_devices,
-        "data": config.data,
-        "batch_size": config.batch_size,
-        "learning_rate": config.learning_rate,
-        "TCC": config.TCC,
-        "alpha": config.alpha,
-        "beta0": config.beta0,
-        "c": 5e-3,
-        "tau": [0.7, 0.7],
-        "random_state": config.random_seed,
-        "whitening_batch_size": 10 * config.n_components,
+        "n_components": wandb.config.get('n_components',3),
+        "num_devices": wandb.config.get('num_devices',1),
+        "data": wandb.config.get('data','linear'),
+        "batch_size": wandb.config.get('batch_size',0),
+        "learning_rate": wandb.config.get('learning_rate',1e-2),
+        "alpha": wandb.config.get('alpha',False),
+        "beta0": wandb.config.get('beta0',1e-3),
+        "c": wandb.config.get('c',5e-3),
+        "tau": wandb.config.get('tau',[0.7, 0.7]),
+        "random_state": wandb.config.get('random_seed',42),
+        "whitening_batch_size": 10 * wandb.config.get('n_components',1),
         "riemann": False,
         "val_interval": 10,
     }
+    config.epochs = wandb.config.get('epochs',1000)
+    config.training_steps = get_training_steps(config.experiment_kwargs.config['batch_size'], config.epochs)
     # Prevents accidentally setting keys that aren't recognized (e.g. in tests).
+    exp_dir=os.path.join('experiments',wandb.config.experiment,wandb.config.data)
+    os.makedirs(
+        exp_dir,exist_ok=True)
+    os.chdir(exp_dir)
+    os.chdir(log_dir())
+    config.checkpoint_dir=os.getcwd()
     config.lock()
     return config
