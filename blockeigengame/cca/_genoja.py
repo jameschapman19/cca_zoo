@@ -3,19 +3,18 @@ Gen-Oja: A Simple and Efficient Algorithm for
 Streaming Generalized Eigenvector Computation
 https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-Paper.pdf
 """
-from functools import partial
-from os import environ
-
 import jax
 import jax.numpy as jnp
 import optax
+from absl import flags
+from functools import partial
 from jax import jit
+from os import environ
 
-from .._baseexperiment import _BaseExperiment
 from ._ccamixin import _CCAMixin
 from ._utils import _gram_schmidt
+from .._baseexperiment import _BaseExperiment
 from .._utils import _split_eigenvector, _get_AB
-from absl import flags
 
 flags.DEFINE_float("lr_alpha", 1e-3, "batch size")
 flags.DEFINE_float("lr_beta", 1e-3, "batch size")

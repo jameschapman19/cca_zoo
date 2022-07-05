@@ -1,9 +1,8 @@
-import os
-
 import numpy as np
+import os
 from scipy.io import loadmat
 
-from ._utils import demean
+from ._utils import demean, scale
 
 
 def xrmb():
@@ -32,9 +31,9 @@ def xrmb():
     return view_1["X1"], view_2["X2"], view_1["XTe1"], view_2["XTe2"]
 
 
-def xrmb_dataset(model="cca"):
+def xrmb_dataset():
     X, Y, X_te, Y_te = xrmb()
-    X, X_te, Y, Y_te = demean(X, X_te, Y, Y_te)
+    X, X_te, Y, Y_te = scale(demean(X, X_te, Y, Y_te))
     X = X.astype(np.float32)
     Y = Y.astype(np.float32)
     X_te = X_te.astype(np.float32)

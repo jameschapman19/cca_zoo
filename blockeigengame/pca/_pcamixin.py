@@ -1,14 +1,12 @@
-from abc import abstractmethod
-
 import jax.numpy as jnp
 import numpy as np
+from abc import abstractmethod
 from jax import jit
 
 from blockeigengame.metrics import (
     _correct_eigenvector_streak,
     _normalized_subspace_distance,
 )
-
 from .._baseexperiment import _BaseExperiment
 
 

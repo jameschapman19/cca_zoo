@@ -1,4 +1,5 @@
 import numpy as np
+from sys import stderr
 
 
 def get_num_batches(X, Y=None, batch_size=None):
@@ -20,7 +21,7 @@ def data_stream(X, Y=None, batch_size=0, random_state=0):
     while True:
         perm = rng.permutation(num)
         for i in range(num_batches):
-            batch_idx = perm[i * batch_size : (i + 1) * batch_size]
+            batch_idx = perm[i * batch_size: (i + 1) * batch_size]
             if Y is None:
                 yield jnp.array(X[batch_idx])
             else:
@@ -55,5 +56,17 @@ def demean(X, X_te, Y=None, Y_te=None):
         mean = Y.mean(axis=0)
         Y -= mean
         Y_te -= mean
+        return X, X_te, Y, Y_te
+    return X, X_te
+
+
+def scale(X, X_te, Y=None, Y_te=None):
+    std = X.std(axis=0)
+    X /= std
+    X_te /= std
+    if Y is not None:
+        std = Y.std(axis=0)
+        Y /= std
+        Y_te /= std
         return X, X_te, Y, Y_te
     return X, X_te

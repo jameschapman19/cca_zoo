@@ -1,13 +1,12 @@
-from functools import partial
-from os import environ
-
 import jax
 import jax.numpy as jnp
 import optax
+from functools import partial
 from jax import jit
+from os import environ
 
-from .._baseexperiment import _BaseExperiment
 from ._ccamixin import _CCAMixin
+from .._baseexperiment import _BaseExperiment
 from .._utils import _split_eigenvector, _get_AB
 
 

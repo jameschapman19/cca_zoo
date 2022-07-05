@@ -1,9 +1,10 @@
 import jax.numpy as jnp
 import jax.scipy as jsp
 import numpy as np
-from blockeigengame.metrics import _correct_eigenvector_streak, _sum_cosine_similarities
 from cca_zoo.models import rCCA, CCA, PLS
 from jax import jit
+
+from blockeigengame.metrics import _correct_eigenvector_streak, _sum_cosine_similarities
 
 
 class _RCCAMixin:
@@ -60,6 +61,6 @@ def _TCC(X, Y, U, V):
     D = D + 1e-3 * jnp.eye(C.shape[0])
     C = jnp.linalg.pinv(D) @ C
     try:
-        return (jsp.linalg.eigh(C)[0] - 1)[-U.shape[0] :].sum()
+        return (jsp.linalg.eigh(C)[0] - 1)[-U.shape[0]:].sum()
     except:
         return np.nan

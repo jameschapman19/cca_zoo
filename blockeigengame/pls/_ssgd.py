@@ -1,14 +1,13 @@
-from functools import partial
-from os import environ
-
 import jax
 import jax.numpy as jnp
 import optax
+from functools import partial
 from jax import jit
+from os import environ
 
+from ._plsmixin import _PLSMixin
 from .._baseexperiment import _BaseExperiment
 from .._utils import _get_AB, _split_eigenvector
-from ._plsmixin import _PLSMixin
 
 
 class SSGD(_PLSMixin, _BaseExperiment):

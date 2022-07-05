@@ -1,9 +1,9 @@
-from functools import partial
 import jax.numpy as jnp
 import jax.scipy as jsp
+import numpy as np
+from functools import partial
 from jax import jit
 from scipy.linalg import eigh
-import numpy as np
 
 
 @jit

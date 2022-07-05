@@ -1,10 +1,9 @@
-from functools import partial
-from os import environ
-
 import jax
 import jax.numpy as jnp
 import optax
+from functools import partial
 from jax import jit
+from os import environ
 
 from ._plsmixin import _PLSMixin
 from .._baseexperiment import _BaseExperiment
@@ -98,9 +97,9 @@ class Game(_PLSMixin, _BaseExperiment):
     def _grads(ui, zx, zy, Zx, Zy, weights, X, U):
         rewards = X.T @ zy
         penalties = U.T @ (
-            jnp.dot(zx, Zy) * weights
-        )  # cross terms#-(((zx.T @ Zy)+(zy.T@Zx)) * U.T) @ weights
-        return (rewards - penalties) / X.shape[0]
+                jnp.dot(zx, Zy) * weights
+        )
+        return (rewards - penalties)
 
     @staticmethod
     def _utils(ui, zx, zy, Zx, Zy, weights, X):

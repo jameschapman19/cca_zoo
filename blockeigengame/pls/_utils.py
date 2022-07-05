@@ -1,9 +1,9 @@
-from jax import jit
 import jax.numpy as jnp
+from jax import jit
 
 
 @jit
-def incrsvd(x_hat, yhat, x_orth, y_orth, S):
+def incrsvd(x_hat, yhat, x_orth, y_orth, U, V, S):
     n_components = S.shape[0]
     Q = jnp.vstack(
         (

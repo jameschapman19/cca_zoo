@@ -1,6 +1,6 @@
+import numpy as np
 from cca_zoo.data import generate_covariance_data
 from sklearn.model_selection import train_test_split
-import numpy as np
 
 from ._utils import demean
 

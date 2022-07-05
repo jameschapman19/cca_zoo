@@ -1,12 +1,12 @@
-from os import stat
 import jax
 import jax.numpy as jnp
 import optax
-
-from ._utils import incrsvd
-from ._plsmixin import _PLSMixin
-from .._baseexperiment import _BaseExperiment
 from jax import jit
+from os import stat
+
+from ._plsmixin import _PLSMixin
+from ._utils import incrsvd
+from .._baseexperiment import _BaseExperiment
 
 
 class Incremental(_PLSMixin, _BaseExperiment):
@@ -36,7 +36,9 @@ class Incremental(_PLSMixin, _BaseExperiment):
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        self._U, self._V, self._S = self._grads(X_i, Y_i, self._U, self._V, self._S)
+        self._U, self._V, self._S = self._grads(X_i, Y_i, self._U, self._V,
+                                                self.config.batch_size * (global_step) * self._S)
+        self._S /= (self.config.batch_size * (global_step + 1))
 
     @staticmethod
     @jit
@@ -45,7 +47,7 @@ class Incremental(_PLSMixin, _BaseExperiment):
         x_orth = X_i - x_hat @ U
         y_hat = Y_i @ V.T
         y_orth = Y_i - y_hat @ V
-        return incrsvd(x_hat, y_hat, x_orth, y_orth, S)
+        return incrsvd(x_hat, y_hat, x_orth, y_orth, U, V, S)
 
     @staticmethod
     @jit

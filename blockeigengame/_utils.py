@@ -1,15 +1,15 @@
-from functools import partial
-import numbers
+import gzip
+import jax.numpy as jnp
 import logging
+import numbers
+import numpy as np
+import os
+import pandas as pd
+from functools import partial
 from jax import jit
 from jax._src import prng
 from jax._src.random import PRNGKey
-import numpy as np
-import os
-import gzip
-import pandas as pd
 from os.path import join
-import jax.numpy as jnp
 from scipy.linalg import sqrtm
 
 log = logging.getLogger(__name__)

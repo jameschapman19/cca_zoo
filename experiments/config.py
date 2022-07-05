@@ -7,6 +7,7 @@ N_TRAIN_EXAMPLES = {
     "linear": 1000,
     "exponential": 1000,
     "mnist": 60000,
+    "mediamill":10000,
     "xrmb": 1000000,
 }
 
@@ -21,8 +22,8 @@ def get_config():
     config = get_base_config()
     # defaults
     config.interval_type = "steps"
-    config.log_tensors_interval = 10
-    config.log_train_data_interval = 10
+    config.log_tensors_interval = 100
+    config.log_train_data_interval = 100
     # If True, asynchronously logs training data from every training step.
     config.log_all_train_data = False
     config.experiment_kwargs.config = {
@@ -30,7 +31,7 @@ def get_config():
         "n_components": wandb.config.get("n_components", 3),
         "num_devices": wandb.config.get("num_devices", 1),
         "data": wandb.config.get("data", "linear"),
-        "batch_size": wandb.config.get("batch_size", 10),
+        "batch_size": wandb.config.get("batch_size", 1),
         "learning_rate": wandb.config.get("learning_rate", 1e-2),
         "alpha": wandb.config.get("alpha", False),
         "beta0": wandb.config.get("beta0", 1e-3),
@@ -41,7 +42,7 @@ def get_config():
         "riemann": False,
         "val_interval": config.log_train_data_interval,
     }
-    config.epochs = wandb.config.get("epochs", 2000)
+    config.epochs = wandb.config.get("epochs", 1)
     config.training_steps = get_training_steps(
         config.experiment_kwargs.config["batch_size"],
         config.epochs,

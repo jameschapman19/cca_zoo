@@ -8,15 +8,15 @@ from blockeigengame import cca, pls, rcca
 from blockeigengame._utils import log_dir
 from jaxline import platform
 
-_BATCH_SIZE = flags.DEFINE_integer("batch_size", 256, "batch size")
-_MODEL = flags.DEFINE_string("model", "msg", "model")
-_DATA = flags.DEFINE_string("data", "mnist", "dataset name")
+_BATCH_SIZE = flags.DEFINE_integer("batch_size", 32, "batch size")
+_MODEL = flags.DEFINE_string("model", "game", "model")
+_DATA = flags.DEFINE_string("data", "mediamill", "dataset name")
 _EXPERIMENT = flags.DEFINE_string(
     "experiment", "CCA", "whether to run a PLS or CCA experiment"
 )
-_N_COMPONENTS = flags.DEFINE_integer("n_components", 3, "number of components")
-_LEARNING_RATE = flags.DEFINE_float("learning_rate", 5e-3, "learning rate")
-_EPOCHS = flags.DEFINE_integer("epochs", 100, "epochs")
+_N_COMPONENTS = flags.DEFINE_integer("n_components", 4, "number of components")
+_LEARNING_RATE = flags.DEFINE_float("learning_rate", 1e-1, "learning rate")
+_EPOCHS = flags.DEFINE_integer("epochs", 1, "epochs")
 
 MODEL_DICT = {
     "CCA": {

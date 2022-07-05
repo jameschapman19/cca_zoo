@@ -1,16 +1,16 @@
-from abc import abstractmethod
-
 import jax.numpy as jnp
 import numpy as np
+from abc import abstractmethod
+from cca_zoo.models import PLS
+from jax import jit
+
+from blockeigengame.datasets.mediamill import mediamill_true
 from blockeigengame.datasets.xrmb import xrmb_true
 from blockeigengame.metrics import (
     _correct_eigenvector_streak,
     _normalized_subspace_distance,
     _sum_cosine_similarities,
 )
-from cca_zoo.models import PLS
-from jax import jit
-
 from .._baseexperiment import _BaseExperiment
 
 
@@ -18,6 +18,10 @@ class _PLSMixin:
     def _init_ground_truth(self):
         if self.config.data == "xrmb":
             self.correct_U, self.correct_V = xrmb_true()
+            self.correct_U = self.correct_U[:, : self.config.n_components]
+            self.correct_V = self.correct_V[:, : self.config.n_components]
+        elif self.config.data == "mediamill":
+            self.correct_U, self.correct_V = mediamill_true()
             self.correct_U = self.correct_U[:, : self.config.n_components]
             self.correct_V = self.correct_V[:, : self.config.n_components]
         else:
@@ -45,7 +49,7 @@ class _PLSMixin:
             return scalars
 
 
-@jit
+# @jit
 def _TV(U, V, X_val, Y_val):
     dof = X_val.shape[0]
     Qu, Ru = jnp.linalg.qr(U.T)
@@ -53,10 +57,10 @@ def _TV(U, V, X_val, Y_val):
     Qv, Rv = jnp.linalg.qr(V.T)
     Sv = jnp.sign(jnp.sign(jnp.diag(Rv)) + 0.5)
     return (
-        jnp.trace(
-            jnp.atleast_2d(
-                (Qu @ jnp.diag(Su)).T @ X_val.T @ Y_val @ (Qv @ jnp.diag(Sv))
+            jnp.trace(
+                jnp.atleast_2d(
+                    (Qu @ jnp.diag(Su)).T @ X_val.T @ Y_val @ (Qv @ jnp.diag(Sv))
+                )
             )
-        )
-        / dof
+            / dof
     )

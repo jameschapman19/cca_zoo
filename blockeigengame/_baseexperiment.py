@@ -1,15 +1,17 @@
-from abc import abstractmethod
-from typing import Optional
-from typing import Generator
 import jax
 import jax.numpy as jnp
+from abc import abstractmethod
 from jaxline.experiment import AbstractExperiment
+from typing import Generator
+from typing import Optional
+
 from .datasets import (
     exponential_dataset,
     linear_dataset,
     mnist_dataset,
     ukbb_dataset,
     xrmb_dataset,
+    mediamill_dataset
 )
 from .datasets._utils import data_stream
 
@@ -61,7 +63,7 @@ class _BaseExperiment(AbstractExperiment):
         )
 
     def _load_data(
-        self,
+            self,
     ):
         if self.config.data == "mnist":
             X, Y, X_val, Y_val = mnist_dataset(
@@ -69,6 +71,8 @@ class _BaseExperiment(AbstractExperiment):
             )
         elif self.config.data == "xrmb":
             X, Y, X_val, Y_val = xrmb_dataset()
+        elif self.config.data == "mediamill":
+            X, Y, X_val, Y_val = mediamill_dataset()
         elif self.config.data == "linear":
             X, Y, X_val, Y_val = linear_dataset(
                 self.config.n_components,
@@ -88,7 +92,7 @@ class _BaseExperiment(AbstractExperiment):
         return X, Y, X_val, Y_val
 
     def step(
-        self, global_step: jnp.ndarray, rng: jnp.ndarray, *unused_args, **unused_kwargs
+            self, global_step: jnp.ndarray, rng: jnp.ndarray, *unused_args, **unused_kwargs
     ):
         if self._train_input is None:
             self._build_input()

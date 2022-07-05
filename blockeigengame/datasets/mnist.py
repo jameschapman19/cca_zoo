@@ -16,14 +16,15 @@
 
 import array
 import gzip
+import jax.numpy as jnp
+import numpy as np
 import os
 import struct
 import urllib.request
-from os import path
-import jax.numpy as jnp
-import numpy as np
-from ._utils import demean, data_stream
 from cca_zoo.models import rCCA
+from os import path
+
+from ._utils import demean, data_stream, scale
 
 _DATA = "/tmp/jax_example_data/"
 
@@ -103,7 +104,7 @@ def mnist_dataset(model="cca", p=392, random_state=0):
     rng = np.random.default_rng(random_state)
     X += rng.normal(size=X.shape)
     X_te += rng.normal(size=X_te.shape)
-    X, X_te = demean(X, X_te)
+    X, X_te = scale(demean(X, X_te))
     if model == "pca":
         return X, None, X_te, None
     else:

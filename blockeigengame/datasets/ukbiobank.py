@@ -1,14 +1,14 @@
-from os.path import join
-
-import pandas as pd
 import array
 import gzip
+import jax.numpy as jnp
+import numpy as np
 import os
+import pandas as pd
 import struct
 import urllib.request
 from os import path
-import jax.numpy as jnp
-import numpy as np
+from os.path import join
+
 from ._utils import data_stream
 
 

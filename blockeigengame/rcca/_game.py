@@ -1,15 +1,14 @@
-from functools import partial
-from os import environ
-
 import jax
 import jax.numpy as jnp
 import optax
+from functools import partial
 from jax import jit
+from os import environ
 
-from .._baseexperiment import _BaseExperiment
-from ..cca._utils import _get_target
 from ._rccamixin import _RCCAMixin
 from .. import cca, pls
+from .._baseexperiment import _BaseExperiment
+from ..cca._utils import _get_target
 
 
 class Game(_RCCAMixin, _BaseExperiment):
@@ -73,7 +72,7 @@ class Game(_RCCAMixin, _BaseExperiment):
     @staticmethod
     def _grads(ui, zx, zy, Zx, Zy, weights, X, U, tau):
         return tau * pls.Game._grads(ui, zx, zy, Zx, Zy, weights, X, U) + (
-            1 - tau
+                1 - tau
         ) * cca.Game._grads(ui, zx, zy, Zx, Zy, weights, X)
 
     @partial(jit, static_argnums=(0))

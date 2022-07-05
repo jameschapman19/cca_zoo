@@ -1,10 +1,9 @@
-from functools import partial
-from os import environ
-
 import jax
 import jax.numpy as jnp
 import optax
+from functools import partial
 from jax import jit
+from os import environ
 
 from ._pcamixin import _PCAMixin
 from .._baseexperiment import _BaseExperiment

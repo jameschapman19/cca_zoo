@@ -1,18 +1,25 @@
 import jax.numpy as jnp
 import jax.scipy as jsp
 import numpy as np
-from blockeigengame.datasets.xrmb import xrmb_true
-from blockeigengame.metrics import _correct_eigenvector_streak, _sum_cosine_similarities
 from cca_zoo.models import MCCA
 from jax import jit
-from .._utils import invsqrtm
+from re import I
+
+from blockeigengame.datasets.mediamill import mediamill_true
+from blockeigengame.datasets.xrmb import xrmb_true
+from blockeigengame.metrics import _correct_eigenvector_streak, _sum_cosine_similarities
 from .._utils import _get_AB
+from .._utils import invsqrtm
 
 
 class _CCAMixin:
     def _init_ground_truth(self):
         if self.config.data == "xrmb":
             self.correct_U, self.correct_V = xrmb_true(cca=True)
+            self.correct_U = self.correct_U[:, : self.config.n_components]
+            self.correct_V = self.correct_V[:, : self.config.n_components]
+        elif self.config.data == "mediamill":
+            self.correct_U, self.correct_V = mediamill_true(cca=True)
             self.correct_U = self.correct_U[:, : self.config.n_components]
             self.correct_V = self.correct_V[:, : self.config.n_components]
         else:
@@ -65,6 +72,6 @@ def _TCC(X, Y, U, V):
     D = D + 1e-3 * jnp.eye(C.shape[0])
     C = jnp.linalg.pinv(D) @ C
     try:
-        return (jsp.linalg.eigh(C)[0] - 1)[-U.shape[0] :].sum()
+        return (jsp.linalg.eigh(C)[0] - 1)[-U.shape[0]:].sum()
     except:
         return np.nan
