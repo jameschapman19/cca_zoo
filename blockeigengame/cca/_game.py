@@ -1,12 +1,11 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 import optax
-from functools import partial
 from jax import jit
-from os import environ
 
 from ._ccamixin import _CCAMixin
-from ._sgha import SGHA
 from ._utils import _get_target
 from .._baseexperiment import _BaseExperiment
 
@@ -37,14 +36,16 @@ class Game(_CCAMixin, _BaseExperiment):
 
     def _init_train(self):
         self._init_ground_truth()
-        views = next(self._train_input)
+        views = next(self._eval_input)
         self._U = jax.random.normal(
             self.init_rng, (self.config.n_components, views[0].shape[1])
         )
+        self._U = jnp.ones_like(self._U)
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
         self._V = jax.random.normal(
             self.init_rng, (self.config.n_components, views[1].shape[1])
         )
+        self._V = jnp.ones_like(self._V)
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
         self._opt_state_x = self._optimizer.init(self._U)
@@ -54,22 +55,22 @@ class Game(_CCAMixin, _BaseExperiment):
         (
             X_i,
             Y_i,
-        ) = views  # ((X_i.T@Zx[:,0])*(jnp.dot(Zx[:,0],Zy[:,0])+jnp.dot(Zy[:,0],Zx[:,0]))-(X_i.T@Zy[:,0])*(jnp.dot(Zx[:,0],Zx[:,0])+jnp.dot(Zy[:,0],Zy[:,0])))/X_i.shape[0]
+        ) = views
         Zx, Zy = _get_target(X_i, Y_i, self._U, self._V)
         grads_x = self._grads(self._U, Zx, Zy, Zx, Zy, self._weights, X_i)
-        grads_y = self._grads(self._V, Zy, Zx, Zy, Zx, self._weights, Y_i)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
+        grads_y = self._grads(self._V, Zy, Zx, Zy, Zx, self._weights, Y_i)
         self._V, self._opt_state_y = self._update_with_grads(
             self._V, grads_y, self._opt_state_y
         )
 
-    @staticmethod
-    def _grads(ui, zx, zy, Zx, Zy, weights, X):
+    @partial(jit, static_argnums=(0))
+    def _grads(self, ui, zx, zy, Zx, Zy, weights, X):
         rewards = (X.T @ zy) * jnp.dot(zx, zx)
-        penalties = (X.T @ Zx) @ (jnp.dot(zx, Zy) * weights)  # cross terms
-        return (rewards - penalties) / (X.shape[0])
+        penalties = (X.T @ Zx) @ (jnp.dot(zx, Zy) * weights)
+        return (rewards - penalties) / self.config.batch_size**2
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):

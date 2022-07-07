@@ -1,0 +1,13 @@
+program: experiments/train.py
+method: grid
+parameters:
+  experiment:
+    values: [ 'CCA' ]
+  model:
+    values: [ 'saa' ]
+  data:
+    values: [ 'linear' ]
+  batch_size:
+    values: [ 1 ]
+  n_components:
+    values: [ 50 ]

@@ -1,12 +1,11 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 import optax
-from functools import partial
 from jax import jit
-from os import environ
 
 from ._ccamixin import _CCAMixin
-from ._sgha import SGHA
 from ._utils import _get_target
 from .._baseexperiment import _BaseExperiment
 
@@ -46,12 +45,16 @@ class RSG(_CCAMixin, _BaseExperiment):
             self.init_rng, (self.config.n_components, views[1].shape[1])
         )
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
-        self.Qx = jnp.linalg.qr(jax.random.normal(
-            self.init_rng, (self.config.n_components, views[0].shape[1])
-        ))
-        self.Qy = jnp.linalg.qr(jax.random.normal(
-            self.init_rng, (self.config.n_components, views[1].shape[1])
-        ))
+        self.Qx = jnp.linalg.qr(
+            jax.random.normal(
+                self.init_rng, (self.config.n_components, views[0].shape[1])
+            )
+        )
+        self.Qy = jnp.linalg.qr(
+            jax.random.normal(
+                self.init_rng, (self.config.n_components, views[1].shape[1])
+            )
+        )
 
     def _update(self, views, global_step):
         (

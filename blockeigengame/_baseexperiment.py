@@ -1,9 +1,9 @@
+from abc import abstractmethod
+from typing import Generator
+
 import jax
 import jax.numpy as jnp
-from abc import abstractmethod
 from jaxline.experiment import AbstractExperiment
-from typing import Generator
-from typing import Optional
 
 from .datasets import (
     exponential_dataset,
@@ -11,7 +11,7 @@ from .datasets import (
     mnist_dataset,
     ukbb_dataset,
     xrmb_dataset,
-    mediamill_dataset
+    mediamill_dataset,
 )
 from .datasets._utils import data_stream
 
@@ -63,7 +63,7 @@ class _BaseExperiment(AbstractExperiment):
         )
 
     def _load_data(
-            self,
+        self,
     ):
         if self.config.data == "mnist":
             X, Y, X_val, Y_val = mnist_dataset(
@@ -92,7 +92,7 @@ class _BaseExperiment(AbstractExperiment):
         return X, Y, X_val, Y_val
 
     def step(
-            self, global_step: jnp.ndarray, rng: jnp.ndarray, *unused_args, **unused_kwargs
+        self, global_step: jnp.ndarray, rng: jnp.ndarray, *unused_args, **unused_kwargs
     ):
         if self._train_input is None:
             self._build_input()
@@ -100,8 +100,10 @@ class _BaseExperiment(AbstractExperiment):
 
         inputs = next(self._train_input)
         self._update(inputs, global_step)
-
-        return self._get_scalars(global_step)
+        if global_step == 0 or (global_step + 1) % self.config.val_interval == 0:
+            return self._get_scalars(global_step)
+        else:
+            return {}
 
     def _get_scalars(self, global_step):
         return {}

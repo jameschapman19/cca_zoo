@@ -3,15 +3,13 @@ Gen-Oja: A Simple and Efficient Algorithm for
 Streaming Generalized Eigenvector Computation
 https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-Paper.pdf
 """
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
 import optax
-from functools import partial
 from jax import jit
-from numpy import linalg
-from os import environ
-from scipy.linalg.misc import norm
 
 from ._plsmixin import _PLSMixin
 from .._baseexperiment import _BaseExperiment
@@ -61,9 +59,9 @@ class SGHA(_PLSMixin, _BaseExperiment):
     def _grad(X_i, Y_i, W):
         n = X_i.shape[0]
         A = (
-                    jnp.hstack((X_i, Y_i)).T @ jnp.hstack((X_i, Y_i))
-                    - jsp.linalg.block_diag(X_i.T @ X_i, Y_i.T @ Y_i)
-            ) / n
+            jnp.hstack((X_i, Y_i)).T @ jnp.hstack((X_i, Y_i))
+            - jsp.linalg.block_diag(X_i.T @ X_i, Y_i.T @ Y_i)
+        ) / n
         Y = W @ A @ W.T
         return W.T @ jnp.triu(Y) - A @ W.T
 

@@ -3,12 +3,12 @@ Gen-Oja: A Simple and Efficient Algorithm for
 Streaming Generalized Eigenvector Computation
 https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-Paper.pdf
 """
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 import optax
-from functools import partial
 from jax import jit
-from os import environ
 
 from ._pcamixin import _PCAMixin
 
@@ -23,8 +23,8 @@ class SGHA(_PCAMixin):
         """
         """Initialization function for a Jaxline experiment."""
         self._V = (
-                      jax.random.normal(self.local_rng, (config.n_components, self.dims))
-                  ) / 1000
+            jax.random.normal(self.local_rng, (config.n_components, self.dims))
+        ) / 1000
         self._update_with_grads = jax.jit(
             jax.vmap(
                 self._update_with_grads,

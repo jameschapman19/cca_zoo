@@ -1,19 +1,17 @@
 """
 Appgrad
 """
+from functools import partial
+
 import jax
 import jax.numpy as jnp
-import jax.scipy as jsp
 import optax
 from absl import flags
-from functools import partial
 from jax import jit
-from re import I
 from scipy.linalg import sqrtm
 
 from ._ccamixin import _CCAMixin
 from .._baseexperiment import _BaseExperiment
-from ..datasets._utils import data_stream
 
 flags.DEFINE_list("c", [0, 0], "batch size")
 

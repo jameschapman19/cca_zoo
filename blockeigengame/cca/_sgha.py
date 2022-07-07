@@ -3,10 +3,11 @@ Gen-Oja: A Simple and Efficient Algorithm for
 Streaming Generalized Eigenvector Computation
 https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-Paper.pdf
 """
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 import optax
-from functools import partial
 from jax import jit
 
 from ._ccamixin import _CCAMixin

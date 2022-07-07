@@ -1,17 +1,17 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 import optax
-from functools import partial
 from jax import jit
-from os import environ
 
-from ._rccamixin import _RCCAMixin
 from .. import cca, pls
 from .._baseexperiment import _BaseExperiment
+from ..cca._ccamixin import _CCAMixin
 from ..cca._utils import _get_target
 
 
-class Game(_RCCAMixin, _BaseExperiment):
+class Game(_CCAMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
         super(Game, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
@@ -69,11 +69,11 @@ class Game(_RCCAMixin, _BaseExperiment):
             self._V, grads_y, self._opt_state_y
         )
 
-    @staticmethod
-    def _grads(ui, zx, zy, Zx, Zy, weights, X, U, tau):
-        return tau * pls.Game._grads(ui, zx, zy, Zx, Zy, weights, X, U) + (
-                1 - tau
-        ) * cca.Game._grads(ui, zx, zy, Zx, Zy, weights, X)
+    @partial(jit, static_argnums=(0))
+    def _grads(self, ui, zx, zy, Zx, Zy, weights, X, U, tau):
+        return tau * pls.Game._grads(self, ui, zx, zy, Zx, Zy, weights, X, U) + (
+            1 - tau
+        ) * cca.Game._grads(self, ui, zx, zy, Zx, Zy, weights, X)
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):

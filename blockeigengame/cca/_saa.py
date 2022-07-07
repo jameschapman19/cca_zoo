@@ -3,19 +3,10 @@ SAA
 """
 import jax
 import jax.numpy as jnp
-import jax.scipy as jsp
-import optax
 from cca_zoo.models import MCCA
-from functools import partial
-from jax import jit
-from re import I
-from scipy.linalg import sqrtm
 
 from ._ccamixin import _CCAMixin
 from .._baseexperiment import _BaseExperiment
-from .._utils import _get_AB
-from .._utils import invsqrtm
-from ..datasets._utils import data_stream
 
 
 class SAA(_CCAMixin, _BaseExperiment):

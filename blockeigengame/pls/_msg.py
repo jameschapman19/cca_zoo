@@ -1,9 +1,6 @@
 import jax
 import jax.numpy as jnp
-import optax
-from functools import partial
 from jax import jit
-from os import environ
 
 from ._plsmixin import _PLSMixin
 from ._utils import incrsvd
@@ -33,8 +30,8 @@ class MSG(_PLSMixin, _BaseExperiment):
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._S = jax.random.normal(self.init_rng, (self.config.n_components,))
         if (
-                max(views[0].shape[1], views[1].shape[1])
-                * min(views[0].shape[1], views[1].shape[1]) ** 2
+            max(views[0].shape[1], views[1].shape[1])
+            * min(views[0].shape[1], views[1].shape[1]) ** 2
         ) < ((self.config.n_components + self.config.batch_size) ** 3):
             self._grads = self._mat_grads
         else:
@@ -42,7 +39,9 @@ class MSG(_PLSMixin, _BaseExperiment):
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        self._U, self._V, self._S = self._grads(X_i, Y_i, self._U, self._V, self.config.learning_rate)
+        self._U, self._V, self._S = self._grads(
+            X_i, Y_i, self._U, self._V, self.config.learning_rate
+        )
 
     @staticmethod
     @jit

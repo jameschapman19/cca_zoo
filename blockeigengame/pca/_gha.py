@@ -1,9 +1,9 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 import optax
-from functools import partial
 from jax import jit
-from os import environ, stat
 
 from ._pcamixin import _PCAMixin
 

@@ -3,13 +3,10 @@ import jax.scipy as jsp
 import numpy as np
 from cca_zoo.models import MCCA
 from jax import jit
-from re import I
 
 from blockeigengame.datasets.mediamill import mediamill_true
 from blockeigengame.datasets.xrmb import xrmb_true
 from blockeigengame.metrics import _correct_eigenvector_streak, _sum_cosine_similarities
-from .._utils import _get_AB
-from .._utils import invsqrtm
 
 
 class _CCAMixin:
@@ -30,20 +27,20 @@ class _CCAMixin:
 
     def _get_scalars(self, global_step):
         scalars = {}
-        if global_step == 0 or (global_step + 1) % self.config.val_interval == 0:
-            scalars["TCC train"] = _TCC(self.X, self.Y, self._U, self._V)
-            scalars["TCC val"] = _TCC(self.X_val, self.Y_val, self._U, self._V)
-            scalars["PCC train"] = scalars["TCC train"] / self.TCC_train
-            scalars["PCC val"] = scalars["TCC val"] / self.TCC_val
-            scalars["correct x"] = _correct_eigenvector_streak(self._U, self.correct_U)
-            scalars["correct y"] = _correct_eigenvector_streak(self._V, self.correct_V)
-            scalars["sum cosine similarities x"] = _sum_cosine_similarities(
-                self._U, self.correct_U
-            )
-            scalars["sum cosine similarities y"] = _sum_cosine_similarities(
-                self._V, self.correct_V
-            )
-            return scalars
+        scalars["examples"] = (global_step[0] + 1) * self.config.batch_size
+        scalars["TCC train"] = _TCC(self.X, self.Y, self._U, self._V)
+        scalars["TCC val"] = _TCC(self.X_val, self.Y_val, self._U, self._V)
+        scalars["PCC train"] = scalars["TCC train"] / self.TCC_train
+        scalars["PCC val"] = scalars["TCC val"] / self.TCC_val
+        scalars["correct x"] = _correct_eigenvector_streak(self._U, self.correct_U)
+        scalars["correct y"] = _correct_eigenvector_streak(self._V, self.correct_V)
+        scalars["sum cosine similarities x"] = _sum_cosine_similarities(
+            self._U, self.correct_U
+        )
+        scalars["sum cosine similarities y"] = _sum_cosine_similarities(
+            self._V, self.correct_V
+        )
+        return scalars
 
     def evaluate(self, global_step, rng):
         scalars = {}
@@ -72,6 +69,6 @@ def _TCC(X, Y, U, V):
     D = D + 1e-3 * jnp.eye(C.shape[0])
     C = jnp.linalg.pinv(D) @ C
     try:
-        return (jsp.linalg.eigh(C)[0] - 1)[-U.shape[0]:].sum()
+        return (jsp.linalg.eigh(C)[0] - 1)[-U.shape[0] :].sum()
     except:
         return np.nan

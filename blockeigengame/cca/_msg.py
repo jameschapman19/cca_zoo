@@ -3,16 +3,10 @@ MSG
 """
 import jax
 import jax.numpy as jnp
-import jax.scipy as jsp
-import optax
-from functools import partial
 from jax import jit
-from re import I
 
 from ._ccamixin import _CCAMixin
 from .._baseexperiment import _BaseExperiment
-from .._utils import invsqrtm
-from ..datasets._utils import data_stream
 from ..pls._utils import incrsvd
 
 
@@ -37,14 +31,19 @@ class MSG(_CCAMixin, _BaseExperiment):
             self.init_rng, (self.config.n_components, views[1].shape[1])
         )
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
-        self.Uxx = jnp.zeros((4 * self.config.n_components, views[0].shape[1],))
+        self.Uxx = jnp.zeros(
+            (
+                4 * self.config.n_components,
+                views[0].shape[1],
+            )
+        )
         self.Uyy = jnp.zeros((4 * self.config.n_components, views[1].shape[1]))
         self.Sxx = jnp.zeros(4 * self.config.n_components)
         self.Syy = jnp.zeros(4 * self.config.n_components)
         self._S = jnp.zeros(self.config.n_components)
         if (
-                max(views[0].shape[1], views[1].shape[1])
-                * min(views[0].shape[1], views[1].shape[1]) ** 2
+            max(views[0].shape[1], views[1].shape[1])
+            * min(views[0].shape[1], views[1].shape[1]) ** 2
         ) < ((self.config.n_components + self.config.batch_size) ** 3):
             self._grads = self._mat_grads
         else:
@@ -55,8 +54,8 @@ class MSG(_CCAMixin, _BaseExperiment):
         X_i, Y_i = views
         self.Uxx, self.Sxx = self.update_cov(self.Uxx, self.Sxx * global_step, X_i)
         self.Uyy, self.Syy = self.update_cov(self.Uyy, self.Syy * global_step, Y_i)
-        self.Sxx /= (global_step + 1)
-        self.Syy /= (global_step + 1)
+        self.Sxx /= global_step + 1
+        self.Syy /= global_step + 1
         Wx = X_i @ self.Uxx.T @ jnp.diag(1 / jnp.sqrt(self.Sxx + 1e-9)) @ self.Uxx
         Wy = Y_i @ self.Uyy.T @ jnp.diag(1 / jnp.sqrt(self.Syy + 1e-9)) @ self.Uyy
         self._U, self._V, self._S = self._grads(self._U, self._V, self._S, Wx, Wy, lr)

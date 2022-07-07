@@ -1,9 +1,9 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 import optax
-from functools import partial
 from jax import jit
-from os import environ
 
 from ._plsmixin import _PLSMixin
 from .._baseexperiment import _BaseExperiment
@@ -93,13 +93,11 @@ class Game(_PLSMixin, _BaseExperiment):
         Zy = Y @ V.T
         return Zx, Zy
 
-    @staticmethod
-    def _grads(ui, zx, zy, Zx, Zy, weights, X, U):
+    # @partial(jit, static_argnums=(0))
+    def _grads(self, ui, zx, zy, Zx, Zy, weights, X, U):
         rewards = X.T @ zy
-        penalties = U.T @ (
-                jnp.dot(zx, Zy) * weights
-        )
-        return (rewards - penalties)
+        penalties = U.T @ (jnp.dot(zx, Zy) * weights)
+        return (rewards - penalties) / self.config.batch_size
 
     @staticmethod
     def _utils(ui, zx, zy, Zx, Zy, weights, X):

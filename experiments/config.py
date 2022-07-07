@@ -1,13 +1,15 @@
-import wandb
-from jaxline.base_config import get_base_config
-from blockeigengame._utils import log_dir
 import os
 
+import wandb
+from jaxline.base_config import get_base_config
+
+from blockeigengame._utils import log_dir
+
 N_TRAIN_EXAMPLES = {
-    "linear": 1000,
-    "exponential": 1000,
+    "linear": 10000,
+    "exponential": 10000,
     "mnist": 60000,
-    "mediamill":10000,
+    "mediamill": 10000,
     "xrmb": 1000000,
 }
 
@@ -22,10 +24,10 @@ def get_config():
     config = get_base_config()
     # defaults
     config.interval_type = "steps"
-    config.log_tensors_interval = 100
-    config.log_train_data_interval = 100
+    config.log_tensors_interval = wandb.config.get("logging_interval", 10)
+    config.log_train_data_interval = wandb.config.get("logging_interval", 10)
     # If True, asynchronously logs training data from every training step.
-    config.log_all_train_data = False
+    config.log_all_train_data = True
     config.experiment_kwargs.config = {
         "model": "cca",
         "n_components": wandb.config.get("n_components", 3),
@@ -36,11 +38,11 @@ def get_config():
         "alpha": wandb.config.get("alpha", False),
         "beta0": wandb.config.get("beta0", 1e-3),
         "c": wandb.config.get("c", [0, 0]),
-        "tau": wandb.config.get("tau", [0.7, 0.7]),
-        "random_state": wandb.config.get("random_seed", 42),
+        "tau": wandb.config.get("tau", [0.1, 0.1]),
+        "random_state": wandb.config.get("random_seed", 0),
         "whitening_batch_size": 10 * wandb.config.get("n_components", 1),
         "riemann": False,
-        "val_interval": config.log_train_data_interval,
+        "val_interval": wandb.config.get("logging_interval", 10),
     }
     config.epochs = wandb.config.get("epochs", 1)
     config.training_steps = get_training_steps(
@@ -55,4 +57,5 @@ def get_config():
     os.chdir(log_dir())
     config.checkpoint_dir = os.getcwd()
     config.lock()
+    print(config)
     return config

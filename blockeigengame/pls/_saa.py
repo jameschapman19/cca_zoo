@@ -1,12 +1,7 @@
 import jax
 import jax.numpy as jnp
-import optax
-from functools import partial
-from jax import jit
-from os import environ
 
 from ._plsmixin import _PLSMixin
-from ._utils import incrsvd
 from .._baseexperiment import _BaseExperiment
 
 
@@ -36,8 +31,8 @@ class SAA(_PLSMixin, _BaseExperiment):
     def _update(self, views, global_step):
         X_i, Y_i = views
         self.Cxy = (
-                           ((global_step + 1) - 1) * self.Cxy + (X_i.T @ Y_i / X_i.shape[0])
-                   ) / (global_step + 1)
+            ((global_step + 1) - 1) * self.Cxy + (X_i.T @ Y_i / X_i.shape[0])
+        ) / (global_step + 1)
         U, _, Vt = jnp.linalg.svd(self.Cxy)
         self._U = U[:, : self.config.n_components].T
         self._V = Vt[: self.config.n_components]

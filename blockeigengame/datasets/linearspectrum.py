@@ -1,13 +1,12 @@
 import numpy as np
 from cca_zoo.data import generate_covariance_data
-from jax._src import random
 from sklearn.model_selection import train_test_split
 
-from ._utils import demean
+from ._utils import demean, scale
 
 
 def linear_dataset(components, model="cca", random_state=0):
-    N = 1000
+    N = 10000
     rng = np.random.default_rng(random_state)
     if model == "cca":
         (X, Y), _ = generate_covariance_data(
@@ -30,7 +29,7 @@ def linear_dataset(components, model="cca", random_state=0):
             np.linalg.qr(rng.standard_normal(size=(components, 50)))[0]
         )
     X, X_te, Y, Y_te = train_test_split(X, Y, test_size=0.2, random_state=random_state)
-    X, X_te, Y, Y_te = demean(X, X_te, Y, Y_te)
+    X, X_te, Y, Y_te = scale(*demean(X, X_te, Y, Y_te))
     return X, Y, X_te, Y_te
 
 

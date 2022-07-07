@@ -1,12 +1,12 @@
-import os
+from absl import flags
+from sys import argv
+
 from absl import flags
 from absl.testing import absltest
 from absl.testing import parameterized
-from ccagame import cca, pca, pls
+from ccagame import pls
 from jaxline_fork import platform
 from ml_collections import config_flags
-from re import I
-from sys import argv
 
 FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file(

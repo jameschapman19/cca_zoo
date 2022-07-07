@@ -2,16 +2,16 @@ program: experiments/train.py
 method: grid
 parameters:
   experiment:
-    values: ['CCA']
+    values: [ 'CCA' ]
   model:
-    values: ['game', 'sgha', 'msg']
+    values: [ 'msg' ]
   data:
-    values: ['linear']
-  training_steps:
-    values: [5000]
+    values: [ 'linear' ]
   learning_rate:
-    values: [1e-1,1e-2, 1e-3, 1e-4]
+    values: [ 1e-1,1e-2, 1e-3, 1e-4 ]
   batch_size:
-    values: [0]
+    values: [ 1 ]
+  logging_interval:
+    values: [ 32 ]
   n_components:
-    values: [50]
+    values: [ 50 ]

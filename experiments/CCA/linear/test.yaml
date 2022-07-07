@@ -1,0 +1,9 @@
+program: experiments/train.py
+method: grid
+parameters:
+  config:
+    values: [ './experiments/config.py' ]
+  experiment:
+    values: [ 'CCA' ]
+  model:
+    values: [ 'game' ]

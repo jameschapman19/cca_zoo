@@ -1,5 +1,4 @@
 import numpy as np
-from sys import stderr
 
 
 def get_num_batches(X, Y=None, batch_size=None):
@@ -19,11 +18,14 @@ def data_stream(X, Y=None, batch_size=0, random_state=0):
     num_batches = num_complete_batches + bool(leftover)
     rng = np.random.RandomState(random_state)
     while True:
-        perm = rng.permutation(num)
+        if random_state > 0:
+            perm = rng.permutation(num)
+        else:
+            perm = np.arange(num)
         for i in range(num_batches):
-            batch_idx = perm[i * batch_size: (i + 1) * batch_size]
+            batch_idx = perm[i * batch_size : (i + 1) * batch_size]
             if Y is None:
-                yield jnp.array(X[batch_idx])
+                yield np.array(X[batch_idx])
             else:
                 yield np.array(X[batch_idx]), np.array(Y[batch_idx])
 
