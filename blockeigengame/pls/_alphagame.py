@@ -9,9 +9,9 @@ from ._plsmixin import _PLSMixin
 from .._baseexperiment import _BaseExperiment
 
 
-class Game(_PLSMixin, _BaseExperiment):
+class AlphaGame(_PLSMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
-        super(Game, self).__init__(mode, init_rng, config)
+        super(AlphaGame, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
         Args:
           mode: A string, equivalent to FLAGS.jaxline_mode when running normally.
@@ -20,15 +20,16 @@ class Game(_PLSMixin, _BaseExperiment):
         """Initialization function for a Jaxline experiment."""
         self._weights = jnp.ones(
             (config.n_components, config.n_components)
-        )  # - jnp.eye(
-        #    config.n_components
-        # )
+        ) - jnp.eye(config.n_components)
         self._weights = self._weights.at[jnp.triu_indices(config.n_components, 1)].set(
             0
         )
         # This parallelizes gradient calcs and updates for eigenvectors within a given device
         self._grads = jax.jit(
-            jax.vmap(self._grads, in_axes=(0, 1, 1, None, None, 0, None, None))
+            jax.vmap(
+                jax.grad(self._utils),
+                in_axes=(0, 1, 0, None, None, None),
+            )
         )
         self._update_with_grads = jax.jit(
             jax.vmap(
@@ -58,12 +59,12 @@ class Game(_PLSMixin, _BaseExperiment):
             Y_i,
         ) = views
         Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
-        grads_x = self._grads(self._U, Zx, Zy, Zx, Zy, self._weights, X_i, self._U)
+        grads_x = self._grads(self._U, Zy, self._weights, X_i, Zx, Zy)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
         Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
-        grads_y = self._grads(self._V, Zy, Zx, Zy, Zx, self._weights, Y_i, self._V)
+        grads_y = self._grads(self._V, Zx, self._weights, Y_i, Zy, Zx)
         self._V, self._opt_state_y = self._update_with_grads(
             self._V, grads_y, self._opt_state_y
         )
@@ -87,8 +88,9 @@ class Game(_PLSMixin, _BaseExperiment):
         return Zx, Zy
 
     @staticmethod
-    def _grads(ui, zx, zy, Zx, Zy, weights, X, U):
-        rewards = X.T @ zy
-        penalties = U.T @ (jnp.dot(zx, Zy) * weights)
-        return (rewards - penalties) / X.shape[0]
-
+    def _utils(ui, zy, weights, X, Zx,Zy):
+        zx = X @ ui
+        rewards = zx @ zy
+        covariance = -((zx @ Zy) ** 2) / jnp.diag(Zx.T @ Zy) @ weights
+        grads = rewards + covariance/2
+        return grads / X.shape[0]

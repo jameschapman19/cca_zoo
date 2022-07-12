@@ -4,7 +4,7 @@
 #$ -j y
 #$ -N Testing  # name of the log file
 #$ -l gpu=true # for gpu
-#$ -wd /home/jchapman/projects/ccagame
+#$ -wd /home/jchapman/projects/blockeigengame
 hostname
 date
 source /home/jchapman/jaxsourcefile # source

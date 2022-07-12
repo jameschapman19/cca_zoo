@@ -2,20 +2,19 @@ import functools
 
 import wandb
 from absl import app, flags
+from blockeigengame import cca, pls, rcca
 from jaxline import platform
 
-from blockeigengame import cca, pls, rcca
-
-_BATCH_SIZE = flags.DEFINE_integer("batch_size", 16, "batch size")
-_MODEL = flags.DEFINE_string("model", "saa", "model")
-_DATA = flags.DEFINE_string("data", "mediamill", "dataset name")
+_BATCH_SIZE = flags.DEFINE_integer("batch_size", 0, "batch size")
+_MODEL = flags.DEFINE_string("model", "alphagame", "model")
+_DATA = flags.DEFINE_string("data", "linear", "dataset name")
 _EXPERIMENT = flags.DEFINE_string(
     "experiment", "CCA", "whether to run a PLS or CCA experiment"
 )
-_N_COMPONENTS = flags.DEFINE_integer("n_components", 3, "number of components")
-_LEARNING_RATE = flags.DEFINE_float("learning_rate", 1e-3, "learning rate")
-_EPOCHS = flags.DEFINE_integer("epochs", 1, "epochs")
-_LOGGING_INTERVAL = flags.DEFINE_integer("logging_interval", 100, "logging interval")
+_N_COMPONENTS = flags.DEFINE_integer("n_components", 5, "number of components")
+_LEARNING_RATE = flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
+_EPOCHS = flags.DEFINE_integer("epochs", 5000, "epochs")
+_LOGGING_INTERVAL = flags.DEFINE_integer("logging_interval", 1, "logging interval")
 
 MODEL_DICT = {
     "CCA": {
@@ -27,6 +26,7 @@ MODEL_DICT = {
         "msg": cca.MSG,
         "rcca": rcca.Game,
         "saa": cca.SAA,
+        "alphagame": cca.AlphaGame,
     },
     "PLS": {
         "game": pls.Game,
@@ -36,6 +36,7 @@ MODEL_DICT = {
         "sgha": pls.SGHA,
         "ssgd": pls.SSGD,
         "saa": pls.SAA,
+        "alphagame": pls.AlphaGame,
     },
 }
 

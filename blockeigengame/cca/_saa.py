@@ -32,16 +32,15 @@ class SAA(_CCAMixin, _BaseExperiment):
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
 
     def _update(self, views, global_step):
-        if global_step == 0 or (global_step + 1) % self.config.val_interval == 0:
-            self._U, self._V = (
-                MCCA(latent_dims=self.config.n_components)
-                .fit(
-                    (
-                        self.X[: (1 + global_step[0]) * self.config.batch_size],
-                        self.Y[: (1 + global_step[0]) * self.config.batch_size],
-                    )
+        self._U, self._V = (
+            MCCA(latent_dims=self.config.n_components)
+            .fit(
+                (
+                    self.X[: (1 + global_step[0]) * self.config.batch_size],
+                    self.Y[: (1 + global_step[0]) * self.config.batch_size],
                 )
-                .weights
             )
-            self._U = self._U.T
-            self._V = self._V.T
+            .weights
+        )
+        self._U = self._U.T
+        self._V = self._V.T

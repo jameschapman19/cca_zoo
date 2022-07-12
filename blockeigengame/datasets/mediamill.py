@@ -21,13 +21,12 @@ def mediamill():
         project_dir = (
             "/home/jchapman/projects/blockeigengame/blockeigengame/datasets/MediaMill/"
         )
-        view_1 = loadmat(project_dir + "MediaMillf2KALDI_window7_single1.mat")
-        view_2 = loadmat(project_dir + "MediaMillf2KALDI_window7_single2.mat")
+        data = loadmat(project_dir + "mmill.mat")["data"][0][0]
     except:
         project_dir = "/home/chapm/blockeigengame/blockeigengame/datasets/MediaMill/"
         data = loadmat(project_dir + "mmill.mat")["data"][0][0]
-        view_1 = data["view1"][0][0]
-        view_2 = data["view2"][0][0]
+    view_1 = data["view1"][0][0]
+    view_2 = data["view2"][0][0]
     return (
         view_1["training"].T,
         view_2["training"].T,

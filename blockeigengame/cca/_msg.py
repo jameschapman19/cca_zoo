@@ -50,7 +50,6 @@ class MSG(_CCAMixin, _BaseExperiment):
             self._grads = self._incr_grads
 
     def _update(self, views, global_step):
-        lr = 0.03 / max(1, global_step - 100) ** (1 / 3)
         X_i, Y_i = views
         self.Uxx, self.Sxx = self.update_cov(self.Uxx, self.Sxx * global_step, X_i)
         self.Uyy, self.Syy = self.update_cov(self.Uyy, self.Syy * global_step, Y_i)
@@ -58,7 +57,7 @@ class MSG(_CCAMixin, _BaseExperiment):
         self.Syy /= global_step + 1
         Wx = X_i @ self.Uxx.T @ jnp.diag(1 / jnp.sqrt(self.Sxx + 1e-9)) @ self.Uxx
         Wy = Y_i @ self.Uyy.T @ jnp.diag(1 / jnp.sqrt(self.Syy + 1e-9)) @ self.Uyy
-        self._U, self._V, self._S = self._grads(self._U, self._V, self._S, Wx, Wy, lr)
+        self._U, self._V, self._S = self._grads(self._U, self._V, self._S, Wx, Wy, self.config.learning_rate)
         self._S = self._project_S(self._S)
 
     @staticmethod

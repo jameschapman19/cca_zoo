@@ -1,0 +1,25 @@
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+program: experiments/train.py
+method: grid
+project: blockeigengame
+parameters:
+  config:
+    values: [experiments/config.py]
+  experiment:
+    values: [ 'CCA' ]
+  model:
+    values: [ 'game', 'sgha', 'msg' ]
+  data:
+    values: [ 'linear','mnist','mediamill' ]
+  learning_rate:
+    values: [ 1e-1,1e-2, 1e-3 ]
+  logging_interval:
+    values: [ 4 ]
+  batch_size:
+    values: [ 8,16,32,64,128 ]
+  n_components:
+    values: [ 5 ]

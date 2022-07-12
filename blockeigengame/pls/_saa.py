@@ -29,10 +29,7 @@ class SAA(_PLSMixin, _BaseExperiment):
         self.Cxy = jnp.zeros((views[0].shape[1], views[1].shape[1]))
 
     def _update(self, views, global_step):
-        X_i, Y_i = views
-        self.Cxy = (
-            ((global_step + 1) - 1) * self.Cxy + (X_i.T @ Y_i / X_i.shape[0])
-        ) / (global_step + 1)
+        self.Cxy = self.X[: (1 + global_step[0]) * self.config.batch_size].T@self.Y[: (1 + global_step[0]) * self.config.batch_size]
         U, _, Vt = jnp.linalg.svd(self.Cxy)
         self._U = U[:, : self.config.n_components].T
         self._V = Vt[: self.config.n_components]

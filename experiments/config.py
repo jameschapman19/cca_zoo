@@ -57,5 +57,4 @@ def get_config():
     os.chdir(log_dir())
     config.checkpoint_dir = os.getcwd()
     config.lock()
-    print(config)
     return config

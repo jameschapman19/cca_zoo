@@ -64,10 +64,10 @@ def _TCC(X, Y, U, V):
     Zx = X @ U.T
     Zy = Y @ V.T
     all = jnp.hstack((Zx, Zy))
-    C = all.T @ all
-    D = jsp.linalg.block_diag(Zx.T @ Zx, Zy.T @ Zy)
-    D = D + 1e-3 * jnp.eye(C.shape[0])
-    C = jnp.linalg.pinv(D) @ C
+    C = all.T @ all/X.shape[0]
+    D = jsp.linalg.block_diag(Zx.T @ Zx/X.shape[0], Zy.T @ Zy/X.shape[0])
+    D = D + 1e-3 * jnp.eye(D.shape[0])
+    C = jnp.linalg.inv(D) @ C
     try:
         return (jsp.linalg.eigh(C)[0] - 1)[-U.shape[0] :].sum()
     except:
