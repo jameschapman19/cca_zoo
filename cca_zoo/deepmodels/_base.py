@@ -10,19 +10,19 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 
 class _BaseDeep(pl.LightningModule):
     def __init__(
-            self,
-            latent_dims: int,
-            optimizer="adam",
-            scheduler=None,
-            lr=1e-3,
-            weight_decay=0,
-            extra_optimizer_kwargs=None,
-            max_epochs=1000,
-            min_lr=1e-9,
-            lr_decay_steps=None,
-            correlation=True,
-            *args,
-            **kwargs,
+        self,
+        latent_dims: int,
+        optimizer="adam",
+        scheduler=None,
+        lr=1e-3,
+        weight_decay=0,
+        extra_optimizer_kwargs=None,
+        max_epochs=1000,
+        min_lr=1e-9,
+        lr_decay_steps=None,
+        correlation=True,
+        *args,
+        **kwargs,
     ):
         super().__init__()
         if extra_optimizer_kwargs is None:
@@ -84,9 +84,9 @@ class _BaseDeep(pl.LightningModule):
         return z
 
     def transform(
-            self,
-            loader: torch.utils.data.DataLoader,
-            train=False,
+        self,
+        loader: torch.utils.data.DataLoader,
+        train=False,
     ):
         """
         :param loader: a dataloader that matches the structure of that used for training
@@ -169,8 +169,7 @@ class _GenerativeMixin:
     def _decode(self, z, **kwargs):
         raise NotImplementedError
 
-    def recon(self,
-              loader: torch.utils.data.DataLoader, **kwargs):
+    def recon(self, loader: torch.utils.data.DataLoader, **kwargs):
         with torch.no_grad():
             for batch_idx, batch in enumerate(loader):
                 views = [view.to(self.device) for view in batch["views"]]

@@ -20,37 +20,39 @@ def default_scoring(estimator, scoring, views):
         return scoring
     elif scoring is None:
         if len(views) > 2:
+
             def scoring(estimator: Pipeline, X, y):
                 transformed_views = estimator.transform(X)
                 all_corrs = []
                 for x, y in itertools.product(transformed_views, repeat=2):
                     all_corrs.append(
-                        np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], x.shape[1]:])
+                        np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], x.shape[1] :])
                     )
                 all_corrs = np.array(all_corrs).reshape(
                     (len(transformed_views), len(transformed_views), x.shape[1])
                 )
                 return all_corrs
+
         else:
             scoring = check_scoring(estimator, scoring=scoring)
     return scoring
 
 
 def cross_validate(
-        estimator,
-        views,
-        y=None,
-        *,
-        groups=None,
-        scoring=None,
-        cv=None,
-        n_jobs=None,
-        verbose=0,
-        fit_params=None,
-        pre_dispatch="2*n_jobs",
-        return_train_score=False,
-        return_estimator=False,
-        error_score=np.nan,
+    estimator,
+    views,
+    y=None,
+    *,
+    groups=None,
+    scoring=None,
+    cv=None,
+    n_jobs=None,
+    verbose=0,
+    fit_params=None,
+    pre_dispatch="2*n_jobs",
+    return_train_score=False,
+    return_estimator=False,
+    error_score=np.nan,
 ):
     """
     Evaluate metric(s) by cross-validation and also record fit/score times.
@@ -147,17 +149,17 @@ def cross_validate(
 
 
 def permutation_test_score(
-        estimator,
-        views,
-        y=None,
-        groups=None,
-        cv=None,
-        n_permutations=100,
-        n_jobs=None,
-        random_state=0,
-        verbose=0,
-        scoring=None,
-        fit_params=None,
+    estimator,
+    views,
+    y=None,
+    groups=None,
+    cv=None,
+    n_permutations=100,
+    n_jobs=None,
+    random_state=0,
+    verbose=0,
+    scoring=None,
+    fit_params=None,
 ):
     """
     Evaluate the significance of a cross-validated score with permutations
@@ -224,7 +226,7 @@ def permutation_test_score(
         .. versionadded:: 0.24
 
     """
-    scorer=default_scoring(estimator, scoring, views)
+    scorer = default_scoring(estimator, scoring, views)
     estimator = Pipeline(
         [
             ("splitter", SimpleSplitter([X_.shape[1] for X_ in views])),
@@ -289,22 +291,22 @@ def _shuffle(X, groups, random_state, splitter):
 
 
 def learning_curve(
-        estimator,
-        views,
-        y=None,
-        groups=None,
-        train_sizes=np.linspace(0.1, 1.0, 5),
-        cv=None,
-        scoring=None,
-        exploit_incremental_learning=False,
-        n_jobs=None,
-        pre_dispatch="all",
-        verbose=0,
-        shuffle=False,
-        random_state=None,
-        error_score=np.nan,
-        return_times=False,
-        fit_params=None,
+    estimator,
+    views,
+    y=None,
+    groups=None,
+    train_sizes=np.linspace(0.1, 1.0, 5),
+    cv=None,
+    scoring=None,
+    exploit_incremental_learning=False,
+    n_jobs=None,
+    pre_dispatch="all",
+    verbose=0,
+    shuffle=False,
+    random_state=None,
+    error_score=np.nan,
+    return_times=False,
+    fit_params=None,
 ):
     """
     Learning curve.

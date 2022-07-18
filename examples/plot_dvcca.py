@@ -15,20 +15,22 @@ from examples import example_mnist_data
 def plot_reconstruction(model, loader, uncertainty=False):
     recons = model.recon(loader, mle=True)
     recons = [recon[0] for recon in recons]
-    originals = loader.dataset.dataset[0]['views']
+    originals = loader.dataset.dataset[0]["views"]
     n_cols = 2 + uncertainty
-    fig, ax = plt.subplots(ncols=n_cols,nrows=2)
-    for i,(recon,original) in enumerate(zip(recons,originals)):
-        ax[i,0].set_title(f"Original View {i}")
-        ax[i,1].set_title(f"Mean View {i}")
-        ax[i,0].imshow(original.reshape((28, 28)))
-        ax[i,1].imshow(recon.reshape((28, 28)))
+    fig, ax = plt.subplots(ncols=n_cols, nrows=2)
+    for i, (recon, original) in enumerate(zip(recons, originals)):
+        ax[i, 0].set_title(f"Original View {i}")
+        ax[i, 1].set_title(f"Mean View {i}")
+        ax[i, 0].imshow(original.reshape((28, 28)))
+        ax[i, 1].imshow(recon.reshape((28, 28)))
     if uncertainty:
         uncertainty_recons = model.recon(loader, uncertainty=True)
-        uncertainty_recons = [uncertainty_recon[0] for uncertainty_recon in uncertainty_recons]
-        for i,uncertainty_recon in enumerate(uncertainty_recons):
-            ax[i,2].set_title(f"Variance View {i}")
-            ax[i,2].imshow(uncertainty_recon.reshape((28, 28)))
+        uncertainty_recons = [
+            uncertainty_recon[0] for uncertainty_recon in uncertainty_recons
+        ]
+        for i, uncertainty_recon in enumerate(uncertainty_recons):
+            ax[i, 2].set_title(f"Variance View {i}")
+            ax[i, 2].imshow(uncertainty_recon.reshape((28, 28)))
 
 
 # %%

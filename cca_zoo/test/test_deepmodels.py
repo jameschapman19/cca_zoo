@@ -53,10 +53,10 @@ def test_DCCA_methods():
     )
     trainer.fit(dcca, train_loader, val_dataloaders=val_loader)
     assert (
-            np.testing.assert_array_less(
-                cca.score((X, Y)).sum(), dcca.score(train_loader, train=True).sum()
-            )
-            is None
+        np.testing.assert_array_less(
+            cca.score((X, Y)).sum(), dcca.score(train_loader, train=True).sum()
+        )
+        is None
     )
     # DCCA_NOI
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)

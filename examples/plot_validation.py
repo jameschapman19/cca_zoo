@@ -22,7 +22,7 @@ q = 15
 latent_dims = 3
 
 (X, Y), (tx, ty) = linear_simulated_data(
-    n, view_features=[p, q], latent_dims=latent_dims, correlation=[0.9,0.5,0.1]
+    n, view_features=[p, q], latent_dims=latent_dims, correlation=[0.9, 0.5, 0.1]
 )
 
 # %%
@@ -61,14 +61,14 @@ import matplotlib.pyplot as plt
 
 
 def plot_learning_curve(
-        estimator,
-        title,
-        views,
-        axes=None,
-        ylim=None,
-        cv=None,
-        n_jobs=None,
-        train_sizes=np.linspace(0.1, 1.0, 5),
+    estimator,
+    title,
+    views,
+    axes=None,
+    ylim=None,
+    cv=None,
+    n_jobs=None,
+    train_sizes=np.linspace(0.1, 1.0, 5),
 ):
     """
     Generate 3 plots: the test and training learning curve, the training

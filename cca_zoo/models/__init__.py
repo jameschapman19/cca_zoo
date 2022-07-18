@@ -40,8 +40,7 @@ __all__ = [
 try:
     from ._stochastic import StochasticPowerPLS, IncrementalPLS
 
-    __all__.extend("StochasticPowerPLS",
-                   "IncrementalPLS")
+    __all__.extend("StochasticPowerPLS", "IncrementalPLS")
 except:
     pass
 

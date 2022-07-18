@@ -30,7 +30,6 @@ cv = 3
 )
 
 
-
 # %%
 # Grid Search
 # -------------
@@ -45,8 +44,6 @@ kernel_reg = GridSearchCV(
     KCCA(latent_dims=latent_dims), param_grid=param_grid, cv=cv, verbose=True
 ).fit([X, Y])
 print(pd.DataFrame(kernel_reg.cv_results_))
-
-
 
 
 # %%
