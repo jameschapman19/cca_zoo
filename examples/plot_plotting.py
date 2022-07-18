@@ -9,7 +9,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from cca_zoo import CCA
-from cca_zoo.data import generate_covariance_data
+from cca_zoo.data import linear_simulated_data
 import matplotlib.pyplot as plt
 
 from cca_zoo.plotting import pairplot_train_test
@@ -23,7 +23,7 @@ p = 25
 q = 25
 latent_dims = 3
 
-(X, Y), (tx, ty) = generate_covariance_data(
+(X, Y), (tx, ty) = linear_simulated_data(
     n, view_features=[p, q], latent_dims=latent_dims, correlation=[0.9, 0.8, 0.7]
 )
 

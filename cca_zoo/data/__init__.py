@@ -1,15 +1,15 @@
-from .simulated import generate_covariance_data, generate_simple_data
+from .simulated import linear_simulated_data, simple_simulated_data
 
 try:
     from .utils import CCA_Dataset
 
     __all__ = [
-        "generate_covariance_data",
-        "generate_simple_data",
+        "linear_simulated_data",
+        "simple_simulated_data",
         "CCA_Dataset",
     ]
 except ModuleNotFoundError:
     __all__ = [
-        "generate_covariance_data",
-        "generate_simple_data",
+        "linear_simulated_data",
+        "simple_simulated_data",
     ]

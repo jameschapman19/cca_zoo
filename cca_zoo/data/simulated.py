@@ -9,7 +9,7 @@ from sklearn.utils.validation import check_random_state
 from ..utils import _process_parameter
 
 
-def generate_covariance_data(
+def linear_simulated_data(
     n: int,
     view_features: List[int],
     latent_dims: int = 1,
@@ -36,8 +36,8 @@ def generate_covariance_data(
 
     :Example:
 
-    >>> from cca_zoo.data import generate_covariance_data
-    >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=generate_covariance_data(200,[10,10],latent_dims=1,correlation=1)
+    >>> from cca_zoo.data import linear_simulated_data
+    >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=linear_simulated_data(200,[10,10],latent_dims=1,correlation=1)
     """
     random_state = check_random_state(random_state)
     structure = _process_parameter(
@@ -135,7 +135,7 @@ def generate_covariance_data(
     return views, true_features
 
 
-def generate_simple_data(
+def simple_simulated_data(
     n: int,
     view_features: List[int],
     view_sparsity: List[Union[int, float]] = None,
@@ -154,8 +154,8 @@ def generate_simple_data(
 
     :Example:
 
-    >>> from cca_zoo.data import generate_simple_data
-    >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=generate_covariance_data(200,[10,10])
+    >>> from cca_zoo.data import simple_simulated_data
+    >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=linear_simulated_data(200,[10,10])
     """
     random_state = check_random_state(random_state)
     z = random_state.randn(n)

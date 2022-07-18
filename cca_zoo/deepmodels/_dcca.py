@@ -1,4 +1,5 @@
 import itertools
+from abc import abstractmethod
 from typing import Iterable
 
 import numpy as np
@@ -66,6 +67,7 @@ class DCCA(_BaseDeep, _BaseCCA):
         z = self(views)
         return {"objective": self.objective.loss(z)}
 
+    @abstractmethod
     def post_transform(self, z, train=False):
         """
         Some models require a final linear CCA after model training.

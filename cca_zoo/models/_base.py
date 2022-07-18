@@ -84,7 +84,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         return self.fit(views, **kwargs).transform(views, **kwargs)
 
-    def get_loadings(self, views: Iterable[np.ndarray], normalize=False, **kwargs):
+    def get_loadings(self, views: Iterable[np.ndarray], normalize=True, **kwargs):
         """
         Returns the model loadings for each view for the given data
 

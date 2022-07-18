@@ -99,3 +99,6 @@ class DCCAE(DCCA, _GenerativeMixin):
 
     def configure_callbacks(self):
         return [CorrelationCallback(), GenerativeCallback()]
+
+    def post_transform(self, z, train=False):
+        return z

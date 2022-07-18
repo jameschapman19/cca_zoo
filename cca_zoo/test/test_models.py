@@ -5,7 +5,7 @@ from sklearn.utils.fixes import loguniform
 from sklearn.utils.validation import check_random_state
 
 from cca_zoo import cross_validate, permutation_test_score, learning_curve
-from cca_zoo.data import generate_covariance_data
+from cca_zoo.data import linear_simulated_data
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.models import (
     rCCA,
@@ -261,7 +261,7 @@ def test_PCCA():
 
     np.random.seed(0)
     # Tests tensor CCA methods
-    (X, Y), (_) = generate_covariance_data(20, [5, 5])
+    (X, Y), (_) = linear_simulated_data(20, [5, 5])
     latent_dims = 1
     cca = CCA(latent_dims=latent_dims).fit([X, Y])
     pcca = ProbabilisticCCA(

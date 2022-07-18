@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from cca_zoo.data import generate_covariance_data
+from cca_zoo.data import linear_simulated_data
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.models import (
     SCCA_PMD,
@@ -52,7 +52,7 @@ view_1_sparsity = 0.1
 view_2_sparsity = 0.1
 latent_dims = 1
 
-(X, Y), (tx, ty) = generate_covariance_data(
+(X, Y), (tx, ty) = linear_simulated_data(
     n,
     view_features=[p, q],
     latent_dims=latent_dims,
