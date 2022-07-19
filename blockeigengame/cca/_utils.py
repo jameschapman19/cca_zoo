@@ -3,20 +3,13 @@ from jax import jit
 
 
 @jit
-def mat_pow(mat, pow_, epsilon):
-    # Computing matrix to the power of pow (pow can be negative as well)
-    U, S, Vt = jnp.linalg.svd(mat)
-    return U @ jnp.diag(jnp.power((S + epsilon), pow_)) @ Vt
-
-
-@jit
 def _gram_schmidt(V, B):
     n_components = V.shape[0]
     for i in range(n_components):
         T = V[i] @ B @ V[:i].T / jnp.diag(V[:i] @ B @ V[:i].T)
         V = V.at[i].set(V[i] - T @ V[:i])
         V = V.at[i].set(V[i] / jnp.sqrt(V[i] @ B @ V[i].T))
-    return V  # V @ B @ V.T
+    return V
 
 
 @jit

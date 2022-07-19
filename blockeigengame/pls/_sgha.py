@@ -59,9 +59,9 @@ class SGHA(_PLSMixin, _BaseExperiment):
     def _grad(X_i, Y_i, W):
         n = X_i.shape[0]
         A = (
-            jnp.hstack((X_i, Y_i)).T @ jnp.hstack((X_i, Y_i))
-            - jsp.linalg.block_diag(X_i.T @ X_i, Y_i.T @ Y_i)
-        ) / n
+                    jnp.hstack((X_i, Y_i)).T @ jnp.hstack((X_i, Y_i))
+                    - jsp.linalg.block_diag(X_i.T @ X_i, Y_i.T @ Y_i)
+            ) / n
         Y = W @ A @ W.T
         return W.T @ jnp.triu(Y) - A @ W.T
 

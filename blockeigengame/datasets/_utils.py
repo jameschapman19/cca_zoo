@@ -23,7 +23,7 @@ def data_stream(X, Y=None, batch_size=0, random_state=0):
         else:
             perm = np.arange(num)
         for i in range(num_batches):
-            batch_idx = perm[i * batch_size : (i + 1) * batch_size]
+            batch_idx = perm[i * batch_size: (i + 1) * batch_size]
             if Y is None:
                 yield np.array(X[batch_idx])
             else:

@@ -8,18 +8,18 @@ method: grid
 project: blockeigengame
 parameters:
   config:
-    values: [experiments/config.py]
+    values: [ experiments/config.py ]
   experiment:
-    values: [ 'PLS' ]
+    values: [ 'CCA' ]
   model:
     values: [ 'game', 'sgha', 'msg' ]
   data:
-    values: [ 'linear','mnist','mediamill', 'xrmb' ]
+    values: [ 'xrmb' ]
   learning_rate:
-    values: [ 1e-1,1e-2, 1e-3]
+    values: [ 1e-1,1e-2, 1e-3 ]
   logging_interval:
-    values: [ 4 ]
+    values: [ 0.01 ]
   batch_size:
-    values: [ 8,16,32,64,128 ]
+    values: [ 32,64,128 ]
   n_components:
     values: [ 5 ]

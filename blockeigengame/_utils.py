@@ -87,3 +87,59 @@ def _get_AB(X_i, Y_i):
 
 def invsqrtm(C):
     return jnp.linalg.inv(sqrtm(C))
+
+
+@jit
+def incrsvd(x_projected, y_projected, x_leftover, y_leftover, U, V, S):
+    n_components = S.shape[0]
+    Q = jnp.vstack(
+        (
+            jnp.hstack(
+                (
+                    jnp.diag(S) + x_projected.T @ y_projected,
+                    jnp.linalg.norm(y_leftover, axis=1).T * x_projected.T,
+                )
+            ),
+            jnp.hstack(
+                (
+                    (jnp.linalg.norm(x_leftover, axis=1).T * y_projected.T).T,
+                    jnp.atleast_2d(
+                        jnp.linalg.norm(x_leftover, axis=1, keepdims=True)
+                        @ jnp.linalg.norm(y_leftover, axis=1, keepdims=True).T
+                    ),
+                )
+            ),
+        )
+    )
+    U_, S, Vt_ = jnp.linalg.svd(Q)
+    U = U_[:, :n_components].T @ jnp.vstack((U, x_leftover / jnp.linalg.norm(x_leftover, axis=1, keepdims=True)))
+    V = Vt_.T[:, :n_components].T @ jnp.vstack((V, y_leftover / jnp.linalg.norm(y_leftover, axis=1, keepdims=True)))
+    S = S[:n_components]
+    return U, V, S
+
+
+def _capping(S, k):
+    S_tmp = S.copy()
+    S_tmp = jnp.where(S_tmp > 1, 1, S_tmp)
+    S_tmp = jnp.where(S_tmp < 0, 0, S_tmp)
+    trace = S_tmp.sum()
+    if trace < k:
+        return S_tmp
+    else:
+        return _capping_loop(S, k)
+
+
+@partial(jit, static_argnums=(1))
+def _capping_loop(S, k):
+    for i in range(S.shape[0]):
+        for j in range(i, S.shape[0]):
+            S_tmp = jnp.flip(S.copy())
+            if i > 0:
+                S_tmp = S_tmp.at[:i].set(0)
+            if j < S.shape[0] - 2:
+                S_tmp = S_tmp.at[j + 1:].set(1)
+            shf = k - S_tmp.sum() / (j - i + 1)
+            S_tmp = S_tmp.at[i:j].set(S_tmp[i:j] + shf)
+            if S_tmp[i] >= 0 and (i == 0 or (jnp.flip(S)[(i - 1)] + shf) <= 0) and S_tmp[j] <= 1 and (
+                    j == S.shape[0] - 1 or (jnp.flip(S)[j] + shf) >= 1):
+                return jnp.flip(S_tmp)

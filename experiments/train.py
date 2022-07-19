@@ -2,8 +2,10 @@ import functools
 
 import wandb
 from absl import app, flags
-from blockeigengame import cca, pls, rcca
+from jax.profiler import trace
 from jaxline import platform
+
+from blockeigengame import cca, pls, rcca
 
 _BATCH_SIZE = flags.DEFINE_integer("batch_size", 0, "batch size")
 _MODEL = flags.DEFINE_string("model", "alphagame", "model")
@@ -11,10 +13,10 @@ _DATA = flags.DEFINE_string("data", "linear", "dataset name")
 _EXPERIMENT = flags.DEFINE_string(
     "experiment", "CCA", "whether to run a PLS or CCA experiment"
 )
-_N_COMPONENTS = flags.DEFINE_integer("n_components", 5, "number of components")
+_N_COMPONENTS = flags.DEFINE_integer("n_components", 4, "number of components")
 _LEARNING_RATE = flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
-_EPOCHS = flags.DEFINE_integer("epochs", 5000, "epochs")
-_LOGGING_INTERVAL = flags.DEFINE_integer("logging_interval", 1, "logging interval")
+_EPOCHS = flags.DEFINE_integer("epochs", 1, "epochs")
+_LOGGING_INTERVAL = flags.DEFINE_float("logging_interval", 1, "logging interval")
 
 MODEL_DICT = {
     "CCA": {
@@ -27,6 +29,9 @@ MODEL_DICT = {
         "rcca": rcca.Game,
         "saa": cca.SAA,
         "alphagame": cca.AlphaGame,
+        "mgame": cca.MGame,
+        "incremental": cca.Incremental,
+        "elasticgame": cca.ElasticGame,
     },
     "PLS": {
         "game": pls.Game,
@@ -54,5 +59,5 @@ defaults = {
 if __name__ == "__main__":
     wandb.init(config=defaults, sync_tensorboard=True)
     Experiment = MODEL_DICT[wandb.config.experiment][wandb.config.model]
-    # with trace("/tmp/jax-trace", create_perfetto_link=True):
-    app.run(functools.partial(platform.main, Experiment))
+    with trace("/tmp/jax-trace", create_perfetto_link=True):
+        app.run(functools.partial(platform.main, Experiment))

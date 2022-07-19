@@ -4,11 +4,9 @@ import jax
 import jax.numpy as jnp
 import optax
 from jax import jit
-from scipy.linalg import sqrtm
 
-from .._baseexperiment import _BaseExperiment
 from ._ccamixin import _CCAMixin
-from ._utils import _get_target
+from .._baseexperiment import _BaseExperiment
 
 
 class AlphaGame(_CCAMixin, _BaseExperiment):
@@ -20,9 +18,7 @@ class AlphaGame(_CCAMixin, _BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._weights = jnp.ones((config.n_components, config.n_components)) - jnp.eye(
-            config.n_components
-        )
+        self._weights = jnp.ones((config.n_components, config.n_components))
         self._weights = self._weights.at[jnp.triu_indices(config.n_components, 0)].set(
             0
         )
@@ -60,21 +56,25 @@ class AlphaGame(_CCAMixin, _BaseExperiment):
         self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
         self._opt_state_x = self._optimizer.init(self._U)
         self._opt_state_y = self._optimizer.init(self._V)
+        if self.config.batch_size == 0:
+            self.Cxx = _invsqrtm(views[0])
+            self.Cyy = _invsqrtm(views[1])
 
     def _update(self, views, global_step):
         (
             X_i,
             Y_i,
         ) = views
-        Cxx = sqrtm(jnp.linalg.inv(views[0].T @ views[0]))
-        Cyy = sqrtm(jnp.linalg.inv(views[1].T @ views[1]))
-        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V, Cxx, Cyy)
-        grads_x = self._grads(self._U, Zy, self._weights, X_i, Zx, Zy, Cxx)
+        if self.config.batch_size > 0:
+            self.Cxx = _invsqrtm(views[0])
+            self.Cyy = _invsqrtm(views[1])
+        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V, self.Cxx, self.Cyy)
+        grads_x = self._grads(self._U, Zy, self._weights, X_i, Zx, Zy, self.Cxx)
         self._U, self._opt_state_x = self._update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
-        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V, Cxx, Cyy)
-        grads_y = self._grads(self._V, Zx, self._weights, Y_i, Zy, Zx, Cyy)
+        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V, self.Cxx, self.Cyy)
+        grads_y = self._grads(self._V, Zx, self._weights, Y_i, Zy, Zx, self.Cyy)
         self._V, self._opt_state_y = self._update_with_grads(
             self._V, grads_y, self._opt_state_y
         )
@@ -101,3 +101,12 @@ class AlphaGame(_CCAMixin, _BaseExperiment):
         ui_new = optax.apply_updates(ui, updates)
         ui_new /= jnp.linalg.norm(ui_new, keepdims=True)
         return ui_new, opt_state
+
+
+@jit
+def _invsqrtm(X):
+    C = X.T @ X
+    smallest_eig = jnp.minimum(0, jnp.linalg.eigvalsh(C).min()) - 1e-9
+    C = C - smallest_eig * jnp.eye(C.shape[0])
+    U, S, Vt = jnp.linalg.svd(C)
+    return U @ jnp.diag(jnp.sqrt(1 / S)) @ Vt

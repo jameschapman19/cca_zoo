@@ -63,7 +63,7 @@ class _BaseExperiment(AbstractExperiment):
         )
 
     def _load_data(
-        self,
+            self,
     ):
         if self.config.data == "mnist":
             X, Y, X_val, Y_val = mnist_dataset(
@@ -92,7 +92,7 @@ class _BaseExperiment(AbstractExperiment):
         return X, Y, X_val, Y_val
 
     def step(
-        self, global_step: jnp.ndarray, rng: jnp.ndarray, *unused_args, **unused_kwargs
+            self, global_step: jnp.ndarray, rng: jnp.ndarray, *unused_args, **unused_kwargs
     ):
         if self._train_input is None:
             self._build_input()

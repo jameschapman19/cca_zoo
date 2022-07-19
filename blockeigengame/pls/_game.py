@@ -20,9 +20,7 @@ class Game(_PLSMixin, _BaseExperiment):
         """Initialization function for a Jaxline experiment."""
         self._weights = jnp.ones(
             (config.n_components, config.n_components)
-        )  # - jnp.eye(
-        #    config.n_components
-        # )
+        )
         self._weights = self._weights.at[jnp.triu_indices(config.n_components, 1)].set(
             0
         )
@@ -91,4 +89,3 @@ class Game(_PLSMixin, _BaseExperiment):
         rewards = X.T @ zy
         penalties = U.T @ (jnp.dot(zx, Zy) * weights)
         return (rewards - penalties) / X.shape[0]
-

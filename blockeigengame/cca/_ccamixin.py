@@ -1,12 +1,11 @@
 import jax.numpy as jnp
 import jax.scipy as jsp
-import numpy as np
-from cca_zoo.models import MCCA
-from jax import jit
+from cca_zoo.models import CCA
+from jax import jit, named_scope
 
-from blockeigengame.datasets.mediamill import mediamill_true
-from blockeigengame.datasets.xrmb import xrmb_true
-from blockeigengame.metrics import _correct_eigenvector_streak, _sum_cosine_similarities
+from ..datasets.mediamill import mediamill_true
+from ..datasets.xrmb import xrmb_true
+from ..metrics import _correct_eigenvector_streak, _sum_cosine_similarities
 
 
 class _CCAMixin:
@@ -20,16 +19,22 @@ class _CCAMixin:
             self.correct_U = self.correct_U[:, : self.config.n_components]
             self.correct_V = self.correct_V[:, : self.config.n_components]
         else:
-            cca = MCCA(latent_dims=self.config.n_components).fit((self.X, self.Y))
+            cca = CCA(latent_dims=self.config.n_components).fit((self.X, self.Y))
             self.correct_U, self.correct_V = cca.weights
         self.TCC_train = _TCC(self.X, self.Y, self.correct_U.T, self.correct_V.T)
         self.TCC_val = _TCC(self.X_val, self.Y_val, self.correct_U.T, self.correct_V.T)
 
     def _get_scalars(self, global_step):
         scalars = {}
-        scalars["examples"] = (global_step[0] + 1) * self.config.batch_size
-        scalars["TCC train"] = _TCC(self.X, self.Y, self._U, self._V)
-        scalars["TCC val"] = _TCC(self.X_val, self.Y_val, self._U, self._V)
+        scalars["examples"] = (
+            global_step[0] + 1
+        ) * self.config.batch_size  # MCCA(latent_dims=self.config.n_components).fit((self.X, self.Y)).score()
+        scalars["TCC train"] = _TCC(
+            self.X, self.Y, self._U, self._V
+        )  # jnp.corrcoef(self.X@self._U.T,self.Y@self._V.T,rowvar=False)
+        scalars["TCC val"] = _TCC(
+            self.X_val, self.Y_val, self._U, self._V
+        )  # jnp.corrcoef(self._U)
         scalars["PCC train"] = scalars["TCC train"] / self.TCC_train
         scalars["PCC val"] = scalars["TCC val"] / self.TCC_val
         scalars["correct x"] = _correct_eigenvector_streak(self._U, self.correct_U)
@@ -63,12 +68,27 @@ class _CCAMixin:
 def _TCC(X, Y, U, V):
     Zx = X @ U.T
     Zy = Y @ V.T
-    all = jnp.hstack((Zx, Zy))
-    C = all.T @ all/X.shape[0]
-    D = jsp.linalg.block_diag(Zx.T @ Zx/X.shape[0], Zy.T @ Zy/X.shape[0])
-    D = D + 1e-3 * jnp.eye(D.shape[0])
-    C = jnp.linalg.inv(D) @ C
-    try:
-        return (jsp.linalg.eigh(C)[0] - 1)[-U.shape[0] :].sum()
-    except:
-        return np.nan
+    n = X.shape[0]
+    Ux, Sx, Vx = jnp.linalg.svd(Zx, full_matrices=False)
+    Uy, Sy, Vy = jnp.linalg.svd(Zy, full_matrices=False)
+    Rx = Ux @ jnp.diag(Sx)
+    Ry = Uy @ jnp.diag(Sy)
+    Rxy = Rx.T @ Ry
+    M = (
+        jnp.diag(1 / jnp.sqrt(Sy**2 / n))
+        @ Rxy.T
+        @ jnp.diag(1 / (Sx**2 / n))
+        @ Rxy
+        @ jnp.diag(1 / jnp.sqrt(Sy**2 / n))
+    )
+    eigvals, eigvecs = jnp.linalg.eigh(M)
+    w_y = Vy.T @ jnp.diag(1 / jnp.sqrt(Sy**2 / n)) @ eigvecs
+    w_x = (
+        Vx.T
+        @ jnp.diag(1 / (Sx**2 / n))
+        @ Rxy
+        @ jnp.diag(1 / jnp.sqrt((Sy**2 / n)))
+        @ eigvecs
+        / jnp.sqrt(eigvals)
+    )
+    return (jnp.linalg.eigvalsh(w_x.T @ Zx.T @ Zy @ w_y) / n).sum()

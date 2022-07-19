@@ -1,26 +1,19 @@
 import jax
 import jax.numpy as jnp
-import optax
 from jax import jit
 
 from ._plsmixin import _PLSMixin
-from ._utils import incrsvd
 from .._baseexperiment import _BaseExperiment
+from .._utils import incrsvd
 
 
 class Incremental(_PLSMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
         super(Incremental, self).__init__(mode, init_rng, config)
-        """Constructs the experiment.
-        Args:
-          mode: A string, equivalent to FLAGS.jaxline_mode when running normally.
-          init_rng: A `PRNGKey` to use for experiment initialization.
-        """
-        """Initialization function for a Jaxline experiment."""
 
     def _init_train(self):
         self._init_ground_truth()
-        views = next(self._train_input)
+        views = next(self._eval_input)
         self._U = jax.random.normal(
             self.init_rng, (self.config.n_components, views[0].shape[1])
         )
@@ -29,16 +22,21 @@ class Incremental(_PLSMixin, _BaseExperiment):
             self.init_rng, (self.config.n_components, views[1].shape[1])
         )
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
-        self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
-        self._opt_state_x = self._optimizer.init(self._U)
-        self._opt_state_y = self._optimizer.init(self._V)
+        self._S = jnp.zeros(self.config.n_components)
+        if (
+                max(views[0].shape[1], views[1].shape[1])
+                * min(views[0].shape[1], views[1].shape[1]) ** 2
+        ) < ((self.config.n_components + self.config.batch_size) ** 3):
+            self._grads = self._mat_grads
+        else:
+            self._grads = self._incr_grads
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        self._U, self._V, self._S = self._grads(
+        self._U, self._V, self._S = self._mat_grads(
             X_i, Y_i, self._U, self._V, self.config.batch_size * (global_step) * self._S
         )
-        self._S /= self.config.batch_size * (global_step + 1)
+        self._S = _capping(self._S / (self.config.batch_size * (global_step + 1)), self.config.n_components)
 
     @staticmethod
     @jit

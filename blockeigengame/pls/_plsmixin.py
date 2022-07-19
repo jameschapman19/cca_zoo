@@ -43,7 +43,6 @@ class _PLSMixin:
         )
         return scalars
 
-
 @jit
 def _TV(U, V, X_val, Y_val):
     dof = X_val.shape[0]
@@ -52,10 +51,10 @@ def _TV(U, V, X_val, Y_val):
     Qv, Rv = jnp.linalg.qr(V.T)
     Sv = jnp.sign(jnp.sign(jnp.diag(Rv)) + 0.5)
     return (
-        jnp.trace(
-            jnp.atleast_2d(
-                (Qu @ jnp.diag(Su)).T @ X_val.T @ Y_val @ (Qv @ jnp.diag(Sv))
+            jnp.trace(
+                jnp.atleast_2d(
+                    (Qu @ jnp.diag(Su)).T @ X_val.T @ Y_val @ (Qv @ jnp.diag(Sv))
+                )
             )
-        )
-        / dof
+            / dof
     )

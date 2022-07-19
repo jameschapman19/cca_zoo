@@ -1,4 +1,3 @@
-from absl import flags
 from sys import argv
 
 from absl import flags

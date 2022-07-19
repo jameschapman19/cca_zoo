@@ -52,10 +52,10 @@ class Online(PLSExperiment):
         self._U, S, V = jnp.linalg.svd(M)
         d = self.dims[0] + self.dims[1]
         scaled = (
-            config.n_components
-            / d
-            * S[-config.n_components :]
-            / S[-config.n_components :].sum()
+                config.n_components
+                / d
+                * S[-config.n_components:]
+                / S[-config.n_components:].sum()
         )
         S = jnp.stack(
             jnp.ones((d - config.n_components)) / (d + config.n_components), scaled

@@ -20,7 +20,7 @@ class AlphaGame(_PLSMixin, _BaseExperiment):
         """Initialization function for a Jaxline experiment."""
         self._weights = jnp.ones(
             (config.n_components, config.n_components)
-        ) - jnp.eye(config.n_components)
+        )
         self._weights = self._weights.at[jnp.triu_indices(config.n_components, 1)].set(
             0
         )
@@ -88,9 +88,9 @@ class AlphaGame(_PLSMixin, _BaseExperiment):
         return Zx, Zy
 
     @staticmethod
-    def _utils(ui, zy, weights, X, Zx,Zy):
+    def _utils(ui, zy, weights, X, Zx, Zy):
         zx = X @ ui
         rewards = zx @ zy
         covariance = -((zx @ Zy) ** 2) / jnp.diag(Zx.T @ Zy) @ weights
-        grads = rewards + covariance/2
+        grads = rewards + covariance / 2
         return grads / X.shape[0]

@@ -69,6 +69,6 @@ def _TCC(X, Y, U, V):
     D = D + 1e-3 * jnp.eye(C.shape[0])
     C = jnp.linalg.pinv(D) @ C
     try:
-        return (jsp.linalg.eigh(C)[0] - 1)[-U.shape[0] :].sum()
+        return (jsp.linalg.eigh(C)[0] - 1)[-U.shape[0]:].sum()
     except:
         return np.nan
