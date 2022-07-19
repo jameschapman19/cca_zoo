@@ -59,5 +59,5 @@ defaults = {
 if __name__ == "__main__":
     wandb.init(config=defaults, sync_tensorboard=True)
     Experiment = MODEL_DICT[wandb.config.experiment][wandb.config.model]
-    with trace("/tmp/jax-trace", create_perfetto_link=True):
-        app.run(functools.partial(platform.main, Experiment))
+    #with trace("/tmp/jax-trace", create_perfetto_link=True):
+    app.run(functools.partial(platform.main, Experiment))
