@@ -9,6 +9,12 @@ from ..utils import _process_parameter
 
 
 class PRCCA(MCCA):
+    """
+    :Citation:
+
+    Tuzhilina, Elena, Leonardo Tozzi, and Trevor Hastie. "Canonical correlation analysis in high dimensions with structured regularization." Statistical Modelling (2021): 1471082X211041033.
+    """
+
     def __init__(
         self,
         latent_dims: int = 1,
@@ -87,6 +93,11 @@ class PRCCA(MCCA):
 
 
 class GRCCA(PRCCA):
+    """
+    :Citation:
+
+    Tuzhilina, Elena, Leonardo Tozzi, and Trevor Hastie. "Canonical correlation analysis in high dimensions with structured regularization." Statistical Modelling (2021): 1471082X211041033.
+    """
     def __init__(
         self,
         latent_dims: int = 1,
@@ -176,18 +187,3 @@ def _group_mean(view, group):
     )
     group_means = np.array([view[:, group == id].mean(axis=1) for id in ids]).T
     return ids, unique_inverse, unique_counts, group_means
-
-
-def main():
-    import numpy as np
-
-    x = np.random.rand(100, 10)
-    y = np.random.rand(100, 11)
-    groups = [np.random.randint(0, 2, size=10), np.random.randint(0, 3, size=11)]
-    model = GRCCA(latent_dims=1, c=10, mu=1).fit((x, y), groups=groups)
-    print(model.score((x, y)))
-    print()
-
-
-if __name__ == "__main__":
-    main()
