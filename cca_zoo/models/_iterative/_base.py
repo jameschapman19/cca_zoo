@@ -3,12 +3,13 @@ import warnings
 from abc import abstractmethod
 from itertools import combinations
 from typing import Union, Iterable
-from tqdm import tqdm
+
 import numpy as np
 from sklearn.utils.validation import check_random_state
+from tqdm import tqdm
 
-from .._rcca import rCCA
 from .._base import _BaseCCA
+from .._rcca import rCCA
 
 
 class _BaseIterative(_BaseCCA):

@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from typing import Iterable
 
 import numpy as np
 import pytorch_lightning as pl

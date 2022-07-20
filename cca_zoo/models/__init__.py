@@ -12,6 +12,7 @@ from ._iterative import (
 from ._mcca import MCCA, KCCA
 from ._ncca import NCCA
 from ._partialcca import PartialCCA
+from ._prcca import PRCCA
 from ._rcca import rCCA, CCA, PLS
 from ._tcca import TCCA, KTCCA
 
@@ -35,6 +36,7 @@ __all__ = [
     "PLS",
     "TCCA",
     "KTCCA",
+    "PRCCA",
 ]
 
 try:

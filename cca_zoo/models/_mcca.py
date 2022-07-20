@@ -81,7 +81,7 @@ class MCCA(rCCA):
                 for i, m in enumerate(views)
             ]
         )
-        C -= block_diag(*[view.T @ view / self.n for view in views]) - D
+        C -= block_diag(*[view.T @ view / self.n for view in views])
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [view.shape[1] for view in views])

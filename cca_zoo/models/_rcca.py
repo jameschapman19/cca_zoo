@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from typing import Iterable, Union
 
 import numpy as np
@@ -37,7 +36,7 @@ class rCCA(_BaseCCA):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = rCCA(c=[0.1,0.1])
-    >>> model._fit((X1,X2)).score((X1,X2))
+    >>> model.fit((X1,X2)).score((X1,X2))
     array([0.95222128])
     """
 
@@ -92,7 +91,6 @@ class rCCA(_BaseCCA):
         self._solve_evp(views, C, D, **kwargs)
         return self
 
-    @abstractmethod
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
         n = views[0].shape[0]
         Us, Ss, Vts = _pca_data(*views)
@@ -105,7 +103,6 @@ class rCCA(_BaseCCA):
             C, D = self._multi_view_evp(Us, Ss)
         return Vts, C, D
 
-    @abstractmethod
     def _solve_evp(self, views: Iterable[np.ndarray], C, D=None, **kwargs):
         p = C.shape[0]
         if self._two_view:
@@ -156,7 +153,7 @@ class rCCA(_BaseCCA):
         )
         C = np.concatenate([U @ np.diag(S) for U, S in zip(Us, Ss)], axis=1)
         C = C.T @ C
-        C -= block_diag(*[np.diag(S ** 2) for U, S in zip(Us, Ss)]) - D
+        C -= block_diag(*[np.diag(S ** 2) for U, S in zip(Us, Ss)])
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [U.shape[1] for U in Us])
@@ -193,7 +190,7 @@ class CCA(rCCA):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = CCA()
-    >>> model._fit((X1,X2)).score((X1,X2))
+    >>> model.fit((X1,X2)).score((X1,X2))
     array([1.])
     """
 
@@ -250,7 +247,7 @@ class PLS(rCCA):
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = PLS()
-    >>> model._fit((X1,X2)).score((X1,X2))
+    >>> model.fit((X1,X2)).score((X1,X2))
     array([0.81796873])
     """
 

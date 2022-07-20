@@ -3,9 +3,9 @@ from typing import Union
 
 import numpy as np
 
-from .._rcca import rCCA
 from ._base import _BaseInnerLoop
 from ._base import _BaseIterative
+from .._rcca import rCCA
 
 
 class AltMaxVar(_BaseIterative):

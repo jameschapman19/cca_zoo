@@ -23,7 +23,7 @@ class PartialCCA(MCCA):
     >>> X2 = np.random.rand(10,5)
     >>> partials = np.random.rand(10,3)
     >>> model = PartialCCA()
-    >>> model._fit((X1,X2),partials=partials).score((X1,X2),partials=partials)
+    >>> model.fit((X1,X2),partials=partials).score((X1,X2),partials=partials)
     array([0.99993046])
 
     """
@@ -59,7 +59,15 @@ class PartialCCA(MCCA):
         self.c = c
         self.eps = eps
 
-    def _setup_evp(self, views: Iterable[np.ndarray], partials=None):
+    def fit(self, views: Iterable[np.ndarray], y=None, partials=None, **kwargs):
+        """
+        Fits a regularised CCA (canonical ridge) model
+
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        """
+        super(MCCA, self).fit(views, y=y, partials=partials, **kwargs)
+
+    def _setup_evp(self, views: Iterable[np.ndarray], partials=None, **kwargs):
         if partials is None:
             raise ValueError(
                 f"partials is {partials}. Require matching partials to transform with"
