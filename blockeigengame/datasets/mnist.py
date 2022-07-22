@@ -104,11 +104,8 @@ def mnist_dataset(model="cca", p=392, random_state=0):
     X += rng.normal(size=X.shape)
     X_te += rng.normal(size=X_te.shape)
     X, X_te = scale(*demean(X, X_te))
-    if model == "pca":
-        return X, None, X_te, None
-    else:
-        Y = X[:, p:]
-        X = X[:, :p]
-        Y_te = X_te[:, p:]
-        X_te = X_te[:, :p]
-        return X, Y, X_te, Y_te
+    Y = X[:, p:]
+    X = X[:, :p]
+    Y_te = X_te[:, p:]
+    X_te = X_te[:, :p]
+    return X, Y, X_te, Y_te
