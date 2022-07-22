@@ -24,8 +24,12 @@ def get_config():
     config = get_base_config()
     # defaults
     config.interval_type = "steps"
+    if wandb.config.get("batch_size", 0)==0:
+        batch_size=N_TRAIN_EXAMPLES[wandb.config.get("data", "linear")]
+    else:
+        batch_size=wandb.config.get("batch_size", 0)
     config.log_tensors_interval = int(wandb.config.get("logging_interval", 1) * N_TRAIN_EXAMPLES[
-        wandb.config.get("data", "linear")] // max(1,wandb.config.get("batch_size", 0)))
+        wandb.config.get("data", "linear")] // batch_size)
     config.log_train_data_interval = config.log_tensors_interval
     config.save_checkpoint_interval = config.log_tensors_interval
     # If True, asynchronously logs training data from every training step.
@@ -54,7 +58,7 @@ def get_config():
         wandb.config.get("data", "linear"),
     )
     # Prevents accidentally setting keys that aren't recognized (e.g. in tests).
-    exp_dir = os.path.join("experiments", wandb.config.experiment, wandb.config.data)
+    exp_dir = os.path.join("results", wandb.config.experiment, wandb.config.get("data", "linear"))
     os.makedirs(exp_dir, exist_ok=True)
     os.chdir(exp_dir)
     os.chdir(log_dir())

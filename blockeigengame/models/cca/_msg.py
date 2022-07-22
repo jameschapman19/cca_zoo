@@ -4,7 +4,7 @@ MSG
 from jax import jit
 
 from ._incremental import Incremental
-from .._utils import incrsvd, _capping
+from ..._utils import incrsvd, _capping
 
 
 class MSG(Incremental):

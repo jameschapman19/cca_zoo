@@ -13,7 +13,7 @@ from jax import jit
 
 from ._plsmixin import _PLSMixin
 from .._baseexperiment import _BaseExperiment
-from .._utils import _split_eigenvector
+from ..._utils import _split_eigenvector
 
 
 class SGHA(_PLSMixin, _BaseExperiment):

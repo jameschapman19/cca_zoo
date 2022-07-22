@@ -40,7 +40,7 @@ class Game(_CCAMixin, _BaseExperiment):
             self.init_rng, (self.config.n_components, views[1].shape[1])
         )
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
-        self._optimizer = optax.adam(learning_rate=self.config.learning_rate)
+        self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
         self._opt_state_x = self._optimizer.init(self._U)
         self._opt_state_y = self._optimizer.init(self._V)
 

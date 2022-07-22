@@ -7,7 +7,7 @@ from jax import jit
 
 from ._ccamixin import _CCAMixin
 from .._baseexperiment import _BaseExperiment
-from .._utils import _capping, incrsvd
+from ..._utils import _capping, incrsvd
 
 
 class Incremental(_CCAMixin, _BaseExperiment):

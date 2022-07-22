@@ -1,3 +1,8 @@
+"""
+Gen-Oja: A Simple and Efficient Algorithm for
+Streaming Generalized Eigenvector Computation
+https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-Paper.pdf
+"""
 from functools import partial
 
 import jax
@@ -5,14 +10,14 @@ import jax.numpy as jnp
 import optax
 from jax import jit
 
-from ._plsmixin import _PLSMixin
+from ._ccamixin import _CCAMixin
 from .._baseexperiment import _BaseExperiment
-from .._utils import _get_AB, _split_eigenvector
+from ._utils import _get_AB
+from ..._utils import _split_eigenvector
 
-
-class SSGD(_PLSMixin, _BaseExperiment):
+class SGHA(_CCAMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
-        super(SSGD, self).__init__(mode, init_rng, config)
+        super(SGHA, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
         Args:
           mode: A string, equivalent to FLAGS.jaxline_mode when running normally.
@@ -26,7 +31,7 @@ class SSGD(_PLSMixin, _BaseExperiment):
         self._update_with_grads = jax.jit(
             jax.vmap(
                 self._update_with_grads,
-                in_axes=(0, 0, 0),
+                in_axes=(0, 1, 0),
             )
         )
 
@@ -37,24 +42,31 @@ class SSGD(_PLSMixin, _BaseExperiment):
             self.init_rng,
             (self.config.n_components, views[0].shape[1] + views[1].shape[1]),
         )
-        self.W = self.W / jnp.linalg.norm(self.W, keepdims=True, axis=1)
+        self.W /= jnp.linalg.norm(self.W, axis=1, keepdims=True)
         self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
         self._opt_state = self._optimizer.init(self.W)
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        grad = self._grads(X_i, Y_i, self.W, self._weights)
-        self.W, self._opt_state = self._update_with_grads(self.W, grad, self._opt_state)
+        w_grad = self._grad(X_i, Y_i, self.W)
+        self.W, self._opt_state = self._update_with_grads(
+            self.W, w_grad, self._opt_state
+        )
+        norm = jnp.linalg.norm(self.W, axis=1, keepdims=True)
+        norm = norm.at[norm < 1].set(1)
+        self.W /= norm
         self._U, self._V = _split_eigenvector(self.W, X_i.shape[1])
 
     @staticmethod
-    def _grads(X_i, Y_i, V, weights):
-        A, _ = _get_AB(X_i, Y_i)
-        return ((A @ V.T @ V @ V.T - V.T @ V @ A @ V.T) @ weights).T
+    @jit
+    def _grad(X_i, Y_i, W):
+        A, B = _get_AB(X_i, Y_i)
+        Y = W @ A @ W.T
+        return B @ W.T @ jnp.triu(Y) - A @ W.T
 
     @partial(jit, static_argnums=(0))
-    def _update_with_grads(self, ui, grads, opt_state):
+    def _update_with_grads(self, wi, grads, opt_state):
+        # we have gradient of utilities so we negate for gradient descent
         updates, opt_state = self._optimizer.update(grads, opt_state)
-        ui_new = optax.apply_updates(ui, updates)
-        ui_new /= jnp.linalg.norm(ui_new, keepdims=True)
-        return ui_new, opt_state
+        wi_new = optax.apply_updates(wi, updates)
+        return wi_new, opt_state

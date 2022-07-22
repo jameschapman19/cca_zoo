@@ -14,7 +14,8 @@ from jax import jit
 from ._ccamixin import _CCAMixin
 from ._utils import _gram_schmidt
 from .._baseexperiment import _BaseExperiment
-from .._utils import _split_eigenvector, _get_AB
+from ._utils import _get_AB
+from ..._utils import _split_eigenvector
 
 flags.DEFINE_float("lr_alpha", 1e-3, "batch size")
 flags.DEFINE_float("lr_beta", 1e-3, "batch size")

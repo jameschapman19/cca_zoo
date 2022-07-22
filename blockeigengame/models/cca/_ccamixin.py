@@ -3,9 +3,9 @@ import jax.scipy as jsp
 from cca_zoo.models import CCA
 from jax import jit, named_scope
 
-from ..datasets.mediamill import mediamill_true
-from ..datasets.xrmb import xrmb_true
-from ..metrics import _correct_eigenvector_streak, _sum_cosine_similarities
+from ...datasets.mediamill import mediamill_true
+from ...datasets.xrmb import xrmb_true
+from ...metrics import _correct_eigenvector_streak, _sum_cosine_similarities
 
 
 class _CCAMixin:
