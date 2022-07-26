@@ -10,4 +10,4 @@ def _get_AB(X_i, Y_i):
     A = C.at[:p, :p].set(0)
     A = A.at[p:, p:].set(0)
     B = jnp.eye(A.shape[0])
-    return A,B
+    return A, B

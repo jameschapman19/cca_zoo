@@ -1,3 +1,5 @@
+from functools import partial
+
 import jax.numpy as jnp
 from cca_zoo.models import CCA
 from jax import jit
@@ -5,7 +7,7 @@ from jax import jit
 from ...data_utils.mediamill import mediamill_true
 from ...data_utils.xrmb import xrmb_true
 from ...metrics import _correct_eigenvector_streak, _sum_cosine_similarities
-from functools import partial
+
 
 class _CCAMixin:
     def _init_ground_truth(self):
@@ -24,7 +26,7 @@ class _CCAMixin:
         self.TCC_val = _TCC(self.X_val, self.Y_val, self.correct_U.T, self.correct_V.T)
 
     def _get_scalars(self, global_step):
-        scalars = {}
+        scalars = {}  # jnp.corrcoef(self._U,self.correct_U.T)
         scalars["examples"] = (
                                       global_step[0] + 1
                               ) * self.config.batch_size  # MCCA(latent_dims=self.config.n_components).fit((self.X, self.Y)).score()

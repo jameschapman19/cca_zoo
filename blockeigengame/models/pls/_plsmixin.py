@@ -1,10 +1,11 @@
 from functools import partial
 
 import jax.numpy as jnp
+from jax import jit
+
 from blockeigengame.data_utils.mediamill import mediamill_true
 from blockeigengame.data_utils.xrmb import xrmb_true
 from blockeigengame.metrics import _correct_eigenvector_streak, _sum_cosine_similarities
-from jax import jit
 
 
 class _PLSMixin:
@@ -50,10 +51,10 @@ def _TV(U, V, X_val, Y_val):
     Qv, Rv = jnp.linalg.qr(V.T)
     Sv = jnp.sign(jnp.sign(jnp.diag(Rv)) + 0.5)
     return (
-        jnp.trace(
-            jnp.atleast_2d(
-                (Qu @ jnp.diag(Su)).T @ X_val.T @ Y_val @ (Qv @ jnp.diag(Sv))
+            jnp.trace(
+                jnp.atleast_2d(
+                    (Qu @ jnp.diag(Su)).T @ X_val.T @ Y_val @ (Qv @ jnp.diag(Sv))
+                )
             )
-        )
-        / dof
+            / dof
     )

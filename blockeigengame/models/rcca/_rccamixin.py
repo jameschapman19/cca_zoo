@@ -1,11 +1,12 @@
 import jax.numpy as jnp
 import jax.scipy as jsp
 import numpy as np
+from cca_zoo.models import MCCA
+from jax import jit
+
 from blockeigengame.data_utils.mediamill import mediamill_true
 from blockeigengame.data_utils.xrmb import xrmb_true
 from blockeigengame.metrics import _correct_eigenvector_streak, _sum_cosine_similarities
-from cca_zoo.models import MCCA
-from jax import jit
 
 
 class _RCCAMixin:
@@ -69,24 +70,24 @@ def _TCC(X, Y, U, V, tau_x, tau_y):
     Uy, Sy, Vy = jnp.linalg.svd(Zy, full_matrices=False)
     Rx = Ux @ jnp.diag(Sx)
     Ry = Uy @ jnp.diag(Sy)
-    Bx = tau_x + (1 - tau_x) * Sx**2
-    By = tau_y + (1 - tau_y) * Sy**2
+    Bx = tau_x + (1 - tau_x) * Sx ** 2
+    By = tau_y + (1 - tau_y) * Sy ** 2
     Rxy = Rx.T @ Ry
     M = (
-        jnp.diag(1 / jnp.sqrt(Bx / n))
-        @ Rxy.T
-        @ jnp.diag(1 / (Bx / n))
-        @ Rxy
-        @ jnp.diag(1 / jnp.sqrt(By / n))
+            jnp.diag(1 / jnp.sqrt(Bx / n))
+            @ Rxy.T
+            @ jnp.diag(1 / (Bx / n))
+            @ Rxy
+            @ jnp.diag(1 / jnp.sqrt(By / n))
     )
     eigvals, eigvecs = jnp.linalg.eigh(M)
     w_y = Vy.T @ jnp.diag(1 / jnp.sqrt(By / n)) @ eigvecs
     w_x = (
-        Vx.T
-        @ jnp.diag(1 / (Sx**2 / n))
-        @ Rxy
-        @ jnp.diag(1 / jnp.sqrt((By / n)))
-        @ eigvecs
-        / jnp.sqrt(eigvals)
+            Vx.T
+            @ jnp.diag(1 / (Sx ** 2 / n))
+            @ Rxy
+            @ jnp.diag(1 / jnp.sqrt((By / n)))
+            @ eigvecs
+            / jnp.sqrt(eigvals)
     )
     return (jnp.linalg.eigvalsh(w_x.T @ Zx.T @ Zy @ w_y) / n).sum()

@@ -6,7 +6,7 @@ from ._utils import demean, scale
 
 
 def linear_dataset(components, model="cca", random_state=0):
-    N = 1000
+    N = 10000
     rng = np.random.default_rng(random_state)
     if model == "cca":
         (X, Y), _ = generate_covariance_data(

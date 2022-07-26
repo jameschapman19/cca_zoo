@@ -6,7 +6,7 @@ from jaxline.base_config import get_base_config
 from blockeigengame._utils import log_dir
 
 N_TRAIN_EXAMPLES = {
-    "linear": 1000,
+    "linear": 10000,
     "exponential": 10000,
     "mnist": 60000,
     "mediamill": 10000,
