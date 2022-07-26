@@ -73,8 +73,13 @@ def _split_eigenvector(W, dim):
     return W[:, :dim], W[:, dim:]
 
 
-def invsqrtm(C):
-    return jnp.linalg.inv(sqrtm(C))
+@jit
+def _invsqrtm(X):
+    C = X.T @ X
+    smallest_eig = jnp.minimum(0, jnp.linalg.eigvalsh(C).min()) - 1e-9
+    C = C - smallest_eig * jnp.eye(C.shape[0])
+    U, S, Vt = jnp.linalg.svd(C)
+    return U @ jnp.diag(jnp.sqrt(1 / S)) @ Vt
 
 
 @jit
@@ -117,7 +122,6 @@ def _capping(S, k):
         return _capping_loop(S, k)
 
 
-@partial(jit, static_argnums=(1))
 def _capping_loop(S, k):
     for i in range(S.shape[0]):
         for j in range(i, S.shape[0]):

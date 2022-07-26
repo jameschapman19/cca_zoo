@@ -1,6 +1,7 @@
 import jax.numpy as jnp
 from jax import jit
 
+
 @jit
 def _get_AB(X_i, Y_i):
     p = X_i.shape[1]
@@ -12,6 +13,7 @@ def _get_AB(X_i, Y_i):
     B = B.at[p:, :p].set(0)
     return A, B
 
+
 @jit
 def _gram_schmidt(V, B):
     n_components = V.shape[0]
@@ -20,10 +22,3 @@ def _gram_schmidt(V, B):
         V = V.at[i].set(V[i] - T @ V[:i])
         V = V.at[i].set(V[i] / jnp.sqrt(V[i] @ B @ V[i].T))
     return V
-
-
-@jit
-def _get_target(X, Y, U, V):
-    Zx = X @ U.T
-    Zy = Y @ V.T
-    return Zx, Zy

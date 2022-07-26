@@ -6,7 +6,6 @@ import optax
 from jax import jit
 
 from ._ccamixin import _CCAMixin
-from ._utils import _get_target
 from .._baseexperiment import _BaseExperiment
 
 
@@ -24,8 +23,8 @@ class Game(_CCAMixin, _BaseExperiment):
             0
         )
         # generates weights for each component on each device
-        self._grads = jax.jit(jax.vmap(self._grads, in_axes=(0, 1, 1, None, None, 0, None)))
-        self._update_with_grads = jax.jit(
+        self.grads = jax.jit(jax.vmap(self._grads, in_axes=(0, 1, 1, None, None, 0, None)))
+        self.update_with_grads = jax.jit(
             self._update_with_grads,
         )
 
@@ -49,22 +48,23 @@ class Game(_CCAMixin, _BaseExperiment):
             X_i,
             Y_i,
         ) = views
-        Zx, Zy = _get_target(X_i, Y_i, self._U, self._V)
-        grads_x, rewards, pens = self._grads(self._U, Zx, Zy, Zx, Zy, self._weights, X_i)
-        self._U, self._opt_state_x = self._update_with_grads(
+        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
+        grads_x = self.grads(self._U, Zx, Zy, Zx, Zy, self._weights, X_i)
+        self._U, self._opt_state_x = self.update_with_grads(
             self._U, grads_x, self._opt_state_x
         )
-        Zx, Zy = _get_target(X_i, Y_i, self._U, self._V)
-        grads_y, rewards, pens = self._grads(self._V, Zy, Zx, Zy, Zx, self._weights, Y_i)
-        self._V, self._opt_state_y = self._update_with_grads(
+        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
+        grads_y = self.grads(self._V, Zy, Zx, Zy, Zx, self._weights, Y_i)
+        self._V, self._opt_state_y = self.update_with_grads(
             self._V, grads_y, self._opt_state_y
         )
 
     @staticmethod
+    @jit
     def _grads(ui, zx, zy, Zx, Zy, weights, X):
         rewards = (X.T @ zy) * jnp.dot(zx, zx) / X.shape[0]
         penalties = (X.T @ Zx) @ (jnp.dot(zx, Zy) * weights) / X.shape[0]
-        return (rewards - penalties) / X.shape[0], rewards, penalties
+        return (rewards - penalties) / X.shape[0]
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
@@ -75,3 +75,10 @@ class Game(_CCAMixin, _BaseExperiment):
         # norm=jnp.where(norm<1,1,norm)
         ui_new /= norm
         return ui_new, opt_state
+
+    @staticmethod
+    @jit
+    def _get_target(X, Y, U, V):
+        Zx = X @ U.T
+        Zy = Y @ V.T
+        return Zx, Zy

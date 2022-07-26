@@ -10,9 +10,9 @@ parameters:
   config:
     values: [ experiments/config.py ]
   experiment:
-    values: [ 'CCA' ]
+    values: [ 'PLS' ]
   model:
-    values: [ 'alphagame','game', 'sgha', 'msg','appgrad','incremental','saa','sgha','ssgd','genoja']
+    values: [ 'alphagame','game', 'sgha', 'msg','incremental','saa','sgha','ssgd']
   data:
     values: [ 'linear','mnist','mediamill','xrmb' ]
   learning_rate:

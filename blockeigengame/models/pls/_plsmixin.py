@@ -1,8 +1,8 @@
 import jax.numpy as jnp
 from jax import jit
 
-from blockeigengame.datasets.mediamill import mediamill_true
-from blockeigengame.datasets.xrmb import xrmb_true
+from blockeigengame.data_utils.mediamill import mediamill_true
+from blockeigengame.data_utils.xrmb import xrmb_true
 from blockeigengame.metrics import (
     _correct_eigenvector_streak,
     _sum_cosine_similarities,
@@ -42,6 +42,7 @@ class _PLSMixin:
             self._V, self.correct_V
         )
         return scalars
+
 
 @jit
 def _TV(U, V, X_val, Y_val):

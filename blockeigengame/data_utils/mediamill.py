@@ -19,11 +19,11 @@ def mediamill():
     """
     try:
         project_dir = (
-            "/home/jchapman/projects/blockeigengame/blockeigengame/datasets/MediaMill/"
+            "/home/jchapman/projects/blockeigengame/data/MediaMill/"
         )
         data = loadmat(project_dir + "mmill.mat")["data"][0][0]
     except:
-        project_dir = "/home/chapm/blockeigengame/blockeigengame/datasets/MediaMill/"
+        project_dir = "/home/chapm/blockeigengame/data/MediaMill/"
         data = loadmat(project_dir + "mmill.mat")["data"][0][0]
     view_1 = data["view1"][0][0]
     view_2 = data["view2"][0][0]
@@ -51,31 +51,31 @@ def mediamill_true(cca=False):
     if cca:
         try:
             U = np.load(
-                "/home/jchapman/projects/blockeigengame/blockeigengame/datasets/MediaMill/CCAU.npy"
+                "/home/jchapman/projects/blockeigengame/data/MediaMill/CCAU.npy"
             )
             V = np.load(
-                "/home/jchapman/projects/blockeigengame/blockeigengame/datasets/MediaMill/CCAV.npy"
+                "/home/jchapman/projects/blockeigengame/data/MediaMill/CCAV.npy"
             )
         except:
             U = np.load(
-                "/home/chapm/blockeigengame/blockeigengame/datasets/MediaMill/CCAU.npy"
+                "/home/chapm/blockeigengame/data/MediaMill/CCAU.npy"
             )
             V = np.load(
-                "/home/chapm/blockeigengame/blockeigengame/datasets/MediaMill/CCAV.npy"
+                "/home/chapm/blockeigengame/data/MediaMill/CCAV.npy"
             )
     else:
         try:
             U = np.load(
-                "/home/jchapman/projects/blockeigengame/blockeigengame/datasets/MediaMill/U.npy"
+                "/home/jchapman/projects/blockeigengame/data/MediaMill/U.npy"
             )
             V = np.load(
-                "/home/jchapman/projects/blockeigengame/blockeigengame/datasets/MediaMill/V.npy"
+                "/home/jchapman/projects/blockeigengame/data/MediaMill/V.npy"
             )
         except:
             U = np.load(
-                "/home/chapm/blockeigengame/blockeigengame/datasets/MediaMill/U.npy"
+                "/home/chapm/blockeigengame/data/MediaMill/U.npy"
             )
             V = np.load(
-                "/home/chapm/blockeigengame/blockeigengame/datasets/MediaMill/V.npy"
+                "/home/chapm/blockeigengame/data/MediaMill/V.npy"
             )
     return U, V

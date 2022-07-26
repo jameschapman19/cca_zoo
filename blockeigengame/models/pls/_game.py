@@ -20,7 +20,7 @@ class Game(_PLSMixin, _BaseExperiment):
         """Initialization function for a Jaxline experiment."""
         self._weights = jnp.ones(
             (config.n_components, config.n_components)
-        )
+        ) - jnp.eye(config.n_components)
         self._weights = self._weights.at[jnp.triu_indices(config.n_components, 1)].set(
             0
         )
@@ -29,10 +29,7 @@ class Game(_PLSMixin, _BaseExperiment):
             jax.vmap(self._grads, in_axes=(0, 1, 1, None, None, 0, None, None))
         )
         self._update_with_grads = jax.jit(
-            jax.vmap(
-                self._update_with_grads,
-                in_axes=(0, 0, 0),
-            )
+            self._update_with_grads,
         )
 
     def _init_train(self):
@@ -68,13 +65,12 @@ class Game(_PLSMixin, _BaseExperiment):
 
     @partial(jit, static_argnums=(0))
     def _update_with_grads(self, ui, grads, opt_state):
-        """Compute and apply updates with optax optimizer.
-        Wrap in jax.vmap for k_per_device dimension."""
-        if self.config.riemann:
-            grads = grads - jnp.dot(grads, ui) * ui
+        # we have gradient of utilities so we negate for gradient descent
         updates, opt_state = self._optimizer.update(-grads, opt_state)
         ui_new = optax.apply_updates(ui, updates)
-        ui_new /= jnp.linalg.norm(ui_new, keepdims=True)
+        norm = jnp.linalg.norm(ui_new, axis=1, keepdims=True)
+        # norm=jnp.where(norm<1,1,norm)
+        ui_new /= norm
         return ui_new, opt_state
 
     @staticmethod

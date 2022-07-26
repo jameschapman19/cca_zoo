@@ -4,8 +4,8 @@ import numpy as np
 from cca_zoo.models import MCCA
 from jax import jit
 
-from blockeigengame.datasets.mediamill import mediamill_true
-from blockeigengame.datasets.xrmb import xrmb_true
+from blockeigengame.data_utils.mediamill import mediamill_true
+from blockeigengame.data_utils.xrmb import xrmb_true
 from blockeigengame.metrics import _correct_eigenvector_streak, _sum_cosine_similarities
 
 

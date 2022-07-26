@@ -1,10 +1,9 @@
 import jax.numpy as jnp
-import jax.scipy as jsp
 from cca_zoo.models import CCA
-from jax import jit, named_scope
+from jax import jit
 
-from ...datasets.mediamill import mediamill_true
-from ...datasets.xrmb import xrmb_true
+from ...data_utils.mediamill import mediamill_true
+from ...data_utils.xrmb import xrmb_true
 from ...metrics import _correct_eigenvector_streak, _sum_cosine_similarities
 
 
@@ -27,8 +26,8 @@ class _CCAMixin:
     def _get_scalars(self, global_step):
         scalars = {}
         scalars["examples"] = (
-            global_step[0] + 1
-        ) * self.config.batch_size  # MCCA(latent_dims=self.config.n_components).fit((self.X, self.Y)).score()
+                                      global_step[0] + 1
+                              ) * self.config.batch_size  # MCCA(latent_dims=self.config.n_components).fit((self.X, self.Y)).score()
         scalars["TCC train"] = _TCC(
             self.X, self.Y, self._U, self._V
         )  # jnp.corrcoef(self.X@self._U.T,self.Y@self._V.T,rowvar=False)
@@ -75,20 +74,20 @@ def _TCC(X, Y, U, V):
     Ry = Uy @ jnp.diag(Sy)
     Rxy = Rx.T @ Ry
     M = (
-        jnp.diag(1 / jnp.sqrt(Sy**2 / n))
-        @ Rxy.T
-        @ jnp.diag(1 / (Sx**2 / n))
-        @ Rxy
-        @ jnp.diag(1 / jnp.sqrt(Sy**2 / n))
+            jnp.diag(1 / jnp.sqrt(Sy ** 2 / n))
+            @ Rxy.T
+            @ jnp.diag(1 / (Sx ** 2 / n))
+            @ Rxy
+            @ jnp.diag(1 / jnp.sqrt(Sy ** 2 / n))
     )
     eigvals, eigvecs = jnp.linalg.eigh(M)
-    w_y = Vy.T @ jnp.diag(1 / jnp.sqrt(Sy**2 / n)) @ eigvecs
+    w_y = Vy.T @ jnp.diag(1 / jnp.sqrt(Sy ** 2 / n)) @ eigvecs
     w_x = (
-        Vx.T
-        @ jnp.diag(1 / (Sx**2 / n))
-        @ Rxy
-        @ jnp.diag(1 / jnp.sqrt((Sy**2 / n)))
-        @ eigvecs
-        / jnp.sqrt(eigvals)
+            Vx.T
+            @ jnp.diag(1 / (Sx ** 2 / n))
+            @ Rxy
+            @ jnp.diag(1 / jnp.sqrt((Sy ** 2 / n)))
+            @ eigvecs
+            / jnp.sqrt(eigvals)
     )
     return (jnp.linalg.eigvalsh(w_x.T @ Zx.T @ Zy @ w_y) / n).sum()

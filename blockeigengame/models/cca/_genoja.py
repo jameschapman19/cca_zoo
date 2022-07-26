@@ -12,9 +12,9 @@ from absl import flags
 from jax import jit
 
 from ._ccamixin import _CCAMixin
+from ._utils import _get_AB
 from ._utils import _gram_schmidt
 from .._baseexperiment import _BaseExperiment
-from ._utils import _get_AB
 from ..._utils import _split_eigenvector
 
 flags.DEFINE_float("lr_alpha", 1e-3, "batch size")
@@ -61,8 +61,8 @@ class GenOja(_CCAMixin, _BaseExperiment):
             (self.config.n_components, views[0].shape[1] + views[1].shape[1]),
         )
         self.V = self.V / jnp.linalg.norm(self.V, keepdims=True, axis=1)
-        self._optimizer_ls = optax.sgd(learning_rate=self.config.lr_alpha)
-        self._optimizer_oja = optax.sgd(learning_rate=self.config.lr_beta0)
+        self._optimizer_ls = optax.sgd(learning_rate=self.config.alpha)
+        self._optimizer_oja = optax.sgd(learning_rate=self.config.beta0)
         self._opt_state_ls = self._optimizer_ls.init(self.W)
         self._opt_state_oja = self._optimizer_oja.init(self.V)
 

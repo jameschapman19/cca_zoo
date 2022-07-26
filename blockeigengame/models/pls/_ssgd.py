@@ -6,8 +6,8 @@ import optax
 from jax import jit
 
 from ._plsmixin import _PLSMixin
-from .._baseexperiment import _BaseExperiment
 from ._utils import _get_AB
+from .._baseexperiment import _BaseExperiment
 from ..._utils import _split_eigenvector
 
 

@@ -20,6 +20,6 @@ parameters:
   batch_size:
     values: [ 1 ]
   logging_interval:
-    values: [ 0.01 ]
+    values: [ 0.05 ]
   n_components:
     values: [ 5 ]

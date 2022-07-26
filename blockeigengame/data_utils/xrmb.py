@@ -19,12 +19,12 @@ def xrmb():
     """
     try:
         project_dir = (
-            "/home/jchapman/projects/blockeigengame/blockeigengame/datasets/XRMB/"
+            "/home/jchapman/projects/blockeigengame/data/XRMB/"
         )
         view_1 = loadmat(project_dir + "XRMBf2KALDI_window7_single1.mat")
         view_2 = loadmat(project_dir + "XRMBf2KALDI_window7_single2.mat")
     except:
-        project_dir = "/home/chapm/blockeigengame/blockeigengame/datasets/XRMB/"
+        project_dir = "/home/chapm/blockeigengame/data/XRMB/"
         view_1 = loadmat(project_dir + "XRMBf2KALDI_window7_single1.mat")
         view_2 = loadmat(project_dir + "XRMBf2KALDI_window7_single2.mat")
     return view_1["X1"], view_2["X2"], view_1["XTe1"], view_2["XTe2"]
@@ -44,27 +44,27 @@ def xrmb_true(cca=False):
     if cca:
         try:
             U = np.load(
-                "/home/jchapman/projects/blockeigengame/blockeigengame/datasets/XRMB/CCAU.npy"
+                "/home/jchapman/projects/blockeigengame/data/XRMB/CCAU.npy"
             )
             V = np.load(
-                "/home/jchapman/projects/blockeigengame/blockeigengame/datasets/XRMB/CCAV.npy"
+                "/home/jchapman/projects/blockeigengame/data/XRMB/CCAV.npy"
             )
         except:
             U = np.load(
-                "/home/chapm/blockeigengame/blockeigengame/datasets/XRMB/CCAU.npy"
+                "/home/chapm/blockeigengame/data/XRMB/CCAU.npy"
             )
             V = np.load(
-                "/home/chapm/blockeigengame/blockeigengame/datasets/XRMB/CCAV.npy"
+                "/home/chapm/blockeigengame/data/XRMB/CCAV.npy"
             )
     else:
         try:
             U = np.load(
-                "/home/jchapman/projects/blockeigengame/blockeigengame/datasets/XRMB/U.npy"
+                "/home/jchapman/projects/blockeigengame/data/XRMB/U.npy"
             )
             V = np.load(
-                "/home/jchapman/projects/blockeigengame/blockeigengame/datasets/XRMB/V.npy"
+                "/home/jchapman/projects/blockeigengame/data/XRMB/V.npy"
             )
         except:
-            U = np.load("/home/chapm/blockeigengame/blockeigengame/datasets/XRMB/U.npy")
-            V = np.load("/home/chapm/blockeigengame/blockeigengame/datasets/XRMB/V.npy")
+            U = np.load("/home/chapm/blockeigengame/data/XRMB/U.npy")
+            V = np.load("/home/chapm/blockeigengame/data/XRMB/V.npy")
     return U, V

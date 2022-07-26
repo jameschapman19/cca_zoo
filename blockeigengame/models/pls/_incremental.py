@@ -5,7 +5,7 @@ from jax import jit
 from ._plsmixin import _PLSMixin
 from .._baseexperiment import _BaseExperiment
 from ..._utils import incrsvd
-
+from ..._utils import _capping
 
 class Incremental(_PLSMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):

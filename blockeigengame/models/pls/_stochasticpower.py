@@ -27,7 +27,7 @@ class StochasticPower(_PLSMixin, _BaseExperiment):
         )
         self._U /= jnp.linalg.norm(self._U, axis=1, keepdims=True)
         self._V = jax.random.normal(
-            self.init_rng, (self.config.n_components, views[0].shape[1])
+            self.init_rng, (self.config.n_components, views[1].shape[1])
         )
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
@@ -43,9 +43,8 @@ class StochasticPower(_PLSMixin, _BaseExperiment):
         self._V, self._opt_state_y = self._update_with_grads(
             self._V, grads_y, self._opt_state_y
         )
-        if global_step % 100 == 0:
-            self._U = self._orth(self._U)
-            self._V = self._orth(self._V)
+        self._U = self._orth(self._U)
+        self._V = self._orth(self._V)
 
     @staticmethod
     @jit

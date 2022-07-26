@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 
 from ._incremental import Incremental
-
+from ..._utils import _capping
 
 class MSG(Incremental):
     def __init__(self, mode, init_rng, config):

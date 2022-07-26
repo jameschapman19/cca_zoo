@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 from jaxline.experiment import AbstractExperiment
 
-from ..datasets import (
+from ..data_utils import (
     exponential_dataset,
     linear_dataset,
     mnist_dataset,
@@ -13,7 +13,7 @@ from ..datasets import (
     xrmb_dataset,
     mediamill_dataset,
 )
-from ..datasets._utils import data_stream
+from ..data_utils._utils import data_stream
 
 
 class _BaseExperiment(AbstractExperiment):

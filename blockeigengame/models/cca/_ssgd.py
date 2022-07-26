@@ -6,8 +6,8 @@ import optax
 from jax import jit
 
 from ._ccamixin import _CCAMixin
-from .._baseexperiment import _BaseExperiment
 from ._utils import _get_AB
+from .._baseexperiment import _BaseExperiment
 from ..._utils import _split_eigenvector
 
 

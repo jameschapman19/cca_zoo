@@ -18,7 +18,7 @@ parameters:
   learning_rate:
     values: [ 1e-1,1e-2, 1e-3 ]
   logging_interval:
-    values: [ 0.01 ]
+    values: [ 0.05 ]
   batch_size:
     values: [ 32,64,128 ]
   n_components:
