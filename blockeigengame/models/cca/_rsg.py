@@ -52,7 +52,7 @@ class RSG(_CCAMixin, _BaseExperiment):
         Yn = jnp.reshape((Y_i.shape[1], self.config.batch_size, self.config.batch_size / self.config.n_components))
         for j in range(Xn.shape[1]):
             q = Xn[:, :, j]
-            tx = tx  # TODO
+            tx = tx  - self.manx.re
             q = Yn[:, :, j]
             ty = ty  # TODO
         Vx += white @ tx

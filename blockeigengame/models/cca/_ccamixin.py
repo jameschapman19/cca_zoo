@@ -5,7 +5,7 @@ from jax import jit
 from ...data_utils.mediamill import mediamill_true
 from ...data_utils.xrmb import xrmb_true
 from ...metrics import _correct_eigenvector_streak, _sum_cosine_similarities
-
+from functools import partial
 
 class _CCAMixin:
     def _init_ground_truth(self):
@@ -63,7 +63,7 @@ class _CCAMixin:
         return scalars
 
 
-@jit
+@partial(jit, backend='cpu')
 def _TCC(X, Y, U, V):
     Zx = X @ U.T
     Zy = Y @ V.T

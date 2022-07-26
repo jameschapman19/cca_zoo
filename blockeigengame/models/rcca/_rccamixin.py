@@ -1,12 +1,11 @@
 import jax.numpy as jnp
 import jax.scipy as jsp
 import numpy as np
-from cca_zoo.models import MCCA
-from jax import jit
-
 from blockeigengame.data_utils.mediamill import mediamill_true
 from blockeigengame.data_utils.xrmb import xrmb_true
 from blockeigengame.metrics import _correct_eigenvector_streak, _sum_cosine_similarities
+from cca_zoo.models import MCCA
+from jax import jit
 
 
 class _RCCAMixin:
@@ -28,7 +27,9 @@ class _RCCAMixin:
     def _get_scalars(self, global_step):
         scalars = {}
         if global_step == 0 or (global_step + 1) % self.config.val_interval == 0:
-            scalars["TCC train"] = _TCC(self.X, self.Y, self._U, self._V)
+            scalars["TCC train"] = _TCC(
+                self.X, self.Y, self._U, self._V, self.config.tau[0], self.config.tau[1]
+            )
             scalars["TCC val"] = _TCC(self.X_val, self.Y_val, self._U, self._V)
             scalars["PCC train"] = scalars["TCC train"] / self.TCC_train
             scalars["PCC val"] = scalars["TCC val"] / self.TCC_val
@@ -59,16 +60,33 @@ class _RCCAMixin:
         return scalars
 
 
-@jit
-def _TCC(X, Y, U, V):
+@partial(jit, backend="cpu")
+def _TCC(X, Y, U, V, tau_x, tau_y):
     Zx = X @ U.T
     Zy = Y @ V.T
-    all = jnp.hstack((Zx, Zy))
-    C = all.T @ all
-    D = jsp.linalg.block_diag(Zx.T @ Zx, Zy.T @ Zy)
-    D = D + 1e-3 * jnp.eye(C.shape[0])
-    C = jnp.linalg.pinv(D) @ C
-    try:
-        return (jsp.linalg.eigh(C)[0] - 1)[-U.shape[0]:].sum()
-    except:
-        return np.nan
+    n = X.shape[0]
+    Ux, Sx, Vx = jnp.linalg.svd(Zx, full_matrices=False)
+    Uy, Sy, Vy = jnp.linalg.svd(Zy, full_matrices=False)
+    Rx = Ux @ jnp.diag(Sx)
+    Ry = Uy @ jnp.diag(Sy)
+    Bx = tau_x + (1 - tau_x) * Sx**2
+    By = tau_y + (1 - tau_y) * Sy**2
+    Rxy = Rx.T @ Ry
+    M = (
+        jnp.diag(1 / jnp.sqrt(Bx / n))
+        @ Rxy.T
+        @ jnp.diag(1 / (Bx / n))
+        @ Rxy
+        @ jnp.diag(1 / jnp.sqrt(By / n))
+    )
+    eigvals, eigvecs = jnp.linalg.eigh(M)
+    w_y = Vy.T @ jnp.diag(1 / jnp.sqrt(By / n)) @ eigvecs
+    w_x = (
+        Vx.T
+        @ jnp.diag(1 / (Sx**2 / n))
+        @ Rxy
+        @ jnp.diag(1 / jnp.sqrt((By / n)))
+        @ eigvecs
+        / jnp.sqrt(eigvals)
+    )
+    return (jnp.linalg.eigvalsh(w_x.T @ Zx.T @ Zy @ w_y) / n).sum()

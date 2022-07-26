@@ -10,7 +10,7 @@ parameters:
   config:
     values: [ experiments/config.py ]
   experiment:
-    values: [ 'CCA' ]
+    values: [ 'PLS' ]
   model:
     values: [ 'msg' ]
   data:

@@ -32,6 +32,6 @@ class RGame(Game):
 
     @partial(jit, static_argnums=(0))
     def _grads(self, ui, zx, zy, Zx, Zy, weights, X, U, tau):
-        return tau * pls.Game._grads(self, ui, zx, zy, Zx, Zy, weights, X, U) + (
+        return tau * pls.Game._grads(ui, zx, zy, Zx, Zy, weights, X, U) + (
                 1 - tau
-        ) * cca.Game._grads(self, ui, zx, zy, Zx, Zy, weights, X)
+        ) * cca.Game._grads(ui, zx, zy, Zx, Zy, weights, X)
