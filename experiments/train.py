@@ -7,15 +7,15 @@ from jaxline import platform
 
 from blockeigengame import cca, pls, rcca
 
-_BATCH_SIZE = flags.DEFINE_integer("batch_size", 32, "batch size")
-_MODEL = flags.DEFINE_string("model", "msg", "model")
+_BATCH_SIZE = flags.DEFINE_integer("batch_size",32, "batch size")
+_MODEL = flags.DEFINE_string("model", "game", "model")
 _DATA = flags.DEFINE_string("data", "linear", "dataset name")
 _EXPERIMENT = flags.DEFINE_string(
     "experiment", "CCA", "whether to run a PLS or CCA experiment"
 )
-_N_COMPONENTS = flags.DEFINE_integer("n_components", 4, "number of components")
-_LEARNING_RATE = flags.DEFINE_float("learning_rate", 1e-1, "learning rate")
-_EPOCHS = flags.DEFINE_integer("epochs", 1, "epochs")
+_N_COMPONENTS = flags.DEFINE_integer("n_components", 5, "number of components")
+_LEARNING_RATE = flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
+_EPOCHS = flags.DEFINE_integer("epochs", 5, "epochs")
 _LOGGING_INTERVAL = flags.DEFINE_float("logging_interval", 0.01, "logging interval")
 
 MODEL_DICT = {
@@ -32,6 +32,8 @@ MODEL_DICT = {
         "mgame": cca.MGame,
         "incremental": cca.Incremental,
         "elasticgame": cca.ElasticGame,
+        "sghagame": cca.SGHAGame,
+        "eigengame": cca.EigenGame
     },
     "PLS": {
         "game": pls.Game,

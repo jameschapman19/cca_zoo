@@ -1,5 +1,3 @@
-from functools import partial
-
 import jax
 import jax.numpy as jnp
 import optax
@@ -24,9 +22,6 @@ class Game(_CCAMixin, _BaseExperiment):
         )
         # generates weights for each component on each device
         self.grads = jax.jit(jax.vmap(self._grads, in_axes=(0, 1, 1, None, None, 0, None)))
-        self.update_with_grads = jax.jit(
-            self._update_with_grads,
-        )
 
     def _init_train(self):
         self._init_ground_truth()
@@ -39,9 +34,10 @@ class Game(_CCAMixin, _BaseExperiment):
             self.init_rng, (self.config.n_components, views[1].shape[1])
         )
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
-        self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
-        self._opt_state_x = self._optimizer.init(self._U)
-        self._opt_state_y = self._optimizer.init(self._V)
+        self._optimizer_x = optax.sgd(learning_rate=self.config.learning_rate)
+        self._optimizer_y = optax.sgd(learning_rate=self.config.learning_rate)
+        self._opt_state_x = self._optimizer_x.init(self._U)
+        self._opt_state_y = self._optimizer_y.init(self._V)
 
     def _update(self, views, global_step):
         (
@@ -50,31 +46,25 @@ class Game(_CCAMixin, _BaseExperiment):
         ) = views
         Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
         grads_x = self.grads(self._U, Zx, Zy, Zx, Zy, self._weights, X_i)
-        self._U, self._opt_state_x = self.update_with_grads(
-            self._U, grads_x, self._opt_state_x
-        )
-        Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
+        updates, self._opt_state_x = self._optimizer_x.update(-grads_x, self._opt_state_x)
+        self._U = optax.apply_updates(self._U, updates)
+        self._U = self._normalize(self._U)
         grads_y = self.grads(self._V, Zy, Zx, Zy, Zx, self._weights, Y_i)
-        self._V, self._opt_state_y = self.update_with_grads(
-            self._V, grads_y, self._opt_state_y
-        )
+        updates, self._opt_state_y = self._optimizer_y.update(-grads_y, self._opt_state_y)
+        self._V = optax.apply_updates(self._V, updates)
+        self._V = self._normalize(self._V)
 
     @staticmethod
     @jit
+    def _normalize(U):
+        U /= jnp.linalg.norm(U, axis=1, keepdims=True)
+        return U
+
+    @staticmethod
     def _grads(ui, zx, zy, Zx, Zy, weights, X):
-        rewards = (X.T @ zy) * jnp.dot(zx, zx) / X.shape[0]
+        rewards = (X.T @ zy)
         penalties = (X.T @ Zx) @ (jnp.dot(zx, Zy) * weights) / X.shape[0]
         return (rewards - penalties) / X.shape[0]
-
-    @partial(jit, static_argnums=(0))
-    def _update_with_grads(self, ui, grads, opt_state):
-        # we have gradient of utilities so we negate for gradient descent
-        updates, opt_state = self._optimizer.update(-grads, opt_state)
-        ui_new = optax.apply_updates(ui, updates)
-        norm = jnp.linalg.norm(ui_new, axis=1, keepdims=True)
-        # norm=jnp.where(norm<1,1,norm)
-        ui_new /= norm
-        return ui_new, opt_state
 
     @staticmethod
     @jit

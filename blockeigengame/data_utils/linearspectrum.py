@@ -32,13 +32,3 @@ def linear_dataset(components, model="cca", random_state=0):
     X, X_te, Y, Y_te = train_test_split(X, Y, test_size=0.2, random_state=random_state)
     X, X_te, Y, Y_te = scale(*demean(X, X_te, Y, Y_te))
     return X, Y, X_te, Y_te
-
-
-def main():
-    X, Y, X_te, Y_te = linear_dataset()  # S*1
-    _, S, _ = np.linalg.svd(X.T @ Y)
-    print()
-
-
-if __name__ == "__main__":
-    main()

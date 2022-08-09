@@ -44,7 +44,7 @@ def get_config():
         "alpha": wandb.config.get("alpha", 1e-3),
         "beta0": wandb.config.get("beta0", 1e-3),
         "c": wandb.config.get("c", [0, 0]),
-        "tau": wandb.config.get("tau", [0.1, 0.1]),
+        "tau": wandb.config.get("tau", [0.5, 0.5]),
         "random_state": wandb.config.get("random_seed", 0),
         "whitening_batch_size": 10 * wandb.config.get("n_components", 1),
         "riemann": False,

@@ -1,6 +1,4 @@
 import jax.numpy as jnp
-import jax.scipy as jsp
-import numpy as np
 from cca_zoo.models import MCCA
 from jax import jit
 

@@ -7,7 +7,6 @@ import jax.numpy as jnp
 from jax import jit
 from jax._src import prng
 from jax._src.random import PRNGKey
-from scipy.linalg import sqrtm
 
 log = logging.getLogger(__name__)
 
@@ -135,3 +134,4 @@ def _capping_loop(S, k):
             if S_tmp[i] >= 0 and (i == 0 or (jnp.flip(S)[(i - 1)] + shf) <= 0) and S_tmp[j] <= 1 and (
                     j == S.shape[0] - 1 or (jnp.flip(S)[j] + shf) >= 1):
                 return jnp.flip(S_tmp)
+    return jnp.flip(S_tmp)

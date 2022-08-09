@@ -31,3 +31,10 @@ def _sum_cosine_similarities(U, U_correct):
         jnp.corrcoef(U.T, U_correct, rowvar=False)[n_components:, :n_components]
     )
     return jnp.sum(jnp.abs(cosine_similarities))
+
+@jit
+def _normalized_subspace_distance(U, U_correct):
+    U = U.T / jnp.linalg.norm(U, axis=1)
+    P = U_correct @ U_correct.T
+    U_star = U @ U.T
+    return 1 - jnp.trace(U_star @ P) / U_correct.shape[1]

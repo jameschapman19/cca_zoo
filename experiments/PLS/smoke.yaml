@@ -21,3 +21,5 @@ parameters:
     values: [ 0 ]
   n_components:
     values: [ 1 ]
+  epochs:
+    values: [3]
