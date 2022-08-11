@@ -6,7 +6,11 @@ from jax import jit
 
 from ...data_utils.mediamill import mediamill_true
 from ...data_utils.xrmb import xrmb_true
-from ...metrics import _correct_eigenvector_streak, _sum_cosine_similarities, _normalized_subspace_distance
+from ...metrics import (
+    _correct_eigenvector_streak,
+    _sum_cosine_similarities,
+    _normalized_subspace_distance,
+)
 
 
 class _CCAMixin:
@@ -27,21 +31,19 @@ class _CCAMixin:
 
     def _get_scalars(self, global_step):
         scalars = {}
-        scalars["examples"] = (
-                                      global_step[0] + 1
-                              ) * self.config.batch_size
-        scalars["TCC train"] = _TCC(
-            self.X, self.Y, self._U, self._V
-        )
-        scalars["TCC val"] = _TCC(
-            self.X_val, self.Y_val, self._U, self._V
-        )
+        scalars["examples"] = (global_step[0] + 1) * self.config.batch_size
+        scalars["TCC train"] = _TCC(self.X, self.Y, self._U, self._V)
+        scalars["TCC val"] = _TCC(self.X_val, self.Y_val, self._U, self._V)
         scalars["PCC train"] = scalars["TCC train"] / self.TCC_train
         scalars["PCC val"] = scalars["TCC val"] / self.TCC_val
         scalars["correct x"] = _correct_eigenvector_streak(self._U, self.correct_U)
         scalars["correct y"] = _correct_eigenvector_streak(self._V, self.correct_V)
-        scalars["subspace distance x"] = _normalized_subspace_distance(self._U, self.correct_U)
-        scalars["subspace distance y"] = _normalized_subspace_distance(self._V, self.correct_V)
+        scalars["subspace distance x"] = _normalized_subspace_distance(
+            self._U, self.correct_U
+        )
+        scalars["subspace distance y"] = _normalized_subspace_distance(
+            self._V, self.correct_V
+        )
         scalars["sum cosine similarities x"] = _sum_cosine_similarities(
             self._U, self.correct_U
         )
@@ -67,7 +69,7 @@ class _CCAMixin:
         return scalars
 
 
-@partial(jit, backend='cpu')
+@partial(jit, backend="cpu")
 def _TCC(X, Y, U, V):
     Zx = X @ U.T
     Zy = Y @ V.T
@@ -78,20 +80,20 @@ def _TCC(X, Y, U, V):
     Ry = Uy @ jnp.diag(Sy)
     Rxy = Rx.T @ Ry
     M = (
-            jnp.diag(1 / jnp.sqrt(Sy ** 2 / n))
-            @ Rxy.T
-            @ jnp.diag(1 / (Sx ** 2 / n))
-            @ Rxy
-            @ jnp.diag(1 / jnp.sqrt(Sy ** 2 / n))
+        jnp.diag(1 / jnp.sqrt(Sy**2 / n))
+        @ Rxy.T
+        @ jnp.diag(1 / (Sx**2 / n))
+        @ Rxy
+        @ jnp.diag(1 / jnp.sqrt(Sy**2 / n))
     )
     eigvals, eigvecs = jnp.linalg.eigh(M)
-    w_y = Vy.T @ jnp.diag(1 / jnp.sqrt(Sy ** 2 / n)) @ eigvecs
+    w_y = Vy.T @ jnp.diag(1 / jnp.sqrt(Sy**2 / n)) @ eigvecs
     w_x = (
-            Vx.T
-            @ jnp.diag(1 / (Sx ** 2 / n))
-            @ Rxy
-            @ jnp.diag(1 / jnp.sqrt((Sy ** 2 / n)))
-            @ eigvecs
-            / jnp.sqrt(eigvals)
+        Vx.T
+        @ jnp.diag(1 / (Sx**2 / n))
+        @ Rxy
+        @ jnp.diag(1 / jnp.sqrt((Sy**2 / n)))
+        @ eigvecs
+        / jnp.sqrt(eigvals)
     )
     return (jnp.linalg.eigvalsh(w_x.T @ Zx.T @ Zy @ w_y) / n).sum()

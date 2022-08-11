@@ -18,7 +18,9 @@ class _RCCAMixin:
             self.correct_U = self.correct_U[:, : self.config.n_components]
             self.correct_V = self.correct_V[:, : self.config.n_components]
         else:
-            cca = MCCA(latent_dims=self.config.n_components, c=self.config.tau).fit((self.X, self.Y))
+            cca = MCCA(latent_dims=self.config.n_components, c=self.config.tau).fit(
+                (self.X, self.Y)
+            )
             self.correct_U, self.correct_V = cca.weights
         self.TCC_train = _TCC(self.X, self.Y, self.correct_U.T, self.correct_V.T)
         self.TCC_val = _TCC(self.X_val, self.Y_val, self.correct_U.T, self.correct_V.T)
@@ -68,24 +70,24 @@ def _TCC(X, Y, U, V, tau_x, tau_y):
     Uy, Sy, Vy = jnp.linalg.svd(Zy, full_matrices=False)
     Rx = Ux @ jnp.diag(Sx)
     Ry = Uy @ jnp.diag(Sy)
-    Bx = tau_x + (1 - tau_x) * Sx ** 2
-    By = tau_y + (1 - tau_y) * Sy ** 2
+    Bx = tau_x + (1 - tau_x) * Sx**2
+    By = tau_y + (1 - tau_y) * Sy**2
     Rxy = Rx.T @ Ry
     M = (
-            jnp.diag(1 / jnp.sqrt(Bx / n))
-            @ Rxy.T
-            @ jnp.diag(1 / (Bx / n))
-            @ Rxy
-            @ jnp.diag(1 / jnp.sqrt(By / n))
+        jnp.diag(1 / jnp.sqrt(Bx / n))
+        @ Rxy.T
+        @ jnp.diag(1 / (Bx / n))
+        @ Rxy
+        @ jnp.diag(1 / jnp.sqrt(By / n))
     )
     eigvals, eigvecs = jnp.linalg.eigh(M)
     w_y = Vy.T @ jnp.diag(1 / jnp.sqrt(By / n)) @ eigvecs
     w_x = (
-            Vx.T
-            @ jnp.diag(1 / (Sx ** 2 / n))
-            @ Rxy
-            @ jnp.diag(1 / jnp.sqrt((By / n)))
-            @ eigvecs
-            / jnp.sqrt(eigvals)
+        Vx.T
+        @ jnp.diag(1 / (Sx**2 / n))
+        @ Rxy
+        @ jnp.diag(1 / jnp.sqrt((By / n)))
+        @ eigvecs
+        / jnp.sqrt(eigvals)
     )
     return (jnp.linalg.eigvalsh(w_x.T @ Zx.T @ Zy @ w_y) / n).sum()

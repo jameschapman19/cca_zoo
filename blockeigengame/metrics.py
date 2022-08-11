@@ -32,6 +32,7 @@ def _sum_cosine_similarities(U, U_correct):
     )
     return jnp.sum(jnp.abs(cosine_similarities))
 
+
 @jit
 def _normalized_subspace_distance(U, U_correct):
     U = U.T / jnp.linalg.norm(U, axis=1)

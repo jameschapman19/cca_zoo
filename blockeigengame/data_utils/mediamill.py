@@ -18,9 +18,7 @@ def mediamill():
     train_view_1, train_view_2, test_view_1, test_view_2
     """
     try:
-        project_dir = (
-            "/home/jchapman/projects/blockeigengame/data/MediaMill/"
-        )
+        project_dir = "/home/jchapman/projects/blockeigengame/data/MediaMill/"
         data = loadmat(project_dir + "mmill.mat")["data"][0][0]
     except:
         project_dir = "/home/chapm/blockeigengame/data/MediaMill/"
@@ -57,25 +55,13 @@ def mediamill_true(cca=False):
                 "/home/jchapman/projects/blockeigengame/data/MediaMill/CCAV.npy"
             )
         except:
-            U = np.load(
-                "/home/chapm/blockeigengame/data/MediaMill/CCAU.npy"
-            )
-            V = np.load(
-                "/home/chapm/blockeigengame/data/MediaMill/CCAV.npy"
-            )
+            U = np.load("/home/chapm/blockeigengame/data/MediaMill/CCAU.npy")
+            V = np.load("/home/chapm/blockeigengame/data/MediaMill/CCAV.npy")
     else:
         try:
-            U = np.load(
-                "/home/jchapman/projects/blockeigengame/data/MediaMill/U.npy"
-            )
-            V = np.load(
-                "/home/jchapman/projects/blockeigengame/data/MediaMill/V.npy"
-            )
+            U = np.load("/home/jchapman/projects/blockeigengame/data/MediaMill/U.npy")
+            V = np.load("/home/jchapman/projects/blockeigengame/data/MediaMill/V.npy")
         except:
-            U = np.load(
-                "/home/chapm/blockeigengame/data/MediaMill/U.npy"
-            )
-            V = np.load(
-                "/home/chapm/blockeigengame/data/MediaMill/V.npy"
-            )
+            U = np.load("/home/chapm/blockeigengame/data/MediaMill/U.npy")
+            V = np.load("/home/chapm/blockeigengame/data/MediaMill/V.npy")
     return U, V

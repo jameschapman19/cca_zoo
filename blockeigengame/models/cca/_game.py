@@ -21,7 +21,9 @@ class Game(_CCAMixin, _BaseExperiment):
             0
         )
         # generates weights for each component on each device
-        self.grads = jax.jit(jax.vmap(self._grads, in_axes=(0, 1, 1, None, None, 0, None)))
+        self.grads = jax.jit(
+            jax.vmap(self._grads, in_axes=(0, 1, 1, None, None, 0, None))
+        )
 
     def _init_train(self):
         self._init_ground_truth()
@@ -46,17 +48,21 @@ class Game(_CCAMixin, _BaseExperiment):
         ) = views
         Zx, Zy = self._get_target(X_i, Y_i, self._U, self._V)
         grads_x = self.grads(self._U, Zx, Zy, Zx, Zy, self._weights, X_i)
-        updates, self._opt_state_x = self._optimizer_x.update(-grads_x, self._opt_state_x)
+        updates, self._opt_state_x = self._optimizer_x.update(
+            -grads_x, self._opt_state_x
+        )
         self._U = optax.apply_updates(self._U, updates)
         self._U = self._normalize(self._U)
         grads_y = self.grads(self._V, Zy, Zx, Zy, Zx, self._weights, Y_i)
-        updates, self._opt_state_y = self._optimizer_y.update(-grads_y, self._opt_state_y)
+        updates, self._opt_state_y = self._optimizer_y.update(
+            -grads_y, self._opt_state_y
+        )
         self._V = optax.apply_updates(self._V, updates)
         self._V = self._normalize(self._V)
 
     @staticmethod
     def _grads(ui, zx, zy, Zx, Zy, weights, X):
-        rewards = (X.T @ zy)
+        rewards = X.T @ zy
         penalties = (X.T @ Zx) @ (jnp.dot(zx, Zy) * weights) / X.shape[0]
         return (rewards - penalties) / X.shape[0]
 

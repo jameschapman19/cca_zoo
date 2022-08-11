@@ -17,7 +17,7 @@ def linear_dataset(components, model="cca", random_state=0):
             structure="toeplitz",
             sigma=0.5,
             random_state=random_state,
-            view_sparsity=0.1
+            view_sparsity=0.1,
         )
 
     else:

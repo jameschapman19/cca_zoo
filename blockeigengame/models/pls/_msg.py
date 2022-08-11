@@ -17,7 +17,13 @@ class MSG(Incremental):
     def _update(self, views, global_step):
         X_i, Y_i = views
         self._U, self._V, self._S = self._grads(
-            jnp.sqrt(self.config.learning_rate) * X_i, jnp.sqrt(self.config.learning_rate) * Y_i, self._U, self._V,
-            self.config.batch_size * (global_step) * self._S
+            jnp.sqrt(self.config.learning_rate) * X_i,
+            jnp.sqrt(self.config.learning_rate) * Y_i,
+            self._U,
+            self._V,
+            self.config.batch_size * (global_step) * self._S,
         )
-        self._S = _capping(self._S / (self.config.batch_size * (global_step + 1)), self.config.n_components)
+        self._S = _capping(
+            self._S / (self.config.batch_size * (global_step + 1)),
+            self.config.n_components,
+        )

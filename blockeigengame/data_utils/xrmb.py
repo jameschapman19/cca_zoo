@@ -18,9 +18,7 @@ def xrmb():
     train_view_1, train_view_2, test_view_1, test_view_2
     """
     try:
-        project_dir = (
-            "/home/jchapman/projects/blockeigengame/data/XRMB/"
-        )
+        project_dir = "/home/jchapman/projects/blockeigengame/data/XRMB/"
         view_1 = loadmat(project_dir + "XRMBf2KALDI_window7_single1.mat")
         view_2 = loadmat(project_dir + "XRMBf2KALDI_window7_single2.mat")
     except:
@@ -43,27 +41,15 @@ def xrmb_dataset():
 def xrmb_true(cca=False):
     if cca:
         try:
-            U = np.load(
-                "/home/jchapman/projects/blockeigengame/data/XRMB/CCAU.npy"
-            )
-            V = np.load(
-                "/home/jchapman/projects/blockeigengame/data/XRMB/CCAV.npy"
-            )
+            U = np.load("/home/jchapman/projects/blockeigengame/data/XRMB/CCAU.npy")
+            V = np.load("/home/jchapman/projects/blockeigengame/data/XRMB/CCAV.npy")
         except:
-            U = np.load(
-                "/home/chapm/blockeigengame/data/XRMB/CCAU.npy"
-            )
-            V = np.load(
-                "/home/chapm/blockeigengame/data/XRMB/CCAV.npy"
-            )
+            U = np.load("/home/chapm/blockeigengame/data/XRMB/CCAU.npy")
+            V = np.load("/home/chapm/blockeigengame/data/XRMB/CCAV.npy")
     else:
         try:
-            U = np.load(
-                "/home/jchapman/projects/blockeigengame/data/XRMB/U.npy"
-            )
-            V = np.load(
-                "/home/jchapman/projects/blockeigengame/data/XRMB/V.npy"
-            )
+            U = np.load("/home/jchapman/projects/blockeigengame/data/XRMB/U.npy")
+            V = np.load("/home/jchapman/projects/blockeigengame/data/XRMB/V.npy")
         except:
             U = np.load("/home/chapm/blockeigengame/data/XRMB/U.npy")
             V = np.load("/home/chapm/blockeigengame/data/XRMB/V.npy")

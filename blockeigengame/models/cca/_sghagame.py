@@ -19,14 +19,12 @@ class SGHAGame(SGHA):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._weights = 2*jnp.ones((config.n_components, config.n_components))
-        self._weights = self._weights.at[jnp.triu_indices(config.n_components)].set(
-            0
-        )
+        self._weights = 2 * jnp.ones((config.n_components, config.n_components))
+        self._weights = self._weights.at[jnp.triu_indices(config.n_components)].set(0)
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        w_grad = self._grad(X_i, Y_i, self._W,self._W, self._weights)
+        w_grad = self._grad(X_i, Y_i, self._W, self._W, self._weights)
         updates, self._opt_state = self._optimizer.update(-w_grad, self._opt_state)
         self._W = optax.apply_updates(self._W, updates)
         self._W = self._normalize(self._W)
@@ -35,8 +33,8 @@ class SGHAGame(SGHA):
     @staticmethod
     @jit
     @partial(vmap, in_axes=(None, None, 0, None, 0))
-    def _grad(X_i, Y_i,w, W,weights):
+    def _grad(X_i, Y_i, w, W, weights):
         A, B = _get_AB(X_i, Y_i)
-        rewards=A@w - B@w*(w @ A @ w)
-        penalties=(B@W.T) @ ((w @ A @ W.T) * weights)
-        return rewards-penalties
+        rewards = A @ w - B @ w * (w @ A @ w)
+        penalties = (B @ W.T) @ ((w @ A @ W.T) * weights)
+        return rewards - penalties

@@ -25,8 +25,8 @@ class Incremental(_PLSMixin, _BaseExperiment):
         self._V /= jnp.linalg.norm(self._V, axis=1, keepdims=True)
         self._S = jnp.zeros(self.config.n_components)
         if (
-                max(views[0].shape[1], views[1].shape[1])
-                * min(views[0].shape[1], views[1].shape[1]) ** 2
+            max(views[0].shape[1], views[1].shape[1])
+            * min(views[0].shape[1], views[1].shape[1]) ** 2
         ) < ((self.config.n_components + self.config.batch_size) ** 3):
             self._grads = self._mat_grads
         else:
@@ -37,7 +37,10 @@ class Incremental(_PLSMixin, _BaseExperiment):
         self._U, self._V, self._S = self._mat_grads(
             X_i, Y_i, self._U, self._V, self.config.batch_size * (global_step) * self._S
         )
-        self._S = _capping(self._S / (self.config.batch_size * (global_step + 1)), self.config.n_components)
+        self._S = _capping(
+            self._S / (self.config.batch_size * (global_step + 1)),
+            self.config.n_components,
+        )
 
     @staticmethod
     @jit

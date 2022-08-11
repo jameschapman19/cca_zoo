@@ -19,15 +19,23 @@ class MSG(Incremental):
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        self.Uxx, self.Sxx = self.update_cov(self.Uxx, self.config.batch_size * (global_step) * self.Sxx, X_i)
-        self.Uyy, self.Syy = self.update_cov(self.Uyy, self.config.batch_size * (global_step) * self.Syy, Y_i)
-        self.Sxx /= (self.config.batch_size * (global_step + 1))
-        self.Syy /= (self.config.batch_size * (global_step + 1))
+        self.Uxx, self.Sxx = self.update_cov(
+            self.Uxx, self.config.batch_size * (global_step) * self.Sxx, X_i
+        )
+        self.Uyy, self.Syy = self.update_cov(
+            self.Uyy, self.config.batch_size * (global_step) * self.Syy, Y_i
+        )
+        self.Sxx /= self.config.batch_size * (global_step + 1)
+        self.Syy /= self.config.batch_size * (global_step + 1)
         Wx = self._get_w(X_i, self.Uxx, self.Sxx)
         Wy = self._get_w(Y_i, self.Uyy, self.Syy)
-        self._U, self._V, self._S = self._grads(self._U, self._V, self.config.batch_size * (global_step) * self._S, Wx,
-                                                Wy)
-        self._S = _capping(self._S / (self.config.batch_size * (global_step + 1)), self.config.n_components)
+        self._U, self._V, self._S = self._grads(
+            self._U, self._V, self.config.batch_size * (global_step) * self._S, Wx, Wy
+        )
+        self._S = _capping(
+            self._S / (self.config.batch_size * (global_step + 1)),
+            self.config.n_components,
+        )
 
     @staticmethod
     @jit

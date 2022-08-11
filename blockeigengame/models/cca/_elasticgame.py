@@ -2,7 +2,7 @@ from functools import partial
 
 import jax.numpy as jnp
 from jax import jit
-
+import optax
 from ._game import Game
 
 
@@ -28,13 +28,15 @@ class ElasticGame(Game):
         T = Zx + Zy
         grads_x = self.grads(self._U, Zx, T, Zx, T, self._weights, X_i)
         grads_y = self.grads(self._V, Zy, T, Zy, T, self._weights, Y_i)
-        self._U, self._opt_state_x = self.update_with_grads(
-            self._U, grads_x, self._opt_state_x
+        updates, self._opt_state_x = self._optimizer_x.update(
+            -grads_x, self._opt_state_x
         )
+        self._U = optax.apply_updates(self._U, updates)
         self._U = self.prox(self._U)
-        self._V, self._opt_state_y = self.update_with_grads(
-            self._V, grads_y, self._opt_state_y
+        updates, self._opt_state_y = self._optimizer_y.update(
+            -grads_y, self._opt_state_y
         )
+        self._V = optax.apply_updates(self._V, updates)
         self._V = self.prox(self._V)
 
     @partial(jit, static_argnums=(0))

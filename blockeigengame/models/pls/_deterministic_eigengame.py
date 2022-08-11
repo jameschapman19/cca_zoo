@@ -8,6 +8,7 @@ from ._eigengame import EigenGame
 from ..._utils import _split_eigenvector
 from ._utils import _get_AB
 
+
 class DeterministicEigenGame(EigenGame):
     def __init__(self, mode, init_rng, config):
         super(DeterministicEigenGame, self).__init__(mode, init_rng, config)
@@ -39,8 +40,12 @@ class DeterministicEigenGame(EigenGame):
     @staticmethod
     def _grads(ui, U, X, Y, weights):
         A, B = _get_AB(X, Y)
-        denominator=jnp.diag(U@B@U.T)
+        denominator = jnp.diag(U @ B @ U.T)
         Y = U / jnp.expand_dims(jnp.sqrt(denominator), 1)
         rewards = (ui.T @ B @ ui) * A @ ui - (ui.T @ A @ ui) * B @ ui
-        penalties = (((ui.T @ B @ ui) * (U@B).T) - (jnp.outer(ui.T @ B, U@B @ ui))) * (ui.T @ A @ Y.T) @ weights
-        return (rewards - penalties)
+        penalties = (
+            (((ui.T @ B @ ui) * (U @ B).T) - (jnp.outer(ui.T @ B, U @ B @ ui)))
+            * (ui.T @ A @ Y.T)
+            @ weights
+        )
+        return rewards - penalties

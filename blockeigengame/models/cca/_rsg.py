@@ -48,8 +48,20 @@ class RSG(_CCAMixin, _BaseExperiment):
         Vy = Y_i.T @ (-X_i @ self.Qx @ Tx) @ Ty.T
         tx = jnp.zeros((X_i.shape[1], self.config.n_components))
         ty = jnp.zeros((X_i.shape[1], self.config.n_components))
-        Xn = jnp.reshape((X_i.shape[1], self.config.batch_size, self.config.batch_size / self.config.n_components))
-        Yn = jnp.reshape((Y_i.shape[1], self.config.batch_size, self.config.batch_size / self.config.n_components))
+        Xn = jnp.reshape(
+            (
+                X_i.shape[1],
+                self.config.batch_size,
+                self.config.batch_size / self.config.n_components,
+            )
+        )
+        Yn = jnp.reshape(
+            (
+                Y_i.shape[1],
+                self.config.batch_size,
+                self.config.batch_size / self.config.n_components,
+            )
+        )
         for j in range(Xn.shape[1]):
             q = Xn[:, :, j]
             tx = tx - self.manx.re
@@ -69,13 +81,21 @@ class RSG(_CCAMixin, _BaseExperiment):
         Vty -= Vty.T
         Vtx /= jnp.linalg.norm(Vtx, keepdims=True, axis=0) * 2
         Vty /= jnp.linalg.norm(Vty, keepdims=True, axis=0) * 2
-        Tx = Tx @ self.manx.retraction(jnp.eye(self.config.n_components), -self.config.learning_rate * Vtx)
-        Ty = Ty @ self.many.retraction(jnp.eye(self.config.n_components), -self.config.learning_rate * Vty)
+        Tx = Tx @ self.manx.retraction(
+            jnp.eye(self.config.n_components), -self.config.learning_rate * Vtx
+        )
+        Ty = Ty @ self.many.retraction(
+            jnp.eye(self.config.n_components), -self.config.learning_rate * Vty
+        )
 
     def streaming_pca(self):
         for Xi, Yi in self.aux_input:
-            self.Qx = self._pca_update(jnp.sqrt(self.config.learning_rate) * Xi, self.Qx)
-            self.Qy = self._pca_update(jnp.sqrt(self.config.learning_rate) * Yi, self.Qy)
+            self.Qx = self._pca_update(
+                jnp.sqrt(self.config.learning_rate) * Xi, self.Qx
+            )
+            self.Qy = self._pca_update(
+                jnp.sqrt(self.config.learning_rate) * Yi, self.Qy
+            )
 
     @jit
     @staticmethod

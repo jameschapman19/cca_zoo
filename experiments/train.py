@@ -7,7 +7,7 @@ from jaxline import platform
 
 from blockeigengame import cca, pls, rcca
 
-_BATCH_SIZE = flags.DEFINE_integer("batch_size",128, "batch size")
+_BATCH_SIZE = flags.DEFINE_integer("batch_size", 128, "batch size")
 _MODEL = flags.DEFINE_string("model", "rgame", "model")
 _DATA = flags.DEFINE_string("data", "linear", "dataset name")
 _EXPERIMENT = flags.DEFINE_string(
@@ -34,7 +34,7 @@ MODEL_DICT = {
         "incremental": cca.Incremental,
         "elasticgame": cca.ElasticGame,
         "eigengame": cca.EigenGame,
-        "deterministiceigengame": cca.DeterministicEigenGame
+        "deterministiceigengame": cca.DeterministicEigenGame,
     },
     "PLS": {
         "game": pls.Game,
@@ -57,11 +57,11 @@ defaults = {
     "n_components": _N_COMPONENTS.default,
     "learning_rate": _LEARNING_RATE.default,
     "logging_interval": _LOGGING_INTERVAL.default,
-    "beta": _BETA.default
+    "beta": _BETA.default,
 }
 
 if __name__ == "__main__":
     wandb.init(config=defaults, sync_tensorboard=True)
     Experiment = MODEL_DICT[wandb.config.experiment][wandb.config.model]
-    #with trace("/tmp/jax-trace", create_perfetto_link=True):
+    # with trace("/tmp/jax-trace", create_perfetto_link=True):
     app.run(functools.partial(platform.main, Experiment))

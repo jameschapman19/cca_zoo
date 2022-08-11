@@ -9,6 +9,7 @@ from ..._utils import _split_eigenvector
 from ._plsmixin import _PLSMixin
 from ._utils import _get_AB
 
+
 class EigenGame(_PLSMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
         super(EigenGame, self).__init__(mode, init_rng, config)
@@ -23,7 +24,9 @@ class EigenGame(_PLSMixin, _BaseExperiment):
             0
         )
         # generates weights for each component on each device
-        self.grads = jax.jit(jax.vmap(self._grads, in_axes=(0, None, None, None, None, 0)))
+        self.grads = jax.jit(
+            jax.vmap(self._grads, in_axes=(0, None, None, None, None, 0))
+        )
 
     def _init_train(self):
         self._init_ground_truth()
@@ -49,9 +52,11 @@ class EigenGame(_PLSMixin, _BaseExperiment):
         updates, self._opt_state = self._optimizer.update(-w_grad, self._opt_state)
         self._W = optax.apply_updates(self._W, updates)
         self._W = self._normalize(self._W)
-        updates, self._opt_state2 = self._optimizer2.update(-(Bu-self._Bu), self._opt_state2)
+        updates, self._opt_state2 = self._optimizer2.update(
+            -(Bu - self._Bu), self._opt_state2
+        )
         self._Bu = optax.apply_updates(self._Bu, updates)
-        #self._Bu=Bu
+        # self._Bu=Bu
         self._U, self._V = _split_eigenvector(self._W, X_i.shape[1])
 
     @staticmethod
@@ -63,10 +68,14 @@ class EigenGame(_PLSMixin, _BaseExperiment):
     @staticmethod
     def _grads(ui, U, X, Y, Bu, weights):
         A, B = _get_AB(X, Y)
-        denominator=jnp.diag(Bu @ U.T)
-        denominator = jnp.where(denominator>1e-3,denominator,1e-3)
+        denominator = jnp.diag(Bu @ U.T)
+        denominator = jnp.where(denominator > 1e-3, denominator, 1e-3)
         Y = U / jnp.expand_dims(jnp.sqrt(denominator), 1)
         By = Bu / jnp.expand_dims(jnp.sqrt(denominator), 1)
         rewards = (ui.T @ B @ ui) * A @ ui - (ui.T @ A @ ui) * B @ ui
-        penalties = (((ui.T @ B @ ui) * By.T) - (jnp.outer(ui.T @ B, By @ ui))) * (ui.T @ A @ Y.T) @ weights
+        penalties = (
+            (((ui.T @ B @ ui) * By.T) - (jnp.outer(ui.T @ B, By @ ui)))
+            * (ui.T @ A @ Y.T)
+            @ weights
+        )
         return (rewards - penalties), (ui.T @ B)
