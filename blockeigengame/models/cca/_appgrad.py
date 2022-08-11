@@ -25,12 +25,6 @@ class AppGrad(_CCAMixin, _BaseExperiment):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._update_with_grads = jax.jit(
-            jax.vmap(
-                self._update_with_grads,
-                in_axes=(0, 0, 0),
-            )
-        )
 
     def _init_train(self):
         self._init_ground_truth()
@@ -68,12 +62,6 @@ class AppGrad(_CCAMixin, _BaseExperiment):
         n = X_i.shape[0]
         grads = (X_i.T @ (X_i @ U_tilde.T) - X_i.T @ Y_i @ V.T) / n + c * U_tilde.T
         return grads.T
-
-    @partial(jit, static_argnums=(0))
-    def _update_with_grads(self, wi, grads, opt_state):
-        updates, opt_state = self._optimizer.update(grads, opt_state)
-        wi_new = optax.apply_updates(wi, updates)
-        return wi_new, opt_state
 
     @staticmethod
     # @jit

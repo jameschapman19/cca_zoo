@@ -24,13 +24,6 @@ class SSGD(_CCAMixin, _BaseExperiment):
         self._weights = self._weights.at[jnp.triu_indices(config.n_components, 1)].set(
             0
         )
-        self._grads = self._grads
-        self._update_with_grads = jax.jit(
-            jax.vmap(
-                self._update_with_grads,
-                in_axes=(0, 0, 0),
-            )
-        )
 
     def _init_train(self):
         self._init_ground_truth()
@@ -54,10 +47,3 @@ class SSGD(_CCAMixin, _BaseExperiment):
     def _grads(X_i, Y_i, V, weights):
         A, B = _get_AB(X_i, Y_i)
         return (A @ V.T @ V @ B @ V.T - (B @ V.T @ V @ A @ V.T)).T
-
-    @partial(jit, static_argnums=(0))
-    def _update_with_grads(self, ui, grads, opt_state):
-        updates, opt_state = self._optimizer.update(-grads, opt_state)
-        ui_new = optax.apply_updates(ui, updates)
-        ui_new /= jnp.linalg.norm(ui_new, keepdims=True)
-        return ui_new, opt_state

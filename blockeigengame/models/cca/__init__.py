@@ -4,10 +4,10 @@ from ._elasticgame import ElasticGame
 from ._game import Game
 from ._genoja import GenOja
 from ._incremental import Incremental
-from ._mgame import MGame
 from ._msg import MSG
 from ._saa import SAA
 from ._sgha import SGHA
-from ._ssgd import SSGD
 from ._sghagame import SGHAGame
+from ._ssgd import SSGD
 from ._eigengame import EigenGame
+from ._deterministic_eigengame import DeterministicEigenGame

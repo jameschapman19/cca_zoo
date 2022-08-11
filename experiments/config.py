@@ -41,6 +41,7 @@ def get_config():
         "data": wandb.config.get("data", "linear"),
         "batch_size": batch_size,
         "learning_rate": wandb.config.get("learning_rate", 1e-2),
+        "beta": wandb.config.get("beta", 1.0),
         "alpha": wandb.config.get("alpha", 1e-3),
         "beta0": wandb.config.get("beta0", 1e-3),
         "c": wandb.config.get("c", [0, 0]),

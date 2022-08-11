@@ -7,33 +7,34 @@ from jaxline import platform
 
 from blockeigengame import cca, pls, rcca
 
-_BATCH_SIZE = flags.DEFINE_integer("batch_size",32, "batch size")
-_MODEL = flags.DEFINE_string("model", "game", "model")
-_DATA = flags.DEFINE_string("data", "linear", "dataset name")
+_BATCH_SIZE = flags.DEFINE_integer("batch_size",128, "batch size")
+_MODEL = flags.DEFINE_string("model", "sghagame", "model")
+_DATA = flags.DEFINE_string("data", "mnist", "dataset name")
 _EXPERIMENT = flags.DEFINE_string(
     "experiment", "CCA", "whether to run a PLS or CCA experiment"
 )
-_N_COMPONENTS = flags.DEFINE_integer("n_components", 5, "number of components")
+_N_COMPONENTS = flags.DEFINE_integer("n_components", 2, "number of components")
 _LEARNING_RATE = flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
-_EPOCHS = flags.DEFINE_integer("epochs", 5, "epochs")
-_LOGGING_INTERVAL = flags.DEFINE_float("logging_interval", 0.01, "logging interval")
+_BETA = flags.DEFINE_float("beta", 0.05, "beta")
+_EPOCHS = flags.DEFINE_integer("epochs", 100, "epochs")
+_LOGGING_INTERVAL = flags.DEFINE_float("logging_interval", 0.05, "logging interval")
 
 MODEL_DICT = {
     "CCA": {
         "game": cca.Game,
         "genoja": cca.GenOja,
         "sgha": cca.SGHA,
+        "sghagame": cca.SGHAGame,
         "appgrad": cca.AppGrad,
         "ssgd": cca.SSGD,
         "msg": cca.MSG,
         "rgame": rcca.RGame,
         "saa": cca.SAA,
         "alphagame": cca.AlphaGame,
-        "mgame": cca.MGame,
         "incremental": cca.Incremental,
         "elasticgame": cca.ElasticGame,
-        "sghagame": cca.SGHAGame,
-        "eigengame": cca.EigenGame
+        "eigengame": cca.EigenGame,
+        "deterministiceigengame": cca.DeterministicEigenGame
     },
     "PLS": {
         "game": pls.Game,
@@ -56,6 +57,7 @@ defaults = {
     "n_components": _N_COMPONENTS.default,
     "learning_rate": _LEARNING_RATE.default,
     "logging_interval": _LOGGING_INTERVAL.default,
+    "beta": _BETA.default
 }
 
 if __name__ == "__main__":

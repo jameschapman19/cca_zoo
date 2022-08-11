@@ -12,14 +12,16 @@ parameters:
   experiment:
     values: [ 'CCA' ]
   model:
-    values: [ 'msg' ]
+    values: [ 'eigengame' ]
   data:
-    values: [ 'linear','mnist','mediamill', 'xrmb' ]
+    values: [ 'linear','mnist','mediamill' ]
   learning_rate:
-    values: [ 1e-1,1e-2, 1e-3 ]
-  batch_size:
-    values: [ 1 ]
+    values: [ 1e-1,50 ]
+  learning_rate_2:
+    values: [ 1,5,1e-1 ]
   logging_interval:
     values: [ 0.05 ]
+  batch_size:
+    values: [ 128 ]
   n_components:
     values: [ 5 ]

@@ -55,12 +55,6 @@ class Game(_CCAMixin, _BaseExperiment):
         self._V = self._normalize(self._V)
 
     @staticmethod
-    @jit
-    def _normalize(U):
-        U /= jnp.linalg.norm(U, axis=1, keepdims=True)
-        return U
-
-    @staticmethod
     def _grads(ui, zx, zy, Zx, Zy, weights, X):
         rewards = (X.T @ zy)
         penalties = (X.T @ Zx) @ (jnp.dot(zx, Zy) * weights) / X.shape[0]

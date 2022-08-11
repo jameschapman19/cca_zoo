@@ -10,44 +10,44 @@ import jax.numpy as jnp
 import optax
 from jax import jit, vmap
 
-from ._ccamixin import _CCAMixin
+from ._sghagame import SGHAGame
 from ._utils import _get_AB
-from .._baseexperiment import _BaseExperiment
 from ..._utils import _split_eigenvector
 
 
-class SGHA(_CCAMixin, _BaseExperiment):
+class AlphaSGHAGame(SGHAGame):
     def __init__(self, mode, init_rng, config):
-        super(SGHA, self).__init__(mode, init_rng, config)
+        super(AlphaSGHAGame, self).__init__(mode, init_rng, config)
         """Constructs the experiment.
         Args:
           mode: A string, equivalent to FLAGS.jaxline_mode when running normally.
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-
-    def _init_train(self):
-        self._init_ground_truth()
-        views = next(self._train_input)
-        self._W = jax.random.normal(
-            self.init_rng,
-            (self.config.n_components, views[0].shape[1] + views[1].shape[1]),
+        self.grads = jax.jit(
+            jax.vmap(
+                jax.grad(self._utils),
+                in_axes=(0, 1, 0, None, None, None, None),
+            )
         )
-        self._W /= jnp.linalg.norm(self._W, axis=1, keepdims=True)
-        self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
-        self._opt_state = self._optimizer.init(self._W)
+        self._utils = jax.jit(
+            jax.vmap(
+                self._utils,
+                in_axes=(0, 1, 0, None, None, None, None),
+            )
+        )
 
     def _update(self, views, global_step):
         X_i, Y_i = views
-        w_grad = self._grad(X_i, Y_i, self._W)
+        w_grad = self._grad(X_i, Y_i, self._W,self._W, self._weights)
         updates, self._opt_state = self._optimizer.update(-w_grad, self._opt_state)
         self._W = optax.apply_updates(self._W, updates)
         self._W = self._normalize(self._W)
         self._U, self._V = _split_eigenvector(self._W, X_i.shape[1])
 
     @staticmethod
-    @jit
-    def _grad(X_i, Y_i, W):
+    def _utils(X_i, Y_i,w, W,weights):
         A, B = _get_AB(X_i, Y_i)
-        Y = W @ A @ W.T
-        return W@A - jnp.triu(Y)@W @ B
+        rewards=w.T@A@w
+        penalties=(w@B@W.T) @ ((w @ A @ W.T) * weights)
+        return rewards-penalties

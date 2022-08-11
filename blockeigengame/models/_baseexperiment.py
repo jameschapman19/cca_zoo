@@ -4,7 +4,7 @@ from typing import Generator
 import jax
 import jax.numpy as jnp
 from jaxline.experiment import AbstractExperiment
-
+from jax import jit
 from ..data_utils import (
     exponential_dataset,
     linear_dataset,
@@ -114,3 +114,9 @@ class _BaseExperiment(AbstractExperiment):
 
     def evaluate(self, global_step: jnp.ndarray, rng: jnp.ndarray, **unused_kwargs):
         return self._get_scalars()
+    
+    @staticmethod
+    @jit
+    def _normalize(U):
+        U /= jnp.linalg.norm(U, axis=1, keepdims=True)
+        return U

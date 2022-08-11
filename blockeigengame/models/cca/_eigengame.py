@@ -4,11 +4,10 @@ import jax
 import jax.numpy as jnp
 import optax
 from jax import jit
-from ._utils import _get_AB
 from .._baseexperiment import _BaseExperiment
 from ..._utils import _split_eigenvector
 from ._ccamixin import _CCAMixin
-
+from ._utils import _get_AB
 
 class EigenGame(_CCAMixin, _BaseExperiment):
     def __init__(self, mode, init_rng, config):
@@ -37,7 +36,7 @@ class EigenGame(_CCAMixin, _BaseExperiment):
         self._optimizer = optax.sgd(learning_rate=self.config.learning_rate)
         self._opt_state = self._optimizer.init(self._W)
         self._Bu = self._W.copy()
-        self._optimizer2 = optax.sgd(learning_rate=self.config.learning_rate)
+        self._optimizer2 = optax.sgd(learning_rate=self.config.beta)
         self._opt_state2 = self._optimizer2.init(self._Bu)
 
     def _update(self, views, global_step):
@@ -47,13 +46,13 @@ class EigenGame(_CCAMixin, _BaseExperiment):
         ) = views
         X_i, Y_i = views
         w_grad, Bu = self.grads(self._W, self._W, X_i, Y_i, self._Bu, self._weights)
-        updates, self._opt_state = self._optimizer.update(w_grad, self._opt_state)
+        updates, self._opt_state = self._optimizer.update(-w_grad, self._opt_state)
         self._W = optax.apply_updates(self._W, updates)
         self._W = self._normalize(self._W)
-        updates, self._opt_state2 = self._optimizer2.update(Bu - self._Bu, self._opt_state2)
+        updates, self._opt_state2 = self._optimizer2.update(-(Bu-self._Bu), self._opt_state2)
         self._Bu = optax.apply_updates(self._Bu, updates)
+        #self._Bu=Bu
         self._U, self._V = _split_eigenvector(self._W, X_i.shape[1])
-        # self._Bu=Bu
 
     @staticmethod
     @jit
@@ -64,8 +63,10 @@ class EigenGame(_CCAMixin, _BaseExperiment):
     @staticmethod
     def _grads(ui, U, X, Y, Bu, weights):
         A, B = _get_AB(X, Y)
-        Y = U / jnp.expand_dims(jnp.sqrt(jnp.diag(Bu @ U.T)), 1)
-        By = Bu / jnp.expand_dims(jnp.sqrt(jnp.diag(Bu @ U.T)), 1)
+        denominator=jnp.diag(Bu @ U.T)
+        denominator = jnp.where(denominator>1e-3,denominator,1e-3)
+        Y = U / jnp.expand_dims(jnp.sqrt(denominator), 1)
+        By = Bu / jnp.expand_dims(jnp.sqrt(denominator), 1)
         rewards = (ui.T @ B @ ui) * A @ ui - (ui.T @ A @ ui) * B @ ui
         penalties = (((ui.T @ B @ ui) * By.T) - (jnp.outer(ui.T @ B, By @ ui))) * (ui.T @ A @ Y.T) @ weights
         return (rewards - penalties), (ui.T @ B)
