@@ -8,13 +8,13 @@ from jaxline import platform
 from blockeigengame import cca, pls, rcca
 
 _BATCH_SIZE = flags.DEFINE_integer("batch_size",128, "batch size")
-_MODEL = flags.DEFINE_string("model", "sghagame", "model")
-_DATA = flags.DEFINE_string("data", "mnist", "dataset name")
+_MODEL = flags.DEFINE_string("model", "rgame", "model")
+_DATA = flags.DEFINE_string("data", "linear", "dataset name")
 _EXPERIMENT = flags.DEFINE_string(
     "experiment", "CCA", "whether to run a PLS or CCA experiment"
 )
 _N_COMPONENTS = flags.DEFINE_integer("n_components", 2, "number of components")
-_LEARNING_RATE = flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
+_LEARNING_RATE = flags.DEFINE_float("learning_rate", 5e-3, "learning rate")
 _BETA = flags.DEFINE_float("beta", 0.05, "beta")
 _EPOCHS = flags.DEFINE_integer("epochs", 100, "epochs")
 _LOGGING_INTERVAL = flags.DEFINE_float("logging_interval", 0.05, "logging interval")

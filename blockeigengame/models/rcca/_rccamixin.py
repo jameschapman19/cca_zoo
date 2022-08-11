@@ -18,7 +18,7 @@ class _RCCAMixin:
             self.correct_U = self.correct_U[:, : self.config.n_components]
             self.correct_V = self.correct_V[:, : self.config.n_components]
         else:
-            cca = MCCA(latent_dims=self.config.n_components).fit((self.X, self.Y))
+            cca = MCCA(latent_dims=self.config.n_components, c=self.config.tau).fit((self.X, self.Y))
             self.correct_U, self.correct_V = cca.weights
         self.TCC_train = _TCC(self.X, self.Y, self.correct_U.T, self.correct_V.T)
         self.TCC_val = _TCC(self.X_val, self.Y_val, self.correct_U.T, self.correct_V.T)

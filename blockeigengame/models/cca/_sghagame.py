@@ -1,8 +1,3 @@
-"""
-Gen-Oja: A Simple and Efficient Algorithm for
-Streaming Generalized Eigenvector Computation
-https://proceedings.neurips.cc/paper/2018/file/1b318124e37af6d74a03501474f44ea1-Paper.pdf
-"""
 from functools import partial
 
 import jax
@@ -24,8 +19,8 @@ class SGHAGame(SGHA):
           init_rng: A `PRNGKey` to use for experiment initialization.
         """
         """Initialization function for a Jaxline experiment."""
-        self._weights = jnp.ones((config.n_components, config.n_components))
-        self._weights = self._weights.at[jnp.triu_indices(config.n_components, 1)].set(
+        self._weights = 2*jnp.ones((config.n_components, config.n_components))
+        self._weights = self._weights.at[jnp.triu_indices(config.n_components)].set(
             0
         )
 
@@ -42,6 +37,6 @@ class SGHAGame(SGHA):
     @partial(vmap, in_axes=(None, None, 0, None, 0))
     def _grad(X_i, Y_i,w, W,weights):
         A, B = _get_AB(X_i, Y_i)
-        rewards=A@w
+        rewards=A@w - B@w*(w @ A @ w)
         penalties=(B@W.T) @ ((w @ A @ W.T) * weights)
         return rewards-penalties
