@@ -6,7 +6,7 @@ from jax import jit
 
 from ...data_utils.mediamill import mediamill_true
 from ...data_utils.xrmb import xrmb_true
-from ...metrics import _correct_eigenvector_streak, _sum_cosine_similarities
+from ...metrics import _correct_eigenvector_streak, _sum_cosine_similarities, _normalized_subspace_distance
 
 
 class _CCAMixin:
@@ -26,20 +26,22 @@ class _CCAMixin:
         self.TCC_val = _TCC(self.X_val, self.Y_val, self.correct_U.T, self.correct_V.T)
 
     def _get_scalars(self, global_step):
-        scalars = {}  # jnp.corrcoef(self._U,self.correct_U.T)
+        scalars = {}
         scalars["examples"] = (
                                       global_step[0] + 1
-                              ) * self.config.batch_size  # MCCA(latent_dims=self.config.n_components).fit((self.X, self.Y)).score()
+                              ) * self.config.batch_size
         scalars["TCC train"] = _TCC(
             self.X, self.Y, self._U, self._V
-        )  # jnp.corrcoef(self.X@self._U.T,self.Y@self._V.T,rowvar=False)
+        )
         scalars["TCC val"] = _TCC(
             self.X_val, self.Y_val, self._U, self._V
-        )  # jnp.corrcoef(self._U)
+        )
         scalars["PCC train"] = scalars["TCC train"] / self.TCC_train
         scalars["PCC val"] = scalars["TCC val"] / self.TCC_val
         scalars["correct x"] = _correct_eigenvector_streak(self._U, self.correct_U)
         scalars["correct y"] = _correct_eigenvector_streak(self._V, self.correct_V)
+        scalars["subspace distance x"] = _normalized_subspace_distance(self._U, self.correct_U)
+        scalars["subspace distance y"] = _normalized_subspace_distance(self._V, self.correct_V)
         scalars["sum cosine similarities x"] = _sum_cosine_similarities(
             self._U, self.correct_U
         )

@@ -50,4 +50,4 @@ class SGHA(_CCAMixin, _BaseExperiment):
     def _grad(X_i, Y_i, W):
         A, B = _get_AB(X_i, Y_i)
         Y = W @ A @ W.T
-        return W@A - jnp.triu(Y)@W @ B
+        return W@A - Y@W @ B
