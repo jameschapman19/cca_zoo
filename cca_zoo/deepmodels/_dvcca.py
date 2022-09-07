@@ -164,10 +164,10 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
                 z_shared.append(z_["shared"].cpu())
                 if "private" in z_:
                     z_private.append(self.detach_all(z_["private"]))
+        z={"shared": torch.vstack(z_shared).cpu().numpy()}
         if "private" in z_:
-            z_private = [torch.vstack(i).cpu().numpy() for i in zip(*z_private)]
-        z_shared = torch.vstack(z_shared).cpu().numpy()
-        return z_shared, z_private
+            z["private"]= [torch.vstack(i).cpu().numpy() for i in zip(*z_private)]
+        return z
 
     def configure_callbacks(self):
         return [GenerativeCallback()]

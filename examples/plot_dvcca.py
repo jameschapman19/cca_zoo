@@ -14,15 +14,15 @@ from examples import example_mnist_data
 
 def plot_reconstruction(model, loader, uncertainty=False):
     recons = model.recon(loader, mle=True)
-    recons = [recon[0] for recon in recons]
     originals = loader.dataset.dataset[0]["views"]
-    n_cols = 2 + uncertainty
+    n_cols = 3
     fig, ax = plt.subplots(ncols=n_cols, nrows=2)
-    for i, (recon, original) in enumerate(zip(recons, originals)):
+    for i, (recon_0,recon_1, original) in enumerate(zip(recons[0], recons[1], originals)):
         ax[i, 0].set_title(f"Original View {i}")
         ax[i, 1].set_title(f"Mean View {i}")
         ax[i, 0].imshow(original.reshape((28, 28)))
-        ax[i, 1].imshow(recon.reshape((28, 28)))
+        ax[i, 1].imshow(recon_0.reshape((28, 28)))
+        ax[i, 2].imshow(recon_1.reshape((28, 28)))
     if uncertainty:
         uncertainty_recons = model.recon(loader, uncertainty=True)
         uncertainty_recons = [
@@ -37,7 +37,7 @@ def plot_reconstruction(model, loader, uncertainty=False):
 # Data
 # -----
 LATENT_DIMS = 2
-EPOCHS = 10
+EPOCHS = 3
 N_TRAIN = 500
 N_VAL = 100
 lr = 0.0001

@@ -170,5 +170,5 @@ class _GenerativeMixin:
                 views = [view.to(self.device) for view in batch["views"]]
                 x_ = self.detach_all(self._decode(self(views, **kwargs), **kwargs))
                 x.append(x_)
-        x=np.vstack(x)
+        x=[torch.vstack(i).cpu().numpy() for i in zip(*x)]
         return x
