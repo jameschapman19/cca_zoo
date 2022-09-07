@@ -28,6 +28,8 @@ def get_dataloaders(
     :param persistent_workers: whether to keep workers alive after dataloader is destroyed
 
     """
+    if num_workers == 0:
+        persistent_workers = False
     if batch_size is None:
         batch_size = len(dataset)
     train_dataloader = DataLoader(
