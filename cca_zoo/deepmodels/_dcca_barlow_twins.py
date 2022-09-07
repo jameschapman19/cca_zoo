@@ -58,6 +58,3 @@ class BarlowTwins(DCCA):
             "invariance": invariance,
             "covariance": covariance,
         }
-
-    def post_transform(self, z, train=False):
-        return z

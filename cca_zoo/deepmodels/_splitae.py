@@ -46,7 +46,8 @@ class SplitAE(_BaseDeep, _GenerativeMixin):
         :param kwargs:
         :return:
         """
-        z = self.encoder(views[0])
+        z=[]
+        z.append(self.encoder(views[0]))
         return z
 
     def _decode(self, z, **kwargs):
@@ -57,7 +58,7 @@ class SplitAE(_BaseDeep, _GenerativeMixin):
         """
         recon = []
         for i, decoder in enumerate(self.decoders):
-            recon.append(decoder(self.latent_dropout(z)))
+            recon.append(decoder(self.latent_dropout(z[0])))
         return recon
 
     def loss(self, views, **kwargs):

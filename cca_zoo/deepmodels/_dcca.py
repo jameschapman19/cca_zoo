@@ -1,5 +1,7 @@
-from abc import abstractmethod
+import itertools
+from typing import Iterable
 
+import numpy as np
 import torch
 
 from cca_zoo.deepmodels import objectives
@@ -64,20 +66,6 @@ class DCCA(_BaseDeep, _BaseCCA):
         z = self(views)
         return {"objective": self.objective.loss(z)}
 
-    @abstractmethod
-    def post_transform(self, z, train=False):
-        """
-        Some models require a final linear CCA after model training.
-        :param z: a list of all of the latent space embeddings for each view
-        :param train: if the train flag is True this fits a new post transformation
-        """
-        if train:
-            self.cca = MCCA(latent_dims=self.latent_dims)
-            z = self.cca.fit_transform(z)
-        else:
-            z = self.cca.transform(z)
-        return z
-
     def pairwise_correlations(
         self,
         loader: torch.utils.data.DataLoader,
@@ -92,14 +80,17 @@ class DCCA(_BaseDeep, _BaseCCA):
         """
         return _BaseCCA.pairwise_correlations(self, loader, train=train)
 
-    def score(self, loader: torch.utils.data.DataLoader, train=False):
+    def score(self, loader: torch.utils.data.DataLoader, **kwargs):
         """
         Returns average correlation in each dimension (averages over all pairs for multiview)
 
+        :param **kwargs:
+        :type **kwargs:
         :param loader: a dataloader that matches the structure of that used for training
         :param train: whether to fit final linear transformation
         """
-        return _BaseCCA.score(self, loader, train=train)
+        z=self.transform(loader)
+        return MCCA(self.latent_dims).fit(z).score(z)
 
     def configure_callbacks(self):
         return [CorrelationCallback()]

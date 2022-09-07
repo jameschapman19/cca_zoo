@@ -92,7 +92,6 @@ class MCCA(rCCA):
         [eigvals, eigvecs] = eigh(C, D, subset_by_index=[n - self.latent_dims, n - 1])
         # sorting according to eigenvalue
         idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dims]
-        eigvecs = eigvecs * eigvals
         eigvecs = eigvecs[:, idx].real
         self.weights = [
             eigvecs[split : self.splits[i + 1]]

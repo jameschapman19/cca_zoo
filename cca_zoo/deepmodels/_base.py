@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from typing import Iterable
 
 import numpy as np
 import pytorch_lightning as pl
@@ -9,19 +10,19 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 
 class _BaseDeep(pl.LightningModule):
     def __init__(
-        self,
-        latent_dims: int,
-        optimizer="adam",
-        scheduler=None,
-        lr=1e-3,
-        weight_decay=0,
-        extra_optimizer_kwargs=None,
-        max_epochs=1000,
-        min_lr=1e-9,
-        lr_decay_steps=None,
-        correlation=True,
-        *args,
-        **kwargs,
+            self,
+            latent_dims: int,
+            optimizer="adam",
+            scheduler=None,
+            lr=1e-3,
+            weight_decay=0,
+            extra_optimizer_kwargs=None,
+            max_epochs=1000,
+            min_lr=1e-9,
+            lr_decay_steps=None,
+            correlation=True,
+            *args,
+            **kwargs,
     ):
         super().__init__()
         if extra_optimizer_kwargs is None:
@@ -74,33 +75,21 @@ class _BaseDeep(pl.LightningModule):
             self.log("test/" + k, v)
         return loss["objective"]
 
-    def post_transform(self, z, train=False):
-        """
-        Some models require a final linear CCA after model training.
-        :param z: a list of all of the latent space embeddings for each view
-        :param train: if the train flag is True this fits a new post transformation
-        """
-        return z
-
     def transform(
-        self,
-        loader: torch.utils.data.DataLoader,
-        train=False,
+            self,
+            loader: torch.utils.data.DataLoader,
     ):
         """
         :param loader: a dataloader that matches the structure of that used for training
-        :param train: whether to fit final linear transformation
         :return: transformed views
         """
         with torch.no_grad():
+            z=[]
             for batch_idx, batch in enumerate(loader):
                 views = [view.to(self.device) for view in batch["views"]]
-                z_ = detach_all(self(views))
-                if batch_idx == 0:
-                    z = z_
-                else:
-                    z = collate_all(z, z_)
-        z = self.post_transform(z, train=train)
+                z_ = self(views)
+                z.append(z_)
+        z=[torch.vstack(i).cpu().numpy() for i in zip(*z)]
         return z
 
     def configure_optimizers(self):
@@ -141,6 +130,11 @@ class _BaseDeep(pl.LightningModule):
     def configure_callbacks(self):
         pass
 
+    @staticmethod
+    def detach_all(z):
+        [z_.detach() for z_ in z]
+        return z
+
 
 class _GenerativeMixin:
     def recon_loss(self, x, recon, loss="mse", reduction="mean", **kwargs):
@@ -168,35 +162,13 @@ class _GenerativeMixin:
     def _decode(self, z, **kwargs):
         raise NotImplementedError
 
-    def recon(self, loader: torch.utils.data.DataLoader, **kwargs):
+    def recon(self,
+              loader: torch.utils.data.DataLoader, **kwargs):
         with torch.no_grad():
+            x=[]
             for batch_idx, batch in enumerate(loader):
                 views = [view.to(self.device) for view in batch["views"]]
-                x_ = detach_all(self._decode(self(views, **kwargs), **kwargs))
-                if batch_idx == 0:
-                    x = x_
-                else:
-                    x = collate_all(x, x_)
+                x_ = self.detach_all(self._decode(self(views, **kwargs), **kwargs))
+                x.append(x_)
+        x=np.vstack(x)
         return x
-
-
-def detach_all(z):
-    if isinstance(z, dict):
-        for k, v in z.items():
-            detach_all(v)
-    elif isinstance(z, list):
-        z = [z_.detach().cpu().numpy() for z_ in z]
-    else:
-        z = z.detach().cpu().numpy()
-    return z
-
-
-def collate_all(z, z_):
-    if isinstance(z, dict):
-        for k, v in z_.items():
-            z[k] = collate_all(z[k], v)
-    elif isinstance(z, list):
-        z = [np.append(z[i], z_i, axis=0) for i, z_i in enumerate(z_)]
-    else:
-        z = np.append(z, z_, axis=0)
-    return z

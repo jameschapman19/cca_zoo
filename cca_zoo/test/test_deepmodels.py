@@ -54,14 +54,14 @@ def test_DCCA_methods():
     trainer.fit(dcca, train_loader, val_dataloaders=val_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dcca.score(train_loader, train=True).sum()
+            cca.score((X, Y)).sum(), dcca.score(train_loader).sum()
         )
         is None
     )
     # DCCA_NOI
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
     encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
-    dcca_noi = DCCA_NOI(latent_dims, N, encoders=[encoder_1, encoder_2], rho=0)
+    dcca_noi = DCCA_NOI(latent_dims, N, encoders=[encoder_1, encoder_2], rho=0.2)
     trainer = pl.Trainer(
         max_epochs=epochs, log_every_n_steps=1, enable_checkpointing=False
     )
@@ -152,8 +152,7 @@ def test_DTCCA_methods():
     z = dtcca.transform(train_loader)
     assert (
         np.testing.assert_array_almost_equal(
-            cca.fit((X[train_ids], Y[train_ids]))
-            .score((X[train_ids], Y[train_ids]))
+            cca.fit((X[train_ids], Y[train_ids])).score((X[train_ids], Y[train_ids]))
             .sum(),
             cca.fit((z)).score((z)).sum(),
             decimal=1,

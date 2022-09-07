@@ -97,6 +97,3 @@ class DCCA_NOI(DCCA):
         # pytorch-lightning runs validation once so this just fixes the bug
         elif self.covs is None:
             self.covs = batch_covs
-
-    def post_transform(self, z, train=False):
-        return z

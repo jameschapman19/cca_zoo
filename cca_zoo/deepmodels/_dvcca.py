@@ -147,5 +147,27 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
         loss["objective"] = torch.stack(tuple(loss.values())).sum()
         return loss
 
+    def transform(
+            self,
+            loader: torch.utils.data.DataLoader,
+            train=False,
+    ):
+        """
+        :param loader: a dataloader that matches the structure of that used for training
+        :param train: whether to fit final linear transformation
+        :return: transformed views
+        """
+        with torch.no_grad():
+            z_shared = []
+            z_private = []
+            for batch_idx, batch in enumerate(loader):
+                views = [view.to(self.device) for view in batch["views"]]
+                z_ = self(views)
+                z_shared.append(z_["shared"].cpu())
+                z_private.append(self.detach_all(z_["private"]))
+        z_private = [torch.vstack(i).cpu().numpy() for i in zip(*z_private)]
+        z_shared = torch.vstack(z_shared).cpu().numpy()
+        return z_shared, z_private
+
     def configure_callbacks(self):
         return [GenerativeCallback()]
