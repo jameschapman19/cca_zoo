@@ -150,11 +150,9 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
     def transform(
             self,
             loader: torch.utils.data.DataLoader,
-            train=False,
     ):
         """
         :param loader: a dataloader that matches the structure of that used for training
-        :param train: whether to fit final linear transformation
         :return: transformed views
         """
         with torch.no_grad():
@@ -164,8 +162,10 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
                 views = [view.to(self.device) for view in batch["views"]]
                 z_ = self(views)
                 z_shared.append(z_["shared"].cpu())
-                z_private.append(self.detach_all(z_["private"]))
-        z_private = [torch.vstack(i).cpu().numpy() for i in zip(*z_private)]
+                if "private" in z_:
+                    z_private.append(self.detach_all(z_["private"]))
+        if "private" in z_:
+            z_private = [torch.vstack(i).cpu().numpy() for i in zip(*z_private)]
         z_shared = torch.vstack(z_shared).cpu().numpy()
         return z_shared, z_private
 
