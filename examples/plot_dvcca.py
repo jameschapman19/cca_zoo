@@ -21,8 +21,7 @@ def plot_reconstruction(model, loader, uncertainty=False):
         ax[i, 0].set_title(f"Original View {i}")
         ax[i, 1].set_title(f"Mean View {i}")
         ax[i, 0].imshow(original.reshape((28, 28)))
-        ax[i, 1].imshow(recons[0][0].reshape((28, 28)))
-        ax[i, 2].imshow(recons[1][0].reshape((28, 28)))
+        ax[i, 1].imshow(recons[i][0].reshape((28, 28)))
     if uncertainty:
         uncertainty_recons = model.recon(loader, uncertainty=True)
         uncertainty_recons = [
