@@ -48,30 +48,7 @@ class DCCA_NOI(DCCA):
         self.rho = rho
         self.shared_target = shared_target
         self.mse = torch.nn.MSELoss(reduction="sum")
-        # Authors state that a final linear layer is an important part of their algorithmic implementation
-        self.linear_layers = torch.nn.ModuleList(
-            [
-                torch.nn.Linear(latent_dims, latent_dims, bias=False)
-                for _ in range(len(encoders))
-            ]
-        )
         self.rand = torch.rand(N, self.latent_dims)
-
-    def forward(self, views, **kwargs):
-        """
-        Forward method for the model. Outputs latent encoding for each view
-
-        :param views:
-        :param kwargs:
-        :return:
-        """
-        z = []
-        # Users architecture + final linear layer
-        for i, (encoder, linear_layer) in enumerate(
-            zip(self.encoders, self.linear_layers)
-        ):
-            z.append(linear_layer(encoder(views[i])))
-        return z
 
     def loss(self, views, **kwargs):
         z = self(views)
