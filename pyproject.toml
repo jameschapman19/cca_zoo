@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "cca-zoo"
+version = "0.1.0"
+description = ""
+authors = ["jameschapman19 <james.chapman.19@ucl.ac.uk>"]
+readme = "README.md"
+packages = [{include = "cca_zoo"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+scikit-learn = "^1.1.2"
+tensorly = "^0.7.0"
+mvlearn = "^0.5.0"
+
+[tool.poetry.extras]
+torch = ["torch"]
+torchvision = ["torchvision"]
+jax = ["jax"]
+arviz = ["arviz"]
+numpyro = ["numpyro"]
+pytorch-lightning = ["pytorch-lightning"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

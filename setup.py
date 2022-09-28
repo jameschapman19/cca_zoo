@@ -3,12 +3,12 @@ from setuptools import setup, find_packages
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-with open("./requirements/basic.txt", "r") as f:
+with open("requirements.txt", "r") as f:
     REQUIRED_PACKAGES = f.read()
 
 EXTRA_PACKAGES = {"deep": ["torch>=1.9.0", "torchvision", "pytorch-lightning"],
                   "probabilistic": ["jax", "numpyro", "arviz"]}
-EXTRA_PACKAGES["all"] = EXTRA_PACKAGES["deep"] + "\n" + EXTRA_PACKAGES["probabilistic"]
+EXTRA_PACKAGES["all"] = EXTRA_PACKAGES["deep"] + EXTRA_PACKAGES["probabilistic"]
 
 setup(
     name="cca_zoo",
