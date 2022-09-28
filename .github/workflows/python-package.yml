@@ -32,6 +32,7 @@ jobs:
         python -m pip install codecov
         python -m pip install pytest-cov
         python -m pip install -r requirements.txt
+        python -m pip install jax numpyro arviz torch pytorch-lightning
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
