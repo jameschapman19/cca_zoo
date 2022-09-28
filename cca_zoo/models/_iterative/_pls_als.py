@@ -33,29 +33,17 @@ class PLS_ALS(_BaseIterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "random",
-        tol: float = 1e-9,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "random",
+            tol: float = 1e-9,
+            verbose=0,
     ):
-        """
-        Constructor for PLS
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for _iterative methods
-        :param tol: tolerance value used for early stopping
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -80,11 +68,11 @@ class PLS_ALS(_BaseIterative):
 
 class _PLSInnerLoop(_BaseInnerLoop):
     def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        random_state=None,
-        verbose=0,
+            self,
+            max_iter: int = 100,
+            tol=1e-9,
+            random_state=None,
+            verbose=0,
     ):
         super().__init__(
             max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
@@ -99,13 +87,6 @@ class _PLSInnerLoop(_BaseInnerLoop):
 
     @abstractmethod
     def _update_view(self, views, view_index: int):
-        """
-        Function used to update the parameters in each view within the loop. By changing this function, we can change
-         the optimisation. This method NEEDS to update self.scores[view_index]
-
-        :param view_index: index of view being updated
-        :return: self with updated weights
-        """
         # mask off the current view and sum the rest
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True

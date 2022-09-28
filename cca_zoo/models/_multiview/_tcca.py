@@ -7,15 +7,13 @@ from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 from tensorly.decomposition import parafac
 
+from cca_zoo.models._base import _BaseCCA
 from cca_zoo.utils.check_values import _process_parameter, _check_views
-from ._base import _BaseCCA
 
 
 class TCCA(_BaseCCA):
     r"""
-    Fits a Tensor CCA model. Tensor CCA maximises higher order correlations
-
-    :Maths:
+    Fits a Tensor CCA model. Tensor CCA maximises higher order correlations between the views.
 
     .. math::
 
@@ -25,13 +23,13 @@ class TCCA(_BaseCCA):
 
         \alpha_i^TK_i^TK_i\alpha_i=1
 
-    :Citation:
-
+    References
+    ----------
     Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
     https://github.com/rciszek/mdr_tcca
 
-    :Example:
-
+    Examples
+    --------
     >>> from cca_zoo.models import TCCA
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
@@ -43,24 +41,14 @@ class TCCA(_BaseCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale=True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
+            self,
+            latent_dims: int = 1,
+            scale=True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
     ):
-        """
-        Constructor for TCCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -75,10 +63,6 @@ class TCCA(_BaseCCA):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        """
-
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        """
         views = self._validate_inputs(views)
         self._check_params()
         # returns whitened views along with whitening matrices
@@ -161,8 +145,6 @@ class KTCCA(TCCA):
     r"""
     Fits a Kernel Tensor CCA model. Tensor CCA maximises higher order correlations
 
-    :Maths:
-
     .. math::
 
         \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \alpha_i^TK_i^TK_j\alpha_j  \}\\
@@ -171,53 +153,37 @@ class KTCCA(TCCA):
 
         \alpha_i^TK_i^TK_i\alpha_i=1
 
-    :Citation:
-
+    References
+    ----------
     Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
 
-    :Example:
-
+    Examples
+    --------
     >>> from cca_zoo.models import KTCCA
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = KTCCA()
-    >>> model._fit((X1,X2,X3)).score((X1,X2,X3))
+    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
     array([1.69896269])
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        eps=1e-3,
-        c: Union[Iterable[float], float] = None,
-        kernel: Iterable[Union[float, callable]] = None,
-        gamma: Iterable[float] = None,
-        degree: Iterable[float] = None,
-        coef0: Iterable[float] = None,
-        kernel_params: Iterable[dict] = None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            eps=1e-3,
+            c: Union[Iterable[float], float] = None,
+            kernel: Iterable[Union[float, callable]] = None,
+            gamma: Iterable[float] = None,
+            degree: Iterable[float] = None,
+            coef0: Iterable[float] = None,
+            kernel_params: Iterable[dict] = None,
     ):
-        """
-        Constructor for TCCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
-        :param kernel: Iterable of kernel mappings used internally. This parameter is directly passed to :class:`~sklearn.metrics.pairwise.pairwise_kernel`. If element of `kernel` is a string, it must be one of the metrics in `pairwise.PAIRWISE_KERNEL_FUNCTIONS`. Alternatively, if element of `kernel` is a callable function, it is called on each pair of instances (rows) and the resulting value recorded. The callable should take two rows from views as input and return the corresponding kernel value as a single number. This means that callables from :mod:`sklearn.metrics.pairwise` are not allowed, as they operate on matrices, not single samples. Use the string identifying the kernel instead.
-        :param gamma: Iterable of gamma parameters for the RBF, laplacian, polynomial, exponential chi2 and sigmoid kernels. Interpretation of the default value is left to the kernel; see the documentation for sklearn.metrics.pairwise. Ignored by other kernels.
-        :param degree: Iterable of degree parameters of the polynomial kernel. Ignored by other kernels.
-        :param coef0: Iterable of zero coefficients for polynomial and sigmoid kernels. Ignored by other kernels.
-        :param kernel_params: Iterable of additional parameters (keyword arguments) for kernel function passed as callable object.
-        :param eps: epsilon value to ensure stability
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -275,12 +241,6 @@ class KTCCA(TCCA):
         return kernels, self.covs_invsqrt
 
     def transform(self, views: np.ndarray, **kwargs):
-        """
-        Transforms data given a fit k=KCCA model
-
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        :param kwargs: any additional keyword arguments required by the given model
-        """
         check_is_fitted(self, attributes=["weights"])
         views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse

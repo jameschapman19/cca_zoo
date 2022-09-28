@@ -19,13 +19,13 @@ class SCCA_Span(_BaseIterative):
 
         w_i^TX_i^TX_iw_i=1
 
-    :Citation:
-
+    References
+    ----------
     Asteris, Megasthenis, et al. "A simple and provable algorithm for sparse diagonal CCA." International Conference on Machine Learning. PMLR, 2016.
 
 
-    :Example:
-
+    Examples
+    --------
     >>> from cca_zoo.models import SCCA_Span
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
@@ -37,37 +37,22 @@ class SCCA_Span(_BaseIterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        max_iter: int = 100,
-        initialization: str = "uniform",
-        tol: float = 1e-9,
-        regularisation="l0",
-        c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
-        rank=1,
-        positive: Union[Iterable[bool], bool] = None,
-        random_state=None,
-        deflation="cca",
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            max_iter: int = 100,
+            initialization: str = "uniform",
+            tol: float = 1e-9,
+            regularisation="l0",
+            c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+            rank=1,
+            positive: Union[Iterable[bool], bool] = None,
+            random_state=None,
+            deflation="cca",
+            verbose=0,
     ):
-        """
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for _iterative methods
-        :param tol: tolerance value used for early stopping
-        :param regularisation:
-        :param c: regularisation parameter
-        :param rank: rank of the approximation
-        :param positive: constrain weights to be positive
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -115,15 +100,15 @@ class SCCA_Span(_BaseIterative):
 
 class _SpanCCAInnerLoop(_BaseInnerLoop):
     def __init__(
-        self,
-        update,
-        max_iter: int = 100,
-        tol=1e-9,
-        c=None,
-        rank=1,
-        random_state=None,
-        positive=False,
-        verbose=0,
+            self,
+            update,
+            max_iter: int = 100,
+            tol=1e-9,
+            c=None,
+            rank=1,
+            random_state=None,
+            positive=False,
+            verbose=0,
     ):
         super().__init__(
             max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose

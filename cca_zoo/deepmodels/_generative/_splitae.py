@@ -1,29 +1,30 @@
 import torch
 
-from cca_zoo.deepmodels.architectures import _BaseEncoder, Encoder
-from ._base import _BaseDeep, _GenerativeMixin
-from ._callbacks import GenerativeCallback
+from cca_zoo.deepmodels._base import _BaseDeep
+from cca_zoo.deepmodels._generative._base import _GenerativeMixin
+from cca_zoo.deepmodels._utils._callbacks import GenerativeCallback
+from cca_zoo.deepmodels._utils.architectures import _BaseEncoder, Encoder
 
 
 class SplitAE(_BaseDeep, _GenerativeMixin):
     """
     A class used to fit a Split Autoencoder model.
 
-    :Citation:
-
+    References
+    ----------
     Ngiam, Jiquan, et al. "Multimodal deep learning." ICML. 2011.
 
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        encoder: _BaseEncoder = Encoder,
-        decoders=None,
-        latent_dropout=0,
-        recon_loss_type="mse",
-        img_dim=None,
-        **kwargs
+            self,
+            latent_dims: int,
+            encoder: _BaseEncoder = Encoder,
+            decoders=None,
+            latent_dropout=0,
+            recon_loss_type="mse",
+            img_dim=None,
+            **kwargs
     ):
         """
 
@@ -46,7 +47,7 @@ class SplitAE(_BaseDeep, _GenerativeMixin):
         :param kwargs:
         :return:
         """
-        z=[]
+        z = []
         z.append(self.encoder(views[0]))
         return z
 

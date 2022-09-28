@@ -2,44 +2,35 @@ from typing import Iterable
 
 import torch
 
-from cca_zoo.deepmodels.architectures import _BaseEncoder
-from ._base import _BaseDeep, _GenerativeMixin
-from ._callbacks import GenerativeCallback
+from cca_zoo.deepmodels._base import _BaseDeep
+from cca_zoo.deepmodels._generative._base import _GenerativeMixin
+from cca_zoo.deepmodels._utils._callbacks import GenerativeCallback
+from cca_zoo.deepmodels._utils.architectures import _BaseEncoder
 
 
 class DVCCA(_BaseDeep, _GenerativeMixin):
     """
     A class used to fit a DVCCA model.
 
-    :Citation:
-
+    References
+    ----------
     Wang, Weiran, et al. 'Deep variational canonical correlation analysis.' arXiv preprint arXiv:1610.03454 (2016).
-
     https: // arxiv.org / pdf / 1610.03454.pdf
-
     https: // github.com / pytorch / examples / blob / master / vae / main.py
 
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        encoders=None,
-        decoders=None,
-        private_encoders: Iterable[_BaseEncoder] = None,
-        latent_dropout=0,
-        img_dim=None,
-        recon_loss_type="mse",
-        **kwargs,
+            self,
+            latent_dims: int,
+            encoders=None,
+            decoders=None,
+            private_encoders: Iterable[_BaseEncoder] = None,
+            latent_dropout=0,
+            img_dim=None,
+            recon_loss_type="mse",
+            **kwargs,
     ):
-        """
-        Constructor class for DVCCA
-
-        :param latent_dims: # latent dimensions
-        :param encoders: list of encoder networks
-        :param decoders:  list of decoder networks
-        :param private_encoders: list of private (view specific) encoder networks
-        """
         super().__init__(latent_dims=latent_dims, **kwargs)
         self.img_dim = img_dim
         self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
@@ -135,7 +126,7 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
             ]
         ).sum()
         loss["kl shared"] = (
-            self.kl_loss(z["mu_shared"], z["logvar_shared"]) / views[0].numel()
+                self.kl_loss(z["mu_shared"], z["logvar_shared"]) / views[0].numel()
         )
         if "private" in z:
             loss["kl private"] = torch.stack(
@@ -164,9 +155,9 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
                 z_shared.append(z_["shared"].cpu())
                 if "private" in z_:
                     z_private.append(self.detach_all(z_["private"]))
-        z={"shared": torch.vstack(z_shared).cpu().numpy()}
+        z = {"shared": torch.vstack(z_shared).cpu().numpy()}
         if "private" in z_:
-            z["private"]= [torch.vstack(i).cpu().numpy() for i in zip(*z_private)]
+            z["private"] = [torch.vstack(i).cpu().numpy() for i in zip(*z_private)]
         return z
 
     def configure_callbacks(self):

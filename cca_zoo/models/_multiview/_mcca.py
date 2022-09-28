@@ -5,15 +5,13 @@ from scipy.linalg import block_diag, eigh
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
+from cca_zoo.models._rcca import rCCA
 from cca_zoo.utils.check_values import _process_parameter, _check_views
-from ._rcca import rCCA
 
 
 class MCCA(rCCA):
     r"""
     A class used to fit MCCA model. For more than 2 views, MCCA optimizes the sum of pairwise correlations.
-
-    :Maths:
 
     .. math::
 
@@ -23,11 +21,12 @@ class MCCA(rCCA):
 
         (1-c_i)w_i^TX_i^TX_iw_i+c_iw_i^Tw_i=1
 
-    :Citation:
-
+    References
+    ----------
     Kettenring, Jon R. "Canonical analysis of several sets of variables." Biometrika 58.3 (1971): 433-451.
 
-    :Example:
+    Examples
+    --------
     >>> from cca_zoo.models import MCCA
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
@@ -40,26 +39,15 @@ class MCCA(rCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        eps=1e-9,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            eps=1e-9,
     ):
-        """
-        Constructor for MCCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
-        :param eps: epsilon for stability
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -94,7 +82,7 @@ class MCCA(rCCA):
         idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dims]
         eigvecs = eigvecs[:, idx].real
         self.weights = [
-            eigvecs[split : self.splits[i + 1]]
+            eigvecs[split: self.splits[i + 1]]
             for i, split in enumerate(self.splits[:-1])
         ]
 
@@ -102,8 +90,6 @@ class MCCA(rCCA):
 class KCCA(MCCA):
     r"""
     A class used to fit KCCA model.
-
-    :Maths:
 
     .. math::
 
@@ -113,8 +99,8 @@ class KCCA(MCCA):
 
         c_i\alpha_i^TK_i\alpha_i + (1-c_i)\alpha_i^TK_i^TK_i\alpha_i=1
 
-    :Example:
-
+    Examples
+    --------
     >>> from cca_zoo.models import KCCA
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
@@ -127,35 +113,20 @@ class KCCA(MCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        eps=1e-3,
-        kernel: Iterable[Union[float, callable]] = None,
-        gamma: Iterable[float] = None,
-        degree: Iterable[float] = None,
-        coef0: Iterable[float] = None,
-        kernel_params: Iterable[dict] = None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            eps=1e-3,
+            kernel: Iterable[Union[float, callable]] = None,
+            gamma: Iterable[float] = None,
+            degree: Iterable[float] = None,
+            coef0: Iterable[float] = None,
+            kernel_params: Iterable[dict] = None,
     ):
-        """
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
-        :param eps: epsilon for stability
-        :param kernel: Iterable of kernel mappings used internally. This parameter is directly passed to :class:`~sklearn.metrics.pairwise.pairwise_kernel`. If element of `kernel` is a string, it must be one of the metrics in `pairwise.PAIRWISE_KERNEL_FUNCTIONS`. Alternatively, if element of `kernel` is a callable function, it is called on each pair of instances (rows) and the resulting value recorded. The callable should take two rows from views as input and return the corresponding kernel value as a single number. This means that callables from :mod:`sklearn.metrics.pairwise` are not allowed, as they operate on matrices, not single samples. Use the string identifying the kernel instead.
-        :param gamma: Iterable of gamma parameters for the RBF, laplacian, polynomial, exponential chi2 and sigmoid kernels. Interpretation of the default value is left to the kernel; see the documentation for sklearn.metrics.pairwise. Ignored by other kernels.
-        :param degree: Iterable of degree parameters of the polynomial kernel. Ignored by other kernels.
-        :param coef0: Iterable of zero coefficients for polynomial and sigmoid kernels. Ignored by other kernels.
-        :param kernel_params: Iterable of additional parameters (keyword arguments) for kernel function passed as callable object.
-        :param eps: epsilon value to ensure stability of smallest eigenvalues
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -192,11 +163,6 @@ class KCCA(MCCA):
         )
 
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
-        """
-        Generates the left and right hand sides of the generalized eigenvalue problem
-
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        """
         self.train_views = views
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
         C = np.hstack(kernels).T @ np.hstack(kernels) / self.n
@@ -214,12 +180,6 @@ class KCCA(MCCA):
         return kernels, C, D
 
     def transform(self, views: np.ndarray, **kwargs):
-        """
-        Transforms data given a fit KCCA model
-
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        :param kwargs: any additional keyword arguments required by the given model
-        """
         check_is_fitted(self, attributes=["weights"])
         views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse

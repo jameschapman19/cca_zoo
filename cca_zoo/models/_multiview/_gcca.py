@@ -5,15 +5,13 @@ from scipy.linalg import eigh
 from sklearn.metrics import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
+from cca_zoo.models._rcca import rCCA
 from cca_zoo.utils.check_values import _process_parameter, _check_views
-from ._rcca import rCCA
 
 
 class GCCA(rCCA):
     r"""
     A class used to fit GCCA model. For more than 2 views, GCCA optimizes the sum of correlations with a shared auxiliary vector
-
-    :Maths:
 
     .. math::
 
@@ -23,12 +21,12 @@ class GCCA(rCCA):
 
         T^TT=1
 
-    :Citation:
-
+    References
+    ----------
     Tenenhaus, Arthur, and Michel Tenenhaus. "Regularized generalized canonical correlation analysis." Psychometrika 76.2 (2011): 257.
 
-    :Example:
-
+    Examples
+    --------
     >>> from cca_zoo.models import GCCA
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
@@ -41,27 +39,16 @@ class GCCA(rCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        view_weights: Iterable[float] = None,
-        eps=1e-9,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            view_weights: Iterable[float] = None,
+            eps=1e-9,
     ):
-        """
-        Constructor for GCCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param c: regularisation between 0 (CCA) and 1 (PLS)
-        :param view_weights: list of weights of each view
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -93,9 +80,9 @@ class GCCA(rCCA):
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
         Q = (
-            np.diag(np.sqrt(np.sum(K, axis=0)))
-            @ Q
-            @ np.diag(np.sqrt(np.sum(K, axis=0)))
+                np.diag(np.sqrt(np.sum(K, axis=0)))
+                @ Q
+                @ np.diag(np.sqrt(np.sum(K, axis=0)))
         )
         return views, Q, None
 
@@ -113,8 +100,6 @@ class KGCCA(GCCA):
     r"""
     A class used to fit KGCCA model. For more than 2 views, KGCCA optimizes the sum of correlations with a shared auxiliary vector
 
-    :Maths:
-
     .. math::
 
         w_{opt}=\underset{w}{\mathrm{argmax}}\{ \sum_i\alpha_i^TK_i^TT  \}\\
@@ -123,12 +108,12 @@ class KGCCA(GCCA):
 
         T^TT=1
 
-    :Citation:
-
+    References
+    ----------
     Tenenhaus, Arthur, Cathy Philippe, and Vincent Frouin. "Kernel generalized canonical correlation analysis." Computational Statistics & Data Analysis 90 (2015): 114-131.
 
-    :Example:
-
+    Examples
+    --------
     >>> from cca_zoo.models import KGCCA
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
@@ -141,37 +126,20 @@ class KGCCA(GCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        eps=1e-3,
-        kernel: Iterable[Union[float, callable]] = None,
-        gamma: Iterable[float] = None,
-        degree: Iterable[float] = None,
-        coef0: Iterable[float] = None,
-        kernel_params: Iterable[dict] = None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            eps=1e-3,
+            kernel: Iterable[Union[float, callable]] = None,
+            gamma: Iterable[float] = None,
+            degree: Iterable[float] = None,
+            coef0: Iterable[float] = None,
+            kernel_params: Iterable[dict] = None,
     ):
-        """
-        Constructor for PLS
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
-        :param eps: epsilon for stability
-        :param kernel: Iterable of kernel mappings used internally. This parameter is directly passed to :class:`~sklearn.metrics.pairwise.pairwise_kernel`. If element of `kernel` is a string, it must be one of the metrics in `pairwise.PAIRWISE_KERNEL_FUNCTIONS`. Alternatively, if element of `kernel` is a callable function, it is called on each pair of instances (rows) and the resulting value recorded. The callable should take two rows from views as input and return the corresponding kernel value as a single number. This means that callables from :mod:`sklearn.metrics.pairwise` are not allowed, as they operate on matrices, not single samples. Use the string identifying the kernel instead.
-        :param gamma: Iterable of gamma parameters for the RBF, laplacian, polynomial, exponential chi2 and sigmoid kernels. Interpretation of the default value is left to the kernel; see the documentation for sklearn.metrics.pairwise. Ignored by other kernels.
-        :param degree: Iterable of degree parameters of the polynomial kernel. Ignored by other kernels.
-        :param coef0: Iterable of zero coefficients for polynomial and sigmoid kernels. Ignored by other kernels.
-        :param kernel_params: Iterable of additional parameters (keyword arguments) for kernel function passed as callable object.
-        :param eps: epsilon value to ensure stability of smallest eigenvalues
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -227,19 +195,13 @@ class KGCCA(GCCA):
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
         Q = (
-            np.diag(np.sqrt(np.sum(K, axis=0)))
-            @ Q
-            @ np.diag(np.sqrt(np.sum(K, axis=0)))
+                np.diag(np.sqrt(np.sum(K, axis=0)))
+                @ Q
+                @ np.diag(np.sqrt(np.sum(K, axis=0)))
         )
         return kernels, Q, None
 
     def transform(self, views: np.ndarray, y=None, **kwargs):
-        """
-        Transforms data given a fit KGCCA model
-
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        :param kwargs: any additional keyword arguments required by the given model
-        """
         check_is_fitted(self, attributes=["weights"])
         views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse

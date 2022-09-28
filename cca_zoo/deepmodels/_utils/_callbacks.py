@@ -10,9 +10,9 @@ class CorrelationCallback(Callback):
             self, trainer: Trainer, pl_module: LightningModule
     ) -> None:
         pl_module.log(
-                "val/corr",
-                pl_module.score(trainer.val_dataloaders[0]).sum(),
-            )
+            "val/corr",
+            pl_module.score(trainer.val_dataloaders[0]).sum(),
+        )
 
 
 class GenerativeCallback(Callback):

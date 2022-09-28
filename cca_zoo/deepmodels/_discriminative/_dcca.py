@@ -1,75 +1,49 @@
-import itertools
-from typing import Iterable
-
-import numpy as np
 import torch
 
-from cca_zoo.deepmodels import objectives
+from cca_zoo.deepmodels._base import _BaseDeep
+from cca_zoo.deepmodels._utils import objectives
+from cca_zoo.deepmodels._utils._callbacks import CorrelationCallback
 from cca_zoo.models import MCCA
-from ._base import _BaseDeep
-from ._callbacks import CorrelationCallback
-from ..models._base import _BaseCCA
+from cca_zoo.models._base import _BaseCCA
 
 
 class DCCA(_BaseDeep, _BaseCCA):
     """
     A class used to fit a DCCA model.
 
-    :Citation:
-
+    References
+    ----------
     Andrew, Galen, et al. "Deep canonical correlation analysis." International conference on machine learning. PMLR, 2013.
 
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        objective=objectives.MCCA,
-        encoders=None,
-        r: float = 0,
-        eps: float = 1e-5,
-        **kwargs,
+            self,
+            latent_dims: int,
+            objective=objectives.MCCA,
+            encoders=None,
+            r: float = 0,
+            eps: float = 1e-5,
+            **kwargs,
     ):
-        """
-        Constructor class for DCCA
-
-        :param latent_dims: # latent dimensions
-        :param objective: # CCA objective: normal tracenorm CCA by default
-        :param encoders: list of encoder networks
-        :param r: regularisation parameter of tracenorm CCA like ridge CCA. Needs to be VERY SMALL. If you get errors make this smaller
-        :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
-        """
         super().__init__(latent_dims=latent_dims, **kwargs)
         self.encoders = torch.nn.ModuleList(encoders)
         self.objective = objective(latent_dims, r=r, eps=eps)
 
     def forward(self, views, **kwargs):
-        """
-        Forward method for the model. Outputs latent encoding for each view
-
-        :param views:
-        :param kwargs:
-        :return:
-        """
         z = []
         for i, encoder in enumerate(self.encoders):
             z.append(encoder(views[i]))
         return z
 
     def loss(self, views, **kwargs):
-        """
-        Define the loss function for the model. This is used by the DeepWrapper class
-
-        :param views:
-        :return:
-        """
         z = self(views)
         return {"objective": self.objective.loss(z)}
 
     def pairwise_correlations(
-        self,
-        loader: torch.utils.data.DataLoader,
-        train=False,
+            self,
+            loader: torch.utils.data.DataLoader,
+            train=False,
     ):
         """
         Calculates correlation for entire batch from dataloader
@@ -89,7 +63,7 @@ class DCCA(_BaseDeep, _BaseCCA):
         :param loader: a dataloader that matches the structure of that used for training
         :param train: whether to fit final linear transformation
         """
-        z=self.transform(loader)
+        z = self.transform(loader)
         return MCCA(self.latent_dims).fit(z).score(z)
 
     def configure_callbacks(self):

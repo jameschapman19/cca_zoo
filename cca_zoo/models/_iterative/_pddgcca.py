@@ -17,40 +17,25 @@ class PDD_GCCA(AltMaxVar):
 
         w_i^TX_i^TX_iw_i=n
 
-    :Citation:
-
-        Kanatsoulis, Charilaos I., et al. "Structured SUMCOR multiview canonical correlation analysis for large-scale data." IEEE Transactions on Signal Processing 67.2 (2018): 306-319.
-
-
-    :Example:
+    References
+    ----------
+    Kanatsoulis, Charilaos I., et al. "Structured SUMCOR multiview canonical correlation analysis for large-scale data." IEEE Transactions on Signal Processing 67.2 (2018): 306-319.
 
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-9,
-        view_regs=None,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            view_regs=None,
+            verbose=0,
     ):
-        """
-        Constructor for ElasticCCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for _iterative methods
-        :param tol: tolerance value used for early stopping
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -76,17 +61,17 @@ class PDD_GCCA(AltMaxVar):
 
 class _PDD_GCCALoop(_BaseInnerLoop):
     def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        random_state=None,
-        view_regs=None,
-        alpha=1e-3,
-        eta=1e-3,
-        rho=1e-3,
-        c=0.9,
-        eps=1e-3,
-        verbose=0,
+            self,
+            max_iter: int = 100,
+            tol=1e-9,
+            random_state=None,
+            view_regs=None,
+            alpha=1e-3,
+            eta=1e-3,
+            rho=1e-3,
+            c=0.9,
+            eps=1e-3,
+            verbose=0,
     ):
         super().__init__(
             max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
@@ -113,18 +98,14 @@ class _PDD_GCCALoop(_BaseInnerLoop):
             self.rho = self.rho * self.c
 
     def _update_view(self, views, view_index: int):
-        """
-        :param view_index: index of view being updated
-        :return: updated weights
-        """
         converged = False
         while not converged:
             targets = np.ma.array(self.scores, mask=False)
             targets.mask[view_index] = True
             target = (
-                targets.sum(axis=0).filled()
-                + self.G[view_index]
-                - self.Y[view_index] / self.rho
+                    targets.sum(axis=0).filled()
+                    + self.G[view_index]
+                    - self.Y[view_index] / self.rho
             )
             weights_ = self.view_regs[view_index](
                 (self.n_views + self.rho) * views[view_index],
@@ -139,11 +120,11 @@ class _PDD_GCCALoop(_BaseInnerLoop):
             )
             G_ = U @ Vt
             if (
-                max(
-                    np.linalg.norm(weights_ - self.weights[view_index], ord=np.inf),
-                    np.linalg.norm(G_ - self.G[view_index], ord=np.inf),
-                )
-                < self.eps
+                    max(
+                        np.linalg.norm(weights_ - self.weights[view_index], ord=np.inf),
+                        np.linalg.norm(G_ - self.G[view_index], ord=np.inf),
+                    )
+                    < self.eps
             ):
                 converged = True
             self.weights[view_index] = weights_
@@ -154,11 +135,11 @@ class _PDD_GCCALoop(_BaseInnerLoop):
         total_objective = 0
         for i, _ in enumerate(views):
             objective = (
-                np.linalg.norm(
-                    views[i] @ self.weights[i] - self.scores, ord="fro", axis=(1, 2)
-                )
-                ** 2
-            ).sum() / 2
+                                np.linalg.norm(
+                                    views[i] @ self.weights[i] - self.scores, ord="fro", axis=(1, 2)
+                                )
+                                ** 2
+                        ).sum() / 2
             total_objective += objective + self.view_regs[i].cost(
                 views[i], self.weights[i]
             )

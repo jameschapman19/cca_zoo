@@ -35,8 +35,8 @@ class ElasticCCA(_BaseIterative):
 
         w_i^TX_i^TX_iw_i=n
 
-    :Example:
-
+    Examples
+    --------
     >>> from cca_zoo.models import ElasticCCA
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
@@ -48,41 +48,23 @@ class ElasticCCA(_BaseIterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-9,
-        c: Union[Iterable[float], float] = None,
-        l1_ratio: Union[Iterable[float], float] = None,
-        maxvar: bool = True,
-        stochastic=False,
-        positive: Union[Iterable[bool], bool] = None,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            c: Union[Iterable[float], float] = None,
+            l1_ratio: Union[Iterable[float], float] = None,
+            maxvar: bool = True,
+            stochastic=False,
+            positive: Union[Iterable[bool], bool] = None,
+            verbose=0,
     ):
-        """
-        Constructor for ElasticCCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param deflation: the type of deflation.
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for _iterative methods
-        :param tol: tolerance value used for early stopping
-        :param c: lasso alpha
-        :param l1_ratio: l1 ratio in lasso subproblems
-        :param maxvar: use auxiliary variable "maxvar" formulation
-        :param stochastic: use _stochastic regression optimisers for subproblems
-        :param positive: constrain model weights to be positive
-        """
         self.c = c
         self.l1_ratio = l1_ratio
         self.maxvar = maxvar
@@ -177,38 +159,22 @@ class SCCA_IPLS(ElasticCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        c: Union[Iterable[float], float] = None,
-        max_iter: int = 100,
-        maxvar: bool = False,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-9,
-        stochastic=False,
-        positive: Union[Iterable[bool], bool] = None,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            c: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            maxvar: bool = False,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            stochastic=False,
+            positive: Union[Iterable[bool], bool] = None,
+            verbose=0,
     ):
-        """
-        Constructor for SCCA_IPLS
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param maxvar: use auxiliary variable "maxvar" form
-        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for _iterative methods
-        :param tol: tolerance value used for early stopping
-        :param c: lasso alpha
-        :param stochastic: use _stochastic regression optimisers for subproblems
-        :param positive: constrain model weights to be positive
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -230,17 +196,17 @@ class SCCA_IPLS(ElasticCCA):
 
 class _ElasticInnerLoop(_PLSInnerLoop):
     def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        c=None,
-        l1_ratio=None,
-        maxvar=True,
-        stochastic=True,
-        positive=None,
-        random_state=None,
-        verbose=0,
-        **kwargs,
+            self,
+            max_iter: int = 100,
+            tol=1e-9,
+            c=None,
+            l1_ratio=None,
+            maxvar=True,
+            stochastic=True,
+            positive=None,
+            random_state=None,
+            verbose=0,
+            **kwargs,
     ):
         super().__init__(
             max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
@@ -287,10 +253,6 @@ class _ElasticInnerLoop(_PLSInnerLoop):
                 )
 
     def _update_view(self, views, view_index: int):
-        """
-        :param view_index: index of view being updated
-        :return: updated weights
-        """
         if self.maxvar:
             # For MAXVAR we rescale the targets
             target = self.scores.mean(axis=0)
@@ -305,8 +267,8 @@ class _ElasticInnerLoop(_PLSInnerLoop):
         if not self.maxvar:
             _check_converged_weights(self.weights[view_index], view_index)
             self.weights[view_index] = self.weights[view_index] / (
-                np.linalg.norm(views[view_index] @ self.weights[view_index])
-                / np.sqrt(self.n)
+                    np.linalg.norm(views[view_index] @ self.weights[view_index])
+                    / np.sqrt(self.n)
             )
         self.scores[view_index] = views[view_index] @ self.weights[view_index]
 
@@ -325,7 +287,7 @@ class _ElasticInnerLoop(_PLSInnerLoop):
             if self.maxvar:
                 target /= np.linalg.norm(target) / np.sqrt(self.n)
             objective = np.linalg.norm(views[i] @ self.weights[i] - target) ** 2 / (
-                2 * self.n
+                    2 * self.n
             )
             l1_pen = l1[i] * np.linalg.norm(self.weights[i], ord=1)
             l2_pen = l2[i] * np.linalg.norm(self.weights[i], ord=2)

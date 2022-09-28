@@ -13,11 +13,12 @@ class NCCA(_BaseCCA):
     """
     A class used to fit nonparametric (NCCA) model.
 
-    :Citation:
-
+    References
+    ----------
     Michaeli, Tomer, Weiran Wang, and Karen Livescu. "Nonparametric canonical correlation analysis." International conference on machine learning. PMLR, 2016.
 
-    :Example:
+    Example
+    -------
     >>> from cca_zoo.models import NCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
@@ -27,28 +28,16 @@ class NCCA(_BaseCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale=True,
-        centre=True,
-        copy_data=True,
-        accept_sparse=False,
-        random_state: Union[int, np.random.RandomState] = None,
-        nearest_neighbors=None,
-        gamma: Iterable[float] = None,
+            self,
+            latent_dims: int = 1,
+            scale=True,
+            centre=True,
+            copy_data=True,
+            accept_sparse=False,
+            random_state: Union[int, np.random.RandomState] = None,
+            nearest_neighbors=None,
+            gamma: Iterable[float] = None,
     ):
-        """
-        Constructor for NCCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param accept_sparse: Whether model can take sparse data as input
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param nearest_neighbors: Number of nearest neighbors (l2 distance) to consider when constructing affinity
-        :param gamma: Bandwidth parameter for rbf kernel
-        """
         super().__init__(
             latent_dims, scale, centre, copy_data, accept_sparse, random_state
         )
@@ -82,18 +71,12 @@ class NCCA(_BaseCCA):
         ]
         S = self.Ws[0] @ self.Ws[1]
         U, S, Vt = np.linalg.svd(S)
-        self.f = U[:, 1 : self.latent_dims + 1] * np.sqrt(self.n)
-        self.g = Vt[1 : self.latent_dims + 1, :].T * np.sqrt(self.n)
-        self.S = S[1 : self.latent_dims + 1]
+        self.f = U[:, 1: self.latent_dims + 1] * np.sqrt(self.n)
+        self.g = Vt[1: self.latent_dims + 1, :].T * np.sqrt(self.n)
+        self.S = S[1: self.latent_dims + 1]
         return self
 
     def transform(self, views: Iterable[np.ndarray], **kwargs):
-        """
-        Transforms data given a fit model
-
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
-        :param kwargs: any additional keyword arguments required by the given model
-        """
         check_is_fitted(self, attributes=["f", "g"])
         views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse

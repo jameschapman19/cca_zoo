@@ -8,11 +8,9 @@ This example demonstrates how to easily train Deep CCA models and variants
 import pytorch_lightning as pl
 from cca_zoo.deepmodels import (
     DCCA,
-    architectures,
-    objectives,
     DTCCA,
 )
-
+from cca_zoo.deepmodels._utils import objectives, architectures
 
 # %%
 # Data

@@ -7,7 +7,8 @@ This example demonstrates multiview models which can reconstruct their inputs
 import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 
-from cca_zoo.deepmodels import architectures, DCCAE, DVCCA, SplitAE
+from cca_zoo.deepmodels import DCCAE, DVCCA, SplitAE
+from cca_zoo.deepmodels._utils import architectures
 from cca_zoo.plotting import tsne_label
 from examples import example_mnist_data
 

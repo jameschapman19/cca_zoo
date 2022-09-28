@@ -1,46 +1,34 @@
 import torch
-
-from cca_zoo.deepmodels import objectives
-from cca_zoo.deepmodels._base import _GenerativeMixin
-from ._callbacks import CorrelationCallback, GenerativeCallback
-from ._dcca import DCCA
+from cca_zoo.deepmodels._discriminative._dcca import DCCA
+from cca_zoo.deepmodels._generative._base import _GenerativeMixin
+from cca_zoo.deepmodels._utils import objectives
+from cca_zoo.deepmodels._utils._callbacks import CorrelationCallback, GenerativeCallback
 
 
 class DCCAE(DCCA, _GenerativeMixin):
     """
     A class used to fit a DCCAE model.
 
-    :Citation:
-
+    References
+    ----------
     Wang, Weiran, et al. "On deep multi-view representation learning." International conference on machine learning. PMLR, 2015.
 
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        objective=objectives.MCCA,
-        encoders=None,
-        decoders=None,
-        r: float = 0,
-        eps: float = 1e-5,
-        lam=0.5,
-        latent_dropout=0,
-        img_dim=None,
-        recon_loss_type="mse",
-        **kwargs,
+            self,
+            latent_dims: int,
+            objective=objectives.MCCA,
+            encoders=None,
+            decoders=None,
+            r: float = 0,
+            eps: float = 1e-5,
+            lam=0.5,
+            latent_dropout=0,
+            img_dim=None,
+            recon_loss_type="mse",
+            **kwargs,
     ):
-        """
-        Constructor class for DCCAE
-
-        :param latent_dims: # latent dimensions
-        :param objective: # CCA objective: normal tracenorm CCA by default
-        :param encoders: list of encoder networks
-        :param decoders:  list of decoder networks
-        :param r: regularisation parameter of tracenorm CCA like ridge CCA. Needs to be VERY SMALL. If you get errors make this smaller
-        :param eps: epsilon used throughout. Needs to be VERY SMALL. If you get errors make this smaller
-        :param lam: weight of reconstruction loss (1 minus weight of correlation loss)
-        """
         super().__init__(
             latent_dims=latent_dims,
             objective=objective,
@@ -93,7 +81,7 @@ class DCCAE(DCCA, _GenerativeMixin):
         ).sum()
         loss["correlation"] = self.objective.loss(z)
         loss["objective"] = (
-            self.lam * loss["reconstruction"] + (1 - self.lam) * loss["correlation"]
+                self.lam * loss["reconstruction"] + (1 - self.lam) * loss["correlation"]
         )
         return loss
 

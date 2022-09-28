@@ -27,38 +27,27 @@ class _BaseStochastic(_BaseCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        eps=1e-3,
-        accept_sparse=None,
-        batch_size=1,
-        shuffle=False,
-        sampler=None,
-        batch_sampler=None,
-        num_workers=0,
-        pin_memory=False,
-        drop_last=False,
-        timeout=0,
-        worker_init_fn=None,
-        epochs=1,
-        val_split=None,
-        val_interval=10,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            eps=1e-3,
+            accept_sparse=None,
+            batch_size=1,
+            shuffle=False,
+            sampler=None,
+            batch_sampler=None,
+            num_workers=0,
+            pin_memory=False,
+            drop_last=False,
+            timeout=0,
+            worker_init_fn=None,
+            epochs=1,
+            val_split=None,
+            val_interval=10,
     ):
-        """
-        Constructor for rCCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param eps: epsilon for stability
-        :param accept_sparse: which forms are accepted for sparse data
-        """
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]
         super().__init__(
@@ -84,11 +73,6 @@ class _BaseStochastic(_BaseCCA):
         self.val_split = val_split
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        """
-        Fits a regularised CCA (canonical ridge) model
-
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        """
         views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )

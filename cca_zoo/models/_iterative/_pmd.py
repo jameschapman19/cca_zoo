@@ -13,8 +13,6 @@ class SCCA_PMD(_BaseIterative):
     r"""
     Fits a Sparse CCA (Penalized Matrix Decomposition) model.
 
-    :Maths:
-
     .. math::
 
         w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
@@ -25,12 +23,12 @@ class SCCA_PMD(_BaseIterative):
 
         \|w_i\|<=c_i
 
-    :Citation:
-
+    References
+    ----------
     Witten, Daniela M., Robert Tibshirani, and Trevor Hastie. "A penalized matrix decomposition, with applications to sparse principal components and canonical correlation analysis." Biostatistics 10.3 (2009): 515-534.
 
-    :Example:
-
+    Examples
+    --------
     >>> from cca_zoo.models import SCCA_PMD
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
@@ -42,34 +40,20 @@ class SCCA_PMD(_BaseIterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        c: Union[Iterable[float], float] = None,
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-9,
-        positive: Union[Iterable[bool], bool] = None,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            c: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            positive: Union[Iterable[bool], bool] = None,
+            verbose=0,
     ):
-        """
-        Constructor for SCCA_PMD
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param c: l1 regularisation parameter between 1 and sqrt(number of features) for each view
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for _iterative methods
-        :param tol: tolerance value used for early stopping
-        :param positive: constrain model weights to be positive
-        """
         self.c = c
         self.positive = positive
         super().__init__(
@@ -113,13 +97,13 @@ class SCCA_PMD(_BaseIterative):
 
 class _PMDInnerLoop(_PLSInnerLoop):
     def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        c=None,
-        positive=None,
-        random_state=None,
-        verbose=0,
+            self,
+            max_iter: int = 100,
+            tol=1e-9,
+            c=None,
+            positive=None,
+            random_state=None,
+            verbose=0,
     ):
         super().__init__(
             max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
@@ -132,10 +116,6 @@ class _PMDInnerLoop(_PLSInnerLoop):
         self.t = [max(1, x * y) for x, y in zip(self.c, shape_sqrts)]
 
     def _update_view(self, views, view_index: int):
-        """
-        :param view_index: index of view being updated
-        :return: updated weights
-        """
         # mask off the current view and sum the rest
         targets = np.ma.array(self.scores, mask=False)
         targets.mask[view_index] = True

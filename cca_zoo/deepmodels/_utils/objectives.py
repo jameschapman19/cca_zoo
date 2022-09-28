@@ -44,17 +44,17 @@ class MCCA:
 
         # Concatenate all views and from this get the cross-covariance matrix
         all_views = torch.cat(views, dim=1)
-        C = all_views.T @ all_views/(n-1)
+        C = all_views.T @ all_views / (n - 1)
 
         # Get the block covariance matrix placing Xi^TX_i on the diagonal
         D = torch.block_diag(
             *[
-                (1 - self.r) * m.T @ m/(n-1) + self.r * torch.eye(m.shape[1], device=m.device)
+                (1 - self.r) * m.T @ m / (n - 1) + self.r * torch.eye(m.shape[1], device=m.device)
                 for i, m in enumerate(views)
             ]
         )
 
-        C = C - torch.block_diag(*[view.T @ view/(n-1) for view in views]) + D
+        C = C - torch.block_diag(*[view.T @ view / (n - 1) for view in views]) + D
 
         R = _mat_pow(D, -0.5, self.eps)
 
@@ -104,7 +104,7 @@ class GCCA:
         views = _demean(views)
 
         eigen_views = [
-            view @ _mat_pow(view.T @ view/(n-1), -1, self.eps) @ view.T for view in views
+            view @ _mat_pow(view.T @ view / (n - 1), -1, self.eps) @ view.T for view in views
         ]
 
         Q = torch.stack(eigen_views, dim=0).sum(dim=0)
@@ -160,7 +160,7 @@ class CCA:
 
         views = _demean(views)
 
-        SigmaHat12 = views[0].T @ views[1]/ (n - 1)
+        SigmaHat12 = views[0].T @ views[1] / (n - 1)
         SigmaHat11 = (1 - self.r) / (n - 1) * views[0].T @ views[
             0
         ] + self.r * torch.eye(o1, device=views[0].device)
@@ -205,7 +205,7 @@ class TCCA:
         n = views[0].shape[0]
         views = _demean(views)
         covs = [
-            (1 - self.r) * view.T @ view/ (n - 1)
+            (1 - self.r) * view.T @ view / (n - 1)
             + self.r * torch.eye(view.size(1), device=view.device)
             for view in views
         ]

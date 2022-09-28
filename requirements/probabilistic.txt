@@ -1,3 +1,0 @@
-jax~=0.2.20
-numpyro
-arviz

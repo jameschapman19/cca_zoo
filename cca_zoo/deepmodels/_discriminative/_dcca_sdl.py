@@ -8,34 +8,24 @@ class DCCA_SDL(DCCA_NOI):
     """
     A class used to fit a Deep CCA by Stochastic Decorrelation model.
 
-    :Citation:
-
+    References
+    ----------
     Chang, Xiaobin, Tao Xiang, and Timothy M. Hospedales. "Scalable and effective deep CCA via soft decorrelation." Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2018.
 
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        N: int,
-        encoders=None,
-        r: float = 0,
-        rho: float = 0.2,
-        eps: float = 1e-5,
-        shared_target: bool = False,
-        lam=0.5,
-        **kwargs
+            self,
+            latent_dims: int,
+            N: int,
+            encoders=None,
+            r: float = 0,
+            rho: float = 0.2,
+            eps: float = 1e-5,
+            shared_target: bool = False,
+            lam=0.5,
+            **kwargs
     ):
-        """
-        Constructor class for DCCA_SDL
-
-        :param latent_dims: # latent dimensions
-        :param encoders: list of encoder networks
-        :param r: regularisation parameter of tracenorm CCA like ridge CCA
-        :param rho: covariance memory like DCCA non-linear orthogonal iterations paper
-        :param eps: epsilon used throughout
-        :param shared_target: not used
-        """
         super().__init__(
             latent_dims=latent_dims,
             N=N,
@@ -54,13 +44,6 @@ class DCCA_SDL(DCCA_NOI):
         )
 
     def forward(self, views, **kwargs):
-        """
-        Forward method for the model. Outputs latent encoding for each view
-
-        :param views:
-        :param kwargs:
-        :return:
-        """
         z = []
         for i, (encoder, bn) in enumerate(zip(self.encoders, self.bns)):
             z.append(bn(encoder(views[i])))

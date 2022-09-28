@@ -13,11 +13,12 @@ class PartialCCA(MCCA):
     A class used to fit a partial cca model. The key difference between this and a vanilla CCA or MCCA is that
     the canonical score vectors must be orthogonal to the supplied confounding variables.
 
-    :Citation:
-
+    References
+    ----------
     Rao, B. Raja. "Partial canonical correlations." Trabajos de estadistica y de investigación operativa 20.2-3 (1969): 211-219.
 
-    :Example:
+    Example
+    -------
     >>> from cca_zoo.models import PartialCCA
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
@@ -29,26 +30,15 @@ class PartialCCA(MCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        eps=1e-3,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            eps=1e-3,
     ):
-        """
-        Constructor for Partial CCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
-        :param eps: epsilon for stability
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -60,11 +50,6 @@ class PartialCCA(MCCA):
         self.eps = eps
 
     def fit(self, views: Iterable[np.ndarray], y=None, partials=None, **kwargs):
-        """
-        Fits a regularised CCA (canonical ridge) model
-
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        """
         super(MCCA, self).fit(views, y=y, partials=partials, **kwargs)
 
     def _setup_evp(self, views: Iterable[np.ndarray], partials=None, **kwargs):
@@ -95,11 +80,6 @@ class PartialCCA(MCCA):
 
     # TODO TRANSFORM
     def transform(self, views: Iterable[np.ndarray], partials=None, **kwargs):
-        """
-        Transforms data given a fit model
-
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
-        """
         if partials is None:
             raise ValueError(
                 f"partials is {partials}. Require matching partials to transform with"
@@ -113,7 +93,7 @@ class PartialCCA(MCCA):
         transformed_views = []
         for i, (view) in enumerate(views):
             transformed_view = (
-                view - partials @ self.confound_betas[i]
-            ) @ self.weights[i]
+                                       view - partials @ self.confound_betas[i]
+                               ) @ self.weights[i]
             transformed_views.append(transformed_view)
         return transformed_views

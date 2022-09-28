@@ -11,11 +11,11 @@ from matplotlib import pyplot as plt
 # %%
 from cca_zoo.deepmodels import (
     DCCA,
-    architectures,
     DCCA_NOI,
     DCCA_SDL,
     BarlowTwins,
 )
+from cca_zoo.deepmodels._utils import architectures
 from cca_zoo.plotting import pairplot_label
 from examples import example_mnist_data
 

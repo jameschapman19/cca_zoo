@@ -11,8 +11,6 @@ class rCCA(_BaseCCA):
     r"""
     A class used to fit Regularised CCA (canonical ridge) model. Uses PCA to perform the optimization efficiently for high dimensional data.
 
-    :Maths:
-
     .. math::
 
         w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
@@ -23,13 +21,31 @@ class rCCA(_BaseCCA):
 
         (1-c_2)w_2^TX_2^TX_2w_2+c_2w_2^Tw_2=n
 
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to use, by default 1
+    scale : bool, optional
+        Whether to scale the data, by default True
+    centre : bool, optional
+        Whether to centre the data, by default True
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random state for reproducibility, by default None
+    c : Union[Iterable[float], float], optional
+        Regularisation parameter, by default None
+    eps : float, optional
+        Tolerance for convergence, by default 1e-3
+    accept_sparse : Union[Iterable[str], str], optional
+        Whether to accept sparse matrices, by default None
 
-    :Citation:
-
+    References
+    --------
     Vinod, Hrishikesh D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
 
-    :Example:
-
+    Example
+    -------
     >>> from cca_zoo.models import rCCA
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
@@ -41,28 +57,16 @@ class rCCA(_BaseCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        eps=1e-3,
-        accept_sparse=None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            eps=1e-3,
+            accept_sparse=None,
     ):
-        """
-        Constructor for rCCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param c: Iterable of regularisation parameters for each view (between 0:CCA and 1:PLS)
-        :param eps: epsilon for stability
-        :param accept_sparse: which forms are accepted for sparse data
-        """
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]
         super().__init__(
@@ -80,11 +84,6 @@ class rCCA(_BaseCCA):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        """
-        Fits a regularised CCA (canonical ridge) model
-
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        """
         views = self._validate_inputs(views)
         self._check_params()
         views, C, D = self._setup_evp(views, **kwargs)
@@ -112,12 +111,12 @@ class rCCA(_BaseCCA):
             eigvecs = eigvecs[:, idx].real
             w_y = views[1].T @ np.diag(1 / np.sqrt(self.Bs[1])) @ eigvecs
             w_x = (
-                views[0].T
-                @ np.diag(1 / self.Bs[0])
-                @ self.R_12
-                @ np.diag(1 / np.sqrt(self.Bs[1]))
-                @ eigvecs
-                / np.sqrt(eigvals[idx])
+                    views[0].T
+                    @ np.diag(1 / self.Bs[0])
+                    @ self.R_12
+                    @ np.diag(1 / np.sqrt(self.Bs[1]))
+                    @ eigvecs
+                    / np.sqrt(eigvals[idx])
             )
             self.weights = [w_x, w_y]
         else:
@@ -129,7 +128,7 @@ class rCCA(_BaseCCA):
             self.weights = [
                 Vt.T
                 @ np.diag(1 / np.sqrt(B))
-                @ eigvecs[split : self.splits[i + 1], : self.latent_dims]
+                @ eigvecs[split: self.splits[i + 1], : self.latent_dims]
                 for i, (split, Vt, B) in enumerate(
                     zip(self.splits[:-1], views, self.Bs)
                 )
@@ -139,11 +138,11 @@ class rCCA(_BaseCCA):
         Rs = [U @ np.diag(S) for U, S in zip(Us, Ss)]
         self.R_12 = Rs[0].T @ Rs[1]
         M = (
-            np.diag(1 / np.sqrt(self.Bs[1]))
-            @ self.R_12.T
-            @ np.diag(1 / self.Bs[0])
-            @ self.R_12
-            @ np.diag(1 / np.sqrt(self.Bs[1]))
+                np.diag(1 / np.sqrt(self.Bs[1]))
+                @ self.R_12.T
+                @ np.diag(1 / self.Bs[0])
+                @ self.R_12
+                @ np.diag(1 / np.sqrt(self.Bs[1]))
         )
         return M, None
 
@@ -164,10 +163,6 @@ class CCA(rCCA):
     r"""
     A class used to fit a simple CCA model
 
-    Implements CCA by inheriting regularised CCA with 0 regularisation
-
-    :Maths:
-
     .. math::
 
         w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
@@ -178,12 +173,26 @@ class CCA(rCCA):
 
         w_2^TX_2^TX_2w_2=n
 
-    :Citation:
+    Parameters
+    ----------
+    latent_dims : int, optional
+        The number of latent dimensions to use, by default 1
+    scale : bool, optional
+        Whether to scale the data, by default True
+    centre : bool, optional
+        Whether to centre the data, by default True
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        The random state to use, by default None
+
+    References
+    --------
 
     Hotelling, Harold. "Relations between two sets of variates." Breakthroughs in statistics. Springer, New York, NY, 1992. 162-190.
 
-    :Example:
-
+    Example
+    -------
     >>> from cca_zoo.models import CCA
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
@@ -195,22 +204,13 @@ class CCA(rCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
     ):
-        """
-        Constructor for CCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -227,8 +227,6 @@ class PLS(rCCA):
 
     Implements PLS by inheriting regularised CCA with maximal regularisation
 
-    :Maths:
-
     .. math::
 
         w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
@@ -239,7 +237,8 @@ class PLS(rCCA):
 
         w_2^Tw_2=1
 
-    :Example:
+    Example
+    -------
 
     >>> from cca_zoo.models import PLS
     >>> import numpy as np
@@ -252,22 +251,13 @@ class PLS(rCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
     ):
-        """
-        Constructor for PLS
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -280,7 +270,21 @@ class PLS(rCCA):
 
 def _pca_data(*views: np.ndarray):
     """
-    :param views: numpy arrays with the same number of rows (samples) separated by commas
+    Performs PCA on the data and returns the scores and loadings
+
+    Parameters
+    ----------
+    views : np.ndarray
+
+    Returns
+    -------
+    Us : list of np.ndarray
+        The loadings for each view
+    Ss : list of np.ndarray
+        The scores for each view
+    Vs : list of np.ndarray
+        The eigenvectors for each view
+
     """
     views_U = []
     views_S = []

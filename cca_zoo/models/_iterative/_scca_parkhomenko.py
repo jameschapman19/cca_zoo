@@ -20,12 +20,12 @@ class SCCA_Parkhomenko(_BaseIterative):
 
         w_i^Tw_i=1
 
-    :Citation:
-
+    References
+    ----------
     Parkhomenko, Elena, David Tritchler, and Joseph Beyene. "Sparse canonical correlation analysis with application to genomic data integration." Statistical applications in genetics and molecular biology 8.1 (2009).
 
-    :Example:
-
+    Examples
+    --------
     >>> from cca_zoo.models import SCCA_Parkhomenko
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
@@ -37,32 +37,19 @@ class SCCA_Parkhomenko(_BaseIterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        c: Union[Iterable[float], float] = None,
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-9,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            c: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            verbose=0,
     ):
-        """
-        Constructor for ParkhomenkoCCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param c: l1 regularisation parameter
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for _iterative methods
-        :param tol: tolerance value used for early stopping
-        """
         self.c = c
         super().__init__(
             latent_dims=latent_dims,
@@ -94,12 +81,12 @@ class SCCA_Parkhomenko(_BaseIterative):
 
 class _ParkhomenkoInnerLoop(_PLSInnerLoop):
     def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        c=None,
-        random_state=None,
-        verbose=0,
+            self,
+            max_iter: int = 100,
+            tol=1e-9,
+            c=None,
+            random_state=None,
+            verbose=0,
     ):
         super().__init__(
             max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose

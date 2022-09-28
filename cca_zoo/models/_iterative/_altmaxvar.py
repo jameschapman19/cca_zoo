@@ -11,7 +11,6 @@ from .._rcca import rCCA
 class AltMaxVar(_BaseIterative):
     r"""
 
-
     .. math::
 
         w_{opt}, t_{opt}=\underset{w,t}{\mathrm{argmax}}\{\sum_i \|X_iw_i-t\|^2 + c\|w_i\|^2_2 + \text{l1_ratio}\|w_i\|_1\}\\
@@ -20,40 +19,24 @@ class AltMaxVar(_BaseIterative):
 
         t^Tt=n
 
-    :Citation:
-
-        Fu, Xiao, et al. "Scalable and flexible multiview MAX-VAR canonical correlation analysis." IEEE Transactions on Signal Processing 65.16 (2017): 4150-4165.
-
-
-    :Example:
-
+    References
+    ----------
+    Fu, Xiao, et al. "Scalable and flexible multiview MAX-VAR canonical correlation analysis." IEEE Transactions on Signal Processing 65.16 (2017): 4150-4165.
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-9,
-        view_regs=None,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            view_regs=None,
+            verbose=0,
     ):
-        """
-        Constructor for ElasticCCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param random_state: Pass for reproducible output across multiple function calls
-        :param max_iter: the maximum number of iterations to perform in the inner optimization loop
-        :param initialization: either string from "pls", "cca", "random", "uniform" or callable to initialize the score variables for _iterative methods
-        :param tol: tolerance value used for early stopping
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -111,14 +94,14 @@ class AltMaxVar(_BaseIterative):
 
 class _AltMaxVarLoop(_BaseInnerLoop):
     def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        random_state=None,
-        view_regs=None,
-        alpha=1e-3,
-        verbose=0,
-        **kwargs,
+            self,
+            max_iter: int = 100,
+            tol=1e-9,
+            random_state=None,
+            view_regs=None,
+            alpha=1e-3,
+            verbose=0,
+            **kwargs,
     ):
         super().__init__(
             max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
@@ -140,10 +123,6 @@ class _AltMaxVarLoop(_BaseInnerLoop):
         self.G = U @ Vt
 
     def _update_view(self, views, view_index: int):
-        """
-        :param view_index: index of view being updated
-        :return: updated weights
-        """
         self.weights[view_index] = self.view_regs[view_index](
             views[view_index], self.G, self.weights[view_index]
         )
@@ -152,7 +131,7 @@ class _AltMaxVarLoop(_BaseInnerLoop):
         total_objective = 0
         for i, _ in enumerate(views):
             objective = np.linalg.norm(views[i] @ self.weights[i] - self.G) ** 2 / (
-                2 * self.n
+                    2 * self.n
             )
             total_objective += objective + self.view_regs[i].cost(
                 views[i], self.weights[i]

@@ -12,33 +12,34 @@ from cca_zoo.utils.check_values import _check_views
 
 
 class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
-    """
-    A class used as the base for methods in the package. Allows methods to inherit fit_transform, predict_corr,
-    and gridsearch_fit when only fit (and transform where it is different to the default) is provided.
+    """Base class for CCA methods.
 
-    :var weights : list of weights for each view
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to fit. Default is 1.
+    scale : bool, optional
+        Whether to scale the data to unit variance. Default is True.
+    centre : bool, optional
+        Whether to centre the data. Default is True.
+    copy_data : bool, optional
+        Whether to copy the data. Default is True.
+    accept_sparse : bool, optional
+        Whether to accept sparse data. Default is False.
+    random_state : int, RandomState instance or None, optional (default=None)
+        Pass an int for reproducible output across multiple function calls.
 
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale=True,
-        centre=True,
-        copy_data=True,
-        accept_sparse=False,
-        random_state: Union[int, np.random.RandomState] = None,
+            self,
+            latent_dims: int = 1,
+            scale=True,
+            centre=True,
+            copy_data=True,
+            accept_sparse=False,
+            random_state: Union[int, np.random.RandomState] = None,
     ):
-        """
-        Constructor for _BaseCCA
-
-        :param latent_dims: number of latent dimensions to fit
-        :param scale: normalize variance in each column before fitting
-        :param centre: demean data by column before fitting (and before transforming out of sample
-        :param copy_data: If True, views will be copied; else, it may be overwritten
-        :param accept_sparse: Whether model can take sparse data as input
-        :param random_state: Pass for reproducible output across multiple function calls
-        """
         self.latent_dims = latent_dims
         self.scale = scale
         self.centre = centre
@@ -50,19 +51,32 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
     @abstractmethod
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
-        Fits a given model
+        Fits the model to the given data
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        y : None
+        kwargs: any additional keyword arguments required by the given model
 
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        :param y: unused but needed to integrate with scikit-learn
+        Returns
+        -------
+        self : object
+
         """
         raise NotImplementedError
 
     def transform(self, views: Iterable[np.ndarray], **kwargs):
         """
-        Transforms data given a fit model
 
-        :param views: numpy arrays with the same number of rows (samples) separated by commas
-        :param kwargs: any additional keyword arguments required by the given model
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        kwargs : any additional keyword arguments required by the given model
+
+        Returns
+        -------
+        transformed_views : list of numpy arrays
+
         """
         check_is_fitted(self, attributes=["weights"])
         views = _check_views(
@@ -77,26 +91,39 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     def fit_transform(self, views: Iterable[np.ndarray], **kwargs):
         """
-        Fits and then transforms the training data
+        Fits the model to the given data and returns the transformed views
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        kwargs : any additional keyword arguments required by the given model
 
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        :param kwargs: any additional keyword arguments required by the given model
+        Returns
+        -------
+        transformed_views : list of numpy arrays
+
         """
         return self.fit(views, **kwargs).transform(views, **kwargs)
 
-    def get_loadings(self, views: Iterable[np.ndarray], normalize=True, **kwargs):
+    def get_factor_loadings(self, views: Iterable[np.ndarray], normalize=True, **kwargs):
         """
-        Returns the model loadings for each view for the given data
+        Returns the factor loadings for each view
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        normalize : bool, optional
+            Whether to normalize the factor loadings. Default is True.
+        kwargs : any additional keyword arguments required by the given model
 
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        :param kwargs: any additional keyword arguments required by the given model
-        :param normalize: scales loadings to ensure that they represent correlations between features and scores
+        Returns
+        -------
+        factor_loadings : list of numpy arrays
+
         """
         transformed_views = self.transform(views, **kwargs)
         if normalize:
             loadings = [
                 np.corrcoef(view, transformed_view, rowvar=False)[
-                    : view.shape[1], view.shape[1] :
+                : view.shape[1], view.shape[1]:
                 ]
                 for view, transformed_view in zip(views, transformed_views)
             ]
@@ -109,17 +136,22 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     def pairwise_correlations(self, views: Iterable[np.ndarray], **kwargs):
         """
-        Predicts the correlations between each view for each dimension for the given data using the fit model
+        Returns the pairwise correlations between the views in each dimension
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        kwargs : any additional keyword arguments required by the given model
 
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        :param kwargs: any additional keyword arguments required by the given model
-        :return: all_corrs: an array of the pairwise correlations (k,k,self.latent_dims) where k is the number of views
+        Returns
+        -------
+        pairwise_correlations : numpy array of shape (n_views, n_views, latent_dims)
+
         """
         transformed_views = self.transform(views, **kwargs)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(
-                np.diag(np.corrcoef(x.T, y.T)[: self.latent_dims, self.latent_dims :])
+                np.diag(np.corrcoef(x.T, y.T)[: self.latent_dims, self.latent_dims:])
             )
         all_corrs = np.array(all_corrs).reshape(
             (len(transformed_views), len(transformed_views), self.latent_dims)
@@ -128,10 +160,18 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     def score(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
-        Returns average correlation in each dimension (averages over all pairs for multiview)
+        Returns the average pairwise correlation between the views
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        y : None
+        kwargs : any additional keyword arguments required by the given model
 
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        :param y: unused but needed to integrate with scikit-learn
+        Returns
+        -------
+        score : float
+
+
         """
         # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
         pair_corrs = self.pairwise_correlations(views, **kwargs)
@@ -139,18 +179,23 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
         n_views = pair_corrs.shape[0]
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
         dim_corrs = (
-            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
-        ) / (n_views ** 2 - n_views)
+                            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - n_views
+                    ) / (n_views ** 2 - n_views)
         return dim_corrs
 
     def _centre_scale(self, views: Iterable[np.ndarray]):
         """
-        Removes the mean of the training data and standardizes for each view and stores mean and standard deviation during training
+        Centers and scales the data
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
 
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        :return: train_views: the demeaned numpy arrays to be used to fit the model
+        Returns
+        -------
+        views : list of numpy arrays
+
+
         """
-
         self.view_means = []
         self.view_stds = []
         transformed_views = []
@@ -176,9 +221,15 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     def _centre_scale_transform(self, views: Iterable[np.ndarray]):
         """
-        Removes the mean and standardizes each view based on the mean and standard deviation of the training data
+        Centers and scales the data
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
 
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        Returns
+        -------
+        views : list of numpy arrays
+
         """
         if self.centre:
             views = [view - mean for view, mean in zip(views, self.view_means)]
@@ -190,6 +241,17 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
         pass
 
     def _validate_inputs(self, views):
+        """
+        Checks that the input data is valid
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+
+        Returns
+        -------
+        views : list of numpy arrays
+
+        """
         views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )

@@ -1,6 +1,6 @@
 import torch
 
-from cca_zoo.deepmodels.objectives import _mat_pow
+from cca_zoo.deepmodels._utils.objectives import _mat_pow
 from ._dcca import DCCA
 
 
@@ -9,34 +9,23 @@ class DCCA_NOI(DCCA):
     A class used to fit a DCCA model by non-linear orthogonal iterations
 
 
-    :Citation:
-
+    References
+    ----------
     Wang, Weiran, et al. "Stochastic optimization for deep CCA via nonlinear orthogonal iterations." 2015 53rd Annual Allerton Conference on Communication, Control, and Computing (Allerton). IEEE, 2015.
 
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        N: int,
-        encoders=None,
-        r: float = 0,
-        rho: float = 0.2,
-        eps: float = 1e-9,
-        shared_target: bool = False,
-        **kwargs,
+            self,
+            latent_dims: int,
+            N: int,
+            encoders=None,
+            r: float = 0,
+            rho: float = 0.2,
+            eps: float = 1e-9,
+            shared_target: bool = False,
+            **kwargs,
     ):
-        """
-        Constructor class for DCCA_NOI
-
-        :param latent_dims: # latent dimensions
-        :param N: # samples used to estimate covariance
-        :param encoders: list of encoder networks
-        :param r: regularisation parameter of tracenorm CCA like ridge CCA
-        :param rho: covariance memory like DCCA non-linear orthogonal iterations paper
-        :param eps: epsilon used throughout
-        :param shared_target: not used
-        """
         super().__init__(
             latent_dims=latent_dims, encoders=encoders, r=r, eps=eps, **kwargs
         )

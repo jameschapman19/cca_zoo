@@ -16,7 +16,7 @@ from cca_zoo.deepmodels import (
     BarlowTwins,
     DCCA_SDL,
 )
-from cca_zoo.deepmodels import objectives, architectures
+from cca_zoo.deepmodels._utils import objectives, architectures
 from cca_zoo.models import CCA
 
 manual_seed(0)
@@ -53,10 +53,10 @@ def test_DCCA_methods():
     )
     trainer.fit(dcca, train_loader, val_dataloaders=val_loader)
     assert (
-        np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dcca.score(train_loader).sum()
-        )
-        is None
+            np.testing.assert_array_less(
+                cca.score((X, Y)).sum(), dcca.score(train_loader).sum()
+            )
+            is None
     )
     # DCCA_NOI
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -67,10 +67,10 @@ def test_DCCA_methods():
     )
     trainer.fit(dcca_noi, train_loader)
     assert (
-        np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dcca_noi.score(train_loader).sum()
-        )
-        is None
+            np.testing.assert_array_less(
+                cca.score((X, Y)).sum(), dcca_noi.score(train_loader).sum()
+            )
+            is None
     )
     # Soft Decorrelation (_stochastic Decorrelation Loss)
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -79,10 +79,10 @@ def test_DCCA_methods():
     trainer = pl.Trainer(max_epochs=epochs, log_every_n_steps=1)
     trainer.fit(sdl, train_loader)
     assert (
-        np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), sdl.score(train_loader).sum()
-        )
-        is None
+            np.testing.assert_array_less(
+                cca.score((X, Y)).sum(), sdl.score(train_loader).sum()
+            )
+            is None
     )
     # Barlow Twins
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -96,10 +96,10 @@ def test_DCCA_methods():
     )
     trainer.fit(barlowtwins, train_loader)
     assert (
-        np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), barlowtwins.score(train_loader).sum()
-        )
-        is None
+            np.testing.assert_array_less(
+                cca.score((X, Y)).sum(), barlowtwins.score(train_loader).sum()
+            )
+            is None
     )
     # DGCCA
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -114,10 +114,10 @@ def test_DCCA_methods():
     )
     trainer.fit(dgcca, train_loader)
     assert (
-        np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dgcca.score(train_loader).sum()
-        )
-        is None
+            np.testing.assert_array_less(
+                cca.score((X, Y)).sum(), dgcca.score(train_loader).sum()
+            )
+            is None
     )
     # DMCCA
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -132,10 +132,10 @@ def test_DCCA_methods():
     )
     trainer.fit(dmcca, train_loader)
     assert (
-        np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dmcca.score(train_loader).sum()
-        )
-        is None
+            np.testing.assert_array_less(
+                cca.score((X, Y)).sum(), dmcca.score(train_loader).sum()
+            )
+            is None
     )
 
 
@@ -151,13 +151,13 @@ def test_DTCCA_methods():
     trainer.fit(dtcca, train_loader)
     z = dtcca.transform(train_loader)
     assert (
-        np.testing.assert_array_almost_equal(
-            cca.fit((X[train_ids], Y[train_ids])).score((X[train_ids], Y[train_ids]))
-            .sum(),
-            cca.fit((z)).score((z)).sum(),
-            decimal=1,
-        )
-        is None
+            np.testing.assert_array_almost_equal(
+                cca.fit((X[train_ids], Y[train_ids])).score((X[train_ids], Y[train_ids]))
+                .sum(),
+                cca.fit((z)).score((z)).sum(),
+                decimal=1,
+            )
+            is None
     )
 
 
@@ -239,8 +239,8 @@ def test_linear():
     cca = CCA().fit((X, Y))
     # check linear encoder with SGD matches vanilla linear CCA
     assert (
-        np.testing.assert_array_almost_equal(
-            cca.score((X, Y)), dcca.score(loader), decimal=2
-        )
-        is None
+            np.testing.assert_array_almost_equal(
+                cca.score((X, Y)), dcca.score(loader), decimal=2
+            )
+            is None
     )

@@ -3,27 +3,27 @@ from typing import Iterable
 import numpy as np
 from scipy.linalg import block_diag
 
-from ._mcca import MCCA
+from cca_zoo.models._multiview._mcca import MCCA
 from ._rcca import _pca_data
 from ..utils import _process_parameter
 
 
 class PRCCA(MCCA):
     """
-    :Citation:
-
+    References
+    ----------
     Tuzhilina, Elena, Leonardo Tozzi, and Trevor Hastie. "Canonical correlation analysis in high dimensions with structured regularization." Statistical Modelling (2021): 1471082X211041033.
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        eps=1e-3,
-        c=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            eps=1e-3,
+            c=0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -47,11 +47,11 @@ class PRCCA(MCCA):
     def preprocess(self, views, idxs):
         Us, Ss, self.Vts = _pca_data(*[view[:, :idx] for view, idx in zip(views, idxs)])
         self.betas = [
-            np.linalg.pinv(view[:, idxs[i] :]) @ U @ np.diag(S)
+            np.linalg.pinv(view[:, idxs[i]:]) @ U @ np.diag(S)
             for i, (view, U, S) in enumerate(zip(views, Us, Ss))
         ]
         partials = [
-            U @ np.diag(S) - view[:, idxs[i] :] @ beta
+            U @ np.diag(S) - view[:, idxs[i]:] @ beta
             for i, (view, U, S, beta) in enumerate(zip(views, Us, Ss, self.betas))
         ]
         views = [
@@ -63,11 +63,11 @@ class PRCCA(MCCA):
     def transform_weights(self, views, idxs):
         for i, view in enumerate(views):
             self.weights[i][: idxs[i], :] = (
-                self.Vts[i].T @ self.weights[i][: idxs[i], :]
+                    self.Vts[i].T @ self.weights[i][: idxs[i], :]
             )
-            self.weights[i][idxs[i] :, :] = (
-                -self.betas[i] @ self.weights[i][: idxs[i], :]
-                + self.weights[i][idxs[i] :]
+            self.weights[i][idxs[i]:, :] = (
+                    -self.betas[i] @ self.weights[i][: idxs[i], :]
+                    + self.weights[i][idxs[i]:]
             )
 
     def _setup_evp(self, views: Iterable[np.ndarray], idxs, **kwargs):
@@ -98,16 +98,17 @@ class GRCCA(PRCCA):
 
     Tuzhilina, Elena, Leonardo Tozzi, and Trevor Hastie. "Canonical correlation analysis in high dimensions with structured regularization." Statistical Modelling (2021): 1471082X211041033.
     """
+
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        eps=1e-3,
-        c: float = 0,
-        mu: float = 0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            eps=1e-3,
+            c: float = 0,
+            mu: float = 0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -166,7 +167,7 @@ class GRCCA(PRCCA):
         for i, (view, group) in enumerate(zip(views, groups)):
             if self.c[i] > 0:
                 weights_1 = self.weights[i][: len(group)]
-                weights_2 = self.weights[i][len(group) :]
+                weights_2 = self.weights[i][len(group):]
                 ids, unique_inverse, unique_counts, group_means = _group_mean(
                     weights_1.T, group
                 )
