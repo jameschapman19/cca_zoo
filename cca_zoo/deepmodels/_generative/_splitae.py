@@ -2,8 +2,8 @@ import torch
 
 from cca_zoo.deepmodels._base import _BaseDeep
 from cca_zoo.deepmodels._generative._base import _GenerativeMixin
-from cca_zoo.deepmodels._utils._callbacks import GenerativeCallback
-from cca_zoo.deepmodels._utils.architectures import _BaseEncoder, Encoder
+from cca_zoo.deepmodels.utils.callbacks import GenerativeCallback
+from cca_zoo.deepmodels.utils.architectures import _BaseEncoder, Encoder
 
 
 class SplitAE(_BaseDeep, _GenerativeMixin):

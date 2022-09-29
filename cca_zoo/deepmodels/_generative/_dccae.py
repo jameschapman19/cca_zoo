@@ -1,8 +1,8 @@
 import torch
 from cca_zoo.deepmodels._discriminative._dcca import DCCA
 from cca_zoo.deepmodels._generative._base import _GenerativeMixin
-from cca_zoo.deepmodels._utils import objectives
-from cca_zoo.deepmodels._utils._callbacks import CorrelationCallback, GenerativeCallback
+from cca_zoo.deepmodels.utils import objectives
+from cca_zoo.deepmodels.utils.callbacks import CorrelationCallback, GenerativeCallback
 
 
 class DCCAE(DCCA, _GenerativeMixin):

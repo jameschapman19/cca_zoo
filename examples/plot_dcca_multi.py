@@ -10,7 +10,7 @@ from cca_zoo.deepmodels import (
     DCCA,
     DTCCA,
 )
-from cca_zoo.deepmodels._utils import objectives, architectures
+from cca_zoo.deepmodels import objectives, architectures
 
 # %%
 # Data

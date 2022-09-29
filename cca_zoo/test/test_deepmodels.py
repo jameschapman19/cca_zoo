@@ -16,7 +16,7 @@ from cca_zoo.deepmodels import (
     BarlowTwins,
     DCCA_SDL,
 )
-from cca_zoo.deepmodels._utils import objectives, architectures
+from cca_zoo.deepmodels import objectives, architectures
 from cca_zoo.models import CCA
 
 manual_seed(0)
