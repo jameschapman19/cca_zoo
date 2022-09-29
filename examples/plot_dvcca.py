@@ -13,7 +13,7 @@ from cca_zoo.plotting import tsne_label
 from examples import example_mnist_data
 
 
-def plot_reconstruction(model, loader, uncertainty=False):
+def plot_reconstruction(model, loader):
     recons = model.recon(loader, mle=True)
     originals = loader.dataset.dataset[0]["views"]
     n_cols = 2
@@ -23,21 +23,13 @@ def plot_reconstruction(model, loader, uncertainty=False):
         ax[i, 1].set_title(f"Mean View {i}")
         ax[i, 0].imshow(original.reshape((28, 28)))
         ax[i, 1].imshow(recons[i][0].reshape((28, 28)))
-    if uncertainty:
-        uncertainty_recons = model.recon(loader, uncertainty=True)
-        uncertainty_recons = [
-            uncertainty_recon[0] for uncertainty_recon in uncertainty_recons
-        ]
-        for i, uncertainty_recon in enumerate(uncertainty_recons):
-            ax[i, 2].set_title(f"Variance View {i}")
-            ax[i, 2].imshow(uncertainty_recon.reshape((28, 28)))
 
 
 # %%
 # Data
 # -----
 LATENT_DIMS = 2
-EPOCHS = 3
+EPOCHS = 1
 N_TRAIN = 500
 N_VAL = 100
 lr = 0.0001
@@ -47,7 +39,6 @@ layer_sizes = (1024, 1024, 1024)
 train_loader, val_loader, train_labels = example_mnist_data(
     N_TRAIN, N_VAL, type="noisy"
 )
-
 
 # %%
 # Deep Variational CCA
@@ -75,11 +66,10 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
     log_every_n_steps=1,
-    flush_logs_every_n_steps=1,
 )
 trainer.fit(dvcca, train_loader, val_loader)
 tsne_label(dvcca.transform(train_loader)["shared"], train_labels)
-plot_reconstruction(dvcca, train_loader, uncertainty=True)
+plot_reconstruction(dvcca, train_loader)
 plt.suptitle("DVCCA")
 plt.show()
 
@@ -124,11 +114,10 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
     log_every_n_steps=1,
-    flush_logs_every_n_steps=1,
 )
 trainer.fit(dvccap, train_loader, val_loader)
 tsne_label(dvccap.transform(train_loader)["shared"], train_labels)
-plot_reconstruction(dvccap, train_loader, uncertainty=True)
+plot_reconstruction(dvccap, train_loader)
 plt.suptitle("DVCCA Private")
 plt.show()
 
@@ -160,14 +149,12 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
     log_every_n_steps=1,
-    flush_logs_every_n_steps=1,
 )
 trainer.fit(dccae, train_loader, val_loader)
 tsne_label(dccae.transform(train_loader)[0], train_labels)
 plot_reconstruction(dccae, train_loader)
 plt.suptitle("DCCAE")
 plt.show()
-
 
 # %%
 # Split Autoencoders
@@ -192,10 +179,9 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
     log_every_n_steps=1,
-    flush_logs_every_n_steps=1,
 )
 trainer.fit(splitae, train_loader, val_loader)
-tsne_label(splitae.transform(train_loader), train_labels)
+tsne_label(splitae.transform(train_loader)[0], train_labels)
 plot_reconstruction(splitae, train_loader)
 plt.suptitle("SplitAE")
 plt.show()
