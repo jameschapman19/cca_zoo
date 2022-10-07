@@ -44,22 +44,22 @@ class PRCCA(MCCA):
         ----------
         views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
         y : None
-        feature_groups : list/tuple of integer numpy arrays or array likes with dimensions (samples,)
+        idxs : list/tuple of integers indicating which features from each view are the partially regularised features
         kwargs: any additional keyword arguments required by the given model
 
         """
         if idxs is None:
-            warnings.warn(f"")
+            warnings.warn(f"No idxs provided, using all features")
             idxs = [np.ones(views[0].shape[1])] * len(views)
         views = self._validate_inputs(views)
         self._check_params()
-        views = self.preprocess(views, idxs)
+        views = self._preprocess(views, idxs)
         views, C, D = self._setup_evp(views, idxs, **kwargs)
         self._solve_evp(views, C, D, **kwargs)
-        self.transform_weights(views, idxs)
+        self._transform_weights(views, idxs)
         return self
 
-    def preprocess(self, views, idxs):
+    def _preprocess(self, views, idxs):
         Us, Ss, self.Vts = _pca_data(*[view[:, :idx] for view, idx in zip(views, idxs)])
         self.betas = [
             np.linalg.pinv(view[:, idxs[i]:]) @ U @ np.diag(S)
@@ -75,7 +75,7 @@ class PRCCA(MCCA):
         ]
         return views
 
-    def transform_weights(self, views, idxs):
+    def _transform_weights(self, views, idxs):
         for i, view in enumerate(views):
             self.weights[i][: idxs[i], :] = (
                     self.Vts[i].T @ self.weights[i][: idxs[i], :]
@@ -142,36 +142,36 @@ class GRCCA(PRCCA):
         self.mu = _process_parameter("mu", self.mu, 0, self.n_views)
         self.c = _process_parameter("c", self.c, 0, self.n_views)
 
-    def fit(self, views: Iterable[np.ndarray], y=None, feature_groups=None, **kwargs):
+    def fit(self, views: Iterable[np.ndarray], y=None, subject_groups=None, **kwargs):
         """
         Parameters
         ----------
         views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
         y : None
-        feature_groups : list/tuple of integer numpy arrays or array likes with dimensions (samples,)
+        subject_groups : list/tuple of integer numpy arrays or array likes with dimensions (samples,)
         kwargs: any additional keyword arguments required by the given model
 
         """
-        if feature_groups is None:
-            warnings.warn(f"")
-            feature_groups = [np.ones(views[0].shape[0])] * len(views)
+        if subject_groups is None:
+            warnings.warn(f"No feature groups provided, using all features")
+            subject_groups = [np.ones(views[0].shape[0])] * len(views)
         views = self._validate_inputs(views)
         self._check_params()
-        views, idxs = self.preprocess(views, feature_groups)
+        views, idxs = self._preprocess(views, subject_groups)
         self.weights = (
             PRCCA(latent_dims=self.latent_dims, scale=False, centre=False, c=1)
             .fit(views, idxs=idxs, **kwargs)
             .weights
         )
-        self.transform_weights(views, feature_groups)
+        self._transform_weights(views, subject_groups)
         return self
 
-    def preprocess(self, views, feature_groups):
+    def _preprocess(self, views, subject_groups):
         views, idxs = list(
             zip(
                 *[
                     self._process_view(view, group, mu, c)
-                    for view, group, mu, c in zip(views, feature_groups, self.mu, self.c)
+                    for view, group, mu, c in zip(views, subject_groups, self.mu, self.c)
                 ]
             )
         )
@@ -192,7 +192,7 @@ class GRCCA(PRCCA):
         else:
             return view, view.shape[1] - 1
 
-    def transform_weights(self, views, groups):
+    def _transform_weights(self, views, groups):
         for i, (view, group) in enumerate(zip(views, groups)):
             if self.c[i] > 0:
                 weights_1 = self.weights[i][: len(group)]
