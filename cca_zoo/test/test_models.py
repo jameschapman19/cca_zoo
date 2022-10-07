@@ -258,6 +258,7 @@ def test_PRCCA():
     prcca = PRCCA(latent_dims=1).fit((X, Y))
     prcca.score((X, Y))
     prcca.transform((X, Y))
+    print()
 
 def test_GRCCA():
     # Test that GRCCA works

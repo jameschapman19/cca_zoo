@@ -50,7 +50,9 @@ class PRCCA(MCCA):
         """
         if idxs is None:
             warnings.warn(f"No idxs provided, using all features")
-            idxs = [np.ones(views[0].shape[1])] * len(views)
+            idxs = [np.arange(views[0].shape[1], dtype=int)] * len(views)
+        for idx in idxs:
+            assert idx.dtype == int, "subject_groups must be integers"
         views = self._validate_inputs(views)
         self._check_params()
         views = self._preprocess(views, idxs)
@@ -60,19 +62,14 @@ class PRCCA(MCCA):
         return self
 
     def _preprocess(self, views, idxs):
-        Us, Ss, self.Vts = _pca_data(*[view[:, :idx] for view, idx in zip(views, idxs)])
-        self.betas = [
-            np.linalg.pinv(view[:, idxs[i]:]) @ U @ np.diag(S)
-            for i, (view, U, S) in enumerate(zip(views, Us, Ss))
-        ]
-        partials = [
-            U @ np.diag(S) - view[:, idxs[i]:] @ beta
-            for i, (view, U, S, beta) in enumerate(zip(views, Us, Ss, self.betas))
-        ]
+        X_1 = [view[:, idx] for view, idx in zip(views, idxs)]
+        X_2 = [np.delete(view, idx, axis=1) for view, idx in zip(views, idxs)]
+        X_1 = [
+            X_1-X_2@np.linalg.pinv(X_2)@X_1
+            for X_1,X_2 in zip(X_1,X_2)]
         views = [
-            np.hstack((partial, view[:, idx:]))
-            for partial, view, idx in zip(partials, views, idxs)
-        ]
+            np.hstack((X_1,X_2))
+            for X_1,X_2 in zip(X_1,X_2)]
         return views
 
     def _transform_weights(self, views, idxs):
@@ -154,7 +151,9 @@ class GRCCA(PRCCA):
         """
         if subject_groups is None:
             warnings.warn(f"No feature groups provided, using all features")
-            subject_groups = [np.ones(views[0].shape[0])] * len(views)
+            subject_groups = [np.ones(views[0].shape[0], dtype=int)] * len(views)
+        for subject_group in subject_groups:
+            assert subject_group.dtype == int, "subject_groups must be integers"
         views = self._validate_inputs(views)
         self._check_params()
         views, idxs = self._preprocess(views, subject_groups)
