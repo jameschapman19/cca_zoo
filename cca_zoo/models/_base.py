@@ -52,6 +52,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Fits the model to the given data
+
         Parameters
         ----------
         views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
@@ -92,6 +93,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
     def fit_transform(self, views: Iterable[np.ndarray], **kwargs):
         """
         Fits the model to the given data and returns the transformed views
+
         Parameters
         ----------
         views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
@@ -107,6 +109,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
     def get_factor_loadings(self, views: Iterable[np.ndarray], normalize=True, **kwargs):
         """
         Returns the factor loadings for each view
+
         Parameters
         ----------
         views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
@@ -137,6 +140,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
     def pairwise_correlations(self, views: Iterable[np.ndarray], **kwargs):
         """
         Returns the pairwise correlations between the views in each dimension
+
         Parameters
         ----------
         views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
@@ -161,6 +165,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
     def score(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Returns the average pairwise correlation between the views
+
         Parameters
         ----------
         views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
@@ -186,6 +191,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
     def _centre_scale(self, views: Iterable[np.ndarray]):
         """
         Centers and scales the data
+
         Parameters
         ----------
         views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
@@ -222,6 +228,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
     def _centre_scale_transform(self, views: Iterable[np.ndarray]):
         """
         Centers and scales the data
+
         Parameters
         ----------
         views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
@@ -243,6 +250,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
     def _validate_inputs(self, views):
         """
         Checks that the input data is valid
+
         Parameters
         ----------
         views : list/tuple of numpy arrays or array likes with the same number of rows (samples)

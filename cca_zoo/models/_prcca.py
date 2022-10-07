@@ -1,3 +1,4 @@
+import warnings
 from typing import Iterable
 
 import numpy as np
@@ -10,6 +11,8 @@ from ..utils import _process_parameter
 
 class PRCCA(MCCA):
     """
+    Partially Regularized Canonical Correlation Analysis
+
     References
     ----------
     Tuzhilina, Elena, Leonardo Tozzi, and Trevor Hastie. "Canonical correlation analysis in high dimensions with structured regularization." Statistical Modelling (2021): 1471082X211041033.
@@ -36,6 +39,18 @@ class PRCCA(MCCA):
         )
 
     def fit(self, views: Iterable[np.ndarray], y=None, idxs=None, **kwargs):
+        """
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        y : None
+        feature_groups : list/tuple of integer numpy arrays or array likes with dimensions (samples,)
+        kwargs: any additional keyword arguments required by the given model
+
+        """
+        if idxs is None:
+            warnings.warn(f"")
+            idxs = [np.ones(views[0].shape[1])] * len(views)
         views = self._validate_inputs(views)
         self._check_params()
         views = self.preprocess(views, idxs)
@@ -94,8 +109,10 @@ class PRCCA(MCCA):
 
 class GRCCA(PRCCA):
     """
-    :Citation:
+    Grouped Regularized Canonical Correlation Analysis
 
+    References
+    ----------
     Tuzhilina, Elena, Leonardo Tozzi, and Trevor Hastie. "Canonical correlation analysis in high dimensions with structured regularization." Statistical Modelling (2021): 1471082X211041033.
     """
 
@@ -125,24 +142,36 @@ class GRCCA(PRCCA):
         self.mu = _process_parameter("mu", self.mu, 0, self.n_views)
         self.c = _process_parameter("c", self.c, 0, self.n_views)
 
-    def fit(self, views: Iterable[np.ndarray], y=None, groups=None, **kwargs):
+    def fit(self, views: Iterable[np.ndarray], y=None, feature_groups=None, **kwargs):
+        """
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        y : None
+        feature_groups : list/tuple of integer numpy arrays or array likes with dimensions (samples,)
+        kwargs: any additional keyword arguments required by the given model
+
+        """
+        if feature_groups is None:
+            warnings.warn(f"")
+            feature_groups = [np.ones(views[0].shape[0])] * len(views)
         views = self._validate_inputs(views)
         self._check_params()
-        views, idxs = self.preprocess(views, groups)
+        views, idxs = self.preprocess(views, feature_groups)
         self.weights = (
             PRCCA(latent_dims=self.latent_dims, scale=False, centre=False, c=1)
             .fit(views, idxs=idxs, **kwargs)
             .weights
         )
-        self.transform_weights(views, groups)
+        self.transform_weights(views, feature_groups)
         return self
 
-    def preprocess(self, views, groups):
+    def preprocess(self, views, feature_groups):
         views, idxs = list(
             zip(
                 *[
                     self._process_view(view, group, mu, c)
-                    for view, group, mu, c in zip(views, groups, self.mu, self.c)
+                    for view, group, mu, c in zip(views, feature_groups, self.mu, self.c)
                 ]
             )
         )

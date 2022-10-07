@@ -4,7 +4,7 @@ import scipy.sparse as sp
 from sklearn.utils.fixes import loguniform
 from sklearn.utils.validation import check_random_state
 
-from cca_zoo import cross_validate, permutation_test_score, learning_curve
+from cca_zoo import cross_validate, permutation_test_score, learning_curve, PRCCA, GRCCA
 from cca_zoo.data import linear_simulated_data
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.models import (
@@ -27,8 +27,6 @@ from cca_zoo.models import (
     PLS_ALS,
     SCCA_ADMM,
     SCCA_Parkhomenko,
-    StochasticPowerPLS,
-    IncrementalPLS,
 )
 from cca_zoo.plotting import pairplot_train_test
 
@@ -221,6 +219,8 @@ def test_partialcca():
 
 
 def test_stochastic():
+    torch = pytest.importorskip("torch")
+    from cca_zoo.models import StochasticPowerPLS, IncrementalPLS
     pls = PLS(latent_dims=1).fit((X, Y))
     ipls = IncrementalPLS(latent_dims=1, epochs=10, simple=False, batch_size=1).fit(
         (X, Y)
@@ -253,6 +253,17 @@ def test_plotting():
     Y_te = np.random.rand(*Y.shape)
     pairplot_train_test(pls.transform((X, Y)), pls.transform((X_te, Y_te)))
 
+def test_PRCCA():
+    # Test that PRCCA works
+    prcca = PRCCA(latent_dims=1).fit((X, Y))
+    prcca.score((X, Y))
+    prcca.transform((X, Y))
+
+def test_GRCCA():
+    # Test that GRCCA works
+    grcca = GRCCA(latent_dims=1).fit((X, Y))
+    grcca.score((X, Y))
+    grcca.transform((X, Y))
 
 def test_PCCA():
     # some might not have access to jax/numpyro so leave this as an optional test locally.
