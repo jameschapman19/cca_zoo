@@ -2,7 +2,7 @@ from typing import Iterable, Union
 
 import numpy as np
 from scipy.linalg import block_diag, eigh
-
+from sklearn.decomposition import PCA
 from cca_zoo.utils.check_values import _process_parameter
 from ._base import _BaseCCA
 
@@ -86,76 +86,67 @@ class rCCA(_BaseCCA):
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_inputs(views)
         self._check_params()
-        views, C, D = self._setup_evp(views, **kwargs)
-        self._solve_evp(views, C, D, **kwargs)
+        C, D = self._setup_evp(views, **kwargs)
+        eigvals, eigvecs = self._solve_evp(C, D, **kwargs)
+        self._get_weights(eigvals, eigvecs, views)
         return self
 
-    def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
-        n = views[0].shape[0]
-        Us, Ss, Vts = _pca_data(*views)
-        self.Bs = [(1 - self.c[i]) * S * S / n + self.c[i] for i, S in enumerate(Ss)]
-        if self.n_views == 2:
-            self._two_view = True
-            C, D = self._two_view_evp(Us, Ss)
-        else:
-            self._two_view = False
-            C, D = self._multi_view_evp(Us, Ss)
-        return Vts, C, D
-
-    def _solve_evp(self, views: Iterable[np.ndarray], C, D=None, **kwargs):
-        p = C.shape[0]
+    def _get_weights(self, eigvals, eigvecs, views):
         if self._two_view:
-            [eigvals, eigvecs] = eigh(C, subset_by_index=[p - self.latent_dims, p - 1])
-            eigvecs = eigvecs
-            idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dims]
-            eigvecs = eigvecs[:, idx].real
-            w_y = views[1].T @ np.diag(1 / np.sqrt(self.Bs[1])) @ eigvecs
+            w_y = self.principal_components[1].components_.T @ np.diag(1 / np.sqrt(self.B[1])) @ eigvecs
             w_x = (
-                    views[0].T
-                    @ np.diag(1 / self.Bs[0])
-                    @ self.R_12
-                    @ np.diag(1 / np.sqrt(self.Bs[1]))
+                    self.principal_components[0].components_.T
+                    @ np.diag(1 / self.B[0])
+                    @ self.principal_components[0].transform(views[0]).T @ self.principal_components[1].transform(
+                views[1])
                     @ eigvecs
-                    / np.sqrt(eigvals[idx])
+                    / np.sqrt(eigvals)
             )
             self.weights = [w_x, w_y]
         else:
-            [eigvals, eigvecs] = eigh(
-                C, D, subset_by_index=[p - self.latent_dims, p - 1]
-            )
-            idx = np.argsort(eigvals, axis=0)[::-1]
-            eigvecs = eigvecs[:, idx].real
             self.weights = [
-                Vt.T
+                self.principal_components[i].components_.T
                 @ np.diag(1 / np.sqrt(B))
                 @ eigvecs[split: self.splits[i + 1], : self.latent_dims]
-                for i, (split, Vt, B) in enumerate(
-                    zip(self.splits[:-1], views, self.Bs)
+                for i, (split, B) in enumerate(
+                    zip(self.splits[:-1], self.B)
                 )
             ]
 
-    def _two_view_evp(self, Us, Ss):
-        Rs = [U @ np.diag(S) for U, S in zip(Us, Ss)]
-        self.R_12 = Rs[0].T @ Rs[1]
-        M = (
-                np.diag(1 / np.sqrt(self.Bs[1]))
-                @ self.R_12.T
-                @ np.diag(1 / self.Bs[0])
-                @ self.R_12
-                @ np.diag(1 / np.sqrt(self.Bs[1]))
-        )
-        return M, None
+    def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
+        self.principal_components = _pca_data(views)
+        S = [pc.singular_values_ for pc in self.principal_components]
+        self.B = [(1 - self.c[i]) * S ** 2 / (views[0].shape[0] - 1) + self.c[i] for i, S in enumerate(S)]
+        if self.n_views == 2:
+            self._two_view = True
+            C, D = self._two_view_evp(views)
+        else:
+            self._two_view = False
+            C, D = self._multi_view_evp(views)
+        return C, D
 
-    def _multi_view_evp(self, Us, Ss):
+    def _solve_evp(self, C, D=None):
+        p = C.shape[0]
+        [eigvals, eigvecs] = eigh(C, D, subset_by_index=[p - self.latent_dims, p - 1])
+        idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dims]
+        eigvecs = eigvecs[:, idx].real
+        return eigvals, eigvecs
+
+    def _two_view_evp(self, views):
+        R = [pca.transform(view) for pca, view in zip(self.principal_components, views)]
+        C = R[1].T @ R[0] @ R[0].T @ R[1]
+        return C, None
+
+    def _multi_view_evp(self, views):
+        R = [pca.transform(view) for pca, view in zip(self.principal_components, views)]
         D = block_diag(
-            *[np.diag((1 - self.c[i]) * S * S + self.c[i]) for i, S in enumerate(Ss)]
+            *[np.diag(B) for B in self.B]
         )
-        C = np.concatenate([U @ np.diag(S) for U, S in zip(Us, Ss)], axis=1)
-        C = C.T @ C
-        C -= block_diag(*[np.diag(S ** 2) for U, S in zip(Us, Ss)])
+        C = np.cov(np.hstack(R),rowvar=False)
+        C -= block_diag(*[np.cov(R_,rowvar=False) for R_ in R])
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
-        self.splits = np.cumsum([0] + [U.shape[1] for U in Us])
+        self.splits = np.cumsum([0] + [R_.shape[1] for R_ in R])
         return C, D
 
 
@@ -268,30 +259,14 @@ class PLS(rCCA):
         )
 
 
-def _pca_data(*views: np.ndarray):
+def _pca_data(views: Iterable[np.ndarray]):
     """
-    Performs PCA on the data and returns the scores and loadings
+    Performs PCA on the data
 
-    Parameters
-    ----------
-    views : np.ndarray
 
-    Returns
-    -------
-    Us : list of np.ndarray
-        The loadings for each view
-    Ss : list of np.ndarray
-        The scores for each view
-    Vs : list of np.ndarray
-        The eigenvectors for each view
 
     """
-    views_U = []
-    views_S = []
-    views_Vt = []
+    PC = []
     for i, view in enumerate(views):
-        U, S, Vt = np.linalg.svd(view, full_matrices=False)
-        views_U.append(U)
-        views_S.append(S)
-        views_Vt.append(Vt)
-    return views_U, views_S, views_Vt
+        PC.append(PCA(whiten=True).fit(view))
+    return PC

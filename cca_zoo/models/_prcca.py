@@ -5,7 +5,6 @@ import numpy as np
 from scipy.linalg import block_diag
 
 from cca_zoo.models._multiview._mcca import MCCA
-from ._rcca import _pca_data
 from ..utils import _process_parameter
 
 
@@ -55,47 +54,31 @@ class PRCCA(MCCA):
             assert idx.dtype == int, "subject_groups must be integers"
         views = self._validate_inputs(views)
         self._check_params()
-        views = self._preprocess(views, idxs)
+        views = self._pretransform(views, idxs)
         views, C, D = self._setup_evp(views, idxs, **kwargs)
         self._solve_evp(views, C, D, **kwargs)
-        self._transform_weights(views, idxs)
         return self
 
-    def _preprocess(self, views, idxs):
+    def _pretransform(self, views, idxs):
         X_1 = [view[:, idx] for view, idx in zip(views, idxs)]
         X_2 = [np.delete(view, idx, axis=1) for view, idx in zip(views, idxs)]
+        B = [np.linalg.pinv(X_2) @ X_1 for X_1, X_2 in zip(X_1, X_2)]
         X_1 = [
-            X_1-X_2@np.linalg.pinv(X_2)@X_1
-            for X_1,X_2 in zip(X_1,X_2)]
+            X_1 - X_2 @ B
+            for X_1, X_2, B in zip(X_1, X_2, B)]
         views = [
-            np.hstack((X_1,X_2))
-            for X_1,X_2 in zip(X_1,X_2)]
+            np.hstack((X_1, X_2))
+            for X_1, X_2 in zip(X_1, X_2)]
         return views
 
-    def _transform_weights(self, views, idxs):
-        for i, view in enumerate(views):
-            self.weights[i][: idxs[i], :] = (
-                    self.Vts[i].T @ self.weights[i][: idxs[i], :]
-            )
-            self.weights[i][idxs[i]:, :] = (
-                    -self.betas[i] @ self.weights[i][: idxs[i], :]
-                    + self.weights[i][idxs[i]:]
-            )
-
     def _setup_evp(self, views: Iterable[np.ndarray], idxs, **kwargs):
-        n = views[0].shape[0]
         all_views = np.concatenate(views, axis=1)
         C = all_views.T @ all_views / self.n
-        # Can regularise by adding to diagonal
-        self.c_ = [
-            np.append(
-                self.c[i] * np.ones(idxs[i] + 1),
-                np.zeros(views[i].shape[1] - 1 - idxs[i]),
-            )
-            for i, view in enumerate(views)
-        ]
+        penalties=[np.zeros((view.shape[1])) for view in views]
+        for i, idx in enumerate(idxs):
+            penalties[i][idx] = self.c[i]
         D = block_diag(
-            *[(m.T @ m) / self.n + np.diag(self.c_[i]) for i, m in enumerate(views)]
+            *[(1 - self.c[i])*(m.T @ m) / self.n + np.diag(penalties[i]) for i, m in enumerate(views)]
         )
         C -= block_diag(*[view.T @ view / self.n for view in views])
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps

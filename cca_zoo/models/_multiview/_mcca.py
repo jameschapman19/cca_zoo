@@ -60,31 +60,27 @@ class MCCA(rCCA):
         self.eps = eps
 
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
-        all_views = np.concatenate(views, axis=1)
-        C = all_views.T @ all_views / self.n
+        all_views = np.hstack(views)
+        C = np.cov(all_views,rowvar=False)
         # Can regularise by adding to diagonal
         D = block_diag(
             *[
-                (1 - self.c[i]) * m.T @ m / self.n + self.c[i] * np.eye(m.shape[1])
-                for i, m in enumerate(views)
+                (1 - self.c[i]) * np.cov(view,rowvar=False) + self.c[i] * np.eye(view.shape[1])
+                for i, view in enumerate(views)
             ]
         )
-        C -= block_diag(*[view.T @ view / self.n for view in views])
+        C -= block_diag(*[np.cov(view,rowvar=False) for view in views])
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [view.shape[1] for view in views])
-        return views, C, D
+        return C, D
 
-    def _solve_evp(self, views: Iterable[np.ndarray], C, D=None, **kwargs):
-        n = D.shape[0]
-        [eigvals, eigvecs] = eigh(C, D, subset_by_index=[n - self.latent_dims, n - 1])
-        # sorting according to eigenvalue
-        idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dims]
-        eigvecs = eigvecs[:, idx].real
+    def _get_weights(self, eigvals, eigvecs, views):
         self.weights = [
             eigvecs[split: self.splits[i + 1]]
             for i, split in enumerate(self.splits[:-1])
         ]
+
 
 
 class KCCA(MCCA):
@@ -164,20 +160,20 @@ class KCCA(MCCA):
 
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
         self.train_views = views
-        kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
-        C = np.hstack(kernels).T @ np.hstack(kernels) / self.n
+        self.kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
+        C = np.cov(np.hstack(self.kernels),rowvar=False)
         # Can regularise by adding to diagonal
         D = block_diag(
             *[
-                (1 - self.c[i]) * kernel @ kernel.T / self.n + self.c[i] * kernel
-                for i, kernel in enumerate(kernels)
+                (1 - self.c[i]) * np.cov(kernel,rowvar=False) + self.c[i] * kernel
+                for i, kernel in enumerate(self.kernels)
             ]
         )
-        C -= block_diag(*[kernel.T @ kernel / self.n for kernel in kernels]) - D
+        C -= block_diag(*[np.cov(kernel,rowvar=False) for kernel in self.kernels]) - D
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
-        self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
-        return kernels, C, D
+        self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in self.kernels])
+        return C, D
 
     def transform(self, views: np.ndarray, **kwargs):
         check_is_fitted(self, attributes=["weights"])

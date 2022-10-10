@@ -83,14 +83,14 @@ def test_unregularized_multi():
 def test_regularized_methods():
     # Test that linear regularized methods match PLS solution when using maximum regularisation.
     latent_dims = 2
-    c = 1
+    c = 0
+    rcca = rCCA(latent_dims=latent_dims, c=[c, c]).fit([X, Y])
+    mcca = MCCA(latent_dims=latent_dims, c=[c, c]).fit([X, Y])
+    pls = PLS(latent_dims=latent_dims).fit([X, Y])
+    gcca = GCCA(latent_dims=latent_dims, c=[c, c]).fit([X, Y])
     kernel = KCCA(latent_dims=latent_dims, c=[c, c], kernel=["linear", "linear"]).fit(
         (X, Y)
     )
-    pls = PLS(latent_dims=latent_dims).fit([X, Y])
-    gcca = GCCA(latent_dims=latent_dims, c=[c, c]).fit([X, Y])
-    mcca = MCCA(latent_dims=latent_dims, c=[c, c]).fit([X, Y])
-    rcca = rCCA(latent_dims=latent_dims, c=[c, c]).fit([X, Y])
     corr_gcca = gcca.score((X, Y))
     corr_mcca = mcca.score((X, Y))
     corr_kernel = kernel.score((X, Y))
@@ -255,7 +255,7 @@ def test_plotting():
 
 def test_PRCCA():
     # Test that PRCCA works
-    prcca = PRCCA(latent_dims=1).fit((X, Y))
+    prcca = PRCCA(latent_dims=1,c=[1,0]).fit((X, Y),idxs=(np.arange(10),np.arange(11)))
     prcca.score((X, Y))
     prcca.transform((X, Y))
     print()
