@@ -61,15 +61,15 @@ class MCCA(rCCA):
 
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
         all_views = np.hstack(views)
-        C = np.cov(all_views,rowvar=False)
+        C = np.cov(all_views,rowvar=False,bias=True)
         # Can regularise by adding to diagonal
         D = block_diag(
             *[
-                (1 - self.c[i]) * np.cov(view,rowvar=False) + self.c[i] * np.eye(view.shape[1])
+                (1 - self.c[i]) * np.cov(view,rowvar=False,bias=True) + self.c[i] * np.eye(view.shape[1])
                 for i, view in enumerate(views)
             ]
         )
-        C -= block_diag(*[np.cov(view,rowvar=False) for view in views])
+        C -= block_diag(*[np.cov(view,rowvar=False,bias=True) for view in views])
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [view.shape[1] for view in views])

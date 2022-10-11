@@ -116,7 +116,7 @@ class rCCA(_BaseCCA):
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
         self.principal_components = _pca_data(views)
         S = [pc.singular_values_ for pc in self.principal_components]
-        self.B = [(1 - self.c[i]) * S ** 2 / (views[0].shape[0] - 1) + self.c[i] for i, S in enumerate(S)]
+        self.B = [(1 - self.c[i]) * S ** 2 + self.c[i] for i, S in enumerate(S)]
         if self.n_views == 2:
             self._two_view = True
             C, D = self._two_view_evp(views)
@@ -134,7 +134,7 @@ class rCCA(_BaseCCA):
 
     def _two_view_evp(self, views):
         R = [pca.transform(view) for pca, view in zip(self.principal_components, views)]
-        C = R[1].T @ R[0] @ R[0].T @ R[1]
+        C = np.cov(R[1], R[0],rowvar=False) @ np.cov(R[0], R[1],rowvar=False)
         return C, None
 
     def _multi_view_evp(self, views):
