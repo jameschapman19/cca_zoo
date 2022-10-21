@@ -88,15 +88,16 @@ class rCCA(_BaseCCA):
         views = self._validate_inputs(views)
         self._check_params()
         C, D = self._setup_evp(views, **kwargs)
-        eigvals,eigvecs=self._solve_evp(C, D)
-        self._weights(eigvals,eigvecs,views)
+        eigvals, eigvecs = self._solve_evp(C, D)
+        self._weights(eigvals, eigvecs, views)
         return self
 
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
         n = views[0].shape[0]
         self.principal_components = _pca_data(*views)
-        self.Bs = [(1 - self.c[i]) * pc.singular_values_ / n + self.c[i] for i, pc in enumerate(self.principal_components)]
-        R=[pc.transform(view) for view,pc in zip(views,self.principal_components)]
+        self.Bs = [(1 - self.c[i]) * pc.singular_values_**2 / n + self.c[i] for i, pc in
+                   enumerate(self.principal_components)]
+        R = [pc.transform(view) for view, pc in zip(views, self.principal_components)]
         if self.n_views == 2:
             self._two_view = True
             C, D = self._two_view_evp(R)
@@ -105,7 +106,7 @@ class rCCA(_BaseCCA):
             C, D = self._multi_view_evp(R)
         return C, D
 
-    def _weights(self,eigvals,eigvecs,views):
+    def _weights(self, eigvals, eigvecs, views):
         if self._two_view:
             w_y = self.principal_components[1].components_.T @ np.diag(1 / np.sqrt(self.Bs[1])) @ eigvecs
             w_x = (
@@ -130,11 +131,11 @@ class rCCA(_BaseCCA):
     def _solve_evp(self, C, D=None):
         p = C.shape[0]
         [eigvals, eigvecs] = eigh(
-            C, D, subset_by_index=[p - self.latent_dims, p - 1]
+            C, D, subset_by_index=[p - self.latent_dims, p - 1],
         )
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
-        return eigvals,eigvecs
+        return np.flip(eigvals), eigvecs
 
     def _two_view_evp(self, R):
         self.R_12 = R[0].T @ R[1]
@@ -151,9 +152,10 @@ class rCCA(_BaseCCA):
         D = block_diag(
             *[np.diag(B) for B in self.Bs]
         )
+        D *= R.shape[0]
         C = np.hstack(R)
         C = C.T @ C
-        C -= block_diag(*[R.T@R for R in R])
+        C -= block_diag(*[R.T @ R for R in R])
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [R.shape[1] for R in R])
@@ -287,7 +289,11 @@ def _pca_data(*views: np.ndarray):
         The eigenvectors for each view
 
     """
-    principal_components=[]
+    principal_components = []
+    n = views[0].shape[0]
+    views_U = []
+    views_S = []
+    views_Vt = []
     for view in views:
         principal_components.append(PCA().fit(view))
     return principal_components

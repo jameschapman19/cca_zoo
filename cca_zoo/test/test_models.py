@@ -83,7 +83,7 @@ def test_unregularized_multi():
 def test_regularized_methods():
     # Test that linear regularized methods match PLS solution when using maximum regularisation.
     latent_dims = 2
-    c = 0
+    c = 1
     rcca = rCCA(latent_dims=latent_dims, c=[c, c]).fit([X, Y])
     mcca = MCCA(latent_dims=latent_dims, c=[c, c]).fit([X, Y])
     pls = PLS(latent_dims=latent_dims).fit([X, Y])
