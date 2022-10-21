@@ -19,7 +19,7 @@ Documentation
 
 .. toctree::
    :glob:
-   :maxdepth: 4
+   :maxdepth: 3
    :caption: Reference
 
    api/data
