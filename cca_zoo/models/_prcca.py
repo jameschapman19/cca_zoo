@@ -82,3 +82,21 @@ class PRCCA(MCCA):
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [view.shape[1] for view in views])
         return C, D
+
+    def _transform_weights(self, views, groups):
+        for i, (view, group) in enumerate(zip(views, groups)):
+            if self.c[i] > 0:
+                weights_1 = self.weights[i][: len(group)]
+                weights_2 = self.weights[i][len(group):]
+                ids, unique_inverse, unique_counts, group_means = _group_mean(
+                    weights_1.T, group
+                )
+                weights_1 = (weights_1 - group_means[:, unique_inverse].T) / self.c[i]
+                if self.mu[i] == 0:
+                    mu = 1
+                else:
+                    mu = self.mu[i]
+                weights_2 = weights_2 / np.sqrt(
+                    mu * np.expand_dims(unique_counts, axis=1)
+                )
+                self.weights[i] = weights_1 + weights_2[group]

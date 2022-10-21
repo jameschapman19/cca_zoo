@@ -7,14 +7,6 @@ Deep Models
 Models
 --------------------------------------------------------------------------------
 
-.. currentmodule:: cca_zoo.deepmodels
-.. autosummary::
-    :nosignatures:
-
-    {% for cls in cca_zoo.deepmodels.classes %}
-    {{ cls }}
-    {% endfor %}
-
 .. automodule:: cca_zoo.deepmodels
    :members:
    :show-inheritance:
