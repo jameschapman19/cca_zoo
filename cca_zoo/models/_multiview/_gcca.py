@@ -73,7 +73,7 @@ class GCCA(rCCA):
             K = np.ones((len(views), views[0].shape[0]))
         Q = []
         for i, (view, view_weight) in enumerate(zip(views, self.view_weights)):
-            view_cov = (1 - self.c[i]) * np.cov(view,rowvar=False) + self.c[i] * np.eye(
+            view_cov = (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[i] * np.eye(
                 view.shape[1]
             )
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
@@ -181,8 +181,8 @@ class KGCCA(GCCA):
             K = np.ones((len(views), views[0].shape[0]))
         Q = []
         for i, (view, view_weight) in enumerate(zip(kernels, self.view_weights)):
-            view_cov = (1 - self.c[i]) * np.cov(view,rowvar=False) + self.c[i] * np.eye(
-                view_cov.shape[0]
+            view_cov = (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[i] * np.eye(
+                view.shape[1]
             )
             smallest_eig = min(0, np.linalg.eigvalsh(view_cov).min()) - self.eps
             view_cov = view_cov - smallest_eig * np.eye(view_cov.shape[0])
