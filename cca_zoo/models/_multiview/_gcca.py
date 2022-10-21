@@ -1,7 +1,6 @@
 from typing import Iterable, Union
 
 import numpy as np
-from scipy.linalg import eigh
 from sklearn.metrics import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
@@ -73,9 +72,8 @@ class GCCA(rCCA):
             K = np.ones((len(views), views[0].shape[0]))
         Q = []
         for i, (view, view_weight) in enumerate(zip(views, self.view_weights)):
-            view_cov = view.T @ view / self.n
-            view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(
-                view_cov.shape[0]
+            view_cov = (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[i] * np.eye(
+                view.shape[1]
             )
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
@@ -84,13 +82,9 @@ class GCCA(rCCA):
                 @ Q
                 @ np.diag(np.sqrt(np.sum(K, axis=0)))
         )
-        return views, Q, None
+        return Q, None
 
-    def _solve_evp(self, views: Iterable[np.ndarray], C, D=None, **kwargs):
-        p = C.shape[0]
-        [eigvals, eigvecs] = eigh(C, subset_by_index=[p - self.latent_dims, p - 1])
-        idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dims]
-        eigvecs = eigvecs[:, idx].real
+    def _weights(self, eigvals, eigvecs, views):
         self.weights = [
             np.linalg.pinv(view) @ eigvecs[:, : self.latent_dims] for view in views
         ]
@@ -186,9 +180,8 @@ class KGCCA(GCCA):
             K = np.ones((len(views), views[0].shape[0]))
         Q = []
         for i, (view, view_weight) in enumerate(zip(kernels, self.view_weights)):
-            view_cov = view.T @ view / self.n
-            view_cov = (1 - self.c[i]) * view_cov + self.c[i] * np.eye(
-                view_cov.shape[0]
+            view_cov = (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[i] * np.eye(
+                view.shape[1]
             )
             smallest_eig = min(0, np.linalg.eigvalsh(view_cov).min()) - self.eps
             view_cov = view_cov - smallest_eig * np.eye(view_cov.shape[0])
@@ -199,7 +192,8 @@ class KGCCA(GCCA):
                 @ Q
                 @ np.diag(np.sqrt(np.sum(K, axis=0)))
         )
-        return kernels, Q, None
+        self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
+        return Q, None
 
     def transform(self, views: np.ndarray, y=None, **kwargs):
         check_is_fitted(self, attributes=["weights"])
@@ -215,3 +209,9 @@ class KGCCA(GCCA):
             kernel.T @ self.weights[i] for i, kernel in enumerate(Ktest)
         ]
         return transformed_views
+
+    def _weights(self, eigvals, eigvecs, views):
+        kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
+        self.weights = [
+            np.linalg.pinv(kernel) @ eigvecs[:, : self.latent_dims] for kernel in kernels
+        ]

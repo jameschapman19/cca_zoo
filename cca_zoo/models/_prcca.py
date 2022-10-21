@@ -5,8 +5,6 @@ import numpy as np
 from scipy.linalg import block_diag
 
 from cca_zoo.models._multiview._mcca import MCCA
-from ._rcca import _pca_data
-from ..utils import _process_parameter
 
 
 class PRCCA(MCCA):
@@ -55,141 +53,35 @@ class PRCCA(MCCA):
             assert idx.dtype == int, "subject_groups must be integers"
         views = self._validate_inputs(views)
         self._check_params()
-        views = self._preprocess(views, idxs)
-        views, C, D = self._setup_evp(views, idxs, **kwargs)
-        self._solve_evp(views, C, D, **kwargs)
-        self._transform_weights(views, idxs)
-        return self
+        views = self._pretransform(views, idxs)
+        return super().fit(views, idxs=idxs)
 
-    def _preprocess(self, views, idxs):
+    def _pretransform(self, views, idxs):
         X_1 = [view[:, idx] for view, idx in zip(views, idxs)]
         X_2 = [np.delete(view, idx, axis=1) for view, idx in zip(views, idxs)]
+        B = [np.linalg.pinv(X_2) @ X_1 for X_1, X_2 in zip(X_1, X_2)]
         X_1 = [
-            X_1-X_2@np.linalg.pinv(X_2)@X_1
-            for X_1,X_2 in zip(X_1,X_2)]
+            X_1 - X_2 @ B
+            for X_1, X_2, B in zip(X_1, X_2, B)]
         views = [
-            np.hstack((X_1,X_2))
-            for X_1,X_2 in zip(X_1,X_2)]
+            np.hstack((X_1, X_2))
+            for X_1, X_2 in zip(X_1, X_2)]
         return views
 
-    def _transform_weights(self, views, idxs):
-        for i, view in enumerate(views):
-            self.weights[i][: idxs[i], :] = (
-                    self.Vts[i].T @ self.weights[i][: idxs[i], :]
-            )
-            self.weights[i][idxs[i]:, :] = (
-                    -self.betas[i] @ self.weights[i][: idxs[i], :]
-                    + self.weights[i][idxs[i]:]
-            )
-
-    def _setup_evp(self, views: Iterable[np.ndarray], idxs, **kwargs):
-        n = views[0].shape[0]
+    def _setup_evp(self, views: Iterable[np.ndarray], idxs=None, **kwargs):
         all_views = np.concatenate(views, axis=1)
         C = all_views.T @ all_views / self.n
-        # Can regularise by adding to diagonal
-        self.c_ = [
-            np.append(
-                self.c[i] * np.ones(idxs[i] + 1),
-                np.zeros(views[i].shape[1] - 1 - idxs[i]),
-            )
-            for i, view in enumerate(views)
-        ]
+        penalties = [np.zeros((view.shape[1])) for view in views]
+        for i, idx in enumerate(idxs):
+            penalties[i][idx] = self.c[i]
         D = block_diag(
-            *[(m.T @ m) / self.n + np.diag(self.c_[i]) for i, m in enumerate(views)]
+            *[(1 - self.c[i]) * (m.T @ m) / self.n + np.diag(penalties[i]) for i, m in enumerate(views)]
         )
         C -= block_diag(*[view.T @ view / self.n for view in views])
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [view.shape[1] for view in views])
-        return views, C, D
-
-
-class GRCCA(PRCCA):
-    """
-    Grouped Regularized Canonical Correlation Analysis
-
-    References
-    ----------
-    Tuzhilina, Elena, Leonardo Tozzi, and Trevor Hastie. "Canonical correlation analysis in high dimensions with structured regularization." Statistical Modelling (2021): 1471082X211041033.
-    """
-
-    def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            eps=1e-3,
-            c: float = 0,
-            mu: float = 0,
-    ):
-        super().__init__(
-            latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
-            copy_data=copy_data,
-            random_state=random_state,
-            eps=eps,
-            c=c,
-        )
-        self.mu = mu
-
-    def _check_params(self):
-        self.mu = _process_parameter("mu", self.mu, 0, self.n_views)
-        self.c = _process_parameter("c", self.c, 0, self.n_views)
-
-    def fit(self, views: Iterable[np.ndarray], y=None, subject_groups=None, **kwargs):
-        """
-        Parameters
-        ----------
-        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        y : None
-        subject_groups : list/tuple of integer numpy arrays or array likes with dimensions (samples,)
-        kwargs: any additional keyword arguments required by the given model
-
-        """
-        if subject_groups is None:
-            warnings.warn(f"No feature groups provided, using all features")
-            subject_groups = [np.ones(views[0].shape[0], dtype=int)] * len(views)
-        for subject_group in subject_groups:
-            assert subject_group.dtype == int, "subject_groups must be integers"
-        views = self._validate_inputs(views)
-        self._check_params()
-        views, idxs = self._preprocess(views, subject_groups)
-        self.weights = (
-            PRCCA(latent_dims=self.latent_dims, scale=False, centre=False, c=1)
-            .fit(views, idxs=idxs, **kwargs)
-            .weights
-        )
-        self._transform_weights(views, subject_groups)
-        return self
-
-    def _preprocess(self, views, subject_groups):
-        views, idxs = list(
-            zip(
-                *[
-                    self._process_view(view, group, mu, c)
-                    for view, group, mu, c in zip(views, subject_groups, self.mu, self.c)
-                ]
-            )
-        )
-        return views, idxs
-
-    @staticmethod
-    def _process_view(view, group, mu, c):
-        if c > 0:
-            ids, unique_inverse, unique_counts, group_means = _group_mean(view, group)
-            if mu == 0:
-                mu = 1
-                idx = view.shape[1] - 1
-            else:
-                idx = view.shape[1] + group_means.shape[1] - 1
-            view_1 = (view - group_means[:, unique_inverse]) / c
-            view_2 = group_means / np.sqrt(mu / unique_counts)
-            return np.hstack((view_1, view_2)), idx
-        else:
-            return view, view.shape[1] - 1
+        return C, D
 
     def _transform_weights(self, views, groups):
         for i, (view, group) in enumerate(zip(views, groups)):
@@ -208,11 +100,3 @@ class GRCCA(PRCCA):
                     mu * np.expand_dims(unique_counts, axis=1)
                 )
                 self.weights[i] = weights_1 + weights_2[group]
-
-
-def _group_mean(view, group):
-    ids, unique_inverse, unique_counts = np.unique(
-        group, return_inverse=True, return_counts=True
-    )
-    group_means = np.array([view[:, group == id].mean(axis=1) for id in ids]).T
-    return ids, unique_inverse, unique_counts, group_means

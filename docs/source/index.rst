@@ -19,14 +19,14 @@ Documentation
 
 .. toctree::
    :glob:
-   :maxdepth: 4
+   :maxdepth: 3
    :caption: Reference
 
    api/data
    api/deepmodels
    api/models
-   api/model_selection
    api/probabilisticmodels
+   api/model_selection
    api/utils
 
 

@@ -1,4 +1,5 @@
 import torch
+
 from cca_zoo.deepmodels._discriminative._dcca import DCCA
 from cca_zoo.deepmodels._generative._base import _GenerativeMixin
 from cca_zoo.deepmodels.utils import objectives

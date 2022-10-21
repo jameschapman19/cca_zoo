@@ -8,6 +8,7 @@ from sklearn.utils.validation import check_random_state
 
 from ..utils import _process_parameter
 
+
 def linear_simulated_data(
         n: int,
         view_features: List[int],

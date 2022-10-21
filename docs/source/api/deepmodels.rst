@@ -7,37 +7,30 @@ Deep Models
 Models
 --------------------------------------------------------------------------------
 
-.. currentmodule:: cca_zoo.deepmodels
-.. autosummary::
-    :nosignatures:
-
-    {% for cls in cca_zoo.deepmodels.classes %}
-    {{ cls }}
-    {% endfor %}
-
 .. automodule:: cca_zoo.deepmodels
    :members:
+   :inherited-members:
    :show-inheritance:
 
 
 Deep Objectives
 -------------------------------------
 
-.. automodule:: cca_zoo.deepmodels.objectives
+.. automodule:: cca_zoo.deepmodels.utils.objectives
    :members:
    :show-inheritance:
 
 Callbacks
 -------------------------------------
 
-.. automodule:: cca_zoo.deepmodels._callbacks
+.. automodule:: cca_zoo.deepmodels.utils.callbacks
    :members:
    :show-inheritance:
 
 Model Architectures
 ----------------------------------------
 
-.. automodule:: cca_zoo.deepmodels.architectures
+.. automodule:: cca_zoo.deepmodels.utils.architectures
    :members:
    :show-inheritance:
 

@@ -1,4 +1,5 @@
 from cca_zoo.models._multiview import MCCA, KCCA, GCCA, KGCCA, TCCA, KTCCA
+from ._grcca import GRCCA
 from ._iterative import (
     PLS_ALS,
     SCCA_PMD,
@@ -11,7 +12,7 @@ from ._iterative import (
 )
 from ._ncca import NCCA
 from ._partialcca import PartialCCA
-from ._prcca import PRCCA, GRCCA
+from ._prcca import PRCCA
 from ._rcca import rCCA, CCA, PLS
 
 __all__ = [
