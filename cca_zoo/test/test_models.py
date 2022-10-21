@@ -253,14 +253,25 @@ def test_plotting():
 
 def test_PRCCA():
     # Test that PRCCA works
-    prcca = PRCCA(latent_dims=1, c=[1, 0]).fit((X, Y), idxs=(np.arange(10), np.arange(11)))
-    prcca.score((X, Y))
-    prcca.transform((X, Y))
+    prcca = PRCCA(latent_dims=2, c=[0, 0]).fit((X, Y), idxs=(np.arange(10), np.arange(11)))
+    cca = CCA(latent_dims=2).fit([X, Y])
+    assert np.testing.assert_array_almost_equal(cca.score((X, Y)), prcca.score((X, Y)), decimal=1) is None
+    prcca = PRCCA(latent_dims=2, c=[1, 1]).fit((X, Y), idxs=(np.arange(10), np.arange(11)))
+    pls = PLS(latent_dims=2).fit([X, Y])
+    assert np.testing.assert_array_almost_equal(pls.score((X, Y)), prcca.score((X, Y)), decimal=1) is None
+    from cca_zoo.model_selection import GridSearchCV
+    gs = GridSearchCV(PRCCA(), param_grid={'c': [[0, 0], [1, 1]]}, cv=2).fit([X, Y])
 
 
 def test_GRCCA():
+    feature_group_1 = np.zeros(X.shape[1], dtype=int)
+    feature_group_1[:3] = 1
+    feature_group_1[3:6] = 2
+    feature_group_2 = np.zeros(Y.shape[1], dtype=int)
+    feature_group_2[:3] = 1
+    feature_group_2[3:6] = 2
     # Test that GRCCA works
-    grcca = GRCCA(latent_dims=1).fit((X, Y))
+    grcca = GRCCA(latent_dims=1, c=[100, 0], mu=0).fit((X, Y), feature_groups=[feature_group_1, feature_group_2])
     grcca.score((X, Y))
     grcca.transform((X, Y))
 

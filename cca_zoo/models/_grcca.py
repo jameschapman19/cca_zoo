@@ -60,7 +60,9 @@ class GRCCA(MCCA):
         views = self._validate_inputs(views)
         self._check_params()
         views, idxs = self._preprocess(views, feature_groups)
-        super().fit(views, idxs=idxs)
+        C, D = self._setup_evp(views, **kwargs)
+        eigvals, eigvecs = self._solve_evp(C, D)
+        self._weights(eigvals, eigvecs, views)
         self._transform_weights(views, feature_groups)
         return self
 
