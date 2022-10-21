@@ -50,7 +50,7 @@ class PartialCCA(MCCA):
         self.eps = eps
 
     def fit(self, views: Iterable[np.ndarray], y=None, partials=None, **kwargs):
-        super(MCCA, self).fit(views, y=y, partials=partials, **kwargs)
+        super().fit(views, y=y, partials=partials, **kwargs)
 
     def _setup_evp(self, views: Iterable[np.ndarray], partials=None, **kwargs):
         if partials is None:
@@ -63,20 +63,7 @@ class PartialCCA(MCCA):
             view - partials @ np.linalg.pinv(partials) @ view
             for view, confound_beta in zip(views, self.confound_betas)
         ]
-        all_views = np.concatenate(views, axis=1)
-        C = all_views.T @ all_views / self.n
-        # Can regularise by adding to diagonal
-        D = block_diag(
-            *[
-                (1 - self.c[i]) * m.T @ m / self.n + self.c[i] * np.eye(m.shape[1])
-                for i, m in enumerate(views)
-            ]
-        )
-        C -= block_diag(*[view.T @ view / self.n for view in views]) - D
-        D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
-        D = D - D_smallest_eig * np.eye(D.shape[0])
-        self.splits = np.cumsum([0] + [view.shape[1] for view in views])
-        return views, C, D
+        return super()._setup_evp(views)
 
     # TODO TRANSFORM
     def transform(self, views: Iterable[np.ndarray], partials=None, **kwargs):

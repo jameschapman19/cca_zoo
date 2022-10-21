@@ -1,7 +1,6 @@
 from typing import Iterable, Union
 
 import numpy as np
-from scipy.linalg import eigh
 from sklearn.metrics import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 

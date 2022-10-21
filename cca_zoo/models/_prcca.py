@@ -74,11 +74,11 @@ class PRCCA(MCCA):
     def _setup_evp(self, views: Iterable[np.ndarray], idxs, **kwargs):
         all_views = np.concatenate(views, axis=1)
         C = all_views.T @ all_views / self.n
-        penalties=[np.zeros((view.shape[1])) for view in views]
+        penalties = [np.zeros((view.shape[1])) for view in views]
         for i, idx in enumerate(idxs):
             penalties[i][idx] = self.c[i]
         D = block_diag(
-            *[(1 - self.c[i])*(m.T @ m) / self.n + np.diag(penalties[i]) for i, m in enumerate(views)]
+            *[(1 - self.c[i]) * (m.T @ m) / self.n + np.diag(penalties[i]) for i, m in enumerate(views)]
         )
         C -= block_diag(*[view.T @ view / self.n for view in views])
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps

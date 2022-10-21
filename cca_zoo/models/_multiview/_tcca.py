@@ -235,9 +235,9 @@ class KTCCA(TCCA):
         covs_invsqrt = [np.linalg.inv(sqrtm(cov)).real for cov in covs]
         kernels = [
             kernel @ cov_invsqrt
-            for kernel, cov_invsqrt in zip(kernels, self.covs_invsqrt)
+            for kernel, cov_invsqrt in zip(kernels, covs_invsqrt)
         ]
-        return kernels, self.covs_invsqrt
+        return kernels, covs_invsqrt
 
     def transform(self, views: np.ndarray, **kwargs):
         check_is_fitted(self, attributes=["weights"])

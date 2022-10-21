@@ -66,18 +66,15 @@ def test_unregularized_methods():
 def test_unregularized_multi():
     # Tests unregularized CCA methods for more than 2 views. The idea is that all of these should give the same result.
     latent_dims = 2
-    cca = rCCA(latent_dims=latent_dims).fit((X, Y, Z))
     gcca = GCCA(latent_dims=latent_dims).fit((X, Y, Z))
     mcca = MCCA(latent_dims=latent_dims).fit((X, Y, Z))
     kcca = KCCA(latent_dims=latent_dims).fit((X, Y, Z))
-    corr_cca = cca.score((X, Y, Z))
     corr_gcca = gcca.score((X, Y, Z))
     corr_mcca = mcca.score((X, Y, Z))
     corr_kcca = kcca.score((X, Y, Z))
     # Check the correlations from each unregularized method are the same
-    assert np.testing.assert_array_almost_equal(corr_cca, corr_mcca, decimal=1) is None
-    assert np.testing.assert_array_almost_equal(corr_cca, corr_gcca, decimal=1) is None
-    assert np.testing.assert_array_almost_equal(corr_cca, corr_kcca, decimal=1) is None
+    assert np.testing.assert_array_almost_equal(corr_mcca, corr_gcca, decimal=1) is None
+    assert np.testing.assert_array_almost_equal(corr_mcca, corr_kcca, decimal=1) is None
 
 
 def test_regularized_methods():
@@ -253,18 +250,21 @@ def test_plotting():
     Y_te = np.random.rand(*Y.shape)
     pairplot_train_test(pls.transform((X, Y)), pls.transform((X_te, Y_te)))
 
+
 def test_PRCCA():
     # Test that PRCCA works
-    prcca = PRCCA(latent_dims=1,c=[1,0]).fit((X, Y),idxs=(np.arange(10),np.arange(11)))
+    prcca = PRCCA(latent_dims=1, c=[1, 0]).fit((X, Y), idxs=(np.arange(10), np.arange(11)))
     prcca.score((X, Y))
     prcca.transform((X, Y))
     print()
+
 
 def test_GRCCA():
     # Test that GRCCA works
     grcca = GRCCA(latent_dims=1).fit((X, Y))
     grcca.score((X, Y))
     grcca.transform((X, Y))
+
 
 def test_PCCA():
     # some might not have access to jax/numpyro so leave this as an optional test locally.
