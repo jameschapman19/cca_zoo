@@ -256,7 +256,6 @@ def test_PRCCA():
     prcca = PRCCA(latent_dims=1, c=[1, 0]).fit((X, Y), idxs=(np.arange(10), np.arange(11)))
     prcca.score((X, Y))
     prcca.transform((X, Y))
-    print()
 
 
 def test_GRCCA():

@@ -1,7 +1,7 @@
 from typing import Iterable, Union
 
 import numpy as np
-from scipy.linalg import block_diag, eigh
+from scipy.linalg import eigh
 from sklearn.decomposition import PCA
 
 from cca_zoo.utils.check_values import _process_parameter
