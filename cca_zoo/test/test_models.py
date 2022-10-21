@@ -259,8 +259,6 @@ def test_PRCCA():
     prcca = PRCCA(latent_dims=2, c=[1, 1]).fit((X, Y), idxs=(np.arange(10), np.arange(11)))
     pls = PLS(latent_dims=2).fit([X, Y])
     assert np.testing.assert_array_almost_equal(pls.score((X, Y)), prcca.score((X, Y)), decimal=1) is None
-    from cca_zoo.model_selection import GridSearchCV
-    gs = GridSearchCV(PRCCA(), param_grid={'c': [[0, 0], [1, 1]]}, cv=2).fit([X, Y], idxs=(np.arange(10), np.arange(11)))
 
 
 def test_GRCCA():
@@ -278,8 +276,6 @@ def test_GRCCA():
     grcca.score((X, Y))
     grcca.transform((X, Y))
     grcca = GRCCA(c=[100, 0, 50]).fit((X, Y, Z), feature_groups=[feature_group_1, feature_group_2, feature_group_3])
-    gs = GridSearchCV(GRCCA(), param_grid={'c': [[0, 0, 0], [1, 1, 1]]}, cv=2).fit([X, Y, Z],feature_groups=[feature_group_1, feature_group_2, feature_group_3])
-    print()
 
 
 def test_PCCA():
