@@ -162,19 +162,19 @@ class KCCA(MCCA):
 
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
         self.train_views = views
-        self.kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
-        C = np.cov(np.hstack(self.kernels), rowvar=False)
+        kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
+        C = np.cov(np.hstack(kernels), rowvar=False)
         # Can regularise by adding to diagonal
         D = block_diag(
             *[
                 (1 - self.c[i]) * np.cov(kernel, rowvar=False) + self.c[i] * kernel
-                for i, kernel in enumerate(self.kernels)
+                for i, kernel in enumerate(kernels)
             ]
         )
-        C -= block_diag(*[np.cov(kernel, rowvar=False) for kernel in self.kernels]) - D
+        C -= block_diag(*[np.cov(kernel, rowvar=False) for kernel in kernels]) - D
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
-        self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in self.kernels])
+        self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
         return C, D
 
     def transform(self, views: np.ndarray, **kwargs):

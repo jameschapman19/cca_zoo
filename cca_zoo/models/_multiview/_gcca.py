@@ -193,6 +193,7 @@ class KGCCA(GCCA):
                 @ Q
                 @ np.diag(np.sqrt(np.sum(K, axis=0)))
         )
+        self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
         return Q, None
 
     def transform(self, views: np.ndarray, y=None, **kwargs):
@@ -209,3 +210,9 @@ class KGCCA(GCCA):
             kernel.T @ self.weights[i] for i, kernel in enumerate(Ktest)
         ]
         return transformed_views
+
+    def _weights(self, eigvals, eigvecs, views):
+        kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
+        self.weights = [
+            np.linalg.pinv(kernel) @ eigvecs[:, : self.latent_dims] for kernel in kernels
+        ]

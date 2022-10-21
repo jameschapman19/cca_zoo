@@ -127,7 +127,6 @@ class TCCA(_BaseCCA):
 
     def _setup_tensor(self, *views: np.ndarray, **kwargs):
         train_views = self._centre_scale(views)
-        n = train_views[0].shape[0]
         covs = [
             (1 - self.c[i]) * view.T @ view / (self.n)
             + self.c[i] * np.eye(view.shape[1])
@@ -233,7 +232,7 @@ class KTCCA(TCCA):
             cov - smallest_eig * np.eye(cov.shape[0])
             for cov, smallest_eig in zip(covs, smallest_eigs)
         ]
-        self.covs_invsqrt = [np.linalg.inv(sqrtm(cov)).real for cov in covs]
+        covs_invsqrt = [np.linalg.inv(sqrtm(cov)).real for cov in covs]
         kernels = [
             kernel @ cov_invsqrt
             for kernel, cov_invsqrt in zip(kernels, self.covs_invsqrt)
