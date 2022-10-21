@@ -260,7 +260,7 @@ def test_PRCCA():
     pls = PLS(latent_dims=2).fit([X, Y])
     assert np.testing.assert_array_almost_equal(pls.score((X, Y)), prcca.score((X, Y)), decimal=1) is None
     from cca_zoo.model_selection import GridSearchCV
-    gs = GridSearchCV(PRCCA(), param_grid={'c': [[0, 0], [1, 1]]}, cv=2).fit([X, Y])
+    gs = GridSearchCV(PRCCA(), param_grid={'c': [[0, 0], [1, 1]]}, cv=2).fit([X, Y], idxs=(np.arange(10), np.arange(11)))
 
 
 def test_GRCCA():
@@ -270,10 +270,16 @@ def test_GRCCA():
     feature_group_2 = np.zeros(Y.shape[1], dtype=int)
     feature_group_2[:3] = 1
     feature_group_2[3:6] = 2
+    feature_group_3 = np.zeros(Z.shape[1], dtype=int)
+    feature_group_3[:3] = 1
+    feature_group_3[3:6] = 2
     # Test that GRCCA works
     grcca = GRCCA(latent_dims=1, c=[100, 0], mu=0).fit((X, Y), feature_groups=[feature_group_1, feature_group_2])
     grcca.score((X, Y))
     grcca.transform((X, Y))
+    grcca = GRCCA(c=[100, 0, 50]).fit((X, Y, Z), feature_groups=[feature_group_1, feature_group_2, feature_group_3])
+    gs = GridSearchCV(GRCCA(), param_grid={'c': [[0, 0, 0], [1, 1, 1]]}, cv=2).fit([X, Y, Z],feature_groups=[feature_group_1, feature_group_2, feature_group_3])
+    print()
 
 
 def test_PCCA():
