@@ -54,15 +54,18 @@ class PRCCA(MCCA):
         views = self._validate_inputs(views)
         self._check_params()
         views = self._pretransform(views, idxs)
-        return super().fit(views, idxs=idxs)
+        super().fit(views, idxs=idxs)
+        self._transform_weights(views, idxs=idxs)
+        return self
 
     def _pretransform(self, views, idxs):
         X_1 = [view[:, idx] for view, idx in zip(views, idxs)]
+        self.p = [X_i.shape[1] for X_i in X_1]
         X_2 = [np.delete(view, idx, axis=1) for view, idx in zip(views, idxs)]
-        B = [np.linalg.pinv(X_2) @ X_1 for X_1, X_2 in zip(X_1, X_2)]
+        self.B = [np.linalg.pinv(X_2) @ X_1 for X_1, X_2 in zip(X_1, X_2)]
         X_1 = [
             X_1 - X_2 @ B
-            for X_1, X_2, B in zip(X_1, X_2, B)]
+            for X_1, X_2, B in zip(X_1, X_2, self.B)]
         views = [
             np.hstack((X_1, X_2))
             for X_1, X_2 in zip(X_1, X_2)]
@@ -83,20 +86,11 @@ class PRCCA(MCCA):
         self.splits = np.cumsum([0] + [view.shape[1] for view in views])
         return C, D
 
-    def _transform_weights(self, views, groups):
-        for i, (view, group) in enumerate(zip(views, groups)):
-            if self.c[i] > 0:
-                weights_1 = self.weights[i][: len(group)]
-                weights_2 = self.weights[i][len(group):]
-                ids, unique_inverse, unique_counts, group_means = _group_mean(
-                    weights_1.T, group
-                )
-                weights_1 = (weights_1 - group_means[:, unique_inverse].T) / self.c[i]
-                if self.mu[i] == 0:
-                    mu = 1
-                else:
-                    mu = self.mu[i]
-                weights_2 = weights_2 / np.sqrt(
-                    mu * np.expand_dims(unique_counts, axis=1)
-                )
-                self.weights[i] = weights_1 + weights_2[group]
+    def _transform_weights(self, views, idxs=None):
+        for i, idx in enumerate(idxs):
+            alpha_1 = self.weights[i][idx]
+            alpha_2 = np.delete(self.weights[i], idx, axis=0)
+            alpha_2 -= self.B[i] @ alpha_1
+            mask = np.ones(self.weights[i].shape[0], dtype=bool)
+            mask[idx] = False
+            self.weights[i][mask] = alpha_2

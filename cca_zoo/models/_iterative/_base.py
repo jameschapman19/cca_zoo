@@ -9,7 +9,7 @@ from sklearn.utils.validation import check_random_state
 from tqdm import tqdm
 
 from .._base import _BaseCCA
-from .._multiview._mcca import MCCA
+from .._multiview._mcca import MCCA, KCCA
 
 
 class _BaseIterative(_BaseCCA):
@@ -201,6 +201,8 @@ def _default_initializer(views, initialization, random_state, latent_dims):
     :param latent_dims:
     :return:
     """
+    sum_view_dims=sum([view.shape[1] for view in views])
+    n=views[0].shape[0]
     if initialization == "random":
         while True:
             yield np.array(
@@ -211,7 +213,10 @@ def _default_initializer(views, initialization, random_state, latent_dims):
             yield np.array([np.ones(view.shape[0]) for view in views])
     elif initialization == "pls":
         latent_dim = 0
-        pls_scores = MCCA(latent_dims, c=1).fit_transform(views)
+        if n>sum_view_dims:
+            pls_scores = MCCA(latent_dims, c=1).fit_transform(views)
+        else:
+            pls_scores = KCCA(latent_dims, c=1).fit_transform(views)
         while True:
             yield np.stack(pls_scores)[:, :, latent_dim]
             latent_dim += 1
