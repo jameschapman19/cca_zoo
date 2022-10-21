@@ -59,17 +59,20 @@ class MCCA(rCCA):
         self.c = c
         self.eps = eps
 
+    def _weights(self, eigvals, eigvecs, views):
+        self.weights = [eigvecs[split:self.splits[i + 1]] for i, split in enumerate(self.splits[:-1])]
+
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
         all_views = np.hstack(views)
-        C = np.cov(all_views,rowvar=False,bias=True)
+        C = np.cov(all_views, rowvar=False, bias=True)
         # Can regularise by adding to diagonal
         D = block_diag(
             *[
-                (1 - self.c[i]) * np.cov(view,rowvar=False,bias=True) + self.c[i] * np.eye(view.shape[1])
+                (1 - self.c[i]) * np.cov(view, rowvar=False, bias=True) + self.c[i] * np.eye(view.shape[1])
                 for i, view in enumerate(views)
             ]
         )
-        C -= block_diag(*[np.cov(view,rowvar=False,bias=True) for view in views])
+        C -= block_diag(*[np.cov(view, rowvar=False, bias=True) for view in views])
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [view.shape[1] for view in views])
@@ -80,7 +83,6 @@ class MCCA(rCCA):
             eigvecs[split: self.splits[i + 1]]
             for i, split in enumerate(self.splits[:-1])
         ]
-
 
 
 class KCCA(MCCA):
@@ -161,15 +163,15 @@ class KCCA(MCCA):
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
         self.train_views = views
         self.kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
-        C = np.cov(np.hstack(self.kernels),rowvar=False)
+        C = np.cov(np.hstack(self.kernels), rowvar=False)
         # Can regularise by adding to diagonal
         D = block_diag(
             *[
-                (1 - self.c[i]) * np.cov(kernel,rowvar=False) + self.c[i] * kernel
+                (1 - self.c[i]) * np.cov(kernel, rowvar=False) + self.c[i] * kernel
                 for i, kernel in enumerate(self.kernels)
             ]
         )
-        C -= block_diag(*[np.cov(kernel,rowvar=False) for kernel in self.kernels]) - D
+        C -= block_diag(*[np.cov(kernel, rowvar=False) for kernel in self.kernels]) - D
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in self.kernels])
