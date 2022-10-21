@@ -9,6 +9,7 @@ Models
 
 .. automodule:: cca_zoo.deepmodels
    :members:
+   :inherited-members:
    :show-inheritance:
 
 
