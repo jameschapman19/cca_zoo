@@ -34,6 +34,10 @@ conv_dataset = NumpyDataset((X_conv, Y_conv))
 conv_loader = get_dataloaders(conv_dataset)
 train_ids = train_dataset.indices
 
+def test_numpy_dataset():
+    dataset = NumpyDataset([X, Y, Z])
+    check_dataset(dataset)
+    loader = get_dataloaders(dataset)
 
 def test_DCCA_methods():
     N = len(train_dataset)
