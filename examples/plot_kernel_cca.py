@@ -8,7 +8,7 @@ This script demonstrates how to use kernel and nonparametric methods
 # %%
 import numpy as np
 
-from cca_zoo.data import linear_simulated_data
+from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.models import KCCA
 
@@ -23,9 +23,9 @@ q = 100
 latent_dims = 1
 cv = 3
 
-(X, Y), (tx, ty) = linear_simulated_data(
-    n, view_features=[p, q], latent_dims=latent_dims, correlation=[0.9]
-)
+(X, Y)= LinearSimulatedData(
+    view_features=[p, q], latent_dims=latent_dims, correlation=[0.9]
+).sample(n)
 
 
 # %%

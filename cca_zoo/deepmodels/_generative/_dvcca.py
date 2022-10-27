@@ -2,10 +2,9 @@ from typing import Iterable
 
 import torch
 
-from cca_zoo.deepmodels._base import _BaseDeep
-from cca_zoo.deepmodels._generative._base import _GenerativeMixin
-from cca_zoo.deepmodels.utils.architectures import _BaseEncoder
-from cca_zoo.deepmodels.utils.callbacks import GenerativeCallback
+from .._base import _BaseDeep
+from .._generative._base import _GenerativeMixin
+from ..callbacks import GenerativeCallback
 
 
 class DVCCA(_BaseDeep, _GenerativeMixin):
@@ -25,7 +24,7 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
             latent_dims: int,
             encoders=None,
             decoders=None,
-            private_encoders: Iterable[_BaseEncoder] = None,
+            private_encoders: Iterable = None,
             latent_dropout=0,
             img_dim=None,
             recon_loss_type="mse",

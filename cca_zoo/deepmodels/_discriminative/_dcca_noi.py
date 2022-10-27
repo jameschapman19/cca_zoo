@@ -1,7 +1,7 @@
 import torch
 
-from cca_zoo.deepmodels.utils.objectives import _mat_pow
 from ._dcca import DCCA
+from ..objectives import _mat_pow
 
 
 class DCCA_NOI(DCCA):

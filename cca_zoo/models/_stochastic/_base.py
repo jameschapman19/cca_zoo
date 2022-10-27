@@ -4,7 +4,7 @@ from typing import Iterable
 import numpy as np
 from torch.utils import data
 
-from cca_zoo.data import CCA_Dataset
+from cca_zoo.data.deep import NumpyDataset
 from cca_zoo.models._base import _BaseCCA
 from cca_zoo.utils import _check_views
 
@@ -77,7 +77,7 @@ class _BaseStochastic(_BaseCCA):
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )
         scaled_views = self._centre_scale(views)
-        dataset = CCA_Dataset(scaled_views)
+        dataset = NumpyDataset(scaled_views)
         dataloader = data.DataLoader(
             dataset,
             batch_size=self.batch_size,

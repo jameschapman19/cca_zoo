@@ -1,7 +1,8 @@
-from cca_zoo.deepmodels._discriminative import DCCA, DCCA_NOI, BarlowTwins, DCCA_SDL, DTCCA
-from cca_zoo.deepmodels._generative import DVCCA, SplitAE, DCCAE
-from cca_zoo.deepmodels.utils import architectures, objectives, callbacks
-from cca_zoo.deepmodels.utils.utils import get_dataloaders
+from . import architectures
+from . import callbacks
+from . import objectives
+from ._discriminative import DCCA, DCCA_NOI, BarlowTwins, DCCA_SDL, DTCCA
+from ._generative import DVCCA, SplitAE, DCCAE
 
 __all__ = [
     "DCCA",
@@ -12,8 +13,9 @@ __all__ = [
     "BarlowTwins",
     "DTCCA",
     "SplitAE",
-    "get_dataloaders",
     "architectures",
+    "objectives",
+    "callbacks",
 ]
 
 classes = [

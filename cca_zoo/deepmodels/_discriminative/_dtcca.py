@@ -2,9 +2,9 @@ from typing import Iterable
 
 import numpy as np
 
-from cca_zoo.deepmodels.utils import objectives
-from cca_zoo.models import TCCA
 from ._dcca import DCCA
+from .. import objectives
+from ...models import TCCA
 
 
 class DTCCA(DCCA):

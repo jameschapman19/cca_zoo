@@ -2,7 +2,7 @@ from multiviewdata.torchdatasets import SplitMNIST, NoisyMNIST
 from torch.utils.data import Subset
 import numpy as np
 
-from cca_zoo.deepmodels import get_dataloaders
+from cca_zoo.data.deep import get_dataloaders
 
 
 def example_mnist_data(n_train, n_val, batch_size=50, val_batch_size=10, type="split"):

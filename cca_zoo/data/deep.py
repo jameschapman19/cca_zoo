@@ -1,4 +1,55 @@
-from torch.utils.data import DataLoader
+import numpy as np
+from torch.utils.data import Dataset, DataLoader
+
+
+class NumpyDataset(Dataset):
+    """
+    Class that turns numpy arrays into a torch dataset
+
+    """
+
+    def __init__(self, views, labels=None):
+        """
+
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        """
+        self.views = [view for view in views]
+        self.labels = labels
+
+    def __len__(self):
+        return len(self.views[0])
+
+    def __getitem__(self, index):
+        views = [view[index].astype(np.float32) for view in self.views]
+        if self.labels is not None:
+            label = self.labels[index]
+            return {"views": views, "label": label}
+        else:
+            return {"views": views}
+
+
+def check_dataset(dataset):
+    """
+    Checks that a custom dataset returns a dictionary with a "views" key containing a list of tensors
+
+    Parameters
+    ----------
+    dataset: torch.utils.data.Dataset
+
+    Returns
+    -------
+
+    """
+    dataloader = DataLoader(
+        dataset,
+    )
+    for batch in dataloader:
+        if "views" not in batch:
+            raise ValueError(
+                "The dataset must return a dictionary with a 'views' key containing a list of tensors"
+            )
+        else:
+            break
 
 
 def get_dataloaders(

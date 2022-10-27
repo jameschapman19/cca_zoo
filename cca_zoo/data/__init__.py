@@ -1,15 +1,13 @@
-from .simulated import linear_simulated_data, simple_simulated_data
+from . import simulated
 
 try:
-    from .utils import CCA_Dataset
+    from . import deep
 
     __all__ = [
-        "linear_simulated_data",
-        "simple_simulated_data",
-        "CCA_Dataset",
+        "simulated",
+        "deep"
     ]
 except ModuleNotFoundError:
     __all__ = [
-        "linear_simulated_data",
-        "simple_simulated_data",
+        "simulated"
     ]

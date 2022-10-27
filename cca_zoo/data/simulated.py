@@ -9,130 +9,140 @@ from sklearn.utils.validation import check_random_state
 from ..utils import _process_parameter
 
 
-def linear_simulated_data(
-        n: int,
-        view_features: List[int],
-        latent_dims: int = 1,
-        view_sparsity: List[Union[int, float]] = None,
-        correlation: Union[List[float], float] = 1,
-        structure: Union[str, List[str]] = None,
-        sigma: Union[List[float], float] = None,
-        decay: float = 0.5,
-        positive=None,
-        random_state: Union[int, np.random.RandomState] = None,
-):
-    """
-    Function to generate CCA dataset with defined population correlations
+class LinearSimulatedData:
+    def __init__(self,
+                 view_features: List[int],
+                 latent_dims: int = 1,
+                 view_sparsity: List[Union[int, float]] = None,
+                 correlation: Union[List[float], float] = 0.99,
+                 structure: Union[str, List[str]] = None,
+                 sigma: Union[List[float], float] = None,
+                 decay: float = 0.5,
+                 positive=None,
+                 random_state: Union[int, np.random.RandomState] = None):
+        """
 
-    :param n: number of samples
-    :param view_sparsity: level of sparsity in features in each view either as number of active variables or percentage active
-    :param view_features: number of features in each view
-    :param latent_dims: number of latent dimensions
-    :param correlation: correlation either as list with element for each latent dimension or as float which is scaled by 'decay'
-    :param structure: within view covariance structure ('identity','gaussian','toeplitz','random')
-    :param sigma: gaussian sigma
-    :param decay: ratio of second signal to first signal
-    :return: tuple of numpy arrays: view_1, view_2, true weights from view 1, true weights from view 2, overall covariance structure
-
-    :Example:
-
-    >>> from cca_zoo.data import linear_simulated_data
-    >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=linear_simulated_data(200,[10,10],latent_dims=1,correlation=1)
-    """
-    random_state = check_random_state(random_state)
-    structure = _process_parameter(
-        "structure", structure, "identity", len(view_features)
-    )
-    view_sparsity = _process_parameter(
-        "view_sparsity", view_sparsity, 1, len(view_features)
-    )
-    positive = _process_parameter("positive", positive, False, len(view_features))
-    sigma = _process_parameter("sigma", sigma, 0.5, len(view_features))
-    completed = False
-    attempts = 0
-    while not completed and attempts < 10:
-        try:
-            mean = np.zeros(sum(view_features))
-            if not isinstance(correlation, list):
-                p = np.arange(0, latent_dims)
-                correlation = correlation * decay ** p
-            covs = []
-            true_features = []
-            for view_p, sparsity, view_structure, view_positive, view_sigma in zip(
-                    view_features, view_sparsity, structure, positive, sigma
-            ):
-                # Covariance Bit
-                if view_structure == "identity":
-                    cov_ = np.eye(view_p)
-                elif view_structure == "gaussian":
-                    cov_ = _generate_gaussian_cov(view_p, view_sigma)
-                elif view_structure == "toeplitz":
-                    cov_ = _generate_toeplitz_cov(view_p, view_sigma)
-                elif view_structure == "random":
-                    cov_ = _generate_random_cov(view_p, random_state)
-                else:
-                    completed = True
-                    print("invalid structure")
-                    break
-                weights = random_state.randn(view_p, latent_dims)
-                if sparsity <= 1:
-                    sparsity = np.ceil(sparsity * view_p).astype("int")
-                if sparsity < view_p:
-                    mask = np.stack(
-                        (
-                            np.concatenate(
-                                ([0] * (view_p - sparsity), [1] * sparsity)
-                            ).astype(bool),
-                        )
-                        * latent_dims,
-                        axis=0,
-                    ).T
-                    mask = mask.flatten()
-                    random_state.shuffle(mask)
-                    mask = mask.reshape(weights.shape)
-                    weights = weights * mask
-                    if view_positive:
-                        weights[weights < 0] = 0
-                weights = _decorrelate_dims(weights, cov_)
-                weights /= np.sqrt(np.diag((weights.T @ cov_ @ weights)))
-                true_features.append(weights)
-                covs.append(cov_)
-
-            cov = block_diag(*covs)
-
-            splits = np.concatenate(([0], np.cumsum(view_features)))
-
-            for i, j in itertools.combinations(range(len(splits) - 1), 2):
-                cross = np.zeros((view_features[i], view_features[j]))
-                for _ in range(latent_dims):
-                    A = correlation[_] * np.outer(
-                        true_features[i][:, _], true_features[j][:, _]
-                    )
-                    # Cross Bit
-                    cross += covs[i] @ A @ covs[j]
-                cov[
-                splits[i]: splits[i] + view_features[i],
-                splits[j]: splits[j] + view_features[j],
-                ] = cross
-                cov[
-                splits[j]: splits[j] + view_features[j],
-                splits[i]: splits[i] + view_features[i],
-                ] = cross.T
-
-            X = np.zeros((n, sum(view_features)))
-            chol = np.linalg.cholesky(cov)
-            for _ in range(n):
-                X[_, :] = _chol_sample(mean, chol, random_state)
-            views = np.split(X, np.cumsum(view_features)[:-1], axis=1)
-            completed = True
-        except:
-            completed = False
-            attempts += 1
-    if not completed:
-        raise ValueError(
-            "Could not generate positive definite covariance matrix for supplied parameters."
+        Parameters
+        ----------
+        view_features : List[int]
+            Number of features in each view
+        latent_dims : int
+            Number of latent dimensions
+        view_sparsity : List[Union[int, float]]
+            Sparsity of each view
+        correlation : Union[List[float], float]
+            Correlation between views
+        structure : Union[str, List[str]]
+            Structure of each view
+        sigma : Union[List[float], float]
+            Noise level of each view
+        positive : None
+            Unused
+        random_state : Union[int, np.random.RandomState]
+            Random state
+        """
+        self.view_features = view_features
+        self.latent_dims = latent_dims
+        self.correlation = correlation
+        self.random_state = check_random_state(random_state)
+        self.correlation = _process_parameter(
+            "correlation", correlation, 0.99, latent_dims
         )
-    return views, true_features
+        # correlation must all be less than 1
+        if np.any(np.abs(self.correlation) >= 1):
+            raise ValueError("Magnitude of Correlation must be less than 1")
+        self.structure = _process_parameter(
+            "structure", structure, "identity", len(view_features)
+        )
+        self.view_sparsity = _process_parameter(
+            "view_sparsity", view_sparsity, 1, len(view_features)
+        )
+        self.positive = _process_parameter("positive", positive, False, len(view_features))
+        self.sigma = _process_parameter("sigma", sigma, 0.5, len(view_features))
+
+        self.mean, covs, self.true_features = self._generate_covariance_matrices()
+        joint_cov = self._generate_joint_covariance(covs)
+        self.chol = np.linalg.cholesky(joint_cov)
+
+    def _generate_covariance_matrix(self, view_p, view_structure, view_sigma):
+        if view_structure == "identity":
+            cov = np.eye(view_p)
+        elif view_structure == "gaussian":
+            cov = _generate_gaussian_cov(view_p, view_sigma)
+        elif view_structure == "toeplitz":
+            cov = _generate_toeplitz_cov(view_p, view_sigma)
+        elif view_structure == "random":
+            cov = _generate_random_cov(view_p, self.random_state)
+        else:
+            raise ValueError(f"Unknown structure {view_structure}")
+        return cov
+
+    def _generate_joint_covariance(self, covs):
+        cov = block_diag(*covs)
+        splits = np.concatenate(([0], np.cumsum(self.view_features)))
+        for i, j in itertools.combinations(range(len(splits) - 1), 2):
+            cross = np.zeros((self.view_features[i], self.view_features[j]))
+            for _ in range(self.latent_dims):
+                A = self.correlation[_] * np.outer(
+                    self.true_features[i][:, _], self.true_features[j][:, _]
+                )
+                # Cross Bit
+                cross += covs[i] @ A @ covs[j]
+            cov[
+            splits[i]: splits[i] + self.view_features[i],
+            splits[j]: splits[j] + self.view_features[j],
+            ] = cross
+            cov[
+            splits[j]: splits[j] + self.view_features[j],
+            splits[i]: splits[i] + self.view_features[i],
+            ] = cross.T
+        return cov
+
+    def _generate_covariance_matrices(self):
+        mean = np.zeros(sum(self.view_features))
+        covs = []
+        true_features = []
+        for view_p, sparsity, view_structure, view_positive, view_sigma in zip(
+                self.view_features, self.view_sparsity, self.structure, self.positive, self.sigma
+        ):
+            cov = self._generate_covariance_matrix(view_p, view_structure, view_sigma)
+            weights = self.random_state.randn(view_p, self.latent_dims)
+            if sparsity <= 1:
+                sparsity = np.ceil(sparsity * view_p).astype("int")
+            if sparsity < view_p:
+                mask = np.stack(
+                    (
+                        np.concatenate(
+                            ([0] * (view_p - sparsity), [1] * sparsity)
+                        ).astype(bool),
+                    )
+                    * self.latent_dims,
+                    axis=0,
+                ).T
+                mask = mask.flatten()
+                self.random_state.shuffle(mask)
+                mask = mask.reshape(weights.shape)
+                weights = weights * mask
+                if view_positive:
+                    weights[weights < 0] = 0
+            weights = _decorrelate_dims(weights, cov)
+            weights /= np.sqrt(np.diag((weights.T @ cov @ weights)))
+            true_features.append(weights)
+            covs.append(cov)
+        return mean, covs, true_features
+
+    def sample(self, n: int):
+        # check self.chol exists
+        X = np.zeros((n, self.chol.shape[0]))
+        for i in range(n):
+            X[i, :] = self._chol_sample(self.mean, self.chol, self.random_state)
+        views = np.split(X, np.cumsum(self.view_features)[:-1], axis=1)
+        return views
+
+    @staticmethod
+    def _chol_sample(mean, chol, random_state):
+        rng = check_random_state(random_state)
+        return mean + chol @ rng.randn(mean.size)
 
 
 def simple_simulated_data(
@@ -144,18 +154,26 @@ def simple_simulated_data(
         random_state=None,
 ):
     """
-    Simple latent variable model to generate data with one latent factor
+    Generate a simple simulated dataset with a single latent dimension
 
-    :param n: number of samples
-    :param view_features: number of features view 1
-    :param view_sparsity: number of features view 2
-    :param eps: gaussian noise std
-    :return: view1 matrix, view2 matrix, true weights view 1, true weights view 2
+    Parameters
+    ----------
+    n : int
+        Number of samples
+    view_features :
+        Number of features in each view
+    view_sparsity : List[Union[int, float]]
+        Sparsity of each view. If int, then number of non-zero features. If float, then proportion of non-zero features.
+    eps : float
+        Noise level
+    transform : bool
+        Whether to transform the data to be non-negative
+    random_state : int, RandomState instance, default=None
+        Controls the random seed in generating the data.
 
-    :Example:
+    Returns
+    -------
 
-    >>> from cca_zoo.data import simple_simulated_data
-    >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=linear_simulated_data(200,[10,10])
     """
     random_state = check_random_state(random_state)
     z = random_state.randn(n)
@@ -185,11 +203,6 @@ def _decorrelate_dims(up, cov):
         up[:, k:] -= np.outer(up[:, k - 1], A[k - 1, k:] / A[k - 1, k - 1])
         A = up.T @ cov @ up
     return up
-
-
-def _chol_sample(mean, chol, random_state):
-    rng = check_random_state(random_state)
-    return mean + chol @ rng.randn(mean.size)
 
 
 def _gaussian(x, mu, sig, dn):
