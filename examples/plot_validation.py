@@ -9,7 +9,7 @@ permutation testing, learning curves, and cross-validation.
 import numpy as np
 
 from cca_zoo import CCA, learning_curve
-from cca_zoo.data.simulated import linear_simulated_data
+from cca_zoo.data.simulated import LinearSimulatedData
 import matplotlib.pyplot as plt
 
 # %%
@@ -21,9 +21,9 @@ p = 15
 q = 15
 latent_dims = 3
 
-(X, Y), (tx, ty) = linear_simulated_data(
-    n, view_features=[p, q], latent_dims=latent_dims, correlation=[0.9, 0.5, 0.1]
-)
+(X, Y) = LinearSimulatedData(
+    view_features=[p, q], latent_dims=latent_dims, correlation=[0.9, 0.5, 0.1]
+).sample(n)
 
 # %%
 # Permutation Testing

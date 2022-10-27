@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from cca_zoo.data.simulated import linear_simulated_data
+from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.models import (
     SCCA_PMD,
@@ -52,15 +52,16 @@ view_1_sparsity = 0.1
 view_2_sparsity = 0.1
 latent_dims = 1
 
-(X, Y), (tx, ty) = linear_simulated_data(
-    n,
+data = LinearSimulatedData(
     view_features=[p, q],
     latent_dims=latent_dims,
     view_sparsity=[view_1_sparsity, view_2_sparsity],
     correlation=[0.9],
 )
-tx /= np.sqrt(n)
-ty /= np.sqrt(n)
+(X,Y)=data.sample(n)
+
+tx =data.true_features[0]/np.sqrt(n)
+ty =data.true_features[1]/np.sqrt(n)
 
 
 # %%

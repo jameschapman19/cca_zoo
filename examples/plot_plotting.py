@@ -9,7 +9,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from cca_zoo import CCA
-from cca_zoo.data.simulated import linear_simulated_data
+from cca_zoo.data.simulated import LinearSimulatedData
 import matplotlib.pyplot as plt
 
 from cca_zoo.plotting import pairplot_train_test
@@ -23,9 +23,9 @@ p = 25
 q = 25
 latent_dims = 3
 
-(X, Y), (tx, ty) = linear_simulated_data(
-    n, view_features=[p, q], latent_dims=latent_dims, correlation=[0.9, 0.8, 0.7]
-)
+(X, Y) = LinearSimulatedData(
+    view_features=[p, q], latent_dims=latent_dims, correlation=[0.9, 0.8, 0.7]
+).sample(n)
 
 X_tr, X_te, Y_tr, Y_te = train_test_split(X, Y, test_size=0.2, random_state=42)
 

@@ -6,7 +6,7 @@ This will compare MCCA, GCCA, TCCA for linear models with more than 2 views
 """
 import numpy as np
 
-from cca_zoo.data.simulated import linear_simulated_data
+from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.models import MCCA, GCCA, TCCA, KCCA, KGCCA, KTCCA, SCCA_PMD
 
 """
@@ -22,9 +22,9 @@ r = 3
 latent_dims = 1
 cv = 3
 
-(X, Y, Z), (tx, ty, tz) = linear_simulated_data(
-    n, view_features=[p, q, r], latent_dims=latent_dims, correlation=[0.9]
-)
+(X, Y, Z) = LinearSimulatedData(
+    view_features=[p, q, r], latent_dims=latent_dims, correlation=[0.9]
+).sample(n)
 
 # %%
 # Eigendecomposition-Based Methods
