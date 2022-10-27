@@ -1,7 +1,8 @@
 import torch
+
+from .. import objectives
 from .._discriminative._dcca import DCCA
 from .._generative._base import _GenerativeMixin
-from .. import objectives
 from ..callbacks import GenerativeCallback, CorrelationCallback
 
 

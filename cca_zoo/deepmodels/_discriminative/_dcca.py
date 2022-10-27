@@ -1,6 +1,7 @@
 import torch
-from .._base import _BaseDeep
+
 from .. import objectives
+from .._base import _BaseDeep
 from ..callbacks import CorrelationCallback
 from ...models import MCCA
 from ...models._base import _BaseCCA

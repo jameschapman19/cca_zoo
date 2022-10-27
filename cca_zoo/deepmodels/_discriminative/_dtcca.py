@@ -2,9 +2,9 @@ from typing import Iterable
 
 import numpy as np
 
+from ._dcca import DCCA
 from .. import objectives
 from ...models import TCCA
-from ._dcca import DCCA
 
 
 class DTCCA(DCCA):

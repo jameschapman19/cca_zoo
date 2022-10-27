@@ -4,6 +4,7 @@ from sklearn.utils.validation import check_random_state
 from torch import manual_seed
 from torch.utils.data import random_split
 
+from cca_zoo.data.deep import NumpyDataset, get_dataloaders, check_dataset
 from cca_zoo.deepmodels import (
     DCCA,
     DCCAE,
@@ -14,7 +15,6 @@ from cca_zoo.deepmodels import (
     BarlowTwins,
     DCCA_SDL, objectives,
 )
-from cca_zoo.data.deep import NumpyDataset, get_dataloaders, check_dataset
 from cca_zoo.deepmodels import architectures
 from cca_zoo.models import CCA
 
