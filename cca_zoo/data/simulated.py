@@ -36,8 +36,6 @@ class LinearSimulatedData:
             Structure of each view
         sigma : Union[List[float], float]
             Noise level of each view
-        decay : float
-            Decay rate of the correlation matrix
         positive : None
             Unused
         random_state : Union[int, np.random.RandomState]
@@ -46,8 +44,6 @@ class LinearSimulatedData:
         self.view_features = view_features
         self.latent_dims = latent_dims
         self.correlation = correlation
-        self.decay = decay
-
         self.random_state = check_random_state(random_state)
         self.correlation = _process_parameter(
             "correlation", correlation, 0.99, latent_dims
