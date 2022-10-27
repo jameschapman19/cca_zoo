@@ -290,7 +290,7 @@ def test_PCCA():
 
     np.random.seed(0)
     # Tests tensor CCA methods
-    (X, Y), (_) = linear_simulated_data(20, [5, 5])
+    X, Y = LinearSimulatedData([5, 5]).sample(100)
     latent_dims = 1
     cca = CCA(latent_dims=latent_dims).fit([X, Y])
     pcca = ProbabilisticCCA(
