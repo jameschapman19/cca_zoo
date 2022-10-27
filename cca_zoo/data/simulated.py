@@ -61,10 +61,10 @@ class LinearSimulatedData:
         self.sigma = _process_parameter("sigma", sigma, 0.5, len(view_features))
 
         self.mean, covs, self.true_features = self._generate_covariance_matrices()
-        joint_cov=self._generate_joint_covariance(covs)
+        joint_cov = self._generate_joint_covariance(covs)
         self.chol = np.linalg.cholesky(joint_cov)
 
-    def _generate_covariance_matrix(self,view_p, view_structure, view_sigma):
+    def _generate_covariance_matrix(self, view_p, view_structure, view_sigma):
         if view_structure == "identity":
             cov = np.eye(view_p)
         elif view_structure == "gaussian":
@@ -105,7 +105,7 @@ class LinearSimulatedData:
         for view_p, sparsity, view_structure, view_positive, view_sigma in zip(
                 self.view_features, self.view_sparsity, self.structure, self.positive, self.sigma
         ):
-            cov=self._generate_covariance_matrix(view_p, view_structure, view_sigma)
+            cov = self._generate_covariance_matrix(view_p, view_structure, view_sigma)
             weights = self.random_state.randn(view_p, self.latent_dims)
             if sparsity <= 1:
                 sparsity = np.ceil(sparsity * view_p).astype("int")
@@ -132,7 +132,7 @@ class LinearSimulatedData:
         return mean, covs, true_features
 
     def sample(self, n: int):
-        #check self.chol exists
+        # check self.chol exists
         X = np.zeros((n, self.chol.shape[0]))
         for i in range(n):
             X[i, :] = self._chol_sample(self.mean, self.chol, self.random_state)
@@ -144,6 +144,7 @@ class LinearSimulatedData:
         rng = check_random_state(random_state)
         return mean + chol @ rng.randn(mean.size)
 
+
 def simple_simulated_data(
         n: int,
         view_features: List[int],
@@ -153,18 +154,26 @@ def simple_simulated_data(
         random_state=None,
 ):
     """
-    Simple latent variable model to generate data with one latent factor
+    Generate a simple simulated dataset with a single latent dimension
 
-    :param n: number of samples
-    :param view_features: number of features view 1
-    :param view_sparsity: number of features view 2
-    :param eps: gaussian noise std
-    :return: view1 matrix, view2 matrix, true weights view 1, true weights view 2
+    Parameters
+    ----------
+    n : int
+        Number of samples
+    view_features :
+        Number of features in each view
+    view_sparsity : List[Union[int, float]]
+        Sparsity of each view. If int, then number of non-zero features. If float, then proportion of non-zero features.
+    eps : float
+        Noise level
+    transform : bool
+        Whether to transform the data to be non-negative
+    random_state : int, RandomState instance, default=None
+        Controls the random seed in generating the data.
 
-    :Example:
+    Returns
+    -------
 
-    >>> from cca_zoo.data import simple_simulated_data
-    >>> [train_view_1,train_view_2],[true_weights_1,true_weights_2]=linear_simulated_data(200,[10,10])
     """
     random_state = check_random_state(random_state)
     z = random_state.randn(n)
