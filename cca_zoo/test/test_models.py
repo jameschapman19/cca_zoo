@@ -5,7 +5,7 @@ from sklearn.utils.fixes import loguniform
 from sklearn.utils.validation import check_random_state
 
 from cca_zoo import cross_validate, permutation_test_score, learning_curve, PRCCA, GRCCA
-from cca_zoo.data.simulated import linear_simulated_data
+from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.models import (
     rCCA,
@@ -37,6 +37,11 @@ Y = rng.rand(n, 11)
 Z = rng.rand(n, 12)
 X_sp = sp.random(n, 10, density=0.5, random_state=rng)
 Y_sp = sp.random(n, 11, density=0.5, random_state=rng)
+
+
+def test_linear_simulated_data():
+    sim_data = LinearSimulatedData([10, 10]).sample(100)
+    assert CCA().fit(sim_data).score(sim_data) > 0.9
 
 
 def test_unregularized_methods():
