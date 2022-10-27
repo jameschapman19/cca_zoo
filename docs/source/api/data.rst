@@ -11,9 +11,9 @@ Simulated Data
     :members:
 
 
-Utils
+Deep
 --------------------------
 
-.. automodule:: cca_zoo.data.utils
+.. automodule:: cca_zoo.data.deep
     :members:
 
