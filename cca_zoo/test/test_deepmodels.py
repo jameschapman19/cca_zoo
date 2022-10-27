@@ -4,7 +4,6 @@ from sklearn.utils.validation import check_random_state
 from torch import manual_seed
 from torch.utils.data import random_split
 
-from cca_zoo import data
 from cca_zoo.deepmodels import (
     DCCA,
     DCCAE,
@@ -12,11 +11,11 @@ from cca_zoo.deepmodels import (
     DCCA_NOI,
     DTCCA,
     SplitAE,
-    get_dataloaders,
     BarlowTwins,
-    DCCA_SDL,
+    DCCA_SDL, objectives,
 )
-from cca_zoo.deepmodels import objectives, architectures
+from cca_zoo.data.deep import NumpyDataset, get_dataloaders, check_dataset
+from cca_zoo.deepmodels import architectures
 from cca_zoo.models import CCA
 
 manual_seed(0)
@@ -26,11 +25,12 @@ Y = rng.rand(256, 12)
 Z = rng.rand(256, 14)
 X_conv = rng.rand(256, 1, 16, 16)
 Y_conv = rng.rand(256, 1, 16, 16)
-dataset = data.CCA_Dataset([X, Y, Z])
+dataset = NumpyDataset([X, Y, Z])
+check_dataset(dataset)
 train_dataset, val_dataset = random_split(dataset, [200, 56])
 loader = get_dataloaders(dataset)
 train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
-conv_dataset = data.CCA_Dataset((X_conv, Y_conv))
+conv_dataset = NumpyDataset((X_conv, Y_conv))
 conv_loader = get_dataloaders(conv_dataset)
 train_ids = train_dataset.indices
 

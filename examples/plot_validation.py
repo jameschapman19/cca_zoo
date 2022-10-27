@@ -9,7 +9,7 @@ permutation testing, learning curves, and cross-validation.
 import numpy as np
 
 from cca_zoo import CCA, learning_curve
-from cca_zoo.data import linear_simulated_data
+from cca_zoo.data.simulated import linear_simulated_data
 import matplotlib.pyplot as plt
 
 # %%

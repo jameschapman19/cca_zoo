@@ -1,4 +1,4 @@
-from cca_zoo.models._multiview import MCCA, KCCA, GCCA, KGCCA, TCCA, KTCCA
+from ._multiview import MCCA, KCCA, GCCA, KGCCA, TCCA, KTCCA
 from ._grcca import GRCCA
 from ._iterative import (
     PLS_ALS,
@@ -41,7 +41,6 @@ __all__ = [
 
 try:
     from ._stochastic import StochasticPowerPLS, IncrementalPLS
-
     __all__.extend("StochasticPowerPLS", "IncrementalPLS")
 except:
     pass

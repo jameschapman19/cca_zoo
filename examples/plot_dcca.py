@@ -15,7 +15,7 @@ from cca_zoo.deepmodels import (
     DCCA_SDL,
     BarlowTwins,
 )
-from cca_zoo.deepmodels.utils import architectures
+from cca_zoo.deepmodels import architectures
 from cca_zoo.plotting import pairplot_label
 from examples import example_mnist_data
 

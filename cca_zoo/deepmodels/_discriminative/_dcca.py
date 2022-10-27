@@ -1,10 +1,9 @@
 import torch
-
-from cca_zoo.deepmodels._base import _BaseDeep
-from cca_zoo.deepmodels.utils import objectives
-from cca_zoo.deepmodels.utils.callbacks import CorrelationCallback
-from cca_zoo.models import MCCA
-from cca_zoo.models._base import _BaseCCA
+from .._base import _BaseDeep
+from .. import objectives
+from ..callbacks import CorrelationCallback
+from ...models import MCCA
+from ...models._base import _BaseCCA
 
 
 class DCCA(_BaseDeep, _BaseCCA):

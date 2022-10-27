@@ -5,7 +5,7 @@ from sklearn.utils.fixes import loguniform
 from sklearn.utils.validation import check_random_state
 
 from cca_zoo import cross_validate, permutation_test_score, learning_curve, PRCCA, GRCCA
-from cca_zoo.data import linear_simulated_data
+from cca_zoo.data.simulated import linear_simulated_data
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.models import (
     rCCA,

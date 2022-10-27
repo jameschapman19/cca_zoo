@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from sklearn.utils.fixes import loguniform
 
-from cca_zoo.data import linear_simulated_data
+from cca_zoo.data.simulated import linear_simulated_data
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.models import KCCA
 

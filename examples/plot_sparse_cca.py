@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from cca_zoo.data import linear_simulated_data
+from cca_zoo.data.simulated import linear_simulated_data
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.models import (
     SCCA_PMD,

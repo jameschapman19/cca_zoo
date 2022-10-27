@@ -8,7 +8,7 @@ This script demonstrates how to use kernel and nonparametric methods
 # %%
 import numpy as np
 
-from cca_zoo.data import linear_simulated_data
+from cca_zoo.data.simulated import linear_simulated_data
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.models import KCCA
 
