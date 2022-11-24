@@ -25,6 +25,7 @@ Documentation
    api/data
    api/deepmodels
    api/models
+   api/stochasticmodels
    api/probabilisticmodels
    api/model_selection
    api/utils
