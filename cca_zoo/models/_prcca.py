@@ -26,6 +26,14 @@ class PRCCA(MCCA):
             eps=1e-3,
             c=0,
     ):
+        """
+        Parameters
+        ----------
+        c : Union[Iterable[float], float], optional
+            Regularisation parameter, by default None
+        eps : float, optional
+            Tolerance for convergence, by default 1e-3
+        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,

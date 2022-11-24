@@ -12,23 +12,8 @@ from cca_zoo.utils.check_values import _check_views
 
 
 class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
-    """Base class for CCA methods.
-
-    Parameters
-    ----------
-    latent_dims : int, optional
-        Number of latent dimensions to fit. Default is 1.
-    scale : bool, optional
-        Whether to scale the data to unit variance. Default is True.
-    centre : bool, optional
-        Whether to centre the data. Default is True.
-    copy_data : bool, optional
-        Whether to copy the data. Default is True.
-    accept_sparse : bool, optional
-        Whether to accept sparse data. Default is False.
-    random_state : int, RandomState instance or None, optional (default=None)
-        Pass an int for reproducible output across multiple function calls.
-
+    """
+    Base class for CCA methods.
     """
 
     def __init__(
@@ -40,6 +25,23 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
             accept_sparse=False,
             random_state: Union[int, np.random.RandomState] = None,
     ):
+        """
+        Parameters
+        ----------
+        latent_dims : int, optional
+            Number of latent dimensions to fit. Default is 1.
+        scale : bool, optional
+            Whether to scale the data to unit variance. Default is True.
+        centre : bool, optional
+            Whether to centre the data. Default is True.
+        copy_data : bool, optional
+            Whether to copy the data. Default is True.
+        accept_sparse : bool, optional
+            Whether to accept sparse data. Default is False.
+        random_state : int, RandomState instance or None, optional (default=None)
+            Pass an int for reproducible output across multiple function calls.
+
+        """
         self.latent_dims = latent_dims
         self.scale = scale
         self.centre = centre

@@ -38,6 +38,15 @@ class PartialCCA(MCCA):
             c: Union[Iterable[float], float] = None,
             eps=1e-3,
     ):
+        """
+
+        Parameters
+        ----------
+        c : float or iterable of floats
+            Regularisation parameter. If a single float is passed, this is used for all views. If an iterable is passed, it must be the same length as the number of views. If None, the default is used.
+        eps : float
+            Tolerance for convergence of the iterative algorithm.
+        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
