@@ -57,6 +57,9 @@ intersphinx_mapping = {
         "https://pytorch-lightning.readthedocs.io/en/stable/index.html#",
         None,
     ),
+    "jax": ("https://jax.readthedocs.io/en/latest/", None),
+    "numpyro": ("https://numpyro.readthedocs.io/en/latest/", None),
+    "jaxlib": ("https://jax.readthedocs.io/en/latest/", None),
 }
 
 # -- sphinx.ext.autodoc
