@@ -6,11 +6,11 @@ This script will show how to use the model validation methods in CCA-Zoo includi
 permutation testing, learning curves, and cross-validation.
 """
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from cca_zoo import CCA, learning_curve
 from cca_zoo.data.simulated import LinearSimulatedData
-import matplotlib.pyplot as plt
 
 # %%
 # Data
@@ -61,14 +61,14 @@ import matplotlib.pyplot as plt
 
 
 def plot_learning_curve(
-    estimator,
-    title,
-    views,
-    axes=None,
-    ylim=None,
-    cv=None,
-    n_jobs=None,
-    train_sizes=np.linspace(0.1, 1.0, 5),
+        estimator,
+        title,
+        views,
+        axes=None,
+        ylim=None,
+        cv=None,
+        n_jobs=None,
+        train_sizes=np.linspace(0.1, 1.0, 5),
 ):
     """
     Generate 3 plots: the test and training learning curve, the training

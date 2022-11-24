@@ -7,7 +7,6 @@ from ._scca_admm import SCCA_ADMM
 from ._scca_parkhomenko import SCCA_Parkhomenko
 from ._spancca import SCCA_Span
 from ._swcca import SWCCA
-from .utils import ProxFrobenius, ProxLasso
 
 __all__ = [
     "AltMaxVar",
@@ -20,6 +19,4 @@ __all__ = [
     "SCCA_Parkhomenko",
     "SCCA_Span",
     "SWCCA",
-    "ProxFrobenius",
-    "ProxLasso",
 ]

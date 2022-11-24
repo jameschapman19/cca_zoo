@@ -2,9 +2,10 @@ from typing import Union, Iterable
 
 import numpy as np
 
-from cca_zoo.models._iterative.utils import _delta_search, support_threshold
 from cca_zoo.utils import _process_parameter
 from ._base import _BaseInnerLoop, _BaseIterative
+from .._proximal_operators import support_threshold
+from .._search import _delta_search
 
 
 class SCCA_Span(_BaseIterative):

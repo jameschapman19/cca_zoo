@@ -13,24 +13,24 @@ Models
    :show-inheritance:
 
 
-Deep Objectives
+Objectives
 -------------------------------------
 
-.. automodule:: cca_zoo.deepmodels.utils.objectives
+.. automodule:: cca_zoo.deepmodels.objectives
    :members:
    :show-inheritance:
 
 Callbacks
 -------------------------------------
 
-.. automodule:: cca_zoo.deepmodels.utils.callbacks
+.. automodule:: cca_zoo.deepmodels.callbacks
    :members:
    :show-inheritance:
 
-Model Architectures
+Architectures
 ----------------------------------------
 
-.. automodule:: cca_zoo.deepmodels.utils.architectures
+.. automodule:: cca_zoo.deepmodels.architectures
    :members:
    :show-inheritance:
 

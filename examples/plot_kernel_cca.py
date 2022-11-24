@@ -12,7 +12,6 @@ from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.models import KCCA
 
-
 # %%
 # Data
 # -----
@@ -23,7 +22,7 @@ q = 100
 latent_dims = 1
 cv = 3
 
-(X, Y)= LinearSimulatedData(
+(X, Y) = LinearSimulatedData(
     view_features=[p, q], latent_dims=latent_dims, correlation=[0.9]
 ).sample(n)
 
