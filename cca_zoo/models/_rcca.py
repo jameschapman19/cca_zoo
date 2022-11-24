@@ -22,6 +22,26 @@ class rCCA(_BaseCCA):
 
         (1-c_2)w_2^TX_2^TX_2w_2+c_2w_2^Tw_2=n
 
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to use, by default 1
+    scale : bool, optional
+        Whether to scale the data, by default True
+    centre : bool, optional
+        Whether to centre the data, by default True
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random state, by default None
+    c : Union[Iterable[float], float], optional
+        Regularisation parameter, by default None
+    eps : float, optional
+        Tolerance for convergence, by default 1e-3
+    accept_sparse : Union[bool, str], optional
+        Whether to accept sparse data, by default None
+
+
     References
     --------
     Vinod, Hrishikesh D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
@@ -49,14 +69,6 @@ class rCCA(_BaseCCA):
             eps=1e-3,
             accept_sparse=None,
     ):
-        """
-        Parameters
-        ----------
-        c : Union[Iterable[float], float], optional
-            Regularisation parameter, by default None
-        eps : float, optional
-            Tolerance for convergence, by default 1e-3
-        """
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]
         super().__init__(
@@ -146,6 +158,24 @@ class CCA(rCCA):
 
         w_2^TX_2^TX_2w_2=n
 
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to use, by default 1
+    scale : bool, optional
+        Whether to scale the data, by default True
+    centre : bool, optional
+        Whether to centre the data, by default True
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random state, by default None
+    eps : float, optional
+        Tolerance for convergence, by default 1e-3
+    accept_sparse : Union[bool, str], optional
+        Whether to accept sparse data, by default None
+
+
     References
     --------
 
@@ -196,6 +226,23 @@ class PLS(rCCA):
         w_1^Tw_1=1
 
         w_2^Tw_2=1
+
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to use, by default 1
+    scale : bool, optional
+        Whether to scale the data, by default True
+    centre : bool, optional
+        Whether to centre the data, by default True
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random state, by default None
+    eps : float, optional
+        Tolerance for convergence, by default 1e-3
+    accept_sparse : Union[bool, str], optional
+        Whether to accept sparse data, by default None
 
     Example
     -------

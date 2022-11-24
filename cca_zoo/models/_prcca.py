@@ -11,6 +11,24 @@ class PRCCA(MCCA):
     """
     Partially Regularized Canonical Correlation Analysis
 
+
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to use, by default 1
+    scale : bool, optional
+        Whether to scale the data, by default True
+    centre : bool, optional
+        Whether to centre the data, by default True
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random state for reproducibility, by default None
+    eps : float, optional
+        Tolerance for convergence, by default 1e-3
+    c : Union[Iterable[float], float], optional
+        Regularisation parameter, by default None
+
     References
     ----------
     Tuzhilina, Elena, Leonardo Tozzi, and Trevor Hastie. "Canonical correlation analysis in high dimensions with structured regularization." Statistical Modelling (2021): 1471082X211041033.

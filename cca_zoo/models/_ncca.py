@@ -38,14 +38,6 @@ class NCCA(_BaseCCA):
             nearest_neighbors=None,
             gamma: Iterable[float] = None,
     ):
-        """
-        Parameters
-        ----------
-        nearest_neighbors: int or list of ints, default=None
-            Number of nearest neighbors to use for each view. If None, will use the number of samples in the view.
-        gamma: float or list of floats, default=None
-            Kernel coefficient for each view. If None, will use 1 / n_features.
-        """
         super().__init__(
             latent_dims, scale, centre, copy_data, accept_sparse, random_state
         )

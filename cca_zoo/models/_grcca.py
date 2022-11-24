@@ -11,6 +11,26 @@ class GRCCA(MCCA):
     """
     Grouped Regularized Canonical Correlation Analysis
 
+    Parameters
+    ----------
+    latent_dims : int, default=1
+        Number of latent dimensions to use
+    scale : bool, default=True
+        Whether to scale the data to unit variance
+    centre : bool, default=True
+        Whether to centre the data
+    copy_data : bool, default=True
+        Whether to copy the data
+    random_state : int, default=None
+        Random state for initialisation
+    eps : float, default=1e-3
+        Tolerance for convergence
+    c : float, default=0
+        Regularization parameter for the group means
+    mu : float, default=0
+        Regularization parameter for the group sizes
+
+
     References
     ----------
     Tuzhilina, Elena, Leonardo Tozzi, and Trevor Hastie. "Canonical correlation analysis in high dimensions with structured regularization." Statistical Modelling (2021): 1471082X211041033.

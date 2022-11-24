@@ -7,6 +7,42 @@ class IncrementalPLS(_BaseStochastic):
     r"""
     A class used to fit Incremental PLS
 
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to use, by default 1
+    scale : bool, optional
+        Whether to scale the data, by default True
+    centre : bool, optional
+        Whether to centre the data, by default True
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random state to use, by default None
+    accept_sparse : bool, optional
+        Whether to accept sparse data, by default None
+    batch_size : int, optional
+        Batch size to use, by default 1
+    shuffle : bool, optional
+        Whether to shuffle the data, by default True
+    sampler : torch.utils.data.Sampler, optional
+        Sampler to use, by default None
+    batch_sampler : torch.utils.data.Sampler, optional
+        Batch sampler to use, by default None
+    num_workers : int, optional
+        Number of workers to use, by default 0
+    pin_memory : bool, optional
+        Whether to pin memory, by default False
+    drop_last : bool, optional
+        Whether to drop the last batch, by default True
+    timeout : int, optional
+        Timeout to use, by default 0
+    worker_init_fn : function, optional
+        Worker init function to use, by default None
+    epochs : int, optional
+        Number of epochs to use, by default 1
+    simple : bool, optional
+        Whether to use the simple update, by default False
 
     References
     ----------
@@ -32,7 +68,6 @@ class IncrementalPLS(_BaseStochastic):
             worker_init_fn=None,
             epochs=1,
             simple=False,
-            val_interval=10,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -51,7 +86,6 @@ class IncrementalPLS(_BaseStochastic):
             timeout=timeout,
             worker_init_fn=worker_init_fn,
             epochs=epochs,
-            val_interval=val_interval,
         )
         self.simple = simple
 

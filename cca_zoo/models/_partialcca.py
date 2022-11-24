@@ -12,6 +12,23 @@ class PartialCCA(MCCA):
     A class used to fit a partial cca model. The key difference between this and a vanilla CCA or MCCA is that
     the canonical score vectors must be orthogonal to the supplied confounding variables.
 
+    Parameters
+    ----------
+    latent_dims : int, optional
+        The number of latent dimensions to use, by default 1
+    scale : bool, optional
+        Whether to scale the data, by default True
+    centre : bool, optional
+        Whether to centre the data, by default True
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        The random state to use, by default None
+    c : Union[Iterable[float], float], optional
+        The regularization parameter, by default None
+    eps : float, optional
+        The tolerance for convergence, by default 1e-3
+
     References
     ----------
     Rao, B. Raja. "Partial canonical correlations." Trabajos de estadistica y de investigación operativa 20.2-3 (1969): 211-219.
@@ -38,15 +55,6 @@ class PartialCCA(MCCA):
             c: Union[Iterable[float], float] = None,
             eps=1e-3,
     ):
-        """
-
-        Parameters
-        ----------
-        c : float or iterable of floats
-            Regularisation parameter. If a single float is passed, this is used for all views. If an iterable is passed, it must be the same length as the number of views. If None, the default is used.
-        eps : float
-            Tolerance for convergence of the iterative algorithm.
-        """
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
