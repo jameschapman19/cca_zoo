@@ -56,7 +56,7 @@ class GRCCA(MCCA):
             warnings.warn(f"No feature groups provided, using all features")
             feature_groups = [np.ones(view.shape[1], dtype=int) for view in views]
         for feature_group in feature_groups:
-            assert feature_group.dtype == int, "subject_groups must be integers"
+            assert np.issubdtype(feature_group.dtype, np.integer), "feature groups must be integers"
         views = self._validate_inputs(views)
         self._check_params()
         views, idxs = self._preprocess(views, feature_groups)
