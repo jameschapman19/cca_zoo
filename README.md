@@ -58,45 +58,6 @@ With bibtex entry:
 }
 ```
 
-## Implemented Methods
-
-### Standard Install
-- CCA (Canonical Correlation Analysis): Solutions based on either alternating least squares or as the solution to genrralized eigenvalue problem
-- PLS (Partial Least Squares)
-- [rCCA (Ridge Regularized Canonical Correlation Analysis)](https://www.sciencedirect.com/science/article/abs/pii/0304407676900105?via%3Dihub)
-- [GCCA (Generalized CCA)](https://academic.oup.com/biomet/article-abstract/58/3/433/233349?redirectedFrom=fulltext)
-- MCCA (Multiset CCA)
-- K(M)CCA (kernel Multiset CCA)
-- NCCA (Nonparametric CCA)
-- PartialCCA (Partial CCA)
-- [TCCA (Tensor CCA)](https://arxiv.org/pdf/1502.02330.pdf)
-- [KTCCA (kernel Tensor CCA)](https://arxiv.org/pdf/1502.02330.pdf)
-- [SCCA_IPLS (Sparse CCA)](https://onlinelibrary.wiley.com/doi/abs/10.1111/biom.13043)
-- [SPLS (Sparse PLS/Penalized Matrix Decomposition](https://web.stanford.edu/~hastie/Papers/PMD_Witten.pdf)
-- [ElasticCCA (Penalized CCA)](https://pubmed.ncbi.nlm.nih.gov/19689958/)
-- [SWCCA (Sparse Weighted CCA)](https://arxiv.org/abs/1710.04792v1#:~:text=However%2C%20classical%20and%20sparse%20CCA%20models%20consider%20the,where%20weights%20are%20used%20for%20regularizing%20different%20samples)
-- [SCCA_Span](http://akyrillidis.github.io/pubs/Conferences/cca.pdf)
-
-### `[deep]` Install
-- DCCA (Deep CCA)
-
-  Using either Andrew's original [Tracenorm Objective](https://ttic.uchicago.edu/~klivescu/papers/andrew_icml2013.pdf) or Wang's [alternating least squares solution](https://arxiv.org/pdf/1510.02054v1.pdf)
-  
-- [DGCCA (Deep Generalized CCA)](https://www.aclweb.org/anthology/W19-4301.pdf)
-
-  An alternative objective based on the linear GCCA solution. Can be extended to more than 2 views
- 
-- [DMCCA (Deep Multiset CCA)](https://arxiv.org/abs/1904.01775)
-
-  An alternative objective based on the linear MCCA solution. Can be extended to more than 2 views
-  
-- [DTCCA (Deep Tensor CCA)](https://arxiv.org/pdf/2005.11914.pdf)
-- [DCCAE (Deep Canonically Correlated Autoencoders)](http://proceedings.mlr.press/v37/wangb15.pdf)
-- [DVCCA/DVCCA Private (Deep variational CCA)](https://arxiv.org/pdf/1610.03454.pdf)
-
-### `[probabilistic]` Install
-- [Variational Bayes CCA](https://ieeexplore.ieee.org/document/4182407)
-
 ## Contributions
 A guide to contributions is available at https://cca-zoo.readthedocs.io/en/latest/developer_info/contribute.html
 
