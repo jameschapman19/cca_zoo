@@ -19,6 +19,43 @@ class SCCA_ADMM(_BaseIterative):
 
         w_i^TX_i^TX_iw_i=1
 
+    Parameters
+    ----------
+    latent_dims : int, default=1
+        Number of latent dimensions to use in the model.
+    scale : bool, default=True
+        Whether to scale the data to unit variance.
+    centre : bool, default=True
+        Whether to centre the data to have zero mean.
+    copy_data : bool, default=True
+        Whether to copy the data or overwrite it.
+    random_state : int, default=None
+        Random seed for initialisation.
+    deflation : str, default="cca"
+        Deflation method to use. Options are "cca" and "pls".
+    c : float or list of floats, default=None
+        Regularisation parameter. If a single float is given, the same value is used for all views.
+        If a list of floats is given, the values are used for each view.
+    mu : float or list of floats, default=None
+        Regularisation parameter. If a single float is given, the same value is used for all views.
+        If a list of floats is given, the values are used for each view.
+    lam : float or list of floats, default=None
+        Regularisation parameter. If a single float is given, the same value is used for all views.
+        If a list of floats is given, the values are used for each view.
+    eta : float or list of floats, default=None
+        Regularisation parameter. If a single float is given, the same value is used for all views.
+        If a list of floats is given, the values are used for each view.
+    max_iter : int, default=100
+        Maximum number of iterations to run.
+    initialization : str or callable, default="pls"
+        Method to use for initialisation. Options are "pls" and "random".
+    tol : float, default=1e-9
+        Tolerance for convergence.
+    verbose : int, default=0
+        Verbosity level. If 0, no output is printed. If 1, output is printed every 10 iterations.
+
+
+
     References
     ----------
     Suo, Xiaotong, et al. "Sparse canonical correlation analysis." arXiv preprint arXiv:1705.10865 (2017).

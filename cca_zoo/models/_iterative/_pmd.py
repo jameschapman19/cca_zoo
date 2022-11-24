@@ -23,6 +23,36 @@ class SCCA_PMD(_BaseIterative):
 
         \|w_i\|<=c_i
 
+    Parameters
+    ----------
+    latent_dims : int, default=1
+        Number of latent dimensions to use in the model.
+    scale : bool, default=True
+        Whether to scale the data to unit variance.
+    centre : bool, default=True
+        Whether to centre the data to have zero mean.
+    copy_data : bool, default=True
+        Whether to copy the data or overwrite it.
+    random_state : int, default=None
+        Random seed for initialisation.
+    deflation : str, default="cca"
+        Deflation method to use. Options are "cca" and "pmd".
+    c : float or list of floats, default=None
+        Regularisation parameter. If a single float is given, the same value is used for all views.
+        If a list of floats is given, the values are used for each view respectively.
+        If None, the value is set to 1.
+    max_iter : int, default=100
+        Maximum number of iterations to run.
+    initialization : str or callable, default="pls"
+        Method to use for initialisation. Options are "pls" and "random".
+    tol : float, default=1e-9
+        Tolerance for convergence.
+    positive : bool or list of bools, default=False
+        Whether to constrain the weights to be positive.
+    verbose : int, default=0
+        Verbosity level. 0 is silent, 1 prints progress.
+
+
     References
     ----------
     Witten, Daniela M., Robert Tibshirani, and Trevor Hastie. "A penalized matrix decomposition, with applications to sparse principal components and canonical correlation analysis." Biostatistics 10.3 (2009): 515-534.

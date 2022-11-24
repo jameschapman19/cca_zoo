@@ -21,6 +21,24 @@ class MCCA(rCCA):
 
         (1-c_i)w_i^TX_i^TX_iw_i+c_iw_i^Tw_i=1
 
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to use, by default 1
+    scale : bool, optional
+        Whether to scale the data, by default True
+    centre : bool, optional
+        Whether to centre the data, by default True
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random state, by default None
+    c : Union[Iterable[float], float], optional
+        Regularisation parameter, by default None
+    eps : float, optional
+        Small value to add to the diagonal of the regularisation matrix, by default 1e-9
+
+
     References
     ----------
     Kettenring, Jon R. "Canonical analysis of several sets of variables." Biometrika 58.3 (1971): 433-451.

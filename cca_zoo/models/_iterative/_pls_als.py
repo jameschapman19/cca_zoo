@@ -20,7 +20,29 @@ class PLS_ALS(_BaseIterative):
 
         w_i^Tw_i=1
 
-    :Example:
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to use, by default 1
+    scale : bool, optional
+        Whether to scale the data, by default True
+    centre : bool, optional
+        Whether to centre the data, by default True
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random state for reproducibility, by default None
+    max_iter : int, optional
+        Maximum number of iterations, by default 100
+    initialization : Union[str, callable], optional
+        Initialization method, by default "random"
+    tol : float, optional
+        Tolerance for convergence, by default 1e-9
+    verbose : int, optional
+        Verbosity level, by default 0
+
+    Examples
+    --------
 
     >>> from cca_zoo.models import PLS
     >>> import numpy as np

@@ -23,6 +23,21 @@ class TCCA(_BaseCCA):
 
         \alpha_i^TK_i^TK_i\alpha_i=1
 
+    Parameters
+    ----------
+    latent_dims : int, default=1
+        The number of latent dimensions to use
+    scale : bool, default=True
+        Whether to scale the data to unit variance
+    centre : bool, default=True
+        Whether to centre the data
+    copy_data : bool, default=True
+        Whether to copy the data or not
+    random_state : int, default=None
+        The random state to use
+    c : float or list of floats, default=None
+        The regularisation parameter for each view. If None, defaults to 0 for each view.
+
     References
     ----------
     Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007

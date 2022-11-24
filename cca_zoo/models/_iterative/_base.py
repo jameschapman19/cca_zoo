@@ -58,11 +58,6 @@ class _BaseIterative(_BaseCCA):
         self.verbose = verbose
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        """
-        Fits the model by running an inner loop to convergence and then using either CCA or PLS deflation
-
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        """
         views = self._validate_inputs(views)
         self._check_params()
         self.weights = [np.zeros((view.shape[1], self.latent_dims)) for view in views]
@@ -125,10 +120,6 @@ class _BaseInnerLoop:
             random_state=None,
             verbose=0,
     ):
-        """
-        :param max_iter: maximum number of iterations to perform if tol is not reached
-        :param tol: tolerance value used for stopping criteria
-        """
         self.track = {"converged": False, "objective": []}
         self.max_iter = max_iter
         self.tol = tol

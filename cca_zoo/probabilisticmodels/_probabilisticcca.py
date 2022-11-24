@@ -15,8 +15,22 @@ class ProbabilisticCCA(_BaseCCA):
     """
     A class used to fit a Probabilistic CCA. Not quite the same due to using VI methods rather than EM
 
-    :Citation:
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to use, by default 1
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random state, by default 0
+    num_samples : int, optional
+        Number of samples to use in VI, by default 100
+    num_warmup : int, optional
+        Number of warmup samples to use in VI, by default 100
 
+
+    References
+    ----------
     Bach, Francis R., and Michael I. Jordan. "A probabilistic interpretation of canonical correlation analysis." (2005).
     Wang, Chong. "Variational Bayesian approach to canonical correlation analysis." IEEE Transactions on Neural Networks 18.3 (2007): 905-910.
 

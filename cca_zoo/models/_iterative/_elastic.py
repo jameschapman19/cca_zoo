@@ -35,6 +35,40 @@ class ElasticCCA(_BaseIterative):
 
         w_i^TX_i^TX_iw_i=n
 
+    Parameters
+    ----------
+    latent_dims : int, default=1
+        Number of latent dimensions to use
+    scale : bool, default=True
+        Whether to scale the data to unit variance
+    centre : bool, default=True
+        Whether to centre the data to zero mean
+    copy_data : bool, default=True
+        Whether to copy the data or overwrite it
+    random_state : int, default=None
+        Random seed for initialization
+    deflation : str, default="cca"
+        Whether to use CCA or PLS deflation
+    max_iter : int, default=100
+        Maximum number of iterations to run
+    initialization : str or callable, default="pls"
+        How to initialize the weights. Can be "pls" or "random" or a callable
+    tol : float, default=1e-9
+        Tolerance for convergence
+    c : float or list of floats, default=None
+        Regularisation parameter for the L2 penalty. If None, defaults to 1.0
+    l1_ratio : float or list of floats, default=None
+        Regularisation parameter for the L1 penalty. If None, defaults to 0.0
+    maxvar : bool, default=True
+        Whether to use MAXVAR or SUMCOR configuration
+    stochastic : bool, default=False
+        Whether to use stochastic gradient descent
+    positive : bool or list of bools, default=None
+        Whether to use non-negative constraints
+    verbose : int, default=0
+        Verbosity level
+
+
     Examples
     --------
     >>> from cca_zoo.models import ElasticCCA

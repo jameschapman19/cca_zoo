@@ -19,6 +19,30 @@ class AltMaxVar(_BaseIterative):
 
         t^Tt=n
 
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to use, by default 1
+    scale : bool, optional
+        Whether to scale the data, by default True
+    centre : bool, optional
+        Whether to centre the data, by default True
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random state, by default None
+    max_iter : int, optional
+        Maximum number of iterations, by default 100
+    initialization : Union[str, callable], optional
+        Initialization method, by default "pls"
+    tol : float, optional
+        Tolerance for convergence, by default 1e-9
+    view_regs : list, optional
+        List of regularization parameters for each view, by default None
+    verbose : int, optional
+        Verbosity level, by default 0
+
+
     References
     ----------
     Fu, Xiao, et al. "Scalable and flexible multiview MAX-VAR canonical correlation analysis." IEEE Transactions on Signal Processing 65.16 (2017): 4150-4165.

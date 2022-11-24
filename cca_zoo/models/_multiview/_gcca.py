@@ -20,6 +20,26 @@ class GCCA(rCCA):
 
         T^TT=1
 
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to use, by default 1
+    scale : bool, optional
+        Whether to scale the data, by default True
+    centre : bool, optional
+        Whether to centre the data, by default True
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random state, by default None
+    c : Union[Iterable[float], float], optional
+        Regularization parameter, by default None
+    view_weights : Iterable[float], optional
+        Weights for each view, by default None
+    eps : float, optional
+        Tolerance for convergence, by default 1e-9
+
+
     References
     ----------
     Tenenhaus, Arthur, and Michel Tenenhaus. "Regularized generalized canonical correlation analysis." Psychometrika 76.2 (2011): 257.
