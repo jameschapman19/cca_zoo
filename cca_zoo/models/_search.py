@@ -1,6 +1,6 @@
 import numpy as np
 
-from cca_zoo.models._iterative.utils import soft_threshold
+from cca_zoo.models._proximal_operators import soft_threshold
 
 
 def _bin_search(current, previous, current_val, previous_val, min_, max_):

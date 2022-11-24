@@ -1,6 +1,6 @@
+import numpy as np
 from multiviewdata.torchdatasets import SplitMNIST, NoisyMNIST
 from torch.utils.data import Subset
-import numpy as np
 
 from cca_zoo.data.deep import get_dataloaders
 

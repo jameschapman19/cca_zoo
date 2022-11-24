@@ -8,6 +8,7 @@ This example demonstrates how to easily train Deep CCA models and variants
 import pytorch_lightning as pl
 from matplotlib import pyplot as plt
 
+from cca_zoo import DCCA_EigenGame
 # %%
 from cca_zoo.deepmodels import (
     DCCA,
@@ -18,7 +19,6 @@ from cca_zoo.deepmodels import (
 from cca_zoo.deepmodels import architectures
 from cca_zoo.plotting import pairplot_label
 from examples import example_mnist_data
-
 
 # %%
 # Data
@@ -33,7 +33,6 @@ train_loader, val_loader, train_labels = example_mnist_data(N_TRAIN, N_VAL)
 encoder_1 = architectures.Encoder(latent_dims=LATENT_DIMS, feature_size=392)
 encoder_2 = architectures.Encoder(latent_dims=LATENT_DIMS, feature_size=392)
 
-
 # %%
 # Deep CCA
 # ----------------------------
@@ -42,12 +41,25 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
     log_every_n_steps=1,
-    flush_logs_every_n_steps=1,
+
 )
 trainer.fit(dcca, train_loader, val_loader)
 pairplot_label(dcca.transform(train_loader), train_labels, title="DCCA")
 plt.show()
 
+# %%
+# Deep CCA EigenGame
+# ----------------------------
+dcca_eg = DCCA_EigenGame(latent_dims=LATENT_DIMS, encoders=[encoder_1, encoder_2])
+trainer = pl.Trainer(
+    max_epochs=EPOCHS,
+    enable_checkpointing=False,
+    log_every_n_steps=1,
+
+)
+trainer.fit(dcca_eg, train_loader, val_loader)
+pairplot_label(dcca_eg.transform(train_loader), train_labels, title="DCCA-EigenGame")
+plt.show()
 
 # %%
 # Deep CCA by Non-Linear Orthogonal Iterations
@@ -57,7 +69,7 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
     log_every_n_steps=1,
-    flush_logs_every_n_steps=1,
+
 )
 trainer.fit(dcca_noi, train_loader, val_loader)
 pairplot_label(
@@ -67,7 +79,6 @@ pairplot_label(
 )
 plt.show()
 
-
 # %%
 # Deep CCA by Stochastic Decorrelation Loss
 # ----------------------------------------------
@@ -76,7 +87,7 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
     log_every_n_steps=1,
-    flush_logs_every_n_steps=1,
+
 )
 trainer.fit(dcca_sdl, train_loader, val_loader)
 pairplot_label(
@@ -86,7 +97,6 @@ pairplot_label(
 )
 plt.show()
 
-
 # %%
 # Deep CCA by Barlow Twins
 # ----------------------------------------------
@@ -95,7 +105,7 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
     log_every_n_steps=1,
-    flush_logs_every_n_steps=1,
+
 )
 trainer.fit(barlowtwins, train_loader, val_loader)
 pairplot_label(

@@ -5,27 +5,11 @@ import numpy as np
 from torch.utils import data
 
 from cca_zoo.data.deep import NumpyDataset
+from cca_zoo.models import CCA, PLS
 from cca_zoo.models._base import _BaseCCA
-from cca_zoo.utils import _check_views
 
 
 class _BaseStochastic(_BaseCCA):
-    r"""
-    A class used to fit Stochastic PLS
-
-    :Maths:
-
-    .. math::
-
-
-    :Citation:
-
-
-
-    :Example:
-
-    """
-
     def __init__(
             self,
             latent_dims: int = 1,
@@ -36,17 +20,18 @@ class _BaseStochastic(_BaseCCA):
             eps=1e-3,
             accept_sparse=None,
             batch_size=1,
-            shuffle=False,
+            shuffle=True,
             sampler=None,
             batch_sampler=None,
             num_workers=0,
             pin_memory=False,
-            drop_last=False,
+            drop_last=True,
             timeout=0,
             worker_init_fn=None,
             epochs=1,
             val_split=None,
             val_interval=10,
+            learning_rate=0.01,
     ):
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]
@@ -71,13 +56,12 @@ class _BaseStochastic(_BaseCCA):
         self.epochs = epochs
         self.val_interval = val_interval
         self.val_split = val_split
+        self.learning_rate = learning_rate
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        views = _check_views(
-            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
-        )
-        scaled_views = self._centre_scale(views)
-        dataset = NumpyDataset(scaled_views)
+        views = self._validate_inputs(views)
+        self._check_params()
+        dataset = NumpyDataset(views)
         dataloader = data.DataLoader(
             dataset,
             batch_size=self.batch_size,
@@ -91,11 +75,15 @@ class _BaseStochastic(_BaseCCA):
             worker_init_fn=self.worker_init_fn,
         )
         self.track = []
+        self.weights = [
+            np.random.rand(view.shape[1], self.latent_dims) for view in views
+        ]
+        # normalize weights
+        self.weights = [weight / np.linalg.norm(weight, axis=0) for weight in self.weights]
         for _ in range(self.epochs):
             for i, sample in enumerate(dataloader):
                 self.update([view.numpy() for view in sample["views"]])
-                if i % self.val_interval == 0:
-                    self.track.append(self.objective(views))
+            self.track.append(self.objective(sample["views"]))
         return self
 
     @abstractmethod
@@ -104,4 +92,12 @@ class _BaseStochastic(_BaseCCA):
 
     @abstractmethod
     def objective(self, views, **kwargs):
-        return 0
+        return self.tcc(views)
+
+    def tv(self, views):
+        z = self.transform(views)
+        return PLS(self.latent_dims).fit(z).score(z).sum()
+
+    def tcc(self, views):
+        z = self.transform(views)
+        return CCA(self.latent_dims).fit(z).score(z).sum()

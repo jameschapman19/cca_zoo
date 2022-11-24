@@ -220,25 +220,42 @@ def test_partialcca():
     )
 
 
-def test_stochastic():
-    torch = pytest.importorskip("torch")
-    from cca_zoo.models import StochasticPowerPLS, IncrementalPLS
+def test_stochastic_pls():
+    pytest.importorskip("torch")
+    from cca_zoo.models import PLSGHAGEP, PLSEigenGame, PLSStochasticPower, IncrementalPLS
     pls = PLS(latent_dims=1).fit((X, Y))
-    ipls = IncrementalPLS(latent_dims=1, epochs=10, simple=False, batch_size=1).fit(
+    ipls = IncrementalPLS(latent_dims=1, epochs=100, simple=False, batch_size=10).fit(
         (X, Y)
     )
-    spls = StochasticPowerPLS(latent_dims=1, epochs=10, batch_size=1, lr=1e-2).fit(
+    spls = PLSStochasticPower(latent_dims=1, epochs=100, batch_size=10, learning_rate=1e-2).fit(
         (X, Y)
     )
+    egpls = PLSEigenGame(latent_dims=1, epochs=100, batch_size=10, learning_rate=1e-2).fit((X, Y))
+    ghapls = PLSGHAGEP(latent_dims=1, epochs=100, batch_size=10, learning_rate=1e-2).fit((X, Y))
     pls_score = pls.score((X, Y))
     ipls_score = ipls.score((X, Y))
     spls_score = spls.score((X, Y))
-    assert (
-            np.testing.assert_array_almost_equal(pls_score, ipls_score, decimal=1) is None
-    )
-    assert (
-            np.testing.assert_array_almost_equal(pls_score, spls_score, decimal=1) is None
-    )
+    egpls_score = egpls.score((X, Y))
+    ghapls_score = ghapls.score((X, Y))
+    # check all methods are similar to pls
+    assert np.allclose(pls_score, ipls_score, atol=1e-1)
+    assert np.allclose(pls_score, spls_score, atol=1e-1)
+    assert np.allclose(pls_score, egpls_score, atol=1e-1)
+    assert np.allclose(pls_score, ghapls_score, atol=1e-1)
+
+
+def test_stochastic_cca():
+    pytest.importorskip("torch")
+    from cca_zoo.models import CCAGHAGEP, CCAEigenGame
+    cca = CCA(latent_dims=1).fit((X, Y))
+    egcca = CCAEigenGame(latent_dims=1, epochs=500, batch_size=10, learning_rate=5e-2).fit((X, Y))
+    ghacca = CCAGHAGEP(latent_dims=1, epochs=500, batch_size=10, learning_rate=5e-2).fit((X, Y))
+    cca_score = cca.score((X, Y))
+    egcca_score = egcca.score((X, Y))
+    ghacca_score = ghacca.score((X, Y))
+    # check all methods are similar to cca
+    assert np.allclose(cca_score, egcca_score, atol=1e-1)
+    assert np.allclose(cca_score, ghacca_score, atol=1e-1)
 
 
 def test_validation():

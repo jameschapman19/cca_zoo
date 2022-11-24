@@ -58,7 +58,6 @@ kgcca = KGCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
 pmd = SCCA_PMD(latent_dims=latent_dims, c=1).fit((X, Y, X)).score((X, Y, Z))
 
-
 # %%
 # Higher Order Correlations
 # -------------------------

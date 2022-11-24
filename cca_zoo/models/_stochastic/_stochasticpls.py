@@ -1,9 +1,9 @@
 import numpy as np
 
-from ._base import _BaseStochastic
+from cca_zoo.models._stochastic._base import _BaseStochastic
 
 
-class StochasticPowerPLS(_BaseStochastic):
+class PLSStochasticPower(_BaseStochastic):
     r"""
     A class used to fit Stochastic PLS
 
@@ -22,16 +22,16 @@ class StochasticPowerPLS(_BaseStochastic):
             random_state=None,
             accept_sparse=None,
             batch_size=1,
-            shuffle=False,
+            shuffle=True,
             sampler=None,
             batch_sampler=None,
             num_workers=0,
             pin_memory=False,
-            drop_last=False,
+            drop_last=True,
             timeout=0,
             worker_init_fn=None,
             epochs=1,
-            lr=1e-2,
+            learning_rate=0.01,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -51,13 +51,8 @@ class StochasticPowerPLS(_BaseStochastic):
             worker_init_fn=worker_init_fn,
             epochs=epochs,
         )
-        self.lr = lr
 
     def update(self, views):
-        if not hasattr(self, "weights"):
-            self.weights = [
-                np.random.rand(view.shape[1], self.latent_dims) for view in views
-            ]
         projections = np.stack(
             [view @ weight for view, weight in zip(views, self.weights)]
         )
@@ -65,17 +60,11 @@ class StochasticPowerPLS(_BaseStochastic):
             projections = np.ma.array(projections, mask=False, keep_mask=False)
             projections.mask[i] = True
             self.weights[i] += (
-                    self.lr * (view.T @ projections.sum(axis=0).filled()) / view.shape[0]
+                    self.learning_rate * (view.T @ projections.sum(axis=0).filled()) / view.shape[0]
             )
         self.weights = [
             weight / np.linalg.norm(weight, axis=0) for weight in self.weights
         ]
 
     def objective(self, views, **kwargs):
-        return np.sum(
-            np.diag(
-                np.cov(*self.transform(views), rowvar=False)[
-                : self.latent_dims, self.latent_dims:
-                ]
-            )
-        )
+        return self.tv(views)

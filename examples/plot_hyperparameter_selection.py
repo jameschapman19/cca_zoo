@@ -14,7 +14,6 @@ from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.models import KCCA
 
-
 # %%
 # Data
 # ------
@@ -25,10 +24,12 @@ q = 100
 latent_dims = 1
 cv = 3
 
-(X, Y), (tx, ty) = LinearSimulatedData(
+data = LinearSimulatedData(
     view_features=[p, q], latent_dims=latent_dims, correlation=[0.9]
-).sample(n)
+)
 
+(X, Y) = data.sample(n)
+(tx, ty) = data.true_features
 
 # %%
 # Grid Search
@@ -44,7 +45,6 @@ kernel_reg = GridSearchCV(
     KCCA(latent_dims=latent_dims), param_grid=param_grid, cv=cv, verbose=True
 ).fit([X, Y])
 print(pd.DataFrame(kernel_reg.cv_results_))
-
 
 # %%
 # Randomized Search

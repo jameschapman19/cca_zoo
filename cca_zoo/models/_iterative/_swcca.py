@@ -3,11 +3,11 @@ from typing import Union, Iterable
 
 import numpy as np
 
+from cca_zoo.models._search import _delta_search
 from cca_zoo.utils import _process_parameter
 from ._base import _BaseIterative
 from ._pls_als import _PLSInnerLoop
-from .utils import support_threshold
-from .utils._search import _delta_search
+from .._proximal_operators import support_threshold
 
 
 class SWCCA(_BaseIterative):

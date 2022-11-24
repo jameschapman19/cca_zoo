@@ -4,6 +4,7 @@ from sklearn.utils.validation import check_random_state
 from torch import manual_seed
 from torch.utils.data import random_split
 
+from cca_zoo import DCCA_EigenGame
 from cca_zoo.data.deep import NumpyDataset, get_dataloaders, check_dataset
 from cca_zoo.deepmodels import (
     DCCA,
@@ -33,16 +34,31 @@ train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
 conv_dataset = NumpyDataset((X_conv, Y_conv))
 conv_loader = get_dataloaders(conv_dataset)
 train_ids = train_dataset.indices
+epochs = 100
 
 def test_numpy_dataset():
     dataset = NumpyDataset([X, Y, Z])
     check_dataset(dataset)
-    loader = get_dataloaders(dataset)
+    get_dataloaders(dataset)
+
+def test_linear():
+    encoder_1 = architectures.LinearEncoder(latent_dims=1, feature_size=10)
+    encoder_2 = architectures.LinearEncoder(latent_dims=1, feature_size=12)
+    dcca = DCCA(latent_dims=1, encoders=[encoder_1, encoder_2], lr=1e-1)
+    trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False, logger=False)
+    trainer.fit(dcca, loader)
+    cca = CCA().fit((X, Y))
+    # check linear encoder with SGD matches vanilla linear CCA
+    assert (
+            np.testing.assert_array_almost_equal(
+                cca.score((X, Y)), dcca.score(loader), decimal=2
+            )
+            is None
+    )
 
 def test_DCCA_methods():
     N = len(train_dataset)
     latent_dims = 2
-    epochs = 100
     cca = CCA(latent_dims=latent_dims).fit((X, Y))
     # DCCA
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
@@ -52,9 +68,7 @@ def test_DCCA_methods():
         encoders=[encoder_1, encoder_2],
         objective=objectives.CCA,
     )
-    trainer = pl.Trainer(
-        max_epochs=epochs, log_every_n_steps=1, enable_checkpointing=False
-    )
+    trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False, logger=False)
     trainer.fit(dcca, train_loader, val_dataloaders=val_loader)
     assert (
             np.testing.assert_array_less(
@@ -62,13 +76,26 @@ def test_DCCA_methods():
             )
             is None
     )
+    # DCCA_EigenGame
+    encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
+    dcca_eg = DCCA_EigenGame(
+        latent_dims=latent_dims,
+        encoders=[encoder_1, encoder_2],
+    )
+    trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False, logger=False)
+    trainer.fit(dcca_eg, train_loader, val_dataloaders=val_loader)
+    assert (
+            np.testing.assert_array_less(
+                cca.score((X, Y)).sum(), dcca_eg.score(train_loader).sum()
+            )
+            is None
+    )
     # DCCA_NOI
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
     encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     dcca_noi = DCCA_NOI(latent_dims, N, encoders=[encoder_1, encoder_2], rho=0.2)
-    trainer = pl.Trainer(
-        max_epochs=epochs, log_every_n_steps=1, enable_checkpointing=False
-    )
+    trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False, logger=False)
     trainer.fit(dcca_noi, train_loader)
     assert (
             np.testing.assert_array_less(
@@ -80,7 +107,7 @@ def test_DCCA_methods():
     encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=10)
     encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=12)
     sdl = DCCA_SDL(latent_dims, N, encoders=[encoder_1, encoder_2], lam=1e-2, lr=1e-3)
-    trainer = pl.Trainer(max_epochs=epochs, log_every_n_steps=1)
+    trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False, logger=False)
     trainer.fit(sdl, train_loader)
     assert (
             np.testing.assert_array_less(
@@ -95,9 +122,7 @@ def test_DCCA_methods():
         latent_dims=latent_dims,
         encoders=[encoder_1, encoder_2],
     )
-    trainer = pl.Trainer(
-        max_epochs=epochs, log_every_n_steps=1, enable_checkpointing=False
-    )
+    trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False, logger=False)
     trainer.fit(barlowtwins, train_loader)
     assert (
             np.testing.assert_array_less(
@@ -113,9 +138,7 @@ def test_DCCA_methods():
         encoders=[encoder_1, encoder_2],
         objective=objectives.GCCA,
     )
-    trainer = pl.Trainer(
-        max_epochs=epochs, log_every_n_steps=1, enable_checkpointing=False
-    )
+    trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False, logger=False)
     trainer.fit(dgcca, train_loader)
     assert (
             np.testing.assert_array_less(
@@ -131,9 +154,7 @@ def test_DCCA_methods():
         encoders=[encoder_1, encoder_2],
         objective=objectives.MCCA,
     )
-    trainer = pl.Trainer(
-        max_epochs=epochs, log_every_n_steps=1, enable_checkpointing=False
-    )
+    trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False, logger=False)
     trainer.fit(dmcca, train_loader)
     assert (
             np.testing.assert_array_less(
@@ -146,12 +167,11 @@ def test_DCCA_methods():
 def test_DTCCA_methods():
     # check that DTCCA is equivalent to CCA for 2 views with linear encoders
     latent_dims = 2
-    epochs = 150
     cca = CCA(latent_dims=latent_dims)
     encoder_1 = architectures.LinearEncoder(latent_dims=latent_dims, feature_size=10)
     encoder_2 = architectures.LinearEncoder(latent_dims=latent_dims, feature_size=12)
     dtcca = DTCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2], lr=1e-2)
-    trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False, logger=False)
     trainer.fit(dtcca, train_loader)
     z = dtcca.transform(train_loader)
     assert (
@@ -175,7 +195,7 @@ def test_DCCAE_methods():
     splitae = SplitAE(
         latent_dims=latent_dims, encoder=encoder_1, decoders=[decoder_1, decoder_2]
     )
-    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False, logger=False)
     trainer.fit(splitae, conv_loader)
     # DCCAE
     dccae = DCCAE(
@@ -183,7 +203,7 @@ def test_DCCAE_methods():
         encoders=[encoder_1, encoder_2],
         decoders=[decoder_1, decoder_2],
     )
-    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False, logger=False)
     trainer.fit(dccae, conv_loader)
 
 
@@ -210,7 +230,7 @@ def test_DVCCA_p_methods():
         decoders=[decoder_1, decoder_2],
         private_encoders=[private_encoder_1, private_encoder_2],
     )
-    trainer = pl.Trainer(max_epochs=5, log_every_n_steps=1, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False, logger=False)
     trainer.fit(dvcca, train_loader)
     dvcca.transform(train_loader)
 
@@ -230,21 +250,5 @@ def test_DVCCA_methods():
         encoders=[encoder_1, encoder_2],
         decoders=[decoder_1, decoder_2],
     )
-    trainer = pl.Trainer(max_epochs=5, log_every_n_steps=1, enable_checkpointing=False)
+    trainer = pl.Trainer(max_epochs=5, enable_checkpointing=False, logger=False)
     trainer.fit(dvcca, train_loader)
-
-
-def test_linear():
-    encoder_1 = architectures.LinearEncoder(latent_dims=1, feature_size=10)
-    encoder_2 = architectures.LinearEncoder(latent_dims=1, feature_size=12)
-    dcca = DCCA(latent_dims=1, encoders=[encoder_1, encoder_2], lr=1e-1)
-    trainer = pl.Trainer(max_epochs=100, enable_checkpointing=False)
-    trainer.fit(dcca, loader)
-    cca = CCA().fit((X, Y))
-    # check linear encoder with SGD matches vanilla linear CCA
-    assert (
-            np.testing.assert_array_almost_equal(
-                cca.score((X, Y)), dcca.score(loader), decimal=2
-            )
-            is None
-    )

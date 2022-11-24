@@ -73,7 +73,6 @@ plot_reconstruction(dvcca, train_loader)
 plt.suptitle("DVCCA")
 plt.show()
 
-
 # %%
 # Deep Variational CCA (Private)
 # -------------------------------
@@ -120,7 +119,6 @@ tsne_label(dvccap.transform(train_loader)["shared"], train_labels)
 plot_reconstruction(dvccap, train_loader)
 plt.suptitle("DVCCA Private")
 plt.show()
-
 
 # %%
 # Deep Canonically Correlated Autoencoders

@@ -5,19 +5,11 @@ Custom Datasets
 This example demonstrates how to use your own multiview datasets with CCA-Zoo.
 """
 
+import numpy as np
 # %%
 # Imports
 # -----
 import pytorch_lightning as pl
-from matplotlib import pyplot as plt
-from cca_zoo.deepmodels import (
-    DCCA,
-)
-from cca_zoo.deepmodels import architectures
-from cca_zoo.plotting import pairplot_label
-from cca_zoo.data.deep import NumpyDataset, get_dataloaders, check_dataset
-from examples import example_mnist_data
-import numpy as np
 
 # %% NumpyDataset
 # --------------------------------------------------------------
@@ -28,6 +20,10 @@ import numpy as np
 # You can then use the get_dataloaders function to convert your dataset into dataloaders, which can be used with
 # CCA-Zoo.
 from cca_zoo.data.deep import NumpyDataset
+from cca_zoo.deepmodels import (
+    DCCA,
+)
+from cca_zoo.deepmodels import architectures
 
 X = np.random.normal(size=(100, 10))
 Y = np.random.normal(size=(100, 10))
@@ -44,7 +40,7 @@ check_dataset(numpy_dataset)
 
 # %% Your own dataset class
 # ------------------------------------------------------
-# You can also create your own dataset class. This class must inherit from the torch.utils.data.Dataset class.
+# You can also create your own dataset class. This class must inherit from the torch._utils.data.Dataset class.
 # It must also have a __getitem__ method, which returns a tuple of views and a label. The views must be a tuple
 # of torch tensors.
 import torch

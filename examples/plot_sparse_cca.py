@@ -17,7 +17,6 @@ from cca_zoo.models import (
     ElasticCCA,
     CCA,
     PLS,
-    SCCA_ADMM,
     SCCA_Span,
 )
 
@@ -58,11 +57,10 @@ data = LinearSimulatedData(
     view_sparsity=[view_1_sparsity, view_2_sparsity],
     correlation=[0.9],
 )
-(X,Y)=data.sample(n)
+(X, Y) = data.sample(n)
 
-tx =data.true_features[0]/np.sqrt(n)
-ty =data.true_features[1]/np.sqrt(n)
-
+tx = data.true_features[0] / np.sqrt(n)
+ty = data.true_features[1] / np.sqrt(n)
 
 # %%
 cca = CCA().fit([X, Y])
@@ -83,7 +81,7 @@ plt.title("Objective Convergence")
 plt.plot(np.array(pmd.best_estimator_.track[0]["objective"]).T)
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
-#%%
+# %%
 plot_model_weights(
     pmd.best_estimator_.weights[0], pmd.best_estimator_.weights[1], tx, ty, title="PMD"
 )
