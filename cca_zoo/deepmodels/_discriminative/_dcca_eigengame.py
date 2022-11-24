@@ -4,7 +4,6 @@ from ._dcca import DCCA
 
 
 class DCCA_EigenGame(DCCA):
-
     """
 
     References
@@ -16,6 +15,7 @@ class DCCA_EigenGame(DCCA):
             self,
             latent_dims: int,
             encoders=None,
+            r: float = 0,
             **kwargs
     ):
         super().__init__(
@@ -23,6 +23,7 @@ class DCCA_EigenGame(DCCA):
             encoders=encoders,
             **kwargs
         )
+        self.r = r
 
     def forward(self, views, **kwargs):
         z = []
@@ -43,6 +44,6 @@ class DCCA_EigenGame(DCCA):
 
     def get_AB(self, z):
         Cxy = torch.cov(torch.hstack((z[0], z[1])).T)[self.latent_dims:, :self.latent_dims]
-        Cxx = torch.cov(z[0].T)
-        Cyy = torch.cov(z[1].T)
+        Cxx = torch.cov(z[0].T) + torch.eye(self.latent_dims, device=z[0].device) * self.r
+        Cyy = torch.cov(z[1].T) + torch.eye(self.latent_dims, device=z[1].device) * self.r
         return Cxy + Cxy.T, Cxx + Cyy
