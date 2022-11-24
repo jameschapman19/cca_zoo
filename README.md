@@ -4,8 +4,6 @@
 [![Documentation Status](https://readthedocs.org/projects/cca-zoo/badge/?version=latest)](https://cca-zoo.readthedocs.io/en/latest/?badge=latest)
 [![version](https://img.shields.io/pypi/v/cca-zoo)](https://pypi.org/project/cca-zoo/)
 [![downloads](https://img.shields.io/pypi/dm/cca-zoo)](https://pypi.org/project/cca-zoo/)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/cca-zoo/badges/version.svg)](https://anaconda.org/conda-forge/cca-zoo)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/cca-zoo/badges/downloads.svg)](https://anaconda.org/conda-forge/cca-zoo)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.03823/status.svg)](https://doi.org/10.21105/joss.03823)
 
 # CCA-Zoo
