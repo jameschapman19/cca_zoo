@@ -100,9 +100,14 @@ class PLSStochasticPower(_BaseStochastic):
             self.weights[i] += (
                     self.learning_rate * (view.T @ projections.sum(axis=0).filled()) / view.shape[0]
             )
-        self.weights = [
-            weight / np.linalg.norm(weight, axis=0) for weight in self.weights
-        ]
+            #qr decomposition of weights for orthogonality
+            self.weights[i] = self._orth(self.weights[i])
+
+    @staticmethod
+    def _orth(U):
+        Qu, Ru = np.linalg.qr(U)
+        Su = np.sign(np.sign(np.diag(Ru)) + 0.5)
+        return (Qu @ np.diag(Su))
 
     def objective(self, views, **kwargs):
         return self.tv(views)

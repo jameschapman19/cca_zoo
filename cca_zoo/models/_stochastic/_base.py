@@ -2,6 +2,7 @@ from abc import abstractmethod
 from typing import Iterable
 
 import numpy as np
+from scipy.linalg import block_diag
 from torch.utils import data
 
 from cca_zoo.data.deep import NumpyDataset
@@ -62,6 +63,10 @@ class _BaseStochastic(_BaseCCA):
         views = self._validate_inputs(views)
         self._check_params()
         dataset = NumpyDataset(views)
+        if self.val_split is not None:
+            train_size = int((1 - self.val_split) * len(dataset))
+            val_size = len(dataset) - train_size
+            dataset, val_dataset = data.random_split(dataset, [train_size, val_size])
         dataloader = data.DataLoader(
             dataset,
             batch_size=self.batch_size,
@@ -74,6 +79,11 @@ class _BaseStochastic(_BaseCCA):
             timeout=self.timeout,
             worker_init_fn=self.worker_init_fn,
         )
+        if self.val_split is not None:
+            val_dataloader = data.DataLoader(
+                val_dataset,
+                batch_size=len(val_dataset),
+            )
         self.track = []
         self.weights = [
             np.random.rand(view.shape[1], self.latent_dims) for view in views
@@ -83,7 +93,9 @@ class _BaseStochastic(_BaseCCA):
         for _ in range(self.epochs):
             for i, sample in enumerate(dataloader):
                 self.update([view.numpy() for view in sample["views"]])
-            self.track.append(self.objective(sample["views"]))
+            if self.val_split is not None:
+                for i, sample in enumerate(val_dataloader):
+                    self.track.append(self.objective(sample["views"]))
         return self
 
     @abstractmethod
@@ -95,9 +107,26 @@ class _BaseStochastic(_BaseCCA):
         return self.tcc(views)
 
     def tv(self, views):
-        z = self.transform(views)
-        return PLS(self.latent_dims).fit(z).score(z).sum()
+        #q from qr decomposition of weights
+        q = [np.linalg.qr(weight)[0] for weight in self.weights]
+        views = self._centre_scale_transform(views)
+        transformed_views = []
+        for i, (view) in enumerate(views):
+            transformed_view = view @ q[i]
+            transformed_views.append(transformed_view)
+        return tv(transformed_views)
+
 
     def tcc(self, views):
         z = self.transform(views)
-        return CCA(self.latent_dims).fit(z).score(z).sum()
+        return tcc(z)
+
+def tv(z):
+    all_z = np.hstack(z)
+    C = np.cov(all_z, rowvar=False)
+    C -= block_diag(*[np.cov(z_, rowvar=False) for z_ in z])
+    C /= z[0].shape[0]
+    return np.linalg.svd(C, compute_uv=False).sum()
+
+def tcc(z):
+    return CCA(z[0].shape[1]).fit(z).score(z).sum()

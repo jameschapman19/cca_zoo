@@ -223,15 +223,17 @@ def test_partialcca():
 def test_stochastic_pls():
     pytest.importorskip("torch")
     from cca_zoo.models import PLSGHAGEP, PLSEigenGame, PLSStochasticPower, IncrementalPLS
-    pls = PLS(latent_dims=1).fit((X, Y))
-    ipls = IncrementalPLS(latent_dims=1, epochs=100, simple=False, batch_size=10).fit(
+    from torch import manual_seed
+    manual_seed(42)
+    pls = PLS(latent_dims=3).fit((X, Y))
+    ipls = IncrementalPLS(latent_dims=3, epochs=150, simple=False, batch_size=10).fit(
         (X, Y)
     )
-    spls = PLSStochasticPower(latent_dims=1, epochs=100, batch_size=10, learning_rate=1e-2).fit(
+    spls = PLSStochasticPower(latent_dims=3, epochs=150, batch_size=10, learning_rate=1e-2).fit(
         (X, Y)
     )
-    egpls = PLSEigenGame(latent_dims=1, epochs=100, batch_size=10, learning_rate=1e-2).fit((X, Y))
-    ghapls = PLSGHAGEP(latent_dims=1, epochs=100, batch_size=10, learning_rate=1e-2).fit((X, Y))
+    egpls = PLSEigenGame(latent_dims=3, epochs=150, batch_size=10, learning_rate=1e-2).fit((X, Y))
+    ghapls = PLSGHAGEP(latent_dims=3, epochs=150, batch_size=10, learning_rate=1e-2).fit((X, Y))
     pls_score = pls.score((X, Y))
     ipls_score = ipls.score((X, Y))
     spls_score = spls.score((X, Y))

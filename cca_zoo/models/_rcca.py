@@ -175,7 +175,6 @@ class CCA(rCCA):
     accept_sparse : Union[bool, str], optional
         Whether to accept sparse data, by default None
 
-
     References
     --------
 

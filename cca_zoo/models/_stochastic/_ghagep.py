@@ -51,6 +51,7 @@ class RCCAGHAGEP(_BaseStochastic):
     ----------
     Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
     """
+
     def __init__(
             self,
             latent_dims: int = 1,
@@ -71,6 +72,7 @@ class RCCAGHAGEP(_BaseStochastic):
             epochs=1,
             learning_rate=0.01,
             c=0,
+            **kwargs
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -90,6 +92,7 @@ class RCCAGHAGEP(_BaseStochastic):
             worker_init_fn=worker_init_fn,
             epochs=epochs,
             learning_rate=learning_rate,
+            **kwargs
         )
         self.c = c
 
@@ -106,14 +109,16 @@ class RCCAGHAGEP(_BaseStochastic):
             Aw = self._Aw(view, projections.sum(axis=0).filled())
             projections.mask[i] = False
             Bw = self._Bw(view, projections[i].filled(), self.weights[i], self.c[i])
-            grads = (Aw - Bw @ np.triu(self.weights[i].T @ Aw))
+            wAw = self.weights[i].T @ Aw
+            wAw[np.diag_indices_from(wAw)] = np.where(np.diag(wAw) > 0, np.diag(wAw), 0)
+            grads = (Aw - Bw @ np.triu(wAw))
             self.weights[i] += self.learning_rate * grads
 
     def _Aw(self, view, projections):
         return view.T @ projections / view.shape[0]
 
     def _Bw(self, view, projection, weight, c):
-        return (c * weight + (1 - c) * view.T @ projection) / projection.shape[0]
+        return (c * weight) + (1 - c) * (view.T @ projection) / projection.shape[0]
 
     def objective(self, views, **kwargs):
         return self.tcc(views)
@@ -164,6 +169,7 @@ class CCAGHAGEP(RCCAGHAGEP):
     ----------
     Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
     """
+
     def __init__(
             self,
             *args, **kwargs,
@@ -217,6 +223,7 @@ class PLSGHAGEP(RCCAGHAGEP):
     ----------
     Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
     """
+
     def __init__(
             self,
             *args, **kwargs,

@@ -73,6 +73,7 @@ class RCCAEigenGame(_BaseStochastic):
             epochs=1,
             learning_rate=0.01,
             c=0,
+            **kwargs
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -92,6 +93,7 @@ class RCCAEigenGame(_BaseStochastic):
             worker_init_fn=worker_init_fn,
             epochs=epochs,
             learning_rate=learning_rate,
+            **kwargs
         )
         self.c = c
 
@@ -108,7 +110,11 @@ class RCCAEigenGame(_BaseStochastic):
             Aw = self._Aw(view, projections.sum(axis=0).filled())
             projections.mask[i] = False
             Bw = self._Bw(view, projections[i].filled(), self.weights[i], self.c[i])
-            grads = 2 * Aw - (Aw @ np.triu(self.weights[i].T @ Bw) + Bw @ np.triu(self.weights[i].T @ Aw))
+            wAw = self.weights[i].T @ Aw
+            wBw = self.weights[i].T @ Bw
+            wAw[np.diag_indices_from(wAw)] = np.where(np.diag(wAw) > 0, np.diag(wAw), 0)
+            wBw[np.diag_indices_from(wBw)] = np.where(np.diag(wAw) > 0, np.diag(wBw), 0)
+            grads = 2 * Aw - (Aw @ np.triu(wBw) + Bw @ np.triu(wAw))
             self.weights[i] += self.learning_rate * grads
 
     def _Aw(self, view, projections):
