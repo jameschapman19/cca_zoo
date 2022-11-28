@@ -86,7 +86,7 @@ class _BaseStochastic(_BaseCCA):
             )
         self.track = []
         self.weights = [
-            np.random.rand(view.shape[1], self.latent_dims) for view in views
+            self.random_state.normal(0, 1, size=(view.shape[1],self.latent_dims)) for view in views
         ]
         # normalize weights
         self.weights = [weight / np.linalg.norm(weight, axis=0) for weight in self.weights]
