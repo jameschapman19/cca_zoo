@@ -10,7 +10,7 @@ from .._proximal_operators import soft_threshold
 
 class SCCA_Parkhomenko(_BaseIterative):
     r"""
-    Fits a sparse CCA (penalized CCA) model
+    Fits a sparse CCA (penalized CCA) model for 2 or more views.
 
     .. math::
 
@@ -37,18 +37,18 @@ class SCCA_Parkhomenko(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            deflation="cca",
-            c: Union[Iterable[float], float] = None,
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "pls",
-            tol: float = 1e-9,
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        deflation="cca",
+        c: Union[Iterable[float], float] = None,
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "pls",
+        tol: float = 1e-9,
+        verbose=0,
     ):
         self.c = c
         super().__init__(
@@ -81,12 +81,12 @@ class SCCA_Parkhomenko(_BaseIterative):
 
 class _ParkhomenkoInnerLoop(_PLSInnerLoop):
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol=1e-9,
-            c=None,
-            random_state=None,
-            verbose=0,
+        self,
+        max_iter: int = 100,
+        tol=1e-9,
+        c=None,
+        random_state=None,
+        verbose=0,
     ):
         super().__init__(
             max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose

@@ -8,6 +8,7 @@ from ._altmaxvar import AltMaxVar
 
 class PDD_GCCA(AltMaxVar):
     r"""
+    Fits a Primal Dual Decomposition Regularized CCA model to two or more views of data.
 
     .. math::
 
@@ -24,17 +25,17 @@ class PDD_GCCA(AltMaxVar):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "pls",
-            tol: float = 1e-9,
-            view_regs=None,
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "pls",
+        tol: float = 1e-9,
+        view_regs=None,
+        verbose=0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -61,17 +62,17 @@ class PDD_GCCA(AltMaxVar):
 
 class _PDD_GCCALoop(_BaseInnerLoop):
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol=1e-9,
-            random_state=None,
-            view_regs=None,
-            alpha=1e-3,
-            eta=1e-3,
-            rho=1e-3,
-            c=0.9,
-            eps=1e-3,
-            verbose=0,
+        self,
+        max_iter: int = 100,
+        tol=1e-9,
+        random_state=None,
+        view_regs=None,
+        alpha=1e-3,
+        eta=1e-3,
+        rho=1e-3,
+        c=0.9,
+        eps=1e-3,
+        verbose=0,
     ):
         super().__init__(
             max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
@@ -103,9 +104,9 @@ class _PDD_GCCALoop(_BaseInnerLoop):
             targets = np.ma.array(self.scores, mask=False)
             targets.mask[view_index] = True
             target = (
-                    targets.sum(axis=0).filled()
-                    + self.G[view_index]
-                    - self.Y[view_index] / self.rho
+                targets.sum(axis=0).filled()
+                + self.G[view_index]
+                - self.Y[view_index] / self.rho
             )
             weights_ = self.view_regs[view_index](
                 (self.n_views + self.rho) * views[view_index],
@@ -120,11 +121,11 @@ class _PDD_GCCALoop(_BaseInnerLoop):
             )
             G_ = U @ Vt
             if (
-                    max(
-                        np.linalg.norm(weights_ - self.weights[view_index], ord=np.inf),
-                        np.linalg.norm(G_ - self.G[view_index], ord=np.inf),
-                    )
-                    < self.eps
+                max(
+                    np.linalg.norm(weights_ - self.weights[view_index], ord=np.inf),
+                    np.linalg.norm(G_ - self.G[view_index], ord=np.inf),
+                )
+                < self.eps
             ):
                 converged = True
             self.weights[view_index] = weights_
@@ -135,11 +136,11 @@ class _PDD_GCCALoop(_BaseInnerLoop):
         total_objective = 0
         for i, _ in enumerate(views):
             objective = (
-                                np.linalg.norm(
-                                    views[i] @ self.weights[i] - self.scores, ord="fro", axis=(1, 2)
-                                )
-                                ** 2
-                        ).sum() / 2
+                np.linalg.norm(
+                    views[i] @ self.weights[i] - self.scores, ord="fro", axis=(1, 2)
+                )
+                ** 2
+            ).sum() / 2
             total_objective += objective + self.view_regs[i].cost(
                 views[i], self.weights[i]
             )

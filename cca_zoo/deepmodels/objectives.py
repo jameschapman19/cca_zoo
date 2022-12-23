@@ -49,7 +49,8 @@ class MCCA:
         # Get the block covariance matrix placing Xi^TX_i on the diagonal
         D = torch.block_diag(
             *[
-                (1 - self.r) * m.T @ m / (n - 1) + self.r * torch.eye(m.shape[1], device=m.device)
+                (1 - self.r) * m.T @ m / (n - 1)
+                + self.r * torch.eye(m.shape[1], device=m.device)
                 for i, m in enumerate(views)
             ]
         )
@@ -104,7 +105,8 @@ class GCCA:
         views = _demean(views)
 
         eigen_views = [
-            view @ _mat_pow(view.T @ view / (n - 1), -1, self.eps) @ view.T for view in views
+            view @ _mat_pow(view.T @ view / (n - 1), -1, self.eps) @ view.T
+            for view in views
         ]
 
         Q = torch.stack(eigen_views, dim=0).sum(dim=0)

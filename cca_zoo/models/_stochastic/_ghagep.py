@@ -53,26 +53,25 @@ class RCCAGHAGEP(_BaseStochastic):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            accept_sparse=None,
-            batch_size=1,
-            shuffle=True,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            pin_memory=False,
-            drop_last=True,
-            timeout=0,
-            worker_init_fn=None,
-            epochs=1,
-            learning_rate=0.01,
-            c=0,
-            **kwargs
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        accept_sparse=None,
+        batch_size=1,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        learning_rate=0.01,
+        c=0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -92,7 +91,6 @@ class RCCAGHAGEP(_BaseStochastic):
             worker_init_fn=worker_init_fn,
             epochs=epochs,
             learning_rate=learning_rate,
-            **kwargs
         )
         self.c = c
 
@@ -111,7 +109,7 @@ class RCCAGHAGEP(_BaseStochastic):
             Bw = self._Bw(view, projections[i].filled(), self.weights[i], self.c[i])
             wAw = self.weights[i].T @ Aw
             wAw[np.diag_indices_from(wAw)] = np.where(np.diag(wAw) > 0, np.diag(wAw), 0)
-            grads = (Aw - Bw @ np.triu(wAw))
+            grads = Aw - Bw @ np.triu(wAw)
             self.weights[i] += self.learning_rate * grads
 
     def _Aw(self, view, projections):
@@ -171,11 +169,45 @@ class CCAGHAGEP(RCCAGHAGEP):
     """
 
     def __init__(
-            self,
-            *args, **kwargs,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        accept_sparse=None,
+        batch_size=1,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        learning_rate=0.01,
     ):
-        kwargs.pop('c', None)
-        super().__init__(*args, c=0, **kwargs)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            accept_sparse=accept_sparse,
+            random_state=random_state,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            sampler=sampler,
+            batch_sampler=batch_sampler,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            drop_last=drop_last,
+            timeout=timeout,
+            worker_init_fn=worker_init_fn,
+            epochs=epochs,
+            learning_rate=learning_rate,
+            c=0,
+        )
 
 
 class PLSGHAGEP(RCCAGHAGEP):
@@ -225,11 +257,45 @@ class PLSGHAGEP(RCCAGHAGEP):
     """
 
     def __init__(
-            self,
-            *args, **kwargs,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        accept_sparse=None,
+        batch_size=1,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        learning_rate=0.01,
     ):
-        kwargs.pop('c', None)
-        super().__init__(*args, c=1, **kwargs)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            accept_sparse=accept_sparse,
+            random_state=random_state,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            sampler=sampler,
+            batch_sampler=batch_sampler,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            drop_last=drop_last,
+            timeout=timeout,
+            worker_init_fn=worker_init_fn,
+            epochs=epochs,
+            learning_rate=learning_rate,
+            c=1,
+        )
 
     def objective(self, views, **kwargs):
         return self.tv(views)

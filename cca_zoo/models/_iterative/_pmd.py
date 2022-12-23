@@ -11,7 +11,7 @@ from .._search import _delta_search
 
 class SCCA_PMD(_BaseIterative):
     r"""
-    Fits a Sparse CCA (Penalized Matrix Decomposition) model.
+    Fits a Sparse CCA (Penalized Matrix Decomposition) model for 2 or more views.
 
     .. math::
 
@@ -70,19 +70,19 @@ class SCCA_PMD(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            deflation="cca",
-            c: Union[Iterable[float], float] = None,
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "pls",
-            tol: float = 1e-9,
-            positive: Union[Iterable[bool], bool] = None,
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        deflation="cca",
+        c: Union[Iterable[float], float] = None,
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "pls",
+        tol: float = 1e-9,
+        positive: Union[Iterable[bool], bool] = None,
+        verbose=0,
     ):
         self.c = c
         self.positive = positive
@@ -127,13 +127,13 @@ class SCCA_PMD(_BaseIterative):
 
 class _PMDInnerLoop(_PLSInnerLoop):
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol=1e-9,
-            c=None,
-            positive=None,
-            random_state=None,
-            verbose=0,
+        self,
+        max_iter: int = 100,
+        tol=1e-9,
+        c=None,
+        positive=None,
+        random_state=None,
+        verbose=0,
     ):
         super().__init__(
             max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose

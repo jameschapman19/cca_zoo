@@ -11,18 +11,8 @@ class DCCA_EigenGame(DCCA):
     Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
     """
 
-    def __init__(
-            self,
-            latent_dims: int,
-            encoders=None,
-            r: float = 0,
-            **kwargs
-    ):
-        super().__init__(
-            latent_dims=latent_dims,
-            encoders=encoders,
-            **kwargs
-        )
+    def __init__(self, latent_dims: int, encoders=None, r: float = 0, **kwargs):
+        super().__init__(latent_dims=latent_dims, encoders=encoders, **kwargs)
         self.r = r
 
     def forward(self, views, **kwargs):
@@ -43,7 +33,18 @@ class DCCA_EigenGame(DCCA):
         }
 
     def get_AB(self, z):
-        Cxy = torch.cov(torch.hstack((z[0], z[1])).T)[self.latent_dims:, :self.latent_dims]
-        Cxx = torch.cov(z[0].T) + torch.eye(self.latent_dims, device=z[0].device) * self.r
-        Cyy = torch.cov(z[1].T) + torch.eye(self.latent_dims, device=z[1].device) * self.r
-        return Cxy + Cxy.T, Cxx + Cyy
+        # sum the pairwise covariances between each z and all other zs
+        A = torch.zeros(self.latent_dims, self.latent_dims)
+        B = torch.zeros(self.latent_dims, self.latent_dims)
+        for i, zi in enumerate(z):
+            for j, zj in enumerate(z):
+                if i == j:
+                    B += (
+                        torch.cov(zi.T)
+                        + torch.eye(self.latent_dims, device=zi.device) * self.r
+                    )
+                else:
+                    A += torch.cov(torch.hstack((zi, zj)).T)[
+                        self.latent_dims :, : self.latent_dims
+                    ]
+        return A, B

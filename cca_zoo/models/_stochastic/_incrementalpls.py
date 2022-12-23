@@ -50,24 +50,24 @@ class IncrementalPLS(_BaseStochastic):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            accept_sparse=None,
-            batch_size=1,
-            shuffle=True,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            pin_memory=False,
-            drop_last=True,
-            timeout=0,
-            worker_init_fn=None,
-            epochs=1,
-            simple=False,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        accept_sparse=None,
+        batch_size=1,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        simple=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -114,8 +114,8 @@ class IncrementalPLS(_BaseStochastic):
         if not hasattr(self, "M"):
             self.M = np.zeros((views[0].shape[1], views[1].shape[1]))
         self.M = (
-                views[0].T @ views[1]
-                + self.weights[0] @ np.diag(self.S) @ self.weights[1].T
+            views[0].T @ views[1]
+            + self.weights[0] @ np.diag(self.S) @ self.weights[1].T
         )
         U, S, Vt = np.linalg.svd(self.M)
         self.weights[0] = U[:, : self.latent_dims]
@@ -144,12 +144,12 @@ class IncrementalPLS(_BaseStochastic):
         )
         U, S, Vt = np.linalg.svd(Q)
         self.weights[0] = (
-                np.hstack((self.weights[0], orths[0].T / np.linalg.norm(orths[0])))
-                @ U[:, : self.latent_dims]
+            np.hstack((self.weights[0], orths[0].T / np.linalg.norm(orths[0])))
+            @ U[:, : self.latent_dims]
         )
         self.weights[1] = (
-                np.hstack((self.weights[1], orths[1].T / np.linalg.norm(orths[1])))
-                @ Vt.T[:, : self.latent_dims]
+            np.hstack((self.weights[1], orths[1].T / np.linalg.norm(orths[1])))
+            @ Vt.T[:, : self.latent_dims]
         )
         self.S = S[: self.latent_dims]
 
@@ -157,7 +157,7 @@ class IncrementalPLS(_BaseStochastic):
         return np.sum(
             np.diag(
                 np.cov(*self.transform(views), rowvar=False)[
-                : self.latent_dims, self.latent_dims:
+                    : self.latent_dims, self.latent_dims :
                 ]
             )
         )

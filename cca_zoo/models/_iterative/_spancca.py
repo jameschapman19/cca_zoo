@@ -38,21 +38,21 @@ class SCCA_Span(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            max_iter: int = 100,
-            initialization: str = "uniform",
-            tol: float = 1e-9,
-            regularisation="l0",
-            c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
-            rank=1,
-            positive: Union[Iterable[bool], bool] = None,
-            random_state=None,
-            deflation="cca",
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        max_iter: int = 100,
+        initialization: str = "uniform",
+        tol: float = 1e-9,
+        regularisation="l0",
+        c: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+        rank=1,
+        positive: Union[Iterable[bool], bool] = None,
+        random_state=None,
+        deflation="cca",
+        verbose=0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -101,15 +101,15 @@ class SCCA_Span(_BaseIterative):
 
 class _SpanCCAInnerLoop(_BaseInnerLoop):
     def __init__(
-            self,
-            update,
-            max_iter: int = 100,
-            tol=1e-9,
-            c=None,
-            rank=1,
-            random_state=None,
-            positive=False,
-            verbose=0,
+        self,
+        update,
+        max_iter: int = 100,
+        tol=1e-9,
+        c=None,
+        rank=1,
+        random_state=None,
+        positive=False,
+        verbose=0,
     ):
         super().__init__(
             max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose

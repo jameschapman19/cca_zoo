@@ -19,17 +19,17 @@ class _BaseIterative(_BaseCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            deflation="cca",
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "random",
-            tol: float = 1e-9,
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        deflation="cca",
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "random",
+        tol: float = 1e-9,
+        verbose=0,
     ):
         """
         Constructor for _BaseIterative
@@ -74,9 +74,9 @@ class _BaseIterative(_BaseCCA):
         self.track = []
         residuals = copy.deepcopy(list(views))
         for k in (
-                tqdm(range(self.latent_dims), desc="latent dimension")
-                if self.verbose > 0
-                else range(self.latent_dims)
+            tqdm(range(self.latent_dims), desc="latent dimension")
+            if self.verbose > 0
+            else range(self.latent_dims)
         ):
             self._set_loop_params()
             self.loop = self.loop._fit(residuals, initial_scores=next(initializer))
@@ -114,11 +114,11 @@ class _BaseIterative(_BaseCCA):
 
 class _BaseInnerLoop:
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol: float = 1e-9,
-            random_state=None,
-            verbose=0,
+        self,
+        max_iter: int = 100,
+        tol: float = 1e-9,
+        random_state=None,
+        verbose=0,
     ):
         self.track = {"converged": False, "objective": []}
         self.max_iter = max_iter
@@ -137,9 +137,9 @@ class _BaseInnerLoop:
         self._initialize(views)
         # Iterate until convergence
         for _ in (
-                tqdm(range(self.max_iter), desc="inner loop iterations")
-                if self.verbose > 1
-                else range(self.max_iter)
+            tqdm(range(self.max_iter), desc="inner loop iterations")
+            if self.verbose > 1
+            else range(self.max_iter)
         ):
             self._inner_iteration(views)
             if np.isnan(self.scores).sum() > 0:
@@ -157,8 +157,8 @@ class _BaseInnerLoop:
     def _early_stop(self) -> bool:
         # Some kind of early stopping
         if all(
-                _cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol)
-                for n, view in enumerate(self.scores)
+            _cosine_similarity(self.scores[n], self.old_scores[n]) > (1 - self.tol)
+            for n, view in enumerate(self.scores)
         ):
             return True
         else:

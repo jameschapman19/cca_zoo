@@ -57,14 +57,14 @@ class MCCA(rCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            c: Union[Iterable[float], float] = None,
-            eps=1e-9,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        c: Union[Iterable[float], float] = None,
+        eps=1e-9,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -78,7 +78,10 @@ class MCCA(rCCA):
         self.eps = eps
 
     def _weights(self, eigvals, eigvecs, views):
-        self.weights = [eigvecs[split:self.splits[i + 1]] for i, split in enumerate(self.splits[:-1])]
+        self.weights = [
+            eigvecs[split : self.splits[i + 1]]
+            for i, split in enumerate(self.splits[:-1])
+        ]
 
     def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
         all_views = np.hstack(views)
@@ -86,7 +89,8 @@ class MCCA(rCCA):
         # Can regularise by adding to diagonal
         D = block_diag(
             *[
-                (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[i] * np.eye(view.shape[1])
+                (1 - self.c[i]) * np.cov(view, rowvar=False)
+                + self.c[i] * np.eye(view.shape[1])
                 for i, view in enumerate(views)
             ]
         )
@@ -98,7 +102,7 @@ class MCCA(rCCA):
 
     def _get_weights(self, eigvals, eigvecs, views):
         self.weights = [
-            eigvecs[split: self.splits[i + 1]]
+            eigvecs[split : self.splits[i + 1]]
             for i, split in enumerate(self.splits[:-1])
         ]
 
@@ -129,19 +133,19 @@ class KCCA(MCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            c: Union[Iterable[float], float] = None,
-            eps=1e-3,
-            kernel: Iterable[Union[float, callable]] = None,
-            gamma: Iterable[float] = None,
-            degree: Iterable[float] = None,
-            coef0: Iterable[float] = None,
-            kernel_params: Iterable[dict] = None,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        c: Union[Iterable[float], float] = None,
+        eps=1e-3,
+        kernel: Iterable[Union[float, callable]] = None,
+        gamma: Iterable[float] = None,
+        degree: Iterable[float] = None,
+        coef0: Iterable[float] = None,
+        kernel_params: Iterable[dict] = None,
     ):
         super().__init__(
             latent_dims=latent_dims,

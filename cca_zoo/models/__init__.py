@@ -36,15 +36,31 @@ __all__ = [
     "TCCA",
     "KTCCA",
     "PRCCA",
-    "GRCCA"
+    "GRCCA",
 ]
 
 try:
-    from ._stochastic import PLSStochasticPower, IncrementalPLS, PLSGHAGEP, CCAGHAGEP, RCCAGHAGEP, PLSEigenGame, \
-        CCAEigenGame, RCCAEigenGame
+    from ._stochastic import (
+        PLSStochasticPower,
+        IncrementalPLS,
+        PLSGHAGEP,
+        CCAGHAGEP,
+        RCCAGHAGEP,
+        PLSEigenGame,
+        CCAEigenGame,
+        RCCAEigenGame,
+    )
 
-    __all__.extend("StochasticPowerPLS", "IncrementalPLS", "PLSGHAGEP", "CCAGHAGEP", "RCCAGHAGEP", "PLSEigenGame",
-                   "CCAEigenGame", "RCCAEigenGame")
+    __all__.extend(
+        "StochasticPowerPLS",
+        "IncrementalPLS",
+        "PLSGHAGEP",
+        "CCAGHAGEP",
+        "RCCAGHAGEP",
+        "PLSEigenGame",
+        "CCAEigenGame",
+        "RCCAEigenGame",
+    )
 except:
     pass
 

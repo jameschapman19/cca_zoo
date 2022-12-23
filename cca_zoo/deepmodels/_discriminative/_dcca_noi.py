@@ -16,15 +16,15 @@ class DCCA_NOI(DCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int,
-            N: int,
-            encoders=None,
-            r: float = 0,
-            rho: float = 0.2,
-            eps: float = 1e-9,
-            shared_target: bool = False,
-            **kwargs,
+        self,
+        latent_dims: int,
+        N: int,
+        encoders=None,
+        r: float = 0,
+        rho: float = 0.2,
+        eps: float = 1e-9,
+        shared_target: bool = False,
+        **kwargs,
     ):
         super().__init__(
             latent_dims=latent_dims, encoders=encoders, r=r, eps=eps, **kwargs

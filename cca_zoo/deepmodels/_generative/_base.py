@@ -30,8 +30,7 @@ class _GenerativeMixin:
     def _decode(self, z, **kwargs):
         raise NotImplementedError
 
-    def recon(self,
-              loader: torch.utils.data.DataLoader, **kwargs):
+    def recon(self, loader: torch.utils.data.DataLoader, **kwargs):
         with torch.no_grad():
             x = []
             for batch_idx, batch in enumerate(loader):

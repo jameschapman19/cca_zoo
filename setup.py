@@ -6,8 +6,10 @@ with open("README.md", "r") as fh:
 with open("requirements.txt", "r") as f:
     REQUIRED_PACKAGES = f.read()
 
-EXTRA_PACKAGES = {"deep": ["torch>=1.9.0", "torchvision", "pytorch-lightning"],
-                  "probabilistic": ["jax", "numpyro", "arviz"]}
+EXTRA_PACKAGES = {
+    "deep": ["torch>=1.9.0", "torchvision", "pytorch-lightning"],
+    "probabilistic": ["jax", "numpyro", "arviz"],
+}
 EXTRA_PACKAGES["all"] = EXTRA_PACKAGES["deep"] + EXTRA_PACKAGES["probabilistic"]
 
 setup(
@@ -33,7 +35,5 @@ setup(
 )
 
 
-
 with open("requirements.txt", "r") as f:
     REQUIRED_PACKAGES = f.read()
-

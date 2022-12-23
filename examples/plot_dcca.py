@@ -9,6 +9,7 @@ import pytorch_lightning as pl
 from matplotlib import pyplot as plt
 
 from cca_zoo import DCCA_EigenGame
+
 # %%
 from cca_zoo.deepmodels import (
     DCCA,
@@ -41,7 +42,6 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
     log_every_n_steps=1,
-
 )
 trainer.fit(dcca, train_loader, val_loader)
 pairplot_label(dcca.transform(train_loader), train_labels, title="DCCA")
@@ -55,7 +55,6 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
     log_every_n_steps=1,
-
 )
 trainer.fit(dcca_eg, train_loader, val_loader)
 pairplot_label(dcca_eg.transform(train_loader), train_labels, title="DCCA-EigenGame")
@@ -69,7 +68,6 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
     log_every_n_steps=1,
-
 )
 trainer.fit(dcca_noi, train_loader, val_loader)
 pairplot_label(
@@ -87,7 +85,6 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
     log_every_n_steps=1,
-
 )
 trainer.fit(dcca_sdl, train_loader, val_loader)
 pairplot_label(
@@ -105,7 +102,6 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
     log_every_n_steps=1,
-
 )
 trainer.fit(barlowtwins, train_loader, val_loader)
 pairplot_label(

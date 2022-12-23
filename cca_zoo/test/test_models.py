@@ -3,10 +3,9 @@ import pytest
 import scipy.sparse as sp
 from sklearn.utils.fixes import loguniform
 from sklearn.utils.validation import check_random_state
-
-from cca_zoo import cross_validate, permutation_test_score, learning_curve, PRCCA, GRCCA
 from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
+from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV, cross_validate, permutation_test_score, \
+    learning_curve
 from cca_zoo.models import (
     rCCA,
     CCA,
@@ -26,7 +25,7 @@ from cca_zoo.models import (
     PartialCCA,
     PLS_ALS,
     SCCA_ADMM,
-    SCCA_Parkhomenko,
+    SCCA_Parkhomenko, PRCCA, GRCCA,
 )
 from cca_zoo.plotting import pairplot_train_test
 
@@ -64,7 +63,7 @@ def test_unregularized_methods():
     assert np.testing.assert_array_almost_equal(corr_cca, corr_kcca, decimal=1) is None
     assert np.testing.assert_array_almost_equal(corr_cca, corr_tcca, decimal=1) is None
     assert (
-            np.testing.assert_array_almost_equal(corr_kgcca, corr_gcca, decimal=1) is None
+        np.testing.assert_array_almost_equal(corr_kgcca, corr_gcca, decimal=1) is None
     )
 
 
@@ -101,7 +100,7 @@ def test_regularized_methods():
     # Check the correlations from each unregularized method are the same
     assert np.testing.assert_array_almost_equal(corr_pls, corr_mcca, decimal=1) is None
     assert (
-            np.testing.assert_array_almost_equal(corr_pls, corr_kernel, decimal=1) is None
+        np.testing.assert_array_almost_equal(corr_pls, corr_kernel, decimal=1) is None
     )
     assert np.testing.assert_array_almost_equal(corr_pls, corr_rcca, decimal=1) is None
 
@@ -170,10 +169,10 @@ def test_weighted_GCCA_methods():
     K[0, 200:] = 0
     unobserved_gcca = GCCA(latent_dims=latent_dims, c=[c, c]).fit((X, Y), K=K)
     assert (
-            np.testing.assert_array_almost_equal(
-                corr_unweighted_gcca, corr_deweighted_gcca, decimal=1
-            )
-            is None
+        np.testing.assert_array_almost_equal(
+            corr_unweighted_gcca, corr_deweighted_gcca, decimal=1
+        )
+        is None
     )
 
 
@@ -222,18 +221,28 @@ def test_partialcca():
 
 def test_stochastic_pls():
     pytest.importorskip("torch")
-    from cca_zoo.models import PLSGHAGEP, PLSEigenGame, PLSStochasticPower, IncrementalPLS
+    from cca_zoo.models import (
+        PLSGHAGEP,
+        PLSEigenGame,
+        PLSStochasticPower,
+        IncrementalPLS,
+    )
     from torch import manual_seed
+
     manual_seed(42)
     pls = PLS(latent_dims=3).fit((X, Y))
-    ipls = IncrementalPLS(latent_dims=3, epochs=150, simple=False, batch_size=10, random_state=1).fit(
-        (X, Y)
-    )
-    spls = PLSStochasticPower(latent_dims=3, epochs=150, batch_size=10, learning_rate=1e-2, random_state=1).fit(
-        (X, Y)
-    )
-    egpls = PLSEigenGame(latent_dims=3, epochs=150, batch_size=10, learning_rate=1e-2, random_state=1).fit((X, Y))
-    ghapls = PLSGHAGEP(latent_dims=3, epochs=150, batch_size=10, learning_rate=1e-2, random_state=1).fit((X, Y))
+    ipls = IncrementalPLS(
+        latent_dims=3, epochs=150, simple=False, batch_size=10, random_state=1
+    ).fit((X, Y))
+    spls = PLSStochasticPower(
+        latent_dims=3, epochs=150, batch_size=10, learning_rate=1e-2, random_state=1
+    ).fit((X, Y))
+    egpls = PLSEigenGame(
+        latent_dims=3, epochs=150, batch_size=10, learning_rate=1e-2, random_state=1
+    ).fit((X, Y))
+    ghapls = PLSGHAGEP(
+        latent_dims=3, epochs=150, batch_size=10, learning_rate=1e-2, random_state=1
+    ).fit((X, Y))
     pls_score = pls.score((X, Y))
     ipls_score = ipls.score((X, Y))
     spls_score = spls.score((X, Y))
@@ -249,9 +258,14 @@ def test_stochastic_pls():
 def test_stochastic_cca():
     pytest.importorskip("torch")
     from cca_zoo.models import CCAGHAGEP, CCAEigenGame
+
     cca = CCA(latent_dims=1).fit((X, Y))
-    egcca = CCAEigenGame(latent_dims=1, epochs=500, batch_size=10, learning_rate=5e-2).fit((X, Y))
-    ghacca = CCAGHAGEP(latent_dims=1, epochs=500, batch_size=10, learning_rate=5e-2).fit((X, Y))
+    egcca = CCAEigenGame(
+        latent_dims=1, epochs=500, batch_size=10, learning_rate=5e-2
+    ).fit((X, Y))
+    ghacca = CCAGHAGEP(
+        latent_dims=1, epochs=500, batch_size=10, learning_rate=5e-2
+    ).fit((X, Y))
     cca_score = cca.score((X, Y))
     egcca_score = egcca.score((X, Y))
     ghacca_score = ghacca.score((X, Y))
@@ -277,12 +291,26 @@ def test_plotting():
 
 def test_PRCCA():
     # Test that PRCCA works
-    prcca = PRCCA(latent_dims=2, c=[0, 0]).fit((X, Y), idxs=(np.arange(10), np.arange(11)))
+    prcca = PRCCA(latent_dims=2, c=[0, 0]).fit(
+        (X, Y), idxs=(np.arange(10), np.arange(11))
+    )
     cca = CCA(latent_dims=2).fit([X, Y])
-    assert np.testing.assert_array_almost_equal(cca.score((X, Y)), prcca.score((X, Y)), decimal=1) is None
-    prcca = PRCCA(latent_dims=2, c=[1, 1]).fit((X, Y), idxs=(np.arange(10), np.arange(11)))
+    assert (
+        np.testing.assert_array_almost_equal(
+            cca.score((X, Y)), prcca.score((X, Y)), decimal=1
+        )
+        is None
+    )
+    prcca = PRCCA(latent_dims=2, c=[1, 1]).fit(
+        (X, Y), idxs=(np.arange(10), np.arange(11))
+    )
     pls = PLS(latent_dims=2).fit([X, Y])
-    assert np.testing.assert_array_almost_equal(pls.score((X, Y)), prcca.score((X, Y)), decimal=1) is None
+    assert (
+        np.testing.assert_array_almost_equal(
+            pls.score((X, Y)), prcca.score((X, Y)), decimal=1
+        )
+        is None
+    )
 
 
 def test_GRCCA():
@@ -296,10 +324,14 @@ def test_GRCCA():
     feature_group_3[:3] = 1
     feature_group_3[3:6] = 2
     # Test that GRCCA works
-    grcca = GRCCA(latent_dims=1, c=[100, 0], mu=0).fit((X, Y), feature_groups=[feature_group_1, feature_group_2])
+    grcca = GRCCA(latent_dims=1, c=[100, 0], mu=0).fit(
+        (X, Y), feature_groups=[feature_group_1, feature_group_2]
+    )
     grcca.score((X, Y))
     grcca.transform((X, Y))
-    grcca = GRCCA(c=[100, 0, 50]).fit((X, Y, Z), feature_groups=[feature_group_1, feature_group_2, feature_group_3])
+    grcca = GRCCA(c=[100, 0, 50]).fit(
+        (X, Y, Z), feature_groups=[feature_group_1, feature_group_2, feature_group_3]
+    )
 
 
 def test_PCCA():
@@ -317,11 +349,11 @@ def test_PCCA():
     ).fit([X, Y])
     # Test that vanilla CCA and VCCA produce roughly similar latent space ie they are correlated
     assert (
-            np.abs(
-                np.corrcoef(
-                    cca.transform([X, Y])[1].T,
-                    pcca.posterior_samples["z"].mean(axis=0)[:, 0],
-                )[0, 1]
-            )
-            > 0.9
+        np.abs(
+            np.corrcoef(
+                cca.transform([X, Y])[1].T,
+                pcca.posterior_samples["z"].mean(axis=0)[:, 0],
+            )[0, 1]
+        )
+        > 0.9
     )

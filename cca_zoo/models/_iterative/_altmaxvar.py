@@ -10,6 +10,7 @@ from .._rcca import rCCA
 
 class AltMaxVar(_BaseIterative):
     r"""
+    Fits an Alt Max Var Regularised CCA model to two or more views of data.
 
     .. math::
 
@@ -49,17 +50,17 @@ class AltMaxVar(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "pls",
-            tol: float = 1e-9,
-            view_regs=None,
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "pls",
+        tol: float = 1e-9,
+        view_regs=None,
+        verbose=0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -118,14 +119,14 @@ class AltMaxVar(_BaseIterative):
 
 class _AltMaxVarLoop(_BaseInnerLoop):
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol=1e-9,
-            random_state=None,
-            view_regs=None,
-            alpha=1e-3,
-            verbose=0,
-            **kwargs,
+        self,
+        max_iter: int = 100,
+        tol=1e-9,
+        random_state=None,
+        view_regs=None,
+        alpha=1e-3,
+        verbose=0,
+        **kwargs,
     ):
         super().__init__(
             max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
@@ -155,7 +156,7 @@ class _AltMaxVarLoop(_BaseInnerLoop):
         total_objective = 0
         for i, _ in enumerate(views):
             objective = np.linalg.norm(views[i] @ self.weights[i] - self.G) ** 2 / (
-                    2 * self.n
+                2 * self.n
             )
             total_objective += objective + self.view_regs[i].cost(
                 views[i], self.weights[i]

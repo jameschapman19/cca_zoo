@@ -1,7 +1,14 @@
 from . import architectures
 from . import callbacks
 from . import objectives
-from ._discriminative import DCCA, DCCA_NOI, BarlowTwins, DCCA_SDL, DTCCA, DCCA_EigenGame
+from ._discriminative import (
+    DCCA,
+    DCCA_NOI,
+    BarlowTwins,
+    DCCA_SDL,
+    DTCCA,
+    DCCA_EigenGame,
+)
 from ._generative import DVCCA, SplitAE, DCCAE
 
 __all__ = [
@@ -28,5 +35,5 @@ classes = [
     "BarlowTwins",
     "DTCCA",
     "SplitAE",
-    "DCCA_EigenGame"
+    "DCCA_EigenGame",
 ]

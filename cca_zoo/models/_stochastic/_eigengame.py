@@ -5,7 +5,6 @@ from cca_zoo.utils import _process_parameter
 
 
 class RCCAEigenGame(_BaseStochastic):
-
     """
     A class used to fit Regularized CCA by Delta-EigenGame
 
@@ -54,26 +53,25 @@ class RCCAEigenGame(_BaseStochastic):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            accept_sparse=None,
-            batch_size=1,
-            shuffle=True,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            pin_memory=False,
-            drop_last=True,
-            timeout=0,
-            worker_init_fn=None,
-            epochs=1,
-            learning_rate=0.01,
-            c=0,
-            **kwargs
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        accept_sparse=None,
+        batch_size=None,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        learning_rate=0.01,
+        c=0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -93,7 +91,6 @@ class RCCAEigenGame(_BaseStochastic):
             worker_init_fn=worker_init_fn,
             epochs=epochs,
             learning_rate=learning_rate,
-            **kwargs
         )
         self.c = c
 
@@ -172,12 +169,47 @@ class CCAEigenGame(RCCAEigenGame):
     ----------
     Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
     """
+
     def __init__(
-            self,
-            *args, **kwargs,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        accept_sparse=None,
+        batch_size=None,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        learning_rate=0.01,
     ):
-        kwargs.pop('c', None)
-        super().__init__(*args, c=0, **kwargs)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            accept_sparse=accept_sparse,
+            random_state=random_state,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            sampler=sampler,
+            batch_sampler=batch_sampler,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            drop_last=drop_last,
+            timeout=timeout,
+            worker_init_fn=worker_init_fn,
+            epochs=epochs,
+            learning_rate=learning_rate,
+            c=0,
+        )
 
 
 class PLSEigenGame(RCCAEigenGame):
@@ -225,12 +257,47 @@ class PLSEigenGame(RCCAEigenGame):
     ----------
     Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
     """
+
     def __init__(
-            self,
-            *args, **kwargs,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        accept_sparse=None,
+        batch_size=None,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        learning_rate=0.01,
     ):
-        kwargs.pop('c', None)
-        super().__init__(*args, c=1, **kwargs)
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            accept_sparse=accept_sparse,
+            random_state=random_state,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            sampler=sampler,
+            batch_sampler=batch_sampler,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            drop_last=drop_last,
+            timeout=timeout,
+            worker_init_fn=worker_init_fn,
+            epochs=epochs,
+            learning_rate=learning_rate,
+            c=1,
+        )
 
     def objective(self, views, **kwargs):
         return self.tv(views)

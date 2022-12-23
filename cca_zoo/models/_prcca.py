@@ -35,14 +35,14 @@ class PRCCA(MCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            eps=1e-3,
-            c=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        eps=1e-3,
+        c=0,
     ):
         """
         Parameters
@@ -89,12 +89,8 @@ class PRCCA(MCCA):
         self.p = [X_i.shape[1] for X_i in X_1]
         X_2 = [np.delete(view, idx, axis=1) for view, idx in zip(views, idxs)]
         self.B = [np.linalg.pinv(X_2) @ X_1 for X_1, X_2 in zip(X_1, X_2)]
-        X_1 = [
-            X_1 - X_2 @ B
-            for X_1, X_2, B in zip(X_1, X_2, self.B)]
-        views = [
-            np.hstack((X_1, X_2))
-            for X_1, X_2 in zip(X_1, X_2)]
+        X_1 = [X_1 - X_2 @ B for X_1, X_2, B in zip(X_1, X_2, self.B)]
+        views = [np.hstack((X_1, X_2)) for X_1, X_2 in zip(X_1, X_2)]
         return views
 
     def _setup_evp(self, views: Iterable[np.ndarray], idxs=None, **kwargs):
@@ -104,7 +100,10 @@ class PRCCA(MCCA):
         for i, idx in enumerate(idxs):
             penalties[i][idx] = self.c[i]
         D = block_diag(
-            *[(1 - self.c[i]) * (m.T @ m) / self.n + np.diag(penalties[i]) for i, m in enumerate(views)]
+            *[
+                (1 - self.c[i]) * (m.T @ m) / self.n + np.diag(penalties[i])
+                for i, m in enumerate(views)
+            ]
         )
         C -= block_diag(*[view.T @ view / self.n for view in views])
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps

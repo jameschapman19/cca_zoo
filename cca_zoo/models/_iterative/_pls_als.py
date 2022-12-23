@@ -8,7 +8,7 @@ from ._base import _BaseInnerLoop, _BaseIterative
 
 class PLS_ALS(_BaseIterative):
     r"""
-    A class used to fit a PLS model
+    A class used to fit a PLS model to two or more views of data.
 
     Fits a partial least squares model with CCA deflation by NIPALS algorithm
 
@@ -19,6 +19,8 @@ class PLS_ALS(_BaseIterative):
         \text{subject to:}
 
         w_i^Tw_i=1
+
+    Can also be used with more than two views
 
     Parameters
     ----------
@@ -55,16 +57,16 @@ class PLS_ALS(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "random",
-            tol: float = 1e-9,
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "random",
+        tol: float = 1e-9,
+        verbose=0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -90,11 +92,11 @@ class PLS_ALS(_BaseIterative):
 
 class _PLSInnerLoop(_BaseInnerLoop):
     def __init__(
-            self,
-            max_iter: int = 100,
-            tol=1e-9,
-            random_state=None,
-            verbose=0,
+        self,
+        max_iter: int = 100,
+        tol=1e-9,
+        random_state=None,
+        verbose=0,
     ):
         super().__init__(
             max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
