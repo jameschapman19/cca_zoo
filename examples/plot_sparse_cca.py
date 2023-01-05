@@ -71,9 +71,9 @@ pls = PLS().fit([X, Y])
 plot_model_weights(pls.weights[0], pls.weights[1], tx, ty, title="PLS")
 
 # %%
-c1 = [0.1, 0.3, 0.7, 0.9]
-c2 = [0.1, 0.3, 0.7, 0.9]
-param_grid = {"c": [c1, c2]}
+tau1 = [0.1, 0.3, 0.7, 0.9]
+tau2 = [0.1, 0.3, 0.7, 0.9]
+param_grid = {"tau": [tau1, tau2]}
 pmd = GridSearchCV(SCCA_PMD(), param_grid=param_grid, cv=3, verbose=True).fit([X, Y])
 # %%
 plt.figure()
@@ -90,7 +90,7 @@ plot_model_weights(
 pd.DataFrame(pmd.cv_results_)
 
 # %%
-scca = SCCA_IPLS(c=[1e-2, 1e-2]).fit([X, Y])
+scca = SCCA_IPLS(tau=[1e-2, 1e-2]).fit([X, Y])
 plot_model_weights(scca.weights[0], scca.weights[1], tx, ty, title="SCCA_IPLS")
 
 # Convergence
@@ -101,7 +101,7 @@ plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
 # %%
-scca_pos = SCCA_IPLS(c=[1e-2, 1e-2], positive=[True, True]).fit([X, Y])
+scca_pos = SCCA_IPLS(tau=[1e-2, 1e-2], positive=[True, True]).fit([X, Y])
 plot_model_weights(
     scca_pos.weights[0], scca_pos.weights[1], tx, ty, title="SCCA_IPLS (Positive)"
 )
