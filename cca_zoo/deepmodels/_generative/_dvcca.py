@@ -20,15 +20,15 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        encoders=None,
-        decoders=None,
-        private_encoders: Iterable = None,
-        latent_dropout=0,
-        img_dim=None,
-        recon_loss_type="mse",
-        **kwargs,
+            self,
+            latent_dims: int,
+            encoders=None,
+            decoders=None,
+            private_encoders: Iterable = None,
+            latent_dropout=0,
+            img_dim=None,
+            recon_loss_type="mse",
+            **kwargs,
     ):
         super().__init__(latent_dims=latent_dims, **kwargs)
         self.img_dim = img_dim
@@ -125,7 +125,7 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
             ]
         ).sum()
         loss["kl shared"] = (
-            self.kl_loss(z["mu_shared"], z["logvar_shared"]) / views[0].numel()
+                self.kl_loss(z["mu_shared"], z["logvar_shared"]) / views[0].numel()
         )
         if "private" in z:
             loss["kl private"] = torch.stack(
@@ -138,8 +138,8 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
         return loss
 
     def transform(
-        self,
-        loader: torch.utils.data.DataLoader,
+            self,
+            loader: torch.utils.data.DataLoader,
     ):
         """
         :param loader: a dataloader that matches the structure of that used for training

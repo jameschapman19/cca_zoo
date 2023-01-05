@@ -2,8 +2,7 @@ from typing import Union
 
 import numpy as np
 
-from cca_zoo.models._iterative._base import _BaseInnerLoop
-from ._altmaxvar import AltMaxVar
+from cca_zoo.models._iterative._altmaxvar import AltMaxVar
 
 
 class PDD_GCCA(AltMaxVar):
@@ -25,17 +24,17 @@ class PDD_GCCA(AltMaxVar):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-9,
-        view_regs=None,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            view_regs=None,
+            verbose=0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -49,40 +48,6 @@ class PDD_GCCA(AltMaxVar):
             verbose=verbose,
         )
         self.view_regs = view_regs
-
-    def _set_loop_params(self):
-        self.loop = _PDD_GCCALoop(
-            max_iter=self.max_iter,
-            tol=self.tol,
-            random_state=self.random_state,
-            view_regs=self.view_regs,
-            verbose=self.verbose,
-        )
-
-
-class _PDD_GCCALoop(_BaseInnerLoop):
-    def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        random_state=None,
-        view_regs=None,
-        alpha=1e-3,
-        eta=1e-3,
-        rho=1e-3,
-        c=0.9,
-        eps=1e-3,
-        verbose=0,
-    ):
-        super().__init__(
-            max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
-        )
-        self.alpha = alpha
-        self.view_regs = view_regs
-        self.eta = eta
-        self.rho = rho
-        self.c = c
-        self.eps = eps
 
     def _inner_iteration(self, views):
         # Update each view using loop update function
@@ -104,9 +69,9 @@ class _PDD_GCCALoop(_BaseInnerLoop):
             targets = np.ma.array(self.scores, mask=False)
             targets.mask[view_index] = True
             target = (
-                targets.sum(axis=0).filled()
-                + self.G[view_index]
-                - self.Y[view_index] / self.rho
+                    targets.sum(axis=0).filled()
+                    + self.G[view_index]
+                    - self.Y[view_index] / self.rho
             )
             weights_ = self.view_regs[view_index](
                 (self.n_views + self.rho) * views[view_index],
@@ -121,11 +86,11 @@ class _PDD_GCCALoop(_BaseInnerLoop):
             )
             G_ = U @ Vt
             if (
-                max(
-                    np.linalg.norm(weights_ - self.weights[view_index], ord=np.inf),
-                    np.linalg.norm(G_ - self.G[view_index], ord=np.inf),
-                )
-                < self.eps
+                    max(
+                        np.linalg.norm(weights_ - self.weights[view_index], ord=np.inf),
+                        np.linalg.norm(G_ - self.G[view_index], ord=np.inf),
+                    )
+                    < self.eps
             ):
                 converged = True
             self.weights[view_index] = weights_
@@ -136,22 +101,15 @@ class _PDD_GCCALoop(_BaseInnerLoop):
         total_objective = 0
         for i, _ in enumerate(views):
             objective = (
-                np.linalg.norm(
-                    views[i] @ self.weights[i] - self.scores, ord="fro", axis=(1, 2)
-                )
-                ** 2
-            ).sum() / 2
+                                np.linalg.norm(
+                                    views[i] @ self.weights[i] - self.scores, ord="fro", axis=(1, 2)
+                                )
+                                ** 2
+                        ).sum() / 2
             total_objective += objective + self.view_regs[i].cost(
                 views[i], self.weights[i]
             )
         return total_objective
-
-    def _early_stop(self) -> bool:
-        # Some kind of early stopping
-        if np.abs(self.track["objective"][-2] - self.track["objective"][-1]) < 1e-9:
-            return True
-        else:
-            return False
 
     def _initialize(self, views):
         self.weights = [

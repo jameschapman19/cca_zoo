@@ -23,20 +23,20 @@ class NCCA(_BaseCCA):
     >>> X1 = np.random.rand(10,5)
     >>> X2 = np.random.rand(10,5)
     >>> model = NCCA()
-    >>> model._fit((X1,X2)).score((X1,X2))
+    >>> model.fit((X1,X2)).score((X1,X2))
     array([1.])
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale=True,
-        centre=True,
-        copy_data=True,
-        accept_sparse=False,
-        random_state: Union[int, np.random.RandomState] = None,
-        nearest_neighbors=None,
-        gamma: Iterable[float] = None,
+            self,
+            latent_dims: int = 1,
+            scale=True,
+            centre=True,
+            copy_data=True,
+            accept_sparse=False,
+            random_state: Union[int, np.random.RandomState] = None,
+            nearest_neighbors=None,
+            gamma: Iterable[float] = None,
     ):
         super().__init__(
             latent_dims, scale, centre, copy_data, accept_sparse, random_state
@@ -71,9 +71,9 @@ class NCCA(_BaseCCA):
         ]
         S = self.Ws[0] @ self.Ws[1]
         U, S, Vt = np.linalg.svd(S)
-        self.f = U[:, 1 : self.latent_dims + 1] * np.sqrt(self.n)
-        self.g = Vt[1 : self.latent_dims + 1, :].T * np.sqrt(self.n)
-        self.S = S[1 : self.latent_dims + 1]
+        self.f = U[:, 1: self.latent_dims + 1] * np.sqrt(self.n)
+        self.g = Vt[1: self.latent_dims + 1, :].T * np.sqrt(self.n)
+        self.S = S[1: self.latent_dims + 1]
         return self
 
     def transform(self, views: Iterable[np.ndarray], **kwargs):

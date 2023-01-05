@@ -7,19 +7,19 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 
 class _BaseDeep(pl.LightningModule):
     def __init__(
-        self,
-        latent_dims: int,
-        optimizer="adam",
-        scheduler=None,
-        lr=1e-3,
-        weight_decay=0,
-        extra_optimizer_kwargs=None,
-        max_epochs=1000,
-        min_lr=1e-9,
-        lr_decay_steps=None,
-        correlation=True,
-        *args,
-        **kwargs,
+            self,
+            latent_dims: int,
+            optimizer="adam",
+            scheduler=None,
+            lr=1e-3,
+            weight_decay=0,
+            extra_optimizer_kwargs=None,
+            max_epochs=1000,
+            min_lr=1e-9,
+            lr_decay_steps=None,
+            correlation=True,
+            *args,
+            **kwargs,
     ):
         super().__init__()
         if extra_optimizer_kwargs is None:
@@ -73,8 +73,8 @@ class _BaseDeep(pl.LightningModule):
         return loss["objective"]
 
     def transform(
-        self,
-        loader: torch.utils.data.DataLoader,
+            self,
+            loader: torch.utils.data.DataLoader,
     ):
         """
         :param loader: a dataloader that matches the structure of that used for training

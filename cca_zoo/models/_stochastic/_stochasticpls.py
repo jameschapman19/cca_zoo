@@ -51,24 +51,24 @@ class PLSStochasticPower(_BaseStochastic):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        accept_sparse=None,
-        batch_size=1,
-        shuffle=True,
-        sampler=None,
-        batch_sampler=None,
-        num_workers=0,
-        pin_memory=False,
-        drop_last=True,
-        timeout=0,
-        worker_init_fn=None,
-        epochs=1,
-        learning_rate=0.01,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            accept_sparse=None,
+            batch_size=1,
+            shuffle=True,
+            sampler=None,
+            batch_sampler=None,
+            num_workers=0,
+            pin_memory=False,
+            drop_last=True,
+            timeout=0,
+            worker_init_fn=None,
+            epochs=1,
+            learning_rate=0.01,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -97,13 +97,11 @@ class PLSStochasticPower(_BaseStochastic):
         for i, view in enumerate(views):
             projections = np.ma.array(projections, mask=False, keep_mask=False)
             projections.mask[i] = True
-            self.weights[i] += (
-                self.learning_rate
-                * (view.T @ projections.sum(axis=0).filled())
-                / view.shape[0]
-            )
+            grad = (view.T @ projections.sum(axis=0).filled()) / view.shape[0]
+            self.weights[i] += self.learning_rate * grad
             # qr decomposition of weights for orthogonality
             self.weights[i] = self._orth(self.weights[i])
+        return False
 
     @staticmethod
     def _orth(U):

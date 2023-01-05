@@ -7,7 +7,7 @@ from torch.autograd import Variable
 
 class CorrelationCallback(Callback):
     def on_validation_epoch_end(
-        self, trainer: Trainer, pl_module: LightningModule
+            self, trainer: Trainer, pl_module: LightningModule
     ) -> None:
         pl_module.log(
             "val/corr",
@@ -17,7 +17,7 @@ class CorrelationCallback(Callback):
 
 class GenerativeCallback(Callback):
     def on_validation_epoch_end(
-        self, trainer: Trainer, pl_module: LightningModule
+            self, trainer: Trainer, pl_module: LightningModule
     ) -> None:
         if hasattr(pl_module, "img_dim") and pl_module.img_dim is not None:
             z = dict()

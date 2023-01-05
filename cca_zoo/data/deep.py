@@ -86,16 +86,16 @@ def check_dataset(dataset):
 
 
 def get_dataloaders(
-    dataset,
-    val_dataset=None,
-    batch_size=None,
-    val_batch_size=None,
-    drop_last=True,
-    val_drop_last=False,
-    shuffle_train=False,
-    pin_memory=True,
-    num_workers=0,
-    persistent_workers=True,
+        dataset,
+        val_dataset=None,
+        batch_size=None,
+        val_batch_size=None,
+        drop_last=True,
+        val_drop_last=False,
+        shuffle_train=False,
+        pin_memory=True,
+        num_workers=0,
+        persistent_workers=True,
 ):
     """
     A utility function to allow users to quickly get hold of the dataloaders required by pytorch lightning

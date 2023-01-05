@@ -3,13 +3,12 @@ from typing import Union, Iterable
 
 import numpy as np
 
+from cca_zoo.models._search import _delta_search
 from cca_zoo.utils import _process_parameter, _check_converged_weights
-from ._base import _BaseIterative
-from ._pls_als import _PLSInnerLoop
-from .._search import _delta_search
+from ._pls_als import PLS_ALS
 
 
-class SCCA_PMD(_BaseIterative):
+class SCCA_PMD(PLS_ALS):
     r"""
     Fits a Sparse CCA (Penalized Matrix Decomposition) model for 2 or more views.
 
@@ -37,7 +36,7 @@ class SCCA_PMD(_BaseIterative):
         Random seed for initialisation.
     deflation : str, default="cca"
         Deflation method to use. Options are "cca" and "pmd".
-    c : float or list of floats, default=None
+    tau : float or list of floats, default=None
         Regularisation parameter. If a single float is given, the same value is used for all views.
         If a list of floats is given, the values are used for each view respectively.
         If None, the value is set to 1.
@@ -64,27 +63,27 @@ class SCCA_PMD(_BaseIterative):
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
-    >>> model = SCCA_PMD(c=[1,1],random_state=0)
+    >>> model = SCCA_PMD(tau=[1,1],random_state=0)
     >>> model.fit((X1,X2)).score((X1,X2))
     array([0.81796873])
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        c: Union[Iterable[float], float] = None,
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-9,
-        positive: Union[Iterable[bool], bool] = None,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            tau: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            positive: Union[Iterable[bool], bool] = None,
+            verbose=0,
     ):
-        self.c = c
+        self.tau = tau
         self.positive = positive
         super().__init__(
             latent_dims=latent_dims,
@@ -99,62 +98,37 @@ class SCCA_PMD(_BaseIterative):
             verbose=verbose,
         )
 
-    def _set_loop_params(self):
-        self.loop = _PMDInnerLoop(
-            max_iter=self.max_iter,
-            c=self.c,
-            tol=self.tol,
-            positive=self.positive,
-            random_state=self.random_state,
-            verbose=self.verbose,
-        )
-
     def _check_params(self):
-        if self.c is None:
+        if self.tau is None:
             warnings.warn(
-                "c parameter not set. Setting to c=1 i.e. maximum regularisation of l1 norm"
+                "tau parameter not set. Setting to tau=1 i.e. maximum regularisation of l1 norm"
             )
-        self.c = _process_parameter("c", self.c, 1, self.n_views)
-        if any(c < 0 or c > 1 for c in self.c):
+        self.tau = _process_parameter("tau", self.tau, 1, self.n_views)
+        if any(tau < 0 or tau > 1 for tau in self.tau):
             raise ValueError(
                 "All regularisation parameters should be between 0 and 1 "
-                f"1. c=[{self.c}]"
+                f"1. tau=[{self.tau}]"
             )
         self.positive = _process_parameter(
             "positive", self.positive, False, self.n_views
         )
 
-
-class _PMDInnerLoop(_PLSInnerLoop):
-    def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        c=None,
-        positive=None,
-        random_state=None,
-        verbose=0,
-    ):
-        super().__init__(
-            max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
-        )
-        self.c = c
-        self.positive = positive
-
     def _initialize(self, views):
         shape_sqrts = [np.sqrt(view.shape[1]) for view in views]
-        self.t = [max(1, x * y) for x, y in zip(self.c, shape_sqrts)]
+        self.t = [max(1, x * y) for x, y in zip(self.tau, shape_sqrts)]
 
-    def _update_view(self, views, view_index: int):
-        # mask off the current view and sum the rest
-        targets = np.ma.array(self.scores, mask=False)
-        targets.mask[view_index] = True
-        self.weights[view_index] = views[view_index].T @ targets.sum(axis=0).filled()
-        self.weights[view_index] = _delta_search(
-            self.weights[view_index],
-            self.t[view_index],
-            positive=self.positive[view_index],
-            tol=self.tol,
-        )
-        _check_converged_weights(self.weights[view_index], view_index)
-        self.scores[view_index] = views[view_index] @ self.weights[view_index]
+    def _update(self, views, scores, weights):
+        # Update each view using loop update function
+        for view_index, view in enumerate(views):
+            targets = np.ma.array(scores, mask=False)
+            targets.mask[view_index] = True
+            weights[view_index] = views[view_index].T @ targets.sum(axis=0).filled()
+            weights[view_index] = _delta_search(
+                weights[view_index],
+                self.t[view_index],
+                positive=self.positive[view_index],
+                tol=self.tol,
+            )
+            _check_converged_weights(weights[view_index], view_index)
+            scores[view_index] = views[view_index] @ weights[view_index]
+        return scores, weights

@@ -1,10 +1,10 @@
 import torch
 
-from .. import objectives
-from .._base import _BaseDeep
-from ..callbacks import CorrelationCallback
-from ...models import MCCA
-from ...models._base import _BaseCCA
+from cca_zoo.deepmodels import objectives
+from cca_zoo.deepmodels._base import _BaseDeep
+from cca_zoo.deepmodels.callbacks import CorrelationCallback
+from cca_zoo.models import MCCA
+from cca_zoo.models._base import _BaseCCA
 
 
 class DCCA(_BaseDeep, _BaseCCA):
@@ -18,13 +18,13 @@ class DCCA(_BaseDeep, _BaseCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int,
-        objective=objectives.MCCA,
-        encoders=None,
-        r: float = 0,
-        eps: float = 1e-5,
-        **kwargs,
+            self,
+            latent_dims: int,
+            objective=objectives.MCCA,
+            encoders=None,
+            r: float = 0,
+            eps: float = 1e-5,
+            **kwargs,
     ):
         super().__init__(latent_dims=latent_dims, **kwargs)
         self.encoders = torch.nn.ModuleList(encoders)
@@ -41,9 +41,9 @@ class DCCA(_BaseDeep, _BaseCCA):
         return {"objective": self.objective.loss(z)}
 
     def pairwise_correlations(
-        self,
-        loader: torch.utils.data.DataLoader,
-        train=False,
+            self,
+            loader: torch.utils.data.DataLoader,
+            train=False,
     ):
         """
         Calculates correlation for entire batch from dataloader

@@ -78,7 +78,7 @@ pmd = GridSearchCV(SCCA_PMD(), param_grid=param_grid, cv=3, verbose=True).fit([X
 # %%
 plt.figure()
 plt.title("Objective Convergence")
-plt.plot(np.array(pmd.best_estimator_.track[0]["objective"]).T)
+plt.plot(np.array(pmd.best_estimator_.track["objective"][0]))
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
 # %%
@@ -96,7 +96,7 @@ plot_model_weights(scca.weights[0], scca.weights[1], tx, ty, title="SCCA_IPLS")
 # Convergence
 plt.figure()
 plt.title("Objective Convergence")
-plt.plot(np.array(scca.track[0]["objective"]).T)
+plt.plot(np.array(scca.track["objective"][0]))
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
@@ -109,7 +109,7 @@ plot_model_weights(
 # Convergence
 plt.figure()
 plt.title("Objective Convergence")
-plt.plot(np.array(scca_pos.track[0]["objective"]).T)
+plt.plot(np.array(scca_pos.track["objective"][0]))
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
@@ -122,17 +122,17 @@ plot_model_weights(
 # Convergence
 plt.figure()
 plt.title("Objective Convergence")
-plt.plot(np.array(elasticcca.track[0]["objective"]).T)
+plt.plot(np.array(elasticcca.track["objective"][0]))
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
 # %%
-spancca = SCCA_Span(c=[10, 10], max_iter=2000, rank=20).fit([X, Y])
+spancca = SCCA_Span(tau=[10, 10], max_iter=2000, rank=20).fit([X, Y])
 plot_model_weights(spancca.weights[0], spancca.weights[1], tx, ty, title="Span CCA")
 
 # Convergence
 plt.figure()
 plt.title("Objective Convergence")
-plt.plot(np.array(spancca.track[0]["objective"]).T)
+plt.plot(np.array(spancca.track["objective"][0]))
 plt.ylabel("Objective")
 plt.xlabel("#iterations")

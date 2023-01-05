@@ -59,15 +59,15 @@ class rCCA(_BaseCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        eps=1e-3,
-        accept_sparse=None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            eps=1e-3,
+            accept_sparse=None,
     ):
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]
@@ -97,7 +97,7 @@ class rCCA(_BaseCCA):
         n = views[0].shape[0]
         self.principal_components = _pca_data(*views)
         self.Bs = [
-            (1 - self.c[i]) * pc.singular_values_**2 / n + self.c[i]
+            (1 - self.c[i]) * pc.singular_values_ ** 2 / n + self.c[i]
             for i, pc in enumerate(self.principal_components)
         ]
         C, D = self._two_view_evp(views)
@@ -107,24 +107,24 @@ class rCCA(_BaseCCA):
         R, B = self._get_R_B(views)
         R_12 = R[0].T @ R[1]
         w_y = (
-            self.principal_components[1].components_.T
-            @ np.diag(1 / np.sqrt(B[1]))
-            @ eigvecs
+                self.principal_components[1].components_.T
+                @ np.diag(1 / np.sqrt(B[1]))
+                @ eigvecs
         )
         w_x = (
-            self.principal_components[0].components_.T
-            @ np.diag(1 / B[0])
-            @ R_12
-            @ np.diag(1 / np.sqrt(B[1]))
-            @ eigvecs
-            / np.sqrt(eigvals)
+                self.principal_components[0].components_.T
+                @ np.diag(1 / B[0])
+                @ R_12
+                @ np.diag(1 / np.sqrt(B[1]))
+                @ eigvecs
+                / np.sqrt(eigvals)
         )
         self.weights = [w_x, w_y]
 
     def _get_R_B(self, views):
         n = views[0].shape[0]
         B = [
-            (1 - self.c[i]) * pc.singular_values_**2 / n + self.c[i]
+            (1 - self.c[i]) * pc.singular_values_ ** 2 / n + self.c[i]
             for i, pc in enumerate(self.principal_components)
         ]
         R = [pc.transform(view) for view, pc in zip(views, self.principal_components)]
@@ -145,11 +145,11 @@ class rCCA(_BaseCCA):
         R, B = self._get_R_B(views)
         R_12 = R[0].T @ R[1]
         M = (
-            np.diag(1 / np.sqrt(B[1]))
-            @ R_12.T
-            @ np.diag(1 / B[0])
-            @ R_12
-            @ np.diag(1 / np.sqrt(B[1]))
+                np.diag(1 / np.sqrt(B[1]))
+                @ R_12.T
+                @ np.diag(1 / B[0])
+                @ R_12
+                @ np.diag(1 / np.sqrt(B[1]))
         )
         return M, None
 
@@ -203,12 +203,12 @@ class CCA(rCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -267,12 +267,12 @@ class PLS(rCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
     ):
         super().__init__(
             latent_dims=latent_dims,

@@ -6,9 +6,8 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import SGDRegressor, Ridge, ElasticNet
 from sklearn.utils._testing import ignore_warnings
 
+from cca_zoo.models._iterative._base import _BaseIterative
 from cca_zoo.utils import _process_parameter, _check_converged_weights
-from ._base import _BaseIterative
-from ._pls_als import _PLSInnerLoop
 
 
 class ElasticCCA(_BaseIterative):
@@ -82,22 +81,22 @@ class ElasticCCA(_BaseIterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-9,
-        c: Union[Iterable[float], float] = None,
-        l1_ratio: Union[Iterable[float], float] = None,
-        maxvar: bool = True,
-        stochastic=False,
-        positive: Union[Iterable[bool], bool] = None,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            c: Union[Iterable[float], float] = None,
+            l1_ratio: Union[Iterable[float], float] = None,
+            maxvar: bool = True,
+            stochastic=False,
+            positive: Union[Iterable[bool], bool] = None,
+            verbose=0,
     ):
         self.c = c
         self.l1_ratio = l1_ratio
@@ -122,25 +121,60 @@ class ElasticCCA(_BaseIterative):
             verbose=verbose,
         )
 
-    def _set_loop_params(self):
-        self.loop = _ElasticInnerLoop(
-            max_iter=self.max_iter,
-            c=self.c,
-            l1_ratio=self.l1_ratio,
-            maxvar=self.maxvar,
-            tol=self.tol,
-            stochastic=self.stochastic,
-            positive=self.positive,
-            random_state=self.random_state,
-            verbose=self.verbose,
-        )
-
     def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
         self.l1_ratio = _process_parameter("l1_ratio", self.l1_ratio, 0, self.n_views)
         self.positive = _process_parameter(
             "positive", self.positive, False, self.n_views
         )
+
+    def _initialize(self, views):
+        self.regressors = initialize_regressors(self.c, self.l1_ratio, self.positive, self.stochastic, self.tol,
+                                                self.random_state)
+
+    def _update(self, views, scores, weights):
+        for view_index, view in enumerate(views):
+            if self.maxvar:
+                # For MAXVAR we rescale the targets
+                target = scores.mean(axis=0)
+                target /= np.linalg.norm(target) / np.sqrt(self.n)
+            else:
+                target = scores[view_index - 1]
+            # Solve the elastic regression
+            weights[view_index] = self._elastic_solver(
+                views[view_index], target, view_index
+            )
+            # For SUMCOR we rescale the projections
+            if not self.maxvar:
+                _check_converged_weights(weights[view_index], view_index)
+                weights[view_index] = weights[view_index] / (
+                        np.linalg.norm(views[view_index] @ weights[view_index])
+                        / np.sqrt(self.n)
+                )
+            scores[view_index] = views[view_index] @ weights[view_index]
+        return scores, weights
+
+    @ignore_warnings(category=ConvergenceWarning)
+    def _elastic_solver(self, X, y, view_index):
+        return self.regressors[view_index].fit(X, y.ravel()).coef_
+
+    def _objective(self, views, scores):
+        c = np.array(self.c)
+        ratio = np.array(self.l1_ratio)
+        l1 = c * ratio
+        l2 = c * (1 - ratio)
+        total_objective = 0
+        target = scores.mean(axis=0)
+        for i, _ in enumerate(views):
+            if self.maxvar:
+                target /= np.linalg.norm(target) / np.sqrt(self.n)
+            objective = np.linalg.norm(views[i] @ self.weights[i] - target) ** 2 / (
+                    2 * self.n
+            )
+            l1_pen = l1[i] * np.linalg.norm(self.weights[i], ord=1)
+            l2_pen = l2[i] * np.linalg.norm(self.weights[i], ord=2)
+            total_objective += objective + l1_pen + l2_pen
+        return total_objective
 
 
 class SCCA_IPLS(ElasticCCA):
@@ -193,22 +227,23 @@ class SCCA_IPLS(ElasticCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        c: Union[Iterable[float], float] = None,
-        max_iter: int = 100,
-        maxvar: bool = False,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-9,
-        stochastic=False,
-        positive: Union[Iterable[bool], bool] = None,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            tau: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            maxvar: bool = False,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            stochastic=False,
+            positive: Union[Iterable[bool], bool] = None,
+            verbose=0,
     ):
+        self.tau = tau
         super().__init__(
             latent_dims=latent_dims,
             scale=scale,
@@ -217,120 +252,60 @@ class SCCA_IPLS(ElasticCCA):
             max_iter=max_iter,
             initialization=initialization,
             tol=tol,
-            c=c,
-            l1_ratio=1,
             maxvar=maxvar,
             stochastic=stochastic,
             positive=positive,
             random_state=random_state,
             deflation=deflation,
             verbose=verbose,
+            l1_ratio=1,
         )
-
-
-class _ElasticInnerLoop(_PLSInnerLoop):
-    def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        c=None,
-        l1_ratio=None,
-        maxvar=True,
-        stochastic=True,
-        positive=None,
-        random_state=None,
-        verbose=0,
-        **kwargs,
-    ):
-        super().__init__(
-            max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
-        )
-        self.stochastic = stochastic
-        self.c = c
-        self.l1_ratio = l1_ratio
-        self.positive = positive
-        self.maxvar = maxvar
 
     def _initialize(self, views):
-        self.regressors = []
-        for alpha, l1_ratio, positive in zip(self.c, self.l1_ratio, self.positive):
-            if self.stochastic:
-                self.regressors.append(
-                    SGDRegressor(
-                        penalty="elasticnet",
-                        alpha=alpha,
-                        l1_ratio=l1_ratio,
-                        fit_intercept=False,
-                        tol=self.tol,
-                        warm_start=True,
-                        random_state=self.random_state,
-                    )
-                )
-            elif alpha == 0:
-                self.regressors.append(
-                    Ridge(
-                        alpha=self.tol,
-                        fit_intercept=False,
-                        positive=positive,
-                    )
-                )
-            else:
-                self.regressors.append(
-                    ElasticNet(
-                        alpha=alpha,
-                        l1_ratio=l1_ratio,
-                        fit_intercept=False,
-                        warm_start=True,
-                        positive=positive,
-                        random_state=self.random_state,
-                    )
-                )
+        self.regressors = initialize_regressors(self.tau, self.l1_ratio, self.positive, self.stochastic, self.tol,
+                                                self.random_state)
+        self.c=self.tau
 
-    def _update_view(self, views, view_index: int):
-        if self.maxvar:
-            # For MAXVAR we rescale the targets
-            target = self.scores.mean(axis=0)
-            target /= np.linalg.norm(target) / np.sqrt(self.n)
-        else:
-            target = self.scores[view_index - 1]
-        # Solve the elastic regression
-        self.weights[view_index] = self._elastic_solver(
-            views[view_index], target, view_index
+    def _check_params(self):
+        self.tau = _process_parameter("tau", self.tau, 0, self.n_views)
+        self.l1_ratio = _process_parameter("l1_ratio", self.l1_ratio, 0, self.n_views)
+        self.positive = _process_parameter(
+            "positive", self.positive, False, self.n_views
         )
-        # For SUMCOR we rescale the projections
-        if not self.maxvar:
-            _check_converged_weights(self.weights[view_index], view_index)
-            self.weights[view_index] = self.weights[view_index] / (
-                np.linalg.norm(views[view_index] @ self.weights[view_index])
-                / np.sqrt(self.n)
+
+
+def initialize_regressors(c, l1_ratio, positive, stochastic, tol, random_state):
+    regressors = []
+    for alpha, l1_ratio, positive in zip(c, l1_ratio, positive):
+        if stochastic:
+            regressors.append(
+                SGDRegressor(
+                    penalty="elasticnet",
+                    alpha=alpha,
+                    l1_ratio=l1_ratio,
+                    fit_intercept=False,
+                    tol=tol,
+                    warm_start=True,
+                    random_state=random_state,
+                )
             )
-        self.scores[view_index] = views[view_index] @ self.weights[view_index]
-
-    @ignore_warnings(category=ConvergenceWarning)
-    def _elastic_solver(self, X, y, view_index):
-        return self.regressors[view_index].fit(X, y.ravel()).coef_
-
-    def _objective(self, views):
-        c = np.array(self.c)
-        ratio = np.array(self.l1_ratio)
-        l1 = c * ratio
-        l2 = c * (1 - ratio)
-        total_objective = 0
-        target = self.scores.mean(axis=0)
-        for i, _ in enumerate(views):
-            if self.maxvar:
-                target /= np.linalg.norm(target) / np.sqrt(self.n)
-            objective = np.linalg.norm(views[i] @ self.weights[i] - target) ** 2 / (
-                2 * self.n
+        elif alpha == 0:
+            regressors.append(
+                Ridge(
+                    alpha=tol,
+                    fit_intercept=False,
+                    positive=positive,
+                )
             )
-            l1_pen = l1[i] * np.linalg.norm(self.weights[i], ord=1)
-            l2_pen = l2[i] * np.linalg.norm(self.weights[i], ord=2)
-            total_objective += objective + l1_pen + l2_pen
-        return total_objective
-
-    def _early_stop(self) -> bool:
-        # Some kind of early stopping
-        if np.abs(self.track["objective"][-2] - self.track["objective"][-1]) < self.tol:
-            return True
         else:
-            return False
+            regressors.append(
+                ElasticNet(
+                    alpha=alpha,
+                    l1_ratio=l1_ratio,
+                    fit_intercept=False,
+                    warm_start=True,
+                    positive=positive,
+                    random_state=random_state,
+                )
+            )
+    return regressors

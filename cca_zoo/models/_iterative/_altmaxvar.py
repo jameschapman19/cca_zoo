@@ -1,11 +1,8 @@
-import warnings
 from typing import Union
 
 import numpy as np
 
-from ._base import _BaseInnerLoop
-from ._base import _BaseIterative
-from .._rcca import rCCA
+from cca_zoo.models._iterative._base import _BaseIterative
 
 
 class AltMaxVar(_BaseIterative):
@@ -50,17 +47,17 @@ class AltMaxVar(_BaseIterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-9,
-        view_regs=None,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-9,
+            view_regs=None,
+            verbose=0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -74,29 +71,6 @@ class AltMaxVar(_BaseIterative):
             verbose=verbose,
         )
         self.view_regs = view_regs
-
-    def _outer_loop(self, views):
-        self._set_loop_params()
-        self.loop = self.loop._fit(
-            views,
-            initial_scores=self._initialization(
-                views, self.initialization, self.random_state, self.latent_dims
-            ),
-        )
-        for i, view in enumerate(views):
-            self.weights[i] = self.loop.weights[i]
-        self.track = self.loop.track
-        if not self.track["converged"]:
-            warnings.warn(f"Inner loop not converged. Increase number of iterations.")
-
-    def _set_loop_params(self, **kwargs):
-        self.loop = _AltMaxVarLoop(
-            max_iter=self.max_iter,
-            tol=self.tol,
-            random_state=self.random_state,
-            view_regs=self.view_regs,
-            verbose=self.verbose,
-        )
 
     def _initialization(self, views, initialization, random_state, latent_dims):
         if initialization == "random":
@@ -115,24 +89,6 @@ class AltMaxVar(_BaseIterative):
             raise ValueError(
                 "Initialization {type} not supported. Pass a generator implementing this method"
             )
-
-
-class _AltMaxVarLoop(_BaseInnerLoop):
-    def __init__(
-        self,
-        max_iter: int = 100,
-        tol=1e-9,
-        random_state=None,
-        view_regs=None,
-        alpha=1e-3,
-        verbose=0,
-        **kwargs,
-    ):
-        super().__init__(
-            max_iter=max_iter, tol=tol, random_state=random_state, verbose=verbose
-        )
-        self.alpha = alpha
-        self.view_regs = view_regs
 
     def _inner_iteration(self, views):
         # Update each view using loop update function
@@ -156,7 +112,7 @@ class _AltMaxVarLoop(_BaseInnerLoop):
         total_objective = 0
         for i, _ in enumerate(views):
             objective = np.linalg.norm(views[i] @ self.weights[i] - self.G) ** 2 / (
-                2 * self.n
+                    2 * self.n
             )
             total_objective += objective + self.view_regs[i].cost(
                 views[i], self.weights[i]
@@ -167,10 +123,3 @@ class _AltMaxVarLoop(_BaseInnerLoop):
         self.weights = [
             np.zeros((view.shape[1], self.scores[0].shape[1])) for view in views
         ]
-
-    def _early_stop(self) -> bool:
-        # Some kind of early stopping
-        if (self.track["objective"][-2] - self.track["objective"][-1]) < 1e-9:
-            return True
-        else:
-            return False

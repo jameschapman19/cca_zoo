@@ -12,27 +12,26 @@ from cca_zoo.models._base import _BaseCCA
 
 class _BaseStochastic(_BaseCCA):
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        eps=1e-3,
-        accept_sparse=None,
-        batch_size=None,
-        shuffle=True,
-        sampler=None,
-        batch_sampler=None,
-        num_workers=0,
-        pin_memory=False,
-        drop_last=True,
-        timeout=0,
-        worker_init_fn=None,
-        epochs=1,
-        val_split=None,
-        val_interval=10,
-        learning_rate=0.01,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            eps=1e-3,
+            accept_sparse=None,
+            batch_size=None,
+            shuffle=True,
+            sampler=None,
+            batch_sampler=None,
+            num_workers=0,
+            pin_memory=False,
+            drop_last=True,
+            timeout=0,
+            worker_init_fn=None,
+            epochs=1,
+            val_split=None,
+            learning_rate=0.01,
     ):
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]
@@ -55,7 +54,6 @@ class _BaseStochastic(_BaseCCA):
         self.timeout = timeout
         self.worker_init_fn = worker_init_fn
         self.epochs = epochs
-        self.val_interval = val_interval
         self.val_split = val_split
         self.learning_rate = learning_rate
 
@@ -95,12 +93,15 @@ class _BaseStochastic(_BaseCCA):
         self.weights = [
             weight / np.linalg.norm(weight, axis=0) for weight in self.weights
         ]
+        stop = False
         for _ in range(self.epochs):
             for i, sample in enumerate(dataloader):
-                self.update([view.numpy() for view in sample["views"]])
+                stop = self.update([view.numpy() for view in sample["views"]])
             if self.val_split is not None:
                 for i, sample in enumerate(val_dataloader):
                     self.track.append(self.objective(sample["views"]))
+            if stop:
+                break
         return self
 
     @abstractmethod
