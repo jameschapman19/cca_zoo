@@ -139,7 +139,7 @@ def _default_initializer(views, initialization, random_state, latent_dims):
             latent_dims, random_state=random_state, uniform=True
         ).fit(views)
     elif initialization == "pls":
-        initializer = PLS(latent_dims, random_state=random_state).fit(views)
+        initializer = MCCA(latent_dims, random_state=random_state,c=1).fit(views)
     elif initialization == "cca":
         initializer = MCCA(latent_dims).fit_transform(views)
     else:
