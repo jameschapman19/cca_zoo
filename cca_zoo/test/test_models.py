@@ -34,6 +34,8 @@ from cca_zoo.models import (
     SCCA_Parkhomenko,
     PRCCA,
     GRCCA,
+    PDD_GCCA,
+    AltMaxVar
 )
 from cca_zoo.plotting import pairplot_train_test
 
@@ -142,6 +144,9 @@ def test_sparse_methods():
     admm_cv = GridSearchCV(SCCA_ADMM(random_state=rng), param_grid=param_grid).fit(
         [X, Y]
     )
+    from cca_zoo.models._proximal_operators import ProxLasso
+    pdd=PDD_GCCA(view_regs=[ProxLasso,ProxLasso]).fit([X,Y])
+    altmaxvar = AltMaxVar(view_regs=[ProxLasso,ProxLasso]).fit([X, Y])
     assert (pmd_cv.best_estimator_.weights[0] == 0).sum() > 0
     assert (pmd_cv.best_estimator_.weights[1] == 0).sum() > 0
     assert (scca_cv.best_estimator_.weights[0] == 0).sum() > 0
