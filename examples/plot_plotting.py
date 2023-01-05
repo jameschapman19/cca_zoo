@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from cca_zoo import CCA
+from cca_zoo.models import CCA
 from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.plotting import pairplot_train_test
 

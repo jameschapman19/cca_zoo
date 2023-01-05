@@ -8,14 +8,12 @@ This example demonstrates how to easily train Deep CCA models and variants
 import pytorch_lightning as pl
 from matplotlib import pyplot as plt
 
-from cca_zoo import DCCA_EigenGame
-
 # %%
 from cca_zoo.deepmodels import (
     DCCA,
     DCCA_NOI,
     DCCA_SDL,
-    BarlowTwins,
+    BarlowTwins, DCCA_EigenGame,
 )
 from cca_zoo.deepmodels import architectures
 from cca_zoo.plotting import pairplot_label

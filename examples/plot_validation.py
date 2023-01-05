@@ -9,7 +9,7 @@ permutation testing, learning curves, and cross-validation.
 import matplotlib.pyplot as plt
 import numpy as np
 
-from cca_zoo import CCA, learning_curve
+from cca_zoo.models import CCA
 from cca_zoo.data.simulated import LinearSimulatedData
 
 # %%
@@ -29,7 +29,7 @@ latent_dims = 3
 # Permutation Testing
 # -------------------
 
-from cca_zoo.model_selection import permutation_test_score
+from cca_zoo.model_selection import permutation_test_score, learning_curve
 from sklearn.model_selection import KFold, ShuffleSplit
 
 LATENT_DIMS = 3
