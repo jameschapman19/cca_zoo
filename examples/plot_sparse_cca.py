@@ -114,7 +114,7 @@ plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
 # %%
-elasticcca = ElasticCCA(c=[1e-2, 1e-2], l1_ratio=[0.5, 0.5]).fit([X, Y])
+elasticcca = ElasticCCA(alpha=[1e-2, 1e-2], l1_ratio=[0.5, 0.5]).fit([X, Y])
 plot_model_weights(
     elasticcca.weights[0], elasticcca.weights[1], tx, ty, title="ELastic CCA"
 )

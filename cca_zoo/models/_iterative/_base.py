@@ -7,7 +7,7 @@ from typing import Union, Iterable
 import numpy as np
 from tqdm import tqdm
 
-from cca_zoo.models import MCCA, PLS
+from cca_zoo.models import MCCA, PLS, KCCA
 from cca_zoo.models._base import _BaseCCA
 from cca_zoo.models._dummy import _DummyCCA
 
@@ -52,7 +52,7 @@ class _BaseIterative(_BaseCCA):
         initializer = _default_initializer(
             views, self.initialization, self.random_state, self.latent_dims
         )
-        initializer_scores = np.stack(initializer.transform(views))
+        initializer_scores = np.stack(initializer.fit_transform(views))
         residuals = copy.deepcopy(list(views))
         self.track = {"objective": {}}
         for k in (
@@ -71,7 +71,7 @@ class _BaseIterative(_BaseCCA):
 
     def _fit(self, views, scores, weights):
         objective = []
-        for _ in (
+        for t in (
                 tqdm(range(self.max_iter), desc="inner loop iterations")
                 if self.verbose > 1
                 else range(self.max_iter)
@@ -83,7 +83,9 @@ class _BaseIterative(_BaseCCA):
                     f"Some scores are nan. Usually regularisation is too high."
                 )
                 break
-            objective.append(self._objective(views, scores))
+            objective.append(self._objective(views, scores, weights))
+            if t>0 and self._early_stop(objective):
+                break
         return weights, objective
 
     def _deflate(self, residual, weights):
@@ -105,22 +107,22 @@ class _BaseIterative(_BaseCCA):
     def _update(self, views, scores, weights):
         return scores, weights
 
-    def _objective(self, views, scores) -> int:
+    def _objective(self, views, scores, weights) -> int:
         """
         Function used to calculate the objective function for the given. If we do not override then returns the covariance
          between projections
 
         :return:
         """
-        # default objective is correlation
+        # default objective is covariance
         obj = 0
         for (score_i, score_j) in combinations(scores, 2):
             obj += score_i.T @ score_j
         return obj.item()
 
-    def _early_stop(self) -> bool:
+    def _early_stop(self, objective) -> bool:
         # Some kind of early stopping
-        if np.abs(self.track["objective"][-2] - self.track["objective"][-1]) < self.tol:
+        if np.abs(objective[-2] - objective[-1]) < self.tol:
             return True
         else:
             return False
@@ -133,15 +135,18 @@ def _default_initializer(views, initialization, random_state, latent_dims):
     if initialization == "random":
         initializer = _DummyCCA(
             latent_dims, random_state=random_state, uniform=False
-        ).fit(views)
+        )
     elif initialization == "uniform":
         initializer = _DummyCCA(
             latent_dims, random_state=random_state, uniform=True
-        ).fit(views)
+        )
     elif initialization == "pls":
-        initializer = MCCA(latent_dims, random_state=random_state,c=1).fit(views)
+        if sum([v.shape[0] for v in views]) < sum([v.shape[1] for v in views]):
+            initializer = KCCA(latent_dims, random_state=random_state, c=1)
+        else:
+            initializer = MCCA(latent_dims, random_state=random_state,c=1)
     elif initialization == "cca":
-        initializer = MCCA(latent_dims).fit_transform(views)
+        initializer = MCCA(latent_dims)
     else:
         raise ValueError(
             "Initialization {type} not supported. Pass a generator implementing this method"
