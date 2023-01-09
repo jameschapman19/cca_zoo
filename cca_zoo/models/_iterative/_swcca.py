@@ -101,7 +101,7 @@ class SWCCA(_BaseIterative):
         sample_weights /= np.linalg.norm(sample_weights)
         return sample_weights
 
-    def _objective(self, views, scores) -> int:
+    def _objective(self, views, scores, weights) -> int:
         # default objective is correlation
         obj = 0
         for (score_i, score_j) in combinations(scores, 2):
