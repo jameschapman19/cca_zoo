@@ -36,8 +36,6 @@ class GCCA(rCCA):
         Regularization parameter, by default None
     view_weights : Iterable[float], optional
         Weights for each view, by default None
-    eps : float, optional
-        Tolerance for convergence, by default 1e-9
 
 
     References
@@ -66,7 +64,6 @@ class GCCA(rCCA):
             random_state=None,
             c: Union[Iterable[float], float] = None,
             view_weights: Iterable[float] = None,
-            eps=1e-9,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -75,7 +72,6 @@ class GCCA(rCCA):
             copy_data=copy_data,
             accept_sparse=["csc", "csr"],
             random_state=random_state,
-            eps=eps,
         )
         self.c = c
         self.view_weights = view_weights
