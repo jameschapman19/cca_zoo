@@ -64,7 +64,7 @@ class PLS_ALS(_BaseIterative):
             random_state=None,
             max_iter: int = 100,
             initialization: Union[str, callable] = "random",
-            tol: float = 1e-9,
+            tol: float = 1e-3,
             deflation="pls",
             verbose=0,
     ):

@@ -36,8 +36,6 @@ class rCCA(_BaseCCA):
         Random state, by default None
     c : Union[Iterable[float], float], optional
         Regularisation parameter, by default None
-    eps : float, optional
-        Tolerance for convergence, by default 1e-3
     accept_sparse : Union[bool, str], optional
         Whether to accept sparse data, by default None
 
@@ -66,7 +64,6 @@ class rCCA(_BaseCCA):
             copy_data=True,
             random_state=None,
             c: Union[Iterable[float], float] = None,
-            eps=1e-3,
             accept_sparse=None,
     ):
         if accept_sparse is None:
@@ -80,7 +77,6 @@ class rCCA(_BaseCCA):
             random_state=random_state,
         )
         self.c = c
-        self.eps = eps
 
     def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
@@ -180,8 +176,6 @@ class CCA(rCCA):
         Whether to copy the data, by default True
     random_state : int, optional
         Random state, by default None
-    eps : float, optional
-        Tolerance for convergence, by default 1e-3
     accept_sparse : Union[bool, str], optional
         Whether to accept sparse data, by default None
 
@@ -248,8 +242,6 @@ class PLS(rCCA):
         Whether to copy the data, by default True
     random_state : int, optional
         Random state, by default None
-    eps : float, optional
-        Tolerance for convergence, by default 1e-3
     accept_sparse : Union[bool, str], optional
         Whether to accept sparse data, by default None
 

@@ -52,7 +52,7 @@ class ElasticCCA(_BaseIterative):
         Maximum number of iterations to run
     initialization : str or callable, default="pls"
         How to initialize the weights. Can be "pls" or "random" or a callable
-    tol : float, default=1e-9
+    tol : float, default=1e-3
         Tolerance for convergence
     c : float or list of floats, default=None
         Regularisation parameter for the L2 penalty. If None, defaults to 1.0
@@ -90,7 +90,7 @@ class ElasticCCA(_BaseIterative):
             deflation="cca",
             max_iter: int = 100,
             initialization: Union[str, callable] = "pls",
-            tol: float = 1e-9,
+            tol: float = 1e-3,
             c: Union[Iterable[float], float] = None,
             l1_ratio: Union[Iterable[float], float] = None,
             maxvar: bool = True,
@@ -238,7 +238,7 @@ class SCCA_IPLS(ElasticCCA):
             max_iter: int = 100,
             maxvar: bool = False,
             initialization: Union[str, callable] = "pls",
-            tol: float = 1e-9,
+            tol: float = 1e-3,
             stochastic=False,
             positive: Union[Iterable[bool], bool] = None,
             verbose=0,

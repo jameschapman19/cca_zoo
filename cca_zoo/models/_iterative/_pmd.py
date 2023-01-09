@@ -79,7 +79,7 @@ class SCCA_PMD(PLS_ALS):
             tau: Union[Iterable[float], float] = None,
             max_iter: int = 100,
             initialization: Union[str, callable] = "pls",
-            tol: float = 1e-9,
+            tol: float = 1e-3,
             positive: Union[Iterable[bool], bool] = None,
             verbose=0,
     ):

@@ -18,7 +18,7 @@ class _BaseStochastic(_BaseCCA):
             centre=True,
             copy_data=True,
             random_state=None,
-            eps=1e-3,
+            tol=1e-3,
             accept_sparse=None,
             batch_size=None,
             shuffle=True,
@@ -43,7 +43,7 @@ class _BaseStochastic(_BaseCCA):
             accept_sparse=accept_sparse,
             random_state=random_state,
         )
-        self.eps = eps
+        self.tol = tol
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.sampler = sampler

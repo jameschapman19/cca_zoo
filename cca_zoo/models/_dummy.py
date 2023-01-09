@@ -5,7 +5,7 @@ import numpy as np
 from cca_zoo.models._base import _BaseCCA
 
 
-class DummyCCA(_BaseCCA):
+class _DummyCCA(_BaseCCA):
     def __init__(
             self,
             latent_dims: int = 1,

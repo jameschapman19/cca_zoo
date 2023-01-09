@@ -37,7 +37,7 @@ class SWCCA(_BaseIterative):
             random_state=None,
             max_iter: int = 500,
             initialization: str = "random",
-            tol: float = 1e-9,
+            tol: float = 1e-3,
             regularisation="l0",
             tau: Union[Iterable[Union[float, int]], Union[float, int]] = None,
             sample_support=None,

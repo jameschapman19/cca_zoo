@@ -1,4 +1,3 @@
-from ._dummy import DummyCCA
 from ._grcca import GRCCA
 from ._multiview import MCCA, KCCA, GCCA, KGCCA, TCCA, KTCCA
 from ._ncca import NCCA

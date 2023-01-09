@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from cca_zoo.models import MCCA, PLS
 from cca_zoo.models._base import _BaseCCA
-from cca_zoo.models._dummy import DummyCCA
+from cca_zoo.models._dummy import _DummyCCA
 
 
 class _BaseIterative(_BaseCCA):
@@ -28,7 +28,7 @@ class _BaseIterative(_BaseCCA):
             deflation="cca",
             max_iter: int = 100,
             initialization: Union[str, callable] = "random",
-            tol: float = 1e-9,
+            tol: float = 1e-3,
             verbose=0,
     ):
         super().__init__(
@@ -131,11 +131,11 @@ class _BaseIterative(_BaseCCA):
 
 def _default_initializer(views, initialization, random_state, latent_dims):
     if initialization == "random":
-        initializer = DummyCCA(
+        initializer = _DummyCCA(
             latent_dims, random_state=random_state, uniform=False
         ).fit(views)
     elif initialization == "uniform":
-        initializer = DummyCCA(
+        initializer = _DummyCCA(
             latent_dims, random_state=random_state, uniform=True
         ).fit(views)
     elif initialization == "pls":

@@ -45,7 +45,7 @@ class SCCA_Span(_BaseIterative):
             copy_data=True,
             max_iter: int = 100,
             initialization: str = "uniform",
-            tol: float = 1e-9,
+            tol: float = 1e-3,
             regularisation="l0",
             tau: Union[Iterable[Union[float, int]], Union[float, int]] = None,
             rank=1,

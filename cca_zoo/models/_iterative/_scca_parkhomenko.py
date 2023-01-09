@@ -46,7 +46,7 @@ class SCCA_Parkhomenko(_BaseIterative):
             tau: Union[Iterable[float], float] = None,
             max_iter: int = 100,
             initialization: Union[str, callable] = "pls",
-            tol: float = 1e-9,
+            tol: float = 1e-3,
             verbose=0,
     ):
         self.tau = tau

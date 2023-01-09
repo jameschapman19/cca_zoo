@@ -26,8 +26,6 @@ class PartialCCA(MCCA):
         The random state to use, by default None
     c : Union[Iterable[float], float], optional
         The regularization parameter, by default None
-    eps : float, optional
-        The tolerance for convergence, by default 1e-3
 
     References
     ----------
@@ -53,7 +51,6 @@ class PartialCCA(MCCA):
             copy_data=True,
             random_state=None,
             c: Union[Iterable[float], float] = None,
-            eps=1e-3,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -63,7 +60,6 @@ class PartialCCA(MCCA):
             random_state=random_state,
         )
         self.c = c
-        self.eps = eps
 
     def fit(self, views: Iterable[np.ndarray], y=None, partials=None, **kwargs):
         super().fit(views, y=y, partials=partials, **kwargs)
