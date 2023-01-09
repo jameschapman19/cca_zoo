@@ -140,7 +140,7 @@ class ElasticCCA(_BaseIterative):
             scores[view_index] = views[view_index] @ weights[view_index]
         return scores, weights
 
-    #@ignore_warnings(category=ConvergenceWarning)
+    @ignore_warnings(category=ConvergenceWarning)
     def _elastic_solver(self, X, y, view_index):
         return self.regressors[view_index].fit(X, y.ravel()).coef_
 

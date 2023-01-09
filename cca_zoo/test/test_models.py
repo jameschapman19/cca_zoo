@@ -130,8 +130,8 @@ def test_sparse_methods():
     tau2 = [0.1]
     param_grid = {"tau": [tau1, tau2]}
     pmd_cv = GridSearchCV(SCCA_PMD(random_state=rng), param_grid=param_grid).fit([X, Y])
-    tau1 = [1e-1]
-    tau2 = [1e-1]
+    tau1 = [2e-1]
+    tau2 = [2e-1]
     param_grid = {"tau": [tau1, tau2]}
     parkhomenko_cv = GridSearchCV(
         SCCA_Parkhomenko(random_state=rng), param_grid=param_grid
