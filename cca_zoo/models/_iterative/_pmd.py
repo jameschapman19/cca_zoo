@@ -126,7 +126,6 @@ class SCCA_PMD(PLS_ALS):
             weights[view_index] = _delta_search(
                 weights[view_index],
                 self.t[view_index],
-                positive=self.positive[view_index],
                 tol=self.tol,
             )
             _check_converged_weights(weights[view_index], view_index)
