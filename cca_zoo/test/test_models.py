@@ -114,9 +114,9 @@ def test_regularized_methods():
 
 
 def test_sparse_methods():
-    c1 = loguniform(1e-1, 2e-1)
-    c2 = loguniform(1e-1, 2e-1)
-    param_grid = {"c": [c1, c2], "l1_ratio": [[0.9], [0.9]]}
+    alpha1 = loguniform(1e-1, 2e-1)
+    alpha2 = loguniform(1e-1, 2e-1)
+    param_grid = {"alpha": [alpha1, alpha2], "l1_ratio": [[0.9], [0.9]]}
     elastic_cv = RandomizedSearchCV(
         ElasticCCA(random_state=rng), param_distributions=param_grid, n_iter=4
     ).fit([X, Y])
