@@ -27,7 +27,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     author_email="james.chapman.19@ucl.ac.uk",
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     install_requires=REQUIRED_PACKAGES,
     extras_require=EXTRA_PACKAGES,
     test_suite="test",
