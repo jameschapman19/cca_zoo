@@ -7,7 +7,7 @@ from typing import Union, Iterable
 import numpy as np
 from tqdm import tqdm
 
-from cca_zoo.models import MCCA, PLS, KCCA
+from cca_zoo.models import MCCA, KCCA
 from cca_zoo.models._base import _BaseCCA
 from cca_zoo.models._dummy import _DummyCCA
 
@@ -19,17 +19,17 @@ class _BaseIterative(_BaseCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            deflation="cca",
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "random",
-            tol: float = 1e-3,
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        deflation="cca",
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "random",
+        tol: float = 1e-3,
+        verbose=0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -56,9 +56,9 @@ class _BaseIterative(_BaseCCA):
         residuals = copy.deepcopy(list(views))
         self.track = {"objective": {}}
         for k in (
-                tqdm(range(self.latent_dims), desc="latent dimension")
-                if self.verbose > 0
-                else range(self.latent_dims)
+            tqdm(range(self.latent_dims), desc="latent dimension")
+            if self.verbose > 0
+            else range(self.latent_dims)
         ):
             initial_weights = [w[:, k] for w in initializer.weights]
             weights, self.track["objective"][k] = self._fit(
@@ -72,9 +72,9 @@ class _BaseIterative(_BaseCCA):
     def _fit(self, views, scores, weights):
         objective = []
         for t in (
-                tqdm(range(self.max_iter), desc="inner loop iterations")
-                if self.verbose > 1
-                else range(self.max_iter)
+            tqdm(range(self.max_iter), desc="inner loop iterations")
+            if self.verbose > 1
+            else range(self.max_iter)
         ):
             self._initialize(views)
             scores, weights = self._update(views, scores, weights)
@@ -84,7 +84,7 @@ class _BaseIterative(_BaseCCA):
                 )
                 break
             objective.append(self._objective(views, scores, weights))
-            if t>0 and self._early_stop(objective):
+            if t > 0 and self._early_stop(objective):
                 break
         return weights, objective
 
@@ -122,7 +122,11 @@ class _BaseIterative(_BaseCCA):
 
     def _early_stop(self, objective) -> bool:
         # Some kind of early stopping
-        if np.abs(objective[-2] - objective[-1]) < self.tol:
+        if (
+            np.abs(objective[-1] - objective[-2])
+            / np.abs(objective[-1] + objective[-2])
+            < self.tol
+        ):
             return True
         else:
             return False
@@ -133,18 +137,14 @@ class _BaseIterative(_BaseCCA):
 
 def _default_initializer(views, initialization, random_state, latent_dims):
     if initialization == "random":
-        initializer = _DummyCCA(
-            latent_dims, random_state=random_state, uniform=False
-        )
+        initializer = _DummyCCA(latent_dims, random_state=random_state, uniform=False)
     elif initialization == "uniform":
-        initializer = _DummyCCA(
-            latent_dims, random_state=random_state, uniform=True
-        )
+        initializer = _DummyCCA(latent_dims, random_state=random_state, uniform=True)
     elif initialization == "pls":
         if sum([v.shape[0] for v in views]) < sum([v.shape[1] for v in views]):
             initializer = KCCA(latent_dims, random_state=random_state, c=1)
         else:
-            initializer = MCCA(latent_dims, random_state=random_state,c=1)
+            initializer = MCCA(latent_dims, random_state=random_state, c=1)
     elif initialization == "cca":
         initializer = MCCA(latent_dims)
     else:

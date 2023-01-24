@@ -13,7 +13,8 @@ from cca_zoo.deepmodels import (
     DCCA,
     DCCA_NOI,
     DCCA_SDL,
-    BarlowTwins, DCCA_EigenGame,
+    BarlowTwins,
+    DCCA_EigenGame,
 )
 from cca_zoo.deepmodels import architectures
 from cca_zoo.plotting import pairplot_label

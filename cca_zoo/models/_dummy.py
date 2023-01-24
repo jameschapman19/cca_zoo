@@ -7,14 +7,14 @@ from cca_zoo.models._base import _BaseCCA
 
 class _DummyCCA(_BaseCCA):
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            accept_sparse=None,
-            uniform=False,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        accept_sparse=None,
+        uniform=False,
     ):
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]
@@ -31,11 +31,11 @@ class _DummyCCA(_BaseCCA):
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_inputs(views)
         if self.uniform:
-            self.weights = [
-                np.ones((view.shape[1], self.latent_dims)) for view in views
-            ]
+            weights = [np.ones((view.shape[1], self.latent_dims)) for view in views]
         else:
-            self.weights = [
-                np.random.rand(view.shape[1], self.latent_dims) for view in views
+            weights = [
+                self.random_state.normal(0, 1, size=(view.shape[1], self.latent_dims))
+                for view in views
             ]
+        self.weights = [weight / np.linalg.norm(weight, axis=0) for weight in weights]
         return self

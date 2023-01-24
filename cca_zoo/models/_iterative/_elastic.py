@@ -79,21 +79,21 @@ class ElasticCCA(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            deflation="cca",
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "pls",
-            tol: float = 1e-3,
-            alpha: Union[Iterable[float], float] = None,
-            l1_ratio: Union[Iterable[float], float] = None,
-            stochastic=False,
-            positive: Union[Iterable[bool], bool] = None,
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        deflation="cca",
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "pls",
+        tol: float = 1e-3,
+        alpha: Union[Iterable[float], float] = None,
+        l1_ratio: Union[Iterable[float], float] = None,
+        stochastic=False,
+        positive: Union[Iterable[bool], bool] = None,
+        verbose=0,
     ):
         self.alpha = alpha
         self.l1_ratio = l1_ratio
@@ -125,8 +125,14 @@ class ElasticCCA(_BaseIterative):
         )
 
     def _initialize(self, views):
-        self.regressors = initialize_regressors(self.alpha, self.l1_ratio, self.positive, self.stochastic, self.tol,
-                                                self.random_state)
+        self.regressors = initialize_regressors(
+            self.alpha,
+            self.l1_ratio,
+            self.positive,
+            self.stochastic,
+            self.tol,
+            self.random_state,
+        )
 
     def _update(self, views, scores, weights):
         for view_index, view in enumerate(views):
@@ -151,7 +157,9 @@ class ElasticCCA(_BaseIterative):
         for i, (view, weight) in enumerate(zip(views, weights)):
             target = scores.mean(axis=0)
             target /= np.linalg.norm(target) / np.sqrt(self.n)
-            total_objective += elastic_objective(view, weight, target, alpha[i], l1_ratio[i])
+            total_objective += elastic_objective(
+                view, weight, target, alpha[i], l1_ratio[i]
+            )
         return total_objective
 
     def _get_target(self, scores):
@@ -194,20 +202,20 @@ class SCCA_IPLS(ElasticCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            deflation="cca",
-            tau: Union[Iterable[float], float] = None,
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "pls",
-            tol: float = 1e-3,
-            stochastic=False,
-            positive: Union[Iterable[bool], bool] = None,
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        deflation="cca",
+        tau: Union[Iterable[float], float] = None,
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "pls",
+        tol: float = 1e-3,
+        stochastic=False,
+        positive: Union[Iterable[bool], bool] = None,
+        verbose=0,
     ):
         self.tau = tau
         super().__init__(
@@ -227,9 +235,15 @@ class SCCA_IPLS(ElasticCCA):
         )
 
     def _initialize(self, views):
-        self.regressors = initialize_regressors(self.tau, self.l1_ratio, self.positive, self.stochastic, self.tol,
-                                                self.random_state)
-        self.alpha=self.tau
+        self.regressors = initialize_regressors(
+            self.tau,
+            self.l1_ratio,
+            self.positive,
+            self.stochastic,
+            self.tol,
+            self.random_state,
+        )
+        self.alpha = self.tau
 
     def _check_params(self):
         self.tau = _process_parameter("tau", self.tau, 0, self.n_views)
@@ -240,15 +254,15 @@ class SCCA_IPLS(ElasticCCA):
 
     def _update(self, views, scores, weights):
         for view_index, view in enumerate(views):
-            target=scores[view_index-1]
+            target = scores[view_index - 1]
             # Solve the elastic regression
             weights[view_index] = self._elastic_solver(
                 views[view_index], target, view_index
             )
             _check_converged_weights(weights[view_index], view_index)
             weights[view_index] = weights[view_index] / (
-                    np.linalg.norm(views[view_index] @ weights[view_index])
-                    / np.sqrt(self.n)
+                np.linalg.norm(views[view_index] @ weights[view_index])
+                / np.sqrt(self.n)
             )
             scores[view_index] = views[view_index] @ weights[view_index]
         return scores, weights
@@ -256,18 +270,19 @@ class SCCA_IPLS(ElasticCCA):
     def _objective(self, views, scores, weights) -> int:
         tau = np.array(self.tau)
         total_objective = 0
-        for i, (view,weight) in enumerate(zip(views,weights)):
-            total_objective+=elastic_objective(view,weight, scores[i-1], tau[i], 1)
+        for i, (view, weight) in enumerate(zip(views, weights)):
+            total_objective += elastic_objective(view, weight, scores[i - 1], tau[i], 1)
         return total_objective
 
 
-def elastic_objective(x,w,y,alpha,l1_ratio):
-    n=len(y)
-    z=x@w
-    objective=np.linalg.norm(z-y)**2/(2*n)
-    l1_pen=alpha*l1_ratio*np.linalg.norm(w,ord=1)
-    l2_pen=alpha*(1-l1_ratio)*np.linalg.norm(w,ord=2)
-    return objective+l1_pen+l2_pen
+def elastic_objective(x, w, y, alpha, l1_ratio):
+    n = len(y)
+    z = x @ w
+    objective = np.linalg.norm(z - y) ** 2 / (2 * n)
+    l1_pen = alpha * l1_ratio * np.linalg.norm(w, ord=1)
+    l2_pen = alpha * (1 - l1_ratio) * np.linalg.norm(w, ord=2)
+    return objective + l1_pen + l2_pen
+
 
 def initialize_regressors(c, l1_ratio, positive, stochastic, tol, random_state):
     regressors = []

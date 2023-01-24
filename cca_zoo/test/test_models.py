@@ -35,6 +35,7 @@ from cca_zoo.models import (
     PRCCA,
     GRCCA,
 )
+from cca_zoo.models._iterative import SCCA_HSIC
 from cca_zoo.plotting import pairplot_train_test
 
 n = 50
@@ -71,7 +72,7 @@ def test_unregularized_methods():
     assert np.testing.assert_array_almost_equal(corr_cca, corr_kcca, decimal=1) is None
     assert np.testing.assert_array_almost_equal(corr_cca, corr_tcca, decimal=1) is None
     assert (
-            np.testing.assert_array_almost_equal(corr_kgcca, corr_gcca, decimal=1) is None
+        np.testing.assert_array_almost_equal(corr_kgcca, corr_gcca, decimal=1) is None
     )
 
 
@@ -108,7 +109,7 @@ def test_regularized_methods():
     # Check the correlations from each unregularized method are the same
     assert np.testing.assert_array_almost_equal(corr_pls, corr_mcca, decimal=1) is None
     assert (
-            np.testing.assert_array_almost_equal(corr_pls, corr_kernel, decimal=1) is None
+        np.testing.assert_array_almost_equal(corr_pls, corr_kernel, decimal=1) is None
     )
     assert np.testing.assert_array_almost_equal(corr_pls, corr_rcca, decimal=1) is None
 
@@ -159,7 +160,7 @@ def test_pls():
     pls = PLS(latent_dims=3)
     pls_als.fit((X, Y))
     pls.fit((X, Y))
-    assert np.allclose(pls_als.score((X,Y)), pls.score((X,Y)), rtol=1e-1)
+    assert np.allclose(pls_als.score((X, Y)), pls.score((X, Y)), rtol=1e-1)
 
 
 def test_weighted_GCCA_methods():
@@ -177,10 +178,10 @@ def test_weighted_GCCA_methods():
     K[0, 200:] = 0
     unobserved_gcca = GCCA(latent_dims=latent_dims, c=[c, c]).fit((X, Y), K=K)
     assert (
-            np.testing.assert_array_almost_equal(
-                corr_unweighted_gcca, corr_deweighted_gcca, decimal=1
-            )
-            is None
+        np.testing.assert_array_almost_equal(
+            corr_unweighted_gcca, corr_deweighted_gcca, decimal=1
+        )
+        is None
     )
 
 
@@ -201,20 +202,16 @@ def test_NCCA():
     assert corr_ncca > 0.9
 
 
-
 def test_l0():
     span_cca = SCCA_Span(
         latent_dims=1, regularisation="l0", tau=[2, 2], random_state=rng
     ).fit([X, Y])
-    swcca = SWCCA(tau=[5, 5], sample_support=5, random_state=rng).fit(
-        [X, Y]
-    )
+    swcca = SWCCA(tau=[5, 5], sample_support=5, random_state=rng).fit([X, Y])
     assert (np.abs(span_cca.weights[0]) > 1e-5).sum() == 2
     assert (np.abs(span_cca.weights[1]) > 1e-5).sum() == 2
     assert (np.abs(swcca.weights[0]) > 1e-5).sum() == 5
     assert (np.abs(swcca.weights[1]) > 1e-5).sum() == 5
     assert (np.abs(swcca.sample_weights) > 1e-5).sum() == 5
-
 
 
 def test_partialcca():
@@ -248,10 +245,10 @@ def test_stochastic_pls():
         latent_dims=3, epochs=150, batch_size=10, learning_rate=1e-2, random_state=1
     ).fit((X, Y))
     egpls = PLSEigenGame(
-        latent_dims=3, epochs=150, batch_size=10, learning_rate=1e-2, random_state=1
+        latent_dims=3, epochs=200, batch_size=10, learning_rate=1e-2, random_state=1
     ).fit((X, Y))
     ghapls = PLSGHAGEP(
-        latent_dims=3, epochs=150, batch_size=10, learning_rate=1e-2, random_state=1
+        latent_dims=3, epochs=200, batch_size=10, learning_rate=1e-2, random_state=1
     ).fit((X, Y))
     pls_score = pls.score((X, Y))
     ipls_score = ipls.score((X, Y))
@@ -306,20 +303,20 @@ def test_PRCCA():
     )
     cca = CCA(latent_dims=2).fit([X, Y])
     assert (
-            np.testing.assert_array_almost_equal(
-                cca.score((X, Y)), prcca.score((X, Y)), decimal=1
-            )
-            is None
+        np.testing.assert_array_almost_equal(
+            cca.score((X, Y)), prcca.score((X, Y)), decimal=1
+        )
+        is None
     )
     prcca = PRCCA(latent_dims=2, c=[1, 1]).fit(
         (X, Y), idxs=(np.arange(10), np.arange(11))
     )
     pls = PLS(latent_dims=2).fit([X, Y])
     assert (
-            np.testing.assert_array_almost_equal(
-                pls.score((X, Y)), prcca.score((X, Y)), decimal=1
-            )
-            is None
+        np.testing.assert_array_almost_equal(
+            pls.score((X, Y)), prcca.score((X, Y)), decimal=1
+        )
+        is None
     )
 
 
@@ -359,11 +356,11 @@ def test_PCCA():
     ).fit([X, Y])
     # Test that vanilla CCA and VCCA produce roughly similar latent space ie they are correlated
     assert (
-            np.abs(
-                np.corrcoef(
-                    cca.transform([X, Y])[1].T,
-                    pcca.posterior_samples["z"].mean(axis=0)[:, 0],
-                )[0, 1]
-            )
-            > 0.9
+        np.abs(
+            np.corrcoef(
+                cca.transform([X, Y])[1].T,
+                pcca.posterior_samples["z"].mean(axis=0)[:, 0],
+            )[0, 1]
+        )
+        > 0.9
     )

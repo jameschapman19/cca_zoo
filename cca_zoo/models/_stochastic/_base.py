@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Iterable
+from typing import Iterable, Union
 
 import numpy as np
 from scipy.linalg import block_diag
@@ -8,30 +8,33 @@ from torch.utils import data
 from cca_zoo.data.deep import NumpyDataset
 from cca_zoo.models import CCA
 from cca_zoo.models._base import _BaseCCA
+from cca_zoo.models._iterative._base import _default_initializer
 
 
 class _BaseStochastic(_BaseCCA):
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            tol=1e-3,
-            accept_sparse=None,
-            batch_size=None,
-            shuffle=True,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            pin_memory=False,
-            drop_last=True,
-            timeout=0,
-            worker_init_fn=None,
-            epochs=1,
-            val_split=None,
-            learning_rate=0.01,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        tol=1e-3,
+        accept_sparse=None,
+        batch_size=None,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        val_split=None,
+        learning_rate=0.01,
+        initialization: Union[str, callable] = "random",
+        track_training=False,
     ):
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]
@@ -56,6 +59,8 @@ class _BaseStochastic(_BaseCCA):
         self.epochs = epochs
         self.val_split = val_split
         self.learning_rate = learning_rate
+        self.initialization = initialization
+        self.track_training = track_training
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_inputs(views)
@@ -85,18 +90,14 @@ class _BaseStochastic(_BaseCCA):
                 batch_size=len(val_dataset),
             )
         self.track = []
-        self.weights = [
-            self.random_state.normal(0, 1, size=(view.shape[1], self.latent_dims))
-            for view in views
-        ]
-        # normalize weights
-        self.weights = [
-            weight / np.linalg.norm(weight, axis=0) for weight in self.weights
-        ]
+        initializer = _default_initializer(
+            views, self.initialization, self.random_state, self.latent_dims
+        )
+        self.weights = initializer.fit(views).weights
         stop = False
         for _ in range(self.epochs):
             for i, sample in enumerate(dataloader):
-                stop = self.update([view.numpy() for view in sample["views"]])
+                stop = self._update([view.numpy() for view in sample["views"]])
             if self.val_split is not None:
                 for i, sample in enumerate(val_dataloader):
                     self.track.append(self.objective(sample["views"]))
@@ -105,7 +106,7 @@ class _BaseStochastic(_BaseCCA):
         return self
 
     @abstractmethod
-    def update(self, views):
+    def _update(self, views):
         pass
 
     @abstractmethod

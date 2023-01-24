@@ -36,18 +36,18 @@ class SCCA_Parkhomenko(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            deflation="cca",
-            tau: Union[Iterable[float], float] = None,
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "pls",
-            tol: float = 1e-3,
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        deflation="cca",
+        tau: Union[Iterable[float], float] = None,
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "pls",
+        tol: float = 1e-3,
+        verbose=0,
     ):
         self.tau = tau
         super().__init__(
@@ -66,7 +66,9 @@ class SCCA_Parkhomenko(_BaseIterative):
     def _check_params(self):
         self.tau = _process_parameter("tau", self.tau, 0.0001, self.n_views)
         if any(tau <= 0 for tau in self.tau):
-            raise ("All regularisation parameters should be above 0. " f"tau=[{self.tau}]")
+            raise (
+                "All regularisation parameters should be above 0. " f"tau=[{self.tau}]"
+            )
 
     def _update(self, views, scores, weights):
         for view_index, view in enumerate(views):

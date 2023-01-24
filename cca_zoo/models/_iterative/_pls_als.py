@@ -56,17 +56,17 @@ class PLS_ALS(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "random",
-            tol: float = 1e-3,
-            deflation="pls",
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "random",
+        tol: float = 1e-3,
+        deflation="pls",
+        verbose=0,
     ):
         super().__init__(
             latent_dims=latent_dims,

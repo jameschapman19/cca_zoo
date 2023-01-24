@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 
 from cca_zoo.models._stochastic._base import _BaseStochastic
@@ -51,24 +53,25 @@ class PLSStochasticPower(_BaseStochastic):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            accept_sparse=None,
-            batch_size=1,
-            shuffle=True,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            pin_memory=False,
-            drop_last=True,
-            timeout=0,
-            worker_init_fn=None,
-            epochs=1,
-            learning_rate=0.01,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        accept_sparse=None,
+        batch_size=1,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        learning_rate=0.01,
+        initialization: Union[str, callable] = "random",
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -88,9 +91,10 @@ class PLSStochasticPower(_BaseStochastic):
             worker_init_fn=worker_init_fn,
             epochs=epochs,
             learning_rate=learning_rate,
+            initialization=initialization,
         )
 
-    def update(self, views):
+    def _update(self, views):
         projections = np.stack(
             [view @ weight for view, weight in zip(views, self.weights)]
         )

@@ -30,19 +30,19 @@ class SWCCA(_BaseIterative):
     """
 
     def __init__(
-            self,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            max_iter: int = 500,
-            initialization: str = "random",
-            tol: float = 1e-3,
-            regularisation="l0",
-            tau: Union[Iterable[Union[float, int]], Union[float, int]] = None,
-            sample_support=None,
-            positive=False,
-            verbose=0,
+        self,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        max_iter: int = 500,
+        initialization: str = "random",
+        tol: float = 1e-3,
+        regularisation="l0",
+        tau: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+        sample_support=None,
+        positive=False,
+        verbose=0,
     ):
         self.tau = tau
         self.sample_support = sample_support
@@ -82,8 +82,8 @@ class SWCCA(_BaseIterative):
             targets = np.ma.array(scores, mask=False)
             targets.mask[view_index] = True
             weights[view_index] = (
-                                          views[view_index] * self.sample_weights[:, np.newaxis]
-                                  ).T @ targets.sum(axis=0).filled()
+                views[view_index] * self.sample_weights[:, np.newaxis]
+            ).T @ targets.sum(axis=0).filled()
             weights[view_index] = self.update(
                 weights[view_index],
                 self.tau[view_index],
@@ -91,7 +91,7 @@ class SWCCA(_BaseIterative):
             )
             weights[view_index] /= np.linalg.norm(weights[view_index])
             if view_index == self.n_views - 1:
-                self.sample_weights=self._update_sample_weights(scores)
+                self.sample_weights = self._update_sample_weights(scores)
             scores[view_index] = views[view_index] @ weights[view_index]
         return scores, weights
 
