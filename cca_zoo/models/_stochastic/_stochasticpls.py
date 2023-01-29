@@ -59,6 +59,7 @@ class PLSStochasticPower(_BaseStochastic):
         centre=True,
         copy_data=True,
         random_state=None,
+        tol=1e-4,
         accept_sparse=None,
         batch_size=1,
         shuffle=True,
@@ -80,6 +81,7 @@ class PLSStochasticPower(_BaseStochastic):
             copy_data=copy_data,
             accept_sparse=accept_sparse,
             random_state=random_state,
+            tol=tol,
             batch_size=batch_size,
             shuffle=shuffle,
             sampler=sampler,
@@ -95,6 +97,7 @@ class PLSStochasticPower(_BaseStochastic):
         )
 
     def _update(self, views):
+        converged = True
         projections = np.stack(
             [view @ weight for view, weight in zip(views, self.weights)]
         )
@@ -102,10 +105,13 @@ class PLSStochasticPower(_BaseStochastic):
             projections = np.ma.array(projections, mask=False, keep_mask=False)
             projections.mask[i] = True
             grad = (view.T @ projections.sum(axis=0).filled()) / view.shape[0]
-            self.weights[i] += self.learning_rate * grad
-            # qr decomposition of weights for orthogonality
-            self.weights[i] = self._orth(self.weights[i])
-        return False
+            w_ = self.weights[i] + self.learning_rate * grad
+            w_ = self._orth(w_)
+            # if difference between self.weights[i] and w_ is less than tol, then return True
+            if not np.allclose(self.weights[i], w_, atol=self.tol):
+                converged = False
+            self.weights[i] = w_
+        return converged
 
     @staticmethod
     def _orth(U):

@@ -59,6 +59,7 @@ class RCCAGHAGEP(_BaseStochastic):
         centre=True,
         copy_data=True,
         random_state=None,
+        tol=1e-9,
         accept_sparse=None,
         batch_size=1,
         shuffle=True,
@@ -72,6 +73,7 @@ class RCCAGHAGEP(_BaseStochastic):
         epochs=1,
         learning_rate=0.01,
         c=0,
+        nesterov=True,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -80,6 +82,7 @@ class RCCAGHAGEP(_BaseStochastic):
             copy_data=copy_data,
             accept_sparse=accept_sparse,
             random_state=random_state,
+            tol=tol,
             batch_size=batch_size,
             shuffle=shuffle,
             sampler=sampler,
@@ -93,25 +96,35 @@ class RCCAGHAGEP(_BaseStochastic):
             learning_rate=learning_rate,
         )
         self.c = c
+        self.nesterov = nesterov
 
     def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
 
     def _update(self, views):
-        projections = np.stack(
-            [view @ weight for view, weight in zip(views, self.weights)]
-        )
+        converged = True
+        if self.nesterov:
+            v = self.weights
+            for i in range(self.n_views):
+                v[i] = self.weights[i] + self.momentum * (
+                    self.weights[i] - self.weights_old[i]
+                )
+                self.weights_old[i] = self.weights[i].copy()
+        else:
+            v = self.weights
+        projections = np.stack([view @ weight for view, weight in zip(views, v)])
         for i, view in enumerate(views):
-            projections = np.ma.array(projections, mask=False, keep_mask=False)
-            projections.mask[i] = True
-            Aw = self._Aw(view, projections.sum(axis=0).filled())
-            projections.mask[i] = False
-            Bw = self._Bw(view, projections[i].filled(), self.weights[i], self.c[i])
-            wAw = self.weights[i].T @ Aw
+            Aw = self._Aw(view, projections.sum(axis=0))
+            Bw = self._Bw(view, projections[i], v[i], self.c[i])
+            wAw = v[i].T @ Aw
             wAw[np.diag_indices_from(wAw)] = np.where(np.diag(wAw) > 0, np.diag(wAw), 0)
             grads = Aw - Bw @ np.triu(wAw)
-            self.weights[i] += self.learning_rate * grads
-        return False
+            w_ = v[i] + self.learning_rate * grads
+            # if difference between self.weights[i] and w_ is less than tol, then return True
+            if not np.allclose(self.weights[i], w_, atol=self.tol):
+                converged = False
+            self.weights[i] = w_
+        return converged
 
     def _Aw(self, view, projections):
         return view.T @ projections / view.shape[0]
@@ -176,6 +189,7 @@ class CCAGHAGEP(RCCAGHAGEP):
         centre=True,
         copy_data=True,
         random_state=None,
+        tol=1e-9,
         accept_sparse=None,
         batch_size=1,
         shuffle=True,
@@ -188,6 +202,7 @@ class CCAGHAGEP(RCCAGHAGEP):
         worker_init_fn=None,
         epochs=1,
         learning_rate=0.01,
+        nesterov=True,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -196,6 +211,7 @@ class CCAGHAGEP(RCCAGHAGEP):
             copy_data=copy_data,
             accept_sparse=accept_sparse,
             random_state=random_state,
+            tol=tol,
             batch_size=batch_size,
             shuffle=shuffle,
             sampler=sampler,
@@ -208,6 +224,7 @@ class CCAGHAGEP(RCCAGHAGEP):
             epochs=epochs,
             learning_rate=learning_rate,
             c=0,
+            nesterov=nesterov,
         )
 
 
@@ -264,6 +281,7 @@ class PLSGHAGEP(RCCAGHAGEP):
         centre=True,
         copy_data=True,
         random_state=None,
+        tol=1e-9,
         accept_sparse=None,
         batch_size=1,
         shuffle=True,
@@ -276,6 +294,7 @@ class PLSGHAGEP(RCCAGHAGEP):
         worker_init_fn=None,
         epochs=1,
         learning_rate=0.01,
+        nesterov=True,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -284,6 +303,7 @@ class PLSGHAGEP(RCCAGHAGEP):
             copy_data=copy_data,
             accept_sparse=accept_sparse,
             random_state=random_state,
+            tol=tol,
             batch_size=batch_size,
             shuffle=shuffle,
             sampler=sampler,
@@ -296,6 +316,7 @@ class PLSGHAGEP(RCCAGHAGEP):
             epochs=epochs,
             learning_rate=learning_rate,
             c=1,
+            nesterov=nesterov,
         )
 
     def objective(self, views, **kwargs):

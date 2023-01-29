@@ -1,7 +1,5 @@
 import numpy as np
 
-from cca_zoo.models._proximal_operators import soft_threshold
-
 
 def _bin_search(current, previous, current_val, previous_val, min_, max_):
     """
@@ -80,3 +78,15 @@ def _delta_search(w, c, init=0, tol=1e-9):
         if np.abs(current_val) < tol:
             converged = True
     return coef
+
+
+def soft_threshold(data, value, positive=False, **kwargs):
+    if positive:
+        data[data < 0] = 0
+    return np.sign(data) * np.maximum(np.abs(data) - value, 0)
+
+
+def support_threshold(data, support, **kwargs):
+    idx = np.argpartition(data.ravel(), data.shape[0] - support)
+    data[idx[:-support]] = 0
+    return data

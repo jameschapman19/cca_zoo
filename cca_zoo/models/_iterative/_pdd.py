@@ -4,7 +4,6 @@ from typing import Union, Iterable
 import numpy as np
 
 from cca_zoo.models._iterative._base import _BaseIterative, _default_initializer
-from cca_zoo.models._proximal_operators import _proximal_operators
 from cca_zoo.utils import _process_parameter
 
 

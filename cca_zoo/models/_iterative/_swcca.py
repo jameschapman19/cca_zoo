@@ -4,8 +4,7 @@ from typing import Union, Iterable
 import numpy as np
 
 from cca_zoo.models._iterative._base import _BaseIterative
-from cca_zoo.models._proximal_operators import support_threshold
-from cca_zoo.models._search import _delta_search
+from cca_zoo.models._search import _delta_search, support_threshold
 from cca_zoo.utils import _process_parameter
 
 
