@@ -2,10 +2,6 @@ Welcome to cca-zoo's documentation!
 ===================================
 
 
-Documentation
-=============
-
-
 .. toctree::
    :maxdepth: 1
    :caption: Using cca-zoo
