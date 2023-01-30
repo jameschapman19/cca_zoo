@@ -5,6 +5,7 @@ import numpy as np
 
 from cca_zoo.models._iterative._base import _BaseIterative, _default_initializer
 from cca_zoo.utils import _process_parameter
+from skprox.proximal_operators import _proximal_operators
 
 
 class AltMaxVar(_BaseIterative):
@@ -91,11 +92,7 @@ class AltMaxVar(_BaseIterative):
         ]
 
     def _get_proximal(self, view):
-        if callable(self.proximal[view]):
-            params = self.proximal_params[view] or {}
-        else:
-            params = {"tau": self.tau[view]}
-        return _proximal_operators(self.proximal[view], **params)
+        return _proximal_operators(self.proximal[view], self.proximal_params[view])
 
     def _get_target(self, scores):
         if hasattr(self, "G"):
