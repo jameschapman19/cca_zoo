@@ -88,11 +88,14 @@ class AltMaxVar(_BaseIterative):
         self.proximal = _process_parameter(
             "proximal", self.proximal, "L1", self.n_views
         )
-        self.positive = _process_parameter("positive", self.positive, False, self.n_views)
+        self.positive = _process_parameter(
+            "positive", self.positive, False, self.n_views
+        )
         self.tau = _process_parameter("tau", self.tau, 0, self.n_views)
-        self.sigma=self.tau
+        self.sigma = self.tau
         self.proximal_operator = [
-            self._get_proximal(view) for view in range(self.n_views)]
+            self._get_proximal(view) for view in range(self.n_views)
+        ]
 
     def _get_proximal(self, view):
         if callable(self.proximal[view]):

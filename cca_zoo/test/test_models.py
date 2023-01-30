@@ -119,7 +119,9 @@ def test_sparse_methods():
     tau1 = [1e-1]
     tau2 = [1e-1]
     param_grid = {"tau": [tau1, tau2]}
-    pdd_cv = GridSearchCV(AltMaxVar(proximal='L0', random_state=rng), param_grid=param_grid).fit([X, Y])
+    pdd_cv = GridSearchCV(
+        AltMaxVar(proximal="L0", random_state=rng), param_grid=param_grid
+    ).fit([X, Y])
     alpha1 = loguniform(1e-1, 2e-1)
     alpha2 = loguniform(1e-1, 2e-1)
     param_grid = {"alpha": [alpha1, alpha2], "l1_ratio": [[0.9], [0.9]]}
@@ -249,12 +251,12 @@ def test_stochastic_pls():
     spls = PLSStochasticPower(
         latent_dims=3, epochs=200, batch_size=50, learning_rate=1e-1, random_state=1
     ).fit((X, Y))
-    egpls = PLSEigenGame(
-        latent_dims=3, epochs=200, batch_size=50, random_state=1
-    ).fit((X, Y))
-    ghapls = PLSGHAGEP(
-        latent_dims=3, epochs=200, batch_size=50, random_state=1
-    ).fit((X, Y))
+    egpls = PLSEigenGame(latent_dims=3, epochs=200, batch_size=50, random_state=1).fit(
+        (X, Y)
+    )
+    ghapls = PLSGHAGEP(latent_dims=3, epochs=200, batch_size=50, random_state=1).fit(
+        (X, Y)
+    )
     pls_score = pls.score((X, Y))
     ipls_score = ipls.score((X, Y))
     spls_score = spls.score((X, Y))
@@ -272,12 +274,8 @@ def test_stochastic_cca():
     from cca_zoo.models import CCAGHAGEP, CCAEigenGame
 
     cca = CCA(latent_dims=2).fit((X, Y))
-    egcca = CCAEigenGame(
-        latent_dims=2, epochs=100, batch_size=50
-    ).fit((X, Y))
-    ghacca = CCAGHAGEP(
-        latent_dims=2, epochs=100, batch_size=50
-    ).fit((X, Y))
+    egcca = CCAEigenGame(latent_dims=2, epochs=100, batch_size=50).fit((X, Y))
+    ghacca = CCAGHAGEP(latent_dims=2, epochs=100, batch_size=50).fit((X, Y))
     cca_score = cca.score((X, Y))
     egcca_score = egcca.score((X, Y))
     ghacca_score = ghacca.score((X, Y))

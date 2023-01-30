@@ -13,7 +13,7 @@ from ._iterative import (
     SCCA_ADMM,
     SCCA_Span,
     SWCCA,
-    AltMaxVar
+    AltMaxVar,
 )
 
 __all__ = [

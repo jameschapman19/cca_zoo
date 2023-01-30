@@ -18,7 +18,7 @@ from cca_zoo.models import (
     CCA,
     PLS,
     SCCA_Span,
-    AltMaxVar
+    AltMaxVar,
 )
 
 
@@ -126,14 +126,15 @@ plt.xlabel("#iterations")
 
 
 altmaxvar = AltMaxVar(tau=[1e-2, 1e-2]).fit([X, Y])
-plot_model_weights(altmaxvar.weights[0], altmaxvar.weights[1], tx, ty, title="AltMaxVar")
+plot_model_weights(
+    altmaxvar.weights[0], altmaxvar.weights[1], tx, ty, title="AltMaxVar"
+)
 
 plt.figure()
 plt.title("Objective Convergence")
 plt.plot(np.array(altmaxvar.track["objective"][0]))
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
-
 
 
 spancca = SCCA_Span(tau=[10, 10], max_iter=2000, rank=20).fit([X, Y])
