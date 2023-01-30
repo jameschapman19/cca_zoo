@@ -13,6 +13,7 @@ from ._iterative import (
     SCCA_ADMM,
     SCCA_Span,
     SWCCA,
+    AltMaxVar
 )
 
 __all__ = [
@@ -37,6 +38,7 @@ __all__ = [
     "KTCCA",
     "PRCCA",
     "GRCCA",
+    "AltMaxVar",
 ]
 
 try:

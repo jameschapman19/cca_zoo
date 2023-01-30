@@ -18,6 +18,7 @@ class AltMaxVar(_BaseIterative):
         random_state=None,
         tol=1e-3,
         proximal="l1",
+        positive=False,
         tau: Union[Iterable[float], float] = None,
         proximal_params: Iterable[dict] = None,
         gamma=0.1,
@@ -38,6 +39,7 @@ class AltMaxVar(_BaseIterative):
         self.gamma = gamma
         self.learning_rate = learning_rate
         self.T = T
+        self.positive = positive
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_inputs(views)
@@ -59,7 +61,7 @@ class AltMaxVar(_BaseIterative):
         least_squares = (np.linalg.norm(scores - self.G, axis=(1, 2)) ** 2).sum()
         regularization = np.array(
             [
-                self.proximal_operator[view].cost(weights[view])
+                self.proximal_operator[view](weights[view])
                 for view in range(self.n_views)
             ]
         ).sum()
@@ -74,7 +76,7 @@ class AltMaxVar(_BaseIterative):
                 weights[view] -= self.learning_rate * (
                     views[view].T @ (views[view] @ weights[view] - self.G)
                 )
-                weights[view] = self.proximal_operator[view](
+                weights[view] = self.proximal_operator[view].prox(
                     weights[view], self.learning_rate
                 )
                 t += 1
@@ -84,15 +86,23 @@ class AltMaxVar(_BaseIterative):
 
     def _check_params(self):
         self.proximal = _process_parameter(
-            "proximal", self.proximal, "l1", self.n_views
+            "proximal", self.proximal, "L1", self.n_views
         )
+        self.positive = _process_parameter("positive", self.positive, False, self.n_views)
         self.tau = _process_parameter("tau", self.tau, 0, self.n_views)
+        self.sigma=self.tau
         self.proximal_operator = [
-            self._get_proximal(view) for view in range(self.n_views)
-        ]
+            self._get_proximal(view) for view in range(self.n_views)]
 
     def _get_proximal(self, view):
-        return _proximal_operators(self.proximal[view], self.proximal_params[view])
+        if callable(self.proximal[view]):
+            params = self.proximal_params[view] or {}
+        else:
+            params = {
+                "sigma": self.sigma[view],
+                "positive": self.positive[view],
+            }
+        return _proximal_operators(self.proximal[view], **params)
 
     def _get_target(self, scores):
         if hasattr(self, "G"):

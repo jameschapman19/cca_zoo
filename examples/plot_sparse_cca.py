@@ -62,19 +62,20 @@ data = LinearSimulatedData(
 tx = data.true_features[0] / np.sqrt(n)
 ty = data.true_features[1] / np.sqrt(n)
 
-# %%
+# %% CCA
 cca = CCA().fit([X, Y])
 plot_model_weights(cca.weights[0], cca.weights[1], tx, ty, title="CCA")
 
-# %%
+# %% PLS
 pls = PLS().fit([X, Y])
 plot_model_weights(pls.weights[0], pls.weights[1], tx, ty, title="PLS")
 
-# %%
+# %% PMD
 tau1 = [0.1, 0.3, 0.7, 0.9]
 tau2 = [0.1, 0.3, 0.7, 0.9]
 param_grid = {"tau": [tau1, tau2]}
 pmd = GridSearchCV(SCCA_PMD(), param_grid=param_grid, cv=3, verbose=True).fit([X, Y])
+
 # %%
 plt.figure()
 plt.title("Objective Convergence")
@@ -89,48 +90,54 @@ plot_model_weights(
 # %%
 pd.DataFrame(pmd.cv_results_)
 
-# %%
+# %% IPLS
 scca = SCCA_IPLS(tau=[1e-2, 1e-2]).fit([X, Y])
 plot_model_weights(scca.weights[0], scca.weights[1], tx, ty, title="SCCA_IPLS")
 
-# Convergence
 plt.figure()
 plt.title("Objective Convergence")
 plt.plot(np.array(scca.track["objective"][0]))
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
-# %%
 scca_pos = SCCA_IPLS(tau=[1e-2, 1e-2], positive=[True, True]).fit([X, Y])
 plot_model_weights(
     scca_pos.weights[0], scca_pos.weights[1], tx, ty, title="SCCA_IPLS (Positive)"
 )
 
-# Convergence
 plt.figure()
 plt.title("Objective Convergence")
 plt.plot(np.array(scca_pos.track["objective"][0]))
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
-# %%
+
 elasticcca = ElasticCCA(alpha=[1e-2, 1e-2], l1_ratio=[0.5, 0.5]).fit([X, Y])
 plot_model_weights(
     elasticcca.weights[0], elasticcca.weights[1], tx, ty, title="ELastic CCA"
 )
 
-# Convergence
 plt.figure()
 plt.title("Objective Convergence")
 plt.plot(np.array(elasticcca.track["objective"][0]))
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
-# %%
+
+altmaxvar = AltMaxVar(tau=[1e-2, 1e-2]).fit([X, Y])
+plot_model_weights(altmaxvar.weights[0], altmaxvar.weights[1], tx, ty, title="AltMaxVar")
+
+plt.figure()
+plt.title("Objective Convergence")
+plt.plot(np.array(altmaxvar.track["objective"][0]))
+plt.ylabel("Objective")
+plt.xlabel("#iterations")
+
+
+
 spancca = SCCA_Span(tau=[10, 10], max_iter=2000, rank=20).fit([X, Y])
 plot_model_weights(spancca.weights[0], spancca.weights[1], tx, ty, title="Span CCA")
 
-# Convergence
 plt.figure()
 plt.title("Objective Convergence")
 plt.plot(np.array(spancca.track["objective"][0]))

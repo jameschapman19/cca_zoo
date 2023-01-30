@@ -34,6 +34,7 @@ from cca_zoo.models import (
     SCCA_Parkhomenko,
     PRCCA,
     GRCCA,
+    AltMaxVar,
 )
 from cca_zoo.models._iterative import SCCA_HSIC
 from cca_zoo.plotting import pairplot_train_test
@@ -115,6 +116,10 @@ def test_regularized_methods():
 
 
 def test_sparse_methods():
+    tau1 = [1e-1]
+    tau2 = [1e-1]
+    param_grid = {"tau": [tau1, tau2]}
+    pdd_cv = GridSearchCV(AltMaxVar(proximal='L0', random_state=rng), param_grid=param_grid).fit([X, Y])
     alpha1 = loguniform(1e-1, 2e-1)
     alpha2 = loguniform(1e-1, 2e-1)
     param_grid = {"alpha": [alpha1, alpha2], "l1_ratio": [[0.9], [0.9]]}
