@@ -18,6 +18,7 @@ from cca_zoo.models import (
     CCA,
     PLS,
     SCCA_Span,
+    AltMaxVar
 )
 
 
