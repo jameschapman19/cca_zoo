@@ -71,7 +71,7 @@ class RCCAGHAGEP(_BaseStochastic):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=0.01,
+        learning_rate=0.1,
         c=0,
         nesterov=True,
     ):
@@ -114,8 +114,11 @@ class RCCAGHAGEP(_BaseStochastic):
             v = self.weights
         projections = np.stack([view @ weight for view, weight in zip(views, v)])
         for i, view in enumerate(views):
-            Aw = self._Aw(view, projections.sum(axis=0))
-            Bw = self._Bw(view, projections[i], v[i], self.c[i])
+            projections = np.ma.array(projections, mask=False, keep_mask=False)
+            projections.mask[i] = True
+            Aw = self._Aw(view, projections.sum(axis=0).filled())
+            projections.mask[i] = False
+            Bw = self._Bw(view, projections[i].filled(), v[i], self.c[i])
             wAw = v[i].T @ Aw
             wAw[np.diag_indices_from(wAw)] = np.where(np.diag(wAw) > 0, np.diag(wAw), 0)
             grads = Aw - Bw @ np.triu(wAw)
@@ -201,7 +204,7 @@ class CCAGHAGEP(RCCAGHAGEP):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=0.01,
+        learning_rate=0.1,
         nesterov=True,
     ):
         super().__init__(
@@ -293,7 +296,7 @@ class PLSGHAGEP(RCCAGHAGEP):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=0.01,
+        learning_rate=0.1,
         nesterov=True,
     ):
         super().__init__(

@@ -105,7 +105,6 @@ class _BaseStochastic(_BaseCCA):
                 stop = self._update([view.numpy() for view in sample["views"]])
                 if self.nesterov:
                     self._step_lambda()
-                print(self.score([view.numpy() for view in sample["views"]]))
             if self.val_split is not None:
                 for i, sample in enumerate(val_dataloader):
                     self.track.append(self.objective(sample["views"]))

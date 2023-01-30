@@ -239,16 +239,16 @@ def test_stochastic_pls():
     manual_seed(42)
     pls = PLS(latent_dims=3).fit((X, Y))
     ipls = IncrementalPLS(
-        latent_dims=3, epochs=150, simple=False, batch_size=10, random_state=1
+        latent_dims=3, epochs=1, simple=False, batch_size=1, random_state=1
     ).fit((X, Y))
     spls = PLSStochasticPower(
-        latent_dims=3, epochs=150, batch_size=10, learning_rate=1e-2, random_state=1
+        latent_dims=3, epochs=200, batch_size=50, learning_rate=1e-1, random_state=1
     ).fit((X, Y))
     egpls = PLSEigenGame(
-        latent_dims=3, epochs=200, batch_size=10, learning_rate=1e-2, random_state=1
+        latent_dims=3, epochs=200, batch_size=50, random_state=1
     ).fit((X, Y))
     ghapls = PLSGHAGEP(
-        latent_dims=3, epochs=200, batch_size=10, learning_rate=1e-2, random_state=1
+        latent_dims=3, epochs=200, batch_size=50, random_state=1
     ).fit((X, Y))
     pls_score = pls.score((X, Y))
     ipls_score = ipls.score((X, Y))
@@ -266,12 +266,12 @@ def test_stochastic_cca():
     pytest.importorskip("torch")
     from cca_zoo.models import CCAGHAGEP, CCAEigenGame
 
-    cca = CCA(latent_dims=1).fit((X, Y))
+    cca = CCA(latent_dims=2).fit((X, Y))
     egcca = CCAEigenGame(
-        latent_dims=1, epochs=500, batch_size=10, learning_rate=5e-2
+        latent_dims=2, epochs=100, batch_size=50
     ).fit((X, Y))
     ghacca = CCAGHAGEP(
-        latent_dims=1, epochs=500, batch_size=10, learning_rate=5e-2
+        latent_dims=2, epochs=100, batch_size=50
     ).fit((X, Y))
     cca_score = cca.score((X, Y))
     egcca_score = egcca.score((X, Y))
