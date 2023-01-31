@@ -119,3 +119,6 @@ class PRCCA(MCCA):
             mask = np.ones(self.weights[i].shape[0], dtype=bool)
             mask[idx] = False
             self.weights[i][mask] = alpha_2
+
+    def _more_tags(self):
+        return {"multiview": True}

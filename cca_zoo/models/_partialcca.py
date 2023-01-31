@@ -96,3 +96,6 @@ class PartialCCA(MCCA):
             ) @ self.weights[i]
             transformed_views.append(transformed_view)
         return transformed_views
+
+    def _more_tags(self):
+        return {"multiview": True}

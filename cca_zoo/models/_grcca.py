@@ -134,6 +134,9 @@ class GRCCA(MCCA):
                 )
                 self.weights[i] = weights_1 + weights_2[group]
 
+    def _more_tags(self):
+        return {"multiview": True}
+
 
 def _group_mean(view, group):
     ids, unique_inverse, unique_counts = np.unique(
