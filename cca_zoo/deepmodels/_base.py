@@ -131,3 +131,6 @@ class _BaseDeep(pl.LightningModule):
     def detach_all(z):
         [z_.detach() for z_ in z]
         return z
+
+    def _more_tags(self):
+        return {"multiview": True}

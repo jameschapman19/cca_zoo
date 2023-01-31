@@ -121,3 +121,6 @@ class PLSStochasticPower(_BaseStochastic):
 
     def objective(self, views, **kwargs):
         return self.tv(views)
+
+    def _more_tags(self):
+        return {"multiview": True, "stochastic": True}

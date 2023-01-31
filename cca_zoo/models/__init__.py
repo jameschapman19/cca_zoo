@@ -1,4 +1,6 @@
-from ._multiview import MCCA, KCCA, GCCA, KGCCA, TCCA, KTCCA
+from ._gcca import GCCA, KGCCA
+from ._mcca import MCCA, KCCA
+from ._tcca import TCCA, KTCCA
 from ._ncca import NCCA
 from ._partialcca import PartialCCA
 from ._prcca import PRCCA

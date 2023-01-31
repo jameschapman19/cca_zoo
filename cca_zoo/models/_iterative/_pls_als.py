@@ -93,3 +93,6 @@ class PLS_ALS(_BaseIterative):
                 np.array(weights[view_index])
             )
         return scores, weights
+
+    def _more_tags(self):
+        return {"multiview": True}

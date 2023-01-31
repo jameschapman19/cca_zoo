@@ -167,6 +167,9 @@ class ElasticCCA(_BaseIterative):
         target /= np.linalg.norm(target) / np.sqrt(scores.shape[0])
         return target
 
+    def _more_tags(self):
+        return {"multiview": True}
+
 
 class SCCA_IPLS(ElasticCCA):
     r"""

@@ -1,4 +1,5 @@
 import numpy as np
+from pyproximal.proximal.L1 import _softthreshold
 
 
 def _bin_search(current, previous, current_val, previous_val, min_, max_):
@@ -67,7 +68,7 @@ def _delta_search(w, c, init=0, tol=1e-9):
     i = 0
     while not converged:
         i += 1
-        coef = soft_threshold(w, current)
+        coef = _softthreshold(w, current)
         if np.linalg.norm(coef) > 0:
             coef /= np.linalg.norm(coef)
         current_val = c - np.linalg.norm(coef, 1)
@@ -78,12 +79,6 @@ def _delta_search(w, c, init=0, tol=1e-9):
         if np.abs(current_val) < tol:
             converged = True
     return coef
-
-
-def soft_threshold(data, value, positive=False, **kwargs):
-    if positive:
-        data[data < 0] = 0
-    return np.sign(data) * np.maximum(np.abs(data) - value, 0)
 
 
 def support_threshold(data, support, **kwargs):

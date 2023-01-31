@@ -3,7 +3,7 @@ from typing import Union, Iterable
 import numpy as np
 
 from cca_zoo.models._iterative._base import _BaseIterative
-from cca_zoo.models._search import soft_threshold
+from cca_zoo.models._search import _softthreshold
 from cca_zoo.utils import _process_parameter, _check_converged_weights
 
 
@@ -78,8 +78,11 @@ class SCCA_Parkhomenko(_BaseIterative):
             w = views[view_index].T @ targets.sum(axis=0).filled()
             w /= np.linalg.norm(w)
             _check_converged_weights(w, view_index)
-            w = soft_threshold(w, self.tau[view_index] / 2)
+            w = _softthreshold(w, self.tau[view_index] / 2)
             weights[view_index] = w / np.linalg.norm(w)
             _check_converged_weights(w, view_index)
             scores[view_index] = views[view_index] @ weights[view_index]
         return scores, weights
+
+    def _more_tags(self):
+        return {"multiview": True}

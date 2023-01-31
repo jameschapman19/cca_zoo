@@ -264,6 +264,10 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
         views : list of numpy arrays
 
         """
+        # if doesn't have tag multiview=True then check number of views equals 2
+        if not self._get_tags().get("multiview", False):
+            if len(views) != 2:
+                raise ValueError("Only two views are supported for this model.")
         views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
         )

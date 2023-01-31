@@ -115,3 +115,6 @@ class AltMaxVar(_BaseIterative):
         U, S, Vt = np.linalg.svd(R, full_matrices=False)
         G = U @ Vt
         return G
+
+    def _more_tags(self):
+        return {"multiview": True}

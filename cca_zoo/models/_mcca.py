@@ -1,24 +1,25 @@
 from typing import Iterable, Union
 
 import numpy as np
-from sklearn.metrics import pairwise_kernels
+from scipy.linalg import block_diag
+from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo.models._rcca import rCCA
 from cca_zoo.utils.check_values import _process_parameter, _check_views
 
 
-class GCCA(rCCA):
+class MCCA(rCCA):
     r"""
-    A class used to fit GCCA model. For more than 2 views, GCCA optimizes the sum of correlations with a shared auxiliary vector
+    A class used to fit MCCA model. For more than 2 views, MCCA optimizes the sum of pairwise correlations.
 
     .. math::
 
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{ \sum_iw_i^TX_i^TT  \}\\
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} w_i^TX_i^TX_jw_j  \}\\
 
         \text{subject to:}
 
-        T^TT=1
+        (1-c_i)w_i^TX_i^TX_iw_i+c_iw_i^Tw_i=1
 
     Parameters
     ----------
@@ -33,26 +34,26 @@ class GCCA(rCCA):
     random_state : int, optional
         Random state, by default None
     c : Union[Iterable[float], float], optional
-        Regularization parameter, by default None
-    view_weights : Iterable[float], optional
-        Weights for each view, by default None
+        Regularisation parameter, by default None
+    eps : float, optional
+        Small value to add to the diagonal of the regularisation matrix, by default 1e-9
 
 
     References
     ----------
-    Tenenhaus, Arthur, and Michel Tenenhaus. "Regularized generalized canonical correlation analysis." Psychometrika 76.2 (2011): 257.
+    Kettenring, Jon R. "Canonical analysis of several sets of variables." Biometrika 58.3 (1971): 433-451.
 
     Examples
     --------
-    >>> from cca_zoo.models import GCCA
+    >>> from cca_zoo.models import MCCA
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
-    >>> model = GCCA()
+    >>> model = MCCA()
     >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
-    array([0.97229856])
+    array([0.97200847])
     """
 
     def __init__(
@@ -63,7 +64,7 @@ class GCCA(rCCA):
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
-        view_weights: Iterable[float] = None,
+        eps=1e-9,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -74,65 +75,64 @@ class GCCA(rCCA):
             random_state=random_state,
         )
         self.c = c
-        self.view_weights = view_weights
-
-    def _check_params(self):
-        self.c = _process_parameter("c", self.c, 0, self.n_views)
-        self.view_weights = _process_parameter(
-            "view_weights", self.view_weights, 1, self.n_views
-        )
-
-    def _setup_evp(self, views: Iterable[np.ndarray], K=None):
-        if K is None:
-            # just use identity when all rows are observed in all views.
-            K = np.ones((len(views), views[0].shape[0]))
-        Q = []
-        for i, (view, view_weight) in enumerate(zip(views, self.view_weights)):
-            view_cov = (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[
-                i
-            ] * np.eye(view.shape[1])
-            Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
-        Q = np.sum(Q, axis=0)
-        Q = (
-            np.diag(np.sqrt(np.sum(K, axis=0)))
-            @ Q
-            @ np.diag(np.sqrt(np.sum(K, axis=0)))
-        )
-        return Q, None
+        self.eps = eps
 
     def _weights(self, eigvals, eigvecs, views):
         self.weights = [
-            np.linalg.pinv(view) @ eigvecs[:, : self.latent_dims] for view in views
+            eigvecs[split : self.splits[i + 1]]
+            for i, split in enumerate(self.splits[:-1])
         ]
 
+    def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
+        all_views = np.hstack(views)
+        C = np.cov(all_views, rowvar=False)
+        # Can regularise by adding to diagonal
+        D = block_diag(
+            *[
+                (1 - self.c[i]) * np.cov(view, rowvar=False)
+                + self.c[i] * np.eye(view.shape[1])
+                for i, view in enumerate(views)
+            ]
+        )
+        C -= block_diag(*[np.cov(view, rowvar=False) for view in views])
+        D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
+        D = D - D_smallest_eig * np.eye(D.shape[0])
+        self.splits = np.cumsum([0] + [view.shape[1] for view in views])
+        return C, D
 
-class KGCCA(GCCA):
+    def _get_weights(self, eigvals, eigvecs, views):
+        self.weights = [
+            eigvecs[split : self.splits[i + 1]]
+            for i, split in enumerate(self.splits[:-1])
+        ]
+
+    def _more_tags(self):
+        return {"multiview": True}
+
+
+class KCCA(MCCA):
     r"""
-    A class used to fit KGCCA model. For more than 2 views, KGCCA optimizes the sum of correlations with a shared auxiliary vector
+    A class used to fit KCCA model.
 
     .. math::
 
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{ \sum_i\alpha_i^TK_i^TT  \}\\
+        \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \alpha_i^TK_i^TK_j\alpha_j  \}\\
 
         \text{subject to:}
 
-        T^TT=1
-
-    References
-    ----------
-    Tenenhaus, Arthur, Cathy Philippe, and Vincent Frouin. "Kernel generalized canonical correlation analysis." Computational Statistics & Data Analysis 90 (2015): 114-131.
+        c_i\alpha_i^TK_i\alpha_i + (1-c_i)\alpha_i^TK_i^TK_i\alpha_i=1
 
     Examples
     --------
-    >>> from cca_zoo.models import KGCCA
+    >>> from cca_zoo.models import KCCA
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
-    >>> model = KGCCA()
+    >>> model = KCCA()
     >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
-    array([0.97019284])
+    array([0.96893666])
     """
 
     def __init__(
@@ -171,9 +171,6 @@ class KGCCA(GCCA):
         self.coef0 = _process_parameter("coef0", self.coef0, 1, self.n_views)
         self.degree = _process_parameter("degree", self.degree, 1, self.n_views)
         self.c = _process_parameter("c", self.c, 0, self.n_views)
-        self.view_weights = _process_parameter(
-            "view_weights", self.view_weights, 1, self.n_views
-        )
 
     def _get_kernel(self, view, X, Y=None):
         if callable(self.kernel[view]):
@@ -188,30 +185,24 @@ class KGCCA(GCCA):
             X, Y, metric=self.kernel[view], filter_params=True, **params
         )
 
-    def _setup_evp(self, views: Iterable[np.ndarray], K=None):
+    def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
         self.train_views = views
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
-        if K is None:
-            # just use identity when all rows are observed in all views.
-            K = np.ones((len(views), views[0].shape[0]))
-        Q = []
-        for i, (view, view_weight) in enumerate(zip(kernels, self.view_weights)):
-            view_cov = (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[
-                i
-            ] * np.eye(view.shape[1])
-            smallest_eig = min(0, np.linalg.eigvalsh(view_cov).min()) - self.eps
-            view_cov = view_cov - smallest_eig * np.eye(view_cov.shape[0])
-            Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
-        Q = np.sum(Q, axis=0)
-        Q = (
-            np.diag(np.sqrt(np.sum(K, axis=0)))
-            @ Q
-            @ np.diag(np.sqrt(np.sum(K, axis=0)))
+        C = np.cov(np.hstack(kernels), rowvar=False)
+        # Can regularise by adding to diagonal
+        D = block_diag(
+            *[
+                (1 - self.c[i]) * np.cov(kernel, rowvar=False) + self.c[i] * kernel
+                for i, kernel in enumerate(kernels)
+            ]
         )
+        C -= block_diag(*[np.cov(kernel, rowvar=False) for kernel in kernels]) - D
+        D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
+        D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
-        return Q, None
+        return C, D
 
-    def transform(self, views: np.ndarray, y=None, **kwargs):
+    def transform(self, views: np.ndarray, **kwargs):
         check_is_fitted(self, attributes=["weights"])
         views = _check_views(
             *views, copy=self.copy_data, accept_sparse=self.accept_sparse
@@ -225,10 +216,3 @@ class KGCCA(GCCA):
             kernel.T @ self.weights[i] for i, kernel in enumerate(Ktest)
         ]
         return transformed_views
-
-    def _weights(self, eigvals, eigvecs, views):
-        kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
-        self.weights = [
-            np.linalg.pinv(kernel) @ eigvecs[:, : self.latent_dims]
-            for kernel in kernels
-        ]

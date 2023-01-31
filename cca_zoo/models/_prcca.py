@@ -4,7 +4,7 @@ from typing import Iterable
 import numpy as np
 from scipy.linalg import block_diag
 
-from cca_zoo.models._multiview._mcca import MCCA
+from cca_zoo.models._mcca import MCCA
 
 
 class PRCCA(MCCA):

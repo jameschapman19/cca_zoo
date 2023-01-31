@@ -3,7 +3,7 @@ from typing import Iterable
 
 import numpy as np
 
-from cca_zoo.models._multiview._mcca import MCCA
+from cca_zoo.models._mcca import MCCA
 from ..utils import _process_parameter
 
 

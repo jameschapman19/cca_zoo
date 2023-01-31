@@ -149,6 +149,9 @@ class rCCA(_BaseCCA):
         )
         return M, None
 
+    def _more_tags(self):
+        return {"multiview": True}
+
 
 class CCA(rCCA):
     r"""

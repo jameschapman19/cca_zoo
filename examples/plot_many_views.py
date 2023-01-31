@@ -56,7 +56,9 @@ kgcca = KGCCA(latent_dims=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
 # Most of the _iterative methods can also use multiple views e.g.
 
-pmd = SCCA_PMD(latent_dims=latent_dims, tau=0.1, tol=1e-5).fit((X, Y, X)).score((X, Y, Z))
+pmd = (
+    SCCA_PMD(latent_dims=latent_dims, tau=0.1, tol=1e-5).fit((X, Y, X)).score((X, Y, Z))
+)
 
 # %%
 # Higher Order Correlations

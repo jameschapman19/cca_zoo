@@ -67,6 +67,33 @@ class _BaseStochastic(_BaseCCA):
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_inputs(views)
         self._check_params()
+        train_dataloader, val_dataloader = self.get_dataloader(views)
+        self.track = []
+        initializer = _default_initializer(
+            views, self.initialization, self.random_state, self.latent_dims
+        )
+        self.weights = initializer.fit(views).weights
+        if self.nesterov:
+            self.weights_old = self.weights.copy()
+            self.lam = [0, 0]
+        stop = False
+        for _ in range(self.epochs):
+            for i, sample in enumerate(train_dataloader):
+                stop = self._update([v.numpy() for v in sample["views"]])
+                if self.nesterov:
+                    self._step_lambda()
+                if self.batch_size is None:
+                    self.objective([v.numpy() for v in sample["views"]])
+            if self.val_split is not None:
+                for i, sample in enumerate(val_dataloader):
+                    self.track.append(
+                        self.objective([v.numpy() for v in sample["views"]])
+                    )
+            if stop:
+                break
+        return self
+
+    def get_dataloader(self, views: Iterable[np.ndarray]):
         dataset = NumpyDataset(views)
         if self.val_split is not None:
             train_size = int((1 - self.val_split) * len(dataset))
@@ -91,26 +118,9 @@ class _BaseStochastic(_BaseCCA):
                 val_dataset,
                 batch_size=len(val_dataset),
             )
-        self.track = []
-        initializer = _default_initializer(
-            views, self.initialization, self.random_state, self.latent_dims
-        )
-        self.weights = initializer.fit(views).weights
-        if self.nesterov:
-            self.weights_old = self.weights.copy()
-            self.lam = [0, 0]
-        stop = False
-        for _ in range(self.epochs):
-            for i, sample in enumerate(dataloader):
-                stop = self._update([view.numpy() for view in sample["views"]])
-                if self.nesterov:
-                    self._step_lambda()
-            if self.val_split is not None:
-                for i, sample in enumerate(val_dataloader):
-                    self.track.append(self.objective(sample["views"]))
-            if stop:
-                break
-        return self
+        else:
+            val_dataloader = None
+        return dataloader, val_dataloader
 
     @property
     def momentum(self):

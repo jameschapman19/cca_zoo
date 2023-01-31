@@ -140,6 +140,9 @@ class RCCAEigenGame(_BaseStochastic):
     def objective(self, views, **kwargs):
         return self.tcc(views)
 
+    def _more_tags(self):
+        return {"multiview": True, "stochastic": True}
+
 
 class CCAEigenGame(RCCAEigenGame):
     """

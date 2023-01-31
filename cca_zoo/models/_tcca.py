@@ -154,6 +154,9 @@ class TCCA(_BaseCCA):
         ]
         return train_views, covs_invsqrt
 
+    def _more_tags(self):
+        return {"multiview": True}
+
 
 class KTCCA(TCCA):
     r"""
