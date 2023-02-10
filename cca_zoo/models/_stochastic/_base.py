@@ -4,6 +4,7 @@ from typing import Iterable, Union
 import numpy as np
 from scipy.linalg import block_diag
 from torch.utils import data
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
 from cca_zoo.data.deep import NumpyDataset
 from cca_zoo.models import CCA
@@ -79,48 +80,61 @@ class _BaseStochastic(_BaseCCA):
         stop = False
         for _ in range(self.epochs):
             for i, sample in enumerate(train_dataloader):
-                stop = self._update([v.numpy() for v in sample["views"]])
+                stop = self._update(sample["views"])
                 if self.nesterov:
                     self._step_lambda()
                 if self.batch_size is None:
-                    self.objective([v.numpy() for v in sample["views"]])
+                    self.objective(sample["views"])
             if self.val_split is not None:
                 for i, sample in enumerate(val_dataloader):
                     self.track.append(
-                        self.objective([v.numpy() for v in sample["views"]])
+                        self.objective(sample["views"])
                     )
+            else:
+                self.track.append(
+                    self.objective(views)
+                )
             if stop:
                 break
         return self
 
     def get_dataloader(self, views: Iterable[np.ndarray]):
-        dataset = NumpyDataset(views)
+        if self.batch_size is None:
+            dataset = BatchNumpyDataset(views)
+        else:
+            dataset = NumpyDataset(views)
         if self.val_split is not None:
             train_size = int((1 - self.val_split) * len(dataset))
             val_size = len(dataset) - train_size
             dataset, val_dataset = data.random_split(dataset, [train_size, val_size])
-        if self.batch_size is None:
-            self.batch_size = len(dataset)
-        dataloader = data.DataLoader(
-            dataset,
-            batch_size=self.batch_size,
-            shuffle=self.shuffle,
-            sampler=self.sampler,
-            batch_sampler=self.batch_sampler,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
-            drop_last=self.drop_last,
-            timeout=self.timeout,
-            worker_init_fn=self.worker_init_fn,
-        )
-        if self.val_split is not None:
-            val_dataloader = data.DataLoader(
+            sampler = BatchSampler(SequentialSampler(dataset), batch_size=len(val_dataset), drop_last=False)
+            val_loader = DataLoader(
                 val_dataset,
-                batch_size=len(val_dataset),
+                sampler=sampler,
+                num_workers=self.num_workers,
+                pin_memory=self.pin_memory,
+                drop_last=self.drop_last,
+                timeout=self.timeout,
+                worker_init_fn=self.worker_init_fn,
+                collate_fn=lambda x: x[0],
             )
         else:
-            val_dataloader = None
-        return dataloader, val_dataloader
+            val_loader = None
+        if self.batch_size is None:
+            batch_size = len(dataset)
+        else:
+            batch_size = self.batch_size
+        sampler = BatchSampler(RandomSampler(dataset), batch_size=batch_size, drop_last=False)
+        train_loader = DataLoader(
+            dataset,
+            sampler=sampler,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            timeout=self.timeout,
+            worker_init_fn=self.worker_init_fn,
+            collate_fn=lambda x: x[0],
+        )
+        return train_loader, val_loader
 
     @property
     def momentum(self):
@@ -152,6 +166,12 @@ class _BaseStochastic(_BaseCCA):
         z = self.transform(views)
         return tcc(z)
 
+class BatchNumpyDataset(NumpyDataset):
+    def __getitem__(self, index):
+        if self.labels is not None:
+            return {"views": self.views, "label": self.labels}
+        else:
+            return {"views": self.views}
 
 def tv(z):
     all_z = np.hstack(z)

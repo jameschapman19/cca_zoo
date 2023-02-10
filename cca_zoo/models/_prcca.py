@@ -76,11 +76,13 @@ class PRCCA(MCCA):
             warnings.warn(f"No idxs provided, using all features")
             idxs = [np.arange(views[0].shape[1], dtype=int)] * len(views)
         for idx in idxs:
-            assert idx.dtype == int, "subject_groups must be integers"
+            assert np.issubdtype(
+                idx.dtype, np.integer
+            ), "feature groups must be integers"
         views = self._validate_inputs(views)
         self._check_params()
         views = self._pretransform(views, idxs)
-        super().fit(views, idxs=idxs)
+        self.weights=MCCA(latent_dims=self.latent_dims,c=self.c,scale=False,centre=False).fit(views, idxs=idxs).weights
         self._transform_weights(views, idxs=idxs)
         return self
 

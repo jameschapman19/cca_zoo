@@ -98,7 +98,7 @@ class MCCA(rCCA):
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [view.shape[1] for view in views])
-        return C, D
+        return C/len(views), D/len(views)
 
     def _get_weights(self, eigvals, eigvecs, views):
         self.weights = [
