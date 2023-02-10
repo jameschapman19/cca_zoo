@@ -17,12 +17,12 @@ class AltMaxVar(_BaseIterative):
         copy_data=True,
         random_state=None,
         tol=1e-3,
-        proximal="l1",
+        proximal="L1",
         positive=False,
         tau: Union[Iterable[float], float] = None,
         proximal_params: Iterable[dict] = None,
         gamma=0.1,
-        learning_rate=0.01,
+        learning_rate=0.001,
         T=100,
     ):
         super().__init__(

@@ -125,7 +125,7 @@ plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
 
-altmaxvar = AltMaxVar(tau=[1e-2, 1e-2]).fit([X, Y])
+altmaxvar = AltMaxVar(tau=[1e-5, 1e-5]).fit([X, Y])
 plot_model_weights(
     altmaxvar.weights[0], altmaxvar.weights[1], tx, ty, title="AltMaxVar"
 )

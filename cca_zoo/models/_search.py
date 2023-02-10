@@ -42,7 +42,7 @@ def _bin_search(current, previous, current_val, previous_val, min_, max_):
     return new, current, min_, max_
 
 
-def _delta_search(w, c, init=0, tol=1e-9):
+def _delta_search(w, c, init=0, tol=1e-9, max_iter=1000):
     """
     Searches for threshold delta such that the 1-norm of weights w is less than or equal to c
     Parameters
@@ -64,7 +64,7 @@ def _delta_search(w, c, init=0, tol=1e-9):
     max_ = 10
     current = init
     previous = current
-    previous_val = None
+    previous_val = 0
     i = 0
     while not converged:
         i += 1
@@ -75,9 +75,9 @@ def _delta_search(w, c, init=0, tol=1e-9):
         current, previous, min_, max_ = _bin_search(
             current, previous, current_val, previous_val, min_, max_
         )
-        previous_val = current_val
-        if np.abs(current_val) < tol:
+        if (np.abs(current_val) < tol) or i==max_iter:
             converged = True
+        previous_val = current_val
     return coef
 
 
