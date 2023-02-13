@@ -1,3 +1,5 @@
+from copy import copy
+
 import numpy as np
 
 from cca_zoo.models._stochastic._base import _BaseStochastic
@@ -71,9 +73,11 @@ class RCCAEigenGame(_BaseStochastic):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=0.1,
+        learning_rate=1,
         c=0,
-        nesterov=True,
+        nesterov=False,
+            rho=0.1,
+            line_search=True,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -97,6 +101,8 @@ class RCCAEigenGame(_BaseStochastic):
             nesterov=nesterov,
         )
         self.c = c
+        self.rho = rho
+        self.line_search = line_search
 
     def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
@@ -112,36 +118,66 @@ class RCCAEigenGame(_BaseStochastic):
                 self.weights_old[i] = self.weights[i].copy()
         else:
             v = self.weights
-        projections = np.stack([view @ weight for view, weight in zip(views, v)])
+        projections = np.ma.stack([view @ weight for view, weight in zip(views, v)])
         for i, view in enumerate(views):
-            projections = np.ma.array(projections, mask=False, keep_mask=False)
-            projections.mask[i] = True
-            Aw = self._Aw(view, projections.sum(axis=0).filled())
-            projections.mask[i] = False
-            Bw = self._Bw(view, projections[i].filled(), v[i], self.c[i])
-            wAw = v[i].T @ Aw
-            wBw = v[i].T @ Bw
-            wAw[np.diag_indices_from(wAw)] = np.where(np.diag(wAw) > 0, np.diag(wAw), 0)
-            wBw[np.diag_indices_from(wBw)] = np.where(np.diag(wAw) > 0, np.diag(wBw), 0)
-            grads = 2 * Aw - (Aw @ np.triu(wBw) + Bw @ np.triu(wAw))
-            w_ = v[i] + self.learning_rate * grads
+            Aw, Bw, wAw, wBw = self._get_terms(i, view, projections, v[i])
+            grads = self.grads(Aw, wAw, Bw, wBw)
+            if self.line_search:
+                w_ = self._backtracking_line_search(i,views, v, grads)
+            else:
+                w_ = v[i] + self.learning_rate * grads
             # if difference between self.weights[i] and w_ is less than tol, then return True
-            if not np.allclose(self.weights[i], w_, atol=self.tol):
+            if not np.allclose(self.weights[i], w_[i], atol=self.tol):
                 converged = False
             self.weights[i] = w_
         return converged
+
+    def grads(self, Aw, wAw, Bw, wBw):
+        return 2 * Aw - (Aw @ np.triu(wBw) + Bw @ np.triu(wAw))
 
     def _Aw(self, view, projections):
         return view.T @ projections / view.shape[0]
 
     def _Bw(self, view, projection, weight, c):
-        return c * weight + (1 - c) * view.T @ projection / projection.shape[0]
+        return (c * weight) + (1 - c) * (view.T @ projection) / projection.shape[0]
 
-    def objective(self, views, **kwargs):
-        return self.tcc(views)
+    def _get_terms(self, i, view, projections, v):
+        #projections.mask[i] = True
+        Aw = self._Aw(view, projections.sum(axis=0).filled())
+        projections.mask[i] = False
+        Bw = self._Bw(view, projections[i].filled(), v, self.c[i])
+        wAw = v.T @ Aw
+        wBw = v.T @ Bw
+        wAw[np.diag_indices_from(wAw)] = np.where(np.diag(wAw) > 0, np.diag(wAw), 0)
+        wBw[np.diag_indices_from(wBw)] = np.where(np.diag(wAw) > 0, np.diag(wBw), 0)
+        return Aw, Bw, wAw, wBw
 
-    def _more_tags(self):
-        return {"multiview": True, "stochastic": True}
+    def objective(self, views, weights):
+        projections = np.ma.stack([view @ weight for view, weight in zip(views, weights)])
+        objective = 0
+        for i, view in enumerate(views):
+            Aw, Bw, wAw, wBw = self._get_terms(i, view, projections, weights[i])
+            objective -= 2 * np.trace(wAw) - np.trace(wAw @ wBw)
+        return objective
+
+    def _backtracking_line_search(self, i,views, v, grad):
+        t = self.learning_rate
+        f =self.objective(views, v)
+        k=0
+        w_new = copy(v)
+        while True:
+            # Compute the candidate weight vector using the proximal operator
+            w_new[i] = v[i] + t * grad
+            # Compute the candidate objective function value
+            f_new = self.objective(views, w_new)
+            # Check the sufficient decrease condition
+            if f_new <= f + 0.5* t * np.linalg.norm(w_new[i] - v[i]) ** 2:
+                # If the sufficient decrease condition is satisfied, accept the candidate
+                break
+            # If the sufficient decrease condition is not satisfied, reduce the step size
+            t *= self.rho
+            k += 1
+        return w_new[i]
 
 
 class CCAEigenGame(RCCAEigenGame):
@@ -209,7 +245,7 @@ class CCAEigenGame(RCCAEigenGame):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=0.1,
+        learning_rate=1,
         nesterov=True,
     ):
         super().__init__(
@@ -301,7 +337,7 @@ class PLSEigenGame(RCCAEigenGame):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=0.1,
+        learning_rate=1,
         nesterov=True,
     ):
         super().__init__(
@@ -326,6 +362,3 @@ class PLSEigenGame(RCCAEigenGame):
             c=1,
             nesterov=nesterov,
         )
-
-    def objective(self, views, **kwargs):
-        return self.tv(views)

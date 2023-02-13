@@ -274,8 +274,8 @@ def test_stochastic_cca():
     from cca_zoo.models import CCAGHAGEP, CCAEigenGame
 
     cca = CCA(latent_dims=2).fit((X, Y))
-    egcca = CCAEigenGame(latent_dims=2, epochs=100, batch_size=50).fit((X, Y))
-    ghacca = CCAGHAGEP(latent_dims=2, epochs=100, batch_size=50).fit((X, Y))
+    egcca = CCAEigenGame(latent_dims=2, epochs=200, batch_size=50).fit((X, Y))
+    ghacca = CCAGHAGEP(latent_dims=2, epochs=200, batch_size=50).fit((X, Y))
     cca_score = cca.score((X, Y))
     egcca_score = egcca.score((X, Y))
     ghacca_score = ghacca.score((X, Y))

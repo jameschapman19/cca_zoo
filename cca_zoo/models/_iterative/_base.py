@@ -118,7 +118,7 @@ class _BaseIterative(_BaseCCA):
         obj = 0
         for (score_i, score_j) in combinations(scores, 2):
             obj += score_i.T @ score_j
-        return obj.item()
+        return -obj.item()
 
     def _early_stop(self, objective) -> bool:
         # Some kind of early stopping

@@ -33,7 +33,7 @@ class _BaseStochastic(_BaseCCA):
         worker_init_fn=None,
         epochs=1,
         val_split=None,
-        learning_rate=0.01,
+        learning_rate=0.1,
         initialization: Union[str, callable] = "random",
         track_training=False,
         nesterov=True,
@@ -84,15 +84,15 @@ class _BaseStochastic(_BaseCCA):
                 if self.nesterov:
                     self._step_lambda()
                 if self.batch_size is None:
-                    self.objective(sample["views"])
+                    self.objective(sample["views"], weights=self.weights)
             if self.val_split is not None:
                 for i, sample in enumerate(val_dataloader):
                     self.track.append(
-                        self.objective(sample["views"])
+                        self.objective(sample["views"], weights=self.weights)
                     )
             else:
                 self.track.append(
-                    self.objective(views)
+                    self.objective(views, weights=self.weights)
                 )
             if stop:
                 break
@@ -149,22 +149,8 @@ class _BaseStochastic(_BaseCCA):
         pass
 
     @abstractmethod
-    def objective(self, views, **kwargs):
-        return self.tcc(views)
-
-    def tv(self, views):
-        # q from qr decomposition of weights
-        q = [np.linalg.qr(weight)[0] for weight in self.weights]
-        views = self._centre_scale_transform(views)
-        transformed_views = []
-        for i, (view) in enumerate(views):
-            transformed_view = view @ q[i]
-            transformed_views.append(transformed_view)
-        return tv(transformed_views)
-
-    def tcc(self, views):
-        z = self.transform(views)
-        return tcc(z)
+    def objective(self, views, weights):
+        raise NotImplementedError
 
 class BatchNumpyDataset(NumpyDataset):
     def __getitem__(self, index):

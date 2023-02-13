@@ -2,7 +2,7 @@ from typing import Union
 
 import numpy as np
 
-from ._base import _BaseStochastic
+from ._base import _BaseStochastic, tv
 
 
 class IncrementalPLS(_BaseStochastic):
@@ -155,10 +155,10 @@ class IncrementalPLS(_BaseStochastic):
         self.S = S[: self.latent_dims]
 
     def objective(self, views, **kwargs):
-        return np.sum(
-            np.diag(
-                np.cov(*self.transform(views), rowvar=False)[
-                    : self.latent_dims, self.latent_dims :
-                ]
-            )
-        )
+        q = [np.linalg.qr(weight)[0] for weight in self.weights]
+        views = self._centre_scale_transform(views)
+        transformed_views = []
+        for i, (view) in enumerate(views):
+            transformed_view = view @ q[i]
+            transformed_views.append(transformed_view)
+        return tv(transformed_views)

@@ -2,7 +2,7 @@ from typing import Union
 
 import numpy as np
 
-from cca_zoo.models._stochastic._base import _BaseStochastic
+from cca_zoo.models._stochastic._base import _BaseStochastic, tv
 
 
 class PLSStochasticPower(_BaseStochastic):
@@ -120,7 +120,13 @@ class PLSStochasticPower(_BaseStochastic):
         return Qu @ np.diag(Su)
 
     def objective(self, views, **kwargs):
-        return self.tv(views)
+        q = [np.linalg.qr(weight)[0] for weight in self.weights]
+        views = self._centre_scale_transform(views)
+        transformed_views = []
+        for i, (view) in enumerate(views):
+            transformed_view = view @ q[i]
+            transformed_views.append(transformed_view)
+        return tv(transformed_views)
 
     def _more_tags(self):
         return {"multiview": True, "stochastic": True}
