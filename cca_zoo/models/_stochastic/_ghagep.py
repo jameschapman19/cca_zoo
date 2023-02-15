@@ -52,11 +52,59 @@ class RCCAGHAGEP(RCCAEigenGame):
     Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
     """
 
+    def __init__(
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            tol=1e-9,
+            accept_sparse=None,
+            batch_size=None,
+            shuffle=True,
+            sampler=None,
+            batch_sampler=None,
+            num_workers=0,
+            pin_memory=False,
+            drop_last=True,
+            timeout=0,
+            worker_init_fn=None,
+            epochs=1,
+            learning_rate=1e-1,
+            c=0,
+            nesterov=True,
+            rho=0.1,
+    ):
+        super().__init__(
+            latent_dims=latent_dims,
+            scale=scale,
+            centre=centre,
+            copy_data=copy_data,
+            random_state=random_state,
+            tol=tol,
+            accept_sparse=accept_sparse,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            sampler=sampler,
+            batch_sampler=batch_sampler,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            drop_last=drop_last,
+            timeout=timeout,
+            worker_init_fn=worker_init_fn,
+            epochs=epochs,
+            learning_rate=learning_rate,
+            nesterov=nesterov,
+            rho=rho,
+            c=c
+        )
+
     def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
 
     def grads(self, Aw, wAw, Bw, wBw):
-        return Aw - Bw @ np.triu(wAw)
+        return -Aw + Bw @ np.triu(wAw)
 
 
 class CCAGHAGEP(RCCAGHAGEP):
@@ -124,7 +172,7 @@ class CCAGHAGEP(RCCAGHAGEP):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=0.1,
+        learning_rate=1e-1,
         nesterov=True,
     ):
         super().__init__(
@@ -216,7 +264,7 @@ class PLSGHAGEP(RCCAGHAGEP):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=0.1,
+        learning_rate=1e-1,
         nesterov=True,
     ):
         super().__init__(

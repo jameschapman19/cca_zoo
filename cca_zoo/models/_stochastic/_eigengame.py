@@ -75,9 +75,9 @@ class RCCAEigenGame(_BaseStochastic):
         epochs=1,
         learning_rate=1,
         c=0,
-        nesterov=False,
-            rho=0.1,
-            line_search=True,
+        nesterov=True,
+        rho=0.1,
+        line_search=True,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -118,22 +118,23 @@ class RCCAEigenGame(_BaseStochastic):
                 self.weights_old[i] = self.weights[i].copy()
         else:
             v = self.weights
-        projections = np.ma.stack([view @ weight for view, weight in zip(views, v)])
         for i, view in enumerate(views):
+            projections = np.ma.stack([view @ weight for view, weight in zip(views, v)])
             Aw, Bw, wAw, wBw = self._get_terms(i, view, projections, v[i])
             grads = self.grads(Aw, wAw, Bw, wBw)
             if self.line_search:
-                w_ = self._backtracking_line_search(i,views, v, grads)
+                w_ = self._backtracking_line_search(i, views, v, grads)
             else:
-                w_ = v[i] + self.learning_rate * grads
+                w_ = v[i] - self.learning_rate * grads
             # if difference between self.weights[i] and w_ is less than tol, then return True
             if not np.allclose(self.weights[i], w_[i], atol=self.tol):
                 converged = False
             self.weights[i] = w_
+            v[i] = self.weights[i]
         return converged
 
     def grads(self, Aw, wAw, Bw, wBw):
-        return 2 * Aw - (Aw @ np.triu(wBw) + Bw @ np.triu(wAw))
+        return -2 * Aw + (Aw @ np.triu(wBw) + Bw @ np.triu(wAw))
 
     def _Aw(self, view, projections):
         return view.T @ projections / view.shape[0]
@@ -142,7 +143,7 @@ class RCCAEigenGame(_BaseStochastic):
         return (c * weight) + (1 - c) * (view.T @ projection) / projection.shape[0]
 
     def _get_terms(self, i, view, projections, v):
-        #projections.mask[i] = True
+        projections.mask[i] = True
         Aw = self._Aw(view, projections.sum(axis=0).filled())
         projections.mask[i] = False
         Bw = self._Bw(view, projections[i].filled(), v, self.c[i])
@@ -152,31 +153,30 @@ class RCCAEigenGame(_BaseStochastic):
         wBw[np.diag_indices_from(wBw)] = np.where(np.diag(wAw) > 0, np.diag(wBw), 0)
         return Aw, Bw, wAw, wBw
 
-    def objective(self, views, weights):
+    def objective(self, views, weights, k=None):
+        if k is None:
+            k = self.latent_dims
         projections = np.ma.stack([view @ weight for view, weight in zip(views, weights)])
         objective = 0
         for i, view in enumerate(views):
             Aw, Bw, wAw, wBw = self._get_terms(i, view, projections, weights[i])
-            objective -= 2 * np.trace(wAw) - np.trace(wAw @ wBw)
+            objective -= 2 * np.trace(wAw[:k+1,:k+1]) - np.trace(wAw[:k+1,:k+1] @ wBw[:k+1,:k+1])
         return objective
 
     def _backtracking_line_search(self, i,views, v, grad):
-        t = self.learning_rate
-        f =self.objective(views, v)
-        k=0
-        w_new = copy(v)
-        while True:
-            # Compute the candidate weight vector using the proximal operator
-            w_new[i] = v[i] + t * grad
-            # Compute the candidate objective function value
-            f_new = self.objective(views, w_new)
-            # Check the sufficient decrease condition
-            if f_new <= f + 0.5* t * np.linalg.norm(w_new[i] - v[i]) ** 2:
-                # If the sufficient decrease condition is satisfied, accept the candidate
-                break
-            # If the sufficient decrease condition is not satisfied, reduce the step size
-            t *= self.rho
-            k += 1
+        t = [self.learning_rate] * grad.shape[1]
+        w_new = [v_.copy() for v_ in v]
+        for k in range(grad.shape[1]):
+            f = self.objective(views, w_new, k=k)
+            while True:
+                # Compute the candidate weight vector using the proximal operator
+                w_new[i][:, k] = v[i][:, k] - t[k] * grad[:, k]
+                # Compute the candidate objective function value
+                f_new = self.objective(views, w_new, k=k)
+                # Check the sufficient decrease condition
+                if (f_new <= f + t[k] * grad[:, k].T @ (w_new[i][:, k] - v[i][:, k]))or (t[k] < 1e-9):
+                    break
+                t[k] *= self.rho
         return w_new[i]
 
 
@@ -247,6 +247,7 @@ class CCAEigenGame(RCCAEigenGame):
         epochs=1,
         learning_rate=1,
         nesterov=True,
+        line_search=True,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -269,6 +270,7 @@ class CCAEigenGame(RCCAEigenGame):
             learning_rate=learning_rate,
             c=0,
             nesterov=nesterov,
+            line_search=line_search,
         )
 
 
@@ -339,6 +341,7 @@ class PLSEigenGame(RCCAEigenGame):
         epochs=1,
         learning_rate=1,
         nesterov=True,
+        line_search=True,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -361,4 +364,5 @@ class PLSEigenGame(RCCAEigenGame):
             learning_rate=learning_rate,
             c=1,
             nesterov=nesterov,
+            line_search=line_search,
         )
