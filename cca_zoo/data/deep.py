@@ -18,12 +18,13 @@ class NumpyDataset(Dataset):
         self.centre = centre
         self.scale = scale
         self.views = self._centre_scale(views)
+        self.views = [view.astype(np.float32) for view in self.views]
 
     def __len__(self):
         return len(self.views[0])
 
     def __getitem__(self, index):
-        views = [view[index].astype(np.float32) for view in self.views]
+        views = [view[index] for view in self.views]
         if self.labels is not None:
             label = self.labels[index]
             return {"views": views, "label": label}

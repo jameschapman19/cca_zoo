@@ -71,7 +71,7 @@ class RCCAGHAGEP(RCCAEigenGame):
             timeout=0,
             worker_init_fn=None,
             epochs=1,
-            learning_rate=1e-1,
+            learning_rate=1e-3,
             c=0,
             nesterov=True,
             rho=0.1,
@@ -173,7 +173,7 @@ class CCAGHAGEP(RCCAGHAGEP):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=1e-1,
+        learning_rate=1e-3,
         nesterov=True,
     ):
         super().__init__(
@@ -265,7 +265,7 @@ class PLSGHAGEP(RCCAGHAGEP):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=1e-1,
+        learning_rate=1e-3,
         nesterov=True,
     ):
         super().__init__(

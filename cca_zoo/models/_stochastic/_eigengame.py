@@ -73,7 +73,7 @@ class RCCAEigenGame(_BaseStochastic):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=1,
+        learning_rate=1e-3,
         c=0,
         nesterov=True,
         rho=0.1,
@@ -248,7 +248,7 @@ class CCAEigenGame(RCCAEigenGame):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=1,
+        learning_rate=1e-3,
         nesterov=True,
         line_search=False,
     ):
@@ -342,7 +342,7 @@ class PLSEigenGame(RCCAEigenGame):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=1,
+        learning_rate=1e-3,
         nesterov=True,
         line_search=False,
     ):
