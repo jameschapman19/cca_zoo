@@ -118,8 +118,8 @@ class RCCAEigenGame(_BaseStochastic):
                 self.weights_old[i] = self.weights[i].copy()
         else:
             v = self.weights
-        projections = np.ma.stack([view @ weight for view, weight in zip(views, v)])
         for i, view in enumerate(views):
+            projections = np.ma.stack([view @ weight for view, weight in zip(views, v)])
             Aw, Bw, wAw, wBw = self._get_terms(i, view, projections, v[i])
             grads = self.grads(Aw, wAw, Bw, wBw)
             if self.line_search:

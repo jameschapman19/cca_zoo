@@ -251,7 +251,7 @@ def test_stochastic_pls():
     spls = PLSStochasticPower(
         latent_dims=3, epochs=250, batch_size=50, learning_rate=1e-1, random_state=1
     ).fit((X, Y))
-    egpls = PLSEigenGame(latent_dims=3, epochs=250, batch_size=50, random_state=1, line_search=True, nesterov=True).fit(
+    egpls = PLSEigenGame(latent_dims=3, epochs=250, batch_size=50, random_state=1, learning_rate=1e-1, nesterov=True).fit(
         (X, Y)
     )
     ghapls = PLSGHAGEP(latent_dims=3, epochs=250, batch_size=50, random_state=1, learning_rate=1e-1, nesterov=True).fit(
