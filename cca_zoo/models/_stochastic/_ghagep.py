@@ -97,6 +97,7 @@ class RCCAGHAGEP(RCCAEigenGame):
             learning_rate=learning_rate,
             nesterov=nesterov,
             rho=rho,
+            line_search=False,
             c=c
         )
 

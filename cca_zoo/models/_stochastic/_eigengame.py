@@ -77,7 +77,7 @@ class RCCAEigenGame(_BaseStochastic):
         c=0,
         nesterov=True,
         rho=0.1,
-        line_search=True,
+        line_search=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -140,7 +140,10 @@ class RCCAEigenGame(_BaseStochastic):
         return view.T @ projections / view.shape[0]
 
     def _Bw(self, view, projection, weight, c):
-        return (c * weight) + (1 - c) * (view.T @ projection) / projection.shape[0]
+        if c==1:
+            return (c * weight)
+        else:
+            return (c * weight) + (1 - c) * (view.T @ projection) / projection.shape[0]
 
     def _get_terms(self, i, view, projections, v):
         projections.mask[i] = True
@@ -247,7 +250,7 @@ class CCAEigenGame(RCCAEigenGame):
         epochs=1,
         learning_rate=1,
         nesterov=True,
-        line_search=True,
+        line_search=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -341,7 +344,7 @@ class PLSEigenGame(RCCAEigenGame):
         epochs=1,
         learning_rate=1,
         nesterov=True,
-        line_search=True,
+        line_search=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
