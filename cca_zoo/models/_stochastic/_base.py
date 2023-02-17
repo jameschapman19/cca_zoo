@@ -85,8 +85,6 @@ class _BaseStochastic(_BaseCCA):
                 stop = self._update(sample["views"])
                 if self.nesterov:
                     self._step_lambda()
-                if self.batch_size is None:
-                    self.objective(sample["views"], weights=self.weights)
             if self.val_split is not None:
                 for i, sample in enumerate(val_dataloader):
                     self.track.append(
