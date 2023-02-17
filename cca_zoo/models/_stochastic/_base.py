@@ -100,9 +100,9 @@ class _BaseStochastic(_BaseCCA):
 
     def get_dataloader(self, views: Iterable[np.ndarray]):
         if self.batch_size is None:
-            dataset = BatchNumpyDataset(views)
+            dataset = BatchNumpyDataset(views,precision="float64")
         else:
-            dataset = NumpyDataset(views)
+            dataset = NumpyDataset(views,precision="float64")
         if self.val_split is not None:
             train_size = int((1 - self.val_split) * len(dataset))
             val_size = len(dataset) - train_size
