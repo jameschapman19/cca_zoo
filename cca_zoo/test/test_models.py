@@ -163,7 +163,7 @@ def test_sparse_methods():
 
 
 def test_pls():
-    pls_als = PLS_ALS(latent_dims=3)
+    pls_als = PLS_ALS(latent_dims=3, random_state=0)
     pls = PLS(latent_dims=3)
     pls_als.fit((X, Y))
     pls.fit((X, Y))
