@@ -48,7 +48,7 @@ class _BaseIterative(_BaseCCA):
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_inputs(views)
         self._check_params()
-        self.weights = [np.zeros((view.shape[1], self.latent_dims)) for view in views]
+        self.weights = [np.zeros((view.shape[1], self.latent_dims),dtype=view.dtype) for view in views]
         initializer = _default_initializer(
             views, self.initialization, self.random_state, self.latent_dims
         )

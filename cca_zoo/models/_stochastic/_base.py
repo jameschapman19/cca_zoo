@@ -37,6 +37,7 @@ class _BaseStochastic(_BaseCCA):
         initialization: Union[str, callable] = "random",
         track_training=False,
         nesterov=True,
+        float32=True,
     ):
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]
@@ -74,6 +75,7 @@ class _BaseStochastic(_BaseCCA):
             views, self.initialization, self.random_state, self.latent_dims
         )
         self.weights = initializer.fit(views).weights
+        self.weights=[weights.astype(np.float32) for weights in self.weights]
         if self.nesterov:
             self.weights_old = self.weights.copy()
             self.lam = [0, 0]
@@ -100,9 +102,9 @@ class _BaseStochastic(_BaseCCA):
 
     def get_dataloader(self, views: Iterable[np.ndarray]):
         if self.batch_size is None:
-            dataset = BatchNumpyDataset(views,precision="float64")
+            dataset = BatchNumpyDataset(views)
         else:
-            dataset = NumpyDataset(views,precision="float64")
+            dataset = NumpyDataset(views)
         if self.val_split is not None:
             train_size = int((1 - self.val_split) * len(dataset))
             val_size = len(dataset) - train_size

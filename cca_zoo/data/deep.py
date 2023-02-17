@@ -9,7 +9,7 @@ class NumpyDataset(Dataset):
     Class that turns numpy arrays into a torch dataset
     """
 
-    def __init__(self, views, labels=None, scale=False, centre=False, precision="float32"):
+    def __init__(self, views, labels=None, scale=False, centre=False):
         """
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
@@ -19,8 +19,7 @@ class NumpyDataset(Dataset):
         self.scale = scale
         self.views = self._centre_scale(views)
         self.views = [view for view in self.views]
-        if precision == "float32":
-            self.views = [view.astype(np.float32) for view in self.views]
+        self.views = [view.astype(np.float32) for view in self.views]
 
     def __len__(self):
         return len(self.views[0])
