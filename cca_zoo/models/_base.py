@@ -5,7 +5,7 @@ from typing import Union, Iterable
 import numpy as np
 from sklearn.base import BaseEstimator, MultiOutputMixin, RegressorMixin
 from sklearn.preprocessing import StandardScaler
-from sklearn.utils.validation import check_random_state, check_is_fitted
+from sklearn.utils.validation import check_random_state, check_is_fitted, FLOAT_DTYPES
 
 from cca_zoo.utils.check_values import _check_views
 
@@ -47,7 +47,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self.copy_data = copy_data
         self.accept_sparse = accept_sparse
         self.random_state = check_random_state(random_state)
-        self.n_views = None
+        self.dtypes = FLOAT_DTYPES
 
     @abstractmethod
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
@@ -210,6 +210,8 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
             if len(views) != 2:
                 raise ValueError("Only two views are supported for this model.")
         _check_views(views)
+        views=[self._validate_data(view,accept_sparse=["csr", "csc", "coo"],dtype=self.dtypes, copy=self.copy_data) for view in views]
+
         self.scalers = [
             StandardScaler(
                 copy=self.copy_data, with_mean=self.centre, with_std=self.scale

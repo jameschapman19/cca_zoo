@@ -37,7 +37,6 @@ class _BaseStochastic(_BaseCCA):
         initialization: Union[str, callable] = "random",
         track_training=False,
         nesterov=True,
-        float32=True,
     ):
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]
@@ -65,6 +64,7 @@ class _BaseStochastic(_BaseCCA):
         self.initialization = initialization
         self.track_training = track_training
         self.nesterov = nesterov
+        self.dtypes = [np.float32]
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_inputs(views)
