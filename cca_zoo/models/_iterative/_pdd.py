@@ -2,10 +2,10 @@ import copy
 from typing import Union, Iterable
 
 import numpy as np
+from skprox.proximal_operators import _proximal_operators
 
 from cca_zoo.models._iterative._base import _BaseIterative, _default_initializer
 from cca_zoo.utils import _process_parameter
-from skprox.proximal_operators import _proximal_operators
 
 
 class AltMaxVar(_BaseIterative):

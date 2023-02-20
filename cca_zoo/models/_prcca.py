@@ -82,7 +82,11 @@ class PRCCA(MCCA):
         views = self._validate_inputs(views)
         self._check_params()
         views = self._pretransform(views, idxs)
-        self.weights=MCCA(latent_dims=self.latent_dims,c=self.c,scale=False,centre=False).fit(views, idxs=idxs).weights
+        self.weights = (
+            MCCA(latent_dims=self.latent_dims, c=self.c, scale=False, centre=False)
+            .fit(views, idxs=idxs)
+            .weights
+        )
         self._transform_weights(views, idxs=idxs)
         return self
 

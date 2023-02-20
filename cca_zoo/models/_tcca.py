@@ -141,18 +141,17 @@ class TCCA(_BaseCCA):
         return dim_corrs
 
     def _setup_tensor(self, *views: np.ndarray, **kwargs):
-        train_views = self._centre_scale(views)
         covs = [
             (1 - self.c[i]) * view.T @ view / (self.n)
             + self.c[i] * np.eye(view.shape[1])
-            for i, view in enumerate(train_views)
+            for i, view in enumerate(views)
         ]
         covs_invsqrt = [np.linalg.inv(sqrtm(cov)) for cov in covs]
-        train_views = [
+        views = [
             train_view @ cov_invsqrt
-            for train_view, cov_invsqrt in zip(train_views, covs_invsqrt)
+            for train_view, cov_invsqrt in zip(views, covs_invsqrt)
         ]
-        return train_views, covs_invsqrt
+        return views, covs_invsqrt
 
     def _more_tags(self):
         return {"multiview": True}
@@ -258,10 +257,8 @@ class KTCCA(TCCA):
 
     def transform(self, views: np.ndarray, **kwargs):
         check_is_fitted(self, attributes=["weights"])
-        views = _check_views(
-            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
-        )
-        views = self._centre_scale_transform(views)
+        _check_views(views)
+        views = [self.scalers[i].transform(view) for i, view in enumerate(views)]
         Ktest = [
             self._get_kernel(i, self.train_views[i], Y=view)
             for i, view in enumerate(views)

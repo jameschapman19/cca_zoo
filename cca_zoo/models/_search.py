@@ -75,7 +75,7 @@ def _delta_search(w, c, init=0, tol=1e-9, max_iter=1000):
         current, previous, min_, max_ = _bin_search(
             current, previous, current_val, previous_val, min_, max_
         )
-        if (np.abs(current_val) < tol) or i==max_iter:
+        if (np.abs(current_val) < tol) or i == max_iter:
             converged = True
         previous_val = current_val
     return coef

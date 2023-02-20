@@ -75,7 +75,7 @@ class _BaseStochastic(_BaseCCA):
             views, self.initialization, self.random_state, self.latent_dims
         )
         self.weights = initializer.fit(views).weights
-        self.weights=[weights.astype(np.float32) for weights in self.weights]
+        self.weights = [weights.astype(np.float32) for weights in self.weights]
         if self.nesterov:
             self.weights_old = self.weights.copy()
             self.lam = [0, 0]
@@ -91,9 +91,7 @@ class _BaseStochastic(_BaseCCA):
                         self.objective(sample["views"], weights=self.weights)
                     )
             else:
-                self.track.append(
-                    self.objective(views, weights=self.weights)
-                )
+                self.track.append(self.objective(views, weights=self.weights))
             if stop:
                 break
         return self
@@ -107,7 +105,9 @@ class _BaseStochastic(_BaseCCA):
             train_size = int((1 - self.val_split) * len(dataset))
             val_size = len(dataset) - train_size
             dataset, val_dataset = data.random_split(dataset, [train_size, val_size])
-            sampler = BatchSampler(SequentialSampler(dataset), batch_size=len(val_dataset), drop_last=False)
+            sampler = BatchSampler(
+                SequentialSampler(dataset), batch_size=len(val_dataset), drop_last=False
+            )
             val_loader = DataLoader(
                 val_dataset,
                 sampler=sampler,
@@ -124,7 +124,9 @@ class _BaseStochastic(_BaseCCA):
             batch_size = len(dataset)
         else:
             batch_size = self.batch_size
-        sampler = BatchSampler(RandomSampler(dataset), batch_size=batch_size, drop_last=False)
+        sampler = BatchSampler(
+            RandomSampler(dataset), batch_size=batch_size, drop_last=False
+        )
         train_loader = DataLoader(
             dataset,
             sampler=sampler,
@@ -152,12 +154,14 @@ class _BaseStochastic(_BaseCCA):
     def objective(self, views, weights):
         raise NotImplementedError
 
+
 class BatchNumpyDataset(NumpyDataset):
     def __getitem__(self, index):
         if self.labels is not None:
             return {"views": self.views, "label": self.labels}
         else:
             return {"views": self.views}
+
 
 def tv(z):
     all_z = np.hstack(z)

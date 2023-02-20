@@ -166,7 +166,7 @@ class GradKCCA(_BaseIterative):
     def transform(self, views: Iterable[np.ndarray], **kwargs):
         check_is_fitted(self, attributes=["weights"])
         views = _check_views(
-            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
+            *views
         )
         views = self._centre_scale_transform(views)
         scores = [

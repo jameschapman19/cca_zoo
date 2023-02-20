@@ -7,7 +7,7 @@ from typing import Union, Iterable
 import numpy as np
 from tqdm import tqdm
 
-from cca_zoo.models import MCCA, KCCA
+from .._mcca import MCCA, KCCA
 from cca_zoo.models._base import _BaseCCA
 from cca_zoo.models._dummy import _DummyCCA
 
@@ -48,7 +48,10 @@ class _BaseIterative(_BaseCCA):
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_inputs(views)
         self._check_params()
-        self.weights = [np.zeros((view.shape[1], self.latent_dims),dtype=view.dtype) for view in views]
+        self.weights = [
+            np.zeros((view.shape[1], self.latent_dims), dtype=view.dtype)
+            for view in views
+        ]
         initializer = _default_initializer(
             views, self.initialization, self.random_state, self.latent_dims
         )

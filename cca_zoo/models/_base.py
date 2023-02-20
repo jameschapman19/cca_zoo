@@ -3,9 +3,8 @@ from abc import abstractmethod
 from typing import Union, Iterable
 
 import numpy as np
-from scipy.sparse import issparse
 from sklearn.base import BaseEstimator, MultiOutputMixin, RegressorMixin
-from sklearn.utils.sparsefuncs import mean_variance_axis
+from sklearn.preprocessing import StandardScaler
 from sklearn.utils.validation import check_random_state, check_is_fitted
 
 from cca_zoo.utils.check_values import _check_views
@@ -66,7 +65,7 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self : object
 
         """
-        raise NotImplementedError
+        return self
 
     def transform(self, views: Iterable[np.ndarray], **kwargs):
         """
@@ -82,12 +81,10 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
         """
         check_is_fitted(self, attributes=["weights"])
-        views = _check_views(
-            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
-        )
-        views = self._centre_scale_transform(views)
+        _check_views(views)
+        views = [self.scalers[i].transform(view) for i, view in enumerate(views)]
         transformed_views = []
-        for i, (view) in enumerate(views):
+        for i, view in enumerate(views):
             transformed_view = view @ self.weights[i]
             transformed_views.append(transformed_view)
         return transformed_views
@@ -192,62 +189,6 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
         ) / (n_views**2 - n_views)
         return dim_corrs
 
-    def _centre_scale(self, views: Iterable[np.ndarray]):
-        """
-        Centers and scales the data
-
-        Parameters
-        ----------
-        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
-
-        Returns
-        -------
-        views : list of numpy arrays
-
-
-        """
-        self.view_means = []
-        self.view_stds = []
-        transformed_views = []
-        for view in views:
-            if issparse(view):
-                view_mean, view_std = mean_variance_axis(view, axis=0)
-                self.view_means.append(view_mean)
-                self.view_stds.append(view_std)
-                view = view - self.view_means[-1]
-                view = view / self.view_stds[-1]
-            else:
-                if self.centre:
-                    view_mean = view.mean(axis=0)
-                    self.view_means.append(view_mean)
-                    view = view - self.view_means[-1]
-                if self.scale:
-                    view_std = view.std(axis=0, ddof=1)
-                    view_std[view_std == 0.0] = 1.0
-                    self.view_stds.append(view_std)
-                    view = view / self.view_stds[-1]
-            transformed_views.append(view)
-        return transformed_views
-
-    def _centre_scale_transform(self, views: Iterable[np.ndarray]):
-        """
-        Centers and scales the data
-
-        Parameters
-        ----------
-        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
-
-        Returns
-        -------
-        views : list of numpy arrays
-
-        """
-        if self.centre:
-            views = [view - mean for view, mean in zip(views, self.view_means)]
-        if self.scale:
-            views = [view / std for view, std in zip(views, self.view_stds)]
-        return views
-
     def _check_params(self):
         pass
 
@@ -268,10 +209,16 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
         if not self._get_tags().get("multiview", False):
             if len(views) != 2:
                 raise ValueError("Only two views are supported for this model.")
-        views = _check_views(
-            *views, copy=self.copy_data, accept_sparse=self.accept_sparse,
-        )
-        views = self._centre_scale(views)
+        _check_views(views)
+        self.scalers = [
+            StandardScaler(
+                copy=self.copy_data, with_mean=self.centre, with_std=self.scale
+            )
+            for _ in range(len(views))
+        ]
+        views = [
+            scaler.fit_transform(view) for view, scaler in zip(views, self.scalers)
+        ]
         self.n = views[0].shape[0]
         self.n_views = len(views)
         return views

@@ -1,5 +1,3 @@
-from copy import copy
-
 import numpy as np
 
 from cca_zoo.models._stochastic._base import _BaseStochastic
@@ -140,8 +138,8 @@ class RCCAEigenGame(_BaseStochastic):
         return view.T @ projections / view.shape[0]
 
     def _Bw(self, view, projection, weight, c):
-        if c==1:
-            return (c * weight)
+        if c == 1:
+            return c * weight
         else:
             return (c * weight) + (1 - c) * (view.T @ projection) / projection.shape[0]
 
@@ -159,14 +157,18 @@ class RCCAEigenGame(_BaseStochastic):
     def objective(self, views, weights, k=None):
         if k is None:
             k = self.latent_dims
-        projections = np.ma.stack([view @ weight for view, weight in zip(views, weights)])
+        projections = np.ma.stack(
+            [view @ weight for view, weight in zip(views, weights)]
+        )
         objective = 0
         for i, view in enumerate(views):
             Aw, Bw, wAw, wBw = self._get_terms(i, view, projections, weights[i])
-            objective -= 2 * np.trace(wAw[:k+1,:k+1]) - np.trace(wAw[:k+1,:k+1] @ wBw[:k+1,:k+1])
+            objective -= 2 * np.trace(wAw[: k + 1, : k + 1]) - np.trace(
+                wAw[: k + 1, : k + 1] @ wBw[: k + 1, : k + 1]
+            )
         return objective
 
-    def _backtracking_line_search(self, i,views, v, grad):
+    def _backtracking_line_search(self, i, views, v, grad):
         t = [self.learning_rate] * grad.shape[1]
         w_new = [v_.copy() for v_ in v]
         for k in range(grad.shape[1]):
@@ -177,7 +179,9 @@ class RCCAEigenGame(_BaseStochastic):
                 # Compute the candidate objective function value
                 f_new = self.objective(views, w_new, k=k)
                 # Check the sufficient decrease condition
-                if (f_new <= f + t[k] * grad[:, k].T @ (w_new[i][:, k] - v[i][:, k]))or (t[k] < 1e-9):
+                if (
+                    f_new <= f + t[k] * grad[:, k].T @ (w_new[i][:, k] - v[i][:, k])
+                ) or (t[k] < 1e-9):
                     break
                 t[k] *= self.rho
         return w_new[i]

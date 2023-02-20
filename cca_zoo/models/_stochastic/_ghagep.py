@@ -1,7 +1,7 @@
 import numpy as np
 
-from ._eigengame import RCCAEigenGame
 from cca_zoo.utils import _process_parameter
+from ._eigengame import RCCAEigenGame
 
 
 class RCCAGHAGEP(RCCAEigenGame):
@@ -53,28 +53,28 @@ class RCCAGHAGEP(RCCAEigenGame):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            tol=1e-9,
-            accept_sparse=None,
-            batch_size=None,
-            shuffle=True,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            pin_memory=False,
-            drop_last=True,
-            timeout=0,
-            worker_init_fn=None,
-            epochs=1,
-            learning_rate=1e-3,
-            c=0,
-            nesterov=True,
-            rho=0.1,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        tol=1e-9,
+        accept_sparse=None,
+        batch_size=None,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        learning_rate=1e-3,
+        c=0,
+        nesterov=True,
+        rho=0.1,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -98,7 +98,7 @@ class RCCAGHAGEP(RCCAEigenGame):
             nesterov=nesterov,
             rho=rho,
             line_search=False,
-            c=c
+            c=c,
         )
 
     def _check_params(self):

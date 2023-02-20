@@ -36,7 +36,6 @@ from cca_zoo.models import (
     GRCCA,
     AltMaxVar,
 )
-from cca_zoo.models._iterative import SCCA_HSIC
 from cca_zoo.plotting import pairplot_train_test
 
 n = 50
@@ -251,12 +250,22 @@ def test_stochastic_pls():
     spls = PLSStochasticPower(
         latent_dims=3, epochs=250, batch_size=50, learning_rate=1e-1, random_state=1
     ).fit((X, Y))
-    egpls = PLSEigenGame(latent_dims=3, epochs=250, batch_size=50, random_state=1, learning_rate=1e-1, nesterov=True).fit(
-        (X, Y)
-    )
-    ghapls = PLSGHAGEP(latent_dims=3, epochs=250, batch_size=50, random_state=1, learning_rate=1e-1, nesterov=True).fit(
-        (X, Y)
-    )
+    egpls = PLSEigenGame(
+        latent_dims=3,
+        epochs=250,
+        batch_size=50,
+        random_state=1,
+        learning_rate=1e-1,
+        nesterov=True,
+    ).fit((X, Y))
+    ghapls = PLSGHAGEP(
+        latent_dims=3,
+        epochs=250,
+        batch_size=50,
+        random_state=1,
+        learning_rate=1e-1,
+        nesterov=True,
+    ).fit((X, Y))
     pls_score = pls.score((X, Y))
     ipls_score = ipls.score((X, Y))
     spls_score = spls.score((X, Y))
@@ -274,8 +283,12 @@ def test_stochastic_cca():
     from cca_zoo.models import CCAGHAGEP, CCAEigenGame
 
     cca = CCA(latent_dims=3).fit((X, Y))
-    egcca = CCAEigenGame(latent_dims=3, epochs=250, batch_size=50, random_state=1, learning_rate=1e-1).fit((X, Y))
-    ghacca = CCAGHAGEP(latent_dims=3, epochs=250, batch_size=50, random_state=1, learning_rate=1e-1).fit((X, Y))
+    egcca = CCAEigenGame(
+        latent_dims=3, epochs=250, batch_size=50, random_state=1, learning_rate=1e-1
+    ).fit((X, Y))
+    ghacca = CCAGHAGEP(
+        latent_dims=3, epochs=250, batch_size=50, random_state=1, learning_rate=1e-1
+    ).fit((X, Y))
     cca_score = cca.score((X, Y))
     egcca_score = egcca.score((X, Y))
     ghacca_score = ghacca.score((X, Y))

@@ -121,7 +121,7 @@ class PLSStochasticPower(_BaseStochastic):
 
     def objective(self, views, **kwargs):
         q = [np.linalg.qr(weight)[0] for weight in self.weights]
-        views = self._centre_scale_transform(views)
+        views = [self.scalers[i].transform(view) for i, view in enumerate(views)]
         transformed_views = []
         for i, (view) in enumerate(views):
             transformed_view = view @ q[i]

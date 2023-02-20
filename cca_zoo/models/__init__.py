@@ -1,10 +1,4 @@
 from ._gcca import GCCA, KGCCA
-from ._mcca import MCCA, KCCA
-from ._tcca import TCCA, KTCCA
-from ._ncca import NCCA
-from ._partialcca import PartialCCA
-from ._prcca import PRCCA
-from ._rcca import rCCA, CCA, PLS
 from ._grcca import GRCCA
 from ._iterative import (
     PLS_ALS,
@@ -17,6 +11,12 @@ from ._iterative import (
     SWCCA,
     AltMaxVar,
 )
+from ._mcca import MCCA, KCCA
+from ._ncca import NCCA
+from ._partialcca import PartialCCA
+from ._prcca import PRCCA
+from ._rcca import rCCA, CCA, PLS
+from ._tcca import TCCA, KTCCA
 
 __all__ = [
     "GCCA",

@@ -98,7 +98,7 @@ class MCCA(rCCA):
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [view.shape[1] for view in views])
-        return C/len(views), D/len(views)
+        return C / len(views), D / len(views)
 
     def _get_weights(self, eigvals, eigvecs, views):
         self.weights = [
@@ -204,10 +204,8 @@ class KCCA(MCCA):
 
     def transform(self, views: np.ndarray, **kwargs):
         check_is_fitted(self, attributes=["weights"])
-        views = _check_views(
-            *views, copy=self.copy_data, accept_sparse=self.accept_sparse
-        )
-        views = self._centre_scale_transform(views)
+        _check_views(views)
+        views = [self.scalers[i].transform(view) for i, view in enumerate(views)]
         Ktest = [
             self._get_kernel(i, self.train_views[i], Y=view)
             for i, view in enumerate(views)
