@@ -76,6 +76,7 @@ class RCCAEigenGame(_BaseStochastic):
         nesterov=True,
         rho=0.1,
         line_search=False,
+        ensure_descent=True,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -101,35 +102,27 @@ class RCCAEigenGame(_BaseStochastic):
         self.c = c
         self.rho = rho
         self.line_search = line_search
+        self.ensure_descent = ensure_descent
 
     def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, self.n_views)
 
     def _update(self, views):
-        converged = True
-        if self.nesterov:
-            v = self.weights
-            for i in range(self.n_views):
-                v[i] = self.weights[i] + self.momentum * (
-                    self.weights[i] - self.weights_old[i]
-                )
-                self.weights_old[i] = self.weights[i].copy()
-        else:
-            v = self.weights
         for i, view in enumerate(views):
-            projections = np.ma.stack([view @ weight for view, weight in zip(views, v)])
-            Aw, Bw, wAw, wBw = self._get_terms(i, view, projections, v[i])
-            grads = self.grads(Aw, wAw, Bw, wBw)
-            if self.line_search:
-                w_ = self._backtracking_line_search(i, views, v, grads)
-            else:
-                w_ = v[i] - self.learning_rate * grads
-            # if difference between self.weights[i] and w_ is less than tol, then return True
-            if not np.allclose(self.weights[i], w_[i], atol=self.tol):
-                converged = False
-            self.weights[i] = w_
-            v[i] = self.weights[i]
-        return converged
+            for k in range(self.latent_dims):
+                y = [w.copy() for w in self.weights]
+                y[i][:, k] = self.weights[i][:, k] + self.momentum * (self.u[i] - self.weights_old[i])[:, k]
+                if self.line_search:
+                    u = self._backtracking_line_search(i, views, y, k)
+                else:
+                    u = self._nesterov_gradient_descent(i, views, y, k)
+                self.u[i][:, k] = u[i][:, k]
+                self.weights_old[i][:, k] = self.weights[i][:, k].copy()
+                if self.ensure_descent:
+                    # ensure descent http://www.seas.ucla.edu/~vandenbe/236C/lectures/fista.pdf
+                    if self.objective(views, self.u, k=k) <= self.objective(views, self.weights, k=k):
+                        self.weights[i][:, k] = self.u[i][:, k]
+        return False
 
     def grads(self, Aw, wAw, Bw, wBw):
         return -2 * Aw + (Aw @ np.triu(wBw) + Bw @ np.triu(wAw))
@@ -154,12 +147,11 @@ class RCCAEigenGame(_BaseStochastic):
         wBw[np.diag_indices_from(wBw)] = np.where(np.diag(wAw) > 0, np.diag(wBw), 0)
         return Aw, Bw, wAw, wBw
 
-    def objective(self, views, weights, k=None):
+    def objective(self, views, weights, k=None, projections=None):
         if k is None:
             k = self.latent_dims
-        projections = np.ma.stack(
-            [view @ weight for view, weight in zip(views, weights)]
-        )
+        if projections is None:
+            projections = self.projections(views, weights)
         objective = 0
         for i, view in enumerate(views):
             Aw, Bw, wAw, wBw = self._get_terms(i, view, projections, weights[i])
@@ -168,23 +160,47 @@ class RCCAEigenGame(_BaseStochastic):
             )
         return objective
 
-    def _backtracking_line_search(self, i, views, v, grad):
-        t = [self.learning_rate] * grad.shape[1]
-        w_new = [v_.copy() for v_ in v]
-        for k in range(grad.shape[1]):
-            f = self.objective(views, w_new, k=k)
-            while True:
-                # Compute the candidate weight vector using the proximal operator
-                w_new[i][:, k] = v[i][:, k] - t[k] * grad[:, k]
-                # Compute the candidate objective function value
-                f_new = self.objective(views, w_new, k=k)
-                # Check the sufficient decrease condition
-                if (
-                    f_new <= f + t[k] * grad[:, k].T @ (w_new[i][:, k] - v[i][:, k])
-                ) or (t[k] < 1e-9):
-                    break
-                t[k] *= self.rho
-        return w_new[i]
+    def projections(self, views, weights):
+        m = []
+        for view, weight in zip(views, weights):
+            n = view @ weight
+            m.append(n)
+        return np.ma.stack(m)
+
+    def _backtracking_line_search(self, i, views, y, k):
+        projections = np.ma.stack([view @ weight for view, weight in zip(views, y)])
+        u = [y_.copy() for y_ in y]
+        t = 1
+        f = self.objective(views, u, k=k, projections=projections)
+        Aw, Bw, wAw, wBw = self._get_terms(i, views[i], projections, u[i])
+        grad = self.grads(Aw, wAw, Bw, wBw)
+        while True:
+            # Compute the candidate weight vector using the proximal operator
+            u[i][:, k] = y[i][:, k] - t * grad[:, k]
+            projections[i][:, k] = views[i] @ u[i][:, k]
+            # Compute the candidate objective function value
+            f_new = self.objective(views, u, k=k, projections=projections)
+            # Check the sufficient decrease condition
+            if (
+                    f_new
+                    <= f
+                    + t * grad[:, k] @ (u[i][:, k] - y[i][:, k])
+                    + 0.5 * t * np.linalg.norm(u[i][:, k] - y[i][:, k]) ** 2
+            ) or (t < self.learning_rate):
+                break
+            t *= self.rho
+            if t < self.learning_rate:
+                u[i][:, k] = y[i][:, k]
+                break
+        return u
+
+    def _nesterov_gradient_descent(self, i, views, y, k):
+        projections = np.ma.stack([view @ weight for view, weight in zip(views, y)])
+        u = [y_.copy() for y_ in y]
+        Aw, Bw, wAw, wBw = self._get_terms(i, views[i], projections, u[i])
+        grad = self.grads(Aw, wAw, Bw, wBw)
+        u[i][:, k] = y[i][:, k] - self.learning_rate * grad[:, k]
+        return u
 
 
 class CCAEigenGame(RCCAEigenGame):

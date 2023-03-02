@@ -75,6 +75,7 @@ class RCCAGHAGEP(RCCAEigenGame):
         c=0,
         nesterov=True,
         rho=0.1,
+        ensure_descent=True,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -99,6 +100,7 @@ class RCCAGHAGEP(RCCAEigenGame):
             rho=rho,
             line_search=False,
             c=c,
+            ensure_descent=ensure_descent,
         )
 
     def _check_params(self):
@@ -175,6 +177,7 @@ class CCAGHAGEP(RCCAGHAGEP):
         epochs=1,
         learning_rate=1e-3,
         nesterov=True,
+        ensure_descent=True,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -197,6 +200,7 @@ class CCAGHAGEP(RCCAGHAGEP):
             learning_rate=learning_rate,
             c=0,
             nesterov=nesterov,
+            ensure_descent=ensure_descent,
         )
 
 
@@ -267,6 +271,7 @@ class PLSGHAGEP(RCCAGHAGEP):
         epochs=1,
         learning_rate=1e-3,
         nesterov=True,
+        ensure_descent=True,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -289,4 +294,5 @@ class PLSGHAGEP(RCCAGHAGEP):
             learning_rate=learning_rate,
             c=1,
             nesterov=nesterov,
+            ensure_descent=ensure_descent,
         )

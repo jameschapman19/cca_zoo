@@ -34,8 +34,8 @@ class DCCA_EigenGame(DCCA):
 
     def get_AB(self, z):
         # sum the pairwise covariances between each z and all other zs
-        A = torch.zeros(self.latent_dims, self.latent_dims)
-        B = torch.zeros(self.latent_dims, self.latent_dims)
+        A = torch.zeros(self.latent_dims, self.latent_dims, device=z[0].device)
+        B = torch.zeros(self.latent_dims, self.latent_dims, device=z[0].device)
         for i, zi in enumerate(z):
             for j, zj in enumerate(z):
                 if i == j:

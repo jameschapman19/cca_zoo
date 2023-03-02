@@ -76,6 +76,7 @@ class _BaseStochastic(_BaseCCA):
         )
         self.weights = initializer.fit(views).weights
         self.weights = [weights.astype(np.float32) for weights in self.weights]
+        self.u= [w.copy() for w in self.weights]
         if self.nesterov:
             self.weights_old = self.weights.copy()
             self.lam = [0, 0]
