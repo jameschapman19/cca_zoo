@@ -132,9 +132,7 @@ class SCCA_HSIC(GradKCCA):
 
         """
         check_is_fitted(self, attributes=["weights"])
-        views = _check_views(
-            *views
-        )
+        views = _check_views(*views)
         views = self._centre_scale_transform(views)
         transformed_views = []
         for i, (view) in enumerate(views):

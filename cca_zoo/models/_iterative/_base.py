@@ -7,9 +7,9 @@ from typing import Union, Iterable
 import numpy as np
 from tqdm import tqdm
 
-from .._mcca import MCCA, KCCA
 from cca_zoo.models._base import _BaseCCA
 from cca_zoo.models._dummy import _DummyCCA
+from .._mcca import MCCA, KCCA
 
 
 class _BaseIterative(_BaseCCA):

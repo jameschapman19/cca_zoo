@@ -2,10 +2,11 @@ from typing import Union
 
 import numpy as np
 
-from cca_zoo.models._stochastic._base import _BaseStochastic, tv
+from cca_zoo.models._stochastic import RCCAEigenGame
+from cca_zoo.models._stochastic._base import tv
 
 
-class PLSStochasticPower(_BaseStochastic):
+class PLSStochasticPower(RCCAEigenGame):
     r"""
     A class used to fit Stochastic PLS
 
@@ -71,7 +72,7 @@ class PLSStochasticPower(_BaseStochastic):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=0.01,
+        learning_rate=None,
         initialization: Union[str, callable] = "random",
     ):
         super().__init__(
@@ -94,24 +95,30 @@ class PLSStochasticPower(_BaseStochastic):
             epochs=epochs,
             learning_rate=learning_rate,
             initialization=initialization,
+            nesterov=False,
+            line_search=False,
+            ensure_descent=False,
         )
 
     def _update(self, views):
-        converged = True
-        projections = np.stack(
-            [view @ weight for view, weight in zip(views, self.weights)]
-        )
         for i, view in enumerate(views):
-            projections = np.ma.array(projections, mask=False, keep_mask=False)
-            projections.mask[i] = True
-            grad = (view.T @ projections.sum(axis=0).filled()) / view.shape[0]
-            w_ = self.weights[i] + self.learning_rate * grad
-            w_ = self._orth(w_)
-            # if difference between self.weights[i] and w_ is less than tol, then return True
-            if not np.allclose(self.weights[i], w_, atol=self.tol):
-                converged = False
-            self.weights[i] = w_
-        return converged
+            self.weights[i] = self._gradient_descent(i, views, self.weights)
+            self.weights_old[i] = self.weights[i].copy()
+        return False
+
+    def _gradient_descent(self, i, views, y):
+        projections = np.ma.stack([view @ weight for view, weight in zip(views, y)])
+        u = [y_.copy() for y_ in y]
+        Aw, Bw, wAw, wBw = self._get_terms(i, views[i], projections, u[i])
+        grad = self.grads(Aw, wAw, Bw, wBw)
+        u = self._gradient_step(y[i], grad)
+        return u
+
+    def grads(self, Aw, wAw, Bw, wBw):
+        return -Aw
+
+    def _gradient_step(self, y, grad):
+        return self._orth(y - self.learning_rate * grad)
 
     @staticmethod
     def _orth(U):
@@ -127,6 +134,3 @@ class PLSStochasticPower(_BaseStochastic):
             transformed_view = view @ q[i]
             transformed_views.append(transformed_view)
         return tv(transformed_views)
-
-    def _more_tags(self):
-        return {"multiview": True, "stochastic": True}

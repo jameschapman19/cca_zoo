@@ -33,7 +33,7 @@ class _BaseStochastic(_BaseCCA):
         worker_init_fn=None,
         epochs=1,
         val_split=None,
-        learning_rate=0.1,
+        learning_rate=None,
         initialization: Union[str, callable] = "random",
         track_training=False,
         nesterov=True,
@@ -68,6 +68,8 @@ class _BaseStochastic(_BaseCCA):
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_inputs(views)
+        if self.learning_rate is None:
+            self.learning_rate = 1 / self._lipshitz(views)
         self._check_params()
         train_dataloader, val_dataloader = self.get_dataloader(views)
         self.track = []
@@ -76,9 +78,9 @@ class _BaseStochastic(_BaseCCA):
         )
         self.weights = initializer.fit(views).weights
         self.weights = [weights.astype(np.float32) for weights in self.weights]
-        self.u= [w.copy() for w in self.weights]
+        self.weights_old = self.weights.copy()
+        self.u = [w.copy() for w in self.weights]
         if self.nesterov:
-            self.weights_old = self.weights.copy()
             self.lam = [0, 0]
         stop = False
         for _ in range(self.epochs):
@@ -96,6 +98,10 @@ class _BaseStochastic(_BaseCCA):
             if stop:
                 break
         return self
+
+    def _lipshitz(self, views):
+        # maximum spectral norm of views
+        return max([np.linalg.norm(view, ord=2) ** 2 for view in views])
 
     def get_dataloader(self, views: Iterable[np.ndarray]):
         if self.batch_size is None:

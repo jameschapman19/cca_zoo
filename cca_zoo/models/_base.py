@@ -210,7 +210,15 @@ class _BaseCCA(BaseEstimator, MultiOutputMixin, RegressorMixin):
             if len(views) != 2:
                 raise ValueError("Only two views are supported for this model.")
         _check_views(views)
-        views=[self._validate_data(view,accept_sparse=["csr", "csc", "coo"],dtype=self.dtypes, copy=self.copy_data) for view in views]
+        views = [
+            self._validate_data(
+                view,
+                accept_sparse=["csr", "csc", "coo"],
+                dtype=self.dtypes,
+                copy=self.copy_data,
+            )
+            for view in views
+        ]
 
         self.scalers = [
             StandardScaler(

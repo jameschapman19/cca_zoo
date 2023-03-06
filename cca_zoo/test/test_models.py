@@ -248,23 +248,29 @@ def test_stochastic_pls():
         latent_dims=3, epochs=1, simple=False, batch_size=1, random_state=1
     ).fit((X, Y))
     spls = PLSStochasticPower(
-        latent_dims=3, epochs=250, batch_size=50, learning_rate=1e-1, random_state=1
+        latent_dims=3, epochs=500, batch_size=None, learning_rate=None, random_state=1
     ).fit((X, Y))
     egpls = PLSEigenGame(
         latent_dims=3,
-        epochs=250,
-        batch_size=50,
+        epochs=500,
+        batch_size=None,
         random_state=1,
-        learning_rate=1e-1,
+        learning_rate=None,
+        line_search=True,
+        ensure_descent=True,
         nesterov=True,
+        rho=0.5,
     ).fit((X, Y))
     ghapls = PLSGHAGEP(
         latent_dims=3,
-        epochs=250,
-        batch_size=50,
+        epochs=500,
+        batch_size=None,
         random_state=1,
-        learning_rate=1e-1,
+        learning_rate=None,
+        line_search=True,
+        ensure_descent=True,
         nesterov=True,
+        rho=0.5,
     ).fit((X, Y))
     pls_score = pls.score((X, Y))
     ipls_score = ipls.score((X, Y))
@@ -284,10 +290,14 @@ def test_stochastic_cca():
 
     cca = CCA(latent_dims=3).fit((X, Y))
     egcca = CCAEigenGame(
-        latent_dims=3, epochs=250, batch_size=50, random_state=1, learning_rate=1e-1
+        latent_dims=3, epochs=500, batch_size=None, random_state=1, learning_rate=None,        line_search=False,
+        ensure_descent=False,
+        nesterov=True,
     ).fit((X, Y))
     ghacca = CCAGHAGEP(
-        latent_dims=3, epochs=250, batch_size=50, random_state=1, learning_rate=1e-1
+        latent_dims=3, epochs=500, batch_size=None, random_state=1, learning_rate=None,        line_search=False,
+        ensure_descent=False,
+        nesterov=True,
     ).fit((X, Y))
     cca_score = cca.score((X, Y))
     egcca_score = egcca.score((X, Y))

@@ -1,7 +1,6 @@
 import numpy as np
 
-from cca_zoo.utils import _process_parameter
-from ._eigengame import RCCAEigenGame
+from cca_zoo.models._stochastic._eigengame import RCCAEigenGame
 
 
 class RCCAGHAGEP(RCCAEigenGame):
@@ -71,9 +70,10 @@ class RCCAGHAGEP(RCCAEigenGame):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=1e-3,
+        learning_rate=None,
         c=0,
         nesterov=True,
+        line_search=True,
         rho=0.1,
         ensure_descent=True,
     ):
@@ -96,15 +96,12 @@ class RCCAGHAGEP(RCCAEigenGame):
             worker_init_fn=worker_init_fn,
             epochs=epochs,
             learning_rate=learning_rate,
-            nesterov=nesterov,
-            rho=rho,
-            line_search=False,
             c=c,
+            nesterov=nesterov,
+            line_search=line_search,
+            rho=rho,
             ensure_descent=ensure_descent,
         )
-
-    def _check_params(self):
-        self.c = _process_parameter("c", self.c, 0, self.n_views)
 
     def grads(self, Aw, wAw, Bw, wBw):
         return -Aw + Bw @ np.triu(wAw)
@@ -175,8 +172,10 @@ class CCAGHAGEP(RCCAGHAGEP):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=1e-3,
+        learning_rate=None,
         nesterov=True,
+        line_search=True,
+        rho=0.1,
         ensure_descent=True,
     ):
         super().__init__(
@@ -200,6 +199,8 @@ class CCAGHAGEP(RCCAGHAGEP):
             learning_rate=learning_rate,
             c=0,
             nesterov=nesterov,
+            line_search=line_search,
+            rho=rho,
             ensure_descent=ensure_descent,
         )
 
@@ -269,8 +270,10 @@ class PLSGHAGEP(RCCAGHAGEP):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=1e-3,
+        learning_rate=None,
         nesterov=True,
+        line_search=True,
+        rho=0.1,
         ensure_descent=True,
     ):
         super().__init__(
@@ -294,5 +297,7 @@ class PLSGHAGEP(RCCAGHAGEP):
             learning_rate=learning_rate,
             c=1,
             nesterov=nesterov,
+            line_search=line_search,
+            rho=rho,
             ensure_descent=ensure_descent,
         )

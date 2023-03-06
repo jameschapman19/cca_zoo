@@ -2,12 +2,9 @@ import warnings
 from typing import Iterable
 
 import numpy as np
-from sklearn.utils import check_array
 
 
-def _check_views(
-    views: Iterable[np.ndarray]
-):
+def _check_views(views: Iterable[np.ndarray]):
     if len(views) == 2:
         # This is a bit of a hack to try to match up with the way mvlearn takes views which in turn is a bit of a hack to match up with sklearn.
         # Sklearn expects fit(views,y) so if we want multiview views in sklearn functions we need views to be a list

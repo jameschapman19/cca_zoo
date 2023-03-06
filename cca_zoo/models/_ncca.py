@@ -3,7 +3,6 @@ from typing import Union, Iterable
 import numpy as np
 from sklearn.metrics import pairwise_kernels
 from sklearn.neighbors import NearestNeighbors
-from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo.models._base import _BaseCCA
 from cca_zoo.utils.check_values import _process_parameter, _check_views
