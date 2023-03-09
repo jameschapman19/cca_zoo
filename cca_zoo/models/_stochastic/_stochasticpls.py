@@ -100,24 +100,11 @@ class PLSStochasticPower(RCCAEigenGame):
             ensure_descent=False,
         )
 
-    def _update(self, views):
-        for i, view in enumerate(views):
-            self.weights[i] = self._gradient_descent(i, views, self.weights)
-            self.weights_old[i] = self.weights[i].copy()
-        return False
-
-    def _gradient_descent(self, i, views, y):
-        projections = np.ma.stack([view @ weight for view, weight in zip(views, y)])
-        u = [y_.copy() for y_ in y]
-        Aw, Bw, wAw, wBw = self._get_terms(i, views[i], projections, u[i])
-        grad = self.grads(Aw, wAw, Bw, wBw)
-        u = self._gradient_step(y[i], grad)
-        return u
-
-    def grads(self, Aw, wAw, Bw, wBw):
+    def grads(self, views, u=None):
+        Aw, _,_,_ = self._get_terms(views, u)
         return -Aw
 
-    def _gradient_step(self, y, grad):
+    def _gradient_step(self, y, lr, grad):
         return self._orth(y - self.learning_rate * grad)
 
     @staticmethod
@@ -126,11 +113,8 @@ class PLSStochasticPower(RCCAEigenGame):
         Su = np.sign(np.sign(np.diag(Ru)) + 0.5)
         return Qu @ np.diag(Su)
 
-    def objective(self, views, **kwargs):
-        q = [np.linalg.qr(weight)[0] for weight in self.weights]
-        views = [self.scalers[i].transform(view) for i, view in enumerate(views)]
-        transformed_views = []
-        for i, (view) in enumerate(views):
-            transformed_view = view @ q[i]
-            transformed_views.append(transformed_view)
-        return tv(transformed_views)
+    def objective(self, views, u=None, k=None, projections=None):
+        q = [np.linalg.qr(weight)[0] for weight in u]
+        if projections is None:
+            projections = self.projections(views, np.vstack(q))
+        return -tv(projections)

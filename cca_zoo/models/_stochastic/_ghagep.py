@@ -73,9 +73,10 @@ class RCCAGHAGEP(RCCAEigenGame):
         learning_rate=None,
         c=0,
         nesterov=True,
-        line_search=True,
+        line_search=False,
         rho=0.1,
-        ensure_descent=True,
+        ensure_descent=False,
+            component_wise=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -101,11 +102,12 @@ class RCCAGHAGEP(RCCAEigenGame):
             line_search=line_search,
             rho=rho,
             ensure_descent=ensure_descent,
+            component_wise=component_wise,
         )
 
-    def grads(self, Aw, wAw, Bw, wBw):
+    def grads(self, views, u=None):
+        Aw, Bw, wAw, wBw = self._get_terms(views, u)
         return -Aw + Bw @ np.triu(wAw)
-
 
 class CCAGHAGEP(RCCAGHAGEP):
     """
@@ -174,9 +176,10 @@ class CCAGHAGEP(RCCAGHAGEP):
         epochs=1,
         learning_rate=None,
         nesterov=True,
-        line_search=True,
+        line_search=False,
         rho=0.1,
-        ensure_descent=True,
+        ensure_descent=False,
+            component_wise=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -202,6 +205,7 @@ class CCAGHAGEP(RCCAGHAGEP):
             line_search=line_search,
             rho=rho,
             ensure_descent=ensure_descent,
+            component_wise=component_wise,
         )
 
 
@@ -275,6 +279,7 @@ class PLSGHAGEP(RCCAGHAGEP):
         line_search=True,
         rho=0.1,
         ensure_descent=True,
+            component_wise=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -300,4 +305,5 @@ class PLSGHAGEP(RCCAGHAGEP):
             line_search=line_search,
             rho=rho,
             ensure_descent=ensure_descent,
+            component_wise=component_wise,
         )

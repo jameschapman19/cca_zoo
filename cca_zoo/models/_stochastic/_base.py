@@ -78,8 +78,6 @@ class _BaseStochastic(_BaseCCA):
         )
         self.weights = initializer.fit(views).weights
         self.weights = [weights.astype(np.float32) for weights in self.weights]
-        self.weights_old = self.weights.copy()
-        self.u = [w.copy() for w in self.weights]
         if self.nesterov:
             self.lam = [0, 0]
         stop = False
@@ -91,10 +89,10 @@ class _BaseStochastic(_BaseCCA):
             if self.val_split is not None:
                 for i, sample in enumerate(val_dataloader):
                     self.track.append(
-                        self.objective(sample["views"], weights=self.weights)
+                        self.objective(sample["views"], u=self.weights)
                     )
             else:
-                self.track.append(self.objective(views, weights=self.weights))
+                self.track.append(self.objective(views, u=self.weights))
             if stop:
                 break
         return self

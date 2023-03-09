@@ -243,22 +243,16 @@ def test_stochastic_pls():
     from torch import manual_seed
 
     manual_seed(42)
-    pls = PLS(latent_dims=3).fit((X, Y))
-    ipls = IncrementalPLS(
-        latent_dims=3, epochs=1, simple=False, batch_size=1, random_state=1
-    ).fit((X, Y))
-    spls = PLSStochasticPower(
-        latent_dims=3, epochs=500, batch_size=None, learning_rate=None, random_state=1
-    ).fit((X, Y))
     egpls = PLSEigenGame(
         latent_dims=3,
         epochs=500,
         batch_size=None,
         random_state=1,
         learning_rate=None,
-        line_search=True,
-        ensure_descent=True,
+        line_search=False,
+        ensure_descent=False,
         nesterov=True,
+        component_wise=False,
         rho=0.5,
     ).fit((X, Y))
     ghapls = PLSGHAGEP(
@@ -267,10 +261,17 @@ def test_stochastic_pls():
         batch_size=None,
         random_state=1,
         learning_rate=None,
-        line_search=True,
-        ensure_descent=True,
-        nesterov=True,
+        line_search=False,
+        ensure_descent=False,
+        nesterov=False,
         rho=0.5,
+    ).fit((X, Y))
+    pls = PLS(latent_dims=3).fit((X, Y))
+    ipls = IncrementalPLS(
+        latent_dims=3, epochs=1, simple=False, batch_size=1, random_state=1
+    ).fit((X, Y))
+    spls = PLSStochasticPower(
+        latent_dims=3, epochs=500, batch_size=None, learning_rate=None, random_state=1
     ).fit((X, Y))
     pls_score = pls.score((X, Y))
     ipls_score = ipls.score((X, Y))
