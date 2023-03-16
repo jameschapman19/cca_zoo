@@ -209,10 +209,10 @@ class RCCAEigenGame(_BaseStochastic):
             if k is None:
                 updated_solution = self._gradient_step(self.y, step_size, gradient)
             else:
-                updated_solution[:, k] = self.y[:, k] - step_size * gradient
+                updated_solution[:, k] = self._gradient_step(self.y[:,k], step_size, gradient)
 
             # Check if the objective function decreases with the updated solution
-            if self.objective(views, u=updated_solution, k=k) < self.objective(views, u=self.y, k=k):
+            if self.objective(views, u=updated_solution, k=k) < self.objective(views, u=self.y, k=k) - 0.5*step_size*np.linalg.norm(gradient)**2:
                 break
 
             # Reduce the step size by a factor of beta
@@ -231,9 +231,8 @@ class RCCAEigenGame(_BaseStochastic):
         return -grads
 
     def _Aw(self, views, projections):
-        n=len(views)
-        Aw=np.vstack([view.T @ projections.sum(axis=0) / (n-1) for view in views])-np.vstack([view.T @ projection / (n-1) for view, projection in zip(views,projections)])
-        return Aw
+        Aw=np.vstack([view.T @ projections.sum(axis=0) / projections[0].shape[0] for view in views])
+        return Aw/ len(views)
 
     def _Bw(self, views, projections, u):
         weights = self._split_weights(views, u)
@@ -243,7 +242,7 @@ class RCCAEigenGame(_BaseStochastic):
                 Bw.append( c * weight)
             else:
                 Bw.append(  (c * weight) + (1 - c) * (view.T @ projection) / projection.shape[0])
-        return np.vstack(Bw)
+        return np.vstack(Bw)/ len(views)
 
     def _get_terms(self, views, u, projections=None):
         if projections is None:
@@ -252,8 +251,6 @@ class RCCAEigenGame(_BaseStochastic):
         Bw = self._Bw(views, projections, u)
         wAw = u.T @ Aw
         wBw = u.T @ Bw
-        wAw[np.diag_indices_from(wAw)] = np.where(np.diag(wAw) > 0, np.diag(wAw), 0)
-        wBw[np.diag_indices_from(wBw)] = np.where(np.diag(wAw) > 0, np.diag(wBw), 0)
         return Aw, Bw, wAw, wBw
 
     def objective(self, views, u=None, k=None, projections=None):
@@ -482,3 +479,7 @@ class PLSEigenGame(RCCAEigenGame):
             ensure_descent=ensure_descent,
             component_wise=component_wise,
         )
+
+    def _Aw(self, views, projections):
+        Aw=np.vstack([view.T @ projections.sum(axis=0) / projections[0].shape[0] for view in views])
+        return Aw/ len(views)

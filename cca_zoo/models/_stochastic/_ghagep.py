@@ -307,3 +307,7 @@ class PLSGHAGEP(RCCAGHAGEP):
             ensure_descent=ensure_descent,
             component_wise=component_wise,
         )
+
+    def _Aw(self, views, projections):
+        Aw=np.vstack([view.T @ projections.sum(axis=0) / projections[0].shape[0] for view in views])
+        return Aw/ len(views)

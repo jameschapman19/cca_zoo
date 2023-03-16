@@ -43,8 +43,7 @@ class DCCA_EigenGame(DCCA):
                         torch.cov(zi.T)
                         + torch.eye(self.latent_dims, device=zi.device) * self.r
                     )
-                else:
-                    A += torch.cov(torch.hstack((zi, zj)).T)[
+                A += torch.cov(torch.hstack((zi, zj)).T)[
                         self.latent_dims :, : self.latent_dims
-                    ]
+                ]
         return A, B
