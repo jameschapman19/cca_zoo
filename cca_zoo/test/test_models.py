@@ -291,12 +291,12 @@ def test_stochastic_cca():
 
     cca = CCA(latent_dims=3).fit((X, Y))
     egcca = CCAEigenGame(
-        latent_dims=3, epochs=500, batch_size=None, random_state=1, learning_rate=None,        line_search=False,
+        latent_dims=3, epochs=500, batch_size=None, random_state=1, learning_rate=1e-1,        line_search=False,
         ensure_descent=False,
         nesterov=True,
     ).fit((X, Y))
     ghacca = CCAGHAGEP(
-        latent_dims=3, epochs=500, batch_size=None, random_state=1, learning_rate=None,        line_search=False,
+        latent_dims=3, epochs=500, batch_size=None, random_state=1, learning_rate=1e-1,        line_search=False,
         ensure_descent=False,
         nesterov=True,
     ).fit((X, Y))
