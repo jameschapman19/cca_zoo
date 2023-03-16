@@ -11,7 +11,7 @@ class _BaseDeep(pl.LightningModule):
         latent_dims: int,
         optimizer="adam",
         scheduler=None,
-        lr=1e-3,
+        lr=1e-2,
         weight_decay=0,
         extra_optimizer_kwargs=None,
         max_epochs=1000,
