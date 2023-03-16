@@ -309,5 +309,5 @@ class PLSGHAGEP(RCCAGHAGEP):
         )
 
     def _Aw(self, views, projections):
-        Aw=np.vstack([view.T @ projections.sum(axis=0) / projections[0].shape[0] for view in views])
+        Aw=np.vstack([view.T @ projections.sum(axis=0) / projections[0].shape[0] for view in views]) - np.vstack([view.T @ projection/ projections[0].shape[0] for view, projection in zip(views, projections)])
         return Aw/ len(views)

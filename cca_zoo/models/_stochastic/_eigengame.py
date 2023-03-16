@@ -227,7 +227,9 @@ class RCCAEigenGame(_BaseStochastic):
 
     def grads(self, views, u=None):
         Aw, Bw, wAw, wBw = self._get_terms(views, u)
-        grads = 2 * Aw - (Aw @ np.triu(wBw) + Bw @ np.triu(wAw))
+        grads=2 * Aw - (Aw @ np.triu(wBw) * np.sign(np.diag(wAw)) + Bw @ np.triu(wAw))
+        # TODO: work out why this works
+        #=2 * Aw - (Aw @ np.triu(wBw) + Bw @ np.triu(wAw)) for some reason multiplying by the sign fixes the negative eigenvalue problem here. Not sure why this is the case.
         return -grads
 
     def _Aw(self, views, projections):
@@ -481,5 +483,5 @@ class PLSEigenGame(RCCAEigenGame):
         )
 
     def _Aw(self, views, projections):
-        Aw=np.vstack([view.T @ projections.sum(axis=0) / projections[0].shape[0] for view in views])
+        Aw=np.vstack([view.T @ projections.sum(axis=0) / projections[0].shape[0] for view in views]) - np.vstack([view.T @ projection/ projections[0].shape[0] for view, projection in zip(views, projections)])
         return Aw/ len(views)

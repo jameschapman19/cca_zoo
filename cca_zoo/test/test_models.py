@@ -245,10 +245,10 @@ def test_stochastic_pls():
     manual_seed(42)
     egpls = PLSEigenGame(
         latent_dims=3,
-        epochs=500,
+        epochs=1000,
         batch_size=None,
         random_state=1,
-        learning_rate=None,
+        learning_rate=1e-1,
         line_search=False,
         ensure_descent=False,
         nesterov=True,
@@ -257,10 +257,10 @@ def test_stochastic_pls():
     ).fit((X, Y))
     ghapls = PLSGHAGEP(
         latent_dims=3,
-        epochs=500,
+        epochs=1000,
         batch_size=None,
         random_state=1,
-        learning_rate=None,
+        learning_rate=1e-1,
         line_search=False,
         ensure_descent=False,
         nesterov=False,
