@@ -219,8 +219,8 @@ class RCCAEigenGame(_BaseStochastic):
             step_size *= beta
 
             # Set a lower bound for the step size to avoid numerical issues
-            if step_size < 1e-5:
-                step_size = 1e-5
+            if step_size < 1e-6:
+                step_size = 1e-6
                 break
 
         return step_size
