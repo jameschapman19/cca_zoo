@@ -145,6 +145,7 @@ def test_DCCA_methods():
     dcca_eg = DCCA_EigenGame(
         latent_dims=latent_dims,
         encoders=[encoder_1, encoder_2],
+        lr=1e-1,
     )
     trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False, logger=False)
     trainer.fit(dcca_eg, train_loader, val_dataloaders=val_loader)
