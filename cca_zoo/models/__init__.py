@@ -45,8 +45,7 @@ __all__ = [
 
 try:
     from ._stochastic import (
-        PLSStochasticPower,
-        IncrementalPLS,
+        #PLSStochasticPower,
         PLSGHAGEP,
         CCAGHAGEP,
         RCCAGHAGEP,
@@ -56,8 +55,7 @@ try:
     )
 
     __all__.extend(
-        "StochasticPowerPLS",
-        "IncrementalPLS",
+        #"StochasticPowerPLS",
         "PLSGHAGEP",
         "CCAGHAGEP",
         "RCCAGHAGEP",

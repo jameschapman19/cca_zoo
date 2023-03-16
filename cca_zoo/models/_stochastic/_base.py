@@ -86,9 +86,7 @@ class _BaseStochastic(_BaseCCA):
                     self._step_lambda()
             if self.val_split is not None:
                 for i, sample in enumerate(val_dataloader):
-                    self.track.append(
-                        self.objective(sample["views"], u=self.weights)
-                    )
+                    self.track.append(self.objective(sample["views"], u=self.weights))
             else:
                 self.track.append(self.objective(views, u=self.weights))
             if stop:

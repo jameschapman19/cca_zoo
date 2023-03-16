@@ -76,7 +76,7 @@ class RCCAGHAGEP(RCCAEigenGame):
         line_search=False,
         rho=0.1,
         ensure_descent=False,
-            component_wise=False,
+        component_wise=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -108,6 +108,7 @@ class RCCAGHAGEP(RCCAEigenGame):
     def grads(self, views, u=None):
         Aw, Bw, wAw, wBw = self._get_terms(views, u)
         return -Aw + Bw @ np.triu(wAw)
+
 
 class CCAGHAGEP(RCCAGHAGEP):
     """
@@ -179,7 +180,7 @@ class CCAGHAGEP(RCCAGHAGEP):
         line_search=False,
         rho=0.1,
         ensure_descent=False,
-            component_wise=False,
+        component_wise=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -279,7 +280,7 @@ class PLSGHAGEP(RCCAGHAGEP):
         line_search=True,
         rho=0.1,
         ensure_descent=True,
-            component_wise=False,
+        component_wise=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -309,5 +310,15 @@ class PLSGHAGEP(RCCAGHAGEP):
         )
 
     def _Aw(self, views, projections):
-        Aw=np.vstack([view.T @ projections.sum(axis=0) / projections[0].shape[0] for view in views]) - np.vstack([view.T @ projection/ projections[0].shape[0] for view, projection in zip(views, projections)])
-        return Aw/ len(views)
+        Aw = np.vstack(
+            [
+                view.T @ projections.sum(axis=0) / projections[0].shape[0]
+                for view in views
+            ]
+        ) - np.vstack(
+            [
+                view.T @ projection / projections[0].shape[0]
+                for view, projection in zip(views, projections)
+            ]
+        )
+        return Aw / len(views)

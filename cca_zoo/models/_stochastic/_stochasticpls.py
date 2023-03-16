@@ -72,7 +72,7 @@ class PLSStochasticPower(RCCAEigenGame):
         timeout=0,
         worker_init_fn=None,
         epochs=1,
-        learning_rate=None,
+        learning_rate=1,
         initialization: Union[str, callable] = "random",
     ):
         super().__init__(
@@ -98,14 +98,23 @@ class PLSStochasticPower(RCCAEigenGame):
             nesterov=False,
             line_search=False,
             ensure_descent=False,
+            c=1,
         )
+        self.orth_required = False
 
     def grads(self, views, u=None):
-        Aw, _,_,_ = self._get_terms(views, u)
+        Aw, _,_,wBw = self._get_terms(views, u)
+        #if any of the off diagonal terms are large, then we need to orthogonalise
+        if np.any(np.abs(wBw[np.triu_indices_from(wBw,1)]) > 1e-1):
+            self.orth_required = True
         return -Aw
 
     def _gradient_step(self, y, lr, grad):
-        return self._orth(y - self.learning_rate * grad)
+        y=y - self.learning_rate * grad
+        if self.orth_required:
+            y = self._orth(y)
+            self.orth_required = False
+        return y
 
     @staticmethod
     def _orth(U):

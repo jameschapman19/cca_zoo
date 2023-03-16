@@ -123,20 +123,19 @@ class RCCAEigenGame(_BaseStochastic):
     def _split_weights(self, views, weights):
         splits = np.cumsum([0] + [view.shape[1] for view in views])
         weights = [
-            weights[split: splits[i + 1]]
-            for i, split in enumerate(splits[:-1])
+            weights[split : splits[i + 1]] for i, split in enumerate(splits[:-1])
         ]
         return weights
 
     def _update(self, views):
-        #combine weights
+        # combine weights
         self.weights = np.vstack(self.weights)
         if self.component_wise:
             for k in range(self.weights.shape[1]):
                 self._update_component(views, k=k)
         else:
             self._update_all(views)
-        #split weights
+        # split weights
         self.weights = self._split_weights(views, self.weights)
 
     def _update_all(self, views):
@@ -157,9 +156,7 @@ class RCCAEigenGame(_BaseStochastic):
             t = self.learning_rate
         self.u = self._gradient_step(self.y, t, grads)
         if self.ensure_descent:
-            if self.objective(views, u=self.u) < self.objective(
-                    views, u=self.weights
-            ):
+            if self.objective(views, u=self.u) < self.objective(views, u=self.weights):
                 self.weights = self.u.copy()
         else:
             self.weights = self.u.copy()
@@ -172,7 +169,7 @@ class RCCAEigenGame(_BaseStochastic):
             if self.u is None:
                 self.u = self.weights.copy()
             self.y[:, k] = self.weights[:, k] + self.momentum * (
-                    self.u[:, k] - self.weights[:, k]
+                self.u[:, k] - self.weights[:, k]
             )
         else:
             self.y[:, k] = self.weights[:, k].copy()
@@ -181,10 +178,10 @@ class RCCAEigenGame(_BaseStochastic):
             t = self._backtracking_line_search(views, k=k)
         else:
             t = self.learning_rate
-        self.u[:, k] =  self._gradient_step(self.y[:,k], t, grads[:,k])
+        self.u[:, k] = self._gradient_step(self.y[:, k], t, grads[:, k])
         if self.ensure_descent:
             if self.objective(views, u=self.u, k=k) < self.objective(
-                    views, u=self.weights, k=k
+                views, u=self.weights, k=k
             ):
                 self.weights[:, k] = self.u[:, k].copy()
         else:
@@ -209,10 +206,16 @@ class RCCAEigenGame(_BaseStochastic):
             if k is None:
                 updated_solution = self._gradient_step(self.y, step_size, gradient)
             else:
-                updated_solution[:, k] = self._gradient_step(self.y[:,k], step_size, gradient)
+                updated_solution[:, k] = self._gradient_step(
+                    self.y[:, k], step_size, gradient
+                )
 
             # Check if the objective function decreases with the updated solution
-            if self.objective(views, u=updated_solution, k=k) < self.objective(views, u=self.y, k=k) - 0.5*step_size*np.linalg.norm(gradient)**2:
+            if (
+                self.objective(views, u=updated_solution, k=k)
+                < self.objective(views, u=self.y, k=k)
+                - 0.5 * step_size * np.linalg.norm(gradient) ** 2
+            ):
                 break
 
             # Reduce the step size by a factor of beta
@@ -227,24 +230,33 @@ class RCCAEigenGame(_BaseStochastic):
 
     def grads(self, views, u=None):
         Aw, Bw, wAw, wBw = self._get_terms(views, u)
-        grads=2 * Aw - (Aw @ np.triu(wBw) * np.sign(np.diag(wAw)) + Bw @ np.triu(wAw))
+        grads = 2 * Aw - (Aw @ np.triu(wBw) * np.sign(np.diag(wAw)) + Bw @ np.triu(wAw))
         # TODO: work out why this works
-        #=2 * Aw - (Aw @ np.triu(wBw) + Bw @ np.triu(wAw)) for some reason multiplying by the sign fixes the negative eigenvalue problem here. Not sure why this is the case.
+        # =2 * Aw - (Aw @ np.triu(wBw) + Bw @ np.triu(wAw)) for some reason multiplying by the sign fixes the negative eigenvalue problem here. Not sure why this is the case.
         return -grads
 
     def _Aw(self, views, projections):
-        Aw=np.vstack([view.T @ projections.sum(axis=0) / projections[0].shape[0] for view in views])
-        return Aw/ len(views)
+        Aw = np.vstack(
+            [
+                view.T @ projections.sum(axis=0) / projections[0].shape[0]
+                for view in views
+            ]
+        )
+        return Aw / len(views)
 
     def _Bw(self, views, projections, u):
         weights = self._split_weights(views, u)
         Bw = []
-        for i, (view, projection, weight, c) in enumerate(zip(views, projections, weights, self.c)):
+        for i, (view, projection, weight, c) in enumerate(
+            zip(views, projections, weights, self.c)
+        ):
             if c == 1:
-                Bw.append( c * weight)
+                Bw.append(c * weight)
             else:
-                Bw.append(  (c * weight) + (1 - c) * (view.T @ projection) / projection.shape[0])
-        return np.vstack(Bw)/ len(views)
+                Bw.append(
+                    (c * weight) + (1 - c) * (view.T @ projection) / projection.shape[0]
+                )
+        return np.vstack(Bw) / len(views)
 
     def _get_terms(self, views, u, projections=None):
         if projections is None:
@@ -453,7 +465,7 @@ class PLSEigenGame(RCCAEigenGame):
         line_search=False,
         rho=0.1,
         ensure_descent=False,
-            component_wise=False,
+        component_wise=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -483,5 +495,15 @@ class PLSEigenGame(RCCAEigenGame):
         )
 
     def _Aw(self, views, projections):
-        Aw=np.vstack([view.T @ projections.sum(axis=0) / projections[0].shape[0] for view in views]) - np.vstack([view.T @ projection/ projections[0].shape[0] for view, projection in zip(views, projections)])
-        return Aw/ len(views)
+        Aw = np.vstack(
+            [
+                view.T @ projections.sum(axis=0) / projections[0].shape[0]
+                for view in views
+            ]
+        ) - np.vstack(
+            [
+                view.T @ projection / projections[0].shape[0]
+                for view, projection in zip(views, projections)
+            ]
+        )
+        return Aw / len(views)
