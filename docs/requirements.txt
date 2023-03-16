@@ -15,7 +15,7 @@ scikit-prox
 pandas
 tensorly
 joblib
-torch
+torch==1.9.0
 torchvision
 Pillow
 jaxlib
