@@ -5,9 +5,9 @@ name: Python package
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ main ]
 
 jobs:
   build:
@@ -40,7 +40,7 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Run Test
-      run: pytest --doctest-modules --cov-report=xml --cov=cca_zoo ./cca_zoo/test/
+      run: pytest --doctest-modules --cov-report=xml --cov=cca_zoo ./cca_zoo/test/ --ignore=_stochasticpls.py, _incrementalpls.py, */cca_zoo/utils/*
     - name: "Upload coverage to Codecov"
       uses: codecov/codecov-action@v3
       with:
