@@ -68,7 +68,7 @@ def test_linear():
     encoder_1 = architectures.LinearEncoder(latent_dims=latent_dims, feature_size=10)
     encoder_2 = architectures.LinearEncoder(latent_dims=latent_dims, feature_size=12)
     dcca = DCCA_EigenGame(
-        latent_dims=latent_dims, encoders=[encoder_1, encoder_2], lr=1e-1
+        latent_dims=latent_dims, encoders=[encoder_1, encoder_2], lr=5e-1
     )
     trainer = pl.Trainer(max_epochs=epochs, enable_checkpointing=False, logger=False)
     trainer.fit(dcca, loader)
