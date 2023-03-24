@@ -151,9 +151,7 @@ class RCCAEigenGame(_BaseStochastic):
         grads = self.grads(views, u=self.y)
         if self.line_search:
             self.learning_rate = self._backtracking_line_search(views)
-            t = self.learning_rate
-        else:
-            t = self.learning_rate
+        t = self.learning_rate
         self.u = self._gradient_step(self.y, t, grads)
         if self.ensure_descent:
             if self.objective(views, u=self.u) < self.objective(views, u=self.weights):
@@ -175,7 +173,7 @@ class RCCAEigenGame(_BaseStochastic):
             self.y[:, k] = self.weights[:, k].copy()
         grads = self.grads(views, u=self.y)
         if self.line_search:
-            t = self._backtracking_line_search(views, k=k)
+            t=self._backtracking_line_search(views, k=k)
         else:
             t = self.learning_rate
         self.u[:, k] = self._gradient_step(self.y[:, k], t, grads[:, k])
