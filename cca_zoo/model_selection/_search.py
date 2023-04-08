@@ -205,7 +205,7 @@ class GridSearchCV(BaseSearchCV):
                 ("estimator", clone(self.estimator)),
             ]
         )
-        self = BaseSearchCV.fit(self, np.hstack(X), y=None, groups=None, **fit_params)
+        self = BaseSearchCV.fit(self, np.hstack(X), y=y, groups=groups, **fit_params)
         self.best_estimator_ = self.best_estimator_["estimator"]
         self.best_params_ = {
             key[len("estimator__") :]: val for key, val in self.best_params_.items()
