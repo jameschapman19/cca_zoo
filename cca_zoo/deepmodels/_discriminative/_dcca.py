@@ -64,9 +64,10 @@ class DCCA(_BaseDeep, _BaseCCA):
         :param train: whether to fit final linear transformation
         """
         z = self.transform(loader)
-        #return MCCA(self.latent_dims).fit(z).score(z)
+        # return MCCA(self.latent_dims).fit(z).score(z)
         import numpy as np
-        return np.cov(*z,rowvar=False)[:self.latent_dims,self.latent_dims:]
+
+        return np.cov(*z, rowvar=False)[: self.latent_dims, self.latent_dims :]
 
     def configure_callbacks(self):
         return [CorrelationCallback()]

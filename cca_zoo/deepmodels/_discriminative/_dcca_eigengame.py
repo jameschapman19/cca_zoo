@@ -39,10 +39,8 @@ class DCCA_EigenGame(DCCA):
         for i, zi in enumerate(z):
             for j, zj in enumerate(z):
                 if i == j:
-                    B += (
-                        torch.cov(zi.T)
-                    )
+                    B += torch.cov(zi.T)
                 A += torch.cov(torch.hstack((zi, zj)).T)[
                     self.latent_dims :, : self.latent_dims
                 ]
-        return A/len(z), B/len(z)
+        return A / len(z), B / len(z)

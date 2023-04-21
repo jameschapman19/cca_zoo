@@ -55,31 +55,31 @@ class RCCAEigenGame(_BaseStochastic):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            tol=1e-9,
-            accept_sparse=None,
-            batch_size=None,
-            shuffle=True,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            pin_memory=False,
-            drop_last=True,
-            timeout=0,
-            worker_init_fn=None,
-            epochs=1,
-            learning_rate=1,
-            initialization: Union[str, callable] = "random",
-            c=0,
-            momentum=0,
-            line_search=False,
-            rho=0.1,
-            ensure_descent=False,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        tol=1e-9,
+        accept_sparse=None,
+        batch_size=None,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        learning_rate=1,
+        initialization: Union[str, callable] = "random",
+        c=0,
+        momentum=0,
+        line_search=False,
+        rho=0.1,
+        ensure_descent=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -115,7 +115,7 @@ class RCCAEigenGame(_BaseStochastic):
     def _split_weights(self, views, weights):
         splits = np.cumsum([0] + [view.shape[1] for view in views])
         weights = [
-            weights[split: splits[i + 1]] for i, split in enumerate(splits[:-1])
+            weights[split : splits[i + 1]] for i, split in enumerate(splits[:-1])
         ]
         return weights
 
@@ -150,14 +150,14 @@ class RCCAEigenGame(_BaseStochastic):
         # Perform backtracking line search until the objective function decreases
         while True:
             # Update the solution vector based on the gradient and step size
-            updated_solution = self._gradient_step(self.weights, -step_direction * step_size)
+            updated_solution = self._gradient_step(
+                self.weights, -step_direction * step_size
+            )
 
             # Check if the objective function decreases with the updated solution
-            if (
-                    self.objective(views, u=updated_solution)
-                    < self.objective(views, u=self.weights)
-                    - 0.1 * step_size * np.linalg.norm(step_direction.T @ gradient)
-            ):
+            if self.objective(views, u=updated_solution) < self.objective(
+                views, u=self.weights
+            ) - 0.1 * step_size * np.linalg.norm(step_direction.T @ gradient):
                 break
 
             # Reduce the step size by a factor of beta
@@ -188,7 +188,7 @@ class RCCAEigenGame(_BaseStochastic):
         weights = self._split_weights(views, u)
         Bw = []
         for i, (view, projection, weight, c) in enumerate(
-                zip(views, projections, weights, self.c)
+            zip(views, projections, weights, self.c)
         ):
             if c == 1:
                 Bw.append(c * weight)
@@ -282,31 +282,30 @@ class CCAEigenGame(RCCAEigenGame):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            tol=1e-9,
-            accept_sparse=None,
-            batch_size=None,
-            shuffle=True,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            pin_memory=False,
-            drop_last=True,
-            timeout=0,
-            worker_init_fn=None,
-            epochs=1,
-            learning_rate=1,
-            momentum=0,
-            line_search=False,
-            rho=0.1,
-            ensure_descent=False,
-            initialization='random'
-
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        tol=1e-9,
+        accept_sparse=None,
+        batch_size=None,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        learning_rate=1,
+        momentum=0,
+        line_search=False,
+        rho=0.1,
+        ensure_descent=False,
+        initialization="random",
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -332,8 +331,7 @@ class CCAEigenGame(RCCAEigenGame):
             line_search=line_search,
             rho=rho,
             ensure_descent=ensure_descent,
-            initialization=initialization
-
+            initialization=initialization,
         )
 
 
@@ -384,31 +382,30 @@ class PLSEigenGame(RCCAEigenGame):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            tol=1e-9,
-            accept_sparse=None,
-            batch_size=None,
-            shuffle=True,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            pin_memory=False,
-            drop_last=True,
-            timeout=0,
-            worker_init_fn=None,
-            epochs=1,
-            learning_rate=1,
-            momentum=0,
-            line_search=False,
-            rho=0.1,
-            ensure_descent=False,
-            initialization='random',
-
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        tol=1e-9,
+        accept_sparse=None,
+        batch_size=None,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        learning_rate=1,
+        momentum=0,
+        line_search=False,
+        rho=0.1,
+        ensure_descent=False,
+        initialization="random",
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -434,8 +431,7 @@ class PLSEigenGame(RCCAEigenGame):
             line_search=line_search,
             rho=rho,
             ensure_descent=ensure_descent,
-            initialization=initialization
-
+            initialization=initialization,
         )
 
     def _Aw(self, views, projections):

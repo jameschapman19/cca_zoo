@@ -63,9 +63,8 @@ class _BaseStochastic(_BaseCCA):
         self.learning_rate = learning_rate
         self.initialization = initialization
         self.track_training = track_training
-        self.momentum=momentum
+        self.momentum = momentum
         self.dtypes = [np.float32]
-
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_inputs(views)
@@ -77,7 +76,7 @@ class _BaseStochastic(_BaseCCA):
         )
         self.weights = initializer.fit(views).weights
         self.weights = [weights.astype(np.float32) for weights in self.weights]
-        self.momentum= 0.9
+        self.momentum = 0.9
         stop = False
         for _ in range(self.epochs):
             for i, sample in enumerate(train_dataloader):

@@ -237,7 +237,7 @@ def test_stochastic_pls():
     from cca_zoo.models import (
         PLSGHAGEP,
         PLSEigenGame,
-        #PLSStochasticPower,
+        # PLSStochasticPower,
     )
     from torch import manual_seed
 
@@ -267,15 +267,15 @@ def test_stochastic_pls():
     ).fit((X, Y))
     pls = PLS(latent_dims=3).fit((X, Y))
     L = max([np.linalg.norm(view, ord=2) ** 2 for view in [X, Y]])
-    #spls = PLSStochasticPower(
+    # spls = PLSStochasticPower(
     #    latent_dims=3, epochs=1000, batch_size=None, learning_rate=L, random_state=1
-    #).fit((X, Y))
+    # ).fit((X, Y))
     pls_score = pls.score((X, Y))
-    #spls_score = spls.score((X, Y))
+    # spls_score = spls.score((X, Y))
     egpls_score = egpls.score((X, Y))
     ghapls_score = ghapls.score((X, Y))
     # check all methods are similar to pls
-    #assert np.allclose(pls_score, spls_score, atol=1e-1)
+    # assert np.allclose(pls_score, spls_score, atol=1e-1)
     assert np.allclose(pls_score, egpls_score, atol=1e-1)
     assert np.allclose(pls_score, ghapls_score, atol=1e-1)
 

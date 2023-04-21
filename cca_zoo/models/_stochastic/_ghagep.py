@@ -76,8 +76,7 @@ class RCCAGHAGEP(RCCAEigenGame):
         line_search=False,
         rho=0.1,
         ensure_descent=False,
-        initialization='random'
-
+        initialization="random",
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -103,8 +102,7 @@ class RCCAGHAGEP(RCCAEigenGame):
             line_search=line_search,
             rho=rho,
             ensure_descent=ensure_descent,
-            initialization=initialization
-
+            initialization=initialization,
         )
 
     def grads(self, views, u=None):
@@ -182,8 +180,7 @@ class CCAGHAGEP(RCCAGHAGEP):
         line_search=False,
         rho=0.1,
         ensure_descent=False,
-        initialization='random'
-
+        initialization="random",
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -209,8 +206,7 @@ class CCAGHAGEP(RCCAGHAGEP):
             line_search=line_search,
             rho=rho,
             ensure_descent=ensure_descent,
-            initialization=initialization
-
+            initialization=initialization,
         )
 
 
@@ -284,8 +280,7 @@ class PLSGHAGEP(RCCAGHAGEP):
         line_search=True,
         rho=0.1,
         ensure_descent=True,
-        initialization='random'
-
+        initialization="random",
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -311,8 +306,7 @@ class PLSGHAGEP(RCCAGHAGEP):
             line_search=line_search,
             rho=rho,
             ensure_descent=ensure_descent,
-            initialization=initialization
-
+            initialization=initialization,
         )
 
     def _Aw(self, views, projections):
