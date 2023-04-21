@@ -250,8 +250,7 @@ def test_stochastic_pls():
         learning_rate=1e-1,
         line_search=False,
         ensure_descent=False,
-        nesterov=True,
-        component_wise=False,
+        momentum=0.5,
         rho=0.5,
     ).fit((X, Y))
     ghapls = PLSGHAGEP(
@@ -262,7 +261,7 @@ def test_stochastic_pls():
         learning_rate=1e-1,
         line_search=False,
         ensure_descent=False,
-        nesterov=False,
+        momentum=0.5,
         rho=0.5,
     ).fit((X, Y))
     pls = PLS(latent_dims=3).fit((X, Y))
@@ -293,7 +292,7 @@ def test_stochastic_cca():
         learning_rate=1e-1,
         line_search=False,
         ensure_descent=False,
-        nesterov=True,
+        momentum=0.5,
     ).fit((X, Y))
     ghacca = CCAGHAGEP(
         latent_dims=3,
@@ -303,7 +302,7 @@ def test_stochastic_cca():
         learning_rate=1e-1,
         line_search=False,
         ensure_descent=False,
-        nesterov=True,
+        momentum=0.5,
     ).fit((X, Y))
     cca_score = cca.score((X, Y))
     egcca_score = egcca.score((X, Y))
