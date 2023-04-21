@@ -76,7 +76,6 @@ class _BaseStochastic(_BaseCCA):
         )
         self.weights = initializer.fit(views).weights
         self.weights = [weights.astype(np.float32) for weights in self.weights]
-        self.momentum = 0.9
         stop = False
         for _ in range(self.epochs):
             for i, sample in enumerate(train_dataloader):
