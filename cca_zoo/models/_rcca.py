@@ -101,7 +101,7 @@ class rCCA(_BaseCCA):
 
     def _weights(self, eigvals, eigvecs, views):
         R, B = self._get_R_B(views)
-        R_12 = R[0].T @ R[1]
+        R_12 = np.cov(R[0], R[1],rowvar=False)[0:R[0].shape[1],R[0].shape[1]:]
         w_y = (
             self.principal_components[1].components_.T
             @ np.diag(1 / np.sqrt(B[1]))
@@ -139,7 +139,7 @@ class rCCA(_BaseCCA):
 
     def _two_view_evp(self, views):
         R, B = self._get_R_B(views)
-        R_12 = R[0].T @ R[1]
+        R_12 = np.cov(R[0], R[1],rowvar=False)[0:R[0].shape[1],R[0].shape[1]:]
         M = (
             np.diag(1 / np.sqrt(B[1]))
             @ R_12.T

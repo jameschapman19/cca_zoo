@@ -36,7 +36,7 @@ class _BaseStochastic(_BaseCCA):
         learning_rate=1,
         initialization: Union[str, callable] = "random",
         track_training=False,
-        nesterov=True,
+        momentum=0,
     ):
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]
@@ -63,8 +63,9 @@ class _BaseStochastic(_BaseCCA):
         self.learning_rate = learning_rate
         self.initialization = initialization
         self.track_training = track_training
-        self.nesterov = nesterov
+        self.momentum=momentum
         self.dtypes = [np.float32]
+
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_inputs(views)
@@ -76,14 +77,11 @@ class _BaseStochastic(_BaseCCA):
         )
         self.weights = initializer.fit(views).weights
         self.weights = [weights.astype(np.float32) for weights in self.weights]
-        if self.nesterov:
-            self.lam = [0, 0]
+        self.momentum= 0.9
         stop = False
         for _ in range(self.epochs):
             for i, sample in enumerate(train_dataloader):
                 stop = self._update(sample["views"])
-                if self.nesterov:
-                    self._step_lambda()
             if self.val_split is not None:
                 for i, sample in enumerate(val_dataloader):
                     self.track.append(self.objective(sample["views"], u=self.weights))
@@ -134,14 +132,6 @@ class _BaseStochastic(_BaseCCA):
             collate_fn=lambda x: x[0],
         )
         return train_loader, val_loader
-
-    @property
-    def momentum(self):
-        return (self.lam[0] - 1) / max(1, self.lam[1])
-
-    def _step_lambda(self):
-        self.lam[1] = self.lam[0]
-        self.lam[0] = (1 + np.sqrt(1 + 4 * self.lam[1] ** 2)) / 2
 
     @abstractmethod
     def _update(self, views):

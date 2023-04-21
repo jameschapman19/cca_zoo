@@ -72,11 +72,12 @@ class RCCAGHAGEP(RCCAEigenGame):
         epochs=1,
         learning_rate=1,
         c=0,
-        nesterov=True,
+        momentum=0,
         line_search=False,
         rho=0.1,
         ensure_descent=False,
-        component_wise=False,
+        initialization='random'
+
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -98,11 +99,12 @@ class RCCAGHAGEP(RCCAEigenGame):
             epochs=epochs,
             learning_rate=learning_rate,
             c=c,
-            nesterov=nesterov,
+            momentum=momentum,
             line_search=line_search,
             rho=rho,
             ensure_descent=ensure_descent,
-            component_wise=component_wise,
+            initialization=initialization
+
         )
 
     def grads(self, views, u=None):
@@ -176,11 +178,12 @@ class CCAGHAGEP(RCCAGHAGEP):
         worker_init_fn=None,
         epochs=1,
         learning_rate=1,
-        nesterov=True,
+        momentum=0,
         line_search=False,
         rho=0.1,
         ensure_descent=False,
-        component_wise=False,
+        initialization='random'
+
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -202,11 +205,12 @@ class CCAGHAGEP(RCCAGHAGEP):
             epochs=epochs,
             learning_rate=learning_rate,
             c=0,
-            nesterov=nesterov,
+            momentum=momentum,
             line_search=line_search,
             rho=rho,
             ensure_descent=ensure_descent,
-            component_wise=component_wise,
+            initialization=initialization
+
         )
 
 
@@ -276,11 +280,12 @@ class PLSGHAGEP(RCCAGHAGEP):
         worker_init_fn=None,
         epochs=1,
         learning_rate=1,
-        nesterov=True,
+        momentum=0,
         line_search=True,
         rho=0.1,
         ensure_descent=True,
-        component_wise=False,
+        initialization='random'
+
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -302,11 +307,12 @@ class PLSGHAGEP(RCCAGHAGEP):
             epochs=epochs,
             learning_rate=learning_rate,
             c=1,
-            nesterov=nesterov,
+            momentum=momentum,
             line_search=line_search,
             rho=rho,
             ensure_descent=ensure_descent,
-            component_wise=component_wise,
+            initialization=initialization
+
         )
 
     def _Aw(self, views, projections):
