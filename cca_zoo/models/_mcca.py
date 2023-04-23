@@ -200,7 +200,7 @@ class KCCA(MCCA):
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
-        return C, D
+        return C/len(views), D/len(views)
 
     def transform(self, views: np.ndarray, **kwargs):
         check_is_fitted(self, attributes=["weights"])
