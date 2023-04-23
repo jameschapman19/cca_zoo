@@ -10,7 +10,7 @@ from tqdm import tqdm
 from cca_zoo.models._base import _BaseCCA
 from cca_zoo.models._dummy import _DummyCCA
 from .._mcca import MCCA, KCCA
-
+from cca_zoo.models._rcca import rCCA
 
 class _BaseIterative(_BaseCCA):
     """
@@ -144,10 +144,7 @@ def _default_initializer(views, initialization, random_state, latent_dims):
     elif initialization == "uniform":
         initializer = _DummyCCA(latent_dims, random_state=random_state, uniform=True)
     elif initialization == "pls":
-        if sum([v.shape[0] for v in views]) < sum([v.shape[1] for v in views]):
-            initializer = KCCA(latent_dims, random_state=random_state, c=1)
-        else:
-            initializer = MCCA(latent_dims, random_state=random_state, c=1)
+        initializer = rCCA(latent_dims, random_state=random_state, c=1)
     elif initialization == "cca":
         initializer = MCCA(latent_dims)
     else:

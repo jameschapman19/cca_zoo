@@ -182,7 +182,7 @@ class RCCAEigenGame(_BaseStochastic):
                 for view in views
             ]
         )
-        return Aw / len(views)
+        return Aw / ((views[0].shape[0]-1)*len(views))
 
     def _Bw(self, views, projections, u):
         weights = self._split_weights(views, u)
@@ -196,7 +196,7 @@ class RCCAEigenGame(_BaseStochastic):
                 Bw.append(
                     (c * weight) + (1 - c) * (view.T @ projection) / projection.shape[0]
                 )
-        return np.vstack(Bw) / len(views)
+        return np.vstack(Bw) / ((views[0].shape[0]-1)*len(views))
 
     def _get_terms(self, views, u, projections=None):
         if projections is None:
