@@ -120,7 +120,7 @@ class _BaseIterative(_BaseCCA):
         # default objective is covariance
         obj = 0
         for (score_i, score_j) in combinations(scores, 2):
-            obj += score_i.T @ score_j
+            obj += np.cov(score_i,score_j)[0,1]
         return -obj.item()
 
     def _early_stop(self, objective) -> bool:

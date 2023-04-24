@@ -6,7 +6,7 @@ from cca_zoo.models._stochastic._base import _BaseStochastic
 from cca_zoo.utils import _process_parameter
 
 
-class RCCAEigenGame(_BaseStochastic):
+class CCAEigenGame(_BaseStochastic):
     """
     A class used to fit Regularized CCA by Delta-EigenGame
 
@@ -75,7 +75,6 @@ class RCCAEigenGame(_BaseStochastic):
         epochs=1,
         learning_rate=1,
         initialization: Union[str, callable] = "random",
-        c=0,
         momentum=0,
         line_search=False,
         rho=0.1,
@@ -103,14 +102,10 @@ class RCCAEigenGame(_BaseStochastic):
             initialization=initialization,
             momentum=momentum,
         )
-        self.c = c
         self.rho = rho
         self.line_search = line_search
         self.ensure_descent = ensure_descent
         self.velocity = None
-
-    def _check_params(self):
-        self.c = _process_parameter("c", self.c, 0, self.n_views)
 
     def _split_weights(self, views, weights):
         splits = np.cumsum([0] + [view.shape[1] for view in views])
@@ -182,21 +177,18 @@ class RCCAEigenGame(_BaseStochastic):
                 for view in views
             ]
         )
-        return Aw / ((views[0].shape[0]-1)*len(views))
+        return Aw / len(views)
 
     def _Bw(self, views, projections, u):
         weights = self._split_weights(views, u)
         Bw = []
-        for i, (view, projection, weight, c) in enumerate(
-            zip(views, projections, weights, self.c)
+        for i, (view, projection, weight) in enumerate(
+            zip(views, projections, weights)
         ):
-            if c == 1:
-                Bw.append(c * weight)
-            else:
-                Bw.append(
-                    (c * weight) + (1 - c) * (view.T @ projection) / projection.shape[0]
-                )
-        return np.vstack(Bw) / ((views[0].shape[0]-1)*len(views))
+            Bw.append(
+                (view.T @ projection) / (projection.shape[0]-1)
+            )
+        return np.vstack(Bw) / len(views)
 
     def _get_terms(self, views, u, projections=None):
         if projections is None:
@@ -234,108 +226,7 @@ class RCCAEigenGame(_BaseStochastic):
     def _more_tags(self):
         return {"multiview": True, "stochastic": True}
 
-
-class CCAEigenGame(RCCAEigenGame):
-    """
-    A class used to fit CCA by Delta-EigenGame
-
-    Parameters
-    ----------
-    latent_dims : int, optional
-        Number of latent dimensions to use, by default 1
-    scale : bool, optional
-        Whether to scale the data, by default True
-    centre : bool, optional
-        Whether to centre the data, by default True
-    copy_data : bool, optional
-        Whether to copy the data, by default True
-    random_state : int, optional
-        Random state to use, by default None
-    accept_sparse : bool, optional
-        Whether to accept sparse data, by default None
-    batch_size : int, optional
-        Batch size to use, by default 1
-    shuffle : bool, optional
-        Whether to shuffle the data, by default True
-    sampler : torch.utils.data.Sampler, optional
-        Sampler to use, by default None
-    batch_sampler : torch.utils.data.Sampler, optional
-        Batch sampler to use, by default None
-    num_workers : int, optional
-        Number of workers to use, by default 0
-    pin_memory : bool, optional
-        Whether to pin memory, by default False
-    drop_last : bool, optional
-        Whether to drop the last batch, by default True
-    timeout : int, optional
-        Timeout to use, by default 0
-    worker_init_fn : function, optional
-        Worker init function to use, by default None
-    epochs : int, optional
-        Number of epochs to use, by default 1
-    learning_rate : float, optional
-        Learning rate to use, by default 0.01
-
-    References
-    ----------
-    Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
-    """
-
-    def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        tol=1e-9,
-        accept_sparse=None,
-        batch_size=None,
-        shuffle=True,
-        sampler=None,
-        batch_sampler=None,
-        num_workers=0,
-        pin_memory=False,
-        drop_last=True,
-        timeout=0,
-        worker_init_fn=None,
-        epochs=1,
-        learning_rate=1,
-        momentum=0,
-        line_search=False,
-        rho=0.1,
-        ensure_descent=False,
-        initialization="random",
-    ):
-        super().__init__(
-            latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
-            copy_data=copy_data,
-            accept_sparse=accept_sparse,
-            random_state=random_state,
-            tol=tol,
-            batch_size=batch_size,
-            shuffle=shuffle,
-            sampler=sampler,
-            batch_sampler=batch_sampler,
-            num_workers=num_workers,
-            pin_memory=pin_memory,
-            drop_last=drop_last,
-            timeout=timeout,
-            worker_init_fn=worker_init_fn,
-            epochs=epochs,
-            learning_rate=learning_rate,
-            c=0,
-            momentum=momentum,
-            line_search=line_search,
-            rho=rho,
-            ensure_descent=ensure_descent,
-            initialization=initialization,
-        )
-
-
-class PLSEigenGame(RCCAEigenGame):
+class PLSEigenGame(CCAEigenGame):
     """
     A class used to fit PLS by Delta-EigenGame
 
@@ -426,7 +317,6 @@ class PLSEigenGame(RCCAEigenGame):
             worker_init_fn=worker_init_fn,
             epochs=epochs,
             learning_rate=learning_rate,
-            c=1,
             momentum=momentum,
             line_search=line_search,
             rho=rho,
@@ -447,3 +337,12 @@ class PLSEigenGame(RCCAEigenGame):
             ]
         )
         return Aw / len(views)
+
+    def _Bw(self, views, projections, u):
+        weights = self._split_weights(views, u)
+        Bw = []
+        for i, (view, projection, weight) in enumerate(
+                zip(views, projections, weights)
+        ):
+            Bw.append(weight)
+        return np.vstack(Bw) / len(views)

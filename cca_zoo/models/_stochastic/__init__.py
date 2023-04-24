@@ -1,14 +1,10 @@
-from ._eigengame import PLSEigenGame, CCAEigenGame, RCCAEigenGame
-from ._ghagep import PLSGHAGEP, CCAGHAGEP, RCCAGHAGEP
-
-# from ._stochasticpls import PLSStochasticPower
+from ._eigengame import PLSEigenGame, CCAEigenGame
+from ._ghagep import PLSGHAGEP, CCAGHAGEP
 
 __all__ = [
     # "PLSStochasticPower",
     "PLSGHAGEP",
     "CCAGHAGEP",
-    "RCCAGHAGEP",
     "PLSEigenGame",
     "CCAEigenGame",
-    "RCCAEigenGame",
 ]

@@ -48,20 +48,16 @@ try:
         # PLSStochasticPower,
         PLSGHAGEP,
         CCAGHAGEP,
-        RCCAGHAGEP,
         PLSEigenGame,
         CCAEigenGame,
-        RCCAEigenGame,
     )
 
     __all__.extend(
         # "StochasticPowerPLS",
         "PLSGHAGEP",
         "CCAGHAGEP",
-        "RCCAGHAGEP",
         "PLSEigenGame",
         "CCAEigenGame",
-        "RCCAEigenGame",
     )
 except:
     pass
