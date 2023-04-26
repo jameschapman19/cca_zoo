@@ -10,15 +10,29 @@ on:
     branches: [ main ]
 
 jobs:
+  format:
+    name: Format code with black
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install black
+        run: |
+          pip install black
+      - name: Run black on all python files
+        run: |
+          black .
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Format code with fprettify and black
+          branch: ${{ github.head_ref }}
   build:
-
     runs-on: ubuntu-latest
     env:
       MODULE_NAME: cca_zoo
     strategy:
       matrix:
         python-version: [3.8]
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -28,6 +42,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        python -m pip install black
         python -m pip install flake8
         python -m pip install codecov
         python -m pip install pytest-cov
