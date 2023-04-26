@@ -103,6 +103,6 @@ class SWCCA(_BaseIterative):
     def _objective(self, views, scores, weights) -> int:
         # default objective is correlation
         obj = 0
-        for (score_i, score_j) in combinations(scores, 2):
+        for score_i, score_j in combinations(scores, 2):
             obj += (score_i * self.sample_weights).T @ score_j
         return obj
