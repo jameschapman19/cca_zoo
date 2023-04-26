@@ -10,22 +10,6 @@ on:
     branches: [ main ]
 
 jobs:
-  format:
-    name: Format code with black
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install black
-        run: |
-          pip install black
-      - name: Run black on all python files
-        run: |
-          black .
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: Format code with fprettify and black
-          branch: ${{ github.head_ref }}
   build:
     runs-on: ubuntu-latest
     env:
@@ -48,6 +32,14 @@ jobs:
         python -m pip install pytest-cov
         python -m pip install -r requirements.txt
         python -m pip install jax numpyro arviz torch==1.12.1 pytorch-lightning==1.7.7 torchvision
+    - name: Run black on all python files
+      run: |
+        black .
+    - name: Commit changes
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: Format code with black
+        branch: ${{ github.head_ref }}
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
