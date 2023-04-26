@@ -4,6 +4,7 @@ import numpy as np
 
 from cca_zoo.models._stochastic._base import _BaseStochastic
 from cca_zoo.utils import _process_parameter
+from scipy.linalg import block_diag
 
 
 class CCAEigenGame(_BaseStochastic):
@@ -173,7 +174,9 @@ class CCAEigenGame(_BaseStochastic):
     def _Aw(self, views, projections):
         Aw = np.vstack(
             [
-                view.T @ projections.sum(axis=0) / projections[0].shape[0]
+                np.cov(view.T, projections.sum(axis=0).T)[
+                    0 : view.shape[1], view.shape[1] :
+                ]
                 for view in views
             ]
         )
@@ -185,9 +188,7 @@ class CCAEigenGame(_BaseStochastic):
         for i, (view, projection, weight) in enumerate(
             zip(views, projections, weights)
         ):
-            Bw.append(
-                (view.T @ projection) / (projection.shape[0]-1)
-            )
+            Bw.append((view.T @ projection) / (projection.shape[0] - 1))
         return np.vstack(Bw) / len(views)
 
     def _get_terms(self, views, u, projections=None):
@@ -225,6 +226,7 @@ class CCAEigenGame(_BaseStochastic):
 
     def _more_tags(self):
         return {"multiview": True, "stochastic": True}
+
 
 class PLSEigenGame(CCAEigenGame):
     """
@@ -327,12 +329,16 @@ class PLSEigenGame(CCAEigenGame):
     def _Aw(self, views, projections):
         Aw = np.vstack(
             [
-                view.T @ projections.sum(axis=0) / projections[0].shape[0]
+                np.cov(view, projections.sum(axis=0), rowvar=False)[
+                    0 : view.shape[1], view.shape[1] :
+                ]
                 for view in views
             ]
         ) - np.vstack(
             [
-                view.T @ projection / projections[0].shape[0]
+                np.cov(view, projection, rowvar=False)[
+                    0 : view.shape[1], view.shape[1] :
+                ]
                 for view, projection in zip(views, projections)
             ]
         )
@@ -342,7 +348,7 @@ class PLSEigenGame(CCAEigenGame):
         weights = self._split_weights(views, u)
         Bw = []
         for i, (view, projection, weight) in enumerate(
-                zip(views, projections, weights)
+            zip(views, projections, weights)
         ):
             Bw.append(weight)
         return np.vstack(Bw) / len(views)

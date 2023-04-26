@@ -12,6 +12,7 @@ from cca_zoo.models._dummy import _DummyCCA
 from .._mcca import MCCA, KCCA
 from cca_zoo.models._rcca import rCCA
 
+
 class _BaseIterative(_BaseCCA):
     """
     A class used as the base for _iterative CCA methods i.e. those that optimize for each dimension one at a time with deflation.
@@ -120,7 +121,7 @@ class _BaseIterative(_BaseCCA):
         # default objective is covariance
         obj = 0
         for (score_i, score_j) in combinations(scores, 2):
-            obj += np.cov(score_i,score_j)[0,1]
+            obj += np.cov(score_i, score_j)[0, 1]
         return -obj.item()
 
     def _early_stop(self, objective) -> bool:

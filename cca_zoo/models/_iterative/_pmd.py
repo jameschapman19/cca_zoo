@@ -122,7 +122,11 @@ class SCCA_PMD(PLS_ALS):
         for view_index, view in enumerate(views):
             targets = np.ma.array(scores, mask=False)
             targets.mask[view_index] = True
-            weights[view_index] = views[view_index].T @ targets.sum(axis=0).filled()/(views[0].shape[0]-1)
+            weights[view_index] = (
+                views[view_index].T
+                @ targets.sum(axis=0).filled()
+                / (views[0].shape[0] - 1)
+            )
             weights[view_index] = _delta_search(
                 weights[view_index],
                 self.t[view_index],
