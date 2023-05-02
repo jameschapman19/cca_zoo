@@ -13,7 +13,6 @@ from cca_zoo.deepmodels import (
     objectives,
 )
 from cca_zoo.deepmodels import architectures
-
 # %%
 # Data
 # -----

@@ -20,7 +20,7 @@ class DTCCA(DCCA):
     """
 
     def __init__(
-        self, latent_dims: int, encoders=None, r: float = 0, eps: float = 1e-5, **kwargs
+            self, latent_dims: int, encoders=None, r: float = 0, eps: float = 1e-5, **kwargs
     ):
         super().__init__(
             latent_dims=latent_dims,

@@ -79,21 +79,21 @@ class ElasticCCA(_BaseIterative):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-3,
-        alpha: Union[Iterable[float], float] = None,
-        l1_ratio: Union[Iterable[float], float] = None,
-        stochastic=False,
-        positive: Union[Iterable[bool], bool] = None,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-3,
+            alpha: Union[Iterable[float], float] = None,
+            l1_ratio: Union[Iterable[float], float] = None,
+            stochastic=False,
+            positive: Union[Iterable[bool], bool] = None,
+            verbose=0,
     ):
         self.alpha = alpha
         self.l1_ratio = l1_ratio
@@ -205,20 +205,20 @@ class SCCA_IPLS(ElasticCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        tau: Union[Iterable[float], float] = None,
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "pls",
-        tol: float = 1e-3,
-        stochastic=False,
-        positive: Union[Iterable[bool], bool] = None,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            tau: Union[Iterable[float], float] = None,
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "pls",
+            tol: float = 1e-3,
+            stochastic=False,
+            positive: Union[Iterable[bool], bool] = None,
+            verbose=0,
     ):
         self.tau = tau
         super().__init__(
@@ -264,8 +264,8 @@ class SCCA_IPLS(ElasticCCA):
             )
             _check_converged_weights(weights[view_index], view_index)
             weights[view_index] = weights[view_index] / (
-                np.linalg.norm(views[view_index] @ weights[view_index])
-                / np.sqrt(self.n)
+                    np.linalg.norm(views[view_index] @ weights[view_index])
+                    / np.sqrt(self.n)
             )
             scores[view_index] = views[view_index] @ weights[view_index]
         return scores, weights

@@ -112,7 +112,6 @@ plt.plot(np.array(scca_pos.track["objective"][0]))
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
-
 elasticcca = ElasticCCA(alpha=[1e-2, 1e-2], l1_ratio=[0.5, 0.5]).fit([X, Y])
 plot_model_weights(
     elasticcca.weights[0], elasticcca.weights[1], tx, ty, title="ELastic CCA"
@@ -124,7 +123,6 @@ plt.plot(np.array(elasticcca.track["objective"][0]))
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
-
 altmaxvar = AltMaxVar(tau=[1e-5, 1e-5]).fit([X, Y])
 plot_model_weights(
     altmaxvar.weights[0], altmaxvar.weights[1], tx, ty, title="AltMaxVar"
@@ -135,7 +133,6 @@ plt.title("Objective Convergence")
 plt.plot(np.array(altmaxvar.track["objective"][0]))
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
-
 
 spancca = SCCA_Span(tau=[10, 10], max_iter=2000, rank=20).fit([X, Y])
 plot_model_weights(spancca.weights[0], spancca.weights[1], tx, ty, title="Span CCA")

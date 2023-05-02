@@ -8,38 +8,47 @@
 
 # CCA-Zoo
 
-`cca-zoo` is a collection of linear, kernel, and deep methods for canonical correlation analysis of multiview data. 
-Where possible it follows the `scikit-learn`/`mvlearn` APIs and models therefore have `fit`/`transform`/`fit_transform` methods as standard.
+`cca-zoo` is a collection of linear, kernel, and deep methods for canonical correlation analysis of multiview data.
+Where possible it follows the `scikit-learn`/`mvlearn` APIs and models therefore have `fit`/`transform`/`fit_transform`
+methods as standard.
 
 ## Installation
 
-Dependency of some implemented algorithms are heavy, such as `pytorch` and `numpyro`. 
+Dependency of some implemented algorithms are heavy, such as `pytorch` and `numpyro`.
 We provide several options to accomodate the user's needs.
 For full details of algorithms included, please refer to section [Implemented Methods](#implemented-methods)
 
-Standard installation: 
+Standard installation:
 
 ```
 pip install cca-zoo
 ```
+
 For deep learning elements use:
+
 ```
 pip install cca-zoo[deep]
 ```
 
 For probabilistic elements use:
+
 ```
 pip install cca-zoo[probabilistic]
 ```
+
 ## Documentation
+
 Available at https://cca-zoo.readthedocs.io/en/latest/
-  
+
 ## Citation:
-CCA-Zoo is intended as research software. Citations and use of our software help us justify the effort which has gone into, and will keep going into, maintaining and growing this project. Stars on the repo are also greatly appreciated :)
+
+CCA-Zoo is intended as research software. Citations and use of our software help us justify the effort which has gone
+into, and will keep going into, maintaining and growing this project. Stars on the repo are also greatly appreciated :)
 
 If you have used CCA-Zoo in your research, please consider citing our JOSS paper:
 
-Chapman et al., (2021). CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods in a scikit-learn style framework. Journal of Open Source Software, 6(68), 3823, https://doi.org/10.21105/joss.03823
+Chapman et al., (2021). CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods
+in a scikit-learn style framework. Journal of Open Source Software, 6(68), 3823, https://doi.org/10.21105/joss.03823
 
 With bibtex entry:
 
@@ -59,6 +68,7 @@ With bibtex entry:
 ```
 
 ## Contributions
+
 A guide to contributions is available at https://cca-zoo.readthedocs.io/en/latest/developer_info/contribute.html
 
 ## Sources
@@ -78,7 +88,8 @@ MATLAB implementation of SPLS by [@jmmonteiro](https://github.com/jmmonteiro/spl
 
 Keras implementation of DCCA from [@VahidooX's github page](https://github.com/VahidooX)
 
-The following are the other implementations of DCCA in MATLAB and C++. These codes are written by the authors of the original paper:
+The following are the other implementations of DCCA in MATLAB and C++. These codes are written by the authors of the
+original paper:
 
 [Torch implementation](https://github.com/Michaelvll/DeepCCA) of DCCA from @MichaelVll & @Arminarj
 

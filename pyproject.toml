@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["jameschapman19 <james.chapman.19@ucl.ac.uk>"]
 readme = "README.md"
-packages = [{include = "cca_zoo"}]
+packages = [{ include = "cca_zoo" }]
 
 [tool.poetry.dependencies]
 python = "^3.8"

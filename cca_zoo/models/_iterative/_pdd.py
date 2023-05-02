@@ -10,20 +10,20 @@ from cca_zoo.utils import _process_parameter
 
 class AltMaxVar(_BaseIterative):
     def __init__(
-        self,
-        latent_dims=1,
-        scale=True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        tol=1e-3,
-        proximal="L1",
-        positive=False,
-        tau: Union[Iterable[float], float] = None,
-        proximal_params: Iterable[dict] = None,
-        gamma=0.1,
-        learning_rate=0.001,
-        T=100,
+            self,
+            latent_dims=1,
+            scale=True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            tol=1e-3,
+            proximal="L1",
+            positive=False,
+            tau: Union[Iterable[float], float] = None,
+            proximal_params: Iterable[dict] = None,
+            gamma=0.1,
+            learning_rate=0.001,
+            T=100,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -74,7 +74,7 @@ class AltMaxVar(_BaseIterative):
         for view in range(self.n_views):
             while t < self.T and not converged:
                 weights[view] -= self.learning_rate * (
-                    views[view].T @ (views[view] @ weights[view] - self.G)
+                        views[view].T @ (views[view] @ weights[view] - self.G)
                 )
                 weights[view] = self.proximal_operator[view].prox(
                     weights[view], self.learning_rate

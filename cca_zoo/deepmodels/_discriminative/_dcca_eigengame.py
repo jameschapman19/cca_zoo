@@ -25,7 +25,7 @@ class DCCA_EigenGame(DCCA):
         z = self(views)
         A, B = self.get_AB(z)
         rewards = 2 * torch.trace(A)
-        penalties = torch.trace(A @ B).sum()
+        penalties = torch.trace(A @ B)
         return {
             "objective": -rewards.sum() + penalties,
             "rewards": rewards.sum(),
@@ -41,6 +41,6 @@ class DCCA_EigenGame(DCCA):
                 if i == j:
                     B += torch.cov(zi.T)
                 A += torch.cov(torch.hstack((zi, zj)).T)[
-                    self.latent_dims :, : self.latent_dims
-                ]
+                     self.latent_dims:, : self.latent_dims
+                     ]
         return A / len(z), B / len(z)

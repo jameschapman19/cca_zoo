@@ -34,6 +34,5 @@ setup(
     tests_require=[],
 )
 
-
 with open("requirements.txt", "r") as f:
     REQUIRED_PACKAGES = f.read()

@@ -1,53 +1,57 @@
 ---
-title: 'CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods in a scikit-learn style framework'
+title: 'CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods in a
+scikit-learn style framework'
 tags:
-  - Python
-  - Multiview
-  - Machine Learning 
-authors:
-  - name: James Chapman 
-    orcid: 0000-0002-9364-8118 
-    affiliation: 1
-  - name: Hao-Ting Wang 
-    orcid: 0000-0003-4078-2038 
-    affiliation: "2, 3" 
-affiliations:
-  - name: Centre for Medical Image Computing, University College London, London, UK 
-    index: 1
-  - name: Centre de Recherche de l'Institut Universitaire de Gériatrie de Montréal, Université de Montréal, Montréal, QC, Canada
-    index: 2 
-  - name: Centre de Recherche de l'Hôpital du Sacré Coeur de Montréal, Université de Montréal, Montréal, QC, Canada
-    index: 3 
-date: 1 September 2021 
-bibliography: paper.bib
+
+- Python
+- Multiview
+- Machine Learning
+  authors:
+- name: James Chapman
+  orcid: 0000-0002-9364-8118
+  affiliation: 1
+- name: Hao-Ting Wang
+  orcid: 0000-0003-4078-2038
+  affiliation: "2, 3"
+  affiliations:
+- name: Centre for Medical Image Computing, University College London, London, UK
+  index: 1
+- name: Centre de Recherche de l'Institut Universitaire de Gériatrie de Montréal, Université de Montréal, Montréal, QC,
+  Canada
+  index: 2
+- name: Centre de Recherche de l'Hôpital du Sacré Coeur de Montréal, Université de Montréal, Montréal, QC, Canada
+  index: 3
+  date: 1 September 2021
+  bibliography: paper.bib
+
 ---
 
 # Summary
 
-Multi-view data has gained visibility in scientific research. Examples include different languages in natural language 
+Multi-view data has gained visibility in scientific research. Examples include different languages in natural language
 processing, as well as neuroimaging, multiomics and audiovisual data. Canonical Correlation Analysis (CCA)
 [@hotelling1992relations]  and Partial Least Squares (PLS) are classical methods for investigating and quantifying
 multivariate relationships between these views of data. The goal of CCA and its variants is to find projections (and
 associated weights) for each view of the data into a latent space where they are highly correlated.
 
-The original CCA is constrained by the sample-to-feature ratio. The algorithm cannot produce a solution when the number 
-of features in one view exceeds the number of samples. To overcome this restriction, the original CCA has been developed 
-into a family of models which include regularised [@vinod1976canonical], kernelized [@hardoon2004canonical], 
-probabilistic/generative [@bach2005probabilistic], and deep learning based [@andrew2013deep] variants. In particular 
-these variations have allowed practitioners to apply these models to complex, high dimensional data. Similarly, 
-variants of PLS have been proposed including the widely used Penalized Matrix Decomposition algorithm 
+The original CCA is constrained by the sample-to-feature ratio. The algorithm cannot produce a solution when the number
+of features in one view exceeds the number of samples. To overcome this restriction, the original CCA has been developed
+into a family of models which include regularised [@vinod1976canonical], kernelized [@hardoon2004canonical],
+probabilistic/generative [@bach2005probabilistic], and deep learning based [@andrew2013deep] variants. In particular
+these variations have allowed practitioners to apply these models to complex, high dimensional data. Similarly,
+variants of PLS have been proposed including the widely used Penalized Matrix Decomposition algorithm
 [@witten2009penalized] which induces sparsity in the weight vectors for interpretability and generalisation.
 
-`cca-zoo` is a Python package that implements many variants in a simple API with standardised outputs. We would like to 
-highlight the unique benefits our package brings to the community in comparison to other established Python packages 
-containing implementations of CCA. Firstly, `cca-zoo` contains a number of regularised CCA and PLS for high dimensional 
-data that have previously only been available in installable packages in R. Native Python implementation will give 
-Python users convenient access to these powerful models for both application and the development of new algorithms. 
-Secondly,`cca-zoo` contains several deep CCA variants written in PyTorch [@paszke2019pytorch]. We adopted a modular 
-style allowing users to apply their desired neural network architectures for each view for their own training pipeline. 
-Thirdly, `cca-zoo` contains generative models including probabilistic and deep variational CCA. This class of variations 
-can be used to model the multiview data generation process and even generate new synthetic samples. Finally, `cca-zoo` 
-provides data simulation utilities to synthesize data containing specified correlation structures as well as the paired 
+`cca-zoo` is a Python package that implements many variants in a simple API with standardised outputs. We would like to
+highlight the unique benefits our package brings to the community in comparison to other established Python packages
+containing implementations of CCA. Firstly, `cca-zoo` contains a number of regularised CCA and PLS for high dimensional
+data that have previously only been available in installable packages in R. Native Python implementation will give
+Python users convenient access to these powerful models for both application and the development of new algorithms.
+Secondly,`cca-zoo` contains several deep CCA variants written in PyTorch [@paszke2019pytorch]. We adopted a modular
+style allowing users to apply their desired neural network architectures for each view for their own training pipeline.
+Thirdly, `cca-zoo` contains generative models including probabilistic and deep variational CCA. This class of variations
+can be used to model the multiview data generation process and even generate new synthetic samples. Finally, `cca-zoo`
+provides data simulation utilities to synthesize data containing specified correlation structures as well as the paired
 MNIST data commonly used as a toy dataset in deep multiview learning.
 
 # Statement of need
@@ -88,34 +92,34 @@ tag is provided below.
 
 A complete model list at the time of publication:
 
-| Model Class | Model Name | Number of Views | Install |
-| -------- | -------- | ------ |-----|
-| CCA   | Canonical Correlation Analysis | 2   | standard |
-| rCCA   | Canonical Ridge | 2   | standard |
-| KCCA   | Kernel Canonical Correlation Analysis | 2   | standard |
-| MCCA   | Multiset Canonical Correlation Analysis | \>=2   | standard |
-| KMCCA   | Kernel Multiset Canonical Correlation Analysis | \>=2   | standard |
-| GCCA   | Generalized Canonical Correlation Analysis | \>=2   | standard |
-| KGCCA   | Kernel Generalized Canonical Correlation Analysis | \>=2   | standard |
-| PLS   | Partial Least Squares | \>=2   | standard |
-| CCA_ALS   | Canonical Correlation Analysis by Alternating Least Squares) [@golub1995canonical] | \>=2   | standard |
-| PLS_ALS   | Partial Least Squares by Alternating Least Squares)  | \>=2   | standard |
-| SCCA_PMD   | Sparse CCA by Penalized Matrix Decomposition | \>=2   | standard |
-| ElasticCCA   | Sparse Penalized CCA [@waaijenborg2008quantifying] | \>=2   | standard |
-| ParkhomenkoCCA   | Sparse CCA [@parkhomenko2009sparse] | \>=2   | standard |
-| SCCA_IPLS   | Sparse Canonical Correlation Analysis by Iterative Least Squares [@mai2019iterative] | \>=2   | standard |
-| SCCA_ADMM   | Sparse Canonical Correlation Analysis by Altnerating Direction Method of Multipliers [@suo2017sparse] | \>=2   | standard |
-| SCCA_Span   | Sparse Diagonal Canonical Correlation Analysis [@asteris2016simple] | \>=2   | standard |
-| SWCCA   | Sparse Weighted Canonical Correlation Analysis [@wenwen2018sparse] | \>=2   | standard |
-| TCCA   | Tensor Canonical Correlation Analysis | \>=2   | standard |
-| KTCCA   | Kernel Tensor Canonical Correlation Analysis [@kim2007tensor] | \>=2   | standard |
-| DCCA   | Deep Canonical Correlation Analysis | \>=2   | deep |
-| DCCA_NOI   | Deep Canonical Correlation Analysis by Non-Linear Orthogonal Iterations [@wang2015stochastic] | \>=2   | deep |
-| DCCAE   | Deep Canonically Correlated Autoencoders [@wang2015deep] | \>=2   | deep |
-| DTCCA   | Deep Tensor Canonical Correlation Analysis | \>=2   | deep |
-| SplitAE   | Split Autoencoders [@ngiam2011multimodal] | 2   | deep |
-| DVCCA   | Deep Variational Canonical Correlation Analysis | \>=2   | deep |
-| ProbabilisticCCA   | Probabilistic Canonical Correlation Analysis | 2   | probabilistic |
+| Model Class      | Model Name                                                                                            | Number of Views | Install       |
+|------------------|-------------------------------------------------------------------------------------------------------|-----------------|---------------|
+| CCA              | Canonical Correlation Analysis                                                                        | 2               | standard      |
+| rCCA             | Canonical Ridge                                                                                       | 2               | standard      |
+| KCCA             | Kernel Canonical Correlation Analysis                                                                 | 2               | standard      |
+| MCCA             | Multiset Canonical Correlation Analysis                                                               | \>=2            | standard      |
+| KMCCA            | Kernel Multiset Canonical Correlation Analysis                                                        | \>=2            | standard      |
+| GCCA             | Generalized Canonical Correlation Analysis                                                            | \>=2            | standard      |
+| KGCCA            | Kernel Generalized Canonical Correlation Analysis                                                     | \>=2            | standard      |
+| PLS              | Partial Least Squares                                                                                 | \>=2            | standard      |
+| CCA_ALS          | Canonical Correlation Analysis by Alternating Least Squares) [@golub1995canonical]                    | \>=2            | standard      |
+| PLS_ALS          | Partial Least Squares by Alternating Least Squares)                                                   | \>=2            | standard      |
+| SCCA_PMD         | Sparse CCA by Penalized Matrix Decomposition                                                          | \>=2            | standard      |
+| ElasticCCA       | Sparse Penalized CCA [@waaijenborg2008quantifying]                                                    | \>=2            | standard      |
+| ParkhomenkoCCA   | Sparse CCA [@parkhomenko2009sparse]                                                                   | \>=2            | standard      |
+| SCCA_IPLS        | Sparse Canonical Correlation Analysis by Iterative Least Squares [@mai2019iterative]                  | \>=2            | standard      |
+| SCCA_ADMM        | Sparse Canonical Correlation Analysis by Altnerating Direction Method of Multipliers [@suo2017sparse] | \>=2            | standard      |
+| SCCA_Span        | Sparse Diagonal Canonical Correlation Analysis [@asteris2016simple]                                   | \>=2            | standard      |
+| SWCCA            | Sparse Weighted Canonical Correlation Analysis [@wenwen2018sparse]                                    | \>=2            | standard      |
+| TCCA             | Tensor Canonical Correlation Analysis                                                                 | \>=2            | standard      |
+| KTCCA            | Kernel Tensor Canonical Correlation Analysis [@kim2007tensor]                                         | \>=2            | standard      |
+| DCCA             | Deep Canonical Correlation Analysis                                                                   | \>=2            | deep          |
+| DCCA_NOI         | Deep Canonical Correlation Analysis by Non-Linear Orthogonal Iterations [@wang2015stochastic]         | \>=2            | deep          |
+| DCCAE            | Deep Canonically Correlated Autoencoders [@wang2015deep]                                              | \>=2            | deep          |
+| DTCCA            | Deep Tensor Canonical Correlation Analysis                                                            | \>=2            | deep          |
+| SplitAE          | Split Autoencoders [@ngiam2011multimodal]                                                             | 2               | deep          |
+| DVCCA            | Deep Variational Canonical Correlation Analysis                                                       | \>=2            | deep          |
+| ProbabilisticCCA | Probabilistic Canonical Correlation Analysis                                                          | 2               | probabilistic |
 
 ## Documentation
 
@@ -133,6 +137,6 @@ Partial Least Squares models. We continue to welcome contributions from the comm
 
 JC is supported by the EPSRC-funded UCL Centre for Doctoral Training in Intelligent, Integrated Imaging in Healthcare (
 i4health) (EP/S021930/1) and the Department of Health’s NIHR-funded Biomedical Research Centre at University College
-London Hospitals. HTW is supported by funds from la Fondation Courtois awarded to Dr. Pierre Bellec. 
+London Hospitals. HTW is supported by funds from la Fondation Courtois awarded to Dr. Pierre Bellec.
 
 # References

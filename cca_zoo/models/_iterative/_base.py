@@ -9,8 +9,8 @@ from tqdm import tqdm
 
 from cca_zoo.models._base import _BaseCCA
 from cca_zoo.models._dummy import _DummyCCA
-from .._mcca import MCCA, KCCA
 from cca_zoo.models._rcca import rCCA
+from .._mcca import MCCA
 
 
 class _BaseIterative(_BaseCCA):
@@ -20,17 +20,17 @@ class _BaseIterative(_BaseCCA):
     """
 
     def __init__(
-        self,
-        latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
-        copy_data=True,
-        random_state=None,
-        deflation="cca",
-        max_iter: int = 100,
-        initialization: Union[str, callable] = "random",
-        tol: float = 1e-3,
-        verbose=0,
+            self,
+            latent_dims: int = 1,
+            scale: bool = True,
+            centre=True,
+            copy_data=True,
+            random_state=None,
+            deflation="cca",
+            max_iter: int = 100,
+            initialization: Union[str, callable] = "random",
+            tol: float = 1e-3,
+            verbose=0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -60,9 +60,9 @@ class _BaseIterative(_BaseCCA):
         residuals = copy.deepcopy(list(views))
         self.track = {"objective": {}}
         for k in (
-            tqdm(range(self.latent_dims), desc="latent dimension")
-            if self.verbose > 0
-            else range(self.latent_dims)
+                tqdm(range(self.latent_dims), desc="latent dimension")
+                if self.verbose > 0
+                else range(self.latent_dims)
         ):
             initial_weights = [w[:, k] for w in initializer.weights]
             weights, self.track["objective"][k] = self._fit(
@@ -76,9 +76,9 @@ class _BaseIterative(_BaseCCA):
     def _fit(self, views, scores, weights):
         objective = []
         for t in (
-            tqdm(range(self.max_iter), desc="inner loop iterations")
-            if self.verbose > 1
-            else range(self.max_iter)
+                tqdm(range(self.max_iter), desc="inner loop iterations")
+                if self.verbose > 1
+                else range(self.max_iter)
         ):
             self._initialize(views)
             scores, weights = self._update(views, scores, weights)
@@ -127,9 +127,9 @@ class _BaseIterative(_BaseCCA):
     def _early_stop(self, objective) -> bool:
         # Some kind of early stopping
         if (
-            np.abs(objective[-1] - objective[-2])
-            / np.abs(objective[-1] + objective[-2])
-            < self.tol
+                np.abs(objective[-1] - objective[-2])
+                / np.abs(objective[-1] + objective[-2])
+                < self.tol
         ):
             return True
         else:
