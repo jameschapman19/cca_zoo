@@ -72,21 +72,21 @@ class SCCA_ADMM(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            deflation="cca",
-            tau: Union[Iterable[float], float] = None,
-            mu: Union[Iterable[float], float] = None,
-            lam: Union[Iterable[float], float] = None,
-            eta: Union[Iterable[float], float] = None,
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "pls",
-            tol: float = 1e-3,
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        deflation="cca",
+        tau: Union[Iterable[float], float] = None,
+        mu: Union[Iterable[float], float] = None,
+        lam: Union[Iterable[float], float] = None,
+        eta: Union[Iterable[float], float] = None,
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "pls",
+        tol: float = 1e-3,
+        verbose=0,
     ):
         self.tau = tau
         self.mu = mu
@@ -142,9 +142,9 @@ class SCCA_ADMM(_BaseIterative):
                     / lam
                     * views[view_index].T
                     @ (
-                            views[view_index] @ weights[view_index]
-                            - self.z[view_index]
-                            + self.eta[view_index]
+                        views[view_index] @ weights[view_index]
+                        - self.z[view_index]
+                        + self.eta[view_index]
                     ),
                     mu,
                     gradient,
@@ -159,9 +159,9 @@ class SCCA_ADMM(_BaseIterative):
                     views[view_index] @ weights[view_index] + self.eta[view_index]
                 )
                 self.eta[view_index] = (
-                        self.eta[view_index]
-                        + views[view_index] @ weights[view_index]
-                        - self.z[view_index]
+                    self.eta[view_index]
+                    + views[view_index] @ weights[view_index]
+                    - self.z[view_index]
                 )
                 norm_eta.append(np.linalg.norm(self.eta[view_index]))
                 norm_proj.append(

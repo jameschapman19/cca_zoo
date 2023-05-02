@@ -69,19 +69,19 @@ class SCCA_PMD(PLS_ALS):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            deflation="cca",
-            tau: Union[Iterable[float], float] = None,
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "pls",
-            tol: float = 1e-3,
-            positive: Union[Iterable[bool], bool] = None,
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        deflation="cca",
+        tau: Union[Iterable[float], float] = None,
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "pls",
+        tol: float = 1e-3,
+        positive: Union[Iterable[bool], bool] = None,
+        verbose=0,
     ):
         self.tau = tau
         self.positive = positive
@@ -123,9 +123,9 @@ class SCCA_PMD(PLS_ALS):
             targets = np.ma.array(scores, mask=False)
             targets.mask[view_index] = True
             weights[view_index] = (
-                    views[view_index].T
-                    @ targets.sum(axis=0).filled()
-                    / (views[0].shape[0] - 1)
+                views[view_index].T
+                @ targets.sum(axis=0).filled()
+                / (views[0].shape[0] - 1)
             )
             weights[view_index] = _delta_search(
                 weights[view_index],

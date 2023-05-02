@@ -20,22 +20,22 @@ class GradKCCA(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            proj: Union[Iterable[float], float] = "l1",
-            kernel: Iterable[Union[float, callable]] = None,
-            gamma: Iterable[float] = None,
-            degree: Iterable[float] = None,
-            coef0: Iterable[float] = None,
-            kernel_params: Iterable[dict] = None,
-            repetitions=5,
-            initialization: Union[str, callable] = "random",
-            nystrom=False,
-            nystrom_components=100,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        proj: Union[Iterable[float], float] = "l1",
+        kernel: Iterable[Union[float, callable]] = None,
+        gamma: Iterable[float] = None,
+        degree: Iterable[float] = None,
+        coef0: Iterable[float] = None,
+        kernel_params: Iterable[dict] = None,
+        repetitions=5,
+        initialization: Union[str, callable] = "random",
+        nystrom=False,
+        nystrom_components=100,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -107,9 +107,9 @@ class GradKCCA(_BaseIterative):
 
     def _objective(self, views, scores, weights) -> int:
         return (
-                scores[0].T
-                @ scores[1]
-                / (np.sqrt(scores[0].T @ scores[0]) * np.sqrt(scores[1].T @ scores[1]))
+            scores[0].T
+            @ scores[1]
+            / (np.sqrt(scores[0].T @ scores[0]) * np.sqrt(scores[1].T @ scores[1]))
         )
 
     def _proj_l1(self, v, b):

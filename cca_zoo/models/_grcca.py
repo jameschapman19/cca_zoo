@@ -37,15 +37,15 @@ class GRCCA(MCCA):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            eps=1e-3,
-            c: float = 0,
-            mu: float = 0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        eps=1e-3,
+        c: float = 0,
+        mu: float = 0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -120,7 +120,7 @@ class GRCCA(MCCA):
         for i, (view, group) in enumerate(zip(views, groups)):
             if self.c[i] > 0:
                 weights_1 = self.weights[i][: len(group)]
-                weights_2 = self.weights[i][len(group):]
+                weights_2 = self.weights[i][len(group) :]
                 ids, unique_inverse, unique_counts, group_means = _group_mean(
                     weights_1.T, group
                 )

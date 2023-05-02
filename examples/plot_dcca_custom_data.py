@@ -6,6 +6,7 @@ This example demonstrates how to use your own multiview datasets with CCA-Zoo.
 """
 
 import numpy as np
+
 # %%
 # Imports
 # -----

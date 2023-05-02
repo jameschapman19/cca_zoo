@@ -56,17 +56,17 @@ class PLS_ALS(_BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            max_iter: int = 100,
-            initialization: Union[str, callable] = "random",
-            tol: float = 1e-3,
-            deflation="pls",
-            verbose=0,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        max_iter: int = 100,
+        initialization: Union[str, callable] = "random",
+        tol: float = 1e-3,
+        deflation="pls",
+        verbose=0,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -88,9 +88,9 @@ class PLS_ALS(_BaseIterative):
             targets = np.ma.array(scores, mask=False)
             targets.mask[view_index] = True
             weights[view_index] = (
-                    views[view_index].T
-                    @ targets.sum(axis=0).filled()
-                    / (views[0].shape[0] - 1)
+                views[view_index].T
+                @ targets.sum(axis=0).filled()
+                / (views[0].shape[0] - 1)
             )
             weights[view_index] /= np.linalg.norm(weights[view_index])
             scores[view_index] = views[view_index] @ np.squeeze(
