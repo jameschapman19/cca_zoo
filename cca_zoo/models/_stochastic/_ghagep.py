@@ -176,7 +176,7 @@ class PLSGHAGEP(PLSEigenGame):
         epochs=1,
         learning_rate=1,
         momentum=0,
-        line_search=True,
+        line_search=False,
         rho=0.1,
         ensure_descent=True,
         initialization="random",
