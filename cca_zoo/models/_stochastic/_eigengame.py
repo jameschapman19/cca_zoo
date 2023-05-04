@@ -105,6 +105,7 @@ class CCAEigenGame(_BaseStochastic):
         self.line_search = line_search
         self.ensure_descent = ensure_descent
         self.velocity = None
+        self.previous_views = None
 
     def _split_weights(self, views, weights):
         splits = np.cumsum([0] + [view.shape[1] for view in views])
@@ -189,37 +190,30 @@ class CCAEigenGame(_BaseStochastic):
             Bw.append((view.T @ projection) / (projection.shape[0] - 1))
         return np.vstack(Bw) / len(views)
 
-    def _get_terms(self, views, u, projections=None, unbiased=False):
-        if projections is None:
-            projections = self.projections(views, u)
+    def _get_terms(self, views, u, unbiased=False):
         if unbiased and self.batch_size is not None:
-            # split views into two parts
-            views1 = [view[: view.shape[0] // 2] for view in views]
-            views2 = [view[view.shape[0] // 2 :] for view in views]
-            projections1 = projections[:, : views[0].shape[0] // 2]
-            projections2 = projections[:, views[0].shape[0] // 2 :]
+            if self.previous_views is None:
+                self.previous_views = views
+            projections = self.projections(self.previous_views, u)
+            Aw = self._Aw(self.previous_views, projections)
+            projections = self.projections(views, u)
+            Bw = self._Bw(views, projections, u)
+            self.previous_views = views
         else:
-            views1 = views
-            views2 = views
-            projections1 = projections
-            projections2 = projections
-        Aw = self._Aw(views1, projections1)
-        Bw = self._Bw(views2, projections2, u)
+            projections = self.projections(views, u)
+            Aw = self._Aw(views, projections)
+            Bw = self._Bw(views, projections, u)
         wAw = u.T @ Aw
         wBw = u.T @ Bw
         return Aw, Bw, wAw, wBw
 
-    def objective(self, views, u=None, k=None, projections=None):
+    def objective(self, views, u=None):
         # if u is a list type
         if isinstance(u, list):
             u = np.vstack(u)
-        if k is None:
-            k = self.latent_dims
-        if projections is None:
-            projections = self.projections(views, u)
-        Aw, Bw, wAw, wBw = self._get_terms(views, u, projections=projections)
-        return -2 * np.trace(wAw[: k + 1, : k + 1]) + np.trace(
-            wAw[: k + 1, : k + 1] @ wBw[: k + 1, : k + 1]
+        Aw, Bw, wAw, wBw = self._get_terms(views, u)
+        return -2 * np.trace(wAw) + np.trace(
+            wAw@ wBw
         )
 
     def projections(self, views, u):

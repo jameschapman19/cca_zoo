@@ -69,7 +69,7 @@ class _BaseStochastic(_BaseCCA):
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_inputs(views)
         self._check_params()
-        train_dataloader, val_dataloader = self.get_dataloader(views)
+        self.train_dataloader, self.val_dataloader = self.get_dataloader(views)
         self.track = []
         initializer = _default_initializer(
             views, self.initialization, self.random_state, self.latent_dims
@@ -78,13 +78,13 @@ class _BaseStochastic(_BaseCCA):
         self.weights = [weights.astype(np.float32) for weights in self.weights]
         stop = False
         for _ in range(self.epochs):
-            for i, sample in enumerate(train_dataloader):
+            for i, sample in enumerate(self.train_dataloader):
                 stop = self._update(sample["views"])
             if self.val_split is not None:
-                for i, sample in enumerate(val_dataloader):
-                    self.track.append(self.objective(sample["views"], u=self.weights))
+                for i, sample in enumerate(self.val_dataloader):
+                    self.track.append(self.objective(sample["views"], self.weights))
             else:
-                self.track.append(self.objective(views, u=self.weights))
+                self.track.append(self.objective(views, self.weights))
             if stop:
                 break
         return self
