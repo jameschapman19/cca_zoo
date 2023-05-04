@@ -212,9 +212,7 @@ class CCAEigenGame(_BaseStochastic):
         if isinstance(u, list):
             u = np.vstack(u)
         Aw, Bw, wAw, wBw = self._get_terms(views, u)
-        return -2 * np.trace(wAw) + np.trace(
-            wAw@ wBw
-        )
+        return -2 * np.trace(wAw) + np.trace(wAw @ wBw)
 
     def projections(self, views, u):
         u = self._split_weights(views, u)
