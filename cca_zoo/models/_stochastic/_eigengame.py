@@ -165,7 +165,7 @@ class CCAEigenGame(_BaseStochastic):
         return step_size
 
     def grads(self, views, u=None):
-        Aw, Bw, wAw, wBw = self._get_terms(views, u)
+        Aw, Bw, wAw, wBw = self._get_terms(views, u, unbiased=True)
         grads = 2 * Aw - (Aw @ np.triu(wBw) * np.sign(np.diag(wAw)) + Bw @ np.triu(wAw))
         return -grads
 
@@ -189,11 +189,18 @@ class CCAEigenGame(_BaseStochastic):
             Bw.append((view.T @ projection) / (projection.shape[0] - 1))
         return np.vstack(Bw) / len(views)
 
-    def _get_terms(self, views, u, projections=None):
+    def _get_terms(self, views, u, projections=None, unbiased=False):
         if projections is None:
             projections = self.projections(views, u)
-        Aw = self._Aw(views, projections)
-        Bw = self._Bw(views, projections, u)
+        if unbiased:
+            #split views into two parts
+            views1 = [view[:view.shape[0]//2] for view in views]
+            views2 = [view[view.shape[0]//2:] for view in views]
+        else:
+            views1 = views
+            views2 = views
+        Aw = self._Aw(views1, projections)
+        Bw = self._Bw(views2, projections, u)
         wAw = u.T @ Aw
         wBw = u.T @ Bw
         return Aw, Bw, wAw, wBw
