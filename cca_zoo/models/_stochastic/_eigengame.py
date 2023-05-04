@@ -193,9 +193,9 @@ class CCAEigenGame(_BaseStochastic):
         if projections is None:
             projections = self.projections(views, u)
         if unbiased:
-            #split views into two parts
-            views1 = [view[:view.shape[0]//2] for view in views]
-            views2 = [view[view.shape[0]//2:] for view in views]
+            # split views into two parts
+            views1 = [view[: view.shape[0] // 2] for view in views]
+            views2 = [view[view.shape[0] // 2 :] for view in views]
         else:
             views1 = views
             views2 = views
