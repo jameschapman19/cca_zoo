@@ -41,6 +41,6 @@ class DCCA_EigenGame(DCCA):
                 if i == j:
                     B += torch.cov(zi.T)
                 A += torch.cov(torch.hstack((zi, zj)).T)[
-                     self.latent_dims:, : self.latent_dims
-                     ]
+                    self.latent_dims :, : self.latent_dims
+                ]
         return A / len(z), B / len(z)

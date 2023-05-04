@@ -54,30 +54,30 @@ class CCAEigenGame(_BaseStochastic):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            tol=1e-9,
-            accept_sparse=None,
-            batch_size=None,
-            shuffle=True,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            pin_memory=False,
-            drop_last=True,
-            timeout=0,
-            worker_init_fn=None,
-            epochs=1,
-            learning_rate=1,
-            initialization: Union[str, callable] = "random",
-            momentum=0,
-            line_search=False,
-            rho=0.1,
-            ensure_descent=False,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        tol=1e-9,
+        accept_sparse=None,
+        batch_size=None,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        learning_rate=1,
+        initialization: Union[str, callable] = "random",
+        momentum=0,
+        line_search=False,
+        rho=0.1,
+        ensure_descent=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -109,7 +109,7 @@ class CCAEigenGame(_BaseStochastic):
     def _split_weights(self, views, weights):
         splits = np.cumsum([0] + [view.shape[1] for view in views])
         weights = [
-            weights[split: splits[i + 1]] for i, split in enumerate(splits[:-1])
+            weights[split : splits[i + 1]] for i, split in enumerate(splits[:-1])
         ]
         return weights
 
@@ -150,7 +150,7 @@ class CCAEigenGame(_BaseStochastic):
 
             # Check if the objective function decreases with the updated solution
             if self.objective(views, u=updated_solution) < self.objective(
-                    views, u=self.weights
+                views, u=self.weights
             ) - 0.1 * step_size * np.linalg.norm(step_direction.T @ gradient):
                 break
 
@@ -173,7 +173,7 @@ class CCAEigenGame(_BaseStochastic):
         Aw = np.vstack(
             [
                 np.cov(view.T, projections.sum(axis=0).T)[
-                0: view.shape[1], view.shape[1]:
+                    0 : view.shape[1], view.shape[1] :
                 ]
                 for view in views
             ]
@@ -184,7 +184,7 @@ class CCAEigenGame(_BaseStochastic):
         weights = self._split_weights(views, u)
         Bw = []
         for i, (view, projection, weight) in enumerate(
-                zip(views, projections, weights)
+            zip(views, projections, weights)
         ):
             Bw.append((view.T @ projection) / (projection.shape[0] - 1))
         return np.vstack(Bw) / len(views)
@@ -273,30 +273,30 @@ class PLSEigenGame(CCAEigenGame):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            tol=1e-9,
-            accept_sparse=None,
-            batch_size=None,
-            shuffle=True,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            pin_memory=False,
-            drop_last=True,
-            timeout=0,
-            worker_init_fn=None,
-            epochs=1,
-            learning_rate=1,
-            momentum=0,
-            line_search=False,
-            rho=0.1,
-            ensure_descent=False,
-            initialization="random",
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        tol=1e-9,
+        accept_sparse=None,
+        batch_size=None,
+        shuffle=True,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        pin_memory=False,
+        drop_last=True,
+        timeout=0,
+        worker_init_fn=None,
+        epochs=1,
+        learning_rate=1,
+        momentum=0,
+        line_search=False,
+        rho=0.1,
+        ensure_descent=False,
+        initialization="random",
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -328,14 +328,14 @@ class PLSEigenGame(CCAEigenGame):
         Aw = np.vstack(
             [
                 np.cov(view, projections.sum(axis=0), rowvar=False)[
-                0: view.shape[1], view.shape[1]:
+                    0 : view.shape[1], view.shape[1] :
                 ]
                 for view in views
             ]
         ) - np.vstack(
             [
                 np.cov(view, projection, rowvar=False)[
-                0: view.shape[1], view.shape[1]:
+                    0 : view.shape[1], view.shape[1] :
                 ]
                 for view, projection in zip(views, projections)
             ]
@@ -346,7 +346,7 @@ class PLSEigenGame(CCAEigenGame):
         weights = self._split_weights(views, u)
         Bw = []
         for i, (view, projection, weight) in enumerate(
-                zip(views, projections, weights)
+            zip(views, projections, weights)
         ):
             Bw.append(weight)
         return np.vstack(Bw) / len(views)

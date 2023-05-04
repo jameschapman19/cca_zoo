@@ -11,16 +11,16 @@ from cca_zoo.utils import _process_parameter
 
 class LinearSimulatedData:
     def __init__(
-            self,
-            view_features: List[int],
-            latent_dims: int = 1,
-            view_sparsity: List[Union[int, float]] = None,
-            correlation: Union[List[float], float] = 0.99,
-            structure: Union[str, List[str]] = None,
-            sigma: Union[List[float], float] = None,
-            decay: float = 0.5,
-            positive=None,
-            random_state: Union[int, np.random.RandomState] = None,
+        self,
+        view_features: List[int],
+        latent_dims: int = 1,
+        view_sparsity: List[Union[int, float]] = None,
+        correlation: Union[List[float], float] = 0.99,
+        structure: Union[str, List[str]] = None,
+        sigma: Union[List[float], float] = None,
+        decay: float = 0.5,
+        positive=None,
+        random_state: Union[int, np.random.RandomState] = None,
     ):
         """
 
@@ -93,12 +93,12 @@ class LinearSimulatedData:
                 # Cross Bit
                 cross += covs[i] @ A @ covs[j]
             cov[
-            splits[i]: splits[i] + self.view_features[i],
-            splits[j]: splits[j] + self.view_features[j],
+                splits[i] : splits[i] + self.view_features[i],
+                splits[j] : splits[j] + self.view_features[j],
             ] = cross
             cov[
-            splits[j]: splits[j] + self.view_features[j],
-            splits[i]: splits[i] + self.view_features[i],
+                splits[j] : splits[j] + self.view_features[j],
+                splits[i] : splits[i] + self.view_features[i],
             ] = cross.T
         return cov
 
@@ -107,11 +107,11 @@ class LinearSimulatedData:
         covs = []
         true_features = []
         for view_p, sparsity, view_structure, view_positive, view_sigma in zip(
-                self.view_features,
-                self.view_sparsity,
-                self.structure,
-                self.positive,
-                self.sigma,
+            self.view_features,
+            self.view_sparsity,
+            self.structure,
+            self.positive,
+            self.sigma,
         ):
             cov = self._generate_covariance_matrix(view_p, view_structure, view_sigma)
             weights = self.random_state.randn(view_p, self.latent_dims)
@@ -154,12 +154,12 @@ class LinearSimulatedData:
 
 
 def simple_simulated_data(
-        n: int,
-        view_features: List[int],
-        view_sparsity: List[Union[int, float]] = None,
-        eps: float = 0,
-        transform=False,
-        random_state=None,
+    n: int,
+    view_features: List[int],
+    view_sparsity: List[Union[int, float]] = None,
+    eps: float = 0,
+    transform=False,
+    random_state=None,
 ):
     """
     Generate a simple simulated dataset with a single latent dimension
@@ -223,9 +223,9 @@ def _gaussian(x, mu, sig, dn):
     :param dn:
     """
     return (
-            np.exp(-np.power(x - mu, 2.0) / (2 * np.power(sig, 2.0)))
-            * dn
-            / (np.sqrt(2 * np.pi) * sig)
+        np.exp(-np.power(x - mu, 2.0) / (2 * np.power(sig, 2.0)))
+        * dn
+        / (np.sqrt(2 * np.pi) * sig)
     )
 
 
@@ -241,7 +241,7 @@ def _generate_gaussian_cov(p, sigma):
 
 def _generate_toeplitz_cov(p, sigma):
     c = np.arange(0, p)
-    c = sigma ** c
+    c = sigma**c
     cov = linalg.toeplitz(c, c)
     return cov
 

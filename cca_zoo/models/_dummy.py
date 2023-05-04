@@ -7,14 +7,14 @@ from cca_zoo.models._base import _BaseCCA
 
 class _DummyCCA(_BaseCCA):
     def __init__(
-            self,
-            latent_dims: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            accept_sparse=None,
-            uniform=False,
+        self,
+        latent_dims: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        accept_sparse=None,
+        uniform=False,
     ):
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]
