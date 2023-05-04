@@ -38,7 +38,7 @@ class _DummyCCA(_BaseCCA):
                 for view in views
             ]
         self.weights = [
-            weight / np.sqrt(np.diag(np.cov(view @ weight, rowvar=False)))
+            weight / np.sqrt(np.diag(np.atleast_1d(np.cov(view @ weight, rowvar=False))))
             for view, weight in zip(views, weights)
         ]
         return self
