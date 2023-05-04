@@ -193,11 +193,11 @@ class CCAEigenGame(_BaseStochastic):
         if projections is None:
             projections = self.projections(views, u)
         if unbiased and self.batch_size is not None:
-            #split views into two parts
-            views1 = [view[:view.shape[0]//2] for view in views]
-            views2 = [view[view.shape[0]//2:] for view in views]
-            projections1 = projections[:,:views[0].shape[0]//2]
-            projections2 = projections[:,views[0].shape[0]//2:]
+            # split views into two parts
+            views1 = [view[: view.shape[0] // 2] for view in views]
+            views2 = [view[view.shape[0] // 2 :] for view in views]
+            projections1 = projections[:, : views[0].shape[0] // 2]
+            projections2 = projections[:, views[0].shape[0] // 2 :]
         else:
             views1 = views
             views2 = views
