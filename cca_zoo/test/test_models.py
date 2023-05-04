@@ -302,7 +302,7 @@ def test_stochastic_cca():
         learning_rate=1e-2,
         line_search=False,
         ensure_descent=False,
-        momentum=0.5,
+        momentum=0,
     ).fit((X, Y))
     cca_score = cca.score((X, Y))
     egcca_score = egcca.score((X, Y))
