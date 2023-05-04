@@ -124,7 +124,7 @@ class SCCA_PMD(PLS_ALS):
             targets.mask[view_index] = True
             weights[view_index] = np.cov(
                 views[view_index], targets.sum(axis=0).filled(), rowvar=False
-            )[:, -1]
+            )[:-1, -1]
             weights[view_index] = _delta_search(
                 weights[view_index],
                 self.t[view_index],
