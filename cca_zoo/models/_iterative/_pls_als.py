@@ -87,11 +87,7 @@ class PLS_ALS(_BaseIterative):
             # mask off the current view and sum the rest
             targets = np.ma.array(scores, mask=False)
             targets.mask[view_index] = True
-            weights[view_index] = (
-                views[view_index].T
-                @ targets.sum(axis=0).filled()
-                / (views[0].shape[0] - 1)
-            )
+            weights[view_index] = np.cov(views[view_index], targets.sum(axis=0).filled(),rowvar=False)[:,-1]
             weights[view_index] /= np.linalg.norm(weights[view_index])
             scores[view_index] = views[view_index] @ np.squeeze(
                 np.array(weights[view_index])

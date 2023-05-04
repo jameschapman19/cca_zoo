@@ -37,5 +37,5 @@ class _DummyCCA(_BaseCCA):
                 self.random_state.normal(0, 1, size=(view.shape[1], self.latent_dims))
                 for view in views
             ]
-        self.weights = [weight / np.linalg.norm(weight, axis=0) for weight in weights]
+        self.weights = [weight / np.sqrt(np.diag(np.cov(view@weight,rowvar=False))) for view,weight in zip(views,weights)]
         return self
