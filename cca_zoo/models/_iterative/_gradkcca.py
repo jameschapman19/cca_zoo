@@ -4,14 +4,13 @@ import numpy as np
 import numpy.linalg as la
 from sklearn.kernel_approximation import Nystroem
 from sklearn.metrics import pairwise_kernels
-from sklearn.model_selection import train_test_split
 from sklearn.utils.validation import check_is_fitted
 
-from cca_zoo.models._iterative._base import _BaseIterative
-from cca_zoo.utils import _process_parameter, _check_views
+from cca_zoo.models._iterative._base import BaseIterative
+from cca_zoo.utils import _process_parameter
 
 
-class GradKCCA(_BaseIterative):
+class GradKCCA(BaseIterative):
     """
     References
     ----------
@@ -165,38 +164,8 @@ class GradKCCA(_BaseIterative):
 
     def transform(self, views: Iterable[np.ndarray], **kwargs):
         check_is_fitted(self, attributes=["weights"])
-        views = _check_views(*views)
         views = self._centre_scale_transform(views)
         scores = [
             self._get_kernel(i, view, self.weights[i].T) for i, view in enumerate(views)
         ]
         return scores
-
-
-def generate_data(n, p, q):
-    X = np.random.uniform(-1, 1, [n, p])
-    Y = np.random.uniform(-1, 1, [n, q])
-    Y[:, 2] = X[:, 2] + X[:, 3] - Y[:, 3] + np.random.normal(0, 0.05, n)
-    # Y[:,2] = np.power(X[:,2] + X[:,3],3) - Y[:,3] + np.random.normal(0,0.05,n)
-    # Y[:,4] = np.exp(X[:,4] + X[:,5]) - Y[:,5] + np.random.normal(0,0.05,n)
-    return X, Y
-
-
-def main():
-    import matplotlib.pyplot as plt
-
-    np.set_printoptions(precision=2)
-
-    X, Y = generate_data(1000, 8, 8)
-    Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y)
-
-    kernel1 = GradKCCA().fit((Xtrain, Ytrain))
-    print(f"Training Correlation: {kernel1.score((Xtrain, Ytrain))}")
-    print(f"Test Correlation: {kernel1.score((Xtest, Ytest))}")
-
-    plt.plot(*kernel1.transform((Xtrain, Ytrain)), "bo")
-    plt.show()
-
-
-if __name__ == "__main__":
-    main()

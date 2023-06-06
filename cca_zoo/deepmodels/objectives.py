@@ -38,24 +38,23 @@ class MCCA:
         self.eps = eps
 
     def loss(self, views):
-        n = views[0].shape[0]
         # Subtract the mean from each output
         views = _demean(views)
 
         # Concatenate all views and from this get the cross-covariance matrix
         all_views = torch.cat(views, dim=1)
-        C = all_views.T @ all_views / (n - 1)
+        C = torch.cov(all_views.T)
 
         # Get the block covariance matrix placing Xi^TX_i on the diagonal
         D = torch.block_diag(
             *[
-                (1 - self.r) * m.T @ m / (n - 1)
-                + self.r * torch.eye(m.shape[1], device=m.device)
-                for i, m in enumerate(views)
+                (1 - self.r) * torch.cov(view.T)
+                + self.r * torch.eye(view.shape[1], device=view.device)
+                for i, view in enumerate(views)
             ]
         )
 
-        C = C - torch.block_diag(*[view.T @ view / (n - 1) for view in views]) + D
+        C = C - torch.block_diag(*[torch.cov(view.T) for view in views]) + D
 
         R = _mat_pow(D, -0.5, self.eps)
 
@@ -100,13 +99,12 @@ class GCCA:
 
     def loss(self, views):
         # https: // www.uta.edu / math / _docs / preprint / 2014 / rep2014_04.pdf
-        n = views[0].shape[0]
+
         # H is n_views * n_samples * k
         views = _demean(views)
 
         eigen_views = [
-            view @ _mat_pow(view.T @ view / (n - 1), -1, self.eps) @ view.T
-            for view in views
+            view @ _mat_pow(torch.cov(view.T), -1, self.eps) @ view.T for view in views
         ]
 
         Q = torch.stack(eigen_views, dim=0).sum(dim=0)
@@ -163,13 +161,15 @@ class CCA:
 
         views = _demean(views)
 
-        SigmaHat12 = views[0].T @ views[1] / (n - 1)
-        SigmaHat11 = (1 - self.r) / (n - 1) * views[0].T @ views[
-            0
-        ] + self.r * torch.eye(o1, device=views[0].device)
-        SigmaHat22 = (1 - self.r) / (n - 1) * views[1].T @ views[
-            1
-        ] + self.r * torch.eye(o2, device=views[1].device)
+        SigmaHat12 = torch.cov(torch.hstack((views[0], views[1])).T)[
+            : self.latent_dims, self.latent_dims :
+        ]  # views[0].T @ views[1] / (n - 1)
+        SigmaHat11 = torch.cov(views[0].T) + self.r * torch.eye(
+            o1, device=views[0].device
+        )
+        SigmaHat22 = torch.cov(views[1].T) + self.r * torch.eye(
+            o2, device=views[1].device
+        )
 
         SigmaHat11RootInv = _mat_pow(SigmaHat11, -0.5, self.eps)
         SigmaHat22RootInv = _mat_pow(SigmaHat22, -0.5, self.eps)
@@ -194,21 +194,14 @@ class TCCA:
     """
 
     def __init__(self, latent_dims: int, r: float = 0, eps: float = 1e-4):
-        """
-
-        :param latent_dims: the number of latent dimensions
-        :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to the number of latent dimensions
-        :param eps: an epsilon parameter used in some operations
-        """
         self.latent_dims = latent_dims
         self.r = r
         self.eps = eps
 
     def loss(self, views):
-        n = views[0].shape[0]
         views = _demean(views)
         covs = [
-            (1 - self.r) * view.T @ view / (n - 1)
+            (1 - self.r) * torch.cov(view.T)
             + self.r * torch.eye(view.size(1), device=view.device)
             for view in views
         ]

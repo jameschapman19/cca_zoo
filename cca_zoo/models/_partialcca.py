@@ -4,7 +4,6 @@ import numpy as np
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo.models import MCCA
-from cca_zoo.utils import _check_views
 
 
 class PartialCCA(MCCA):
@@ -16,10 +15,6 @@ class PartialCCA(MCCA):
     ----------
     latent_dims : int, optional
         The number of latent dimensions to use, by default 1
-    scale : bool, optional
-        Whether to scale the data, by default True
-    centre : bool, optional
-        Whether to centre the data, by default True
     copy_data : bool, optional
         Whether to copy the data, by default True
     random_state : int, optional
@@ -43,26 +38,23 @@ class PartialCCA(MCCA):
 
     """
 
+
     def __init__(
         self,
         latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
     ):
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             random_state=random_state,
         )
-        self.c = c
+        self.c = c # store the regularization parameter
 
     def fit(self, views: Iterable[np.ndarray], y=None, partials=None, **kwargs):
-        super().fit(views, y=y, partials=partials, **kwargs)
+        super().fit(views, y=y, partials=partials, **kwargs) # call the parent class fit method
 
     def _setup_evp(self, views: Iterable[np.ndarray], partials=None, **kwargs):
         if partials is None:
@@ -70,30 +62,27 @@ class PartialCCA(MCCA):
                 f"partials is {partials}. Require matching partials to transform with"
                 f"partial CCA."
             )
-        self.confound_betas = [np.linalg.pinv(partials) @ view for view in views]
+        self.confound_betas = [np.linalg.pinv(partials) @ view for view in views] # compute the confounding betas for each view using pseudo-inverse of partials
         views = [
-            view - partials @ np.linalg.pinv(partials) @ view
+            view - partials @ np.linalg.pinv(partials) @ view # remove the confounding effect from each view using projection matrix
             for view, confound_beta in zip(views, self.confound_betas)
         ]
-        return super()._setup_evp(views)
+        return super()._setup_evp(views) # call the parent class _setup_evp method
 
-    # TODO TRANSFORM
     def transform(self, views: Iterable[np.ndarray], partials=None, **kwargs):
         if partials is None:
             raise ValueError(
                 f"partials is {partials}. Require matching partials to transform with"
                 f"partial CCA."
             )
-        check_is_fitted(self, attributes=["weights"])
-        _check_views(views)
-        views = [self.scalers[i].transform(view) for i, view in enumerate(views)]
+        check_is_fitted(self, attributes=["weights"]) # check if the model has been fitted before transforming
         transformed_views = []
         for i, (view) in enumerate(views):
             transformed_view = (
-                view - partials @ self.confound_betas[i]
-            ) @ self.weights[i]
-            transformed_views.append(transformed_view)
-        return transformed_views
+                view - partials @ self.confound_betas[i] # remove the confounding effect from each view using stored confounding betas
+            ) @ self.weights[i] # multiply each view by its corresponding weight matrix
+            transformed_views.append(transformed_view) # append the transformed view to the list of transformed views
+        return transformed_views # return the list of transformed views
 
     def _more_tags(self):
-        return {"multiview": True}
+        return {"multiview": True} # indicate that this model can handle multiview data

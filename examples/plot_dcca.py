@@ -14,7 +14,7 @@ from cca_zoo.deepmodels import (
     DCCA_NOI,
     DCCA_SDL,
     BarlowTwins,
-    DCCA_EigenGame,
+    DCCA_EY,
 )
 from cca_zoo.deepmodels import architectures
 from cca_zoo.plotting import pairplot_label
@@ -49,9 +49,7 @@ plt.show()
 # %%
 # Deep CCA EigenGame
 # ----------------------------
-dcca_eg = DCCA_EigenGame(
-    latent_dims=LATENT_DIMS, encoders=[encoder_1, encoder_2], lr=1e-5
-)
+dcca_eg = DCCA_EY(latent_dims=LATENT_DIMS, encoders=[encoder_1, encoder_2], lr=1e-5)
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,

@@ -1,5 +1,4 @@
 from .check_values import (
-    _check_views,
     _check_batch_size,
     _check_Parikh2014,
     _process_parameter,

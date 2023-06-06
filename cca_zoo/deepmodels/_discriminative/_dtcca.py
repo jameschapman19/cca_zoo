@@ -22,6 +22,7 @@ class DTCCA(DCCA):
     def __init__(
         self, latent_dims: int, encoders=None, r: float = 0, eps: float = 1e-5, **kwargs
     ):
+        # Call the parent class constructor with the DTCCA objective function
         super().__init__(
             latent_dims=latent_dims,
             objective=objectives.TCCA,
@@ -30,11 +31,3 @@ class DTCCA(DCCA):
             eps=eps,
             **kwargs
         )
-
-    def post_transform(self, z, train=False) -> Iterable[np.ndarray]:
-        if train:
-            self.cca = TCCA(latent_dims=self.latent_dims)
-            z = self.cca.fit_transform(z)
-        else:
-            z = self.cca.transform(z)
-        return z

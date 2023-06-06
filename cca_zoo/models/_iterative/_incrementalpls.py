@@ -2,10 +2,10 @@ from typing import Union
 
 import numpy as np
 
-from ._base import _BaseStochastic, tv
+from cca_zoo.models._iterative._base import BaseIterative
 
 
-class IncrementalPLS(_BaseStochastic):
+class IncrementalPLS(BaseIterative):
     r"""
     A class used to fit Incremental PLS
 
@@ -13,10 +13,6 @@ class IncrementalPLS(_BaseStochastic):
     ----------
     latent_dims : int, optional
         Number of latent dimensions to use, by default 1
-    scale : bool, optional
-        Whether to scale the data, by default True
-    centre : bool, optional
-        Whether to centre the data, by default True
     copy_data : bool, optional
         Whether to copy the data, by default True
     random_state : int, optional
@@ -25,22 +21,6 @@ class IncrementalPLS(_BaseStochastic):
         Whether to accept sparse data, by default None
     batch_size : int, optional
         Batch size to use, by default 1
-    shuffle : bool, optional
-        Whether to shuffle the data, by default True
-    sampler : torch.utils.data.Sampler, optional
-        Sampler to use, by default None
-    batch_sampler : torch.utils.data.Sampler, optional
-        Batch sampler to use, by default None
-    num_workers : int, optional
-        Number of workers to use, by default 0
-    pin_memory : bool, optional
-        Whether to pin memory, by default False
-    drop_last : bool, optional
-        Whether to drop the last batch, by default True
-    timeout : int, optional
-        Timeout to use, by default 0
-    worker_init_fn : function, optional
-        Worker init function to use, by default None
     epochs : int, optional
         Number of epochs to use, by default 1
     simple : bool, optional
@@ -54,40 +34,20 @@ class IncrementalPLS(_BaseStochastic):
     def __init__(
         self,
         latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
         copy_data=True,
         random_state=None,
         accept_sparse=None,
         batch_size=1,
-        shuffle=True,
-        sampler=None,
-        batch_sampler=None,
-        num_workers=0,
-        pin_memory=False,
-        drop_last=True,
-        timeout=0,
-        worker_init_fn=None,
         epochs=1,
         simple=False,
         initialization: Union[str, callable] = "random",
     ):
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             accept_sparse=accept_sparse,
             random_state=random_state,
             batch_size=batch_size,
-            shuffle=shuffle,
-            sampler=sampler,
-            batch_sampler=batch_sampler,
-            num_workers=num_workers,
-            pin_memory=pin_memory,
-            drop_last=drop_last,
-            timeout=timeout,
-            worker_init_fn=worker_init_fn,
             epochs=epochs,
             initialization=initialization,
         )
@@ -153,12 +113,3 @@ class IncrementalPLS(_BaseStochastic):
             @ Vt.T[:, : self.latent_dims]
         )
         self.S = S[: self.latent_dims]
-
-    def objective(self, views, **kwargs):
-        q = [np.linalg.qr(weight)[0] for weight in self.weights]
-        views = [self.scalers[i].transform(view) for i, view in enumerate(views)]
-        transformed_views = []
-        for i, (view) in enumerate(views):
-            transformed_view = view @ q[i]
-            transformed_views.append(transformed_view)
-        return tv(transformed_views)

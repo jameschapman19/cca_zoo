@@ -2,15 +2,13 @@ from typing import Iterable
 
 import numpy as np
 
-from cca_zoo.models._base import _BaseCCA
+from cca_zoo.models._base import BaseCCA
 
 
-class _DummyCCA(_BaseCCA):
+class DummyCCA(BaseCCA):
     def __init__(
         self,
         latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
         copy_data=True,
         random_state=None,
         accept_sparse=None,
@@ -20,8 +18,6 @@ class _DummyCCA(_BaseCCA):
             accept_sparse = ["csc", "csr"]
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             accept_sparse=accept_sparse,
             random_state=random_state,
@@ -29,17 +25,28 @@ class _DummyCCA(_BaseCCA):
         self.uniform = uniform
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        views = self._validate_inputs(views)
+        self._validate_data(views)
         if self.uniform:
-            weights = [np.ones((view.shape[1], self.latent_dims)) for view in views]
+            self.weights = [np.ones((view.shape[1], self.latent_dims)) for view in views]
         else:
-            weights = [
+            self.weights = [
                 self.random_state.normal(0, 1, size=(view.shape[1], self.latent_dims))
                 for view in views
             ]
+        self.normalize_weights(views)
+        return self
+
+    def normalize_weights(self,views):
         self.weights = [
             weight
             / np.sqrt(np.diag(np.atleast_1d(np.cov(view @ weight, rowvar=False))))
-            for view, weight in zip(views, weights)
+            for view, weight in zip(views, self.weights)
         ]
-        return self
+
+class DummyPLS(DummyCCA):
+    def normalize_weights(self,views):
+        self.weights = [
+            weight
+            / np.linalg.norm(weight, axis=0)
+            for view, weight in zip(views, self.weights)
+        ]

@@ -4,11 +4,11 @@ import numpy as np
 from sklearn.metrics import pairwise_kernels
 from sklearn.neighbors import NearestNeighbors
 
-from cca_zoo.models._base import _BaseCCA
-from cca_zoo.utils.check_values import _process_parameter, _check_views
+from cca_zoo.models._base import BaseCCA
+from cca_zoo.utils.check_values import _process_parameter
 
 
-class NCCA(_BaseCCA):
+class NCCA(BaseCCA):
     """
     A class used to fit nonparametric (NCCA) model.
 
@@ -29,8 +29,6 @@ class NCCA(_BaseCCA):
     def __init__(
         self,
         latent_dims: int = 1,
-        scale=True,
-        centre=True,
         copy_data=True,
         accept_sparse=False,
         random_state: Union[int, np.random.RandomState] = None,
@@ -38,20 +36,23 @@ class NCCA(_BaseCCA):
         gamma: Iterable[float] = None,
     ):
         super().__init__(
-            latent_dims, scale, centre, copy_data, accept_sparse, random_state
+            latent_dims=latent_dims,
+            copy_data=copy_data,
+            accept_sparse=accept_sparse,
+            random_state=random_state,
         )
         self.nearest_neighbors = nearest_neighbors
         self.gamma = gamma
 
     def _check_params(self):
         self.nearest_neighbors = _process_parameter(
-            "nearest_neighbors", self.nearest_neighbors, 1, self.n_views
+            "nearest_neighbors", self.nearest_neighbors, 1, self.n_views_
         )
-        self.gamma = _process_parameter("gamma", self.gamma, None, self.n_views)
-        self.kernel = _process_parameter("kernel", None, "rbf", self.n_views)
+        self.gamma = _process_parameter("gamma", self.gamma, None, self.n_views_)
+        self.kernel = _process_parameter("kernel", None, "rbf", self.n_views_)
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        views = self._validate_inputs(views)
+        self._validate_data(views)
         self._check_params()
         self.train_views = views
         self.knns = [
@@ -70,14 +71,12 @@ class NCCA(_BaseCCA):
         ]
         S = self.Ws[0] @ self.Ws[1]
         U, S, Vt = np.linalg.svd(S)
-        self.f = U[:, 1 : self.latent_dims + 1] * np.sqrt(self.n)
-        self.g = Vt[1 : self.latent_dims + 1, :].T * np.sqrt(self.n)
+        self.f = U[:, 1 : self.latent_dims + 1] * np.sqrt(self.n_samples_)
+        self.g = Vt[1 : self.latent_dims + 1, :].T * np.sqrt(self.n_samples_)
         self.S = S[1 : self.latent_dims + 1]
         return self
 
     def transform(self, views: Iterable[np.ndarray], **kwargs):
-        _check_views(views)
-        views = [self.scalers[i].transform(view) for i, view in enumerate(views)]
         nns = [
             self.knns[i].kneighbors(view, self.nearest_neighbors[i])
             for i, view in enumerate(views)

@@ -15,10 +15,6 @@ class GRCCA(MCCA):
     ----------
     latent_dims : int, default=1
         Number of latent dimensions to use
-    scale : bool, default=True
-        Whether to scale the data to unit variance
-    centre : bool, default=True
-        Whether to centre the data
     copy_data : bool, default=True
         Whether to copy the data
     random_state : int, default=None
@@ -49,8 +45,6 @@ class GRCCA(MCCA):
     ):
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             random_state=random_state,
             eps=eps,
@@ -59,8 +53,8 @@ class GRCCA(MCCA):
         self.mu = mu
 
     def _check_params(self):
-        self.mu = _process_parameter("mu", self.mu, 0, self.n_views)
-        self.c = _process_parameter("c", self.c, 0, self.n_views)
+        self.mu = _process_parameter("mu", self.mu, 0, self.n_views_)
+        self.c = _process_parameter("c", self.c, 0, self.n_views_)
 
     def fit(self, views: Iterable[np.ndarray], y=None, feature_groups=None, **kwargs):
         """
@@ -79,7 +73,7 @@ class GRCCA(MCCA):
             assert np.issubdtype(
                 feature_group.dtype, np.integer
             ), "feature groups must be integers"
-        views = self._validate_inputs(views)
+        self._validate_data(views)
         self._check_params()
         views, idxs = self._preprocess(views, feature_groups)
         C, D = self._setup_evp(views, **kwargs)
@@ -103,6 +97,27 @@ class GRCCA(MCCA):
 
     @staticmethod
     def _process_view(view, group, mu, c):
+        """
+        Process a view by subtracting the group means and adding them as new features.
+
+        Parameters
+        ----------
+        view : numpy array
+            The view to be processed.
+        group : numpy array
+            The feature group ids for the view.
+        mu : float
+            The regularization parameter for the group sizes.
+        c : float
+            The regularization parameter for the group means.
+
+        Returns
+        -------
+        numpy array
+            The processed view with new features.
+        int
+            The index of the last original feature in the processed view.
+        """
         if c > 0:
             ids, unique_inverse, unique_counts, group_means = _group_mean(view, group)
             if mu == 0:

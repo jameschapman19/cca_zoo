@@ -1,13 +1,14 @@
 from typing import Union, Iterable
 
 import numpy as np
+import pytorch_lightning as pl
 
-from cca_zoo.models._iterative._base import _BaseIterative
+from cca_zoo.models._iterative._base import BaseLoop, BaseDeflation
 from cca_zoo.models._search import _softthreshold
-from cca_zoo.utils import _process_parameter, _check_converged_weights
+from cca_zoo.utils import _process_parameter
 
 
-class SCCA_Parkhomenko(_BaseIterative):
+class SCCA_Parkhomenko(BaseDeflation):
     r"""
     Fits a sparse CCA (penalized CCA) model for 2 or more views.
 
@@ -38,51 +39,61 @@ class SCCA_Parkhomenko(_BaseIterative):
     def __init__(
         self,
         latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
         copy_data=True,
         random_state=None,
         deflation="cca",
         tau: Union[Iterable[float], float] = None,
-        max_iter: int = 100,
         initialization: Union[str, callable] = "pls",
         tol: float = 1e-3,
-        verbose=0,
     ):
         self.tau = tau
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
-            max_iter=max_iter,
             initialization=initialization,
             tol=tol,
             random_state=random_state,
             deflation=deflation,
-            verbose=verbose,
         )
 
     def _check_params(self):
-        self.tau = _process_parameter("tau", self.tau, 0.0001, self.n_views)
+        self.tau = _process_parameter("tau", self.tau, 0.0001, self.n_views_)
         if any(tau <= 0 for tau in self.tau):
             raise (
                 "All regularisation parameters should be above 0. " f"tau=[{self.tau}]"
             )
 
-    def _update(self, views, scores, weights):
-        for view_index, view in enumerate(views):
-            # mask off the current view and sum the rest
-            targets = np.ma.array(scores, mask=False)
-            targets.mask[view_index] = True
-            w = views[view_index].T @ targets.sum(axis=0).filled()
-            w /= np.linalg.norm(w)
-            _check_converged_weights(w, view_index)
-            w = _softthreshold(w, self.tau[view_index] / 2)
-            weights[view_index] = w / np.linalg.norm(w)
-            _check_converged_weights(w, view_index)
-            scores[view_index] = views[view_index] @ weights[view_index]
-        return scores, weights
+    def _get_module(self, weights=None, k=None):
+        return ParkhomenkoLoop(
+            weights=weights,
+            k=k,
+            tau=self.tau,
+            tol=self.tol,
+        )
 
     def _more_tags(self):
         return {"multiview": True}
+
+
+class ParkhomenkoLoop(BaseLoop):
+    def __init__(self, weights, k=None, tau=None, tol=1e-3):
+        super().__init__(weights=weights, k=k)
+        self.tau = tau
+        self.tol = tol
+
+    def training_step(self, batch, batch_idx):
+        scores = np.stack(self(batch["views"]))
+        # Update each view using loop update function
+        for view_index, view in enumerate(batch["views"]):
+            # create a mask that is True for elements not equal to k along dim k
+            mask = np.arange(scores.shape[0]) != view_index
+            # apply the mask to scores and sum along dim k
+            target = np.sum(scores[mask], axis=0)
+            self.weights[view_index] = np.cov(
+                np.hstack((batch["views"][view_index], target[:, np.newaxis])).T
+            )[:-1, -1]
+            self.weights[view_index] /= np.linalg.norm(self.weights[view_index])
+            self.weights[view_index] = _softthreshold(
+                self.weights[view_index], self.tau[view_index] / 2
+            )
+            self.weights[view_index] /= np.linalg.norm(self.weights[view_index])

@@ -5,7 +5,7 @@ from sklearn.metrics import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo.models._rcca import rCCA
-from cca_zoo.utils.check_values import _process_parameter, _check_views
+from cca_zoo.utils.check_values import _process_parameter
 
 
 class GCCA(rCCA):
@@ -58,8 +58,6 @@ class GCCA(rCCA):
     def __init__(
         self,
         latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
@@ -67,8 +65,6 @@ class GCCA(rCCA):
     ):
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             accept_sparse=["csc", "csr"],
             random_state=random_state,
@@ -77,15 +73,15 @@ class GCCA(rCCA):
         self.view_weights = view_weights
 
     def _check_params(self):
-        self.c = _process_parameter("c", self.c, 0, self.n_views)
+        self.c = _process_parameter("c", self.c, 0, self.n_views_)
         self.view_weights = _process_parameter(
-            "view_weights", self.view_weights, 1, self.n_views
+            "view_weights", self.view_weights, 1, self.n_views_
         )
 
     def _setup_evp(self, views: Iterable[np.ndarray], K=None):
         if K is None:
             # just use identity when all rows are observed in all views.
-            K = np.ones((len(views), views[0].shape[0]))
+            K = np.ones((self.n_views_, self.n_samples_))
         Q = []
         for i, (view, view_weight) in enumerate(zip(views, self.view_weights)):
             view_cov = (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[
@@ -169,13 +165,13 @@ class KGCCA(GCCA):
         self.eps = eps
 
     def _check_params(self):
-        self.kernel = _process_parameter("kernel", self.kernel, "linear", self.n_views)
-        self.gamma = _process_parameter("gamma", self.gamma, None, self.n_views)
-        self.coef0 = _process_parameter("coef0", self.coef0, 1, self.n_views)
-        self.degree = _process_parameter("degree", self.degree, 1, self.n_views)
-        self.c = _process_parameter("c", self.c, 0, self.n_views)
+        self.kernel = _process_parameter("kernel", self.kernel, "linear", self.n_views_)
+        self.gamma = _process_parameter("gamma", self.gamma, None, self.n_views_)
+        self.coef0 = _process_parameter("coef0", self.coef0, 1, self.n_views_)
+        self.degree = _process_parameter("degree", self.degree, 1, self.n_views_)
+        self.c = _process_parameter("c", self.c, 0, self.n_views_)
         self.view_weights = _process_parameter(
-            "view_weights", self.view_weights, 1, self.n_views
+            "view_weights", self.view_weights, 1, self.n_views_
         )
 
     def _get_kernel(self, view, X, Y=None):
@@ -196,7 +192,7 @@ class KGCCA(GCCA):
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
         if K is None:
             # just use identity when all rows are observed in all views.
-            K = np.ones((len(views), views[0].shape[0]))
+            K = np.ones((self.n_views_, self.n_samples_))
         Q = []
         for i, (view, view_weight) in enumerate(zip(kernels, self.view_weights)):
             view_cov = (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[
@@ -216,8 +212,6 @@ class KGCCA(GCCA):
 
     def transform(self, views: np.ndarray, y=None, **kwargs):
         check_is_fitted(self, attributes=["weights"])
-        _check_views(views)
-        views = [self.scalers[i].transform(view) for i, view in enumerate(views)]
         Ktest = [
             self._get_kernel(i, self.train_views[i], Y=view)
             for i, view in enumerate(views)

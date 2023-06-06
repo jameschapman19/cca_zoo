@@ -7,7 +7,7 @@ from ._discriminative import (
     BarlowTwins,
     DCCA_SDL,
     DTCCA,
-    DCCA_EigenGame,
+    DCCA_EY,
 )
 from ._generative import DVCCA, SplitAE, DCCAE
 
@@ -19,7 +19,7 @@ __all__ = [
     "DVCCA",
     "BarlowTwins",
     "DTCCA",
-    "DCCA_EigenGame",
+    "DCCA_EY",
     "SplitAE",
     "architectures",
     "objectives",
@@ -35,5 +35,5 @@ classes = [
     "BarlowTwins",
     "DTCCA",
     "SplitAE",
-    "DCCA_EigenGame",
+    "DCCA_EY",
 ]

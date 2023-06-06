@@ -7,7 +7,7 @@ from sklearn.preprocessing import KernelCenterer
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo.models._iterative._gradkcca import GradKCCA
-from cca_zoo.utils import _check_views, _process_parameter
+from cca_zoo.utils import _process_parameter
 
 
 class SCCA_HSIC(GradKCCA):

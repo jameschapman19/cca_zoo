@@ -4,11 +4,11 @@ import numpy as np
 from scipy.linalg import eigh
 from sklearn.decomposition import PCA
 
+from cca_zoo.models._base import BaseCCA, PLSMixin
 from cca_zoo.utils.check_values import _process_parameter
-from ._base import _BaseCCA
 
 
-class rCCA(_BaseCCA):
+class rCCA(BaseCCA):
     r"""
     A class used to fit Regularised CCA (canonical ridge) model. Uses PCA to perform the optimization efficiently for high dimensional data.
 
@@ -26,10 +26,6 @@ class rCCA(_BaseCCA):
     ----------
     latent_dims : int, optional
         Number of latent dimensions to use, by default 1
-    scale : bool, optional
-        Whether to scale the data, by default True
-    centre : bool, optional
-        Whether to centre the data, by default True
     copy_data : bool, optional
         Whether to copy the data, by default True
     random_state : int, optional
@@ -59,8 +55,6 @@ class rCCA(_BaseCCA):
     def __init__(
         self,
         latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
@@ -70,8 +64,6 @@ class rCCA(_BaseCCA):
             accept_sparse = ["csc", "csr"]
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             accept_sparse=accept_sparse,
             random_state=random_state,
@@ -79,10 +71,10 @@ class rCCA(_BaseCCA):
         self.c = c
 
     def _check_params(self):
-        self.c = _process_parameter("c", self.c, 0, self.n_views)
+        self.c = _process_parameter("c", self.c, 0, self.n_views_)
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        views = self._validate_inputs(views)
+        self._validate_data(views)
         self._check_params()
         C, D = self._setup_evp(views, **kwargs)
         eigvals, eigvecs = self._solve_evp(C, D)
@@ -202,22 +194,18 @@ class CCA(rCCA):
     def __init__(
         self,
         latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
         copy_data=True,
         random_state=None,
     ):
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             c=0.0,
             random_state=random_state,
         )
 
 
-class PLS(rCCA):
+class PLS(rCCA, PLSMixin):
     r"""
     A class used to fit a simple PLS model
 
@@ -237,16 +225,10 @@ class PLS(rCCA):
     ----------
     latent_dims : int, optional
         Number of latent dimensions to use, by default 1
-    scale : bool, optional
-        Whether to scale the data, by default True
-    centre : bool, optional
-        Whether to centre the data, by default True
     copy_data : bool, optional
         Whether to copy the data, by default True
     random_state : int, optional
         Random state, by default None
-    accept_sparse : Union[bool, str], optional
-        Whether to accept sparse data, by default None
 
     Example
     -------
@@ -264,15 +246,11 @@ class PLS(rCCA):
     def __init__(
         self,
         latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
         copy_data=True,
         random_state=None,
     ):
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             c=1,
             random_state=random_state,

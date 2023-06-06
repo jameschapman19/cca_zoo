@@ -3,7 +3,6 @@ import torch
 from .. import objectives
 from .._discriminative._dcca import DCCA
 from .._generative._base import _GenerativeMixin
-from ..callbacks import GenerativeCallback, CorrelationCallback
 
 
 class DCCAE(DCCA, _GenerativeMixin):
@@ -85,6 +84,3 @@ class DCCAE(DCCA, _GenerativeMixin):
             self.lam * loss["reconstruction"] + (1 - self.lam) * loss["correlation"]
         )
         return loss
-
-    def configure_callbacks(self):
-        return [CorrelationCallback(), GenerativeCallback()]

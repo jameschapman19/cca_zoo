@@ -7,11 +7,11 @@ from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 from tensorly.decomposition import parafac
 
-from cca_zoo.models._base import _BaseCCA
-from cca_zoo.utils.check_values import _process_parameter, _check_views
+from cca_zoo.models._base import BaseCCA
+from cca_zoo.utils.check_values import _process_parameter
 
 
-class TCCA(_BaseCCA):
+class TCCA(BaseCCA):
     r"""
     Fits a Tensor CCA model. Tensor CCA maximises higher order correlations between the views.
 
@@ -27,10 +27,6 @@ class TCCA(_BaseCCA):
     ----------
     latent_dims : int, default=1
         The number of latent dimensions to use
-    scale : bool, default=True
-        Whether to scale the data to unit variance
-    centre : bool, default=True
-        Whether to centre the data
     copy_data : bool, default=True
         Whether to copy the data or not
     random_state : int, default=None
@@ -51,23 +47,19 @@ class TCCA(_BaseCCA):
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
     >>> model = TCCA()
-    >>> model._fit((X1,X2,X3)).score((X1,X2,X3))
+    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
     array([1.14595755])
     """
 
     def __init__(
         self,
         latent_dims: int = 1,
-        scale=True,
-        centre=True,
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
     ):
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             accept_sparse=["csc", "csr"],
             random_state=random_state,
@@ -75,10 +67,10 @@ class TCCA(_BaseCCA):
         self.c = c
 
     def _check_params(self):
-        self.c = _process_parameter("c", self.c, 0, self.n_views)
+        self.c = _process_parameter("c", self.c, 0, self.n_views_)
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        views = self._validate_inputs(views)
+        self._validate_data(views)
         self._check_params()
         # returns whitened views along with whitening matrices
         whitened_views, covs_invsqrt = self._setup_tensor(*views)
@@ -142,7 +134,7 @@ class TCCA(_BaseCCA):
 
     def _setup_tensor(self, *views: np.ndarray, **kwargs):
         covs = [
-            (1 - self.c[i]) * view.T @ view / (self.n)
+            (1 - self.c[i]) * np.cov(view, rowvar=False)
             + self.c[i] * np.eye(view.shape[1])
             for i, view in enumerate(views)
         ]
@@ -188,8 +180,6 @@ class KTCCA(TCCA):
     def __init__(
         self,
         latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
         copy_data=True,
         random_state=None,
         eps=1e-3,
@@ -202,8 +192,6 @@ class KTCCA(TCCA):
     ):
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             random_state=random_state,
         )
@@ -216,11 +204,11 @@ class KTCCA(TCCA):
         self.eps = eps
 
     def _check_params(self):
-        self.kernel = _process_parameter("kernel", self.kernel, "linear", self.n_views)
-        self.gamma = _process_parameter("gamma", self.gamma, None, self.n_views)
-        self.coef0 = _process_parameter("coef0", self.coef0, 1, self.n_views)
-        self.degree = _process_parameter("degree", self.degree, 1, self.n_views)
-        self.c = _process_parameter("c", self.c, 0, self.n_views)
+        self.kernel = _process_parameter("kernel", self.kernel, "linear", self.n_views_)
+        self.gamma = _process_parameter("gamma", self.gamma, None, self.n_views_)
+        self.coef0 = _process_parameter("coef0", self.coef0, 1, self.n_views_)
+        self.degree = _process_parameter("degree", self.degree, 1, self.n_views_)
+        self.c = _process_parameter("c", self.c, 0, self.n_views_)
 
     def _get_kernel(self, view, X, Y=None):
         if callable(self.kernel[view]):
@@ -239,7 +227,7 @@ class KTCCA(TCCA):
         self.train_views = views
         kernels = [self._get_kernel(i, view) for i, view in enumerate(self.train_views)]
         covs = [
-            (1 - self.c[i]) * kernel @ kernel.T / (self.n - 1) + self.c[i] * kernel
+            (1 - self.c[i]) * np.cov(kernel, rowvar=False) + self.c[i] * kernel
             for i, kernel in enumerate(kernels)
         ]
         smallest_eigs = [
@@ -257,8 +245,6 @@ class KTCCA(TCCA):
 
     def transform(self, views: np.ndarray, **kwargs):
         check_is_fitted(self, attributes=["weights"])
-        _check_views(views)
-        views = [self.scalers[i].transform(view) for i, view in enumerate(views)]
         Ktest = [
             self._get_kernel(i, self.train_views[i], Y=view)
             for i, view in enumerate(views)

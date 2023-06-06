@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo.models._rcca import rCCA
-from cca_zoo.utils.check_values import _process_parameter, _check_views
+from cca_zoo.utils.check_values import _process_parameter
 
 
 class MCCA(rCCA):
@@ -25,10 +25,6 @@ class MCCA(rCCA):
     ----------
     latent_dims : int, optional
         Number of latent dimensions to use, by default 1
-    scale : bool, optional
-        Whether to scale the data, by default True
-    centre : bool, optional
-        Whether to centre the data, by default True
     copy_data : bool, optional
         Whether to copy the data, by default True
     random_state : int, optional
@@ -59,8 +55,6 @@ class MCCA(rCCA):
     def __init__(
         self,
         latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
@@ -68,8 +62,6 @@ class MCCA(rCCA):
     ):
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             accept_sparse=["csc", "csr"],
             random_state=random_state,
@@ -97,8 +89,8 @@ class MCCA(rCCA):
         C -= block_diag(*[np.cov(view, rowvar=False) for view in views])
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
-        self.splits = np.cumsum([0] + [view.shape[1] for view in views])
-        return C / len(views), D / len(views)
+        self.splits = np.cumsum([0] + self.n_features_)
+        return C / self.n_views_, D / self.n_views_
 
     def _get_weights(self, eigvals, eigvecs, views):
         self.weights = [
@@ -152,8 +144,6 @@ class KCCA(MCCA):
     ):
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             random_state=random_state,
         )
@@ -166,11 +156,11 @@ class KCCA(MCCA):
         self.eps = eps
 
     def _check_params(self):
-        self.kernel = _process_parameter("kernel", self.kernel, "linear", self.n_views)
-        self.gamma = _process_parameter("gamma", self.gamma, None, self.n_views)
-        self.coef0 = _process_parameter("coef0", self.coef0, 1, self.n_views)
-        self.degree = _process_parameter("degree", self.degree, 1, self.n_views)
-        self.c = _process_parameter("c", self.c, 0, self.n_views)
+        self.kernel = _process_parameter("kernel", self.kernel, "linear", self.n_views_)
+        self.gamma = _process_parameter("gamma", self.gamma, None, self.n_views_)
+        self.coef0 = _process_parameter("coef0", self.coef0, 1, self.n_views_)
+        self.degree = _process_parameter("degree", self.degree, 1, self.n_views_)
+        self.c = _process_parameter("c", self.c, 0, self.n_views_)
 
     def _get_kernel(self, view, X, Y=None):
         if callable(self.kernel[view]):
@@ -200,12 +190,10 @@ class KCCA(MCCA):
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         self.splits = np.cumsum([0] + [kernel.shape[1] for kernel in kernels])
-        return C / len(views), D / len(views)
+        return C / self.n_views_, D / self.n_views_
 
     def transform(self, views: np.ndarray, **kwargs):
         check_is_fitted(self, attributes=["weights"])
-        _check_views(views)
-        views = [self.scalers[i].transform(view) for i, view in enumerate(views)]
         Ktest = [
             self._get_kernel(i, self.train_views[i], Y=view)
             for i, view in enumerate(views)

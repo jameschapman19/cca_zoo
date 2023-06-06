@@ -1,12 +1,11 @@
 import torch
 
-from .._base import _BaseDeep
+from .._base import BaseDeep
 from .._generative._base import _GenerativeMixin
 from ..architectures import Encoder
-from ..callbacks import GenerativeCallback
 
 
-class SplitAE(_BaseDeep, _GenerativeMixin):
+class SplitAE(BaseDeep, _GenerativeMixin):
     """
     A class used to fit a Split Autoencoder model.
 
@@ -74,6 +73,3 @@ class SplitAE(_BaseDeep, _GenerativeMixin):
         ).sum()
         loss["objective"] = loss["reconstruction"]
         return loss
-
-    def configure_callbacks(self):
-        return [GenerativeCallback()]

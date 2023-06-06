@@ -2,12 +2,11 @@ from typing import Iterable
 
 import torch
 
-from .._base import _BaseDeep
+from .._base import BaseDeep
 from .._generative._base import _GenerativeMixin
-from ..callbacks import GenerativeCallback
 
 
-class DVCCA(_BaseDeep, _GenerativeMixin):
+class DVCCA(BaseDeep, _GenerativeMixin):
     """
     A class used to fit a DVCCA model.
 
@@ -158,6 +157,3 @@ class DVCCA(_BaseDeep, _GenerativeMixin):
         if "private" in z_:
             z["private"] = [torch.vstack(i).cpu().numpy() for i in zip(*z_private)]
         return z
-
-    def configure_callbacks(self):
-        return [GenerativeCallback()]

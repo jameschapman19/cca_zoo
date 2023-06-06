@@ -1,8 +1,9 @@
 import torch
-from ._dcca_eigengame import DCCA_EigenGame
+
+from ._dcca_ey import DCCA_EY
 
 
-class DCCA_GHA(DCCA_EigenGame):
+class DCCA_GH(DCCA_EY):
     def loss(self, views, **kwargs):
         z = self(views)
         A, B = self.get_AB(z)
