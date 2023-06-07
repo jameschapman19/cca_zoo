@@ -173,7 +173,6 @@ class KCCA(MCCA):
             random_state=random_state,
             c=c,
             eps=eps,
-
         )
         # Store the kernel parameters
         self.kernel_params = kernel_params

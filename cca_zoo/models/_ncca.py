@@ -102,10 +102,10 @@ class NCCA(BaseModel):
         # Perform singular value decomposition on the cross-covariance matrix
         U, S, Vt = np.linalg.svd(S)
         # Compute the canonical score vectors for each view
-        self.f = U[:, 1: self.latent_dims + 1] * np.sqrt(self.n_samples_)
-        self.g = Vt[1: self.latent_dims + 1, :].T * np.sqrt(self.n_samples_)
+        self.f = U[:, 1 : self.latent_dims + 1] * np.sqrt(self.n_samples_)
+        self.g = Vt[1 : self.latent_dims + 1, :].T * np.sqrt(self.n_samples_)
         # Store the canonical correlations
-        self.S = S[1: self.latent_dims + 1]
+        self.S = S[1 : self.latent_dims + 1]
         return self
 
     def transform(self, views: Iterable[np.ndarray], **kwargs):

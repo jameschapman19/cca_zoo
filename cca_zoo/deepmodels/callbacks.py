@@ -1,5 +1,6 @@
 from pytorch_lightning import Callback, LightningModule, Trainer
 
+
 class CorrelationCallback(Callback):
     def on_validation_epoch_end(
         self, trainer: Trainer, pl_module: LightningModule

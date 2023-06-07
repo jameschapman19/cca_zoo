@@ -150,7 +150,6 @@ class KGCCA(GCCA):
     array([0.97019284])
     """
 
-
     def __init__(
         self,
         latent_dims: int = 1,

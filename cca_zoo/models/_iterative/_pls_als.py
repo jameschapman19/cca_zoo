@@ -41,6 +41,7 @@ class PLS_ALS(BaseDeflation, PLSMixin):
     tol : float, optional
         Tolerance for convergence, by default 1e-3
     """
+
     def __init__(
         self,
         latent_dims: int = 1,
