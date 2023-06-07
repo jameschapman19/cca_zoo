@@ -163,12 +163,15 @@ class PMDLoop(BaseLoop):
         if self.tracking or self.convergence_checking:
             objective = self.objective(batch["views"])
             # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights
-            weights_change = torch.tensor(np.max(
-                [
-                    np.max(np.abs(old_weights[i] - self.weights[i]))/np.max(np.abs(self.weights[i]))
-                    for i in range(len(self.weights))
-                ]
-            ))
+            weights_change = torch.tensor(
+                np.max(
+                    [
+                        np.max(np.abs(old_weights[i] - self.weights[i]))
+                        / np.max(np.abs(self.weights[i]))
+                        for i in range(len(self.weights))
+                    ]
+                )
+            )
             return {"loss": torch.tensor(objective), "weights_change": weights_change}
 
     def objective(self, views):

@@ -98,7 +98,6 @@ class BaseIterative(BaseModel):
         self.dataloader_kwargs = dataloader_kwargs or DEFAULT_LOADER_KWARGS
         self.trainer_kwargs = trainer_kwargs or DEFAULT_TRAINER_KWARGS
 
-
     @abstractmethod
     def _get_module(self, weights=None, k=None):
         """Get the CCA module for training.
@@ -370,6 +369,7 @@ def _default_initializer(initialization, random_state, latent_dims):
         )
     return initializer
 
+
 class ConvergenceCallback(EarlyStopping):
     def __init__(
         self,
@@ -394,12 +394,12 @@ class ConvergenceCallback(EarlyStopping):
             self.stopping_threshold = min_delta
 
     def on_train_batch_end(
-            self,
-            trainer: "pl.Trainer",
-            pl_module: "pl.LightningModule",
-            outputs,
-            batch: Any,
-            batch_idx: int,
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs,
+        batch: Any,
+        batch_idx: int,
     ):
         pl_module.log(self.monitor, outputs[self.monitor].item())
 

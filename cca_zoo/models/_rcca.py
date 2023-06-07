@@ -147,7 +147,6 @@ class rCCA(BaseModel):
         self.weights = [w_x, w_y]
 
     def _get_R_B(self, views):
-
         # Get the number of samples
         n = views[0].shape[0]
         # Compute the B matrices for each view
@@ -160,7 +159,6 @@ class rCCA(BaseModel):
         return R, B
 
     def _solve_evp(self, C, D=None):
-
         # Get the dimension of C
         p = C.shape[0]
         # Solve the generalized eigenvalue problem Cx=lambda Dx using a subset of eigenvalues and eigenvectors

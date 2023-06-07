@@ -189,12 +189,15 @@ class ElasticLoop(BaseLoop):
         if self.tracking or self.convergence_checking:
             objective = self.objective(batch["views"])
             # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights
-            weights_change = torch.tensor(np.max(
-                [
-                    np.max(np.abs(old_weights[i] - self.weights[i])) / np.max(np.abs(self.weights[i]))
-                    for i in range(len(self.weights))
-                ]
-            ))
+            weights_change = torch.tensor(
+                np.max(
+                    [
+                        np.max(np.abs(old_weights[i] - self.weights[i]))
+                        / np.max(np.abs(self.weights[i]))
+                        for i in range(len(self.weights))
+                    ]
+                )
+            )
             return {"loss": torch.tensor(objective), "weights_change": weights_change}
 
     def on_fit_end(self) -> None:
@@ -279,12 +282,15 @@ class IPLSLoop(ElasticLoop):
             if self.tracking or self.convergence_checking:
                 objective = self.objective(batch["views"])
                 # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights
-                weights_change = torch.tensor(np.max(
-                    [
-                        np.max(np.abs(old_weights[i] - self.weights[i])) / np.max(np.abs(self.weights[i]))
-                        for i in range(len(self.weights))
-                    ]
-                ))
+                weights_change = torch.tensor(
+                    np.max(
+                        [
+                            np.max(np.abs(old_weights[i] - self.weights[i]))
+                            / np.max(np.abs(self.weights[i]))
+                            for i in range(len(self.weights))
+                        ]
+                    )
+                )
                 return {"loss": objective, "weights_change": weights_change}
 
     def objective(self, views):
@@ -304,7 +310,7 @@ class IPLSLoop(ElasticLoop):
                 self.alpha[view_index],
                 self.l1_ratio[view_index],
             )
-        return {"loss":torch.tensor(objective)}
+        return {"loss": torch.tensor(objective)}
 
 
 def elastic_objective(x, w, y, alpha, l1_ratio):
