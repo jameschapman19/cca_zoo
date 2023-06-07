@@ -1,19 +1,13 @@
-from ._elasticnet import ElasticCCA, SCCA_IPLS
-
-# from ._spancca import SCCA_Span
-# from ._swcca import SWCCA
-from ._ey import CCAEY, PLSEY
-from ._gh import CCAGH, PLSGHA
-
-# from ._gradkcca import GradKCCA
 from ._altmaxvar import AltMaxVar
+from ._elasticnet import SCCA_IPLS, ElasticCCA
+from ._ey import CCAEY, PLSEY
+from ._gh import CCAGH
 from ._pls_als import PLS_ALS
 from ._pmd import SCCA_PMD
-
-# from ._scca_admm import SCCA_ADMM
-# from ._scca_hsic import SCCA_HSIC
 from ._scca_parkhomenko import SCCA_Parkhomenko
+from ._scca_span import SCCA_Span
 from ._stochasticpls import PLSStochasticPower
+from ._svd import CCASVD, PLSSVD
 
 __all__ = [
     "ElasticCCA",
@@ -22,7 +16,7 @@ __all__ = [
     "SCCA_PMD",
     # "SCCA_ADMM",
     "SCCA_Parkhomenko",
-    # "SCCA_Span",
+    "SCCA_Span",
     # "SWCCA",
     # "GradKCCA",
     # "SCCA_HSIC",
@@ -30,5 +24,7 @@ __all__ = [
     "CCAEY",
     "PLSEY",
     "CCAGH",
-    "PLSGHA",
+    "CCASVD",
+    "PLSSVD",
+    # "PLSGHA",
 ]

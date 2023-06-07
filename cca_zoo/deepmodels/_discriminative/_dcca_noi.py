@@ -1,7 +1,7 @@
 import torch
 
-from ._dcca import DCCA
 from ..objectives import _mat_pow
+from ._dcca import DCCA
 
 
 class DCCA_NOI(DCCA):

@@ -1,21 +1,30 @@
 Getting Started
 ===============
 
-cca-zoo is a collection of linear, kernel, and deep methods for canonical correlation analysis of multiview data.
-Where possible I have followed the scikit-learn/mvlearn APIs and models therefore have
+cca-zoo is a Python package for canonical correlation analysis (CCA) and its variants. CCA is a technique for finding the linear relationships between two or more views of the same data. cca-zoo provides a collection of linear, kernel, and deep methods for CCA of multiview data.
+
+cca-zoo follows the scikit-learn/mvlearn APIs and models, therefore they have
 fit/transform/fit_transform methods as standard.
 
-Look how easy it is to use:
+Here is a simple example of how to use cca-zoo:
 
 .. sourcecode:: python
 
-   from cca_zoo.models import CCA
-   from cca_zoo.data import generate_covariance_data
-   # %%
-   n_samples=100
-   (train_view_1,train_view_2),(true_weights_1,true_weights_2)=generate_covariance_data(n=n_samples,view_features=[10,10],latent_dims=1,correlation=1)
+    # Import the CCA model and the data generator
+    from cca_zoo.models import CCA
+    import numpy as np
 
-   linear_cca = CCA(latent_dims=latent_dims, max_iter=max_iter)
+    # Generate some data
+    train_view_1 = np.random.normal(size=(100, 10))
+    train_view_2 = np.random.normal(size=(100, 10))
+    # Remove mean
+    train_view_1 -= train_view_1.mean(axis=0)
+    train_view_2 -= train_view_2.mean(axis=0)
 
-   linear_cca.fit((train_view_1, train_view_2))
+    # Create and fit a linear CCA model
+    linear_cca = CCA(latent_dims=latent_dims)
+    linear_cca.fit((train_view_1, train_view_2))
+
+    # Transform the data to the latent space
+    train_view_1_latent, train_view_2_latent = linear_cca.transform((train_view_1, train_view_2))
 

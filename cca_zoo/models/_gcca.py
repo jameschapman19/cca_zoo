@@ -10,7 +10,9 @@ from cca_zoo.utils.check_values import _process_parameter
 
 class GCCA(rCCA):
     r"""
-    A class used to fit GCCA model. For more than 2 views, GCCA optimizes the sum of correlations with a shared auxiliary vector
+    A class used to fit GCCA model. This model extends CCA to more than two views by optimizing the sum of correlations with a shared auxiliary vector.
+
+    The objective function of GCCA is:
 
     .. math::
 
@@ -20,22 +22,7 @@ class GCCA(rCCA):
 
         T^TT=1
 
-    Parameters
-    ----------
-    latent_dims : int, optional
-        Number of latent dimensions to use, by default 1
-    scale : bool, optional
-        Whether to scale the data, by default True
-    centre : bool, optional
-        Whether to centre the data, by default True
-    copy_data : bool, optional
-        Whether to copy the data, by default True
-    random_state : int, optional
-        Random state, by default None
-    c : Union[Iterable[float], float], optional
-        Regularization parameter, by default None
-    view_weights : Iterable[float], optional
-        Weights for each view, by default None
+    where :math:`T` is the auxiliary vector.
 
 
     References
@@ -62,14 +49,16 @@ class GCCA(rCCA):
         random_state=None,
         c: Union[Iterable[float], float] = None,
         view_weights: Iterable[float] = None,
+        eps: float = 1e-6,
     ):
         super().__init__(
             latent_dims=latent_dims,
             copy_data=copy_data,
             accept_sparse=["csc", "csr"],
             random_state=random_state,
+            c=c,
+            eps=eps,
         )
-        self.c = c
         self.view_weights = view_weights
 
     def _check_params(self):
@@ -107,15 +96,42 @@ class GCCA(rCCA):
 
 class KGCCA(GCCA):
     r"""
-    A class used to fit KGCCA model. For more than 2 views, KGCCA optimizes the sum of correlations with a shared auxiliary vector
+    A class used to fit KGCCA model. This model extends GCCA to nonlinear relationships by using kernel functions on each view.
+
+    The objective function of KGCCA is:
 
     .. math::
 
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{ \sum_i\alpha_i^TK_i^TT  \}\\
+    \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{ \sum_i\alpha_i^TK_i^TT  \}\\
 
-        \text{subject to:}
+    \text{subject to:}
 
-        T^TT=1
+    T^TT=1
+
+    where :math:`K_i` are the kernel matrices for each view and :math:`T` is the auxiliary vector.
+
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to use, by default 1
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random seed for reproducibility, by default None
+    c : Union[Iterable[float], float], optional
+        Regularization parameter or list of parameters for each view, by default None. If None, it will be set to zero for each view.
+    kernel: Iterable[Union[float, callable]], optional
+        Kernel function or list of functions for each view, by default None. If None, it will use a linear kernel for each view.
+    gamma: Iterable[float], optional
+        Gamma parameter or list of parameters for the RBF kernel for each view, by default None. Ignored if kernel is not RBF.
+    degree: Iterable[float], optional
+        Degree parameter or list of parameters for the polynomial kernel for each view, by default None. Ignored if kernel is not polynomial.
+    coef0: Iterable[float], optional
+        Coef0 parameter or list of parameters for the polynomial or sigmoid kernel for each view, by default None. Ignored if kernel is not polynomial or sigmoid.
+    kernel_params: Iterable[dict], optional
+        Additional parameters or list of parameters for the kernel function for each view, by default None.
+    view_weights : Iterable[float], optional
+        Weights for each view in the objective function, by default None. If None, it will use equal weights for each view.
 
     References
     ----------
@@ -134,35 +150,34 @@ class KGCCA(GCCA):
     array([0.97019284])
     """
 
+
     def __init__(
         self,
         latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
-        eps=1e-3,
         kernel: Iterable[Union[float, callable]] = None,
         gamma: Iterable[float] = None,
         degree: Iterable[float] = None,
         coef0: Iterable[float] = None,
         kernel_params: Iterable[dict] = None,
+        view_weights: Iterable[float] = None,
+        eps: float = 1e-6,
     ):
         super().__init__(
             latent_dims=latent_dims,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             random_state=random_state,
+            c=c,
+            view_weights=view_weights,
+            eps=eps,
         )
         self.kernel_params = kernel_params
         self.gamma = gamma
         self.coef0 = coef0
         self.kernel = kernel
         self.degree = degree
-        self.c = c
-        self.eps = eps
 
     def _check_params(self):
         self.kernel = _process_parameter("kernel", self.kernel, "linear", self.n_views_)

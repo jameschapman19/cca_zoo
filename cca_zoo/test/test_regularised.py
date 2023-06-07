@@ -4,28 +4,25 @@ from sklearn.utils.fixes import loguniform
 from sklearn.utils.validation import check_random_state
 
 from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.model_selection import (
-    GridSearchCV,
-    RandomizedSearchCV,
-)
+from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.models import (
-    rCCA,
     CCA,
-    PLS,
-    SCCA_IPLS,
-    SCCA_PMD,
-    ElasticCCA,
+    GCCA,
+    GRCCA,
     KCCA,
     MCCA,
-    GCCA,
-    NCCA,
+    NCCA,  # SCCA_ADMM,
+    PLS,
+    PRCCA,
+    SCCA_IPLS,
+    SCCA_PMD,
+    AltMaxVar,
+    ElasticCCA,
     PartialCCA,
     SCCA_Parkhomenko,
-    AltMaxVar,
-    PRCCA,
+    SCCA_Span,
+    rCCA,
 )
-
-# from cca_zoo.models._iterative import SCCA_ADMM
 
 n = 50
 rng = check_random_state(0)
@@ -72,8 +69,8 @@ def test_regularized_methods():
 
 
 def test_sparse_methods():
-    tau1 = [1e-1]
-    tau2 = [1e-1]
+    tau1 = [5e-1]
+    tau2 = [5e-1]
     param_grid = {"tau": [tau1, tau2]}
     pdd_cv = GridSearchCV(
         AltMaxVar(proximal="L0", random_state=rng), param_grid=param_grid
@@ -102,10 +99,12 @@ def test_sparse_methods():
     ).fit([X, Y])
     tau1 = [2e-2]
     tau2 = [1e-2]
-    # param_grid = {"tau": [tau1, tau2]}
+    param_grid = {"tau": [tau1, tau2]}
     # admm_cv = GridSearchCV(SCCA_ADMM(random_state=rng), param_grid=param_grid).fit(
     #     [X, Y]
     # )
+    assert (pdd_cv.best_estimator_.weights[0] == 0).sum() > 0
+    assert (pdd_cv.best_estimator_.weights[1] == 0).sum() > 0
     assert (pmd_cv.best_estimator_.weights[0] == 0).sum() > 0
     assert (pmd_cv.best_estimator_.weights[1] == 0).sum() > 0
     assert (scca_cv.best_estimator_.weights[0] == 0).sum() > 0
@@ -147,16 +146,16 @@ def test_NCCA():
     assert corr_ncca > 0.9
 
 
-# def test_l0():
-#     span_cca = SCCA_Span(
-#         latent_dims=1, regularisation="l0", tau=[2, 2], random_state=rng
-#     ).fit([X, Y])
-#     swcca = SWCCA(tau=[5, 5], sample_support=5, random_state=rng).fit([X, Y])
-#     assert (np.abs(span_cca.weights[0]) > 1e-5).sum() == 2
-#     assert (np.abs(span_cca.weights[1]) > 1e-5).sum() == 2
-#     assert (np.abs(swcca.weights[0]) > 1e-5).sum() == 5
-#     assert (np.abs(swcca.weights[1]) > 1e-5).sum() == 5
-#     assert (np.abs(swcca.sample_weights) > 1e-5).sum() == 5
+def test_l0():
+    span_cca = SCCA_Span(
+        latent_dims=1, regularisation="l0", tau=[2, 2], random_state=rng
+    ).fit([X, Y])
+    # swcca = SWCCA(tau=[5, 5], sample_support=5, random_state=rng).fit([X, Y])
+    assert (np.abs(span_cca.weights[0]) > 1e-5).sum() == 2
+    assert (np.abs(span_cca.weights[1]) > 1e-5).sum() == 2
+    # assert (np.abs(swcca.weights[0]) > 1e-5).sum() == 5
+    # assert (np.abs(swcca.weights[1]) > 1e-5).sum() == 5
+    # assert (np.abs(swcca.sample_weights) > 1e-5).sum() == 5
 
 
 def test_partialcca():
@@ -205,12 +204,12 @@ def test_GRCCA():
     feature_group_3 = np.zeros(Z.shape[1], dtype=int)
     feature_group_3[:3] = 1
     feature_group_3[3:6] = 2
-    # # Test that GRCCA works
-    # grcca = GRCCA(latent_dims=1, c=[100, 0], mu=0).fit(
-    #     (X, Y), feature_groups=[feature_group_1, feature_group_2]
-    # )
-    # grcca.score((X, Y))
-    # grcca.transform((X, Y))
-    # grcca = GRCCA(c=[100, 0, 50]).fit(
-    #     (X, Y, Z), feature_groups=[feature_group_1, feature_group_2, feature_group_3]
-    # )
+    # Test that GRCCA works
+    grcca = GRCCA(latent_dims=1, c=[100, 0], mu=0).fit(
+        (X, Y), feature_groups=[feature_group_1, feature_group_2]
+    )
+    grcca.score((X, Y))
+    grcca.transform((X, Y))
+    grcca = GRCCA(c=[100, 0, 50]).fit(
+        (X, Y, Z), feature_groups=[feature_group_1, feature_group_2, feature_group_3]
+    )

@@ -48,9 +48,10 @@ class DCCA_EY(DCCA):
             for j, zj in enumerate(z):
                 if i == j:
                     B += torch.cov(zi.T)  # add the auto-covariance of each view to B
-                A += torch.cov(torch.hstack((zi, zj)).T)[
-                    self.latent_dims :, : self.latent_dims
-                ]  # add the cross-covariance of each pair of views to A
+                else:
+                    A += torch.cov(torch.hstack((zi, zj)).T)[
+                        self.latent_dims :, : self.latent_dims
+                    ]  # add the cross-covariance of each pair of views to A
         return A / len(z), B / len(
             z
         )  # return the normalized matrices (divided by the number of views)

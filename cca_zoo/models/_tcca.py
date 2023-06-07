@@ -7,37 +7,29 @@ from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 from tensorly.decomposition import parafac
 
-from cca_zoo.models._base import BaseCCA
+from cca_zoo.models import MCCA
 from cca_zoo.utils.check_values import _process_parameter
 
 
-class TCCA(BaseCCA):
+class TCCA(MCCA):
     r"""
-    Fits a Tensor CCA model. Tensor CCA maximises higher order correlations between the views.
+    A class used to fit TCCA model. This model extends MCCA to higher order correlations by using tensor products of the views.
+
+    The objective function of TCCA is:
 
     .. math::
 
-        \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \alpha_i^TK_i^TK_j\alpha_j  \}\\
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^T\otimes w_2^TX_2^T\otimes \cdots \otimes w_m^TX_m^Tw  \}\\
 
         \text{subject to:}
 
-        \alpha_i^TK_i^TK_i\alpha_i=1
+        w_i^TX_i^TX_iw_i=1
 
-    Parameters
-    ----------
-    latent_dims : int, default=1
-        The number of latent dimensions to use
-    copy_data : bool, default=True
-        Whether to copy the data or not
-    random_state : int, default=None
-        The random state to use
-    c : float or list of floats, default=None
-        The regularisation parameter for each view. If None, defaults to 0 for each view.
+    where :math:`\otimes` denotes the Kronecker product.
 
     References
     ----------
     Kim, Tae-Kyun, Shu-Fai Wong, and Roberto Cipolla. "Tensor canonical correlation analysis for action classification." 2007 IEEE Conference on Computer Vision and Pattern Recognition. IEEE, 2007
-    https://github.com/rciszek/mdr_tcca
 
     Examples
     --------
@@ -50,24 +42,6 @@ class TCCA(BaseCCA):
     >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
     array([1.14595755])
     """
-
-    def __init__(
-        self,
-        latent_dims: int = 1,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-    ):
-        super().__init__(
-            latent_dims=latent_dims,
-            copy_data=copy_data,
-            accept_sparse=["csc", "csr"],
-            random_state=random_state,
-        )
-        self.c = c
-
-    def _check_params(self):
-        self.c = _process_parameter("c", self.c, 0, self.n_views_)
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         self._validate_data(views)
@@ -151,15 +125,19 @@ class TCCA(BaseCCA):
 
 class KTCCA(TCCA):
     r"""
-    Fits a Kernel Tensor CCA model. Tensor CCA maximises higher order correlations
+    A class used to fit KTCCA model. This model extends TCCA to nonlinear relationships by using kernel functions on each view.
+
+    The objective function of KTCCA is:
 
     .. math::
 
-        \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \alpha_i^TK_i^TK_j\alpha_j  \}\\
+        \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{ \alpha_1^TK_1^T\otimes \alpha_2^TK_2^T\otimes \cdots \otimes \alpha_m^TK_m^T\alpha  \}\\
 
         \text{subject to:}
 
-        \alpha_i^TK_i^TK_i\alpha_i=1
+        c_i\alpha_i^TK_i\alpha_i + (1-c_i)\alpha_i^TK_i^TK_i\alpha_i=1
+
+    where :math:`K_i` are the kernel matrices for each view and :math:`c_i` are the regularization parameters for each view.
 
     References
     ----------
@@ -194,14 +172,14 @@ class KTCCA(TCCA):
             latent_dims=latent_dims,
             copy_data=copy_data,
             random_state=random_state,
+            eps=eps,
+            c=c,
         )
         self.kernel_params = kernel_params
         self.gamma = gamma
         self.coef0 = coef0
         self.kernel = kernel
         self.degree = degree
-        self.c = c
-        self.eps = eps
 
     def _check_params(self):
         self.kernel = _process_parameter("kernel", self.kernel, "linear", self.n_views_)

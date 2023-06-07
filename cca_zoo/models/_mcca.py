@@ -11,7 +11,9 @@ from cca_zoo.utils.check_values import _process_parameter
 
 class MCCA(rCCA):
     r"""
-    A class used to fit MCCA model. For more than 2 views, MCCA optimizes the sum of pairwise correlations.
+    A class used to fit MCCA model. This model extends CCA to more than two views by optimizing the sum of pairwise correlations.
+
+    The objective function of MCCA is:
 
     .. math::
 
@@ -21,6 +23,8 @@ class MCCA(rCCA):
 
         (1-c_i)w_i^TX_i^TX_iw_i+c_iw_i^Tw_i=1
 
+    where :math:`c_i` are the regularization parameters for each view.
+
     Parameters
     ----------
     latent_dims : int, optional
@@ -28,11 +32,11 @@ class MCCA(rCCA):
     copy_data : bool, optional
         Whether to copy the data, by default True
     random_state : int, optional
-        Random state, by default None
+        Random seed for reproducibility, by default None
     c : Union[Iterable[float], float], optional
-        Regularisation parameter, by default None
+        Regularization parameter or list of parameters for each view, by default None. If None, it will be set to zero for each view.
     eps : float, optional
-        Small value to add to the diagonal of the regularisation matrix, by default 1e-9
+        Small value to add to the diagonal of the regularization matrix, by default 1e-9
 
 
     References
@@ -60,13 +64,14 @@ class MCCA(rCCA):
         c: Union[Iterable[float], float] = None,
         eps=1e-9,
     ):
+        # Call the parent class constructor
         super().__init__(
             latent_dims=latent_dims,
             copy_data=copy_data,
+            c=c,
             accept_sparse=["csc", "csr"],
             random_state=random_state,
         )
-        self.c = c
         self.eps = eps
 
     def _weights(self, eigvals, eigvecs, views):
@@ -92,19 +97,15 @@ class MCCA(rCCA):
         self.splits = np.cumsum([0] + self.n_features_)
         return C / self.n_views_, D / self.n_views_
 
-    def _get_weights(self, eigvals, eigvecs, views):
-        self.weights = [
-            eigvecs[split : self.splits[i + 1]]
-            for i, split in enumerate(self.splits[:-1])
-        ]
-
     def _more_tags(self):
         return {"multiview": True}
 
 
 class KCCA(MCCA):
     r"""
-    A class used to fit KCCA model.
+    A class used to fit KCCA model. This model extends MCCA to nonlinear relationships by using kernel functions on each view.
+
+    The objective function of KCCA is:
 
     .. math::
 
@@ -113,6 +114,31 @@ class KCCA(MCCA):
         \text{subject to:}
 
         c_i\alpha_i^TK_i\alpha_i + (1-c_i)\alpha_i^TK_i^TK_i\alpha_i=1
+
+    where :math:`K_i` are the kernel matrices for each view and :math:`c_i` are the regularization parameters for each view.
+
+    Parameters
+    ----------
+    latent_dims : int, optional
+        Number of latent dimensions to use, by default 1
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random seed for reproducibility, by default None
+    c : Union[Iterable[float], float], optional
+        Regularization parameter or list of parameters for each view, by default None. If None, it will be set to zero for each view.
+    eps : float, optional
+        Small value to add to the diagonal of the kernel matrices, by default 1e-3
+    kernel: Iterable[Union[float, callable]], optional
+        Kernel function or list of functions for each view, by default None. If None, it will use a linear kernel for each view.
+    gamma: Iterable[float], optional
+        Gamma parameter or list of parameters for the RBF kernel for each view, by default None. Ignored if kernel is not RBF.
+    degree: Iterable[float], optional
+        Degree parameter or list of parameters for the polynomial kernel for each view, by default None. Ignored if kernel is not polynomial.
+    coef0: Iterable[float], optional
+        Coef0 parameter or list of parameters for the polynomial or sigmoid kernel for each view, by default None. Ignored if kernel is not polynomial or sigmoid.
+    kernel_params: Iterable[dict], optional
+        Additional parameters or list of parameters for the kernel function for each view, by default None.
 
     Examples
     --------
@@ -130,8 +156,6 @@ class KCCA(MCCA):
     def __init__(
         self,
         latent_dims: int = 1,
-        scale: bool = True,
-        centre=True,
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
@@ -142,18 +166,21 @@ class KCCA(MCCA):
         coef0: Iterable[float] = None,
         kernel_params: Iterable[dict] = None,
     ):
+        # Call the parent class constructor
         super().__init__(
             latent_dims=latent_dims,
             copy_data=copy_data,
             random_state=random_state,
+            c=c,
+            eps=eps,
+
         )
+        # Store the kernel parameters
         self.kernel_params = kernel_params
         self.gamma = gamma
         self.coef0 = coef0
         self.kernel = kernel
         self.degree = degree
-        self.c = c
-        self.eps = eps
 
     def _check_params(self):
         self.kernel = _process_parameter("kernel", self.kernel, "linear", self.n_views_)

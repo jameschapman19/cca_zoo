@@ -29,8 +29,9 @@ latent_dims = 3
 # Permutation Testing
 # -------------------
 
-from cca_zoo.model_selection import permutation_test_score, learning_curve
 from sklearn.model_selection import KFold, ShuffleSplit
+
+from cca_zoo.model_selection import learning_curve, permutation_test_score
 
 LATENT_DIMS = 3
 model = CCA(latent_dims=LATENT_DIMS)
@@ -56,8 +57,8 @@ plt.show()
 # Learning Curves
 # -------------------
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def plot_learning_curve(

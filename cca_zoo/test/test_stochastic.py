@@ -3,11 +3,7 @@ import pytest
 import scipy.sparse as sp
 from sklearn.utils import check_random_state
 
-from cca_zoo.models import (
-    CCA,
-    PLS,
-)
-from cca_zoo.models._iterative._svd import CCASVD
+from cca_zoo.models import CCA, PLS, MCCA
 
 n = 50
 rng = check_random_state(0)
@@ -23,68 +19,102 @@ Z -= Z.mean(axis=0)
 X_sp -= X_sp.mean(axis=0)
 Y_sp -= Y_sp.mean(axis=0)
 
+latent_dims = 3
+epochs = 250
+batch_size = 10
+learning_rate = 1e-1
+random_state = 1
+
+
+def scale_objective(obj):
+    # log scale the objective if negative, otherwise nan
+    obj = np.array(obj)
+    return np.sign(obj) * np.log(np.abs(obj) + 1e-10)
+
 
 def test_stochastic_pls():
     pytest.importorskip("torch")
-    from cca_zoo.models import PLSEY, PLSGHA, PLSStochasticPower
     from torch import manual_seed
 
+    from cca_zoo.models import PLSEY, PLSSVD, PLSStochasticPower
+
+    pls = PLS(latent_dims=3).fit((X, Y))
     manual_seed(42)
     plsey = PLSEY(
-        latent_dims=3,
-        epochs=1000,
-        batch_size=None,
-        random_state=1,
-        learning_rate=1e-2,
-        convergence_checking=False,
-        tol=1e-7,
+        latent_dims=latent_dims,
+        epochs=epochs,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        random_state=random_state,
+        track=True,
+        verbose=False,
     ).fit((X, Y))
-    plsgh = PLSGHA(
-        latent_dims=3,
-        epochs=1000,
-        batch_size=None,
-        random_state=1,
-        learning_rate=1e-2,
+    plssvd = PLSSVD(
+        latent_dims=latent_dims,
+        epochs=epochs,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        random_state=random_state,
+        track=True,
+        verbose=False,
     ).fit((X, Y))
-    pls = PLS(latent_dims=3).fit((X, Y))
     spls = PLSStochasticPower(
-        latent_dims=3, epochs=1000, batch_size=None, learning_rate=1e-1, random_state=1
+        latent_dims=latent_dims,
+        epochs=epochs,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        random_state=random_state,
+        track=True,
+        verbose=False,
     ).fit((X, Y))
-    pls_score = pls.score((X, Y))
-    spls_score = np.abs(spls.score((X, Y)))
-    plsey_score = plsey.score((X, Y))
-    ghapls_score = plsgh.score((X, Y))
+
+    def scale_transform(model, X, Y):
+        Zx, Zy = model.transform((X, Y))
+        Zx /= np.linalg.norm(model.weights[0], axis=0, keepdims=True)
+        Zy /= np.linalg.norm(model.weights[1], axis=0, keepdims=True)
+        return np.abs(np.cov(Zx, Zy, rowvar=False)[:latent_dims, latent_dims:])
+
+    pls_score = scale_transform(pls, X, Y)
+    spls_score = scale_transform(spls, X, Y)
+    plsey_score = scale_transform(plsey, X, Y)
+    plssvd_score = scale_transform(plssvd, X, Y)
     # check all methods are similar to pls
-    assert np.allclose(pls_score, spls_score, atol=1e-1)
-    assert np.allclose(pls_score.sum(), plsey_score.sum(), atol=1e-1)
-    assert np.allclose(pls_score.sum(), ghapls_score.sum(), atol=1e-1)
+    assert np.allclose(np.trace(pls_score), np.trace(spls_score), atol=1e-1)
+    assert np.allclose(np.trace(pls_score), np.trace(plsey_score), atol=1e-1)
+    assert np.allclose(np.trace(pls_score), np.trace(plssvd_score), atol=1e-1)
 
 
 def test_stochastic_cca():
     pytest.importorskip("torch")
-    from cca_zoo.models import CCAEY, CCAGH
+    from cca_zoo.models import CCAEY, CCAGH, CCASVD
 
     cca = CCA(latent_dims=3).fit((X, Y))
     ccaey = CCAEY(
-        latent_dims=3,
-        epochs=1000,
-        batch_size=25,
-        random_state=1,
-        learning_rate=1e-2,
+        latent_dims=latent_dims,
+        epochs=epochs,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        random_state=random_state,
+        track=True,
+        verbose=False,
     ).fit((X, Y))
     ccagh = CCAGH(
-        latent_dims=3,
-        epochs=1000,
-        batch_size=50,
-        random_state=1,
-        learning_rate=1e-2,
+        latent_dims=latent_dims,
+        epochs=epochs,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        random_state=random_state,
+        track=True,
+        verbose=False,
     ).fit((X, Y))
     ccasvd = CCASVD(
-        latent_dims=3,
-        epochs=1000,
-        batch_size=25,
-        random_state=1,
-        learning_rate=1e-2,
+        latent_dims=latent_dims,
+        epochs=epochs,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        random_state=random_state,
+        track=True,
+        verbose=False,
     ).fit((X, Y))
     cca_score = cca.score((X, Y))
     ccaey_score = ccaey.score((X, Y))
@@ -94,4 +124,3 @@ def test_stochastic_cca():
     assert np.allclose(cca_score.sum(), ccaey_score.sum(), atol=1e-1)
     assert np.allclose(cca_score.sum(), ccagh_score.sum(), atol=1e-1)
     assert np.allclose(cca_score.sum(), ccasvd_score.sum(), atol=1e-1)
-    print()

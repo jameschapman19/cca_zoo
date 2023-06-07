@@ -1,24 +1,30 @@
-from typing import Union, Iterable
+from typing import Iterable, Union
 
 import numpy as np
 import pytorch_lightning as pl
 
-from cca_zoo.models._iterative._base import BaseLoop, BaseDeflation
+from cca_zoo.models._iterative._base import BaseDeflation, BaseLoop
 from cca_zoo.models._search import _softthreshold
 from cca_zoo.utils import _process_parameter
 
 
 class SCCA_Parkhomenko(BaseDeflation):
     r"""
-    Fits a sparse CCA (penalized CCA) model for 2 or more views.
+    A class used to fit a sparse CCA (penalized CCA) model for two or more views.
+
+    This model finds the linear projections of multiple views that maximize their pairwise correlations while enforcing sparsity constraints on the projection vectors.
+
+    The objective function of sparse CCA is:
 
     .. math::
 
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \} + c_i\|w_i\|\\
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2 - \sum_i c_i\|w_i\|_1 \}\\
 
         \text{subject to:}
 
         w_i^Tw_i=1
+
+    where :math:`c_i` are the sparsity parameters for each view.
 
     References
     ----------
@@ -45,6 +51,10 @@ class SCCA_Parkhomenko(BaseDeflation):
         tau: Union[Iterable[float], float] = None,
         initialization: Union[str, callable] = "pls",
         tol: float = 1e-3,
+        convergence_checking=False,
+        patience=10,
+        track=False,
+        verbose=False,
     ):
         self.tau = tau
         super().__init__(
@@ -54,6 +64,10 @@ class SCCA_Parkhomenko(BaseDeflation):
             tol=tol,
             random_state=random_state,
             deflation=deflation,
+            convergence_checking=convergence_checking,
+            patience=patience,
+            track=track,
+            verbose=verbose,
         )
 
     def _check_params(self):

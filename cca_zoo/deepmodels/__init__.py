@@ -1,15 +1,6 @@
-from . import architectures
-from . import callbacks
-from . import objectives
-from ._discriminative import (
-    DCCA,
-    DCCA_NOI,
-    BarlowTwins,
-    DCCA_SDL,
-    DTCCA,
-    DCCA_EY,
-)
-from ._generative import DVCCA, SplitAE, DCCAE
+from . import architectures, callbacks, objectives
+from ._discriminative import DCCA, DCCA_EY, DCCA_NOI, DCCA_SDL, DTCCA, BarlowTwins
+from ._generative import DCCAE, DVCCA, SplitAE
 
 __all__ = [
     "DCCA",

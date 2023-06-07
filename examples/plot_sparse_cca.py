@@ -12,13 +12,13 @@ import pandas as pd
 from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.models import (
-    SCCA_PMD,
-    SCCA_IPLS,
-    ElasticCCA,
     CCA,
     PLS,
-    SCCA_Span,
+    SCCA_IPLS,
+    SCCA_PMD,
     AltMaxVar,
+    ElasticCCA,
+    SCCA_Span,
 )
 
 

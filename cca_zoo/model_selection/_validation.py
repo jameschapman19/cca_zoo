@@ -6,10 +6,11 @@ from mvlearn.compose import SimpleSplitter
 from sklearn import clone
 from sklearn.base import is_classifier
 from sklearn.metrics import check_scoring
-from sklearn.model_selection import cross_validate as cross_validate_, check_cv
+from sklearn.model_selection import check_cv
+from sklearn.model_selection import cross_validate as cross_validate_
 from sklearn.model_selection import learning_curve as learning_curve_
 from sklearn.pipeline import Pipeline
-from sklearn.utils import indexable, check_random_state, _safe_indexing
+from sklearn.utils import _safe_indexing, check_random_state, indexable
 from sklearn.utils.fixes import delayed
 from sklearn.utils.metaestimators import _safe_split
 from sklearn.utils.validation import _check_fit_params

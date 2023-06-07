@@ -1,8 +1,13 @@
-from .plotting import pairplot_label, pairplot_train_test, tsne_label, cv_plot
+from .plotting import (
+    cv_plot,
+    plot_pairwise_correlations,
+    plot_pairwise_scatter,
+    plot_each_view_tsne,
+)
 
 __all__ = [
-    "pairplot_label",
-    "pairplot_train_test",
-    "tsne_label",
     "cv_plot",
+    "plot_pairwise_correlations",
+    "plot_pairwise_scatter",
+    "plot_each_view_tsne",
 ]

@@ -1,21 +1,18 @@
-from abc import abstractmethod, ABC
-from typing import Iterable, List
-from typing import Optional, Tuple
-from typing import Union
+from abc import ABC, abstractmethod
+from typing import Iterable, List, Optional, Tuple, Union, Any
 
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.callbacks import Callback, EarlyStopping
 from torch import Tensor
 from torch.utils import data
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from cca_zoo.data.deep import NumpyDataset
-from cca_zoo.models import rCCA, MCCA
-from cca_zoo.models._base import BaseCCA
+from cca_zoo.models import MCCA, rCCA
+from cca_zoo.models._base import BaseModel
 from cca_zoo.models._dummy import DummyCCA
 
 # Default Trainer kwargs
@@ -26,16 +23,19 @@ DEFAULT_TRAINER_KWARGS = dict(
     enable_progress_bar=False,
 )
 
-DEFAULT_LOADER_KWARGS = dict(num_workers=0, pin_memory=True, drop_last=False, shuffle=False, persistent_workers=True)
+DEFAULT_LOADER_KWARGS = dict(
+    num_workers=0, pin_memory=True, drop_last=False, shuffle=False
+)
 
-class BaseIterative(BaseCCA):
+
+class BaseIterative(BaseModel):
     def __init__(
         self,
         latent_dims: int = 1,
         copy_data=True,
         random_state=None,
         tol=1e-3,
-        deflation=None,
+        deflation="cca",
         accept_sparse=None,
         batch_size=None,
         dataloader_kwargs=None,
@@ -45,9 +45,9 @@ class BaseIterative(BaseCCA):
         initialization: Union[str, callable] = "random",
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         trainer_kwargs=None,
-        convergence_checking=False,
+        convergence_checking=None,
         patience=10,
-        track=False,
+        track=None,
         verbose=False,
     ):
         super().__init__(
@@ -66,9 +66,7 @@ class BaseIterative(BaseCCA):
         self.val_split = val_split
         self.learning_rate = learning_rate
         # validate the deflation method
-        if deflation is None:
-            self.deflation = deflation
-        elif deflation not in ["cca", "pls"]:
+        if deflation not in ["cca", "pls"]:
             raise ValueError("Deflation method must be one of ['cca','pls']")
         else:
             self.deflation = deflation
@@ -80,18 +78,26 @@ class BaseIterative(BaseCCA):
         else:
             self.initialization = initialization
         # validate the callbacks
+        self.verbose = verbose
+        self.patience = patience
         self.callbacks = callbacks or []
         # validate the convergence checking
-        if convergence_checking:
+        self.convergence_checking = convergence_checking
+        # if convergence checking is a string
+        if isinstance(self.convergence_checking, str):
             self.callbacks.append(
                 ConvergenceCallback(
-                    monitor="objective", min_delta=tol, patience=patience
+                    monitor=self.convergence_checking, min_delta=tol, patience=patience
                 )
             )
-        if track:
-            self.callbacks.append(TrackingCallback(monitor="objective", verbose=verbose))
+        self.track = track
+        if isinstance(self.track, str):
+            self.callbacks.append(
+                TrackingCallback(monitor=self.track, verbose=self.verbose)
+            )
         self.dataloader_kwargs = dataloader_kwargs or DEFAULT_LOADER_KWARGS
         self.trainer_kwargs = trainer_kwargs or DEFAULT_TRAINER_KWARGS
+
 
     @abstractmethod
     def _get_module(self, weights=None, k=None):
@@ -125,15 +131,14 @@ class BaseIterative(BaseCCA):
         trainer = pl.Trainer(
             max_epochs=self.epochs,
             callbacks=self.callbacks,
-            enable_model_summary=False,
             **self.trainer_kwargs,
         )
         trainer.fit(loop, train_dataloader, val_dataloader)
         # return the weights from the module. They will need to be changed from torch tensors to numpy arrays
         weights = loop.weights
         # if loop has tracked the objective, return the objective
-        if hasattr(loop, "objective_values"):
-            self.objective = loop.objective_values
+        if hasattr(loop, "epoch_objective"):
+            self.objective = loop.epoch_objective
         return weights
 
     def get_dataloader(self, views: Iterable[np.ndarray]):
@@ -205,8 +210,8 @@ class BaseDeflation(BaseIterative, ABC):
                 self.weights[i][:, k] = weight
                 views[i] = self._deflate(view, weight)
             # if loop has tracked the objective, return the objective
-            if hasattr(loop, "objective_values"):
-                self.objective = loop.objective_values
+            if hasattr(loop, "epoch_objective"):
+                self.objective = loop.epoch_objective
         return self.weights
 
     def _deflate(self, residual: np.ndarray, weights: np.ndarray) -> np.ndarray:
@@ -245,15 +250,24 @@ class BaseDeflation(BaseIterative, ABC):
 
 
 class BaseLoop(pl.LightningModule):
-    def __init__(self, weights=None, k=None, automatic_optimization=False):
+    def __init__(
+        self,
+        weights=None,
+        k=None,
+        automatic_optimization=False,
+        tracking=False,
+        convergence_checking=False,
+    ):
         super().__init__()
         if k is not None:
             self.weights = [weight[:, k] for weight in weights]
         else:
             self.weights = weights
         self.automatic_optimization = automatic_optimization
+        self.tracking = tracking
+        self.convergence_checking = convergence_checking
 
-    def objective(self, train=False) -> float:
+    def objective(self, *args, **kwargs) -> float:
         raise NotImplementedError
 
     def forward(self, views: list) -> list:
@@ -285,6 +299,8 @@ class BaseGradientLoop(BaseLoop):
         k: int = None,
         learning_rate: float = 1e-3,
         optimizer_kwargs: dict = None,
+        tracking: bool = False,
+        convergence_checking: bool = False,
     ):
         """Initialize the gradient-based CCA loop.
 
@@ -299,7 +315,13 @@ class BaseGradientLoop(BaseLoop):
         optimizer_kwargs : dict, optional
             The keyword arguments for the optimizer creation, by default None
         """
-        super().__init__(weights=weights, k=k, automatic_optimization=True)
+        super().__init__(
+            weights=weights,
+            k=k,
+            automatic_optimization=True,
+            tracking=tracking,
+            convergence_checking=convergence_checking,
+        )
         # Set the weights attribute as torch parameters with gradients
         self.weights = [
             torch.nn.Parameter(torch.from_numpy(weight), requires_grad=True)
@@ -309,12 +331,11 @@ class BaseGradientLoop(BaseLoop):
 
         # Set the optimizer keyword arguments attribute with default values if none provided
         self.optimizer_kwargs = optimizer_kwargs or {}
-
         self.learning_rate = learning_rate
 
     def configure_optimizers(self):
         # construct optimizer using optimizer_kwargs
-        optimizer_name = self.optimizer_kwargs.get("optimizer", "SGD")
+        optimizer_name = self.optimizer_kwargs.get("optimizer", "Adam")
         optimizer_kwargs = self.optimizer_kwargs.get("optimizer_kwargs", {})
         optimizer = getattr(torch.optim, optimizer_name)(
             self.weights, lr=self.learning_rate, **optimizer_kwargs
@@ -349,11 +370,10 @@ def _default_initializer(initialization, random_state, latent_dims):
         )
     return initializer
 
-
 class ConvergenceCallback(EarlyStopping):
     def __init__(
         self,
-        monitor: str = "objective",
+        monitor: str = "loss",
         min_delta: float = 0.0,
         patience: int = 0,
         verbose: bool = False,
@@ -370,59 +390,66 @@ class ConvergenceCallback(EarlyStopping):
             strict=strict,
             check_finite=check_finite,
         )
+        if monitor == "weights_change":
+            self.stopping_threshold = min_delta
 
-    def _evaluate_stopping_criteria(
-        self, current: Tensor
-    ) -> Tuple[bool, Optional[str]]:
-        should_stop = False
-        reason = None
-        if self.check_finite and not torch.isfinite(current):
-            should_stop = True
-            reason = (
-                f"Monitored metric {self.monitor} = {current} is not finite."
-                f" Previous best value was {self.best_score:.3f}. Signaling Trainer to stop."
-            )
-        elif self.monitor_op(current, self.best_score.to(current.device) - 0.1):
-            should_stop = False
-            reason = self._improvement_message(current)
-            self.best_score = current
-            self.wait_count = 0
-        else:
-            self.wait_count += 1
-            if self.wait_count >= self.patience:
-                should_stop = True
-                reason = (
-                    f"Monitored metric {self.monitor} did not improve by {self.min_delta} in the last {self.wait_count} records."
-                    f" Best score: {self.best_score:.3f}. Signaling Trainer to stop."
-                )
-        return should_stop, reason
+    def on_train_batch_end(
+            self,
+            trainer: "pl.Trainer",
+            pl_module: "pl.LightningModule",
+            outputs,
+            batch: Any,
+            batch_idx: int,
+    ):
+        pl_module.log(self.monitor, outputs[self.monitor].item())
+
 
 class TrackingCallback(Callback):
     """
     Callback to track the objective function value during training
     """
-    def __init__(self, monitor: str = "objective",verbose: bool = False):
+
+    def __init__(self, monitor: str = "loss", verbose: bool = False):
         super().__init__()
         self.monitor = monitor
         self.verbose = verbose
 
     def on_train_start(self, trainer, pl_module):
-        pl_module.objective_values = []
+        pl_module.batch_objective = []
+        pl_module.epoch_objective = []
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        pl_module.objective_values.append(outputs["objective"].item())
+    def on_train_epoch_start(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
+    ) -> None:
+        pl_module.batch_objective = []
+
+    def on_train_batch_end(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs,
+        batch: Any,
+        batch_idx: int,
+    ):
+        pl_module.batch_objective.append(outputs[self.monitor].item())
         if self.verbose:
             # Print the objective function value and the current batch index
-            print(f"Objective: {outputs['objective'].item():.3f} | Batch: {batch_idx}",end='\r')
+            print(
+                f"Objective: {outputs[self.monitor].item():.3f} | Batch: {batch_idx}",
+                end="\r",
+            )
 
-    def on_train_epoch_end(self, trainer, pl_module, outputs):
-        pl_module.objective_values = torch.tensor(pl_module.objective_values)
-        trainer.logger.experiment.add_scalar("objective", pl_module.objective_values.mean(), trainer.current_epoch)
+    def on_train_epoch_end(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
+    ) -> None:
+        # epoch objective values are the mean of the batch objective values
+        pl_module.epoch_objective.append(np.mean(pl_module.batch_objective))
         if self.verbose:
-            # Print the objective function value and the current epoch index
-            print(f"Objective: {pl_module.objective_values.mean():.3f} | Epoch: {trainer.current_epoch}",end='\r')
-
-
+            # Print a new line after the last batch
+            print()
+            print(
+                f"Objective: {pl_module.epoch_objective[-1]:.3f} | Epoch: {trainer.current_epoch}",
+            )
 
 
 class BatchNumpyDataset:

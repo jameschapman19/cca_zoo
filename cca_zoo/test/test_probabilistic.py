@@ -2,9 +2,7 @@ import numpy as np
 import pytest
 
 from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.models import (
-    CCA,
-)
+from cca_zoo.models import CCA
 
 
 def test_PCCA():

@@ -1,9 +1,9 @@
-from typing import Union, Iterable
+from typing import Iterable, Union
 
 import numpy as np
 
-from ._base import BaseIterative, BaseLoop
 from ...utils import _process_parameter
+from ._base import BaseIterative, BaseLoop
 
 
 class SCCA_ADMM(BaseIterative):

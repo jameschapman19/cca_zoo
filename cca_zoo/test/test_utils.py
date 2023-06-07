@@ -4,11 +4,10 @@ from sklearn.utils import check_random_state
 
 from cca_zoo.model_selection import (
     cross_validate,
-    permutation_test_score,
     learning_curve,
+    permutation_test_score,
 )
 from cca_zoo.models import PLS
-from cca_zoo.plotting import pairplot_train_test
 
 n = 50
 rng = check_random_state(0)
@@ -30,29 +29,33 @@ def test_explained_variance():
     pls = PLS(latent_dims=10).fit((X, X))
     explained_variance = pls.explained_variance_((X, X))
     explained_variance_ratio = pls.explained_variance_ratio_((X, X))
+    explained_variance_cumulative = pls.explained_variance_cumulative_((X, X))
     # explained_variance_ratio should sum to 1 for each view
     assert np.allclose(explained_variance_ratio.sum(axis=1), 1)
-    explained_variance_cumulative = pls.explained_variance_cumulative((X, X))
     # explained_variance_cumulative should be monotonically increasing
-    assert np.all(np.diff(explained_variance_cumulative, axis=0) >= 0)
+    assert np.all(np.diff(explained_variance_cumulative, axis=1) >= 0)
 
 
 def test_explained_covariance():
-    M = X @ X.T @ Y @ Y.T
+    U, S, V = np.linalg.svd(X, full_matrices=False)
+    X_ = U @ np.diag(S)
+    U, S, V = np.linalg.svd(Y, full_matrices=False)
+    Y_ = U @ np.diag(S)
+    M = X_.T @ Y_
     N = X.T @ Y
     # compare singular values of M and N
     u1, s1, v1 = np.linalg.svd(M)
-    u2, s2, v2 = np.linalg.svd(N @ N.T)
+    u2, s2, v2 = np.linalg.svd(N)
 
     # Test that explained covariance is between 0 and 1
     pls = PLS(latent_dims=10).fit((X, X))
     explained_covariance = pls.explained_covariance_((X, X))
     explained_covariance_ratio = pls.explained_covariance_ratio_((X, X))
+    explained_covariance_cumulative = pls.explained_covariance_cumulative_((X, X))
     # explained_covariance_ratio should sum to 1 for each view
-    assert np.allclose(explained_covariance_ratio.sum(axis=1), 1)
-    explained_covariance_cumulative = pls.explained_covariance_cumulative((X, X))
+    assert np.allclose(explained_covariance_ratio.sum(), 1)
     # explained_covariance_cumulative should be monotonically increasing
-    assert np.all(np.diff(explained_covariance_cumulative, axis=0) >= 0)
+    assert np.all(np.diff(explained_covariance_cumulative) >= 0)
 
 
 def test_validation():
@@ -61,10 +64,3 @@ def test_validation():
     cross_validate(pls, (X, Y))
     permutation_test_score(pls, (X, Y))
     learning_curve(pls, (X, Y))
-
-
-def test_plotting():
-    pls = PLS(latent_dims=1).fit((X, Y))
-    X_te = np.random.rand(*X.shape)
-    Y_te = np.random.rand(*Y.shape)
-    pairplot_train_test(pls.transform((X, Y)), pls.transform((X_te, Y_te)))

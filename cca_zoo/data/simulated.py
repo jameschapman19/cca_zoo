@@ -153,58 +153,6 @@ class LinearSimulatedData:
         return mean + chol @ rng.randn(mean.size)
 
 
-def simple_simulated_data(
-    n: int,
-    view_features: List[int],
-    view_sparsity: List[Union[int, float]] = None,
-    eps: float = 0,
-    transform=False,
-    random_state=None,
-):
-    """
-    Generate a simple simulated dataset with a single latent dimension
-
-    Parameters
-    ----------
-    n : int
-        Number of samples
-    view_features :
-        Number of features in each view
-    view_sparsity : List[Union[int, float]]
-        Sparsity of each view. If int, then number of non-zero features. If float, then proportion of non-zero features.
-    eps : float
-        Noise level
-    transform : bool
-        Whether to transform the data to be non-negative
-    random_state : int, RandomState instance, default=None
-        Controls the random seed in generating the data.
-
-    Returns
-    -------
-
-    """
-    random_state = check_random_state(random_state)
-    z = random_state.randn(n)
-    if transform:
-        z = np.sin(z)
-    views = []
-    true_features = []
-    view_sparsity = _process_parameter(
-        "view_sparsity", view_sparsity, 0, len(view_features)
-    )
-    for p, sparsity in zip(view_features, view_sparsity):
-        weights = random_state.normal(size=(p, 1))
-        if sparsity <= 1:
-            sparsity = np.ceil(sparsity * p).astype("int")
-            weights[random_state.choice(np.arange(p), p - sparsity, replace=False)] = 0
-        gaussian_x = random_state.normal(0, eps, size=(n, p)) * eps
-        view = np.outer(z, weights)
-        view += gaussian_x
-        views.append(view / np.linalg.norm(view, axis=0))
-        true_features.append(weights)
-    return views, true_features
-
-
 def _decorrelate_dims(up, cov):
     A = up.T @ cov @ up
     for k in range(1, A.shape[0]):

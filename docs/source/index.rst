@@ -8,7 +8,6 @@ Welcome to cca-zoo's documentation!
 
    documentation/install
    documentation/getting_started
-   documentation/maths
    documentation/user_guide
    auto_examples/index
 
@@ -18,13 +17,11 @@ Welcome to cca-zoo's documentation!
    :maxdepth: 2
    :caption: Reference
 
-   api/data
-   api/deepmodels
-   api/models
-   api/stochasticmodels
-   api/probabilisticmodels
-   api/model_selection
-   api/utils
+    api/data
+    api/models
+    api/deepmodels
+    api/probabilisticmodels
+    api/model_selection
 
 
 .. toctree::
@@ -32,7 +29,6 @@ Welcome to cca-zoo's documentation!
    :caption: Developer Info
 
    developer_info/contribute
-   developer_info/support
    developer_info/license
 
 

@@ -1,10 +1,10 @@
 from abc import abstractmethod
-from typing import Optional, Dict, Any, List, Union, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
-import numpy as np
 
 
 class BaseDeep(pl.LightningModule):

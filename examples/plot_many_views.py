@@ -7,7 +7,7 @@ This will compare MCCA, GCCA, TCCA for linear models with more than 2 views
 import numpy as np
 
 from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.models import MCCA, GCCA, TCCA, KCCA, KGCCA, KTCCA, SCCA_PMD
+from cca_zoo.models import GCCA, KCCA, KGCCA, KTCCA, MCCA, SCCA_PMD, TCCA
 
 """
 Data

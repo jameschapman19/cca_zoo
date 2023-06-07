@@ -4,10 +4,10 @@ from cca_zoo.deepmodels import objectives
 from cca_zoo.deepmodels._base import BaseDeep
 from cca_zoo.deepmodels.callbacks import CorrelationCallback
 from cca_zoo.models import MCCA
-from cca_zoo.models._base import BaseCCA
+from cca_zoo.models._base import BaseModel
 
 
-class DCCA(BaseDeep, BaseCCA):
+class DCCA(BaseDeep, BaseModel):
     """
     A class used to fit a DCCA model.
 

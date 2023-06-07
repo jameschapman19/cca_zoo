@@ -1,6 +1,7 @@
-from typing import Union, Iterable
+from typing import Iterable, Union
 
 import numpy as np
+import torch
 from skprox.proximal_operators import _proximal_operators
 
 from cca_zoo.models._iterative._base import BaseIterative, BaseLoop
@@ -13,20 +14,28 @@ class AltMaxVar(BaseIterative):
         latent_dims=1,
         copy_data=True,
         random_state=None,
+        epochs=100,
         tol=1e-3,
         proximal="L1",
         positive=False,
         tau: Union[Iterable[float], float] = None,
         proximal_params: Iterable[dict] = None,
         gamma=0.1,
-        learning_rate=0.001,
+        learning_rate=0.1,
         T=100,
+        convergence_checking=None,
+        track=None,
+        verbose=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
             copy_data=copy_data,
             random_state=random_state,
             tol=tol,
+            epochs=epochs,
+            convergence_checking=convergence_checking,
+            track=track,
+            verbose=verbose,
         )
         self.tau = tau
         self.proximal = proximal
@@ -80,7 +89,7 @@ class AltMaxVarLoop(BaseLoop):
         k=None,
         gamma=0.1,
         T=100,
-        learning_rate=1e-3,
+        learning_rate=1e-1,
         proximal_operators=None,
     ):
         super().__init__(weights, k)
@@ -98,7 +107,7 @@ class AltMaxVarLoop(BaseLoop):
         G = U @ Vt
         return G
 
-    def _objective(self, views, scores, weights) -> int:
+    def objective(self, views, scores, weights) -> int:
         least_squares = (np.linalg.norm(scores - self.G, axis=(1, 2)) ** 2).sum()
         regularization = np.array(
             [
@@ -110,19 +119,39 @@ class AltMaxVarLoop(BaseLoop):
 
     def training_step(self, batch, batch_idx):
         scores = np.stack(self(batch["views"]))
+        old_weights = self.weights.copy()
         self.G = self._get_target(scores)
         converged = False
-        t = 0
-        for view in range(len(batch["views"])):
+        for i,view in enumerate(batch["views"]):
+            t = 0
+            # initialize the previous weights to None
+            prev_weights = None
             while t < self.T and not converged:
-                self.weights[view] -= self.learning_rate * (
-                    batch["views"][view].T
-                    @ (batch["views"][view] @ self.weights[view] - self.G)
+                # update the weights using the gradient descent and proximal operator
+                self.weights[i] -= self.learning_rate * (
+                        view.T
+                        @ (view @ self.weights[i] - self.G)
                 )
-                self.weights[view] = self.proximal_operators[view].prox(
-                    self.weights[view], self.learning_rate
+                self.weights[i] = self.proximal_operators[i].prox(
+                    self.weights[i], self.learning_rate
                 )
+                # check if the weights have changed significantly from the previous iteration
+                if prev_weights is not None and np.allclose(self.weights[i], prev_weights):
+                    # if yes, set converged to True and break the loop
+                    converged = True
+                    break
+                # update the previous weights for the next iteration
+                prev_weights = self.weights[i]
                 t += 1
-                converged = (
-                    np.linalg.norm(self.weights[view] - self.weights[view]) < 1e-6
-                )
+
+        # if tracking or convergence_checking is enabled, compute the objective function
+        if self.tracking or self.convergence_checking:
+            objective = self.objective(batch["views"])
+            # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights
+            weights_change = torch.tensor(np.max(
+                [
+                    np.max(np.abs(old_weights[i] - self.weights[i])) / np.max(np.abs(self.weights[i]))
+                    for i in range(len(self.weights))
+                ]
+            ))
+            return {"loss": torch.tensor(objective), "weights_change": weights_change}

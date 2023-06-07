@@ -1,36 +1,31 @@
 import warnings
-from typing import Union, Iterable
+from typing import Iterable, Union
 
 import numpy as np
-from sklearn.linear_model import SGDRegressor, Ridge, ElasticNet, Lasso
+import torch
+from sklearn.linear_model import ElasticNet, Lasso, Ridge, SGDRegressor
 
-from cca_zoo.models._iterative._base import BaseIterative, BaseLoop
+from cca_zoo.models._iterative._base import BaseDeflation, BaseLoop
 from cca_zoo.utils import _process_parameter
 
 
-class ElasticCCA(BaseIterative):
+class ElasticCCA(BaseDeflation):
     r"""
-    Fits an elastic CCA by iterating elastic net regressions to two or more views of data.
+    A class used to fit an elastic CCA model for two or more views of data.
 
-    By default, ElasticCCA uses CCA with an auxiliary variable target i.e. MAXVAR configuration
+    This model finds the linear projections of multiple views that maximize their pairwise correlations while enforcing L1 and L2 penalties on the projection vectors.
+
+    ElasticCCA uses CCA with an auxiliary variable target i.e. MAXVAR configuration
 
     .. math::
 
-        w_{opt}, t_{opt}=\underset{w,t}{\mathrm{argmax}}\{\sum_i \|X_iw_i-t\|^2 + c\|w_i\|^2_2 + \text{l1_ratio}\|w_i\|_1\}\\
+        w_{opt}, t_{opt}=\underset{w,t}{\mathrm{argmin}}\{\sum_i \|X_iw_i-t\|^2 + \alpha_i\|w_i\|^2_2 + \text{l1_ratio}\|w_i\|_1\}\\
 
         \text{subject to:}
 
         t^Tt=n
 
-    But we can force it to attempt to use the SUMCOR form which will approximate a solution to the problem:
-
-    .. math::
-
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 + c\|w_i\|^2_2 + \text{l1_ratio}\|w_i\|_1\}\\
-
-        \text{subject to:}
-
-        w_i^TX_i^TX_iw_i=n
+    Where :math:`\alpha_i` is the constant that multiplies the penalty terms for view i and :math:`\text{l1_ratio}` is the ratio between L1 and L2 penalties.
 
     Parameters
     ----------
@@ -55,7 +50,6 @@ class ElasticCCA(BaseIterative):
     positive : bool or list of bools, default=None
         Whether to use non-negative constraints
 
-
     Examples
     --------
     >>> from cca_zoo.models import ElasticCCA
@@ -73,6 +67,7 @@ class ElasticCCA(BaseIterative):
         latent_dims: int = 1,
         copy_data=True,
         random_state=None,
+        epochs: int = 100,
         deflation="cca",
         initialization: Union[str, callable] = "pls",
         tol: float = 1e-3,
@@ -80,6 +75,9 @@ class ElasticCCA(BaseIterative):
         l1_ratio: Union[Iterable[float], float] = None,
         stochastic=False,
         positive: Union[Iterable[bool], bool] = None,
+        convergence_checking=None,
+        track=None,
+        verbose=False,
     ):
         self.alpha = alpha
         self.l1_ratio = l1_ratio
@@ -93,10 +91,15 @@ class ElasticCCA(BaseIterative):
         super().__init__(
             latent_dims=latent_dims,
             copy_data=copy_data,
+            epochs=epochs,
             deflation=deflation,
             initialization=initialization,
             tol=tol,
             random_state=random_state,
+            convergence_checking=convergence_checking,
+            patience=0,
+            track=track,
+            verbose=verbose,
         )
 
     def _check_params(self):
@@ -116,6 +119,8 @@ class ElasticCCA(BaseIterative):
             positive=self.positive,
             tol=self.tol,
             random_state=self.random_state,
+            tracking=self.track,
+            convergence_checking=self.convergence_checking,
         )
 
     def _more_tags(self):
@@ -133,8 +138,18 @@ class ElasticLoop(BaseLoop):
         positive=None,
         tol=1e-3,
         random_state=None,
+        tracking=False,
+        convergence_checking=False,
     ):
-        super().__init__(weights=weights, k=k, automatic_optimization=False)
+        super().__init__(
+            weights=weights,
+            k=k,
+            automatic_optimization=False,
+            tracking=tracking,
+            convergence_checking=convergence_checking,
+        )
+        self.alpha = alpha
+        self.l1_ratio = l1_ratio
         self.n_views = len(self.weights)
         self.n_samples_ = self.weights[0].shape[0]
         self.regressors = initialize_regressors(
@@ -157,6 +172,7 @@ class ElasticLoop(BaseLoop):
 
     def training_step(self, batch, batch_idx):
         scores = np.stack(self(batch["views"]))
+        old_weights = self.weights.copy()
         # Update each view using loop update function
         for view_index, view in enumerate(batch["views"]):
             # create a mask that is True for elements not equal to k along dim k
@@ -168,15 +184,65 @@ class ElasticLoop(BaseLoop):
             self.regressors[view_index] = self.regressors[view_index].fit(
                 batch["views"][view_index], target
             )
-
-    def configure_optimizers(self):
-        return None
+            self.weights[view_index] = self.regressors[view_index].coef_
+        # if tracking or convergence_checking is enabled, compute the objective function
+        if self.tracking or self.convergence_checking:
+            objective = self.objective(batch["views"])
+            # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights
+            weights_change = torch.tensor(np.max(
+                [
+                    np.max(np.abs(old_weights[i] - self.weights[i])) / np.max(np.abs(self.weights[i]))
+                    for i in range(len(self.weights))
+                ]
+            ))
+            return {"loss": torch.tensor(objective), "weights_change": weights_change}
 
     def on_fit_end(self) -> None:
         self.weights = [regressor.coef_ for regressor in self.regressors]
 
+    def objective(self, views):
+        scores = np.stack(self(views))
+        objective = 0
+        for view_index, view in enumerate(views):
+            # create a mask that is True for elements not equal to k along dim k
+            mask = np.arange(scores.shape[0]) != view_index
+            # apply the mask to scores and sum along dim k
+            target = np.sum(scores[mask], axis=0)
+            target /= np.linalg.norm(target) / np.sqrt(self.n_samples_)
+            objective += elastic_objective(
+                view,
+                self.regressors[view_index].coef_,
+                target,
+                self.alpha[view_index],
+                self.l1_ratio[view_index],
+            )
+        return objective
+
 
 class SCCA_IPLS(ElasticCCA):
+    r"""
+    A class used to fit a sparse CCA model by iterative rescaled lasso regression. Implemented by ElasticCCA with l1 ratio=1 and SUMCOR form.
+
+    This model finds the linear projections of multiple views that maximize their pairwise correlations while enforcing sparsity constraints on the projection vectors.
+
+    The objective function of sparse CCA is:
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmin}}\{\sum_i\sum_{j\neq i} \|X_iw_i-X_jw_j\|^2 + \sum_i \alpha_i\|w_i\|_1 \}\\
+
+        \text{subject to:}
+
+        w_i^TX_i^TX_iw_i=n
+
+    where :math:`\alpha_i` are the sparsity parameters for each view.
+
+    This model uses the SUMCOR form of CCA, which means that the projection vectors are normalized by their auto-covariance matrices.
+
+
+
+    """
+
     def _get_module(self, weights=None, k=None):
         self.l1_ratio = [1] * self.n_views_
         return IPLSLoop(
@@ -194,6 +260,7 @@ class SCCA_IPLS(ElasticCCA):
 class IPLSLoop(ElasticLoop):
     def training_step(self, batch, batch_idx):
         scores = np.stack(self(batch["views"]))
+        old_weights = self.weights.copy()
         # Update each view using loop update function
         for view_index, view in enumerate(batch["views"]):
             # create a mask that is True for elements not equal to k along dim k
@@ -207,6 +274,37 @@ class IPLSLoop(ElasticLoop):
             self.regressors[view_index].coef_ /= np.linalg.norm(
                 view @ self.regressors[view_index].coef_
             ) / np.sqrt(self.n_samples_)
+            self.weights[view_index] = self.regressors[view_index].coef_
+            # if tracking or convergence_checking is enabled, compute the objective function
+            if self.tracking or self.convergence_checking:
+                objective = self.objective(batch["views"])
+                # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights
+                weights_change = torch.tensor(np.max(
+                    [
+                        np.max(np.abs(old_weights[i] - self.weights[i])) / np.max(np.abs(self.weights[i]))
+                        for i in range(len(self.weights))
+                    ]
+                ))
+                return {"loss": objective, "weights_change": weights_change}
+
+    def objective(self, views):
+        scores = np.stack(self(views))
+
+        objective = 0
+        for view_index, view in enumerate(views):
+            # create a mask that is True for elements not equal to k along dim k
+            mask = np.arange(scores.shape[0]) != view_index
+            # apply the mask to scores and sum along dim k
+            target = np.sum(scores[mask], axis=0)
+            target /= np.linalg.norm(target) / np.sqrt(self.n_samples_)
+            objective += elastic_objective(
+                view,
+                self.regressors[view_index].coef_,
+                target,
+                self.alpha[view_index],
+                self.l1_ratio[view_index],
+            )
+        return {"loss":torch.tensor(objective)}
 
 
 def elastic_objective(x, w, y, alpha, l1_ratio):

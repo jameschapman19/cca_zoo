@@ -2,17 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 from sklearn.utils.validation import check_random_state
 
-from cca_zoo.models import (
-    CCA,
-    PLS,
-    KCCA,
-    KTCCA,
-    MCCA,
-    GCCA,
-    TCCA,
-    KGCCA,
-    PLS_ALS,
-)
+from cca_zoo.models import CCA, GCCA, KCCA, KGCCA, KTCCA, MCCA, PLS, PLS_ALS, TCCA
 
 n = 50
 rng = check_random_state(0)

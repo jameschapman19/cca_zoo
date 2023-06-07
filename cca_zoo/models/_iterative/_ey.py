@@ -1,9 +1,10 @@
 from typing import Union
 
-import torch
 import numpy as np
-from cca_zoo.models._base import PLSMixin
-from cca_zoo.models._iterative._base import BaseIterative, BaseGradientLoop
+import torch
+
+from cca_zoo.models._plsmixin import PLSMixin
+from cca_zoo.models._iterative._base import BaseGradientLoop, BaseIterative
 
 
 class CCAEY(BaseIterative):
@@ -40,15 +41,16 @@ class CCAEY(BaseIterative):
         tol=1e-9,
         accept_sparse=None,
         batch_size=None,
-        epochs=1,
+        epochs=100,
         learning_rate=1e-1,
         initialization: Union[str, callable] = "random",
         dataloader_kwargs=None,
         optimizer_kwargs=None,
         convergence_checking=False,
         patience=10,
+        track=False,
+        verbose=False,
     ):
-        self.previous_views = None
         self.optimizer_kwargs = optimizer_kwargs
         super().__init__(
             latent_dims=latent_dims,
@@ -63,7 +65,11 @@ class CCAEY(BaseIterative):
             dataloader_kwargs=dataloader_kwargs,
             convergence_checking=convergence_checking,
             patience=patience,
+            track=track,
+            verbose=verbose,
         )
+        # ensure dataloader_kwargs['shuffle'] is True
+        self.dataloader_kwargs["shuffle"] = True
 
     def _get_module(self, weights=None, k=None):
         return EYLoop(
@@ -117,6 +123,9 @@ class PLSEY(CCAEY, PLSMixin):
         initialization: Union[str, callable] = "random",
         dataloader_kwargs=None,
         convergence_checking=False,
+        patience=10,
+        track=False,
+        verbose=False,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -130,6 +139,9 @@ class PLSEY(CCAEY, PLSMixin):
             initialization=initialization,
             dataloader_kwargs=dataloader_kwargs,
             convergence_checking=convergence_checking,
+            patience=patience,
+            track=track,
+            verbose=verbose,
         )
         self.previous_views = None
 
@@ -172,7 +184,7 @@ class EYLoop(BaseGradientLoop):
             self.batch_queue.append(batch)
             # Returning a zero loss
             loss = {
-                "objective": torch.tensor(0, requires_grad=True, dtype=torch.float32),
+                "loss": torch.tensor(0, requires_grad=True, dtype=torch.float32),
             }
         else:
             # randomly select a batch from the queue
@@ -185,23 +197,32 @@ class EYLoop(BaseGradientLoop):
         # Logging the loss components
         for k, v in loss.items():
             self.log(k, v, prog_bar=False)
-        return loss["objective"]
+        return loss
 
     def get_AB(self, z):
-        # Getting the dimensions of the encoded views
-        N, D = z[0].size()
-        # Computing the covariance matrix of the concatenated views
-        C = torch.cov(torch.hstack(z).T)
-        # Extracting the cross-covariance and auto-covariance matrices
-        A = C[:D, D:] + C[D:, :D]
-        if self.objective == "cca":
-            B = C[:D, :D] + C[D:, D:]
-        elif self.objective == "pls":
-            B = (
-                self.weights[0].T @ self.weights[0]
-                + self.weights[1].T @ self.weights[1]
-            )
-        return A, B
+        latent_dims = z[0].shape[1]
+        A = torch.zeros(
+            latent_dims, latent_dims, device=z[0].device
+        )  # initialize the cross-covariance matrix
+        B = torch.zeros(
+            latent_dims, latent_dims, device=z[0].device
+        )  # initialize the auto-covariance matrix
+        for i, zi in enumerate(z):
+            for j, zj in enumerate(z):
+                if i == j:
+                    if self.objective == "cca":
+                        B += torch.cov(
+                            zi.T
+                        )  # add the auto-covariance of each view to B
+                    elif self.objective == "pls":
+                        B += self.weights[i].T @ self.weights[i]
+                else:
+                    A += torch.cov(torch.hstack((zi, zj)).T)[
+                        latent_dims:, :latent_dims
+                    ]  # add the cross-covariance of each pair of views to A
+        return A / len(z), B / len(
+            z
+        )  # return the normalized matrices (divided by the number of views)
 
     def loss(self, views, views2=None, **kwargs):
         # Encoding the views with the forward method
@@ -224,7 +245,7 @@ class EYLoop(BaseGradientLoop):
             penalties = torch.trace(B @ B_)
 
         return {
-            "objective": -rewards + penalties,
+            "loss": -rewards + penalties,
             "rewards": rewards,
             "penalties": penalties,
         }
