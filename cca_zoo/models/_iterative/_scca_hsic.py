@@ -52,12 +52,12 @@ class SCCA_HSIC(GradKCCA):
         self.c = c
 
     def _check_params(self):
-        self.proj = _process_parameter("proj", self.proj, None, self.n_views)
-        self.kernel = _process_parameter("kernel", self.kernel, "linear", self.n_views)
-        self.gamma = _process_parameter("gamma", self.gamma, None, self.n_views)
-        self.coef0 = _process_parameter("coef0", self.coef0, 1, self.n_views)
-        self.degree = _process_parameter("degree", self.degree, 1, self.n_views)
-        self.c = _process_parameter("c", self.c, 1, self.n_views)
+        self.proj = _process_parameter("proj", self.proj, None, self.n_views_)
+        self.kernel = _process_parameter("kernel", self.kernel, "linear", self.n_views_)
+        self.gamma = _process_parameter("gamma", self.gamma, None, self.n_views_)
+        self.coef0 = _process_parameter("coef0", self.coef0, 1, self.n_views_)
+        self.degree = _process_parameter("degree", self.degree, 1, self.n_views_)
+        self.c = _process_parameter("c", self.c, 1, self.n_views_)
 
     def _objective(self, views, scores, weights) -> int:
         N = scores[0].shape[0]
@@ -132,8 +132,6 @@ class SCCA_HSIC(GradKCCA):
 
         """
         check_is_fitted(self, attributes=["weights"])
-        views = _check_views(*views)
-        views = self._centre_scale_transform(views)
         transformed_views = []
         for i, (view) in enumerate(views):
             transformed_view = view @ self.weights[i]
