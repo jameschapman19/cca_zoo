@@ -6,6 +6,7 @@ from ._ncca import NCCA
 from ._partialcca import PartialCCA
 from ._prcca import PRCCA
 from ._tcca import KTCCA, TCCA
+from ._pcacca import PCACCA
 
 __all__ = [
     "CCA",
@@ -20,6 +21,7 @@ __all__ = [
     "TCCA",
     "PartialCCA",
     "rCCA",
+    "PCACCA",
 ]
 
 # if pytorch-lightning is installed then import ._iterative
@@ -56,6 +58,9 @@ try:
         "PLSSVD",
     ]
 except:
-    pass
+    # let user know that if they want to use iterative methods they need to install pytorch-lightning from version 2.0.0
+    print(
+        "To use iterative methods please install pytorch-lightning from version 2.0.0"
+    )
 
 classes = __all__
