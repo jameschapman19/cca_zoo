@@ -226,7 +226,7 @@ class KGCCA(KernelMixin,GCCA):
         self.kernel = kernel
         self.degree = degree
 
-    def _weights(self, eigvals, eigvecs, views):
+    def _weights(self, eigvals, eigvecs, views, **kwargs):
         kernels = [get_kernel(view, metric=self.kernel[i], gamma=self.gamma[i], degree=self.degree[i], coef0=self.coef0[i], **self.kernel_params[i]) for i, view in enumerate(self.train_views)]
         self.weights = [
             np.linalg.pinv(kernel) @ eigvecs[:, : self.latent_dims]
