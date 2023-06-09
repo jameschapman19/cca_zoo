@@ -71,12 +71,13 @@ class PCACCA(MCCA):
     def transform_weights(self):
         # go from weights in PCA space to weights in original space
         self.weights = [
-            pca.components_.T @ self.weights[i]
-            for i, pca in enumerate(self.pca)
+            pca.components_.T @ self.weights[i] for i, pca in enumerate(self.pca)
         ]
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     from cca_zoo.models import rCCA
+
     x = np.random.rand(100, 10)
     y = np.random.rand(100, 10)
     x -= x.mean(axis=0)

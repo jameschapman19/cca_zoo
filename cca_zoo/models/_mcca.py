@@ -47,14 +47,14 @@ class MCCA(BaseModel):
     """
 
     def __init__(
-            self,
-            latent_dims: int = 1,
-            copy_data=True,
-            random_state=None,
-            c: Union[Iterable[float], float] = None,
-            accept_sparse=None,
-            eps: float = 1e-6,
-            pca: bool = True,
+        self,
+        latent_dims: int = 1,
+        copy_data=True,
+        random_state=None,
+        c: Union[Iterable[float], float] = None,
+        accept_sparse=None,
+        eps: float = 1e-6,
+        pca: bool = True,
     ):
         # Set the default value for accept_sparse
         if accept_sparse is None:
@@ -98,8 +98,7 @@ class MCCA(BaseModel):
         if self.pca:
             # go from weights in PCA space to weights in original space
             self.weights = [
-                pca.components_.T @ self.weights[i]
-                for i, pca in enumerate(self.pca)
+                pca.components_.T @ self.weights[i] for i, pca in enumerate(self.pca)
             ]
 
     def _pca(self, views):
@@ -115,10 +114,12 @@ class MCCA(BaseModel):
         C = np.cov(all_views, rowvar=False)
         if self.pca:
             # Can regularise by adding to diagonal
-            D = block_diag(*[
-                np.diag((1 - self.c[i]) * pc.explained_variance_ + self.c[i])
-                for i, pc in enumerate(self.pca)
-            ])
+            D = block_diag(
+                *[
+                    np.diag((1 - self.c[i]) * pc.explained_variance_ + self.c[i])
+                    for i, pc in enumerate(self.pca)
+                ]
+            )
         else:
             D = block_diag(
                 *[
@@ -150,6 +151,7 @@ class MCCA(BaseModel):
         # Indicate that this class is for multiview data
         return {"multiview": True}
 
+
 class rCCA(MCCA):
     r"""
     A class used to fit Regularised CCA (canonical ridge) model. This model adds a regularization term to the CCA objective function to avoid overfitting and improve stability. It uses PCA to perform the optimization efficiently for high dimensional data.
@@ -177,13 +179,16 @@ class rCCA(MCCA):
         # Check that there are two views
         if len(views) != 2:
             raise ValueError(
-                f"Model can only be used with two views, but {len(views)} were given. Use MCCA or GCCA instead.")
+                f"Model can only be used with two views, but {len(views)} were given. Use MCCA or GCCA instead."
+            )
         # Compute the B matrices for each view
         D = [
             (1 - self.c[i]) * pc.explained_variance_ + self.c[i]
             for i, pc in enumerate(self.pca)
         ]
-        C=np.cov(views[0]/np.sqrt(D[0]), views[1]/np.sqrt(D[1]), rowvar=False)[0 : views[0].shape[1], views[0].shape[1] :]
+        C = np.cov(views[0] / np.sqrt(D[0]), views[1] / np.sqrt(D[1]), rowvar=False)[
+            0 : views[0].shape[1], views[0].shape[1] :
+        ]
         # if views[0].shape[1] <= views[1].shape[1] then return R@R^T else return R^T@R
         if views[0].shape[1] <= views[1].shape[1]:
             self.primary_view = 0
@@ -195,35 +200,37 @@ class rCCA(MCCA):
 
     def _weights(self, eigvals, eigvecs, views):
         B = [
-            (1 - self.c[i]) * pc.singular_values_ ** 2 / self.n_samples_ + self.c[i]
+            (1 - self.c[i]) * pc.singular_values_**2 / self.n_samples_ + self.c[i]
             for i, pc in enumerate(self.pca)
         ]
-        C=np.cov(views[1-self.primary_view],views[self.primary_view], rowvar=False)[0 : views[0].shape[1], views[0].shape[1] :]
-        self.weights=[None]*2
+        C = np.cov(
+            views[1 - self.primary_view], views[self.primary_view], rowvar=False
+        )[0 : views[0].shape[1], views[0].shape[1] :]
+        self.weights = [None] * 2
         # Compute the weight matrix for primary view
-        self.weights[1-self.primary_view] = (
+        self.weights[1 - self.primary_view] = (
             # Project view 1 onto its principal components
-                self.pca[1-self.primary_view].components_.T
-                # Scale by the inverse of B[0]
-                @ np.diag(1 / B[1-self.primary_view])
-                # Multiply by the cross-covariance matrix
-                @ C.T
-                # Scale by the inverse of the square root of B[1]
-                @ np.diag(1 / np.sqrt(B[self.primary_view]))
-                # Multiply by the eigenvectors
-                @ eigvecs
-                # Scale by the inverse of the square root of eigenvalues
-                / np.sqrt(eigvals)
+            self.pca[1 - self.primary_view].components_.T
+            # Scale by the inverse of B[0]
+            @ np.diag(1 / B[1 - self.primary_view])
+            # Multiply by the cross-covariance matrix
+            @ C.T
+            # Scale by the inverse of the square root of B[1]
+            @ np.diag(1 / np.sqrt(B[self.primary_view]))
+            # Multiply by the eigenvectors
+            @ eigvecs
+            # Scale by the inverse of the square root of eigenvalues
+            / np.sqrt(eigvals)
         )
 
         # Compute the weight matrix for view 2
         self.weights[self.primary_view] = (
             # Project view 2 onto its principal components
-                self.pca[self.primary_view].components_.T
-                # Scale by the inverse of the square root of B[1]
-                @ np.diag(1 / np.sqrt(B[self.primary_view]))
-                # Multiply by the eigenvectors
-                @ eigvecs
+            self.pca[self.primary_view].components_.T
+            # Scale by the inverse of the square root of B[1]
+            @ np.diag(1 / np.sqrt(B[self.primary_view]))
+            # Multiply by the eigenvectors
+            @ eigvecs
         )
 
 
@@ -323,5 +330,3 @@ class PLS(MCCA, PLSMixin):
             c=1,
             random_state=random_state,
         )
-
-
