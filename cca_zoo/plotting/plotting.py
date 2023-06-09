@@ -187,3 +187,32 @@ def plot_each_view_tsne(
         ax.scatter(transformed_views[i][:, 0], transformed_views[i][:, 1])
         ax.set_title(f"Dimension {i + 1}")
     return ax
+
+def plot_explained_variance(
+    model, views: Iterable[np.ndarray], ax=None, figsize=None, **kwargs
+):
+    """
+    Plots the explained variance for each dimension
+
+    Parameters
+    ----------
+    views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+    ax : matplotlib axes object, optional
+          If not provided, a new figure will be created.
+    figsize : tuple, optional
+          The size of the figure to create. If not provided, the default matplotlib figure size will be used.
+    kwargs : any additional keyword arguments required by the given model
+
+    Returns
+    -------
+    ax : matplotlib axes object
+
+    """
+    if ax is None:
+        _, ax = plt.subplots(figsize=figsize)
+
+    variances = model.explained_variance_(views, **kwargs)
+    ax.plot(np.arange(1, variances.shape[-1] + 1), variances.mean(axis=(0, 1)))
+    ax.set_xlabel("Dimension")
+    ax.set_ylabel("Explained Variance")
+    return ax

@@ -1,7 +1,6 @@
 from typing import Iterable
 
 import numpy as np
-from matplotlib import pyplot as plt
 
 
 class PLSMixin:
@@ -177,32 +176,3 @@ class PLSMixin:
         explained_covariance_ratio = self.explained_covariance_ratio_(views, **kwargs)
         explained_covariance_cumulative = np.cumsum(explained_covariance_ratio)
         return explained_covariance_cumulative
-
-    def plot_explained_variance(
-        self, views: Iterable[np.ndarray], ax=None, figsize=None, **kwargs
-    ):
-        """
-        Plots the explained variance for each dimension
-
-        Parameters
-        ----------
-        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        ax : matplotlib axes object, optional
-              If not provided, a new figure will be created.
-        figsize : tuple, optional
-              The size of the figure to create. If not provided, the default matplotlib figure size will be used.
-        kwargs : any additional keyword arguments required by the given model
-
-        Returns
-        -------
-        ax : matplotlib axes object
-
-        """
-        if ax is None:
-            _, ax = plt.subplots(figsize=figsize)
-
-        variances = self.explained_variance_(views, **kwargs)
-        ax.plot(np.arange(1, variances.shape[-1] + 1), variances.mean(axis=(0, 1)))
-        ax.set_xlabel("Dimension")
-        ax.set_ylabel("Explained Variance")
-        return ax

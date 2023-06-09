@@ -72,16 +72,9 @@ class PRCCA(MCCA):
             assert np.issubdtype(
                 idx.dtype, np.integer
             ), "feature groups must be integers"
-        self._validate_data(views)
-        self._check_params()
-        views = self._pretransform(views, idxs)
-        self.weights = (
-            MCCA(latent_dims=self.latent_dims, c=self.c).fit(views, idxs=idxs).weights
-        )
-        self._transform_weights(views, idxs=idxs)
-        return self
+        return super().fit(views, y=y, idxs=idxs, **kwargs)
 
-    def _pretransform(self, views, idxs):
+    def _process_data(self, views, idxs=None,**kwargs):
         X_1 = [view[:, idx] for view, idx in zip(views, idxs)]
         self.p = [X_i.shape[1] for X_i in X_1]
         X_2 = [np.delete(view, idx, axis=1) for view, idx in zip(views, idxs)]
