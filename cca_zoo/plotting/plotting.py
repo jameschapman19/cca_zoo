@@ -188,6 +188,7 @@ def plot_each_view_tsne(
         ax.set_title(f"Dimension {i + 1}")
     return ax
 
+
 def plot_explained_variance(
     model, views: Iterable[np.ndarray], ax=None, figsize=None, **kwargs
 ):

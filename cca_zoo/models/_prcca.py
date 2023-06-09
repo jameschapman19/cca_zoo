@@ -74,7 +74,7 @@ class PRCCA(MCCA):
             ), "feature groups must be integers"
         return super().fit(views, y=y, idxs=idxs, **kwargs)
 
-    def _process_data(self, views, idxs=None,**kwargs):
+    def _process_data(self, views, idxs=None, **kwargs):
         X_1 = [view[:, idx] for view, idx in zip(views, idxs)]
         self.p = [X_i.shape[1] for X_i in X_1]
         X_2 = [np.delete(view, idx, axis=1) for view, idx in zip(views, idxs)]
