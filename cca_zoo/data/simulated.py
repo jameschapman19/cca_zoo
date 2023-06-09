@@ -2,7 +2,6 @@ import itertools
 from typing import List, Union
 
 import numpy as np
-from scipy import linalg
 from scipy.linalg import block_diag
 from sklearn.datasets import make_spd_matrix
 from sklearn.utils.validation import check_random_state

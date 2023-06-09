@@ -46,9 +46,9 @@ class CCAEY(BaseIterative):
         initialization: Union[str, callable] = "random",
         dataloader_kwargs=None,
         optimizer_kwargs=None,
-        convergence_checking=False,
+        convergence_checking=None,
         patience=10,
-        track=False,
+        track=None,
         verbose=False,
     ):
         self.optimizer_kwargs = optimizer_kwargs
