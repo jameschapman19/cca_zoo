@@ -34,9 +34,6 @@ Y_sp -= Y_sp.mean(axis=0)
 def test_unregularized_methods():
     # This function tests unregularized CCA methods. The idea is that all of these should give the same result.
     latent_dims = 2
-    from cca_zoo.models import rCCA2
-
-    rcca2 = rCCA2(latent_dims=latent_dims).fit([X, Y])
     rcca = rCCA(latent_dims=latent_dims).fit([X, Y])
     cca = CCA(latent_dims=latent_dims).fit([X, Y])
     gcca = GCCA(latent_dims=latent_dims).fit([X, Y])
@@ -48,7 +45,6 @@ def test_unregularized_methods():
     pcacca = PCACCA(latent_dims=latent_dims).fit([X, Y])
 
     # Get the correlation scores for each method
-    corr_rcca2 = rcca2.score((X, Y))
     corr_rcca = rcca.score((X, Y))
     corr_cca = cca.score((X, Y))
     corr_gcca = gcca.score((X, Y))
