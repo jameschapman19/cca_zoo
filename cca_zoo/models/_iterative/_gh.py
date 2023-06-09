@@ -11,6 +11,8 @@ class CCAGH(CCAEY):
             learning_rate=self.learning_rate,
             optimizer_kwargs=self.optimizer_kwargs,
             objective="cca",
+            tracking=self.track,
+            convergence_checking=self.convergence_checking,
         )
 
     def _more_tags(self):

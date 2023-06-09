@@ -78,6 +78,8 @@ class CCAEY(BaseIterative):
             learning_rate=self.learning_rate,
             optimizer_kwargs=self.optimizer_kwargs,
             objective="cca",
+            tracking=self.track,
+            convergence_checking=self.convergence_checking,
         )
 
     def _more_tags(self):
@@ -152,6 +154,8 @@ class PLSEY(CCAEY, PLSMixin):
             learning_rate=self.learning_rate,
             optimizer_kwargs=self.optimizer_kwargs,
             objective="pls",
+            tracking=self.track,
+            convergence_checking=self.convergence_checking,
         )
 
     def _more_tags(self):
@@ -166,12 +170,16 @@ class EYLoop(BaseGradientLoop):
         learning_rate=1e-3,
         optimizer_kwargs=None,
         objective="cca",
+        tracking=False,
+        convergence_checking=False,
     ):
         super().__init__(
             weights=weights,
             k=k,
             learning_rate=learning_rate,
             optimizer_kwargs=optimizer_kwargs,
+            tracking=tracking,
+            convergence_checking=convergence_checking,
         )
         self.objective = objective
         self.batch_queue = []
