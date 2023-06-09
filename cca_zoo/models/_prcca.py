@@ -90,7 +90,7 @@ class PRCCA(MCCA):
         views = [np.hstack((X_1, X_2)) for X_1, X_2 in zip(X_1, X_2)]
         return views
 
-    def C(self,views, **kwargs):
+    def C(self, views, **kwargs):
         all_views = np.concatenate(views, axis=1)
         C = np.cov(all_views, rowvar=False)
         C -= block_diag(*[np.cov(view, rowvar=False) for view in views])

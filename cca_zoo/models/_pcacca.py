@@ -40,9 +40,9 @@ class PCACCA(MCCA):
             # Keep the components that explain the percentage of variance
             explained_variance = self.pca[i].explained_variance_ratio_
             n_components_ = (
-                    np.where(np.cumsum(explained_variance) >= self.percent_variance)[0][0]
-                    + 1
+                np.where(np.cumsum(explained_variance) >= self.percent_variance)[0][0]
+                + 1
             )
             self.pca[i].n_components_ = n_components_
             self.pca[i].components_ = self.pca[i].components_[:n_components_]
-        return [view[:,:self.pca[i].n_components_] for i, view in enumerate(views)]
+        return [view[:, : self.pca[i].n_components_] for i, view in enumerate(views)]
