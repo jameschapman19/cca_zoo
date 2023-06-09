@@ -21,7 +21,7 @@ class PCACCA(MCCA):
         random_state=None,
         c: Union[Iterable[float], float] = None,
         eps=1e-9,
-        percent_variance=0.90,
+        percent_variance=0.99,
     ):
         super().__init__(
             latent_dims=latent_dims,
@@ -46,6 +46,8 @@ class PCACCA(MCCA):
         eigvals, eigvecs = self._solve_evp(C, D)
         # Compute the weights for each view
         self._weights(eigvals, eigvecs, pca_views)
+        # Transform the weights back to the original space
+        self.transform_weights()
         return self
 
     def _pca(self, views):
@@ -66,11 +68,28 @@ class PCACCA(MCCA):
             self.pca[i].components_ = self.pca[i].components_[:n_components_]
         return [self.pca[i].transform(view) for i, view in enumerate(views)]
 
-    def transform(self, views: Iterable[np.ndarray], **kwargs):
-        check_is_fitted(self, attributes=["weights"])
-        transformed_views = []
-        for i, view in enumerate(views):
-            pca_view = self.pca[i].transform(view)
-            transformed_view = pca_view @ self.weights[i]
-            transformed_views.append(transformed_view)
-        return transformed_views
+    def transform_weights(self):
+        # go from weights in PCA space to weights in original space
+        self.weights = [
+            pca.components_.T @ self.weights[i]
+            for i, pca in enumerate(self.pca)
+        ]
+
+if __name__ == '__main__':
+    from cca_zoo.models import rCCA
+    x = np.random.rand(100, 10)
+    y = np.random.rand(100, 10)
+    x -= x.mean(axis=0)
+    y -= y.mean(axis=0)
+    model = rCCA(latent_dims=2, c=0.1)
+    model.fit([x, y])
+    print(model.weights)
+    print(model.score([x, y]))
+    # compare to normal CCA
+    from cca_zoo.models import CCA
+
+    model = PCACCA(latent_dims=2, c=0.1)
+    model.fit([x, y])
+    print(model.weights)
+    print(model.score([x, y]))
+    print()

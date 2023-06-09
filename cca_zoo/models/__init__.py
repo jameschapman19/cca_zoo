@@ -1,12 +1,12 @@
-from ._rcca import CCA, PLS, rCCA
-from ._mcca import KCCA, MCCA
-from ._gcca import GCCA, KGCCA
+from ._mcca import MCCA, CCA, PLS, rCCA
+from ._gcca import GCCA
 from ._grcca import GRCCA
 from ._ncca import NCCA
 from ._partialcca import PartialCCA
 from ._prcca import PRCCA
-from ._tcca import KTCCA, TCCA
+from ._tcca import TCCA
 from ._pcacca import PCACCA
+from ._kcca import KCCA, KGCCA, KTCCA
 
 __all__ = [
     "CCA",
