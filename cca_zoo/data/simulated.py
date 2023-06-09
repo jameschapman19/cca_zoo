@@ -12,14 +12,14 @@ from cca_zoo.utils import _process_parameter
 class LinearSimulatedData:
     # This class generates simulated data for linear models with multiple views
     def __init__(
-            self,
-            view_features: List[int],
-            latent_dims: int = 1,
-            view_sparsity: Union[List[float], float] = None,
-            correlation: Union[List[float], float] = 0.99,
-            structure: str = 'random',
-            positive:Union[bool,List[bool]]=False,
-            random_state: Union[int, np.random.RandomState] = None,
+        self,
+        view_features: List[int],
+        latent_dims: int = 1,
+        view_sparsity: Union[List[float], float] = None,
+        correlation: Union[List[float], float] = 0.99,
+        structure: str = "random",
+        positive: Union[bool, List[bool]] = False,
+        random_state: Union[int, np.random.RandomState] = None,
     ):
         self.view_features = view_features
         self.latent_dims = latent_dims
@@ -33,7 +33,7 @@ class LinearSimulatedData:
             "view_sparsity", view_sparsity, 0.5, len(view_features)
         )
         self.structure = _process_parameter(
-            "structure", structure, 'random', len(view_features)
+            "structure", structure, "random", len(view_features)
         )
         self.positive = _process_parameter(
             "positive", positive, False, len(view_features)
@@ -70,19 +70,21 @@ class LinearSimulatedData:
                 cross += covs[i] @ A @ covs[j]
             # Assign the cross-covariance matrix to the corresponding blocks in the joint covariance matrix
             cov[
-            splits[i]: splits[i] + self.view_features[i],
-            splits[j]: splits[j] + self.view_features[j],
+                splits[i] : splits[i] + self.view_features[i],
+                splits[j] : splits[j] + self.view_features[j],
             ] = cross
             cov[
-            splits[j]: splits[j] + self.view_features[j],
-            splits[i]: splits[i] + self.view_features[i],
+                splits[j] : splits[j] + self.view_features[j],
+                splits[i] : splits[i] + self.view_features[i],
             ] = cross.T
         return cov
 
     def _generate_covariance_matrices(self):
         # Generate a list of covariance matrices and true features for each view using list comprehensions
-        covs = [self._generate_covariance_matrix(view_features, structure) for view_features, structure in
-                zip(self.view_features, self.structure)]
+        covs = [
+            self._generate_covariance_matrix(view_features, structure)
+            for view_features, structure in zip(self.view_features, self.structure)
+        ]
 
         true_features = [
             self._generate_true_feature(cov, sparsity, view_positive)
@@ -147,7 +149,7 @@ class LinearSimulatedData:
         views = np.split(X, np.cumsum(self.view_features)[:-1], axis=1)
         return views
 
-    def _chol_sample(self,chol):
+    def _chol_sample(self, chol):
         rng = check_random_state(self.random_state)
         return chol @ rng.randn(chol.shape[0])
 
