@@ -301,6 +301,7 @@ class PLS(rCCA, PLSMixin):
             random_state=random_state,
         )
 
+
 def _pca_data(*views: np.ndarray):
     """
     Performs PCA on the data and returns the scores and loadings
