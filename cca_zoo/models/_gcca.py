@@ -60,7 +60,7 @@ class GCCA(MCCA):
         )
         self.view_weights = view_weights
 
-    def fit(self, views: Iterable[np.ndarray], y=None, K=None,**kwargs):
+    def fit(self, views: Iterable[np.ndarray], y=None, K=None, **kwargs):
         """
         Parameters
         ----------
