@@ -38,12 +38,12 @@ class PartialCCA(MCCA):
     """
 
     def fit(self, views: Iterable[np.ndarray], y=None, partials=None, **kwargs):
-        self.pca= False
+        self.pca = False
         super().fit(
             views, y=y, partials=partials, **kwargs
         )  # call the parent class fit method
 
-    def _process_data(self, views,partials=None, **kwargs):
+    def _process_data(self, views, partials=None, **kwargs):
         if partials is None:
             raise ValueError(
                 f"partials is {partials}. Require matching partials to transform with"

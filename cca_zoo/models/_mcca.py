@@ -131,7 +131,7 @@ class MCCA(BaseModel):
         all_views = np.hstack(views)
         C = np.cov(all_views, rowvar=False)
         C -= block_diag(*[np.cov(view, rowvar=False) for view in views])
-        return C/len(views)
+        return C / len(views)
 
     def D(self, views, **kwargs):
         if self.pca:
@@ -152,7 +152,7 @@ class MCCA(BaseModel):
             )
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
-        return D/len(views)
+        return D / len(views)
 
     def _more_tags(self):
         # Indicate that this class is for multiview data
