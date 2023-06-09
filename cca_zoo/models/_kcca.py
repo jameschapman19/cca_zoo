@@ -1,7 +1,7 @@
 from typing import Iterable, Union
 
 import numpy as np
-from scipy.linalg import sqrtm
+from scipy.linalg import block_diag
 from sklearn.metrics import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
@@ -19,6 +19,13 @@ class KernelMixin:
         self.degree = _process_parameter("degree", self.degree, 1, self.n_views_)
         self.c = _process_parameter("c", self.c, 0, self.n_views_)
         self.kernel_params = _process_parameter("kernel_params", self.kernel_params, {}, self.n_views_)
+
+    def _process_data(self, views, K=None):
+        self.train_views = views
+        kernels = [
+            get_kernel(view, metric=self.kernel[i], gamma=self.gamma[i], degree=self.degree[i], coef0=self.coef0[i],
+                       **self.kernel_params[i]) for i, view in enumerate(self.train_views)]
+        return kernels
 
     def transform(self, views: np.ndarray, **kwargs):
         check_is_fitted(self, attributes=["alphas"])
@@ -120,10 +127,16 @@ class KCCA(KernelMixin, MCCA):
         self.kernel = kernel
         self.degree = degree
 
-    def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
-        self.train_views = views
-        kernels = [get_kernel(view, metric=self.kernel[i], gamma=self.gamma[i], degree=self.degree[i], coef0=self.coef0[i], **self.kernel_params[i]) for i, view in enumerate(self.train_views)]
-        return super()._setup_evp(kernels)
+    def D(self, views):
+        D = block_diag(
+                *[
+                    (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[i] * view
+                    for i, view in enumerate(views)
+                ]
+            )
+        D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
+        D = D - D_smallest_eig * np.eye(D.shape[0])
+        return D
 
     def _more_tags(self):
         # Indicate that this class is for multiview data

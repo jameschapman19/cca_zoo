@@ -7,6 +7,7 @@ from ._prcca import PRCCA
 from ._tcca import TCCA
 from ._pcacca import PCACCA
 from ._kcca import KCCA, KGCCA, KTCCA
+from ._rcca2 import rCCA2
 
 __all__ = [
     "CCA",

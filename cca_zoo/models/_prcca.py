@@ -89,9 +89,13 @@ class PRCCA(MCCA):
         views = [np.hstack((X_1, X_2)) for X_1, X_2 in zip(X_1, X_2)]
         return views
 
-    def _setup_evp(self, views: Iterable[np.ndarray], idxs=None, **kwargs):
+    def C(self,views, **kwargs):
         all_views = np.concatenate(views, axis=1)
         C = np.cov(all_views, rowvar=False)
+        C -= block_diag(*[np.cov(view, rowvar=False) for view in views])
+        return C
+
+    def D(self, views: Iterable[np.ndarray], idxs=None, **kwargs):
         penalties = [np.zeros((view.shape[1])) for view in views]
         for i, idx in enumerate(idxs):
             penalties[i][idx] = self.c[i]
@@ -101,11 +105,9 @@ class PRCCA(MCCA):
                 for i, view in enumerate(views)
             ]
         )
-        C -= block_diag(*[np.cov(view, rowvar=False) for view in views])
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
-        self.splits = np.cumsum([0] + [view.shape[1] for view in views])
-        return C, D
+        return D
 
     def _transform_weights(self, views, idxs=None):
         for i, idx in enumerate(idxs):

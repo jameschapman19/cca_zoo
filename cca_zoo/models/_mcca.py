@@ -80,59 +80,23 @@ class MCCA(BaseModel):
         self._validate_data(views)
         # Check the parameters
         self._check_params()
-        if self.pca:
-            # Do PCA on each view
-            views = self._pca(views)
-        self._validate_data(views)
-        # Setup the eigenvalue problem
-        C, D = self._setup_evp(views, **kwargs)
-        # Solve the eigenvalue problem
-        eigvals, eigvecs = self._solve_evp(C, D)
+        views = self._process_data(views, **kwargs)
+        eigvals, eigvecs=self._solve_gevp(views, y=y, **kwargs)
         # Compute the weights for each view
         self._weights(eigvals, eigvecs, views)
         return self
 
-    def _weights(self, eigvals, eigvecs, views):
-        # split eigvecs into weights for each view
-        self.weights = np.split(eigvecs, self.splits[:-1], axis=0)
+    def _process_data(self, views, **kwargs):
         if self.pca:
-            # go from weights in PCA space to weights in original space
-            self.weights = [
-                pca.components_.T @ self.weights[i]
-                for i, pca in enumerate(self.pca)
-            ]
+            views = self._apply_pca(views)
+        return views
 
-    def _pca(self, views):
-        """
-        Do data driven PCA on each view
-        """
-        self.pca = [PCA() for _ in views]
-        # Fit PCA on each view
-        return [self.pca[i].fit_transform(view) for i, view in enumerate(views)]
-
-    def _setup_evp(self, views: Iterable[np.ndarray], **kwargs):
-        all_views = np.hstack(views)
-        C = np.cov(all_views, rowvar=False)
-        if self.pca:
-            # Can regularise by adding to diagonal
-            D = block_diag(*[
-                np.diag((1 - self.c[i]) * pc.explained_variance_ + self.c[i])
-                for i, pc in enumerate(self.pca)
-            ])
-        else:
-            D = block_diag(
-                *[
-                    (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[i] * view
-                    for i, view in enumerate(views)
-                ]
-            )
-        C -= block_diag(*[np.cov(view, rowvar=False) for view in views])
-        D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
-        D = D - D_smallest_eig * np.eye(D.shape[0])
+    def _solve_gevp(self, views: Iterable[np.ndarray], y=None, **kwargs):
+        # Setup the eigenvalue problem
+        C = self.C(views, **kwargs)
+        D = self.D(views, **kwargs)
         self.splits = np.cumsum([view.shape[1] for view in views])
-        return C / self.n_views_, D / self.n_views_
-
-    def _solve_evp(self, C, D=None):
+        # Solve the eigenvalue problem
         # Get the dimension of C
         p = C.shape[0]
         # Solve the generalized eigenvalue problem Cx=lambda Dx using a subset of eigenvalues and eigenvectors
@@ -145,6 +109,48 @@ class MCCA(BaseModel):
         idx = np.argsort(eigvals, axis=0)[::-1]
         eigvecs = eigvecs[:, idx].real
         return np.flip(eigvals), eigvecs
+
+    def _weights(self, eigvals, eigvecs, views):
+        # split eigvecs into weights for each view
+        self.weights = np.split(eigvecs, self.splits[:-1], axis=0)
+        if self.pca:
+            # go from weights in PCA space to weights in original space
+            self.weights = [
+                pca.components_.T @ self.weights[i]
+                for i, pca in enumerate(self.pca)
+            ]
+
+    def _apply_pca(self, views):
+        """
+        Do data driven PCA on each view
+        """
+        self.pca = [PCA() for _ in views]
+        # Fit PCA on each view
+        return [self.pca[i].fit_transform(view) for i, view in enumerate(views)]
+
+    def C(self, views, **kwargs):
+        all_views = np.hstack(views)
+        C = np.cov(all_views, rowvar=False)
+        C -= block_diag(*[np.cov(view, rowvar=False) for view in views])
+        return C
+
+    def D(self, views, **kwargs):
+        if self.pca:
+            # Can regularise by adding to diagonal
+            D = block_diag(*[
+                np.diag((1 - self.c[i]) * pc.explained_variance_ + self.c[i])
+                for i, pc in enumerate(self.pca)
+            ])
+        else:
+            D = block_diag(
+                *[
+                    (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[i] * np.eye(view.shape[1])
+                    for i, view in enumerate(views)
+                ]
+            )
+        D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
+        D = D - D_smallest_eig * np.eye(D.shape[0])
+        return D
 
     def _more_tags(self):
         # Indicate that this class is for multiview data
@@ -173,32 +179,34 @@ class rCCA(MCCA):
     Vinod, Hrishikesh D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
     """
 
-    def _setup_evp(self, views: Iterable[np.ndarray]):
-        # Check that there are two views
+    def C(self,views, **kwargs):
         if len(views) != 2:
             raise ValueError(
                 f"Model can only be used with two views, but {len(views)} were given. Use MCCA or GCCA instead.")
         # Compute the B matrices for each view
-        D = [
+        B = [
             (1 - self.c[i]) * pc.explained_variance_ + self.c[i]
             for i, pc in enumerate(self.pca)
         ]
-        C=np.cov(views[0]/np.sqrt(D[0]), views[1]/np.sqrt(D[1]), rowvar=False)[0 : views[0].shape[1], views[0].shape[1] :]
+        C = np.cov(views[0] / np.sqrt(B[0]), views[1] / np.sqrt(B[1]), rowvar=False)[0: views[0].shape[1],
+            views[0].shape[1]:]
         # if views[0].shape[1] <= views[1].shape[1] then return R@R^T else return R^T@R
         if views[0].shape[1] <= views[1].shape[1]:
             self.primary_view = 0
-            C = C @ C.T
+            return C @ C.T
         else:
             self.primary_view = 1
-            C = C.T @ C
-        return C, None
+            return C.T @ C
+
+    def D(self, views, **kwargs):
+        return None
 
     def _weights(self, eigvals, eigvecs, views):
         B = [
             (1 - self.c[i]) * pc.singular_values_ ** 2 / self.n_samples_ + self.c[i]
             for i, pc in enumerate(self.pca)
         ]
-        C=np.cov(views[1-self.primary_view],views[self.primary_view], rowvar=False)[0 : views[0].shape[1], views[0].shape[1] :]
+        C=np.cov(views[self.primary_view],views[1-self.primary_view], rowvar=False)[0 : views[self.primary_view].shape[1], views[self.primary_view].shape[1] :]
         self.weights=[None]*2
         # Compute the weight matrix for primary view
         self.weights[1-self.primary_view] = (

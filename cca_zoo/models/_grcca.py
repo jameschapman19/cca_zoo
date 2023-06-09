@@ -55,50 +55,7 @@ class GRCCA(MCCA):
         self.c = _process_parameter("c", self.c, 0, self.n_views_)
 
     def fit(self, views: Iterable[np.ndarray], y=None, feature_groups=None, **kwargs):
-        """
-        Fit the model to the views.
-
-        Parameters
-        ----------
-        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        y : None
-        feature_groups : list/tuple of integer numpy arrays or array likes with dimensions (,view shape)
-        kwargs: any additional keyword arguments required by the given model
-
-        Returns
-        -------
-        self : object
-            Returns the instance itself.
-        """
-        # Use all features if no feature groups are provided
-        if feature_groups is None:
-            warnings.warn(f"No feature groups provided, using all features")
-            feature_groups = [np.ones(view.shape[1], dtype=int) for view in views]
-
-        # Check that feature groups are integers
-        for feature_group in feature_groups:
-            assert np.issubdtype(
-                feature_group.dtype, np.integer
-            ), "feature groups must be integers"
-
-        # Number of unique groups in each view
-        self.n_groups_ = [np.unique(group).shape[0] for group in feature_groups]
-
-        # Validate data and check parameters
-        self._validate_data(views)
-        self._check_params()
-
-        # Preprocess views and feature groups
-        views = self._preprocess(views, feature_groups)
-
-        # Setup and solve eigenvalue problem
-        C, D = self._setup_evp(views, **kwargs)
-        eigvals, eigvecs = self._solve_evp(C, D)
-
-        # Compute weights for each view
-        self._weights(eigvals, eigvecs, views, feature_groups)
-
-        return self
+        super().fit(views, y=y, feature_groups=feature_groups, **kwargs)
 
     def _weights(self, eigvals, eigvecs, views, feature_groups):
         # Loop through c and add group means to splits if c > 0
@@ -131,7 +88,20 @@ class GRCCA(MCCA):
                 )
                 self.weights[i] = weights_1 + weights_2[feature_groups[i]]
 
-    def _preprocess(self, views, feature_groups):
+    def _process_data(self, views,feature_groups=None, **kwargs):
+        # Use all features if no feature groups are provided
+        if feature_groups is None:
+            warnings.warn(f"No feature groups provided, using all features")
+            feature_groups = [np.ones(view.shape[1], dtype=int) for view in views]
+
+        # Check that feature groups are integers
+        for feature_group in feature_groups:
+            assert np.issubdtype(
+                feature_group.dtype, np.integer
+            ), "feature groups must be integers"
+
+        # Number of unique groups in each view
+        self.n_groups_ = [np.unique(group).shape[0] for group in feature_groups]
         # Process each view and return a list of processed views and indices
         return [
             self._process_view(view, group, mu, c)

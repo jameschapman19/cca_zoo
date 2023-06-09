@@ -63,10 +63,10 @@ class GCCA(MCCA):
     def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, self.n_views_)
 
-    def _setup_evp(self, views: Iterable[np.ndarray], K=None):
+    def C(self,views, K=None):
         if K is None:
             # just use identity when all rows are observed in all views.
-            K = np.ones((self.n_views_, self.n_samples_))
+            K = np.ones((len(views), views[0].shape[0]))
         Q = []
         self.view_weights = _process_parameter(
             "view_weights", self.view_weights, 1, self.n_views_
@@ -84,7 +84,9 @@ class GCCA(MCCA):
             @ Q
             @ np.diag(np.sqrt(np.sum(K, axis=0)))
         )
-        return Q, None
+        return Q
+    def D(self,views, **kwargs):
+        return None
 
     def _weights(self, eigvals, eigvecs, views):
         self.weights = [

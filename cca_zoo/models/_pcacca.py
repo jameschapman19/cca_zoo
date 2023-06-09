@@ -30,66 +30,19 @@ class PCACCA(MCCA):
             c=c,
             eps=eps,
         )
+        # ensure that the percent variance is less than 1 and give a warning if not
+        assert percent_variance <= 1, "percent_variance must be less than 1"
         self.percent_variance = percent_variance
 
-    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        # Validate the input data
-        self._validate_data(views)
-        # Check the parameters
-        self._check_params()
-        # Do data driven PCA on each view
-        pca_views = self._pca(views)
-        self._validate_data(pca_views)
-        # Setup the eigenvalue problem
-        C, D = self._setup_evp(pca_views, **kwargs)
-        # Solve the eigenvalue problem
-        eigvals, eigvecs = self._solve_evp(C, D)
-        # Compute the weights for each view
-        self._weights(eigvals, eigvecs, pca_views)
-        # Transform the weights back to the original space
-        self.transform_weights()
-        return self
-
-    def _pca(self, views):
-        """
-        Do data driven PCA on each view
-        """
-        self.pca = [PCA() for _ in views]
-        # Fit PCA on each view and then keep the components that explain the percentage of variance
+    def _process_data(self, views, **kwargs):
+        views = self._apply_pca(views)
         for i, view in enumerate(views):
-            self.pca[i].fit(view)
             # Keep the components that explain the percentage of variance
             explained_variance = self.pca[i].explained_variance_ratio_
             n_components_ = (
-                np.where(np.cumsum(explained_variance) >= self.percent_variance)[0][0]
-                + 1
+                    np.where(np.cumsum(explained_variance) >= self.percent_variance)[0][0]
+                    + 1
             )
             self.pca[i].n_components_ = n_components_
             self.pca[i].components_ = self.pca[i].components_[:n_components_]
-        return [self.pca[i].transform(view) for i, view in enumerate(views)]
-
-    def transform_weights(self):
-        # go from weights in PCA space to weights in original space
-        self.weights = [
-            pca.components_.T @ self.weights[i]
-            for i, pca in enumerate(self.pca)
-        ]
-
-if __name__ == '__main__':
-    from cca_zoo.models import rCCA
-    x = np.random.rand(100, 10)
-    y = np.random.rand(100, 10)
-    x -= x.mean(axis=0)
-    y -= y.mean(axis=0)
-    model = rCCA(latent_dims=2, c=0.1)
-    model.fit([x, y])
-    print(model.weights)
-    print(model.score([x, y]))
-    # compare to normal CCA
-    from cca_zoo.models import CCA
-
-    model = PCACCA(latent_dims=2, c=0.1)
-    model.fit([x, y])
-    print(model.weights)
-    print(model.score([x, y]))
-    print()
+        return [view[:,:self.pca[i].n_components_] for i, view in enumerate(views)]
