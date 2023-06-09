@@ -88,7 +88,7 @@ class GRCCA(MCCA):
                 )
                 self.weights[i] = weights_1 + weights_2[feature_groups[i]]
 
-    def _process_data(self, views,feature_groups=None, **kwargs):
+    def _process_data(self, views, feature_groups=None, **kwargs):
         # Use all features if no feature groups are provided
         if feature_groups is None:
             warnings.warn(f"No feature groups provided, using all features")

@@ -2,7 +2,19 @@ import numpy as np
 import scipy.sparse as sp
 from sklearn.utils.validation import check_random_state
 
-from cca_zoo.models import CCA, GCCA, KCCA, KGCCA, KTCCA, MCCA, PLS, PLS_ALS, TCCA, rCCA, PCACCA
+from cca_zoo.models import (
+    CCA,
+    GCCA,
+    KCCA,
+    KGCCA,
+    KTCCA,
+    MCCA,
+    PLS,
+    PLS_ALS,
+    TCCA,
+    rCCA,
+    PCACCA,
+)
 
 n = 50
 rng = check_random_state(0)
@@ -23,7 +35,8 @@ def test_unregularized_methods():
     # This function tests unregularized CCA methods. The idea is that all of these should give the same result.
     latent_dims = 2
     from cca_zoo.models import rCCA2
-    rcca2= rCCA2(latent_dims=latent_dims).fit([X, Y])
+
+    rcca2 = rCCA2(latent_dims=latent_dims).fit([X, Y])
     rcca = rCCA(latent_dims=latent_dims).fit([X, Y])
     cca = CCA(latent_dims=latent_dims).fit([X, Y])
     gcca = GCCA(latent_dims=latent_dims).fit([X, Y])

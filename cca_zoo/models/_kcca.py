@@ -18,20 +18,37 @@ class KernelMixin:
         self.coef0 = _process_parameter("coef0", self.coef0, 1, self.n_views_)
         self.degree = _process_parameter("degree", self.degree, 1, self.n_views_)
         self.c = _process_parameter("c", self.c, 0, self.n_views_)
-        self.kernel_params = _process_parameter("kernel_params", self.kernel_params, {}, self.n_views_)
+        self.kernel_params = _process_parameter(
+            "kernel_params", self.kernel_params, {}, self.n_views_
+        )
 
     def _process_data(self, views, K=None):
         self.train_views = views
         kernels = [
-            get_kernel(view, metric=self.kernel[i], gamma=self.gamma[i], degree=self.degree[i], coef0=self.coef0[i],
-                       **self.kernel_params[i]) for i, view in enumerate(self.train_views)]
+            get_kernel(
+                view,
+                metric=self.kernel[i],
+                gamma=self.gamma[i],
+                degree=self.degree[i],
+                coef0=self.coef0[i],
+                **self.kernel_params[i]
+            )
+            for i, view in enumerate(self.train_views)
+        ]
         return kernels
 
     def transform(self, views: np.ndarray, **kwargs):
         check_is_fitted(self, attributes=["alphas"])
         Ktest = [
-            get_kernel(self.train_views[i], Y=view, metric=self.kernel[i], gamma=self.gamma[i], degree=self.degree[i],
-                       coef0=self.coef0[i], **self.kernel_params[i])
+            get_kernel(
+                self.train_views[i],
+                Y=view,
+                metric=self.kernel[i],
+                gamma=self.gamma[i],
+                degree=self.degree[i],
+                coef0=self.coef0[i],
+                **self.kernel_params[i]
+            )
             for i, view in enumerate(views)
         ]
         transformed_views = [
@@ -43,7 +60,6 @@ class KernelMixin:
     def alphas(self):
         check_is_fitted(self, attributes=["weights"])
         return self.weights
-
 
 
 class KCCA(KernelMixin, MCCA):
@@ -105,7 +121,7 @@ class KCCA(KernelMixin, MCCA):
         random_state=None,
         c: Union[Iterable[float], float] = None,
         eps=1e-3,
-        kernel: Iterable[Union[str,float, callable]] = None,
+        kernel: Iterable[Union[str, float, callable]] = None,
         gamma: Iterable[float] = None,
         degree: Iterable[float] = None,
         coef0: Iterable[float] = None,
@@ -129,11 +145,11 @@ class KCCA(KernelMixin, MCCA):
 
     def D(self, views):
         D = block_diag(
-                *[
-                    (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[i] * view
-                    for i, view in enumerate(views)
-                ]
-            )
+            *[
+                (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[i] * view
+                for i, view in enumerate(views)
+            ]
+        )
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         return D
@@ -142,7 +158,8 @@ class KCCA(KernelMixin, MCCA):
         # Indicate that this class is for multiview data
         return {"multiview": True, "kernel": True}
 
-class KGCCA(KernelMixin,GCCA):
+
+class KGCCA(KernelMixin, GCCA):
     r"""
     A class used to fit KGCCA model. This model extends GCCA to nonlinear relationships by using kernel functions on each view.
 
@@ -228,11 +245,31 @@ class KGCCA(KernelMixin,GCCA):
 
     def _setup_evp(self, views: Iterable[np.ndarray], K=None):
         self.train_views = views
-        kernels = [get_kernel(view, metric=self.kernel[i], gamma=self.gamma[i], degree=self.degree[i], coef0=self.coef0[i], **self.kernel_params[i]) for i, view in enumerate(self.train_views)]
+        kernels = [
+            get_kernel(
+                view,
+                metric=self.kernel[i],
+                gamma=self.gamma[i],
+                degree=self.degree[i],
+                coef0=self.coef0[i],
+                **self.kernel_params[i]
+            )
+            for i, view in enumerate(self.train_views)
+        ]
         return super()._setup_evp(kernels)
 
     def _weights(self, eigvals, eigvecs, views):
-        kernels = [get_kernel(view, metric=self.kernel[i], gamma=self.gamma[i], degree=self.degree[i], coef0=self.coef0[i], **self.kernel_params[i]) for i, view in enumerate(self.train_views)]
+        kernels = [
+            get_kernel(
+                view,
+                metric=self.kernel[i],
+                gamma=self.gamma[i],
+                degree=self.degree[i],
+                coef0=self.coef0[i],
+                **self.kernel_params[i]
+            )
+            for i, view in enumerate(self.train_views)
+        ]
         self.weights = [
             np.linalg.pinv(kernel) @ eigvecs[:, : self.latent_dims]
             for kernel in kernels
@@ -242,7 +279,8 @@ class KGCCA(KernelMixin,GCCA):
         # Indicate that this class is for multiview data
         return {"multiview": True, "kernel": True}
 
-class KTCCA(KernelMixin,TCCA):
+
+class KTCCA(KernelMixin, TCCA):
     r"""
     A class used to fit KTCCA model. This model extends TCCA to nonlinear relationships by using kernel functions on each view.
 
@@ -303,15 +341,31 @@ class KTCCA(KernelMixin,TCCA):
     def _setup_tensor(self, views: Iterable[np.ndarray], **kwargs):
         self.train_views = views
         kernels = [
-                    get_kernel(view, metric=self.kernel[i], gamma=self.gamma[i], degree=self.degree[i], coef0=self.coef0[i],
-                               **self.kernel_params[i]) for i, view in enumerate(self.train_views)]
+            get_kernel(
+                view,
+                metric=self.kernel[i],
+                gamma=self.gamma[i],
+                degree=self.degree[i],
+                coef0=self.coef0[i],
+                **self.kernel_params[i]
+            )
+            for i, view in enumerate(self.train_views)
+        ]
         return super()._setup_tensor(kernels)
 
     def _more_tags(self):
         # Indicate that this class is for multiview data
         return {"multiview": True, "kernel": True}
 
+
 def get_kernel(X, Y=None, metric="linear", gamma=None, degree=1, coef0=1, **kwargs):
     return pairwise_kernels(
-        X, Y, metric=metric, gamma=gamma, degree=degree, coef0=coef0, filter_params=True, **kwargs
+        X,
+        Y,
+        metric=metric,
+        gamma=gamma,
+        degree=degree,
+        coef0=coef0,
+        filter_params=True,
+        **kwargs
     )
