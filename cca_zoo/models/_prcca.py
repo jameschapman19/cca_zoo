@@ -103,7 +103,9 @@ class PRCCA(MCCA):
         D = D - D_smallest_eig * np.eye(D.shape[0])
         return D
 
-    def _transform_weights(self, views, idxs=None):
+    def _weights(self, eigvals, eigvecs, views,idxs=None, **kwargs):
+        # split eigvecs into weights for each view
+        self.weights = np.split(eigvecs, self.splits[:-1], axis=0)
         for i, idx in enumerate(idxs):
             alpha_1 = self.weights[i][idx]
             alpha_2 = np.delete(self.weights[i], idx, axis=0)
