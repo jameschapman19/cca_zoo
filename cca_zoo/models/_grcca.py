@@ -47,6 +47,7 @@ class GRCCA(MCCA):
             random_state=random_state,
             eps=eps,
             c=c,
+            pca=False,
         )
         self.mu = mu
 
@@ -55,9 +56,9 @@ class GRCCA(MCCA):
         self.c = _process_parameter("c", self.c, 0, self.n_views_)
 
     def fit(self, views: Iterable[np.ndarray], y=None, feature_groups=None, **kwargs):
-        super().fit(views, y=y, feature_groups=feature_groups, **kwargs)
+        return super().fit(views, y=y, feature_groups=feature_groups, **kwargs)
 
-    def _weights(self, eigvals, eigvecs, views, feature_groups):
+    def _weights(self, eigvals, eigvecs, views, feature_groups=None, **kwargs):
         # Loop through c and add group means to splits if c > 0
         self.splits = [
             n_features + n_groups if c > 0 else n_features

@@ -38,11 +38,12 @@ class PartialCCA(MCCA):
     """
 
     def fit(self, views: Iterable[np.ndarray], y=None, partials=None, **kwargs):
+        self.pca= False
         super().fit(
             views, y=y, partials=partials, **kwargs
         )  # call the parent class fit method
 
-    def _setup_evp(self, views: Iterable[np.ndarray], partials=None, **kwargs):
+    def _process_data(self, views,partials=None, **kwargs):
         if partials is None:
             raise ValueError(
                 f"partials is {partials}. Require matching partials to transform with"
@@ -58,7 +59,7 @@ class PartialCCA(MCCA):
             @ view  # remove the confounding effect from each view using projection matrix
             for view, confound_beta in zip(views, self.confound_betas)
         ]
-        return super()._setup_evp(views)  # call the parent class _setup_evp method
+        return views
 
     def transform(self, views: Iterable[np.ndarray], partials=None, **kwargs):
         if partials is None:

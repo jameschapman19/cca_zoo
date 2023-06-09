@@ -83,7 +83,7 @@ class MCCA(BaseModel):
         views = self._process_data(views, **kwargs)
         eigvals, eigvecs=self._solve_gevp(views, y=y, **kwargs)
         # Compute the weights for each view
-        self._weights(eigvals, eigvecs, views)
+        self._weights(eigvals, eigvecs, views, **kwargs)
         return self
 
     def _process_data(self, views, **kwargs):
@@ -110,7 +110,7 @@ class MCCA(BaseModel):
         eigvecs = eigvecs[:, idx].real
         return np.flip(eigvals), eigvecs
 
-    def _weights(self, eigvals, eigvecs, views):
+    def _weights(self, eigvals, eigvecs, views, **kwargs):
         # split eigvecs into weights for each view
         self.weights = np.split(eigvecs, self.splits[:-1], axis=0)
         if self.pca:
@@ -132,7 +132,7 @@ class MCCA(BaseModel):
         all_views = np.hstack(views)
         C = np.cov(all_views, rowvar=False)
         C -= block_diag(*[np.cov(view, rowvar=False) for view in views])
-        return C
+        return C/len(views)
 
     def D(self, views, **kwargs):
         if self.pca:
@@ -150,7 +150,7 @@ class MCCA(BaseModel):
             )
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
-        return D
+        return D/len(views)
 
     def _more_tags(self):
         # Indicate that this class is for multiview data

@@ -127,7 +127,7 @@ class KCCA(KernelMixin, MCCA):
         self.kernel = kernel
         self.degree = degree
 
-    def D(self, views):
+    def D(self, views, **kwargs):
         D = block_diag(
                 *[
                     (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[i] * view
@@ -136,7 +136,7 @@ class KCCA(KernelMixin, MCCA):
             )
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
-        return D
+        return D/len(views)
 
     def _more_tags(self):
         # Indicate that this class is for multiview data
@@ -225,11 +225,6 @@ class KGCCA(KernelMixin,GCCA):
         self.coef0 = coef0
         self.kernel = kernel
         self.degree = degree
-
-    def _setup_evp(self, views: Iterable[np.ndarray], K=None):
-        self.train_views = views
-        kernels = [get_kernel(view, metric=self.kernel[i], gamma=self.gamma[i], degree=self.degree[i], coef0=self.coef0[i], **self.kernel_params[i]) for i, view in enumerate(self.train_views)]
-        return super()._setup_evp(kernels)
 
     def _weights(self, eigvals, eigvecs, views):
         kernels = [get_kernel(view, metric=self.kernel[i], gamma=self.gamma[i], degree=self.degree[i], coef0=self.coef0[i], **self.kernel_params[i]) for i, view in enumerate(self.train_views)]

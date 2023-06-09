@@ -52,6 +52,7 @@ class PRCCA(MCCA):
             random_state=random_state,
             eps=eps,
             c=c,
+            pca=False,
         )
 
     def fit(self, views: Iterable[np.ndarray], y=None, idxs=None, **kwargs):
