@@ -80,7 +80,7 @@ class KCCA(KernelMixin, MCCA):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to use, by default 1
     copy_data : bool, optional
         Whether to copy the data, by default True
@@ -116,7 +116,7 @@ class KCCA(KernelMixin, MCCA):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
@@ -129,7 +129,7 @@ class KCCA(KernelMixin, MCCA):
     ):
         # Call the parent class constructor
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             random_state=random_state,
             c=c,
@@ -177,7 +177,7 @@ class KGCCA(KernelMixin, GCCA):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to use, by default 1
     copy_data : bool, optional
         Whether to copy the data, by default True
@@ -217,7 +217,7 @@ class KGCCA(KernelMixin, GCCA):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
@@ -230,7 +230,7 @@ class KGCCA(KernelMixin, GCCA):
         eps: float = 1e-6,
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             random_state=random_state,
             c=c,
@@ -256,7 +256,7 @@ class KGCCA(KernelMixin, GCCA):
             for i, view in enumerate(self.train_views)
         ]
         self.weights = [
-            np.linalg.pinv(kernel) @ eigvecs[:, : self.latent_dims]
+            np.linalg.pinv(kernel) @ eigvecs[:, : self.latent_dimensions]
             for kernel in kernels
         ]
 
@@ -299,7 +299,7 @@ class KTCCA(KernelMixin, TCCA):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         eps=1e-3,
@@ -311,7 +311,7 @@ class KTCCA(KernelMixin, TCCA):
         kernel_params: Iterable[dict] = None,
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             random_state=random_state,
             eps=eps,

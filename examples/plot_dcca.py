@@ -30,13 +30,13 @@ N_VAL = 100
 
 train_loader, val_loader, train_labels = example_mnist_data(N_TRAIN, N_VAL)
 
-encoder_1 = architectures.Encoder(latent_dims=LATENT_DIMS, feature_size=392)
-encoder_2 = architectures.Encoder(latent_dims=LATENT_DIMS, feature_size=392)
+encoder_1 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=392)
+encoder_2 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=392)
 
 # %%
 # Deep CCA
 # ----------------------------
-dcca = DCCA(latent_dims=LATENT_DIMS, encoders=[encoder_1, encoder_2])
+dcca = DCCA(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
@@ -49,7 +49,7 @@ plt.show()
 # %%
 # Deep CCA EigenGame
 # ----------------------------
-dcca_eg = DCCA_EY(latent_dims=LATENT_DIMS, encoders=[encoder_1, encoder_2], lr=1e-5)
+dcca_eg = DCCA_EY(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2], lr=1e-5)
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
@@ -62,7 +62,7 @@ plt.show()
 # %%
 # Deep CCA by Non-Linear Orthogonal Iterations
 # ----------------------------------------------
-dcca_noi = DCCA_NOI(latent_dims=LATENT_DIMS, N=N_TRAIN, encoders=[encoder_1, encoder_2])
+dcca_noi = DCCA_NOI(latent_dimensions=LATENT_DIMS, N=N_TRAIN, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
@@ -79,7 +79,7 @@ plt.show()
 # %%
 # Deep CCA by Stochastic Decorrelation Loss
 # ----------------------------------------------
-dcca_sdl = DCCA_SDL(latent_dims=LATENT_DIMS, N=N_TRAIN, encoders=[encoder_1, encoder_2])
+dcca_sdl = DCCA_SDL(latent_dimensions=LATENT_DIMS, N=N_TRAIN, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
@@ -96,7 +96,7 @@ plt.show()
 # %%
 # Deep CCA by Barlow Twins
 # ----------------------------------------------
-barlowtwins = BarlowTwins(latent_dims=LATENT_DIMS, encoders=[encoder_1, encoder_2])
+barlowtwins = BarlowTwins(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,

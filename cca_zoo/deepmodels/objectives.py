@@ -4,12 +4,17 @@ from tensorly.cp_tensor import cp_to_tensor
 from tensorly.decomposition import parafac
 
 
-def _mat_pow(mat, pow_, epsilon):
-    # Computing matrix to the power of pow (pow can be negative as well)
-    [D, V] = torch.linalg.eigh(mat)
-    mat_pow = V @ torch.diag((D + epsilon).pow(pow_)) @ V.T
-    mat_pow[mat_pow != mat_pow] = epsilon  # For stability
-    return mat_pow
+def inv_sqrtm(A, eps=1e-9):
+    """Compute the inverse square-root of a positive definite matrix."""
+    # Perform eigendecomposition of covariance matrix
+    U, S, V = torch.svd(A)
+    # Enforce positive definite by taking a torch max() with eps
+    S = torch.max(S, torch.tensor(eps, device=S.device))
+    # Calculate inverse square-root
+    inv_sqrt_S = torch.diag_embed(torch.pow(S, -0.5))
+    # Calculate inverse square-root matrix
+    B = torch.matmul(torch.matmul(U, inv_sqrt_S), V.transpose(-1, -2))
+    return B
 
 
 def _demean(views):
@@ -37,14 +42,14 @@ class MCCA:
         self.r = r
         self.eps = eps
 
-    def loss(self, views):
-        # Subtract the mean from each output
-        views = _demean(views)
-
+    def C(self,views):
         # Concatenate all views and from this get the cross-covariance matrix
         all_views = torch.cat(views, dim=1)
         C = torch.cov(all_views.T)
+        C = C - torch.block_diag(*[torch.cov(view.T) for view in views])
+        return C/len(views)
 
+    def D(self,views):
         # Get the block covariance matrix placing Xi^TX_i on the diagonal
         D = torch.block_diag(
             *[
@@ -53,10 +58,18 @@ class MCCA:
                 for i, view in enumerate(views)
             ]
         )
+        return D/len(views)
 
-        C = C - torch.block_diag(*[torch.cov(view.T) for view in views]) + D
+    def correlation(self, views):
+        # Subtract the mean from each output
+        views = _demean(views)
 
-        R = _mat_pow(D, -0.5, self.eps)
+        C=self.C(views)
+        D=self.D(views)
+
+        C=C+D
+
+        R = inv_sqrtm(D, self.eps)
 
         # In MCCA our eigenvalue problem Cv = lambda Dv
         C_whitened = R @ C @ R.T
@@ -68,9 +81,15 @@ class MCCA:
 
         eigvals = eigvals[idx[: self.latent_dims]]
 
+        return eigvals
+
+
+    def loss(self, views):
+        eigvals = self.correlation(views)
+
         # leaky relu encourages the gradient to be driven by positively correlated dimensions while also encouraging
         # dimensions associated with spurious negative correlations to become more positive
-        eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)] - 1)
+        eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)])
 
         corr = eigvals.sum()
 
@@ -97,17 +116,20 @@ class GCCA:
         self.r = r
         self.eps = eps
 
-    def loss(self, views):
+    def Q(self,views):
+        eigen_views = [
+            view @ torch.linalg.inv(torch.cov(view.T)) @ view.T for view in views
+        ]
+        Q = torch.stack(eigen_views, dim=0).sum(dim=0)
+        return Q
+    def correlation(self, views):
         # https: // www.uta.edu / math / _docs / preprint / 2014 / rep2014_04.pdf
 
         # H is n_views * n_samples * k
         views = _demean(views)
 
-        eigen_views = [
-            view @ _mat_pow(torch.cov(view.T), -1, self.eps) @ view.T for view in views
-        ]
+        Q = self.Q(views)
 
-        Q = torch.stack(eigen_views, dim=0).sum(dim=0)
         eigvals = torch.linalg.eigvalsh(Q)
 
         idx = torch.argsort(eigvals, descending=True)
@@ -116,10 +138,12 @@ class GCCA:
 
         # leaky relu encourages the gradient to be driven by positively correlated dimensions while also encouraging
         # dimensions associated with spurious negative correlations to become more positive
-        eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)] - 1)
+        eigvals = torch.nn.LeakyReLU()(eigvals)
+        return eigvals
 
+    def loss(self, views):
+        eigvals = self.correlation(views)
         corr = eigvals.sum()
-
         return -corr
 
 
@@ -153,7 +177,7 @@ class CCA:
         self.r = r
         self.eps = eps
 
-    def loss(self, views):
+    def correlation(self, views):
         o1 = views[0].shape[1]
         o2 = views[1].shape[1]
 
@@ -162,8 +186,8 @@ class CCA:
         views = _demean(views)
 
         SigmaHat12 = torch.cov(torch.hstack((views[0], views[1])).T)[
-            : self.latent_dims, self.latent_dims :
-        ]  # views[0].T @ views[1] / (n - 1)
+                     : self.latent_dims, self.latent_dims:
+                     ]  # views[0].T @ views[1] / (n - 1)
         SigmaHat11 = torch.cov(views[0].T) + self.r * torch.eye(
             o1, device=views[0].device
         )
@@ -171,20 +195,23 @@ class CCA:
             o2, device=views[1].device
         )
 
-        SigmaHat11RootInv = _mat_pow(SigmaHat11, -0.5, self.eps)
-        SigmaHat22RootInv = _mat_pow(SigmaHat22, -0.5, self.eps)
+        SigmaHat11RootInv = inv_sqrtm(SigmaHat11, self.eps)
+        SigmaHat22RootInv = inv_sqrtm(SigmaHat22, self.eps)
 
         Tval = SigmaHat11RootInv @ SigmaHat12 @ SigmaHat22RootInv
         trace_TT = Tval.T @ Tval
         eigvals = torch.linalg.eigvalsh(trace_TT)
 
+        return eigvals
+
+    def loss(self, views):
+        eigvals = self.correlation(views)
+
         # leaky relu encourages the gradient to be driven by positively correlated dimensions while also encouraging
         # dimensions associated with spurious negative correlations to become more positive
-        eigvals = eigvals[torch.gt(eigvals, self.eps)]
+        eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)])
 
-        corr = torch.sum(torch.sqrt(eigvals))
-
-        return -corr
+        return -eigvals.sum()
 
 
 class TCCA:
@@ -206,7 +233,7 @@ class TCCA:
             for view in views
         ]
         whitened_z = [
-            view @ _mat_pow(cov, -0.5, self.eps) for view, cov in zip(views, covs)
+            view @ inv_sqrtm(cov, self.eps) for view, cov in zip(views, covs)
         ]
         # The idea here is to form a matrix with M dimensions one for each view where at index
         # M[p_i,p_j,p_k...] we have the sum over n samples of the product of the pth feature of the

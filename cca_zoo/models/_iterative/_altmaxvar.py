@@ -11,7 +11,7 @@ from cca_zoo.utils import _process_parameter
 class AltMaxVar(BaseIterative):
     def __init__(
         self,
-        latent_dims=1,
+        latent_dimensions=1,
         copy_data=True,
         random_state=None,
         epochs=100,
@@ -28,7 +28,7 @@ class AltMaxVar(BaseIterative):
         verbose=False,
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             random_state=random_state,
             tol=tol,

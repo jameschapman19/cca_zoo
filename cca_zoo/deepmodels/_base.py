@@ -12,7 +12,7 @@ class BaseDeep(pl.LightningModule):
 
     def __init__(
         self,
-        latent_dims: int,
+        latent_dimensions: int,
         optimizer: str = "adam",
         scheduler: Optional[str] = None,
         lr: float = 1e-2,
@@ -28,7 +28,7 @@ class BaseDeep(pl.LightningModule):
         super().__init__()
         if extra_optimizer_kwargs is None:
             extra_optimizer_kwargs = {}
-        self.latent_dims = latent_dims
+        self.latent_dimensions = latent_dimensions
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.lr = lr
@@ -75,20 +75,28 @@ class BaseDeep(pl.LightningModule):
             self.log(f"test/{k}", v)
         return loss["objective"]
 
+    @torch.no_grad()
+    def get_representations(
+        self,
+        loader: torch.utils.data.DataLoader,
+    ):
+        """Returns the latent representations for each view in the loader."""
+        #self.eval()
+        # Use list comprehension instead of for loop
+        z = [
+            self([view.to(self.device).detach().cpu() for view in batch["views"]])
+            for batch in loader
+        ]
+        # Use list comprehension instead of for loop
+        z = [torch.vstack(z_) for z_ in zip(*z)]
+        return z
+
     def transform(
         self,
         loader: torch.utils.data.DataLoader,
     ) -> List[np.ndarray]:
         """Returns the latent representations for each view in the loader."""
-        with torch.no_grad():
-            # Use list comprehension instead of for loop
-            z = [
-                self([view.to(self.device) for view in batch["views"]])
-                for batch in loader
-            ]
-        # Use list comprehension instead of for loop
-        z = [torch.vstack(i).cpu().numpy() for i in zip(*z)]
-        return z
+        return [z.numpy() for z in self.get_representations(loader)]
 
     def configure_optimizers(
         self,

@@ -38,7 +38,7 @@ class SCCA_Span(BaseIterative):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         epochs: int = 100,
         copy_data=True,
         initialization: str = "uniform",
@@ -52,7 +52,7 @@ class SCCA_Span(BaseIterative):
         verbose=0,
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             epochs=epochs,
             copy_data=copy_data,
             initialization=initialization,

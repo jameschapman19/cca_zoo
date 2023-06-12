@@ -17,7 +17,7 @@ class ProbabilisticCCA(BaseModel):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to use, by default 1
     copy_data : bool, optional
         Whether to copy the data, by default True
@@ -38,14 +38,14 @@ class ProbabilisticCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state: int = 0,
         num_samples=100,
         num_warmup=100,
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             accept_sparse=False,
             random_state=random_state,
@@ -95,7 +95,7 @@ class ProbabilisticCCA(BaseModel):
             for i, p_ in enumerate(p)
         ]
         # parameter representing weights applied to latent variables
-        with numpyro.plate("plate_views", self.latent_dims):
+        with numpyro.plate("plate_views", self.latent_dimensions):
             self.weights_list = [
                 numpyro.sample(
                     "W_" + str(i),
@@ -106,7 +106,7 @@ class ProbabilisticCCA(BaseModel):
         with numpyro.plate("plate_i", n):
             # sample from latent z: the latent variables of the model
             z = numpyro.sample(
-                "z", dist.MultivariateNormal(0.0, jnp.diag(jnp.ones(self.latent_dims)))
+                "z", dist.MultivariateNormal(0.0, jnp.diag(jnp.ones(self.latent_dimensions)))
             )
             # sample from multivariate normal and observe data
             [

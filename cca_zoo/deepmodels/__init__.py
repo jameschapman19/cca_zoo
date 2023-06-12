@@ -1,5 +1,5 @@
 from . import architectures, callbacks, objectives
-from ._discriminative import DCCA, DCCA_EY, DCCA_NOI, DCCA_SDL, DTCCA, BarlowTwins
+from ._discriminative import DCCA, DCCA_EY, DCCA_NOI, DCCA_SDL, DTCCA, BarlowTwins, DGCCA
 from ._generative import DCCAE, DVCCA, SplitAE
 
 __all__ = [

@@ -11,7 +11,7 @@ class IncrementalPLS(BaseIterative):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to use, by default 1
     copy_data : bool, optional
         Whether to copy the data, by default True
@@ -33,7 +33,7 @@ class IncrementalPLS(BaseIterative):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         accept_sparse=None,
@@ -43,7 +43,7 @@ class IncrementalPLS(BaseIterative):
         initialization: Union[str, callable] = "random",
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             accept_sparse=accept_sparse,
             random_state=random_state,
@@ -55,7 +55,7 @@ class IncrementalPLS(BaseIterative):
 
     def _update(self, views):
         if not hasattr(self, "S"):
-            self.S = np.zeros(self.latent_dims)
+            self.S = np.zeros(self.latent_dimensions)
             self.count = 0
         if self.simple:
             self.simple_update(views)
@@ -79,9 +79,9 @@ class IncrementalPLS(BaseIterative):
             + self.weights[0] @ np.diag(self.S) @ self.weights[1].T
         )
         U, S, Vt = np.linalg.svd(self.M)
-        self.weights[0] = U[:, : self.latent_dims]
-        self.weights[1] = Vt.T[:, : self.latent_dims]
-        self.S = S[: self.latent_dims]
+        self.weights[0] = U[:, : self.latent_dimensions]
+        self.weights[1] = Vt.T[:, : self.latent_dimensions]
+        self.S = S[: self.latent_dimensions]
 
     def incrsvd(self, hats, orths):
         Q = np.vstack(
@@ -106,10 +106,10 @@ class IncrementalPLS(BaseIterative):
         U, S, Vt = np.linalg.svd(Q)
         self.weights[0] = (
             np.hstack((self.weights[0], orths[0].T / np.linalg.norm(orths[0])))
-            @ U[:, : self.latent_dims]
+            @ U[:, : self.latent_dimensions]
         )
         self.weights[1] = (
             np.hstack((self.weights[1], orths[1].T / np.linalg.norm(orths[1])))
-            @ Vt.T[:, : self.latent_dims]
+            @ Vt.T[:, : self.latent_dimensions]
         )
-        self.S = S[: self.latent_dims]
+        self.S = S[: self.latent_dimensions]

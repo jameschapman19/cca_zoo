@@ -15,7 +15,7 @@ class PLSMixin:
 
         Returns
         -------
-        variance : numpy array of shape (n_views, latent_dims)
+        variance : numpy array of shape (n_views, latent_dimensions)
 
         """
         # Calculate total variance in each view by SVD
@@ -66,7 +66,7 @@ class PLSMixin:
 
         Returns
         -------
-        variance : numpy array of shape (n_views, latent_dims)
+        variance : numpy array of shape (n_views, latent_dimensions)
 
         """
         transformed_views = self.transform(views, **kwargs)
@@ -86,13 +86,13 @@ class PLSMixin:
 
         Returns
         -------
-        covariance : numpy array of shape (n_views, latent_dims)
+        covariance : numpy array of shape (n_views, latent_dimensions)
 
         """
         transformed_views = self.transform(views, **kwargs)
         covariance = np.diag(
             np.cov(*transformed_views, rowvar=False)[
-                : self.latent_dims, self.latent_dims :
+                : self.latent_dimensions, self.latent_dimensions :
             ]
         )
         return covariance
@@ -110,7 +110,7 @@ class PLSMixin:
 
         Returns
         -------
-        explained_covariance_ratio_ : numpy array of shape (n_views, latent_dims)
+        explained_covariance_ratio_ : numpy array of shape (n_views, latent_dimensions)
 
         """
         explained_covariance = self.explained_covariance_(views, **kwargs)
@@ -131,7 +131,7 @@ class PLSMixin:
 
         Returns
         -------
-        explained_variance_ratio : numpy array of shape (n_views, latent_dims)
+        explained_variance_ratio : numpy array of shape (n_views, latent_dimensions)
 
         """
         component_variance = self.explained_variance_(views, **kwargs)
@@ -152,7 +152,7 @@ class PLSMixin:
 
         Returns
         -------
-        explained_variance_cumulative_ : numpy array of shape (n_views, latent_dims)
+        explained_variance_cumulative_ : numpy array of shape (n_views, latent_dimensions)
 
         """
         explained_variance_ratio = self.explained_variance_ratio_(views, **kwargs)
@@ -170,7 +170,7 @@ class PLSMixin:
 
         Returns
         -------
-        explained_covariance_cumulative_ : numpy array of shape (n_views, latent_dims)
+        explained_covariance_cumulative_ : numpy array of shape (n_views, latent_dimensions)
 
         """
         explained_covariance_ratio = self.explained_covariance_ratio_(views, **kwargs)

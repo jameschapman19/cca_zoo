@@ -17,7 +17,7 @@ class SplitAE(BaseDeep, _GenerativeMixin):
 
     def __init__(
         self,
-        latent_dims: int,
+        latent_dimensions: int,
         encoder=Encoder,
         decoders=None,
         latent_dropout=0,
@@ -27,11 +27,11 @@ class SplitAE(BaseDeep, _GenerativeMixin):
     ):
         """
 
-        :param latent_dims: # latent dimensions
+        :param latent_dimensions: # latent dimensions
         :param encoder: list of encoder networks
         :param decoders:  list of decoder networks
         """
-        super().__init__(latent_dims=latent_dims, **kwargs)
+        super().__init__(latent_dimensions=latent_dimensions, **kwargs)
         self.img_dim = img_dim
         self.encoder = encoder
         self.decoders = torch.nn.ModuleList(decoders)

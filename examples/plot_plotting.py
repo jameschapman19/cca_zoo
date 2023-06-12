@@ -31,7 +31,7 @@ X_tr, X_te, Y_tr, Y_te = train_test_split(X, Y, test_size=0.2, random_state=42)
 # Model
 # ------
 
-cca = CCA(latent_dims=latent_dims).fit((X_tr, Y_tr))
+cca = CCA(latent_dimensions=latent_dims).fit((X_tr, Y_tr))
 
 # %%
 # Plotting

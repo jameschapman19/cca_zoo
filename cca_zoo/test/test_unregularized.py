@@ -34,15 +34,15 @@ Y_sp -= Y_sp.mean(axis=0)
 def test_unregularized_methods():
     # This function tests unregularized CCA methods. The idea is that all of these should give the same result.
     latent_dims = 2
-    rcca = rCCA(latent_dims=latent_dims).fit([X, Y])
-    cca = CCA(latent_dims=latent_dims).fit([X, Y])
-    gcca = GCCA(latent_dims=latent_dims).fit([X, Y])
-    mcca = MCCA(latent_dims=latent_dims, pca=False).fit([X, Y])
-    mcca_pca = MCCA(latent_dims=latent_dims, pca=True).fit([X, Y])
-    kcca = KCCA(latent_dims=latent_dims).fit([X, Y])
-    kgcca = KGCCA(latent_dims=latent_dims).fit([X, Y])
-    tcca = TCCA(latent_dims=latent_dims).fit([X, Y])
-    pcacca = PCACCA(latent_dims=latent_dims).fit([X, Y])
+    rcca = rCCA(latent_dimensions=latent_dims).fit([X, Y])
+    cca = CCA(latent_dimensions=latent_dims).fit([X, Y])
+    gcca = GCCA(latent_dimensions=latent_dims).fit([X, Y])
+    mcca = MCCA(latent_dimensions=latent_dims, pca=False).fit([X, Y])
+    mcca_pca = MCCA(latent_dimensions=latent_dims, pca=True).fit([X, Y])
+    kcca = KCCA(latent_dimensions=latent_dims).fit([X, Y])
+    kgcca = KGCCA(latent_dimensions=latent_dims).fit([X, Y])
+    tcca = TCCA(latent_dimensions=latent_dims).fit([X, Y])
+    pcacca = PCACCA(latent_dimensions=latent_dims).fit([X, Y])
 
     # Get the correlation scores for each method
     corr_rcca = rcca.score((X, Y))
@@ -68,9 +68,9 @@ def test_unregularized_methods():
 def test_unregularized_multi():
     # This function tests unregularized CCA methods for more than 2 views. The idea is that all of these should give the same result.
     latent_dims = 2
-    gcca = GCCA(latent_dims=latent_dims).fit((X, Y, Z))
-    mcca = MCCA(latent_dims=latent_dims).fit((X, Y, Z))
-    kcca = KCCA(latent_dims=latent_dims).fit((X, Y, Z))
+    gcca = GCCA(latent_dimensions=latent_dims).fit((X, Y, Z))
+    mcca = MCCA(latent_dimensions=latent_dims).fit((X, Y, Z))
+    kcca = KCCA(latent_dimensions=latent_dims).fit((X, Y, Z))
     # Get the correlation scores for each method
     corr_gcca = gcca.score((X, Y, Z))
     corr_mcca = mcca.score((X, Y, Z))
@@ -91,8 +91,8 @@ def test_unregularized_multi():
 
 def test_pls():
     # This function tests PLS and PLS_ALS
-    pls_als = PLS_ALS(latent_dims=3, random_state=0)
-    pls = PLS(latent_dims=3)
+    pls_als = PLS_ALS(latent_dimensions=3, random_state=0)
+    pls = PLS(latent_dimensions=3)
 
     # Fit both models to the same data
     pls_als.fit([X, Y])
@@ -108,8 +108,8 @@ def test_pls():
 def test_TCCA():
     # This function tests TCCA and KTCCA
     latent_dims = 1
-    tcca = TCCA(latent_dims=latent_dims, c=[0.2, 0.2, 0.2]).fit([X, X, Y])
-    ktcca = KTCCA(latent_dims=latent_dims, c=[0.2, 0.2]).fit([X, Y])
+    tcca = TCCA(latent_dimensions=latent_dims, c=[0.2, 0.2, 0.2]).fit([X, X, Y])
+    ktcca = KTCCA(latent_dimensions=latent_dims, c=[0.2, 0.2]).fit([X, Y])
 
     # Get the correlation scores for each method
     corr_tcca = tcca.score((X, X, Y))

@@ -14,7 +14,7 @@ class PRCCA(MCCA):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to use, by default 1
     copy_data : bool, optional
         Whether to copy the data, by default True
@@ -32,7 +32,7 @@ class PRCCA(MCCA):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         eps=1e-3,
@@ -47,7 +47,7 @@ class PRCCA(MCCA):
             Tolerance for convergence, by default 1e-3
         """
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             random_state=random_state,
             eps=eps,

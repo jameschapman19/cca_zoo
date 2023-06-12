@@ -43,20 +43,20 @@ train_loader, val_loader, train_labels = example_mnist_data(
 # Deep Variational CCA
 # ----------------------------
 encoder_1 = architectures.Encoder(
-    latent_dims=LATENT_DIMS,
+    latent_dimensions=LATENT_DIMS,
     feature_size=784,
     variational=True,
     layer_sizes=layer_sizes,
     dropout=dropout,
 )
 decoder_1 = architectures.Decoder(
-    latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
 decoder_2 = architectures.Decoder(
-    latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
 dvcca = DVCCA(
-    latent_dims=LATENT_DIMS,
+    latent_dimensions=LATENT_DIMS,
     encoders=[encoder_1],
     decoders=[decoder_1, decoder_2],
     lr=lr,
@@ -76,33 +76,33 @@ plt.show()
 # Deep Variational CCA (Private)
 # -------------------------------
 private_encoder_1 = architectures.Encoder(
-    latent_dims=LATENT_DIMS,
+    latent_dimensions=LATENT_DIMS,
     feature_size=784,
     variational=True,
     layer_sizes=layer_sizes,
     dropout=dropout,
 )
 private_encoder_2 = architectures.Encoder(
-    latent_dims=LATENT_DIMS,
+    latent_dimensions=LATENT_DIMS,
     feature_size=784,
     variational=True,
     layer_sizes=layer_sizes,
     dropout=dropout,
 )
 private_decoder_1 = architectures.Decoder(
-    latent_dims=2 * LATENT_DIMS,
+    latent_dimensions=2 * LATENT_DIMS,
     feature_size=784,
     layer_sizes=layer_sizes,
     dropout=dropout,
 )
 private_decoder_2 = architectures.Decoder(
-    latent_dims=2 * LATENT_DIMS,
+    latent_dimensions=2 * LATENT_DIMS,
     feature_size=784,
     layer_sizes=layer_sizes,
     dropout=dropout,
 )
 dvccap = DVCCA(
-    latent_dims=LATENT_DIMS,
+    latent_dimensions=LATENT_DIMS,
     encoders=[encoder_1],
     decoders=[private_decoder_1, private_decoder_2],
     private_encoders=[private_encoder_1, private_encoder_2],
@@ -123,19 +123,19 @@ plt.show()
 # Deep Canonically Correlated Autoencoders
 # -----------------------------------------
 encoder_1 = architectures.Encoder(
-    latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes
+    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes
 )
 encoder_2 = architectures.Encoder(
-    latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes
+    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes
 )
 decoder_1 = architectures.Decoder(
-    latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
 decoder_2 = architectures.Decoder(
-    latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
 dccae = DCCAE(
-    latent_dims=LATENT_DIMS,
+    latent_dimensions=LATENT_DIMS,
     encoders=[encoder_1, encoder_2],
     decoders=[decoder_1, decoder_2],
     lr=lr,
@@ -157,16 +157,16 @@ plt.show()
 # Split Autoencoders
 # -------------------
 encoder_1 = architectures.Encoder(
-    latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes
+    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes
 )
 decoder_1 = architectures.Decoder(
-    latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
 decoder_2 = architectures.Decoder(
-    latent_dims=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
 )
 splitae = SplitAE(
-    latent_dims=LATENT_DIMS,
+    latent_dimensions=LATENT_DIMS,
     encoder=encoder_1,
     decoders=[decoder_1, decoder_2],
     lr=lr,

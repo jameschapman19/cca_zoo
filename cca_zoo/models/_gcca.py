@@ -42,7 +42,7 @@ class GCCA(MCCA):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
@@ -50,7 +50,7 @@ class GCCA(MCCA):
         eps: float = 1e-6,
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             accept_sparse=["csc", "csr"],
             random_state=random_state,
@@ -104,7 +104,7 @@ class GCCA(MCCA):
 
     def _weights(self, eigvals, eigvecs, views, **kwargs):
         self.weights = [
-            np.linalg.pinv(view) @ eigvecs[:, : self.latent_dims] for view in views
+            np.linalg.pinv(view) @ eigvecs[:, : self.latent_dimensions] for view in views
         ]
 
     def _more_tags(self):

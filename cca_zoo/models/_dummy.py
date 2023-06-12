@@ -8,7 +8,7 @@ from cca_zoo.models._base import BaseModel
 class DummyCCA(BaseModel):
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         accept_sparse=None,
@@ -17,7 +17,7 @@ class DummyCCA(BaseModel):
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             accept_sparse=accept_sparse,
             random_state=random_state,
@@ -28,11 +28,11 @@ class DummyCCA(BaseModel):
         self._validate_data(views)
         if self.uniform:
             self.weights = [
-                np.ones((view.shape[1], self.latent_dims)) for view in views
+                np.ones((view.shape[1], self.latent_dimensions)) for view in views
             ]
         else:
             self.weights = [
-                self.random_state.normal(0, 1, size=(view.shape[1], self.latent_dims))
+                self.random_state.normal(0, 1, size=(view.shape[1], self.latent_dimensions))
                 for view in views
             ]
         self.normalize_weights(views)

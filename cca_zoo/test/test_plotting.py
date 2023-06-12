@@ -9,6 +9,6 @@ y -= np.mean(y, axis=0)
 
 
 def test_plotting():
-    cca = CCA(latent_dims=3).fit([x, y])
+    cca = CCA(latent_dimensions=3).fit([x, y])
     plot_pairwise_scatter(cca, [x, y])
     plot_pairwise_correlations(cca, [x, y])

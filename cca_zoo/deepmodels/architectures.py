@@ -8,10 +8,10 @@ from torch import nn
 
 class _BaseEncoder(torch.nn.Module):
     @abstractmethod
-    def __init__(self, latent_dims: int, variational: bool = False):
+    def __init__(self, latent_dimensions: int, variational: bool = False):
         super(_BaseEncoder, self).__init__()
         self.variational = variational
-        self.latent_dims = latent_dims
+        self.latent_dimensions = latent_dimensions
 
     @abstractmethod
     def forward(self, x):
@@ -20,9 +20,9 @@ class _BaseEncoder(torch.nn.Module):
 
 class _BaseDecoder(torch.nn.Module):
     @abstractmethod
-    def __init__(self, latent_dims: int):
+    def __init__(self, latent_dimensions: int):
         super(_BaseDecoder, self).__init__()
-        self.latent_dims = latent_dims
+        self.latent_dimensions = latent_dimensions
 
     @abstractmethod
     def forward(self, x):
@@ -32,17 +32,17 @@ class _BaseDecoder(torch.nn.Module):
 class Encoder(_BaseEncoder):
     def __init__(
         self,
-        latent_dims: int,
+        latent_dimensions: int,
         variational: bool = False,
         feature_size: int = 784,
         layer_sizes: tuple = None,
         activation=nn.LeakyReLU(),
         dropout=0,
     ):
-        super(Encoder, self).__init__(latent_dims, variational=variational)
+        super(Encoder, self).__init__(latent_dimensions, variational=variational)
         if layer_sizes is None:
             layer_sizes = (128,)
-        layer_sizes = (feature_size,) + layer_sizes + (latent_dims,)
+        layer_sizes = (feature_size,) + layer_sizes + (latent_dimensions,)
         layers = []
         # other layers
         for l_id in range(len(layer_sizes) - 2):
@@ -81,16 +81,16 @@ class Encoder(_BaseEncoder):
 class Decoder(_BaseDecoder):
     def __init__(
         self,
-        latent_dims: int,
+        latent_dimensions: int,
         feature_size: int = 784,
         layer_sizes: tuple = None,
         activation=nn.LeakyReLU(),
         dropout=0,
     ):
-        super(Decoder, self).__init__(latent_dims)
+        super(Decoder, self).__init__(latent_dimensions)
         if layer_sizes is None:
             layer_sizes = (128,)
-        layer_sizes = (latent_dims,) + layer_sizes + (feature_size,)
+        layer_sizes = (latent_dimensions,) + layer_sizes + (feature_size,)
         layers = []
         for l_id in range(len(layer_sizes) - 1):
             layers.append(
@@ -110,7 +110,7 @@ class Decoder(_BaseDecoder):
 class CNNEncoder(_BaseEncoder):
     def __init__(
         self,
-        latent_dims: int,
+        latent_dimensions: int,
         variational: bool = False,
         feature_size: Iterable = (28, 28),
         channels: tuple = None,
@@ -120,7 +120,7 @@ class CNNEncoder(_BaseEncoder):
         activation=nn.LeakyReLU(),
         dropout=0,
     ):
-        super(CNNEncoder, self).__init__(latent_dims, variational=variational)
+        super(CNNEncoder, self).__init__(latent_dimensions, variational=variational)
         if channels is None:
             channels = (1, 1)
         if kernel_sizes is None:
@@ -155,20 +155,20 @@ class CNNEncoder(_BaseEncoder):
             self.fc_mu = torch.nn.Sequential(
                 nn.Dropout(p=dropout),
                 torch.nn.Linear(
-                    int(current_size * current_size * current_channels), latent_dims
+                    int(current_size * current_size * current_channels), latent_dimensions
                 ),
             )
             self.fc_var = torch.nn.Sequential(
                 nn.Dropout(p=dropout),
                 torch.nn.Linear(
-                    int(current_size * current_size * current_channels), latent_dims
+                    int(current_size * current_size * current_channels), latent_dimensions
                 ),
             )
         else:
             self.fc = torch.nn.Sequential(
                 nn.Dropout(p=dropout),
                 torch.nn.Linear(
-                    int(current_size * current_size * current_channels), latent_dims
+                    int(current_size * current_size * current_channels), latent_dimensions
                 ),
             )
         self.conv_layers = torch.nn.Sequential(*conv_layers)
@@ -188,7 +188,7 @@ class CNNEncoder(_BaseEncoder):
 class CNNDecoder(_BaseDecoder):
     def __init__(
         self,
-        latent_dims: int,
+        latent_dimensions: int,
         feature_size: Iterable = (28, 28),
         channels: tuple = None,
         kernel_sizes=None,
@@ -197,7 +197,7 @@ class CNNDecoder(_BaseDecoder):
         activation=nn.LeakyReLU(),
         dropout=0,
     ):
-        super(CNNDecoder, self).__init__(latent_dims)
+        super(CNNDecoder, self).__init__(latent_dimensions)
         if channels is None:
             channels = (1, 1)
         if kernel_sizes is None:
@@ -234,7 +234,7 @@ class CNNDecoder(_BaseDecoder):
         self.fc_layer = torch.nn.Sequential(
             nn.Dropout(p=dropout),
             torch.nn.Linear(
-                latent_dims, int(current_size * current_size * current_channels)
+                latent_dimensions, int(current_size * current_size * current_channels)
             ),
             activation,
         )
@@ -255,15 +255,15 @@ class CNNDecoder(_BaseDecoder):
 
 
 class LinearEncoder(_BaseEncoder):
-    def __init__(self, latent_dims: int, feature_size: int, variational: bool = False):
-        super(LinearEncoder, self).__init__(latent_dims, variational=variational)
+    def __init__(self, latent_dimensions: int, feature_size: int, variational: bool = False):
+        super(LinearEncoder, self).__init__(latent_dimensions, variational=variational)
         self.variational = variational
 
         if self.variational:
-            self.fc_mu = torch.nn.Linear(feature_size, latent_dims)
-            self.fc_var = torch.nn.Linear(feature_size, latent_dims)
+            self.fc_mu = torch.nn.Linear(feature_size, latent_dimensions)
+            self.fc_var = torch.nn.Linear(feature_size, latent_dimensions)
         else:
-            self.fc = torch.nn.Linear(feature_size, latent_dims)
+            self.fc = torch.nn.Linear(feature_size, latent_dimensions)
 
     def forward(self, x):
         if self.variational:
@@ -276,9 +276,9 @@ class LinearEncoder(_BaseEncoder):
 
 
 class LinearDecoder(_BaseDecoder):
-    def __init__(self, latent_dims: int, feature_size: int):
-        super(LinearDecoder, self).__init__(latent_dims)
-        self.linear = torch.nn.Linear(latent_dims, feature_size)
+    def __init__(self, latent_dimensions: int, feature_size: int):
+        super(LinearDecoder, self).__init__(latent_dimensions)
+        self.linear = torch.nn.Linear(latent_dimensions, feature_size)
 
     def forward(self, x):
         out = self.linear(x)

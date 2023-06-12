@@ -20,7 +20,7 @@ class DVCCA(BaseDeep, _GenerativeMixin):
 
     def __init__(
         self,
-        latent_dims: int,
+        latent_dimensions: int,
         encoders=None,
         decoders=None,
         private_encoders: Iterable = None,
@@ -29,7 +29,7 @@ class DVCCA(BaseDeep, _GenerativeMixin):
         recon_loss_type="mse",
         **kwargs,
     ):
-        super().__init__(latent_dims=latent_dims, **kwargs)
+        super().__init__(latent_dimensions=latent_dimensions, **kwargs)
         self.img_dim = img_dim
         self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
         self.encoders = torch.nn.ModuleList(encoders)

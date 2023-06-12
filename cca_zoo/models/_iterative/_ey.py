@@ -13,7 +13,7 @@ class CCAEY(BaseIterative):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to use, by default 1
     copy_data : bool, optional
         Whether to copy the data, by default True
@@ -35,7 +35,7 @@ class CCAEY(BaseIterative):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         tol=1e-9,
@@ -53,7 +53,7 @@ class CCAEY(BaseIterative):
     ):
         self.optimizer_kwargs = optimizer_kwargs
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             accept_sparse=accept_sparse,
             random_state=random_state,
@@ -92,7 +92,7 @@ class PLSEY(CCAEY, PLSMixin):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to use, by default 1
     copy_data : bool, optional
         Whether to copy the data, by default True
@@ -114,7 +114,7 @@ class PLSEY(CCAEY, PLSMixin):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         tol=1e-9,
@@ -130,7 +130,7 @@ class PLSEY(CCAEY, PLSMixin):
         verbose=False,
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             accept_sparse=accept_sparse,
             random_state=random_state,

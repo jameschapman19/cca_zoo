@@ -26,7 +26,7 @@ class PLS_ALS(BaseDeflation, PLSMixin):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to use, by default 1
     copy_data : bool, optional
         Whether to copy the data, by default True
@@ -44,7 +44,7 @@ class PLS_ALS(BaseDeflation, PLSMixin):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         tol=1e-3,
@@ -60,7 +60,7 @@ class PLS_ALS(BaseDeflation, PLSMixin):
         trainer_kwargs=None,
     ):
         super().__init__(
-            latent_dims,
+            latent_dimensions,
             copy_data,
             random_state,
             tol,

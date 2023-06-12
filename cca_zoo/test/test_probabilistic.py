@@ -14,9 +14,9 @@ def test_PCCA():
     # Tests tensor CCA methods
     X, Y = LinearSimulatedData([5, 5]).sample(100)
     latent_dims = 1
-    cca = CCA(latent_dims=latent_dims).fit([X, Y])
+    cca = CCA(latent_dimensions=latent_dims).fit([X, Y])
     pcca = ProbabilisticCCA(
-        latent_dims=latent_dims, num_warmup=1000, num_samples=1000
+        latent_dimensions=latent_dims, num_warmup=1000, num_samples=1000
     ).fit([X, Y])
     # Test that vanilla CCA and VCCA produce roughly similar latent space ie they are correlated
     assert (

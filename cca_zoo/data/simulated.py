@@ -25,7 +25,7 @@ class LinearSimulatedData:
         self.latent_dims = latent_dims
         self.correlation = correlation
         self.random_state = check_random_state(random_state)
-        # Process the correlation parameter to ensure it is a list of length latent_dims
+        # Process the correlation parameter to ensure it is a list of length latent_dimensions
         self.correlation = _process_parameter(
             "correlation", correlation, 0.99, latent_dims
         )

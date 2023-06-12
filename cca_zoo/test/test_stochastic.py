@@ -38,10 +38,10 @@ def test_stochastic_pls():
 
     from cca_zoo.models import PLSEY, PLSSVD, PLSStochasticPower
 
-    pls = PLS(latent_dims=3).fit((X, Y))
+    pls = PLS(latent_dimensions=3).fit((X, Y))
     manual_seed(42)
     plsey = PLSEY(
-        latent_dims=latent_dims,
+        latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
         learning_rate=learning_rate,
@@ -50,7 +50,7 @@ def test_stochastic_pls():
         verbose=False,
     ).fit((X, Y))
     plssvd = PLSSVD(
-        latent_dims=latent_dims,
+        latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
         learning_rate=learning_rate,
@@ -59,7 +59,7 @@ def test_stochastic_pls():
         verbose=False,
     ).fit((X, Y))
     spls = PLSStochasticPower(
-        latent_dims=latent_dims,
+        latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
         learning_rate=learning_rate,
@@ -88,9 +88,9 @@ def test_stochastic_cca():
     pytest.importorskip("torch")
     from cca_zoo.models import CCAEY, CCAGH, CCASVD
 
-    cca = CCA(latent_dims=3).fit((X, Y))
+    cca = CCA(latent_dimensions=3).fit((X, Y))
     ccaey = CCAEY(
-        latent_dims=latent_dims,
+        latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
         learning_rate=learning_rate,
@@ -99,7 +99,7 @@ def test_stochastic_cca():
         verbose=False,
     ).fit((X, Y))
     ccagh = CCAGH(
-        latent_dims=latent_dims,
+        latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
         learning_rate=learning_rate,
@@ -108,7 +108,7 @@ def test_stochastic_cca():
         verbose=False,
     ).fit((X, Y))
     ccasvd = CCASVD(
-        latent_dims=latent_dims,
+        latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
         learning_rate=learning_rate,

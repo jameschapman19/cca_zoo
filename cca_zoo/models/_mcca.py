@@ -1,11 +1,12 @@
-from scipy.linalg import block_diag
-from sklearn.decomposition import PCA
-import numpy as np
-
 from typing import Iterable, Union
+
+import numpy as np
+from scipy.linalg import block_diag
 from scipy.linalg import eigh
-from cca_zoo.models._plsmixin import PLSMixin
+from sklearn.decomposition import PCA
+
 from cca_zoo.models._base import BaseModel
+from cca_zoo.models._plsmixin import PLSMixin
 from cca_zoo.utils import _process_parameter
 
 
@@ -29,7 +30,7 @@ class MCCA(BaseModel):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to use, by default 1
     copy_data : bool, optional
         Whether to copy the data, by default True
@@ -48,7 +49,7 @@ class MCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
@@ -61,7 +62,7 @@ class MCCA(BaseModel):
             accept_sparse = ["csc", "csr"]
         # Call the parent class constructor
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             accept_sparse=accept_sparse,
             random_state=random_state,
@@ -103,7 +104,7 @@ class MCCA(BaseModel):
         [eigvals, eigvecs] = eigh(
             C,
             D,
-            subset_by_index=[p - self.latent_dims, p - 1],
+            subset_by_index=[p - self.latent_dimensions, p - 1],
         )
         # Sort the eigenvalues and eigenvectors in descending order
         idx = np.argsort(eigvals, axis=0)[::-1]
@@ -260,7 +261,7 @@ class CCA(rCCA):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to use, by default 1
     copy_data : bool, optional
         Whether to copy the data, by default True
@@ -286,13 +287,13 @@ class CCA(rCCA):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
     ):
         # Call the parent class constructor with c=0.0 to disable regularization
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             c=0.0,
             random_state=random_state,
@@ -317,7 +318,7 @@ class PLS(MCCA, PLSMixin):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to use, by default 1
     copy_data : bool, optional
         Whether to copy the data, by default True
@@ -327,13 +328,13 @@ class PLS(MCCA, PLSMixin):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
     ):
         # Call the parent class constructor with c=1 to enable maximal regularization
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             c=1,
             random_state=random_state,

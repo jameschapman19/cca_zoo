@@ -1,6 +1,6 @@
 import torch
 
-from ..objectives import _mat_pow
+from ..objectives import inv_sqrtm
 from ._dcca import DCCA
 
 
@@ -17,7 +17,7 @@ class DCCA_NOI(DCCA):
 
     def __init__(
         self,
-        latent_dims: int,
+        latent_dimensions: int,
         N: int,
         encoders=None,
         r: float = 0,
@@ -27,7 +27,7 @@ class DCCA_NOI(DCCA):
         **kwargs,
     ):
         super().__init__(
-            latent_dims=latent_dims, encoders=encoders, r=r, eps=eps, **kwargs
+            latent_dimensions=latent_dimensions, encoders=encoders, r=r, eps=eps, **kwargs
         )
         self.N = N
         self.covs = None
@@ -37,13 +37,13 @@ class DCCA_NOI(DCCA):
         self.rho = rho
         self.shared_target = shared_target
         self.mse = torch.nn.MSELoss(reduction="sum")
-        self.rand = torch.rand(N, self.latent_dims)
+        self.rand = torch.rand(N, self.latent_dimensions)
 
     def loss(self, views, **kwargs):
         z = self(views)
         z_copy = [z_.detach().clone() for z_ in z]
         self._update_covariances(z_copy, train=self.training)
-        covariance_inv = [_mat_pow(cov, -0.5, self.eps) for cov in self.covs]
+        covariance_inv = [inv_sqrtm(cov, self.eps) for cov in self.covs]
         preds = [z_ @ covariance_inv[i] for i, z_ in enumerate(z_copy)]
         loss = self.mse(z[0], preds[1]) + self.mse(z[1], preds[0])
         self.covs = [cov.detach() for cov in self.covs]

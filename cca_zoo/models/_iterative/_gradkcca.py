@@ -20,7 +20,7 @@ class GradKCCA(BaseIterative):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         scale: bool = True,
         centre=True,
         copy_data=True,
@@ -37,7 +37,7 @@ class GradKCCA(BaseIterative):
         nystrom_components=100,
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             scale=scale,
             centre=centre,
             copy_data=copy_data,

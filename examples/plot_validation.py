@@ -34,7 +34,7 @@ from sklearn.model_selection import KFold, ShuffleSplit
 from cca_zoo.model_selection import learning_curve, permutation_test_score
 
 LATENT_DIMS = 3
-model = CCA(latent_dims=LATENT_DIMS)
+model = CCA(latent_dimensions=LATENT_DIMS)
 cv = KFold(2, shuffle=True, random_state=0)
 score, perm_scores, pvalue = permutation_test_score(
     model, (X, Y), cv=cv, n_permutations=100

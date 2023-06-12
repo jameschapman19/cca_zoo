@@ -72,13 +72,13 @@ train_loader = get_dataloaders(custom_dataset, batch_size=2)
 LATENT_DIMS = 1
 EPOCHS = 10
 
-encoder_1 = architectures.Encoder(latent_dims=LATENT_DIMS, feature_size=10)
-encoder_2 = architectures.Encoder(latent_dims=LATENT_DIMS, feature_size=10)
+encoder_1 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=10)
+encoder_2 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=10)
 
 # %%
 # Deep CCA
 # ----------------------------
-dcca = DCCA(latent_dims=LATENT_DIMS, encoders=[encoder_1, encoder_2])
+dcca = DCCA(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,

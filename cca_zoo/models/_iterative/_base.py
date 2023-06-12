@@ -31,7 +31,7 @@ DEFAULT_LOADER_KWARGS = dict(
 class BaseIterative(BaseModel):
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         tol=1e-3,
@@ -51,7 +51,7 @@ class BaseIterative(BaseModel):
         verbose=False,
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             random_state=random_state,
             accept_sparse=accept_sparse,
@@ -185,7 +185,7 @@ class BaseIterative(BaseModel):
             The input views to initialize the CCA weights from
         """
         initializer = _default_initializer(
-            self.initialization, self.random_state, self.latent_dims
+            self.initialization, self.random_state, self.latent_dimensions
         )
         # Fit the initializer on the input views and get the weights as numpy arrays
         self.weights = initializer.fit(views).weights
@@ -195,7 +195,7 @@ class BaseIterative(BaseModel):
 class BaseDeflation(BaseIterative, ABC):
     def _fit(self, views: Iterable[np.ndarray]):
         # tqdm for each latent dimension
-        for k in tqdm(range(self.latent_dims), desc="Latent Dimension", leave=False):
+        for k in tqdm(range(self.latent_dimensions), desc="Latent Dimension", leave=False):
             train_dataloader, val_dataloader = self.get_dataloader(views)
             loop = self._get_module(weights=self.weights, k=k)
             # make a trainer

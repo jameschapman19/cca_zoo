@@ -26,7 +26,7 @@ Y_sp -= Y_sp.mean(axis=0)
 
 def test_explained_variance():
     # Test that explained variance is between 0 and 1
-    pls = PLS(latent_dims=10).fit((X, X))
+    pls = PLS(latent_dimensions=10).fit((X, X))
     explained_variance = pls.explained_variance_((X, X))
     explained_variance_ratio = pls.explained_variance_ratio_((X, X))
     explained_variance_cumulative = pls.explained_variance_cumulative_((X, X))
@@ -48,7 +48,7 @@ def test_explained_covariance():
     u2, s2, v2 = np.linalg.svd(N)
 
     # Test that explained covariance is between 0 and 1
-    pls = PLS(latent_dims=10).fit((X, X))
+    pls = PLS(latent_dimensions=10).fit((X, X))
     explained_covariance = pls.explained_covariance_((X, X))
     explained_covariance_ratio = pls.explained_covariance_ratio_((X, X))
     explained_covariance_cumulative = pls.explained_covariance_cumulative_((X, X))
@@ -60,7 +60,7 @@ def test_explained_covariance():
 
 def test_validation():
     # Test that validation works
-    pls = PLS(latent_dims=1).fit((X, Y))
+    pls = PLS(latent_dimensions=1).fit((X, Y))
     cross_validate(pls, (X, Y))
     permutation_test_score(pls, (X, Y))
     learning_curve(pls, (X, Y))

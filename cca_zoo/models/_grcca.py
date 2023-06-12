@@ -13,7 +13,7 @@ class GRCCA(MCCA):
 
     Parameters
     ----------
-    latent_dims : int, default=1
+    latent_dimensions : int, default=1
         Number of latent dimensions to use
     copy_data : bool, default=True
         Whether to copy the data
@@ -34,7 +34,7 @@ class GRCCA(MCCA):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         eps=1e-3,
@@ -42,7 +42,7 @@ class GRCCA(MCCA):
         mu: float = 0,
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             random_state=random_state,
             eps=eps,

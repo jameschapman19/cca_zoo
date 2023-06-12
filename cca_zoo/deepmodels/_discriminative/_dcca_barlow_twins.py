@@ -18,15 +18,15 @@ class BarlowTwins(DCCA):
 
     def __init__(
         self,
-        latent_dims: int,
+        latent_dimensions: int,
         encoders=None,
         lam=1,
         **kwargs,
     ):
-        super().__init__(latent_dims=latent_dims, encoders=encoders, **kwargs)
+        super().__init__(latent_dimensions=latent_dimensions, encoders=encoders, **kwargs)
         self.lam = lam  # the lambda parameter for the off-diagonal terms of the cross-covariance matrix
         self.bns = torch.nn.ModuleList(
-            [torch.nn.BatchNorm1d(latent_dims, affine=False) for _ in self.encoders]
+            [torch.nn.BatchNorm1d(latent_dimensions, affine=False) for _ in self.encoders]
         )  # a list of batch normalization layers for each encoder
 
     def forward(self, views, **kwargs):

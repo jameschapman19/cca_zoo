@@ -44,7 +44,7 @@ class SCCA_Parkhomenko(BaseDeflation):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         deflation="cca",
@@ -58,7 +58,7 @@ class SCCA_Parkhomenko(BaseDeflation):
     ):
         self.tau = tau
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             initialization=initialization,
             tol=tol,

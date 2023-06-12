@@ -29,7 +29,7 @@ class ElasticCCA(BaseDeflation):
 
     Parameters
     ----------
-    latent_dims : int, default=1
+    latent_dimensions : int, default=1
         Number of latent dimensions to use
     copy_data : bool, default=True
         Whether to copy the data or overwrite it
@@ -64,7 +64,7 @@ class ElasticCCA(BaseDeflation):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         epochs: int = 100,
@@ -89,7 +89,7 @@ class ElasticCCA(BaseDeflation):
                 "Non negative constraints cannot be used with _stochastic regressors. Switching to _stochastic=False"
             )
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             epochs=epochs,
             deflation=deflation,

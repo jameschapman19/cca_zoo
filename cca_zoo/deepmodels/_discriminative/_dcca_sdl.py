@@ -16,7 +16,7 @@ class DCCA_SDL(DCCA_NOI):
 
     def __init__(
         self,
-        latent_dims: int,
+        latent_dimensions: int,
         N: int,
         encoders=None,
         r: float = 0,
@@ -27,7 +27,7 @@ class DCCA_SDL(DCCA_NOI):
         **kwargs
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             N=N,
             encoders=encoders,
             r=r,
@@ -40,7 +40,7 @@ class DCCA_SDL(DCCA_NOI):
         self.cross_cov = None
         self.lam = lam
         self.bns = torch.nn.ModuleList(
-            [torch.nn.BatchNorm1d(latent_dims, affine=False) for _ in self.encoders]
+            [torch.nn.BatchNorm1d(latent_dimensions, affine=False) for _ in self.encoders]
         )
 
     def forward(self, views, **kwargs):

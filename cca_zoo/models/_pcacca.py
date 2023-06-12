@@ -16,7 +16,7 @@ class PCACCA(MCCA):
 
     def __init__(
         self,
-        latent_dims=1,
+        latent_dimensions=1,
         copy_data=True,
         random_state=None,
         c: Union[Iterable[float], float] = None,
@@ -24,7 +24,7 @@ class PCACCA(MCCA):
         percent_variance=0.99,
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             random_state=random_state,
             c=c,

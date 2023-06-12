@@ -13,9 +13,8 @@ def test_data_correlation():
     x_test, y_test = data.sample(1000)
     from cca_zoo.models import CCA
 
-    model = CCA(latent_dims=5)
+    model = CCA(latent_dimensions=5)
     model.fit((x_train, y_train))
     assert np.allclose(
         model.score((x_test, y_test)), np.array([0.9, 0.8, 0.7, 0.6, 0.5]), atol=0.1
     )
-    print()

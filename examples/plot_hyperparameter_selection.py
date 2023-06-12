@@ -42,7 +42,7 @@ data = LinearSimulatedData(
 #  - a mixture of a single value for one view and a distribution or list for the other
 param_grid = {"kernel": ["poly"], "c": [[1e-1], [1e-1, 2e-1]], "degree": [[2], [2, 3]]}
 kernel_reg = GridSearchCV(
-    KCCA(latent_dims=latent_dims), param_grid=param_grid, cv=cv, verbose=True
+    KCCA(latent_dimensions=latent_dims), param_grid=param_grid, cv=cv, verbose=True
 ).fit([X, Y])
 print(pd.DataFrame(kernel_reg.cv_results_))
 
@@ -56,6 +56,6 @@ param_grid = {
     "degree": [[2], [2, 3]],
 }
 kernel_reg = RandomizedSearchCV(
-    KCCA(latent_dims=latent_dims), param_distributions=param_grid, cv=cv, verbose=True
+    KCCA(latent_dimensions=latent_dims), param_distributions=param_grid, cv=cv, verbose=True
 ).fit([X, Y])
 print(pd.DataFrame(kernel_reg.cv_results_))

@@ -17,7 +17,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to fit. Default is 1.
     copy_data : bool, optional
         Whether to copy the data. Default is True.
@@ -37,12 +37,12 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         accept_sparse=False,
         random_state: Union[int, np.random.RandomState] = None,
     ):
-        self.latent_dims = latent_dims
+        self.latent_dimensions = latent_dimensions
         self.copy_data = copy_data
         self.accept_sparse = accept_sparse
         self.random_state = check_random_state(random_state)
@@ -58,9 +58,9 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
             raise ValueError("All views must have 2 dimensions")
         if not all(view.dtype in self.dtypes for view in views):
             raise ValueError("All views must have dtype of {}.".format(self.dtypes))
-        if not all(view.shape[1] >= self.latent_dims for view in views):
+        if not all(view.shape[1] >= self.latent_dimensions for view in views):
             raise ValueError(
-                "All views must have at least {} features.".format(self.latent_dims)
+                "All views must have at least {} features.".format(self.latent_dimensions)
             )
         self.n_views_ = len(views)
         self.n_features_ = [view.shape[1] for view in views]
@@ -137,17 +137,17 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
         Returns
         -------
-        pairwise_correlations : numpy array of shape (n_views, n_views, latent_dims)
+        pairwise_correlations : numpy array of shape (n_views, n_views, latent_dimensions)
 
         """
         transformed_views = self.transform(views, **kwargs)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(
-                np.diag(np.corrcoef(x.T, y.T)[: self.latent_dims, self.latent_dims :])
+                np.diag(np.corrcoef(x.T, y.T)[: self.latent_dimensions, self.latent_dimensions:])
             )
         all_corrs = np.array(all_corrs).reshape(
-            (self.n_views_, self.n_views_, self.latent_dims)
+            (self.n_views_, self.n_views_, self.latent_dimensions)
         )
         return all_corrs
 
@@ -170,9 +170,10 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
         pair_corrs = self.pairwise_correlations(views, **kwargs)
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
-        dim_corrs = (
-            pair_corrs.sum(axis=tuple(range(pair_corrs.ndim - 1))) - self.n_views_
-        ) / (self.n_views_**2 - self.n_views_)
+        dim_corrs = (np.sum(pair_corrs, axis=(0,1)) - pair_corrs.shape[0])
+        # number of pairs is n_views choose 2
+        num_pairs = (self.n_views_ * (self.n_views_ - 1)) / 2
+        dim_corrs = dim_corrs / (2*num_pairs)
         return dim_corrs
 
     def factor_loadings(self, views: Iterable[np.ndarray], normalize=True, **kwargs):

@@ -7,5 +7,5 @@ class CorrelationCallback(Callback):
     ) -> None:
         pl_module.log(
             "val/corr",
-            pl_module.score(trainer.val_dataloaders[0]).sum(),
+            pl_module.correlation(trainer.val_dataloaders[0]).sum(),
         )

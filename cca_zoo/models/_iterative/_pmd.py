@@ -34,7 +34,7 @@ class SCCA_PMD(BaseDeflation, PLSMixin):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to use, by default 1
     copy_data : bool, optional
         Whether to copy the data, by default True
@@ -62,7 +62,7 @@ class SCCA_PMD(BaseDeflation, PLSMixin):
 
     def __init__(
         self,
-        latent_dims=1,
+        latent_dimensions=1,
         copy_data=True,
         random_state=None,
         epochs=100,
@@ -76,7 +76,7 @@ class SCCA_PMD(BaseDeflation, PLSMixin):
         verbose=False,
     ):
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             random_state=random_state,
             epochs=epochs,

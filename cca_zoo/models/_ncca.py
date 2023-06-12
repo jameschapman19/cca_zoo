@@ -14,7 +14,7 @@ class NCCA(BaseModel):
 
     Parameters
     ----------
-    latent_dims : int, optional
+    latent_dimensions : int, optional
         Number of latent dimensions to use, by default 1
     copy_data : bool, optional
         Whether to copy the data, by default True
@@ -44,7 +44,7 @@ class NCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dims: int = 1,
+        latent_dimensions: int = 1,
         copy_data=True,
         accept_sparse=False,
         random_state: Union[int, np.random.RandomState] = None,
@@ -53,7 +53,7 @@ class NCCA(BaseModel):
     ):
         # Call the parent class constructor
         super().__init__(
-            latent_dims=latent_dims,
+            latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             accept_sparse=accept_sparse,
             random_state=random_state,
@@ -102,10 +102,10 @@ class NCCA(BaseModel):
         # Perform singular value decomposition on the cross-covariance matrix
         U, S, Vt = np.linalg.svd(S)
         # Compute the canonical score vectors for each view
-        self.f = U[:, 1 : self.latent_dims + 1] * np.sqrt(self.n_samples_)
-        self.g = Vt[1 : self.latent_dims + 1, :].T * np.sqrt(self.n_samples_)
+        self.f = U[:, 1 : self.latent_dimensions + 1] * np.sqrt(self.n_samples_)
+        self.g = Vt[1 : self.latent_dimensions + 1, :].T * np.sqrt(self.n_samples_)
         # Store the canonical correlations
-        self.S = S[1 : self.latent_dims + 1]
+        self.S = S[1 : self.latent_dimensions + 1]
         return self
 
     def transform(self, views: Iterable[np.ndarray], **kwargs):
