@@ -42,14 +42,14 @@ class MCCA:
         self.r = r
         self.eps = eps
 
-    def C(self,views):
+    def C(self, views):
         # Concatenate all views and from this get the cross-covariance matrix
         all_views = torch.cat(views, dim=1)
         C = torch.cov(all_views.T)
         C = C - torch.block_diag(*[torch.cov(view.T) for view in views])
-        return C/len(views)
+        return C / len(views)
 
-    def D(self,views):
+    def D(self, views):
         # Get the block covariance matrix placing Xi^TX_i on the diagonal
         D = torch.block_diag(
             *[
@@ -58,16 +58,16 @@ class MCCA:
                 for i, view in enumerate(views)
             ]
         )
-        return D/len(views)
+        return D / len(views)
 
     def correlation(self, views):
         # Subtract the mean from each output
         views = _demean(views)
 
-        C=self.C(views)
-        D=self.D(views)
+        C = self.C(views)
+        D = self.D(views)
 
-        C=C+D
+        C = C + D
 
         R = inv_sqrtm(D, self.eps)
 
@@ -82,7 +82,6 @@ class MCCA:
         eigvals = eigvals[idx[: self.latent_dims]]
 
         return eigvals
-
 
     def loss(self, views):
         eigvals = self.correlation(views)
@@ -116,12 +115,13 @@ class GCCA:
         self.r = r
         self.eps = eps
 
-    def Q(self,views):
+    def Q(self, views):
         eigen_views = [
             view @ torch.linalg.inv(torch.cov(view.T)) @ view.T for view in views
         ]
         Q = torch.stack(eigen_views, dim=0).sum(dim=0)
         return Q
+
     def correlation(self, views):
         # https: // www.uta.edu / math / _docs / preprint / 2014 / rep2014_04.pdf
 
@@ -186,8 +186,8 @@ class CCA:
         views = _demean(views)
 
         SigmaHat12 = torch.cov(torch.hstack((views[0], views[1])).T)[
-                     : self.latent_dims, self.latent_dims:
-                     ]  # views[0].T @ views[1] / (n - 1)
+            : self.latent_dims, self.latent_dims :
+        ]  # views[0].T @ views[1] / (n - 1)
         SigmaHat11 = torch.cov(views[0].T) + self.r * torch.eye(
             o1, device=views[0].device
         )
@@ -232,9 +232,7 @@ class TCCA:
             + self.r * torch.eye(view.size(1), device=view.device)
             for view in views
         ]
-        whitened_z = [
-            view @ inv_sqrtm(cov, self.eps) for view, cov in zip(views, covs)
-        ]
+        whitened_z = [view @ inv_sqrtm(cov, self.eps) for view, cov in zip(views, covs)]
         # The idea here is to form a matrix with M dimensions one for each view where at index
         # M[p_i,p_j,p_k...] we have the sum over n samples of the product of the pth feature of the
         # ith, jth, kth view etc.

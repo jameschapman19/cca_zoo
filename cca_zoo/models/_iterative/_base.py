@@ -195,7 +195,9 @@ class BaseIterative(BaseModel):
 class BaseDeflation(BaseIterative, ABC):
     def _fit(self, views: Iterable[np.ndarray]):
         # tqdm for each latent dimension
-        for k in tqdm(range(self.latent_dimensions), desc="Latent Dimension", leave=False):
+        for k in tqdm(
+            range(self.latent_dimensions), desc="Latent Dimension", leave=False
+        ):
             train_dataloader, val_dataloader = self.get_dataloader(views)
             loop = self._get_module(weights=self.weights, k=k)
             # make a trainer

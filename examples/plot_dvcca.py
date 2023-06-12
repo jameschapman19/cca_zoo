@@ -50,10 +50,16 @@ encoder_1 = architectures.Encoder(
     dropout=dropout,
 )
 decoder_1 = architectures.Decoder(
-    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+    latent_dimensions=LATENT_DIMS,
+    feature_size=784,
+    layer_sizes=layer_sizes,
+    dropout=dropout,
 )
 decoder_2 = architectures.Decoder(
-    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+    latent_dimensions=LATENT_DIMS,
+    feature_size=784,
+    layer_sizes=layer_sizes,
+    dropout=dropout,
 )
 dvcca = DVCCA(
     latent_dimensions=LATENT_DIMS,
@@ -129,10 +135,16 @@ encoder_2 = architectures.Encoder(
     latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes
 )
 decoder_1 = architectures.Decoder(
-    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+    latent_dimensions=LATENT_DIMS,
+    feature_size=784,
+    layer_sizes=layer_sizes,
+    dropout=dropout,
 )
 decoder_2 = architectures.Decoder(
-    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+    latent_dimensions=LATENT_DIMS,
+    feature_size=784,
+    layer_sizes=layer_sizes,
+    dropout=dropout,
 )
 dccae = DCCAE(
     latent_dimensions=LATENT_DIMS,
@@ -160,10 +172,16 @@ encoder_1 = architectures.Encoder(
     latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes
 )
 decoder_1 = architectures.Decoder(
-    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+    latent_dimensions=LATENT_DIMS,
+    feature_size=784,
+    layer_sizes=layer_sizes,
+    dropout=dropout,
 )
 decoder_2 = architectures.Decoder(
-    latent_dimensions=LATENT_DIMS, feature_size=784, layer_sizes=layer_sizes, dropout=dropout
+    latent_dimensions=LATENT_DIMS,
+    feature_size=784,
+    layer_sizes=layer_sizes,
+    dropout=dropout,
 )
 splitae = SplitAE(
     latent_dimensions=LATENT_DIMS,

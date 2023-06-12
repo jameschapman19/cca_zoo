@@ -104,7 +104,8 @@ class GCCA(MCCA):
 
     def _weights(self, eigvals, eigvecs, views, **kwargs):
         self.weights = [
-            np.linalg.pinv(view) @ eigvecs[:, : self.latent_dimensions] for view in views
+            np.linalg.pinv(view) @ eigvecs[:, : self.latent_dimensions]
+            for view in views
         ]
 
     def _more_tags(self):

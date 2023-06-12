@@ -52,9 +52,9 @@ def test_regularized_methods():
     mcca = MCCA(latent_dimensions=latent_dims, c=[c, c]).fit([X, Y])
     pls = PLS(latent_dimensions=latent_dims).fit([X, Y])
     gcca = GCCA(latent_dimensions=latent_dims, c=[c, c]).fit([X, Y])
-    kernel = KCCA(latent_dimensions=latent_dims, c=[c, c], kernel=["linear", "linear"]).fit(
-        (X, Y)
-    )
+    kernel = KCCA(
+        latent_dimensions=latent_dims, c=[c, c], kernel=["linear", "linear"]
+    ).fit((X, Y))
     corr_gcca = gcca.score((X, Y))
     corr_mcca = mcca.score((X, Y))
     corr_kernel = kernel.score((X, Y))

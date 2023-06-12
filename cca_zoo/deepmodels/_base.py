@@ -81,7 +81,7 @@ class BaseDeep(pl.LightningModule):
         loader: torch.utils.data.DataLoader,
     ):
         """Returns the latent representations for each view in the loader."""
-        #self.eval()
+        # self.eval()
         # Use list comprehension instead of for loop
         z = [
             self([view.to(self.device).detach().cpu() for view in batch["views"]])

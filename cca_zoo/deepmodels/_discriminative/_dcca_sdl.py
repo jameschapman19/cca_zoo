@@ -40,7 +40,10 @@ class DCCA_SDL(DCCA_NOI):
         self.cross_cov = None
         self.lam = lam
         self.bns = torch.nn.ModuleList(
-            [torch.nn.BatchNorm1d(latent_dimensions, affine=False) for _ in self.encoders]
+            [
+                torch.nn.BatchNorm1d(latent_dimensions, affine=False)
+                for _ in self.encoders
+            ]
         )
 
     def forward(self, views, **kwargs):

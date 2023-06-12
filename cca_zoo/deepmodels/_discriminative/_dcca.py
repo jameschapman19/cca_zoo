@@ -46,10 +46,7 @@ class DCCA(BaseDeep, BaseModel):
         z = self(views)
         return {"objective": self.objective.loss(z)}
 
-    def pairwise_correlations(
-        self,
-        loader: torch.utils.data.DataLoader
-    ):
+    def pairwise_correlations(self, loader: torch.utils.data.DataLoader):
         # Call the parent class method
         return super().pairwise_correlations(loader)
 

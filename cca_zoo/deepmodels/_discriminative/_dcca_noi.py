@@ -27,7 +27,11 @@ class DCCA_NOI(DCCA):
         **kwargs,
     ):
         super().__init__(
-            latent_dimensions=latent_dimensions, encoders=encoders, r=r, eps=eps, **kwargs
+            latent_dimensions=latent_dimensions,
+            encoders=encoders,
+            r=r,
+            eps=eps,
+            **kwargs,
         )
         self.N = N
         self.covs = None
