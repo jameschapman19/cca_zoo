@@ -106,7 +106,10 @@ class ProbabilisticCCA(BaseModel):
         with numpyro.plate("plate_i", n):
             # sample from latent z: the latent variables of the model
             z = numpyro.sample(
-                "z", dist.MultivariateNormal(0.0, jnp.diag(jnp.ones(self.latent_dimensions)))
+                "z",
+                dist.MultivariateNormal(
+                    0.0, jnp.diag(jnp.ones(self.latent_dimensions))
+                ),
             )
             # sample from multivariate normal and observe data
             [

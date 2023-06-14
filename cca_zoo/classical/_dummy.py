@@ -32,7 +32,9 @@ class DummyCCA(BaseModel):
             ]
         else:
             self.weights = [
-                self.random_state.normal(0, 1, size=(view.shape[1], self.latent_dimensions))
+                self.random_state.normal(
+                    0, 1, size=(view.shape[1], self.latent_dimensions)
+                )
                 for view in views
             ]
         self.normalize_weights(views)

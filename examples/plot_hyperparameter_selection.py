@@ -56,6 +56,9 @@ param_grid = {
     "degree": [[2], [2, 3]],
 }
 kernel_reg = RandomizedSearchCV(
-    KCCA(latent_dimensions=latent_dims), param_distributions=param_grid, cv=cv, verbose=True
+    KCCA(latent_dimensions=latent_dims),
+    param_distributions=param_grid,
+    cv=cv,
+    verbose=True,
 ).fit([X, Y])
 print(pd.DataFrame(kernel_reg.cv_results_))

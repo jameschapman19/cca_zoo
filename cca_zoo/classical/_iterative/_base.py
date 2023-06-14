@@ -198,7 +198,9 @@ class BaseDeflation(BaseIterative, ABC):
         if isinstance(views, tuple):
             views = list(views)
         # tqdm for each latent dimension
-        for k in tqdm(range(self.latent_dimensions), desc="Latent Dimension", leave=False):
+        for k in tqdm(
+            range(self.latent_dimensions), desc="Latent Dimension", leave=False
+        ):
             train_dataloader, val_dataloader = self.get_dataloader(views)
             loop = self._get_module(weights=self.weights, k=k)
             # make a trainer

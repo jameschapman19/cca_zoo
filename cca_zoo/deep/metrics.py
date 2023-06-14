@@ -12,8 +12,8 @@ class MCCA(Metric):
         self.add_state("representations", default=[], persistent=False)
 
     def update(self, representations: Iterable[torch.Tensor] = None):
-        for i,representation in enumerate(representations):
-            if len(self.representations) <len(representations):
+        for i, representation in enumerate(representations):
+            if len(self.representations) < len(representations):
                 self.representations.append([representation])
             else:
                 self.representations[i].append(representation)
@@ -21,7 +21,9 @@ class MCCA(Metric):
 
     @torch.no_grad()
     def compute(self):
-        self.representations = [torch.cat(representation) for representation in self.representations]
+        self.representations = [
+            torch.cat(representation) for representation in self.representations
+        ]
         return self.correlation(self.representations)
 
     def C(self, views):
@@ -33,12 +35,7 @@ class MCCA(Metric):
 
     def D(self, views):
         # Get the block covariance matrix placing Xi^TX_i on the diagonal
-        D = torch.block_diag(
-            *[
-                torch.cov(view.T)
-                for i, view in enumerate(views)
-            ]
-        )
+        D = torch.block_diag(*[torch.cov(view.T) for i, view in enumerate(views)])
         return D
 
     def correlation(self, views):
@@ -60,4 +57,4 @@ class MCCA(Metric):
 
         eigvals = eigvals[idx[: self.latent_dims]]
 
-        return eigvals/2
+        return eigvals / 2

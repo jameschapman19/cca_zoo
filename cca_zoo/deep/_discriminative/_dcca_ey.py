@@ -12,7 +12,9 @@ class DCCA_EY(DCCA):
     """
 
     def __init__(self, latent_dimensions: int, encoders=None, r: float = 0, **kwargs):
-        super().__init__(latent_dimensions=latent_dimensions, encoders=encoders, **kwargs)
+        super().__init__(
+            latent_dimensions=latent_dimensions, encoders=encoders, **kwargs
+        )
         self.r = r
 
     def forward(self, views, **kwargs):
@@ -50,8 +52,8 @@ class DCCA_EY(DCCA):
                     B += torch.cov(zi.T)  # add the auto-covariance of each view to B
                 else:
                     A += torch.cov(torch.hstack((zi, zj)).T)[
-                         self.latent_dimensions:, : self.latent_dimensions
-                         ]  # add the cross-covariance of each pair of views to A
+                        self.latent_dimensions :, : self.latent_dimensions
+                    ]  # add the cross-covariance of each pair of views to A
         return A / len(z), B / len(
             z
         )  # return the normalized matrices (divided by the number of views)

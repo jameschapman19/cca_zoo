@@ -155,20 +155,23 @@ class CNNEncoder(_BaseEncoder):
             self.fc_mu = torch.nn.Sequential(
                 nn.Dropout(p=dropout),
                 torch.nn.Linear(
-                    int(current_size * current_size * current_channels), latent_dimensions
+                    int(current_size * current_size * current_channels),
+                    latent_dimensions,
                 ),
             )
             self.fc_var = torch.nn.Sequential(
                 nn.Dropout(p=dropout),
                 torch.nn.Linear(
-                    int(current_size * current_size * current_channels), latent_dimensions
+                    int(current_size * current_size * current_channels),
+                    latent_dimensions,
                 ),
             )
         else:
             self.fc = torch.nn.Sequential(
                 nn.Dropout(p=dropout),
                 torch.nn.Linear(
-                    int(current_size * current_size * current_channels), latent_dimensions
+                    int(current_size * current_size * current_channels),
+                    latent_dimensions,
                 ),
             )
         self.conv_layers = torch.nn.Sequential(*conv_layers)
@@ -255,7 +258,9 @@ class CNNDecoder(_BaseDecoder):
 
 
 class LinearEncoder(_BaseEncoder):
-    def __init__(self, latent_dimensions: int, feature_size: int, variational: bool = False):
+    def __init__(
+        self, latent_dimensions: int, feature_size: int, variational: bool = False
+    ):
         super(LinearEncoder, self).__init__(latent_dimensions, variational=variational)
         self.variational = variational
 

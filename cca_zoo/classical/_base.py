@@ -60,7 +60,9 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
             raise ValueError("All views must have dtype of {}.".format(self.dtypes))
         if not all(view.shape[1] >= self.latent_dimensions for view in views):
             raise ValueError(
-                "All views must have at least {} features.".format(self.latent_dimensions)
+                "All views must have at least {} features.".format(
+                    self.latent_dimensions
+                )
             )
         self.n_views_ = len(views)
         self.n_features_ = [view.shape[1] for view in views]
@@ -144,7 +146,11 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
             all_corrs.append(
-                np.diag(np.corrcoef(x.T, y.T)[: self.latent_dimensions, self.latent_dimensions:])
+                np.diag(
+                    np.corrcoef(x.T, y.T)[
+                        : self.latent_dimensions, self.latent_dimensions :
+                    ]
+                )
             )
         all_corrs = np.array(all_corrs).reshape(
             (self.n_views_, self.n_views_, self.latent_dimensions)
@@ -170,10 +176,10 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
         pair_corrs = self.pairwise_correlations(views, **kwargs)
         # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
-        dim_corrs = (np.sum(pair_corrs, axis=(0,1)) - pair_corrs.shape[0])
+        dim_corrs = np.sum(pair_corrs, axis=(0, 1)) - pair_corrs.shape[0]
         # number of pairs is n_views choose 2
         num_pairs = (self.n_views_ * (self.n_views_ - 1)) / 2
-        dim_corrs = dim_corrs / (2*num_pairs)
+        dim_corrs = dim_corrs / (2 * num_pairs)
         return dim_corrs
 
     def factor_loadings(self, views: Iterable[np.ndarray], normalize=True, **kwargs):
