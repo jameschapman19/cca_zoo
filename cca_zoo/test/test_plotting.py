@@ -1,6 +1,6 @@
-from cca_zoo.plotting import plot_pairwise_scatter, plot_pairwise_correlations
+from cca_zoo.visualisation import plot_pairwise_scatter, plot_pairwise_correlations
 import numpy as np
-from cca_zoo.models import CCA
+from cca_zoo.classical import CCA
 
 x = np.random.rand(100, 10)
 y = np.random.rand(100, 10)

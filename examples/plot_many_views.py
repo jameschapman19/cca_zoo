@@ -2,12 +2,12 @@
 More than 2 views
 ===========================
 
-This will compare MCCA, GCCA, TCCA for linear models with more than 2 views
+This will compare MCCA, GCCA, TCCA for linear classical with more than 2 views
 """
 import numpy as np
 
 from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.models import GCCA, KCCA, KGCCA, KTCCA, MCCA, SCCA_PMD, TCCA
+from cca_zoo.classical import GCCA, KCCA, KGCCA, KTCCA, MCCA, SCCA_PMD, TCCA
 
 """
 Data

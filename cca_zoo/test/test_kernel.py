@@ -4,7 +4,7 @@ Test the kernel methods
 
 
 import numpy as np
-from cca_zoo.models import KCCA, KTCCA, KGCCA, MCCA, GCCA, TCCA
+from cca_zoo.classical import KCCA, KTCCA, KGCCA, MCCA, GCCA, TCCA
 
 np.random.seed(1)
 X = np.random.normal(size=(100, 10))

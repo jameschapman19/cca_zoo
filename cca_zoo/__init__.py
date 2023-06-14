@@ -1,20 +1,20 @@
 __all__ = [
     "data",
     "model_selection",
-    "models",
-    "plotting",
+    "classical",
+    "visualisation",
 ]
 
-# if can import deepmodels add to all
+# if can import deep add to all
 try:
-    import cca_zoo.deepmodels
+    import cca_zoo.deep
 
-    __all__.append("deepmodels")
+    __all__.append("deep")
 except ModuleNotFoundError:
     pass
 try:
-    import cca_zoo.probabilisticmodels
+    import cca_zoo.probabilistic
 
-    __all__.append("probabilisticmodels")
+    __all__.append("probabilistic")
 except ModuleNotFoundError:
     pass

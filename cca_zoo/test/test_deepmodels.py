@@ -5,7 +5,7 @@ from torch import manual_seed
 from torch.utils.data import random_split
 
 from cca_zoo.data.deep import NumpyDataset, check_dataset, get_dataloaders
-from cca_zoo.deepmodels import (
+from cca_zoo.deep import (
     DCCA,
     DCCA_EY,
     DCCA_NOI,
@@ -19,7 +19,7 @@ from cca_zoo.deepmodels import (
     architectures,
     objectives,
 )
-from cca_zoo.models import CCA, MCCA, GCCA, TCCA
+from cca_zoo.classical import CCA, MCCA, GCCA
 
 manual_seed(0)
 rng = check_random_state(0)

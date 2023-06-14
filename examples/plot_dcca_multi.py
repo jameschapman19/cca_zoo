@@ -2,12 +2,12 @@
 Deep CCA for more than 2 views
 =================================
 
-This example demonstrates how to easily train Deep CCA models and variants
+This example demonstrates how to easily train Deep CCA classical and variants
 """
 
 import pytorch_lightning as pl
 
-from cca_zoo.deepmodels import DCCA, DTCCA, architectures, objectives
+from cca_zoo.deep import DCCA, DTCCA, architectures, objectives
 
 # %%
 # Data

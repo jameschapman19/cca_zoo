@@ -5,7 +5,7 @@ from sklearn.utils.validation import check_random_state
 
 from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
-from cca_zoo.models import (
+from cca_zoo.classical import (
     CCA,
     GCCA,
     GRCCA,
@@ -21,7 +21,7 @@ from cca_zoo.models import (
     PartialCCA,
     SCCA_Parkhomenko,
     SCCA_Span,
-    rCCA,
+    rCCA, MPLS,
 )
 
 n = 50
@@ -55,17 +55,20 @@ def test_regularized_methods():
     kernel = KCCA(latent_dimensions=latent_dims, c=[c, c], kernel=["linear", "linear"]).fit(
         (X, Y)
     )
+    mpls=MPLS(latent_dimensions=latent_dims).fit([X, Y])
     corr_gcca = gcca.score((X, Y))
     corr_mcca = mcca.score((X, Y))
     corr_kernel = kernel.score((X, Y))
     corr_pls = pls.score((X, Y))
     corr_rcca = rcca.score((X, Y))
+    corr_mpls = mpls.score((X, Y))
     # Check the correlations from each unregularized method are the same
     assert np.testing.assert_array_almost_equal(corr_pls, corr_mcca, decimal=1) is None
     assert (
         np.testing.assert_array_almost_equal(corr_pls, corr_kernel, decimal=1) is None
     )
     assert np.testing.assert_array_almost_equal(corr_pls, corr_rcca, decimal=1) is None
+    assert np.testing.assert_array_almost_equal(corr_pls, corr_mpls, decimal=1) is None
 
 
 def test_sparse_methods():

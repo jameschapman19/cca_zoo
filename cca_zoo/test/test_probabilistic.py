@@ -2,13 +2,13 @@ import numpy as np
 import pytest
 
 from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.models import CCA
+from cca_zoo.classical import CCA
 
 
 def test_PCCA():
     # some might not have access to jax/numpyro so leave this as an optional test locally.
     numpyro = pytest.importorskip("numpyro")
-    from cca_zoo.probabilisticmodels import ProbabilisticCCA
+    from cca_zoo.probabilistic import ProbabilisticCCA
 
     np.random.seed(0)
     # Tests tensor CCA methods

@@ -10,7 +10,7 @@ import numpy as np
 
 from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV
-from cca_zoo.models import KCCA
+from cca_zoo.classical import KCCA
 
 # %%
 # Data

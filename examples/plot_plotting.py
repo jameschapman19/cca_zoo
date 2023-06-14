@@ -2,7 +2,7 @@
 Model Plotting
 ===========================
 
-This script will show how to use the plotting functions of the CCA-Zoo package.
+This script will show how to use the visualisation functions of the CCA-Zoo package.
 """
 
 import matplotlib.pyplot as plt
@@ -10,8 +10,8 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.models import CCA
-from cca_zoo.plotting import pairplot_train_test
+from cca_zoo.classical import CCA
+from cca_zoo.visualisation import pairplot_train_test
 
 # Data
 # ------

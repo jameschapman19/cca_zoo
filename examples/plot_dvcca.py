@@ -2,13 +2,13 @@
 Deep Variational CCA and Deep Canonically Correlated Autoencoders
 ====================================================================
 
-This example demonstrates multiview models which can reconstruct their inputs
+This example demonstrates multiview classical which can reconstruct their inputs
 """
 import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 
-from cca_zoo.deepmodels import DCCAE, DVCCA, SplitAE, architectures
-from cca_zoo.plotting import tsne_label
+from cca_zoo.deep import DCCAE, DVCCA, SplitAE, architectures
+from cca_zoo.visualisation import tsne_label
 from examples import example_mnist_data
 
 

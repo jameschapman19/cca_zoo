@@ -21,7 +21,7 @@ import pytorch_lightning as pl
 # You can then use the get_dataloaders function to convert your dataset into dataloaders, which can be used with
 # CCA-Zoo.
 from cca_zoo.data.deep import NumpyDataset
-from cca_zoo.deepmodels import DCCA, architectures
+from cca_zoo.deep import DCCA, architectures
 
 X = np.random.normal(size=(100, 10))
 Y = np.random.normal(size=(100, 10))

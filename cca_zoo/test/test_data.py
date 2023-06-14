@@ -11,7 +11,7 @@ def test_data_correlation():
     )
     x_train, y_train = data.sample(1000)
     x_test, y_test = data.sample(1000)
-    from cca_zoo.models import CCA
+    from cca_zoo.classical import CCA
 
     model = CCA(latent_dimensions=5)
     model.fit((x_train, y_train))

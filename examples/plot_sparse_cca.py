@@ -11,7 +11,7 @@ import pandas as pd
 
 from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV
-from cca_zoo.models import (
+from cca_zoo.classical import (
     CCA,
     PLS,
     SCCA_IPLS,

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.models import CCA
+from cca_zoo.classical import CCA
 
 # %%
 # Data
@@ -93,7 +93,7 @@ def plot_learning_curve(
         None for unsupervised learning.
 
     axes : array-like of shape (3,), default=None
-        Axes to use for plotting the curves.
+        Axes to use for visualisation the curves.
 
     ylim : tuple of shape (2,), default=None
         Defines minimum and maximum y-values plotted, e.g. (ymin, ymax).

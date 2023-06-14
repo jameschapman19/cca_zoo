@@ -3,7 +3,7 @@ import pytest
 import scipy.sparse as sp
 from sklearn.utils import check_random_state
 
-from cca_zoo.models import CCA, PLS, MCCA
+from cca_zoo.classical import CCA, PLS, MCCA
 
 n = 50
 rng = check_random_state(0)
@@ -36,7 +36,7 @@ def test_stochastic_pls():
     pytest.importorskip("torch")
     from torch import manual_seed
 
-    from cca_zoo.models import PLSEY, PLSSVD, PLSStochasticPower
+    from cca_zoo.classical import PLSEY, PLSSVD, PLSStochasticPower
 
     pls = PLS(latent_dimensions=3).fit((X, Y))
     manual_seed(42)
@@ -86,7 +86,7 @@ def test_stochastic_pls():
 
 def test_stochastic_cca():
     pytest.importorskip("torch")
-    from cca_zoo.models import CCAEY, CCAGH, CCASVD
+    from cca_zoo.classical import CCAEY, CCAGH, CCASVD
 
     cca = CCA(latent_dimensions=3).fit((X, Y))
     ccaey = CCAEY(

@@ -2,14 +2,14 @@
 Deep CCA
 ===========================
 
-This example demonstrates how to easily train Deep CCA models and variants
+This example demonstrates how to easily train Deep CCA classical and variants
 """
 
 import pytorch_lightning as pl
 from matplotlib import pyplot as plt
 
 # %%
-from cca_zoo.deepmodels import (
+from cca_zoo.deep import (
     DCCA,
     DCCA_EY,
     DCCA_NOI,
@@ -17,7 +17,7 @@ from cca_zoo.deepmodels import (
     BarlowTwins,
     architectures,
 )
-from cca_zoo.plotting import pairplot_label
+from cca_zoo.visualisation import pairplot_label
 from examples import example_mnist_data
 
 # %%

@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 from sklearn.utils.validation import check_random_state
 
-from cca_zoo.models import (
+from cca_zoo.classical import (
     CCA,
     GCCA,
     KCCA,
@@ -94,7 +94,7 @@ def test_pls():
     pls_als = PLS_ALS(latent_dimensions=3, random_state=0)
     pls = PLS(latent_dimensions=3)
 
-    # Fit both models to the same data
+    # Fit both classical to the same data
     pls_als.fit([X, Y])
     pls.fit((X, Y))
 

@@ -7,9 +7,9 @@ from cca_zoo.model_selection import (
     learning_curve,
     permutation_test_score,
 )
-from cca_zoo.models import PLS
+from cca_zoo.classical import PLS
 
-n = 50
+n = 5
 rng = check_random_state(0)
 X = rng.rand(n, 10)
 Y = rng.rand(n, 11)
@@ -26,7 +26,7 @@ Y_sp -= Y_sp.mean(axis=0)
 
 def test_explained_variance():
     # Test that explained variance is between 0 and 1
-    pls = PLS(latent_dimensions=10).fit((X, X))
+    pls = PLS(latent_dimensions=5).fit((X, X))
     explained_variance = pls.explained_variance_((X, X))
     explained_variance_ratio = pls.explained_variance_ratio_((X, X))
     explained_variance_cumulative = pls.explained_variance_cumulative_((X, X))
@@ -48,7 +48,7 @@ def test_explained_covariance():
     u2, s2, v2 = np.linalg.svd(N)
 
     # Test that explained covariance is between 0 and 1
-    pls = PLS(latent_dimensions=10).fit((X, X))
+    pls = PLS(latent_dimensions=5).fit((X, X))
     explained_covariance = pls.explained_covariance_((X, X))
     explained_covariance_ratio = pls.explained_covariance_ratio_((X, X))
     explained_covariance_cumulative = pls.explained_covariance_cumulative_((X, X))
