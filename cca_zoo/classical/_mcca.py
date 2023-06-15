@@ -298,6 +298,3 @@ class CCA(rCCA):
             c=0.0,
             random_state=random_state,
         )
-
-
-

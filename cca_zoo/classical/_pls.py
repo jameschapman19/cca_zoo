@@ -9,7 +9,6 @@ def reduce_dims(x):
     return U @ np.diag(S)
 
 
-
 class PLSMixin:
     def total_variance_(self, views: Iterable[np.ndarray], **kwargs) -> np.ndarray:
         """
@@ -215,6 +214,7 @@ class PLSMixin:
         transformed_views = self.transform(views, **kwargs)
         total_covariance_captured = self.total_covariance_(transformed_views)
         return total_covariance_captured
+
 
 class PLS(rCCA, PLSMixin):
     r"""
