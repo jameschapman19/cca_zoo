@@ -1,4 +1,5 @@
-from ._mcca import MCCA, CCA, PLS, rCCA, MPLS
+from ._mcca import MCCA, CCA, rCCA
+from ._pls import PLS, MPLS
 from ._gcca import GCCA
 from ._grcca import GRCCA
 from ._ncca import NCCA

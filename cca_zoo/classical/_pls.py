@@ -1,6 +1,13 @@
+from cca_zoo.classical import rCCA, MCCA
 from typing import Iterable
 
 import numpy as np
+
+
+def reduce_dims(x):
+    U, S, _ = np.linalg.svd(x, full_matrices=False)
+    return U @ np.diag(S)
+
 
 
 class PLSMixin:
@@ -18,14 +25,10 @@ class PLSMixin:
         variance : numpy array of shape (n_views, latent_dimensions)
 
         """
+        views = list(views)
         # Calculate total variance in each view by SVD
         n = views[0].shape[0]
         if n < min(views[0].shape[1], views[1].shape[1]):
-
-            def reduce_dims(x):
-                U, S, _ = np.linalg.svd(x, full_matrices=False)
-                return U @ np.diag(S)
-
             views = [reduce_dims(view) for view in views]
         variance = np.array(
             [np.sum(np.linalg.svd(view)[1] ** 2, keepdims=True) / n for view in views]
@@ -46,15 +49,11 @@ class PLSMixin:
         covariance : float
 
         """
+        views = list(views)
         # Calculate total covariance by SVD
         n = views[0].shape[0]
         # if n<p calculate views[0]@views[0].T@views[1]@views[1].T else calculate views[0].T@views[1]
         if n < min(views[0].shape[1], views[1].shape[1]):
-
-            def reduce_dims(x):
-                U, S, _ = np.linalg.svd(x, full_matrices=False)
-                return U @ np.diag(S)
-
             views = [reduce_dims(view) for view in views]
         covariance = np.sum(np.linalg.svd(views[0].T @ views[1])[1]) / (n - 1)
         return covariance
@@ -180,3 +179,110 @@ class PLSMixin:
         explained_covariance_ratio = self.explained_covariance_ratio_(views, **kwargs)
         explained_covariance_cumulative = np.cumsum(explained_covariance_ratio)
         return explained_covariance_cumulative
+
+    def total_variance_captured(self, views: Iterable[np.ndarray], **kwargs):
+        """
+        Returns the total variance captured by the latent space
+
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        kwargs : any additional keyword arguments required by the given model
+
+        Returns
+        -------
+        total_variance_captured : float
+
+        """
+        transformed_views = self.transform(views, **kwargs)
+        total_variance_captured = self.total_variance_(transformed_views)
+        return total_variance_captured
+
+    def total_covariance_captured(self, views: Iterable[np.ndarray], **kwargs):
+        """
+        Returns the total covariance captured by the latent space
+
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        kwargs : any additional keyword arguments required by the given model
+
+        Returns
+        -------
+        total_covariance_captured : float
+
+        """
+        transformed_views = self.transform(views, **kwargs)
+        total_covariance_captured = self.total_covariance_(transformed_views)
+        return total_covariance_captured
+
+class PLS(rCCA, PLSMixin):
+    r"""
+    A class used to fit a simple PLS model. This model finds the linear projections of two views that maximize their covariance.
+
+    Implements PLS by inheriting regularised CCA with maximal regularisation. This is equivalent to solving the following optimization problem:
+
+    .. math::
+
+        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
+
+        \text{subject to:}
+
+        w_1^Tw_1=1
+
+        w_2^Tw_2=1
+
+    Parameters
+    ----------
+    latent_dimensions : int, optional
+        Number of latent dimensions to use, by default 1
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random state, by default None
+    """
+
+    def __init__(
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
+    ):
+        # Call the parent class constructor with c=1 to enable maximal regularization
+        super().__init__(
+            latent_dimensions=latent_dimensions,
+            copy_data=copy_data,
+            c=1,
+            random_state=random_state,
+        )
+
+
+class MPLS(MCCA, PLSMixin):
+    r"""
+    A class used to fit a mutiview PLS model. This model finds the linear projections of two views that maximize their covariance.
+
+    Implements PLS by inheriting regularised CCA with maximal regularisation. This is equivalent to solving the following optimization problem:
+
+    Parameters
+    ----------
+    latent_dimensions : int, optional
+        Number of latent dimensions to use, by default 1
+    copy_data : bool, optional
+        Whether to copy the data, by default True
+    random_state : int, optional
+        Random state, by default None
+    """
+
+    def __init__(
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
+    ):
+        # Call the parent class constructor with c=1 to enable maximal regularization
+        super().__init__(
+            latent_dimensions=latent_dimensions,
+            copy_data=copy_data,
+            c=1,
+            random_state=random_state,
+        )
