@@ -48,6 +48,7 @@ def test_explained_covariance():
         # explained_covariance_cumulative should be monotonically increasing
         assert np.all(np.diff(explained_covariance_cumulative) >= 0)
 
+
 # def test_explained_correlation():
 
 
