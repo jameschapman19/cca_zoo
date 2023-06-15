@@ -340,6 +340,7 @@ class PLS(rCCA, PLSMixin):
             random_state=random_state,
         )
 
+
 class MPLS(MCCA):
     r"""
     A class used to fit a mutiview PLS model. This model finds the linear projections of two views that maximize their covariance.
