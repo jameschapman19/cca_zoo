@@ -8,6 +8,8 @@ from cca_zoo.data.deep import NumpyDataset, check_dataset, get_dataloaders
 from cca_zoo.deep import (
     DCCA,
     DCCA_EY,
+    DCCA_GH,
+    DCCA_SVD,
     DCCA_NOI,
     DCCA_SDL,
     DCCAE,
@@ -169,6 +171,46 @@ def test_DCCA_methods():
         )
         is None
     )
+    # DCCA_GH
+    encoder_1 = architectures.Encoder(
+        latent_dimensions=latent_dimensions, feature_size=10
+    )
+    encoder_2 = architectures.Encoder(
+        latent_dimensions=latent_dimensions, feature_size=12
+    )
+    dcca_gh = DCCA_GH(
+        latent_dimensions=latent_dimensions,
+        encoders=[encoder_1, encoder_2],
+        lr=1e-1,
+    )
+    trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
+    trainer.fit(dcca_gh, train_loader, val_dataloaders=val_loader)
+    assert (
+            np.testing.assert_array_less(
+                cca.score((X, Y)).sum(), dcca_gh.score(train_loader).sum()
+            )
+            is None
+    )
+    # DCCA_SVD
+    encoder_1 = architectures.Encoder(
+        latent_dimensions=latent_dimensions, feature_size=10
+    )
+    encoder_2 = architectures.Encoder(
+        latent_dimensions=latent_dimensions, feature_size=12
+    )
+    dcca_svd = DCCA_SVD(
+        latent_dimensions=latent_dimensions,
+        encoders=[encoder_1, encoder_2],
+        lr=1e-1,
+    )
+    trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
+    trainer.fit(dcca_svd, train_loader, val_dataloaders=val_loader)
+    assert (
+            np.testing.assert_array_less(
+                cca.score((X, Y)).sum(), dcca_svd.score(train_loader).sum()
+            )
+            is None
+    )
     # DCCA_EY
     encoder_1 = architectures.Encoder(
         latent_dimensions=latent_dimensions, feature_size=10
@@ -176,16 +218,16 @@ def test_DCCA_methods():
     encoder_2 = architectures.Encoder(
         latent_dimensions=latent_dimensions, feature_size=12
     )
-    dcca_eg = DCCA_EY(
+    dcca_ey = DCCA_EY(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2],
         lr=1e-1,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
-    trainer.fit(dcca_eg, train_loader, val_dataloaders=val_loader)
+    trainer.fit(dcca_ey, train_loader, val_dataloaders=val_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dcca_eg.score(train_loader).sum()
+            cca.score((X, Y)).sum(), dcca_ey.score(train_loader).sum()
         )
         is None
     )

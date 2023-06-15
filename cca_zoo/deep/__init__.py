@@ -2,6 +2,8 @@ from . import architectures, callbacks, objectives
 from ._discriminative import (
     DCCA,
     DCCA_EY,
+    DCCA_GH,
+    DCCA_SVD,
     DCCA_NOI,
     DCCA_SDL,
     DTCCA,
