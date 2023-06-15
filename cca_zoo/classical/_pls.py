@@ -31,7 +31,7 @@ class PLSMixin:
         for i,view in enumerate(views):
             if n < view.shape[1]:
                 views[i] = reduce_dims(view)
-        correlation = MCCA(latent_dims=min([view.shape[1] for view in views])).fit(views).score(views).sum()
+        correlation = MCCA(latent_dimensions=min([view.shape[1] for view in views])).fit(views).score(views).sum()
         return correlation
 
     def total_variance_(self, views: Iterable[np.ndarray], **kwargs) -> np.ndarray:

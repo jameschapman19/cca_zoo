@@ -6,7 +6,6 @@ from scipy.linalg import eigh
 from sklearn.decomposition import PCA
 
 from cca_zoo.classical._base import BaseModel
-from cca_zoo.classical._plsmixin import PLSMixin
 from cca_zoo.utils import _process_parameter
 
 
