@@ -11,6 +11,29 @@ def reduce_dims(x):
 
 
 class PLSMixin:
+    def total_correlation_(self, views: Iterable[np.ndarray], **kwargs) -> np.ndarray:
+        """
+        Returns the total correlation for each view
+
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        kwargs : any additional keyword arguments required by the given model
+
+        Returns
+        -------
+        correlation : numpy array of shape (n_views, latent_dimensions)
+
+        """
+        # Calculate total correlation in each view by SVD
+        n = views[0].shape[0]
+        views = list(views)
+        for i,view in enumerate(views):
+            if n < view.shape[1]:
+                views[i] = reduce_dims(view)
+        correlation = MCCA(latent_dims=min([view.shape[1] for view in views])).fit(views).score(views).sum()
+        return correlation
+
     def total_variance_(self, views: Iterable[np.ndarray], **kwargs) -> np.ndarray:
         """
         Returns the total variance for each view
@@ -215,6 +238,24 @@ class PLSMixin:
         transformed_views = self.transform(views, **kwargs)
         total_covariance_captured = self.total_covariance_(transformed_views)
         return total_covariance_captured
+
+    def total_correlation_captured(self, views: Iterable[np.ndarray], **kwargs):
+        """
+        Returns the total correlation captured by the latent space
+
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        kwargs : any additional keyword arguments required by the given model
+
+        Returns
+        -------
+        total_correlation_captured : float
+
+        """
+        transformed_views = self.transform(views, **kwargs)
+        total_correlation_captured = self.total_correlation_(transformed_views)
+        return total_correlation_captured
 
 class PLS(rCCA, PLSMixin):
     r"""
