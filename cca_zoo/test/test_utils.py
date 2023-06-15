@@ -13,7 +13,7 @@ n = 100
 rng = check_random_state(0)
 X_low = rng.rand(n, 5)
 Y_low = rng.rand(n, 5)
-n=5
+n = 5
 X_high = rng.rand(n, 100)
 Y_high = rng.rand(n, 101)
 # centre the data
@@ -23,10 +23,8 @@ X_high -= X_high.mean(axis=0)
 Y_high -= Y_high.mean(axis=0)
 
 
-
-
 def test_explained_variance():
-    for X in [X_low,X_high]:
+    for X in [X_low, X_high]:
         # Test that explained variance is between 0 and 1
         pls = MPLS(latent_dimensions=5).fit((X, X))
         explained_variance = pls.explained_variance_((X, X))
@@ -55,5 +53,5 @@ def test_validation():
     # Test that validation works
     pls = MPLS(latent_dimensions=1).fit((X_low, Y_low))
     cross_validate(pls, (X_low, Y_low))
-    permutation_test_score(pls,(X_low, Y_low))
-    learning_curve(pls,(X_low, Y_low))
+    permutation_test_score(pls, (X_low, Y_low))
+    learning_curve(pls, (X_low, Y_low))
