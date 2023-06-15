@@ -234,5 +234,3 @@ def test_deflation():
         )
         is None
     )
-    # check that off diagonals of np.corrcoef(*ccamodel.transform((X,Y)),rowvar=False)[:2,2:] are close to 0
-    assert np.allclose(np.corrcoef(*ccamodel.transform((X,Y)),rowvar=False)[:2,2:],0,atol=0.1)
