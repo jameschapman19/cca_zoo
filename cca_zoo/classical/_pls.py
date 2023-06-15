@@ -9,7 +9,6 @@ def reduce_dims(x):
     return U @ np.diag(S)
 
 
-
 class PLSMixin:
     def total_correlation_(self, views: Iterable[np.ndarray], **kwargs) -> np.ndarray:
         """
@@ -28,10 +27,15 @@ class PLSMixin:
         # Calculate total correlation in each view by SVD
         n = views[0].shape[0]
         views = list(views)
-        for i,view in enumerate(views):
+        for i, view in enumerate(views):
             if n < view.shape[1]:
                 views[i] = reduce_dims(view)
-        correlation = MCCA(latent_dimensions=min([view.shape[1] for view in views])).fit(views).score(views).sum()
+        correlation = (
+            MCCA(latent_dimensions=min([view.shape[1] for view in views]))
+            .fit(views)
+            .score(views)
+            .sum()
+        )
         return correlation
 
     def total_variance_(self, views: Iterable[np.ndarray], **kwargs) -> np.ndarray:
@@ -256,6 +260,7 @@ class PLSMixin:
         transformed_views = self.transform(views, **kwargs)
         total_correlation_captured = self.total_correlation_(transformed_views)
         return total_correlation_captured
+
 
 class PLS(rCCA, PLSMixin):
     r"""
