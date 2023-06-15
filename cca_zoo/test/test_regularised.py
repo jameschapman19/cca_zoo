@@ -198,6 +198,8 @@ def test_PRCCA():
     )
 
 
+
+
 def test_GRCCA():
     feature_group_1 = np.zeros(X.shape[1], dtype=int)
     feature_group_1[:3] = 1
@@ -217,3 +219,20 @@ def test_GRCCA():
     grcca = GRCCA(c=[100, 0, 50]).fit(
         (X, Y, Z), feature_groups=[feature_group_1, feature_group_2, feature_group_3]
     )
+
+def test_deflation():
+    # test deflation works with pls and cca using SCCA_PMD
+    ccamodel = SCCA_PMD(latent_dimensions=2,tau=1, random_state=rng, deflation='cca')
+    ccamodel.fit([X, Y])
+    pls = PLS(latent_dimensions=2)
+    pls.fit([X, Y])
+    plsmodel = SCCA_PMD(latent_dimensions=2,tau=1, random_state=rng, deflation='pls')
+    plsmodel.fit([X, Y])
+    assert (
+        np.testing.assert_array_almost_equal(
+            pls.score((X, Y)), plsmodel.score((X, Y)), decimal=1
+        )
+        is None
+    )
+    # check that off diagonals of np.corrcoef(*ccamodel.transform((X,Y)),rowvar=False)[:2,2:] are close to 0
+    assert np.allclose(np.corrcoef(*ccamodel.transform((X,Y)),rowvar=False)[:2,2:],0,atol=0.1)
