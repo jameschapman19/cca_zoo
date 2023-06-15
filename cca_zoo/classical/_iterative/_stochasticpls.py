@@ -1,8 +1,8 @@
 import torch
 
 from cca_zoo.classical._iterative._ey import PLSEY
-from cca_zoo.classical._plsmixin import PLSMixin
 from cca_zoo.classical._iterative._base import BaseGradientLoop
+from cca_zoo.classical._pls import PLSMixin
 
 
 class PLSStochasticPower(PLSEY, PLSMixin):

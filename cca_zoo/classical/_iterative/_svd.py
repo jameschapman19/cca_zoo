@@ -2,8 +2,8 @@ from typing import Union
 
 import torch
 
-from cca_zoo.classical._plsmixin import PLSMixin
 from cca_zoo.classical._iterative._ey import CCAEY, EYLoop
+from cca_zoo.classical._pls import PLSMixin
 
 
 class CCASVD(CCAEY):

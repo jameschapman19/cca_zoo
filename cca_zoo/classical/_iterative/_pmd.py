@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from cca_zoo.classical._iterative._base import BaseDeflation, BaseLoop
-from cca_zoo.classical._plsmixin import PLSMixin
+from cca_zoo.classical._pls import PLSMixin
 from cca_zoo.classical._search import _delta_search
 from cca_zoo.utils import _check_converged_weights, _process_parameter
 

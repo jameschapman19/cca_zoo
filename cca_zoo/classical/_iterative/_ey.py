@@ -3,8 +3,8 @@ from typing import Union
 import numpy as np
 import torch
 
-from cca_zoo.classical._plsmixin import PLSMixin
 from cca_zoo.classical._iterative._base import BaseGradientLoop, BaseIterative
+from cca_zoo.classical._pls import PLSMixin
 
 
 class CCAEY(BaseIterative):
