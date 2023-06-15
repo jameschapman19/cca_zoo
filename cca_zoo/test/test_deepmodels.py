@@ -186,10 +186,10 @@ def test_DCCA_methods():
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dcca_gh, train_loader, val_dataloaders=val_loader)
     assert (
-            np.testing.assert_array_less(
-                cca.score((X, Y)).sum(), dcca_gh.score(train_loader).sum()
-            )
-            is None
+        np.testing.assert_array_less(
+            cca.score((X, Y)).sum(), dcca_gh.score(train_loader).sum()
+        )
+        is None
     )
     # DCCA_SVD
     encoder_1 = architectures.Encoder(
@@ -206,10 +206,10 @@ def test_DCCA_methods():
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dcca_svd, train_loader, val_dataloaders=val_loader)
     assert (
-            np.testing.assert_array_less(
-                cca.score((X, Y)).sum(), dcca_svd.score(train_loader).sum()
-            )
-            is None
+        np.testing.assert_array_less(
+            cca.score((X, Y)).sum(), dcca_svd.score(train_loader).sum()
+        )
+        is None
     )
     # DCCA_EY
     encoder_1 = architectures.Encoder(

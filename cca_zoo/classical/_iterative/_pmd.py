@@ -150,7 +150,7 @@ class PMDLoop(BaseLoop):
             mask = np.arange(scores.shape[0]) != view_index
             # apply the mask to scores and sum along dim k
             target = np.sum(scores[mask], axis=0)
-            self.weights[view_index] = batch["views"][view_index].T@target
+            self.weights[view_index] = batch["views"][view_index].T @ target
             self.weights[view_index] = _delta_search(
                 self.weights[view_index],
                 self.t[view_index],

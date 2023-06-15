@@ -4,7 +4,6 @@ import numpy as np
 
 
 class PLSMixin:
-
     def total_variance_(self, views: Iterable[np.ndarray], **kwargs) -> np.ndarray:
         """
         Returns the total variance for each view
