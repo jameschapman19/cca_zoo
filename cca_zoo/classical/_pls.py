@@ -55,8 +55,9 @@ class PLSMixin:
         views = list(views)
         # Calculate total variance in each view by SVD
         n = views[0].shape[0]
-        if n < min(views[0].shape[1], views[1].shape[1]):
-            views = [reduce_dims(view) for view in views]
+        for i, view in enumerate(views):
+            if n < view.shape[1]:
+                views[i] = reduce_dims(view)
         variance = np.array(
             [np.sum(np.linalg.svd(view)[1] ** 2, keepdims=True) / n for view in views]
         )
@@ -79,9 +80,9 @@ class PLSMixin:
         views = list(views)
         # Calculate total covariance by SVD
         n = views[0].shape[0]
-        # if n<p calculate views[0]@views[0].T@views[1]@views[1].T else calculate views[0].T@views[1]
-        if n < min(views[0].shape[1], views[1].shape[1]):
-            views = [reduce_dims(view) for view in views]
+        for i, view in enumerate(views):
+            if n < view.shape[1]:
+                views[i] = reduce_dims(view)
         covariance = np.sum(np.linalg.svd(views[0].T @ views[1])[1]) / (n - 1)
         return covariance
 

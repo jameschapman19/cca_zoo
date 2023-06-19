@@ -3,7 +3,8 @@ from typing import Union
 import numpy as np
 
 
-from cca_zoo.classical._iterative._base import BaseDeflation, BaseLoop
+from cca_zoo.classical._iterative._base import BaseLoop
+from cca_zoo.classical._iterative._deflation import BaseDeflation
 from cca_zoo.classical._pls import PLSMixin
 
 

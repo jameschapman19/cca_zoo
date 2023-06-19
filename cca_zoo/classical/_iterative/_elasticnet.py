@@ -5,7 +5,8 @@ import numpy as np
 import torch
 from sklearn.linear_model import ElasticNet, Lasso, Ridge, SGDRegressor
 
-from cca_zoo.classical._iterative._base import BaseDeflation, BaseLoop
+from cca_zoo.classical._iterative._base import BaseLoop
+from cca_zoo.classical._iterative._deflation import BaseDeflation
 from cca_zoo.utils import _process_parameter
 
 

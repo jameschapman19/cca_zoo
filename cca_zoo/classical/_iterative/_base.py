@@ -1,14 +1,12 @@
-from abc import ABC, abstractmethod
-from typing import Iterable, List, Optional, Tuple, Union, Any
+from abc import abstractmethod
+from typing import Iterable, List, Optional, Union, Any
 
 import numpy as np
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import Callback, EarlyStopping
-from torch import Tensor
 from torch.utils import data
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 from cca_zoo.data.deep import NumpyDataset
 from cca_zoo.classical import MCCA, rCCA
@@ -190,67 +188,6 @@ class BaseIterative(BaseModel):
         # Fit the initializer on the input views and get the weights as numpy arrays
         self.weights = initializer.fit(views).weights
         self.weights = [weights.astype(np.float32) for weights in self.weights]
-
-
-class BaseDeflation(BaseIterative, ABC):
-    def _fit(self, views: Iterable[np.ndarray]):
-        # if views is a tuple then convert to a list
-        if isinstance(views, tuple):
-            views = list(views)
-        # tqdm for each latent dimension
-        for k in tqdm(
-            range(self.latent_dimensions), desc="Latent Dimension", leave=False
-        ):
-            train_dataloader, val_dataloader = self.get_dataloader(views)
-            loop = self._get_module(weights=self.weights, k=k)
-            # make a trainer
-            trainer = pl.Trainer(
-                max_epochs=self.epochs, callbacks=self.callbacks, **self.trainer_kwargs
-            )
-            trainer.fit(loop, train_dataloader, val_dataloader)
-            # return the weights from the module. They will need to be changed from torch tensors to numpy arrays
-            weights = loop.weights
-            for i, (view, weight) in enumerate(zip(views, weights)):
-                self.weights[i][:, k] = weight
-                views[i] = self._deflate(view, weight)
-            # if loop has tracked the objective, return the objective
-            if hasattr(loop, "epoch_objective"):
-                self.objective = loop.epoch_objective
-        return self.weights
-
-    def _deflate(self, residual: np.ndarray, weights: np.ndarray) -> np.ndarray:
-        """Deflate view residual by CCA deflation.
-
-        Parameters
-        ----------
-        residual : np.ndarray
-            The current residual data matrix for a view
-        weights : np.ndarray
-            The current CCA weights for a view
-
-        Returns
-        -------
-        np.ndarray
-            The deflated residual data matrix for a view
-
-        Raises
-        ------
-        ValueError
-            If deflation method is not one of ["cca", "pls"]
-        """
-        # Compute the score vector for a view
-        score = residual @ weights
-
-        # Deflate the residual by different methods based on the deflation attribute
-        if self.deflation == "cca":
-            return residual - np.outer(score, score) @ residual / np.dot(score, score)
-        elif self.deflation == "pls":
-            return residual - np.outer(score, weights)
-        else:
-            raise ValueError(
-                f"Invalid deflation method: {self.deflation}. "
-                f"Must be one of ['cca', 'pls']."
-            )
 
 
 class BaseLoop(pl.LightningModule):

@@ -3,7 +3,8 @@ from typing import Iterable, Union
 import numpy as np
 import pytorch_lightning as pl
 
-from cca_zoo.classical._iterative._base import BaseDeflation, BaseLoop
+from cca_zoo.classical._iterative._base import BaseLoop
+from cca_zoo.classical._iterative._deflation import BaseDeflation
 from cca_zoo.classical._search import _softthreshold
 from cca_zoo.utils import _process_parameter
 
