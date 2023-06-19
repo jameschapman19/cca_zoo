@@ -1,70 +1,67 @@
+from abc import ABC
+from typing import Iterable
+import pytorch_lightning as pl
+from tqdm import tqdm
 import numpy as np
-class Deflation:
-    def __init__(self, X, Y=None):
-        self.X=X
-        self.Y=Y
-        self._Cxy=self.C[:self.X.shape[1], self.X.shape[1]:]
-
-    @property
-    def C(self):
-        if self.Y is None:
-            self.Y = self.X
-        self._C=np.cov(self.X, self.Y, rowvar=False)
-        return self._C
+from cca_zoo.classical._iterative._base import BaseIterative
 
 
-class ProjectionDeflation(Deflation):
+class BaseDeflation(BaseIterative, ABC):
+    def _fit(self, views: Iterable[np.ndarray]):
+        # if views is a tuple then convert to a list
+        if isinstance(views, tuple):
+            views = list(views)
+        # tqdm for each latent dimension
+        for k in tqdm(
+            range(self.latent_dimensions), desc="Latent Dimension", leave=False
+        ):
+            train_dataloader, val_dataloader = self.get_dataloader(views)
+            loop = self._get_module(weights=self.weights, k=k)
+            # make a trainer
+            trainer = pl.Trainer(
+                max_epochs=self.epochs, callbacks=self.callbacks, **self.trainer_kwargs
+            )
+            trainer.fit(loop, train_dataloader, val_dataloader)
+            # return the weights from the module. They will need to be changed from torch tensors to numpy arrays
+            weights = loop.weights
+            for i, (view, weight) in enumerate(zip(views, weights)):
+                self.weights[i][:, k] = weight
+                views[i] = self._deflate(view, weight)
+            # if loop has tracked the objective, return the objective
+            if hasattr(loop, "epoch_objective"):
+                self.objective = loop.epoch_objective
+        return self.weights
 
-    def deflate(self,x_weights, y_weights=None):
-        if y_weights is None:
-            y_weights=x_weights
-        self.X-=self.X@np.outer(x_weights,x_weights)
-        self.Y-=self.Y@np.outer(y_weights,y_weights)
+    def _deflate(self, residual: np.ndarray, weights: np.ndarray) -> np.ndarray:
+        """Deflate view residual by CCA deflation.
 
-    @property
-    def Cxy(self):
-        self._Cxy = self.C[:self.X.shape[1], self.X.shape[1]:]
-        return self._Cxy
+        Parameters
+        ----------
+        residual : np.ndarray
+            The current residual data matrix for a view
+        weights : np.ndarray
+            The current CCA weights for a view
 
-class GeneralizedDeflation(Deflation):
+        Returns
+        -------
+        np.ndarray
+            The deflated residual data matrix for a view
 
-    def __init__(self, views: np.ndarray):
-        super().__init__(views)
-        self.Bx=np.eye(self.Cxx.shape[0])
-        self.By=np.eye(self.Cyy.shape[0])
-
-    @property
-    def Cxy(self):
-        return self._Cxy
-
-    def deflate(self,x_weights, y_weights=None):
-        if y_weights is None:
-            y_weights=x_weights
-        qx=self.Bx@x_weights
-        qy=self.By@y_weights
-        self._Cxy = (np.eye(self.Cxx.shape[0]) - np.outer(qx,qx)) @ self._Cxy @ (np.eye(self.Cyy.shape[0]) - np.outer(qy,qy))
-        self.Bx-=self.Bx@np.outer(qx,qx)
-        self.By-=self.By@np.outer(qy,qy)
-
-class DeflationMixin:
-    """Mixin class for deflation methods."""
-
-    def __init__(self, deflation: str = "projection"):
-        """Initialize the deflation method.
-
-        Args:
-            deflation (str, optional): Deflation method to use. Defaults to "projection".
+        Raises
+        ------
+        ValueError
+            If deflation method is not one of ["cca", "pls"]
         """
-        if deflation=='projection':
-            self.deflation_method=ProjectionDeflation
-        elif deflation=='generalized':
-            self.deflation_method=GeneralizedDeflation
-        else:
-            raise ValueError(f"Invalid deflation method: {deflation}. "
-                             f"Must be one of ['hotelling', 'projection', 'generalized'].")
+        # Compute the score vector for a view
+        score = residual @ weights
 
-    def deflate(self, views: np.ndarray, weights: np.ndarray) -> np.ndarray:
-        # if no attribute self.deflation then initialize it
-        if not hasattr(self, "deflation"):
-            self.deflation= self.deflation_method(views)
-        return self.deflation.deflate(weights)
+        # Deflate the residual by different methods based on the deflation attribute
+        if self.deflation == "cca":
+            return residual - np.outer(score, score) @ residual / np.dot(score, score)
+        elif self.deflation == "pls":
+            return residual - np.outer(score, weights)
+        else:
+            raise ValueError(
+                f"Invalid deflation method: {self.deflation}. "
+                f"Must be one of ['cca', 'pls']."
+            )
