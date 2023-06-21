@@ -118,6 +118,9 @@ class MCCA(BaseModel):
             self.weights = [
                 pca.components_.T @ self.weights[i] for i, pca in enumerate(self.pca)
             ]
+            # delete self.pca to save memory
+            del self.pca
+
 
     def _apply_pca(self, views):
         """
