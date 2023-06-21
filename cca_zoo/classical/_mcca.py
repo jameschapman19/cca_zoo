@@ -122,6 +122,7 @@ class MCCA(BaseModel):
                 pca.components_.T @ self.weights[i] for i, pca in enumerate(self.pca_models)
             ]
 
+
     def _apply_pca(self, views):
         """
         Do data driven PCA on each view
@@ -142,7 +143,7 @@ class MCCA(BaseModel):
             D = block_diag(
                 *[
                     np.diag((1 - self.c[i]) * pc.explained_variance_ + self.c[i])
-                    for i, pc in enumerate(self.pca)
+                    for i, pc in enumerate(self.pca_models)
                 ]
             )
         else:
@@ -193,7 +194,7 @@ class rCCA(MCCA):
         # Compute the B matrices for each view
         B = [
             (1 - self.c[i]) * pc.explained_variance_ + self.c[i]
-            for i, pc in enumerate(self.pca)
+            for i, pc in enumerate(self.pca_models)
         ]
         C = np.cov(views[0] / np.sqrt(B[0]), views[1] / np.sqrt(B[1]), rowvar=False)[
             0 : views[0].shape[1], views[0].shape[1] :
@@ -212,7 +213,7 @@ class rCCA(MCCA):
     def _weights(self, eigvals, eigvecs, views):
         B = [
             (1 - self.c[i]) * pc.singular_values_**2 / self.n_samples_ + self.c[i]
-            for i, pc in enumerate(self.pca)
+            for i, pc in enumerate(self.pca_models)
         ]
         C = np.cov(
             views[self.primary_view], views[1 - self.primary_view], rowvar=False
@@ -221,7 +222,7 @@ class rCCA(MCCA):
         # Compute the weight matrix for primary view
         self.weights[1 - self.primary_view] = (
             # Project view 1 onto its principal components
-            self.pca[1 - self.primary_view].components_.T
+            self.pca_models[1 - self.primary_view].components_.T
             # Scale by the inverse of B[0]
             @ np.diag(1 / B[1 - self.primary_view])
             # Multiply by the cross-covariance matrix
@@ -237,7 +238,7 @@ class rCCA(MCCA):
         # Compute the weight matrix for view 2
         self.weights[self.primary_view] = (
             # Project view 2 onto its principal components
-            self.pca[self.primary_view].components_.T
+            self.pca_models[self.primary_view].components_.T
             # Scale by the inverse of the square root of B[1]
             @ np.diag(1 / np.sqrt(B[self.primary_view]))
             # Multiply by the eigenvectors
