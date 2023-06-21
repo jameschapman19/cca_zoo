@@ -26,7 +26,7 @@ def _check_Parikh2014(mus, lams, views):
     failed_check = [
         i
         for i, (mu, lam, view) in enumerate(zip(mus, lams, views))
-        if mu < lam / torch.linalg.norm(view) ** 2
+        if mu < lam / np.linalg.norm(view) ** 2
     ]
     if failed_check:
         raise ValueError(
