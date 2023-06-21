@@ -20,23 +20,13 @@ def _check_parameter_number(parameter_name: str, parameter, n_views: int):
             f"len({parameter_name})={len(parameter)}"
         )
 
-
-def _check_converged_weights(weights, view_index):
-    """check the converged weights are not zero."""
-    if np.linalg.norm(weights) <= 0:
-        warnings.warn(
-            f"All result weights are zero in view {view_index}. "
-            "Try less regularisation or another initialisation"
-        )
-
-
 def _check_Parikh2014(mus, lams, views):
     """Return index of the view which the data not matching the condition
     documented in Parikh 2014."""
     failed_check = [
         i
         for i, (mu, lam, view) in enumerate(zip(mus, lams, views))
-        if mu < lam / np.linalg.norm(view) ** 2
+        if mu < lam / torch.linalg.norm(view) ** 2
     ]
     if failed_check:
         raise ValueError(

@@ -198,39 +198,52 @@ class BaseLoop(pl.LightningModule):
         automatic_optimization=False,
         tracking=False,
         convergence_checking=False,
+        optimizer_kwargs=None,
+        learning_rate=1e-3,
     ):
         super().__init__()
         if k is not None:
             self.weights = [weight[:, k] for weight in weights]
         else:
             self.weights = weights
+
         self.automatic_optimization = automatic_optimization
         self.tracking = tracking
         self.convergence_checking = convergence_checking
+        if self.automatic_optimization:
+            # Set the weights attribute as torch parameters with gradients
+            self.weights = [
+                torch.nn.Parameter(torch.from_numpy(weight), requires_grad=True)
+                for weight in self.weights
+            ]
+            self.weights = torch.nn.ParameterList(self.weights)
+        # Set the optimizer keyword arguments attribute with default values if none provided
+        self.optimizer_kwargs = optimizer_kwargs or {}
+        self.learning_rate = learning_rate
 
     def objective(self, *args, **kwargs) -> float:
         raise NotImplementedError
 
     def forward(self, views: list) -> list:
-        """Compute the score vectors for each view.
-
-        Parameters
-        ----------
-        views : list
-            The input views to compute the score vectors from
-
-        Returns
-        -------
-        list
-            The score vectors for each view
-        """
         return [view @ weight for view, weight in zip(views, self.weights)]
 
     def configure_optimizers(self):
-        """
-        We don't need an optimizer for manual optimization.
-        """
-        pass
+        if self.automatic_optimization:
+            # construct optimizer using optimizer_kwargs
+            optimizer_name = self.optimizer_kwargs.get("optimizer", "Adam")
+            optimizer_kwargs = self.optimizer_kwargs.get("optimizer_kwargs", {})
+            optimizer = getattr(torch.optim, optimizer_name)(
+                self.weights, lr=self.learning_rate, **optimizer_kwargs
+            )
+            return optimizer
+
+    def on_fit_end(self) -> None:
+        # if self.weights are torch parameters, convert them to numpy arrays
+        if isinstance(self.weights, torch.nn.ParameterList):
+            # weights to numpy arrays from torch parameters
+            weights = [weight.detach().cpu().numpy() for weight in self.weights]
+            del self.weights
+            self.weights = weights
 
 
 def _default_initializer(initialization, random_state, latent_dims):

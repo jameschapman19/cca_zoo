@@ -92,11 +92,15 @@ class AltMaxVarLoop(BaseLoop):
         learning_rate=1e-1,
         proximal_operators=None,
     ):
-        super().__init__(weights, k)
+        super().__init__(weights, k,learning_rate=learning_rate)
         self.gamma = gamma
         self.proximal_operators = proximal_operators
         self.T = T
-        self.learning_rate = learning_rate
+
+    def forward(self, views: list) -> list:
+        # views detach and numpy
+        views = [view.detach().numpy() for view in views]
+        return [view @ weight for view, weight in zip(views, self.weights)]
 
     def _get_target(self, scores):
         if hasattr(self, "G"):
@@ -119,10 +123,10 @@ class AltMaxVarLoop(BaseLoop):
 
     def training_step(self, batch, batch_idx):
         scores = np.stack(self(batch["views"]))
-        old_weights = self.weights.copy()
         self.G = self._get_target(scores)
         converged = False
         for i, view in enumerate(batch["views"]):
+            view= view.detach().numpy()
             t = 0
             # initialize the previous weights to None
             prev_weights = None
@@ -148,14 +152,5 @@ class AltMaxVarLoop(BaseLoop):
         # if tracking or convergence_checking is enabled, compute the objective function
         if self.tracking or self.convergence_checking:
             objective = self.objective(batch["views"])
-            # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights
-            weights_change = torch.tensor(
-                np.max(
-                    [
-                        np.max(np.abs(old_weights[i] - self.weights[i]))
-                        / np.max(np.abs(self.weights[i]))
-                        for i in range(len(self.weights))
-                    ]
-                )
-            )
-            return {"loss": torch.tensor(objective), "weights_change": weights_change}
+
+            return {"loss": torch.tensor(objective)}

@@ -1,6 +1,7 @@
 from typing import Iterable, Union
 
 import numpy as np
+import torch
 
 from cca_zoo.classical._iterative._base import BaseIterative, BaseLoop
 from cca_zoo.classical._search import _delta_search, support_threshold

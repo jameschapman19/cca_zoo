@@ -3,7 +3,7 @@ import pytest
 import scipy.sparse as sp
 from sklearn.utils import check_random_state
 
-from cca_zoo.classical import CCA, PLS, MCCA
+from cca_zoo.classical import CCA, PLS
 
 n = 50
 rng = check_random_state(0)

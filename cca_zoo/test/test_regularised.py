@@ -11,7 +11,7 @@ from cca_zoo.classical import (
     GRCCA,
     KCCA,
     MCCA,
-    NCCA,  # SCCA_ADMM,
+    NCCA,
     PLS,
     PRCCA,
     SCCA_IPLS,

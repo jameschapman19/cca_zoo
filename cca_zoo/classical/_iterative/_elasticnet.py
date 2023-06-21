@@ -145,7 +145,6 @@ class ElasticLoop(BaseLoop):
         super().__init__(
             weights=weights,
             k=k,
-            automatic_optimization=False,
             tracking=tracking,
             convergence_checking=convergence_checking,
         )

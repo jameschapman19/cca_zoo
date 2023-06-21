@@ -1,7 +1,6 @@
 import numpy as np
 from pyproximal.proximal.L1 import _softthreshold
 
-
 def _bin_search(current, previous, current_val, previous_val, min_, max_):
     """
     Binary search helper function.
@@ -58,6 +57,7 @@ def _delta_search(w, c, init=0, tol=1e-9, max_iter=1000):
 
     """
     # First normalise the weights unit length
+    w = w
     w = w / np.linalg.norm(w, 2)
     converged = False
     min_ = 0

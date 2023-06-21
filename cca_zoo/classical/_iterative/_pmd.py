@@ -8,7 +8,7 @@ from cca_zoo.classical._iterative._base import BaseLoop
 from cca_zoo.classical._iterative._deflation import BaseDeflation
 from cca_zoo.classical._pls import PLSMixin
 from cca_zoo.classical._search import _delta_search
-from cca_zoo.utils import _check_converged_weights, _process_parameter
+from cca_zoo.utils import _process_parameter
 
 
 class SCCA_PMD(BaseDeflation, PLSMixin):
@@ -147,17 +147,22 @@ class PMDLoop(BaseLoop):
         old_weights = self.weights.copy()
         # Update each view using loop update function
         for view_index, view in enumerate(batch["views"]):
+            view = view.detach().cpu().numpy()
             # create a mask that is True for elements not equal to k along dim k
             mask = np.arange(scores.shape[0]) != view_index
             # apply the mask to scores and sum along dim k
             target = np.sum(scores[mask], axis=0)
-            self.weights[view_index] = batch["views"][view_index].T @ target
+            self.weights[view_index] = view.T @ target
             self.weights[view_index] = _delta_search(
                 self.weights[view_index],
                 self.t[view_index],
                 tol=self.tol,
             )
-            _check_converged_weights(self.weights[view_index], view_index)
+            if np.linalg.norm(self.weights[view_index]) <= 0:
+                warnings.warn(
+                    f"All result weights are zero in view {view_index}. "
+                    "Try less regularisation or another initialisation"
+                )
         # if tracking or convergence_checking is enabled, compute the objective function
         if self.tracking or self.convergence_checking:
             objective = self.objective(batch["views"])

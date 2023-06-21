@@ -3,8 +3,7 @@ from typing import Union
 import numpy as np
 import torch
 
-from cca_zoo.classical._iterative._base import BaseIterative
-from cca_zoo.classical._iterative._gradient import BaseGradientLoop
+from cca_zoo.classical._iterative._base import BaseIterative, BaseLoop
 from cca_zoo.classical._pls import PLSMixin
 
 
@@ -163,7 +162,7 @@ class PLSEY(CCAEY, PLSMixin):
         return {"multiview": True, "stochastic": True}
 
 
-class EYLoop(BaseGradientLoop):
+class EYLoop(BaseLoop):
     def __init__(
         self,
         weights=None,
@@ -181,6 +180,7 @@ class EYLoop(BaseGradientLoop):
             optimizer_kwargs=optimizer_kwargs,
             tracking=tracking,
             convergence_checking=convergence_checking,
+            automatic_optimization=True,
         )
         self.objective = objective
         self.batch_queue = []
