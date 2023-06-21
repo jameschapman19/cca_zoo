@@ -31,31 +31,35 @@ def scale_objective(obj):
     obj = np.array(obj)
     return np.sign(obj) * np.log(np.abs(obj) + 1e-10)
 
+
 def scale_transform(model, X, Y):
     Zx, Zy = model.transform((X, Y))
     Zx /= np.linalg.norm(model.weights[0], axis=0, keepdims=True)
     Zy /= np.linalg.norm(model.weights[1], axis=0, keepdims=True)
     return np.abs(np.cov(Zx, Zy, rowvar=False)[:latent_dims, latent_dims:])
 
+
 def test_batch_pls():
     pytest.importorskip("torch")
     from torch import manual_seed
 
     from cca_zoo.classical import PLSEY, PLSSVD, PLSStochasticPower
+
     pls = PLS(latent_dimensions=3).fit((X, Y))
     manual_seed(42)
     plsey = PLSEY(
         latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=None,
-        learning_rate=10*learning_rate,
+        learning_rate=10 * learning_rate,
         random_state=random_state,
-        track='loss',
+        track="loss",
         verbose=False,
     ).fit((X, Y))
     pls_score = scale_transform(pls, X, Y)
     plsey_score = scale_transform(plsey, X, Y)
     assert np.allclose(pls_score, plsey_score, atol=1e-2)
+
 
 def test_stochastic_pls():
     pytest.importorskip("torch")

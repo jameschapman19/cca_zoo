@@ -12,6 +12,7 @@ from cca_zoo.classical import MCCA, rCCA
 from cca_zoo.classical._base import BaseModel
 from cca_zoo.classical._dummy import DummyCCA
 import torch
+
 # Default Trainer kwargs
 DEFAULT_TRAINER_KWARGS = dict(
     enable_checkpointing=False,
