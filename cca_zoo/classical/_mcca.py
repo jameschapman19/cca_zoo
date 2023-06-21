@@ -122,7 +122,6 @@ class MCCA(BaseModel):
                 pca.components_.T @ self.weights[i] for i, pca in enumerate(self.pca_models)
             ]
 
-
     def _apply_pca(self, views):
         """
         Do data driven PCA on each view
