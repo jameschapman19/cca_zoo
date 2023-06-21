@@ -1,8 +1,6 @@
 from typing import Iterable, Union
 
-from sklearn.decomposition import PCA
 import numpy as np
-from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo.classical._mcca import MCCA
 
@@ -38,11 +36,11 @@ class PCACCA(MCCA):
         views = self._apply_pca(views)
         for i, view in enumerate(views):
             # Keep the components that explain the percentage of variance
-            explained_variance = self.pca[i].explained_variance_ratio_
+            explained_variance = self.pca_models[i].explained_variance_ratio_
             n_components_ = (
                 np.where(np.cumsum(explained_variance) >= self.percent_variance)[0][0]
                 + 1
             )
-            self.pca[i].n_components_ = n_components_
-            self.pca[i].components_ = self.pca[i].components_[:n_components_]
-        return [view[:, : self.pca[i].n_components_] for i, view in enumerate(views)]
+            self.pca_models[i].n_components_ = n_components_
+            self.pca_models[i].components_ = self.pca_models[i].components_[:n_components_]
+        return [view[:, : self.pca_models[i].n_components_] for i, view in enumerate(views)]
