@@ -1,6 +1,7 @@
 import numpy as np
 from pyproximal.proximal.L1 import _softthreshold
 
+
 def _bin_search(current, previous, current_val, previous_val, min_, max_):
     """
     Binary search helper function.

@@ -92,7 +92,7 @@ class AltMaxVarLoop(BaseLoop):
         learning_rate=1e-1,
         proximal_operators=None,
     ):
-        super().__init__(weights, k,learning_rate=learning_rate)
+        super().__init__(weights, k, learning_rate=learning_rate)
         self.gamma = gamma
         self.proximal_operators = proximal_operators
         self.T = T
@@ -126,7 +126,7 @@ class AltMaxVarLoop(BaseLoop):
         self.G = self._get_target(scores)
         converged = False
         for i, view in enumerate(batch["views"]):
-            view= view.detach().numpy()
+            view = view.detach().numpy()
             t = 0
             # initialize the previous weights to None
             prev_weights = None
