@@ -84,6 +84,9 @@ class MCCA(BaseModel):
         eigvals, eigvecs = self._solve_gevp(views, y=y, **kwargs)
         # Compute the weights for each view
         self._weights(eigvals, eigvecs, views, **kwargs)
+        # delete pca to save memory
+        if self.pca:
+            del self.pca
         return self
 
     def _process_data(self, views, **kwargs):
@@ -118,8 +121,7 @@ class MCCA(BaseModel):
             self.weights = [
                 pca.components_.T @ self.weights[i] for i, pca in enumerate(self.pca)
             ]
-            # delete self.pca to save memory
-            del self.pca
+
 
 
     def _apply_pca(self, views):
