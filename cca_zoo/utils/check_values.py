@@ -20,6 +20,7 @@ def _check_parameter_number(parameter_name: str, parameter, n_views: int):
             f"len({parameter_name})={len(parameter)}"
         )
 
+
 def _check_Parikh2014(mus, lams, views):
     """Return index of the view which the data not matching the condition
     documented in Parikh 2014."""
