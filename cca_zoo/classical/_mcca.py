@@ -121,7 +121,6 @@ class MCCA(BaseModel):
             # delete self.pca to save memory
             del self.pca
 
-
     def _apply_pca(self, views):
         """
         Do data driven PCA on each view
