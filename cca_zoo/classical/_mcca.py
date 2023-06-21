@@ -123,7 +123,6 @@ class MCCA(BaseModel):
             ]
 
 
-
     def _apply_pca(self, views):
         """
         Do data driven PCA on each view
