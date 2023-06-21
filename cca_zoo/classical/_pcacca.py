@@ -42,5 +42,9 @@ class PCACCA(MCCA):
                 + 1
             )
             self.pca_models[i].n_components_ = n_components_
-            self.pca_models[i].components_ = self.pca_models[i].components_[:n_components_]
-        return [view[:, : self.pca_models[i].n_components_] for i, view in enumerate(views)]
+            self.pca_models[i].components_ = self.pca_models[i].components_[
+                :n_components_
+            ]
+        return [
+            view[:, : self.pca_models[i].n_components_] for i, view in enumerate(views)
+        ]
