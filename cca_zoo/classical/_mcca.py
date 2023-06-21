@@ -119,7 +119,8 @@ class MCCA(BaseModel):
         if self.pca:
             # go from weights in PCA space to weights in original space
             self.weights = [
-                pca.components_.T @ self.weights[i] for i, pca in enumerate(self.pca_models)
+                pca.components_.T @ self.weights[i]
+                for i, pca in enumerate(self.pca_models)
             ]
 
     def _apply_pca(self, views):
