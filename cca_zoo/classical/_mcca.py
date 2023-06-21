@@ -86,7 +86,7 @@ class MCCA(BaseModel):
         self._weights(eigvals, eigvecs, views, **kwargs)
         # delete pca to save memory
         if self.pca:
-            del self.pca
+            del self.pca_models
         return self
 
     def _process_data(self, views, **kwargs):
@@ -119,7 +119,7 @@ class MCCA(BaseModel):
         if self.pca:
             # go from weights in PCA space to weights in original space
             self.weights = [
-                pca.components_.T @ self.weights[i] for i, pca in enumerate(self.pca)
+                pca.components_.T @ self.weights[i] for i, pca in enumerate(self.pca_models)
             ]
 
 
@@ -127,9 +127,9 @@ class MCCA(BaseModel):
         """
         Do data driven PCA on each view
         """
-        self.pca = [PCA() for _ in views]
+        self.pca_models = [PCA() for _ in views]
         # Fit PCA on each view
-        return [self.pca[i].fit_transform(view) for i, view in enumerate(views)]
+        return [self.pca_models[i].fit_transform(view) for i, view in enumerate(views)]
 
     def C(self, views, **kwargs):
         all_views = np.hstack(views)
