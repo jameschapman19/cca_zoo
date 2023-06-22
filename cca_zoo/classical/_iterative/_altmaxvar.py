@@ -89,10 +89,9 @@ class AltMaxVarLoop(BaseLoop):
         k=None,
         gamma=0.1,
         T=100,
-        learning_rate=1e-1,
         proximal_operators=None,
     ):
-        super().__init__(weights, k, learning_rate=learning_rate)
+        super().__init__(weights, k)
         self.gamma = gamma
         self.proximal_operators = proximal_operators
         self.T = T

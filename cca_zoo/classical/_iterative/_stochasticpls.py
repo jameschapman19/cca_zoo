@@ -2,12 +2,13 @@ import torch
 
 from cca_zoo.classical._iterative._base import BaseLoop
 from cca_zoo.classical._iterative._ey import PLSEY
+from cca_zoo.classical._iterative._gradient import GradientLoop
 from cca_zoo.classical._pls import PLSMixin
 
 
 class PLSStochasticPower(PLSEY, PLSMixin):
     def _get_module(self, weights=None, k=None):
-        return StochasticPowerLoopBase(
+        return StochasticPowerLoop(
             weights=weights,
             k=k,
             learning_rate=self.learning_rate,
@@ -18,14 +19,22 @@ class PLSStochasticPower(PLSEY, PLSMixin):
         return {"multiview": True, "stochastic": True}
 
 
-class StochasticPowerLoopBase(BaseLoop):
-    def __init__(self, weights=None, k=None, learning_rate=1e-3, optimizer_kwargs=None):
+class StochasticPowerLoop(GradientLoop):
+    def __init__(self,
+        weights=None,
+        k=None,
+        learning_rate=1e-3,
+        optimizer_kwargs=None,
+        tracking=False,
+        convergence_checking=False,
+    ):
         super().__init__(
             weights=weights,
             k=k,
             learning_rate=learning_rate,
             optimizer_kwargs=optimizer_kwargs,
-            automatic_optimization=True,
+            tracking=tracking,
+            convergence_checking=convergence_checking,
         )
 
     def training_step(self, batch, batch_idx):
