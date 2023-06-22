@@ -25,28 +25,30 @@ class KernelMixin:
     def _process_data(self, views, K=None):
         self.train_views = views
         kernels = [
-            get_kernel(
+            pairwise_kernels(
                 view,
                 metric=self.kernel[i],
                 gamma=self.gamma[i],
                 degree=self.degree[i],
                 coef0=self.coef0[i],
+                filter_params=True,
                 **self.kernel_params[i]
             )
             for i, view in enumerate(self.train_views)
         ]
         return kernels
 
-    def transform(self, views: np.ndarray, **kwargs):
+    def transform(self, views: Iterable[np.ndarray], **kwargs):
         check_is_fitted(self, attributes=["alphas"])
         Ktest = [
-            get_kernel(
+            pairwise_kernels(
                 self.train_views[i],
                 Y=view,
                 metric=self.kernel[i],
                 gamma=self.gamma[i],
                 degree=self.degree[i],
                 coef0=self.coef0[i],
+                filter_params=True,
                 **self.kernel_params[i]
             )
             for i, view in enumerate(views)
@@ -245,12 +247,13 @@ class KGCCA(KernelMixin, GCCA):
 
     def _weights(self, eigvals, eigvecs, views, **kwargs):
         kernels = [
-            get_kernel(
+            pairwise_kernels(
                 view,
                 metric=self.kernel[i],
                 gamma=self.gamma[i],
                 degree=self.degree[i],
                 coef0=self.coef0[i],
+                filter_params=True,
                 **self.kernel_params[i]
             )
             for i, view in enumerate(self.train_views)
@@ -326,12 +329,13 @@ class KTCCA(KernelMixin, TCCA):
     def _setup_tensor(self, views: Iterable[np.ndarray], **kwargs):
         self.train_views = views
         kernels = [
-            get_kernel(
+            pairwise_kernels(
                 view,
                 metric=self.kernel[i],
                 gamma=self.gamma[i],
                 degree=self.degree[i],
                 coef0=self.coef0[i],
+                filter_params=True,
                 **self.kernel_params[i]
             )
             for i, view in enumerate(self.train_views)
@@ -341,16 +345,3 @@ class KTCCA(KernelMixin, TCCA):
     def _more_tags(self):
         # Indicate that this class is for multiview data
         return {"multiview": True, "kernel": True}
-
-
-def get_kernel(X, Y=None, metric="linear", gamma=None, degree=1, coef0=1, **kwargs):
-    return pairwise_kernels(
-        X,
-        Y,
-        metric=metric,
-        gamma=gamma,
-        degree=degree,
-        coef0=coef0,
-        filter_params=True,
-        **kwargs
-    )
