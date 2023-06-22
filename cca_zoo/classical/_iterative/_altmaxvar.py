@@ -52,6 +52,9 @@ class AltMaxVar(BaseIterative):
             gamma=self.gamma,
             T=self.T,
             proximal_operators=self.proximal_operators,
+            learning_rate=self.learning_rate,
+            convergence_checking=self.convergence_checking,
+            track=self.track,
         )
 
     def _check_params(self):
@@ -89,11 +92,15 @@ class AltMaxVarLoop(BaseLoop):
         gamma=0.1,
         T=100,
         proximal_operators=None,
+        learning_rate=0.1,
+        convergence_checking=None,
+        track=None,
     ):
-        super().__init__(weights, k)
+        super().__init__(weights=weights, k=k,convergence_checking=convergence_checking, tracking=track)
         self.gamma = gamma
         self.proximal_operators = proximal_operators
         self.T = T
+        self.learning_rate = learning_rate
 
     def forward(self, views: list) -> list:
         # views detach and numpy
@@ -147,7 +154,7 @@ class AltMaxVarLoop(BaseLoop):
                 prev_weights = self.weights[i]
                 t += 1
 
-        # if tracking or convergence_checking is enabled, compute the objective function
+        # if track or convergence_checking is enabled, compute the objective function
         if self.tracking or self.convergence_checking:
             objective = self.objective(batch["views"])
 
