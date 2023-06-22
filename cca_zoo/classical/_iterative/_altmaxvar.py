@@ -51,7 +51,6 @@ class AltMaxVar(BaseIterative):
             k=k,
             gamma=self.gamma,
             T=self.T,
-            learning_rate=self.learning_rate,
             proximal_operators=self.proximal_operators,
         )
 
