@@ -96,7 +96,12 @@ class AltMaxVarLoop(BaseLoop):
         convergence_checking=None,
         track=None,
     ):
-        super().__init__(weights=weights, k=k,convergence_checking=convergence_checking, tracking=track)
+        super().__init__(
+            weights=weights,
+            k=k,
+            convergence_checking=convergence_checking,
+            tracking=track,
+        )
         self.gamma = gamma
         self.proximal_operators = proximal_operators
         self.T = T
