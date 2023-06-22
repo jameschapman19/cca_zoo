@@ -20,7 +20,8 @@ class PLSStochasticPower(PLSEY, PLSMixin):
 
 
 class StochasticPowerLoop(GradientLoop):
-    def __init__(self,
+    def __init__(
+        self,
         weights=None,
         k=None,
         learning_rate=1e-3,
