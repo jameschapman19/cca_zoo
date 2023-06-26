@@ -9,5 +9,5 @@ tensorly
 joblib
 mvlearn
 tqdm
-pytorch
+torch
 pytorch-lightning
