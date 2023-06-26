@@ -59,7 +59,6 @@ class PLS_ALS(BaseDeflation, PLSMixin):
         learning_rate=1,
         initialization: Union[str, callable] = "random",
         callbacks=None,
-        trainer_kwargs=None,
     ):
         super().__init__(
             latent_dimensions,
@@ -75,7 +74,7 @@ class PLS_ALS(BaseDeflation, PLSMixin):
             learning_rate=learning_rate,
             initialization=initialization,
             callbacks=callbacks,
-            trainer_kwargs=trainer_kwargs,
+            trainer_kwargs={"accelerator": "cpu"}
         )
 
     def _get_module(self, weights=None, k=None):

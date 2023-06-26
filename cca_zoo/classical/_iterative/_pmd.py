@@ -88,6 +88,7 @@ class SCCA_PMD(BaseDeflation, PLSMixin):
             patience=0,
             track=track,
             verbose=verbose,
+            trainer_kwargs={"accelerator": "cpu"}
         )
         self.tau = tau
         self.positive = positive
@@ -113,7 +114,7 @@ class SCCA_PMD(BaseDeflation, PLSMixin):
             k=k,
             tau=self.tau,
             tol=self.tol,
-            track=self.track,
+            tracking=self.track,
             convergence_checking=self.convergence_checking,
         )
 
@@ -128,13 +129,13 @@ class PMDLoop(BaseLoop):
         k=None,
         tau=None,
         tol=1e-3,
-        track=False,
+        tracking=False,
         convergence_checking=False,
     ):
         super().__init__(
             weights=weights,
             k=k,
-            tracking=track,
+            tracking=tracking,
             convergence_checking=convergence_checking,
         )
         self.tau = tau
@@ -163,7 +164,7 @@ class PMDLoop(BaseLoop):
                     f"All result weights are zero in view {view_index}. "
                     "Try less regularisation or another initialisation"
                 )
-        # if track or convergence_checking is enabled, compute the objective function
+        # if tracking or convergence_checking is enabled, compute the objective function
         if self.tracking or self.convergence_checking:
             objective = self.objective(batch["views"])
             # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights

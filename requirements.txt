@@ -2,7 +2,6 @@ numpy
 scipy
 scikit-learn
 scikit-prox
-pytest
 matplotlib
 pandas
 seaborn
@@ -10,4 +9,5 @@ tensorly
 joblib
 mvlearn
 tqdm
-setuptools
+pytorch
+pytorch-lightning

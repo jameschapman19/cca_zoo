@@ -36,6 +36,7 @@ class AltMaxVar(BaseIterative):
             convergence_checking=convergence_checking,
             track=track,
             verbose=verbose,
+            trainer_kwargs={"accelerator": "cpu"}
         )
         self.tau = tau
         self.proximal = proximal
