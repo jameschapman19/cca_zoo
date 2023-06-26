@@ -74,7 +74,7 @@ class PLS_ALS(BaseDeflation, PLSMixin):
             learning_rate=learning_rate,
             initialization=initialization,
             callbacks=callbacks,
-            trainer_kwargs={"accelerator": "cpu"}
+            trainer_kwargs={"accelerator": "cpu"},
         )
 
     def _get_module(self, weights=None, k=None):

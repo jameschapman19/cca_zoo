@@ -61,7 +61,7 @@ class SCCA_Span(BaseIterative):
             random_state=random_state,
             deflation=deflation,
             verbose=verbose,
-            trainer_kwargs={"accelerator": "cpu"}
+            trainer_kwargs={"accelerator": "cpu"},
         )
         self.tau = tau
         self.regularisation = regularisation

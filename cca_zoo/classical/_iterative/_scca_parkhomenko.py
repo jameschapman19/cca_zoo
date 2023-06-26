@@ -69,7 +69,7 @@ class SCCA_Parkhomenko(BaseDeflation):
             patience=patience,
             track=track,
             verbose=verbose,
-            trainer_kwargs={"accelerator": "cpu"}
+            trainer_kwargs={"accelerator": "cpu"},
         )
 
     def _check_params(self):

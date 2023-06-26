@@ -88,7 +88,7 @@ class SCCA_PMD(BaseDeflation, PLSMixin):
             patience=0,
             track=track,
             verbose=verbose,
-            trainer_kwargs={"accelerator": "cpu"}
+            trainer_kwargs={"accelerator": "cpu"},
         )
         self.tau = tau
         self.positive = positive
