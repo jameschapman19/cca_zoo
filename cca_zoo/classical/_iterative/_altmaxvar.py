@@ -2,7 +2,7 @@ from typing import Iterable, Union
 
 import numpy as np
 import torch
-from skprox.proximal_operators import _proximal_operators
+from skprox._proximal_operators import _proximal_operators
 
 from cca_zoo.classical._iterative._base import BaseIterative, BaseLoop
 from cca_zoo.utils import _process_parameter
@@ -36,7 +36,7 @@ class AltMaxVar(BaseIterative):
             convergence_checking=convergence_checking,
             track=track,
             verbose=verbose,
-            trainer_kwargs={"accelerator": "cpu"}
+            trainer_kwargs={"accelerator": "cpu"},
         )
         self.tau = tau
         self.proximal = proximal

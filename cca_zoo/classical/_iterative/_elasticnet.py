@@ -101,7 +101,7 @@ class ElasticCCA(BaseDeflation):
             patience=0,
             track=track,
             verbose=verbose,
-            trainer_kwargs={"accelerator": "cpu"}
+            trainer_kwargs={"accelerator": "cpu"},
         )
 
     def _check_params(self):

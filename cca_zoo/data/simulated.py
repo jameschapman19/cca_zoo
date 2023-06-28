@@ -38,6 +38,7 @@ class LinearSimulatedData:
         self.positive = _process_parameter(
             "positive", positive, False, len(view_features)
         )
+        self.rng = check_random_state(self.random_state)
         # Generate the covariance matrices and the true features for each view
         covs, self.true_features = self._generate_covariance_matrices()
         # Generate the joint covariance matrix by combining the view covariances and the cross-covariances
@@ -143,16 +144,10 @@ class LinearSimulatedData:
         return np.abs(weights)
 
     def sample(self, n: int):
-        X = np.zeros((n, self.chol.shape[0]))
-        for i in range(n):
-            X[i, :] = self._chol_sample(self.chol)
+        # Sample from the model by multiplying the Cholesky decomposition of the joint covariance matrix by a random vector
+        X = (self.chol @ self.rng.randn(self.chol.shape[0], n)).T
         views = np.split(X, np.cumsum(self.view_features)[:-1], axis=1)
         return views
-
-    def _chol_sample(self, chol):
-        rng = check_random_state(self.random_state)
-        return chol @ rng.randn(chol.shape[0])
-
 
 def _decorrelate_dims(up, cov):
     A = up.T @ cov @ up
