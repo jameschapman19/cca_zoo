@@ -22,7 +22,7 @@ def _delta_search(w, c, init=0):
 
     """
     # First normalize the weights to unit length
-    w = w / np.sum(w ** 2) ** 0.5
+    w = w / np.sum(w**2) ** 0.5
 
     # Define a scalar function that returns the difference between the 1-norm of coefficients and the threshold c
     def f(delta):
@@ -30,8 +30,8 @@ def _delta_search(w, c, init=0):
         coef = np.clip(w - delta, 0, None) - np.clip(-w - delta, 0, None)
 
         # Normalize the coefficients to unit length if nonzero
-        if np.sum(coef ** 2) > 0:
-            coef /= np.sum(coef ** 2) ** 0.5
+        if np.sum(coef**2) > 0:
+            coef /= np.sum(coef**2) ** 0.5
 
         # Return the difference between the 1-norm of coefficients and the threshold c
         return c - np.sum(np.abs(coef))
@@ -39,7 +39,7 @@ def _delta_search(w, c, init=0):
     # Find the root of f using scipy root finding function
     # You can specify the method or let the function choose the best one for you
     # You can also pass other parameters like xtol, rtol, maxiter, etc.
-    result = root_scalar(f, x0=init,x1=1, method="secant")
+    result = root_scalar(f, x0=init, x1=1, method="secant")
 
     # Check if the solution is valid and converged
     if result.converged:
@@ -50,8 +50,8 @@ def _delta_search(w, c, init=0):
         coef = np.clip(w - delta, 0, None) - np.clip(-w - delta, 0, None)
 
         # Normalize the coefficients to unit length if nonzero
-        if np.sum(coef ** 2) > 0:
-            coef /= np.sum(coef ** 2) ** 0.5
+        if np.sum(coef**2) > 0:
+            coef /= np.sum(coef**2) ** 0.5
 
         # Return updated weights
         return coef
