@@ -14,27 +14,33 @@ methods as standard.
 
 ## Installation
 
-Dependency of some implemented algorithms are heavy, such as `pytorch` and `numpyro`.
-We provide several options to accomodate the user's needs.
-For full details of algorithms included, please refer to section [Implemented Methods](#implemented-methods)
+You can install cca-zoo with pip or poetry. cca-zoo has an optional probabilistic feature that you can enable with the [probabilistic] suffix.
 
-Standard installation:
+To install cca-zoo with pip, run one of the following commands in your terminal:
 
-```
+```bash
 pip install cca-zoo
 ```
 
-For deep learning elements use:
+To install cca-zoo with poetry, run one of the following commands in your terminal:
 
-```
-pip install cca-zoo[deep]
-```
-
-For probabilistic elements use:
-
-```
+```bash
 pip install cca-zoo[probabilistic]
 ```
+
+Can also use poetry to install:
+
+```bash
+poetry add cca-zoo
+```
+
+or
+
+```bash
+poetry add cca-zoo[probabilistic]
+```
+
+
 
 ## Documentation
 

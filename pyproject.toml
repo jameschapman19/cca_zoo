@@ -30,9 +30,7 @@ codecov = "*"
 pytest-cov = "*"
 
 [tool.poetry.extras]
-deep = ["torch", "torchvision", "pytorch-lightning"]
 probabilistic = ["jax", "numpyro", "arviz"]
-all = ["torch", "torchvision", "pytorch-lightning", "jax", "numpyro", "arviz"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
