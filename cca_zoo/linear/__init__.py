@@ -46,17 +46,15 @@ try:
     ]
 except:
     # let user know that if they want to use iterative methods they need to install pytorch-lightning from version 2.0.0
-    print(
-        "To use iterative methods please install pytorch-lightning"
-    )
+    print("To use iterative methods please install pytorch-lightning")
 try:
     from ._gradient import (
-    CCAEY,
-            CCAGH,
-            CCASVD,
-    PLSEY,
-            PLSSVD,
-    PLSStochasticPower,
+        CCAEY,
+        CCAGH,
+        CCASVD,
+        PLSEY,
+        PLSSVD,
+        PLSStochasticPower,
     )
 
     __all__ += [
@@ -69,9 +67,7 @@ try:
     ]
 
 except:
-    print(
-        "To use gradient methods please install pytorch-lightning"
-    )
+    print("To use gradient methods please install pytorch-lightning")
 
 
 classes = __all__

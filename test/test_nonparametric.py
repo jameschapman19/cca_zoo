@@ -78,6 +78,7 @@ def test_callable_kernel():
     kgcca = KGCCA(latent_dimensions=2, kernel=my_kernel).fit((X, Y, Z))
     ktcca = KTCCA(latent_dimensions=2, kernel=my_kernel).fit((X, Y, Z))
 
+
 def test_NCCA():
     latent_dims = 1
     ncca = NCCA(latent_dimensions=latent_dims).fit((X, Y))

@@ -141,6 +141,7 @@ def test_weighted_GCCA_methods():
         is None
     )
 
+
 def test_l0():
     span_cca = SCCA_Span(
         latent_dimensions=1, regularisation="l0", tau=[2, 2], random_state=rng

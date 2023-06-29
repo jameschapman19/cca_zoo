@@ -11,7 +11,7 @@ from cca_zoo.linear._search import _delta_search
 from cca_zoo.utils import _process_parameter
 
 
-class SCCA_PMD(DeflationMixin,PLSMixin,BaseIterative):
+class SCCA_PMD(DeflationMixin, PLSMixin, BaseIterative):
     r"""
     A class used to fit a sparse CCA model by penalized matrix decomposition (PMD).
 
