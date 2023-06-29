@@ -29,7 +29,6 @@ jobs:
           python -m pip install poetry
           python -m pip install torch torchvision
           poetry install
-          poetry run black .
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
