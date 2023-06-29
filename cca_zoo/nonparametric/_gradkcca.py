@@ -7,10 +7,11 @@ from sklearn.metrics import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo.linear._iterative._base import BaseIterative
+from cca_zoo.nonparametric._kcca import KernelMixin
 from cca_zoo.utils import _process_parameter
 
 
-class GradKCCA(BaseIterative, Kernel):
+class GradKCCA(BaseIterative, KernelMixin):
     """
     References
     ----------
