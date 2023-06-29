@@ -10,24 +10,24 @@ keywords = ["cca"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-numpy = "^1.24.2"
-scipy = "^1.9.2"
-scikit-learn = "^1.2.2"
+numpy = "*"
+scipy = "*"
+scikit-learn = "*"
 scikit-prox = "*"
-matplotlib = "^3.5.1"
-pandas = "^1.4.0"
-seaborn = "^0.11.2"
-tensorly = "^0.7.0"
-joblib = "^1.2.2"
-mvlearn = "^0.6.0"
-tqdm = "^4.62.3"
-torch = "^1.10.1"
-pytorch-lightning = "^1.5.9"
+matplotlib = "*"
+pandas = "*"
+seaborn = "*"
+tensorly = "*"
+joblib = "*"
+mvlearn = "*"
+tqdm = "*"
+pytorch-lightning = "*"
 
-
-[tool.poetry.dependencies.packages]
-path = "."
-develop = true
+[tool.poetry.dev-dependencies]
+black = "*"
+flake8 = "*"
+codecov = "*"
+pytest-cov = "*"
 
 [tool.poetry.extras]
 deep = ["torch", "torchvision", "pytorch-lightning"]
