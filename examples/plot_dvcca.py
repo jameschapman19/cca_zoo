@@ -2,7 +2,7 @@
 Deep Variational CCA and Deep Canonically Correlated Autoencoders
 ====================================================================
 
-This example demonstrates multiview classical which can reconstruct their inputs
+This example demonstrates multiview linear which can reconstruct their inputs
 """
 import matplotlib.pyplot as plt
 import pytorch_lightning as pl

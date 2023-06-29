@@ -3,7 +3,7 @@ import torch
 from cca_zoo.deep import objectives
 from cca_zoo.deep._base import BaseDeep
 from cca_zoo.deep.metrics import MCCA
-from cca_zoo.classical._base import BaseModel
+from cca_zoo.linear._base import BaseModel
 
 
 class DCCA(BaseDeep, BaseModel):

@@ -135,7 +135,7 @@ class GridSearchCV(BaseSearchCV):
 
     :Example:
     >>> from cca_zoo.model_selection import GridSearchCV
-    >>> from cca_zoo.classical import MCCA
+    >>> from cca_zoo.linear import MCCA
     >>> X1 = [[0, 0, 1], [1, 0, 0], [2, 2, 2], [3, 5, 4]]
     >>> X2 = [[0.1, -0.2], [0.9, 1.1], [6.2, 5.9], [11.9, 12.3]]
     >>> X3 = [[0, 1, 0], [1, 9, 0], [4, 3, 3,], [12, 8, 10]]
@@ -218,7 +218,7 @@ class RandomizedSearchCV(BaseSearchCV):
 
     :Example:
     >>> from cca_zoo.model_selection import RandomizedSearchCV
-    >>> from cca_zoo.classical import MCCA
+    >>> from cca_zoo.linear import MCCA
     >>> from sklearn._utils.fixes import loguniform
     >>> X1 = [[0, 0, 1], [1, 0, 0], [2, 2, 2], [3, 5, 4]]
     >>> X2 = [[0.1, -0.2], [0.9, 1.1], [6.2, 5.9], [11.9, 12.3]]

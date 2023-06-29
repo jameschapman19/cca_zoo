@@ -8,7 +8,7 @@ from jax.random import PRNGKey
 from numpyro.infer import MCMC, NUTS, Predictive
 from sklearn.utils.validation import check_is_fitted
 
-from cca_zoo.classical._base import BaseModel
+from cca_zoo.linear._base import BaseModel
 
 
 class ProbabilisticCCA(BaseModel):

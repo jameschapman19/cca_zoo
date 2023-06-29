@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.classical import CCA
+from cca_zoo.linear import CCA
 
 # %%
 # Data

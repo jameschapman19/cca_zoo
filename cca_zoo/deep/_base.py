@@ -8,7 +8,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 
 
 class BaseDeep(pl.LightningModule):
-    """A base class for deep learning classical using PyTorch Lightning."""
+    """A base class for deep learning linear using PyTorch Lightning."""
 
     def __init__(
         self,

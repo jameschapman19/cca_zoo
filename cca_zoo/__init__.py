@@ -1,7 +1,7 @@
 __all__ = [
     "data",
     "model_selection",
-    "classical",
+    "linear",
     "visualisation",
 ]
 

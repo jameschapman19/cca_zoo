@@ -2,7 +2,7 @@
 Deep CCA
 ===========================
 
-This example demonstrates how to easily train Deep CCA classical and variants
+This example demonstrates how to easily train Deep CCA linear and variants
 """
 
 import pytorch_lightning as pl
