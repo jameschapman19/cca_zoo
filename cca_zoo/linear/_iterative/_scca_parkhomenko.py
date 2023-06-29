@@ -10,7 +10,7 @@ from cca_zoo.linear._search import _softthreshold
 from cca_zoo.utils import _process_parameter
 
 
-class SCCA_Parkhomenko(DeflationMixin,PLSMixin,BaseIterative):
+class SCCA_Parkhomenko(DeflationMixin, PLSMixin, BaseIterative):
     r"""
     A class used to fit a sparse CCA (penalized CCA) model for two or more views.
 
