@@ -149,6 +149,7 @@ class LinearSimulatedData:
         views = np.split(X, np.cumsum(self.view_features)[:-1], axis=1)
         return views
 
+
 def _decorrelate_dims(up, cov):
     A = up.T @ cov @ up
     for k in range(1, A.shape[0]):
