@@ -1,85 +1,64 @@
 import numpy as np
-from pyproximal.proximal.L1 import _softthreshold
+
+from scipy.optimize import root_scalar
 
 
-def _bin_search(current, previous, current_val, previous_val, min_, max_):
+def _delta_search(w, c, init=0):
     """
-    Binary search helper function.
-
+    Searches for threshold delta such that the 1-norm of weights w is less than or equal to c and the 2-norm is equal to 1.
     Parameters
     ----------
-    current : current parameter value
-    previous :
-    current_val :
-    previous_val :
-    min_ : minimum parameter value resulting in function value less than zero
-    max_ : maximum parameter value resulting in function value greater than zero
+    w : numpy array
+        weights found by one power method iteration
+    c : float
+        1-norm threshold
+    init : float, optional
+        initial value for delta (default is 0)
 
     Returns
     -------
-    new :
-    current :
-    min_ :
-    max_ :
+    numpy array
+        updated weights
 
     """
-    if previous_val is None:
-        previous_val = current_val
-    if current_val <= 0:
-        if previous_val <= 0:
-            new = (current + max_) / 2
-        if previous_val > 0:
-            new = (current + previous) / 2
-        if current > min_:
-            min_ = current
-    if current_val > 0:
-        if previous_val > 0:
-            new = (current + min_) / 2
-        if previous_val <= 0:
-            new = (current + previous) / 2
-        if current < max_:
-            max_ = current
-    return new, current, min_, max_
+    # First normalize the weights to unit length
+    w = w / np.sum(w ** 2) ** 0.5
 
+    # Define a scalar function that returns the difference between the 1-norm of coefficients and the threshold c
+    def f(delta):
+        # Apply soft thresholding to the weights with delta
+        coef = np.clip(w - delta, 0, None) - np.clip(-w - delta, 0, None)
 
-def _delta_search(w, c, init=0, tol=1e-9, max_iter=1000):
-    """
-    Searches for threshold delta such that the 1-norm of weights w is less than or equal to c
-    Parameters
-    ----------
-    w : weights found by one power method iteration
-    c : 1-norm threshold
-    init : initial value for delta
-    tol : tolerance for convergence
+        # Normalize the coefficients to unit length if nonzero
+        if np.sum(coef ** 2) > 0:
+            coef /= np.sum(coef ** 2) ** 0.5
 
-    Returns
-    -------
-    updated weights
+        # Return the difference between the 1-norm of coefficients and the threshold c
+        return c - np.sum(np.abs(coef))
 
-    """
-    # First normalise the weights unit length
-    w = w
-    w = w / np.linalg.norm(w, 2)
-    converged = False
-    min_ = 0
-    max_ = 10
-    current = init
-    previous = current
-    previous_val = 0
-    i = 0
-    while not converged:
-        i += 1
-        coef = _softthreshold(w, current)
-        if np.linalg.norm(coef) > 0:
-            coef /= np.linalg.norm(coef)
-        current_val = c - np.linalg.norm(coef, 1)
-        current, previous, min_, max_ = _bin_search(
-            current, previous, current_val, previous_val, min_, max_
-        )
-        if (np.abs(current_val) < tol) or i == max_iter:
-            converged = True
-        previous_val = current_val
-    return coef
+    # Find the root of f using scipy root finding function
+    # You can specify the method or let the function choose the best one for you
+    # You can also pass other parameters like xtol, rtol, maxiter, etc.
+    result = root_scalar(f, x0=init,x1=1, method="secant")
+
+    # Check if the solution is valid and converged
+    if result.converged:
+        # Get the optimal delta from the result object
+        delta = result.root
+
+        # Apply soft thresholding to the weights with optimal delta
+        coef = np.clip(w - delta, 0, None) - np.clip(-w - delta, 0, None)
+
+        # Normalize the coefficients to unit length if nonzero
+        if np.sum(coef ** 2) > 0:
+            coef /= np.sum(coef ** 2) ** 0.5
+
+        # Return updated weights
+        return coef
+
+    else:
+        # Raise an exception if no solution was found
+        raise ValueError("No root was found for f")
 
 
 def support_threshold(data, support, **kwargs):

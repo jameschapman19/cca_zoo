@@ -1,12 +1,8 @@
 from typing import Iterable, Union
-
 import numpy as np
-import pytorch_lightning as pl
-
 from cca_zoo.linear._iterative._base import BaseLoop, BaseIterative
 from cca_zoo.linear._iterative._deflation import DeflationMixin
 from cca_zoo.linear._pls import PLSMixin
-from cca_zoo.linear._search import _softthreshold
 from cca_zoo.utils import _process_parameter
 
 
@@ -110,7 +106,6 @@ class ParkhomenkoLoop(BaseLoop):
                 np.hstack((batch["views"][view_index], target[:, np.newaxis])).T
             )[:-1, -1]
             self.weights[view_index] /= np.linalg.norm(self.weights[view_index])
-            self.weights[view_index] = _softthreshold(
-                self.weights[view_index], self.tau[view_index] / 2
-            )
+            # Apply soft thresholding to the weights with optimal delta
+            self.weights[view_index] = np.clip(self.weights[view_index] - self.tau[view_index] / 2, 0, None) - np.clip(-self.weights[view_index] - self.tau[view_index] / 2, 0, None)
             self.weights[view_index] /= np.linalg.norm(self.weights[view_index])

@@ -160,7 +160,6 @@ class PMDLoop(BaseLoop):
             self.weights[view_index] = _delta_search(
                 self.weights[view_index],
                 self.t[view_index],
-                tol=self.tol,
             )
             if np.linalg.norm(self.weights[view_index]) <= 0:
                 warnings.warn(
