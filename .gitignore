@@ -7,6 +7,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Poetry
+# https://python-poetry.org/docs/faq/#why-is-it-recommended-to-check-poetry-lock-file-into-version-control
+poetry.lock
+
 # C extensions
 *.so
 
