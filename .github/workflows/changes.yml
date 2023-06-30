@@ -16,7 +16,7 @@ jobs:
       MODULE_NAME: cca-zoo
     strategy:
       matrix:
-        python-version: [ 3.9 ]
+        python-version: [ 3.8 ]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}

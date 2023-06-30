@@ -18,7 +18,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: "3.7"
+          python-version: "3.8"
 
       - name: Bump pyproject.toml Version
         run: perl -pi -e "s/0\.0\.0/${GITHUB_REF##*/v}/g" ./pyproject.toml
