@@ -1,7 +1,6 @@
 from typing import Iterable, Union
 
 import numpy as np
-import torch
 
 from cca_zoo.linear._iterative._base import BaseIterative, BaseLoop
 from cca_zoo.linear._iterative._deflation import DeflationMixin
