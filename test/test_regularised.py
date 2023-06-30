@@ -72,10 +72,12 @@ def test_regularized_methods():
 
 
 def test_sparse_methods():
-    tau1 = [0.1]
-    tau2 = [0.1]
+    tau1 = [0.7]
+    tau2 = [0.7]
     param_grid = {"tau": [tau1, tau2]}
     pmd_cv = GridSearchCV(SCCA_PMD(random_state=rng), param_grid=param_grid).fit([X, Y])
+    assert (pmd_cv.best_estimator_.weights[0] == 0).sum() > 0
+    assert (pmd_cv.best_estimator_.weights[1] == 0).sum() > 0
     tau1 = [5e-1]
     tau2 = [5e-1]
     param_grid = {"tau": [tau1, tau2]}
@@ -108,8 +110,6 @@ def test_sparse_methods():
     # )
     assert (pdd_cv.best_estimator_.weights[0] == 0).sum() > 0
     assert (pdd_cv.best_estimator_.weights[1] == 0).sum() > 0
-    assert (pmd_cv.best_estimator_.weights[0] == 0).sum() > 0
-    assert (pmd_cv.best_estimator_.weights[1] == 0).sum() > 0
     assert (scca_cv.best_estimator_.weights[0] == 0).sum() > 0
     assert (scca_cv.best_estimator_.weights[1] == 0).sum() > 0
     # assert (admm_cv.best_estimator_.weights[0] == 0).sum() > 0
@@ -213,11 +213,11 @@ def test_GRCCA():
 
 def test_deflation():
     # test deflation works with pls and cca using SCCA_PMD
-    ccamodel = SCCA_PMD(latent_dimensions=2, tau=1, random_state=rng, deflation="cca")
+    ccamodel = SCCA_PMD(latent_dimensions=2, tau=0.9, random_state=rng, deflation="cca")
     ccamodel.fit([X, Y])
     pls = PLS(latent_dimensions=2)
     pls.fit([X, Y])
-    plsmodel = SCCA_PMD(latent_dimensions=2, tau=1, random_state=rng, deflation="pls")
+    plsmodel = SCCA_PMD(latent_dimensions=2, tau=0.9, random_state=rng, deflation="pls")
     plsmodel.fit([X, Y])
     assert (
         np.testing.assert_array_almost_equal(

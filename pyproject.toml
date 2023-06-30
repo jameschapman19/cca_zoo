@@ -21,13 +21,24 @@ tensorly = "*"
 joblib = "*"
 mvlearn = "*"
 tqdm = "*"
+torch = [
+     {version = "^2.0.1", platform = "darwin"},
+     {version = "^2.0.1", platform = "linux", source = "torch"},
+     {version = "^2.0.1", platform = "win32", source = "torch"},
+ ]
 pytorch-lightning = "*"
+
+[[tool.poetry.source]]
+ name = "torch"
+ url = "https://download.pytorch.org/whl/cpu"
+ priority = "explicit"
 
 [tool.poetry.dev-dependencies]
 black = "*"
 flake8 = "*"
 codecov = "*"
 pytest-cov = "*"
+
 
 [tool.poetry.extras]
 probabilistic = ["jax", "numpyro", "arviz"]
