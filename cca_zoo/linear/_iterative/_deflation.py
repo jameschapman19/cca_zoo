@@ -1,9 +1,8 @@
-from abc import ABC
 from typing import Iterable
+
+import numpy as np
 import pytorch_lightning as pl
 from tqdm import tqdm
-import numpy as np
-from cca_zoo.linear._iterative._base import BaseIterative
 
 
 class DeflationMixin:

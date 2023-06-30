@@ -1,6 +1,6 @@
 import numpy as np
 
-from scipy.optimize import root_scalar, minimize, minimize_scalar
+from scipy.optimize import minimize
 
 
 def _delta_search(w, c):
