@@ -29,8 +29,8 @@ def _delta_search(w, c):
         # Apply soft thresholding to the weights with delta
         coef = np.clip(w - delta, 0, None) - np.clip(-w - delta, 0, None)
 
-        if np.sum(coef ** 2) == 0:
-            coef[:]=1000
+        if np.sum(coef**2) == 0:
+            coef[:] = 1000
         else:
             # Normalize the coefficients to unit length if nonzero
             coef /= np.linalg.norm(coef)
@@ -42,7 +42,7 @@ def _delta_search(w, c):
     # You can specify the method or let the function choose the best one for you
     # You can also pass other parameters like tol, maxiter, etc.
     # bound x to be between 0 and 1
-    result = minimize(f,x0=0, bounds=[(0, 1)])
+    result = minimize(f, x0=0, bounds=[(0, 1)])
 
     # Check if the solution is valid and converged
     if result.success:
@@ -50,16 +50,16 @@ def _delta_search(w, c):
         delta = result.x
 
         # Apply soft thresholding to the weights with optimal delta
-        coef = np.where(w - delta > 0, w - delta, 0) - np.where(-w - delta > 0, -w - delta, 0)
+        coef = np.where(w - delta > 0, w - delta, 0) - np.where(
+            -w - delta > 0, -w - delta, 0
+        )
 
         # if all coefficients are zero
-        if np.sum(coef ** 2) == 0:
+        if np.sum(coef**2) == 0:
             print()
 
         # Normalize the coefficients to unit length if nonzero
         coef /= np.linalg.norm(coef)
-
-
 
         # Return updated weights
         return coef
