@@ -1,10 +1,11 @@
 import itertools
 from abc import abstractmethod
-from typing import Iterable, Union
+from typing import Union, Iterable
 
 import numpy as np
 from sklearn.base import BaseEstimator, MultiOutputMixin, RegressorMixin
-from sklearn.utils.validation import FLOAT_DTYPES, check_is_fitted, check_random_state
+from sklearn.utils import check_random_state
+from sklearn.utils.validation import FLOAT_DTYPES, check_is_fitted
 
 
 class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):

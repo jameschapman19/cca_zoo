@@ -78,16 +78,17 @@ class PLS_ALS(PLSMixin, DeflationMixin, BaseIterative):
         )
 
     def _get_module(self, weights=None, k=None):
-        return PlsAlsLoop(
+        return PLS_ALSLoop(
             weights=weights,
             k=k,
         )
 
     def _more_tags(self):
-        return {"multiview": True}
+        return {"multiview": True,
+                "pls": True}
 
 
-class PlsAlsLoop(BaseLoop):
+class PLS_ALSLoop(BaseLoop):
     def training_step(self, batch, batch_idx):
         scores = np.stack(self(batch["views"]))
         # Update each view using loop update function

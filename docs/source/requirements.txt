@@ -2,6 +2,7 @@ protobuf==3.20.1
 sphinx
 sphinx-autodoc-typehints
 sphinx-gallery
+sphinx_rtd_theme
 pandas
 numpy
 matplotlib
@@ -15,12 +16,12 @@ scikit-prox
 pandas
 tensorly
 joblib
-torch~=1.12.1
+torch
 torchvision
 Pillow
 jaxlib
 jax
 numpyro
 arviz
-pytorch-lightning==1.7.7
+pytorch-lightning
 multiviewdata

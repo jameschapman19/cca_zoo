@@ -8,8 +8,3 @@ __all__ = [
     "learning_curve",
     "permutation_test_score",
 ]
-
-classes = [
-    "GridSearchCV",
-    "RandomizedSearchCV",
-]

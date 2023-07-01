@@ -17,8 +17,8 @@ from cca_zoo.deep import (
     BarlowTwins,
     architectures,
 )
-from cca_zoo.visualisation import pairplot_label
-from examples import example_mnist_data
+
+from docs.source.examples import example_mnist_data
 
 # %%
 # Data

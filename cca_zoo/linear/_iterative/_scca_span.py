@@ -117,7 +117,7 @@ class SpanLoop(BaseLoop):
         self.random_state = random_state
 
     def training_step(self, batch, batch_idx):
-        # if P, D, Q not initialised, initialise them
+        # if P, _D, Q not initialised, initialise them
         if getattr(self, "P", None) is None:
             self._initialize(batch["views"])
         c = self.random_state.randn(self.rank)

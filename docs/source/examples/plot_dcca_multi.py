@@ -12,7 +12,7 @@ from cca_zoo.deep import DCCA, DTCCA, architectures, objectives
 # %%
 # Data
 # -----
-from examples import example_mnist_data
+from docs.source.examples import example_mnist_data
 
 LATENT_DIMS = 2
 EPOCHS = 10

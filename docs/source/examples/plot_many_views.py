@@ -2,12 +2,13 @@
 More than 2 views
 ===========================
 
-This will compare MCCA, GCCA, TCCA for linear linear with more than 2 views
+This will compare MCCA, GCCA, TCCA more than 2 views
 """
 import numpy as np
 
 from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.linear import GCCA, KCCA, KGCCA, KTCCA, MCCA, SCCA_PMD, TCCA
+from cca_zoo.linear import GCCA, MCCA, SCCA_PMD, TCCA
+from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA
 
 """
 Data

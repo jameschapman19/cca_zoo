@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.metrics import pairwise_kernels
 from sklearn.neighbors import NearestNeighbors
 
-from cca_zoo.linear._base import BaseModel
+from cca_zoo._base import BaseModel
 from cca_zoo.utils.check_values import _process_parameter
 
 

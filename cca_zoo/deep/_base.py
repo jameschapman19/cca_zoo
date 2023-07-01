@@ -6,8 +6,10 @@ import pytorch_lightning as pl
 import torch
 from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 
+from cca_zoo._base import BaseModel
 
-class BaseDeep(pl.LightningModule):
+
+class BaseDeep(pl.LightningModule, BaseModel):
     """A base class for deep learning linear using PyTorch Lightning."""
 
     def __init__(
@@ -143,7 +145,3 @@ class BaseDeep(pl.LightningModule):
         """Detaches all tensors in a list from the computation graph."""
         # Use list comprehension instead of for loop
         return [z_.detach() for z_ in z]
-
-    def _more_tags(self) -> Dict[str, bool]:
-        """Returns additional tags for the model."""
-        return {"multiview": True}

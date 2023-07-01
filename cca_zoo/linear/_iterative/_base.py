@@ -8,9 +8,11 @@ from torch.utils import data
 from torch.utils.data import DataLoader
 
 from cca_zoo.data.deep import NumpyDataset
-from cca_zoo.linear import MCCA, rCCA
-from cca_zoo.linear._base import BaseModel
-from cca_zoo.linear._dummy import DummyCCA
+from cca_zoo.linear._pls import MPLS
+from cca_zoo.linear._mcca import MCCA
+
+from cca_zoo._base import BaseModel
+from cca_zoo.linear._dummy import DummyCCA, DummyPLS
 import torch
 
 # Default Trainer kwargs
@@ -69,9 +71,9 @@ class BaseIterative(BaseModel):
         else:
             self.deflation = deflation
         # validate the initialization method
-        if initialization not in ["random", "uniform", "pls", "cca"]:
+        if initialization not in ["random", "uniform", "unregularized", "pls"]:
             raise ValueError(
-                "Initialization method must be one of ['random', 'uniform', 'pls', 'cca']"
+                "Initialization method must be one of ['random', 'uniform', 'unregularized', 'pls']"
             )
         else:
             self.initialization = initialization
@@ -183,13 +185,17 @@ class BaseIterative(BaseModel):
         views : Iterable[np.ndarray]
             The input views to initialize the CCA weights from
         """
+        pls = self._get_tags().get("pls", False)
         initializer = _default_initializer(
-            self.initialization, self.random_state, self.latent_dimensions
+            self.initialization, self.random_state, self.latent_dimensions, pls
         )
         # Fit the initializer on the input views and get the weights as numpy arrays
         self.weights = initializer.fit(views).weights
         self.weights = [weights.astype(np.float32) for weights in self.weights]
 
+    def _more_tags(self):
+        # Indicate that this class is for multiview data
+        return {"iterative": True}
 
 class BaseLoop(pl.LightningModule):
     def __init__(
@@ -218,19 +224,31 @@ class BaseLoop(pl.LightningModule):
         return [view @ weight for view, weight in zip(views, self.weights)]
 
 
-def _default_initializer(initialization, random_state, latent_dims):
-    if initialization == "random":
-        initializer = DummyCCA(latent_dims, random_state=random_state, uniform=False)
-    elif initialization == "uniform":
-        initializer = DummyCCA(latent_dims, random_state=random_state, uniform=True)
-    elif initialization == "pls":
-        initializer = rCCA(latent_dims, random_state=random_state, c=1)
-    elif initialization == "cca":
-        initializer = MCCA(latent_dims)
+def _default_initializer(initialization, random_state, latent_dims, pls):
+    if pls:
+        if initialization == "random":
+            initializer = DummyPLS(latent_dims, random_state=random_state, uniform=False)
+        elif initialization == "uniform":
+            initializer = DummyPLS(latent_dims, random_state=random_state, uniform=True)
+        elif initialization == "unregularized":
+            initializer = MPLS(latent_dims, random_state=random_state)
+        else:
+            raise ValueError(
+                "Initialization {type} not supported. Pass a generator implementing this method"
+            )
     else:
-        raise ValueError(
-            "Initialization {type} not supported. Pass a generator implementing this method"
-        )
+        if initialization == "random":
+            initializer = DummyCCA(latent_dims, random_state=random_state, uniform=False)
+        elif initialization == "uniform":
+            initializer = DummyCCA(latent_dims, random_state=random_state, uniform=True)
+        elif initialization == "unregularized":
+            initializer = MCCA(latent_dims, random_state=random_state)
+        elif initialization == "pls":
+            initializer = MPLS(latent_dims, random_state=random_state)
+        else:
+            raise ValueError(
+                "Initialization {type} not supported. Pass a generator implementing this method"
+            )
     return initializer
 
 

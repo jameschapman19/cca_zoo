@@ -47,7 +47,7 @@ class SCCA_Parkhomenko(DeflationMixin, PLSMixin, BaseIterative):
         random_state=None,
         deflation="cca",
         tau: Union[Iterable[float], float] = None,
-        initialization: Union[str, callable] = "pls",
+        initialization: Union[str, callable] = "unregularized",
         tol: float = 1e-3,
         convergence_checking=False,
         patience=10,
@@ -85,7 +85,8 @@ class SCCA_Parkhomenko(DeflationMixin, PLSMixin, BaseIterative):
         )
 
     def _more_tags(self):
-        return {"multiview": True}
+        return {"multiview": True,
+                "pls": True}
 
 
 class ParkhomenkoLoop(BaseLoop):

@@ -61,22 +61,12 @@ class GCCA(MCCA):
         self.view_weights = view_weights
 
     def fit(self, views: Iterable[np.ndarray], y=None, K=None, **kwargs):
-        """
-        Parameters
-        ----------
-        views : Iterable[np.ndarray]
-            Views to fit the model with.
-        y : None
-            Not used in this model.
-        K : None
-            Observation matrix
-        """
         return super().fit(views, y=y, K=K, **kwargs)
 
     def _check_params(self):
         self.c = _process_parameter("c", self.c, 0, self.n_views_)
 
-    def C(self, views, K=None):
+    def _C(self, views, K=None):
         if K is None:
             # just use identity when all rows are observed in all views.
             K = np.ones((len(views), views[0].shape[0]))
@@ -99,7 +89,7 @@ class GCCA(MCCA):
         )
         return Q
 
-    def D(self, views, **kwargs):
+    def _D(self, views, **kwargs):
         return None
 
     def _weights(self, eigvals, eigvecs, views, **kwargs):

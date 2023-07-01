@@ -20,12 +20,10 @@ To upgrade to a newer release, use the ``--upgrade`` flag::
 Optional dependencies
 ----------------------------------------
 
-Some of the functionality of cca-zoo depends on PyTorch and Numpyro, which are both large packages and may have difficulties
+Some of the functionality of cca-zoo depends on Numpyro and Jaz, which may have difficulties
 with Windows installation. Therefore, we do not install them by default. To access these features, you need to install their required dependencies. These are grouped into three categories:
 
-* [deep]: ``Deep Learning Based Models``
 * [probabilistic]: ``Probabilistic Models``
-* [all]: ``Include both Probabilistic and Deep Learning Based Models``
 
 You can install these dependencies from PyPI by using the following command::
 

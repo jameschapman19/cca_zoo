@@ -123,4 +123,3 @@ We can then build our deep CCA model using these encoders as inputs:
 
 This produces a PyTorch.nn.Module object which can be updated in a customised training loop. We also provide a LightningModule
 class from pytorch-lightning which can be used to train any of these models with minimal boilerplate code.
-

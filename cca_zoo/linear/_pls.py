@@ -1,4 +1,4 @@
-from cca_zoo.linear import rCCA, MCCA
+from cca_zoo.linear._mcca import rCCA, MCCA
 from typing import Iterable
 
 import numpy as np
@@ -261,6 +261,10 @@ class PLSMixin:
         transformed_views = self.transform(views, **kwargs)
         total_correlation_captured = self.total_correlation_(transformed_views)
         return total_correlation_captured
+
+    def _more_tags(self):
+        # Indicate that this class is for multiview data
+        return {"pls": True}
 
 
 class PLS(rCCA, PLSMixin):

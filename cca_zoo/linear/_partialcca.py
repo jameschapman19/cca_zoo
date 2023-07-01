@@ -1,9 +1,9 @@
-from typing import Iterable, Union
+from typing import Iterable
 
 import numpy as np
 from sklearn.utils.validation import check_is_fitted
 
-from cca_zoo.linear import MCCA
+from cca_zoo.linear._mcca import MCCA
 
 
 class PartialCCA(MCCA):

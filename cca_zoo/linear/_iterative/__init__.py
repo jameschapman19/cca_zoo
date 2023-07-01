@@ -10,12 +10,7 @@ __all__ = [
     "SCCA_IPLS",
     "PLS_ALS",
     "SCCA_PMD",
-    # "SCCA_ADMM",
     "SCCA_Parkhomenko",
     "SCCA_Span",
-    # "SWCCA",
-    # "GradKCCA",
-    # "SCCA_HSIC",
     "AltMaxVar",
-    # "PLSGHA",
 ]

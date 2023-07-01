@@ -11,12 +11,12 @@ __pycache__/
 # https://python-poetry.org/docs/faq/#why-is-it-recommended-to-check-poetry-lock-file-into-version-control
 poetry.lock
 
-# C extensions
+# _C extensions
 *.so
 
 # Distribution / packaging
 .Python
-build/
+docs/build/
 develop-eggs/
 dist/
 downloads/

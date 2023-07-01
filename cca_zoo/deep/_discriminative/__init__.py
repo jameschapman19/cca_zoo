@@ -7,3 +7,16 @@ from ._dcca_noi import DCCA_NOI
 from ._dcca_sdl import DCCA_SDL
 from ._dtcca import DTCCA
 from ._dgcca import DGCCA
+
+__all__ = [
+    "DCCA",
+    "DCCA_EY",
+    "DCCA_GH",
+    "DCCA_SVD",
+    "DCCA_NOI",
+    "DCCA_SDL",
+    "DTCCA",
+    "BarlowTwins",
+    "DGCCA",
+]
+

@@ -27,4 +27,3 @@ Here is a simple example of how to use cca-zoo:
 
     # Transform the data to the latent space
     train_view_1_latent, train_view_2_latent = linear_cca.transform((train_view_1, train_view_2))
-

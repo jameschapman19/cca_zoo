@@ -1,19 +1,18 @@
+from . import data
+from . import model_selection
+from . import linear
+from . import visualisation
+from . import deep
+
 __all__ = [
     "data",
     "model_selection",
     "linear",
     "visualisation",
+    "deep",
 ]
-
-# if can import deep add to all
 try:
-    import cca_zoo.deep
-
-    __all__.append("deep")
-except ModuleNotFoundError:
-    pass
-try:
-    import cca_zoo.probabilistic
+    from . import probabilistic
 
     __all__.append("probabilistic")
 except ModuleNotFoundError:

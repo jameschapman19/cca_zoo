@@ -5,7 +5,7 @@ import tensorly as tl
 from scipy.linalg import sqrtm
 from tensorly.decomposition import parafac
 
-from cca_zoo.linear import MCCA
+from cca_zoo.linear._mcca import MCCA
 
 
 class TCCA(MCCA):

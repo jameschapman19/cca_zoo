@@ -5,7 +5,7 @@ from scipy.linalg import block_diag
 from scipy.linalg import eigh
 from sklearn.decomposition import PCA
 
-from cca_zoo.linear._base import BaseModel
+from cca_zoo._base import BaseModel
 from cca_zoo.utils import _process_parameter
 
 
@@ -43,7 +43,7 @@ class MCCA(BaseModel):
 
     References
     --------
-    Vinod, Hrishikesh D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
+    Vinod, Hrishikesh _D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
     """
 
     def __init__(
@@ -96,11 +96,11 @@ class MCCA(BaseModel):
 
     def _solve_gevp(self, views: Iterable[np.ndarray], y=None, **kwargs):
         # Setup the eigenvalue problem
-        C = self.C(views, **kwargs)
-        D = self.D(views, **kwargs)
+        C = self._C(views, **kwargs)
+        D = self._D(views, **kwargs)
         self.splits = np.cumsum([view.shape[1] for view in views])
         # Solve the eigenvalue problem
-        # Get the dimension of C
+        # Get the dimension of _C
         p = C.shape[0]
         # Solve the generalized eigenvalue problem Cx=lambda Dx using a subset of eigenvalues and eigenvectors
         [eigvals, eigvecs] = eigh(
@@ -131,13 +131,13 @@ class MCCA(BaseModel):
         # Fit PCA on each view
         return [self.pca_models[i].fit_transform(view) for i, view in enumerate(views)]
 
-    def C(self, views, **kwargs):
+    def _C(self, views, **kwargs):
         all_views = np.hstack(views)
         C = np.cov(all_views, rowvar=False)
         C -= block_diag(*[np.cov(view, rowvar=False) for view in views])
         return C / len(views)
 
-    def D(self, views, **kwargs):
+    def _D(self, views, **kwargs):
         if self.pca:
             # Can regularise by adding to diagonal
             D = block_diag(
@@ -183,10 +183,10 @@ class rCCA(MCCA):
 
     References
     --------
-    Vinod, Hrishikesh D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
+    Vinod, Hrishikesh _D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
     """
 
-    def C(self, views, **kwargs):
+    def _C(self, views, **kwargs):
         if len(views) != 2:
             raise ValueError(
                 f"Model can only be used with two views, but {len(views)} were given. Use MCCA or GCCA instead."
@@ -207,7 +207,7 @@ class rCCA(MCCA):
             self.primary_view = 1
             return C.T @ C
 
-    def D(self, views, **kwargs):
+    def _D(self, views, **kwargs):
         return None
 
     def _weights(self, eigvals, eigvecs, views):

@@ -9,7 +9,7 @@ import pytorch_lightning as pl
 
 from cca_zoo.deep import DCCAE, DVCCA, SplitAE, architectures
 from cca_zoo.visualisation import tsne_label
-from examples import example_mnist_data
+from docs.source.examples import example_mnist_data
 
 
 def plot_reconstruction(model, loader):

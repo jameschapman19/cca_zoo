@@ -63,6 +63,10 @@ class KernelMixin:
         check_is_fitted(self, attributes=["weights"])
         return self.weights
 
+    def _more_tags(self):
+        # Indicate that this class is for multiview data
+        return {"kernel": True}
+
 
 class KCCA(KernelMixin, MCCA):
     r"""
@@ -145,7 +149,7 @@ class KCCA(KernelMixin, MCCA):
         self.kernel = kernel
         self.degree = degree
 
-    def D(self, views, **kwargs):
+    def _D(self, views, **kwargs):
         D = block_diag(
             *[
                 (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[i] * view
@@ -155,10 +159,6 @@ class KCCA(KernelMixin, MCCA):
         D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
         D = D - D_smallest_eig * np.eye(D.shape[0])
         return D / len(views)
-
-    def _more_tags(self):
-        # Indicate that this class is for multiview data
-        return {"multiview": True, "kernel": True}
 
 
 class KGCCA(KernelMixin, GCCA):
@@ -263,10 +263,6 @@ class KGCCA(KernelMixin, GCCA):
             for kernel in kernels
         ]
 
-    def _more_tags(self):
-        # Indicate that this class is for multiview data
-        return {"multiview": True, "kernel": True}
-
 
 class KTCCA(KernelMixin, TCCA):
     r"""
@@ -341,7 +337,3 @@ class KTCCA(KernelMixin, TCCA):
             for i, view in enumerate(self.train_views)
         ]
         return super()._setup_tensor(kernels)
-
-    def _more_tags(self):
-        # Indicate that this class is for multiview data
-        return {"multiview": True, "kernel": True}

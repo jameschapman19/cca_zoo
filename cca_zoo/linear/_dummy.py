@@ -2,7 +2,7 @@ from typing import Iterable
 
 import numpy as np
 
-from cca_zoo.linear._base import BaseModel
+from cca_zoo._base import BaseModel
 
 
 class DummyCCA(BaseModel):

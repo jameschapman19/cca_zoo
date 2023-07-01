@@ -68,7 +68,7 @@ class SCCA_PMD(DeflationMixin, PLSMixin, BaseIterative):
         random_state=None,
         epochs=100,
         deflation="cca",
-        initialization="pls",
+        initialization="unregularized",
         tol=1e-3,
         positive=False,
         tau=None,
@@ -122,7 +122,8 @@ class SCCA_PMD(DeflationMixin, PLSMixin, BaseIterative):
         )
 
     def _more_tags(self):
-        return {"multiview": True}
+        return {"multiview": True,
+                "pls": True}
 
 
 class PMDLoop(BaseLoop):
