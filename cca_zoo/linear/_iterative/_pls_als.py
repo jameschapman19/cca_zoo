@@ -84,8 +84,7 @@ class PLS_ALS(PLSMixin, DeflationMixin, BaseIterative):
         )
 
     def _more_tags(self):
-        return {"multiview": True,
-                "pls": True}
+        return {"multiview": True, "pls": True}
 
 
 class PLS_ALSLoop(BaseLoop):

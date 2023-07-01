@@ -6,7 +6,15 @@ from ._partialcca import PartialCCA
 from ._prcca import PRCCA
 from ._tcca import TCCA
 from ._pcacca import PCACCA
-from ._iterative import AltMaxVar, SCCA_IPLS, ElasticCCA, PLS_ALS, SCCA_PMD, SCCA_Parkhomenko, SCCA_Span
+from ._iterative import (
+    AltMaxVar,
+    SCCA_IPLS,
+    ElasticCCA,
+    PLS_ALS,
+    SCCA_PMD,
+    SCCA_Parkhomenko,
+    SCCA_Span,
+)
 from ._gradient import CCAEY, PLSEY, CCAGH, CCASVD, PLSSVD, PLSStochasticPower
 
 __all__ = [
@@ -35,5 +43,3 @@ __all__ = [
     "PLSSVD",
     "PLSStochasticPower",
 ]
-
-

@@ -5,14 +5,15 @@
 from types import ModuleType
 import os
 import sys
-sys.path.insert(0, os.path.abspath('.'))
+
+sys.path.insert(0, os.path.abspath("."))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'CCA-Zoo'
-copyright = '2023, James Chapman'
-author = 'James Chapman'
+project = "CCA-Zoo"
+copyright = "2023, James Chapman"
+author = "James Chapman"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -28,16 +29,15 @@ extensions = [
     "sphinx_gallery.gen_gallery",
 ]
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 exclude_patterns = []
-
 
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
-html_static_path = ['_static']
+html_theme = "alabaster"
+html_static_path = ["_static"]
 
 sphinx_gallery_conf = {
     "doc_module": "cca-zoo",

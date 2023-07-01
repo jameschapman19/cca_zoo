@@ -13,35 +13,48 @@ import seaborn as sns
 
 # Define a class that takes the dataset object as an argument
 class Plotter:
-
     def plot_scores(
-            self,
-            train_scores,
-            train_labels=None,
-            test_scores=None,
-            test_labels=None,
-            view_names=None,
-            title="",
-            axs=None,
-            **kwargs,
+        self,
+        train_scores,
+        train_labels=None,
+        test_scores=None,
+        test_labels=None,
+        view_names=None,
+        title="",
+        axs=None,
+        **kwargs,
     ):
         # Check the input types and shapes
-        assert isinstance(train_scores, list) and len(train_scores) == 2, "train_scores must be a list of two arrays"
-        assert train_scores[0].shape[1] == train_scores[1].shape[1], "train_scores must have the same number of columns"
+        assert (
+            isinstance(train_scores, list) and len(train_scores) == 2
+        ), "train_scores must be a list of two arrays"
+        assert (
+            train_scores[0].shape[1] == train_scores[1].shape[1]
+        ), "train_scores must have the same number of columns"
         if test_scores is not None:
-            assert isinstance(test_scores, list) and len(test_scores) == 2, "test_scores must be a list of two arrays"
-            assert test_scores[0].shape[1] == test_scores[1].shape[
-                1], "test_scores must have the same number of columns"
-            assert test_scores[0].shape[1] == train_scores[0].shape[
-                1], "test_scores and train_scores must have the same number of columns"
+            assert (
+                isinstance(test_scores, list) and len(test_scores) == 2
+            ), "test_scores must be a list of two arrays"
+            assert (
+                test_scores[0].shape[1] == test_scores[1].shape[1]
+            ), "test_scores must have the same number of columns"
+            assert (
+                test_scores[0].shape[1] == train_scores[0].shape[1]
+            ), "test_scores and train_scores must have the same number of columns"
         if train_labels is not None:
-            assert isinstance(train_labels, np.ndarray), "train_labels must be a numpy array"
-            assert train_labels.shape[0] == train_scores[0].shape[
-                0], "train_labels must have the same number of rows as train_scores"
+            assert isinstance(
+                train_labels, np.ndarray
+            ), "train_labels must be a numpy array"
+            assert (
+                train_labels.shape[0] == train_scores[0].shape[0]
+            ), "train_labels must have the same number of rows as train_scores"
         if test_labels is not None:
-            assert isinstance(test_labels, np.ndarray), "test_labels must be a numpy array"
-            assert test_labels.shape[0] == test_scores[0].shape[
-                0], "test_labels must have the same number of rows as test_scores"
+            assert isinstance(
+                test_labels, np.ndarray
+            ), "test_labels must be a numpy array"
+            assert (
+                test_labels.shape[0] == test_scores[0].shape[0]
+            ), "test_labels must have the same number of rows as test_scores"
 
         # Set the default values for optional parameters
         if axs is None:
@@ -96,22 +109,29 @@ class Plotter:
         return axs
 
     def plot_correlation_heatmap(
-            self,
-            train_scores,
-            test_scores=None,
-            view_names=None,
-            axs=None,
+        self,
+        train_scores,
+        test_scores=None,
+        view_names=None,
+        axs=None,
     ):
-
         # Check the input types and shapes
-        assert isinstance(train_scores, list) and len(train_scores) == 2, "train_scores must be a list of two arrays"
-        assert train_scores[0].shape[1] == train_scores[1].shape[1], "train_scores must have the same number of columns"
+        assert (
+            isinstance(train_scores, list) and len(train_scores) == 2
+        ), "train_scores must be a list of two arrays"
+        assert (
+            train_scores[0].shape[1] == train_scores[1].shape[1]
+        ), "train_scores must have the same number of columns"
         if test_scores is not None:
-            assert isinstance(test_scores, list) and len(test_scores) == 2, "test_scores must be a list of two arrays"
-            assert test_scores[0].shape[1] == test_scores[1].shape[
-                1], "test_scores must have the same number of columns"
-            assert test_scores[0].shape[1] == train_scores[0].shape[
-                1], "test_scores and train_scores must have the same number of columns"
+            assert (
+                isinstance(test_scores, list) and len(test_scores) == 2
+            ), "test_scores must be a list of two arrays"
+            assert (
+                test_scores[0].shape[1] == test_scores[1].shape[1]
+            ), "test_scores must have the same number of columns"
+            assert (
+                test_scores[0].shape[1] == train_scores[0].shape[1]
+            ), "test_scores and train_scores must have the same number of columns"
 
         # If no axes are given, create new ones
         if axs is None:
@@ -126,12 +146,16 @@ class Plotter:
             view_names = ["View 1", "View 2"]
 
         # Compute the correlations for train and test sets
-        train_corr = np.corrcoef(train_scores[0].T, train_scores[1].T)[:train_scores[0].shape[1],
-                     train_scores[0].shape[1]:]
+        train_corr = np.corrcoef(train_scores[0].T, train_scores[1].T)[
+            : train_scores[0].shape[1], train_scores[0].shape[1] :
+        ]
         if test_scores is not None:
-            test_corr = np.corrcoef(test_scores[0].T, test_scores[1].T)[:train_scores[0].shape[1],
-                        train_scores[0].shape[1]:]
-            sns.heatmap(test_corr, annot=True, cmap="coolwarm", vmin=-1, vmax=1, ax=axs[1])
+            test_corr = np.corrcoef(test_scores[0].T, test_scores[1].T)[
+                : train_scores[0].shape[1], train_scores[0].shape[1] :
+            ]
+            sns.heatmap(
+                test_corr, annot=True, cmap="coolwarm", vmin=-1, vmax=1, ax=axs[1]
+            )
             axs[1].set_title("Test Correlations")
 
         # Plot the heatmaps on the given axes
@@ -381,4 +405,3 @@ class Plotter:
         ax.set_title("Explained Variance")
         plt.tight_layout()
         return ax
-

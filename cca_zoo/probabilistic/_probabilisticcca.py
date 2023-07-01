@@ -124,4 +124,4 @@ class ProbabilisticCCA(BaseModel):
             ]
 
     def _more_tags(self):
-        return {'probabilistic': True}
+        return {"probabilistic": True}

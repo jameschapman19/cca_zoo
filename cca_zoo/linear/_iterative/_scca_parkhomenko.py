@@ -85,8 +85,7 @@ class SCCA_Parkhomenko(DeflationMixin, PLSMixin, BaseIterative):
         )
 
     def _more_tags(self):
-        return {"multiview": True,
-                "pls": True}
+        return {"multiview": True, "pls": True}
 
 
 class ParkhomenkoLoop(BaseLoop):
