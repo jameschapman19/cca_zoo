@@ -10,7 +10,7 @@ permutation testing, learning curves, and cross-validation.
 # Import libraries
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.model_selection import ShuffleSplit
+from sklearn.model_selection import ShuffleSplit, KFold
 
 from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.linear import CCA
