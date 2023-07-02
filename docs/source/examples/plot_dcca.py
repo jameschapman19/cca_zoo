@@ -22,10 +22,10 @@ from docs.source.examples import example_mnist_data
 # We use the MNIST dataset as an example of two views of the same data.
 # We split the images into two halves and treat them as separate views.
 
-LATENT_DIMS = 2 # The dimensionality of the latent space
-EPOCHS = 10 # The number of epochs to train the models
-N_TRAIN = 500 # The number of training samples
-N_VAL = 100 # The number of validation samples
+LATENT_DIMS = 2  # The dimensionality of the latent space
+EPOCHS = 10  # The number of epochs to train the models
+N_TRAIN = 500  # The number of training samples
+N_VAL = 100  # The number of validation samples
 
 train_loader, val_loader, train_labels, val_labels = example_mnist_data(N_TRAIN, N_VAL)
 
