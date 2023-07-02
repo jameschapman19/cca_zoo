@@ -23,14 +23,17 @@ Data
 # %%
 # We generate some synthetic data from two views, each with 10 features. We assume that the latent variable has 2 dimensions and that the data is noisy.
 
+
 class LatentVariableData:
-    def __init__(self,
-                 latent_dimensions,
-                    num_views,
-                    view_dimensions,
-                    sparsity,
-                    noise,
-                 random_state=None):
+    def __init__(
+        self,
+        latent_dimensions,
+        num_views,
+        view_dimensions,
+        sparsity,
+        noise,
+        random_state=None,
+    ):
         self.latent_dimensions = latent_dimensions
         self.num_views = num_views
         self.view_dimensions = view_dimensions
@@ -61,13 +64,13 @@ class LatentVariableData:
         return views
 
 
-n=100
-num_views=2
-latent_dims=2
-view_dims=10
-sparsity=0.5
-noise=0.1
-random_state=0
+n = 100
+num_views = 2
+latent_dims = 2
+view_dims = 10
+sparsity = 0.5
+noise = 0.1
+random_state = 0
 
 data = LatentVariableData(
     latent_dimensions=latent_dims,
@@ -75,7 +78,7 @@ data = LatentVariableData(
     view_dimensions=view_dims,
     sparsity=sparsity,
     noise=noise,
-    random_state=random_state
+    random_state=random_state,
 )
 
 views = data.sample(n)
@@ -94,7 +97,7 @@ pcca = ProbabilisticCCA(
     latent_dimensions=latent_dims,
     num_samples=100,
     num_warmup=100,
-    random_state=random_state
+    random_state=random_state,
 )
 
 pcca.fit(views)
@@ -115,16 +118,22 @@ z = pcca.transform(views)
 idata = az.from_numpyro(pcca.mcmc)
 
 for view in range(num_views):
-
     # Plot the posterior distribution of W_0 parameter (for just the first latent variable). Label the weights with their weight index. Make all parameters share x axis.
-    trace_plot=az.plot_trace(idata, var_names=[f"W_{view}"], compact=False, divergences=None)
+    trace_plot = az.plot_trace(
+        idata, var_names=[f"W_{view}"], compact=False, divergences=None
+    )
 
     # For each w in W_0, plot the true value from data.true_features[0]
     for i, ax in enumerate(trace_plot[:, 0]):
-        ax.axvline(data.true_features[view].ravel()[i], color="red", linestyle="--", label="True Value")
+        ax.axvline(
+            data.true_features[view].ravel()[i],
+            color="red",
+            linestyle="--",
+            label="True Value",
+        )
         ax.legend()
 
-    ax_list = list(trace_plot[:,0].ravel())
+    ax_list = list(trace_plot[:, 0].ravel())
     ax_list[0].get_shared_x_axes().join(ax_list[0], *ax_list)
     plt.suptitle(f"Posterior Distribution of W_{view}")
     plt.tight_layout()

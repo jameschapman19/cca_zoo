@@ -56,12 +56,12 @@ class ProbabilisticCCA(BaseModel):
     """
 
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state: int = 0,
-            num_samples=100,
-            num_warmup=100,
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state: int = 0,
+        num_samples=100,
+        num_warmup=100,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -145,7 +145,9 @@ class ProbabilisticCCA(BaseModel):
             ]
         with numpyro.plate("plate_i", n):
             # Sample from the prior distribution of z
-            z = numpyro.sample("z", dist.MultivariateNormal(0.0, jnp.eye(self.latent_dimensions)))
+            z = numpyro.sample(
+                "z", dist.MultivariateNormal(0.0, jnp.eye(self.latent_dimensions))
+            )
             # Sample from the likelihood distribution of x_i for each view
             for i, (p_, mu_, psi_, W_) in enumerate(zip(p, mu, psi, self.weights_list)):
                 numpyro.sample(
