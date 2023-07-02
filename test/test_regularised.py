@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
-from sklearn.utils.fixes import loguniform
+from scipy.stats import loguniform
+
 from sklearn.utils.validation import check_random_state
 
 from cca_zoo.data.simulated import LinearSimulatedData

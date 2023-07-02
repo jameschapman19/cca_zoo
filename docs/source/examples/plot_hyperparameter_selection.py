@@ -8,7 +8,7 @@ This script will show how to perform hyperparameter selection
 # %%
 import numpy as np
 import pandas as pd
-from sklearn.utils.fixes import loguniform
+from scipy.stats import loguniform
 
 from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
