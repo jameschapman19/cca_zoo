@@ -56,12 +56,12 @@ class ProbabilisticCCA(BaseModel):
     """
 
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state: int = 0,
-            num_samples=100,
-            num_warmup=100,
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state: int = 0,
+        num_samples=100,
+        num_warmup=100,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -163,7 +163,6 @@ class ProbabilisticCCA(BaseModel):
                 )
             ]
 
-
     def transform(self, views: Iterable[np.ndarray], y=None, **kwargs):
         """
         Predict the latent variables that generate the data in views using the sampled model parameters
@@ -174,8 +173,6 @@ class ProbabilisticCCA(BaseModel):
         return Predictive(self._model, self.posterior_samples, return_sites=["z"])(
             self.rng_key, views
         )["z"]
-
-
 
     def _more_tags(self):
         return {"probabilistic": True}
