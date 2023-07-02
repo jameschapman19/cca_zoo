@@ -208,6 +208,7 @@ class BaseIterative(BaseModel):
         # Indicate that this class is for multiview data
         return {"iterative": True}
 
+
 class BaseLoop(pl.LightningModule):
     def __init__(
         self,
@@ -238,7 +239,9 @@ class BaseLoop(pl.LightningModule):
 def _default_initializer(initialization, random_state, latent_dims, pls):
     if pls:
         if initialization == "random":
-            initializer = DummyPLS(latent_dims, random_state=random_state, uniform=False)
+            initializer = DummyPLS(
+                latent_dims, random_state=random_state, uniform=False
+            )
         elif initialization == "uniform":
             initializer = DummyPLS(latent_dims, random_state=random_state, uniform=True)
         elif initialization == "unregularized":
@@ -249,7 +252,9 @@ def _default_initializer(initialization, random_state, latent_dims, pls):
             )
     else:
         if initialization == "random":
-            initializer = DummyCCA(latent_dims, random_state=random_state, uniform=False)
+            initializer = DummyCCA(
+                latent_dims, random_state=random_state, uniform=False
+            )
         elif initialization == "uniform":
             initializer = DummyCCA(latent_dims, random_state=random_state, uniform=True)
         elif initialization == "unregularized":

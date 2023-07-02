@@ -38,7 +38,9 @@ def sample_data():
 # Test the plot_covariance_heatmap method with default parameters
 def test_plot_covariance_heatmap_default(sample_data):
     plotter = Plotter()
-    axs = plotter.plot_covariance_heatmap(sample_data["train_scores"], sample_data["test_scores"])
+    axs = plotter.plot_covariance_heatmap(
+        sample_data["train_scores"], sample_data["test_scores"]
+    )
 
     # Check that the plot has the correct labels and title
     assert axs[0].get_title() == "Train Covariances"
@@ -48,7 +50,9 @@ def test_plot_covariance_heatmap_default(sample_data):
 # Test the plot_weights_heatmap method with default parameters
 def test_plot_weights_heatmap_default(sample_data):
     plotter = Plotter()
-    axs = plotter.plot_weights_heatmap(sample_data["brain_weights"], sample_data["behaviour_weights"])
+    axs = plotter.plot_weights_heatmap(
+        sample_data["brain_weights"], sample_data["behaviour_weights"]
+    )
 
     # Check that the plot has the correct labels and title
     assert axs[0].get_title() == "View 1 weights"
@@ -58,4 +62,8 @@ def test_plot_weights_heatmap_default(sample_data):
 # Test the plot_explained_covariance method with default parameters
 def test_plot_explained_covariance_default(sample_data):
     plotter = Plotter()
-    ax = plotter.plot_explained_covariance(sample_data["model"], train_views=sample_data["train_views"], test_views=sample_data["test_views"])
+    ax = plotter.plot_explained_covariance(
+        sample_data["model"],
+        train_views=sample_data["train_views"],
+        test_views=sample_data["test_views"],
+    )
