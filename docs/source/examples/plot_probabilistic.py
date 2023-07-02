@@ -23,11 +23,11 @@ Data
 # %%
 # We generate some synthetic data from two views, each with 10 features. We assume that the latent variable has 2 dimensions and that the data is noisy.
 
-n = 100 # number of samples
-p = [10, 10] # number of features for each view
-latent_dims = 2 # number of latent dimensions
+n = 100  # number of samples
+p = [10, 10]  # number of features for each view
+latent_dims = 2  # number of latent dimensions
 
-data=LinearSimulatedData(
+data = LinearSimulatedData(
     view_features=p, latent_dims=latent_dims, correlation=[0.9, 0.7]
 )
 
@@ -41,10 +41,7 @@ Model
 # We create an instance of the `ProbabilisticCCA` class and fit it on the data. We specify the number of latent dimensions, the number of samples and warmup steps for the variational inference algorithm, and the random state.
 
 pcca = ProbabilisticCCA(
-    latent_dimensions=latent_dims,
-    num_samples=1000,
-    num_warmup=500,
-    random_state=0
+    latent_dimensions=latent_dims, num_samples=1000, num_warmup=500, random_state=0
 )
 
 pcca.fit(views)
