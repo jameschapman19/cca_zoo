@@ -1,8 +1,4 @@
-from . import data
-from . import model_selection
-from . import linear
-from . import visualisation
-from . import deep
+from . import data, deep, linear, model_selection, visualisation
 
 __all__ = [
     "data",

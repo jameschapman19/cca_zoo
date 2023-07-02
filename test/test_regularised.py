@@ -1,16 +1,15 @@
 import numpy as np
 import scipy.sparse as sp
 from scipy.stats import loguniform
-
 from sklearn.utils.validation import check_random_state
 
 from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.linear import (
     CCA,
     GCCA,
     GRCCA,
     MCCA,
+    MPLS,
     PLS,
     PRCCA,
     SCCA_IPLS,
@@ -21,8 +20,8 @@ from cca_zoo.linear import (
     SCCA_Parkhomenko,
     SCCA_Span,
     rCCA,
-    MPLS,
 )
+from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.nonparametric import KCCA
 
 n = 50

@@ -1,4 +1,3 @@
-from . import simulated
-from . import deep
+from . import deep, simulated
 
 __all__ = ["simulated", "deep"]

@@ -5,10 +5,10 @@ from scipy.linalg import block_diag
 from sklearn.metrics import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
-from cca_zoo.utils import _process_parameter
 from cca_zoo.linear._gcca import GCCA
 from cca_zoo.linear._mcca import MCCA
 from cca_zoo.linear._tcca import TCCA
+from cca_zoo.utils import _process_parameter
 
 
 class KernelMixin:

@@ -1,5 +1,5 @@
-from ._dcca import DCCA
 from .. import objectives
+from ._dcca import DCCA
 
 
 class DTCCA(DCCA):

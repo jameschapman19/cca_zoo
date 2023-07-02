@@ -1,8 +1,9 @@
 """
 Test whether linear simulated data has the correct correlations when we run cca on it
 """
-from cca_zoo.data.simulated import LinearSimulatedData
 import numpy as np
+
+from cca_zoo.data.simulated import LinearSimulatedData
 
 
 def test_data_correlation():

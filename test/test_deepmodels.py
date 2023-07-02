@@ -9,19 +9,19 @@ from cca_zoo.deep import (
     DCCA,
     DCCA_EY,
     DCCA_GH,
-    DCCA_SVD,
     DCCA_NOI,
     DCCA_SDL,
+    DCCA_SVD,
     DCCAE,
+    DGCCA,
     DTCCA,
     DVCCA,
-    DGCCA,
     BarlowTwins,
     SplitAE,
     architectures,
     objectives,
 )
-from cca_zoo.linear import CCA, MCCA, GCCA
+from cca_zoo.linear import CCA, GCCA, MCCA
 
 manual_seed(0)
 rng = check_random_state(0)

@@ -1,21 +1,21 @@
-from ._mcca import MCCA, CCA, rCCA
-from ._pls import PLS, MPLS
 from ._gcca import GCCA
+from ._gradient import CCAEY, CCAGH, CCASVD, PLSEY, PLSSVD, PLSStochasticPower
 from ._grcca import GRCCA
-from ._partialcca import PartialCCA
-from ._prcca import PRCCA
-from ._tcca import TCCA
-from ._pcacca import PCACCA
 from ._iterative import (
-    AltMaxVar,
-    SCCA_IPLS,
-    ElasticCCA,
     PLS_ALS,
+    SCCA_IPLS,
     SCCA_PMD,
+    AltMaxVar,
+    ElasticCCA,
     SCCA_Parkhomenko,
     SCCA_Span,
 )
-from ._gradient import CCAEY, PLSEY, CCAGH, CCASVD, PLSSVD, PLSStochasticPower
+from ._mcca import CCA, MCCA, rCCA
+from ._partialcca import PartialCCA
+from ._pcacca import PCACCA
+from ._pls import MPLS, PLS
+from ._prcca import PRCCA
+from ._tcca import TCCA
 
 __all__ = [
     "MCCA",

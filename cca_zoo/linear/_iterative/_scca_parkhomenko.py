@@ -1,8 +1,10 @@
 from typing import Iterable, Union
+
 import numpy as np
+
 from cca_zoo.linear._iterative._base import (
-    BaseLoop,
     BaseIterative,
+    BaseLoop,
     supress_device_warnings,
 )
 from cca_zoo.linear._iterative._deflation import DeflationMixin

@@ -1,6 +1,6 @@
 import itertools
 from abc import abstractmethod
-from typing import Union, Iterable
+from typing import Iterable, Union
 
 import numpy as np
 from sklearn.base import BaseEstimator, MultiOutputMixin, RegressorMixin

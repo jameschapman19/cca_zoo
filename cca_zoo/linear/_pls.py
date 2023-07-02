@@ -1,7 +1,8 @@
-from cca_zoo.linear._mcca import rCCA, MCCA
 from typing import Iterable
 
 import numpy as np
+
+from cca_zoo.linear._mcca import MCCA, rCCA
 
 
 def reduce_dims(x):

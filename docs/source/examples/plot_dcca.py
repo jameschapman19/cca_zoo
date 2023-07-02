@@ -9,16 +9,8 @@ import pytorch_lightning as pl
 from matplotlib import pyplot as plt
 
 # %%
-from cca_zoo.deep import (
-    DCCA,
-    DCCA_EY,
-    DCCA_NOI,
-    DCCA_SDL,
-    BarlowTwins,
-    architectures,
-)
+from cca_zoo.deep import DCCA, DCCA_EY, DCCA_NOI, DCCA_SDL, BarlowTwins, architectures
 from cca_zoo.visualisation import Plotter
-
 from docs.source.examples import example_mnist_data
 
 # %%

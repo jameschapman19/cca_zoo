@@ -6,8 +6,8 @@ import torch
 from sklearn.linear_model import ElasticNet, Lasso, Ridge, SGDRegressor
 
 from cca_zoo.linear._iterative._base import (
-    BaseLoop,
     BaseIterative,
+    BaseLoop,
     supress_device_warnings,
 )
 from cca_zoo.linear._iterative._deflation import DeflationMixin

@@ -3,6 +3,7 @@ from typing import Iterable, Union
 import numpy as np
 
 from cca_zoo.utils import _process_parameter
+
 from ._base import BaseIterative, BaseLoop
 from ._deflation import DeflationMixin
 

@@ -1,9 +1,6 @@
-from typing import Union
-
 import torch
 
-
-from cca_zoo.linear._gradient._ey import EYLoop, CCAEY
+from cca_zoo.linear._gradient._ey import CCAEY, EYLoop
 from cca_zoo.linear._pls import PLSMixin
 
 

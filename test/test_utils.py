@@ -2,12 +2,12 @@ import numpy as np
 import scipy.sparse as sp
 from sklearn.utils import check_random_state
 
+from cca_zoo.linear import MPLS
 from cca_zoo.model_selection import (
     cross_validate,
     learning_curve,
     permutation_test_score,
 )
-from cca_zoo.linear import MPLS
 
 n = 100
 rng = check_random_state(0)

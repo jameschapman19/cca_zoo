@@ -2,16 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 from sklearn.utils.validation import check_random_state
 
-from cca_zoo.linear import (
-    CCA,
-    GCCA,
-    MCCA,
-    PLS,
-    PLS_ALS,
-    TCCA,
-    rCCA,
-    PCACCA,
-)
+from cca_zoo.linear import CCA, GCCA, MCCA, PCACCA, PLS, PLS_ALS, TCCA, rCCA
 from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA
 
 n = 50

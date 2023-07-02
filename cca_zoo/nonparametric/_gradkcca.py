@@ -2,9 +2,6 @@ from typing import Iterable, Union
 
 import numpy as np
 import numpy.linalg as la
-from sklearn.kernel_approximation import Nystroem
-from sklearn.metrics import pairwise_kernels
-from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo.linear._iterative._base import BaseIterative
 from cca_zoo.nonparametric._kcca import KernelMixin

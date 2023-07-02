@@ -177,18 +177,18 @@ class AltMaxVarLoop(BaseLoop):
 
 from pyproximal import (
     L0,
-    L0Ball,
     L1,
-    L1Ball,
     L2,
     L21,
-    L21_plus_L1,
-    Nuclear,
-    NuclearBall,
-    Log,
-    Log1,
     Euclidean,
     EuclideanBall,
+    L0Ball,
+    L1Ball,
+    L21_plus_L1,
+    Log,
+    Log1,
+    Nuclear,
+    NuclearBall,
 )
 
 PROXIMAL_OPERATORS = {

@@ -1,6 +1,6 @@
 from sklearn.utils import check_random_state
-from cca_zoo.linear import SCCA_PMD, ElasticCCA
-from cca_zoo.linear import CCAEY
+
+from cca_zoo.linear import CCAEY, SCCA_PMD, ElasticCCA
 
 n = 50
 rng = check_random_state(0)

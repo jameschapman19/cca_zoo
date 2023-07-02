@@ -3,12 +3,12 @@ from ._discriminative import (
     DCCA,
     DCCA_EY,
     DCCA_GH,
-    DCCA_SVD,
     DCCA_NOI,
     DCCA_SDL,
+    DCCA_SVD,
+    DGCCA,
     DTCCA,
     BarlowTwins,
-    DGCCA,
 )
 from ._generative import DCCAE, DVCCA, SplitAE
 

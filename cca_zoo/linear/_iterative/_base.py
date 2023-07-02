@@ -1,23 +1,21 @@
+# filter warnings from pytorch_lightning
+import warnings
 from abc import abstractmethod
-from typing import Iterable, List, Optional, Union, Any
+from typing import Any, Iterable, List, Optional, Union
 
 import numpy as np
 import pytorch_lightning as pl
+import torch
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks import Callback, EarlyStopping
 from torch.utils import data
 from torch.utils.data import DataLoader
 
-from cca_zoo.data.deep import NumpyDataset
-from cca_zoo.linear._pls import MPLS
-from cca_zoo.linear._mcca import MCCA
-
 from cca_zoo._base import BaseModel
+from cca_zoo.data.deep import NumpyDataset
 from cca_zoo.linear._dummy import DummyCCA, DummyPLS
-import torch
-
-# filter warnings from pytorch_lightning
-import warnings
+from cca_zoo.linear._mcca import MCCA
+from cca_zoo.linear._pls import MPLS
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=PossibleUserWarning)

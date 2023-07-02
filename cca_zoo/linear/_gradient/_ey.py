@@ -3,8 +3,8 @@ from typing import Union
 import numpy as np
 import torch
 
-from cca_zoo.linear._iterative._base import BaseIterative
 from cca_zoo.linear._gradient._gradient import GradientLoop
+from cca_zoo.linear._iterative._base import BaseIterative
 from cca_zoo.linear._pls import PLSMixin
 
 

@@ -5,14 +5,15 @@ Sparse CCA Comparison
 This example demonstrates how to easily train Sparse CCA variants
 """
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 # Import libraries
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+
 from cca_zoo._base import BaseModel
 from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.linear import (
     CCA,
     PLS,
@@ -22,6 +23,7 @@ from cca_zoo.linear import (
     ElasticCCA,
     SCCA_Span,
 )
+from cca_zoo.model_selection import GridSearchCV
 
 
 def plot_true_weights_coloured(ax, weights, true_weights, title=""):

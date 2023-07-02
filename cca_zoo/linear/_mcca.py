@@ -1,8 +1,7 @@
 from typing import Iterable, Union
 
 import numpy as np
-from scipy.linalg import block_diag
-from scipy.linalg import eigh
+from scipy.linalg import block_diag, eigh
 from sklearn.decomposition import PCA
 
 from cca_zoo._base import BaseModel

@@ -4,8 +4,9 @@ Test the kernel methods
 
 
 import numpy as np
-from cca_zoo.nonparametric import KCCA, KTCCA, KGCCA, NCCA
-from cca_zoo.linear import MCCA, GCCA, TCCA
+
+from cca_zoo.linear import GCCA, MCCA, TCCA
+from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA, NCCA
 
 np.random.seed(1)
 X = np.random.normal(size=(100, 10))
