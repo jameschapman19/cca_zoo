@@ -45,7 +45,7 @@ trainer = pl.Trainer(
 )
 trainer.fit(dcca, train_loader, val_loader)
 plotter = Plotter()
-ax=plotter.plot_scores_multi(dcca.transform(val_loader), labels=val_labels)
+ax = plotter.plot_scores_multi(dcca.transform(val_loader), labels=val_labels)
 ax.fig.suptitle("Deep CCA")
 plt.show()
 
@@ -62,7 +62,7 @@ trainer = pl.Trainer(
 )
 trainer.fit(dcca_eg, train_loader, val_loader)
 plotter = Plotter()
-ax=plotter.plot_scores_multi(dcca_eg.transform(val_loader), labels=val_labels)
+ax = plotter.plot_scores_multi(dcca_eg.transform(val_loader), labels=val_labels)
 ax.fig.suptitle("Deep CCA EY")
 
 # %%
@@ -78,7 +78,7 @@ trainer = pl.Trainer(
 )
 trainer.fit(dcca_noi, train_loader, val_loader)
 plotter = Plotter()
-ax=plotter.plot_scores_multi(dcca_noi.transform(val_loader), labels=val_labels)
+ax = plotter.plot_scores_multi(dcca_noi.transform(val_loader), labels=val_labels)
 ax.fig.suptitle("Deep CCA by Non-Linear Orthogonal Iterations")
 plt.show()
 
@@ -95,7 +95,7 @@ trainer = pl.Trainer(
 )
 trainer.fit(dcca_sdl, train_loader, val_loader)
 plotter = Plotter()
-ax=plotter.plot_scores_multi(dcca_sdl.transform(val_loader), labels=val_labels)
+ax = plotter.plot_scores_multi(dcca_sdl.transform(val_loader), labels=val_labels)
 ax.fig.suptitle("Deep CCA by Stochastic Decorrelation Loss")
 
 # %%
@@ -111,6 +111,6 @@ trainer = pl.Trainer(
 )
 trainer.fit(barlowtwins, train_loader, val_loader)
 plotter = Plotter()
-ax=plotter.plot_scores_multi(barlowtwins.transform(val_loader), labels=val_labels)
+ax = plotter.plot_scores_multi(barlowtwins.transform(val_loader), labels=val_labels)
 ax.fig.suptitle("Deep CCA by Barlow Twins")
 plt.show()

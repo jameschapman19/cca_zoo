@@ -124,15 +124,12 @@ class AltMaxVarLoop(BaseLoop):
             R = scores.mean(axis=0)
         U, S, Vt = np.linalg.svd(R, full_matrices=False)
         G = U @ Vt
-        return G/np.sqrt(np.diag(np.atleast_1d(np.cov(G, rowvar=False))))
+        return G / np.sqrt(np.diag(np.atleast_1d(np.cov(G, rowvar=False))))
 
     def objective(self, views, scores, weights) -> int:
         least_squares = (np.linalg.norm(scores - self.G, axis=(1, 2)) ** 2).sum()
         regularization = np.array(
-            [
-                self.proximal_operators[view](weights[view])
-                for view in range(len(views))
-            ]
+            [self.proximal_operators[view](weights[view]) for view in range(len(views))]
         ).sum()
         return least_squares + regularization
 
@@ -146,9 +143,7 @@ class AltMaxVarLoop(BaseLoop):
             prev_weights = None
             converged = False
             while t < self.T and not converged:
-                grad = (
-                    view.T @ (view@self.weights[i] - self.G)/view.shape[0]
-                )
+                grad = view.T @ (view @ self.weights[i] - self.G) / view.shape[0]
                 # update the weights using the gradient descent and proximal operator
                 self.weights[i] -= self.learning_rate * grad
                 self.weights[i] = self.proximal_operators[i].prox(

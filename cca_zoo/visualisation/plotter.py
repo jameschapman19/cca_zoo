@@ -109,22 +109,22 @@ class Plotter:
         return axs
 
     def plot_scores_multi(
-            self,
-            scores,
-            labels=None,
-            title="",
-            axs=None,
-            **kwargs,
+        self,
+        scores,
+        labels=None,
+        title="",
+        axs=None,
+        **kwargs,
     ):
         if labels is None:
             labels = np.ones(scores[0].shape[0])
-        data = pd.DataFrame({'Label': labels})
-        data['Label'] = data['Label'].astype("category")
+        data = pd.DataFrame({"Label": labels})
+        data["Label"] = data["Label"].astype("category")
         x_vars = [f"view 1 projection {f + 1}" for f in range(scores[0].shape[1])]
         y_vars = [f"view 2 projection {f + 1}" for f in range(scores[1].shape[1])]
         data[x_vars] = scores[0]
         data[y_vars] = scores[1]
-        cca_pp = sns.pairplot(data, hue='Label', x_vars=x_vars, y_vars=y_vars)
+        cca_pp = sns.pairplot(data, hue="Label", x_vars=x_vars, y_vars=y_vars)
         cca_pp.fig.suptitle(title)
         # Return the axes object
         return cca_pp

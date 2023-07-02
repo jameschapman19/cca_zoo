@@ -5,11 +5,16 @@ import numpy as np
 import torch
 from sklearn.linear_model import ElasticNet, Lasso, Ridge, SGDRegressor
 
-from cca_zoo.linear._iterative._base import BaseLoop, BaseIterative, supress_device_warnings
+from cca_zoo.linear._iterative._base import (
+    BaseLoop,
+    BaseIterative,
+    supress_device_warnings,
+)
 from cca_zoo.linear._iterative._deflation import DeflationMixin
 from cca_zoo.utils import _process_parameter
 
 supress_device_warnings()
+
 
 class ElasticCCA(DeflationMixin, BaseIterative):
     r"""
@@ -172,9 +177,7 @@ class ElasticLoop(BaseLoop):
     def training_step(self, batch, batch_idx):
         scores = np.stack(self(batch["views"]))
         target = np.sum(scores, axis=0)
-        target /= np.sqrt(np.cov(
-            target
-        ))
+        target /= np.sqrt(np.cov(target))
         old_weights = self.weights.copy()
         # Update each view using loop update function
         for view_index, view in enumerate(batch["views"]):
@@ -204,9 +207,7 @@ class ElasticLoop(BaseLoop):
     def objective(self, views):
         scores = np.stack(self(views))
         target = np.sum(scores, axis=0)
-        target /= np.sqrt(np.cov(
-            target
-        ))
+        target /= np.sqrt(np.cov(target))
         objective = 0
         for view_index, view in enumerate(views):
             objective += elastic_objective(
@@ -273,9 +274,9 @@ class IPLSLoop(ElasticLoop):
             self.regressors[view_index] = self.regressors[view_index].fit(
                 batch["views"][view_index], target
             )
-            self.regressors[view_index].coef_ /= np.sqrt(np.cov(
-                view @ self.regressors[view_index].coef_
-            ))
+            self.regressors[view_index].coef_ /= np.sqrt(
+                np.cov(view @ self.regressors[view_index].coef_)
+            )
             self.weights[view_index] = self.regressors[view_index].coef_
             # if tracking or convergence_checking is enabled, compute the objective function
         if self.tracking or self.convergence_checking:
