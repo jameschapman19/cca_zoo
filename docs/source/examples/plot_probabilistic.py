@@ -92,8 +92,8 @@ Model
 
 pcca = ProbabilisticCCA(
     latent_dimensions=latent_dims,
-    num_samples=100,
-    num_warmup=100,
+    num_samples=250,
+    num_warmup=250,
     random_state=random_state
 )
 

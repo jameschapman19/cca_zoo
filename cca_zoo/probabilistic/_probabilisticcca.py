@@ -122,19 +122,19 @@ class ProbabilisticCCA(BaseModel):
     def _model(self, views: Iterable[np.ndarray]):
         n = views[0].shape[0]
         p = [view.shape[1] for view in views]
-        # Sample from the prior distribution of mu for each view
+        # parameter representing the mean of column in each view of data
         mu = [
             numpyro.sample(
                 "mu_" + str(i), dist.MultivariateNormal(0.0, 10 * jnp.eye(p_))
             )
             for i, p_ in enumerate(p)
         ]
-        # Sample from the prior distribution of psi for each view
+        # parameter representing the within view variance for each view of data
         psi = [
             numpyro.sample("psi_" + str(i), dist.LKJCholesky(p_))
             for i, p_ in enumerate(p)
         ]
-        # Sample from the prior distribution of W for each view
+        # parameter representing weights applied to latent variables
         with numpyro.plate("plate_views", self.latent_dimensions):
             self.weights_list = [
                 numpyro.sample(
@@ -144,15 +144,38 @@ class ProbabilisticCCA(BaseModel):
                 for i, p_ in enumerate(p)
             ]
         with numpyro.plate("plate_i", n):
-            # Sample from the prior distribution of z
-            z = numpyro.sample("z", dist.MultivariateNormal(0.0, jnp.eye(self.latent_dimensions)))
-            # Sample from the likelihood distribution of x_i for each view
-            for i, (p_, mu_, psi_, W_) in enumerate(zip(p, mu, psi, self.weights_list)):
+            # sample from latent z: the latent variables of the model
+            z = numpyro.sample(
+                "z",
+                dist.MultivariateNormal(
+                    0.0, jnp.diag(jnp.ones(self.latent_dimensions))
+                ),
+            )
+            # sample from multivariate normal and observe data
+            [
                 numpyro.sample(
-                    "x_" + str(i),
-                    dist.MultivariateNormal(W_ @ z + mu_, jnp.diag(psi_)),
-                    obs=views[i],
+                    "obs" + str(i),
+                    dist.MultivariateNormal((z @ W_) + mu_, scale_tril=psi_),
+                    obs=X_,
                 )
+                for i, (X_, psi_, mu_, W_) in enumerate(
+                    zip(views, psi, mu, self.weights_list)
+                )
+            ]
+
+
+    def transform(self, views: Iterable[np.ndarray], y=None, **kwargs):
+        """
+        Predict the latent variables that generate the data in views using the sampled model parameters
+
+        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        """
+        check_is_fitted(self, attributes=["posterior_samples"])
+        return Predictive(self._model, self.posterior_samples, return_sites=["z"])(
+            self.rng_key, views
+        )["z"]
+
+
 
     def _more_tags(self):
         return {"probabilistic": True}
