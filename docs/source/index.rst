@@ -14,11 +14,13 @@ Welcome to CCA-Zoo's documentation!
    usage/getting_started
    usage/user_guide
 
+
 .. toctree::
    :maxdepth: 2
    :caption: Examples
 
    auto_examples/index
+
 
 .. toctree::
    :maxdepth: 2
@@ -33,7 +35,6 @@ Welcome to CCA-Zoo's documentation!
    cca_zoo.probabilistic
    cca_zoo.data
    cca_zoo.visualisation
-
 
 
 .. toctree::
