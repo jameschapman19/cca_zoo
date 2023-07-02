@@ -1,3 +1,10 @@
+"""
+Sparse CCA Comparison
+===========================
+
+This example demonstrates how to easily train Sparse CCA variants
+"""
+
 # Import libraries
 import pandas as pd
 import numpy as np
