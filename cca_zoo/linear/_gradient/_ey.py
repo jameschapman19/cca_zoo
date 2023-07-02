@@ -88,7 +88,6 @@ class CCAEY(BaseIterative):
 
 
 class PLSEY(CCAEY, PLSMixin):
-
     def _get_module(self, weights=None, k=None):
         return EYLoop(
             weights=weights,
