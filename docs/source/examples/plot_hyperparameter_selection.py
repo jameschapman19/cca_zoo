@@ -82,4 +82,3 @@ kernel_reg = RandomizedSearchCV(
 
 # We print the results of the randomized search as a data frame
 print(pd.DataFrame(kernel_reg.cv_results_))
-
