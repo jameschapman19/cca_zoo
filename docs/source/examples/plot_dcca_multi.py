@@ -19,7 +19,7 @@ EPOCHS = 10
 N_TRAIN = 500
 N_VAL = 100
 
-train_loader, val_loader, train_labels = example_mnist_data(N_TRAIN, N_VAL)
+train_loader, val_loader, train_labels, val_labels = example_mnist_data(N_TRAIN, N_VAL)
 
 encoder_1 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=392)
 encoder_2 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=392)
