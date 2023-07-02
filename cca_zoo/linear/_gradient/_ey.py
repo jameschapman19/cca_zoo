@@ -44,7 +44,7 @@ class CCAEY(BaseIterative):
         batch_size=None,
         epochs=100,
         learning_rate=1e-1,
-        initialization: Union[str, callable] = "random",
+        initialization: Union[str, callable] = "uniform",
         dataloader_kwargs=None,
         optimizer_kwargs=None,
         convergence_checking=None,
@@ -88,65 +88,6 @@ class CCAEY(BaseIterative):
 
 
 class PLSEY(CCAEY, PLSMixin):
-    """
-    A class used to fit Regularized CCA by Delta-EigenGame
-
-    Parameters
-    ----------
-    latent_dimensions : int, optional
-        Number of latent dimensions to use, by default 1
-    copy_data : bool, optional
-        Whether to copy the data, by default True
-    random_state : int, optional
-        Random state to use, by default None
-    accept_sparse : bool, optional
-        Whether to accept sparse data, by default None
-    batch_size : int, optional
-        Batch size to use, by default 1
-    epochs : int, optional
-        Number of epochs to use, by default 1
-    learning_rate : float, optional
-        Learning rate to use, by default 0.01
-
-    References
-    ----------
-    Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A GeneralizedDeflation EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
-    """
-
-    def __init__(
-        self,
-        latent_dimensions: int = 1,
-        copy_data=True,
-        random_state=None,
-        tol=1e-9,
-        accept_sparse=None,
-        batch_size=None,
-        epochs=1,
-        learning_rate=1,
-        initialization: Union[str, callable] = "random",
-        dataloader_kwargs=None,
-        convergence_checking=False,
-        patience=10,
-        track=False,
-        verbose=False,
-    ):
-        super().__init__(
-            latent_dimensions=latent_dimensions,
-            copy_data=copy_data,
-            accept_sparse=accept_sparse,
-            random_state=random_state,
-            tol=tol,
-            batch_size=batch_size,
-            epochs=epochs,
-            learning_rate=learning_rate,
-            initialization=initialization,
-            dataloader_kwargs=dataloader_kwargs,
-            convergence_checking=convergence_checking,
-            patience=patience,
-            track=track,
-            verbose=verbose,
-        )
-        self.previous_views = None
 
     def _get_module(self, weights=None, k=None):
         return EYLoop(

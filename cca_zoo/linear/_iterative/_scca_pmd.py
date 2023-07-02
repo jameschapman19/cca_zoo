@@ -74,7 +74,7 @@ class SCCA_PMD(DeflationMixin, PLSMixin, BaseIterative):
         random_state=None,
         epochs=100,
         deflation="cca",
-        initialization="unregularized",
+        initialization="uniform",
         tol=1e-3,
         positive=False,
         tau=None,

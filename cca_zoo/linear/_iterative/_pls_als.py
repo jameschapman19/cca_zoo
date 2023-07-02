@@ -56,7 +56,7 @@ class PLS_ALS(PLSMixin, DeflationMixin, BaseIterative):
         epochs=100,
         val_split=None,
         learning_rate=1,
-        initialization: Union[str, callable] = "random",
+        initialization: Union[str, callable] = "uniform",
         callbacks=None,
     ):
         super().__init__(

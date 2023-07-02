@@ -55,7 +55,7 @@ class SCCA_Parkhomenko(DeflationMixin, PLSMixin, BaseIterative):
         random_state=None,
         deflation="cca",
         tau: Union[Iterable[float], float] = None,
-        initialization: Union[str, callable] = "unregularized",
+        initialization: Union[str, callable] = "uniform",
         tol: float = 1e-3,
         convergence_checking=False,
         patience=10,
