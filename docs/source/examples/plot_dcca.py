@@ -17,6 +17,7 @@ from cca_zoo.deep import (
     BarlowTwins,
     architectures,
 )
+from cca_zoo.visualisation import Plotter
 
 from docs.source.examples import example_mnist_data
 
@@ -28,7 +29,7 @@ EPOCHS = 10
 N_TRAIN = 500
 N_VAL = 100
 
-train_loader, val_loader, train_labels = example_mnist_data(N_TRAIN, N_VAL)
+train_loader, val_loader, train_labels, val_labels = example_mnist_data(N_TRAIN, N_VAL)
 
 encoder_1 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=392)
 encoder_2 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=392)
@@ -43,14 +44,16 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(dcca, train_loader, val_loader)
-pairplot_label(dcca.transform(train_loader), train_labels, title="DCCA")
+plotter = Plotter()
+ax=plotter.plot_scores_multi(dcca.transform(val_loader), labels=val_labels)
+ax.fig.suptitle("Deep CCA")
 plt.show()
 
 # %%
-# Deep CCA EigenGame
+# Deep CCA EY
 # ----------------------------
 dcca_eg = DCCA_EY(
-    latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2], lr=1e-5
+    latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2], lr=1e-3
 )
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
@@ -58,8 +61,9 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(dcca_eg, train_loader, val_loader)
-pairplot_label(dcca_eg.transform(train_loader), train_labels, title="DCCA-EigenGame")
-plt.show()
+plotter = Plotter()
+ax=plotter.plot_scores_multi(dcca_eg.transform(val_loader), labels=val_labels)
+ax.fig.suptitle("Deep CCA EY")
 
 # %%
 # Deep CCA by Non-Linear Orthogonal Iterations
@@ -73,11 +77,9 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(dcca_noi, train_loader, val_loader)
-pairplot_label(
-    dcca_noi.transform(train_loader),
-    train_labels,
-    title="DCCA by Non-Linear Orthogonal Iterations",
-)
+plotter = Plotter()
+ax=plotter.plot_scores_multi(dcca_noi.transform(val_loader), labels=val_labels)
+ax.fig.suptitle("Deep CCA by Non-Linear Orthogonal Iterations")
 plt.show()
 
 # %%
@@ -92,12 +94,9 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(dcca_sdl, train_loader, val_loader)
-pairplot_label(
-    dcca_sdl.transform(train_loader),
-    train_labels,
-    title="DCCA by Stochastic Decorrelation",
-)
-plt.show()
+plotter = Plotter()
+ax=plotter.plot_scores_multi(dcca_sdl.transform(val_loader), labels=val_labels)
+ax.fig.suptitle("Deep CCA by Stochastic Decorrelation Loss")
 
 # %%
 # Deep CCA by Barlow Twins
@@ -111,7 +110,7 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(barlowtwins, train_loader, val_loader)
-pairplot_label(
-    barlowtwins.transform(train_loader), train_labels, title="DCCA by Barlow Twins"
-)
+plotter = Plotter()
+ax=plotter.plot_scores_multi(barlowtwins.transform(val_loader), labels=val_labels)
+ax.fig.suptitle("Deep CCA by Barlow Twins")
 plt.show()

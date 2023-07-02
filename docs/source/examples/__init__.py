@@ -22,4 +22,7 @@ def example_mnist_data(n_train, n_val, batch_size=50, val_batch_size=10, type="s
     train_labels = train_loader.collate_fn(
         [train_dataset.dataset[idx]["label"] for idx in train_dataset.indices]
     ).numpy()
-    return train_loader, val_loader, train_labels
+    val_labels = val_loader.collate_fn(
+        [val_dataset.dataset[idx]["label"] for idx in val_dataset.indices]
+    ).numpy()
+    return train_loader, val_loader, train_labels, val_labels

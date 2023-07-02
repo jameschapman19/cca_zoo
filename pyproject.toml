@@ -9,7 +9,7 @@ homepage = "https://github.com/jameschapman19/cca_zoo"
 keywords = ["cca"]
 
 [tool.poetry.dependencies]
-python = ">=3.8"
+python = ">=3.8,<4.0.0"
 numpy = "*"
 scipy = "*"
 scikit-learn = "*"
