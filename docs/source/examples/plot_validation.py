@@ -6,52 +6,61 @@ This script will show how to use the model validation methods in CCA-Zoo includi
 permutation testing, learning curves, and cross-validation.
 """
 
+# %%
+# Import libraries
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.model_selection import ShuffleSplit
 
 from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.linear import CCA
+from cca_zoo.model_selection import learning_curve, permutation_test_score
 
 # %%
 # Data
 # ------
+# We set the random seed for reproducibility
 np.random.seed(42)
+
+# We generate a linear dataset with 200 samples, 15 features per view,
+# 3 latent dimensions and different correlations between the views
 n = 200
 p = 15
 q = 15
 latent_dims = 3
+correlations = [0.9, 0.5, 0.1]
 
 (X, Y) = LinearSimulatedData(
-    view_features=[p, q], latent_dims=latent_dims, correlation=[0.9, 0.5, 0.1]
+    view_features=[p, q], latent_dims=latent_dims, correlation=correlations
 ).sample(n)
 
 # %%
 # Permutation Testing
 # -------------------
-
-from sklearn.model_selection import KFold, ShuffleSplit
-
-from cca_zoo.model_selection import learning_curve, permutation_test_score
-
-LATENT_DIMS = 3
-model = CCA(latent_dimensions=LATENT_DIMS)
+# Permutation testing is a way to assess the significance of the model performance by comparing it with the performance on permuted data.
+# We use a CCA model with 3 latent dimensions and a 2-fold cross-validation scheme.
+model = CCA(latent_dimensions=latent_dims)
 cv = KFold(2, shuffle=True, random_state=0)
+
+# We use permutation_test_score to compute the score on the original data and on 100 permutations of the data.
 score, perm_scores, pvalue = permutation_test_score(
     model, (X, Y), cv=cv, n_permutations=100
 )
 
 # %%
-fig, ax = plt.subplots(LATENT_DIMS, figsize=[12, 8])
-for k in range(LATENT_DIMS):
+# We plot the histogram of the permuted scores and the score on the original data for each dimension.
+fig, ax = plt.subplots(latent_dims, figsize=[12, 8])
+for k in range(latent_dims):
     ax[k].hist(perm_scores[k])
     ax[k].axvline(score[k], ls="--", color="r")
     score_label = f"Score on original\ndata: {score[k]:.2f}\n(p-value: {pvalue[k]:.3f})"
-    ax[k].text(0, 0.5, score_label, fontsize=12)
+    ax[k].text(0.05, 0.8, score_label, fontsize=12, transform=ax[k].transAxes)
     ax[k].set_xlabel("Correlation")
-    _ = ax[k].set_ylabel("Probability")
+    _ = ax[k].set_ylabel("Frequency")
     ax[k].set_title(f"Dimension {k + 1}")
 plt.tight_layout()
 plt.show()
+
 
 # %%
 # Learning Curves
