@@ -21,13 +21,19 @@ Welcome to CCA-Zoo's documentation!
    auto_examples/index
 
 .. toctree::
-   :maxdepth: 3
-   :caption: API
+   :maxdepth: 2
+   :caption: API Reference
 
-   .. automodule:: cca_zoo
-      :members:
-      :undoc-members:
-      :show-inheritance:
+.. autosummary::
+   :toctree: _autosummary
+
+   cca_zoo.linear
+   cca_zoo.nonparametric
+   cca_zoo.deep
+   cca_zoo.probabilistic
+   cca_zoo.data
+   cca_zoo.visualisation
+
 
 
 .. toctree::

@@ -4,12 +4,13 @@ import warnings
 import numpy as np
 import torch
 
-from cca_zoo.linear._iterative._base import BaseLoop, BaseIterative
+from cca_zoo.linear._iterative._base import BaseLoop, BaseIterative, supress_device_warnings
 from cca_zoo.linear._iterative._deflation import DeflationMixin
 from cca_zoo.linear._pls import PLSMixin
 from cca_zoo.linear._search import _delta_search
 from cca_zoo.utils import _process_parameter
 
+supress_device_warnings()
 
 class SCCA_PMD(DeflationMixin, PLSMixin, BaseIterative):
     r"""

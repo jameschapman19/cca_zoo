@@ -29,8 +29,8 @@ extensions = [
 ]
 
 templates_path = ['_templates']
-exclude_patterns = []
-
+autosummary_generate = True
+exclude_patterns = ['_build', '_templates']
 
 
 # -- Options for HTML output -------------------------------------------------

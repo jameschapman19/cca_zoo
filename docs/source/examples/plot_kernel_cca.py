@@ -29,7 +29,7 @@ cv = 3
 
 # %%
 # Custom Kernel
-def my_kernel(X, Y, param=0):
+def my_kernel(X, Y, param=0, **kwargs):
     """
     We create a custom kernel:
 
@@ -82,7 +82,7 @@ kernel_poly = (
 
 # %%
 # Custom Kernel
-def my_kernel(X, Y, param=0):
+def my_kernel(X, Y, param=0, **kwargs):
     """
     We create a custom kernel:
 

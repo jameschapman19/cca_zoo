@@ -5,10 +5,11 @@ import numpy as np
 import torch
 from sklearn.linear_model import ElasticNet, Lasso, Ridge, SGDRegressor
 
-from cca_zoo.linear._iterative._base import BaseLoop, BaseIterative
+from cca_zoo.linear._iterative._base import BaseLoop, BaseIterative, supress_device_warnings
 from cca_zoo.linear._iterative._deflation import DeflationMixin
 from cca_zoo.utils import _process_parameter
 
+supress_device_warnings()
 
 class ElasticCCA(DeflationMixin, BaseIterative):
     r"""
@@ -70,7 +71,7 @@ class ElasticCCA(DeflationMixin, BaseIterative):
         random_state=None,
         epochs: int = 100,
         deflation="cca",
-        initialization: Union[str, callable] = "pls",
+        initialization: Union[str, callable] = "uniform",
         tol: float = 1e-3,
         alpha: Union[Iterable[float], float] = None,
         l1_ratio: Union[Iterable[float], float] = None,
@@ -168,22 +169,15 @@ class ElasticLoop(BaseLoop):
             self.regressors[view_index].coef_ = weight[:, 0]
             self.regressors[view_index].intercept_ = 0
 
-    def forward(self, views: list) -> list:
-        scores = []
-        for view_index, view in enumerate(views):
-            scores.append(self.regressors[view_index].predict(view))
-        return scores
-
     def training_step(self, batch, batch_idx):
         scores = np.stack(self(batch["views"]))
+        target = np.sum(scores, axis=0)
+        target /= np.sqrt(np.cov(
+            target
+        ))
         old_weights = self.weights.copy()
         # Update each view using loop update function
         for view_index, view in enumerate(batch["views"]):
-            # create a mask that is True for elements not equal to k along dim k
-            mask = np.arange(scores.shape[0]) != view_index
-            # apply the mask to scores and sum along dim k
-            target = np.sum(scores[mask], axis=0)
-            target /= np.linalg.norm(target) / np.sqrt(self.n_samples_)
             # Solve the elastic regression
             self.regressors[view_index] = self.regressors[view_index].fit(
                 batch["views"][view_index], target
@@ -209,17 +203,16 @@ class ElasticLoop(BaseLoop):
 
     def objective(self, views):
         scores = np.stack(self(views))
+        target = np.sum(scores, axis=0)
+        target /= np.sqrt(np.cov(
+            target
+        ))
         objective = 0
         for view_index, view in enumerate(views):
-            # create a mask that is True for elements not equal to k along dim k
-            mask = np.arange(scores.shape[0]) != view_index
-            # apply the mask to scores and sum along dim k
-            target = np.sum(scores[mask], axis=0)
-            target /= np.linalg.norm(target) / np.sqrt(self.n_samples_)
             objective += elastic_objective(
-                view,
-                self.regressors[view_index].coef_,
+                scores[view_index],
                 target,
+                self.regressors[view_index].coef_,
                 self.alpha[view_index],
                 self.l1_ratio[view_index],
             )
@@ -261,15 +254,17 @@ class SCCA_IPLS(ElasticCCA):
             positive=self.positive,
             tol=self.tol,
             random_state=self.random_state,
+            tracking=self.track,
+            convergence_checking=self.convergence_checking,
         )
 
 
 class IPLSLoop(ElasticLoop):
     def training_step(self, batch, batch_idx):
-        scores = np.stack(self(batch["views"]))
         old_weights = self.weights.copy()
         # Update each view using loop update function
         for view_index, view in enumerate(batch["views"]):
+            scores = np.stack(self(batch["views"]))
             # create a mask that is True for elements not equal to k along dim k
             mask = np.arange(scores.shape[0]) != view_index
             # apply the mask to scores and sum along dim k
@@ -278,48 +273,45 @@ class IPLSLoop(ElasticLoop):
             self.regressors[view_index] = self.regressors[view_index].fit(
                 batch["views"][view_index], target
             )
-            self.regressors[view_index].coef_ /= np.linalg.norm(
+            self.regressors[view_index].coef_ /= np.sqrt(np.cov(
                 view @ self.regressors[view_index].coef_
-            ) / np.sqrt(self.n_samples_)
+            ))
             self.weights[view_index] = self.regressors[view_index].coef_
             # if tracking or convergence_checking is enabled, compute the objective function
-            if self.tracking or self.convergence_checking:
-                objective = self.objective(batch["views"])
-                # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights
-                weights_change = torch.tensor(
-                    np.max(
-                        [
-                            np.max(np.abs(old_weights[i] - self.weights[i]))
-                            / np.max(np.abs(self.weights[i]))
-                            for i in range(len(self.weights))
-                        ]
-                    )
+        if self.tracking or self.convergence_checking:
+            objective = self.objective(batch["views"])
+            # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights
+            weights_change = torch.tensor(
+                np.max(
+                    [
+                        np.max(np.abs(old_weights[i] - self.weights[i]))
+                        / np.max(np.abs(self.weights[i]))
+                        for i in range(len(self.weights))
+                    ]
                 )
-                return {"loss": objective, "weights_change": weights_change}
+            )
+            return {"loss": torch.tensor(objective), "weights_change": weights_change}
 
     def objective(self, views):
         scores = np.stack(self(views))
-
         objective = 0
         for view_index, view in enumerate(views):
             # create a mask that is True for elements not equal to k along dim k
             mask = np.arange(scores.shape[0]) != view_index
             # apply the mask to scores and sum along dim k
             target = np.sum(scores[mask], axis=0)
-            target /= np.linalg.norm(target) / np.sqrt(self.n_samples_)
             objective += elastic_objective(
-                view,
-                self.regressors[view_index].coef_,
+                scores[view_index],
                 target,
+                self.regressors[view_index].coef_,
                 self.alpha[view_index],
                 self.l1_ratio[view_index],
             )
-        return {"loss": torch.tensor(objective)}
+        return objective
 
 
-def elastic_objective(x, w, y, alpha, l1_ratio):
+def elastic_objective(z, y, w, alpha, l1_ratio):
     n = len(y)
-    z = x @ w
     objective = np.linalg.norm(z - y) ** 2 / (2 * n)
     l1_pen = alpha * l1_ratio * np.linalg.norm(w, ord=1)
     l2_pen = alpha * (1 - l1_ratio) * np.linalg.norm(w, ord=2)

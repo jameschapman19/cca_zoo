@@ -3,6 +3,7 @@ from typing import Iterable, List, Optional, Union, Any
 
 import numpy as np
 import pytorch_lightning as pl
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks import Callback, EarlyStopping
 from torch.utils import data
 from torch.utils.data import DataLoader
@@ -14,6 +15,16 @@ from cca_zoo.linear._mcca import MCCA
 from cca_zoo._base import BaseModel
 from cca_zoo.linear._dummy import DummyCCA, DummyPLS
 import torch
+
+# filter warnings from pytorch_lightning
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=PossibleUserWarning)
+
+def supress_device_warnings():
+    import logging
+    rank_zero_logger = logging.getLogger('pytorch_lightning.utilities.rank_zero')
+    rank_zero_logger.disabled = True
 
 # Default Trainer kwargs
 DEFAULT_TRAINER_KWARGS = dict(

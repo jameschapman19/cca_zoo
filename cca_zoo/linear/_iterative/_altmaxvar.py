@@ -17,10 +17,11 @@ class AltMaxVar(BaseIterative):
         tol=1e-3,
         proximal="L1",
         positive=False,
+        initialization="uniform",
         tau: Union[Iterable[float], float] = None,
         proximal_params: Iterable[dict] = None,
         gamma=0.1,
-        learning_rate=0.1,
+        learning_rate=1e-2,
         T=100,
         trainer_kwargs=None,
         convergence_checking=None,
@@ -37,6 +38,7 @@ class AltMaxVar(BaseIterative):
             track=track,
             verbose=verbose,
             trainer_kwargs=trainer_kwargs,
+            initialization=initialization,
         )
         self.tau = tau
         self.proximal = proximal
@@ -95,7 +97,7 @@ class AltMaxVarLoop(BaseLoop):
         gamma=0.1,
         T=100,
         proximal_operators=None,
-        learning_rate=0.1,
+        learning_rate=1e-3,
         convergence_checking=None,
         track=None,
     ):
@@ -122,14 +124,14 @@ class AltMaxVarLoop(BaseLoop):
             R = scores.mean(axis=0)
         U, S, Vt = np.linalg.svd(R, full_matrices=False)
         G = U @ Vt
-        return G
+        return G/np.sqrt(np.diag(np.atleast_1d(np.cov(G, rowvar=False))))
 
     def objective(self, views, scores, weights) -> int:
         least_squares = (np.linalg.norm(scores - self.G, axis=(1, 2)) ** 2).sum()
         regularization = np.array(
             [
                 self.proximal_operators[view](weights[view])
-                for view in range(self.n_views)
+                for view in range(len(views))
             ]
         ).sum()
         return least_squares + regularization
@@ -137,17 +139,18 @@ class AltMaxVarLoop(BaseLoop):
     def training_step(self, batch, batch_idx):
         scores = np.stack(self(batch["views"]))
         self.G = self._get_target(scores)
-        converged = False
+        old_weights = self.weights.copy()
         for i, view in enumerate(batch["views"]):
             view = view.detach().numpy()
             t = 0
-            # initialize the previous weights to None
             prev_weights = None
+            converged = False
             while t < self.T and not converged:
-                # update the weights using the gradient descent and proximal operator
-                self.weights[i] -= self.learning_rate * (
-                    view.T @ (view @ self.weights[i] - self.G)
+                grad = (
+                    view.T @ (view@self.weights[i] - self.G)/view.shape[0]
                 )
+                # update the weights using the gradient descent and proximal operator
+                self.weights[i] -= self.learning_rate * grad
                 self.weights[i] = self.proximal_operators[i].prox(
                     self.weights[i], self.learning_rate
                 )
@@ -157,16 +160,24 @@ class AltMaxVarLoop(BaseLoop):
                 ):
                     # if yes, set converged to True and break the loop
                     converged = True
-                    break
                 # update the previous weights for the next iteration
-                prev_weights = self.weights[i]
+                prev_weights = self.weights[i].copy()
                 t += 1
 
         # if track or convergence_checking is enabled, compute the objective function
         if self.tracking or self.convergence_checking:
-            objective = self.objective(batch["views"])
-
-            return {"loss": torch.tensor(objective)}
+            objective = self.objective(batch["views"], scores, self.weights)
+            # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights
+            weights_change = torch.tensor(
+                np.max(
+                    [
+                        np.max(np.abs(old_weights[i] - self.weights[i]))
+                        / np.max(np.abs(self.weights[i]))
+                        for i in range(len(self.weights))
+                    ]
+                )
+            )
+            return {"loss": torch.tensor(objective), "weights_change": weights_change}
 
 
 from pyproximal import (

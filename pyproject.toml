@@ -24,7 +24,7 @@ torch = [
      {version = "^2.0.1", platform = "darwin"},
      {version = "^2.0.1", platform = "linux", source = "torch"},
      {version = "^2.0.1", platform = "win32", source = "torch"}, ]
-pytorch-lightning = "*"
+lightning = "*"
 pyproximal = "*"
 
 [[tool.poetry.source]]
