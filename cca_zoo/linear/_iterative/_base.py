@@ -18,13 +18,17 @@ import torch
 
 # filter warnings from pytorch_lightning
 import warnings
+
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=PossibleUserWarning)
 
+
 def supress_device_warnings():
     import logging
-    rank_zero_logger = logging.getLogger('pytorch_lightning.utilities.rank_zero')
+
+    rank_zero_logger = logging.getLogger("pytorch_lightning.utilities.rank_zero")
     rank_zero_logger.disabled = True
+
 
 # Default Trainer kwargs
 DEFAULT_TRAINER_KWARGS = dict(

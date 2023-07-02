@@ -44,13 +44,13 @@ def _delta_search(w, c):
     # bound x to be between 0 and 1
 
     # try some different methods until one gets result.success == True
-    result = minimize(f, x0=0, bounds=[(0, 1)], method='L-BFGS-B')
+    result = minimize(f, x0=0, bounds=[(0, 1)], method="L-BFGS-B")
     if not result.success:
-        result = minimize(f, x0=0, bounds=[(0, 1)], method='TNC')
+        result = minimize(f, x0=0, bounds=[(0, 1)], method="TNC")
     if not result.success:
-        result = minimize(f, x0=0, bounds=[(0, 1)], method='SLSQP')
+        result = minimize(f, x0=0, bounds=[(0, 1)], method="SLSQP")
     if not result.success:
-        result = minimize(f, x0=0, bounds=[(0, 1)], method='trust-constr')
+        result = minimize(f, x0=0, bounds=[(0, 1)], method="trust-constr")
 
     # Check if the solution is valid and converged
     if result.success:

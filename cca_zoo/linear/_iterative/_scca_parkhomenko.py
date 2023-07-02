@@ -1,11 +1,17 @@
 from typing import Iterable, Union
 import numpy as np
-from cca_zoo.linear._iterative._base import BaseLoop, BaseIterative, supress_device_warnings
+from cca_zoo.linear._iterative._base import (
+    BaseLoop,
+    BaseIterative,
+    supress_device_warnings,
+)
 from cca_zoo.linear._iterative._deflation import DeflationMixin
 from cca_zoo.linear._pls import PLSMixin
 from cca_zoo.utils import _process_parameter
 
 supress_device_warnings()
+
+
 class SCCA_Parkhomenko(DeflationMixin, PLSMixin, BaseIterative):
     r"""
     A class used to fit a sparse CCA (penalized CCA) model for two or more views.
