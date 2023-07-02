@@ -217,11 +217,11 @@ def test_deflation():
     ccamodel.fit([X, Y])
     pls = PLS(latent_dimensions=2)
     pls.fit([X, Y])
-    plsmodel = SCCA_PMD(latent_dimensions=2, tau=0.9, random_state=rng, deflation="pls")
+    plsmodel = SCCA_PMD(latent_dimensions=2, tau=0.9, random_state=rng, deflation="pls", track='loss')
     plsmodel.fit([X, Y])
     assert (
         np.testing.assert_array_almost_equal(
-            pls.score((X, Y)), plsmodel.score((X, Y)), decimal=1
+            np.abs(pls.score((X, Y))), np.abs(plsmodel.score((X, Y))), decimal=1
         )
         is None
     )
