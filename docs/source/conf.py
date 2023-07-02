@@ -72,3 +72,8 @@ autosummary_generate = True
 # a list of builtin themes.
 #
 html_theme = "sphinx_rtd_theme"
+html_logo = "cca-zoo-logo.jpg"
+html_theme_options = {
+    'logo_only': True,
+    'display_version': False,
+}

@@ -6,6 +6,8 @@
 [![downloads](https://img.shields.io/pypi/dm/cca-zoo)](https://pypi.org/project/cca-zoo/)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.03823/status.svg)](https://doi.org/10.21105/joss.03823)
 
+![CCA-Zoo Logo](docs/source/cca-zoo-logo.jpg)
+
 # CCA-Zoo
 
 `cca-zoo` is a collection of linear, kernel, and deep methods for canonical correlation analysis of multiview data.
