@@ -44,7 +44,7 @@ class CCAEY(BaseIterative):
         batch_size=None,
         epochs=100,
         learning_rate=1e-1,
-        initialization: Union[str, callable] = "uniform",
+        initialization: Union[str, callable] = "random",
         dataloader_kwargs=None,
         optimizer_kwargs=None,
         convergence_checking=None,
