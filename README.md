@@ -1,3 +1,5 @@
+<div align="center">
+
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5748062.svg)](https://doi.org/10.5281/zenodo.4382739)
 [![codecov](https://codecov.io/gh/jameschapman19/cca_zoo/branch/main/graph/badge.svg?token=JHG9VUB0L8)](https://codecov.io/gh/jameschapman19/cca_zoo)
 ![Build Status](https://github.com/jameschapman19/cca_zoo/actions/workflows/changes.yml/badge.svg)
@@ -10,9 +12,19 @@
 
 # CCA-Zoo
 
+</div>
+
 `cca-zoo` is a collection of linear, kernel, and deep methods for canonical correlation analysis of multiview data.
 Where possible it follows the `scikit-learn`/`mvlearn` APIs and models therefore have `fit`/`transform`/`fit_transform`
 methods as standard.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Documentation](#documentation)
+- [Citation](#citation)
+- [Contributions](#contributions)
+- [Sources](#sources)
 
 ## Installation
 
