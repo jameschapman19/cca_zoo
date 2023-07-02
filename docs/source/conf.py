@@ -73,6 +73,7 @@ autosummary_generate = True
 #
 html_theme = "sphinx_rtd_theme"
 html_logo = "cca-zoo-logo.jpg"
+html_favicon = "cca-zoo-logo.jpg"
 html_theme_options = {
     "logo_only": True,
     "display_version": False,

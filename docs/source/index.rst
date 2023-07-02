@@ -7,7 +7,7 @@ Welcome to CCA-Zoo's documentation!
 ===================================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Using cca-zoo
 
    usage/install
