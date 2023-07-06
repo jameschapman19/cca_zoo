@@ -33,9 +33,10 @@ class GradientLoop(BaseLoop):
     def configure_optimizers(self):
         # construct optimizer using optimizer_kwargs
         optimizer_name = self.optimizer_kwargs.get("optimizer", "Adam")
-        optimizer_kwargs = self.optimizer_kwargs.get("optimizer_kwargs", {})
+        kwargs = self.optimizer_kwargs.copy()
+        kwargs.pop("optimizer", None)
         optimizer = getattr(torch.optim, optimizer_name)(
-            self.weights, lr=self.learning_rate, **optimizer_kwargs
+            self.weights, lr=self.learning_rate, **kwargs
         )
         return optimizer
 

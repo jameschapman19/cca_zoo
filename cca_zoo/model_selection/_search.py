@@ -14,7 +14,9 @@ import numpy as np
 from mvlearn.compose import SimpleSplitter
 from sklearn import clone
 from sklearn.model_selection import ParameterGrid
-from sklearn.model_selection._search import BaseSearchCV, ParameterSampler
+from sklearn.model_selection._search import ParameterSampler
+from sklearn.model_selection._search import GridSearchCV as GridSearchCV_sklearn
+from sklearn.model_selection._search import RandomizedSearchCV as RandomizedSearchCV_sklearn
 from sklearn.pipeline import Pipeline
 from sklearn.utils import check_random_state
 
@@ -130,68 +132,14 @@ class ParameterSampler_(ParameterSampler):
         return self.n_iter
 
 
-class GridSearchCV(BaseSearchCV):
-    """
-
-    :Example:
-    >>> from cca_zoo.model_selection import GridSearchCV
-    >>> from cca_zoo.linear import MCCA
-    >>> X1 = [[0, 0, 1], [1, 0, 0], [2, 2, 2], [3, 5, 4]]
-    >>> X2 = [[0.1, -0.2], [0.9, 1.1], [6.2, 5.9], [11.9, 12.3]]
-    >>> X3 = [[0, 1, 0], [1, 9, 0], [4, 3, 3,], [12, 8, 10]]
-    >>> model = MCCA()
-    >>> params = {'c': [[0.1, 0.2], [0.3, 0.4], 0.1]}
-    >>> GridSearchCV(model,param_grid=params, cv=3).fit([X1,X2,X3]).best_estimator_.c
-    [0.1, 0.3, 0.1]
-
-    :Notes:
-
-    The parameters selected are those that maximize the score of the left out
-    data, unless an explicit score is passed in which case it is used instead.
-    If `n_jobs` was set to a value higher than one, the data is copied for each
-    point in the grid (and not `n_jobs` times). This is done for efficiency
-    reasons if individual jobs take very little time, but may raise errors if
-    the dataset is large and not enough memory is available.  A workaround in
-    this case is to set `pre_dispatch`. Then, the memory is copied only
-    `pre_dispatch` many times. A reasonable value for `pre_dispatch` is `2 *
-    n_jobs`.
-    """
-
-    _required_parameters = ["estimator", "param_grid"]
-
-    def __init__(
-        self,
-        estimator,
-        param_grid,
-        *,
-        scoring=None,
-        n_jobs=None,
-        refit=True,
-        cv=None,
-        verbose=0,
-        pre_dispatch="2*n_jobs",
-        error_score=np.nan,
-        return_train_score=False,
-    ):
-        super().__init__(
-            estimator=estimator,
-            scoring=scoring,
-            n_jobs=n_jobs,
-            refit=refit,
-            cv=cv,
-            verbose=verbose,
-            pre_dispatch=pre_dispatch,
-            error_score=error_score,
-            return_train_score=return_train_score,
-        )
-        if not isinstance(param_grid, ParameterGrid):
-            self.param_grid = param2grid(param_grid)
-        else:
-            self.param_grid = param_grid
+class GridSearchCV(GridSearchCV_sklearn):
 
     def _run_search(self, evaluate_candidates):
         """Search all candidates in param_grid"""
-        param_grid = self.param_grid
+        if not isinstance(self.param_grid, ParameterGrid):
+            param_grid = param2grid(self.param_grid)
+        else:
+            param_grid = self.param_grid
         param_grid.param_grid = [
             {f"estimator__{key}": val for key, val in subgrid.items()}
             for subgrid in param_grid.param_grid
@@ -205,81 +153,20 @@ class GridSearchCV(BaseSearchCV):
                 ("estimator", clone(self.estimator)),
             ]
         )
-        self = BaseSearchCV.fit(self, np.hstack(X), y=y, groups=groups, **fit_params)
+        super().fit(np.hstack(X), y=y, groups=groups, **fit_params)
         self.best_estimator_ = self.best_estimator_["estimator"]
         self.best_params_ = {
-            key[len("estimator__") :]: val for key, val in self.best_params_.items()
+            key[len("estimator__"):]: val for key, val in self.best_params_.items()
         }
         return self
 
 
-class RandomizedSearchCV(BaseSearchCV):
-    """
-
-    :Example:
-    >>> from cca_zoo.model_selection import RandomizedSearchCV
-    >>> from cca_zoo.linear import MCCA
-    >>> from sklearn._utils.fixes import loguniform
-    >>> X1 = [[0, 0, 1], [1, 0, 0], [2, 2, 2], [3, 5, 4]]
-    >>> X2 = [[0.1, -0.2], [0.9, 1.1], [6.2, 5.9], [11.9, 12.3]]
-    >>> X3 = [[0, 1, 0], [1, 9, 0], [4, 3, 3,], [12, 8, 10]]
-    >>> model = MCCA()
-    >>> params = {'c': [loguniform(1e-4, 1e0), loguniform(1e-4, 1e0), [0.1]]}
-    >>> def scorer(estimator, views):
-    ...    scores = estimator.score(views)
-    ...    return np.mean(scores)
-    >>> RandomizedSearchCV(model,param_distributions=params, cv=3, scoring=scorer,n_iter=10).fit([X1,X2,X3]).n_iter
-    10
-
-    :Notes:
-
-    The parameters selected are those that maximize the score of the held-out
-    data, according to the scoring parameter.
-    If `n_jobs` was set to a value higher than one, the data is copied for each
-    parameter setting(and not `n_jobs` times). This is done for efficiency
-    reasons if individual jobs take very little time, but may raise errors if
-    the dataset is large and not enough memory is available.  A workaround in
-    this case is to set `pre_dispatch`. Then, the memory is copied only
-    `pre_dispatch` many times. A reasonable value for `pre_dispatch` is `2 *
-    n_jobs`.
-    """
-
-    _required_parameters = ["estimator", "param_distributions"]
-
-    def __init__(
-        self,
-        estimator,
-        param_distributions,
-        *,
-        n_iter=10,
-        scoring=None,
-        n_jobs=None,
-        refit=True,
-        cv=None,
-        verbose=0,
-        pre_dispatch="2*n_jobs",
-        random_state=None,
-        error_score=np.nan,
-        return_train_score=False,
-    ):
-        self.param_distributions = {
-            f"estimator__{key}": val for key, val in param_distributions.items()
-        }
-        self.n_iter = n_iter
-        self.random_state = random_state
-        super().__init__(
-            estimator=estimator,
-            scoring=scoring,
-            n_jobs=n_jobs,
-            refit=refit,
-            cv=cv,
-            verbose=verbose,
-            pre_dispatch=pre_dispatch,
-            error_score=error_score,
-            return_train_score=return_train_score,
-        )
+class RandomizedSearchCV(RandomizedSearchCV_sklearn):
 
     def _run_search(self, evaluate_candidates):
+        self.param_distributions = {
+            f"estimator__{key}": val for key, val in self.param_distributions.items()
+        }
         """Search n_iter candidates from param_distributions"""
         evaluate_candidates(
             ParameterSampler_(
@@ -289,14 +176,14 @@ class RandomizedSearchCV(BaseSearchCV):
 
     def fit(self, X, y=None, *, groups=None, **fit_params):
         self.estimator = Pipeline(
-            [
-                ("splitter", SimpleSplitter([X_.shape[1] for X_ in X])),
-                ("estimator", clone(self.estimator)),
-            ]
+        [
+            ("splitter", SimpleSplitter([X_.shape[1] for X_ in X])),
+            ("estimator", clone(self.estimator)),
+        ]
         )
-        self = BaseSearchCV.fit(self, np.hstack(X), y=y, groups=groups, **fit_params)
+        super().fit(np.hstack(X), y=y, groups=groups, **fit_params)
         self.best_estimator_ = self.best_estimator_["estimator"]
         self.best_params_ = {
-            key[len("estimator__") :]: val for key, val in self.best_params_.items()
+            key[len("estimator__"):]: val for key, val in self.best_params_.items()
         }
         return self

@@ -1,5 +1,9 @@
 <div align="center">
 
+<img src="docs/source/cca-zoo-logo.jpg" alt="drawing" width="200"/>
+
+# CCA-Zoo
+
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5748062.svg)](https://doi.org/10.5281/zenodo.4382739)
 [![codecov](https://codecov.io/gh/jameschapman19/cca_zoo/branch/main/graph/badge.svg?token=JHG9VUB0L8)](https://codecov.io/gh/jameschapman19/cca_zoo)
 ![Build Status](https://github.com/jameschapman19/cca_zoo/actions/workflows/changes.yml/badge.svg)
@@ -8,9 +12,6 @@
 [![downloads](https://img.shields.io/pypi/dm/cca-zoo)](https://pypi.org/project/cca-zoo/)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.03823/status.svg)](https://doi.org/10.21105/joss.03823)
 
-<img src="docs/source/cca-zoo-logo.jpg" alt="drawing" width="200"/>
-
-# CCA-Zoo
 
 </div>
 

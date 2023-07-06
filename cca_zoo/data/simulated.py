@@ -54,6 +54,11 @@ class LinearSimulatedData:
         elif view_structure == "random":
             # Use a random positive definite matrix as the covariance matrix
             cov = make_spd_matrix(view_features)
+        # scale variance in each dimension to 1 while keeping the covariance matrix positive definite. Multiply rows by inverse of
+        # square root of diagonal matrix of eigenvalues and multiply columns by square root of diagonal matrix of eigenvalues
+        var = np.diag(cov)
+        cov = cov / np.sqrt(var)
+        cov = cov.T / np.sqrt(var)
         return cov
 
     def _generate_joint_covariance(self, covs):
