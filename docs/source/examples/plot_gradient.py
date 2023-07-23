@@ -39,9 +39,7 @@ correlation = 0.9
 
 # We split the data into train and test sets with a ratio of 0.8
 train_ratio = 0.8
-train_idx = np.random.choice(
-    np.arange(n), size=int(train_ratio * n), replace=False
-)
+train_idx = np.random.choice(np.arange(n), size=int(train_ratio * n), replace=False)
 test_idx = np.setdiff1d(np.arange(n), train_idx)
 
 X_train = X[train_idx]
@@ -84,7 +82,7 @@ plt.show()
 # CCAEY with different batch sizes
 # --------------------------------
 # We create a list of batch sizes to try out
-batch_sizes = [200,100, 50, 20, 10]
+batch_sizes = [200, 100, 50, 20, 10]
 
 # We loop over the batch sizes and create a CCAEY object for each one
 for batch_size in batch_sizes:
@@ -118,7 +116,9 @@ for batch_size in batch_sizes:
     plt.scatter(X_test_ccae[:, 0], Y_test_ccae[:, 0], c="r", label="Test")
     plt.xlabel("X latent")
     plt.ylabel("Y latent")
-    plt.title(f"CCAEY (Batch size: {batch_size}, Corr: {ccaey_corr:.2f}, Time: {elapsed_time:.2f} s)")
+    plt.title(
+        f"CCAEY (Batch size: {batch_size}, Corr: {ccaey_corr:.2f}, Time: {elapsed_time:.2f} s)"
+    )
     plt.legend()
     plt.show()
 

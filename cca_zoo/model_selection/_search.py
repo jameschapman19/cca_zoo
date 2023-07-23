@@ -16,7 +16,9 @@ from sklearn import clone
 from sklearn.model_selection import ParameterGrid
 from sklearn.model_selection._search import ParameterSampler
 from sklearn.model_selection._search import GridSearchCV as GridSearchCV_sklearn
-from sklearn.model_selection._search import RandomizedSearchCV as RandomizedSearchCV_sklearn
+from sklearn.model_selection._search import (
+    RandomizedSearchCV as RandomizedSearchCV_sklearn,
+)
 from sklearn.pipeline import Pipeline
 from sklearn.utils import check_random_state
 
@@ -133,7 +135,6 @@ class ParameterSampler_(ParameterSampler):
 
 
 class GridSearchCV(GridSearchCV_sklearn):
-
     def _run_search(self, evaluate_candidates):
         """Search all candidates in param_grid"""
         if not isinstance(self.param_grid, ParameterGrid):
@@ -156,13 +157,12 @@ class GridSearchCV(GridSearchCV_sklearn):
         super().fit(np.hstack(X), y=y, groups=groups, **fit_params)
         self.best_estimator_ = self.best_estimator_["estimator"]
         self.best_params_ = {
-            key[len("estimator__"):]: val for key, val in self.best_params_.items()
+            key[len("estimator__") :]: val for key, val in self.best_params_.items()
         }
         return self
 
 
 class RandomizedSearchCV(RandomizedSearchCV_sklearn):
-
     def _run_search(self, evaluate_candidates):
         self.param_distributions = {
             f"estimator__{key}": val for key, val in self.param_distributions.items()
@@ -176,14 +176,14 @@ class RandomizedSearchCV(RandomizedSearchCV_sklearn):
 
     def fit(self, X, y=None, *, groups=None, **fit_params):
         self.estimator = Pipeline(
-        [
-            ("splitter", SimpleSplitter([X_.shape[1] for X_ in X])),
-            ("estimator", clone(self.estimator)),
-        ]
+            [
+                ("splitter", SimpleSplitter([X_.shape[1] for X_ in X])),
+                ("estimator", clone(self.estimator)),
+            ]
         )
         super().fit(np.hstack(X), y=y, groups=groups, **fit_params)
         self.best_estimator_ = self.best_estimator_["estimator"]
         self.best_params_ = {
-            key[len("estimator__"):]: val for key, val in self.best_params_.items()
+            key[len("estimator__") :]: val for key, val in self.best_params_.items()
         }
         return self
