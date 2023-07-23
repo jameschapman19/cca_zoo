@@ -7,8 +7,8 @@ from cca_zoo.deep.objectives import _demean, inv_sqrtm
 
 
 class MCCA(Metric):
-    def __init__(self):
-        super().__init__(dist_sync_on_step=False, compute_on_step=False)
+    def __init__(self, ):
+        super().__init__()
         self.add_state("representations", default=[], persistent=False)
 
     def update(self, representations: Iterable[torch.Tensor] = None):
