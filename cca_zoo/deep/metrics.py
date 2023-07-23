@@ -7,7 +7,9 @@ from cca_zoo.deep.objectives import _demean, inv_sqrtm
 
 
 class MCCA(Metric):
-    def __init__(self, ):
+    def __init__(
+        self,
+    ):
         super().__init__()
         self.add_state("representations", default=[], persistent=False)
 
