@@ -18,16 +18,17 @@ def param2grid(params):
     params = params.copy()
     for k, v in params.items():
         # check if v is an iterable object that can be converted to a list
-        if hasattr(v, '__iter__') and not isinstance(v, str):
+        if hasattr(v, "__iter__") and not isinstance(v, str):
             v = list(v)
-        if any([hasattr(v_, '__iter__') for v_ in v]):
-            v = [list(v_) if hasattr(v_, '__iter__') else v_ for v_ in v]
+        elif not hasattr(v, "__iter__"):
+            v = [v]
+        if any([hasattr(v_, "__iter__") for v_ in v]):
+            v = [list(v_) if hasattr(v_, "__iter__") else [v_] for v_ in v]
             params[k] = list(map(list, itertools.product(*v)))
     return ParameterGrid(params)
 
 
 class ParameterSampler_(ParameterSampler):
-
     def __iter__(self):
         rng = check_random_state(self.random_state)
         for _ in range(self.n_iter):
@@ -37,18 +38,31 @@ class ParameterSampler_(ParameterSampler):
             params = dict()
             for k, v in items:
                 # use list comprehension to handle different types of values
-                params[k] = [self.return_param(v_) for v_ in v] if isinstance(v, Iterable) else self.return_param(v)
+                params[k] = (
+                    [self.return_param(v_) for v_ in v]
+                    if isinstance(v, Iterable)
+                    else self.return_param(v)
+                )
             yield params
 
     def return_param(self, v):
         rng = check_random_state(self.random_state)
         # use ternary operator to handle different types of values
-        param = v.rvs(random_state=rng) if hasattr(v, "rvs") else (v[rng.randint(len(v))] if isinstance(v, Iterable) and not isinstance(v, str) else v)
+        param = (
+            v.rvs(random_state=rng)
+            if hasattr(v, "rvs")
+            else (
+                v[rng.randint(len(v))]
+                if isinstance(v, Iterable) and not isinstance(v, str)
+                else v
+            )
+        )
         return param
 
     def __len__(self):
         """Number of points that will be sampled."""
         return self.n_iter
+
 
 class BaseSearchCV(BaseSearchCV):
     def fit(self, views, y=None, *, groups=None, **fit_params):
