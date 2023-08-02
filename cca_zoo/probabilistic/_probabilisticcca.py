@@ -1,11 +1,8 @@
 from typing import Iterable
 
-import jax.numpy as jnp
 import numpy as np
 import numpyro
-import numpyro.distributions as dist
 from jax.random import PRNGKey
-from numpyro.infer import MCMC, NUTS, Predictive
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._base import BaseModel

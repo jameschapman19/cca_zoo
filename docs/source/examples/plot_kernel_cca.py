@@ -47,7 +47,7 @@ def my_kernel(X, Y, param=0, **kwargs):
     M = np.random.rand(X.shape[0], X.shape[0])
     # We add the parameter to the matrix to control the noise level
     M += param
-    # We return the product of X, M, M.T and Y.T as the kernel matrix
+    # We return the product of views, M, M.T and Y.T as the kernel matrix
     return X @ M @ M.T @ Y.T
 
 

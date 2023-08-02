@@ -1,4 +1,4 @@
-from . import data, deep, linear, model_selection, visualisation
+from . import data, deep, linear, model_selection, visualisation, preprocessing
 
 __all__ = [
     "data",

@@ -1,12 +1,3 @@
-# Author: James Chapman
-# This code heavily leans on the scikit-learn original
-# Original Authors:
-#         Alexandre Gramfort <alexandre.gramfort@inria.fr>,
-#         Gael Varoquaux <gael.varoquaux@normalesup.org>
-#         Andreas Mueller <amueller@ais.uni-bonn.de>
-#         Olivier Grisel <olivier.grisel@ensta.org>
-#         Raghav RV <rvraghav93@gmail.com>
-
 import itertools
 from typing import Iterable
 
@@ -14,13 +5,17 @@ import numpy as np
 from mvlearn.compose import SimpleSplitter
 from sklearn import clone
 from sklearn.model_selection import ParameterGrid
+from sklearn.model_selection._search import (
+    GridSearchCV as GridSearchCV_sklearn,
+    BaseSearchCV,
+)
 from sklearn.model_selection._search import ParameterSampler
-from sklearn.model_selection._search import GridSearchCV as GridSearchCV_sklearn
 from sklearn.model_selection._search import (
     RandomizedSearchCV as RandomizedSearchCV_sklearn,
 )
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.utils import check_random_state
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
 
 def param2grid(params):
@@ -134,7 +129,24 @@ class ParameterSampler_(ParameterSampler):
         return self.n_iter
 
 
-class GridSearchCV(GridSearchCV_sklearn):
+class BaseSearchCV(BaseSearchCV):
+    def fit(self, views, y=None, *, groups=None, **fit_params):
+        self.estimator = Pipeline(
+            [
+                ("splitter", SimpleSplitter([view.shape[1] for view in views])),
+                ("estimator", clone(self.estimator)),
+            ]
+        )
+        super().fit(np.hstack(views), y=y, groups=groups, **fit_params)
+        self.estimator = self.estimator[1]
+        self.best_estimator_ = self.best_estimator_[1]
+        self.best_params_ = {
+            key.split("estimator__")[1]: val for key, val in self.best_params_.items()
+        }
+        return self
+
+
+class GridSearchCV(GridSearchCV, BaseSearchCV):
     def _run_search(self, evaluate_candidates):
         """Search all candidates in param_grid"""
         if not isinstance(self.param_grid, ParameterGrid):
@@ -147,22 +159,8 @@ class GridSearchCV(GridSearchCV_sklearn):
         ]
         evaluate_candidates(param_grid)
 
-    def fit(self, X, y=None, *, groups=None, **fit_params):
-        self.estimator = Pipeline(
-            [
-                ("splitter", SimpleSplitter([X_.shape[1] for X_ in X])),
-                ("estimator", clone(self.estimator)),
-            ]
-        )
-        super().fit(np.hstack(X), y=y, groups=groups, **fit_params)
-        self.best_estimator_ = self.best_estimator_["estimator"]
-        self.best_params_ = {
-            key[len("estimator__") :]: val for key, val in self.best_params_.items()
-        }
-        return self
 
-
-class RandomizedSearchCV(RandomizedSearchCV_sklearn):
+class RandomizedSearchCV(RandomizedSearchCV, BaseSearchCV):
     def _run_search(self, evaluate_candidates):
         self.param_distributions = {
             f"estimator__{key}": val for key, val in self.param_distributions.items()
@@ -173,17 +171,3 @@ class RandomizedSearchCV(RandomizedSearchCV_sklearn):
                 self.param_distributions, self.n_iter, random_state=self.random_state
             )
         )
-
-    def fit(self, X, y=None, *, groups=None, **fit_params):
-        self.estimator = Pipeline(
-            [
-                ("splitter", SimpleSplitter([X_.shape[1] for X_ in X])),
-                ("estimator", clone(self.estimator)),
-            ]
-        )
-        super().fit(np.hstack(X), y=y, groups=groups, **fit_params)
-        self.best_estimator_ = self.best_estimator_["estimator"]
-        self.best_params_ = {
-            key[len("estimator__") :]: val for key, val in self.best_params_.items()
-        }
-        return self

@@ -93,7 +93,7 @@ def plot_learning_curve(
     title : str
         Title for the chart.
 
-    X : array-like of shape (n_samples, n_features)
+    views : array-like of shape (n_samples, n_features)
         Training vector, where ``n_samples`` is the number of samples and
         ``n_features`` is the number of features.
 

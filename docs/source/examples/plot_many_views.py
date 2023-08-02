@@ -20,7 +20,7 @@ Data
 -----
 """
 # %%
-# We generate some synthetic data with three views (X, Y, Z) that share a common latent variable.
+# We generate some synthetic data with three views (views, Y, Z) that share a common latent variable.
 # We set the number of samples (n), the number of features per view (p, q, r), and the dimensionality of the latent space (latent_dims).
 # We also set the correlation between the views and the latent variable to 0.9.
 

@@ -136,7 +136,7 @@ class NCCA(BaseModel):
         params = {
             "gamma": self.gamma[view],
         }
-        # Compute the pairwise kernel values between X and Y using the specified kernel function and parameters
+        # Compute the pairwise kernel values between views and Y using the specified kernel function and parameters
         return pairwise_kernels(
             X, Y, metric=self.kernel[view], filter_params=True, **params
         )

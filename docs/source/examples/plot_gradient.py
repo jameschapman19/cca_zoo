@@ -72,7 +72,7 @@ cca_corr = np.corrcoef(X_test_cca[:, 0], Y_test_cca[:, 0])[0, 1]
 plt.figure()
 plt.scatter(X_train_cca[:, 0], Y_train_cca[:, 0], c="b", label="Train")
 plt.scatter(X_test_cca[:, 0], Y_test_cca[:, 0], c="r", label="Test")
-plt.xlabel("X latent")
+plt.xlabel("views latent")
 plt.ylabel("Y latent")
 plt.title(f"CCA (Corr: {cca_corr:.2f}, Time: {elapsed_time:.2f} s)")
 plt.legend()
@@ -114,7 +114,7 @@ for batch_size in batch_sizes:
     plt.figure()
     plt.scatter(X_train_ccae[:, 0], Y_train_ccae[:, 0], c="b", label="Train")
     plt.scatter(X_test_ccae[:, 0], Y_test_ccae[:, 0], c="r", label="Test")
-    plt.xlabel("X latent")
+    plt.xlabel("views latent")
     plt.ylabel("Y latent")
     plt.title(
         f"CCAEY (Batch size: {batch_size}, Corr: {ccaey_corr:.2f}, Time: {elapsed_time:.2f} s)"

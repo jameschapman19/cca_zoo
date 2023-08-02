@@ -1,19 +1,16 @@
 import itertools
 
 import numpy as np
-from joblib import Parallel
 from mvlearn.compose import SimpleSplitter
 from sklearn import clone
 from sklearn.base import is_classifier
 from sklearn.metrics import check_scoring
-from sklearn.model_selection import check_cv
-from sklearn.model_selection import cross_validate as cross_validate_
+from sklearn.model_selection import cross_validate as cross_validate_, check_cv
 from sklearn.model_selection import learning_curve as learning_curve_
+from sklearn.model_selection._validation import _permutation_test_score, _shuffle
 from sklearn.pipeline import Pipeline
-from sklearn.utils import _safe_indexing, check_random_state, indexable
-from sklearn.utils.fixes import delayed
-from sklearn.utils.metaestimators import _safe_split
-from sklearn.utils.validation import _check_fit_params
+from sklearn.utils import indexable, check_random_state
+from sklearn.utils.parallel import Parallel, delayed
 
 
 def default_scoring(estimator, scoring, views):
@@ -125,7 +122,7 @@ def cross_validate(
     """
     estimator = Pipeline(
         [
-            ("splitter", SimpleSplitter([X_.shape[1] for X_ in views])),
+            ("splitter", SimpleSplitter([view.shape[1] for view in views])),
             ("estimator", clone(estimator)),
         ]
     )
@@ -227,28 +224,32 @@ def permutation_test_score(
         .. versionadded:: 0.24
 
     """
-    scorer = default_scoring(estimator, scoring, views)
     estimator = Pipeline(
         [
-            ("splitter", SimpleSplitter([X_.shape[1] for X_ in views])),
+            ("splitter", SimpleSplitter([view.shape[1] for view in views])),
             ("estimator", clone(estimator)),
         ]
     )
-    views, y, groups = indexable(np.hstack(views), y, groups)
 
+    if y is None:
+        y = np.zeros(views[0].shape[0])
+    X = np.hstack(views)
+    X, y, groups = indexable(X, y, groups)
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
-
+    if scoring is None:
+        scoring = default_scoring(estimator, scoring, views)
+    scorer = check_scoring(estimator, scoring=scoring)
     random_state = check_random_state(random_state)
 
     # We clone the estimator to make sure that all the folds are
     # independent, and that it is pickle-able.
     score = _permutation_test_score(
-        clone(estimator), views, y, groups, cv, scorer, fit_params=fit_params
+        clone(estimator), X, y, groups, cv, scorer, fit_params=fit_params
     )
     permutation_scores = Parallel(n_jobs=n_jobs, verbose=verbose)(
         delayed(_permutation_test_score)(
             clone(estimator),
-            _shuffle(views, groups, random_state, estimator["splitter"]),
+            np.hstack((_shuffle(views[0], groups, random_state), *views[1:])),
             y,
             groups,
             cv,
@@ -258,42 +259,13 @@ def permutation_test_score(
         for _ in range(n_permutations)
     )
     permutation_scores = np.array(permutation_scores)
-    pvalue = (np.sum(permutation_scores >= score, axis=0) + 1.0) / (n_permutations + 1)
+    pvalue = (np.sum(permutation_scores >= score) + 1.0) / (n_permutations + 1)
     return score, permutation_scores, pvalue
-
-
-def _permutation_test_score(estimator, X, y, groups, cv, scorer, fit_params):
-    """Auxiliary function for permutation_test_score"""
-    # Adjust length of sample weights
-    fit_params = fit_params if fit_params is not None else {}
-    avg_score = []
-    for train, test in cv.split(X, y, groups):
-        X_train, y_train = _safe_split(estimator, X, y, train)
-        X_test, y_test = _safe_split(estimator, X, y, test, train)
-        fit_params = _check_fit_params(X, fit_params, train)
-        estimator.fit(X_train, y_train, **fit_params)
-        avg_score.append(scorer(estimator, X_test, y_test))
-    return np.mean(avg_score, axis=0)
-
-
-def _shuffle(X, groups, random_state, splitter):
-    """Return a shuffled copy of y eventually shuffle among same groups."""
-    X = splitter.fit_transform(X)
-    for i, X_ in enumerate(X):
-        if groups is None:
-            indices = random_state.permutation(len(X_))
-        else:
-            indices = np.arange(len(groups))
-            for group in np.unique(groups):
-                this_mask = groups == group
-                indices[this_mask] = random_state.permutation(indices[this_mask])
-        X[i] = _safe_indexing(X_, indices)
-    return np.hstack(X)
 
 
 def learning_curve(
     estimator,
-    views,
+    X,
     y=None,
     groups=None,
     train_sizes=np.linspace(0.1, 1.0, 5),
@@ -394,13 +366,13 @@ def learning_curve(
     """
     estimator = Pipeline(
         [
-            ("splitter", SimpleSplitter([X_.shape[1] for X_ in views])),
+            ("splitter", SimpleSplitter([X_.shape[1] for X_ in X])),
             ("estimator", clone(estimator)),
         ]
     )
     return learning_curve_(
         estimator,
-        np.hstack(views),
+        np.hstack(X),
         y,
         groups=groups,
         train_sizes=train_sizes,

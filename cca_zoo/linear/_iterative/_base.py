@@ -37,7 +37,7 @@ DEFAULT_TRAINER_KWARGS = dict(
 )
 
 DEFAULT_LOADER_KWARGS = dict(
-    num_workers=0, pin_memory=True, drop_last=False, shuffle=False
+    num_workers=0, pin_memory=False, drop_last=False, shuffle=False
 )
 
 

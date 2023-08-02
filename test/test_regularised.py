@@ -106,7 +106,7 @@ def test_sparse_methods():
     tau2 = [1e-2]
     param_grid = {"tau": [tau1, tau2]}
     # admm_cv = GridSearchCV(SCCA_ADMM(random_state=rng), param_grid=param_grid).fit(
-    #     [X, Y]
+    #     [views, Y]
     # )
     assert (pdd_cv.best_estimator_.weights[0] == 0).sum() > 0
     assert (pdd_cv.best_estimator_.weights[1] == 0).sum() > 0
@@ -146,7 +146,7 @@ def test_l0():
     span_cca = SCCA_Span(
         latent_dimensions=1, regularisation="l0", tau=[2, 2], random_state=rng
     ).fit([X, Y])
-    # swcca = SWCCA(tau=[5, 5], sample_support=5, random_state=rng).fit([X, Y])
+    # swcca = SWCCA(tau=[5, 5], sample_support=5, random_state=rng).fit([views, Y])
     assert (np.abs(span_cca.weights[0]) > 1e-5).sum() == 2
     assert (np.abs(span_cca.weights[1]) > 1e-5).sum() == 2
     # assert (np.abs(swcca.weights[0]) > 1e-5).sum() == 5

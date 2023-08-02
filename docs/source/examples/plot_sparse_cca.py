@@ -57,7 +57,7 @@ view_2_sparsity = 0.1
 latent_dims = 1
 epochs = 100
 
-# Simulate some data with two views (X and Y) that have some correlation between them
+# Simulate some data with two views (views and Y) that have some correlation between them
 data = LinearSimulatedData(
     view_features=[p, q],
     latent_dims=latent_dims,
