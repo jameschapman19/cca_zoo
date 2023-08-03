@@ -75,7 +75,6 @@ class ElasticCCA(DeflationMixin, BaseIterative):
         copy_data=True,
         random_state=None,
         epochs: int = 100,
-        deflation="cca",
         initialization: Union[str, callable] = "uniform",
         tol: float = 1e-3,
         alpha: Union[Iterable[float], float] = None,
@@ -100,7 +99,7 @@ class ElasticCCA(DeflationMixin, BaseIterative):
             latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             epochs=epochs,
-            deflation=deflation,
+
             initialization=initialization,
             tol=tol,
             random_state=random_state,

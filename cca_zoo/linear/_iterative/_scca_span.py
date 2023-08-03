@@ -49,7 +49,6 @@ class SCCA_Span(DeflationMixin, BaseIterative):
         rank=1,
         positive: Union[Iterable[bool], bool] = None,
         random_state=None,
-        deflation="cca",
         verbose=0,
     ):
         super().__init__(
@@ -59,7 +58,6 @@ class SCCA_Span(DeflationMixin, BaseIterative):
             initialization=initialization,
             tol=tol,
             random_state=random_state,
-            deflation=deflation,
             verbose=verbose,
             trainer_kwargs={"accelerator": "cpu"},
         )

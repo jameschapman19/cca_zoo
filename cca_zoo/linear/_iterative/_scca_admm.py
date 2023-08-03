@@ -66,7 +66,6 @@ class SCCA_ADMM(BaseIterative, DeflationMixin):
         latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
-        deflation="cca",
         tau: Union[Iterable[float], float] = None,
         mu: Union[Iterable[float], float] = None,
         lam: Union[Iterable[float], float] = None,
@@ -84,7 +83,6 @@ class SCCA_ADMM(BaseIterative, DeflationMixin):
             initialization=initialization,
             tol=tol,
             random_state=random_state,
-            deflation=deflation,
         )
 
     def _check_params(self):

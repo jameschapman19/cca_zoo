@@ -31,8 +31,6 @@ class SWCCA(BaseIterative, DeflationMixin):
 
     def __init__(
         self,
-        scale: bool = True,
-        centre=True,
         copy_data=True,
         random_state=None,
         max_iter: int = 500,
@@ -54,8 +52,6 @@ class SWCCA(BaseIterative, DeflationMixin):
         self.positive = positive
         super().__init__(
             latent_dims=1,
-            scale=scale,
-            centre=centre,
             copy_data=copy_data,
             max_iter=max_iter,
             initialization=initialization,

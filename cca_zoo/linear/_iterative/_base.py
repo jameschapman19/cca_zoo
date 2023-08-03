@@ -48,7 +48,6 @@ class BaseIterative(BaseModel):
         copy_data=True,
         random_state=None,
         tol=1e-3,
-        deflation="cca",
         accept_sparse=None,
         batch_size=None,
         dataloader_kwargs=None,
@@ -77,12 +76,7 @@ class BaseIterative(BaseModel):
             if val_split <= 0 or val_split >= 1:
                 raise ValueError("Validation split must be between 0 and 1")
         self.val_split = val_split
-        self.learning_rate = learning_rate
-        # validate the deflation method
-        if deflation not in ["cca", "pls"]:
-            raise ValueError("Deflation method must be one of ['cca','pls']")
-        else:
-            self.deflation = deflation
+        self.learning_rate = learning_rat
         # validate the initialization method
         if initialization not in ["random", "uniform", "unregularized", "pls"]:
             raise ValueError(
