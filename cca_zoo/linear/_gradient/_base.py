@@ -28,6 +28,9 @@ def supress_device_warnings():
     rank_zero_logger.disabled = True
 
 
+supress_device_warnings()
+
+
 # Default Trainer kwargs
 DEFAULT_TRAINER_KWARGS = dict(
     enable_checkpointing=False,
