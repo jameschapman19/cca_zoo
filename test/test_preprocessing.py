@@ -49,3 +49,18 @@ def test_multiview_preprocessing(data):
             for transformed_view in transformed_views
         ]
     )
+
+
+def test_none_none(data):
+    # Test the MultiViewPreprocessing class
+    brain_df, behavior_df, groups = data
+    # Create a list of views with brain and behavior data
+    views = [brain_df, behavior_df]
+    # Create a list of preprocessing steps with standard scaling for each view
+    preprocessing_list = [None, None]
+    # Create a MultiViewPreprocessing instance with the preprocessing list
+    mvp = MultiViewPreprocessing(preprocessing_list)
+    # Fit the MultiViewPreprocessing to the views
+    mvp.fit(views)
+    # Transform the views using the MultiViewPreprocessing
+    transformed_views = mvp.transform(views)
