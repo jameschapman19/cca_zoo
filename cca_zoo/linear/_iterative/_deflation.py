@@ -9,6 +9,7 @@ from tqdm import tqdm
 # Import tqdm and deflate_views
 from tqdm import tqdm
 
+
 # Define DeflationMixin class
 class DeflationMixin:
     # Define fit method
