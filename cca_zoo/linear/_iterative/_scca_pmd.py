@@ -59,7 +59,6 @@ class SCCA_PMD(DeflationMixin, BaseIterative):
         )
 
     def _update_weights(self, views: np.ndarray, i: int):
-
         if not hasattr(self, "t"):
             shape_sqrts = [np.sqrt(weight.shape[0]) for weight in self.weights]
             self.t = [max(1, x * y) for x, y in zip(self.tau, shape_sqrts)]
