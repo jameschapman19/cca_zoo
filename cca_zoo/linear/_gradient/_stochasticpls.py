@@ -6,7 +6,7 @@ from cca_zoo.linear._pls import PLSMixin
 
 
 class PLSStochasticPower(PLSEY, PLSMixin):
-    def _get_module(self, weights=None, k=None):
+    def _get_pl_module(self, weights=None, k=None):
         return StochasticPowerLoop(
             weights=weights,
             k=k,

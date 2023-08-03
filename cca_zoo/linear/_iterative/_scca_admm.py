@@ -90,7 +90,7 @@
 #         self.lam = _process_parameter("lam", self.lam, 1, self.n_views_)
 #         self.eta = _process_parameter("eta", self.eta, 0, self.n_views_)
 #
-#     def _get_module(self, weights=None, k=None):
+#     def _get_pl_module(self, weights=None, k=None):
 #         return SCCA_ADMM_PL(
 #             weights=weights,
 #             k=k,

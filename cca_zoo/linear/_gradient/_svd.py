@@ -5,7 +5,7 @@ from cca_zoo.linear._pls import PLSMixin
 
 
 class CCASVD(CCAEY):
-    def _get_module(self, weights=None, k=None):
+    def _get_pl_module(self, weights=None, k=None):
         return SVDLoop(
             weights=weights,
             k=k,
@@ -21,7 +21,7 @@ class CCASVD(CCAEY):
 
 
 class PLSSVD(CCASVD, PLSMixin):
-    def _get_module(self, weights=None, k=None):
+    def _get_pl_module(self, weights=None, k=None):
         return SVDLoop(
             weights=weights,
             k=k,

@@ -71,7 +71,7 @@ class CCAEY(BaseGradientModel):
         # ensure dataloader_kwargs['shuffle'] is True
         self.dataloader_kwargs["shuffle"] = True
 
-    def _get_module(self, weights=None, k=None):
+    def _get_pl_module(self, weights=None, k=None):
         return EYLoop(
             weights=weights,
             k=k,
@@ -87,7 +87,7 @@ class CCAEY(BaseGradientModel):
 
 
 class PLSEY(CCAEY, PLSMixin):
-    def _get_module(self, weights=None, k=None):
+    def _get_pl_module(self, weights=None, k=None):
         return EYLoop(
             weights=weights,
             k=k,

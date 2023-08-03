@@ -20,7 +20,7 @@ X_sp -= X_sp.mean(axis=0)
 Y_sp -= Y_sp.mean(axis=0)
 
 latent_dims = 3
-epochs = 300
+epochs = 100
 batch_size = 10
 learning_rate = 1e-1
 random_state = 1

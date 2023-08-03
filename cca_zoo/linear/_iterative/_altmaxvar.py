@@ -50,7 +50,7 @@
 #         # set trainer kwargs accelerator to 'cpu'
 #         self.trainer_kwargs["accelerator"] = "cpu"
 #
-#     def _get_module(self, weights=None, k=None):
+#     def _get_pl_module(self, weights=None, k=None):
 #         return AltMaxVarLoop(
 #             weights=weights,
 #             k=k,

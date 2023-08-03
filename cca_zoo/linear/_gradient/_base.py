@@ -17,24 +17,24 @@ from cca_zoo.linear._dummy import DummyCCA, DummyPLS
 from cca_zoo.linear._mcca import MCCA
 from cca_zoo.linear._pls import MPLS
 
-warnings.filterwarnings("ignore", category=UserWarning)
-warnings.filterwarnings("ignore", category=PossibleUserWarning)
-
-
-def supress_device_warnings():
-    import logging
-
-    rank_zero_logger = logging.getLogger("pytorch_lightning.utilities.rank_zero")
-    rank_zero_logger.disabled = True
-
-
-supress_device_warnings()
+# warnings.filterwarnings("ignore", category=UserWarning)
+# warnings.filterwarnings("ignore", category=PossibleUserWarning)
+#
+#
+# def supress_device_warnings():
+#     import logging
+#
+#     rank_zero_logger = logging.getLogger("pytorch_lightning.utilities.rank_zero")
+#     rank_zero_logger.disabled = True
+#
+#
+# supress_device_warnings()
 
 
 # Default Trainer kwargs
 DEFAULT_TRAINER_KWARGS = dict(
     enable_checkpointing=False,
-    logger=False,
+    logger=True,
     enable_model_summary=False,
     enable_progress_bar=True,
 )
@@ -208,7 +208,7 @@ class BaseGradientModel(BaseModel):
         self.trainer_kwargs = trainer_kwargs or DEFAULT_TRAINER_KWARGS
 
     @abstractmethod
-    def _get_module(self, weights=None, k=None) -> BaseLoop:
+    def _get_pl_module(self, weights=None, k=None) -> BaseLoop:
         """Get model specific loop module for training.
 
         Parameters
@@ -234,7 +234,7 @@ class BaseGradientModel(BaseModel):
 
     def _fit(self, views: Iterable[np.ndarray]):
         train_dataloader, val_dataloader = self.get_dataloader(views)
-        loop = self._get_module(weights=self.weights)
+        loop = self._get_pl_module(weights=self.weights)
         # make a trainer
         trainer = pl.Trainer(
             max_epochs=self.epochs,

@@ -80,7 +80,7 @@
 #             "positive", self.positive, False, self.n_views_
 #         )
 #
-#     def _get_module(self, weights=None, k=None):
+#     def _get_pl_module(self, weights=None, k=None):
 #         return SpanLoop(
 #             weights=weights,
 #             k=k,
