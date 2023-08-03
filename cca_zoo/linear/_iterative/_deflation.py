@@ -2,34 +2,37 @@ from typing import Iterable
 
 import numpy as np
 import pytorch_lightning as pl
+from sklearn import clone
 from tqdm import tqdm
 
 
+# Import tqdm and deflate_views
+from tqdm import tqdm
+
+# Define DeflationMixin class
 class DeflationMixin:
-    def _fit(self, views: Iterable[np.ndarray]):
-        # if views is a tuple then convert to a list
+    # Define fit method
+    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
+        # Convert views to list if tuple
         if isinstance(views, tuple):
             views = list(views)
-        # tqdm for each latent dimension
+        # Initialize weights list
+        self.weights = [
+            np.empty((view.shape[1], self.latent_dimensions)) for view in views
+        ]
+        # Loop over latent dimensions
         for k in tqdm(
             range(self.latent_dimensions), desc="Latent Dimension", leave=False
         ):
-            train_dataloader, val_dataloader = self.get_dataloader(views)
-            loop = self._get_module(weights=self.weights, k=k)
-            # make a trainer
-            trainer = pl.Trainer(
-                max_epochs=self.epochs, callbacks=self.callbacks, **self.trainer_kwargs
-            )
-            trainer.fit(loop, train_dataloader, val_dataloader)
-            # return the weights from the module. They will need to be changed from torch tensors to numpy arrays
-            weights = loop.weights
-            for i, (view, weight) in enumerate(zip(views, weights)):
-                self.weights[i][:, k] = weight
-            views = deflate_views(views, weights)
-            # if loop has tracked the objective, return the objective
-            if hasattr(loop, "epoch_objective"):
-                self.objective = loop.epoch_objective
-        return self.weights
+            # clone self but with only one latent dimension and _fit
+            component_weights = clone(self).set_params(latent_dimensions=1)._fit(views)
+            # Append component_weights to weights list
+            for i, weight in enumerate(component_weights):
+                self.weights[i][:, k] = weight.squeeze()
+            # Deflate views using component_weights
+            views = deflate_views(views, component_weights)
+        # Return self
+        return self
 
 
 def deflate_views(residuals: Iterable[np.ndarray], weights: Iterable[np.ndarray]):

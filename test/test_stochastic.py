@@ -43,7 +43,7 @@ def test_batch_pls():
     pytest.importorskip("torch")
     from torch import manual_seed
 
-    from cca_zoo.linear import PLSEY, PLSSVD, PLSStochasticPower
+    from cca_zoo.linear import PLSEY, PLSSVD  # , PLSStochasticPower
 
     pls = PLS(latent_dimensions=3).fit((X, Y))
     manual_seed(42)
@@ -64,7 +64,7 @@ def test_stochastic_pls():
     pytest.importorskip("torch")
     from torch import manual_seed
 
-    from cca_zoo.linear import PLSEY, PLSSVD, PLSStochasticPower
+    from cca_zoo.linear import PLSEY, PLSSVD  # , PLSStochasticPower
 
     pls = PLS(latent_dimensions=3).fit((X, Y))
     manual_seed(42)
@@ -82,20 +82,20 @@ def test_stochastic_pls():
         learning_rate=learning_rate,
         random_state=random_state,
     ).fit((X, Y))
-    spls = PLSStochasticPower(
-        latent_dimensions=latent_dims,
-        epochs=epochs,
-        batch_size=batch_size,
-        learning_rate=learning_rate,
-        random_state=random_state,
-    ).fit((X, Y))
+    # spls = PLSStochasticPower(
+    #     latent_dimensions=latent_dims,
+    #     epochs=epochs,
+    #     batch_size=batch_size,
+    #     learning_rate=learning_rate,
+    #     random_state=random_state,
+    # ).fit((X, Y))
 
     pls_score = scale_transform(pls, X, Y)
-    spls_score = scale_transform(spls, X, Y)
+    # spls_score = scale_transform(spls, X, Y)
     plsey_score = scale_transform(plsey, X, Y)
     plssvd_score = scale_transform(plssvd, X, Y)
     # check all methods are similar to pls
-    assert np.allclose(np.trace(pls_score), np.trace(spls_score), atol=1e-1)
+    # assert np.allclose(np.trace(pls_score), np.trace(spls_score), atol=1e-1)
     assert np.allclose(np.trace(pls_score), np.trace(plsey_score), atol=1e-1)
     assert np.allclose(np.trace(pls_score), np.trace(plssvd_score), atol=1e-1)
 

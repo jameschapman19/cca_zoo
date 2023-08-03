@@ -3,12 +3,11 @@ from typing import Union
 import numpy as np
 import torch
 
-from cca_zoo.linear._gradient._gradient import GradientLoop
-from cca_zoo.linear._iterative._base import BaseIterative
+from cca_zoo.linear._gradient._base import BaseGradientModel, BaseLoop
 from cca_zoo.linear._pls import PLSMixin
 
 
-class CCAEY(BaseIterative):
+class CCAEY(BaseGradientModel):
     """
     A class used to fit Regularized CCA by Delta-EigenGame
 
@@ -103,7 +102,7 @@ class PLSEY(CCAEY, PLSMixin):
         return {"multiview": True, "stochastic": True}
 
 
-class EYLoop(GradientLoop):
+class EYLoop(BaseLoop):
     def __init__(
         self,
         weights=None,

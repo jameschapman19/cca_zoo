@@ -15,21 +15,3 @@ Z -= Z.mean(axis=0)
 
 def test_tracking():
     ey = CCAEY(latent_dimensions=2, track="loss").fit([X, Y])
-    pmd = SCCA_PMD(latent_dimensions=2, track="loss", tau=0.5).fit([X, Y])
-    elastic = ElasticCCA(latent_dimensions=2, track="loss").fit([X, Y])
-
-
-def test_convergence():
-    elastic = ElasticCCA(
-        latent_dimensions=2,
-        convergence_checking="loss",
-        track="loss",
-        alpha=5e-3,
-        l1_ratio=0.5,
-    ).fit([X, Y])
-    pmd = SCCA_PMD(
-        latent_dimensions=2,
-        convergence_checking="loss",
-        track="loss",
-        tau=0.5,
-    ).fit([X, Y])

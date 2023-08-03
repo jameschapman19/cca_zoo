@@ -161,23 +161,3 @@ def generate_data(n, p, q):
     # Y[:,2] = np.power(views[:,2] + views[:,3],3) - Y[:,3] + np.random.normal(0,0.05,n)
     # Y[:,4] = np.exp(views[:,4] + views[:,5]) - Y[:,5] + np.random.normal(0,0.05,n)
     return X, Y
-
-
-def main():
-    import matplotlib.pyplot as plt
-
-    np.set_printoptions(precision=2)
-
-    X, Y = generate_data(1000, 8, 8)
-    Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y)
-
-    kernel1 = SCCA_HSIC(proj="l2").fit((Xtrain, Ytrain))
-    print(f"Training Correlation: {kernel1.score((Xtrain, Ytrain))}")
-    print(f"Test Correlation: {kernel1.score((Xtest, Ytest))}")
-
-    plt.plot(*kernel1.transform((Xtrain, Ytrain)), "bo")
-    plt.show()
-
-
-if __name__ == "__main__":
-    main()

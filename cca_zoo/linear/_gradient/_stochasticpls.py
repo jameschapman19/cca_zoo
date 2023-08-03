@@ -1,7 +1,7 @@
 import torch
 
+from cca_zoo.linear._gradient._base import GradientLoop
 from cca_zoo.linear._gradient._ey import PLSEY
-from cca_zoo.linear._gradient._gradient import GradientLoop
 from cca_zoo.linear._pls import PLSMixin
 
 

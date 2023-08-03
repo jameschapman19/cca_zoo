@@ -1,48 +1,13 @@
-from typing import Union
+import itertools
+from typing import Union, Iterable
 
 import numpy as np
 
-from cca_zoo.linear._iterative._base import BaseIterative, BaseLoop
+from cca_zoo.linear._iterative._base import BaseIterative
 from cca_zoo.linear._iterative._deflation import DeflationMixin
-from cca_zoo.linear._pls import PLSMixin
 
 
-class PLS_ALS(PLSMixin, DeflationMixin, BaseIterative):
-    r"""
-    A class used to fit a PLS model by alternating least squares (ALS).
-
-    This model finds the linear projections of two views that maximize their covariance while minimizing their residual variance.
-
-    The objective function of PLS-ALS is:
-
-    .. math::
-
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
-
-        \text{subject to:}
-
-        w_i^Tw_i=1
-
-    The algorithm alternates between updating :math:`w_1` and :math:`w_2` until convergence.
-
-    Parameters
-    ----------
-    latent_dimensions : int, optional
-        Number of latent dimensions to use, by default 1
-    copy_data : bool, optional
-        Whether to copy the data, by default True
-    random_state : int, optional
-        Random seed for reproducibility, by default None
-    epochs : int, optional
-        Number of iterations to run the algorithm, by default 100
-    deflation : str, optional
-        Deflation scheme to use, by default "cca"
-    initialization : str, optional
-        Initialization scheme to use, by default "pls"
-    tol : float, optional
-        Tolerance for convergence, by default 1e-3
-    """
-
+class PLS_ALS(DeflationMixin, BaseIterative):
     def __init__(
         self,
         latent_dimensions: int = 1,
@@ -50,50 +15,40 @@ class PLS_ALS(PLSMixin, DeflationMixin, BaseIterative):
         random_state=None,
         tol=1e-3,
         accept_sparse=None,
-        batch_size=None,
-        dataloader_kwargs=None,
         epochs=100,
         val_split=None,
         learning_rate=1,
-        initialization: Union[str, callable] = "uniform",
-        callbacks=None,
+        initialization: Union[str, callable] = "random",
+        early_stopping=False,
+        patience=10,
+        verbose=None,
     ):
         super().__init__(
-            latent_dimensions,
-            copy_data,
-            random_state,
-            tol,
+            latent_dimensions=latent_dimensions,
+            copy_data=copy_data,
+            random_state=random_state,
+            tol=tol,
             accept_sparse=accept_sparse,
-            batch_size=batch_size,
-            dataloader_kwargs=dataloader_kwargs,
             epochs=epochs,
             val_split=val_split,
             learning_rate=learning_rate,
             initialization=initialization,
-            callbacks=callbacks,
-            trainer_kwargs={"accelerator": "cpu"},
+            early_stopping=early_stopping,
+            patience=patience,
+            verbose=verbose,
         )
 
-    def _get_module(self, weights=None, k=None):
-        return PLS_ALSLoop(
-            weights=weights,
-            k=k,
-        )
-
-    def _more_tags(self):
-        return {"multiview": True, "pls": True}
-
-
-class PLS_ALSLoop(BaseLoop):
-    def training_step(self, batch, batch_idx):
-        scores = np.stack(self(batch["views"]))
-        # Update each view using loop update function
-        for view_index, view in enumerate(batch["views"]):
-            # create a mask that is True for elements not equal to k along dim k
-            mask = np.arange(scores.shape[0]) != view_index
-            # apply the mask to scores and sum along dim k
-            target = np.sum(scores[mask], axis=0)
-            self.weights[view_index] = np.cov(
-                np.hstack((batch["views"][view_index], target[:, np.newaxis])).T
-            )[:-1, -1]
-            self.weights[view_index] /= np.linalg.norm(self.weights[view_index])
+    def _update_weights(self, views: np.ndarray, i: int):
+        # Update the weights for the current view using PLS
+        # Get the scores of all views
+        scores = np.stack(self.transform(views))
+        # Create a mask that is True for elements not equal to i along dim i
+        mask = np.arange(scores.shape[0]) != i
+        # Apply the mask to scores and sum along dim i
+        target = np.sum(scores[mask], axis=0)
+        # Compute the new weights by computing the covariance between the view and the target
+        new_weights = np.cov(np.hstack((views[i], target)).T)[:-1, -1]
+        # Normalize the new weights
+        new_weights /= np.linalg.norm(new_weights)
+        # Return the new weights
+        return new_weights[:, np.newaxis]

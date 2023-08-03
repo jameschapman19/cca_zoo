@@ -1,102 +1,45 @@
 import itertools
 import warnings
-
+from typing import Union, Iterable
 import numpy as np
-import torch
-
-from cca_zoo.linear._iterative._base import (
-    BaseIterative,
-    BaseLoop,
-    supress_device_warnings,
-)
+from cca_zoo.linear._iterative._base import BaseIterative
 from cca_zoo.linear._iterative._deflation import DeflationMixin
-from cca_zoo.linear._pls import PLSMixin
 from cca_zoo.linear._search import _delta_search
 from cca_zoo.utils import _process_parameter
 
-supress_device_warnings()
 
-
-class SCCA_PMD(DeflationMixin, PLSMixin, BaseIterative):
-    r"""
-    A class used to fit a sparse CCA model by penalized matrix decomposition (PMD).
-
-    This model finds the linear projections of two views that maximize their correlation while enforcing sparsity constraints on the projection vectors.
-
-    The objective function of SCCA-PMD is:
-
-    .. math::
-
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
-
-        \text{subject to:}
-
-        \|w_i\|_2^2=1
-
-        \|w_i\|_1\leq \tau_i
-
-    where :math:`\tau_i` are the sparsity parameters for each view.
-
-    The algorithm alternates between updating the weights for each view and applying a soft thresholding operator to enforce the sparsity constraints.
-
-    Parameters
-    ----------
-    latent_dimensions : int, optional
-        Number of latent dimensions to use, by default 1
-    copy_data : bool, optional
-        Whether to copy the data, by default True
-    random_state : int, optional
-        Random seed for reproducibility, by default None
-    epochs : int, optional
-        Number of iterations to run the algorithm, by default 100
-    deflation : str, optional
-        Deflation scheme to use, by default "cca"
-    initialization : str, optional
-        Initialization scheme to use, by default "pls"
-    tol : float, optional
-        Tolerance for convergence, by default 1e-3
-    positive : Union[Iterable[bool], bool], optional
-        Whether to enforce positivity constraints on the weights, by default False
-    tau : Union[Iterable[float], float], optional
-        Sparsity parameter or list of parameters for each view, by default None. If None, it will be set to 1 for each view.
-    convergence_checking : str, optional
-        Convergence scheme to use, by default None
-    track : Union[Iterable[str], str], optional
-        List of metrics to track during training, by default None
-    verbose : bool, optional
-        Whether to print progress, by default False
-    """
-
+class SCCA_PMD(DeflationMixin, BaseIterative):
     def __init__(
         self,
-        latent_dimensions=1,
+        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
-        epochs=100,
-        initialization="uniform",
         tol=1e-3,
-        positive=False,
-        tau=None,
-        trainer_kwargs=None,
-        convergence_checking=None,
-        track=None,
+        accept_sparse=None,
+        epochs=100,
+        val_split=None,
+        learning_rate=1,
+        initialization: Union[str, callable] = "random",
+        early_stopping=False,
+        patience=10,
         verbose=None,
+        tau=None,  # regularization parameter for PMD
+        positive=False,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             random_state=random_state,
-            epochs=epochs,
-            initialization=initialization,
             tol=tol,
-            trainer_kwargs=trainer_kwargs,
-            convergence_checking=convergence_checking,
-            patience=0,
-            track=track,
+            accept_sparse=accept_sparse,
+            epochs=epochs,
+            val_split=val_split,
+            learning_rate=learning_rate,
+            initialization=initialization,
+            early_stopping=early_stopping,
+            patience=patience,
             verbose=verbose,
         )
-        # set trainer kwargs accelerator to 'cpu'
-        self.trainer_kwargs["accelerator"] = "cpu"
         self.tau = tau
         self.positive = positive
 
@@ -115,80 +58,31 @@ class SCCA_PMD(DeflationMixin, PLSMixin, BaseIterative):
             "positive", self.positive, False, self.n_views_
         )
 
-    def _get_module(self, weights=None, k=None):
-        return PMDLoop(
-            weights=weights,
-            k=k,
-            tau=self.tau,
-            tol=self.tol,
-            tracking=self.track,
-            convergence_checking=self.convergence_checking,
-        )
+    def _update_weights(self, views: np.ndarray, i: int):
 
-    def _more_tags(self):
-        return {"multiview": True, "pls": True}
+        if not hasattr(self, "t"):
+            shape_sqrts = [np.sqrt(weight.shape[0]) for weight in self.weights]
+            self.t = [max(1, x * y) for x, y in zip(self.tau, shape_sqrts)]
+        # Update the weights for the current view using PMD
+        # Get the scores of all views
+        scores = np.stack(self.transform(views))
+        # Create a mask that is True for elements not equal to i along dim i
+        mask = np.arange(scores.shape[0]) != i
+        # Apply the mask to scores and sum along dim i
+        target = np.sum(scores[mask], axis=0)
+        # Compute the new weights by multiplying the view with the target
+        new_weights = views[i].T @ target
+        # Apply the delta search function to the new weights with the regularization parameter
+        new_weights = _delta_search(new_weights, self.t[i])
+        # Return the new weights
+        return new_weights
 
-
-class PMDLoop(BaseLoop):
-    def __init__(
-        self,
-        weights,
-        k=None,
-        tau=None,
-        tol=1e-3,
-        tracking=False,
-        convergence_checking=False,
-    ):
-        super().__init__(
-            weights=weights,
-            k=k,
-            tracking=tracking,
-            convergence_checking=convergence_checking,
-        )
-        self.tau = tau
-        self.tol = tol
-        shape_sqrts = [np.sqrt(weight.shape[0]) for weight in self.weights]
-        self.t = [max(1, x * y) for x, y in zip(self.tau, shape_sqrts)]
-
-    def training_step(self, batch, batch_idx):
-        scores = np.stack(self(batch["views"]))
-        old_weights = self.weights.copy()
-        # Update each view using loop update function
-        for view_index, view in enumerate(batch["views"]):
-            view = view.detach().cpu().numpy()
-            # create a mask that is True for elements not equal to k along dim k
-            mask = np.arange(scores.shape[0]) != view_index
-            # apply the mask to scores and sum along dim k
-            target = np.sum(scores[mask], axis=0)
-            self.weights[view_index] = view.T @ target
-            self.weights[view_index] = _delta_search(
-                self.weights[view_index],
-                self.t[view_index],
-            )
-            if np.linalg.norm(self.weights[view_index]) <= 0:
-                warnings.warn(
-                    f"All result weights are zero in view {view_index}. "
-                    "Try less regularisation or another initialisation"
-                )
-        # if tracking or convergence_checking is enabled, compute the objective function
-        if self.tracking or self.convergence_checking:
-            objective = self.objective(batch["views"])
-            # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights
-            weights_change = torch.tensor(
-                np.max(
-                    [
-                        np.max(np.abs(old_weights[i] - self.weights[i]))
-                        / np.max(np.abs(self.weights[i]))
-                        for i in range(len(self.weights))
-                    ]
-                )
-            )
-            return {"loss": torch.tensor(objective), "weights_change": weights_change}
-
-    def objective(self, views):
-        transformed_views = self(views)
+    def _objective(self, views: Iterable[np.ndarray]):
+        # Compute the objective function value for a given set of views using SCCA
+        # Get the scores of all views
+        transformed_views = self.transform(views)
         all_covs = []
-        # sum all the pairwise covariances except self covariance
+        # Sum all the pairwise covariances except self covariance
         for i, j in itertools.combinations(range(len(transformed_views)), 2):
             if i != j:
                 all_covs.append(
@@ -201,4 +95,19 @@ class PMDLoop(BaseLoop):
                         ).T
                     )
                 )
-        return np.sum(all_covs)
+        # Subtract the regularization term from the sum of covariances
+        return np.sum(all_covs) - np.sum(
+            [
+                self.tau[i] * np.linalg.norm(self.weights[i])
+                for i in range(len(self.weights))
+            ]
+        )
+
+
+if __name__ == "__main__":
+    x = np.random.rand(100, 10)
+    y = np.random.rand(100, 10)
+
+    model = SCCA_PMD(latent_dimensions=2, epochs=100, tau=[0.1, 0.1])
+    model.fit([x, y])
+    print(model.weights)
