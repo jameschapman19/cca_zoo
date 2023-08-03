@@ -99,7 +99,6 @@ class ElasticCCA(DeflationMixin, BaseIterative):
             latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             epochs=epochs,
-
             initialization=initialization,
             tol=tol,
             random_state=random_state,
