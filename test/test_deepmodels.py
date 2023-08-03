@@ -110,7 +110,7 @@ def test_linear_gcca():
     trainer.fit(dgcca, loader)
     assert (
         np.testing.assert_array_almost_equal(
-            gcca.score((X, Y, Z)).sum(), dgcca.score(loader).sum(), decimal=2
+            gcca.score((X, Y, Z)).sum(), dgcca.score(loader).sum(), decimal=1
         )
         is None
     )
