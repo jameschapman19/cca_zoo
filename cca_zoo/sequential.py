@@ -7,7 +7,9 @@ from abc import ABCMeta
 
 from sklearn.base import MetaEstimatorMixin
 from cca_zoo._base import BaseModel
+from cca_zoo.linear._iterative._deflation import deflate_views
 from cca_zoo.model_selection._validation import permutation_test_score
+import numpy as np
 
 
 class SequentialModel(MetaEstimatorMixin, BaseModel, metaclass=ABCMeta):
@@ -103,10 +105,11 @@ class SequentialModel(MetaEstimatorMixin, BaseModel, metaclass=ABCMeta):
                 p_value >= self.p_threshold
                 or best_estimator.score(views) < self.corr_threshold
             ):
+                self.p_values.pop()
                 break
             else:
                 # Deflate the views and store the weights
-                views = self.deflate(views)
+                views = deflate_views(views, best_estimator.weights)
                 for i, weight in enumerate(best_estimator.weights):
                     self.weights[i].append(weight)
         # Set the final latent dimensions to k
@@ -114,44 +117,3 @@ class SequentialModel(MetaEstimatorMixin, BaseModel, metaclass=ABCMeta):
         # Concatenate the weights from each effect
         self.weights = [np.concatenate(weights, axis=1) for weights in self.weights]
         return self
-
-    def deflate(self, views):
-        # deflate by projection deflation
-        scores = self.estimator.transform(views)
-        views = [
-            view - np.outer(score, score) @ view / np.dot(score.T, score)
-            for view, score in zip(views, scores)
-        ]
-        return views
-
-
-if __name__ == "__main__":
-    import numpy as np
-
-    from cca_zoo.linear import rCCA
-    from cca_zoo.data.simulated import LinearSimulatedData
-    from cca_zoo.model_selection import GridSearchCV
-
-    np.random.seed(0)
-    data = LinearSimulatedData(view_features=[10, 10], latent_dims=5, correlation=0.8)
-    X, Y = data.sample(200)
-
-    rcca = rCCA()
-    # pipe=Pipeline([
-    #     ('preprocessing', MultiViewPreprocessing((StandardScaler(), StandardScaler()))),
-    #     ('rcca', rcca)
-    # ])
-    # pipe=Pipeline([('rcca', rcca)])
-    pipe = rcca
-    param_grid = {
-        "c": [0.1, 0.2, 0.3],
-    }
-    gs = GridSearchCV(pipe, param_grid, cv=2, verbose=1, n_jobs=1)
-
-    model = SequentialModel(
-        gs, latent_dimensions=10, permutation_test=True, p_threshold=0.05
-    )
-
-    model.fit([X, Y])
-
-    print(model.weights)

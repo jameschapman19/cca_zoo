@@ -30,7 +30,9 @@ class MultiViewPreprocessing(TransformerMixin):
             )
         check_Xs(views, enforce_views=range(len(self.preprocessing_list)))
         for view, preprocessing in zip(views, self.preprocessing_list):
-            preprocessing.fit(view, y)
+            # Skip if preprocessing is None
+            if preprocessing is not None:
+                preprocessing.fit(view, y)
         return self
 
     def transform(self, X, y=None):
@@ -45,9 +47,14 @@ class MultiViewPreprocessing(TransformerMixin):
         -------
 
         """
-        [check_is_fitted(preprocessing) for preprocessing in self.preprocessing_list]
+        [
+            check_is_fitted(preprocessing)
+            for preprocessing in self.preprocessing_list
+            if preprocessing is not None
+        ]
         check_Xs(X, enforce_views=range(len(self.preprocessing_list)))
         return [
-            preprocessing.transform(view)
+            # Skip if preprocessing is None
+            view if preprocessing is None else preprocessing.transform(view)
             for view, preprocessing in zip(X, self.preprocessing_list)
         ]

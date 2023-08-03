@@ -25,42 +25,56 @@ class DeflationMixin:
             weights = loop.weights
             for i, (view, weight) in enumerate(zip(views, weights)):
                 self.weights[i][:, k] = weight
-                views[i] = self._deflate(view, weight)
+            views = deflate_views(views, weights)
             # if loop has tracked the objective, return the objective
             if hasattr(loop, "epoch_objective"):
                 self.objective = loop.epoch_objective
         return self.weights
 
-    def _deflate(self, residual: np.ndarray, weights: np.ndarray) -> np.ndarray:
-        """Deflate view residual by CCA deflation.
 
-        Parameters
-        ----------
-        residual : np.ndarray
-            The current residual data matrix for a view
-        weights : np.ndarray
-            The current CCA weights for a view
+def deflate_views(residuals: Iterable[np.ndarray], weights: Iterable[np.ndarray]):
+    """Deflate the residuals by CCA deflation.
 
-        Returns
-        -------
-        np.ndarray
-            The deflated residual data matrix for a view
+    Parameters
+    ----------
+    residuals : Iterable[np.ndarray]
+        The current residual data matrices for each view
+    weights : Iterable[np.ndarray]
+        The current CCA weights for each view
 
-        Raises
-        ------
-        ValueError
-            If deflation method is not one of ["cca", "pls"]
-        """
-        # Compute the score vector for a view
-        score = residual @ weights
+    Returns
+    -------
+    Iterable[np.ndarray]
+        The deflated residual data matrices for each view
+    """
+    # Deflate the residuals for each view
+    return [
+        deflate_view(residual, weight) for residual, weight in zip(residuals, weights)
+    ]
 
-        # Deflate the residual by different methods based on the deflation attribute
-        if self.deflation == "cca":
-            return residual - np.outer(score, score) @ residual / np.dot(score, score)
-        elif self.deflation == "pls":
-            return residual - np.outer(score, weights)
-        else:
-            raise ValueError(
-                f"Invalid deflation method: {self.deflation}. "
-                f"Must be one of ['cca', 'pls']."
-            )
+
+def deflate_view(residual: np.ndarray, weights: np.ndarray) -> np.ndarray:
+    """Deflate view residual by CCA deflation.
+
+    Parameters
+    ----------
+    residual : np.ndarray
+        The current residual data matrix for a view
+    weights : np.ndarray
+        The current CCA weights for a view
+
+    Returns
+    -------
+    np.ndarray
+        The deflated residual data matrix for a view
+
+    Raises
+    ------
+    ValueError
+        If deflation method is not one of ["cca", "pls"]
+    """
+    # Compute the score vector for a view
+    score = residual @ weights
+
+    # Deflate the residual by different methods based on the deflation attribute
+    return residual - residual @ weights @ weights.T / (weights.T @ weights)
