@@ -77,4 +77,4 @@ def deflate_view(residual: np.ndarray, weights: np.ndarray) -> np.ndarray:
     score = residual @ weights
 
     # Deflate the residual by different methods based on the deflation attribute
-    return residual - residual @ weights @ weights.T / (weights.T @ weights)
+    return residual - residual @ np.outer(weights, weights) / (weights.T @ weights)
