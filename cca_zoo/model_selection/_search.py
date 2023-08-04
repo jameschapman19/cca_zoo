@@ -20,10 +20,15 @@ def param2grid(params):
         # check if v is an iterable object that can be converted to a list
         if hasattr(v, "__iter__") and not isinstance(v, str):
             v = list(v)
-        elif not hasattr(v, "__iter__"):
+        elif not hasattr(v, "__iter__") and not isinstance(v, str):
             v = [v]
-        if any([hasattr(v_, "__iter__") for v_ in v]):
-            v = [list(v_) if hasattr(v_, "__iter__") else [v_] for v_ in v]
+        if any([hasattr(v_, "__iter__") and not isinstance(v_, str) for v_ in v]):
+            v = [
+                list(v_)
+                if hasattr(v_, "__iter__") and not isinstance(v_, str)
+                else [v_]
+                for v_ in v
+            ]
             params[k] = list(map(list, itertools.product(*v)))
     return ParameterGrid(params)
 

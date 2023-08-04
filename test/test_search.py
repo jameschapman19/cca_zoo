@@ -1,5 +1,6 @@
 import numpy as np
 
+from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.model_selection._search import param2grid
 
 
@@ -53,3 +54,21 @@ def test_param2grid_with_iterable_types():
     ]
 
     assert grid == expected
+
+
+def test_kernel_tuning():
+    X = np.random.normal(size=(100, 10))
+    Y = np.random.normal(size=(100, 10))
+    from cca_zoo.nonparametric import KCCA
+
+    # We define a parameter grid with the polynomial kernel and different values for the regularization parameter (c) and the degree of the polynomial
+    param_grid = {
+        "kernel": ["poly"],
+        "c": [[1e-1], [1e-1, 2e-1]],
+        "degree": [[2], [2, 3]],
+    }
+
+    # We use GridSearchCV to find the best KCCA model with the polynomial kernel
+    kernel_reg = GridSearchCV(
+        KCCA(latent_dimensions=1), param_grid=param_grid, cv=2, verbose=True
+    ).fit([X, Y])
