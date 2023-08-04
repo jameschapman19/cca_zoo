@@ -181,22 +181,42 @@ plt.xlabel("#iterations")
 elasticcca_corr = elasticcca.score([X_val, Y_val])
 print(f"Elastic CCA correlation on validation set: {elasticcca_corr}")
 
-altmaxvar = AltMaxVar(tau=[1e-2, 1e-2], track="loss", epochs=epochs).fit(
-    [X_train, Y_train]
-)
+
+span_cca = SCCA_Span(
+    tau=[10,10]
+).fit([X_train, Y_train])
+
 plot_model_weights(
-    altmaxvar.weights[0], altmaxvar.weights[1], tx, ty, title="AltMaxVar"
+    span_cca.weights[0], span_cca.weights[1], tx, ty, title="Span CCA"
 )
 
 plt.figure()
 plt.title("Objective Convergence")
-plt.plot(np.array(altmaxvar.objective))
+plt.plot(np.array(span_cca.objective))
 plt.ylabel("Objective")
 plt.xlabel("#iterations")
 
 # Evaluate the model on the validation set using correlation as a metric
-altmaxvar_corr = altmaxvar.score([X_val, Y_val])
-print(f"AltMaxVar correlation on validation set: {altmaxvar_corr}")
+span_cca_corr = span_cca.score([X_val, Y_val])
+print(f"Span CCA correlation on validation set: {span_cca_corr}")
+
+
+# altmaxvar = AltMaxVar(tau=[1e-2, 1e-2], track="loss", epochs=epochs).fit(
+#     [X_train, Y_train]
+# )
+# plot_model_weights(
+#     altmaxvar.weights[0], altmaxvar.weights[1], tx, ty, title="AltMaxVar"
+# )
+#
+# plt.figure()
+# plt.title("Objective Convergence")
+# plt.plot(np.array(altmaxvar.objective))
+# plt.ylabel("Objective")
+# plt.xlabel("#iterations")
+#
+# # Evaluate the model on the validation set using correlation as a metric
+# altmaxvar_corr = altmaxvar.score([X_val, Y_val])
+# print(f"AltMaxVar correlation on validation set: {altmaxvar_corr}")
 
 # Add a comparison chart of all the models using validation correlation
 
@@ -208,7 +228,8 @@ model_names = [
     "SCCA_IPLS",
     "SCCA_IPLS (Positive)",
     "Elastic CCA",
-    "AltMaxVar",
+    # "Span CCA",
+    # "AltMaxVar",
 ]
 model_corrs = np.squeeze(
     np.array(
@@ -219,7 +240,8 @@ model_corrs = np.squeeze(
             scca_corr,
             scca_pos_corr,
             elasticcca_corr,
-            altmaxvar_corr,
+            span_cca_corr,
+            # altmaxvar_corr,
         ]
     )
 )
