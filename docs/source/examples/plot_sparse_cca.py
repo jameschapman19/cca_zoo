@@ -182,13 +182,9 @@ elasticcca_corr = elasticcca.score([X_val, Y_val])
 print(f"Elastic CCA correlation on validation set: {elasticcca_corr}")
 
 
-span_cca = SCCA_Span(
-    tau=[10,10]
-).fit([X_train, Y_train])
+span_cca = SCCA_Span(tau=[10, 10]).fit([X_train, Y_train])
 
-plot_model_weights(
-    span_cca.weights[0], span_cca.weights[1], tx, ty, title="Span CCA"
-)
+plot_model_weights(span_cca.weights[0], span_cca.weights[1], tx, ty, title="Span CCA")
 
 plt.figure()
 plt.title("Objective Convergence")
