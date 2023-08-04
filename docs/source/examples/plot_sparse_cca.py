@@ -19,7 +19,7 @@ from cca_zoo.linear import (
     PLS,
     SCCA_IPLS,
     SCCA_PMD,
-    AltMaxVar,
+    # AltMaxVar,
     ElasticCCA,
     SCCA_Span,
 )

@@ -18,7 +18,7 @@ from cca_zoo.linear import (
     ElasticCCA,
     PartialCCA,
     SCCA_Parkhomenko,
-    # SCCA_Span,
+    SCCA_Span,
     rCCA,
 )
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
@@ -142,16 +142,16 @@ def test_weighted_GCCA_methods():
     )
 
 
-# def test_l0():
-#     span_cca = SCCA_Span(
-#         latent_dimensions=1, regularisation="l0", tau=[2, 2], random_state=rng
-#     ).fit([X, Y])
-#     # swcca = SWCCA(tau=[5, 5], sample_support=5, random_state=rng).fit([views, Y])
-#     assert (np.abs(span_cca.weights[0]) > 1e-5).sum() == 2
-#     assert (np.abs(span_cca.weights[1]) > 1e-5).sum() == 2
-#     # assert (np.abs(swcca.weights[0]) > 1e-5).sum() == 5
-#     # assert (np.abs(swcca.weights[1]) > 1e-5).sum() == 5
-#     # assert (np.abs(swcca.sample_weights) > 1e-5).sum() == 5
+def test_l0():
+    span_cca = SCCA_Span(
+        latent_dimensions=1, regularisation="l0", tau=[2, 2], random_state=rng
+    ).fit([X, Y])
+    # swcca = SWCCA(tau=[5, 5], sample_support=5, random_state=rng).fit([views, Y])
+    assert (np.abs(span_cca.weights[0]) > 1e-5).sum() == 2
+    assert (np.abs(span_cca.weights[1]) > 1e-5).sum() == 2
+    # assert (np.abs(swcca.weights[0]) > 1e-5).sum() == 5
+    # assert (np.abs(swcca.weights[1]) > 1e-5).sum() == 5
+    # assert (np.abs(swcca.sample_weights) > 1e-5).sum() == 5
 
 
 def test_partialcca():

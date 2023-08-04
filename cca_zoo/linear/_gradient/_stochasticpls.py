@@ -1,6 +1,6 @@
 import torch
 
-from cca_zoo.linear._gradient._base import GradientLoop
+from cca_zoo.linear._gradient._base import BaseLoop
 from cca_zoo.linear._gradient._ey import PLSEY
 from cca_zoo.linear._pls import PLSMixin
 
@@ -18,7 +18,7 @@ class PLSStochasticPower(PLSEY, PLSMixin):
         return {"multiview": True, "stochastic": True}
 
 
-class StochasticPowerLoop(GradientLoop):
+class StochasticPowerLoop(BaseLoop):
     def __init__(
         self,
         weights=None,

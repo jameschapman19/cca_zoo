@@ -5,7 +5,7 @@ from ._pls_als import PLS_ALS
 from ._scca_parkhomenko import SCCA_Parkhomenko
 from ._scca_pmd import SCCA_PMD
 
-# from ._scca_span import SCCA_Span
+from ._scca_span import SCCA_Span
 
 __all__ = [
     "ElasticCCA",
@@ -13,6 +13,6 @@ __all__ = [
     "PLS_ALS",
     "SCCA_PMD",
     "SCCA_Parkhomenko",
-    # "SCCA_Span",
+    "SCCA_Span",
     # "AltMaxVar",
 ]

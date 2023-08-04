@@ -34,12 +34,6 @@ class BaseIterative(BaseModel):
         )
         self.tol = tol
         self.epochs = epochs
-        # validate the split
-        if val_split is not None:
-            if val_split <= 0 or val_split >= 1:
-                raise ValueError("Validation split must be between 0 and 1")
-        self.val_split = val_split
-        self.learning_rate = learning_rate
         # validate the initialization method
         if initialization not in ["random", "uniform", "unregularized", "pls"]:
             raise ValueError(
