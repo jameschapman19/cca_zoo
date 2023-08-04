@@ -101,12 +101,3 @@ class SCCA_PMD(DeflationMixin, BaseIterative):
                 for i in range(len(self.weights))
             ]
         )
-
-
-if __name__ == "__main__":
-    x = np.random.rand(100, 10)
-    y = np.random.rand(100, 10)
-
-    model = SCCA_PMD(latent_dimensions=2, epochs=100, tau=[0.1, 0.1])
-    model.fit([x, y])
-    print(model.weights)

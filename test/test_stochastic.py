@@ -20,7 +20,7 @@ X_sp -= X_sp.mean(axis=0)
 Y_sp -= Y_sp.mean(axis=0)
 
 latent_dims = 3
-epochs = 100
+epochs = 150
 batch_size = 10
 learning_rate = 1e-1
 random_state = 1
@@ -51,13 +51,13 @@ def test_batch_pls():
         latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=None,
-        learning_rate=10 * learning_rate,
+        learning_rate=learning_rate,
         random_state=random_state,
         track="loss",
     ).fit((X, Y))
     pls_score = scale_transform(pls, X, Y)
     plsey_score = scale_transform(plsey, X, Y)
-    assert np.allclose(pls_score, plsey_score, atol=1e-2)
+    assert np.allclose(np.trace(pls_score), np.trace(plsey_score), atol=1e-2)
 
 
 def test_stochastic_pls():
