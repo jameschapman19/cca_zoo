@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 
-def _delta_search(w, c):
+def _delta_search(w, c, tol=1e-8):
     """
     Searches for threshold delta such that the 1-norm of weights w is less than or equal to c and the 2-norm is equal to 1.
     Parameters
@@ -43,13 +43,13 @@ def _delta_search(w, c):
     # bound x to be between 0 and 1
 
     # try some different methods until one gets result.success == True
-    result = minimize(f, x0=0, bounds=[(0, 1)], method="L-BFGS-B")
+    result = minimize(f, x0=0, bounds=[(0, 1)], method="L-BFGS-B", tol=tol)
     if not result.success:
-        result = minimize(f, x0=0, bounds=[(0, 1)], method="TNC")
+        result = minimize(f, x0=0, bounds=[(0, 1)], method="TNC", tol=tol)
     if not result.success:
-        result = minimize(f, x0=0, bounds=[(0, 1)], method="SLSQP")
+        result = minimize(f, x0=0, bounds=[(0, 1)], method="SLSQP", tol=tol)
     if not result.success:
-        result = minimize(f, x0=0, bounds=[(0, 1)], method="trust-constr")
+        result = minimize(f, x0=0, bounds=[(0, 1)], method="trust-constr", tol=tol)
 
     # Check if the solution is valid and converged
     if result.success:
