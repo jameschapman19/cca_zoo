@@ -18,7 +18,7 @@ class PLS_ALS(DeflationMixin, BaseIterative):
         epochs=100,
         initialization: Union[str, callable] = "random",
         early_stopping=False,
-        verbose=None,
+        verbose=True,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,

@@ -70,20 +70,20 @@ def plot_model_weights(wx, wy, tx, ty, title=""):
 
 # Initialize parameters
 np.random.seed(42)
-n = 400
-p = 100
-q = 100
+n = 500
+p = 200
+q = 200
 view_1_sparsity = 0.1
 view_2_sparsity = 0.1
 latent_dims = 1
-epochs = 100
+epochs = 50
 
 # Simulate some data
 data = LinearSimulatedData(
     view_features=[p, q],
     latent_dims=latent_dims,
     view_sparsity=[view_1_sparsity, view_2_sparsity],
-    correlation=[0.95],
+    correlation=[0.99],
 )
 (X, Y) = data.sample(n)
 
@@ -117,10 +117,9 @@ scca_corr = train_and_evaluate(SCCA_IPLS(alpha=[1e-2, 1e-2], epochs=epochs, earl
 scca_pos_corr = train_and_evaluate(SCCA_IPLS(alpha=[1e-2, 1e-2], positive=True, epochs=epochs, early_stopping=True), "SCCA_IPLS+")
 
 # Elastic CCA Model
-alpha1 = [0.1, 0.3, 0.5]
-alpha2 = [0.1, 0.3, 0.5]
-param_grid = {"alpha": [alpha1, alpha2]}
-elastic = GridSearchCV(ElasticCCA(epochs=epochs, early_stopping=True), param_grid=param_grid).fit([X_train, Y_train])
+alpha = [1e-1,1e-2,1e-3]
+param_grid = {"alpha": alpha}
+elastic = GridSearchCV(ElasticCCA(epochs=epochs, early_stopping=True, l1_ratio=0.9), param_grid=param_grid).fit([X_train, Y_train])
 plot_model_weights(elastic.best_estimator_.weights[0], elastic.best_estimator_.weights[1], tx, ty, title="ElasticCCA")
 elastic_corr = elastic.score([X_val, Y_val])
 

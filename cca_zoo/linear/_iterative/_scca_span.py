@@ -36,7 +36,7 @@ class SCCA_Span(DeflationMixin, BaseIterative):
         rank=1,
         positive: Union[Iterable[bool], bool] = None,
         random_state=None,
-        verbose=0,
+        verbose=True,
             early_stopping=False,
     ):
         super().__init__(

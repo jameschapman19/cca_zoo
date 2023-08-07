@@ -68,7 +68,7 @@ class ElasticCCA(DeflationMixin, BaseIterative):
         # Loop over the views and fit each regressor to the view and the target
         self.regressors[i] = self.regressors[i].fit(views[i], target)
         # Update the weights with the coefficients of each regressor
-        new_weights = self.regressors[i].coef_
+        new_weights = np.squeeze(self.regressors[i].coef_)
         # Return the updated weights
         return new_weights[:, None]
 
@@ -102,7 +102,7 @@ class SCCA_IPLS(DeflationMixin, BaseIterative):
         epochs=100,
         initialization: Union[str, callable] = "uniform",
         early_stopping=False,
-        verbose=None,
+        verbose=True,
         alpha=None,  # regularization parameter for Elastic
         l1_ratio=1,  # ratio of L1 to L2 penalty for Elastic
         positive=None,  # whether to enforce positive coefficients for Elastic

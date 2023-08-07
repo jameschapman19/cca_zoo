@@ -18,7 +18,7 @@ class SCCA_Parkhomenko(DeflationMixin, BaseIterative):
         epochs=100,
         initialization: Union[str, callable] = "random",
         early_stopping=False,
-        verbose=None,
+        verbose=True,
         tau=None,  # regularization parameter for Parkhomenko
     ):
         super().__init__(

@@ -19,7 +19,7 @@ class SCCA_PMD(DeflationMixin, BaseIterative):
         epochs=100,
         initialization: Union[str, callable] = "pls",
         early_stopping=False,
-        verbose=None,
+        verbose=True,
         tau=None,  # regularization parameter for PMD
         positive=False,
     ):
@@ -76,19 +76,15 @@ class SCCA_PMD(DeflationMixin, BaseIterative):
         transformed_views = self.transform(views)
         all_covs = []
         # Sum all the pairwise covariances except self covariance
-        for i, j in itertools.combinations(range(len(transformed_views)), 2):
-            if i != j:
-                all_covs.append(
-                    np.cov(
-                        np.hstack(
-                            (
-                                transformed_views[i],
-                                transformed_views[j],
-                            )
-                        ).T
-                    )
+        for x, y in itertools.product(transformed_views, repeat=2):
+            all_covs.append(
+                np.diag(
+                    np.corrcoef(x.T, y.T)[
+                    : self.latent_dimensions, self.latent_dimensions :
+                    ]
                 )
-        # Subtract the regularization term from the sum of covariances
+            )
+        # the sum of covariances
         return np.sum(all_covs) - np.sum(
             [
                 self.tau[i] * np.linalg.norm(self.weights[i])

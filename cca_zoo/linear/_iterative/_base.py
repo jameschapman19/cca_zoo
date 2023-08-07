@@ -3,6 +3,7 @@ from abc import abstractmethod
 from typing import Iterable, Union
 
 import numpy as np
+from tqdm import tqdm
 
 from cca_zoo._base import BaseModel
 from cca_zoo.linear._dummy import DummyCCA, DummyPLS
@@ -21,7 +22,7 @@ class BaseIterative(BaseModel):
         epochs=100,
         initialization: Union[str, callable] = "random",
         early_stopping=False,
-        verbose=None,
+        verbose=True,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -56,7 +57,7 @@ class BaseIterative(BaseModel):
         loss = np.inf
         prev_weights = self.weights.copy()
         # Loop over the epochs
-        for epoch in range(self.epochs):
+        for epoch in tqdm(range(self.epochs), desc="Epochs", position=0, leave=True, disable=not self.verbose):
             # Loop over the views
             for i in range(len(views)):
                 # Update the weights for the current view by solving a linear system
@@ -95,18 +96,14 @@ class BaseIterative(BaseModel):
         transformed_views = self.transform(views)
         all_covs = []
         # Sum all the pairwise covariances except self covariance
-        for i, j in itertools.combinations(range(len(transformed_views)), 2):
-            if i != j:
-                all_covs.append(
-                    np.cov(
-                        np.hstack(
-                            (
-                                transformed_views[i],
-                                transformed_views[j],
-                            )
-                        ).T
-                    )
+        for x, y in itertools.product(transformed_views, repeat=2):
+            all_covs.append(
+                np.diag(
+                    np.corrcoef(x.T, y.T)[
+                    : self.latent_dimensions, self.latent_dimensions :
+                    ]
                 )
+            )
         # the sum of covariances
         return np.sum(all_covs)
 
