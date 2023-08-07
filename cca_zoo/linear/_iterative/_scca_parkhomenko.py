@@ -16,7 +16,7 @@ class SCCA_Parkhomenko(DeflationMixin, BaseIterative):
         tol=1e-3,
         accept_sparse=None,
         epochs=100,
-        initialization: Union[str, callable] = "random",
+        initialization: Union[str, callable] = "pls",
         early_stopping=False,
         verbose=True,
         tau=None,  # regularization parameter for Parkhomenko
