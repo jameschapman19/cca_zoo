@@ -4,6 +4,7 @@ Module for finding CCA effects sequentially by deflation.
 Check if each effect is significant, and if so, remove it from the data and repeat.
 """
 from abc import ABCMeta
+from typing import Iterable
 
 from sklearn.base import MetaEstimatorMixin
 from cca_zoo._base import BaseModel
@@ -57,20 +58,7 @@ class SequentialModel(MetaEstimatorMixin, BaseModel, metaclass=ABCMeta):
         self.p_threshold = p_threshold
         self.corr_threshold = corr_threshold
 
-    def fit(self, views):
-        """
-        Fits the model to the views.
-
-        Parameters
-        ----------
-        views : list of array-likes of shape (n_samples, n_features)
-            A list of views, where each view is an array-like matrix of shape (n_samples, n_features).
-
-        Returns
-        -------
-        self : SequentialModel
-            The SequentialModel instance.
-        """
+    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         # Validate the input data and parameters
         self._validate_data(views)
         self._check_params()
