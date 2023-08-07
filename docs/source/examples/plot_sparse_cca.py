@@ -105,8 +105,8 @@ pls_corr = train_and_evaluate(PLS(), "PLS")
 span_cca_corr = train_and_evaluate(SCCA_Span(tau=[10, 10], early_stopping=True), "Span CCA")
 
 # For PMD model we use GridSearchCV
-tau1 = [0.1, 0.3, 0.5]
-tau2 = [0.1, 0.3, 0.5]
+tau1 = [0.1, 0.5, 0.9]
+tau2 = [0.1, 0.5, 0.9]
 param_grid = {"tau": [tau1, tau2]}
 pmd = GridSearchCV(SCCA_PMD(epochs=epochs, early_stopping=True), param_grid=param_grid).fit([X_train, Y_train])
 plot_model_weights(pmd.best_estimator_.weights[0], pmd.best_estimator_.weights[1], tx, ty, title="PMD")
@@ -116,10 +116,11 @@ pmd_corr = pmd.score([X_val, Y_val])
 scca_corr = train_and_evaluate(SCCA_IPLS(alpha=[1e-2, 1e-2], epochs=epochs, early_stopping=True), "SCCA_IPLS")
 scca_pos_corr = train_and_evaluate(SCCA_IPLS(alpha=[1e-2, 1e-2], positive=True, epochs=epochs, early_stopping=True), "SCCA_IPLS+")
 
+
 # Elastic CCA Model
-alpha = [1e-1,1e-2,1e-3]
+alpha = [1e-2,1e-3]
 param_grid = {"alpha": alpha}
-elastic = GridSearchCV(ElasticCCA(epochs=epochs, early_stopping=True, l1_ratio=0.9), param_grid=param_grid).fit([X_train, Y_train])
+elastic = GridSearchCV(ElasticCCA(epochs=epochs, early_stopping=True, l1_ratio=0.99), param_grid=param_grid).fit([X_train, Y_train])
 plot_model_weights(elastic.best_estimator_.weights[0], elastic.best_estimator_.weights[1], tx, ty, title="ElasticCCA")
 elastic_corr = elastic.score([X_val, Y_val])
 
@@ -152,4 +153,5 @@ sns.barplot(x=results_df.index, y=results_df['Validation Correlation'], palette=
 plt.xticks(rotation=90)
 plt.title("Comparison of Models by Validation Correlation")
 plt.ylabel("Validation Correlation")
+plt.tight_layout()
 plt.show()
