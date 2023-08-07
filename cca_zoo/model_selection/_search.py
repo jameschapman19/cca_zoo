@@ -18,13 +18,16 @@ from sklearn.model_selection import ParameterGrid
 import itertools
 import numpy as np
 
+
 def param2grid(params):
-    params = {k: list(v) if (hasattr(v, "__iter__") and not isinstance(v, str)) else [v] for k, v in params.items()}
+    params = {
+        k: list(v) if (hasattr(v, "__iter__") and not isinstance(v, str)) else [v]
+        for k, v in params.items()
+    }
     for k, v in params.items():
         if any([hasattr(v_, "__iter__") and not isinstance(v_, str) for v_ in v]):
             params[k] = list(map(list, itertools.product(*v)))
     return ParameterGrid(params)
-
 
 
 class ParameterSampler_(ParameterSampler):

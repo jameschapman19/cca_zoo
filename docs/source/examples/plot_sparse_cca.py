@@ -127,20 +127,17 @@ pd.DataFrame(pmd.cv_results_)
 
 # %% IPLS
 # IPLS is a method that finds sparse linear projections of the views that are maximally covariant by using an iterative algorithm
-scca = SCCA_IPLS(alpha=[1e-2, 1e-2], epochs=epochs).fit(
-    [X_train, Y_train]
-)
+scca = SCCA_IPLS(alpha=[1e-2, 1e-2], epochs=epochs).fit([X_train, Y_train])
 plot_model_weights(scca.weights[0], scca.weights[1], tx, ty, title="SCCA_IPLS")
-
 
 
 # Evaluate the model on the validation set using correlation as a metric
 scca_corr = scca.score([X_val, Y_val])
 print(f"SCCA_IPLS correlation on validation set: {scca_corr}")
 
-scca_pos = SCCA_IPLS(
-    alpha=[1e-2, 1e-2], positive=[True, True], epochs=epochs
-).fit([X_train, Y_train])
+scca_pos = SCCA_IPLS(alpha=[1e-2, 1e-2], positive=[True, True], epochs=epochs).fit(
+    [X_train, Y_train]
+)
 plot_model_weights(
     scca_pos.weights[0], scca_pos.weights[1], tx, ty, title="SCCA_IPLS (Positive)"
 )
@@ -149,9 +146,9 @@ plot_model_weights(
 scca_pos_corr = scca_pos.score([X_val, Y_val])
 print(f"SCCA_IPLS (Positive) correlation on validation set: {scca_pos_corr}")
 
-elasticcca = ElasticCCA(
-    alpha=[1e-2, 1e-2], l1_ratio=[0.5, 0.5], epochs=epochs
-).fit([X_train, Y_train])
+elasticcca = ElasticCCA(alpha=[1e-2, 1e-2], l1_ratio=[0.5, 0.5], epochs=epochs).fit(
+    [X_train, Y_train]
+)
 plot_model_weights(
     elasticcca.weights[0], elasticcca.weights[1], tx, ty, title="ELastic CCA"
 )
