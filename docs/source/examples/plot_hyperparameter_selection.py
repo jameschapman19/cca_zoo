@@ -67,14 +67,13 @@ print(pd.DataFrame(kernel_reg.cv_results_))
 
 # We define a parameter grid with the polynomial kernel and different values or distributions for the regularization parameter (c) and the degree of the polynomial
 param_grid = {
-    "kernel": ["poly"],
     "c": [loguniform(1e-1, 2e-1), [1e-1]],
     "degree": [[2], [2, 3]],
 }
 
 # We use RandomizedSearchCV to find the best KCCA model with the polynomial kernel
 kernel_reg = RandomizedSearchCV(
-    KCCA(latent_dimensions=latent_dims),
+    KCCA(latent_dimensions=latent_dims, kernel="poly"),
     param_distributions=param_grid,
     cv=cv,
     verbose=True,

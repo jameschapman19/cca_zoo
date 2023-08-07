@@ -29,7 +29,7 @@ class SCCA_Span(DeflationMixin, BaseIterative):
         latent_dimensions: int = 1,
         epochs: int = 100,
         copy_data=True,
-        initialization: str = "uniform",
+        initialization: str = "pls",
         tol: float = 1e-3,
         regularisation="l0",
         tau: Union[Iterable[Union[float, int]], Union[float, int]] = None,
@@ -78,30 +78,22 @@ class SCCA_Span(DeflationMixin, BaseIterative):
         # if P, D, Q not initialised, initialise them
         if getattr(self, "P", None) is None:
             self._initialize_variables(views)
-        # generate a random vector c
-        c = self.random_state.randn(self.rank)
-        c /= np.linalg.norm(c)
         if i == 0:
+            # generate a random vector c
+            c = np.random.randn(self.rank)
+            c /= np.linalg.norm(c)
             # compute a = P D c
             a = self.P @ np.diag(self.D) @ c
             # apply the update function to a with tau[0]
             u = self.update(a, self.tau[0])
             u /= np.linalg.norm(u)
             # update the objective value and the weights if improved
-            if a.T @ u > self.max_obj[i]:
-                self.max_obj[i] = a.T @ u
-                return u[:, np.newaxis]
-            else:
-                return self.weights[i]
+            return u[:, np.newaxis]
         elif i == 1:
             b = self.Q @ np.diag(self.D) @ self.P.T @ self.weights[0]
             v = self.update(b, self.tau[1])
             v /= np.linalg.norm(v)
-            if b.T @ v > self.max_obj[i]:
-                self.max_obj[i] = b.T @ v
-                return v
-            else:
-                return self.weights[i]
+            return v
 
     def _initialize_variables(self, views):
         self.max_obj = [0, 0]

@@ -17,7 +17,7 @@ class SCCA_PMD(DeflationMixin, BaseIterative):
         tol=1e-3,
         accept_sparse=None,
         epochs=100,
-        initialization: Union[str, callable] = "random",
+        initialization: Union[str, callable] = "pls",
         early_stopping=False,
         verbose=None,
         tau=None,  # regularization parameter for PMD

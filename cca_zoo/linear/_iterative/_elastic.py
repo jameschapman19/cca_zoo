@@ -18,7 +18,7 @@ class ElasticCCA(DeflationMixin, BaseIterative):
         tol=1e-3,
         accept_sparse=None,
         epochs=100,
-        initialization: Union[str, callable] = "random",
+        initialization: Union[str, callable] = "uniform",
         early_stopping=False,
         verbose=None,
         alpha=None,  # regularization parameter for Elastic
@@ -100,7 +100,7 @@ class SCCA_IPLS(DeflationMixin, BaseIterative):
         tol=1e-3,
         accept_sparse=None,
         epochs=100,
-        initialization: Union[str, callable] = "random",
+        initialization: Union[str, callable] = "uniform",
         early_stopping=False,
         verbose=None,
         alpha=None,  # regularization parameter for Elastic
