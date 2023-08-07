@@ -24,7 +24,10 @@ class DeflationMixin:
         ]
         # Loop over latent dimensions
         for k in tqdm(
-            range(self.latent_dimensions), desc="Latent Dimension", position=0, leave=True
+            range(self.latent_dimensions),
+            desc="Latent Dimension",
+            position=0,
+            leave=True,
         ):
             # clone self but with only one latent dimension and _fit
             component_weights = clone(self).set_params(latent_dimensions=1)._fit(views)
