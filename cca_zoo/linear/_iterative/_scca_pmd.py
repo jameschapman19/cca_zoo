@@ -65,7 +65,7 @@ class SCCA_PMD(DeflationMixin, BaseIterative):
         target = np.sum(scores[mask], axis=0)
         # Compute the new weights by multiplying the view with the target
         new_weights = views[i].T @ target
-        if self.positive:
+        if self.positive[i]:
             # If positive is true, set all negative values to 0
             new_weights[new_weights < 0] = 0
         # Apply the delta search function to the new weights with the regularization parameter

@@ -83,7 +83,7 @@ data = LinearSimulatedData(
     view_features=[p, q],
     latent_dims=latent_dims,
     view_sparsity=[view_1_sparsity, view_2_sparsity],
-    correlation=[0.99],
+    correlation=[0.9],
 )
 (X, Y) = data.sample(n)
 
