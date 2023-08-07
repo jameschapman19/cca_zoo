@@ -26,6 +26,7 @@ sns.set_theme(style="whitegrid")
 sns.set(font_scale=1.2)
 plt.close("all")
 
+
 # Function to create a scatterplot of weights
 def plot_true_weights_coloured(ax, weights, true_weights, title="", legend=False):
     # Preprocess weights for seaborn scatterplot
@@ -33,21 +34,26 @@ def plot_true_weights_coloured(ax, weights, true_weights, title="", legend=False
     ind = np.arange(len(true_weights))
     mask = np.squeeze(true_weights == 0)
 
-    non_zero_df = pd.DataFrame({
-        'Index': ind[~mask],
-        'Weights': weights[~mask],
-        'Type': 'Non-Zero Weights'
-    })
-    zero_df = pd.DataFrame({
-        'Index': ind[mask],
-        'Weights': weights[mask],
-        'Type': 'Zero Weights'
-    })
+    non_zero_df = pd.DataFrame(
+        {"Index": ind[~mask], "Weights": weights[~mask], "Type": "Non-Zero Weights"}
+    )
+    zero_df = pd.DataFrame(
+        {"Index": ind[mask], "Weights": weights[mask], "Type": "Zero Weights"}
+    )
     data_df = pd.concat([non_zero_df, zero_df])
 
     # Create seaborn scatterplot
-    sns.scatterplot(data=data_df, x='Index', y='Weights', hue='Type', ax=ax, palette="viridis", legend=legend)
+    sns.scatterplot(
+        data=data_df,
+        x="Index",
+        y="Weights",
+        hue="Type",
+        ax=ax,
+        palette="viridis",
+        legend=legend,
+    )
     ax.set_title(title)
+
 
 # Function to plot weights for each model
 def plot_model_weights(wx, wy, tx, ty, title=""):
@@ -62,11 +68,12 @@ def plot_model_weights(wx, wy, tx, ty, title=""):
     handles, labels = axs[1, 1].get_legend_handles_labels()
     # legend off
     plt.legend([], [], frameon=False)
-    fig.legend(handles, labels,bbox_to_anchor=(0.5, -0.05), loc='lower center', ncol=2)
+    fig.legend(handles, labels, bbox_to_anchor=(0.5, -0.05), loc="lower center", ncol=2)
     plt.tight_layout()
     fig.suptitle(title)
     sns.despine(trim=True)
     plt.show(block=False)
+
 
 # Initialize parameters
 np.random.seed(42)
@@ -93,34 +100,55 @@ ty = data.true_features[1]
 # Split data into train and test sets
 X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2)
 
+
 # Define a helper function to train and evaluate a model
 def train_and_evaluate(model, title):
     model.fit([X_train, Y_train])
     plot_model_weights(model.weights[0], model.weights[1], tx, ty, title=title)
     return model.score([X_val, Y_val])
 
+
 # Train and evaluate each model
 cca_corr = train_and_evaluate(CCA(), "CCA")
 pls_corr = train_and_evaluate(PLS(), "PLS")
-span_cca_corr = train_and_evaluate(SCCA_Span(tau=[10, 10], early_stopping=True), "Span CCA")
+span_cca_corr = train_and_evaluate(
+    SCCA_Span(tau=[10, 10], early_stopping=True), "Span CCA"
+)
 
 # For PMD model we use GridSearchCV
 tau1 = [0.1, 0.3, 0.5]
 tau2 = [0.1, 0.3, 0.5]
 param_grid = {"tau": [tau1, tau2]}
-pmd = GridSearchCV(SCCA_PMD(epochs=epochs, early_stopping=True), param_grid=param_grid).fit([X_train, Y_train])
-plot_model_weights(pmd.best_estimator_.weights[0], pmd.best_estimator_.weights[1], tx, ty, title="PMD")
+pmd = GridSearchCV(
+    SCCA_PMD(epochs=epochs, early_stopping=True), param_grid=param_grid
+).fit([X_train, Y_train])
+plot_model_weights(
+    pmd.best_estimator_.weights[0], pmd.best_estimator_.weights[1], tx, ty, title="PMD"
+)
 pmd_corr = pmd.score([X_val, Y_val])
 
 # Training and evaluating SCCA_IPLS models
-scca_corr = train_and_evaluate(SCCA_IPLS(alpha=[1e-2, 1e-2], epochs=epochs, early_stopping=True), "SCCA_IPLS")
-scca_pos_corr = train_and_evaluate(SCCA_IPLS(alpha=[1e-2, 1e-2], positive=True, epochs=epochs, early_stopping=True), "SCCA_IPLS+")
+scca_corr = train_and_evaluate(
+    SCCA_IPLS(alpha=[1e-2, 1e-2], epochs=epochs, early_stopping=True), "SCCA_IPLS"
+)
+scca_pos_corr = train_and_evaluate(
+    SCCA_IPLS(alpha=[1e-2, 1e-2], positive=True, epochs=epochs, early_stopping=True),
+    "SCCA_IPLS+",
+)
 
 # Elastic CCA Model
-alpha = [1e-1,1e-2,1e-3]
+alpha = [1e-1, 1e-2, 1e-3]
 param_grid = {"alpha": alpha}
-elastic = GridSearchCV(ElasticCCA(epochs=epochs, early_stopping=True, l1_ratio=0.9), param_grid=param_grid).fit([X_train, Y_train])
-plot_model_weights(elastic.best_estimator_.weights[0], elastic.best_estimator_.weights[1], tx, ty, title="ElasticCCA")
+elastic = GridSearchCV(
+    ElasticCCA(epochs=epochs, early_stopping=True, l1_ratio=0.9), param_grid=param_grid
+).fit([X_train, Y_train])
+plot_model_weights(
+    elastic.best_estimator_.weights[0],
+    elastic.best_estimator_.weights[1],
+    tx,
+    ty,
+    title="ElasticCCA",
+)
 elastic_corr = elastic.score([X_val, Y_val])
 
 # Print final comparison
@@ -144,11 +172,15 @@ model_results = {
 }
 
 # Convert dictionary to pandas DataFrame for easy plotting
-results_df = pd.DataFrame.from_dict(model_results, orient='index', columns=['Validation Correlation'])
+results_df = pd.DataFrame.from_dict(
+    model_results, orient="index", columns=["Validation Correlation"]
+)
 
 # Plot the data
 plt.figure(figsize=(10, 5))
-sns.barplot(x=results_df.index, y=results_df['Validation Correlation'], palette="viridis")
+sns.barplot(
+    x=results_df.index, y=results_df["Validation Correlation"], palette="viridis"
+)
 plt.xticks(rotation=90)
 plt.title("Comparison of Models by Validation Correlation")
 plt.ylabel("Validation Correlation")

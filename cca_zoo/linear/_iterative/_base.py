@@ -57,7 +57,13 @@ class BaseIterative(BaseModel):
         loss = np.inf
         prev_weights = self.weights.copy()
         # Loop over the epochs
-        for epoch in tqdm(range(self.epochs), desc="Epochs", position=0, leave=True, disable=not self.verbose):
+        for epoch in tqdm(
+            range(self.epochs),
+            desc="Epochs",
+            position=0,
+            leave=True,
+            disable=not self.verbose,
+        ):
             # Loop over the views
             for i in range(len(views)):
                 # Update the weights for the current view by solving a linear system
@@ -105,7 +111,7 @@ class BaseIterative(BaseModel):
             all_covs.append(
                 np.diag(
                     np.corrcoef(x.T, y.T)[
-                    : self.latent_dimensions, self.latent_dimensions :
+                        : self.latent_dimensions, self.latent_dimensions :
                     ]
                 )
             )

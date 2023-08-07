@@ -80,7 +80,7 @@ class SCCA_PMD(DeflationMixin, BaseIterative):
             all_covs.append(
                 np.diag(
                     np.corrcoef(x.T, y.T)[
-                    : self.latent_dimensions, self.latent_dimensions :
+                        : self.latent_dimensions, self.latent_dimensions :
                     ]
                 )
             )
