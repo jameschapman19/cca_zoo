@@ -18,7 +18,6 @@ class PLS_ALS(DeflationMixin, BaseIterative):
         epochs=100,
         initialization: Union[str, callable] = "random",
         early_stopping=False,
-        patience=10,
         verbose=None,
     ):
         super().__init__(
@@ -30,7 +29,6 @@ class PLS_ALS(DeflationMixin, BaseIterative):
             epochs=epochs,
             initialization=initialization,
             early_stopping=early_stopping,
-            patience=patience,
             verbose=verbose,
         )
 

@@ -61,10 +61,6 @@ def _delta_search(w, c):
             -w - delta > 0, -w - delta, 0
         )
 
-        # if all coefficients are zero
-        if np.sum(coef**2) == 0:
-            print()
-
         # Normalize the coefficients to unit length if nonzero
         coef /= np.linalg.norm(coef)
 

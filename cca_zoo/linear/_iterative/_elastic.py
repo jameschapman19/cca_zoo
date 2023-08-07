@@ -20,7 +20,6 @@ class ElasticCCA(DeflationMixin, BaseIterative):
         epochs=100,
         initialization: Union[str, callable] = "random",
         early_stopping=False,
-        patience=10,
         verbose=None,
         alpha=None,  # regularization parameter for Elastic
         l1_ratio=None,  # ratio of L1 to L2 penalty for Elastic
@@ -36,7 +35,6 @@ class ElasticCCA(DeflationMixin, BaseIterative):
             epochs=epochs,
             initialization=initialization,
             early_stopping=early_stopping,
-            patience=patience,
             verbose=verbose,
         )
         self.alpha = alpha
@@ -104,7 +102,6 @@ class SCCA_IPLS(DeflationMixin, BaseIterative):
         epochs=100,
         initialization: Union[str, callable] = "random",
         early_stopping=False,
-        patience=10,
         verbose=None,
         alpha=None,  # regularization parameter for Elastic
         l1_ratio=1,  # ratio of L1 to L2 penalty for Elastic
@@ -120,7 +117,6 @@ class SCCA_IPLS(DeflationMixin, BaseIterative):
             epochs=epochs,
             initialization=initialization,
             early_stopping=early_stopping,
-            patience=patience,
             verbose=verbose,
         )
         self.alpha = alpha

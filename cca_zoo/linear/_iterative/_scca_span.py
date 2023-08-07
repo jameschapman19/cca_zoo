@@ -37,6 +37,7 @@ class SCCA_Span(DeflationMixin, BaseIterative):
         positive: Union[Iterable[bool], bool] = None,
         random_state=None,
         verbose=0,
+            early_stopping=False,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -46,6 +47,7 @@ class SCCA_Span(DeflationMixin, BaseIterative):
             tol=tol,
             random_state=random_state,
             verbose=verbose,
+            early_stopping=early_stopping,
         )
         self.tau = tau
         self.regularisation = regularisation

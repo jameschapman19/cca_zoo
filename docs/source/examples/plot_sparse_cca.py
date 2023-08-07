@@ -7,9 +7,9 @@ This example demonstrates how to easily train Sparse CCA variants
 
 import matplotlib.pyplot as plt
 import numpy as np
-
 # Import libraries
 import pandas as pd
+import seaborn as sns
 from sklearn.model_selection import train_test_split
 
 from cca_zoo._base import BaseModel
@@ -25,13 +25,32 @@ from cca_zoo.linear import (
 )
 from cca_zoo.model_selection import GridSearchCV
 
+# Set a consistent Seaborn style
+sns.set_theme(style="whitegrid")
 
-def plot_true_weights_coloured(ax, weights, true_weights, title=""):
+# Increase the size of your fonts for legibility
+sns.set(font_scale=1.2)
+
+plt.close("all")
+
+def plot_true_weights_coloured(ax, weights, true_weights, title="", legend=False):
+    weights=np.squeeze(weights)
     ind = np.arange(len(true_weights))
     mask = np.squeeze(true_weights == 0)
-    ax.scatter(ind[~mask], weights[~mask], c="b")
-    ax.scatter(ind[mask], weights[mask], c="r")
+    non_zero_df = pd.DataFrame({
+        'Index': ind[~mask],
+        'Weights': weights[~mask],
+        'Type': 'Non-Zero Weights'
+    })
+    zero_df = pd.DataFrame({
+        'Index': ind[mask],
+        'Weights': weights[mask],
+        'Type': 'Zero Weights'
+    })
+    data_df = pd.concat([non_zero_df, zero_df])
+    sns.scatterplot(data=data_df, x='Index', y='Weights', hue='Type', ax=ax, palette="viridis", legend=legend)
     ax.set_title(title)
+
 
 
 def plot_model_weights(wx, wy, tx, ty, title=""):
@@ -39,10 +58,18 @@ def plot_model_weights(wx, wy, tx, ty, title=""):
     plot_true_weights_coloured(axs[0, 0], tx, tx, title="true x weights")
     plot_true_weights_coloured(axs[0, 1], ty, ty, title="true y weights")
     plot_true_weights_coloured(axs[1, 0], wx, tx, title="model x weights")
-    plot_true_weights_coloured(axs[1, 1], wy, ty, title="model y weights")
+    plot_true_weights_coloured(axs[1, 1], wy, ty, title="model y weights", legend=True)
+    # get legend information from one of the axes
+    handles, labels = axs[1, 1].get_legend_handles_labels()
+    #legend off
+    plt.legend([],[], frameon=False)
+    # create the legend at the bottom of the figure using the legend information
+    fig.legend(handles, labels,bbox_to_anchor=(0.5, -0.05), loc='lower center', ncol=2)
     plt.tight_layout()
     fig.suptitle(title)
-    plt.show()
+    sns.despine(trim=True)
+    plt.show(block=False)
+
 
 
 # %%
@@ -55,7 +82,7 @@ q = 100
 view_1_sparsity = 0.1
 view_2_sparsity = 0.1
 latent_dims = 1
-epochs = 100
+epochs = 1
 
 # Simulate some data with two views (views and Y) that have some correlation between them
 data = LinearSimulatedData(
@@ -108,7 +135,7 @@ print(f"PLS correlation on validation set: {pls_corr}")
 tau1 = [0.1, 0.3, 0.5]
 tau2 = [0.1, 0.3, 0.5]
 param_grid = {"tau": [tau1, tau2]}
-pmd = GridSearchCV(SCCA_PMD(epochs=epochs), param_grid=param_grid).fit(
+pmd = GridSearchCV(SCCA_PMD(epochs=epochs, early_stopping=True), param_grid=param_grid).fit(
     [X_train, Y_train]
 )
 
@@ -127,7 +154,7 @@ pd.DataFrame(pmd.cv_results_)
 
 # %% IPLS
 # IPLS is a method that finds sparse linear projections of the views that are maximally covariant by using an iterative algorithm
-scca = SCCA_IPLS(alpha=[1e-2, 1e-2], epochs=epochs).fit(
+scca = SCCA_IPLS(alpha=[1e-2, 1e-2], epochs=epochs, early_stopping=True).fit(
     [X_train, Y_train]
 )
 plot_model_weights(scca.weights[0], scca.weights[1], tx, ty, title="SCCA_IPLS")
@@ -139,7 +166,7 @@ scca_corr = scca.score([X_val, Y_val])
 print(f"SCCA_IPLS correlation on validation set: {scca_corr}")
 
 scca_pos = SCCA_IPLS(
-    alpha=[1e-2, 1e-2], positive=[True, True], epochs=epochs
+    alpha=[1e-2, 1e-2], positive=[True, True], epochs=epochs, early_stopping=True
 ).fit([X_train, Y_train])
 plot_model_weights(
     scca_pos.weights[0], scca_pos.weights[1], tx, ty, title="SCCA_IPLS (Positive)"
@@ -150,7 +177,7 @@ scca_pos_corr = scca_pos.score([X_val, Y_val])
 print(f"SCCA_IPLS (Positive) correlation on validation set: {scca_pos_corr}")
 
 elasticcca = ElasticCCA(
-    alpha=[1e-2, 1e-2], l1_ratio=[0.5, 0.5], epochs=epochs
+    alpha=[1e-2, 1e-2], l1_ratio=[0.5, 0.5], epochs=epochs, early_stopping=True
 ).fit([X_train, Y_train])
 plot_model_weights(
     elasticcca.weights[0], elasticcca.weights[1], tx, ty, title="ELastic CCA"
@@ -162,7 +189,7 @@ elasticcca_corr = elasticcca.score([X_val, Y_val])
 print(f"Elastic CCA correlation on validation set: {elasticcca_corr}")
 
 
-span_cca = SCCA_Span(tau=[10, 10]).fit([X_train, Y_train])
+span_cca = SCCA_Span(tau=[10, 10], early_stopping=True).fit([X_train, Y_train])
 
 plot_model_weights(span_cca.weights[0], span_cca.weights[1], tx, ty, title="Span CCA")
 
@@ -199,8 +226,7 @@ model_names = [
     "SCCA_IPLS",
     "SCCA_IPLS (Positive)",
     "Elastic CCA",
-    # "Span CCA",
-    # "AltMaxVar",
+    "Span CCA",
 ]
 model_corrs = np.squeeze(
     np.array(
@@ -223,4 +249,5 @@ plt.bar(model_names, model_corrs)
 plt.xticks(rotation=90)
 plt.ylabel("Validation correlation")
 plt.title("Comparison of models")
-plt.show()
+plt.tight_layout()
+plt.show(block=False)

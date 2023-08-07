@@ -19,11 +19,8 @@ class BaseIterative(BaseModel):
         tol=1e-3,
         accept_sparse=None,
         epochs=100,
-        val_split=None,
-        learning_rate=1,
         initialization: Union[str, callable] = "random",
         early_stopping=False,
-        patience=10,
         verbose=None,
     ):
         super().__init__(
@@ -43,7 +40,6 @@ class BaseIterative(BaseModel):
             self.initialization = initialization
         # validate the callbacks
         self.verbose = verbose
-        self.patience = patience
         # validate the convergence checking
         self.early_stopping = early_stopping
 
@@ -65,16 +61,13 @@ class BaseIterative(BaseModel):
             for i in range(len(views)):
                 # Update the weights for the current view by solving a linear system
                 self.weights[i] = self._update_weights(views, i)
-            # Compute the current loss using the objective function
-            curr_loss = self._objective(views)
             # Check if the loss has decreased enough
-            if np.abs(curr_loss - loss) < self.tol and self.early_stopping:
-                # If yes, break the loop
-                break
-            else:
-                # If not, update the loss and the previous weights
-                loss = curr_loss
-                prev_weights = self.weights.copy()
+            curr_loss = self._objective(views)
+            if self.early_stopping:
+                weight_diff = np.sum([np.linalg.norm(w - pw) for w, pw in zip(self.weights, prev_weights)])/len(self.weights)
+                if weight_diff < self.tol:
+                    print(f"Early stopping at epoch {epoch}")
+                    break
         # Return the final weights
         return self.weights
 
