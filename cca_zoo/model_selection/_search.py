@@ -14,23 +14,17 @@ from sklearn.pipeline import Pipeline
 from sklearn.utils import check_random_state
 
 
+from sklearn.model_selection import ParameterGrid
+import itertools
+import numpy as np
+
 def param2grid(params):
-    params = params.copy()
+    params = {k: list(v) if (hasattr(v, "__iter__") and not isinstance(v, str)) else [v] for k, v in params.items()}
     for k, v in params.items():
-        # check if v is an iterable object that can be converted to a list
-        if hasattr(v, "__iter__") and not isinstance(v, str):
-            v = list(v)
-        elif not hasattr(v, "__iter__") and not isinstance(v, str):
-            v = [v]
         if any([hasattr(v_, "__iter__") and not isinstance(v_, str) for v_ in v]):
-            v = [
-                list(v_)
-                if hasattr(v_, "__iter__") and not isinstance(v_, str)
-                else [v_]
-                for v_ in v
-            ]
             params[k] = list(map(list, itertools.product(*v)))
     return ParameterGrid(params)
+
 
 
 class ParameterSampler_(ParameterSampler):
@@ -42,12 +36,16 @@ class ParameterSampler_(ParameterSampler):
             items = sorted(dist.items())
             params = dict()
             for k, v in items:
-                # use list comprehension to handle different types of values
-                params[k] = (
-                    [self.return_param(v_) for v_ in v]
-                    if isinstance(v, Iterable)
-                    else self.return_param(v)
-                )
+                # if v is iterable, then list comprehension else v
+                if isinstance(v, Iterable) and not isinstance(v, str):
+                    # use list comprehension to handle different types of values
+                    params[k] = (
+                        [self.return_param(v_) for v_ in v]
+                        if isinstance(v, Iterable)
+                        else self.return_param(v)
+                    )
+                else:
+                    params[k] = self.return_param(v)
             yield params
 
     def return_param(self, v):

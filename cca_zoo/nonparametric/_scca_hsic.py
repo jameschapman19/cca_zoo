@@ -2,11 +2,10 @@ from typing import Iterable, Union
 
 import numpy as np
 import numpy.linalg as la
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import KernelCenterer
 from sklearn.utils.validation import check_is_fitted
 
-from cca_zoo.nonparametric._gradkcca import GradKCCA
+from _gradkcca import GradKCCA
 from cca_zoo.utils import _process_parameter
 
 

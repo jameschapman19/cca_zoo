@@ -67,7 +67,7 @@ print(pd.DataFrame(kernel_reg.cv_results_))
 
 # We define a parameter grid with the polynomial kernel and different values or distributions for the regularization parameter (c) and the degree of the polynomial
 param_grid = {
-    "kernel": "poly",
+    "kernel": ["poly"],
     "c": [loguniform(1e-1, 2e-1), [1e-1]],
     "degree": [[2], [2, 3]],
 }

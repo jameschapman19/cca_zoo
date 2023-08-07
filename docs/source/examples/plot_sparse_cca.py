@@ -108,16 +108,11 @@ print(f"PLS correlation on validation set: {pls_corr}")
 tau1 = [0.1, 0.3, 0.5]
 tau2 = [0.1, 0.3, 0.5]
 param_grid = {"tau": [tau1, tau2]}
-pmd = GridSearchCV(SCCA_PMD(track="loss", epochs=epochs), param_grid=param_grid).fit(
+pmd = GridSearchCV(SCCA_PMD(epochs=epochs), param_grid=param_grid).fit(
     [X_train, Y_train]
 )
 
-# %%
-plt.figure()
-plt.title("Objective Convergence")
-plt.plot(np.array(pmd.best_estimator_.objective))
-plt.ylabel("Objective")
-plt.xlabel("#iterations")
+
 # %%
 plot_model_weights(
     pmd.best_estimator_.weights[0], pmd.best_estimator_.weights[1], tx, ty, title="PMD"
@@ -132,50 +127,35 @@ pd.DataFrame(pmd.cv_results_)
 
 # %% IPLS
 # IPLS is a method that finds sparse linear projections of the views that are maximally covariant by using an iterative algorithm
-scca = SCCA_IPLS(alpha=[1e-2, 1e-2], track="loss", epochs=epochs).fit(
+scca = SCCA_IPLS(alpha=[1e-2, 1e-2], epochs=epochs).fit(
     [X_train, Y_train]
 )
 plot_model_weights(scca.weights[0], scca.weights[1], tx, ty, title="SCCA_IPLS")
 
-plt.figure()
-plt.title("Objective Convergence")
-plt.plot(np.array(scca.objective))
-plt.ylabel("Objective")
-plt.xlabel("#iterations")
+
 
 # Evaluate the model on the validation set using correlation as a metric
 scca_corr = scca.score([X_val, Y_val])
 print(f"SCCA_IPLS correlation on validation set: {scca_corr}")
 
 scca_pos = SCCA_IPLS(
-    alpha=[1e-2, 1e-2], positive=[True, True], track="loss", epochs=epochs
+    alpha=[1e-2, 1e-2], positive=[True, True], epochs=epochs
 ).fit([X_train, Y_train])
 plot_model_weights(
     scca_pos.weights[0], scca_pos.weights[1], tx, ty, title="SCCA_IPLS (Positive)"
 )
-
-plt.figure()
-plt.title("Objective Convergence")
-plt.plot(np.array(scca_pos.objective))
-plt.ylabel("Objective")
-plt.xlabel("#iterations")
 
 # Evaluate the model on the validation set using correlation as a metric
 scca_pos_corr = scca_pos.score([X_val, Y_val])
 print(f"SCCA_IPLS (Positive) correlation on validation set: {scca_pos_corr}")
 
 elasticcca = ElasticCCA(
-    alpha=[1e-2, 1e-2], l1_ratio=[0.5, 0.5], track="loss", epochs=epochs
+    alpha=[1e-2, 1e-2], l1_ratio=[0.5, 0.5], epochs=epochs
 ).fit([X_train, Y_train])
 plot_model_weights(
     elasticcca.weights[0], elasticcca.weights[1], tx, ty, title="ELastic CCA"
 )
 
-plt.figure()
-plt.title("Objective Convergence")
-plt.plot(np.array(elasticcca.objective))
-plt.ylabel("Objective")
-plt.xlabel("#iterations")
 
 # Evaluate the model on the validation set using correlation as a metric
 elasticcca_corr = elasticcca.score([X_val, Y_val])
@@ -186,18 +166,13 @@ span_cca = SCCA_Span(tau=[10, 10]).fit([X_train, Y_train])
 
 plot_model_weights(span_cca.weights[0], span_cca.weights[1], tx, ty, title="Span CCA")
 
-plt.figure()
-plt.title("Objective Convergence")
-plt.plot(np.array(span_cca.objective))
-plt.ylabel("Objective")
-plt.xlabel("#iterations")
 
 # Evaluate the model on the validation set using correlation as a metric
 span_cca_corr = span_cca.score([X_val, Y_val])
 print(f"Span CCA correlation on validation set: {span_cca_corr}")
 
 
-# altmaxvar = AltMaxVar(tau=[1e-2, 1e-2], track="loss", epochs=epochs).fit(
+# altmaxvar = AltMaxVar(tau=[1e-2, 1e-2], epochs=epochs).fit(
 #     [X_train, Y_train]
 # )
 # plot_model_weights(
