@@ -64,7 +64,12 @@ class BaseIterative(BaseModel):
             # Check if the loss has decreased enough
             curr_loss = self._objective(views)
             if self.early_stopping:
-                weight_diff = np.sum([np.linalg.norm(w - pw) for w, pw in zip(self.weights, prev_weights)])/len(self.weights)
+                weight_diff = np.sum(
+                    [
+                        np.linalg.norm(w - pw)
+                        for w, pw in zip(self.weights, prev_weights)
+                    ]
+                ) / len(self.weights)
                 if weight_diff < self.tol:
                     print(f"Early stopping at epoch {epoch}")
                     break
