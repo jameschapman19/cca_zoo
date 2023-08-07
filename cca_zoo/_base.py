@@ -153,9 +153,12 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
                     ]
                 )
             )
-        all_corrs = np.array(all_corrs).reshape(
-            (self.n_views_, self.n_views_, self.latent_dimensions)
-        )
+        try:
+            all_corrs = np.array(all_corrs).reshape(
+                (self.n_views_, self.n_views_, self.latent_dimensions)
+            )
+        except:
+            print()
         return all_corrs
 
     def score(self, views: Iterable[np.ndarray], y=None, **kwargs):
