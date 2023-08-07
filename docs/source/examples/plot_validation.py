@@ -22,6 +22,7 @@ q = 15  # features in view 2
 latent_dims = 1  # latent dimensions
 correlations = [0.9]  # correlations between views
 
+
 def plot_learning_curve(
     estimator,
     title,
@@ -170,6 +171,7 @@ def plot_learning_curve(
     axes[2].set_title("Performance of the model")
 
     return plt
+
 
 # Data generation
 (X, Y) = LinearSimulatedData(
