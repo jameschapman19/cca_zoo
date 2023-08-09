@@ -230,7 +230,9 @@ class BaseGradientModel(BaseModel):
             self.objective = loop.epoch_objective
         return weights
 
-    def get_dataloader(self, views: Iterable[np.ndarray]) -> Tuple[DataLoader, Optional[DataLoader]]:
+    def get_dataloader(
+        self, views: Iterable[np.ndarray]
+    ) -> Tuple[DataLoader, Optional[DataLoader]]:
         dataset = NumpyDataset(views) if self.batch_size else BatchNumpyDataset(views)
 
         collate_fn = None if self.batch_size else lambda x: x[0]
@@ -243,7 +245,7 @@ class BaseGradientModel(BaseModel):
                 val_dataset,
                 batch_size=val_size if not self.batch_size else self.batch_size,
                 **self.dataloader_kwargs,
-                collate_fn=collate_fn
+                collate_fn=collate_fn,
             )
         else:
             val_loader = None
@@ -252,7 +254,7 @@ class BaseGradientModel(BaseModel):
             dataset,
             batch_size=len(dataset) if not self.batch_size else self.batch_size,
             **self.dataloader_kwargs,
-            collate_fn=collate_fn
+            collate_fn=collate_fn,
         )
 
         return train_loader, val_loader
