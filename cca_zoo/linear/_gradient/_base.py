@@ -1,35 +1,16 @@
-# filter warnings from pytorch_lightning
-import warnings
 from abc import abstractmethod
-from typing import Any, Iterable, List, Optional, Union
+from typing import Any, Iterable, List, Optional, Union, Tuple
 
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks import Callback, EarlyStopping
 from torch.utils import data
 from torch.utils.data import DataLoader
 
 from cca_zoo._base import BaseModel
 from cca_zoo.data.deep import NumpyDataset
-from cca_zoo.linear._dummy import DummyCCA, DummyPLS
-from cca_zoo.linear._mcca import MCCA
-from cca_zoo.linear._pls import MPLS
-
-# warnings.filterwarnings("ignore", category=UserWarning)
-# warnings.filterwarnings("ignore", category=PossibleUserWarning)
-#
-#
-# def supress_device_warnings():
-#     import logging
-#
-#     rank_zero_logger = logging.getLogger("pytorch_lightning.utilities.rank_zero")
-#     rank_zero_logger.disabled = True
-#
-#
-# supress_device_warnings()
-
+from cca_zoo.linear._iterative._base import _default_initializer
 
 # Default Trainer kwargs
 DEFAULT_TRAINER_KWARGS = dict(
@@ -249,39 +230,29 @@ class BaseGradientModel(BaseModel):
             self.objective = loop.epoch_objective
         return weights
 
-    def get_dataloader(self, views: Iterable[np.ndarray]):
-        if self.batch_size is None:
-            dataset = BatchNumpyDataset(views)
-            # collate_fn should return the batch but with arrays in 'views' and 'labels' as tensors
-            collate_fn = lambda x: x[0]
-        else:
-            dataset = NumpyDataset(views)
-            collate_fn = None
-        if self.val_split is not None:
+    def get_dataloader(self, views: Iterable[np.ndarray]) -> Tuple[DataLoader, Optional[DataLoader]]:
+        dataset = NumpyDataset(views) if self.batch_size else BatchNumpyDataset(views)
+
+        collate_fn = None if self.batch_size else lambda x: x[0]
+
+        if self.val_split:
             train_size = int((1 - self.val_split) * len(dataset))
             val_size = len(dataset) - train_size
             dataset, val_dataset = data.random_split(dataset, [train_size, val_size])
-            if self.batch_size is None:
-                batch_size = val_size
-            else:
-                batch_size = self.batch_size
             val_loader = DataLoader(
                 val_dataset,
-                batch_size=batch_size,
+                batch_size=val_size if not self.batch_size else self.batch_size,
                 **self.dataloader_kwargs,
-                collate_fn=collate_fn,
+                collate_fn=collate_fn
             )
         else:
             val_loader = None
-        if self.batch_size is None:
-            batch_size = len(dataset)
-        else:
-            batch_size = self.batch_size
+
         train_loader = DataLoader(
             dataset,
-            batch_size=batch_size,
+            batch_size=len(dataset) if not self.batch_size else self.batch_size,
             **self.dataloader_kwargs,
-            collate_fn=collate_fn,
+            collate_fn=collate_fn
         )
 
         return train_loader, val_loader
@@ -305,38 +276,6 @@ class BaseGradientModel(BaseModel):
     def _more_tags(self):
         # Indicate that this class is for multiview data
         return {"iterative": True}
-
-
-def _default_initializer(initialization, random_state, latent_dims, pls):
-    if pls:
-        if initialization == "random":
-            initializer = DummyPLS(
-                latent_dims, random_state=random_state, uniform=False
-            )
-        elif initialization == "uniform":
-            initializer = DummyPLS(latent_dims, random_state=random_state, uniform=True)
-        elif initialization == "unregularized":
-            initializer = MPLS(latent_dims, random_state=random_state)
-        else:
-            raise ValueError(
-                "Initialization {type} not supported. Pass a generator implementing this method"
-            )
-    else:
-        if initialization == "random":
-            initializer = DummyCCA(
-                latent_dims, random_state=random_state, uniform=False
-            )
-        elif initialization == "uniform":
-            initializer = DummyCCA(latent_dims, random_state=random_state, uniform=True)
-        elif initialization == "unregularized":
-            initializer = MCCA(latent_dims, random_state=random_state)
-        elif initialization == "pls":
-            initializer = MPLS(latent_dims, random_state=random_state)
-        else:
-            raise ValueError(
-                "Initialization {type} not supported. Pass a generator implementing this method"
-            )
-    return initializer
 
 
 class ConvergenceCallback(EarlyStopping):

@@ -1,109 +1,92 @@
+import pytest
 import numpy as np
 import scipy.sparse as sp
 from sklearn.utils.validation import check_random_state
-
 from cca_zoo.linear import CCA, GCCA, MCCA, PCACCA, PLS, PLS_ALS, TCCA, rCCA
 from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA
 
-n = 50
-rng = check_random_state(0)
-X = rng.rand(n, 11)
-Y = rng.rand(n, 10)
-Z = rng.rand(n, 12)
-X_sp = sp.random(n, 10, density=0.5, random_state=rng)
-Y_sp = sp.random(n, 11, density=0.5, random_state=rng)
-# centre the data
-X -= X.mean(axis=0)
-Y -= Y.mean(axis=0)
-Z -= Z.mean(axis=0)
-X_sp -= X_sp.mean(axis=0)
-Y_sp -= Y_sp.mean(axis=0)
+# Setup a fixture for common data
+@pytest.fixture
+def data():
+    n = 50
+    rng = check_random_state(0)
+    X = rng.rand(n, 11)
+    Y = rng.rand(n, 10)
+    Z = rng.rand(n, 12)
+    X_sp = sp.random(n, 10, density=0.5, random_state=rng)
+    Y_sp = sp.random(n, 11, density=0.5, random_state=rng)
+    # centre the data
+    X -= X.mean(axis=0)
+    Y -= Y.mean(axis=0)
+    Z -= Z.mean(axis=0)
+    X_sp -= X_sp.mean(axis=0)
+    Y_sp -= Y_sp.mean(axis=0)
+    return X, Y, Z, X_sp, Y_sp
 
 
-def test_unregularized_methods():
-    # This function tests unregularized CCA methods. The idea is that all of these should give the same result.
+def test_unregularized_methods(data):
+    """Test unregularized CCA methods for 2 views."""
+    X, Y, _, _, _ = data
     latent_dims = 2
-    rcca = rCCA(latent_dimensions=latent_dims).fit([X, Y])
-    cca = CCA(latent_dimensions=latent_dims).fit([X, Y])
-    gcca = GCCA(latent_dimensions=latent_dims).fit([X, Y])
-    mcca = MCCA(latent_dimensions=latent_dims, pca=False).fit([X, Y])
-    mcca_pca = MCCA(latent_dimensions=latent_dims, pca=True).fit([X, Y])
-    kcca = KCCA(latent_dimensions=latent_dims).fit([X, Y])
-    kgcca = KGCCA(latent_dimensions=latent_dims).fit([X, Y])
-    tcca = TCCA(latent_dimensions=latent_dims).fit([X, Y])
-    pcacca = PCACCA(latent_dimensions=latent_dims).fit([X, Y])
+    methods = [
+        rCCA(latent_dimensions=latent_dims),
+        CCA(latent_dimensions=latent_dims),
+        GCCA(latent_dimensions=latent_dims),
+        MCCA(latent_dimensions=latent_dims, pca=False),
+        MCCA(latent_dimensions=latent_dims, pca=True),
+        KCCA(latent_dimensions=latent_dims),
+        KGCCA(latent_dimensions=latent_dims),
+        TCCA(latent_dimensions=latent_dims),
+        PCACCA(latent_dimensions=latent_dims)
+    ]
 
-    # Get the correlation scores for each method
-    corr_rcca = rcca.score((X, Y))
-    corr_cca = cca.score((X, Y))
-    corr_gcca = gcca.score((X, Y))
-    corr_mcca = mcca.score((X, Y))
-    corr_mcca_pca = mcca_pca.score((X, Y))
-    corr_pcacca = pcacca.score((X, Y))
-    corr_kcca = kcca.score((X, Y))
-    corr_kgcca = kgcca.score((X, Y))
-    corr_tcca = tcca.score((X, Y))
+    scores = [method.fit([X, Y]).score((X, Y)) for method in methods]
 
-    # Assert that the correlation scores are all equal
-    assert np.testing.assert_array_almost_equal(corr_cca, corr_mcca, decimal=1) is None
-    assert np.testing.assert_array_almost_equal(corr_cca, corr_gcca, decimal=1) is None
-    assert np.testing.assert_array_almost_equal(corr_cca, corr_kcca, decimal=1) is None
-    assert np.testing.assert_array_almost_equal(corr_cca, corr_tcca, decimal=1) is None
-    assert (
-        np.testing.assert_array_almost_equal(corr_kgcca, corr_gcca, decimal=1) is None
-    )
+    # Comparing all scores to the score of the first method (CCA here)
+    for score in scores[1:]:
+        assert np.testing.assert_array_almost_equal(scores[0], score, decimal=1) is None
 
 
-def test_unregularized_multi():
-    # This function tests unregularized CCA methods for more than 2 views. The idea is that all of these should give the same result.
+def test_unregularized_multi(data):
+    """Test unregularized CCA methods for more than 2 views."""
+    X, Y, Z, _, _ = data
     latent_dims = 2
-    gcca = GCCA(latent_dimensions=latent_dims).fit((X, Y, Z))
-    mcca = MCCA(latent_dimensions=latent_dims).fit((X, Y, Z))
-    kcca = KCCA(latent_dimensions=latent_dims).fit((X, Y, Z))
-    # Get the correlation scores for each method
-    corr_gcca = gcca.score((X, Y, Z))
-    corr_mcca = mcca.score((X, Y, Z))
-    corr_kcca = kcca.score((X, Y, Z))
+    methods = [
+        GCCA(latent_dimensions=latent_dims),
+        MCCA(latent_dimensions=latent_dims),
+        KCCA(latent_dimensions=latent_dims)
+    ]
 
-    # Assert that the correlation scores are all equal
-    assert np.testing.assert_array_almost_equal(corr_mcca, corr_gcca, decimal=1) is None
-    assert np.testing.assert_array_almost_equal(corr_mcca, corr_kcca, decimal=1) is None
-    # Get the correlation scores for each method
-    corr_gcca = gcca.score((X, Y, Z))
-    corr_mcca = mcca.score((X, Y, Z))
-    corr_kcca = kcca.score((X, Y, Z))
+    scores = [method.fit((X, Y, Z)).score((X, Y, Z)) for method in methods]
 
-    # Assert that the correlation scores are all equal
-    assert np.testing.assert_array_almost_equal(corr_mcca, corr_gcca, decimal=1) is None
-    assert np.testing.assert_array_almost_equal(corr_mcca, corr_kcca, decimal=1) is None
+    for score in scores[1:]:
+        assert np.testing.assert_array_almost_equal(scores[0], score, decimal=1) is None
 
 
-def test_pls():
-    # This function tests PLS and PLS_ALS
+def test_PLS_methods(data):
+    """Test PLS and PLS_ALS methods."""
+    X, Y, _, _, _ = data
     pls_als = PLS_ALS(latent_dimensions=3, random_state=0)
     pls = PLS(latent_dimensions=3)
 
-    # Fit both linear to the same data
     pls_als.fit([X, Y])
     pls.fit((X, Y))
 
-    # Assert that the scores are close
     pls_score = pls.score((X, Y))
     pls_als_score = pls_als.score((X, Y))
 
     assert np.allclose(np.abs(pls_als_score), pls_score, rtol=1e-1)
 
 
-def test_TCCA():
-    # This function tests TCCA and KTCCA
+def test_TCCA_methods(data):
+    """Test TCCA and KTCCA methods."""
+    X, Y, _, _, _ = data
     latent_dims = 1
     tcca = TCCA(latent_dimensions=latent_dims, c=[0.2, 0.2, 0.2]).fit([X, X, Y])
     ktcca = KTCCA(latent_dimensions=latent_dims, c=[0.2, 0.2]).fit([X, Y])
 
-    # Get the correlation scores for each method
     corr_tcca = tcca.score((X, X, Y))
     corr_ktcca = ktcca.score((X, Y))
 
-    # Assert that the correlation scores are greater than 0.1
     assert corr_tcca > 0.1
     assert corr_ktcca > 0.1

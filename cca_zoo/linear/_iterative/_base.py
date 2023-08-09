@@ -1,6 +1,6 @@
 import itertools
 from abc import abstractmethod
-from typing import Iterable, Union
+from typing import Iterable, Union, Any
 
 import numpy as np
 from tqdm import tqdm
@@ -139,33 +139,29 @@ class BaseIterative(BaseModel):
         return {"iterative": True}
 
 
-def _default_initializer(initialization, random_state, latent_dims, pls):
-    if pls:
-        if initialization == "random":
-            initializer = DummyPLS(
-                latent_dims, random_state=random_state, uniform=False
-            )
-        elif initialization == "uniform":
-            initializer = DummyPLS(latent_dims, random_state=random_state, uniform=True)
-        elif initialization == "unregularized":
-            initializer = MPLS(latent_dims, random_state=random_state)
-        else:
-            raise ValueError(
-                "Initialization {type} not supported. Pass a generator implementing this method"
-            )
-    else:
-        if initialization == "random":
-            initializer = DummyCCA(
-                latent_dims, random_state=random_state, uniform=False
-            )
-        elif initialization == "uniform":
-            initializer = DummyCCA(latent_dims, random_state=random_state, uniform=True)
-        elif initialization == "unregularized":
-            initializer = MCCA(latent_dims, random_state=random_state)
-        elif initialization == "pls":
-            initializer = MPLS(latent_dims, random_state=random_state)
-        else:
-            raise ValueError(
-                "Initialization {type} not supported. Pass a generator implementing this method"
-            )
+def _default_initializer(
+    initialization: str, random_state: Any, latent_dims: int, pls: bool
+) -> Union[DummyCCA, DummyPLS, MPLS, MCCA]:
+    initializer_map = {
+        "random": (DummyPLS if pls else DummyCCA)(
+            latent_dims, random_state=random_state, uniform=False
+        ),
+        "uniform": (DummyPLS if pls else DummyCCA)(
+            latent_dims, random_state=random_state, uniform=True
+        ),
+        "unregularized": (MPLS if pls else MCCA)(
+            latent_dims, random_state=random_state
+        ),
+        "pls": MPLS(
+            latent_dims, random_state=random_state
+        ),  # Assuming PLS initialization can be used for both pls=True/False
+    }
+
+    initializer = initializer_map.get(initialization)
+
+    if not initializer:
+        raise ValueError(
+            f"Initialization {initialization} not supported. Pass a generator implementing this method"
+        )
+
     return initializer
