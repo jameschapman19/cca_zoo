@@ -5,6 +5,7 @@ from sklearn.utils.validation import check_random_state
 from cca_zoo.linear import CCA, GCCA, MCCA, PCACCA, PLS, PLS_ALS, TCCA, rCCA
 from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA
 
+
 # Setup a fixture for common data
 @pytest.fixture
 def data():
@@ -37,7 +38,7 @@ def test_unregularized_methods(data):
         KCCA(latent_dimensions=latent_dims),
         KGCCA(latent_dimensions=latent_dims),
         TCCA(latent_dimensions=latent_dims),
-        PCACCA(latent_dimensions=latent_dims)
+        PCACCA(latent_dimensions=latent_dims),
     ]
 
     scores = [method.fit([X, Y]).score((X, Y)) for method in methods]
@@ -54,7 +55,7 @@ def test_unregularized_multi(data):
     methods = [
         GCCA(latent_dimensions=latent_dims),
         MCCA(latent_dimensions=latent_dims),
-        KCCA(latent_dimensions=latent_dims)
+        KCCA(latent_dimensions=latent_dims),
     ]
 
     scores = [method.fit((X, Y, Z)).score((X, Y, Z)) for method in methods]

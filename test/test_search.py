@@ -1,9 +1,9 @@
-
 import pytest
 import numpy as np
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.model_selection._search import param2grid
 from cca_zoo.nonparametric import KCCA
+
 
 # Tests for param2grid function
 @pytest.mark.parametrize(
@@ -29,23 +29,23 @@ def test_param2grid_with_iterable_types():
     }
     # Expected result
     expected = [
-    {"alpha": [0.1, 0.1], "regs": [1, 3]},
-    {"alpha": [0.1, 0.1], "regs": [1, 4]},
-    {"alpha": [0.1, 0.1], "regs": [2, 3]},
-    {"alpha": [0.1, 0.1], "regs": [2, 4]},
-    {"alpha": [0.1, 0.01], "regs": [1, 3]},
-    {"alpha": [0.1, 0.01], "regs": [1, 4]},
-    {"alpha": [0.1, 0.01], "regs": [2, 3]},
-    {"alpha": [0.1, 0.01], "regs": [2, 4]},
-    {"alpha": [0.01, 0.1], "regs": [1, 3]},
-    {"alpha": [0.01, 0.1], "regs": [1, 4]},
-    {"alpha": [0.01, 0.1], "regs": [2, 3]},
-    {"alpha": [0.01, 0.1], "regs": [2, 4]},
-    {"alpha": [0.01, 0.01], "regs": [1, 3]},
-    {"alpha": [0.01, 0.01], "regs": [1, 4]},
-    {"alpha": [0.01, 0.01], "regs": [2, 3]},
-    {"alpha": [0.01, 0.01], "regs": [2, 4]},
-]
+        {"alpha": [0.1, 0.1], "regs": [1, 3]},
+        {"alpha": [0.1, 0.1], "regs": [1, 4]},
+        {"alpha": [0.1, 0.1], "regs": [2, 3]},
+        {"alpha": [0.1, 0.1], "regs": [2, 4]},
+        {"alpha": [0.1, 0.01], "regs": [1, 3]},
+        {"alpha": [0.1, 0.01], "regs": [1, 4]},
+        {"alpha": [0.1, 0.01], "regs": [2, 3]},
+        {"alpha": [0.1, 0.01], "regs": [2, 4]},
+        {"alpha": [0.01, 0.1], "regs": [1, 3]},
+        {"alpha": [0.01, 0.1], "regs": [1, 4]},
+        {"alpha": [0.01, 0.1], "regs": [2, 3]},
+        {"alpha": [0.01, 0.1], "regs": [2, 4]},
+        {"alpha": [0.01, 0.01], "regs": [1, 3]},
+        {"alpha": [0.01, 0.01], "regs": [1, 4]},
+        {"alpha": [0.01, 0.01], "regs": [2, 3]},
+        {"alpha": [0.01, 0.01], "regs": [2, 4]},
+    ]
     grid = list(param2grid(params))
     assert grid == expected
 

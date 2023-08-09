@@ -56,7 +56,8 @@ def test_transformed_views_have_zero_mean_and_unit_variance(mock_data):
 
     assert all(
         [
-            np.allclose(transformed.mean(axis=0), 0) and np.allclose(transformed.std(axis=0), 1)
+            np.allclose(transformed.mean(axis=0), 0)
+            and np.allclose(transformed.std(axis=0), 1)
             for transformed in transformed_views
         ]
     )

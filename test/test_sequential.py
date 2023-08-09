@@ -5,6 +5,7 @@ from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.sequential import SequentialModel
 
+
 # Fixtures
 @pytest.fixture
 def simulated_data():
