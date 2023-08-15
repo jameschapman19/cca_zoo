@@ -10,7 +10,7 @@ Welcome to CCA-Zoo's documentation!
    :maxdepth: 2
    :caption: Using cca-zoo
 
-   usage/install
+   usage/introduction
    usage/getting_started
    usage/user_guide
 

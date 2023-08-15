@@ -1,29 +1,34 @@
-Getting Started
-===============
+Getting Started with CCA-Zoo
+============================
 
-cca-zoo is a Python package for canonical correlation analysis (CCA) and its variants. CCA is a technique for finding the linear relationships between two or more views of the same data. cca-zoo provides a collection of linear, kernel, and deep methods for CCA of multiview data.
+Embarking on your journey with CCA-Zoo is as simple as a breeze. This guide will walk you through the steps to set up and run your first CCA algorithm.
 
-cca-zoo follows the scikit-learn/mvlearn APIs and models, therefore they have
-fit/transform/fit_transform methods as standard.
+Installation
+------------
 
-Here is a simple example of how to use cca-zoo:
+Before delving into the CCA world, let's get CCA-Zoo installed.
 
-.. sourcecode:: python
+.. code-block:: bash
 
-    # Import the CCA model and the data generator
-    from cca_zoo.models import CCA
-    import numpy as np
+   pip install cca-zoo
 
-    # Generate some data
-    train_view_1 = np.random.normal(size=(100, 10))
-    train_view_2 = np.random.normal(size=(100, 10))
-    # Remove mean
-    train_view_1 -= train_view_1.mean(axis=0)
-    train_view_2 -= train_view_2.mean(axis=0)
+Quick Dive-In
+-------------
 
-    # Create and fit a linear CCA model
-    linear_cca = CCA(latent_dims=latent_dims)
-    linear_cca.fit((train_view_1, train_view_2))
+Once installed, let's run our first CCA analysis using CCA-Zoo:
 
-    # Transform the data to the latent space
-    train_view_1_latent, train_view_2_latent = linear_cca.transform((train_view_1, train_view_2))
+.. code-block:: python
+
+   import numpy as np
+   from cca_zoo.data.simulated import LinearSimulatedData
+   from cca_zoo.models import CCA
+
+   # Generate some synthetic data
+   data = LinearSimulatedData(...)
+   views = data.sample(...)
+
+   # Run CCA
+   model = CCA(...)
+   model.fit(views)
+   results = model.transform(views)
+
