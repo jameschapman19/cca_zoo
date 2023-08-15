@@ -4,6 +4,8 @@
 
 # CCA-Zoo
 
+**Unlock the hidden relationships in multiview data.**
+
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5748062.svg)](https://doi.org/10.5281/zenodo.4382739)
 [![codecov](https://codecov.io/gh/jameschapman19/cca_zoo/branch/main/graph/badge.svg?token=JHG9VUB0L8)](https://codecov.io/gh/jameschapman19/cca_zoo)
 ![Build Status](https://github.com/jameschapman19/cca_zoo/actions/workflows/changes.yml/badge.svg)
@@ -15,9 +17,9 @@
 
 </div>
 
-`cca-zoo` is a collection of linear, kernel, and deep methods for canonical correlation analysis of multiview data.
-Where possible it follows the `scikit-learn`/`mvlearn` APIs and models therefore have `fit`/`transform`/`fit_transform`
-methods as standard.
+In an era inundated with data, unraveling the intricate connections between different data views is paramount. **CCA-Zoo** emerges as the definitive toolkit for this, offering an extensive suite of linear, kernel, and deep methods for canonical correlation analysis. 
+
+Inspired by the simplicity and effectiveness of `scikit-learn` and `mvlearn`, CCA-Zoo offers a seamless experience with its `fit`/`transform`/`fit_transform` methods.
 
 ## Table of Contents
 
@@ -27,99 +29,46 @@ methods as standard.
 - [Contributions](#contributions)
 - [Sources](#sources)
 
-## Installation
+## 🚀 Get Started in 5 Minutes
 
-You can install cca-zoo with pip or poetry. cca-zoo has an optional probabilistic feature that you can enable with the [probabilistic] suffix.
+### Installation
 
-To install cca-zoo with pip, run one of the following commands in your terminal:
+Whether you're a `pip` enthusiast or a `poetry` lover, we've got you covered:
 
 ```bash
 pip install cca-zoo
-```
-
-To install cca-zoo with poetry, run one of the following commands in your terminal:
-
-```bash
+# or for the adventurous
 pip install cca-zoo[probabilistic]
 ```
 
-Can also use poetry to install:
+Poetry aficionados can dive in with:
 
 ```bash
 poetry add cca-zoo
-```
-
-or
-
-```bash
+# or with a twist of probability
 poetry add cca-zoo[probabilistic]
 ```
 
 
+## 📚 Dive Deep
 
-## Documentation
+Embark on a journey through multiview correlations with our [comprehensive guide](https://cca-zoo.readthedocs.io/en/latest/).
 
-Available at https://cca-zoo.readthedocs.io/en/latest/
+## 🙏 Show Your Love
 
-## Citation:
+CCA-Zoo thrives on the support of its community. If it's made a splash in your research, consider sprinkling some stardust by citing our JOSS paper or simply starring our repo. Every gesture counts!
 
-CCA-Zoo is intended as research software. Citations and use of our software help us justify the effort which has gone
-into, and will keep going into, maintaining and growing this project. Stars on the repo are also greatly appreciated :)
+📜 Chapman et al., (2021). CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods in a scikit-learn style framework. Journal of Open Source Software, 6(68), 3823, [Link](https://doi.org/10.21105/joss.03823).
 
-If you have used CCA-Zoo in your research, please consider citing our JOSS paper:
+## 👩‍💻 Contribute
 
-Chapman et al., (2021). CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods
-in a scikit-learn style framework. Journal of Open Source Software, 6(68), 3823, https://doi.org/10.21105/joss.03823
+Every idea, every line of code adds value. Check out our [contribution guide](https://cca-zoo.readthedocs.io/en/latest/developer_info/contribute.html) and help CCA-Zoo soar to new heights!
 
-With bibtex entry:
+## 🙌 Props
 
-```bibtex
-@article{Chapman2021,
-  doi = {10.21105/joss.03823},
-  url = {https://doi.org/10.21105/joss.03823},
-  year = {2021},
-  publisher = {The Open Journal},
-  volume = {6},
-  number = {68},
-  pages = {3823},
-  author = {James Chapman and Hao-Ting Wang},
-  title = {CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods in a scikit-learn style framework},
-  journal = {Journal of Open Source Software}
-}
-```
+A nod to the stalwarts and pioneers whose work paved the way. Dive into their implementations and explorations:
 
-## Contributions
-
-A guide to contributions is available at https://cca-zoo.readthedocs.io/en/latest/developer_info/contribute.html
-
-## Sources
-
-I've added this section to give due credit to the repositories that helped me in addition to their copyright notices in
-the code where relevant.
-
-### Other Implementations of (regularised)CCA/PLS
-
-[MATLAB implementation](https://github.com/anaston/PLS_CCA_framework)
-
-### Implementation of Sparse PLS
-
-MATLAB implementation of SPLS by [@jmmonteiro](https://github.com/jmmonteiro/spls)
-
-### Other Implementations of DCCA/DCCAE
-
-Keras implementation of DCCA from [@VahidooX's github page](https://github.com/VahidooX)
-
-The following are the other implementations of DCCA in MATLAB and C++. These codes are written by the authors of the
-original paper:
-
-[Torch implementation](https://github.com/Michaelvll/DeepCCA) of DCCA from @MichaelVll & @Arminarj
-
-C++ implementation of DCCA from Galen Andrew's [website](https://homes.cs.washington.edu/~galen/)
-
-MATLAB implementation of DCCA/DCCAE from Weiran Wang's [website](http://ttic.uchicago.edu/~wwang5/dccae.html)
-
-MATLAB implementation of [TCCA](https://github.com/rciszek/mdr_tcca)
-
-### Implementation of VAE
-
-[Torch implementation of VAE](https://github.com/pytorch/examples/tree/master/vae)
+- Regularised CCA/PLS: [MATLAB](https://github.com/anaston/PLS_CCA_framework)
+- Sparse PLS: [MATLAB SPLS](https://github.com/jmmonteiro/spls)
+- DCCA/DCCAE: [Keras DCCA](https://github.com/VahidooX), [Torch DCCA](https://github.com/Michaelvll/DeepCCA), and more...
+- VAE: [Torch VAE](https://github.com/pytorch/examples/tree/master/vae)

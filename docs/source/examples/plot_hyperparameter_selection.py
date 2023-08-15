@@ -1,29 +1,33 @@
 """
-Hyperparameter Selection
-===========================
+Kernel CCA Hyperparameter Tuning
+================================
 
-This script will show how to perform hyperparameter selection
-for kernel CCA using grid search and randomized search methods.
+This script demonstrates hyperparameter optimization for Kernel Canonical
+Correlation Analysis (Kernel CCA) using both grid search and randomized search methods.
+
+Note:
+- The grid search approach involves exhaustively trying every combination of provided parameters.
+- The randomized search randomly samples from the provided parameter space.
 """
 
 # %%
-# Import libraries
+# Dependencies
+# ------------
 import numpy as np
 import pandas as pd
 from scipy.stats import loguniform
-
 from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.nonparametric import KCCA
 
 # %%
-# Data
-# ------
-# We set the random seed for reproducibility
+# Dataset Preparation
+# -------------------
+# Fixing a seed for reproducibility.
 np.random.seed(42)
 
-# We generate a linear dataset with 200 samples, 100 features per view,
-# 1 latent dimension and a correlation of 0.9 between the views
+# Creating a linear dataset having 200 samples, 100 features per view,
+# a single latent dimension, and a 0.9 correlation between the views.
 n = 200
 p = 100
 q = 100
@@ -33,51 +37,49 @@ correlation = 0.9
 data = LinearSimulatedData(
     view_features=[p, q], latent_dims=latent_dims, correlation=[correlation]
 )
-
 (X, Y) = data.sample(n)
 
-# We use 3-fold cross-validation for model selection
+# Setting up 3-fold cross-validation.
 cv = 3
 
 # %%
-# Grid Search
-# -------------
-# Hyperparameter selection works in a very similar way to in scikit-learn where the main difference is in how we enter the parameter grid.
-# We form a parameter grid with the search space for each view for each parameter.
-# This search space must be entered as a list but can be any of
-#  - a single value (as in "kernel") where this value will be used for each view
-#  - a list for each view
-#  - a mixture of a single value for one view and a distribution or list for the other
+# Grid Search Hyperparameter Tuning
+# ---------------------------------
+# Parameter selection is similar to scikit-learn, with slight variations in parameter grid format.
+# The search space can include:
+#  - Single values, which will apply to each view.
+#  - Lists per view.
+#  - Mixtures of single values for one view and distributions or lists for the other.
 
-# We define a parameter grid with the polynomial kernel and different values for the regularization parameter (c) and the degree of the polynomial
+# Here, we'll try out the polynomial kernel, varying regularization (c) and polynomial degree.
 param_grid = {"kernel": ["poly"], "c": [[1e-1], [1e-1, 2e-1]], "degree": [[2], [2, 3]]}
 
-# We use GridSearchCV to find the best KCCA model with the polynomial kernel
-kernel_reg = GridSearchCV(
+# Using GridSearchCV to optimize KCCA with the polynomial kernel.
+kernel_reg_grid = GridSearchCV(
     KCCA(latent_dimensions=latent_dims), param_grid=param_grid, cv=cv, verbose=True
 ).fit([X, Y])
 
-# We print the results of the grid search as a data frame
-print(pd.DataFrame(kernel_reg.cv_results_))
+# Displaying the grid search results.
+print(pd.DataFrame(kernel_reg_grid.cv_results_))
 
 # %%
-# Randomized Search
-# --------------------
-# With Randomized Search we can additionally use distributions from scikit-learn to define the parameter search space
+# Randomized Search Hyperparameter Tuning
+# ---------------------------------------
+# With Randomized Search, we can also use distributions (like loguniform) from scikit-learn.
 
-# We define a parameter grid with the polynomial kernel and different values or distributions for the regularization parameter (c) and the degree of the polynomial
-param_grid = {
+# Again, we're defining parameters for the polynomial kernel.
+param_grid_random = {
     "c": [loguniform(1e-1, 2e-1), [1e-1]],
     "degree": [[2], [2, 3]],
 }
 
-# We use RandomizedSearchCV to find the best KCCA model with the polynomial kernel
-kernel_reg = RandomizedSearchCV(
+# Using RandomizedSearchCV for optimization.
+kernel_reg_random = RandomizedSearchCV(
     KCCA(latent_dimensions=latent_dims, kernel="poly"),
-    param_distributions=param_grid,
+    param_distributions=param_grid_random,
     cv=cv,
     verbose=True,
 ).fit([X, Y])
 
-# We print the results of the randomized search as a data frame
-print(pd.DataFrame(kernel_reg.cv_results_))
+# Displaying the randomized search results.
+print(pd.DataFrame(kernel_reg_random.cv_results_))

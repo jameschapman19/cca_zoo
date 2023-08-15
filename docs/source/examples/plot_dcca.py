@@ -1,10 +1,18 @@
 """
-Deep CCA
-===========================
+Deep Canonical Correlation Analysis (CCA) using `cca_zoo`
+========================================================
 
-This example demonstrates how to easily train Deep CCA linear and variants
-using cca_zoo, a library for canonical correlation analysis and related methods.
+This script showcases how to implement various Deep CCA methods and their
+variants using the `cca_zoo` library, a dedicated tool for canonical
+correlation analysis and its related techniques. The MNIST dataset is used
+as an example, where images are split into two halves to treat as separate views.
+
+Key Features:
+- Demonstrates the training process of multiple Deep CCA variants.
+- Visualizes the results of each variant for comparative analysis.
+- Leverages `cca_zoo` for canonical correlation analysis techniques.
 """
+
 
 # %%
 # Imports

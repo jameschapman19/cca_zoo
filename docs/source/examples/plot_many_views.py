@@ -1,36 +1,27 @@
 """
-More than 2 views
-===========================
+Canonical Correlation Analysis for Multiview Data
+==================================================
 
-This example demonstrates how to use cca_zoo to compare different methods of canonical correlation analysis
-(CCA) and related methods for more than two views of data.
+This script illustrates how to utilize the `cca_zoo` library to apply and compare
+various canonical correlation analysis (CCA) methods for datasets with more than two views.
 """
 
 # %%
-# Imports
-# -------
-
+# Dependencies
+# ------------
 import numpy as np
 from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.linear import GCCA, MCCA, SCCA_PMD, TCCA
 from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA
 
-"""
-Data
------
-"""
 # %%
-# We generate some synthetic data with three views (views, Y, Z) that share a common latent variable.
-# We set the number of samples (n), the number of features per view (p, q, r), and the dimensionality of the latent space (latent_dims).
-# We also set the correlation between the views and the latent variable to 0.9.
+# Data Preparation
+# ----------------
+# Generating a synthetic dataset with three views (X, Y, Z) that share a common latent variable.
+# Specifying the number of samples, features per view, and the latent space dimensionality.
 
 np.random.seed(42)
-n = 30
-p = 3
-q = 3
-r = 3
-latent_dims = 1
-cv = 3
+n, p, q, r, latent_dims, cv = 30, 3, 3, 3, 1, 3
 
 (X, Y, Z) = LinearSimulatedData(
     view_features=[p, q, r], latent_dims=latent_dims, correlation=[0.9]
@@ -38,56 +29,34 @@ cv = 3
 
 # %%
 # Eigendecomposition-Based Methods
-# ---------------------------------
-# These methods use eigendecomposition or singular value decomposition to find the optimal linear transformations
-# of the views that maximize their correlation.
+# --------------------------------
+# These techniques leverage eigendecomposition or singular value decomposition
+# to find the optimal linear transformations for the views to maximize correlation.
 
-# %%
-# Linear
-# ^^^^^^^^
-# These methods use linear transformations of the original views.
-
-# %%
-# MCCA (Multiset CCA) is a generalization of CCA for more than two views.
-# It maximizes the sum of pairwise correlations between the transformed views.
-
+# MCCA (Multiset CCA) - Generalizes CCA for multiple views by maximizing pairwise correlations.
 mcca = MCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
-# %%
-# GCCA (Generalized CCA) is another generalization of CCA for more than two views.
-# It maximizes the correlation between each transformed view and a common latent variable.
-
+# GCCA (Generalized CCA) - Maximizes correlation between each transformed view and a shared latent variable.
 gcca = GCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
 # %%
-# Kernel
-# ^^^^^^^^
-# These methods use kernel functions to map the original views to a higher-dimensional feature space,
-# and then apply linear methods in that space.
+# Kernel Methods
+# --------------
+# Kernel-based techniques map the original views to a high-dimensional feature space
+# and then apply linear transformations in that space.
 
-# %%
-# KCCA (Kernel CCA) is a kernel-based extension of CCA for two or more views.
-# It maximizes the sum of pairwise kernel correlations between the transformed views.
-
+# KCCA (Kernel CCA) - Kernel-based extension of CCA for multiple views.
 kcca = KCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
-# %%
-# KGCCA (Kernel Generalized CCA) is a kernel-based extension of GCCA for two or more views.
-# It maximizes the kernel correlation between each transformed view and a common latent variable.
-
+# KGCCA (Kernel Generalized CCA) - A kernel-based version of GCCA for multiple views.
 kgcca = KGCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
 # %%
-# Iterative Methods
-# ^^^^^^^^^^^^^^^^^^
-# These methods use iterative algorithms to find the optimal linear transformations of the views.
+# Iterative Techniques
+# --------------------
+# These methods employ iterative algorithms to deduce optimal linear transformations for the views.
 
-# Most of the _iterative methods can also use multiple views e.g.
-
-# %%
-# SCCA_PMD (Sparse CCA by Penalized Matrix Decomposition) is a sparse variant of CCA for two or more views.
-# It uses an alternating optimization algorithm with L1-norm regularization to find sparse solutions.
-
+# SCCA_PMD (Sparse CCA by Penalized Matrix Decomposition) - A sparse CCA variant.
 pmd = (
     SCCA_PMD(latent_dimensions=latent_dims, tau=0.1, tol=1e-5)
     .fit((X, Y, X))
@@ -95,14 +64,13 @@ pmd = (
 )
 
 # %%
-# Higher Order Correlations
-# -------------------------
-# These methods use tensor decomposition to find higher order correlations among the views.
+# Tensor Decomposition Methods
+# ----------------------------
+# Techniques utilizing tensor decomposition to discern higher-order correlations among the views.
 
-# %%
-# TCCA (Tensor CCA) is a tensor-based extension of CCA for two or more views.
-# It finds the optimal linear transformations that maximize the higher order correlation tensor among the views.
+# TCCA (Tensor CCA) - A tensor-based extension of CCA for multiple views.
 tcca = TCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
-# %%
+# KTCCA - [Provide a brief description, as it's missing in the original].
 ktcca = KTCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
+

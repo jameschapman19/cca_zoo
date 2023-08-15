@@ -1,17 +1,25 @@
 """
-Deep CCA for more than 2 views
-=================================
+Multiview Deep CCA Extensions
+=============================
 
-This example demonstrates how to easily train Deep CCA linear and variants
+This script showcases how to train extensions of Deep Canonical Correlation Analysis
+(Deep CCA) that can handle more than two views of data, using CCA-Zoo's functionalities.
+
+Features:
+- Deep MCCA (Multiset CCA)
+- Deep GCCA (Generalized CCA)
+- Deep TCCA (Tied CCA)
+
 """
 
 import pytorch_lightning as pl
-
 from cca_zoo.deep import DCCA, DTCCA, architectures, objectives
 
 # %%
-# Data
-# -----
+# Data Preparation
+# ----------------
+# Here, we use a segmented MNIST dataset as an example of multiview data.
+
 from docs.source.examples import example_mnist_data
 
 LATENT_DIMS = 2
@@ -25,30 +33,37 @@ encoder_1 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=39
 encoder_2 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=392)
 
 # %%
-# Deep MCCA
-# ----------
-dcca = DCCA(
+# Deep MCCA (Multiset CCA)
+# ------------------------
+# A multiview extension of CCA, aiming to find latent spaces that are maximally correlated across multiple views.
+
+dcca_mcca = DCCA(
     latent_dimensions=LATENT_DIMS,
     encoders=[encoder_1, encoder_2],
     objective=objectives.MCCA,
 )
-trainer = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False)
-trainer.fit(dcca, train_loader, val_loader)
+trainer_mcca = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False)
+trainer_mcca.fit(dcca_mcca, train_loader, val_loader)
 
 # %%
-# Deep GCCA
-# ---------
-dcca = DCCA(
+# Deep GCCA (Generalized CCA)
+# ---------------------------
+# A method that finds projections of multiple views such that the variance explained
+# by the canonical components is maximized.
+
+dcca_gcca = DCCA(
     latent_dimensions=LATENT_DIMS,
     encoders=[encoder_1, encoder_2],
     objective=objectives.GCCA,
 )
-trainer = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False)
-trainer.fit(dcca, train_loader, val_loader)
+trainer_gcca = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False)
+trainer_gcca.fit(dcca_gcca, train_loader, val_loader)
 
 # %%
-# Deep TCCA
-# ---------
-dcca = DTCCA(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
-trainer = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False)
-trainer.fit(dcca, train_loader, val_loader)
+# Deep TCCA (Tied CCA)
+# --------------------
+# An approach where views share the same weight parameters during training.
+
+dcca_tcca = DTCCA(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
+trainer_tcca = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False)
+trainer_tcca.fit(dcca_tcca, train_loader, val_loader)

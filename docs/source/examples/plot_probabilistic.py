@@ -1,13 +1,25 @@
 """
-Probabilistic CCA Example
-===================================
+Probabilistic Canonical Correlation Analysis (CCA)
+==================================================
+Illustrates the usage of `ProbabilisticCCA` for understanding multiview data relationships.
 
-This example shows how to use the `ProbabilisticCCA` class to fit a probabilistic CCA model on some synthetic data. Probabilistic CCA is a generative model that assumes each view of data is generated from a latent variable and some view-specific parameters. It uses variational inference methods to estimate the posterior distributions of the parameters and the latent variables.
+Overview:
+---------
+Probabilistic CCA is a generative model that captures shared information among multiple views of data. By assuming that each data view originates from a latent variable and view-specific parameters, this model offers a more flexible representation. It employs variational inference to approximate the posterior distributions of parameters and latent variables.
+
+Contents:
+---------
+1. Imports and setup.
+2. Data generation: Synthetic data from two views, considering view-specific noise and feature sparsity.
+3. Model: Initialize and fit `ProbabilisticCCA` on the synthetic data.
+4. Results: Extract and visualize the latent variable's posterior mean and compare inferred parameters with ground truth.
+
+Let's dive in!
 """
 
 # %%
-# Imports
-# -------
+# 1. Imports and Setup
+# --------------------
 
 import numpy as np
 import arviz as az
@@ -16,12 +28,13 @@ import matplotlib.pyplot as plt
 from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.probabilistic import ProbabilisticCCA
 
-"""
-Data
------
-"""
+
 # %%
-# We generate some synthetic data from two views, each with 10 features. We assume that the latent variable has 2 dimensions and that the data is noisy.
+# 2. Data Generation
+# ------------------
+
+# Here, we design a helper class to simulate data from two views. Both views contain 10 features, and data is generated from a 2-dimensional latent variable. Noise and sparsity parameters help make the data generation process more intricate.
+
 
 
 class LatentVariableData:
@@ -86,12 +99,11 @@ views = data.sample(n)
 # remove the mean from each view
 views = [view - view.mean(axis=0) for view in views]
 
-"""
-Model
-------
-"""
 # %%
-# We create an instance of the `ProbabilisticCCA` class and fit it on the data. We specify the number of latent dimensions, the number of samples and warmup steps for the variational inference algorithm, and the random state.
+# 3. Model
+# --------
+
+# Instantiate `ProbabilisticCCA`, specifying the latent dimension, number of samples, warm-up steps, and random seed. Subsequently, fit the model on the de-meaned data views.
 
 pcca = ProbabilisticCCA(
     latent_dimensions=latent_dims,
@@ -102,12 +114,13 @@ pcca = ProbabilisticCCA(
 
 pcca.fit(views)
 
-"""
-Results
--------
-"""
 # %%
-# We can use the `transform` method to obtain the posterior mean of the latent variable for each sample. This can be used for downstream tasks such as visualization or clustering.
+# 4. Results
+# ----------
+
+# Explore the model's results:
+# - Transform the views to obtain the latent variable's posterior mean. Useful for visualization, clustering, etc.
+# - Inspect and visualize the posterior parameter distributions, comparing them with their true values.
 
 z = pcca.transform(views)
 
