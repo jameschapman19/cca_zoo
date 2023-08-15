@@ -8,32 +8,37 @@ Dive into the world of CCA-Zoo! Unlock the hidden relationships in multiview dat
 Table of Contents
 -----------------
 
-📘 **Using CCA-Zoo**
+
 .. toctree::
    :maxdepth: 2
+   :caption: 📘 **Using CCA-Zoo**
 
-   * Introduction
-   * Getting Started
-   * User Guide
+   usage/introduction
+   usage/getting_started
+   usage/user_guide
 
-🎨 **Examples**
+
 .. toctree::
    :maxdepth: 2
+   :caption: 📚 **Tutorials**
 
-   * Explore interactive examples
+   auto_examples/index
 
-📖 **API Reference**
+
 .. toctree::
    :maxdepth: 2
+   :caption: 📖 **API Reference**
 
-   * Comprehensive API details
+   reference
 
-🔧 **Developer Information**
+
 .. toctree::
    :maxdepth: 2
+   :caption: 🔧 **Developer Information**
 
-   * Contribute to CCA-Zoo
-   * Licensing details
+   developer_info/contribute
+   developer_info/license
+
 
 Quick Links
 -----------
