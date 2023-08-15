@@ -4,7 +4,6 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
 import sys
-from types import ModuleType
 
 sys.path.insert(0, os.path.abspath("."))
 sys.path.insert(0, os.path.abspath("../.."))
@@ -31,14 +30,11 @@ extensions = [
 ]
 
 templates_path = ["_templates"]
-autosummary_generate = True
 exclude_patterns = ["_build", "_templates"]
-
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "alabaster"
 html_static_path = ["_static"]
 
 sphinx_gallery_conf = {
@@ -63,7 +59,7 @@ intersphinx_mapping = {
     "jaxlib": ("https://jax.readthedocs.io/en/latest/", None),
 }
 
-autodoc_default_options = {"members": True, "inherited-members": True}
+autodoc_default_options = {"members": True, "inherited-members": True, "show-inheritance": True}
 
 # generate autosummary even if no references
 autosummary_generate = True

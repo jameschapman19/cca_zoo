@@ -6,6 +6,7 @@
 Welcome to CCA-Zoo's documentation!
 ===================================
 
+
 .. toctree::
    :maxdepth: 2
    :caption: Using cca-zoo
@@ -24,18 +25,9 @@ Welcome to CCA-Zoo's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: API Reference
+   :caption: API
 
-
-.. autosummary::
-   :toctree: _autosummary
-
-   cca_zoo.linear
-   cca_zoo.nonparametric
-   cca_zoo.deep
-   cca_zoo.probabilistic
-   cca_zoo.data
-   cca_zoo.visualisation
+   reference
 
 
 .. toctree::
