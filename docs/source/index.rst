@@ -1,47 +1,44 @@
-.. CCA-Zoo documentation master file, created by
-   sphinx-quickstart on Sat Jul  1 14:20:20 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+CCA-Zoo Documentation
+========================
 
-Welcome to CCA-Zoo's documentation!
-===================================
+Welcome to CCA-Zoo! 🚀
+--------------------------
+Dive into the world of CCA-Zoo! Unlock the hidden relationships in multiview data.
 
+Table of Contents
+-----------------
 
+📘 **Using CCA-Zoo**
 .. toctree::
    :maxdepth: 2
-   :caption: Using cca-zoo
 
-   usage/introduction
-   usage/getting_started
-   usage/user_guide
+   * Introduction
+   * Getting Started
+   * User Guide
 
-
+🎨 **Examples**
 .. toctree::
    :maxdepth: 2
-   :caption: Examples
 
-   auto_examples/index
+   * Explore interactive examples
 
-
+📖 **API Reference**
 .. toctree::
    :maxdepth: 2
-   :caption: API
 
-   reference
+   * Comprehensive API details
 
-
+🔧 **Developer Information**
 .. toctree::
    :maxdepth: 2
-   :caption: Developer Info
 
-   developer_info/contribute
-   developer_info/license
+   * Contribute to CCA-Zoo
+   * Licensing details
 
+Quick Links
+-----------
+* :ref:`General Index <genindex>`
+* :ref:`Module Index <modindex>`
+* :ref:`Search the Docs <search>`
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+Harness the full capabilities of CCA-Zoo and build something incredible!
