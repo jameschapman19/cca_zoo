@@ -150,13 +150,13 @@ results_df = pd.DataFrame(
             "Elastic CCA",
         ],
         "Validation Correlation": [
-            cca_corr,
-            pls_corr,
-            span_cca_corr,
-            pmd_corr,
-            scca_corr,
-            scca_pos_corr,
-            elastic_corr,
+            cca_corr.item(),
+            pls_corr.item(),
+            span_cca_corr.item(),
+            pmd_corr.item(),
+            scca_corr.item(),
+            scca_pos_corr.item(),
+            elastic_corr.item(),
         ],
     }
 )
