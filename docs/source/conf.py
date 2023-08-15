@@ -59,7 +59,11 @@ intersphinx_mapping = {
     "jaxlib": ("https://jax.readthedocs.io/en/latest/", None),
 }
 
-autodoc_default_options = {"members": True, "inherited-members": True, "show-inheritance": True}
+autodoc_default_options = {
+    "members": True,
+    "inherited-members": True,
+    "show-inheritance": True,
+}
 
 # generate autosummary even if no references
 autosummary_generate = True
