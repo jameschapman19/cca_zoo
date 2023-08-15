@@ -11,7 +11,7 @@ Table of Contents
 
 .. toctree::
    :maxdepth: 2
-   :caption: 📘 **Using CCA-Zoo**
+   :caption: 📘 Using CCA-Zoo
 
    usage/introduction
    usage/getting_started
@@ -20,21 +20,21 @@ Table of Contents
 
 .. toctree::
    :maxdepth: 2
-   :caption: 📚 **Tutorials**
+   :caption: 📚 Tutorials
 
    auto_examples/index
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: 📖 **API Reference**
+   :caption: 📖 API Reference
 
    reference
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: 🔧 **Developer Information**
+   :caption: 🔧 Developer Information
 
    developer_info/contribute
    developer_info/license
