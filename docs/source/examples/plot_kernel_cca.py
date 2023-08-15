@@ -22,10 +22,13 @@ np.random.seed(42)
 
 # Configuring and generating a simulated dataset with given specifications.
 n, p, q, latent_dims, correlation = 200, 100, 100, 1, 0.9
-(X, Y) = LinearSimulatedData(view_features=[p, q], latent_dims=latent_dims, correlation=[correlation]).sample(n)
+(X, Y) = LinearSimulatedData(
+    view_features=[p, q], latent_dims=latent_dims, correlation=[correlation]
+).sample(n)
 
 # Specifying the number of folds for cross-validation.
 cv = 3
+
 
 # %%
 # Custom Kernel Definition
@@ -38,6 +41,7 @@ def my_kernel(X, Y, param=0, **kwargs):
     M = np.random.rand(X.shape[0], X.shape[0])
     M += param
     return X @ M @ M.T @ Y.T
+
 
 # Initializing the KCCA model with the custom kernel and specified parameters.
 kernel_custom = KCCA(
@@ -54,27 +58,52 @@ param_grid_linear = {"kernel": ["linear"], "c": [c_values, c_values]}
 
 # Tuning hyperparameters using GridSearchCV for the linear kernel.
 kernel_linear = GridSearchCV(
-    KCCA(latent_dimensions=latent_dims), param_grid=param_grid_linear, cv=cv, verbose=True
+    KCCA(latent_dimensions=latent_dims),
+    param_grid=param_grid_linear,
+    cv=cv,
+    verbose=True,
 ).fit([X, Y])
 
 # %%
 # Polynomial Kernel-based CCA
 # ---------------------------
 degrees = [2, 3]
-param_grid_poly = {"kernel": ["poly"], "degree": [degrees, degrees], "c": [c_values, c_values]}
+param_grid_poly = {
+    "kernel": ["poly"],
+    "degree": [degrees, degrees],
+    "c": [c_values, c_values],
+}
 
 # Tuning hyperparameters using GridSearchCV for the polynomial kernel.
-kernel_poly = GridSearchCV(
-    KCCA(latent_dimensions=latent_dims), param_grid=param_grid_poly, cv=cv, verbose=True
-).fit([X, Y]).best_estimator_
+kernel_poly = (
+    GridSearchCV(
+        KCCA(latent_dimensions=latent_dims),
+        param_grid=param_grid_poly,
+        cv=cv,
+        verbose=True,
+    )
+    .fit([X, Y])
+    .best_estimator_
+)
 
 # %%
 # Gaussian/RBF Kernel-based CCA
 # -----------------------------
 gammas = [1e-1, 1e-2]
-param_grid_rbf = {"kernel": ["rbf"], "gamma": [gammas, gammas], "c": [c_values, c_values]}
+param_grid_rbf = {
+    "kernel": ["rbf"],
+    "gamma": [gammas, gammas],
+    "c": [c_values, c_values],
+}
 
 # Tuning hyperparameters using GridSearchCV for the Gaussian/RBF kernel.
-kernel_rbf = GridSearchCV(
-    KCCA(latent_dimensions=latent_dims), param_grid=param_grid_rbf, cv=cv, verbose=True
-).fit([X, Y]).best_estimator_
+kernel_rbf = (
+    GridSearchCV(
+        KCCA(latent_dimensions=latent_dims),
+        param_grid=param_grid_rbf,
+        cv=cv,
+        verbose=True,
+    )
+    .fit([X, Y])
+    .best_estimator_
+)

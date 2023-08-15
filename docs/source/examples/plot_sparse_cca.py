@@ -125,7 +125,8 @@ plot_model_weights(
 
 param_grid_elastic = {"alpha": [1e-2, 1e-3]}
 elastic = GridSearchCV(
-    ElasticCCA(epochs=epochs, early_stopping=True, l1_ratio=0.99), param_grid=param_grid_elastic
+    ElasticCCA(epochs=epochs, early_stopping=True, l1_ratio=0.99),
+    param_grid=param_grid_elastic,
 ).fit([X_train, Y_train])
 elastic_corr = elastic.score([X_val, Y_val])
 plot_model_weights(
@@ -137,15 +138,31 @@ plot_model_weights(
 )
 
 # Results Visualization
-results_df = pd.DataFrame({
-    "Model": ["CCA", "PLS", "Span CCA", "PMD", "SCCA_IPLS", "SCCA_IPLS (Positive)", "Elastic CCA"],
-    "Validation Correlation": [cca_corr, pls_corr, span_cca_corr, pmd_corr, scca_corr, scca_pos_corr, elastic_corr]
-})
+results_df = pd.DataFrame(
+    {
+        "Model": [
+            "CCA",
+            "PLS",
+            "Span CCA",
+            "PMD",
+            "SCCA_IPLS",
+            "SCCA_IPLS (Positive)",
+            "Elastic CCA",
+        ],
+        "Validation Correlation": [
+            cca_corr,
+            pls_corr,
+            span_cca_corr,
+            pmd_corr,
+            scca_corr,
+            scca_pos_corr,
+            elastic_corr,
+        ],
+    }
+)
 
 plt.figure(figsize=(10, 5))
-sns.barplot(
-    x="Model", y="Validation Correlation", data=results_df, palette="viridis"
-)
+sns.barplot(x="Model", y="Validation Correlation", data=results_df, palette="viridis")
 plt.xticks(rotation=90)
 plt.title("Comparison of Models by Validation Correlation")
 plt.tight_layout()

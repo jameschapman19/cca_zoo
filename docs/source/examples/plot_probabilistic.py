@@ -36,7 +36,6 @@ from cca_zoo.probabilistic import ProbabilisticCCA
 # Here, we design a helper class to simulate data from two views. Both views contain 10 features, and data is generated from a 2-dimensional latent variable. Noise and sparsity parameters help make the data generation process more intricate.
 
 
-
 class LatentVariableData:
     def __init__(
         self,

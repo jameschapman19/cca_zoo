@@ -54,6 +54,7 @@ check_dataset(numpy_dataset)
 
 import torch
 
+
 class CustomDataset(torch.utils.data.Dataset):
     def __init__(self):
         pass
@@ -63,6 +64,7 @@ class CustomDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         return {"views": (torch.rand(10), torch.rand(10))}
+
 
 custom_dataset = CustomDataset()
 check_dataset(custom_dataset)
