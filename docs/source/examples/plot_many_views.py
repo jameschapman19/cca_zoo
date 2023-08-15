@@ -73,4 +73,3 @@ tcca = TCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
 # KTCCA - [Provide a brief description, as it's missing in the original].
 ktcca = KTCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
-
