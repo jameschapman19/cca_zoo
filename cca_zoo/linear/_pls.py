@@ -11,7 +11,6 @@ def reduce_dims(x):
 
 
 class PLSMixin:
-
     def _more_tags(self):
         # Indicate that this class is for multiview data
         return {"pls": True}
