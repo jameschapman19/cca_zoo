@@ -321,9 +321,9 @@ class Plotter:
             fig, ax = plt.subplots(figsize=(10, 5))
 
         if ratio:
-            explained_cov_train = model.explained_covariance_ratio_(train_views)
+            explained_cov_train = model.explained_covariance_ratio(train_views)
         else:
-            explained_cov_train = model.explained_covariance_(train_views)
+            explained_cov_train = model.explained_covariance(train_views)
 
         # Use seaborn lineplot with hue='Train' to plot the train and test data
         data = pd.DataFrame(explained_cov_train, columns=["value"])
@@ -331,9 +331,9 @@ class Plotter:
         data.index.name = "Latent dimension"
         if test_views is not None:
             if ratio:
-                explained_cov_test = model.explained_covariance_ratio_(test_views)
+                explained_cov_test = model.explained_covariance_ratio(test_views)
             else:
-                explained_cov_test = model.explained_covariance_(test_views)
+                explained_cov_test = model.explained_covariance(test_views)
             data_test = pd.DataFrame(explained_cov_test, columns=["value"])
             data_test["Mode"] = "Test"  # Add a column indicating test data
             data_test.index.name = "Latent dimension"
@@ -376,9 +376,9 @@ class Plotter:
 
         # explained_variance_train will be a numpy array of shape (latent_dimensions,len(train_views))
         if ratio:
-            explained_variance_train = model.explained_variance_ratio_(train_views)
+            explained_variance_train = model.explained_variance_ratio(train_views)
         else:
-            explained_variance_train = model.explained_variance_(train_views)
+            explained_variance_train = model.explained_variance(train_views)
 
         # Use seaborn lineplot with style='Train' and hue='View' to plot the train and test data
         # Reshape the data so that each row has a 'value', 'view index', and 'train' column
@@ -393,9 +393,9 @@ class Plotter:
         data["Mode"] = "Train"  # Add a column indicating train data
         if test_views is not None:
             if ratio:
-                explained_variance_test = model.explained_variance_ratio_(test_views)
+                explained_variance_test = model.explained_variance_ratio(test_views)
             else:
-                explained_variance_test = model.explained_variance_(test_views)
+                explained_variance_test = model.explained_variance(test_views)
             data_test = pd.DataFrame(explained_variance_test, index=view_labels).T
             # Give the index a name so that it can be used as a column later
             data_test.index.name = "Latent dimension"

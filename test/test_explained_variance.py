@@ -13,16 +13,16 @@ def rng():
 @pytest.fixture
 def toy_model(rng):
     model = BaseModel()
-    model.weights = [rng.randn(10, 3), rng.randn(8, 3), rng.randn(5,3)]
+    model.weights = [rng.random((10, 3)), rng.random((8, 3)), rng.random((5,3))]
     return model
 
 
 @pytest.fixture
 def synthetic_views(rng):
     # Generating three synthetic views with 100 samples each
-    view1 = rng.randn(100, 10)
-    view2 = rng.randn(100, 8)
-    view3 = rng.randn(100, 5)
+    view1 = rng.random((100, 10))
+    view2 = rng.random((100, 8))
+    view3 = rng.random((100, 5))
     # demean
     view1 -= view1.mean(axis=0)
     view2 -= view2.mean(axis=0)
