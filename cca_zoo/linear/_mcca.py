@@ -188,7 +188,7 @@ class rCCA(MCCA):
     def _C(self, views, **kwargs):
         if len(views) != 2:
             raise ValueError(
-                f"Model can only be used with two views, but {len(views)} were given. Use MCCA or GCCA instead."
+                f"Model can only be used with two views, but {len(views)} were given. Use MCCA or GCCA instead for CCA or MPLS for PLS."
             )
         # Compute the B matrices for each view
         B = [
