@@ -19,11 +19,7 @@ def data():
 
 def test_equivalence_with_linear_kernel(data):
     X, Y, Z = data
-    kernel_tests = [
-        (MCCA, KCCA),
-        (GCCA, KGCCA),
-        (TCCA, KTCCA)
-    ]
+    kernel_tests = [(MCCA, KCCA), (GCCA, KGCCA), (TCCA, KTCCA)]
 
     for model1, model2 in kernel_tests:
         instance1 = model1(latent_dimensions=2).fit([X, Y, Z])
@@ -33,7 +29,7 @@ def test_equivalence_with_linear_kernel(data):
         assert np.allclose(score1, score2), f"Scores differ for {model1} and {model2}"
 
 
-@pytest.mark.parametrize('kernel', ['rbf', 'poly', 'sigmoid', 'cosine'])
+@pytest.mark.parametrize("kernel", ["rbf", "poly", "sigmoid", "cosine"])
 def test_kernel_types(kernel, data):
     X, Y, Z = data
     models = [KCCA, KGCCA, KTCCA]
