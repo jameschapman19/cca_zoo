@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Chapman"
+  given-names: "James"
+  orcid: "https://orcid.org/0000-0002-9364-8118"
+- family-names: "Wang"
+  given-names: "Hao-Ting"
+  orcid: "https://orcid.org/0000-0003-4078-2038"
+title: "CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods in a scikit-learn style framework"
+version: 1.0.0
+doi: 10.21105/joss.03823
+date-released: 2023-08-22
+url: "https://github.com/jameschapman19/cca_zoo"
+
