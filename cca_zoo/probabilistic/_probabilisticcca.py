@@ -84,6 +84,7 @@ class ProbabilisticCCA(BaseModel):
         self : object
             Returns the instance itself.
         """
+        views = self._validate_data(views)
         # Initialize a NUTS sampler with the model function
         nuts_kernel = NUTS(self._model)
         # Run MCMC sampling with the specified number of samples and warmup steps

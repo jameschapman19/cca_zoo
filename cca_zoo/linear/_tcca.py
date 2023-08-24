@@ -41,7 +41,7 @@ class TCCA(MCCA):
     """
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        self._validate_data(views)
+        views=self._validate_data(views)
         self._check_params()
         # returns whitened views along with whitening matrices
         whitened_views, covs_invsqrt = self._setup_tensor(views)

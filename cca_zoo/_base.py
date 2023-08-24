@@ -7,7 +7,7 @@ from numpy.linalg import svd
 from scipy.linalg import block_diag
 from sklearn.base import BaseEstimator, MultiOutputMixin, RegressorMixin
 from sklearn.utils import check_random_state
-from sklearn.utils.validation import FLOAT_DTYPES, check_is_fitted
+from sklearn.utils.validation import FLOAT_DTYPES, check_is_fitted, check_array
 
 
 class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
@@ -68,6 +68,10 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self.n_views_ = len(views)
         self.n_features_ = [view.shape[1] for view in views]
         self.n_samples_ = views[0].shape[0]
+        if self.copy_data:
+            return [check_array(view, copy=True, dtype=self.dtypes) for view in views]
+        else:
+            return [check_array(view, copy=False, dtype=self.dtypes) for view in views]
 
     def _check_params(self):
         """

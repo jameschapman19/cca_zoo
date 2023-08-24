@@ -14,7 +14,7 @@ from tqdm import tqdm
 class DeflationMixin:
     # Define fit method
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        self._validate_data(views)
+        views=self._validate_data(views)
         # Convert views to list if tuple
         if isinstance(views, tuple):
             views = list(views)
@@ -75,14 +75,14 @@ def deflate_view(residual: np.ndarray, weights: np.ndarray) -> np.ndarray:
     -------
     np.ndarray
         The deflated residual data matrix for a view
-
-    Raises
-    ------
-    ValueError
-        If deflation method is not one of ["cca", "pls"]
     """
     # Compute the score vector for a view
     score = residual @ weights
 
-    # Deflate the residual by different methods based on the deflation attribute
-    return residual - residual @ weights @ weights.T / (weights.T @ weights)
+    # Compute the deflation term once and reuse it
+    deflation_term = (score @ weights.T) / (weights.T @ weights)
+
+    # Use in-place subtraction to reduce memory consumption
+    residual -= deflation_term
+
+    return residual

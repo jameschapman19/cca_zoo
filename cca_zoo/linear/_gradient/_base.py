@@ -207,7 +207,7 @@ class BaseGradientModel(BaseModel):
         raise NotImplementedError
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        self._validate_data(views)
+        views=self._validate_data(views)
         self._check_params()
         self._initialize(views)
         self.weights = self._fit(views)
