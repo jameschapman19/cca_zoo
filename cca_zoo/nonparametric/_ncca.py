@@ -73,7 +73,7 @@ class NCCA(BaseModel):
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         # Validate the input data
-        views=self._validate_data(views)
+        views = self._validate_data(views)
         # Check the parameters
         self._check_params()
         # Store the training views
