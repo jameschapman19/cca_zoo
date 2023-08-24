@@ -14,7 +14,7 @@ from tqdm import tqdm
 class DeflationMixin:
     # Define fit method
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        views=self._validate_data(views)
+        views = self._validate_data(views)
         # Convert views to list if tuple
         if isinstance(views, tuple):
             views = list(views)

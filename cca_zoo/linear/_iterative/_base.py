@@ -49,7 +49,7 @@ class BaseIterative(BaseModel):
         return self
 
     def _fit(self, views: Iterable[np.ndarray]):
-        views=self._validate_data(views)
+        views = self._validate_data(views)
         self._initialize(views)
         self._check_params()
         # Solve using alternating optimisation across the views until convergence
