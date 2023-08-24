@@ -34,8 +34,9 @@ class DeflationMixin:
             # Append component_weights to weights list
             for i, weight in enumerate(component_weights):
                 self.weights[i][:, k] = weight.squeeze()
-            # Deflate views using component_weights
-            views = deflate_views(views, component_weights)
+            if k < self.latent_dimensions - 1:
+                # Deflate views using component_weights
+                views = deflate_views(views, component_weights)
         # Return self
         return self
 
