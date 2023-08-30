@@ -18,13 +18,9 @@ DEFAULT_TRAINER_KWARGS = dict(
     enable_progress_bar=True,
 )
 
-DEFAULT_LOADER_KWARGS = dict(
-    pin_memory=False, drop_last=False, shuffle=True
-)
+DEFAULT_LOADER_KWARGS = dict(pin_memory=False, drop_last=False, shuffle=True)
 
-DEFAULT_OPTIMIZER_KWARGS = dict(
-    optimizer="SGD", momentum=0.9, nesterov=True
-)
+DEFAULT_OPTIMIZER_KWARGS = dict(optimizer="SGD", momentum=0.9, nesterov=True)
 
 
 class BaseGradientModel(BaseModel, pl.LightningModule):
@@ -44,7 +40,8 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         trainer_kwargs=None,
         optimizer_kwargs=None,
     ):
-        BaseModel.__init__(self,
+        BaseModel.__init__(
+            self,
             latent_dimensions=latent_dimensions,
             copy_data=copy_data,
             random_state=random_state,
@@ -91,7 +88,9 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
             **self.trainer_kwargs,
         )
         train_dataset, val_dataset = self.get_dataset(views)
-        train_dataloader, val_dataloader = self.get_dataloader(train_dataset, val_dataset)
+        train_dataloader, val_dataloader = self.get_dataloader(
+            train_dataset, val_dataset
+        )
         # if self.batch_size is None:
         #     # if the batch size is None, put views on the device
         #     views = [view.to(self.device) for view in views]
@@ -109,7 +108,7 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         else:
             val_dataset = None
         return dataset, val_dataset
-    
+
     def get_dataloader(self, train_dataset, val_dataset):
         train_loader = DataLoader(
             train_dataset,

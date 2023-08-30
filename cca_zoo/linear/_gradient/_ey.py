@@ -6,7 +6,6 @@ from cca_zoo.linear._pls import PLSMixin
 
 
 class CCAEY(BaseGradientModel):
-
     def _more_tags(self):
         return {"multiview": True, "stochastic": True}
 
@@ -25,7 +24,7 @@ class CCAEY(BaseGradientModel):
 
     def _get_random_batch(self) -> dict:
         return self.batch_queue[np.random.randint(0, len(self.batch_queue))]
-    
+
     def _update_queue(self, batch):
         self.batch_queue.append(batch)
         self.batch_queue.pop(0)
@@ -103,5 +102,3 @@ class PLSEY(CCAEY, PLSMixin):
                 else:
                     A += self._cross_covariance(zi, zj, latent_dims)
         return A / len(z), B / len(z)
-
-
