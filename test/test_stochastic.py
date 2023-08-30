@@ -106,7 +106,7 @@ def test_stochastic_cca():
         latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
-        learning_rate=learning_rate/5,
+        learning_rate=learning_rate / 5,
         random_state=random_state,
     ).fit((X, Y))
     ccasvd = CCASVD(

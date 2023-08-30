@@ -4,7 +4,6 @@ from cca_zoo.linear._gradient._ey import CCAEY
 
 
 class CCASVD(CCAEY):
-
     def _more_tags(self):
         return {"multiview": True, "stochastic": True}
 

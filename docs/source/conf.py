@@ -76,6 +76,4 @@ html_logo = "cca-zoo-logo.jpg"
 html_favicon = "favicon.png"
 html_theme_options = {
     "style_external_links": True,
-
 }
-

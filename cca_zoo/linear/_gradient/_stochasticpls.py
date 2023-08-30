@@ -5,7 +5,6 @@ from cca_zoo.linear._pls import PLSMixin
 
 
 class PLSStochasticPower(PLSEY, PLSMixin):
-
     def _more_tags(self):
         return {"multiview": True, "stochastic": True}
 

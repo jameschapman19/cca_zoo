@@ -2,6 +2,7 @@ from typing import Iterable
 
 import numpy as np
 from sklearn import clone
+
 # Import tqdm and deflate_views
 from tqdm import tqdm
 
