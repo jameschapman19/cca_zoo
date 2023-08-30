@@ -92,7 +92,6 @@ for batch_size in batch_sizes:
         batch_size=batch_size,
         learning_rate=0.001,
         random_state=42,
-        track="loss",
     )
 
     # We record the start time of the model fitting
@@ -120,14 +119,6 @@ for batch_size in batch_sizes:
         f"CCAEY (Batch size: {batch_size}, Corr: {ccaey_corr:.2f}, Time: {elapsed_time:.2f} s)"
     )
     plt.legend()
-    plt.show()
-
-    # We plot the loss function over iterations
-    plt.figure()
-    plt.plot(ccaey.objective)
-    plt.xlabel("Iteration")
-    plt.ylabel("Loss")
-    plt.title(f"CCAEY (Batch size: {batch_size})")
     plt.show()
 
 # %%
