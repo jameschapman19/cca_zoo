@@ -20,7 +20,7 @@ DEFAULT_TRAINER_KWARGS = dict(
 
 DEFAULT_LOADER_KWARGS = dict(pin_memory=False, drop_last=False, shuffle=True)
 
-DEFAULT_OPTIMIZER_KWARGS = dict(optimizer="SGD", momentum=0.9, nesterov=True)
+DEFAULT_OPTIMIZER_KWARGS = dict(optimizer="Adam")
 
 
 class BaseGradientModel(BaseModel, pl.LightningModule):
