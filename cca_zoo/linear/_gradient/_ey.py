@@ -38,7 +38,9 @@ class CCAEY(BaseGradientModel):
         else:
             if len(self.batch_queue) < 5:
                 self.batch_queue.append(batch)
-                return {"loss": torch.tensor(0, requires_grad=True, dtype=torch.float32)}
+                return {
+                    "loss": torch.tensor(0, requires_grad=True, dtype=torch.float32)
+                }
             else:
                 random_batch = self._get_random_batch()
                 loss = self.loss(batch["views"], random_batch["views"])

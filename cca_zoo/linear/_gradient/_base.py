@@ -93,7 +93,12 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         )
         if self.batch_size is None:
             # if the batch size is None, put views on the device
-            self.batch={"views":[view.to(trainer._accelerator_connector._accelerator_flag) for view in train_dataset.views]}
+            self.batch = {
+                "views": [
+                    view.to(trainer._accelerator_connector._accelerator_flag)
+                    for view in train_dataset.views
+                ]
+            }
         trainer.fit(self, train_dataloader, val_dataloader)
         # return the weights from the module. They will need to be changed from torch tensors to numpy arrays
         weights = [weight.detach().cpu().numpy() for weight in self.torch_weights]
