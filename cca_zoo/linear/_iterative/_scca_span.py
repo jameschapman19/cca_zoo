@@ -1,10 +1,12 @@
-from cca_zoo.linear._search import support_threshold
 from typing import Union, Iterable
+
+import numpy as np
+
 from cca_zoo.linear._iterative._base import BaseIterative
 from cca_zoo.linear._iterative._deflation import DeflationMixin
 from cca_zoo.linear._search import _delta_search
+from cca_zoo.linear._search import support_threshold
 from cca_zoo.utils import _process_parameter
-import numpy as np
 
 
 class SCCA_Span(DeflationMixin, BaseIterative):

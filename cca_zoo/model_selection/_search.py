@@ -14,11 +14,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.utils import check_random_state
 
 
-from sklearn.model_selection import ParameterGrid
-import itertools
-import numpy as np
-
-
 def param2grid(params):
     params = {
         k: list(v) if (hasattr(v, "__iter__") and not isinstance(v, str)) else [v]

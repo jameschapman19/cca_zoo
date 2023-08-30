@@ -1,7 +1,7 @@
 import torch
 
-from ..objectives import inv_sqrtm
 from ._dcca import DCCA
+from ..objectives import inv_sqrtm
 
 
 class DCCA_NOI(DCCA):

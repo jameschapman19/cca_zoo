@@ -1,7 +1,9 @@
 import itertools
 import warnings
 from typing import Union, Iterable
+
 import numpy as np
+
 from cca_zoo.linear._iterative._base import BaseIterative
 from cca_zoo.linear._iterative._deflation import DeflationMixin
 from cca_zoo.linear._search import _delta_search

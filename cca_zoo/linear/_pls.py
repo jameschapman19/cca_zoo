@@ -1,5 +1,3 @@
-from typing import Iterable
-
 import numpy as np
 
 from cca_zoo.linear._mcca import MCCA, rCCA

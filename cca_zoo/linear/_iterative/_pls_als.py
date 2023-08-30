@@ -1,5 +1,4 @@
-import itertools
-from typing import Union, Iterable
+from typing import Union
 
 import numpy as np
 

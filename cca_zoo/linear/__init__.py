@@ -1,5 +1,5 @@
 from ._gcca import GCCA
-from ._gradient import CCAEY, CCAGH, CCASVD, PLSEY, PLSSVD, PLSStochasticPower
+from ._gradient import CCAEY, CCAGH, CCASVD, PLSEY, PLSStochasticPower
 from ._grcca import GRCCA
 from ._iterative import (
     PLS_ALS,
@@ -40,6 +40,5 @@ __all__ = [
     "PLSEY",
     "CCAGH",
     "CCASVD",
-    "PLSSVD",
     "PLSStochasticPower",
 ]

@@ -1,25 +1,13 @@
 import torch
 
-from cca_zoo.linear._gradient._ey import CCAEY, EYLoop
+from cca_zoo.linear._gradient._ey import CCAEY
 
 
 class CCAGH(CCAEY):
-    def _get_pl_module(self, weights=None, k=None):
-        return GHALoop(
-            weights=weights,
-            k=k,
-            learning_rate=self.learning_rate,
-            optimizer_kwargs=self.optimizer_kwargs,
-            objective="cca",
-            tracking=self.track,
-            convergence_checking=self.convergence_checking,
-        )
 
     def _more_tags(self):
         return {"multiview": True, "stochastic": True}
 
-
-class GHALoop(EYLoop):
     def get_AB(self, z):
         latent_dims = z[0].shape[1]
         A = torch.zeros(
@@ -31,13 +19,9 @@ class GHALoop(EYLoop):
         for i, zi in enumerate(z):
             for j, zj in enumerate(z):
                 if i == j:
-                    B += torch.cov(zi.T)  # add the auto-covariance of each view to B
-                A += torch.cov(torch.hstack((zi, zj)).T)[
-                    latent_dims:, :latent_dims
-                ]  # add the cross-covariance of each pair of views to A
-        return A / len(z), B / len(
-            z
-        )  # return the normalized matrices (divided by the number of views)
+                    B += self._cross_covariance(zi, zj, latent_dims)
+                A += self._cross_covariance(zi, zj, latent_dims)
+        return A / len(z), B / len(z)
 
     def loss(self, views, views2=None, **kwargs):
         # Encoding the views with the forward method
@@ -52,10 +36,10 @@ class GHALoop(EYLoop):
             # Encoding another set of views with the forward method
             z2 = self(views2)
             # Getting A' and B' matrices from z2
-            _, B_ = self.get_AB(z2)
+            A_, B_ = self.get_AB(z2)
             # Computing rewards and penalties using A and B'
             rewards = torch.trace(2 * A)
-            penalties = torch.trace(A @ B_)
+            penalties = torch.trace(A_ @ B)
         return {
             "loss": -rewards + penalties,
             "rewards": rewards,

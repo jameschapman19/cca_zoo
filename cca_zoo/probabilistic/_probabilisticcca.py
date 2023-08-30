@@ -1,14 +1,5 @@
 from typing import Iterable
 
-import numpy as np
-import numpyro
-from jax.random import PRNGKey
-from sklearn.utils.validation import check_is_fitted
-
-from cca_zoo._base import BaseModel
-
-from typing import Iterable
-
 import jax.numpy as jnp
 import numpy as np
 import numpyro

@@ -1,11 +1,7 @@
 from typing import Iterable
 
 import numpy as np
-import pytorch_lightning as pl
 from sklearn import clone
-from tqdm import tqdm
-
-
 # Import tqdm and deflate_views
 from tqdm import tqdm
 
