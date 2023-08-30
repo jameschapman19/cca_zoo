@@ -10,7 +10,10 @@ class CCAEY(BaseGradientModel):
         return {"multiview": True, "stochastic": True}
 
     def training_step(self, batch, batch_idx):
-        self._initialize_queue()
+        if self.batch_size is None:
+            batch = self.batch
+        else:
+            self._initialize_queue()
         loss = self._compute_loss(batch)
         # Logging the loss components
         for k, v in loss.items():
@@ -30,13 +33,16 @@ class CCAEY(BaseGradientModel):
         self.batch_queue.pop(0)
 
     def _compute_loss(self, batch) -> dict:
-        if len(self.batch_queue) < 5:
-            self.batch_queue.append(batch)
-            return {"loss": torch.tensor(0, requires_grad=True, dtype=torch.float32)}
+        if self.batch_size is None:
+            loss = self.loss(batch["views"])
         else:
-            random_batch = self._get_random_batch()
-            loss = self.loss(batch["views"], random_batch["views"])
-        self._update_queue(batch)
+            if len(self.batch_queue) < 5:
+                self.batch_queue.append(batch)
+                return {"loss": torch.tensor(0, requires_grad=True, dtype=torch.float32)}
+            else:
+                random_batch = self._get_random_batch()
+                loss = self.loss(batch["views"], random_batch["views"])
+            self._update_queue(batch)
         return loss
 
     def get_AB(self, z):

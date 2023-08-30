@@ -50,7 +50,6 @@ def test_batch_pls():
     plsey = PLSEY(
         latent_dimensions=latent_dims,
         epochs=epochs,
-        batch_size=25,
         learning_rate=learning_rate,
         random_state=random_state,
     ).fit((X, Y))

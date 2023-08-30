@@ -9,6 +9,8 @@ class PLSStochasticPower(PLSEY, PLSMixin):
         return {"multiview": True, "stochastic": True}
 
     def training_step(self, batch, batch_idx):
+        if batch is None:
+            batch=dict(("views",self.data))
         for weight in self.torch_weights:
             weight.data = self._orth(weight)
         scores = self(batch["views"])
