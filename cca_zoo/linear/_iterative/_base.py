@@ -3,12 +3,12 @@ from abc import abstractmethod
 from typing import Iterable, Union, Any
 
 import numpy as np
+from cca_zoo.linear._pls import MPLS
 from tqdm import tqdm
 
 from cca_zoo._base import BaseModel
 from cca_zoo.linear._dummy import DummyCCA, DummyPLS
 from cca_zoo.linear._mcca import MCCA
-from cca_zoo.linear._pls import MPLS
 
 
 class BaseIterative(BaseModel):

@@ -45,6 +45,15 @@ class PCACCA(MCCA):
             self.pca_models[i].components_ = self.pca_models[i].components_[
                 :n_components_
             ]
+            self.pca_models[i].explained_variance_ = self.pca_models[i].explained_variance_[
+                :n_components_
+            ]
+            self.pca_models[i].explained_variance_ratio_ = self.pca_models[i].explained_variance_ratio_[
+                :n_components_
+            ]
+            self.pca_models[i].singular_values_ = self.pca_models[i].singular_values_[
+                :n_components_
+            ]
         return [
             view[:, : self.pca_models[i].n_components_] for i, view in enumerate(views)
         ]

@@ -46,6 +46,11 @@ class DummyCCA(BaseModel):
             / np.sqrt(np.diag(np.atleast_1d(np.cov(view @ weight, rowvar=False))))
             for view, weight in zip(views, self.weights)
         ]
+        scores=self.score(views)
+        for i, score in enumerate(scores):
+            if score<0:
+                # flip the sign of the first weights
+                self.weights[0][:, i] = -self.weights[0][:, i]
 
 
 class DummyPLS(DummyCCA):

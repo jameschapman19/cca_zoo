@@ -21,6 +21,7 @@ from cca_zoo.linear import (
     SCCA_Span,
     rCCA,
 )
+from cca_zoo.linear._dummy import DummyCCA
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.nonparametric import KCCA
 
@@ -37,6 +38,15 @@ Y -= Y.mean(axis=0)
 Z -= Z.mean(axis=0)
 X_sp -= X_sp.mean(axis=0)
 Y_sp -= Y_sp.mean(axis=0)
+
+def test_initialisation():
+    dummyCCA=DummyCCA(latent_dimensions=3)
+    dummyCCA.fit((X,Y))
+    # check that scores are positive in each dimension:
+    scores = dummyCCA.score((X, Y))
+
+    # Check if all scores are positive
+    assert np.all(scores > 0), "Not all scores are positive."
 
 
 def test_linear_simulated_data():
