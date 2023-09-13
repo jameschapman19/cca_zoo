@@ -26,17 +26,20 @@ class DeflationMixin:
                 self.weights[i][:, k] = weight.squeeze()
 
             if k < self.latent_dimensions - 1:
-                pls = True#self._get_tags().get("pls", False)
+                pls = True  # self._get_tags().get("pls", False)
                 views = deflate_views(views, component_weights, pls)
 
         return self
 
 
-def deflate_views(residuals: Iterable[np.ndarray], weights: Iterable[np.ndarray], pls=False):
+def deflate_views(
+    residuals: Iterable[np.ndarray], weights: Iterable[np.ndarray], pls=False
+):
     if pls:
         return [
-        deflate_view_pls(residual, weight) for residual, weight in zip(residuals, weights)
-    ]
+            deflate_view_pls(residual, weight)
+            for residual, weight in zip(residuals, weights)
+        ]
 
     else:
         return [
