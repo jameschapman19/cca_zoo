@@ -21,7 +21,7 @@ class ScoreDisplay:
         self.kwargs = kwargs
 
     @classmethod
-    def from_estimator(cls, model, train_views,test_views=None, **kwargs):
+    def from_estimator(cls, model, train_views, test_views=None, **kwargs):
         train_scores = model.transform(train_views)
         if test_views is not None:
             test_scores = model.transform(test_views)
@@ -60,7 +60,6 @@ class ScoreDisplay:
 
 # Define a class that takes the dataset object as an argument
 class Plotter:
-
     def plot_correlation_heatmap(
         self,
         train_scores,
