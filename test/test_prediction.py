@@ -28,9 +28,8 @@ def data():
 def test_prediction(data):
     X, Y, Z, _, _ = data
     latent_dims = 10
-    model=MPLS(latent_dimensions=latent_dims)
+    model = MPLS(latent_dimensions=latent_dims)
     model.fit([Y, Y])
-    _,Y_=model.predict([Y, None])
+    _, Y_ = model.predict([Y, None])
     # Check for perfect reconstruction
     assert np.testing.assert_array_almost_equal(Y, Y_, decimal=1) is None
-
