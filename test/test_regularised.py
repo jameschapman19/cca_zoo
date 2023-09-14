@@ -39,9 +39,10 @@ Z -= Z.mean(axis=0)
 X_sp -= X_sp.mean(axis=0)
 Y_sp -= Y_sp.mean(axis=0)
 
+
 def test_initialisation():
-    dummyCCA=DummyCCA(latent_dimensions=3)
-    dummyCCA.fit((X,Y))
+    dummyCCA = DummyCCA(latent_dimensions=3)
+    dummyCCA.fit((X, Y))
     # check that scores are positive in each dimension:
     scores = dummyCCA.score((X, Y))
 
