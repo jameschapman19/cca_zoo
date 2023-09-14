@@ -10,7 +10,9 @@ class ScoreDisplay:
     Display the scores of a model
     """
 
-    def __init__(self, train_scores, test_scores, labels=None, test_labels=None, **kwargs):
+    def __init__(
+        self, train_scores, test_scores, labels=None, test_labels=None, **kwargs
+    ):
         self.train_scores = train_scores
         self.test_scores = test_scores
         self.train_labels = labels
