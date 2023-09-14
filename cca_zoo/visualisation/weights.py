@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 class WeightHeatmapDisplay:
     """Heatmap of the weights of a model.
 
@@ -11,18 +12,18 @@ class WeightHeatmapDisplay:
     """
 
     def __init__(self, weights, view_labels=None, **kwargs):
-        self.weights=weights
-        self.view_labels=view_labels
-        self.kwargs=kwargs
+        self.weights = weights
+        self.view_labels = view_labels
+        self.kwargs = kwargs
 
     @classmethod
     def from_estimator(cls, model, view_labels=None, **kwargs):
         weights = model.weights
-        return cls.from_weights(weights,view_labels=view_labels, **kwargs)
+        return cls.from_weights(weights, view_labels=view_labels, **kwargs)
 
     @classmethod
     def from_weights(cls, weights, view_labels=None, **kwargs):
-        return cls(weights,view_labels=view_labels, **kwargs)
+        return cls(weights, view_labels=view_labels, **kwargs)
 
     def plot(self, **kwargs):
         """Plot the heatmap.
@@ -50,4 +51,3 @@ class WeightHeatmapDisplay:
         plt.tight_layout()
         self.figure_ = fig
         return self
-

@@ -33,7 +33,8 @@ class CorrelationHeatmapDisplay:
             annot=True,
             cmap="coolwarm",
             ax=axs[0],
-            vmin=-1, vmax=1
+            vmin=-1,
+            vmax=1,
         )
         if self.test_correlations is not None:
             sns.heatmap(
@@ -41,7 +42,8 @@ class CorrelationHeatmapDisplay:
                 annot=True,
                 cmap="coolwarm",
                 ax=axs[1],
-                vmin=-1, vmax=1
+                vmin=-1,
+                vmax=1,
             )
         axs[0].set_title("Train Correlations")
         axs[1].set_title("Test Correlations")

@@ -1,15 +1,21 @@
-
-from cca_zoo.visualisation import CovarianceHeatmapDisplay, CorrelationHeatmapDisplay, ScoreDisplay, WeightHeatmapDisplay, ExplainedVarianceDisplay, ExplainedCovarianceDisplay
+from cca_zoo.visualisation import (
+    CovarianceHeatmapDisplay,
+    CorrelationHeatmapDisplay,
+    ScoreDisplay,
+    WeightHeatmapDisplay,
+    ExplainedVarianceDisplay,
+    ExplainedCovarianceDisplay,
+)
 import matplotlib.pyplot as plt
 import numpy as np
 
 from cca_zoo.linear import MCCA
 
-X=np.random.rand(100,10)
-Y=np.random.rand(100,10)
-Z=np.random.rand(100,10)
+X = np.random.rand(100, 10)
+Y = np.random.rand(100, 10)
+Z = np.random.rand(100, 10)
 
-#Train Test Split
+# Train Test Split
 X_train, X_test = X[:50], X[50:]
 Y_train, Y_test = Y[:50], Y[50:]
 Z_train, Z_test = Z[:50], Z[50:]
@@ -40,4 +46,3 @@ CovarianceHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot
 CorrelationHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 
 plt.show()
-

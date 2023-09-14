@@ -5,12 +5,20 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+
 class ExplainedVarianceDisplay:
     """
     Display the explained variance of a model
     """
 
-    def __init__(self, explained_variance_train, explained_variance_test=None, ratio=True, view_labels=None, **kwargs):
+    def __init__(
+        self,
+        explained_variance_train,
+        explained_variance_test=None,
+        ratio=True,
+        view_labels=None,
+        **kwargs,
+    ):
         self.explained_variance_train = explained_variance_train
         self.explained_variance_test = explained_variance_test
         self.ratio = ratio
@@ -23,11 +31,15 @@ class ExplainedVarianceDisplay:
             ), "view_labels must be the same length as test_views"
             self.view_labels = view_labels
         else:
-            self.view_labels = [f"View {i}" for i in range(len(self.explained_variance_train))]
+            self.view_labels = [
+                f"View {i}" for i in range(len(self.explained_variance_train))
+            ]
         self.kwargs = kwargs
 
     @classmethod
-    def from_estimator(cls, model, train_views, test_views=None, ratio=True, view_labels=None, **kwargs):
+    def from_estimator(
+        cls, model, train_views, test_views=None, ratio=True, view_labels=None, **kwargs
+    ):
         # explained_variance_train will be a numpy array of shape (latent_dimensions,len(train_views))
         if ratio:
             explained_variance_train = model.explained_variance_ratio(train_views)
@@ -42,24 +54,50 @@ class ExplainedVarianceDisplay:
             explained_variance_test = None
         if ratio:
             return cls.from_explained_variance_ratio(
-                explained_variance_train, explained_variance_test, view_labels=view_labels, **kwargs
+                explained_variance_train,
+                explained_variance_test,
+                view_labels=view_labels,
+                **kwargs,
             )
         else:
             return cls.from_explained_variance(
-                explained_variance_train, explained_variance_test, view_labels=view_labels, **kwargs
+                explained_variance_train,
+                explained_variance_test,
+                view_labels=view_labels,
+                **kwargs,
             )
 
     @classmethod
     def from_explained_variance(
-        cls, explained_variance_train, explained_variance_test=None,view_labels=None, **kwargs
+        cls,
+        explained_variance_train,
+        explained_variance_test=None,
+        view_labels=None,
+        **kwargs,
     ):
-        return cls(explained_variance_train, explained_variance_test,ratio=False,view_labels=view_labels, **kwargs)
+        return cls(
+            explained_variance_train,
+            explained_variance_test,
+            ratio=False,
+            view_labels=view_labels,
+            **kwargs,
+        )
 
     @classmethod
     def from_explained_variance_ratio(
-        cls, explained_variance_train, explained_variance_test=None,view_labels=None, **kwargs
+        cls,
+        explained_variance_train,
+        explained_variance_test=None,
+        view_labels=None,
+        **kwargs,
     ):
-        return cls(explained_variance_train, explained_variance_test, ratio=True, view_labels=view_labels, **kwargs)
+        return cls(
+            explained_variance_train,
+            explained_variance_test,
+            ratio=True,
+            view_labels=view_labels,
+            **kwargs,
+        )
 
     def plot(self, ax=None):
         # Use seaborn lineplot with style='Train' and hue='View' to plot the train and test data
@@ -74,7 +112,9 @@ class ExplainedVarianceDisplay:
         data.columns = ["Latent dimension", "View", "value"]
         data["Mode"] = "Train"  # Add a column indicating train data
         if self.explained_variance_test is not None:
-            data_test = pd.DataFrame(self.explained_variance_test, index=self.view_labels).T
+            data_test = pd.DataFrame(
+                self.explained_variance_test, index=self.view_labels
+            ).T
             # Give the index a name so that it can be used as a column later
             data_test.index.name = "Latent dimension"
             # Melt the dataframe so that each row has a 'value', 'view index', and 'train' column

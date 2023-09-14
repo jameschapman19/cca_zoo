@@ -6,12 +6,19 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.ticker as mtick
 
+
 class ExplainedCovarianceDisplay:
     """
     Display the explained variance of a model
     """
 
-    def __init__(self, explained_covariance_train, explained_covariance_test=None, ratio=True, **kwargs):
+    def __init__(
+        self,
+        explained_covariance_train,
+        explained_covariance_test=None,
+        ratio=True,
+        **kwargs
+    ):
         self.explained_covariance_train = explained_covariance_train
         self.explained_covariance_test = explained_covariance_test
         self.ratio = ratio
@@ -37,15 +44,19 @@ class ExplainedCovarianceDisplay:
 
     @classmethod
     def from_explained_covariance(
-        cls, explained_covariance_train, explained_covariance_test=None,**kwargs
+        cls, explained_covariance_train, explained_covariance_test=None, **kwargs
     ):
-        return cls(explained_covariance_train, explained_covariance_test,ratio=False,**kwargs)
+        return cls(
+            explained_covariance_train, explained_covariance_test, ratio=False, **kwargs
+        )
 
-    @classmethod 
+    @classmethod
     def from_explained_covariance_ratio(
-        cls, explained_covariance_train, explained_covariance_test=None,**kwargs
+        cls, explained_covariance_train, explained_covariance_test=None, **kwargs
     ):
-        return cls(explained_covariance_train, explained_covariance_test, ratio=True, **kwargs)
+        return cls(
+            explained_covariance_train, explained_covariance_test, ratio=True, **kwargs
+        )
 
     def plot(self, ax=None):
         # Use seaborn lineplot with hue='Train' to plot the train and test data
