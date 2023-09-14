@@ -1,6 +1,6 @@
 # Import the necessary modules
 """
-Code to generate explained covariance scree plots from cca-zoo models
+Code t
 """
 
 import matplotlib.pyplot as plt
@@ -10,123 +10,56 @@ import pandas as pd
 import seaborn as sns
 
 
+class ScoreDisplay:
+    """
+    Display the scores of a model
+    """
+
+    def __init__(self, train_scores, test_scores, **kwargs):
+        self.train_scores = train_scores
+        self.test_scores = test_scores
+        self.kwargs = kwargs
+
+    @classmethod
+    def from_estimator(cls, model, train_views,test_views=None, **kwargs):
+        train_scores = model.transform(train_views)
+        if test_views is not None:
+            test_scores = model.transform(test_views)
+        else:
+            test_scores = None
+        return cls.from_scores(train_scores, test_scores, **kwargs)
+
+    @classmethod
+    def from_scores(cls, train_scores, test_scores=None, **kwargs):
+        return cls(train_scores, test_scores, **kwargs)
+
+    def plot(self):
+        dimensions = self.train_scores[0].shape[1]
+        # loop through self.train_scores[0].shape[1] and do scatterplots for each dimension of the scores
+        for i in range(dimensions):
+            fig, ax = plt.subplots(dimensions)
+            sns.scatterplot(
+                x=self.train_scores[0][:, i],
+                y=self.train_scores[1][:, i],
+                ax=ax,
+                alpha=0.1,
+                label="Train",
+                **self.kwargs,
+            )
+            if self.test_scores is not None:
+                sns.scatterplot(
+                    x=self.test_scores[0][:, i],
+                    y=self.test_scores[1][:, i],
+                    ax=ax,
+                    label="Test",
+                    **self.kwargs,
+                )
+        self.figure_ = fig
+        return self
+
+
 # Define a class that takes the dataset object as an argument
 class Plotter:
-    def plot_scores_single(
-        self,
-        train_scores,
-        train_labels=None,
-        test_scores=None,
-        test_labels=None,
-        view_names=None,
-        title="",
-        axs=None,
-        **kwargs,
-    ):
-        # Check the input types and shapes
-        assert (
-            isinstance(train_scores, list) and len(train_scores) == 2
-        ), "train_scores must be a list of two arrays"
-        assert (
-            train_scores[0].shape[1] == train_scores[1].shape[1]
-        ), "train_scores must have the same number of columns"
-        if test_scores is not None:
-            assert (
-                isinstance(test_scores, list) and len(test_scores) == 2
-            ), "test_scores must be a list of two arrays"
-            assert (
-                test_scores[0].shape[1] == test_scores[1].shape[1]
-            ), "test_scores must have the same number of columns"
-            assert (
-                test_scores[0].shape[1] == train_scores[0].shape[1]
-            ), "test_scores and train_scores must have the same number of columns"
-        if train_labels is not None:
-            assert isinstance(
-                train_labels, np.ndarray
-            ), "train_labels must be a numpy array"
-            assert (
-                train_labels.shape[0] == train_scores[0].shape[0]
-            ), "train_labels must have the same number of rows as train_scores"
-        if test_labels is not None:
-            assert isinstance(
-                test_labels, np.ndarray
-            ), "test_labels must be a numpy array"
-            assert (
-                test_labels.shape[0] == test_scores[0].shape[0]
-            ), "test_labels must have the same number of rows as test_scores"
-
-        # Set the default values for optional parameters
-        if axs is None:
-            fig, axs = plt.subplots(figsize=(5, 5))
-        if train_labels is None:
-            train_labels = np.ones(train_scores[0].shape[0])
-        if view_names is None:
-            view_names = ["View 1", "View 2"]
-
-        # Plot the scatter plot for train and test scores
-        hue_order = np.unique(train_labels)
-        sns.scatterplot(
-            x=train_scores[0],
-            y=train_scores[1],
-            hue=train_labels,
-            ax=axs,
-            alpha=0.1,
-            label="Train",
-            hue_order=hue_order,
-            legend=False,
-            **kwargs,
-        )
-        if test_scores is not None:
-            if test_labels is None:
-                test_labels = np.ones(test_scores[0].shape[0])
-            sns.scatterplot(
-                x=test_scores[0],
-                y=test_scores[1],
-                hue=test_labels,
-                ax=axs,
-                label="Test",
-                hue_order=hue_order,
-                legend=False,
-                **kwargs,
-            )
-
-        # axis legend
-        handles, labels = axs.get_legend_handles_labels()
-        axs.legend(
-            handles,
-            labels,
-        )
-
-        # Set the labels and title
-
-        axs.set_xlabel(f"{view_names[0]} scores")
-        axs.set_ylabel(f"{view_names[1]} scores")
-        axs.set_title(f"{title}")  # set the title
-        plt.tight_layout()
-
-        # Return the axes object
-        return axs
-
-    def plot_scores_multi(
-        self,
-        scores,
-        labels=None,
-        title="",
-        axs=None,
-        **kwargs,
-    ):
-        if labels is None:
-            labels = np.ones(scores[0].shape[0])
-        data = pd.DataFrame({"Label": labels})
-        data["Label"] = data["Label"].astype("category")
-        x_vars = [f"view 1 projection {f + 1}" for f in range(scores[0].shape[1])]
-        y_vars = [f"view 2 projection {f + 1}" for f in range(scores[1].shape[1])]
-        data[x_vars] = scores[0]
-        data[y_vars] = scores[1]
-        cca_pp = sns.pairplot(data, hue="Label", x_vars=x_vars, y_vars=y_vars)
-        cca_pp.fig.suptitle(title)
-        # Return the axes object
-        return cca_pp
 
     def plot_correlation_heatmap(
         self,
