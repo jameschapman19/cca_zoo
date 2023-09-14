@@ -1,69 +1,43 @@
+
+from cca_zoo.visualisation import CovarianceHeatmapDisplay, CorrelationHeatmapDisplay, ScoreDisplay, WeightHeatmapDisplay, ExplainedVarianceDisplay, ExplainedCovarianceDisplay
+import matplotlib.pyplot as plt
 import numpy as np
-import pytest
-from matplotlib import pyplot as plt
 
-from cca_zoo.linear import PLS
-from cca_zoo.visualisation import Plotter
+from cca_zoo.linear import MCCA
 
+X=np.random.rand(100,10)
+Y=np.random.rand(100,10)
+Z=np.random.rand(100,10)
 
-# Define a fixture for the sample data
-@pytest.fixture
-def sample_data():
-    train_views = [np.random.randn(100, 10), np.random.randn(100, 10)]
-    test_views = [np.random.randn(50, 10), np.random.randn(50, 10)]
-    train_labels = np.random.choice([0, 1], 100)
-    test_labels = np.random.choice([0, 1], 50)
-    view_names = ["Brain", "Behavior"]
-    title = "Sample Plot"
-    model = PLS(latent_dimensions=5).fit(train_views)
-    brain_weights = model.weights[0]
-    behaviour_weights = model.weights[1]
-    train_scores = model.transform(train_views)
-    test_scores = model.transform(test_views)
-    return {
-        "train_views": train_views,
-        "test_views": test_views,
-        "train_scores": train_scores,
-        "test_scores": test_scores,
-        "train_labels": train_labels,
-        "test_labels": test_labels,
-        "view_names": view_names,
-        "title": title,
-        "brain_weights": brain_weights,
-        "behaviour_weights": behaviour_weights,
-        "model": model,
-    }
+#Train Test Split
+X_train, X_test = X[:50], X[50:]
+Y_train, Y_test = Y[:50], Y[50:]
+Z_train, Z_test = Z[:50], Z[50:]
 
+views = [X_train, Y_train, Z_train]
+test_views = [X_test, Y_test, Z_test]
 
-# Test the plot_covariance_heatmap method with default parameters
-def test_plot_covariance_heatmap_default(sample_data):
-    plotter = Plotter()
-    axs = plotter.plot_covariance_heatmap(
-        sample_data["train_scores"], sample_data["test_scores"]
-    )
+# MCCA
+mcca = MCCA(latent_dimensions=2)
+mcca.fit(views)
 
-    # Check that the plot has the correct labels and title
-    assert axs[0].get_title() == "Train Covariances"
-    assert axs[1].get_title() == "Test Covariances"
+# Explained Variance
+ExplainedVarianceDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 
+# Explained Covariance
+ExplainedCovarianceDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 
-# Test the plot_weights_heatmap method with default parameters
-def test_plot_weights_heatmap_default(sample_data):
-    plotter = Plotter()
-    axs = plotter.plot_weights_heatmap(
-        sample_data["brain_weights"], sample_data["behaviour_weights"]
-    )
+# Weight heatmap
+WeightHeatmapDisplay.from_estimator(mcca).plot()
 
-    # Check that the plot has the correct labels and title
-    assert axs[0].get_title() == "View 1 weights"
-    assert axs[1].get_title() == "View 2 weights"
+# Score heatmap
+ScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 
+# Covariance heatmap
+CovarianceHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 
-# Test the plot_explained_covariance method with default parameters
-def test_plot_explained_covariance_default(sample_data):
-    plotter = Plotter()
-    ax = plotter.plot_explained_covariance(
-        sample_data["model"],
-        train_views=sample_data["train_views"],
-        test_views=sample_data["test_views"],
-    )
+# Correlation heatmap
+CorrelationHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+
+plt.show()
+

@@ -21,7 +21,7 @@ Key Features:
 import pytorch_lightning as pl
 from matplotlib import pyplot as plt
 from cca_zoo.deep import DCCA, DCCA_EY, DCCA_NOI, DCCA_SDL, BarlowTwins, architectures
-from cca_zoo.visualisation import Plotter
+from cca_zoo.visualisation import ScoreDisplay
 from docs.source.examples import example_mnist_data
 
 # %%
@@ -53,9 +53,9 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(dcca, train_loader, val_loader)
-plotter = Plotter()
-ax = plotter.plot_scores_multi(dcca.transform(val_loader), labels=val_labels)
-ax.fig.suptitle("Deep CCA")
+score_display = ScoreDisplay.from_estimator(dcca, val_loader, labels=val_labels)
+score_display.plot()
+score_display.figure_.suptitle("Deep CCA")
 plt.show()
 
 # %%
@@ -73,9 +73,9 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(dcca_eg, train_loader, val_loader)
-plotter = Plotter()
-ax = plotter.plot_scores_multi(dcca_eg.transform(val_loader), labels=val_labels)
-ax.fig.suptitle("Deep CCA EY")
+score_display = ScoreDisplay.from_estimator(dcca_eg, val_loader, labels=val_labels)
+score_display.plot()
+score_display.figure_.suptitle("Deep CCA EY")
 plt.show()
 
 # %%
@@ -93,9 +93,9 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(dcca_noi, train_loader, val_loader)
-plotter = Plotter()
-ax = plotter.plot_scores_multi(dcca_noi.transform(val_loader), labels=val_labels)
-ax.fig.suptitle("Deep CCA by Non-Linear Orthogonal Iterations")
+score_display = ScoreDisplay.from_estimator(dcca_noi, val_loader, labels=val_labels)
+score_display.plot()
+score_display.figure_.suptitle("Deep CCA by Non-Linear Orthogonal Iterations")
 plt.show()
 
 # %%
@@ -113,9 +113,9 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(dcca_sdl, train_loader, val_loader)
-plotter = Plotter()
-ax = plotter.plot_scores_multi(dcca_sdl.transform(val_loader), labels=val_labels)
-ax.fig.suptitle("Deep CCA by Stochastic Decorrelation Loss")
+score_display = ScoreDisplay.from_estimator(dcca_sdl, val_loader, labels=val_labels)
+score_display.plot()
+score_display.figure_.suptitle("Deep CCA by Stochastic Decorrelation Loss")
 plt.show()
 
 # %%
@@ -134,7 +134,7 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(barlowtwins, train_loader, val_loader)
-plotter = Plotter()
-ax = plotter.plot_scores_multi(barlowtwins.transform(val_loader), labels=val_labels)
-ax.fig.suptitle("Deep CCA by Barlow Twins")
+score_display = ScoreDisplay.from_estimator(barlowtwins, val_loader, labels=val_labels)
+score_display.plot()
+score_display.figure_.suptitle("Deep CCA by Barlow Twins")
 plt.show()

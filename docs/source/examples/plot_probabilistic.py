@@ -21,11 +21,10 @@ Let's dive in!
 # 1. Imports and Setup
 # --------------------
 
-import numpy as np
 import arviz as az
 import matplotlib.pyplot as plt
+import numpy as np
 
-from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.probabilistic import ProbabilisticCCA
 
 
