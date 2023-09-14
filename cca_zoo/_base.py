@@ -404,3 +404,22 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         cumulative_ratios = [np.cumsum(ratio) for ratio in ratios]
 
         return cumulative_ratios
+
+    def predict(self, views: Iterable[np.ndarray], **kwargs) -> List[np.ndarray]:
+        """
+        Predicts the missing view from the given views.
+        """
+        check_is_fitted(self, attributes=["weights"])
+        transformed_views = []
+        for i, view in enumerate(views):
+            if view is not None:
+                transformed_view = view @ self.weights[i]
+                transformed_views.append(transformed_view)
+        # average the transformed views
+        average_score = np.mean(transformed_views, axis=0)
+        # return the average score transformed back to the original space
+        reconstucted_views = []
+        for i, view in enumerate(views):
+            reconstructed_view = average_score @ np.linalg.pinv(self.weights[i])
+            reconstucted_views.append(reconstructed_view)
+        return reconstucted_views
