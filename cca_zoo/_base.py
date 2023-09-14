@@ -405,11 +405,36 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
         return cumulative_ratios
 
-    def predict(self, views: Iterable[np.ndarray], **kwargs) -> List[np.ndarray]:
+    def predict(self, views: Iterable[np.ndarray]) -> List[np.ndarray]:
         """
         Predicts the missing view from the given views.
+
+
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+
+        Returns
+        -------
+        predicted_views : list of numpy arrays. None if the view is missing.
+            Predicted views.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> X1 = np.random.rand(100, 5)
+        >>> X2 = np.random.rand(100, 5)
+        >>> cca = CCA()
+        >>> cca.fit([X1, X2])
+        >>> X1_pred, X2_pred = cca.predict([X1, None])
+
         """
         check_is_fitted(self, attributes=["weights"])
+        # check if views is same length as weights
+        if len(views) != len(self.weights):
+            raise ValueError(
+                "The number of views must be the same as the number of weights. Put None for missing views."
+            )
         transformed_views = []
         for i, view in enumerate(views):
             if view is not None:
