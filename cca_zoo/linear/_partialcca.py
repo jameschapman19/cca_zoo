@@ -21,10 +21,6 @@ class PartialCCA(MCCA):
         w_i^TX_i^TZ=0
 
 
-    References
-    ----------
-    Rao, B. Raja. "Partial canonical correlations." Trabajos de estadistica y de investigación operativa 20.2-3 (1969): 211-219.
-
     Example
     -------
     >>> from cca_zoo.linear import PartialCCA
@@ -33,7 +29,10 @@ class PartialCCA(MCCA):
     >>> partials = np.random.rand(10,3)
     >>> model = PartialCCA()
     >>> model.fit((X1,X2),partials=partials).score((X1,X2))
-    array([0.99993046])
+
+    References
+    ----------
+    Rao, B. Raja. "Partial canonical correlations." Trabajos de estadistica y de investigación operativa 20.2-3 (1969): 211-219.
 
     """
 

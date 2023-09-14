@@ -8,7 +8,54 @@ import matplotlib.ticker as mtick
 
 class ExplainedCovarianceDisplay:
     """
-    Display the explained variance of a model
+    Display the explained covariance of the latent variables of the views.
+
+    Parameters
+    ----------
+    explained_covariance_train : np.ndarray
+        The explained covariance of the train data.
+    explained_covariance_test : np.ndarray
+        The explained covariance of the test data.
+    ratio : bool
+        Whether to plot the ratio of explained covariance or not.
+    **kwargs : dict
+        Keyword arguments to be passed to the seaborn lineplot.
+
+    Attributes
+    ----------
+    figure_ : matplotlib.pyplot.figure
+        The figure of the plot.
+
+    Examples
+    --------
+    >>> from cca_zoo.visualisation import ExplainedCovarianceDisplay
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> from cca_zoo.linear import MCCA
+    >>>
+    >>> # Generate Sample Data
+    >>> # --------------------
+    >>> X = np.random.rand(100, 10)
+    >>> Y = np.random.rand(100, 10)
+    >>>
+    >>> # Splitting the data into training and testing sets
+    >>> X_train, X_test = X[:50], X[50:]
+    >>> Y_train, Y_test = Y[:50], Y[50:]
+    >>>
+    >>> views = [X_train, Y_train]
+    >>> test_views = [X_test, Y_test]
+    >>>
+    >>> # Train an MCCA Model
+    >>> # -------------------
+    >>> mcca = MCCA(latent_dimensions=2)
+    >>> mcca.fit(views)
+    >>>
+    >>> # %%
+    >>> # Plotting the Explained Covariance
+    >>> # ---------------------------------
+    >>> ExplainedCovarianceDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    >>> plt.show()
+
     """
 
     def __init__(self, explained_covariance_train, explained_covariance_test=None, ratio=True, **kwargs):

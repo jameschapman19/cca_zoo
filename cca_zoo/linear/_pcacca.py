@@ -10,6 +10,15 @@ class PCACCA(MCCA):
     Principal Component Analysis CCA
 
     Data driven PCA on each view followed by CCA on the PCA components. Keep percentage of variance
+
+    Examples
+    --------
+    >>> from cca_zoo.linear import PCACCA
+    >>> import numpy as np
+    >>> X1 = np.random.rand(100, 5)
+    >>> X2 = np.random.rand(100, 5)
+    >>> model = PCACCA(latent_dimensions=1, percent_variance=0.5)
+    >>> model.fit([X1, X2])
     """
 
     def __init__(

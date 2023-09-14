@@ -4,6 +4,52 @@ import seaborn as sns
 
 
 class CorrelationHeatmapDisplay:
+    """Correlation Heatmap Display
+
+    Heatmap of the correlations between the latent variables of the views.
+
+    Parameters
+    ----------
+    train_correlations : np.ndarray
+        The train correlations between views.
+    test_correlations : np.ndarray
+        The test correlations between views.
+
+    Attributes
+    ----------
+    figure_ : matplotlib.pyplot.figure
+        The figure of the plot.
+
+    Examples
+    --------
+    >>> from cca_zoo.visualisation import CorrelationHeatmapDisplay
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> from cca_zoo.linear import MCCA
+    >>>
+    >>> # Generate Sample Data
+    >>> # --------------------
+    >>> X = np.random.rand(100, 10)
+    >>> Y = np.random.rand(100, 10)
+    >>>
+    >>> # Splitting the data into training and testing sets
+    >>> X_train, X_test = X[:50], X[50:]
+    >>> Y_train, Y_test = Y[:50], Y[50:]
+    >>>
+    >>> views = [X_train, Y_train]
+    >>> test_views = [X_test, Y_test]
+    >>>
+    >>> # Train an MCCA Model
+    >>> # -------------------
+    >>> mcca = MCCA(latent_dimensions=2)
+    >>> mcca.fit(views)
+    >>>
+    >>> # %%
+    >>> # Plotting the Correlation Heatmap
+    >>> # -------------------------------
+    >>> CorrelationHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    >>> plt.show()
+    """
     def __init__(self, train_correlations, test_correlations):
         self.train_correlations = train_correlations
         self.test_correlations = test_correlations

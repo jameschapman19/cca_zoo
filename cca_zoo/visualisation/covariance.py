@@ -4,6 +4,54 @@ import numpy as np
 
 
 class CovarianceHeatmapDisplay:
+    """Covariance Heatmap Display
+
+    Heatmap of the covariances between the latent variables of the views.
+
+    Parameters
+    ----------
+    train_covariances : np.ndarray
+        The train covariances between views.
+    test_covariances : np.ndarray
+        The test covariances between views.
+
+    Attributes
+    ----------
+    figure_ : matplotlib.pyplot.figure
+        The figure of the plot.
+
+    Examples
+    --------
+    >>> from cca_zoo.visualisation import CovarianceHeatmapDisplay
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> from cca_zoo.linear import MCCA
+    >>>
+    >>> # Generate Sample Data
+    >>> # --------------------
+    >>> X = np.random.rand(100, 10)
+    >>> Y = np.random.rand(100, 10)
+    >>>
+    >>> # Splitting the data into training and testing sets
+    >>> X_train, X_test = X[:50], X[50:]
+    >>> Y_train, Y_test = Y[:50], Y[50:]
+    >>>
+    >>> views = [X_train, Y_train]
+    >>> test_views = [X_test, Y_test]
+    >>>
+    >>> # Train an MCCA Model
+    >>> # -------------------
+    >>> mcca = MCCA(latent_dimensions=2)
+    >>> mcca.fit(views)
+    >>>
+    >>> # %%
+    >>> # Plotting the Covariance Heatmap
+    >>> # -------------------------------
+    >>> CovarianceHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    >>> plt.show()
+
+    """
+
     def __init__(self, train_covariances, test_covariances):
         self.train_covariances = train_covariances
         self.test_covariances = test_covariances

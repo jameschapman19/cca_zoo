@@ -37,7 +37,6 @@ class TCCA(MCCA):
     >>> X3 = rng.random((10,5))
     >>> model = TCCA()
     >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
-    array([1.14595755])
     """
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):

@@ -10,7 +10,7 @@ from cca_zoo.utils import _process_parameter
 
 class MCCA(BaseModel):
     r"""
-    A class used to fit Regularised CCA (canonical ridge) model. This model adds a regularization term to the CCA objective function to avoid overfitting and improve stability. It uses PCA to perform the optimization efficiently for high dimensional data.
+    A class used to fit a Regularised CCA (canonical ridge) model. This model adds a regularization term to the CCA objective function to avoid overfitting and improve stability. It uses PCA to perform the optimization efficiently for high dimensional data.
 
     The objective function of regularised CCA is:
 
@@ -39,6 +39,14 @@ class MCCA(BaseModel):
     accept_sparse : Union[bool, str], optional
         Whether to accept sparse data, by default None
 
+    Examples
+    --------
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = MCCA()
+    >>> model.fit((X1,X2)).score((X1,X2))
 
     References
     --------
@@ -180,6 +188,16 @@ class rCCA(MCCA):
 
     where :math:`c_i` are the regularization parameters for each view.
 
+    Examples
+    --------
+    >>> import numpy as np
+    >>> rng=np.random.RandomState(0)
+    >>> X1 = rng.random((10,5))
+    >>> X2 = rng.random((10,5))
+    >>> model = rCCA(c=0.1)
+    >>> model.fit((X1,X2)).score((X1,X2))
+
+
     References
     --------
     Vinod, Hrishikesh _D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
@@ -277,14 +295,12 @@ class CCA(rCCA):
 
     Example
     -------
-    >>> from cca_zoo.linear import CCA
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> model = CCA()
     >>> model.fit((X1,X2)).score((X1,X2))
-    array([1.])
     """
 
     def __init__(

@@ -38,6 +38,14 @@ class PLS(rCCA, PLSMixin):
         Whether to copy the data, by default True
     random_state : int, optional
         Random state, by default None
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> X1 = np.random.rand(100, 5)
+    >>> X2 = np.random.rand(100, 5)
+    >>> pls = PLS(latent_dimensions=2)
+    >>> pls.fit([X1, X2])
     """
 
     def __init__(

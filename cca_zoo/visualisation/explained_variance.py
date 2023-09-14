@@ -7,7 +7,54 @@ import seaborn as sns
 
 class ExplainedVarianceDisplay:
     """
-    Display the explained variance of a model
+    Display the explained variance of the latent variables of the views.
+
+    Parameters
+    ----------
+    explained_variance_train : np.ndarray
+        The explained variance of the train data.
+    explained_variance_test : np.ndarray
+        The explained variance of the test data.
+    ratio : bool
+        Whether to plot the ratio of explained variance or not.
+    **kwargs : dict
+        Keyword arguments to be passed to the seaborn lineplot.
+
+    Attributes
+    ----------
+    figure_ : matplotlib.pyplot.figure
+        The figure of the plot.
+
+    Examples
+    --------
+    >>> from cca_zoo.visualisation import ExplainedVarianceDisplay
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> from cca_zoo.linear import MCCA
+    >>>
+    >>> # Generate Sample Data
+    >>> # --------------------
+    >>> X = np.random.rand(100, 10)
+    >>> Y = np.random.rand(100, 10)
+    >>>
+    >>> # Splitting the data into training and testing sets
+    >>> X_train, X_test = X[:50], X[50:]
+    >>> Y_train, Y_test = Y[:50], Y[50:]
+    >>>
+    >>> views = [X_train, Y_train]
+    >>> test_views = [X_test, Y_test]
+    >>>
+    >>> # Train an MCCA Model
+    >>> # -------------------
+    >>> mcca = MCCA(latent_dimensions=2)
+    >>> mcca.fit(views)
+    >>>
+    >>> # %%
+    >>> # Plotting the Explained Variance
+    >>> # ---------------------------------
+    >>> ExplainedVarianceDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    >>> plt.show()
+
     """
 
     def __init__(self, explained_variance_train, explained_variance_test=None, ratio=True, view_labels=None, **kwargs):

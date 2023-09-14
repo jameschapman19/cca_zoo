@@ -22,11 +22,6 @@ class GCCA(MCCA):
 
     where :math:`T` is the auxiliary vector.
 
-
-    References
-    ----------
-    Tenenhaus, Arthur, and Michel Tenenhaus. "Regularized generalized canonical correlation analysis." Psychometrika 76.2 (2011): 257.
-
     Examples
     --------
     >>> from cca_zoo.linear import GCCA
@@ -37,7 +32,10 @@ class GCCA(MCCA):
     >>> X3 = rng.random((10,5))
     >>> model = GCCA()
     >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
-    array([0.97229856])
+
+    References
+    ----------
+    Tenenhaus, Arthur, and Michel Tenenhaus. "Regularized generalized canonical correlation analysis." Psychometrika 76.2 (2011): 257.
     """
 
     def __init__(
