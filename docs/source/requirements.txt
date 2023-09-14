@@ -4,6 +4,7 @@ sphinx-autodoc-typehints
 sphinx-gallery
 sphinx_rtd_theme==1.2.0
 colorcet
+seaborn
 pandas
 numpy
 matplotlib
@@ -11,8 +12,6 @@ numpy
 scikit-learn
 mvlearn
 scipy
-matplotlib
-seaborn
 scikit-prox
 pandas
 tensorly
