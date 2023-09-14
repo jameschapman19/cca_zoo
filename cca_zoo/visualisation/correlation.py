@@ -50,6 +50,7 @@ class CorrelationHeatmapDisplay:
     >>> CorrelationHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
     >>> plt.show()
     """
+
     def __init__(self, train_correlations, test_correlations):
         self.train_correlations = train_correlations
         self.test_correlations = test_correlations

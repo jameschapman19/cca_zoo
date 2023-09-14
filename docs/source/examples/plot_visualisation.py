@@ -76,4 +76,3 @@ CorrelationHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plo
 # Show all plots
 # --------------
 plt.show()
-
