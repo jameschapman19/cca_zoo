@@ -58,7 +58,9 @@ print("Tip: Higher explained variance usually indicates better model fit.")
 # Explained covariance dives deeper, revealing how well your model explains the covariance structure between different views.
 ExplainedCovarianceDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 plt.show()
-print("Hint: The closer to one, the better your model captures the relation between views.")
+print(
+    "Hint: The closer to one, the better your model captures the relation between views."
+)
 
 # %%
 # Peering into the Weights
@@ -74,7 +76,9 @@ print("Did you know? Large weights are usually more influential in the model.")
 # Score heatmaps help you visualize how the CCA projections from multiple views relate to each other.
 ScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 plt.show()
-print("Takeaway: Looking for clusters or patterns here can validate your model's effectiveness.")
+print(
+    "Takeaway: Looking for clusters or patterns here can validate your model's effectiveness."
+)
 
 # %%
 # The Covariance Matrix: A Mirror Into Your Model
@@ -82,7 +86,9 @@ print("Takeaway: Looking for clusters or patterns here can validate your model's
 # The covariance heatmap provides a detailed look at how features from different views covary.
 CovarianceHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 plt.show()
-print("Keep an eye on: Strong covariances can hint at underlying patterns in your data.")
+print(
+    "Keep an eye on: Strong covariances can hint at underlying patterns in your data."
+)
 
 # %%
 # The Correlation Heatmap: A Normalized Tale
@@ -91,4 +97,3 @@ print("Keep an eye on: Strong covariances can hint at underlying patterns in you
 CorrelationHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 plt.show()
 print("Remember: Correlation values range from -1 to 1, making them easy to interpret.")
-
