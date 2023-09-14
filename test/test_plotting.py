@@ -12,7 +12,7 @@ from cca_zoo.linear import MCCA
 import matplotlib.pyplot as plt
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def setup_data():
     X = np.random.rand(100, 10)
     Y = np.random.rand(100, 10)
