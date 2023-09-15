@@ -13,11 +13,10 @@ mvlearn
 scipy
 matplotlib
 seaborn
-scikit-prox
 pandas
 tensorly
 joblib
-torch
+pytorch
 torchvision
 Pillow
 jaxlib
@@ -25,4 +24,7 @@ jax
 numpyro
 arviz
 pytorch-lightning
+
+# The following packages might not be available on conda; consider installing via pip
 multiviewdata
+scikit-prox
