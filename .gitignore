@@ -78,8 +78,11 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
-doc/_build/
+docs/source/_build/
+docs/source/_autosummary/
+docs/source/auto_examples/
+docs/source/examples/lightning_logs/
+docs/source/examples/MNIST/
 
 # PyBuilder
 target/
