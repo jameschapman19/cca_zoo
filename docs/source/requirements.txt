@@ -11,10 +11,7 @@ numpy
 scikit-learn
 mvlearn
 scipy
-matplotlib
-seaborn
 scikit-prox
-pandas
 tensorly
 joblib
 torch
@@ -26,3 +23,6 @@ numpyro
 arviz
 pytorch-lightning
 multiviewdata
+matplotlib==3.8.0
+seaborn==0.12.2
+pandas==2.1.0

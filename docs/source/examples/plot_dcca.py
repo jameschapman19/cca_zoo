@@ -19,6 +19,7 @@ Key Features:
 # -------
 
 import pytorch_lightning as pl
+from pytorch_lightning import seed_everything
 from matplotlib import pyplot as plt
 from cca_zoo.deep import DCCA, DCCA_EY, DCCA_NOI, DCCA_SDL, BarlowTwins, architectures
 from cca_zoo.visualisation import ScoreDisplay
@@ -30,7 +31,7 @@ from docs.source.examples import example_mnist_data
 # We use the MNIST dataset as an example of two views of the same data.
 # We split the images into two halves and treat them as separate views.
 
-
+seed_everything(42)
 LATENT_DIMS = 2  # The dimensionality of the latent space
 EPOCHS = 10  # The number of epochs to train the models
 N_TRAIN = 500  # The number of training samples
