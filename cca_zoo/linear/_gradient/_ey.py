@@ -78,6 +78,7 @@ class CCA_EY(BaseGradientModel):
 
 class DoubleNumpyDataset(NumpyDataset):
     random_state = np.random.RandomState(0)
+
     def __getitem__(self, index):
         views = [view[index] for view in self.views]
         independent_index = self.random_state.randint(0, len(self))
