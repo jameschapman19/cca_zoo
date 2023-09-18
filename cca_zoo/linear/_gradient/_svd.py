@@ -12,7 +12,7 @@ class CCA_SVD(CCA_EY):
         C = torch.cov(torch.hstack(z).T)
         latent_dims = z[0].shape[1]
 
-        Cxy = (C[:latent_dims, latent_dims:]+C[latent_dims:, :latent_dims])/2
+        Cxy = (C[:latent_dims, latent_dims:] + C[latent_dims:, :latent_dims]) / 2
         Cxx = C[:latent_dims, :latent_dims]
 
         if independent_views is None:
@@ -37,11 +37,10 @@ class PLS_SVD(CCA_SVD):
         C = torch.cov(torch.hstack(z).T)
         latent_dims = z[0].shape[1]
 
-
-        n= z[0].shape[0]
+        n = z[0].shape[0]
         Cxy = C[:latent_dims, latent_dims:]
-        Cxx=self.torch_weights[0].T @ self.torch_weights[0]/n
-        Cyy=self.torch_weights[1].T @ self.torch_weights[1]/n
+        Cxx = self.torch_weights[0].T @ self.torch_weights[0] / n
+        Cyy = self.torch_weights[1].T @ self.torch_weights[1] / n
 
         rewards = torch.trace(2 * Cxy)
         penalties = torch.trace(Cxx @ Cyy)

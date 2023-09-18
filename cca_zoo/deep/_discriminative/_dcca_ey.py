@@ -21,7 +21,7 @@ class DCCA_EY(DCCA):
 
     def training_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
         """Performs one step of training on a batch of views."""
-        loss = self.loss(batch["views"], batch.get("independent_views",None))
+        loss = self.loss(batch["views"], batch.get("independent_views", None))
         for k, v in loss.items():
             # Use f-string instead of concatenation
             self.log(f"train/{k}", v, prog_bar=True)
