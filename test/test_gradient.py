@@ -21,7 +21,7 @@ X_sp -= X_sp.mean(axis=0)
 Y_sp -= Y_sp.mean(axis=0)
 
 latent_dims = 3
-epochs = 100
+epochs = 200
 batch_size = 10
 learning_rate = 1e-1
 random_state = 1
@@ -168,9 +168,9 @@ def test_stochastic_cca():
     ).fit((X, Y))
     cca_score = cca.score((X, Y))
     ccaey_score = ccaey.score((X, Y))
-    ccagh_score = ccagha.score((X, Y))
+    ccagha_score = ccagha.score((X, Y))
     ccasvd_score = ccasvd.score((X, Y))
     # check all methods are similar to cca
     assert np.allclose(cca_score.sum(), ccaey_score.sum(), atol=2e-1)
-    assert np.allclose(cca_score.sum(), ccagh_score.sum(), atol=2e-1)
+    assert np.allclose(cca_score.sum(), ccagha_score.sum(), atol=2e-1)
     assert np.allclose(cca_score.sum(), ccasvd_score.sum(), atol=2e-1)
