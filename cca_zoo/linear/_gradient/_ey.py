@@ -64,7 +64,9 @@ class CCA_EY(BaseGradientModel):
         }
 
     def get_dataset(self, views: Iterable[np.ndarray]):
-        dataset = DoubleNumpyDataset(views) if self.batch_size else FullBatchDataset(views)
+        dataset = (
+            DoubleNumpyDataset(views) if self.batch_size else FullBatchDataset(views)
+        )
         if self.val_split:
             train_size = int((1 - self.val_split) * len(dataset))
             val_size = len(dataset) - train_size
@@ -91,11 +93,11 @@ class PLS_EY(CCA_EY, PLSMixin):
         B = torch.zeros(
             latent_dims, latent_dims, device=z[0].device
         )  # initialize the auto-covariance matrix
-        n=z[0].shape[0]
+        n = z[0].shape[0]
         for i, zi in enumerate(z):
             for j, zj in enumerate(z):
                 if i == j:
-                    B += self.torch_weights[i].T @ self.torch_weights[i]/n
+                    B += self.torch_weights[i].T @ self.torch_weights[i] / n
                 else:
                     A += self._cross_covariance(zi, zj, latent_dims)
         return A / len(z), B / len(z)

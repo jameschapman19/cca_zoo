@@ -66,6 +66,7 @@ def test_batch_pls():
     assert np.allclose(np.trace(pls_score), np.trace(plsey_score), atol=1e-2)
     assert np.allclose(np.trace(pls_score), np.trace(plssvd_score), atol=1e-2)
 
+
 def test_batch_cca():
     pytest.importorskip("torch")
     from cca_zoo.linear import CCA_EY, CCA_GHA, CCA_SVD
@@ -86,7 +87,7 @@ def test_batch_cca():
     ccasvd = CCA_SVD(
         latent_dimensions=latent_dims,
         epochs=epochs,
-        learning_rate=learning_rate*10,
+        learning_rate=learning_rate * 10,
         random_state=random_state,
     ).fit((X, Y))
     cca_score = cca.score((X, Y))
