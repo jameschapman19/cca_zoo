@@ -1,9 +1,9 @@
 import torch
 
-from cca_zoo.linear._gradient._ey import CCAEY
+from cca_zoo.linear._gradient._ey import CCA_EY
 
 
-class CCAGH(CCAEY):
+class CCA_GHA(CCA_EY):
     def _more_tags(self):
         return {"multiview": True, "stochastic": True}
 
@@ -22,23 +22,23 @@ class CCAGH(CCAEY):
                 A += self._cross_covariance(zi, zj, latent_dims)
         return A / len(z), B / len(z)
 
-    def loss(self, views, views2=None, **kwargs):
+    def loss(self, views, independent_views=None, **kwargs):
         # Encoding the views with the forward method
         z = self(views)
         # Getting A and B matrices from z
         A, B = self.get_AB(z)
-        if views2 is None:
+        if independent_views is None:
             # Computing rewards and penalties using A and B only
             rewards = torch.trace(2 * A)
             penalties = torch.trace(A @ B)
         else:
             # Encoding another set of views with the forward method
-            z2 = self(views2)
-            # Getting A' and B' matrices from z2
-            A_, B_ = self.get_AB(z2)
+            independent_z = self(independent_views)
+            # Getting A' and B' matrices from independent_z
+            independent_A, independent_B = self.get_AB(independent_z)
             # Computing rewards and penalties using A and B'
             rewards = torch.trace(2 * A)
-            penalties = torch.trace(A_ @ B)
+            penalties = torch.trace(independent_A @ B)
         return {
             "loss": -rewards + penalties,
             "rewards": rewards,

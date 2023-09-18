@@ -8,7 +8,7 @@ from cca_zoo.data.deep import NumpyDataset, check_dataset, get_dataloaders
 from cca_zoo.deep import (
     DCCA,
     DCCA_EY,
-    DCCA_GH,
+    DCCA_GHA,
     DCCA_NOI,
     DCCA_SDL,
     DCCA_SVD,
@@ -171,14 +171,14 @@ def test_DCCA_methods():
         )
         is None
     )
-    # DCCA_GH
+    # DCCA_GHA
     encoder_1 = architectures.Encoder(
         latent_dimensions=latent_dimensions, feature_size=10
     )
     encoder_2 = architectures.Encoder(
         latent_dimensions=latent_dimensions, feature_size=12
     )
-    dcca_gh = DCCA_GH(
+    dcca_gh = DCCA_GHA(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2],
         lr=1e-1,

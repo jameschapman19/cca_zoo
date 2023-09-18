@@ -1,12 +1,12 @@
 """
-Gradient-based CCA and CCAEY
+Gradient-based CCA and CCA_EY
 ============================
 
 This script demonstrates how to use gradient-based methods
 to perform canonical correlation analysis (CCA) on high-dimensional data.
-We will compare the performance of CCA and CCAEY, which is a variant of CCA
+We will compare the performance of CCA and CCA_EY, which is a variant of CCA
 that uses stochastic gradient descent to solve the optimization problem.
-We will also explore the effect of different batch sizes on CCAEY and plot
+We will also explore the effect of different batch sizes on CCA_EY and plot
 the loss function over iterations.
 """
 
@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import time
 
 from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.linear import CCA, CCAEY
+from cca_zoo.linear import CCA, CCA_EY
 
 # %%
 # Data
@@ -79,14 +79,14 @@ plt.legend()
 plt.show()
 
 # %%
-# CCAEY with different batch sizes
+# CCA_EY with different batch sizes
 # --------------------------------
 # We create a list of batch sizes to try out
 batch_sizes = [200, 100, 50, 20, 10]
 
-# We loop over the batch sizes and create a CCAEY object for each one
+# We loop over the batch sizes and create a CCA_EY object for each one
 for batch_size in batch_sizes:
-    ccaey = CCAEY(
+    ccaey = CCA_EY(
         latent_dimensions=latent_dims,
         epochs=5,
         batch_size=batch_size,
@@ -116,7 +116,7 @@ for batch_size in batch_sizes:
     plt.xlabel("views latent")
     plt.ylabel("Y latent")
     plt.title(
-        f"CCAEY (Batch size: {batch_size}, Corr: {ccaey_corr:.2f}, Time: {elapsed_time:.2f} s)"
+        f"CCA_EY (Batch size: {batch_size}, Corr: {ccaey_corr:.2f}, Time: {elapsed_time:.2f} s)"
     )
     plt.legend()
     plt.show()
@@ -124,12 +124,12 @@ for batch_size in batch_sizes:
 # %%
 # Comparison
 # ----------
-# We can see that CCAEY achieves a higher correlation than CCA on the test set,
+# We can see that CCA_EY achieves a higher correlation than CCA on the test set,
 # indicating that it can handle high-dimensional data better by using gradient descent.
-# We can also see that the batch size affects the performance of CCAEY, with smaller batch sizes
+# We can also see that the batch size affects the performance of CCA_EY, with smaller batch sizes
 # leading to higher correlations but also higher variance. This is because smaller batch sizes
 # allow for more frequent updates and exploration of the parameter space, but also introduce more noise
 # and instability in the optimization process. A trade-off between batch size and learning rate may be needed
-# to achieve the best results. We can also see that CCAEY converges faster than CCA, as it takes less time
+# to achieve the best results. We can also see that CCA_EY converges faster than CCA, as it takes less time
 # to fit the model. The loss function plots show how the objective value decreases over iterations for different
 # batch sizes, and we can see that smaller batch sizes tend to have more fluctuations and slower convergence.

@@ -3,7 +3,7 @@ import torch
 from ._dcca_ey import DCCA_EY
 
 
-class DCCA_GH(DCCA_EY):
+class DCCA_GHA(DCCA_EY):
     def get_AB(self, z):
         A = torch.zeros(
             self.latent_dimensions, self.latent_dimensions, device=z[0].device
@@ -22,11 +22,17 @@ class DCCA_GH(DCCA_EY):
             z
         )  # return the normalized matrices (divided by the number of views)
 
-    def loss(self, views, **kwargs):
+    def loss(self, views, independent_views=None, **kwargs):
         z = self(views)
         A, B = self.get_AB(z)
-        rewards = torch.trace(A) + torch.trace(A).detach()
-        penalties = torch.trace(A.detach() @ B)
+        rewards = torch.trace(2 * A)
+        if independent_views is None:
+            penalties = torch.trace(A @ B)
+        else:
+            independent_z = self(independent_views)
+            independent_A, independent_B = self.get_AB(independent_z)
+            rewards = torch.trace(2 * A)
+            penalties = torch.trace(independent_A @ B)
         return {
             "objective": -rewards.sum() + penalties,
             "rewards": rewards.sum(),

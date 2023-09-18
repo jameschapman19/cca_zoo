@@ -1,10 +1,10 @@
 import torch
 
-from cca_zoo.linear._gradient._ey import PLSEY
+from cca_zoo.linear._gradient._ey import PLS_EY
 from cca_zoo.linear._pls import PLSMixin
 
 
-class PLSStochasticPower(PLSEY, PLSMixin):
+class PLSStochasticPower(PLS_EY, PLSMixin):
     def _more_tags(self):
         return {"multiview": True, "stochastic": True}
 

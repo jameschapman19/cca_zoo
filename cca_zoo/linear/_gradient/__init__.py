@@ -1,13 +1,14 @@
-from ._ey import CCAEY, PLSEY
-from ._gh import CCAGH
+from ._ey import CCA_EY, PLS_EY
+from ._gha import CCA_GHA
 
 from ._stochasticpls import PLSStochasticPower
-from ._svd import CCASVD
+from ._svd import CCA_SVD, PLS_SVD
 
 __all__ = [
-    "CCAEY",
-    "PLSEY",
-    "CCAGH",
-    "CCASVD",
+    "CCA_EY",
+    "PLS_EY",
+    "CCA_GHA",
+    "CCA_SVD",
+    "PLS_SVD",
     "PLSStochasticPower",
 ]

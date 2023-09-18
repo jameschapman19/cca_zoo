@@ -1,25 +1,47 @@
 import torch
 
-from cca_zoo.linear._gradient._ey import CCAEY
+from cca_zoo.linear._gradient._ey import CCA_EY
 
 
-class CCASVD(CCAEY):
+class CCA_SVD(CCA_EY):
     def _more_tags(self):
-        return {"multiview": True, "stochastic": True}
+        return {"multiview": False, "stochastic": True}
 
-    def loss(self, views, views2=None, **kwargs):
+    def loss(self, views, independent_views=None, **kwargs):
         z = self(views)
         C = torch.cov(torch.hstack(z).T)
         latent_dims = z[0].shape[1]
 
-        Cxy = C[:latent_dims, latent_dims:]
+        Cxy = (C[:latent_dims, latent_dims:]+C[latent_dims:, :latent_dims])/2
         Cxx = C[:latent_dims, :latent_dims]
 
-        if views2 is None:
+        if independent_views is None:
             Cyy = C[latent_dims:, latent_dims:]
         else:
-            z2 = self(views2)
-            Cyy = torch.cov(torch.hstack(z2).T)[latent_dims:, latent_dims:]
+            independent_z = self(independent_views)
+            Cyy = torch.cov(torch.hstack(independent_z).T)[latent_dims:, latent_dims:]
+
+        rewards = torch.trace(2 * Cxy)
+        penalties = torch.trace(Cxx @ Cyy)
+
+        return {
+            "loss": -rewards + penalties,
+            "rewards": rewards,
+            "penalties": penalties,
+        }
+
+
+class PLS_SVD(CCA_SVD):
+    def loss(self, views, independent_views=None, **kwargs):
+        z = self(views)
+        C = torch.cov(torch.hstack(z).T)
+        latent_dims = z[0].shape[1]
+
+
+        n= z[0].shape[0]
+        Cxy = C[:latent_dims, latent_dims:]
+        Cxx=self.torch_weights[0].T @ self.torch_weights[0]/n
+        Cyy=self.torch_weights[1].T @ self.torch_weights[1]/n
 
         rewards = torch.trace(2 * Cxy)
         penalties = torch.trace(Cxx @ Cyy)

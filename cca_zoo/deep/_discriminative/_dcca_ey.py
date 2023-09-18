@@ -1,3 +1,5 @@
+from typing import Dict, Any
+
 import torch
 
 from ._dcca import DCCA
@@ -17,26 +19,32 @@ class DCCA_EY(DCCA):
         )
         self.r = r
 
-    def forward(self, views, **kwargs):
-        z = []
-        for i, encoder in enumerate(self.encoders):
-            z.append(encoder(views[i]))  # encode each view into a latent representation
-        return z  # return a list of latent representations
+    def training_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
+        """Performs one step of training on a batch of views."""
+        loss = self.loss(batch["views"], batch.get("independent_views",None))
+        for k, v in loss.items():
+            # Use f-string instead of concatenation
+            self.log(f"train/{k}", v, prog_bar=True)
+        return loss["objective"]
 
-    def loss(self, views, **kwargs):
-        # views here is a list of 'paired' views (i.e. [view1, view2])
-        z = self(views)  # get the latent representations
-        A, B = self.get_AB(z)  # get the cross-covariance and auto-covariance matrices
-        rewards = 2 * torch.trace(
-            A
-        )  # compute the rewards as the sum of cross-covariances
-        penalties = torch.trace(
-            B @ B
-        )  # compute the penalties as the squared Frobenius norm of auto-covariances
+    def loss(self, views, independent_views=None, **kwargs):
+        # Encoding the views with the forward method
+        z = self(views)
+        # Getting A and B matrices from z
+        A, B = self.get_AB(z)
+        rewards = torch.trace(2 * A)
+        if independent_views is None:
+            penalties = torch.trace(B @ B)
+        else:
+            # Encoding another set of views with the forward method
+            independent_z = self(independent_views)
+            # Getting A' and B' matrices from independent_z
+            independent_A, independent_B = self.get_AB(independent_z)
+            penalties = torch.trace(B @ independent_B)
         return {
-            "objective": -rewards + penalties,  # return the negative objective value
-            "rewards": rewards,  # return the total rewards
-            "penalties": penalties,  # return the penalties matrix
+            "objective": -rewards + penalties,
+            "rewards": rewards,
+            "penalties": penalties,
         }
 
     def get_AB(self, z):
