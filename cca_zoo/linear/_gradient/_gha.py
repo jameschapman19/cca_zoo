@@ -27,7 +27,7 @@ class CCA_GHA(CCA_EY):
         z = self(views)
         # Getting A and B matrices from z
         A, B = self.get_AB(z)
-        rewards= torch.trace(2*A)
+        rewards = torch.trace(2 * A)
         if independent_views is None:
             # Hebbian
             penalties = torch.trace(A.detach() @ B)
