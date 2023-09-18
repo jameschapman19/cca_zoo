@@ -91,6 +91,6 @@ class CovarianceHeatmapDisplay:
             )
         axs[0].set_title("Train Covariances")
         axs[1].set_title("Test Covariances")
-        plt.tight_layout()
+        # plt.tight_layout()
         self.figure_ = fig
         return self

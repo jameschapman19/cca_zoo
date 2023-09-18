@@ -85,9 +85,14 @@ class ExplainedCovarianceDisplay:
                 explained_covariance_test = model.explained_covariance(test_views)
         else:
             explained_covariance_test = None
-        return cls.from_explained_covariance(
-            explained_covariance_train, explained_covariance_test, **kwargs
-        )
+        if ratio:
+            return cls.from_explained_covariance_ratio(
+                explained_covariance_train, explained_covariance_test, **kwargs
+            )
+        else:
+            return cls.from_explained_covariance(
+                explained_covariance_train, explained_covariance_test, **kwargs
+            )
 
     @classmethod
     def from_explained_covariance(

@@ -94,6 +94,6 @@ class CorrelationHeatmapDisplay:
             )
         axs[0].set_title("Train Correlations")
         axs[1].set_title("Test Correlations")
-        plt.tight_layout()
+        # plt.tight_layout()
         self.figure_ = fig
         return self
