@@ -145,7 +145,6 @@ for view in range(num_views):
         ax.legend()
 
     ax_list = list(trace_plot[:, 0].ravel())
-    ax_list[0].get_shared_x_axes().join(ax_list[0], *ax_list)
     plt.suptitle(f"Posterior Distribution of W_{view}")
     plt.tight_layout()
 
