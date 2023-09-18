@@ -21,7 +21,7 @@ X_sp -= X_sp.mean(axis=0)
 Y_sp -= Y_sp.mean(axis=0)
 
 latent_dims = 3
-epochs = 200
+epochs = 100
 batch_size = 10
 learning_rate = 1e-1
 random_state = 1
@@ -153,10 +153,10 @@ def test_stochastic_cca():
         random_state=random_state,
     ).fit((X, Y))
     ccagha = CCA_GHA(
-        latent_dimensions=latent_dims,
+        latent_dimensions=3,
         epochs=epochs,
         batch_size=batch_size,
-        learning_rate=learning_rate/10,
+        learning_rate=learning_rate,
         random_state=random_state,
     ).fit((X, Y))
     ccasvd = CCA_SVD(

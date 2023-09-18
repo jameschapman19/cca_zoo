@@ -27,12 +27,15 @@ class DCCA_GHA(DCCA_EY):
         A, B = self.get_AB(z)
         rewards = torch.trace(2 * A)
         if independent_views is None:
-            penalties = torch.trace(A @ B)
+            # Hebbian
+            penalties= torch.trace(A.detach() @ B)
+            # penalties = torch.trace(A @ B)
         else:
             independent_z = self(independent_views)
             independent_A, independent_B = self.get_AB(independent_z)
-            rewards = torch.trace(2 * A)
-            penalties = torch.trace(independent_A @ B)
+            # Hebbian
+            penalties = torch.trace(independent_A.detach() @ B)
+            # penalties = torch.trace(A @ independent_B)
         return {
             "objective": -rewards.sum() + penalties,
             "rewards": rewards.sum(),

@@ -18,7 +18,7 @@ DEFAULT_TRAINER_KWARGS = dict(
     enable_progress_bar=True,
 )
 
-DEFAULT_LOADER_KWARGS = dict(pin_memory=False, drop_last=False, shuffle=True)
+DEFAULT_LOADER_KWARGS = dict(pin_memory=False, drop_last=False, shuffle=False)
 
 DEFAULT_OPTIMIZER_KWARGS = dict(optimizer="Adam")
 

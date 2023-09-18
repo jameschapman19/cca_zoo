@@ -27,18 +27,19 @@ class CCA_GHA(CCA_EY):
         z = self(views)
         # Getting A and B matrices from z
         A, B = self.get_AB(z)
+        rewards= torch.trace(2*A)
         if independent_views is None:
-            # Computing rewards and penalties using A and B only
-            rewards = torch.trace(2 * A)
-            penalties = torch.trace(A @ B)
+            # Hebbian
+            penalties = torch.trace(A.detach() @ B)
+            # penalties = torch.trace(A @ B)
         else:
             # Encoding another set of views with the forward method
             independent_z = self(independent_views)
             # Getting A' and B' matrices from independent_z
             independent_A, independent_B = self.get_AB(independent_z)
-            # Computing rewards and penalties using A and B'
-            rewards = torch.trace(2 * A)
-            penalties = torch.trace(independent_A @ B)
+            # Hebbian
+            penalties = torch.trace(independent_A.detach() @ B)
+            # penalties = torch.trace(A @ independent_B)
         return {
             "loss": -rewards + penalties,
             "rewards": rewards,
