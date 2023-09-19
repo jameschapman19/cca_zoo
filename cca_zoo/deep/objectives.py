@@ -140,8 +140,8 @@ class CCA:
         views = _demean(views)
 
         SigmaHat12 = torch.cov(torch.hstack((views[0], views[1])).T)[
-                     : latent_dims, latent_dims :
-                     ]
+            :latent_dims, latent_dims:
+        ]
         SigmaHat11 = torch.cov(views[0].T) + self.r * torch.eye(
             o1, device=views[0].device
         )
