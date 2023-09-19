@@ -2,7 +2,6 @@ import torch
 
 from cca_zoo.deep import objectives
 from cca_zoo.deep._base import BaseDeep
-from cca_zoo.deep.metrics import MCCA
 
 
 class DCCA(BaseDeep):
@@ -32,7 +31,6 @@ class DCCA(BaseDeep):
             )
         self.encoders = torch.nn.ModuleList(encoders)
         self.objective = objective(latent_dimensions, r=r, eps=eps)
-        self.correlation = MCCA()
 
     def forward(self, views, **kwargs):
         if not hasattr(self, "n_views_"):

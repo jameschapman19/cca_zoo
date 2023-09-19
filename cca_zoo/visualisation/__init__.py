@@ -4,6 +4,8 @@ from .explained_covariance import ExplainedCovarianceDisplay
 from .weights import WeightHeatmapDisplay
 from .correlation import CorrelationHeatmapDisplay
 from .covariance import CovarianceHeatmapDisplay
+from .tsne_scores import TSNEScoreDisplay
+from .umap_scores import UMAPScoreDisplay
 
 __all__ = [
     "ExplainedVarianceDisplay",
@@ -12,4 +14,6 @@ __all__ = [
     "WeightHeatmapDisplay",
     "CorrelationHeatmapDisplay",
     "CovarianceHeatmapDisplay",
+    "TSNEScoreDisplay",
+    "UMAPScoreDisplay",
 ]

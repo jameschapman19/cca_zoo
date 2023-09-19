@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from sklearn.utils import check_matplotlib_support
+
+from cca_zoo.utils.check_values import check_seaborn_support, check_tsne_support
 
 
 class CorrelationHeatmapDisplay:
@@ -55,6 +58,9 @@ class CorrelationHeatmapDisplay:
         self.train_correlations = train_correlations
         self.test_correlations = test_correlations
 
+    def _validate_plot_params(self):
+        check_seaborn_support("CorrelationHeatmapDisplay")
+
     @classmethod
     def from_estimator(cls, model, train_views, test_views=None):
         train_scores = model.transform(train_views)
@@ -74,6 +80,7 @@ class CorrelationHeatmapDisplay:
         return cls(train_correlations, test_correlations)
 
     def plot(self):
+        self._validate_plot_params()
         fig, axs = plt.subplots(1, 2, figsize=(10, 5))
         sns.heatmap(
             self.train_correlations,

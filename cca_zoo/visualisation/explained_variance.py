@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from cca_zoo.utils.check_values import check_seaborn_support
+
 
 class ExplainedVarianceDisplay:
     """
@@ -83,6 +85,9 @@ class ExplainedVarianceDisplay:
             ]
         self.kwargs = kwargs
 
+    def _validate_plot_params(self):
+        check_seaborn_support("CorrelationHeatmapDisplay")
+
     @classmethod
     def from_estimator(
         cls, model, train_views, test_views=None, ratio=True, view_labels=None, **kwargs
@@ -147,6 +152,7 @@ class ExplainedVarianceDisplay:
         )
 
     def plot(self, ax=None):
+        self._validate_plot_params()
         # Use seaborn lineplot with style='Train' and hue='View' to plot the train and test data
         # Reshape the data so that each row has a 'value', 'view index', and 'train' column
         data = pd.DataFrame(self.explained_variance_train, index=self.view_labels).T

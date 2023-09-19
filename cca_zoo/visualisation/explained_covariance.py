@@ -6,6 +6,8 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.ticker as mtick
 
+from cca_zoo.utils.check_values import check_seaborn_support
+
 
 class ExplainedCovarianceDisplay:
     """
@@ -71,6 +73,9 @@ class ExplainedCovarianceDisplay:
         self.ratio = ratio
         self.kwargs = kwargs
 
+    def _validate_plot_params(self):
+        check_seaborn_support("CorrelationHeatmapDisplay")
+
     @classmethod
     def from_estimator(cls, model, train_views, test_views=None, ratio=True, **kwargs):
         # explained_covariance_train will be a numpy array of shape (latent_dimensions,len(train_views))
@@ -111,6 +116,7 @@ class ExplainedCovarianceDisplay:
         )
 
     def plot(self, ax=None):
+        self._validate_plot_params()
         # Use seaborn lineplot with hue='Train' to plot the train and test data
         data = pd.DataFrame(self.explained_covariance_train, columns=["value"])
         data["Mode"] = "Train"  # Add a column indicating train data

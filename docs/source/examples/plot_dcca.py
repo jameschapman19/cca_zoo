@@ -22,7 +22,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
 from matplotlib import pyplot as plt
 from cca_zoo.deep import DCCA, DCCA_EY, DCCA_NOI, DCCA_SDL, BarlowTwins, architectures
-from cca_zoo.visualisation import ScoreDisplay
+from cca_zoo.visualisation import ScoreDisplay, UMAPScoreDisplay, TSNEScoreDisplay
 from docs.source.examples import example_mnist_data
 
 # %%
@@ -32,10 +32,10 @@ from docs.source.examples import example_mnist_data
 # We split the images into two halves and treat them as separate views.
 
 seed_everything(42)
-LATENT_DIMS = 2  # The dimensionality of the latent space
+LATENT_DIMS = 5  # The dimensionality of the latent space
 EPOCHS = 10  # The number of epochs to train the models
-N_TRAIN = 500  # The number of training samples
-N_VAL = 100  # The number of validation samples
+N_TRAIN = 1000  # The number of training samples
+N_VAL = 200  # The number of validation samples
 train_loader, val_loader, train_labels, val_labels = example_mnist_data(N_TRAIN, N_VAL)
 
 encoder_1 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=392)
@@ -54,9 +54,27 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(dcca, train_loader, val_loader)
+# Visualizing the Latent Space
+# ----------------------------
+# After training, we can visualize the learned representations in the latent space.
+# For this, we provide three options: Scatter, UMAP and t-SNE.
+
+# Scatterplot of the latent space
 score_display = ScoreDisplay.from_estimator(dcca, val_loader, labels=val_labels)
 score_display.plot()
-score_display.figure_.suptitle("Deep CCA")
+score_display.figure_.suptitle("Scatter Deep CCA")
+plt.show()
+
+# UMAP Visualization
+score_display = UMAPScoreDisplay.from_estimator(dcca, val_loader, labels=val_labels)
+score_display.plot()
+score_display.figure_.suptitle("UMAP Deep CCA")
+plt.show()
+
+# t-SNE Visualization
+score_display = TSNEScoreDisplay.from_estimator(dcca, val_loader, labels=val_labels)
+score_display.plot()
+score_display.figure_.suptitle("TSNE Deep CCA")
 plt.show()
 
 # %%

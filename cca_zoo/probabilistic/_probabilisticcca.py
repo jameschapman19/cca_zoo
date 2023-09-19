@@ -152,16 +152,5 @@ class ProbabilisticCCA(BaseModel):
                 )
             ]
 
-    def transform(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        """
-        Predict the latent variables that generate the data in views using the sampled model parameters
-
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        """
-        check_is_fitted(self, attributes=["posterior_samples"])
-        return Predictive(self._model, self.posterior_samples, return_sites=["z"])(
-            self.rng_key, views
-        )["z"]
-
     def _more_tags(self):
         return {"probabilistic": True}

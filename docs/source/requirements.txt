@@ -27,3 +27,5 @@ multiviewdata
 matplotlib==3.8.0
 seaborn==0.12.2
 pandas==2.1.0
+openTSNE
+umap

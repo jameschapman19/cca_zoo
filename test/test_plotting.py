@@ -11,6 +11,9 @@ import numpy as np
 from cca_zoo.linear import MCCA
 import matplotlib.pyplot as plt
 
+from cca_zoo.visualisation.tsne_scores import TSNEScoreDisplay
+from cca_zoo.visualisation.umap_scores import UMAPScoreDisplay
+
 
 @pytest.fixture(scope="module")
 def setup_data():
@@ -64,4 +67,14 @@ def test_covariance_heatmap_plot(setup_data):
 def test_correlation_heatmap_plot(setup_data):
     mcca, views, test_views = setup_data
     CorrelationHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    plt.close()
+
+def test_tsne_plot(setup_data):
+    mcca, views, test_views = setup_data
+    TSNEScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    plt.close()
+
+def test_umap_plot(setup_data):
+    mcca, views, test_views = setup_data
+    UMAPScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
     plt.close()

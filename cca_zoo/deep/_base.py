@@ -79,20 +79,24 @@ class BaseDeep(pl.LightningModule, BaseModel):
 
     @torch.no_grad()
     def get_representations(
-        self,
-        loader: torch.utils.data.DataLoader,
+            self,
+            loader: torch.utils.data.DataLoader,
     ):
-        """Returns the latent representations for each view in the loader."""
-        # self.eval()
-        # Use list comprehension instead of for loop
-        z = [
-            self([view.to(self.device).detach().cpu() for view in batch["views"]])
-            for batch in loader
-        ]
-        # Use list comprehension instead of for loop
-        z = [torch.vstack(z_) for z_ in zip(*z)]
-        return z
+        self.eval()  # Ensure the model is in evaluation mode
+        all_z = []
 
+        for batch in loader:
+            views_device = [view.to(self.device) for view in batch["views"]]
+            z = self(views_device)
+            all_z.append([z_.cpu() for z_ in z])
+
+        # Stack all latent vectors along dimension 0 (batches)
+        stacked_z = [torch.vstack(z_) for z_ in zip(*all_z)]
+
+        return stacked_z
+
+
+    @torch.no_grad()
     def transform(
         self,
         loader: torch.utils.data.DataLoader,
