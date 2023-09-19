@@ -69,10 +69,12 @@ def test_correlation_heatmap_plot(setup_data):
     CorrelationHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
     plt.close()
 
+
 def test_tsne_plot(setup_data):
     mcca, views, test_views = setup_data
     TSNEScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
     plt.close()
+
 
 def test_umap_plot(setup_data):
     mcca, views, test_views = setup_data
