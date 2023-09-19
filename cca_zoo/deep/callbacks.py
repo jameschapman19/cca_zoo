@@ -23,9 +23,19 @@ class BatchTrainCorrelationCallback(Callback):
             train_corr,
         )
 
+
 class MinibatchTrainCorrelationCallback(Callback):
-    mcca=MCCA()
-    def on_train_batch_end(self, trainer: Trainer, pl_module: LightningModule, outputs, batch, batch_idx, dataloader_idx):
+    mcca = MCCA()
+
+    def on_train_batch_end(
+        self,
+        trainer: Trainer,
+        pl_module: LightningModule,
+        outputs,
+        batch,
+        batch_idx,
+        dataloader_idx,
+    ):
         with torch.no_grad():
             train_corr = self.mcca.loss(pl_module(batch["views"])).sum()
             pl_module.log(
@@ -33,9 +43,19 @@ class MinibatchTrainCorrelationCallback(Callback):
                 train_corr,
             )
 
+
 class MinibatchValidationCorrelationCallback(Callback):
-    mcca=MCCA()
-    def on_validation_batch_end(self, trainer: Trainer, pl_module: LightningModule, outputs, batch, batch_idx, dataloader_idx):
+    mcca = MCCA()
+
+    def on_validation_batch_end(
+        self,
+        trainer: Trainer,
+        pl_module: LightningModule,
+        outputs,
+        batch,
+        batch_idx,
+        dataloader_idx,
+    ):
         with torch.no_grad():
             val_corr = self.mcca.loss(pl_module(batch["views"])).sum()
             pl_module.log(
