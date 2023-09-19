@@ -63,14 +63,10 @@ class CCA_EY(BaseGradientModel):
             "penalties": penalties,
         }
 
-    def get_dataset(self, views: Iterable[np.ndarray]):
-        dataset = (
-            DoubleNumpyDataset(views) if self.batch_size else FullBatchDataset(views)
-        )
-        if self.val_split:
-            train_size = int((1 - self.val_split) * len(dataset))
-            val_size = len(dataset) - train_size
-            dataset, val_dataset = data.random_split(dataset, [train_size, val_size])
+    def get_dataset(self, views: Iterable[np.ndarray], validation_views=None):
+        dataset = DoubleNumpyDataset(views) if self.batch_size else FullBatchDataset(views)
+        if validation_views is not None:
+            val_dataset = DoubleNumpyDataset(validation_views) if self.batch_size else FullBatchDataset(validation_views)
         else:
             val_dataset = None
         return dataset, val_dataset
