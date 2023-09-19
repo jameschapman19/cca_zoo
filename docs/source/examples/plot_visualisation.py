@@ -76,7 +76,9 @@ print("Did you know? Large weights are usually more influential in the model.")
 # The Scoreboard
 # --------------
 # Score heatmaps help you visualize how the CCA projections from multiple views relate to each other.
-ScoreDisplay.from_estimator(mcca, views, test_views=test_views, labels=Cats_train, test_labels=Cats_test).plot()
+ScoreDisplay.from_estimator(
+    mcca, views, test_views=test_views, labels=Cats_train, test_labels=Cats_test
+).plot()
 plt.show()
 print(
     "Takeaway: Looking for clusters or patterns here can validate your model's effectiveness."

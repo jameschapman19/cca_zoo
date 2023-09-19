@@ -10,7 +10,13 @@ class ScoreDisplay:
     """
 
     def __init__(
-        self, train_scores, test_scores, labels=None, test_labels=None, separate=False, **kwargs
+        self,
+        train_scores,
+        test_scores,
+        labels=None,
+        test_labels=None,
+        separate=False,
+        **kwargs,
     ):
         self.train_scores = train_scores
         self.test_scores = test_scores
@@ -37,12 +43,12 @@ class ScoreDisplay:
 
     def plot(self):
         dimensions = self.train_scores[0].shape[1]
-    
+
         if self.separate:
             fig, axarr = plt.subplots(
                 dimensions, 2
             )  # Create two columns for each dimension
-    
+
             for i in range(dimensions):
                 # Plotting training scores
                 sns.scatterplot(
@@ -54,9 +60,9 @@ class ScoreDisplay:
                     label="Train",
                     **self.kwargs,
                 )
-    
+
                 axarr[i, 0].set_title(f"Train - Latent Dimension {i+1}")
-    
+
                 # Plotting testing scores if available
                 if self.test_scores is not None:
                     sns.scatterplot(
@@ -67,11 +73,11 @@ class ScoreDisplay:
                         label="Test",
                         **self.kwargs,
                     )
-    
+
                     axarr[i, 1].set_title(f"Test - Latent Dimension {i+1}")
         else:
             fig, ax = plt.subplots(dimensions)
-    
+
             for i in range(dimensions):
                 sns.scatterplot(
                     x=self.train_scores[0][:, i],
@@ -82,9 +88,9 @@ class ScoreDisplay:
                     label="Train" if self.test_scores is not None else None,
                     **self.kwargs,
                 )
-    
+
                 ax[i].set_title(f"Latent Dimension {i+1}")
-    
+
                 if self.test_scores is not None:
                     sns.scatterplot(
                         x=self.test_scores[0][:, i],
@@ -94,8 +100,8 @@ class ScoreDisplay:
                         label="Test",
                         **self.kwargs,
                     )
-                    sns.move_legend(ax[i],"lower center",ncol=2)
-    
+                    sns.move_legend(ax[i], "lower center", ncol=2)
+
         plt.tight_layout()
         self.figure_ = fig
         return self

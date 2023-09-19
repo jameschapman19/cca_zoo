@@ -62,7 +62,7 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         self.trainer_kwargs = trainer_kwargs or DEFAULT_TRAINER_KWARGS
         self.optimizer_kwargs = optimizer_kwargs or DEFAULT_OPTIMIZER_KWARGS
 
-    def fit(self, views: Iterable[np.ndarray], y=None, validation_views=None,**kwargs):
+    def fit(self, views: Iterable[np.ndarray], y=None, validation_views=None, **kwargs):
         views = self._validate_data(views)
         if validation_views is not None:
             validation_views = self._validate_data(validation_views)
@@ -83,7 +83,9 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
             max_epochs=self.epochs,
             **self.trainer_kwargs,
         )
-        train_dataset, val_dataset = self.get_dataset(views, validation_views=validation_views)
+        train_dataset, val_dataset = self.get_dataset(
+            views, validation_views=validation_views
+        )
         train_dataloader, val_dataloader = self.get_dataloader(
             train_dataset, val_dataset
         )
@@ -103,7 +105,11 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
     def get_dataset(self, views: Iterable[np.ndarray], validation_views=None):
         dataset = NumpyDataset(views) if self.batch_size else FullBatchDataset(views)
         if validation_views is not None:
-            val_dataset = NumpyDataset(validation_views) if self.batch_size else FullBatchDataset(validation_views)
+            val_dataset = (
+                NumpyDataset(validation_views)
+                if self.batch_size
+                else FullBatchDataset(validation_views)
+            )
         else:
             val_dataset = None
         return dataset, val_dataset
