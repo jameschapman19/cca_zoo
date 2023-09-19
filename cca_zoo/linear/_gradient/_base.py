@@ -34,7 +34,6 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         batch_size=None,
         dataloader_kwargs=None,
         epochs=1,
-        val_split=None,
         learning_rate=1,
         initialization: Union[str, callable] = "random",
         trainer_kwargs=None,
@@ -51,11 +50,6 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         self.tol = tol
         self.batch_size = batch_size
         self.epochs = epochs
-        # validate the split
-        if val_split is not None:
-            if val_split <= 0 or val_split >= 1:
-                raise ValueError("Validation split must be between 0 and 1")
-        self.val_split = val_split
         self.learning_rate = learning_rate
         # validate the initialization method
         if initialization not in ["random", "uniform", "unregularized", "pls"]:
@@ -68,14 +62,16 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         self.trainer_kwargs = trainer_kwargs or DEFAULT_TRAINER_KWARGS
         self.optimizer_kwargs = optimizer_kwargs or DEFAULT_OPTIMIZER_KWARGS
 
-    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
+    def fit(self, views: Iterable[np.ndarray], y=None, validation_views=None,**kwargs):
         views = self._validate_data(views)
+        if validation_views is not None:
+            validation_views = self._validate_data(validation_views)
         self._check_params()
         self._initialize(views)
-        self.weights = self._fit(views)
+        self.weights = self._fit(views, validation_views=validation_views)
         return self
 
-    def _fit(self, views: Iterable[np.ndarray]):
+    def _fit(self, views: Iterable[np.ndarray], validation_views=None):
         # Set the weights attribute as torch parameters with gradients
         self.torch_weights = [
             torch.nn.Parameter(torch.from_numpy(weight), requires_grad=True)
@@ -87,7 +83,7 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
             max_epochs=self.epochs,
             **self.trainer_kwargs,
         )
-        train_dataset, val_dataset = self.get_dataset(views)
+        train_dataset, val_dataset = self.get_dataset(views, validation_views=validation_views)
         train_dataloader, val_dataloader = self.get_dataloader(
             train_dataset, val_dataset
         )
@@ -104,12 +100,10 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         weights = [weight.detach().cpu().numpy() for weight in self.torch_weights]
         return weights
 
-    def get_dataset(self, views: Iterable[np.ndarray]):
+    def get_dataset(self, views: Iterable[np.ndarray], validation_views=None):
         dataset = NumpyDataset(views) if self.batch_size else FullBatchDataset(views)
-        if self.val_split:
-            train_size = int((1 - self.val_split) * len(dataset))
-            val_size = len(dataset) - train_size
-            dataset, val_dataset = data.random_split(dataset, [train_size, val_size])
+        if validation_views is not None:
+            val_dataset = NumpyDataset(validation_views) if self.batch_size else FullBatchDataset(validation_views)
         else:
             val_dataset = None
         return dataset, val_dataset

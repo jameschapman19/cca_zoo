@@ -28,11 +28,13 @@ from cca_zoo.linear import MCCA
 X = np.random.rand(100, 10)
 Y = np.random.rand(100, 10)
 Z = np.random.rand(100, 10)
+Cats = np.random.randint(0, 2, 100)
 
 # Presto! Splitting the data into training and testing sets.
 X_train, X_test = X[:50], X[50:]
 Y_train, Y_test = Y[:50], Y[50:]
 Z_train, Z_test = Z[:50], Z[50:]
+Cats_train, Cats_test = Cats[:50], Cats[50:]
 
 views = [X_train, Y_train, Z_train]
 test_views = [X_test, Y_test, Z_test]
@@ -74,7 +76,7 @@ print("Did you know? Large weights are usually more influential in the model.")
 # The Scoreboard
 # --------------
 # Score heatmaps help you visualize how the CCA projections from multiple views relate to each other.
-ScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+ScoreDisplay.from_estimator(mcca, views, test_views=test_views, labels=Cats_train, test_labels=Cats_test).plot()
 plt.show()
 print(
     "Takeaway: Looking for clusters or patterns here can validate your model's effectiveness."

@@ -60,19 +60,19 @@ trainer.fit(dcca, train_loader, val_loader)
 # For this, we provide three options: Scatter, UMAP and t-SNE.
 
 # Scatterplot of the latent space
-score_display = ScoreDisplay.from_estimator(dcca, val_loader, labels=val_labels)
+score_display = ScoreDisplay.from_estimator(dcca, val_loader, labels=val_labels.astype(str))
 score_display.plot()
 score_display.figure_.suptitle("Scatter Deep CCA")
 plt.show()
 
 # UMAP Visualization
-score_display = UMAPScoreDisplay.from_estimator(dcca, val_loader, labels=val_labels)
+score_display = UMAPScoreDisplay.from_estimator(dcca, val_loader, labels=val_labels.astype(str))
 score_display.plot()
 score_display.figure_.suptitle("UMAP Deep CCA")
 plt.show()
 
 # t-SNE Visualization
-score_display = TSNEScoreDisplay.from_estimator(dcca, val_loader, labels=val_labels)
+score_display = TSNEScoreDisplay.from_estimator(dcca, val_loader, labels=val_labels.astype(str))
 score_display.plot()
 score_display.figure_.suptitle("TSNE Deep CCA")
 plt.show()
@@ -92,7 +92,7 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(dcca_eg, train_loader, val_loader)
-score_display = ScoreDisplay.from_estimator(dcca_eg, val_loader, labels=val_labels)
+score_display = ScoreDisplay.from_estimator(dcca_eg, val_loader, labels=val_labels.astype(str))
 score_display.plot()
 score_display.figure_.suptitle("Deep CCA EY")
 plt.show()
@@ -112,7 +112,7 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(dcca_noi, train_loader, val_loader)
-score_display = ScoreDisplay.from_estimator(dcca_noi, val_loader, labels=val_labels)
+score_display = ScoreDisplay.from_estimator(dcca_noi, val_loader, labels=val_labels.astype(str))
 score_display.plot()
 score_display.figure_.suptitle("Deep CCA by Non-Linear Orthogonal Iterations")
 plt.show()
@@ -132,7 +132,7 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(dcca_sdl, train_loader, val_loader)
-score_display = ScoreDisplay.from_estimator(dcca_sdl, val_loader, labels=val_labels)
+score_display = ScoreDisplay.from_estimator(dcca_sdl, val_loader, labels=val_labels.astype(str))
 score_display.plot()
 score_display.figure_.suptitle("Deep CCA by Stochastic Decorrelation Loss")
 plt.show()
@@ -153,7 +153,7 @@ trainer = pl.Trainer(
     log_every_n_steps=1,
 )
 trainer.fit(barlowtwins, train_loader, val_loader)
-score_display = ScoreDisplay.from_estimator(barlowtwins, val_loader, labels=val_labels)
+score_display = ScoreDisplay.from_estimator(barlowtwins, val_loader, labels=val_labels.astype(str))
 score_display.plot()
 score_display.figure_.suptitle("Deep CCA by Barlow Twins")
 plt.show()
