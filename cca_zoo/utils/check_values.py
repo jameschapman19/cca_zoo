@@ -45,6 +45,7 @@ def _check_batch_size(batch_size, latent_dimensions):
             "Objective is unstable when batch size is less than the number of latent dimensions"
         )
 
+
 def check_tsne_support(caller_name):
     try:
         import openTSNE
@@ -53,6 +54,7 @@ def check_tsne_support(caller_name):
             f"{caller_name} requires openTSNE. "
             "Please install openTSNE using `pip install openTSNE`"
         )
+
 
 def check_umap_support(caller_name):
     try:
@@ -63,6 +65,7 @@ def check_umap_support(caller_name):
             "Please install umap using `pip install umap-learn`"
         )
 
+
 def check_seaborn_support(caller_name):
     try:
         import seaborn
@@ -71,6 +74,7 @@ def check_seaborn_support(caller_name):
             f"{caller_name} requires seaborn. "
             "Please install seaborn using `pip install seaborn`"
         )
+
 
 def check_arviz_support(caller_name):
     try:

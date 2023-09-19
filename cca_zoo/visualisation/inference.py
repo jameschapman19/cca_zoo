@@ -1,5 +1,6 @@
 from cca_zoo.utils.check_values import check_arviz_support
 
+
 class WeightInferenceDisplay:
     """
     Class for displaying inference-related plots.
@@ -76,6 +77,7 @@ class WeightInferenceDisplay:
             An InferenceDisplay instance.
         """
         import arviz as az
+
         idata = az.from_numpyro(mcmc)
         return cls(idata, 2, true_features)
 
@@ -109,4 +111,3 @@ class WeightInferenceDisplay:
             plt.tight_layout()
 
         plt.show()
-
