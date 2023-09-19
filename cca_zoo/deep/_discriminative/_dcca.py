@@ -4,6 +4,7 @@ from cca_zoo.deep import objectives
 from cca_zoo.deep._base import BaseDeep
 from cca_zoo.linear._mcca import MCCA
 
+
 class DCCA(BaseDeep):
     """
     A class used to fit a DCCA model.

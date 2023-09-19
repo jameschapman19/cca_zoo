@@ -17,5 +17,5 @@ __all__ = [
     "CovarianceHeatmapDisplay",
     "TSNEScoreDisplay",
     "UMAPScoreDisplay",
-    "WeightInferenceDisplay"
+    "WeightInferenceDisplay",
 ]

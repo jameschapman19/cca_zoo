@@ -127,4 +127,3 @@ z = pcca.transform(views)
 
 WeightInferenceDisplay.from_estimator(pcca).plot()
 plt.show()
-
