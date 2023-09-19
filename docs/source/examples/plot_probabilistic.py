@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from cca_zoo.probabilistic import ProbabilisticCCA
-
+from cca_zoo.visualisation import WeightInferenceDisplay
 
 # %%
 # 2. Data Generation
@@ -105,8 +105,8 @@ views = [view - view.mean(axis=0) for view in views]
 
 pcca = ProbabilisticCCA(
     latent_dimensions=latent_dims,
-    num_samples=250,
-    num_warmup=250,
+    num_samples=1,
+    num_warmup=1,
     random_state=random_state,
 )
 
@@ -123,29 +123,8 @@ pcca.fit(views)
 z = pcca.transform(views)
 
 # %%
-# We can also inspect the results of the model by looking at the posterior samples of the parameters and the latent variable. The `posterior_samples` attribute is a dictionary that contains the samples for each parameter and the latent variable. We can use arviz to visualize the distributions and compare them with the true values.
+# Visualize
 
-# Convert posterior samples to arviz InferenceData object
-idata = az.from_numpyro(pcca.mcmc)
-
-for view in range(num_views):
-    # Plot the posterior distribution of W_0 parameter (for just the first latent variable). Label the weights with their weight index. Make all parameters share x axis.
-    trace_plot = az.plot_trace(
-        idata, var_names=[f"W_{view}"], compact=False, divergences=None
-    )
-
-    # For each w in W_0, plot the true value from data.true_features[0]
-    for i, ax in enumerate(trace_plot[:, 0]):
-        ax.axvline(
-            data.true_features[view].ravel()[i],
-            color="red",
-            linestyle="--",
-            label="True Value",
-        )
-        ax.legend()
-
-    ax_list = list(trace_plot[:, 0].ravel())
-    plt.suptitle(f"Posterior Distribution of W_{view}")
-    plt.tight_layout()
-
+WeightInferenceDisplay.from_estimator(pcca).plot()
 plt.show()
+

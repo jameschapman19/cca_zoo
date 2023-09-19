@@ -6,6 +6,7 @@ from .correlation import CorrelationHeatmapDisplay
 from .covariance import CovarianceHeatmapDisplay
 from .tsne_scores import TSNEScoreDisplay
 from .umap_scores import UMAPScoreDisplay
+from .inference import WeightInferenceDisplay
 
 __all__ = [
     "ExplainedVarianceDisplay",
@@ -16,4 +17,5 @@ __all__ = [
     "CovarianceHeatmapDisplay",
     "TSNEScoreDisplay",
     "UMAPScoreDisplay",
+    "WeightInferenceDisplay"
 ]

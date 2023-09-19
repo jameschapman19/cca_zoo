@@ -71,3 +71,12 @@ def check_seaborn_support(caller_name):
             f"{caller_name} requires seaborn. "
             "Please install seaborn using `pip install seaborn`"
         )
+
+def check_arviz_support(caller_name):
+    try:
+        import arviz as az
+    except ImportError:
+        raise ImportError(
+            f"{caller_name} requires arviz. "
+            "Please install arviz using `pip install arviz`"
+        )

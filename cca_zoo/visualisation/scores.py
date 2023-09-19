@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from cca_zoo.utils.check_values import check_seaborn_support
+
 
 class ScoreDisplay:
     """
@@ -15,6 +17,9 @@ class ScoreDisplay:
         self.train_labels = labels
         self.test_labels = test_labels
         self.kwargs = kwargs
+
+    def _validate_plot_params(self):
+        check_seaborn_support("CorrelationHeatmapDisplay")
 
     @classmethod
     def from_estimator(cls, model, train_views, test_views=None, **kwargs):
