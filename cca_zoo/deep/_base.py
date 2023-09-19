@@ -79,8 +79,8 @@ class BaseDeep(pl.LightningModule, BaseModel):
 
     @torch.no_grad()
     def get_representations(
-            self,
-            loader: torch.utils.data.DataLoader,
+        self,
+        loader: torch.utils.data.DataLoader,
     ):
         self.eval()  # Ensure the model is in evaluation mode
         all_z = []
@@ -94,7 +94,6 @@ class BaseDeep(pl.LightningModule, BaseModel):
         stacked_z = [torch.vstack(z_) for z_ in zip(*all_z)]
 
         return stacked_z
-
 
     @torch.no_grad()
     def transform(

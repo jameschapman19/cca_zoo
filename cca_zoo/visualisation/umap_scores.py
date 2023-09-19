@@ -13,6 +13,7 @@ class UMAPScoreDisplay(ScoreDisplay):
         self._validate_plot_params()
         import umap
         import matplotlib.pyplot as plt
+
         reducer = umap.UMAP()
         embedding = reducer.fit_transform(self.train_scores[0])
         fig, ax = plt.subplots()
@@ -38,5 +39,3 @@ class UMAPScoreDisplay(ScoreDisplay):
         plt.tight_layout()
         self.figure_ = fig
         return self
-
-

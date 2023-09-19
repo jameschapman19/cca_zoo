@@ -13,6 +13,7 @@ class TSNEScoreDisplay(ScoreDisplay):
         self._validate_plot_params()
         import openTSNE
         import matplotlib.pyplot as plt
+
         reducer = openTSNE.TSNE()
         embedding = reducer.fit(self.train_scores[0])
         fig, ax = plt.subplots()
