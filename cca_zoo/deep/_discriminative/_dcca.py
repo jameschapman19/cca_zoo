@@ -2,7 +2,7 @@ import torch
 
 from cca_zoo.deep import objectives
 from cca_zoo.deep._base import BaseDeep
-
+from cca_zoo.linear._mcca import MCCA
 
 class DCCA(BaseDeep):
     """
@@ -47,7 +47,10 @@ class DCCA(BaseDeep):
         # Call the parent class method
         return super().pairwise_correlations(loader)
 
+    def correlation_captured(self, z):
+        return MCCA(latent_dimensions=self.latent_dimensions).fit(z).score(z).sum()
+
     def score(self, loader: torch.utils.data.DataLoader, **kwargs):
-        z = self.get_representations(loader)
-        corr = self.correlation(z)
-        return corr.numpy()
+        z = self.transform(loader)
+        corr = self.correlation_captured(z)
+        return corr
