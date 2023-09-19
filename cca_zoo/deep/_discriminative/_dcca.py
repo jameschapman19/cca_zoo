@@ -30,7 +30,7 @@ class DCCA(BaseDeep):
                 "Encoders must be a list of torch.nn.Module with length equal to the number of views."
             )
         self.encoders = torch.nn.ModuleList(encoders)
-        self.objective = objective(latent_dimensions, r=r, eps=eps)
+        self.objective = objective(r=r, eps=eps)
 
     def forward(self, views, **kwargs):
         if not hasattr(self, "n_views_"):

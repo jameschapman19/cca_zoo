@@ -42,7 +42,7 @@ class DCCAE(DCCA, _GenerativeMixin):
         if lam < 0 or lam > 1:
             raise ValueError(f"lam should be between 0 and 1. rho={lam}")
         self.lam = lam
-        self.objective = objective(latent_dimensions, r=r, eps=eps)
+        self.objective = objective(r=r, eps=eps)
         self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
         self.recon_loss_type = recon_loss_type
 

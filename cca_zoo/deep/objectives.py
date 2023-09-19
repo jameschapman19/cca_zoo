@@ -22,100 +22,72 @@ def _demean(views):
 
 
 class MCCA:
+    """Differentiable MCCA Loss. Solves the multiset eigenvalue problem.
+
+    References
+    ----------
+    https://arxiv.org/pdf/2005.11914.pdf
+
     """
 
-    Differentiable MCCA Loss.
-    Loss() method takes the outputs of each view's network and solves the multiset eigenvalue problem
-    as in e.g. https://arxiv.org/pdf/2005.11914.pdf
-
-    """
-
-    def __init__(self, latent_dims: int, r: float = 0, eps: float = 1e-3):
-        """
-
-        :param latent_dims: the number of latent dimensions
-        :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to
-        the number of latent dimensions
-        :param eps: an epsilon parameter used in some operations
-        """
-        self.latent_dims = latent_dims
+    def __init__(self, r: float = 0, eps: float = 1e-3):
         self.r = r
         self.eps = eps
 
     def C(self, views):
-        # Concatenate all views and from this get the cross-covariance matrix
+        """Calculate cross-covariance matrix."""
         all_views = torch.cat(views, dim=1)
         C = torch.cov(all_views.T)
         C = C - torch.block_diag(*[torch.cov(view.T) for view in views])
         return C / len(views)
 
     def D(self, views):
-        # Get the block covariance matrix placing Xi^TX_i on the diagonal
+        """Calculate block covariance matrix."""
         D = torch.block_diag(
             *[
                 (1 - self.r) * torch.cov(view.T)
                 + self.r * torch.eye(view.shape[1], device=view.device)
-                for i, view in enumerate(views)
+                for view in views
             ]
         )
         return D / len(views)
 
     def correlation(self, views):
-        # Subtract the mean from each output
+        """Calculate correlation."""
+        latent_dims = views[0].shape[1]
         views = _demean(views)
-
         C = self.C(views)
         D = self.D(views)
-
-        C = C + D
-
+        C += D
         R = inv_sqrtm(D, self.eps)
-
-        # In MCCA our eigenvalue problem Cv = lambda Dv
         C_whitened = R @ C @ R.T
-
         eigvals = torch.linalg.eigvalsh(C_whitened)
-
-        # Sort eigenvalues so lviewest first
         idx = torch.argsort(eigvals, descending=True)
-
-        eigvals = eigvals[idx[: self.latent_dims]]
-
+        eigvals = eigvals[idx[:latent_dims]]
         return eigvals
 
     def loss(self, views):
+        """Calculate loss."""
         eigvals = self.correlation(views)
-
-        # leaky relu encourages the gradient to be driven by positively correlated dimensions while also encouraging
-        # dimensions associated with spurious negative correlations to become more positive
         eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)])
-
         corr = eigvals.sum()
-
         return -corr
 
 
 class GCCA:
+    """Differentiable GCCA Loss. Solves the generalized CCA eigenproblem.
+
+    References
+    ----------
+    https://arxiv.org/pdf/2005.11914.pdf
     """
-    Differentiable GCCA Loss.
-    Loss() method takes the outputs of each view's network and solves the generalized CCA eigenproblem
-    as in https://arxiv.org/pdf/2005.11914.pdf
 
-    """
-
-    def __init__(self, latent_dims: int, r: float = 0, eps: float = 1e-3):
-        """
-
-        :param latent_dims: the number of latent dimensions
-        :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to
-        the number of latent dimensions
-        :param eps: an epsilon parameter used in some operations
-        """
-        self.latent_dims = latent_dims
+    def __init__(self, r: float = 0, eps: float = 1e-3):
         self.r = r
         self.eps = eps
 
     def Q(self, views):
+        """Calculate Q matrix."""
         eigen_views = [
             view @ torch.linalg.inv(torch.cov(view.T)) @ view.T for view in views
         ]
@@ -123,25 +95,17 @@ class GCCA:
         return Q
 
     def correlation(self, views):
-        # https: // www.uta.edu / math / _docs / preprint / 2014 / rep2014_04.pdf
-
-        # H is n_views * n_samples * k
+        """Calculate correlation."""
+        latent_dims = views[0].shape[1]
         views = _demean(views)
-
         Q = self.Q(views)
-
         eigvals = torch.linalg.eigvalsh(Q)
-
         idx = torch.argsort(eigvals, descending=True)
-
-        eigvals = eigvals[idx[: self.latent_dims]]
-
-        # leaky relu encourages the gradient to be driven by positively correlated dimensions while also encouraging
-        # dimensions associated with spurious negative correlations to become more positive
-        eigvals = torch.nn.LeakyReLU()(eigvals)
-        return eigvals
+        eigvals = eigvals[idx[:latent_dims]]
+        return torch.nn.LeakyReLU()(eigvals)
 
     def loss(self, views):
+        """Calculate loss."""
         eigvals = self.correlation(views)
         corr = eigvals.sum()
         return -corr
@@ -161,33 +125,23 @@ class GCCA:
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
 class CCA:
-    """
-    Differentiable CCA Loss.
-    Loss() method takes the outputs of each view's network and solves the CCA problem as in Andrew's original paper
+    """Differentiable CCA Loss. Solves the CCA problem."""
 
-    """
-
-    def __init__(self, latent_dims: int, r: float = 0, eps: float = 1e-3):
-        """
-        :param latent_dims: the number of latent dimensions
-        :param r: regularisation as in regularized CCA. Makes the problem well posed when batch size is similar to the number of latent dimensions
-        :param eps: an epsilon parameter used in some operations
-        """
-        self.latent_dims = latent_dims
+    def __init__(self, r: float = 0, eps: float = 1e-3):
         self.r = r
         self.eps = eps
 
     def correlation(self, views):
+        """Calculate correlation."""
+        latent_dims = views[0].shape[1]
         o1 = views[0].shape[1]
         o2 = views[1].shape[1]
-
-        n = views[0].shape[0]
 
         views = _demean(views)
 
         SigmaHat12 = torch.cov(torch.hstack((views[0], views[1])).T)[
-            : self.latent_dims, self.latent_dims :
-        ]  # views[0].T @ views[1] / (n - 1)
+                     : latent_dims, latent_dims :
+                     ]
         SigmaHat11 = torch.cov(views[0].T) + self.r * torch.eye(
             o1, device=views[0].device
         )
@@ -205,27 +159,21 @@ class CCA:
         return eigvals
 
     def loss(self, views):
+        """Calculate loss."""
         eigvals = self.correlation(views)
-
-        # leaky relu encourages the gradient to be driven by positively correlated dimensions while also encouraging
-        # dimensions associated with spurious negative correlations to become more positive
         eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)])
-
         return -eigvals.sum()
 
 
 class TCCA:
-    """
-    Differentiable TCCA Loss.
+    """Differentiable TCCA Loss."""
 
-    """
-
-    def __init__(self, latent_dims: int, r: float = 0, eps: float = 1e-4):
-        self.latent_dims = latent_dims
+    def __init__(self, r: float = 0, eps: float = 1e-4):
         self.r = r
         self.eps = eps
 
     def loss(self, views):
+        latent_dims = views[0].shape[1]
         views = _demean(views)
         covs = [
             (1 - self.r) * torch.cov(view.T)
@@ -250,7 +198,7 @@ class TCCA:
         M = torch.mean(M, 0)
         tl.set_backend("pytorch")
         M_parafac = parafac(
-            M.detach(), self.latent_dims, verbose=False, normalize_factors=True
+            M.detach(), latent_dims, verbose=False, normalize_factors=True
         )
         M_parafac.weights = 1
         M_hat = cp_to_tensor(M_parafac)

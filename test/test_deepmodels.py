@@ -74,7 +74,7 @@ def test_linear_mcca():
     dmcca = DCCA(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2, encoder_3],
-        lr=1e-1,
+        lr=1e-2,
         objective=objectives.MCCA,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
