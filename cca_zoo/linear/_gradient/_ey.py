@@ -16,16 +16,16 @@ class CCA_EY(BaseGradientModel):
         if self.batch_size is None:
             batch = self.batch
         loss = self.loss(batch["views"], batch.get("independent_views", None))
-        # Logging the loss components
+        # Logging the loss components with "train/" prefix
         for k, v in loss.items():
-            self.log(k, v, prog_bar=True)
+            self.log(f"train/{k}", v, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss = self.loss(batch["views"], batch.get("independent_views", None))
         # Logging the loss components
         for k, v in loss.items():
-            self.log(k, v, prog_bar=True)
+            self.log(f"val/{k}", v, prog_bar=True)
         return loss
 
     def get_AB(self, z):
