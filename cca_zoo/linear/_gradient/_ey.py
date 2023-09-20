@@ -21,6 +21,13 @@ class CCA_EY(BaseGradientModel):
             self.log(k, v, prog_bar=True)
         return loss
 
+    def validation_step(self, batch, batch_idx):
+        loss = self.loss(batch["views"], batch.get("independent_views", None))
+        # Logging the loss components
+        for k, v in loss.items():
+            self.log(k, v, prog_bar=True)
+        return loss
+
     def get_AB(self, z):
         latent_dims = z[0].shape[1]
         A = torch.zeros(

@@ -139,7 +139,6 @@ def test_stochastic_pls():
     assert np.allclose(np.trace(pls_score), np.trace(plsey_score), atol=1e-1)
     assert np.allclose(np.trace(pls_score), np.trace(plssvd_score), atol=1e-1)
 
-
 def test_stochastic_cca():
     pytest.importorskip("torch")
     from cca_zoo.linear import CCA_EY, CCA_GHA, CCA_SVD
@@ -174,3 +173,19 @@ def test_stochastic_cca():
     assert np.allclose(cca_score.sum(), ccaey_score.sum(), atol=2e-1)
     assert np.allclose(cca_score.sum(), ccagha_score.sum(), atol=2e-1)
     assert np.allclose(cca_score.sum(), ccasvd_score.sum(), atol=2e-1)
+
+def test_with_validation():
+    pytest.importorskip("torch")
+    from cca_zoo.linear import CCA_EY, CCA_GHA, CCA_SVD
+
+    cca = CCA(latent_dimensions=3).fit((X, Y))
+    ccaey = CCA_EY(
+        latent_dimensions=latent_dims,
+        epochs=5,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        random_state=random_state,
+        trainer_kwargs={
+            "logger": True,
+        }
+    ).fit((X, Y), validation_views=(X, Y))
