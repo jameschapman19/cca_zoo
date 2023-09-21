@@ -43,8 +43,8 @@ class DCCA_NOI(DCCA):
         self.mse = torch.nn.MSELoss(reduction="sum")
         self.rand = torch.rand(N, self.latent_dimensions)
 
-    def loss(self, views, **kwargs):
-        z = self(views)
+    def loss(self, batch, **kwargs):
+        z = self(batch['views'])
         z_copy = [z_.detach().clone() for z_ in z]
         self._update_covariances(z_copy, train=self.training)
         covariance_inv = [inv_sqrtm(cov, self.eps) for cov in self.covs]

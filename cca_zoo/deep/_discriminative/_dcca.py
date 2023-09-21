@@ -40,8 +40,8 @@ class DCCA(BaseDeep):
         z = [encoder(view) for encoder, view in zip(self.encoders, views)]
         return z
 
-    def loss(self, views, **kwargs):
-        z = self(views)
+    def loss(self, batch, **kwargs):
+        z = self(batch['views'])
         return {"objective": self.objective.loss(z)}
 
     def pairwise_correlations(self, loader: torch.utils.data.DataLoader):

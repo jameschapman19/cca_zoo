@@ -22,15 +22,16 @@ class DCCA_SVD(DCCA_EY):
                 f"Expected 2 views, got {len(self.encoders)} views instead."
             )
 
-    def loss(self, views, independent_views=None, **kwargs):
+    def loss(self, batch, **kwargs):
         # views here is a list of 'paired' views (i.e. [view1, view2])
-        z = self(views)  # get the latent representations
+        z = self(batch['views'])  # get the latent representations
         C = torch.cov(torch.hstack(z).T)
         latent_dims = z[0].shape[1]
 
         Cxy = C[:latent_dims, latent_dims:]
         Cxx = C[:latent_dims, :latent_dims]
 
+        independent_views = batch.get("independent_views", None)
         if independent_views is None:
             Cyy = C[latent_dims:, latent_dims:]
         else:

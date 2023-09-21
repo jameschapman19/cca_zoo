@@ -40,8 +40,8 @@ class BarlowTwins(DCCA):
             z.append(bn(encoder(views[i])))  # encode and normalize each view
         return z  # return a list of normalized latent representations
 
-    def loss(self, views, **kwargs):
-        z = self(views)  # get the latent representations
+    def loss(self, batch, **kwargs):
+        z = self(batch['views'])  # get the latent representations
         cross_cov = (
             z[0].T @ z[1] / z[0].shape[0]
         )  # compute the cross-covariance matrix between the two views

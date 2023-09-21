@@ -22,8 +22,9 @@ class DCCA_GHA(DCCA_EY):
             z
         )  # return the normalized matrices (divided by the number of views)
 
-    def loss(self, views, independent_views=None, **kwargs):
+    def loss(self, batch, **kwargs):
         z = self(views)
+        independent_views = batch.get("independent_views", None)
         A, B = self.get_AB(z)
         rewards = torch.trace(2 * A)
         if independent_views is None:

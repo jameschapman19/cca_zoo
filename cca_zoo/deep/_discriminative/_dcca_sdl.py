@@ -52,8 +52,8 @@ class DCCA_SDL(DCCA_NOI):
             z.append(bn(encoder(views[i])))
         return z
 
-    def loss(self, views, **kwargs):
-        z = self(views)
+    def loss(self, batch, **kwargs):
+        z = self(batch['views'])
         l2_loss = F.mse_loss(z[0], z[1])
         self._update_covariances(z, train=self.training)
         SDL_loss = self._sdl_loss(self.covs)
