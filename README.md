@@ -17,46 +17,74 @@
 
 </div>
 
-In an era inundated with data, unraveling the intricate connections between different data views is paramount. **CCA-Zoo** emerges as the definitive toolkit for this, offering an extensive suite of linear, kernel, and deep methods for canonical correlation analysis. 
+## Introduction
 
-Inspired by the simplicity and effectiveness of `scikit-learn` and `mvlearn`, CCA-Zoo offers a seamless experience with its `fit`/`transform`/`fit_transform` methods.
+In today's data-driven world, revealing hidden relationships across multiview datasets is critical. **CCA-Zoo** is your go-to library, featuring a robust selection of linear, kernel, and deep canonical correlation analysis methods.
 
-## Table of Contents
+Designed to be user-friendly, CCA-Zoo is inspired by the ease of use in `scikit-learn` and `mvlearn`. It provides a seamless programming experience with familiar `fit`, `transform`, and `fit_transform` methods.
 
-- [Installation](#installation)
-- [Documentation](#documentation)
-- [Citation](#citation)
-- [Contributions](#contributions)
-- [Sources](#sources)
+## 📖 Table of Contents
 
-## 🚀 Get Started in 5 Minutes
+- [Quick Start](#-quick-start)
+- [Installation](#-installation)
+- [Performance Highlights](#-performance-highlights)
+- [Detailed Documentation](#-detailed-documentation)
+- [How to Cite](#-how-to-cite)
+- [Contribution Guidelines](#-contribution-guidelines)
+- [Acknowledgments](#-acknowledgments)
+
+## 🚀 Quick Start
 
 ### Installation
 
-Whether you're a `pip` enthusiast or a `poetry` lover, we've got you covered:
+Whether you're a `pip` enthusiast or a `poetry` aficionado, installing CCA-Zoo is a breeze:
 
 ```bash
 pip install cca-zoo
-# or for the adventurous
+# For additional features
 pip install cca-zoo[probabilistic]
 ```
 
-Poetry aficionados can dive in with:
+For Poetry users:
 
 ```bash
 poetry add cca-zoo
-# or with a twist of probability
+# For extra features
 poetry add cca-zoo[probabilistic]
 ```
 
+## 🏎️ Performance Highlights
+CCA-Zoo shines when it comes to high-dimensional data analysis. It significantly outperforms scikit-learn, particularly as dimensionality increases. For comprehensive benchmarks, see our [script](benchmark/cca_high_dimensions.py) and the graph below.
 
-## 📚 Dive Deep
+![Benchmark Plot CCA](benchmark/CCA_Speed_Benchmark.svg)
+![Benchmark Plot PLS](benchmark/PLS_Speed_Benchmark.svg)
+
+## 📚 Detailed Documentation
 
 Embark on a journey through multiview correlations with our [comprehensive guide](https://cca-zoo.readthedocs.io/en/latest/).
 
-## 🙏 Show Your Love
+## 🙏 How to Cite
 
-CCA-Zoo thrives on the support of its community. If it's made a splash in your research, consider sprinkling some stardust by citing our JOSS paper or simply starring our repo. Every gesture counts!
+Your support means a lot to us! If CCA-Zoo has been beneficial for your research, there are two ways to show your appreciation:
+
+1. Star our GitHub repository.
+2. Cite our research paper in your publications.
+
+For citing our work, please use the following BibTeX entry:
+
+```bibtex
+@software{Chapman_CCA-Zoo_2023,
+author = {Chapman, James and Wang, Hao-Ting and Wells, Lennie and Wiesner, Johannes},
+doi = {10.5281/zenodo.4382739},
+month = aug,
+title = {{CCA-Zoo}},
+url = {https://github.com/jameschapman19/cca_zoo},
+version = {2.3.0},
+year = {2023}
+}
+```
+
+Or check out our JOSS paper:
 
 📜 Chapman et al., (2021). CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods in a scikit-learn style framework. Journal of Open Source Software, 6(68), 3823, [Link](https://doi.org/10.21105/joss.03823).
 
@@ -64,11 +92,11 @@ CCA-Zoo thrives on the support of its community. If it's made a splash in your r
 
 Every idea, every line of code adds value. Check out our [contribution guide](https://cca-zoo.readthedocs.io/en/latest/developer_info/contribute.html) and help CCA-Zoo soar to new heights!
 
-## 🙌 Props
+## 🙌 Acknowledgments
 
-A nod to the stalwarts and pioneers whose work paved the way. Dive into their implementations and explorations:
+Special thanks to the pioneers whose work has shaped this field. Explore their work:
 
 - Regularised CCA/PLS: [MATLAB](https://github.com/anaston/PLS_CCA_framework)
 - Sparse PLS: [MATLAB SPLS](https://github.com/jmmonteiro/spls)
-- DCCA/DCCAE: [Keras DCCA](https://github.com/VahidooX), [Torch DCCA](https://github.com/Michaelvll/DeepCCA), and more...
+- DCCA/DCCAE: [Keras DCCA](https://github.com/VahidooX), [Torch DCCA](https://github.com/Michaelvll/DeepCCA)
 - VAE: [Torch VAE](https://github.com/pytorch/examples/tree/master/vae)

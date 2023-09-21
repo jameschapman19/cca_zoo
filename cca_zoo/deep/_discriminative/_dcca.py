@@ -49,6 +49,8 @@ class DCCA(BaseDeep):
         return super().pairwise_correlations(loader)
 
     def correlation_captured(self, z):
+        # Remove mean from each view
+        z = [zi - zi.mean(0) for zi in z]
         return MCCA(latent_dimensions=self.latent_dimensions).fit(z).score(z).sum()
 
     def score(self, loader: torch.utils.data.DataLoader, **kwargs):
