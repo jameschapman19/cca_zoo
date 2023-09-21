@@ -12,7 +12,7 @@ authors:
 - family-names: "Wiesner"
   given-names: "Johannes"
 
-title: "CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods in a scikit-learn style framework"
+title: "CCA-Zoo"
 version: 2.3.0
 doi: 10.5281/zenodo.4382739
 date-released: 2023-08-22
