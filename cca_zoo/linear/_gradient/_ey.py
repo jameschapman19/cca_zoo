@@ -1,8 +1,6 @@
 from typing import Iterable
 import numpy as np
 import torch
-from torch.utils import data
-
 from cca_zoo.data.deep import NumpyDataset
 from cca_zoo.linear._gradient._base import BaseGradientModel, FullBatchDataset
 from cca_zoo.linear._pls import PLSMixin
@@ -18,14 +16,14 @@ class CCA_EY(BaseGradientModel):
         loss = self.loss(batch["views"], batch.get("independent_views", None))
         # Logging the loss components with "train/" prefix
         for k, v in loss.items():
-            self.log(f"train/{k}", v, prog_bar=True)
+            self.log(f"train/{k}", v, prog_bar=True, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss = self.loss(batch["views"], batch.get("independent_views", None))
         # Logging the loss components
         for k, v in loss.items():
-            self.log(f"val/{k}", v, prog_bar=True)
+            self.log(f"val/{k}", v, prog_bar=True, on_epoch=True)
         return loss
 
     def get_AB(self, z):
