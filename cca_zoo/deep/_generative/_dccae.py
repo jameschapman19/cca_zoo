@@ -69,14 +69,14 @@ class DCCAE(DCCA, _GenerativeMixin):
             recon.append(decoder(self.latent_dropout(z[i])))
         return recon
 
-    def loss(self, views, **kwargs):
-        z = self(views)
+    def loss(self, batch, **kwargs):
+        z = self(batch['views'])
         recons = self._decode(z)
         loss = dict()
         loss["reconstruction"] = torch.stack(
             [
                 self.recon_loss(x, recon, loss_type=self.recon_loss_type)
-                for x, recon in zip(views, recons)
+                for x, recon in zip(batch['views'], recons)
             ]
         ).sum()
         loss["correlation"] = self.objective.loss(z)

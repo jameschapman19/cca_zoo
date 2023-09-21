@@ -113,23 +113,23 @@ class DVCCA(BaseDeep, _GenerativeMixin):
             x.append(x_i)
         return x
 
-    def loss(self, views, **kwargs):
-        z = self(views, mle=False)
+    def loss(self, batch, **kwargs):
+        z = self(batch['views'], mle=False)
         recons = self._decode(z)
         loss = dict()
         loss["reconstruction"] = torch.stack(
             [
                 self.recon_loss(x, recon, loss_type=self.recon_loss_type)
-                for x, recon in zip(views, recons)
+                for x, recon in zip(batch['views'], recons)
             ]
         ).sum()
         loss["kl shared"] = (
-            self.kl_loss(z["mu_shared"], z["logvar_shared"]) / views[0].numel()
+            self.kl_loss(z["mu_shared"], z["logvar_shared"]) / batch['views'][0].numel()
         )
         if "private" in z:
             loss["kl private"] = torch.stack(
                 [
-                    self.kl_loss(mu_, logvar_) / views[0].numel()
+                    self.kl_loss(mu_, logvar_) / batch['views'][0].numel()
                     for mu_, logvar_ in zip(z["mu_private"], z["logvar_private"])
                 ]
             ).sum()
