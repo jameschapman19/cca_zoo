@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 results = []
 
 # List of dimensions to test
-dimensions = [1000,5000]
+dimensions = [1000, 5000]
 
 # Number of samples
 n_samples = 5000
@@ -41,11 +41,7 @@ for dim in dimensions:
         cca_zoo_time = time.time() - start_time
 
         # Record results
-        results.append({
-            "Dimension": dim,
-            "Time": cca_zoo_time,
-            "Method": "CCA-Zoo"
-        })
+        results.append({"Dimension": dim, "Time": cca_zoo_time, "Method": "CCA-Zoo"})
 
         # Scikit-learn
         start_time = time.time()
@@ -53,16 +49,11 @@ for dim in dimensions:
         sk_cca.fit((X, Y))
         sklearn_time = time.time() - start_time
 
-
         score = cca_zoo.score((X, Y))
         sk_score = sk_cca.score((X, Y))
 
         # Record results
-        results.append({
-            "Dimension": dim,
-            "Time": sklearn_time,
-            "Method": "CCA-EY"
-        })
+        results.append({"Dimension": dim, "Time": sklearn_time, "Method": "CCA-EY"})
 
 # Convert to DataFrame
 df = pd.DataFrame(results)
