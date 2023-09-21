@@ -26,11 +26,10 @@ Designed to be user-friendly, CCA-Zoo is inspired by the ease of use in `scikit-
 ## 📖 Table of Contents
 
 - [Quick Start](#-quick-start)
-- [Installation](#-installation)
 - [Performance Highlights](#-performance-highlights)
 - [Detailed Documentation](#-detailed-documentation)
 - [How to Cite](#-how-to-cite)
-- [Contribution Guidelines](#-contribution-guidelines)
+- [Contribute](#-contribute)
 - [Acknowledgments](#-acknowledgments)
 
 ## 🚀 Quick Start
