@@ -19,14 +19,6 @@ class DCCA_EY(DCCA):
         )
         self.r = r
 
-    def training_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Performs one step of training on a batch of views."""
-        loss = self.loss(batch["views"], batch.get("independent_views", None))
-        for k, v in loss.items():
-            # Use f-string instead of concatenation
-            self.log(f"train/{k}", v, prog_bar=True)
-        return loss["objective"]
-
     def loss(self, views, independent_views=None, **kwargs):
         # Encoding the views with the forward method
         z = self(views)
