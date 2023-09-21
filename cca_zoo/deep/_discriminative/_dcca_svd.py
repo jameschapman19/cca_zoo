@@ -24,7 +24,7 @@ class DCCA_SVD(DCCA_EY):
 
     def loss(self, batch, **kwargs):
         # views here is a list of 'paired' views (i.e. [view1, view2])
-        z = self(batch['views'])  # get the latent representations
+        z = self(batch["views"])  # get the latent representations
         C = torch.cov(torch.hstack(z).T)
         latent_dims = z[0].shape[1]
 
