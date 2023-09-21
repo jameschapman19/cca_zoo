@@ -41,7 +41,7 @@ class DCCA(BaseDeep):
         return z
 
     def loss(self, batch, **kwargs):
-        z = self(batch['views'])
+        z = self(batch["views"])
         return {"objective": self.objective.loss(z)}
 
     def pairwise_correlations(self, loader: torch.utils.data.DataLoader):

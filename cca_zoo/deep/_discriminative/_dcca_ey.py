@@ -21,7 +21,7 @@ class DCCA_EY(DCCA):
 
     def loss(self, batch, **kwargs):
         # Encoding the views with the forward method
-        z = self(batch['views'])
+        z = self(batch["views"])
         independent_views = batch.get("independent_views", None)
         # Getting A and B matrices from z
         A, B = self.get_AB(z)

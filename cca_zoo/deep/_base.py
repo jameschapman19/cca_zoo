@@ -58,12 +58,13 @@ class BaseDeep(pl.LightningModule, BaseModel):
         loss = self.loss(batch)
         for k, v in loss.items():
             # Use f-string instead of concatenation
-            self.log(f"train/{k}",
-                     v,
-                     on_step=False,
-                     on_epoch=True,
-                     batch_size=batch["views"][0].shape[0],
-                     )
+            self.log(
+                f"train/{k}",
+                v,
+                on_step=False,
+                on_epoch=True,
+                batch_size=batch["views"][0].shape[0],
+            )
         return loss["objective"]
 
     def validation_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
@@ -71,12 +72,13 @@ class BaseDeep(pl.LightningModule, BaseModel):
         loss = self.loss(batch)
         for k, v in loss.items():
             # Use f-string instead of concatenation
-            self.log(f"val/{k}",
-                     v,
-                     on_step=False,
-                     on_epoch=True,
-                     batch_size=batch["views"][0].shape[0],
-                     )
+            self.log(
+                f"val/{k}",
+                v,
+                on_step=False,
+                on_epoch=True,
+                batch_size=batch["views"][0].shape[0],
+            )
         return loss["objective"]
 
     def test_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
@@ -84,12 +86,13 @@ class BaseDeep(pl.LightningModule, BaseModel):
         loss = self.loss(batch)
         for k, v in loss.items():
             # Use f-string instead of concatenation
-            self.log(f"test/{k}",
-                     v,
-                     on_step=False,
-                     on_epoch=True,
-                     batch_size=batch["views"][0].shape[0],
-                     )
+            self.log(
+                f"test/{k}",
+                v,
+                on_step=False,
+                on_epoch=True,
+                batch_size=batch["views"][0].shape[0],
+            )
         return loss["objective"]
 
     @torch.no_grad()
