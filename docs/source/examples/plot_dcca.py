@@ -112,7 +112,7 @@ plt.show()
 # that uses an iterative algorithm to orthogonalize the latent representations.
 
 dcca_noi = DCCA_NOI(
-    latent_dimensions=LATENT_DIMS, N=N_TRAIN, encoders=[encoder_1, encoder_2]
+    latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2]
 )
 trainer = pl.Trainer(
     max_epochs=EPOCHS,

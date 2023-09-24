@@ -18,12 +18,10 @@ class DCCA_NOI(DCCA):
     def __init__(
         self,
         latent_dimensions: int,
-        N: int,
         encoders=None,
         r: float = 0,
         rho: float = 0.2,
         eps: float = 1e-9,
-        shared_target: bool = False,
         **kwargs,
     ):
         super().__init__(
@@ -33,37 +31,29 @@ class DCCA_NOI(DCCA):
             eps=eps,
             **kwargs,
         )
-        self.N = N
-        self.covs = None
         if rho < 0 or rho > 1:
             raise ValueError(f"rho should be between 0 and 1. rho={rho}")
         self.eps = eps
         self.rho = rho
-        self.shared_target = shared_target
         self.mse = torch.nn.MSELoss(reduction="sum")
-        self.rand = torch.rand(N, self.latent_dimensions)
+
+    def on_fit_start(self) -> None:
+        self.covs = [torch.eye(self.latent_dimensions, requires_grad=False, device=self.device)] * 2
+
+    def on_train_batch_start(self, batch, batch_idx) :
+        z = self(batch["views"])
+        self._update_covariances(z)
 
     def loss(self, batch, **kwargs):
         z = self(batch["views"])
-        z_copy = [z_.detach().clone() for z_ in z]
-        self._update_covariances(z_copy, train=self.training)
         covariance_inv = [inv_sqrtm(cov, self.eps) for cov in self.covs]
-        preds = [z_ @ covariance_inv[i] for i, z_ in enumerate(z_copy)]
-        loss = self.mse(z[0], preds[1]) + self.mse(z[1], preds[0])
-        self.covs = [cov.detach() for cov in self.covs]
+        preds = [z_ @ covariance_inv[i] for i, z_ in enumerate(z)]
+        loss = self.mse(z[0], preds[1].detach()) + self.mse(z[1], preds[0].detach())
         return {"objective": loss}
 
-    def _update_covariances(self, z, train=True):
-        b = z[0].shape[0]
-        batch_covs = [self.N * z_.T @ z_ / b for z_ in z]
-        if train:
-            if self.covs is not None:
-                self.covs = [
-                    self.rho * self.covs[i] + (1 - self.rho) * batch_cov
-                    for i, batch_cov in enumerate(batch_covs)
-                ]
-            else:
-                self.covs = batch_covs
-        # pytorch-lightning runs validation once so this just fixes the bug
-        elif self.covs is None:
-            self.covs = batch_covs
+    def _update_covariances(self, z):
+        batch_covs = [torch.cov(z_.T) for z_ in z]
+        self.covs = [
+            self.rho * self.covs[i] + (1 - self.rho) * batch_cov
+            for i, batch_cov in enumerate(batch_covs)
+        ]
