@@ -238,7 +238,7 @@ def test_DCCA_methods():
     encoder_2 = architectures.Encoder(
         latent_dimensions=latent_dimensions, feature_size=12
     )
-    dcca_noi = DCCA_NOI(latent_dimensions, N, encoders=[encoder_1, encoder_2], rho=0.2)
+    dcca_noi = DCCA_NOI(latent_dimensions, encoders=[encoder_1, encoder_2], rho=0.2)
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dcca_noi, train_loader)
     assert (
