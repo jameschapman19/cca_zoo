@@ -255,7 +255,7 @@ def test_DCCA_methods():
         latent_dimensions=latent_dimensions, feature_size=12
     )
     sdl = DCCA_SDL(
-        latent_dimensions, N, encoders=[encoder_1, encoder_2], lam=1e-2, lr=1e-3
+        latent_dimensions, encoders=[encoder_1, encoder_2], lam=1e-2, lr=1e-3
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(sdl, train_loader)
