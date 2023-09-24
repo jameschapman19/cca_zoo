@@ -51,7 +51,6 @@ dcca = DCCA(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
-    log_every_n_steps=1,
 )
 trainer.fit(dcca, train_loader, val_loader)
 # Visualizing the Latent Space
@@ -95,7 +94,6 @@ dcca_eg = DCCA_EY(
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
-    log_every_n_steps=1,
 )
 trainer.fit(dcca_eg, train_loader, val_loader)
 score_display = ScoreDisplay.from_estimator(
@@ -111,13 +109,10 @@ plt.show()
 # Deep CCA by Non-Linear Orthogonal Iterations (DCCA_NOI) is another variant of Deep CCA
 # that uses an iterative algorithm to orthogonalize the latent representations.
 
-dcca_noi = DCCA_NOI(
-    latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2]
-)
+dcca_noi = DCCA_NOI(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
-    log_every_n_steps=1,
 )
 trainer.fit(dcca_noi, train_loader, val_loader)
 score_display = ScoreDisplay.from_estimator(
@@ -139,7 +134,6 @@ dcca_sdl = DCCA_SDL(
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
-    log_every_n_steps=1,
 )
 trainer.fit(dcca_sdl, train_loader, val_loader)
 score_display = ScoreDisplay.from_estimator(
@@ -162,7 +156,6 @@ barlowtwins = BarlowTwins(
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
-    log_every_n_steps=1,
 )
 trainer.fit(barlowtwins, train_loader, val_loader)
 score_display = ScoreDisplay.from_estimator(

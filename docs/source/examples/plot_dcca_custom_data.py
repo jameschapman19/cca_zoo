@@ -94,6 +94,5 @@ dcca = DCCA(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
-    log_every_n_steps=1,
 )
 trainer.fit(dcca, train_loader)
