@@ -17,7 +17,6 @@ class DCCA_SDL(DCCA_NOI):
     def __init__(
         self,
         latent_dimensions: int,
-        N: int,
         encoders=None,
         r: float = 0,
         rho: float = 0.2,
@@ -28,7 +27,6 @@ class DCCA_SDL(DCCA_NOI):
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
-            N=N,
             encoders=encoders,
             r=r,
             rho=rho,
@@ -55,10 +53,8 @@ class DCCA_SDL(DCCA_NOI):
     def loss(self, batch, **kwargs):
         z = self(batch["views"])
         l2_loss = F.mse_loss(z[0], z[1])
-        self._update_covariances(z, train=self.training)
         SDL_loss = self._sdl_loss(self.covs)
         loss = l2_loss + self.lam * SDL_loss
-        self.covs = [cov.detach() for cov in self.covs]
         return {"objective": loss, "l2": l2_loss, "sdl": SDL_loss}
 
     def _sdl_loss(self, covs):
@@ -68,18 +64,3 @@ class DCCA_SDL(DCCA_NOI):
             sgn.fill_diagonal_(0)
             loss += torch.mean(cov * sgn)
         return loss
-
-    def _update_covariances(self, z, train=True):
-        b = z[0].shape[0]
-        batch_covs = [self.N * z_.T @ z_ / b for z_ in z]
-        if train:
-            if self.covs is not None:
-                self.covs = [
-                    self.rho * self.covs[i] + (1 - self.rho) * batch_cov
-                    for i, batch_cov in enumerate(batch_covs)
-                ]
-            else:
-                self.covs = batch_covs
-        # pytorch-lightning runs validation once so this just fixes the bug
-        elif self.covs is None:
-            self.covs = batch_covs

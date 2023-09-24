@@ -56,6 +56,6 @@ class DCCA_NOI(DCCA):
     def _update_covariances(self, z):
         batch_covs = [torch.cov(z_.T) for z_ in z]
         self.covs = [
-            self.rho * self.covs[i] + (1 - self.rho) * batch_cov
+            self.rho * self.covs[i].detach() + (1 - self.rho) * batch_cov
             for i, batch_cov in enumerate(batch_covs)
         ]
