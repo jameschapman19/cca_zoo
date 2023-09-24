@@ -38,9 +38,11 @@ class DCCA_NOI(DCCA):
         self.mse = torch.nn.MSELoss(reduction="sum")
 
     def on_fit_start(self) -> None:
-        self.covs = [torch.eye(self.latent_dimensions, requires_grad=False, device=self.device)] * 2
+        self.covs = [
+            torch.eye(self.latent_dimensions, requires_grad=False, device=self.device)
+        ] * 2
 
-    def on_train_batch_start(self, batch, batch_idx) :
+    def on_train_batch_start(self, batch, batch_idx):
         z = self(batch["views"])
         self._update_covariances(z)
 

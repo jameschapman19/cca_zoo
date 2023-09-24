@@ -111,9 +111,7 @@ plt.show()
 # Deep CCA by Non-Linear Orthogonal Iterations (DCCA_NOI) is another variant of Deep CCA
 # that uses an iterative algorithm to orthogonalize the latent representations.
 
-dcca_noi = DCCA_NOI(
-    latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2]
-)
+dcca_noi = DCCA_NOI(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
     enable_checkpointing=False,
