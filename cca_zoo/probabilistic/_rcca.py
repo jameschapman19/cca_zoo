@@ -6,6 +6,7 @@ from jax import random
 from cca_zoo.probabilistic._cca import ProbabilisticCCA
 import numpy as np
 
+
 class ProbabilisticRCCA(ProbabilisticCCA):
     """
     Probabilistic Ridge Canonical Correlation Analysis (Probabilistic Ridge CCA).
@@ -100,8 +101,12 @@ class ProbabilisticRCCA(ProbabilisticCCA):
         )
 
         # Add positive-definite constraint for psi1 and psi2
-        psi1 = numpyro.param("psi_1", jnp.eye(self.n_features_[0])) + self.c * jnp.eye(self.n_features_[0])
-        psi2 = numpyro.param("psi_2", jnp.eye(self.n_features_[1])) + self.c * jnp.eye(self.n_features_[1])
+        psi1 = numpyro.param("psi_1", jnp.eye(self.n_features_[0])) + self.c * jnp.eye(
+            self.n_features_[0]
+        )
+        psi2 = numpyro.param("psi_2", jnp.eye(self.n_features_[1])) + self.c * jnp.eye(
+            self.n_features_[1]
+        )
 
         mu1 = numpyro.param(
             "mu_1",
@@ -148,8 +153,12 @@ class ProbabilisticRCCA(ProbabilisticCCA):
 
     def joint(self):
         # Calculate the individual matrix blocks
-        top_left = self.params["W_1"] @ self.params["W_1"].T + self.c*jnp.eye(self.n_features_[0])
-        bottom_right = self.params["W_2"] @ self.params["W_2"].T + self.c*jnp.eye(self.n_features_[1])
+        top_left = self.params["W_1"] @ self.params["W_1"].T + self.c * jnp.eye(
+            self.n_features_[0]
+        )
+        bottom_right = self.params["W_2"] @ self.params["W_2"].T + self.c * jnp.eye(
+            self.n_features_[1]
+        )
         top_right = self.params["W_1"] @ self.params["W_2"].T
         bottom_left = self.params["W_2"] @ self.params["W_1"].T
 
