@@ -31,7 +31,7 @@ class LinearSimulatedData:
             "correlation", correlation, 0.99, latent_dims
         )
         self.view_sparsity = _process_parameter(
-            "view_sparsity", view_sparsity, 0.5, len(view_features)
+            "view_sparsity", view_sparsity, 1.0, len(view_features)
         )
         self.structure = _process_parameter(
             "structure", structure, "random", len(view_features)
@@ -49,7 +49,7 @@ class LinearSimulatedData:
         if view_structure == "identity":
             cov = np.eye(view_features)
         else:
-            cov = make_spd_matrix(view_features)
+            cov = make_spd_matrix(view_features, random_state=self.random_state)
 
         var = np.diag(cov)
         cov = cov / np.sqrt(var)

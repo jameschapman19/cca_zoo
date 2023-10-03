@@ -166,7 +166,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     def score(
         self, views: Iterable[np.ndarray], y: Optional[Any] = None, **kwargs
-    ) -> float:
+    ) -> np.ndarray:
         """
         Returns the average pairwise correlation between the views
 
@@ -178,7 +178,8 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
         Returns
         -------
-        score : float
+        score : np.ndarray of shape (latent_dimensions,)
+            Average pairwise correlation between the views in each dimension
 
 
         """
