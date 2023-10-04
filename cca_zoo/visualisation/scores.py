@@ -35,7 +35,11 @@ class ScoreDisplay:
     ):
         self.train_scores = train_scores
         self.test_scores = test_scores
-        self.combined_scores_x,self.combined_scores_y,self.mode_labels= self._combine_scores()
+        (
+            self.combined_scores_x,
+            self.combined_scores_y,
+            self.mode_labels,
+        ) = self._combine_scores()
         self.train_labels = labels
         self.test_labels = test_labels
         # if both train and test labels are not None, combine them
@@ -53,7 +57,8 @@ class ScoreDisplay:
             combined_x = np.vstack((self.train_scores[0], self.test_scores[0]))
             combined_y = np.vstack((self.train_scores[1], self.test_scores[1]))
             mode_labels = np.array(
-                ["Train"] * len(self.train_scores[0]) + ["Test"] * len(self.test_scores[0])
+                ["Train"] * len(self.train_scores[0])
+                + ["Test"] * len(self.test_scores[0])
             )
         else:
             combined_x = self.train_scores[0]
@@ -314,6 +319,7 @@ class SeparateJointScoreDisplay(SeparateScoreDisplay):
         plt.tight_layout()
         return self
 
+
 class PairScoreDisplay(ScoreDisplay):
     def plot(self):
         # Put the combined scores into a dataframe with dimension as column names
@@ -323,7 +329,6 @@ class PairScoreDisplay(ScoreDisplay):
         df = df.join(pd.DataFrame(self.combined_scores_y, columns=y_vars))
         df["Mode"] = self.mode_labels
         # Plot the pairplot
-        g = sns.pairplot(df, hue="Mode", x_vars=x_vars,y_vars=y_vars,**self.kwargs)
+        g = sns.pairplot(df, hue="Mode", x_vars=x_vars, y_vars=y_vars, **self.kwargs)
         self.figure_ = g.fig
         return self
-
