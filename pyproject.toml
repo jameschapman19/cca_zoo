@@ -39,6 +39,7 @@ opentsne = "*"
 umap-learn = "*"
 
 
+
 [tool.poetry.extras]
 probabilistic = ["jax", "numpyro", "arviz", "funsor"]
 

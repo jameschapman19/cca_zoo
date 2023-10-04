@@ -46,7 +46,7 @@ class ScoreDisplay:
 
         if self.separate:
             fig, axarr = plt.subplots(
-                dimensions, 2
+                dimensions, 2, squeeze=False
             )  # Create two columns for each dimension
 
             for i in range(dimensions):

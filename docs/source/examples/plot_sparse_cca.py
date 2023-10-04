@@ -24,8 +24,15 @@ from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV
 
 # Plotting Configuration
-sns.set_theme(style="whitegrid")
-sns.set(font_scale=1.2)
+# Set a consistent color scheme for NeurIPS paper
+palette = "colorblind"
+colorblind_palette = sns.color_palette(palette, as_cmap=True)
+sns.set_style("whitegrid")
+sns.set_context(
+    "paper",
+    font_scale=2.0,
+    rc={"lines.linewidth": 2.5},
+)
 plt.close("all")
 
 
@@ -57,7 +64,7 @@ def plot_true_weights_coloured(ax, weights, true_weights, title="", legend=False
     ax.set_title(title)
 
 
-def plot_model_weights(wx, wy, tx, ty, title=""):
+def plot_model_weights(wx, wy, tx, ty, title="", save_path=None):
     """
     Plot weights of the model against the true weights.
     """
@@ -70,7 +77,10 @@ def plot_model_weights(wx, wy, tx, ty, title=""):
     fig.suptitle(title)
     sns.despine(trim=True)
     plt.tight_layout()
-    plt.show(block=False)
+    if save_path:
+        plt.savefig(save_path)
+    else:
+        plt.show(block=False)
 
 
 # Data Generation
@@ -83,6 +93,7 @@ data = LinearSimulatedData(
     latent_dims=latent_dims,
     view_sparsity=[view_1_sparsity, view_2_sparsity],
     correlation=[0.9],
+    positive=True,
 )
 (X, Y) = data.sample(n)
 tx, ty = data.true_features[0], data.true_features[1]

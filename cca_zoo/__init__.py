@@ -10,10 +10,12 @@ from . import (
 
 __all__ = [
     "data",
-    "model_selection",
-    "linear",
-    "visualisation",
     "deep",
+    "linear",
+    "model_selection",
+    "visualisation",
+    "preprocessing",
+    "sequential",
 ]
 try:
     from . import probabilistic

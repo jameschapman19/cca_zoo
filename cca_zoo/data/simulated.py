@@ -11,7 +11,7 @@ from cca_zoo.utils import _process_parameter
 
 class LinearSimulatedData:
     """
-    Class for generating simulated data for linear model with multiple views.
+    Class for generating simulated data for a linear model with multiple views.
     """
 
     def __init__(
