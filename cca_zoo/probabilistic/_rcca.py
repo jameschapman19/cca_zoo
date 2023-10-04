@@ -53,10 +53,10 @@ class ProbabilisticRCCA(ProbabilisticCCA):
         latent_dimensions: int = 1,
         copy_data=True,
         random_state: int = 0,
-        learning_rate=1e-3,
+        learning_rate=1e-4,
         n_iter=20000,
-        num_samples=100,
-        num_warmup=100,
+        num_samples=1000,
+        num_warmup=500,
         c=1.0,
     ):
         super().__init__(
@@ -107,12 +107,8 @@ class ProbabilisticRCCA(ProbabilisticCCA):
         )
 
         # Add positive-definite constraint for psi1 and psi2
-        psi1 = numpyro.param("psi_1", jnp.eye(self.n_features_[0])) + self.c[0] * jnp.eye(
-            self.n_features_[0]
-        )
-        psi2 = numpyro.param("psi_2", jnp.eye(self.n_features_[1])) + self.c[1] * jnp.eye(
-            self.n_features_[1]
-        )
+        psi1 = numpyro.param("psi_1", jnp.eye(self.n_features_[0]))
+        psi2 = numpyro.param("psi_2", jnp.eye(self.n_features_[1]))
 
         mu1 = numpyro.param(
             "mu_1",
@@ -144,16 +140,20 @@ class ProbabilisticRCCA(ProbabilisticCCA):
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
                 ),
             )
-
-        with numpyro.plate("n", n_samples):
             numpyro.sample(
                 "X1",
-                dist.MultivariateNormal(z @ W1.T + mu1, covariance_matrix=psi1),
+                dist.MultivariateNormal(
+                    z @ W1.T + mu1,
+                    covariance_matrix=psi1 + self.c[0] * jnp.eye(self.n_features_[0]),
+                ),
                 obs=X1,
             )
             numpyro.sample(
                 "X2",
-                dist.MultivariateNormal(z @ W2.T + mu2, covariance_matrix=psi2),
+                dist.MultivariateNormal(
+                    z @ W2.T + mu2,
+                    covariance_matrix=psi2 + self.c[1] * jnp.eye(self.n_features_[1]),
+                ),
                 obs=X2,
             )
 
