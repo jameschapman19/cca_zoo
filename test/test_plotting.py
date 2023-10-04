@@ -11,6 +11,12 @@ import numpy as np
 from cca_zoo.linear import MCCA
 import matplotlib.pyplot as plt
 
+from cca_zoo.visualisation.scores import (
+    JointScoreDisplay,
+    SeparateScoreDisplay,
+    SeparateJointScoreDisplay,
+    PairScoreDisplay,
+)
 from cca_zoo.visualisation.tsne_scores import TSNEScoreDisplay
 from cca_zoo.visualisation.umap_scores import UMAPScoreDisplay
 
@@ -19,17 +25,18 @@ from cca_zoo.visualisation.umap_scores import UMAPScoreDisplay
 def setup_data():
     X = np.random.rand(100, 10)
     Y = np.random.rand(100, 10)
-    Z = np.random.rand(100, 10)
+    X-=X.mean(axis=0)
+    Y-=Y.mean(axis=0)
 
     X_train, X_test = X[:50], X[50:]
     Y_train, Y_test = Y[:50], Y[50:]
-    Z_train, Z_test = Z[:50], Z[50:]
 
-    views = [X_train, Y_train, Z_train]
-    test_views = [X_test, Y_test, Z_test]
+    views = [X_train, Y_train]
+    test_views = [X_test, Y_test]
 
     mcca = MCCA(latent_dimensions=2)
     mcca.fit(views)
+    mcca.score(views)
 
     return mcca, views, test_views
 
@@ -52,11 +59,30 @@ def test_weight_heatmap_plot(setup_data):
     plt.close()
 
 
-def test_score_heatmap_plot(setup_data):
+def test_score_plot(setup_data):
     mcca, views, test_views = setup_data
     ScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
     plt.close()
 
+def test_score_plot_separate(setup_data):
+    mcca, views, test_views = setup_data
+    SeparateScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    plt.close()
+
+def test_joint_score_plot(setup_data):
+    mcca, views, test_views = setup_data
+    JointScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    plt.close()
+
+def test_joint_score_plot_separate(setup_data):
+    mcca, views, test_views = setup_data
+    SeparateJointScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    plt.close()
+
+def test_pairplot(setup_data):
+    mcca, views, test_views = setup_data
+    PairScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    plt.close()
 
 def test_covariance_heatmap_plot(setup_data):
     mcca, views, test_views = setup_data

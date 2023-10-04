@@ -46,7 +46,7 @@ class DummyCCA(BaseModel):
             / np.sqrt(np.diag(np.atleast_1d(np.cov(view @ weight, rowvar=False))))
             for view, weight in zip(views, self.weights)
         ]
-        scores = self.score(views)
+        scores = self.average_pairwise_correlations(views)
         for i, score in enumerate(scores):
             if score < 0:
                 # flip the sign of the first weights

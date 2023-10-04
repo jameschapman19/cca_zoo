@@ -41,7 +41,7 @@ def test_unregularized_methods(data):
         PCACCA(latent_dimensions=latent_dims),
     ]
 
-    scores = [method.fit([X, Y]).score((X, Y)) for method in methods]
+    scores = [method.fit([X, Y]).average_pairwise_correlations((X, Y)) for method in methods]
 
     # Comparing all scores to the score of the first method (CCA here)
     for score in scores[1:]:
