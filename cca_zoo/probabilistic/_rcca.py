@@ -6,6 +6,8 @@ from jax import random
 from cca_zoo.probabilistic._cca import ProbabilisticCCA
 import numpy as np
 
+from cca_zoo.utils import _process_parameter
+
 
 class ProbabilisticRCCA(ProbabilisticCCA):
     """
@@ -51,8 +53,8 @@ class ProbabilisticRCCA(ProbabilisticCCA):
         latent_dimensions: int = 1,
         copy_data=True,
         random_state: int = 0,
-        learning_rate=5e-4,
-        n_iter=2000,
+        learning_rate=1e-3,
+        n_iter=20000,
         num_samples=100,
         num_warmup=100,
         c=1.0,
@@ -68,9 +70,13 @@ class ProbabilisticRCCA(ProbabilisticCCA):
         )
         self.c = c
 
+    def _check_params(self):
+        # Process the c parameter for each view
+        self.c = _process_parameter("c", self.c, 0, self.n_views_)
+
     def _model(self, views):
         """
-        Defines the generative model for Probabilistic RCCA.
+        Defines the generative model for Probabilistic CCA.
 
         Parameters
         ----------
@@ -101,10 +107,10 @@ class ProbabilisticRCCA(ProbabilisticCCA):
         )
 
         # Add positive-definite constraint for psi1 and psi2
-        psi1 = numpyro.param("psi_1", jnp.eye(self.n_features_[0])) + self.c * jnp.eye(
+        psi1 = numpyro.param("psi_1", jnp.eye(self.n_features_[0])) + self.c[0] * jnp.eye(
             self.n_features_[0]
         )
-        psi2 = numpyro.param("psi_2", jnp.eye(self.n_features_[1])) + self.c * jnp.eye(
+        psi2 = numpyro.param("psi_2", jnp.eye(self.n_features_[1])) + self.c[1] * jnp.eye(
             self.n_features_[1]
         )
 
@@ -153,10 +159,10 @@ class ProbabilisticRCCA(ProbabilisticCCA):
 
     def joint(self):
         # Calculate the individual matrix blocks
-        top_left = self.params["W_1"] @ self.params["W_1"].T + self.c * jnp.eye(
+        top_left = self.params["W_1"] @ self.params["W_1"].T + self.c[0] * jnp.eye(
             self.n_features_[0]
         )
-        bottom_right = self.params["W_2"] @ self.params["W_2"].T + self.c * jnp.eye(
+        bottom_right = self.params["W_2"] @ self.params["W_2"].T + self.c[1] * jnp.eye(
             self.n_features_[1]
         )
         top_right = self.params["W_1"] @ self.params["W_2"].T

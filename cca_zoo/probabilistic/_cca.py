@@ -6,11 +6,9 @@ import numpyro
 import numpyro.distributions as dist
 from jax import random
 from jax.random import PRNGKey
-from numpyro.infer import Predictive, SVI, MCMC, NUTS
-from numpyro.infer.autoguide import AutoNormal
-
+from numpyro.infer import SVI, MCMC, NUTS
 from cca_zoo._base import BaseModel
-
+from numpyro import handlers
 
 class ProbabilisticCCA(BaseModel):
     """
@@ -55,10 +53,10 @@ class ProbabilisticCCA(BaseModel):
         latent_dimensions: int = 1,
         copy_data=True,
         random_state: int = 0,
-        learning_rate=5e-4,
-        n_iter=30000,
-        num_samples=100,
-        num_warmup=100,
+        learning_rate=1e-3,
+        n_iter=20000,
+        num_samples=1000,
+        num_warmup=500,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -94,6 +92,7 @@ class ProbabilisticCCA(BaseModel):
         - The data in each view should be normalized for optimal performance.
         """
         views = self._validate_data(views)
+        self._check_params()
         svi = SVI(
             self._model,
             self._guide,
@@ -102,35 +101,6 @@ class ProbabilisticCCA(BaseModel):
         )
         self.svi_result = svi.run(self.rng_key, self.n_iter, views)
         self.params = self.svi_result.params
-        return self
-
-    def fit_mcmc(self, views: Iterable[np.ndarray], y=None):
-        """
-        Infer the parameters and latent variables of the Probabilistic Canonical Correlation Analysis (CCA) model.
-
-        Parameters
-        ----------
-        views : Iterable[np.ndarray]
-            A list or tuple of numpy arrays representing different views of the same samples. Each numpy array must have the same number of rows.
-        y: Any, optional
-            Ignored in this implementation.
-
-        Returns
-        -------
-        self : object
-            Returns the instance itself, updated with the inferred parameters and latent variables.
-
-        Notes
-        -----
-        - The data in each view should be normalized for optimal performance.
-        """
-        views = self._validate_data(views)
-        nuts_kernel = NUTS(self._model)
-        mcmc = MCMC(
-            nuts_kernel, num_warmup=self.num_warmup, num_samples=self.num_samples
-        )
-        mcmc.run(self.rng_key, views)
-        self.params = mcmc.get_samples()
         return self
 
     def _model(self, views):
@@ -199,8 +169,6 @@ class ProbabilisticCCA(BaseModel):
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
                 ),
             )
-
-        with numpyro.plate("n", n_samples):
             numpyro.sample(
                 "X1",
                 dist.MultivariateNormal(z @ W1.T + mu1, covariance_matrix=psi1),
@@ -236,65 +204,33 @@ class ProbabilisticCCA(BaseModel):
         with numpyro.plate("n", n):
             numpyro.sample("z", dist.MultivariateNormal(z_loc, jnp.diag(z_scale)))
 
-    def transform(self, views, with_variance=False):
+    def transform(self, views: Iterable[np.ndarray], y=None, return_std=False):
         """
-        Computes the posterior mean and variance of the latent variable z given the views.
+        Transform the data into the latent space.
 
         Parameters
         ----------
         views : Iterable[np.ndarray]
-            A list or tuple of numpy arrays representing different views of the samples.
-        with_variance: bool, optional
-            If True, also returns the posterior variance of z. Default is False.
+            A list or tuple of numpy arrays representing different views of the same samples. Each numpy array must have the same number of rows.
+        y: Any, optional
+            Ignored in this implementation.
 
         Returns
         -------
-        mean : jnp.ndarray
-            Posterior mean of z.
-        var: jnp.ndarray, optional
-            Posterior variance of z. Returned only if with_variance is True.
+        z : np.ndarray
+            The transformed data in the latent space.
         """
-        # use guide to make predictive
-        predictive = Predictive(
-            self._model,
-            guide=self._guide,
-            params=self.params,
-            num_samples=self.num_samples,
-        )
-        samples_ = predictive(random.PRNGKey(1), views)
-        # get posterior samples
-        predictive = Predictive(
-            self._guide, params=self.params, num_samples=self.num_samples
-        )
-        posterior_samples = predictive(random.PRNGKey(1), views)
-        # use posterior samples to make predictive
-        predictive = Predictive(
-            self._model,
-            posterior_samples,
-            params=self.params,
-            num_samples=self.num_samples,
-            return_sites=["z"],
-        )
-        samples = predictive(random.PRNGKey(1), views)
-
-        # use guide to make predictive
-        predictive = Predictive(
-            self._model,
-            params=self.params,
-            num_samples=self.num_samples,
-            return_sites=["z"],
-        )
-        _samples = predictive(random.PRNGKey(1), views)
-
-        # Step 3: Compute posterior statistics (e.g., mean and variance)
-        z_samples = samples["z"]
-        z_posterior_mean = jnp.mean(z_samples, axis=0)
-        z_posterior_var = jnp.var(z_samples, axis=0) if with_variance else None
-
-        if with_variance:
-            return z_posterior_mean, z_posterior_var
+        conditioned_model = handlers.substitute(self._model, self.params)
+        kernel = NUTS(conditioned_model)
+        mcmc = MCMC(kernel, num_warmup=self.num_warmup, num_samples=self.num_samples)
+        mcmc.run(self.rng_key, views)
+        samples = mcmc.get_samples()
+        z = samples["z"]
+        if return_std:
+            return np.array(z.mean(axis=0)), np.array(z.std(axis=0))
         else:
-            return z_posterior_mean
+            return np.array(z.mean(axis=0))
+
 
     def render(self, views):
         # check if graphviz is installed

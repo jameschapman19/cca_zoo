@@ -41,8 +41,8 @@ class LinearSimulatedData:
         )
 
         cov_matrices, self.true_features = self._generate_covariance_matrices()
-        joint_cov = self._generate_joint_covariance(cov_matrices)
-        self.chol = np.linalg.cholesky(joint_cov)
+        self.joint_cov = self._generate_joint_covariance(cov_matrices)
+        self.chol = np.linalg.cholesky(self.joint_cov)
 
     def _generate_covariance_matrix(self, view_features, view_structure):
         """Generates a covariance matrix for a single view."""
