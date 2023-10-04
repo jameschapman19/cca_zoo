@@ -195,16 +195,16 @@ class ProbabilisticCCA(BaseModel):
 
         n = X1.shape[0] if X1 is not None else X2.shape[0]
 
-        # Variational parameters
-        z_loc = numpyro.param("z_loc", jnp.zeros((n, self.latent_dimensions)))
-        z_scale = numpyro.param(
-            "z_scale",
-            jnp.ones((n, self.latent_dimensions)),
-            constraint=dist.constraints.positive,
-        )
+        # # Variational parameters
+        # z_loc = numpyro.param("z_loc", jnp.zeros((n, self.latent_dimensions)))
+        # z_scale = numpyro.param(
+        #     "z_scale",
+        #     jnp.ones((n, self.latent_dimensions)),
+        #     constraint=dist.constraints.positive,
+        # )
 
         with numpyro.plate("n", n):
-            numpyro.sample("z", dist.MultivariateNormal(z_loc, jnp.diag(z_scale)))
+            numpyro.sample("z", dist.MultivariateNormal(jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)))
 
     def transform(self, views: Iterable[np.ndarray], y=None, return_std=False):
         """
