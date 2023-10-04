@@ -13,29 +13,6 @@ from sklearn.utils import indexable, check_random_state
 from sklearn.utils.parallel import Parallel, delayed
 
 
-def default_scoring(estimator, scoring, views):
-    if callable(scoring):
-        return scoring
-    elif scoring is None:
-        if len(views) > 2:
-
-            def scoring(estimator: Pipeline, X, y):
-                transformed_views = estimator.transform(X)
-                all_corrs = []
-                for x, y in itertools.product(transformed_views, repeat=2):
-                    all_corrs.append(
-                        np.diag(np.corrcoef(x.T, y.T)[: x.shape[1], x.shape[1] :])
-                    )
-                all_corrs = np.array(all_corrs).reshape(
-                    (len(transformed_views), len(transformed_views), x.shape[1])
-                )
-                return all_corrs
-
-        else:
-            scoring = check_scoring(estimator, scoring=scoring)
-    return scoring
-
-
 def cross_validate(
     estimator,
     views,
@@ -236,8 +213,6 @@ def permutation_test_score(
     X = np.hstack(views)
     X, y, groups = indexable(X, y, groups)
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
-    if scoring is None:
-        scoring = default_scoring(estimator, scoring, views)
     scorer = check_scoring(estimator, scoring=scoring)
     random_state = check_random_state(random_state)
 

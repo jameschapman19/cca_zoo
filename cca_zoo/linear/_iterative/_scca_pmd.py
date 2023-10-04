@@ -8,6 +8,7 @@ from cca_zoo.linear._iterative._base import BaseIterative
 from cca_zoo.linear._iterative._deflation import DeflationMixin
 from cca_zoo.linear._search import _delta_search
 from cca_zoo.utils import _process_parameter
+from cca_zoo.utils.cross_correlation import cross_corrcoef
 
 
 class SCCA_PMD(DeflationMixin, BaseIterative):
@@ -80,13 +81,11 @@ class SCCA_PMD(DeflationMixin, BaseIterative):
         # Get the scores of all views
         transformed_views = self.transform(views)
         all_covs = []
-        # Sum all the pairwise covariances except self covariance
+        # Sum all the pairwise covariances except self-covariance
         for x, y in itertools.product(transformed_views, repeat=2):
             all_covs.append(
                 np.diag(
-                    np.corrcoef(x.T, y.T)[
-                        : self.latent_dimensions, self.latent_dimensions :
-                    ]
+                    cross_corrcoef(x.T, y.T)
                 )
             )
         # the sum of covariances

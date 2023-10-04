@@ -9,6 +9,8 @@ from sklearn.base import BaseEstimator, MultiOutputMixin, RegressorMixin
 from sklearn.utils import check_random_state
 from sklearn.utils.validation import FLOAT_DTYPES, check_is_fitted, check_array
 
+from cca_zoo.utils.cross_correlation import cross_corrcoef
+
 
 class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
     """
@@ -137,60 +139,67 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self, views: Iterable[np.ndarray], **kwargs
     ) -> np.ndarray:
         """
-        Returns the pairwise correlations between the views in each dimension
+        Calculate pairwise correlations between views in each dimension.
 
         Parameters
         ----------
-        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        kwargs : any additional keyword arguments required by the given model
+        views: list/tuple of numpy arrays or array-like objects with the same number of rows (samples)
+        kwargs: any additional keyword arguments required by the given model
 
         Returns
         -------
-        pairwise_correlations : numpy array of shape (n_views, n_views, latent_dimensions)
-
+        pairwise_correlations: numpy array of shape (n_views, n_views, latent_dimensions)
         """
         transformed_views = self.transform(views, **kwargs)
         all_corrs = []
         for x, y in itertools.product(transformed_views, repeat=2):
-            all_corrs.append(
-                np.diag(
-                    np.corrcoef(x.T, y.T)[
-                        : self.latent_dimensions, self.latent_dimensions :
-                    ]
-                )
-            )
+            all_corrs.append(np.diag(cross_corrcoef(x.T, y.T)))
         all_corrs = np.array(all_corrs).reshape(
             (self.n_views_, self.n_views_, self.latent_dimensions)
         )
         return all_corrs
 
-    def score(
-        self, views: Iterable[np.ndarray], y: Optional[Any] = None, **kwargs
+    def average_pairwise_correlations(
+        self, views: Iterable[np.ndarray], **kwargs
     ) -> np.ndarray:
         """
-        Returns the average pairwise correlation between the views
+        Calculate the average pairwise correlations between views in each dimension.
 
         Parameters
         ----------
-        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        views: list/tuple of numpy arrays or array-like objects with the same number of rows (samples)
+        kwargs: any additional keyword arguments required by the given model
+
+        Returns
+        -------
+        average_pairwise_correlations: numpy array of shape (latent_dimensions, )
+        """
+        pair_corrs = self.pairwise_correlations(views, **kwargs)
+        # Sum all the pairwise correlations for each dimension, subtract self-correlations, and divide by the number of views
+        dim_corrs = np.sum(pair_corrs, axis=(0, 1)) - pair_corrs.shape[0]
+        # Number of pairs is n_views choose 2
+        num_pairs = (self.n_views_ * (self.n_views_ - 1)) / 2
+        dim_corrs = dim_corrs / (2 * num_pairs)
+        return dim_corrs
+
+    def score(
+        self, views: Iterable[np.ndarray], y: Optional[Any] = None, **kwargs
+    ) -> float:
+        """
+        Calculate the sum of average pairwise correlations between views.
+
+        Parameters
+        ----------
+        views : list/tuple of numpy arrays or array-like objects with the same number of rows (samples)
         y : None
         kwargs : any additional keyword arguments required by the given model
 
         Returns
         -------
-        score : np.ndarray of shape (latent_dimensions,)
-            Average pairwise correlation between the views in each dimension
-
-
+        score : float
+            Sum of average pairwise correlations between views.
         """
-        # by default return the average pairwise correlation in each dimension (for 2 views just the correlation)
-        pair_corrs = self.pairwise_correlations(views, **kwargs)
-        # sum all the pairwise correlations for each dimension. Subtract the self correlations. Divide by the number of views. Gives average correlation
-        dim_corrs = np.sum(pair_corrs, axis=(0, 1)) - pair_corrs.shape[0]
-        # number of pairs is n_views choose 2
-        num_pairs = (self.n_views_ * (self.n_views_ - 1)) / 2
-        dim_corrs = dim_corrs / (2 * num_pairs)
-        return dim_corrs
+        return self.average_pairwise_correlations(views, **kwargs).sum()
 
     def canonical_loadings(
         self, views: Iterable[np.ndarray], normalize: bool = True, **kwargs
@@ -226,9 +235,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         transformed_views = self.transform(views, **kwargs)
         if normalize:
             loadings = [
-                np.corrcoef(view, transformed_view, rowvar=False)[
-                    : view.shape[1], view.shape[1] :
-                ]
+                cross_corrcoef(view, transformed_view)
                 for view, transformed_view in zip(views, transformed_views)
             ]
         else:

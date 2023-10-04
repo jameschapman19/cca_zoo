@@ -22,6 +22,7 @@ def setup_data():
     Y -= Y.mean(axis=0)
     return X, Y
 
+
 def test_cca_vs_probabilisticCCA(setup_data):
     X, Y = setup_data
     # Models and fit
@@ -38,8 +39,9 @@ def test_cca_vs_probabilisticCCA(setup_data):
     correlation = correlation_matrix[0, 1]
 
     assert (
-            correlation > 0.95
+        correlation > 0.95
     ), f"Expected correlation greater than 0.95, got {correlation}"
+
 
 def test_cca_vs_probabilisticPLS(setup_data):
     X, Y = setup_data
@@ -64,11 +66,12 @@ def test_cca_vs_probabilisticPLS(setup_data):
     correlation_cca = correlation_matrix[0, 1]
 
     assert (
-            correlation_pls > correlation_cca
+        correlation_pls > correlation_cca
     ), f"Expected correlation with PLS greater than CCA, got {correlation_pls} and {correlation_cca}"
     assert (
-            correlation_pls > 0.85
+        correlation_pls > 0.85
     ), f"Expected correlation greater than 0.85, got {correlation_pls}"
+
 
 def test_cca_vs_probabilisticRidgeCCA(setup_data):
     X, Y = setup_data
