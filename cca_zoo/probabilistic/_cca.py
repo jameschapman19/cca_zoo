@@ -10,6 +10,7 @@ from numpyro.infer import SVI, MCMC, NUTS
 from cca_zoo._base import BaseModel
 from numpyro import handlers
 
+
 class ProbabilisticCCA(BaseModel):
     """
     A class for performing Maximum Likelihood Estimation (MLE) in Probabilistic Canonical Correlation Analysis (CCA) using variational inference.
@@ -230,7 +231,6 @@ class ProbabilisticCCA(BaseModel):
             return np.array(z.mean(axis=0)), np.array(z.std(axis=0))
         else:
             return np.array(z.mean(axis=0))
-
 
     def render(self, views):
         # check if graphviz is installed

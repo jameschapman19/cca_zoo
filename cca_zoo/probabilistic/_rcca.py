@@ -107,12 +107,12 @@ class ProbabilisticRCCA(ProbabilisticCCA):
         )
 
         # Add positive-definite constraint for psi1 and psi2
-        psi1 = numpyro.param("psi_1", jnp.eye(self.n_features_[0])) + self.c[0] * jnp.eye(
-            self.n_features_[0]
-        )
-        psi2 = numpyro.param("psi_2", jnp.eye(self.n_features_[1])) + self.c[1] * jnp.eye(
-            self.n_features_[1]
-        )
+        psi1 = numpyro.param("psi_1", jnp.eye(self.n_features_[0])) + self.c[
+            0
+        ] * jnp.eye(self.n_features_[0])
+        psi2 = numpyro.param("psi_2", jnp.eye(self.n_features_[1])) + self.c[
+            1
+        ] * jnp.eye(self.n_features_[1])
 
         mu1 = numpyro.param(
             "mu_1",
