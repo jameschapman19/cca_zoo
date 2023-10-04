@@ -126,7 +126,9 @@ class ProbabilisticCCA(BaseModel):
         """
         views = self._validate_data(views)
         nuts_kernel = NUTS(self._model)
-        mcmc = MCMC(nuts_kernel, num_warmup=self.num_warmup, num_samples=self.num_samples)
+        mcmc = MCMC(
+            nuts_kernel, num_warmup=self.num_warmup, num_samples=self.num_samples
+        )
         mcmc.run(self.rng_key, views)
         self.params = mcmc.get_samples()
         return self

@@ -6,6 +6,7 @@ from jax import random
 from cca_zoo.probabilistic._cca import ProbabilisticCCA
 import numpy as np
 
+
 class ProbabilisticPLS(ProbabilisticCCA):
     """
     Probabilistic Ridge Canonical Correlation Analysis (Probabilistic Ridge CCA).
