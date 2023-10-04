@@ -204,7 +204,12 @@ class ProbabilisticCCA(BaseModel):
         # )
 
         with numpyro.plate("n", n):
-            numpyro.sample("z", dist.MultivariateNormal(jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)))
+            numpyro.sample(
+                "z",
+                dist.MultivariateNormal(
+                    jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
+                ),
+            )
 
     def transform(self, views: Iterable[np.ndarray], y=None, return_std=False):
         """
