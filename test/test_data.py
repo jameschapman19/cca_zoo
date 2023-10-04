@@ -31,7 +31,11 @@ def test_cca_on_simulated_data_maintains_expected_correlation(
     model.fit((x_train, y_train))
 
     # Test model
-    assert np.allclose(model.average_pairwise_correlations((x_test, y_test)), np.array(correlation), atol=atol)
+    assert np.allclose(
+        model.average_pairwise_correlations((x_test, y_test)),
+        np.array(correlation),
+        atol=atol,
+    )
 
 
 # Additional test to verify the shape of generated data

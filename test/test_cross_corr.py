@@ -12,6 +12,7 @@ def test_crosscorrcoef():
 
     assert np.allclose(m, n)
 
+
 def test_crosscov(bias=False):
     X = np.random.rand(100, 5)
     Y = np.random.rand(100, 5) / 10

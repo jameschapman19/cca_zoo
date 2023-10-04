@@ -25,8 +25,8 @@ from cca_zoo.visualisation.umap_scores import UMAPScoreDisplay
 def setup_data():
     X = np.random.rand(100, 10)
     Y = np.random.rand(100, 10)
-    X-=X.mean(axis=0)
-    Y-=Y.mean(axis=0)
+    X -= X.mean(axis=0)
+    Y -= Y.mean(axis=0)
 
     X_train, X_test = X[:50], X[50:]
     Y_train, Y_test = Y[:50], Y[50:]
@@ -64,25 +64,30 @@ def test_score_plot(setup_data):
     ScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
     plt.close()
 
+
 def test_score_plot_separate(setup_data):
     mcca, views, test_views = setup_data
     SeparateScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
     plt.close()
+
 
 def test_joint_score_plot(setup_data):
     mcca, views, test_views = setup_data
     JointScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
     plt.close()
 
+
 def test_joint_score_plot_separate(setup_data):
     mcca, views, test_views = setup_data
     SeparateJointScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
     plt.close()
 
+
 def test_pairplot(setup_data):
     mcca, views, test_views = setup_data
     PairScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
     plt.close()
+
 
 def test_covariance_heatmap_plot(setup_data):
     mcca, views, test_views = setup_data
