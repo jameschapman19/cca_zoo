@@ -83,11 +83,7 @@ class SCCA_PMD(DeflationMixin, BaseIterative):
         all_covs = []
         # Sum all the pairwise covariances except self-covariance
         for x, y in itertools.product(transformed_views, repeat=2):
-            all_covs.append(
-                np.diag(
-                    cross_corrcoef(x.T, y.T)
-                )
-            )
+            all_covs.append(np.diag(cross_corrcoef(x.T, y.T)))
         # the sum of covariances
         return np.sum(all_covs) - np.sum(
             [
