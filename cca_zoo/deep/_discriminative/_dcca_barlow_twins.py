@@ -61,7 +61,7 @@ class BarlowTwins(DCCA):
         )  # compute the covariance term as the sum of squared values on the off-diagonal
         return {
             "objective": invariance
-            + self.lam
+            + self.lamb
             * covariance,  # return the objective value as a combination of invariance and covariance terms
             "invariance": invariance,  # return the invariance term
             "covariance": covariance,  # return the covariance term

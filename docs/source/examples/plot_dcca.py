@@ -23,7 +23,11 @@ from pytorch_lightning import seed_everything
 from matplotlib import pyplot as plt
 from cca_zoo.deep import DCCA, DCCA_EY, DCCA_NOI, DCCA_SDL, BarlowTwins, architectures
 from cca_zoo.deep._discriminative import VICReg
-from cca_zoo.visualisation import ScoreDisplay, UMAPScoreDisplay, TSNEScoreDisplay
+from cca_zoo.visualisation import (
+    ScoreScatterDisplay,
+    UMAPScoreDisplay,
+    TSNEScoreDisplay,
+)
 from docs.source.examples import example_mnist_data
 
 # %%
@@ -33,8 +37,8 @@ from docs.source.examples import example_mnist_data
 # We split the images into two halves and treat them as separate views.
 
 seed_everything(42)
-LATENT_DIMS = 5  # The dimensionality of the latent space
-EPOCHS = 1  # The number of epochs to train the models
+LATENT_DIMS = 2  # The dimensionality of the latent space
+EPOCHS = 10  # The number of epochs to train the models
 N_TRAIN = 1000  # The number of training samples
 N_VAL = 200  # The number of validation samples
 train_loader, val_loader, train_labels, val_labels = example_mnist_data(N_TRAIN, N_VAL)
@@ -61,7 +65,7 @@ trainer.fit(dcca, train_loader, val_loader)
 # For this, we provide three options: Scatter, UMAP and t-SNE.
 
 # Scatterplot of the latent space
-score_display = ScoreDisplay.from_estimator(
+score_display = ScoreScatterDisplay.from_estimator(
     dcca, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
@@ -98,7 +102,7 @@ trainer = pl.Trainer(
     enable_checkpointing=False,
 )
 trainer.fit(dcca_eg, train_loader, val_loader)
-score_display = ScoreDisplay.from_estimator(
+score_display = ScoreScatterDisplay.from_estimator(
     dcca_eg, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
@@ -117,7 +121,7 @@ trainer = pl.Trainer(
     enable_checkpointing=False,
 )
 trainer.fit(dcca_noi, train_loader, val_loader)
-score_display = ScoreDisplay.from_estimator(
+score_display = ScoreScatterDisplay.from_estimator(
     dcca_noi, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
@@ -138,7 +142,7 @@ trainer = pl.Trainer(
     enable_checkpointing=False,
 )
 trainer.fit(dcca_sdl, train_loader, val_loader)
-score_display = ScoreDisplay.from_estimator(
+score_display = ScoreScatterDisplay.from_estimator(
     dcca_sdl, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
@@ -160,7 +164,7 @@ trainer = pl.Trainer(
     enable_checkpointing=False,
 )
 trainer.fit(barlowtwins, train_loader, val_loader)
-score_display = ScoreDisplay.from_estimator(
+score_display = ScoreScatterDisplay.from_estimator(
     barlowtwins, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
@@ -182,7 +186,7 @@ trainer = pl.Trainer(
     enable_checkpointing=False,
 )
 trainer.fit(dcca_vicreg, train_loader, val_loader)
-score_display = ScoreDisplay.from_estimator(
+score_display = ScoreScatterDisplay.from_estimator(
     dcca_vicreg, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()

@@ -1,10 +1,10 @@
 import seaborn as sns
 
 from cca_zoo.utils.check_values import check_umap_support, check_seaborn_support
-from cca_zoo.visualisation import ScoreDisplay
+from cca_zoo.visualisation import ScoreScatterDisplay
 
 
-class UMAPScoreDisplay(ScoreDisplay):
+class UMAPScoreDisplay(ScoreScatterDisplay):
     def _validate_plot_params(self):
         check_umap_support("UMAPScoreDisplay")
         check_seaborn_support("TSNEScoreDisplay")

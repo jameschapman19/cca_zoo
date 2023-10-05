@@ -2,7 +2,7 @@ import pytest
 from cca_zoo.visualisation import (
     CovarianceHeatmapDisplay,
     CorrelationHeatmapDisplay,
-    ScoreDisplay,
+    ScoreScatterDisplay,
     WeightHeatmapDisplay,
     ExplainedVarianceDisplay,
     ExplainedCovarianceDisplay,
@@ -12,10 +12,10 @@ from cca_zoo.linear import MCCA
 import matplotlib.pyplot as plt
 
 from cca_zoo.visualisation.scores import (
-    JointScoreDisplay,
-    SeparateScoreDisplay,
+    JointScoreScatterDisplay,
+    SeparateScoreScatterDisplay,
     SeparateJointScoreDisplay,
-    PairScoreDisplay,
+    PairScoreScatterDisplay,
 )
 from cca_zoo.visualisation.tsne_scores import TSNEScoreDisplay
 from cca_zoo.visualisation.umap_scores import UMAPScoreDisplay
@@ -61,31 +61,33 @@ def test_weight_heatmap_plot(setup_data):
 
 def test_score_plot(setup_data):
     mcca, views, test_views = setup_data
-    ScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    ScoreScatterDisplay.from_estimator(mcca, views, test_views=test_views, ax_labels=['Brain','Behaviour']).plot()
     plt.close()
 
 
 def test_score_plot_separate(setup_data):
     mcca, views, test_views = setup_data
-    SeparateScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    SeparateScoreScatterDisplay.from_estimator(
+        mcca, views, test_views=test_views, ax_labels=['Brain','Behaviour']
+    ).plot()
     plt.close()
 
 
 def test_joint_score_plot(setup_data):
     mcca, views, test_views = setup_data
-    JointScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    JointScoreScatterDisplay.from_estimator(mcca, views, test_views=test_views, ax_labels=['Brain','Behaviour']).plot()
     plt.close()
 
 
 def test_joint_score_plot_separate(setup_data):
     mcca, views, test_views = setup_data
-    SeparateJointScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    SeparateJointScoreDisplay.from_estimator(mcca, views, test_views=test_views, ax_labels=['Brain','Behaviour']).plot()
     plt.close()
 
 
 def test_pairplot(setup_data):
     mcca, views, test_views = setup_data
-    PairScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    PairScoreScatterDisplay.from_estimator(mcca, views, test_views=test_views).plot()
     plt.close()
 
 

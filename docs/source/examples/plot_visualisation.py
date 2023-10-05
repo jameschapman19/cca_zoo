@@ -12,7 +12,7 @@ This example will guide you through CCA-Zoo's built-in plotting functionalities,
 from cca_zoo.visualisation import (
     CovarianceHeatmapDisplay,
     CorrelationHeatmapDisplay,
-    ScoreDisplay,
+    ScoreScatterDisplay,
     WeightHeatmapDisplay,
     ExplainedVarianceDisplay,
     ExplainedCovarianceDisplay,
@@ -76,7 +76,7 @@ print("Did you know? Large weights are usually more influential in the model.")
 # The Scoreboard
 # --------------
 # Score heatmaps help you visualize how the CCA projections from multiple views relate to each other.
-ScoreDisplay.from_estimator(
+ScoreScatterDisplay.from_estimator(
     mcca, views, test_views=test_views, labels=Cats_train, test_labels=Cats_test
 ).plot()
 plt.show()

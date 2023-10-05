@@ -1,10 +1,10 @@
 from .explained_variance import ExplainedVarianceDisplay
 from .scores import (
-    ScoreDisplay,
-    JointScoreDisplay,
-    SeparateScoreDisplay,
+    ScoreScatterDisplay,
+    JointScoreScatterDisplay,
+    SeparateScoreScatterDisplay,
     SeparateJointScoreDisplay,
-    PairScoreDisplay,
+    PairScoreScatterDisplay,
 )
 from .explained_covariance import ExplainedCovarianceDisplay
 from .weights import WeightHeatmapDisplay
@@ -16,11 +16,11 @@ from .inference import WeightInferenceDisplay
 
 __all__ = [
     "ExplainedVarianceDisplay",
-    "ScoreDisplay",
-    "JointScoreDisplay",
-    "SeparateScoreDisplay",
+    "ScoreScatterDisplay",
+    "JointScoreScatterDisplay",
+    "SeparateScoreScatterDisplay",
     "SeparateJointScoreDisplay",
-    "PairScoreDisplay",
+    "PairScoreScatterDisplay",
     "ExplainedCovarianceDisplay",
     "WeightHeatmapDisplay",
     "CorrelationHeatmapDisplay",
