@@ -16,6 +16,10 @@ from cca_zoo.visualisation import (
     WeightHeatmapDisplay,
     ExplainedVarianceDisplay,
     ExplainedCovarianceDisplay,
+    SeparateScoreScatterDisplay,
+    JointScoreScatterDisplay,
+    SeparateJointScoreDisplay,
+    PairScoreScatterDisplay,
 )
 import matplotlib.pyplot as plt
 import numpy as np
@@ -72,16 +76,58 @@ WeightHeatmapDisplay.from_estimator(mcca).plot()
 plt.show()
 print("Did you know? Large weights are usually more influential in the model.")
 
-# %%
 # The Scoreboard
 # --------------
 # Score heatmaps help you visualize how the CCA projections from multiple views relate to each other.
-ScoreScatterDisplay.from_estimator(
+
+# Example using ScoreScatterDisplay
+score_plot = ScoreScatterDisplay.from_estimator(
     mcca, views, test_views=test_views, labels=Cats_train, test_labels=Cats_test
-).plot()
+)
+score_plot.plot()
 plt.show()
 print(
-    "Takeaway: Looking for clusters or patterns here can validate your model's effectiveness."
+    "In this plot, you can visualize the CCA projections from multiple views. It's useful for identifying clusters or patterns, which can help validate your model's effectiveness."
+)
+
+# Example using SeparateScoreScatterDisplay
+separate_score_plot = SeparateScoreScatterDisplay.from_estimator(
+    mcca, views, test_views=test_views, labels=Cats_train, test_labels=Cats_test
+)
+separate_score_plot.plot()
+plt.show()
+print(
+    "This plot separates the train and test scores onto different figures. It's helpful when you want to compare the performance of your model on training and testing data separately."
+)
+
+# Example using JointScoreScatterDisplay
+joint_score_plot = JointScoreScatterDisplay.from_estimator(
+    mcca, views, test_views=test_views, labels=Cats_train, test_labels=Cats_test
+)
+joint_score_plot.plot()
+plt.show()
+print(
+    "The Joint Plot shows the distribution of the scores for each view on the x and y axis. It can help you understand how the two views relate to each other in a joint distribution."
+)
+
+# Example using SeparateJointScoreDisplay
+separate_joint_score_plot = SeparateJointScoreDisplay.from_estimator(
+    mcca, views, test_views=test_views, labels=Cats_train, test_labels=Cats_test
+)
+separate_joint_score_plot.plot()
+plt.show()
+print(
+    "Similar to the Joint Plot, but it separates train and test scores onto different figures. Useful when you want to analyze their distributions separately."
+)
+
+# Example using PairScoreScatterDisplay
+pair_score_plot = PairScoreScatterDisplay.from_estimator(
+    mcca, views, test_views=test_views, labels=Cats_train, test_labels=Cats_test
+)
+pair_score_plot.plot()
+plt.show()
+print(
+    "The Pair Plot visualizes the pairwise relationships between scores. It can be helpful for identifying correlations or dependencies between views."
 )
 
 # %%
