@@ -61,27 +61,33 @@ def test_weight_heatmap_plot(setup_data):
 
 def test_score_plot(setup_data):
     mcca, views, test_views = setup_data
-    ScoreScatterDisplay.from_estimator(mcca, views, test_views=test_views, ax_labels=['Brain','Behaviour']).plot()
+    ScoreScatterDisplay.from_estimator(
+        mcca, views, test_views=test_views, ax_labels=["Brain", "Behaviour"]
+    ).plot()
     plt.close()
 
 
 def test_score_plot_separate(setup_data):
     mcca, views, test_views = setup_data
     SeparateScoreScatterDisplay.from_estimator(
-        mcca, views, test_views=test_views, ax_labels=['Brain','Behaviour']
+        mcca, views, test_views=test_views, ax_labels=["Brain", "Behaviour"]
     ).plot()
     plt.close()
 
 
 def test_joint_score_plot(setup_data):
     mcca, views, test_views = setup_data
-    JointScoreScatterDisplay.from_estimator(mcca, views, test_views=test_views, ax_labels=['Brain','Behaviour']).plot()
+    JointScoreScatterDisplay.from_estimator(
+        mcca, views, test_views=test_views, ax_labels=["Brain", "Behaviour"]
+    ).plot()
     plt.close()
 
 
 def test_joint_score_plot_separate(setup_data):
     mcca, views, test_views = setup_data
-    SeparateJointScoreDisplay.from_estimator(mcca, views, test_views=test_views, ax_labels=['Brain','Behaviour']).plot()
+    SeparateJointScoreDisplay.from_estimator(
+        mcca, views, test_views=test_views, ax_labels=["Brain", "Behaviour"]
+    ).plot()
     plt.close()
 
 
