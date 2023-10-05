@@ -121,9 +121,3 @@ pcca.fit(views)
 # - Inspect and visualize the posterior parameter distributions, comparing them with their true values.
 
 z = pcca.transform(views)
-
-# %%
-# Visualize
-
-WeightInferenceDisplay.from_estimator(pcca).plot()
-plt.show()
