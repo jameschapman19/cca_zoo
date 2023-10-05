@@ -3,6 +3,7 @@ import torch
 from ._dcca import DCCA
 import torch.nn.functional as F
 
+
 class VICReg(DCCA):
     """
     A class used to fit a VICReg model.
@@ -47,13 +48,17 @@ class VICReg(DCCA):
         sim_loss = invariance_loss(*z)
         var_loss = variance_loss(*z)
         cov_loss = covariance_loss(*z)
-        loss = self.sim_loss_weight * sim_loss + self.var_loss_weight * var_loss + self.cov_loss_weight * cov_loss
+        loss = (
+            self.sim_loss_weight * sim_loss
+            + self.var_loss_weight * var_loss
+            + self.cov_loss_weight * cov_loss
+        )
         return {
-                    "objective": loss,  # return the loss
-                    "sim_loss": sim_loss,
-                    "var_loss": var_loss,
-                    "cov_loss": cov_loss,
-                }
+            "objective": loss,  # return the loss
+            "sim_loss": sim_loss,
+            "var_loss": var_loss,
+            "cov_loss": cov_loss,
+        }
 
 
 # Copyright 2023 solo-learn development team.
@@ -74,6 +79,7 @@ class VICReg(DCCA):
 # FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+
 
 def invariance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
     """Computes mse loss given batch of projected features z1 from view 1 and
@@ -129,5 +135,7 @@ def covariance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
     cov_z2 = (z2.T @ z2) / (N - 1)
 
     diag = torch.eye(D, device=z1.device)
-    cov_loss = cov_z1[~diag.bool()].pow_(2).sum() / D + cov_z2[~diag.bool()].pow_(2).sum() / D
+    cov_loss = (
+        cov_z1[~diag.bool()].pow_(2).sum() / D + cov_z2[~diag.bool()].pow_(2).sum() / D
+    )
     return cov_loss
