@@ -15,12 +15,12 @@ class UMAPScoreDisplay(ScoreDisplay):
         import matplotlib.pyplot as plt
 
         reducer = umap.UMAP()
-        embedding = reducer.fit_transform(self.train_scores[0])
+        embedding = reducer.fit_transform(self.scores[0])
         fig, ax = plt.subplots()
         sns.scatterplot(
             x=embedding[:, 0],
             y=embedding[:, 1],
-            hue=self.train_labels,
+            hue=self.labels,
             ax=ax,
             alpha=0.1 if self.test_scores is not None else 1.0,
             label="Train" if self.test_scores is not None else None,

@@ -22,6 +22,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
 from matplotlib import pyplot as plt
 from cca_zoo.deep import DCCA, DCCA_EY, DCCA_NOI, DCCA_SDL, BarlowTwins, architectures
+from cca_zoo.deep._discriminative import VICReg
 from cca_zoo.visualisation import ScoreDisplay, UMAPScoreDisplay, TSNEScoreDisplay
 from docs.source.examples import example_mnist_data
 
@@ -33,13 +34,14 @@ from docs.source.examples import example_mnist_data
 
 seed_everything(42)
 LATENT_DIMS = 5  # The dimensionality of the latent space
-EPOCHS = 10  # The number of epochs to train the models
+EPOCHS = 1  # The number of epochs to train the models
 N_TRAIN = 1000  # The number of training samples
 N_VAL = 200  # The number of validation samples
 train_loader, val_loader, train_labels, val_labels = example_mnist_data(N_TRAIN, N_VAL)
 
 encoder_1 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=392)
 encoder_2 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=392)
+
 
 # %%
 # Deep CCA
@@ -163,4 +165,26 @@ score_display = ScoreDisplay.from_estimator(
 )
 score_display.plot()
 score_display.figure_.suptitle("Deep CCA by Barlow Twins")
+plt.show()
+
+# %%
+# Deep CCA by VICReg
+# ----------------------------------------------
+# Deep CCA by VICReg is a self-supervised learning method that learns representations
+# that are invariant to distortions of the same data. It can be seen as a special case of Deep CCA
+# where the two views are random distortions of the same input.
+
+dcca_vicreg = DCCA_SDL(
+    latent_dimensions=LATENT_DIMS, N=N_TRAIN, encoders=[encoder_1, encoder_2]
+)
+trainer = pl.Trainer(
+    max_epochs=EPOCHS,
+    enable_checkpointing=False,
+)
+trainer.fit(dcca_vicreg, train_loader, val_loader)
+score_display = ScoreDisplay.from_estimator(
+    dcca_vicreg, val_loader, labels=val_labels.astype(str)
+)
+score_display.plot()
+score_display.figure_.suptitle("Deep CCA by VICReg")
 plt.show()

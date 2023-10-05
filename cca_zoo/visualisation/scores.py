@@ -12,7 +12,7 @@ class ScoreDisplay:
     Display the scores of a model.
 
     Args:
-        train_scores (tuple): Tuple of two arrays representing training scores for two views.
+        scores (tuple): Tuple of two arrays representing training scores for two views.
         test_scores (tuple, optional): Tuple of two arrays representing test scores for two views. Default is None.
         labels (array-like, optional): Labels for training data. Default is None.
         test_labels (array-like, optional): Labels for test data. Default is None.
@@ -26,27 +26,23 @@ class ScoreDisplay:
 
     def __init__(
         self,
-        train_scores,
+        scores,
         test_scores=None,
         labels=None,
         test_labels=None,
         show_corr=True,
         **kwargs,
     ):
-        self.train_scores = train_scores
+        self.scores = scores
         self.test_scores = test_scores
+        self.labels = labels
+        self.test_labels = test_labels
         (
             self.combined_scores_x,
             self.combined_scores_y,
             self.mode_labels,
+            self.combined_labels,
         ) = self._combine_scores()
-        self.train_labels = labels
-        self.test_labels = test_labels
-        # if both train and test labels are not None, combine them
-        if self.train_labels is not None and self.test_labels is not None:
-            self.combined_labels = np.vstack((self.train_labels, self.test_labels))
-        else:
-            self.combined_labels = self.mode_labels
         self.kwargs = kwargs
         self.show_corr = show_corr
         if self.show_corr:
@@ -54,21 +50,27 @@ class ScoreDisplay:
 
     def _combine_scores(self):
         if self.test_scores is not None:
-            combined_x = np.vstack((self.train_scores[0], self.test_scores[0]))
-            combined_y = np.vstack((self.train_scores[1], self.test_scores[1]))
+            combined_x = np.vstack((self.scores[0], self.test_scores[0]))
+            combined_y = np.vstack((self.scores[1], self.test_scores[1]))
             mode_labels = np.array(
-                ["Train"] * len(self.train_scores[0])
-                + ["Test"] * len(self.test_scores[0])
+                ["Train"] * len(self.scores[0]) + ["Test"] * len(self.test_scores[0])
             )
+            if self.labels is not None:
+                combined_labels = self.labels
+                if self.test_labels is not None:
+                    combined_labels = np.concatenate((self.labels, self.test_labels))
+            else:
+                combined_labels = None
         else:
-            combined_x = self.train_scores[0]
-            combined_y = self.train_scores[1]
+            combined_x = self.scores[0]
+            combined_y = self.scores[1]
             mode_labels = None
-        return combined_x, combined_y, mode_labels
+            combined_labels = self.labels
+        return combined_x, combined_y, mode_labels, combined_labels
 
     def _calculate_correlations(self):
         train_corrs = np.diag(
-            cross_corrcoef(self.train_scores[0], self.train_scores[1], rowvar=False)
+            cross_corrcoef(self.scores[0], self.scores[1], rowvar=False)
         )
         test_corrs = None
         if self.test_scores is not None:
@@ -117,50 +119,51 @@ class ScoreDisplay:
 
         return cls(train_scores, test_scores, **kwargs)
 
-    def plot(self):
+    def plot(self, title=None):
         """
         Plot the scores.
 
         Returns:
             ScoreDisplay: The ScoreDisplay instance.
         """
-        dimensions = self.train_scores[0].shape[1]
-
-        fig, ax = plt.subplots(dimensions)
+        dimensions = self.scores[0].shape[1]
+        self.figures_ = []
 
         for i in range(dimensions):
-            sns.scatterplot(
+            # Create a new figure for each dimension
+            fig, ax = plt.subplots()
+            g = sns.scatterplot(
                 x=self.combined_scores_x[:, i],
                 y=self.combined_scores_y[:, i],
                 hue=self.combined_labels,
-                ax=ax[i],
-                label="Train" if self.test_scores is not None else None,
+                ax=ax,  # Specify the axis for the scatter plot
                 **self.kwargs,
             )
-            ax[i].set_title(f"Latent Dimension {i+1}")
+            # set title
+            g.set_title(f"Latent Dimension {i+1}")
 
             if self.show_corr:
                 if self.test_scores is None:
-                    # put correlation as text in top left corner
-                    ax[i].text(
+                    # Put correlation as text in top left corner
+                    ax.text(
                         0.05,
                         0.95,
-                        f"Train Corr: {self.train_corrs[i]:.2f}",
-                        transform=ax[i].transAxes,
+                        f"Corr: {self.train_corrs[i]:.2f}",
+                        transform=ax.transAxes,
                         verticalalignment="top",
                     )
                 else:
-                    # put correlation as text in top left corner
-                    ax[i].text(
+                    # Put correlation as text in top left corner
+                    ax.text(
                         0.05,
                         0.95,
                         f"Test Corr: {self.test_corrs[i]:.2f}",
-                        transform=ax[i].transAxes,
+                        transform=ax.transAxes,
                         verticalalignment="top",
                     )
-            sns.move_legend(ax[i], "lower right", ncol=2)
-        plt.tight_layout()
-        self.figure_ = fig
+            sns.move_legend(g, "lower right")
+            plt.tight_layout()
+            self.figures_.append(fig)
         return self
 
 
@@ -172,51 +175,49 @@ class SeparateScoreDisplay(ScoreDisplay):
         Returns:
             ScoreDisplay: The ScoreDisplay instance.
         """
-        dimensions = self.train_scores[0].shape[1]
+        dimensions = self.scores[0].shape[1]
 
-        fig, ax = plt.subplots(
-            dimensions, 2, squeeze=False
-        )  # Create two columns for each dimension
+        self.figures_ = []
 
         for i in range(dimensions):
-            if self.show_corr:
-                ax[i, 0].text(
-                    0.05,
-                    0.95,
-                    f"Corr: {self.train_corrs[i]:.2f}",
-                    transform=ax[i, 0].transAxes,
-                    verticalalignment="top",
-                )
+            fig, ax = plt.subplots(1, 2, figsize=(10, 5))
             # Plotting training scores
             sns.scatterplot(
-                x=self.train_scores[0][:, i],
-                y=self.train_scores[1][:, i],
-                hue=self.train_labels,
-                ax=ax[i, 0],
+                x=self.scores[0][:, i],
+                y=self.scores[1][:, i],
+                hue=self.labels,
+                ax=ax[0],
                 **self.kwargs,
             )
-            ax[i, 0].set_title(f"Train - Latent Dimension {i+1}")
-
-            # Plotting testing scores if available
-            if self.test_scores is not None:
-                if self.show_corr:
-                    ax[i, 1].text(
-                        0.05,
-                        0.95,
-                        f"Corr: {self.test_corrs[i]:.2f}",
-                        transform=ax[i, 1].transAxes,
-                        verticalalignment="top",
-                    )
-                sns.scatterplot(
-                    x=self.test_scores[0][:, i],
-                    y=self.test_scores[1][:, i],
-                    hue=self.test_labels,
-                    ax=ax[i, 1],
-                    **self.kwargs,
+            if self.show_corr:
+                ax[0].text(
+                    0.05,
+                    0.95,
+                    f"Train Corr: {self.train_corrs[i]:.2f}",
+                    transform=ax[i].transAxes,
+                    verticalalignment="top",
                 )
-                ax[i, 1].set_title(f"Test - Latent Dimension {i+1}")
-        plt.tight_layout()
-        self.figure_ = fig
+
+            ax[0].set_title(f"Train - Latent Dimension {i+1}")
+
+            if self.show_corr:
+                ax[1].text(
+                    0.05,
+                    0.95,
+                    f"Corr: {self.test_corrs[i]:.2f}",
+                    transform=ax[1].transAxes,
+                    verticalalignment="top",
+                )
+            sns.scatterplot(
+                x=self.test_scores[0][:, i],
+                y=self.test_scores[1][:, i],
+                hue=self.test_labels,
+                ax=ax[1],
+                **self.kwargs,
+            )
+            ax[1].set_title(f"Test - Latent Dimension {i+1}")
+            plt.tight_layout()
+            self.figures_.append(fig)
         return self
 
 
@@ -228,11 +229,11 @@ class JointScoreDisplay(ScoreDisplay):
         Returns:
             ScoreDisplay: The ScoreDisplay instance.
         """
-        dimensions = self.train_scores[0].shape[1]
+        dimensions = self.scores[0].shape[1]
 
         self.figures_ = []
 
-        if self.train_labels is None:
+        if self.labels is None:
             for i in range(dimensions):
                 g = sns.jointplot(
                     x=self.combined_scores_x[:, i],
@@ -246,7 +247,7 @@ class JointScoreDisplay(ScoreDisplay):
                         g.ax_joint.text(
                             0.05,
                             0.95,
-                            f"Train Corr: {self.train_corrs[i]:.2f}",
+                            f"Corr: {self.train_corrs[i]:.2f}",
                             transform=g.ax_joint.transAxes,
                             verticalalignment="top",
                         )
@@ -272,7 +273,7 @@ class SeparateJointScoreDisplay(SeparateScoreDisplay):
         Returns:
             ScoreDisplay: The ScoreDisplay instance.
         """
-        dimensions = self.train_scores[0].shape[1]
+        dimensions = self.scores[0].shape[1]
 
         self.train_figures_ = []
         self.test_figures_ = []
@@ -280,9 +281,9 @@ class SeparateJointScoreDisplay(SeparateScoreDisplay):
         for i in range(dimensions):
             # Plotting training scores
             g = sns.jointplot(
-                x=self.train_scores[0][:, i],
-                y=self.train_scores[1][:, i],
-                hue=self.train_labels,
+                x=self.scores[0][:, i],
+                y=self.scores[1][:, i],
+                hue=self.labels,
                 **self.kwargs,
             )
             if self.show_corr:

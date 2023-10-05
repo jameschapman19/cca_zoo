@@ -35,7 +35,7 @@ This example demonstrates multiview linear which can reconstruct their inputs
 # dropout = 0.1
 # layer_sizes = (1024, 1024, 1024)
 #
-# train_loader, val_loader, train_labels = example_mnist_data(
+# train_loader, val_loader, labels = example_mnist_data(
 #     N_TRAIN, N_VAL, type="noisy"
 # )
 #
@@ -73,7 +73,7 @@ This example demonstrates multiview linear which can reconstruct their inputs
 #     log_every_n_steps=1,
 # )
 # trainer.fit(dvcca, train_loader, val_loader)
-# tsne_label(dvcca.transform(train_loader)["shared"], train_labels)
+# tsne_label(dvcca.transform(train_loader)["shared"], labels)
 # plot_reconstruction(dvcca, train_loader)
 # plt.suptitle("DVCCA")
 # plt.show()
@@ -120,7 +120,7 @@ This example demonstrates multiview linear which can reconstruct their inputs
 #     log_every_n_steps=1,
 # )
 # trainer.fit(dvccap, train_loader, val_loader)
-# tsne_label(dvccap.transform(train_loader)["shared"], train_labels)
+# tsne_label(dvccap.transform(train_loader)["shared"], labels)
 # plot_reconstruction(dvccap, train_loader)
 # plt.suptitle("DVCCA Private")
 # plt.show()
@@ -160,7 +160,7 @@ This example demonstrates multiview linear which can reconstruct their inputs
 #     log_every_n_steps=1,
 # )
 # trainer.fit(dccae, train_loader, val_loader)
-# tsne_label(dccae.transform(train_loader)[0], train_labels)
+# tsne_label(dccae.transform(train_loader)[0], labels)
 # plot_reconstruction(dccae, train_loader)
 # plt.suptitle("DCCAE")
 # plt.show()
@@ -196,7 +196,7 @@ This example demonstrates multiview linear which can reconstruct their inputs
 #     log_every_n_steps=1,
 # )
 # trainer.fit(splitae, train_loader, val_loader)
-# tsne_label(splitae.transform(train_loader)[0], train_labels)
+# tsne_label(splitae.transform(train_loader)[0], labels)
 # plot_reconstruction(splitae, train_loader)
 # plt.suptitle("SplitAE")
 # plt.show()

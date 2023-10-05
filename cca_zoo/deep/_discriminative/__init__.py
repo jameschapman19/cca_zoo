@@ -7,6 +7,7 @@ from ._dcca_sdl import DCCA_SDL
 from ._dcca_svd import DCCA_SVD
 from ._dgcca import DGCCA
 from ._dtcca import DTCCA
+from ._dcca_vicreg import VICReg
 
 __all__ = [
     "DCCA",
