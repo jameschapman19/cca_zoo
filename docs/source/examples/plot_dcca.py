@@ -68,7 +68,7 @@ trainer.fit(dcca, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     dcca, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot()
+score_display.plot(title="Deep CCA")
 plt.show()
 
 # UMAP Visualization
@@ -104,7 +104,7 @@ trainer.fit(dcca_eg, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     dcca_eg, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot()
+score_display.plot(title="Deep CCA EY")
 plt.show()
 
 # %%
@@ -122,7 +122,7 @@ trainer.fit(dcca_noi, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     dcca_noi, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot()
+score_display.plot(title="Deep CCA NOI")
 plt.show()
 
 # %%
@@ -142,7 +142,7 @@ trainer.fit(dcca_sdl, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     dcca_sdl, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot()
+score_display.plot(title="Deep CCA SDL")
 plt.show()
 
 # %%
@@ -163,7 +163,7 @@ trainer.fit(barlowtwins, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     barlowtwins, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot()
+score_display.plot(title="Barlow Twins")
 plt.show()
 
 # %%
@@ -184,5 +184,5 @@ trainer.fit(dcca_vicreg, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     dcca_vicreg, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot()
+score_display.plot(title="VICReg")
 plt.show()

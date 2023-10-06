@@ -18,6 +18,7 @@ import time
 
 from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.linear import CCA, CCA_EY
+from cca_zoo.visualisation import ScoreScatterDisplay
 
 # %%
 # Data
@@ -65,17 +66,12 @@ X_test_cca, Y_test_cca = cca.transform([X_test, Y_test])
 end_time = time.time()
 elapsed_time = end_time - start_time
 
-# We compute the correlation between the transformed views on the test set
-cca_corr = np.corrcoef(X_test_cca[:, 0], Y_test_cca[:, 0])[0, 1]
-
-# We plot the transformed views on a scatter plot with different colors for train and test sets
-plt.figure()
-plt.scatter(X_train_cca[:, 0], Y_train_cca[:, 0], c="b", label="Train")
-plt.scatter(X_test_cca[:, 0], Y_test_cca[:, 0], c="r", label="Test")
-plt.xlabel("views latent")
-plt.ylabel("Y latent")
-plt.title(f"CCA (Corr: {cca_corr:.2f}, Time: {elapsed_time:.2f} s)")
-plt.legend()
+score_display = ScoreScatterDisplay.from_estimator(
+    cca, [X_train, Y_train], [X_test, Y_test]
+)
+score_display.plot(
+    title=f"CCA (Time: {elapsed_time:.2f} s)"
+)
 plt.show()
 
 # %%
@@ -88,7 +84,7 @@ batch_sizes = [200, 100, 50, 20, 10]
 for batch_size in batch_sizes:
     ccaey = CCA_EY(
         latent_dimensions=latent_dims,
-        epochs=5,
+        epochs=10,
         batch_size=batch_size,
         learning_rate=0.001,
         random_state=42,
@@ -99,26 +95,17 @@ for batch_size in batch_sizes:
 
     # We fit the model on the train set and transform both views
     ccaey.fit([X_train, Y_train])
-    X_train_ccae, Y_train_ccae = ccaey.transform([X_train, Y_train])
-    X_test_ccae, Y_test_ccae = ccaey.transform([X_test, Y_test])
 
     # We record the end time of the model fitting and compute the elapsed time
     end_time = time.time()
     elapsed_time = end_time - start_time
 
-    # We compute the correlation between the transformed views on the test set
-    ccaey_corr = np.corrcoef(X_test_ccae[:, 0], Y_test_ccae[:, 0])[0, 1]
-
     # We plot the transformed views on a scatter plot with different colors for train and test sets
-    plt.figure()
-    plt.scatter(X_train_ccae[:, 0], Y_train_ccae[:, 0], c="b", label="Train")
-    plt.scatter(X_test_ccae[:, 0], Y_test_ccae[:, 0], c="r", label="Test")
-    plt.xlabel("views latent")
-    plt.ylabel("Y latent")
-    plt.title(
-        f"CCA_EY (Batch size: {batch_size}, Corr: {ccaey_corr:.2f}, Time: {elapsed_time:.2f} s)"
+    # Use ScoreScatterDisplay or a similar plotting class for the visualization
+    score_display = ScoreScatterDisplay.from_estimator(ccaey, [X_train, Y_train], [X_test, Y_test])
+    score_display.plot(
+        title=f"CCA_EY (Batch size: {batch_size}, Time: {elapsed_time:.2f} s)"
     )
-    plt.legend()
     plt.show()
 
 # %%
