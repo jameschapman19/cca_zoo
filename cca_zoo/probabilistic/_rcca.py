@@ -144,7 +144,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
                 "X1",
                 dist.MultivariateNormal(
                     z @ W1.T + mu1,
-                    covariance_matrix=(1-self.c[0])*psi1,
+                    covariance_matrix=(1 - self.c[0]) * psi1,
                 ),
                 obs=X1,
             )
@@ -152,7 +152,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
                 "X2",
                 dist.MultivariateNormal(
                     z @ W2.T + mu2,
-                    covariance_matrix=(1-self.c[1])*psi2,
+                    covariance_matrix=(1 - self.c[1]) * psi2,
                 ),
                 obs=X2,
             )
