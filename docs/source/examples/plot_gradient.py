@@ -69,9 +69,7 @@ elapsed_time = end_time - start_time
 score_display = ScoreScatterDisplay.from_estimator(
     cca, [X_train, Y_train], [X_test, Y_test]
 )
-score_display.plot(
-    title=f"CCA (Time: {elapsed_time:.2f} s)"
-)
+score_display.plot(title=f"CCA (Time: {elapsed_time:.2f} s)")
 plt.show()
 
 # %%
@@ -102,7 +100,9 @@ for batch_size in batch_sizes:
 
     # We plot the transformed views on a scatter plot with different colors for train and test sets
     # Use ScoreScatterDisplay or a similar plotting class for the visualization
-    score_display = ScoreScatterDisplay.from_estimator(ccaey, [X_train, Y_train], [X_test, Y_test])
+    score_display = ScoreScatterDisplay.from_estimator(
+        ccaey, [X_train, Y_train], [X_test, Y_test]
+    )
     score_display.plot(
         title=f"CCA_EY (Batch size: {batch_size}, Time: {elapsed_time:.2f} s)"
     )
