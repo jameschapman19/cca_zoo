@@ -17,7 +17,6 @@ class BatchWhiten(Module):
         device=None,
         dtype=None,
     ) -> None:
-
         factory_kwargs = {"device": device, "dtype": dtype}
         super(BatchWhiten, self).__init__()
 
@@ -80,9 +79,13 @@ class BatchWhiten(Module):
         if self.training:
             bn_training = True
         else:
-            bn_training = (self.running_covar is None)
+            bn_training = self.running_covar is None
 
-        running_covar=self.running_covar if not self.training or self.track_running_stats else None
+        running_covar = (
+            self.running_covar
+            if not self.training or self.track_running_stats
+            else None
+        )
 
         # Calculate batch covariance
         covar = torch.matmul(input.T, input) / input.shape[0]
@@ -91,7 +94,9 @@ class BatchWhiten(Module):
         if bn_training:
             with torch.no_grad():
                 if running_covar is not None:
-                    running_covar.mul_(exponential_average_factor).add_(covar, alpha=1 - exponential_average_factor)
+                    running_covar.mul_(exponential_average_factor).add_(
+                        covar, alpha=1 - exponential_average_factor
+                    )
 
                 # Calculate whitened input
                 if running_covar is not None:
@@ -103,6 +108,7 @@ class BatchWhiten(Module):
                 # Calculate whitened input
                 input = torch.matmul(input, B)
                 return input
+
 
 def inv_sqrtm(A, eps=1e-9):
     """Compute the inverse square-root of a positive definite matrix."""
