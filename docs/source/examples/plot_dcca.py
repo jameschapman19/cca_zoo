@@ -69,7 +69,6 @@ score_display = ScoreScatterDisplay.from_estimator(
     dcca, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
-score_display.figure_.suptitle("Scatter Deep CCA")
 plt.show()
 
 # UMAP Visualization
@@ -106,7 +105,6 @@ score_display = ScoreScatterDisplay.from_estimator(
     dcca_eg, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
-score_display.figure_.suptitle("Deep CCA EY")
 plt.show()
 
 # %%
@@ -125,7 +123,6 @@ score_display = ScoreScatterDisplay.from_estimator(
     dcca_noi, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
-score_display.figure_.suptitle("Deep CCA by Non-Linear Orthogonal Iterations")
 plt.show()
 
 # %%
@@ -146,7 +143,6 @@ score_display = ScoreScatterDisplay.from_estimator(
     dcca_sdl, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
-score_display.figure_.suptitle("Deep CCA by Stochastic Decorrelation Loss")
 plt.show()
 
 # %%
@@ -168,7 +164,6 @@ score_display = ScoreScatterDisplay.from_estimator(
     barlowtwins, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
-score_display.figure_.suptitle("Deep CCA by Barlow Twins")
 plt.show()
 
 # %%
@@ -190,5 +185,4 @@ score_display = ScoreScatterDisplay.from_estimator(
     dcca_vicreg, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
-score_display.figure_.suptitle("Deep CCA by VICReg")
 plt.show()

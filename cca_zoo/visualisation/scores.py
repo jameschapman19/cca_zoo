@@ -172,7 +172,7 @@ class ScoreScatterDisplay:
             ax,
         )
 
-    def plot(self):
+    def plot(self, title=None):
         dimensions = self.scores[0].shape[1]
         self.figures_ = []
 
@@ -188,7 +188,7 @@ class ScoreScatterDisplay:
                 ax.set_xlabel(self.ax_labels[0])
                 ax.set_ylabel(self.ax_labels[1])
             # if g is a jointplot, get the underlying figure
-            plt.suptitle(f"Latent Dimension {i+1}")
+            plt.suptitle(f"{title} Latent Dimension {i+1}")
 
             if self.show_corr:
                 if self.test_scores is None:
@@ -226,7 +226,7 @@ class JointScoreScatterDisplay(ScoreScatterDisplay):
 
 
 class SeparateScoreScatterDisplay(ScoreScatterDisplay):
-    def plot(self):
+    def plot(self, title=None):
         dimensions = self.scores[0].shape[1]
         self.train_figures_ = []
         self.test_figures_ = []
@@ -251,7 +251,7 @@ class SeparateScoreScatterDisplay(ScoreScatterDisplay):
                     transform=ax.transAxes,
                     verticalalignment="top",
                 )
-            plt.suptitle(f"Test - Latent Dimension {i+1}")
+            plt.suptitle(f"{title} Train - Latent Dimension {i+1}")
             self.train_figures_.append(g)
 
             g, fig, ax = self._create_plot(
@@ -273,7 +273,7 @@ class SeparateScoreScatterDisplay(ScoreScatterDisplay):
                     transform=ax.transAxes,
                     verticalalignment="top",
                 )
-            plt.suptitle(f"Test - Latent Dimension {i+1}")
+            plt.suptitle(f"{title} Test - Latent Dimension {i+1}")
             self.test_figures_.append(g)
         plt.tight_layout()
         return self

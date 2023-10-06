@@ -79,8 +79,8 @@ class ProbabilisticPLS(ProbabilisticCCA):
         )
 
         # Add positive-definite constraint for psi1 and psi2
-        psi1 = jnp.eye(self.n_features_[0])
-        psi2 = jnp.eye(self.n_features_[1])
+        psi1 = jnp.eye(self.n_features_[0])*1e-3
+        psi2 = jnp.eye(self.n_features_[1])*1e-3
 
         mu1 = numpyro.param(
             "mu_1",
