@@ -1,10 +1,18 @@
 import torch
 import torch.nn.functional as F
 
-from ._dcca_noi import DCCA_NOI
+from ._dcca import DCCA
 
 
-class DCCA_SDL(DCCA_NOI):
+def sdl_loss(view):
+    """Calculate SDL loss."""
+    cov = torch.cov(view.T)
+    sgn = torch.sign(cov)
+    sgn.fill_diagonal_(0)
+    return torch.mean(cov * sgn)
+
+
+class DCCA_SDL(DCCA):
     """
     A class used to fit a Deep CCA by Stochastic Decorrelation model.
 
@@ -19,7 +27,6 @@ class DCCA_SDL(DCCA_NOI):
         latent_dimensions: int,
         encoders=None,
         r: float = 0,
-        rho: float = 0.2,
         eps: float = 1e-5,
         shared_target: bool = False,
         lam=0.5,
@@ -29,13 +36,11 @@ class DCCA_SDL(DCCA_NOI):
             latent_dimensions=latent_dimensions,
             encoders=encoders,
             r=r,
-            rho=rho,
             eps=eps,
             shared_target=shared_target,
             **kwargs
         )
         self.c = None
-        self.cross_cov = None
         self.lam = lam
         self.bns = torch.nn.ModuleList(
             [
@@ -53,7 +58,7 @@ class DCCA_SDL(DCCA_NOI):
     def loss(self, batch, **kwargs):
         z = self(batch["views"])
         l2_loss = F.mse_loss(z[0], z[1])
-        SDL_loss = self._sdl_loss(self.covs)
+        SDL_loss = torch.sum(torch.stack([sdl_loss(z_) for z_ in z]))
         loss = l2_loss + self.lam * SDL_loss
         return {"objective": loss, "l2": l2_loss, "sdl": SDL_loss}
 

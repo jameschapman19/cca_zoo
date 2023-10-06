@@ -81,7 +81,7 @@ def test_linear_mcca():
     trainer.fit(dmcca, loader)
     assert (
         np.testing.assert_array_almost_equal(
-            mcca.score((X, Y, Z)).sum(), dmcca.score(loader).sum(), decimal=2
+            mcca.score((X, Y, Z)), dmcca.score(loader), decimal=2
         )
         is None
     )
@@ -110,7 +110,7 @@ def test_linear_gcca():
     trainer.fit(dgcca, loader)
     assert (
         np.testing.assert_array_almost_equal(
-            gcca.score((X, Y, Z)).sum(), dgcca.score(loader).sum(), decimal=1
+            gcca.score((X, Y, Z)).sum(), dgcca.score(loader), decimal=1
         )
         is None
     )
@@ -150,6 +150,13 @@ def test_DCCA_methods():
     max_epochs = 100
     latent_dimensions = 2
     cca = CCA(latent_dimensions=latent_dimensions).fit((X, Y))
+    # Soft Decorrelation (_stochastic Decorrelation Loss)
+    encoder_1 = architectures.Encoder(latent_dimensions=latent_dimensions, feature_size=10)
+    encoder_2 = architectures.Encoder(latent_dimensions=latent_dimensions, feature_size=12)
+    sdl = DCCA_SDL(latent_dimensions, encoders=[encoder_1, encoder_2], lam=1e-2, lr=1e-3)
+    trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
+    trainer.fit(sdl, train_loader)
+    assert np.testing.assert_array_less(cca.score((X, Y)), sdl.score(train_loader)) is None
     # DCCA
     encoder_1 = architectures.Encoder(
         latent_dimensions=latent_dimensions, feature_size=10
@@ -167,7 +174,7 @@ def test_DCCA_methods():
     trainer.fit(dcca, train_loader, val_dataloaders=val_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dcca.score(train_loader).sum()
+            cca.score((X, Y)), dcca.score(train_loader)
         )
         is None
     )
@@ -178,16 +185,16 @@ def test_DCCA_methods():
     encoder_2 = architectures.Encoder(
         latent_dimensions=latent_dimensions, feature_size=12
     )
-    dcca_gh = DCCA_GHA(
+    dcca_gha = DCCA_GHA(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2],
         lr=1e-1,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
-    trainer.fit(dcca_gh, train_loader, val_dataloaders=val_loader)
+    trainer.fit(dcca_gha, train_loader, val_dataloaders=val_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dcca_gh.score(train_loader).sum()
+            cca.score((X, Y)), dcca_gha.score(train_loader)
         )
         is None
     )
@@ -207,7 +214,7 @@ def test_DCCA_methods():
     trainer.fit(dcca_svd, train_loader, val_dataloaders=val_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dcca_svd.score(train_loader).sum()
+            cca.score((X, Y)), dcca_svd.score(train_loader)
         )
         is None
     )
@@ -227,7 +234,7 @@ def test_DCCA_methods():
     trainer.fit(dcca_ey, train_loader, val_dataloaders=val_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dcca_ey.score(train_loader).sum()
+            cca.score((X, Y)), dcca_ey.score(train_loader)
         )
         is None
     )
@@ -243,7 +250,7 @@ def test_DCCA_methods():
     trainer.fit(dcca_noi, train_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dcca_noi.score(train_loader).sum()
+            cca.score((X, Y)), dcca_noi.score(train_loader)
         )
         is None
     )
@@ -261,7 +268,7 @@ def test_DCCA_methods():
     trainer.fit(sdl, train_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), sdl.score(train_loader).sum()
+            cca.score((X, Y)), sdl.score(train_loader)
         )
         is None
     )
@@ -280,7 +287,7 @@ def test_DCCA_methods():
     trainer.fit(barlowtwins, train_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), barlowtwins.score(train_loader).sum()
+            cca.score((X, Y)), barlowtwins.score(train_loader)
         )
         is None
     )
@@ -300,7 +307,7 @@ def test_DCCA_methods():
     trainer.fit(dgcca, train_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dgcca.score(train_loader).sum()
+            cca.score((X, Y)), dgcca.score(train_loader)
         )
         is None
     )
@@ -320,7 +327,7 @@ def test_DCCA_methods():
     trainer.fit(dmcca, train_loader)
     assert (
         np.testing.assert_array_less(
-            cca.score((X, Y)).sum(), dmcca.score(train_loader).sum()
+            cca.score((X, Y)), dmcca.score(train_loader)
         )
         is None
     )
