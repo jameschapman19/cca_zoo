@@ -235,7 +235,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         transformed_views = self.transform(views, **kwargs)
         if normalize:
             loadings = [
-                cross_corrcoef(view, transformed_view)
+                cross_corrcoef(view, transformed_view, rowvar=False)
                 for view, transformed_view in zip(views, transformed_views)
             ]
         else:

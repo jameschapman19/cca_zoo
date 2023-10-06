@@ -17,7 +17,7 @@ class BaseDeep(pl.LightningModule, BaseModel):
         latent_dimensions: int,
         optimizer: str = "adam",
         scheduler: Optional[str] = None,
-        lr: float = 1e-2,
+        lr: float = 1e-3,
         weight_decay: float = 0,
         extra_optimizer_kwargs: Optional[Dict[str, Any]] = None,
         max_epochs: int = 1000,
