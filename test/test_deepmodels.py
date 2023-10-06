@@ -150,13 +150,16 @@ def test_DCCA_methods():
     max_epochs = 100
     latent_dimensions = 2
     cca = CCA(latent_dimensions=latent_dimensions).fit((X, Y))
-    # Soft Decorrelation (_stochastic Decorrelation Loss)
+    # DCCA_NOI
     encoder_1 = architectures.Encoder(latent_dimensions=latent_dimensions, feature_size=10)
     encoder_2 = architectures.Encoder(latent_dimensions=latent_dimensions, feature_size=12)
-    sdl = DCCA_SDL(latent_dimensions, encoders=[encoder_1, encoder_2], lam=1e-2, lr=1e-3)
+    dcca_noi = DCCA_NOI(latent_dimensions, encoders=[encoder_1, encoder_2], rho=0.2, lr=1e-2)
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
-    trainer.fit(sdl, train_loader)
-    assert np.testing.assert_array_less(cca.score((X, Y)), sdl.score(train_loader)) is None
+    trainer.fit(dcca_noi, train_loader)
+    assert (
+        np.testing.assert_array_less(cca.score((X, Y)), dcca_noi.score(train_loader))
+        is None
+    )
     # DCCA
     encoder_1 = architectures.Encoder(
         latent_dimensions=latent_dimensions, feature_size=10

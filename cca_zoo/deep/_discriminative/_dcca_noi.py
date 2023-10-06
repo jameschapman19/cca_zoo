@@ -93,16 +93,16 @@ class BatchWhiten(Module):
                 if running_covar is not None:
                     running_covar.mul_(exponential_average_factor).add_(covar, alpha=1 - exponential_average_factor)
 
-        # Calculate whitened input
-        if running_covar is not None:
-            covar = running_covar
-        # Enforce positive definite by taking a torch max() with eps
-        covar = torch.max(covar, torch.tensor(self.eps, device=covar.device))
-        # Calculate inverse square-root matrix
-        B = inv_sqrtm(covar, self.eps)
-        # Calculate whitened input
-        input = torch.matmul(input, B)
-        return input
+                # Calculate whitened input
+                if running_covar is not None:
+                    covar = running_covar
+                # Enforce positive definite by taking a torch max() with eps
+                covar = torch.max(covar, torch.tensor(self.eps, device=covar.device))
+                # Calculate inverse square-root matrix
+                B = inv_sqrtm(covar, self.eps)
+                # Calculate whitened input
+                input = torch.matmul(input, B)
+                return input
 
 def inv_sqrtm(A, eps=1e-9):
     """Compute the inverse square-root of a positive definite matrix."""
