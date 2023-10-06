@@ -280,7 +280,7 @@ class SeparateScoreScatterDisplay(ScoreScatterDisplay):
 
 
 class SeparateJointScoreDisplay(SeparateScoreScatterDisplay):
-    def _create_plot(self, x, y, hue=None,palette=None):
+    def _create_plot(self, x, y, hue=None, palette=None):
         g = sns.jointplot(
             x=x,
             y=y,
