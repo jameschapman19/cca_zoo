@@ -70,7 +70,6 @@ def test_cca_vs_probabilisticPLS(setup_data):
     ), f"Expected correlation with PLS greater than CCA, got {correlation_pls} and {correlation_cca}"
 
 
-
 def test_cca_vs_probabilisticRidgeCCA(setup_data):
     X, Y, joint = setup_data
     # Initialize models with different regularization parameters
