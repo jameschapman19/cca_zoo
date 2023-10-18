@@ -6,5 +6,5 @@ class CCA_SVD(CCA_EY):
     objective = CCA_SVDLoss()
 
 
-class PLS_SVD(CCA_SVD):
-    objective = PLS_SVDLoss()
+# class PLS_SVD(CCA_SVD):
+#     objective = PLS_SVDLoss()

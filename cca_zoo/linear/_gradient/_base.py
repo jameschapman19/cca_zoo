@@ -156,7 +156,7 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
             torch.optim.Optimizer: The optimizer object.
         """
         # construct optimizer using optimizer_kwargs
-        optimizer_name = self.optimizer_kwargs.get("optimizer", "SGD")
+        optimizer_name = self.optimizer_kwargs.get("optimizer", "Adam")
         kwargs = self.optimizer_kwargs.copy()
         kwargs.pop("optimizer", None)
         optimizer = getattr(torch.optim, optimizer_name)(

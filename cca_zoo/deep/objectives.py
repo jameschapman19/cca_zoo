@@ -3,6 +3,8 @@ import torch
 from tensorly.cp_tensor import cp_to_tensor
 from tensorly.decomposition import parafac
 
+from cca_zoo.utils import cross_cov
+
 
 def inv_sqrtm(A, eps=1e-9):
     """Compute the inverse square-root of a positive definite matrix."""
@@ -231,9 +233,7 @@ class CCA_EYLoss:
                 if i == j:
                     B += torch.cov(zi.T)  # add the auto-covariance of each view to B
                 else:
-                    A += torch.cov(torch.hstack((zi, zj)).T)[
-                         latent_dimensions :, : latent_dimensions
-                         ]  # add the cross-covariance of each pair of representations to A
+                    A += cross_cov(zi, zj, rowvar=False)  # add the cross-covariance of each view to A
         return A / len(representations), B / len(
             representations
         )  # return the normalized matrices (divided by the number of representations)
@@ -243,10 +243,10 @@ class CCA_GHALoss(CCA_EYLoss):
         A, B = self.get_AB(representations)
         rewards = torch.trace(2 * A)
         if independent_representations is None:
-            penalties = torch.trace(B @ B)
+            penalties = torch.trace(A.detach() @ B)
         else:
             independent_A, independent_B = self.get_AB(independent_representations)
-            penalties = torch.trace(B @ independent_B)
+            penalties = torch.trace(independent_A.detach() @ B)
         return {
             "objective": -rewards + penalties,
             "rewards": rewards,
@@ -264,9 +264,9 @@ class CCA_SVDLoss(CCA_EYLoss):
         if independent_representations is None:
             Cyy = C[latent_dims:, latent_dims:]
         else:
-            Cyy = torch.cov(torch.hstack(independent_representations).T)[latent_dims:, latent_dims:]
+            Cyy = cross_cov(independent_representations[1], independent_representations[1], rowvar=False)
 
-        rewards = torch.trace(2 * Cxy)
+        rewards = torch.trace(2*Cxy)
         penalties = torch.trace(Cxx @ Cyy)
         return {
             "objective": -rewards + penalties,  # return the negative objective value
@@ -299,21 +299,17 @@ class PLS_EYLoss(CCA_EYLoss):
                 if i == j:
                     B += weights[i].T @ weights[i] / n
                 else:
-                    A += torch.cov(torch.hstack((zi, zj)).T)[
-                        latent_dimensions:, :latent_dimensions
-                    ]  # add the cross-covariance of each pair of representations to A
+                    A += cross_cov(zi, zj, rowvar=False)
         return A / len(representations), B / len(representations)
 
 
 class PLS_SVDLoss(PLS_EYLoss):
     def loss(self, representations, weights=None):
-        C = torch.cov(torch.hstack(representations).T)
-        latent_dims = representations[0].shape[1]
+        C = cross_cov(representations[0], representations[1], rowvar=False)
 
-        n = representations[0].shape[0]
-        Cxy = C[:latent_dims, latent_dims:]
-        Cxx = weights[0].T @ weights[0] / n
-        Cyy = weights[1].T @ weights[1] / n
+        Cxy = C
+        Cxx = weights[0].T @ weights[0] / representations[0].shape[0]
+        Cyy = weights[1].T @ weights[1] / representations[1].shape[0]
 
         rewards = torch.trace(2 * Cxy)
         penalties = torch.trace(Cxx @ Cyy)
