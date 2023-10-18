@@ -10,7 +10,7 @@
 #
 # class SCCA_ADMM(BaseIterative, DeflationMixin):
 #     r"""
-#     Fits a sparse CCA model by alternating ADMM for two or more views.
+#     Fits a sparse CCALoss model by alternating ADMM for two or more representations.
 #
 #     .. math::
 #
@@ -31,16 +31,16 @@
 #     deflation : str, default="cca"
 #         Deflation method to use. Options are "cca" and "pls".
 #     tau : float or list of floats, default=None
-#         Regularisation parameter. If a single float is given, the same value is used for all views.
+#         Regularisation parameter. If a single float is given, the same value is used for all representations.
 #         If a list of floats is given, the values are used for each view.
 #     mu : float or list of floats, default=None
-#         Regularisation parameter. If a single float is given, the same value is used for all views.
+#         Regularisation parameter. If a single float is given, the same value is used for all representations.
 #         If a list of floats is given, the values are used for each view.
 #     lam : float or list of floats, default=None
-#         Regularisation parameter. If a single float is given, the same value is used for all views.
+#         Regularisation parameter. If a single float is given, the same value is used for all representations.
 #         If a list of floats is given, the values are used for each view.
 #     eta : float or list of floats, default=None
-#         Regularisation parameter. If a single float is given, the same value is used for all views.
+#         Regularisation parameter. If a single float is given, the same value is used for all representations.
 #         If a list of floats is given, the values are used for each view.
 #     tol : float, default=1e-9
 #         Tolerance for convergence.
@@ -116,19 +116,19 @@
 #     ):
 #         super().__init__(weights=weights, k=k)
 #         self.eta = [np.ones(n_samples_) * eta for eta in eta]
-#         self.z = [np.ones(n_samples_)] * n_views_
+#         self.representations = [np.ones(n_samples_)] * n_views_
 #         self.mu = mu
 #
 #     def training_step(self, batch, batch_idx):
-#         views = batch["views"]
-#         scores = np.stack(self(views))
-#         for view_index, view in enumerate(views):
+#         representations = batch["representations"]
+#         scores = np.stack(self(representations))
+#         for view_index, view in enumerate(representations):
 #             targets = np.ma.array(scores, mask=False)
 #             targets.mask[view_index] = True
-#             gradient = views[view_index].T @ targets.sum(axis=0).filled()
+#             gradient = representations[view_index].T @ targets.sum(axis=0).filled()
 #             mu = self.mu[view_index]
 #             lam = self.lam[view_index]
-#             N = views[view_index].shape[0]
+#             N = representations[view_index].shape[0]
 #             unnorm_z = []
 #             norm_eta = []
 #             norm_weights = []
@@ -139,10 +139,10 @@
 #                     self.weights[view_index]
 #                     - mu
 #                     / lam
-#                     * views[view_index].T
+#                     * representations[view_index].T
 #                     @ (
-#                         views[view_index] @ self.weights[view_index]
-#                         - self.z[view_index]
+#                         representations[view_index] @ self.weights[view_index]
+#                         - self.representations[view_index]
 #                         + self.eta[view_index]
 #                     ),
 #                     mu,
@@ -151,21 +151,21 @@
 #                 )
 #                 unnorm_z.append(
 #                     np.linalg.norm(
-#                         views[view_index] @ self.weights[view_index]
+#                         representations[view_index] @ self.weights[view_index]
 #                         + self.eta[view_index]
 #                     )
 #                 )
-#                 self.z[view_index] = self._prox_lam_g(
-#                     views[view_index] @ self.weights[view_index] + self.eta[view_index]
+#                 self.representations[view_index] = self._prox_lam_g(
+#                     representations[view_index] @ self.weights[view_index] + self.eta[view_index]
 #                 )
 #                 self.eta[view_index] = (
 #                     self.eta[view_index]
-#                     + views[view_index] @ self.weights[view_index]
-#                     - self.z[view_index]
+#                     + representations[view_index] @ self.weights[view_index]
+#                     - self.representations[view_index]
 #                 )
 #                 norm_eta.append(np.linalg.norm(self.eta[view_index]))
 #                 norm_proj.append(
-#                     np.linalg.norm(views[view_index] @ self.weights[view_index])
+#                     np.linalg.norm(representations[view_index] @ self.weights[view_index])
 #                 )
 #                 norm_weights.append(np.linalg.norm(self.weights[view_index], 1))
 #

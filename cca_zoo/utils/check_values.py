@@ -15,8 +15,8 @@ def _process_parameter(parameter_name: str, parameter, default, n_views: int):
 def _check_parameter_number(parameter_name: str, parameter, n_views: int):
     if len(parameter) != n_views:
         raise ValueError(
-            f"number of views passed should match number of parameter {parameter_name}"
-            f"len(views)={n_views} and "
+            f"number of representations passed should match number of parameter {parameter_name}"
+            f"len(representations)={n_views} and "
             f"len({parameter_name})={len(parameter)}"
         )
 
@@ -32,7 +32,7 @@ def _check_Parikh2014(mus, lams, views):
     if failed_check:
         raise ValueError(
             "mu, lam, view not matching condition specified "
-            "from Parikh 2014 (mu<lam/frobenius(views)**2)."
+            "from Parikh 2014 (mu<lam/frobenius(representations)**2)."
             "Index of view(s) not meeting the condition: "
             f"{failed_check}."
         )
@@ -83,4 +83,14 @@ def check_arviz_support(caller_name):
         raise ImportError(
             f"{caller_name} requires arviz. "
             "Please install arviz using `pip install arviz`"
+        )
+
+
+def check_gglasso_support(caller_name):
+    try:
+        import gglasso
+    except ImportError:
+        raise ImportError(
+            f"{caller_name} requires gglasso. "
+            "Please install glasso using `pip install gglasso`"
         )

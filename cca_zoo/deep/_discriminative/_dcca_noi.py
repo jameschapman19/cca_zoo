@@ -130,7 +130,7 @@ class DCCA_NOI(DCCA):
 
     References
     ----------
-    Wang, Weiran, et al. "Stochastic optimization for deep CCA via nonlinear orthogonal iterations." 2015 53rd Annual Allerton Conference on Communication, Control, and Computing (Allerton). IEEE, 2015.
+    Wang, Weiran, et al. "Stochastic optimization for deep CCALoss via nonlinear orthogonal iterations." 2015 53rd Annual Allerton Conference on Communication, Control, and Computing (Allerton). IEEE, 2015.
 
     """
 

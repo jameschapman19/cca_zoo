@@ -52,7 +52,7 @@ class BaseIterative(BaseModel):
         views = self._validate_data(views)
         self._initialize(views)
         self._check_params()
-        # Solve using alternating optimisation across the views until convergence
+        # Solve using alternating optimisation across the representations until convergence
         # Initialize the loss and the previous weights
         loss = np.inf
         prev_weights = self.weights.copy()
@@ -64,7 +64,7 @@ class BaseIterative(BaseModel):
             leave=True,
             disable=not self.verbose,
         ):
-            # Loop over the views
+            # Loop over the representations
             for i in range(len(views)):
                 # Update the weights for the current view by solving a linear system
                 self.weights[i] = self._update_weights(views, i)
@@ -85,25 +85,25 @@ class BaseIterative(BaseModel):
 
     @abstractmethod
     def _update_weights(self, view: np.ndarray, i: int):
-        """Update the CCA weights for a given view.
+        """Update the CCALoss weights for a given view.
 
         Parameters
         ----------
         view : np.ndarray
-            The input view to update the CCA weights for
+            The input view to update the CCALoss weights for
         i : int
             The index of the view
 
         Returns
         -------
         np.ndarray
-            The updated CCA weights for the view
+            The updated CCALoss weights for the view
         """
         pass
 
     def _objective(self, views: Iterable[np.ndarray]):
-        # Compute the objective function value for a given set of views using SCCA
-        # Get the scores of all views
+        # Compute the objective function value for a given set of representations using SCCA
+        # Get the scores of all representations
         transformed_views = self.transform(views)
         all_covs = []
         # Sum all the pairwise covariances except self covariance
@@ -119,18 +119,18 @@ class BaseIterative(BaseModel):
         return np.sum(all_covs)
 
     def _initialize(self, views: Iterable[np.ndarray]):
-        """Initialize the CCA weights using the initialization method or function.
+        """Initialize the CCALoss weights using the initialization method or function.
 
         Parameters
         ----------
         views : Iterable[np.ndarray]
-            The input views to initialize the CCA weights from
+            The input representations to initialize the CCALoss weights from
         """
         pls = self._get_tags().get("pls", False)
         initializer = _default_initializer(
             self.initialization, self.random_state, self.latent_dimensions, pls
         )
-        # Fit the initializer on the input views and get the weights as numpy arrays
+        # Fit the initializer on the input representations and get the weights as numpy arrays
         self.weights = initializer.fit(views).weights
         self.weights = [weights.astype(np.float32) for weights in self.weights]
 

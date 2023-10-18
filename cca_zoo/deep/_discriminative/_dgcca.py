@@ -18,16 +18,14 @@ class DGCCA(DCCA):
         self,
         latent_dimensions: int,
         encoders=None,
-        r: float = 0,
         eps: float = 1e-5,
         **kwargs
     ):
         # Call the parent class constructor with the DGCCA objective function
         super().__init__(
             latent_dimensions=latent_dimensions,
-            objective=objectives.GCCA,
+            objective=objectives.GCCALoss,
             encoders=encoders,
-            r=r,
             eps=eps,
             **kwargs
         )

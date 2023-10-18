@@ -1,7 +1,7 @@
 import torch
 from pytorch_lightning import Callback, LightningModule, Trainer
 
-from cca_zoo.deep.objectives import MCCA
+from cca_zoo.deep.objectives import MCCALoss
 
 
 class BatchValidationCorrelationCallback(Callback):
@@ -25,7 +25,7 @@ class BatchTrainCorrelationCallback(Callback):
 
 
 class MinibatchTrainCorrelationCallback(Callback):
-    mcca = MCCA()
+    mcca = MCCALoss()
 
     def on_train_batch_end(
         self,
@@ -37,7 +37,7 @@ class MinibatchTrainCorrelationCallback(Callback):
         dataloader_idx,
     ):
         with torch.no_grad():
-            train_corr = self.mcca.loss(pl_module(batch["views"])).sum()
+            train_corr = self.mcca.loss(pl_module(batch["representations"])).sum()
             pl_module.log(
                 "train/corr",
                 train_corr,
@@ -45,7 +45,7 @@ class MinibatchTrainCorrelationCallback(Callback):
 
 
 class MinibatchValidationCorrelationCallback(Callback):
-    mcca = MCCA()
+    mcca = MCCALoss()
 
     def on_validation_batch_end(
         self,
@@ -57,7 +57,7 @@ class MinibatchValidationCorrelationCallback(Callback):
         dataloader_idx,
     ):
         with torch.no_grad():
-            val_corr = self.mcca.loss(pl_module(batch["views"])).sum()
+            val_corr = self.mcca.loss(pl_module(batch["representations"])).sum()
             pl_module.log(
                 "val/corr",
                 val_corr,

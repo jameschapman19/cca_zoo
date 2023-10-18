@@ -53,29 +53,29 @@
 #         )
 #         self.simple = simple
 #
-#     def _update(self, views):
+#     def _update(self, representations):
 #         if not hasattr(self, "S"):
 #             self.S = np.zeros(self.latent_dimensions)
 #             self.count = 0
 #         if self.simple:
-#             self.simple_update(views)
+#             self.simple_update(representations)
 #         else:
-#             self.incremental_update(views)
+#             self.incremental_update(representations)
 #         return False
 #
-#     def incremental_update(self, views):
-#         hats = np.stack([view @ weight for view, weight in zip(views, self.weights)])
+#     def incremental_update(self, representations):
+#         hats = np.stack([view @ weight for view, weight in zip(representations, self.weights)])
 #         orths = [
 #             view - hat @ weight.T
-#             for view, weight, hat in zip(views, self.weights, hats)
+#             for view, weight, hat in zip(representations, self.weights, hats)
 #         ]
 #         self.incrsvd(hats, orths)
 #
-#     def simple_update(self, views):
+#     def simple_update(self, representations):
 #         if not hasattr(self, "M"):
-#             self.M = np.zeros((views[0].shape[1], views[1].shape[1]))
+#             self.M = np.zeros((representations[0].shape[1], representations[1].shape[1]))
 #         self.M = (
-#             views[0].T @ views[1]
+#             representations[0].T @ representations[1]
 #             + self.weights[0] @ np.diag(self.S) @ self.weights[1].T
 #         )
 #         U, S, Vt = np.linalg.svd(self.M)

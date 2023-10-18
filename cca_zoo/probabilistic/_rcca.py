@@ -11,12 +11,12 @@ from cca_zoo.utils import _process_parameter
 
 class ProbabilisticRCCA(ProbabilisticCCA):
     """
-    Probabilistic Ridge Canonical Correlation Analysis (Probabilistic Ridge CCA).
+    Probabilistic Ridge Canonical Correlation Analysis (Probabilistic Ridge CCALoss).
 
-    Probabilistic Ridge CCA extends the Probabilistic Canonical Correlation Analysis model
-    by introducing regularization terms in the linear relationships between multiple views
+    Probabilistic Ridge CCALoss extends the Probabilistic Canonical Correlation Analysis model
+    by introducing regularization terms in the linear relationships between multiple representations
     of data. This regularization improves the conditioning of the problem and provides a
-    way to incorporate prior knowledge. It combines features of both CCA and Ridge Regression.
+    way to incorporate prior knowledge. It combines features of both CCALoss and Ridge Regression.
 
     Parameters
     ----------
@@ -76,12 +76,12 @@ class ProbabilisticRCCA(ProbabilisticCCA):
 
     def _model(self, views):
         """
-        Defines the generative model for Probabilistic CCA.
+        Defines the generative model for Probabilistic CCALoss.
 
         Parameters
         ----------
         views: tuple of np.ndarray
-            A tuple containing the first and second views, X1 and X2, each as a numpy array.
+            A tuple containing the first and second representations, X1 and X2, each as a numpy array.
         """
         X1, X2 = views
 
@@ -135,7 +135,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
 
         with numpyro.plate("n", n_samples):
             z = numpyro.sample(
-                "z",
+                "representations",
                 dist.MultivariateNormal(
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
                 ),
@@ -144,7 +144,8 @@ class ProbabilisticRCCA(ProbabilisticCCA):
                 "X1",
                 dist.MultivariateNormal(
                     z @ W1.T + mu1,
-                    covariance_matrix=(1 - self.c[0]) * psi1,
+                    covariance_matrix=(1 - self.c[0]) * psi1
+                    + self.c[0] * jnp.eye(self.n_features_[0]),
                 ),
                 obs=X1,
             )
@@ -152,18 +153,23 @@ class ProbabilisticRCCA(ProbabilisticCCA):
                 "X2",
                 dist.MultivariateNormal(
                     z @ W2.T + mu2,
-                    covariance_matrix=(1 - self.c[1]) * psi2,
+                    covariance_matrix=(1 - self.c[1]) * psi2
+                    + self.c[1] * jnp.eye(self.n_features_[1]),
                 ),
                 obs=X2,
             )
 
     def joint(self):
         # Calculate the individual matrix blocks
-        top_left = self.params["W_1"] @ self.params["W_1"].T + self.c[0] * jnp.eye(
-            self.n_features_[0]
+        top_left = (
+            self.params["W_1"] @ self.params["W_1"].T
+            + (1 - self.c[0]) * self.params["psi_1"]
+            + self.c[0] * jnp.eye(self.n_features_[0])
         )
-        bottom_right = self.params["W_2"] @ self.params["W_2"].T + self.c[1] * jnp.eye(
-            self.n_features_[1]
+        bottom_right = (
+            self.params["W_2"] @ self.params["W_2"].T
+            + (1 - self.c[1]) * self.params["psi_2"]
+            + self.c[1] * jnp.eye(self.n_features_[1])
         )
         top_right = self.params["W_1"] @ self.params["W_2"].T
         bottom_left = self.params["W_2"] @ self.params["W_1"].T

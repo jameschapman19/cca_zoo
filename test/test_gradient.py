@@ -57,7 +57,7 @@ def test_batch_pls():
     plssvd = PLS_SVD(
         latent_dimensions=latent_dims,
         epochs=epochs,
-        learning_rate=learning_rate,
+        learning_rate=learning_rate/2,
         random_state=random_state,
     ).fit((X, Y))
     pls_score = scale_transform(pls, X, Y)
@@ -87,7 +87,7 @@ def test_batch_cca():
     ccasvd = CCA_SVD(
         latent_dimensions=latent_dims,
         epochs=epochs,
-        learning_rate=learning_rate * 10,
+        learning_rate=learning_rate,
         random_state=random_state,
     ).fit((X, Y))
     cca_score = cca.score((X, Y))

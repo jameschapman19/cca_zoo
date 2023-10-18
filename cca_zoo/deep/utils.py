@@ -20,11 +20,7 @@ class NumpyDataset(Dataset):
 
     def __getitem__(self, index):
         views = [view[index] for view in self.views]
-        if self.labels is not None:
-            label = self.labels[index]
-            return {"views": views, "label": label}
-        else:
-            return {"views": views}
+        return {"views": views}
 
 
 def check_dataset(dataset):
@@ -45,7 +41,7 @@ def check_dataset(dataset):
     for batch in dataloader:
         if "views" not in batch:
             raise ValueError(
-                "The dataset must return a dictionary with a 'views' key containing a list of tensors"
+                "The dataset must return a dictionary with a 'representations' key containing a list of tensors"
             )
         else:
             break
@@ -66,8 +62,8 @@ def get_dataloaders(
     """
     A utility function to allow users to quickly get hold of the dataloaders required by pytorch lightning
 
-    :param dataset: A CCA dataset used for training
-    :param val_dataset: An optional CCA dataset used for validation
+    :param dataset: A CCALoss dataset used for training
+    :param val_dataset: An optional CCALoss dataset used for validation
     :param batch_size: batch size of train loader
     :param val_batch_size: batch size of val loader
     :param num_workers: number of workers used

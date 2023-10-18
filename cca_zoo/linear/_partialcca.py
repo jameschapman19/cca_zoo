@@ -8,7 +8,7 @@ from cca_zoo.linear._mcca import MCCA
 
 class PartialCCA(MCCA):
     r"""
-    A class used to fit a partial CCA model. This model extends CCA to account for confounding variables that may affect the correlation between views.
+    A class used to fit a partial CCALoss model. This model extends CCALoss to account for confounding variables that may affect the correlation between representations.
 
     .. math::
 
@@ -46,7 +46,7 @@ class PartialCCA(MCCA):
         if partials is None:
             raise ValueError(
                 f"partials is {partials}. Require matching partials to transform with"
-                f"partial CCA."
+                f"partial CCALoss."
             )
         self.confound_betas = [
             np.linalg.pinv(partials) @ view for view in views
@@ -64,7 +64,7 @@ class PartialCCA(MCCA):
         if partials is None:
             raise ValueError(
                 f"partials is {partials}. Require matching partials to transform with"
-                f"partial CCA."
+                f"partial CCALoss."
             )
         check_is_fitted(
             self, attributes=["weights"]
@@ -82,8 +82,8 @@ class PartialCCA(MCCA):
             ]  # multiply each view by its corresponding weight matrix
             transformed_views.append(
                 transformed_view
-            )  # append the transformed view to the list of transformed views
-        return transformed_views  # return the list of transformed views
+            )  # append the transformed view to the list of transformed representations
+        return transformed_views  # return the list of transformed representations
 
     def _more_tags(self):
         return {"multiview": True}  # indicate that this model can handle multiview data

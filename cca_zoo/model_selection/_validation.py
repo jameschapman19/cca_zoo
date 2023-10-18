@@ -269,9 +269,9 @@ def learning_curve(
 
     :param estimator: object type that implements the "fit" and "predict" methods
         An object of that type which is cloned for each validation.
-    :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
+    :param representations: list/tuple of numpy arrays or array likes with the same number of rows (samples)
     :param y: array-like of shape (n_samples,) or (n_samples, n_outputs)
-        Target relative to views for classification or regression;
+        Target relative to representations for classification or regression;
         None for unsupervised learning.
     :param groups: array-like of  shape (n_samples,), default=None
         Group labels for the samples used while splitting the dataset into
@@ -304,7 +304,7 @@ def learning_curve(
     :param scoring: str or callable, default=None
         A str (see model evaluation documentation) or
         a scorer callable object / function with signature
-        ``scorer(estimator, views, y)``.
+        ``scorer(estimator, representations, y)``.
     :param exploit_incremental_learning: bool, default=False
         If the estimator supports incremental learning, this will be
         used to speed up fitting for different training set sizes.

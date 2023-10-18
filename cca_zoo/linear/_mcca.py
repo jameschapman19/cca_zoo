@@ -10,9 +10,9 @@ from cca_zoo.utils import _process_parameter
 
 class MCCA(BaseModel):
     r"""
-    A class used to fit a Regularised CCA (canonical ridge) model. This model adds a regularization term to the CCA objective function to avoid overfitting and improve stability. It uses PCA to perform the optimization efficiently for high dimensional data.
+    A class used to fit a Regularised CCALoss (canonical ridge) model. This model adds a regularization term to the CCALoss objective function to avoid overfitting and improve stability. It uses PCA to perform the optimization efficiently for high dimensional data.
 
-    The objective function of regularised CCA is:
+    The objective function of regularised CCALoss is:
 
     .. math::
 
@@ -45,7 +45,7 @@ class MCCA(BaseModel):
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
-    >>> model = MCCA()
+    >>> model = MCCALoss()
     >>> model.fit((X1,X2)).score((X1,X2))
 
     References
@@ -172,9 +172,9 @@ class MCCA(BaseModel):
 
 class rCCA(MCCA):
     r"""
-    A class used to fit Regularised CCA (canonical ridge) model. This model adds a regularization term to the CCA objective function to avoid overfitting and improve stability. It uses PCA to perform the optimization efficiently for high dimensional data.
+    A class used to fit Regularised CCALoss (canonical ridge) model. This model adds a regularization term to the CCALoss objective function to avoid overfitting and improve stability. It uses PCA to perform the optimization efficiently for high dimensional data.
 
-    The objective function of regularised CCA is:
+    The objective function of regularised CCALoss is:
 
     .. math::
 
@@ -206,7 +206,7 @@ class rCCA(MCCA):
     def _C(self, views, **kwargs):
         if len(views) != 2:
             raise ValueError(
-                f"Model can only be used with two views, but {len(views)} were given. Use MCCA or GCCA instead for CCA or MPLS for PLS."
+                f"Model can only be used with two representations, but {len(views)} were given. Use MCCALoss or GCCA instead for CCALoss or MPLS for PLS."
             )
         # Compute the B matrices for each view
         B = [
@@ -216,7 +216,7 @@ class rCCA(MCCA):
         C = np.cov(views[0] / np.sqrt(B[0]), views[1] / np.sqrt(B[1]), rowvar=False)[
             0 : views[0].shape[1], views[0].shape[1] :
         ]
-        # if views[0].shape[1] <= views[1].shape[1] then return R@R^T else return R^T@R
+        # if representations[0].shape[1] <= representations[1].shape[1] then return R@R^T else return R^T@R
         if views[0].shape[1] <= views[1].shape[1]:
             self.primary_view = 0
             return C @ C.T
@@ -265,9 +265,9 @@ class rCCA(MCCA):
 
 class CCA(rCCA):
     r"""
-    A class used to fit a simple CCA model. This model finds the linear projections of two views that maximize their correlation.
+    A class used to fit a simple CCALoss model. This model finds the linear projections of two representations that maximize their correlation.
 
-    The objective function of CCA is:
+    The objective function of CCALoss is:
 
     .. math::
 
@@ -299,7 +299,7 @@ class CCA(rCCA):
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
-    >>> model = CCA()
+    >>> model = CCALoss()
     >>> model.fit((X1,X2)).score((X1,X2))
     """
 

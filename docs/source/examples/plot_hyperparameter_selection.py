@@ -1,9 +1,9 @@
 """
-Kernel CCA Hyperparameter Tuning
+Kernel CCALoss Hyperparameter Tuning
 ================================
 
 This script demonstrates hyperparameter optimization for Kernel Canonical
-Correlation Analysis (Kernel CCA) using both grid search and randomized search methods.
+Correlation Analysis (Kernel CCALoss) using both grid search and randomized search methods.
 
 Note:
 - The grid search approach involves exhaustively trying every combination of provided parameters.
@@ -27,7 +27,7 @@ from cca_zoo.nonparametric import KCCA
 np.random.seed(42)
 
 # Creating a linear dataset having 200 samples, 100 features per view,
-# a single latent dimension, and a 0.9 correlation between the views.
+# a single latent dimension, and a 0.9 correlation between the representations.
 n = 200
 p = 100
 q = 100

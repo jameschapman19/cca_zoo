@@ -1,9 +1,9 @@
 """
-Exploring Canonical Correlation Analysis (CCA) with Kernel & Nonparametric Methods
+Exploring Canonical Correlation Analysis (CCALoss) with Kernel & Nonparametric Methods
 =================================================================================
 
 This script provides a walkthrough on using kernel and nonparametric techniques
-to perform Canonical Correlation Analysis (CCA) on a simulated dataset.
+to perform Canonical Correlation Analysis (CCALoss) on a simulated dataset.
 """
 
 # %%
@@ -51,7 +51,7 @@ kernel_custom = KCCA(
 ).fit([X, Y])
 
 # %%
-# Linear Kernel-based CCA
+# Linear Kernel-based CCALoss
 # -----------------------
 c_values = [0.9, 0.99]
 param_grid_linear = {"kernel": ["linear"], "c": [c_values, c_values]}
@@ -65,7 +65,7 @@ kernel_linear = GridSearchCV(
 ).fit([X, Y])
 
 # %%
-# Polynomial Kernel-based CCA
+# Polynomial Kernel-based CCALoss
 # ---------------------------
 degrees = [2, 3]
 param_grid_poly = {
@@ -87,7 +87,7 @@ kernel_poly = (
 )
 
 # %%
-# Gaussian/RBF Kernel-based CCA
+# Gaussian/RBF Kernel-based CCALoss
 # -----------------------------
 gammas = [1e-1, 1e-2]
 param_grid_rbf = {

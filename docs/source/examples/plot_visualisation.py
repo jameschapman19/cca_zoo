@@ -1,9 +1,9 @@
 """
-Visualizing CCA Models with CCA-Zoo
+Visualizing CCALoss Models with CCALoss-Zoo
 ====================================
 
-Ever wondered how to peek into the inner workings of your Canonical Correlation Analysis (CCA) models?
-This example will guide you through CCA-Zoo's built-in plotting functionalities, showing you the keys to unlock those insights!
+Ever wondered how to peek into the inner workings of your Canonical Correlation Analysis (CCALoss) models?
+This example will guide you through CCALoss-Zoo's built-in plotting functionalities, showing you the keys to unlock those insights!
 """
 
 # %%
@@ -28,7 +28,7 @@ from cca_zoo.linear import MCCA
 # %%
 # Cooking Up Some Data
 # --------------------
-# We create synthetic data for three different views, which we'll use for training and testing our model.
+# We create synthetic data for three different representations, which we'll use for training and testing our model.
 X = np.random.rand(100, 10)
 Y = np.random.rand(100, 10)
 Z = np.random.rand(100, 10)
@@ -46,7 +46,7 @@ test_views = [X_test, Y_test, Z_test]
 # %%
 # The Training Ritual
 # -------------------
-# We'll use Multi-Set Canonical Correlation Analysis (MCCA) to find shared patterns among the three views.
+# We'll use Multi-Set Canonical Correlation Analysis (MCCALoss) to find shared patterns among the three representations.
 mcca = MCCA(latent_dimensions=2)
 mcca.fit(views)
 
@@ -61,11 +61,11 @@ print("Tip: Higher explained variance usually indicates better model fit.")
 # %%
 # When Covariance is Not Covert
 # -----------------------------
-# Explained covariance dives deeper, revealing how well your model explains the covariance structure between different views.
+# Explained covariance dives deeper, revealing how well your model explains the covariance structure between different representations.
 ExplainedCovarianceDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 plt.show()
 print(
-    "Hint: The closer to one, the better your model captures the relation between views."
+    "Hint: The closer to one, the better your model captures the relation between representations."
 )
 
 # %%
@@ -78,7 +78,7 @@ print("Did you know? Large weights are usually more influential in the model.")
 
 # The Scoreboard
 # --------------
-# Score heatmaps help you visualize how the CCA projections from multiple views relate to each other.
+# Score heatmaps help you visualize how the CCALoss projections from multiple representations relate to each other.
 
 # Example using ScoreScatterDisplay
 score_plot = ScoreScatterDisplay.from_estimator(
@@ -87,7 +87,7 @@ score_plot = ScoreScatterDisplay.from_estimator(
 score_plot.plot()
 plt.show()
 print(
-    "In this plot, you can visualize the CCA projections from multiple views. It's useful for identifying clusters or patterns, which can help validate your model's effectiveness."
+    "In this plot, you can visualize the CCALoss projections from multiple representations. It's useful for identifying clusters or patterns, which can help validate your model's effectiveness."
 )
 
 # Example using SeparateScoreScatterDisplay
@@ -107,7 +107,7 @@ joint_score_plot = JointScoreScatterDisplay.from_estimator(
 joint_score_plot.plot()
 plt.show()
 print(
-    "The Joint Plot shows the distribution of the scores for each view on the x and y axis. It can help you understand how the two views relate to each other in a joint distribution."
+    "The Joint Plot shows the distribution of the scores for each view on the x and y axis. It can help you understand how the two representations relate to each other in a joint distribution."
 )
 
 # Example using SeparateJointScoreDisplay
@@ -127,13 +127,13 @@ pair_score_plot = PairScoreScatterDisplay.from_estimator(
 pair_score_plot.plot()
 plt.show()
 print(
-    "The Pair Plot visualizes the pairwise relationships between scores. It can be helpful for identifying correlations or dependencies between views."
+    "The Pair Plot visualizes the pairwise relationships between scores. It can be helpful for identifying correlations or dependencies between representations."
 )
 
 # %%
 # The Covariance Matrix: A Mirror Into Your Model
 # -----------------------------------------------
-# The covariance heatmap provides a detailed look at how features from different views covary.
+# The covariance heatmap provides a detailed look at how features from different representations covary.
 CovarianceHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 plt.show()
 print(

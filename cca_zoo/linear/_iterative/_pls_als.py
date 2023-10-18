@@ -33,7 +33,7 @@ class PLS_ALS(DeflationMixin, BaseIterative):
 
     def _update_weights(self, views: np.ndarray, i: int):
         # Update the weights for the current view using PLS
-        # Get the scores of all views
+        # Get the scores of all representations
         scores = np.stack(self.transform(views))
         # Create a mask that is True for elements not equal to i along dim i
         mask = np.arange(scores.shape[0]) != i

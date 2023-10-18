@@ -50,7 +50,7 @@ class BarlowTwins(DCCA):
         z = self(batch["views"])  # get the latent representations
         cross_cov = (
             z[0].T @ z[1] / z[0].shape[0]
-        )  # compute the cross-covariance matrix between the two views
+        )  # compute the cross-covariance matrix between the two representations
         invariance = torch.sum(
             torch.pow(1 - torch.diag(cross_cov), 2)
         )  # compute the invariance term as the sum of squared differences from 1 on the diagonal

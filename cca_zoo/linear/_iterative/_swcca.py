@@ -68,17 +68,17 @@
 #             "positive", self.positive, False, self.n_views
 #         )
 #
-#     def _initialize(self, views):
+#     def _initialize(self, representations):
 #         self.sample_weights = np.ones(self.n)
 #         self.sample_weights /= np.linalg.norm(self.sample_weights)
 #
-#     def _update(self, views, scores, weights):
+#     def _update(self, representations, scores, weights):
 #         # Update each view using loop update function
-#         for view_index, view in enumerate(views):
+#         for view_index, view in enumerate(representations):
 #             targets = np.ma.array(scores, mask=False)
 #             targets.mask[view_index] = True
 #             weights[view_index] = (
-#                 views[view_index] * self.sample_weights[:, np.newaxis]
+#                 representations[view_index] * self.sample_weights[:, np.newaxis]
 #             ).T @ targets.sum(axis=0).filled()
 #             weights[view_index] = self.update(
 #                 weights[view_index],
@@ -88,7 +88,7 @@
 #             weights[view_index] /= np.linalg.norm(weights[view_index])
 #             if view_index == self.n_views - 1:
 #                 self.sample_weights = self._update_sample_weights(scores)
-#             scores[view_index] = views[view_index] @ weights[view_index]
+#             scores[view_index] = representations[view_index] @ weights[view_index]
 #         return scores, weights
 #
 #     def _update_sample_weights(self, scores):
@@ -97,7 +97,7 @@
 #         sample_weights /= np.linalg.norm(sample_weights)
 #         return sample_weights
 #
-#     def _objective(self, views, scores, weights) -> int:
+#     def _objective(self, representations, scores, weights) -> int:
 #         # default objective is correlation
 #         obj = 0
 #         for score_i, score_j in combinations(scores, 2):

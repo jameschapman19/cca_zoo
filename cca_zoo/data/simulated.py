@@ -1,4 +1,5 @@
 import itertools
+from abc import ABC, abstractmethod
 from typing import List, Union
 
 import numpy as np
@@ -9,9 +10,105 @@ from sklearn.utils.validation import check_random_state
 from cca_zoo.utils import _process_parameter
 
 
-class LinearSimulatedData:
+class BaseDataGenerator(ABC):
+    def __init__(
+        self,
+        view_features: List[int],
+        latent_dims: int = 1,
+        random_state: Union[int, np.random.RandomState] = None,
+    ):
+        self.view_features = view_features
+        self.latent_dims = latent_dims
+        self.random_state = check_random_state(random_state)
+
+    @abstractmethod
+    def sample(self, n_samples: int):
+        pass
+
+
+class LatentVariableDataGenerator(BaseDataGenerator):
+    def __init__(
+        self,
+        view_features: List[int],
+        latent_dims: int = 1,
+        random_state: Union[int, np.random.RandomState] = None,
+        view_sparsity: Union[List[float], float] = None,
+        positive: Union[bool, List[bool]] = False,
+        structure="identity",
+    ):
+        super().__init__(view_features, latent_dims, random_state)
+        self.view_sparsity = _process_parameter(
+            "view_sparsity", view_sparsity, 1.0, len(view_features)
+        )
+        self.positive = _process_parameter(
+            "positive", positive, False, len(view_features)
+        )
+        self.structure = _process_parameter(
+            "structure", structure, "identity", len(view_features)
+        )
+        self.true_loadings = [
+            self.generate_true_loading(view_features, view_sparsity, is_positive)
+            for view_features, view_sparsity, is_positive in zip(
+                self.view_features, self.view_sparsity, self.positive
+            )
+        ]
+        self.cov_matrices = [
+            self._generate_covariance_matrix(f, s)
+            for f, s in zip(self.view_features, self.structure)
+        ]
+        self.true_features = [
+            np.linalg.inv(cov) @ loading
+            for cov, loading in zip(self.cov_matrices, self.true_loadings)
+        ]
+
+    def generate_true_loading(self, view_features, view_sparsity, is_positive):
+        loadings = self.random_state.randn(view_features, self.latent_dims)
+        if view_sparsity <= 1:
+            view_sparsity = np.ceil(view_sparsity * loadings.shape[0]).astype(int)
+        mask_elements = [0] * (loadings.shape[0] - view_sparsity) + [1] * view_sparsity
+        mask = np.stack([mask_elements] * loadings.shape[1]).T
+        np.random.shuffle(mask)
+        loadings *= mask
+        if is_positive:
+            loadings = np.abs(loadings)
+        return loadings
+
+    def _generate_covariance_matrix(self, view_features, view_structure):
+        """Generates a covariance matrix for a single view."""
+        if view_structure == "identity":
+            cov = np.eye(view_features)
+        else:
+            cov = make_spd_matrix(view_features, random_state=self.random_state)
+        return cov
+
+    def sample(self, n_samples: int):
+        random_latent = self.random_state.multivariate_normal(
+            np.zeros(self.latent_dims), np.eye(self.latent_dims), n_samples
+        )
+        views = [
+            random_latent @ true_loading.T
+            + self.random_state.multivariate_normal(
+                np.zeros(cov.shape[0]), cov, n_samples
+            )
+            for true_loading, cov in zip(self.true_loadings, self.cov_matrices)
+        ]
+        return views
+
+    @property
+    def joint_cov(self):
+        cov = np.zeros((sum(self.view_features), sum(self.view_features)))
+        cov[: self.view_features[0], : self.view_features[0]] = (
+            self.true_loadings[0] @ self.true_loadings[0].T + self.cov_matrices[0]
+        )
+        cov[self.view_features[0] :, self.view_features[0] :] = (
+            self.true_loadings[1] @ self.true_loadings[1].T + self.cov_matrices[1]
+        )
+        return cov
+
+
+class JointDataGenerator(BaseDataGenerator):
     """
-    Class for generating simulated data for a linear model with multiple views.
+    Class for generating simulated data for a linear model with multiple representations.
     """
 
     def __init__(
@@ -39,10 +136,31 @@ class LinearSimulatedData:
         self.positive = _process_parameter(
             "positive", positive, False, len(view_features)
         )
-
-        cov_matrices, self.true_features = self._generate_covariance_matrices()
+        cov_matrices = [
+            self._generate_covariance_matrix(f, s)
+            for f, s in zip(self.view_features, self.structure)
+        ]
+        self.true_features = [
+            self.generate_true_weight(view_features, view_sparsity, is_positive, cov)
+            for view_features, view_sparsity, is_positive, cov in zip(
+                self.view_features, self.view_sparsity, self.positive, cov_matrices
+            )
+        ]
         self.joint_cov = self._generate_joint_covariance(cov_matrices)
         self.chol = np.linalg.cholesky(self.joint_cov)
+
+    def generate_true_weight(self, view_features, view_sparsity, is_positive, cov):
+        loadings = self.random_state.randn(view_features, self.latent_dims)
+        if view_sparsity <= 1:
+            view_sparsity = np.ceil(view_sparsity * loadings.shape[0]).astype(int)
+        mask_elements = [0] * (loadings.shape[0] - view_sparsity) + [1] * view_sparsity
+        mask = np.stack([mask_elements] * loadings.shape[1]).T
+        np.random.shuffle(mask)
+        loadings *= mask
+        if is_positive:
+            loadings = np.abs(loadings)
+        loadings = self._decorrelate_weights(loadings, cov)
+        return loadings / np.sqrt(np.diag(loadings.T @ cov @ loadings))
 
     def _generate_covariance_matrix(self, view_features, view_structure):
         """Generates a covariance matrix for a single view."""
@@ -58,7 +176,7 @@ class LinearSimulatedData:
         return cov
 
     def _generate_joint_covariance(self, cov_matrices):
-        """Generates a joint covariance matrix for all views."""
+        """Generates a joint covariance matrix for all representations."""
         joint_cov = block_diag(*cov_matrices)
         split_points = np.concatenate(([0], np.cumsum(self.view_features)))
 
@@ -76,7 +194,7 @@ class LinearSimulatedData:
         return joint_cov
 
     def _compute_cross_cov(self, cov_matrices, i, j):
-        """Computes the cross-covariance matrix for a pair of views."""
+        """Computes the cross-covariance matrix for a pair of representations."""
         cross_cov = np.zeros((self.view_features[i], self.view_features[j]))
 
         for _ in range(self.latent_dims):
@@ -90,46 +208,6 @@ class LinearSimulatedData:
             )
 
         return cross_cov
-
-    def _generate_covariance_matrices(self):
-        """Generates a list of covariance matrices and true features for each view."""
-        cov_matrices = [
-            self._generate_covariance_matrix(f, s)
-            for f, s in zip(self.view_features, self.structure)
-        ]
-        true_features = [
-            self._generate_true_feature(cov, s, pos)
-            for cov, s, pos in zip(cov_matrices, self.view_sparsity, self.positive)
-        ]
-        return cov_matrices, true_features
-
-    def _generate_true_feature(self, cov, sparsity, is_positive):
-        """Generates a true feature matrix for a single view."""
-        weights = self._generate_weights(cov.shape[0])
-        weights = self._apply_sparsity(weights, sparsity)
-
-        if is_positive:
-            weights = np.abs(weights)
-
-        weights = self._decorrelate_weights(weights, cov)
-        return weights / np.sqrt(np.diag(weights.T @ cov @ weights))
-
-    def _generate_weights(self, view_features):
-        return self.random_state.randn(view_features, self.latent_dims)
-
-    def _apply_sparsity(self, weights, sparsity):
-        if sparsity <= 1:
-            sparsity = np.ceil(sparsity * weights.shape[0]).astype(int)
-
-        mask = self._generate_sparsity_mask(weights.shape, sparsity)
-        return weights * mask
-
-    @staticmethod
-    def _generate_sparsity_mask(shape, sparsity):
-        mask_elements = [0] * (shape[0] - sparsity) + [1] * sparsity
-        mask = np.stack([mask_elements] * shape[1]).T
-        np.random.shuffle(mask)
-        return mask.astype(bool)
 
     @staticmethod
     def _decorrelate_weights(weights, cov):

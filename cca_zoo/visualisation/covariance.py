@@ -9,14 +9,14 @@ from cca_zoo.utils.check_values import check_seaborn_support
 class CovarianceHeatmapDisplay:
     """Covariance Heatmap Display
 
-    Heatmap of the covariances between the latent variables of the views.
+    Heatmap of the covariances between the latent variables of the representations.
 
     Parameters
     ----------
     train_covariances : np.ndarray
-        The train covariances between views.
+        The train covariances between representations.
     test_covariances : np.ndarray
-        The test covariances between views.
+        The test covariances between representations.
 
     Attributes
     ----------
@@ -28,7 +28,7 @@ class CovarianceHeatmapDisplay:
     >>> from cca_zoo.visualisation import CovarianceHeatmapDisplay
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
-    >>> from cca_zoo.linear import MCCA
+    >>> from cca_zoo.linear import MCCALoss
     >>>
     >>> # Generate Sample Data
     >>> # --------------------
@@ -39,18 +39,18 @@ class CovarianceHeatmapDisplay:
     >>> X_train, X_test = X[:50], X[50:]
     >>> Y_train, Y_test = Y[:50], Y[50:]
     >>>
-    >>> views = [X_train, Y_train]
+    >>> representations = [X_train, Y_train]
     >>> test_views = [X_test, Y_test]
     >>>
-    >>> # Train an MCCA Model
+    >>> # Train an MCCALoss Model
     >>> # -------------------
-    >>> mcca = MCCA(latent_dimensions=2)
-    >>> mcca.fit(views)
+    >>> mcca = MCCALoss(latent_dimensions=2)
+    >>> mcca.fit(representations)
     >>>
     >>> # %%
     >>> # Plotting the Covariance Heatmap
     >>> # -------------------------------
-    >>> CovarianceHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    >>> CovarianceHeatmapDisplay.from_estimator(mcca, representations, test_views=test_views).plot()
     >>> plt.show()
 
     """

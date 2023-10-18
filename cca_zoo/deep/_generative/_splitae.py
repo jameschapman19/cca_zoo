@@ -52,7 +52,7 @@ class SplitAE(BaseDeep, _GenerativeMixin):
 
     def _decode(self, z, **kwargs):
         """
-        This method is used to decode from the latent space to the best prediction of the original views
+        This method is used to decode from the latent space to the best prediction of the original representations
 
         :param z:
         """

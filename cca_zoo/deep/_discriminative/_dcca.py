@@ -18,20 +18,19 @@ class DCCA(BaseDeep):
     def __init__(
         self,
         latent_dimensions: int,
-        objective=objectives.MCCA,
+        objective=objectives.MCCALoss,
         encoders=None,
-        r: float = 0,
         eps: float = 1e-5,
         **kwargs,
     ):
         super().__init__(latent_dimensions=latent_dimensions, **kwargs)
-        # Check if encoders are provided and have the same length as the number of views
+        # Check if encoders are provided and have the same length as the number of representations
         if encoders is None:
             raise ValueError(
-                "Encoders must be a list of torch.nn.Module with length equal to the number of views."
+                "Encoders must be a list of torch.nn.Module with length equal to the number of representations."
             )
         self.encoders = torch.nn.ModuleList(encoders)
-        self.objective = objective(r=r, eps=eps)
+        self.objective = objective(eps=eps)
 
     def forward(self, views, **kwargs):
         if not hasattr(self, "n_views_"):
@@ -41,8 +40,8 @@ class DCCA(BaseDeep):
         return z
 
     def loss(self, batch, **kwargs):
-        z = self(batch["views"])
-        return {"objective": self.objective.loss(z)}
+        representations = self(batch["views"])
+        return {"objective": self.objective.loss(representations)}
 
     def pairwise_correlations(self, loader: torch.utils.data.DataLoader):
         # Call the parent class method

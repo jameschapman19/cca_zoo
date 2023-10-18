@@ -1,14 +1,14 @@
 """
-Deep Canonical Correlation Analysis (CCA) using `cca_zoo`
+Deep Canonical Correlation Analysis (CCALoss) using `cca_zoo`
 ========================================================
 
-This script showcases how to implement various Deep CCA methods and their
+This script showcases how to implement various Deep CCALoss methods and their
 variants using the `cca_zoo` library, a dedicated tool for canonical
 correlation analysis and its related techniques. The MNIST dataset is used
-as an example, where images are split into two halves to treat as separate views.
+as an example, where images are split into two halves to treat as separate representations.
 
 Key Features:
-- Demonstrates the training process of multiple Deep CCA variants.
+- Demonstrates the training process of multiple Deep CCALoss variants.
 - Visualizes the results of each variant for comparative analysis.
 - Leverages `cca_zoo` for canonical correlation analysis techniques.
 """
@@ -33,8 +33,8 @@ from docs.source.examples import example_mnist_data
 # %%
 # Data
 # -----
-# We use the MNIST dataset as an example of two views of the same data.
-# We split the images into two halves and treat them as separate views.
+# We use the MNIST dataset as an example of two representations of the same data.
+# We split the images into two halves and treat them as separate representations.
 
 seed_everything(42)
 LATENT_DIMS = 2  # The dimensionality of the latent space
@@ -48,9 +48,9 @@ encoder_2 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=39
 
 
 # %%
-# Deep CCA
+# Deep CCALoss
 # ----------------------------
-# Deep CCA is a method that learns nonlinear transformations of two views
+# Deep CCALoss is a method that learns nonlinear transformations of two representations
 # such that the resulting latent representations are maximally correlated.
 
 dcca = DCCA(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
@@ -68,7 +68,7 @@ trainer.fit(dcca, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     dcca, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot(title="Deep CCA")
+score_display.plot(title="Deep CCALoss")
 plt.show()
 
 # UMAP Visualization
@@ -76,7 +76,7 @@ score_display = UMAPScoreDisplay.from_estimator(
     dcca, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
-score_display.figure_.suptitle("UMAP Deep CCA")
+score_display.figure_.suptitle("UMAP Deep CCALoss")
 plt.show()
 
 # t-SNE Visualization
@@ -84,13 +84,13 @@ score_display = TSNEScoreDisplay.from_estimator(
     dcca, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
-score_display.figure_.suptitle("TSNE Deep CCA")
+score_display.figure_.suptitle("TSNE Deep CCALoss")
 plt.show()
 
 # %%
-# Deep CCA EY
+# Deep CCALoss EY
 # ----------------------------
-# Deep CCA EY is a variant of Deep CCA that uses an explicit objective function
+# Deep CCALoss EY is a variant of Deep CCALoss that uses an explicit objective function
 # based on the eigenvalue decomposition of the cross-covariance matrix.
 
 dcca_eg = DCCA_EY(
@@ -104,13 +104,13 @@ trainer.fit(dcca_eg, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     dcca_eg, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot(title="Deep CCA EY")
+score_display.plot(title="Deep CCALoss EY")
 plt.show()
 
 # %%
-# Deep CCA by Non-Linear Orthogonal Iterations
+# Deep CCALoss by Non-Linear Orthogonal Iterations
 # ----------------------------------------------
-# Deep CCA by Non-Linear Orthogonal Iterations (DCCA_NOI) is another variant of Deep CCA
+# Deep CCALoss by Non-Linear Orthogonal Iterations (DCCA_NOI) is another variant of Deep CCALoss
 # that uses an iterative algorithm to orthogonalize the latent representations.
 
 dcca_noi = DCCA_NOI(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
@@ -122,13 +122,13 @@ trainer.fit(dcca_noi, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     dcca_noi, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot(title="Deep CCA NOI")
+score_display.plot(title="Deep CCALoss NOI")
 plt.show()
 
 # %%
-# Deep CCA by Stochastic Decorrelation Loss
+# Deep CCALoss by Stochastic Decorrelation Loss
 # ----------------------------------------------
-# Deep CCA by Stochastic Decorrelation Loss (DCCA_SDL) is yet another variant of Deep CCA
+# Deep CCALoss by Stochastic Decorrelation Loss (DCCA_SDL) is yet another variant of Deep CCALoss
 # that uses a stochastic gradient descent algorithm to minimize a decorrelation loss function.
 
 dcca_sdl = DCCA_SDL(
@@ -142,15 +142,15 @@ trainer.fit(dcca_sdl, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     dcca_sdl, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot(title="Deep CCA SDL")
+score_display.plot(title="Deep CCALoss SDL")
 plt.show()
 
 # %%
-# Deep CCA by Barlow Twins
+# Deep CCALoss by Barlow Twins
 # ----------------------------------------------
-# Deep CCA by Barlow Twins is a self-supervised learning method that learns representations
-# that are invariant to augmentations of the same data. It can be seen as a special case of Deep CCA
-# where the two views are random augmentations of the same input.
+# Deep CCALoss by Barlow Twins is a self-supervised learning method that learns representations
+# that are invariant to augmentations of the same data. It can be seen as a special case of Deep CCALoss
+# where the two representations are random augmentations of the same input.
 
 barlowtwins = BarlowTwins(
     latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2]
@@ -167,11 +167,11 @@ score_display.plot(title="Barlow Twins")
 plt.show()
 
 # %%
-# Deep CCA by VICReg
+# Deep CCALoss by VICReg
 # ----------------------------------------------
-# Deep CCA by VICReg is a self-supervised learning method that learns representations
-# that are invariant to distortions of the same data. It can be seen as a special case of Deep CCA
-# where the two views are random distortions of the same input.
+# Deep CCALoss by VICReg is a self-supervised learning method that learns representations
+# that are invariant to distortions of the same data. It can be seen as a special case of Deep CCALoss
+# where the two representations are random distortions of the same input.
 
 dcca_vicreg = DCCA_SDL(
     latent_dimensions=LATENT_DIMS, N=N_TRAIN, encoders=[encoder_1, encoder_2]

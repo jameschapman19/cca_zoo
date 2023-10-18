@@ -12,8 +12,8 @@ class ScoreScatterDisplay:
     Display the scores of a model.
 
     Args:
-        scores (tuple): Tuple of two arrays representing training scores for two views.
-        test_scores (tuple, optional): Tuple of two arrays representing test scores for two views. Default is None.
+        scores (tuple): Tuple of two arrays representing training scores for two representations.
+        test_scores (tuple, optional): Tuple of two arrays representing test scores for two representations. Default is None.
         labels (array-like, optional): Labels for training data. Default is None.
         test_labels (array-like, optional): Labels for test data. Default is None.
         separate (bool, optional): Whether to plot train and test scores separately. Default is False.
@@ -100,12 +100,12 @@ class ScoreScatterDisplay:
         **kwargs,
     ):
         """
-        Create a ScoreDisplay instance from an estimator and data views.
+        Create a ScoreDisplay instance from an estimator and data representations.
 
         Args:
             model: The estimator model.
-            train_views (tuple): Tuple of two arrays representing training data views.
-            test_views (tuple, optional): Tuple of two arrays representing test data views. Default is None.
+            train_views (tuple): Tuple of two arrays representing training data representations.
+            test_views (tuple, optional): Tuple of two arrays representing test data representations. Default is None.
             **kwargs: Additional keyword arguments passed to the ScoreDisplay constructor.
 
         Returns:
@@ -138,8 +138,8 @@ class ScoreScatterDisplay:
         Create a ScoreDisplay instance from precomputed scores.
 
         Args:
-            train_scores (tuple): Tuple of two arrays representing training scores for two views.
-            test_scores (tuple, optional): Tuple of two arrays representing test scores for two views. Default is None.
+            train_scores (tuple): Tuple of two arrays representing training scores for two representations.
+            test_scores (tuple, optional): Tuple of two arrays representing test scores for two representations. Default is None.
             **kwargs: Additional keyword arguments passed to the ScoreDisplay constructor.
 
         Returns:
