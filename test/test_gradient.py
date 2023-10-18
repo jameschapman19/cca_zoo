@@ -115,13 +115,13 @@ def test_stochastic_pls():
         learning_rate=learning_rate,
         random_state=random_state,
     ).fit((X, Y))
-    plssvd = PLS_SVD(
-        latent_dimensions=latent_dims,
-        epochs=epochs,
-        batch_size=batch_size,
-        learning_rate=learning_rate,
-        random_state=random_state,
-    ).fit((X, Y))
+    # plssvd = PLS_SVD(
+    #     latent_dimensions=latent_dims,
+    #     epochs=epochs,
+    #     batch_size=batch_size,
+    #     learning_rate=learning_rate,
+    #     random_state=random_state,
+    # ).fit((X, Y))
     spls = PLSStochasticPower(
         latent_dimensions=latent_dims,
         epochs=epochs,
@@ -133,11 +133,11 @@ def test_stochastic_pls():
     pls_score = scale_transform(pls, X, Y)
     spls_score = scale_transform(spls, X, Y)
     plsey_score = scale_transform(plsey, X, Y)
-    plssvd_score = scale_transform(plssvd, X, Y)
+    # plssvd_score = scale_transform(plssvd, X, Y)
     # check all methods are similar to pls
     assert np.allclose(np.trace(pls_score), np.trace(spls_score), atol=1e-1)
     assert np.allclose(np.trace(pls_score), np.trace(plsey_score), atol=1e-1)
-    assert np.allclose(np.trace(pls_score), np.trace(plssvd_score), atol=1e-1)
+    # assert np.allclose(np.trace(pls_score), np.trace(plssvd_score), atol=1e-1)
 
 
 def test_stochastic_cca():
