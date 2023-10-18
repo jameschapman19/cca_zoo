@@ -47,19 +47,20 @@ class ProbabilisticPLS(ProbabilisticCCA):
 
     [1] De Bie, T. and De Moor, B., 2003. On the regularization of canonical correlation analysis. Int. Sympos. ICA and BSS, pp.785-790.
     """
+
     eps = 1e-3
 
     def _model(self, views):
         """
         Defines the generative model for Probabilistic RCCA.
-    
+
         Parameters
         ----------
         views: tuple of np.ndarray
             A tuple containing the first and second representations, X1 and X2, each as a numpy array.
         """
         X1, X2 = views
-    
+
         W1 = numpyro.param(
             "W_1",
             random.normal(
@@ -80,11 +81,11 @@ class ProbabilisticPLS(ProbabilisticCCA):
                 key=self.rng_key,
             ),
         )
-    
+
         # Add positive-definite constraint for psi1 and psi2
         psi1 = jnp.ones(self.n_features_[0]) * self.eps
         psi2 = jnp.ones(self.n_features_[1]) * self.eps
-    
+
         mu1 = numpyro.param(
             "mu_1",
             random.normal(
@@ -105,9 +106,9 @@ class ProbabilisticPLS(ProbabilisticCCA):
                 key=self.rng_key,
             ),
         )
-    
+
         n_samples = X1.shape[0] if X1 is not None else X2.shape[0]
-    
+
         with numpyro.plate("n", n_samples):
             z = numpyro.sample(
                 "representations",
@@ -115,7 +116,7 @@ class ProbabilisticPLS(ProbabilisticCCA):
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
                 ),
             )
-    
+
         with numpyro.plate("n", n_samples):
             numpyro.sample(
                 "X1",
@@ -133,12 +134,12 @@ class ProbabilisticPLS(ProbabilisticCCA):
         top_left = (
             self.params["W_1"] @ self.params["W_1"].T
             # + jnp.diag(self.params["psi_1"])
-            + self.eps*jnp.eye(self.n_features_[0])
+            + self.eps * jnp.eye(self.n_features_[0])
         )
         bottom_right = (
             self.params["W_2"] @ self.params["W_2"].T
             # + jnp.diag(self.params["psi_2"])
-            + self.eps*jnp.eye(self.n_features_[1])
+            + self.eps * jnp.eye(self.n_features_[1])
         )
         top_right = self.params["W_1"] @ self.params["W_2"].T
         bottom_left = self.params["W_2"] @ self.params["W_1"].T

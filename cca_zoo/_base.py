@@ -60,7 +60,9 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         if not all(view.ndim == 2 for view in views):
             raise ValueError("All representations must have 2 dimensions")
         if not all(view.dtype in self.dtypes for view in views):
-            raise ValueError("All representations must have dtype of {}.".format(self.dtypes))
+            raise ValueError(
+                "All representations must have dtype of {}.".format(self.dtypes)
+            )
         if not all(view.shape[1] >= self.latent_dimensions for view in views):
             raise ValueError(
                 "All representations must have at least {} features.".format(

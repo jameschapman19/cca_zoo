@@ -41,7 +41,9 @@ for dim in dimensions:
         cca_zoo_time = time.time() - start_time
 
         # Record results
-        results.append({"Dimension": dim, "Time": cca_zoo_time, "Method": "CCALoss-Zoo"})
+        results.append(
+            {"Dimension": dim, "Time": cca_zoo_time, "Method": "CCALoss-Zoo"}
+        )
 
         # Scikit-learn
         start_time = time.time()

@@ -105,13 +105,17 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
     def get_dataloader(self, train_dataset, val_dataset):
         train_loader = DataLoader(
             train_dataset,
-            batch_size=len(train_dataset) if self.batch_size is None else self.batch_size,
+            batch_size=len(train_dataset)
+            if self.batch_size is None
+            else self.batch_size,
             **self.dataloader_kwargs,
         )
         if val_dataset is not None:
             val_loader = DataLoader(
                 val_dataset,
-                batch_size=len(val_dataset) if self.batch_size is None else self.batch_size,
+                batch_size=len(val_dataset)
+                if self.batch_size is None
+                else self.batch_size,
                 **self.dataloader_kwargs,
             )
         else:

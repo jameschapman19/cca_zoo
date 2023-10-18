@@ -230,8 +230,7 @@ if __name__ == "__main__":
     correlation_matrix = np.abs(np.corrcoef(z_cca.reshape(-1), z_p.reshape(-1)))
     correlation_cca = correlation_matrix[0, 1]
 
-    S= np.cov(X.T, Y.T)
-
+    S = np.cov(X.T, Y.T)
 
     assert (
         correlation_pls > correlation_cca

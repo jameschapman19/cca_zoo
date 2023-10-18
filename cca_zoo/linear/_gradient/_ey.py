@@ -9,13 +9,16 @@ from cca_zoo.linear._gradient._base import BaseGradientModel
 
 class CCA_EY(BaseGradientModel):
     objective = CCA_EYLoss()
+
     def _more_tags(self):
         return {"multiview": True, "stochastic": True}
 
     def training_step(self, batch, batch_idx):
         representations = self(batch["views"])
         independent_views = batch.get("independent_views", None)
-        independent_representations = self(independent_views) if independent_views is not None else None
+        independent_representations = (
+            self(independent_views) if independent_views is not None else None
+        )
         loss = self.objective.loss(representations, independent_representations)
         # Logging the loss components with "train/" prefix
         for k, v in loss.items():
@@ -31,7 +34,9 @@ class CCA_EY(BaseGradientModel):
     def validation_step(self, batch, batch_idx):
         representations = self(batch["views"])
         independent_views = batch.get("independent_views", None)
-        independent_representations = self(independent_views) if independent_views is not None else None
+        independent_representations = (
+            self(independent_views) if independent_views is not None else None
+        )
         loss = self.objective.loss(representations, independent_representations)
         # Logging the loss components
         for k, v in loss.items():
@@ -52,8 +57,10 @@ class CCA_EY(BaseGradientModel):
             val_dataset = None
         return dataset, val_dataset
 
+
 class PLS_EY(CCA_EY):
     objective = PLS_EYLoss()
+
     def training_step(self, batch, batch_idx):
         representations = self(batch["views"])
         loss = self.objective.loss(representations, weights=self.torch_weights)
@@ -91,4 +98,3 @@ class DoubleNumpyDataset(NumpyDataset):
         independent_index = self.random_state.randint(0, len(self))
         independent_views = [view[independent_index] for view in self.views]
         return {"views": views, "independent_views": independent_views}
-

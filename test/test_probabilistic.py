@@ -17,7 +17,7 @@ def setup_data():
         view_features=[5, 6],
         latent_dims=latent_dims,
         random_state=seed,
-        structure='identity',
+        structure="identity",
     )
     X, Y = data.sample(50)
     X -= X.mean(axis=0)
@@ -50,7 +50,9 @@ def test_cca_vs_probabilisticPLS(setup_data):
     # Models and fit
     cca = CCA(latent_dimensions=1)
     pls = PLS(latent_dimensions=1)
-    ppls = ProbabilisticPLS(latent_dimensions=1, random_state=1, learning_rate=1e-4, n_iter=20000)
+    ppls = ProbabilisticPLS(
+        latent_dimensions=1, random_state=1, learning_rate=1e-4, n_iter=20000
+    )
 
     cca.fit([X, Y])
     pls.fit([X, Y])
