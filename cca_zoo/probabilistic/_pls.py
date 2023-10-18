@@ -6,15 +6,17 @@ from jax import random
 from cca_zoo.probabilistic._cca import ProbabilisticCCA
 import numpy as np
 
+from cca_zoo.utils import _process_parameter
+
 
 class ProbabilisticPLS(ProbabilisticCCA):
     """
-    Probabilistic Ridge Canonical Correlation Analysis (Probabilistic Ridge CCA).
+    Probabilistic Ridge Canonical Correlation Analysis (Probabilistic Ridge CCALoss).
 
-    Probabilistic Ridge CCA extends the Probabilistic Canonical Correlation Analysis model
-    by introducing regularization terms in the linear relationships between multiple views
+    Probabilistic Ridge CCALoss extends the Probabilistic Canonical Correlation Analysis model
+    by introducing regularization terms in the linear relationships between multiple representations
     of data. This regularization improves the conditioning of the problem and provides a
-    way to incorporate prior knowledge. It combines features of both CCA and Ridge Regression.
+    way to incorporate prior knowledge. It combines features of both CCALoss and Ridge Regression.
 
     Parameters
     ----------
@@ -46,6 +48,8 @@ class ProbabilisticPLS(ProbabilisticCCA):
     [1] De Bie, T. and De Moor, B., 2003. On the regularization of canonical correlation analysis. Int. Sympos. ICA and BSS, pp.785-790.
     """
 
+    eps = 1e-3
+
     def _model(self, views):
         """
         Defines the generative model for Probabilistic RCCA.
@@ -53,7 +57,7 @@ class ProbabilisticPLS(ProbabilisticCCA):
         Parameters
         ----------
         views: tuple of np.ndarray
-            A tuple containing the first and second views, X1 and X2, each as a numpy array.
+            A tuple containing the first and second representations, X1 and X2, each as a numpy array.
         """
         X1, X2 = views
 
@@ -79,8 +83,8 @@ class ProbabilisticPLS(ProbabilisticCCA):
         )
 
         # Add positive-definite constraint for psi1 and psi2
-        psi1 = jnp.eye(self.n_features_[0]) * 1e-3
-        psi2 = jnp.eye(self.n_features_[1]) * 1e-3
+        psi1 = jnp.ones(self.n_features_[0]) * self.eps
+        psi2 = jnp.ones(self.n_features_[1]) * self.eps
 
         mu1 = numpyro.param(
             "mu_1",
@@ -107,7 +111,7 @@ class ProbabilisticPLS(ProbabilisticCCA):
 
         with numpyro.plate("n", n_samples):
             z = numpyro.sample(
-                "z",
+                "representations",
                 dist.MultivariateNormal(
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
                 ),
@@ -127,8 +131,16 @@ class ProbabilisticPLS(ProbabilisticCCA):
 
     def joint(self):
         # Calculate the individual matrix blocks
-        top_left = jnp.eye(self.n_features_[0])
-        bottom_right = jnp.eye(self.n_features_[1])
+        top_left = (
+            self.params["W_1"] @ self.params["W_1"].T
+            # + jnp.diag(self.params["psi_1"])
+            + self.eps * jnp.eye(self.n_features_[0])
+        )
+        bottom_right = (
+            self.params["W_2"] @ self.params["W_2"].T
+            # + jnp.diag(self.params["psi_2"])
+            + self.eps * jnp.eye(self.n_features_[1])
+        )
         top_right = self.params["W_1"] @ self.params["W_2"].T
         bottom_left = self.params["W_2"] @ self.params["W_1"].T
 

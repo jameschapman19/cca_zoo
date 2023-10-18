@@ -1,3 +1,6 @@
-from . import deep, simulated
+from .simulated import JointDataGenerator, LatentVariableDataGenerator
 
-__all__ = ["simulated", "deep"]
+__all__ = [
+    "JointDataGenerator",
+    "LatentVariableDataGenerator",
+]

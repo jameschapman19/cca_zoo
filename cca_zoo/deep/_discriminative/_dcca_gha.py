@@ -1,44 +1,17 @@
-import torch
-
-from ._dcca_ey import DCCA_EY
+from cca_zoo.deep._discriminative._dcca_ey import DCCA_EY
+from cca_zoo.deep.objectives import CCA_GHALoss
 
 
 class DCCA_GHA(DCCA_EY):
-    def get_AB(self, z):
-        A = torch.zeros(
-            self.latent_dimensions, self.latent_dimensions, device=z[0].device
-        )  # initialize the cross-covariance matrix
-        B = torch.zeros(
-            self.latent_dimensions, self.latent_dimensions, device=z[0].device
-        )  # initialize the auto-covariance matrix
-        for i, zi in enumerate(z):
-            for j, zj in enumerate(z):
-                if i == j:
-                    B += torch.cov(zi.T)  # add the auto-covariance of each view to B
-                A += torch.cov(torch.hstack((zi, zj)).T)[
-                    self.latent_dimensions :, : self.latent_dimensions
-                ]  # add the cross-covariance of each pair of views to A
-        return A / len(z), B / len(
-            z
-        )  # return the normalized matrices (divided by the number of views)
+    """
 
-    def loss(self, batch, **kwargs):
-        z = self(batch["views"])
-        independent_views = batch.get("independent_views", None)
-        A, B = self.get_AB(z)
-        rewards = torch.trace(2 * A)
-        if independent_views is None:
-            # Hebbian
-            penalties = torch.trace(A.detach() @ B)
-            # penalties = torch.trace(A @ B)
-        else:
-            independent_z = self(independent_views)
-            independent_A, independent_B = self.get_AB(independent_z)
-            # Hebbian
-            penalties = torch.trace(independent_A.detach() @ B)
-            # penalties = torch.trace(A @ independent_B)
-        return {
-            "objective": -rewards.sum() + penalties,
-            "rewards": rewards.sum(),
-            "penalties": penalties,
-        }
+    References
+    ----------
+    Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A GeneralizedDeflation EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
+    """
+
+    def __init__(self, latent_dimensions: int, encoders=None, eps: float = 0, **kwargs):
+        super().__init__(
+            latent_dimensions=latent_dimensions, encoders=encoders, eps=eps, **kwargs
+        )
+        self.objective = CCA_GHALoss(eps=eps)

@@ -3,7 +3,7 @@ import scipy.sparse as sp
 from scipy.stats import loguniform
 from sklearn.utils.validation import check_random_state
 
-from cca_zoo.data.simulated import LinearSimulatedData
+from cca_zoo.data.simulated import JointDataGenerator
 from cca_zoo.linear import (
     CCA,
     GCCA,
@@ -51,7 +51,7 @@ def test_initialisation():
 
 
 def test_linear_simulated_data():
-    sim_data = LinearSimulatedData([10, 10]).sample(100)
+    sim_data = JointDataGenerator([10, 10]).sample(100)
     assert CCA().fit(sim_data).score(sim_data) > 0.9
 
 
@@ -117,7 +117,7 @@ def test_sparse_methods():
     tau2 = [1e-1]
     param_grid = {"tau": [tau1, tau2]}
     # admm_cv = GridSearchCV(SCCA_ADMM(random_state=rng), param_grid=param_grid).fit(
-    #     [views, Y]
+    #     [representations, Y]
     # )
     # assert (pdd_cv.best_estimator_.weights[0] == 0).sum() > 0
     # assert (pdd_cv.best_estimator_.weights[1] == 0).sum() > 0
@@ -132,7 +132,7 @@ def test_sparse_methods():
 
 
 def test_weighted_GCCA_methods():
-    # TODO we have view weighted GCCA and missing observation GCCA
+    # TODO we have view weighted GCCALoss and missing observation GCCALoss
     latent_dims = 2
     c = 0
     unweighted_gcca = GCCA(latent_dimensions=latent_dims, c=[c, c]).fit([X, Y])
@@ -157,7 +157,7 @@ def test_l0():
     span_cca = SCCA_Span(
         latent_dimensions=1, regularisation="l0", tau=[2, 2], random_state=rng
     ).fit([X, Y])
-    # swcca = SWCCA(tau=[5, 5], sample_support=5, random_state=rng).fit([views, Y])
+    # swcca = SWCCA(tau=[5, 5], sample_support=5, random_state=rng).fit([representations, Y])
     assert (np.abs(span_cca.weights[0]) > 1e-5).sum() == 2
     assert (np.abs(span_cca.weights[1]) > 1e-5).sum() == 2
     # assert (np.abs(swcca.weights[0]) > 1e-5).sum() == 5
@@ -166,7 +166,7 @@ def test_l0():
 
 
 def test_partialcca():
-    # Tests that partial CCA scores are not correlated with partials
+    # Tests that partial CCALoss scores are not correlated with partials
     pcca = PartialCCA(latent_dimensions=3)
     pcca.fit((X, Y), partials=Z)
     assert np.allclose(

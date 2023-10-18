@@ -112,10 +112,10 @@
 #         self.T = T
 #         self.learning_rate = learning_rate
 #
-#     def forward(self, views: list) -> list:
-#         # views detach and numpy
-#         views = [view.detach().numpy() for view in views]
-#         return [view @ weight for view, weight in zip(views, self.weights)]
+#     def forward(self, representations: list) -> list:
+#         # representations detach and numpy
+#         representations = [view.detach().numpy() for view in representations]
+#         return [view @ weight for view, weight in zip(representations, self.weights)]
 #
 #     def _get_target(self, scores):
 #         if hasattr(self, "G"):
@@ -126,18 +126,18 @@
 #         G = U @ Vt
 #         return G / np.sqrt(np.diag(np.atleast_1d(np.cov(G, rowvar=False))))
 #
-#     def objective(self, views, scores, weights) -> int:
+#     def objective(self, representations, scores, weights) -> int:
 #         least_squares = (np.linalg.norm(scores - self.G, axis=(1, 2)) ** 2).sum()
 #         regularization = np.array(
-#             [self.proximal_operators[view](weights[view]) for view in range(len(views))]
+#             [self.proximal_operators[view](weights[view]) for view in range(len(representations))]
 #         ).sum()
 #         return least_squares + regularization
 #
 #     def training_step(self, batch, batch_idx):
-#         scores = np.stack(self(batch["views"]))
+#         scores = np.stack(self(batch["representations"]))
 #         self.G = self._get_target(scores)
 #         old_weights = self.weights.copy()
-#         for i, view in enumerate(batch["views"]):
+#         for i, view in enumerate(batch["representations"]):
 #             view = view.detach().numpy()
 #             t = 0
 #             prev_weights = None
@@ -161,7 +161,7 @@
 #
 #         # if track or convergence_checking is enabled, compute the objective function
 #         if self.tracking or self.convergence_checking:
-#             objective = self.objective(batch["views"], scores, self.weights)
+#             objective = self.objective(batch["representations"], scores, self.weights)
 #             # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights
 #             weights_change = torch.tensor(
 #                 np.max(

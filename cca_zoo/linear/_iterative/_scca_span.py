@@ -11,7 +11,7 @@ from cca_zoo.utils import _process_parameter
 
 class SCCA_Span(DeflationMixin, BaseIterative):
     r"""
-    Fits a Sparse CCA model using SpanCCA.
+    Fits a Sparse CCALoss model using SpanCCA.
 
     .. math::
 
@@ -23,7 +23,7 @@ class SCCA_Span(DeflationMixin, BaseIterative):
 
     References
     ----------
-    Asteris, Megasthenis, et al. "A simple and provable algorithm for sparse diagonal CCA." International Conference on Machine Learning. PMLR, 2016.
+    Asteris, Megasthenis, et al. "A simple and provable algorithm for sparse diagonal CCALoss." International Conference on Machine Learning. PMLR, 2016.
     """
 
     def __init__(
@@ -57,9 +57,9 @@ class SCCA_Span(DeflationMixin, BaseIterative):
         self.positive = positive
 
     def _check_params(self):
-        """check number of views=2"""
+        """check number of representations=2"""
         if self.n_views_ != 2:
-            raise ValueError(f"SCCA_Span requires only 2 views")
+            raise ValueError(f"SCCA_Span requires only 2 representations")
         self.max_obj = 0
         if self.regularisation == "l0":
             self.update = support_threshold
@@ -74,7 +74,7 @@ class SCCA_Span(DeflationMixin, BaseIterative):
         """Update the weights for the i-th component.
 
         Args:
-            views (np.ndarray): The input views as numpy arrays.
+            views (np.ndarray): The input representations as numpy arrays.
             i (int): The index of the component.
         """
         # if P, D, Q not initialised, initialise them

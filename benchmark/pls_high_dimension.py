@@ -1,5 +1,5 @@
 """
-Benchmarking CCA on high dimensional data. Using CCA-Zoo and Scikit-learn.
+Benchmarking CCALoss on high dimensional data. Using CCALoss-Zoo and Scikit-learn.
 
 Use different dimensionalities and produce a nice seaborn plot of the runtimes.
 """
@@ -34,14 +34,16 @@ for dim in dimensions:
         X = np.random.rand(n_samples, dim)
         Y = np.random.rand(n_samples, dim)
 
-        # CCA-Zoo
+        # CCALoss-Zoo
         start_time = time.time()
         cca_zoo = PLS(latent_dimensions=latent_dimensions)
         cca_zoo.fit((X, Y))
         cca_zoo_time = time.time() - start_time
 
         # Record results
-        results.append({"Dimension": dim, "Time": cca_zoo_time, "Method": "CCA-Zoo"})
+        results.append(
+            {"Dimension": dim, "Time": cca_zoo_time, "Method": "CCALoss-Zoo"}
+        )
 
         # Scikit-learn
         start_time = time.time()

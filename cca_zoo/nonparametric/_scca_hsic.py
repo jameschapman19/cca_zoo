@@ -13,7 +13,7 @@ class SCCA_HSIC(GradKCCA):
     """
     References
     ----------
-    [1] Uurtio, V., Bhadra, S., Rousu, J. Sparse Non-Linear CCA through Hilbert-Schmidt Independence Criterion. IEEE International Conference on Data Mining (ICDM 2018), to appear
+    [1] Uurtio, V., Bhadra, S., Rousu, J. Sparse Non-Linear CCALoss through Hilbert-Schmidt Independence Criterion. IEEE International Conference on Data Mining (ICDM 2018), to appear
 
     """
 
@@ -157,6 +157,6 @@ def generate_data(n, p, q):
     X = np.random.uniform(-1, 1, [n, p])
     Y = np.random.uniform(-1, 1, [n, q])
     Y[:, 2] = X[:, 2] + X[:, 3] - Y[:, 3] + np.random.normal(0, 0.05, n)
-    # Y[:,2] = np.power(views[:,2] + views[:,3],3) - Y[:,3] + np.random.normal(0,0.05,n)
-    # Y[:,4] = np.exp(views[:,4] + views[:,5]) - Y[:,5] + np.random.normal(0,0.05,n)
+    # Y[:,2] = np.power(representations[:,2] + representations[:,3],3) - Y[:,3] + np.random.normal(0,0.05,n)
+    # Y[:,4] = np.exp(representations[:,4] + representations[:,5]) - Y[:,5] + np.random.normal(0,0.05,n)
     return X, Y

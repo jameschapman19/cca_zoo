@@ -1,5 +1,5 @@
 """
-Module for finding CCA effects sequentially by deflation.
+Module for finding CCALoss effects sequentially by deflation.
 
 Check if each effect is significant, and if so, remove it from the data and repeat.
 """
@@ -71,7 +71,7 @@ class SequentialModel(MetaEstimatorMixin, BaseModel, metaclass=ABCMeta):
         self.p_values = []
         # Loop over the latent dimensions
         for k in range(self.latent_dimensions):
-            # Fit the estimator with the current views
+            # Fit the estimator with the current representations
             self.estimator.set_params(**self.estimator_hyperparams)
             self.estimator.fit(views)
             # Perform permutation test if required
@@ -97,7 +97,7 @@ class SequentialModel(MetaEstimatorMixin, BaseModel, metaclass=ABCMeta):
                 self.p_values.pop()
                 break
             else:
-                # Deflate the views and store the weights
+                # Deflate the representations and store the weights
                 views = deflate_views(views, best_estimator.weights)
                 for i, weight in enumerate(best_estimator.weights):
                     self.weights[i].append(weight)

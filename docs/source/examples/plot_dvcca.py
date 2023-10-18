@@ -1,5 +1,5 @@
 """
-Deep Variational CCA and Deep Canonically Correlated Autoencoders
+Deep Variational CCALoss and Deep Canonically Correlated Autoencoders
 ====================================================================
 
 This example demonstrates multiview linear which can reconstruct their inputs
@@ -14,7 +14,7 @@ This example demonstrates multiview linear which can reconstruct their inputs
 #
 # def plot_reconstruction(model, loader):
 #     recons = model.recon(loader, mle=True)
-#     originals = loader.dataset.dataset[0]["views"]
+#     originals = loader.dataset.dataset[0]["representations"]
 #     n_cols = 2
 #     fig, ax = plt.subplots(ncols=n_cols, nrows=2)
 #     for i, (original) in enumerate(originals):
@@ -40,7 +40,7 @@ This example demonstrates multiview linear which can reconstruct their inputs
 # )
 #
 # # %%
-# # Deep Variational CCA
+# # Deep Variational CCALoss
 # # ----------------------------
 # encoder_1 = architectures.Encoder(
 #     latent_dimensions=LATENT_DIMS,
@@ -79,7 +79,7 @@ This example demonstrates multiview linear which can reconstruct their inputs
 # plt.show()
 #
 # # %%
-# # Deep Variational CCA (Private)
+# # Deep Variational CCALoss (Private)
 # # -------------------------------
 # private_encoder_1 = architectures.Encoder(
 #     latent_dimensions=LATENT_DIMS,

@@ -7,8 +7,8 @@ class WeightHeatmapDisplay:
 
     Parameters
     ----------
-    model : CCA model
-        A fitted CCA model.
+    model : CCALoss model
+        A fitted CCALoss model.
     """
 
     def __init__(self, weights, view_labels=None, **kwargs):

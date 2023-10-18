@@ -17,7 +17,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
     A base class for multivariate latent variable linear.
 
     This class implements common methods and attributes for fitting and transforming
-    multiple views of data using latent variable linear. It inherits from scikit-learn's
+    multiple representations of data using latent variable linear. It inherits from scikit-learn's
     BaseEstimator, MultiOutputMixin and RegressorMixin classes.
 
     Parameters
@@ -34,7 +34,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
     Attributes
     ----------
     n_views_ : int
-        Number of views.
+        Number of representations.
     n_features_ : list of int
         Number of features for each view.
 
@@ -56,14 +56,16 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     def _validate_data(self, views: Iterable[np.ndarray]):
         if not all(view.shape[0] == views[0].shape[0] for view in views):
-            raise ValueError("All views must have the same number of samples")
+            raise ValueError("All representations must have the same number of samples")
         if not all(view.ndim == 2 for view in views):
-            raise ValueError("All views must have 2 dimensions")
+            raise ValueError("All representations must have 2 dimensions")
         if not all(view.dtype in self.dtypes for view in views):
-            raise ValueError("All views must have dtype of {}.".format(self.dtypes))
+            raise ValueError(
+                "All representations must have dtype of {}.".format(self.dtypes)
+            )
         if not all(view.shape[1] >= self.latent_dimensions for view in views):
             raise ValueError(
-                "All views must have at least {} features.".format(
+                "All representations must have at least {} features.".format(
                     self.latent_dimensions
                 )
             )
@@ -121,7 +123,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     def fit_transform(self, views: Iterable[np.ndarray], **kwargs) -> List[np.ndarray]:
         """
-        Fits the model to the given data and returns the transformed views
+        Fits the model to the given data and returns the transformed representations
 
         Parameters
         ----------
@@ -139,7 +141,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self, views: Iterable[np.ndarray], **kwargs
     ) -> np.ndarray:
         """
-        Calculate pairwise correlations between views in each dimension.
+        Calculate pairwise correlations between representations in each dimension.
 
         Parameters
         ----------
@@ -163,7 +165,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self, views: Iterable[np.ndarray], **kwargs
     ) -> np.ndarray:
         """
-        Calculate the average pairwise correlations between views in each dimension.
+        Calculate the average pairwise correlations between representations in each dimension.
 
         Parameters
         ----------
@@ -175,7 +177,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         average_pairwise_correlations: numpy array of shape (latent_dimensions, )
         """
         pair_corrs = self.pairwise_correlations(views, **kwargs)
-        # Sum all the pairwise correlations for each dimension, subtract self-correlations, and divide by the number of views
+        # Sum all the pairwise correlations for each dimension, subtract self-correlations, and divide by the number of representations
         dim_corrs = np.sum(pair_corrs, axis=(0, 1)) - pair_corrs.shape[0]
         # Number of pairs is n_views choose 2
         num_pairs = (self.n_views_ * (self.n_views_ - 1)) / 2
@@ -186,7 +188,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self, views: Iterable[np.ndarray], y: Optional[Any] = None, **kwargs
     ) -> float:
         """
-        Calculate the sum of average pairwise correlations between views.
+        Calculate the sum of average pairwise correlations between representations.
 
         Parameters
         ----------
@@ -197,7 +199,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         Returns
         -------
         score : float
-            Sum of average pairwise correlations between views.
+            Sum of average pairwise correlations between representations.
         """
         return self.average_pairwise_correlations(views, **kwargs).sum()
 
@@ -212,8 +214,8 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         linear combinations of the original variables formed to maximize the correlation
         with canonical variates from another view.
 
-        Mathematically, given two views \(X_i\), canonical variates
-        from the views are:
+        Mathematically, given two representations \(X_i\), canonical variates
+        from the representations are:
 
             \(Z_i = w_i^T X_i\)
 
@@ -223,7 +225,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         Parameters
         ----------
         views : list/tuple of numpy arrays
-            Each array corresponds to a view. All views must have the same number of rows (observations).
+            Each array corresponds to a view. All representations must have the same number of rows (observations).
 
         Returns
         -------
@@ -281,12 +283,12 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         check_is_fitted(self, attributes=["weights"])
 
-        # Transform the views using the loadings
+        # Transform the representations using the loadings
         transformed_views = [
             view @ loading for view, loading in zip(views, self.loadings)
         ]
 
-        # Calculate the variance of each latent dimension in the transformed views
+        # Calculate the variance of each latent dimension in the transformed representations
         transformed_vars = [
             np.var(transformed, axis=0) for transformed in transformed_views
         ]
@@ -334,7 +336,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     def _compute_covariance(self, views: Iterable[np.ndarray]) -> np.ndarray:
         """
-        Computes the covariance matrix for the given views.
+        Computes the covariance matrix for the given representations.
 
         Parameters
         ----------
@@ -364,7 +366,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         check_is_fitted(self, attributes=["weights"])
 
-        # Transform the views using the loadings
+        # Transform the representations using the loadings
         transformed_views = [
             view @ loading for view, loading in zip(views, self.loadings)
         ]
@@ -412,7 +414,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
     def predict(self, views: Iterable[np.ndarray]) -> List[np.ndarray]:
         """
-        Predicts the missing view from the given views.
+        Predicts the missing view from the given representations.
 
 
         Parameters
@@ -422,30 +424,30 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         Returns
         -------
         predicted_views : list of numpy arrays. None if the view is missing.
-            Predicted views.
+            Predicted representations.
 
         Examples
         --------
         >>> import numpy as np
         >>> X1 = np.random.rand(100, 5)
         >>> X2 = np.random.rand(100, 5)
-        >>> cca = CCA()
+        >>> cca = CCALoss()
         >>> cca.fit([X1, X2])
         >>> X1_pred, X2_pred = cca.predict([X1, None])
 
         """
         check_is_fitted(self, attributes=["weights"])
-        # check if views is same length as weights
+        # check if representations is same length as weights
         if len(views) != len(self.weights):
             raise ValueError(
-                "The number of views must be the same as the number of weights. Put None for missing views."
+                "The number of representations must be the same as the number of weights. Put None for missing representations."
             )
         transformed_views = []
         for i, view in enumerate(views):
             if view is not None:
                 transformed_view = view @ self.weights[i]
                 transformed_views.append(transformed_view)
-        # average the transformed views
+        # average the transformed representations
         average_score = np.mean(transformed_views, axis=0)
         # return the average score transformed back to the original space
         reconstucted_views = []

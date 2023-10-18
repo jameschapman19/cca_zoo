@@ -70,7 +70,7 @@ class KernelMixin:
 
 class KCCA(KernelMixin, MCCA):
     r"""
-    A class used to fit KCCA model. This model extends MCCA to nonlinear relationships by using kernel functions on each view.
+    A class used to fit KCCA model. This model extends MCCALoss to nonlinear relationships by using kernel functions on each view.
 
     The objective function of KCCA is:
 
@@ -163,7 +163,7 @@ class KCCA(KernelMixin, MCCA):
 
 class KGCCA(KernelMixin, GCCA):
     r"""
-    A class used to fit KGCCA model. This model extends GCCA to nonlinear relationships by using kernel functions on each view.
+    A class used to fit KGCCA model. This model extends GCCALoss to nonlinear relationships by using kernel functions on each view.
 
     The objective function of KGCCA is:
 
@@ -266,7 +266,7 @@ class KGCCA(KernelMixin, GCCA):
 
 class KTCCA(KernelMixin, TCCA):
     r"""
-    A class used to fit KTCCA model. This model extends TCCA to nonlinear relationships by using kernel functions on each view.
+    A class used to fit KTCCA model. This model extends TCCALoss to nonlinear relationships by using kernel functions on each view.
 
     The objective function of KTCCA is:
 

@@ -3,6 +3,8 @@ import torch
 from tensorly.cp_tensor import cp_to_tensor
 from tensorly.decomposition import parafac
 
+from cca_zoo.utils import cross_cov
+
 
 def inv_sqrtm(A, eps=1e-9):
     """Compute the inverse square-root of a positive definite matrix."""
@@ -21,8 +23,8 @@ def _demean(views):
     return tuple([view - view.mean(dim=0) for view in views])
 
 
-class MCCA:
-    """Differentiable MCCA Loss. Solves the multiset eigenvalue problem.
+class MCCALoss:
+    """Differentiable MCCALoss Loss. Solves the multiset eigenvalue problem.
 
     References
     ----------
@@ -30,34 +32,36 @@ class MCCA:
 
     """
 
-    def __init__(self, r: float = 0, eps: float = 1e-3):
-        self.r = r
+    def __init__(self, eps: float = 1e-3):
         self.eps = eps
 
-    def C(self, views):
+    def C(self, representations):
         """Calculate cross-covariance matrix."""
-        all_views = torch.cat(views, dim=1)
+        all_views = torch.cat(representations, dim=1)
         C = torch.cov(all_views.T)
-        C = C - torch.block_diag(*[torch.cov(view.T) for view in views])
-        return C / len(views)
+        C = C - torch.block_diag(
+            *[torch.cov(representation.T) for representation in representations]
+        )
+        return C / len(representations)
 
-    def D(self, views):
+    def D(self, representations):
         """Calculate block covariance matrix."""
         D = torch.block_diag(
             *[
-                (1 - self.r) * torch.cov(view.T)
-                + self.r * torch.eye(view.shape[1], device=view.device)
-                for view in views
+                (1 - self.eps) * torch.cov(representation.T)
+                + self.eps
+                * torch.eye(representation.shape[1], device=representation.device)
+                for representation in representations
             ]
         )
-        return D / len(views)
+        return D / len(representations)
 
-    def correlation(self, views):
+    def correlation(self, representations):
         """Calculate correlation."""
-        latent_dims = views[0].shape[1]
-        views = _demean(views)
-        C = self.C(views)
-        D = self.D(views)
+        latent_dims = representations[0].shape[1]
+        representations = _demean(representations)
+        C = self.C(representations)
+        D = self.D(representations)
         C += D
         R = inv_sqrtm(D, self.eps)
         C_whitened = R @ C @ R.T
@@ -66,47 +70,49 @@ class MCCA:
         eigvals = eigvals[idx[:latent_dims]]
         return eigvals
 
-    def loss(self, views):
+    def loss(self, representations):
         """Calculate loss."""
-        eigvals = self.correlation(views)
+        eigvals = self.correlation(representations)
         eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)])
         corr = eigvals.sum()
         return -corr
 
 
-class GCCA:
-    """Differentiable GCCA Loss. Solves the generalized CCA eigenproblem.
+class GCCALoss:
+    """Differentiable GCCALoss Loss. Solves the generalized CCALoss eigenproblem.
 
     References
     ----------
     https://arxiv.org/pdf/2005.11914.pdf
     """
 
-    def __init__(self, r: float = 0, eps: float = 1e-3):
-        self.r = r
+    def __init__(self, eps: float = 1e-3):
         self.eps = eps
 
-    def Q(self, views):
+    def Q(self, representations):
         """Calculate Q matrix."""
-        eigen_views = [
-            view @ torch.linalg.inv(torch.cov(view.T)) @ view.T for view in views
+        projections = [
+            representation
+            @ torch.linalg.inv(torch.cov(representation.T))
+            @ representation.T
+            for representation in representations
         ]
-        Q = torch.stack(eigen_views, dim=0).sum(dim=0)
+        Q = torch.stack(projections, dim=0).sum(dim=0)
         return Q
 
-    def correlation(self, views):
+    def correlation(self, representations):
         """Calculate correlation."""
-        latent_dims = views[0].shape[1]
-        views = _demean(views)
-        Q = self.Q(views)
+        latent_dims = representations[0].shape[1]
+        representations = _demean(representations)
+        Q = self.Q(representations)
         eigvals = torch.linalg.eigvalsh(Q)
         idx = torch.argsort(eigvals, descending=True)
         eigvals = eigvals[idx[:latent_dims]]
         return torch.nn.LeakyReLU()(eigvals)
 
-    def loss(self, views):
+    def loss(self, representations):
         """Calculate loss."""
-        eigvals = self.correlation(views)
+        eigvals = self.correlation(representations)
         corr = eigvals.sum()
         return -corr
 
@@ -124,29 +130,28 @@ class GCCA:
 
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-class CCA:
-    """Differentiable CCA Loss. Solves the CCA problem."""
+class CCALoss:
+    """Differentiable CCALoss Loss. Solves the CCALoss problem."""
 
-    def __init__(self, r: float = 0, eps: float = 1e-3):
-        self.r = r
+    def __init__(self, eps: float = 1e-3):
         self.eps = eps
 
-    def correlation(self, views):
+    def correlation(self, representations):
         """Calculate correlation."""
-        latent_dims = views[0].shape[1]
-        o1 = views[0].shape[1]
-        o2 = views[1].shape[1]
+        latent_dims = representations[0].shape[1]
+        o1 = representations[0].shape[1]
+        o2 = representations[1].shape[1]
 
-        views = _demean(views)
+        representations = _demean(representations)
 
-        SigmaHat12 = torch.cov(torch.hstack((views[0], views[1])).T)[
-            :latent_dims, latent_dims:
-        ]
-        SigmaHat11 = torch.cov(views[0].T) + self.r * torch.eye(
-            o1, device=views[0].device
+        SigmaHat12 = torch.cov(
+            torch.hstack((representations[0], representations[1])).T
+        )[:latent_dims, latent_dims:]
+        SigmaHat11 = torch.cov(representations[0].T) + self.eps * torch.eye(
+            o1, device=representations[0].device
         )
-        SigmaHat22 = torch.cov(views[1].T) + self.r * torch.eye(
-            o2, device=views[1].device
+        SigmaHat22 = torch.cov(representations[1].T) + self.eps * torch.eye(
+            o2, device=representations[1].device
         )
 
         SigmaHat11RootInv = inv_sqrtm(SigmaHat11, self.eps)
@@ -165,19 +170,18 @@ class CCA:
         return -eigvals.sum()
 
 
-class TCCA:
-    """Differentiable TCCA Loss."""
+class TCCALoss:
+    """Differentiable TCCALoss Loss."""
 
-    def __init__(self, r: float = 0, eps: float = 1e-4):
-        self.r = r
+    def __init__(self, eps: float = 1e-4):
         self.eps = eps
 
     def loss(self, views):
         latent_dims = views[0].shape[1]
         views = _demean(views)
         covs = [
-            (1 - self.r) * torch.cov(view.T)
-            + self.r * torch.eye(view.size(1), device=view.device)
+            (1 - self.eps) * torch.cov(view.T)
+            + self.eps * torch.eye(view.size(1), device=view.device)
             for view in views
         ]
         whitened_z = [view @ inv_sqrtm(cov, self.eps) for view, cov in zip(views, covs)]
@@ -188,7 +192,7 @@ class TCCA:
             # To achieve this we start with the first view so M is nxp.
             if i == 0:
                 M = el
-            # For the remaining views we expand their dimensions to match M i.e. nx1x...x1xp
+            # For the remaining representations we expand their dimensions to match M i.e. nx1x...x1xp
             else:
                 for _ in range(len(M.size()) - 1):
                     el = torch.unsqueeze(el, 1)
@@ -203,3 +207,131 @@ class TCCA:
         M_parafac.weights = 1
         M_hat = cp_to_tensor(M_parafac)
         return torch.linalg.norm(M - M_hat)
+
+
+class CCA_EYLoss:
+    def __init__(self, eps: float = 1e-4):
+        self.eps = eps
+
+    def loss(self, representations, independent_representations=None):
+        A, B = self.get_AB(representations)
+        rewards = torch.trace(2 * A)
+        if independent_representations is None:
+            penalties = torch.trace(B @ B)
+        else:
+            independent_A, independent_B = self.get_AB(independent_representations)
+            penalties = torch.trace(B @ independent_B)
+        return {
+            "objective": -rewards + penalties,
+            "rewards": rewards,
+            "penalties": penalties,
+        }
+
+    def get_AB(self, representations):
+        latent_dimensions = representations[0].shape[1]
+        A = torch.zeros(
+            latent_dimensions, latent_dimensions, device=representations[0].device
+        )  # initialize the cross-covariance matrix
+        B = torch.zeros(
+            latent_dimensions, latent_dimensions, device=representations[0].device
+        )  # initialize the auto-covariance matrix
+        for i, zi in enumerate(representations):
+            for j, zj in enumerate(representations):
+                if i == j:
+                    B += torch.cov(zi.T)  # add the auto-covariance of each view to B
+                else:
+                    A += cross_cov(
+                        zi, zj, rowvar=False
+                    )  # add the cross-covariance of each view to A
+        return A / len(representations), B / len(
+            representations
+        )  # return the normalized matrices (divided by the number of representations)
+
+
+class CCA_GHALoss(CCA_EYLoss):
+    def loss(self, representations, independent_representations=None):
+        A, B = self.get_AB(representations)
+        rewards = torch.trace(2 * A)
+        if independent_representations is None:
+            penalties = torch.trace(A.detach() @ B)
+        else:
+            independent_A, independent_B = self.get_AB(independent_representations)
+            penalties = torch.trace(independent_A.detach() @ B)
+        return {
+            "objective": -rewards + penalties,
+            "rewards": rewards,
+            "penalties": penalties,
+        }
+
+
+class CCA_SVDLoss(CCA_EYLoss):
+    def loss(self, representations, independent_representations=None):
+        C = torch.cov(torch.hstack(representations).T)
+        latent_dims = representations[0].shape[1]
+
+        Cxy = C[:latent_dims, latent_dims:]
+        Cxx = C[:latent_dims, :latent_dims]
+
+        if independent_representations is None:
+            Cyy = C[latent_dims:, latent_dims:]
+        else:
+            Cyy = cross_cov(
+                independent_representations[1],
+                independent_representations[1],
+                rowvar=False,
+            )
+
+        rewards = torch.trace(2 * Cxy)
+        penalties = torch.trace(Cxx @ Cyy)
+        return {
+            "objective": -rewards + penalties,  # return the negative objective value
+            "rewards": rewards,  # return the total rewards
+            "penalties": penalties,  # return the penalties matrix
+        }
+
+
+class PLS_EYLoss(CCA_EYLoss):
+    def loss(self, representations, weights=None):
+        A, B = self.get_AB(representations, weights)
+        rewards = torch.trace(2 * A)
+        penalties = torch.trace(B @ B)
+        return {
+            "objective": -rewards + penalties,
+            "rewards": rewards,
+            "penalties": penalties,
+        }
+
+    def get_AB(self, representations, weights=None):
+        latent_dimensions = representations[0].shape[1]
+        A = torch.zeros(
+            latent_dimensions, latent_dimensions, device=representations[0].device
+        )  # initialize the cross-covariance matrix
+        B = torch.zeros(
+            latent_dimensions, latent_dimensions, device=representations[0].device
+        )  # initialize the auto-covariance matrix
+        n = representations[0].shape[0]
+        for i, zi in enumerate(representations):
+            for j, zj in enumerate(representations):
+                if i == j:
+                    B += weights[i].T @ weights[i] / n
+                else:
+                    A += cross_cov(zi, zj, rowvar=False)
+        return A / len(representations), B / len(representations)
+
+
+class PLS_SVDLoss(PLS_EYLoss):
+    def loss(self, representations, weights=None):
+        C = cross_cov(representations[0], representations[1], rowvar=False)
+
+        Cxy = C
+        Cxx = weights[0].T @ weights[0] / representations[0].shape[0]
+        Cyy = weights[1].T @ weights[1] / representations[1].shape[0]
+
+        rewards = torch.trace(2 * Cxy)
+        penalties = torch.trace(Cxx @ Cyy)
+
+        return {
+            "objective": -rewards + penalties,
+            "rewards": rewards,
+            "penalties": penalties,
+        }

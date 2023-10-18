@@ -10,9 +10,9 @@ from cca_zoo.linear._mcca import MCCA
 
 class TCCA(MCCA):
     r"""
-    A class used to fit TCCA model. This model extends MCCA to higher order correlations by using tensor products of the views.
+    A class used to fit TCCALoss model. This model extends MCCALoss to higher order correlations by using tensor products of the representations.
 
-    The objective function of TCCA is:
+    The objective function of TCCALoss is:
 
     .. math::
 
@@ -30,19 +30,19 @@ class TCCA(MCCA):
 
     Examples
     --------
-    >>> from cca_zoo.linear import TCCA
+    >>> from cca_zoo.linear import TCCALoss
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
-    >>> model = TCCA()
+    >>> model = TCCALoss()
     >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
     """
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_data(views)
         self._check_params()
-        # returns whitened views along with whitening matrices
+        # returns whitened representations along with whitening matrices
         whitened_views, covs_invsqrt = self._setup_tensor(views)
         # The idea here is to form a matrix with M dimensions one for each view where at index
         # M[p_i,p_j,p_k...] we have the sum over n samples of the product of the pth feature of the
@@ -51,7 +51,7 @@ class TCCA(MCCA):
             # To achieve this we start with the first view so M is nxp.
             if i == 0:
                 M = el
-            # For the remaining views we expand their dimensions to match M i.e. nx1x...x1xp
+            # For the remaining representations we expand their dimensions to match M i.e. nx1x...x1xp
             else:
                 for _ in range(len(M.shape) - 1):
                     el = np.expand_dims(el, 1)

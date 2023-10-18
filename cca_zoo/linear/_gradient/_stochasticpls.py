@@ -10,10 +10,10 @@ class PLSStochasticPower(PLS_EY, PLSMixin):
 
     def training_step(self, batch, batch_idx):
         if batch is None:
-            batch = dict(("views", self.data))
+            batch = dict(("representations", self.data))
         for weight in self.torch_weights:
             weight.data = self._orth(weight)
-        scores = self(batch["views"])
+        scores = self(batch["representations"])
         # find the pairwise covariance between the scores
         cov = torch.cov(torch.hstack(scores).T)
         loss = torch.trace(cov[: scores[0].shape[1], scores[0].shape[1] :])

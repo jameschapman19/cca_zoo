@@ -12,7 +12,7 @@ class WeightInferenceDisplay:
     true_features: array-like, optional
         The true features for comparison in the plot, defaults to None.
     num_views: int, optional
-        The number of views, defaults to 2.
+        The number of representations, defaults to 2.
 
     """
 
@@ -25,7 +25,7 @@ class WeightInferenceDisplay:
         idata : arviz.InferenceData
             The posterior samples.
         num_views : int, optional
-            The number of views, defaults to 2.
+            The number of representations, defaults to 2.
         true_features : array-like, optional
             The true features for comparison in the plot, defaults to None.
         """

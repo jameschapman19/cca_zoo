@@ -13,17 +13,17 @@ from numpyro import handlers
 
 class ProbabilisticCCA(BaseModel):
     """
-    A class for performing Maximum Likelihood Estimation (MLE) in Probabilistic Canonical Correlation Analysis (CCA) using variational inference.
+    A class for performing Maximum Likelihood Estimation (MLE) in Probabilistic Canonical Correlation Analysis (CCALoss) using variational inference.
 
-    Probabilistic CCA is a generative model that makes the following assumptions:
+    Probabilistic CCALoss is a generative model that makes the following assumptions:
 
-    1. A latent variable z exists that influences both views (X1, X2).
+    1. A latent variable representations exists that influences both representations (X1, X2).
     2. Each observed view is generated via its own set of parameters: W (weight matrix), mu (mean), and psi (covariance).
 
     The generative model can be described as follows:
-    z ~ N(0, I)
-    X1|z ~ N(W1 * z + mu1, psi1)
-    X2|z ~ N(W2 * z + mu2, psi2)
+    representations ~ N(0, I)
+    X1|representations ~ N(W1 * representations + mu1, psi1)
+    X2|representations ~ N(W2 * representations + mu2, psi2)
 
     Parameters
     ----------
@@ -47,7 +47,7 @@ class ProbabilisticCCA(BaseModel):
 
     """
 
-    return_sites = ["z"]
+    return_sites = ["representations"]
 
     def __init__(
         self,
@@ -74,12 +74,12 @@ class ProbabilisticCCA(BaseModel):
 
     def fit(self, views: Iterable[np.ndarray], y=None):
         """
-        Infer the parameters and latent variables of the Probabilistic Canonical Correlation Analysis (CCA) model.
+        Infer the parameters and latent variables of the Probabilistic Canonical Correlation Analysis (CCALoss) model.
 
         Parameters
         ----------
         views : Iterable[np.ndarray]
-            A list or tuple of numpy arrays representing different views of the same samples. Each numpy array must have the same number of rows.
+            A list or tuple of numpy arrays representing different representations of the same samples. Each numpy array must have the same number of rows.
         y: Any, optional
             Ignored in this implementation.
 
@@ -106,12 +106,12 @@ class ProbabilisticCCA(BaseModel):
 
     def _model(self, views):
         """
-        Defines the generative model for Probabilistic CCA.
+        Defines the generative model for Probabilistic CCALoss.
 
         Parameters
         ----------
         views: tuple of np.ndarray
-            A tuple containing the first and second views, X1 and X2, each as a numpy array.
+            A tuple containing the first and second representations, X1 and X2, each as a numpy array.
         """
         X1, X2 = views
 
@@ -165,7 +165,7 @@ class ProbabilisticCCA(BaseModel):
 
         with numpyro.plate("n", n_samples):
             z = numpyro.sample(
-                "z",
+                "representations",
                 dist.MultivariateNormal(
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
                 ),
@@ -184,28 +184,20 @@ class ProbabilisticCCA(BaseModel):
 
     def _guide(self, views):
         """
-        Defines the variational family (guide) for approximate inference in Probabilistic CCA.
+        Defines the variational family (guide) for approximate inference in Probabilistic CCALoss.
 
         Parameters
         ----------
         views: tuple of np.ndarray
-            A tuple containing the first and second views, X1 and X2, each as a numpy array.
+            A tuple containing the first and second representations, X1 and X2, each as a numpy array.
         """
         X1, X2 = views
 
         n = X1.shape[0] if X1 is not None else X2.shape[0]
 
-        # # Variational parameters
-        # z_loc = numpyro.param("z_loc", jnp.zeros((n, self.latent_dimensions)))
-        # z_scale = numpyro.param(
-        #     "z_scale",
-        #     jnp.ones((n, self.latent_dimensions)),
-        #     constraint=dist.constraints.positive,
-        # )
-
         with numpyro.plate("n", n):
             numpyro.sample(
-                "z",
+                "representations",
                 dist.MultivariateNormal(
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
                 ),
@@ -218,13 +210,13 @@ class ProbabilisticCCA(BaseModel):
         Parameters
         ----------
         views : Iterable[np.ndarray]
-            A list or tuple of numpy arrays representing different views of the same samples. Each numpy array must have the same number of rows.
+            A list or tuple of numpy arrays representing different representations of the same samples. Each numpy array must have the same number of rows.
         y: Any, optional
             Ignored in this implementation.
 
         Returns
         -------
-        z : np.ndarray
+        representations : np.ndarray
             The transformed data in the latent space.
         """
         conditioned_model = handlers.substitute(self._model, self.params)
@@ -232,7 +224,7 @@ class ProbabilisticCCA(BaseModel):
         mcmc = MCMC(kernel, num_warmup=self.num_warmup, num_samples=self.num_samples)
         mcmc.run(self.rng_key, views)
         samples = mcmc.get_samples()
-        z = samples["z"]
+        z = samples["representations"]
         if return_std:
             return np.array(z.mean(axis=0)), np.array(z.std(axis=0))
         else:
