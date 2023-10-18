@@ -98,4 +98,3 @@ Special thanks to the pioneers whose work has shaped this field. Explore their w
 - Regularised CCA/PLS: [MATLAB](https://github.com/anaston/PLS_CCA_framework)
 - Sparse PLS: [MATLAB SPLS](https://github.com/jmmonteiro/spls)
 - DCCA/DCCAE: [Keras DCCA](https://github.com/VahidooX), [Torch DCCA](https://github.com/Michaelvll/DeepCCA)
-- VAE: [Torch VAE](https://github.com/pytorch/examples/tree/master/vae)
