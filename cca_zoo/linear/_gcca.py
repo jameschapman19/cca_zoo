@@ -8,9 +8,9 @@ from cca_zoo.utils.check_values import _process_parameter
 
 class GCCA(MCCA):
     r"""
-    A class used to fit GCCA model. This model extends CCA to more than two views by optimizing the sum of correlations with a shared auxiliary vector.
+    A class used to fit GCCALoss model. This model extends CCALoss to more than two representations by optimizing the sum of correlations with a shared auxiliary vector.
 
-    The objective function of GCCA is:
+    The objective function of GCCALoss is:
 
     .. math::
 
@@ -24,13 +24,13 @@ class GCCA(MCCA):
 
     Examples
     --------
-    >>> from cca_zoo.linear import GCCA
+    >>> from cca_zoo.linear import GCCALoss
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
-    >>> model = GCCA()
+    >>> model = GCCALoss()
     >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
 
     References
@@ -66,7 +66,7 @@ class GCCA(MCCA):
 
     def _C(self, views, K=None):
         if K is None:
-            # just use identity when all rows are observed in all views.
+            # just use identity when all rows are observed in all representations.
             K = np.ones((len(views), views[0].shape[0]))
         Q = []
         self.view_weights = _process_parameter(

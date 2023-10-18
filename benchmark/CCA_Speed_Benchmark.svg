@@ -1132,7 +1132,7 @@ L 709.2 26.88
 " style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="text_19">
-    <!-- CCA Performance comparison with Uncertainty -->
+    <!-- CCALoss Performance comparison with Uncertainty -->
     <g transform="translate(237.515313 20.88) scale(0.12 -0.12)">
      <defs>
       <path id="DejaVuSans-43" d="M 4122 4306 
@@ -1389,7 +1389,7 @@ L 76.72 54.656563
 " style="fill: none; stroke: #1f77b4; stroke-width: 1.5; stroke-linecap: square"/>
     </g>
     <g id="text_21">
-     <!-- CCA-Zoo -->
+     <!-- CCALoss-Zoo -->
      <g transform="translate(84.72 58.156563) scale(0.1 -0.1)">
       <defs>
        <path id="DejaVuSans-2d" d="M 313 2009 

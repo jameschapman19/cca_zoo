@@ -1,5 +1,5 @@
 ---
-title: 'CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods in a
+title: 'CCALoss-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCALoss methods in a
 scikit-learn style framework'
 tags:
 

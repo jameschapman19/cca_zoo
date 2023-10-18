@@ -19,7 +19,7 @@ def toy_model(rng):
 
 @pytest.fixture
 def synthetic_views(rng):
-    # Generating three synthetic views with 100 samples each
+    # Generating three synthetic representations with 100 samples each
     view1 = rng.random((100, 10))
     view2 = rng.random((100, 8))
     view3 = rng.random((100, 5))

@@ -60,7 +60,7 @@ class SCCA_PMD(DeflationMixin, BaseIterative):
             shape_sqrts = [np.sqrt(weight.shape[0]) for weight in self.weights]
             self.t = [max(1, x * y) for x, y in zip(self.tau, shape_sqrts)]
         # Update the weights for the current view using PMD
-        # Get the scores of all views
+        # Get the scores of all representations
         scores = np.stack(self.transform(views))
         # Create a mask that is True for elements not equal to i along dim i
         mask = np.arange(scores.shape[0]) != i
@@ -77,8 +77,8 @@ class SCCA_PMD(DeflationMixin, BaseIterative):
         return new_weights
 
     def _objective(self, views: Iterable[np.ndarray]):
-        # Compute the objective function value for a given set of views using SCCA
-        # Get the scores of all views
+        # Compute the objective function value for a given set of representations using SCCA
+        # Get the scores of all representations
         transformed_views = self.transform(views)
         all_covs = []
         # Sum all the pairwise covariances except self-covariance

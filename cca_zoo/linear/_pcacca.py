@@ -7,9 +7,9 @@ from cca_zoo.linear._mcca import MCCA
 
 class PCACCA(MCCA):
     """
-    Principal Component Analysis CCA
+    Principal Component Analysis CCALoss
 
-    Data driven PCA on each view followed by CCA on the PCA components. Keep percentage of variance
+    Data driven PCA on each view followed by CCALoss on the PCA components. Keep percentage of variance
 
     Examples
     --------

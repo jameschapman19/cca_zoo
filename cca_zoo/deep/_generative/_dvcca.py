@@ -142,7 +142,7 @@ class DVCCA(BaseDeep, _GenerativeMixin):
     ):
         """
         :param loader: a dataloader that matches the structure of that used for training
-        :return: transformed views
+        :return: transformed representations
         """
         with torch.no_grad():
             z_shared = []

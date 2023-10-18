@@ -59,13 +59,13 @@ class ElasticCCA(DeflationMixin, BaseIterative):
 
     def _update_weights(self, views: Iterable[np.ndarray], i: int):
         # Update the weights for the current view using Elastic
-        # Get the scores of all views
+        # Get the scores of all representations
         scores = np.stack(self.transform(views))
         # Compute the target by summing the scores along dim 0 and dividing by the square root of the covariance of the target
         target = np.sum(scores, axis=0)
         target = target / np.linalg.norm(target)
 
-        # Loop over the views and fit each regressor to the view and the target
+        # Loop over the representations and fit each regressor to the view and the target
         self.regressors[i] = self.regressors[i].fit(views[i], target)
         # Update the weights with the coefficients of each regressor
         new_weights = np.squeeze(self.regressors[i].coef_)
@@ -141,7 +141,7 @@ class SCCA_IPLS(DeflationMixin, BaseIterative):
 
     def _update_weights(self, views: Iterable[np.ndarray], i: int):
         # Update the weights for the current view using IPLS
-        # Get the scores of all views
+        # Get the scores of all representations
         scores = np.stack(self.transform(views))
 
         # Create a mask that is True for elements not equal to j along dim j

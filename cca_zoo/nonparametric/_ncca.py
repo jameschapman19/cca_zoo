@@ -10,7 +10,7 @@ from cca_zoo.utils.check_values import _process_parameter
 
 class NCCA(BaseModel):
     """
-    A class used to fit nonparametric (NCCA) model. This model extends CCA to nonlinear relationships by using local linear projections based on nearest neighbors.
+    A class used to fit nonparametric (NCCA) model. This model extends CCALoss to nonlinear relationships by using local linear projections based on nearest neighbors.
 
     Parameters
     ----------
@@ -76,7 +76,7 @@ class NCCA(BaseModel):
         views = self._validate_data(views)
         # Check the parameters
         self._check_params()
-        # Store the training views
+        # Store the training representations
         self.train_views = views
         # Fit a nearest neighbors model for each view
         self.knns = [
@@ -114,7 +114,7 @@ class NCCA(BaseModel):
             self.knns[i].kneighbors(view, self.nearest_neighbors[i])
             for i, view in enumerate(views)
         ]
-        # Compute the kernel matrices between the training and test views
+        # Compute the kernel matrices between the training and test representations
         kernels = [
             self._get_kernel(i, self.train_views[i], Y=view)
             for i, view in enumerate(views)
@@ -136,7 +136,7 @@ class NCCA(BaseModel):
         params = {
             "gamma": self.gamma[view],
         }
-        # Compute the pairwise kernel values between views and Y using the specified kernel function and parameters
+        # Compute the pairwise kernel values between representations and Y using the specified kernel function and parameters
         return pairwise_kernels(
             X, Y, metric=self.kernel[view], filter_params=True, **params
         )

@@ -24,6 +24,7 @@ class BaseDeep(pl.LightningModule, BaseModel):
         min_lr: float = 1e-9,
         lr_decay_steps: Optional[List[int]] = None,
         correlation: bool = True,
+        eps: float = 1e-5,
         *args,
         **kwargs,
     ):
@@ -40,6 +41,7 @@ class BaseDeep(pl.LightningModule, BaseModel):
         self.min_lr = min_lr
         self.lr_decay_steps = lr_decay_steps
         self.correlation = correlation
+        self.eps = eps
 
     @abstractmethod
     def forward(self, views: List[torch.Tensor], *args, **kwargs) -> List[torch.Tensor]:
@@ -54,7 +56,7 @@ class BaseDeep(pl.LightningModule, BaseModel):
         raise NotImplementedError
 
     def training_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Performs one step of training on a batch of views."""
+        """Performs one step of training on a batch of representations."""
         loss = self.loss(batch)
         for k, v in loss.items():
             # Use f-string instead of concatenation
@@ -68,7 +70,7 @@ class BaseDeep(pl.LightningModule, BaseModel):
         return loss["objective"]
 
     def validation_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Performs one step of validation on a batch of views."""
+        """Performs one step of validation on a batch of representations."""
         loss = self.loss(batch)
         for k, v in loss.items():
             # Use f-string instead of concatenation
@@ -82,7 +84,7 @@ class BaseDeep(pl.LightningModule, BaseModel):
         return loss["objective"]
 
     def test_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Performs one step of testing on a batch of views."""
+        """Performs one step of testing on a batch of representations."""
         loss = self.loss(batch)
         for k, v in loss.items():
             # Use f-string instead of concatenation

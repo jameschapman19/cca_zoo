@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from cca_zoo.data.simulated import LinearSimulatedData
+from cca_zoo.data.simulated import JointDataGenerator
 from cca_zoo.linear import CCA
 
 
@@ -16,7 +16,7 @@ def test_cca_on_simulated_data_maintains_expected_correlation(
     view_features, latent_dims, correlation, atol
 ):
     # Generate Data
-    data = LinearSimulatedData(
+    data = JointDataGenerator(
         view_features=view_features, latent_dims=latent_dims, correlation=correlation
     )
     x_train, y_train = data.sample(1000)
@@ -40,7 +40,7 @@ def test_cca_on_simulated_data_maintains_expected_correlation(
 
 # Additional test to verify the shape of generated data
 def test_simulated_data_shapes():
-    data = LinearSimulatedData(
+    data = JointDataGenerator(
         view_features=[10, 12], latent_dims=4, correlation=[0.8, 0.7, 0.6, 0.5]
     )
     x_train, y_train = data.sample(500)

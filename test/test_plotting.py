@@ -109,6 +109,16 @@ def test_correlation_heatmap_plot(setup_data):
     plt.close()
 
 
+def test_biplots(setup_data):
+    from cca_zoo.visualisation.biplot import WeightsBiPlotDisplay, LoadingsBiPlotDisplay
+
+    mcca, views, test_views = setup_data
+    WeightsBiPlotDisplay.from_estimator(mcca).plot()
+    plt.close()
+    LoadingsBiPlotDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    plt.close()
+
+
 def test_tsne_plot(setup_data):
     mcca, views, test_views = setup_data
     TSNEScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()

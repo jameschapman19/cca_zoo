@@ -1,16 +1,16 @@
 """
-Probabilistic Canonical Correlation Analysis (CCA)
+Probabilistic Canonical Correlation Analysis (CCALoss)
 ==================================================
 Illustrates the usage of `ProbabilisticCCA` for understanding multiview data relationships.
 
 Overview:
 ---------
-Probabilistic CCA is a generative model that captures shared information among multiple views of data. By assuming that each data view originates from a latent variable and view-specific parameters, this model offers a more flexible representation. It employs variational inference to approximate the posterior distributions of parameters and latent variables.
+Probabilistic CCALoss is a generative model that captures shared information among multiple representations of data. By assuming that each data view originates from a latent variable and view-specific parameters, this model offers a more flexible representation. It employs variational inference to approximate the posterior distributions of parameters and latent variables.
 
 Contents:
 ---------
 1. Imports and setup.
-2. Data generation: Synthetic data from two views, considering view-specific noise and feature sparsity.
+2. Data generation: Synthetic data from two representations, considering view-specific noise and feature sparsity.
 3. Model: Initialize and fit `ProbabilisticCCA` on the synthetic data.
 4. Results: Extract and visualize the latent variable's posterior mean and compare inferred parameters with ground truth.
 
@@ -32,7 +32,7 @@ from cca_zoo.visualisation import WeightInferenceDisplay
 # 2. Data Generation
 # ------------------
 
-# Here, we design a helper class to simulate data from two views. Both views contain 10 features, and data is generated from a 2-dimensional latent variable. Noise and sparsity parameters help make the data generation process more intricate.
+# Here, we design a helper class to simulate data from two representations. Both representations contain 10 features, and data is generated from a 2-dimensional latent variable. Noise and sparsity parameters help make the data generation process more intricate.
 
 
 class LatentVariableData:
@@ -101,7 +101,7 @@ views = [view - view.mean(axis=0) for view in views]
 # 3. Model
 # --------
 
-# Instantiate `ProbabilisticCCA`, specifying the latent dimension, number of samples, warm-up steps, and random seed. Subsequently, fit the model on the de-meaned data views.
+# Instantiate `ProbabilisticCCA`, specifying the latent dimension, number of samples, warm-up steps, and random seed. Subsequently, fit the model on the de-meaned data representations.
 
 pcca = ProbabilisticCCA(
     latent_dimensions=latent_dims,
@@ -117,7 +117,7 @@ pcca.fit(views)
 # ----------
 
 # Explore the model's results:
-# - Transform the views to obtain the latent variable's posterior mean. Useful for visualization, clustering, etc.
+# - Transform the representations to obtain the latent variable's posterior mean. Useful for visualization, clustering, etc.
 # - Inspect and visualize the posterior parameter distributions, comparing them with their true values.
 
 z = pcca.transform(views)

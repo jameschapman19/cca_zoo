@@ -18,10 +18,9 @@ class DCCAE(DCCA, _GenerativeMixin):
     def __init__(
         self,
         latent_dimensions: int,
-        objective=objectives.MCCA,
+        objective=objectives.MCCALoss,
         encoders=None,
         decoders=None,
-        r: float = 0,
         eps: float = 1e-5,
         lam=0.5,
         latent_dropout=0,
@@ -33,7 +32,6 @@ class DCCAE(DCCA, _GenerativeMixin):
             latent_dimensions=latent_dimensions,
             objective=objective,
             encoders=encoders,
-            r=r,
             eps=eps,
             **kwargs,
         )
@@ -42,7 +40,7 @@ class DCCAE(DCCA, _GenerativeMixin):
         if lam < 0 or lam > 1:
             raise ValueError(f"lam should be between 0 and 1. rho={lam}")
         self.lam = lam
-        self.objective = objective(r=r, eps=eps)
+        self.objective = objective(eps=eps)
         self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
         self.recon_loss_type = recon_loss_type
 
@@ -61,7 +59,7 @@ class DCCAE(DCCA, _GenerativeMixin):
 
     def _decode(self, z, **kwargs):
         """
-        This method is used to decode from the latent space to the best prediction of the original views
+        This method is used to decode from the latent space to the best prediction of the original representations
 
         """
         recon = []

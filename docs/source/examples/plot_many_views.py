@@ -3,7 +3,7 @@ Canonical Correlation Analysis for Multiview Data
 ==================================================
 
 This script illustrates how to utilize the `cca_zoo` library to apply and compare
-various canonical correlation analysis (CCA) methods for datasets with more than two views.
+various canonical correlation analysis (CCALoss) methods for datasets with more than two representations.
 """
 
 # %%
@@ -17,7 +17,7 @@ from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA
 # %%
 # Data Preparation
 # ----------------
-# Generating a synthetic dataset with three views (X, Y, Z) that share a common latent variable.
+# Generating a synthetic dataset with three representations (X, Y, Z) that share a common latent variable.
 # Specifying the number of samples, features per view, and the latent space dimensionality.
 
 np.random.seed(42)
@@ -31,32 +31,32 @@ n, p, q, r, latent_dims, cv = 30, 3, 3, 3, 1, 3
 # Eigendecomposition-Based Methods
 # --------------------------------
 # These techniques leverage eigendecomposition or singular value decomposition
-# to find the optimal linear transformations for the views to maximize correlation.
+# to find the optimal linear transformations for the representations to maximize correlation.
 
-# MCCA (Multiset CCA) - Generalizes CCA for multiple views by maximizing pairwise correlations.
+# MCCALoss (Multiset CCALoss) - Generalizes CCALoss for multiple representations by maximizing pairwise correlations.
 mcca = MCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
-# GCCA (Generalized CCA) - Maximizes correlation between each transformed view and a shared latent variable.
+# GCCALoss (Generalized CCALoss) - Maximizes correlation between each transformed view and a shared latent variable.
 gcca = GCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
 # %%
 # Kernel Methods
 # --------------
-# Kernel-based techniques map the original views to a high-dimensional feature space
+# Kernel-based techniques map the original representations to a high-dimensional feature space
 # and then apply linear transformations in that space.
 
-# KCCA (Kernel CCA) - Kernel-based extension of CCA for multiple views.
+# KCCA (Kernel CCALoss) - Kernel-based extension of CCALoss for multiple representations.
 kcca = KCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
-# KGCCA (Kernel Generalized CCA) - A kernel-based version of GCCA for multiple views.
+# KGCCA (Kernel Generalized CCALoss) - A kernel-based version of GCCALoss for multiple representations.
 kgcca = KGCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
 # %%
 # Iterative Techniques
 # --------------------
-# These methods employ iterative algorithms to deduce optimal linear transformations for the views.
+# These methods employ iterative algorithms to deduce optimal linear transformations for the representations.
 
-# SCCA_PMD (Sparse CCA by Penalized Matrix Decomposition) - A sparse CCA variant.
+# SCCA_PMD (Sparse CCALoss by Penalized Matrix Decomposition) - A sparse CCALoss variant.
 pmd = (
     SCCA_PMD(latent_dimensions=latent_dims, tau=0.1, tol=1e-5)
     .fit((X, Y, X))
@@ -66,9 +66,9 @@ pmd = (
 # %%
 # Tensor Decomposition Methods
 # ----------------------------
-# Techniques utilizing tensor decomposition to discern higher-order correlations among the views.
+# Techniques utilizing tensor decomposition to discern higher-order correlations among the representations.
 
-# TCCA (Tensor CCA) - A tensor-based extension of CCA for multiple views.
+# TCCALoss (Tensor CCALoss) - A tensor-based extension of CCALoss for multiple representations.
 tcca = TCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 
 # KTCCA - [Provide a brief description, as it's missing in the original].

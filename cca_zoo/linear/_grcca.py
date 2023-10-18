@@ -103,7 +103,7 @@ class GRCCA(MCCA):
 
         # Number of unique groups in each view
         self.n_groups_ = [np.unique(group).shape[0] for group in feature_groups]
-        # Process each view and return a list of processed views and indices
+        # Process each view and return a list of processed representations and indices
         return [
             self._process_view(view, group, mu, c)
             for view, group, mu, c in zip(views, feature_groups, self.mu, self.c)

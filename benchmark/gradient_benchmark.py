@@ -1,5 +1,5 @@
 """
-Benchmarking CCA on high dimensional data. Using CCA-Zoo and Scikit-learn.
+Benchmarking CCALoss on high dimensional data. Using CCALoss-Zoo and Scikit-learn.
 
 Use different dimensionalities and produce a nice seaborn plot of the runtimes.
 """
@@ -8,7 +8,7 @@ import time
 import pandas as pd
 import numpy as np
 from cca_zoo.linear import CCA
-from cca_zoo.linear import CCA_EY
+from cca_zoo.linear import CCA_EYLoss
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -34,18 +34,18 @@ for dim in dimensions:
         X = np.random.rand(n_samples, dim)
         Y = np.random.rand(n_samples, dim)
 
-        # CCA-Zoo
+        # CCALoss-Zoo
         start_time = time.time()
         cca_zoo = CCA(latent_dimensions=latent_dimensions)
         cca_zoo.fit((X, Y))
         cca_zoo_time = time.time() - start_time
 
         # Record results
-        results.append({"Dimension": dim, "Time": cca_zoo_time, "Method": "CCA-Zoo"})
+        results.append({"Dimension": dim, "Time": cca_zoo_time, "Method": "CCALoss-Zoo"})
 
         # Scikit-learn
         start_time = time.time()
-        sk_cca = CCA_EY(latent_dimensions=latent_dimensions, epochs=200)
+        sk_cca = CCA_EYLoss(latent_dimensions=latent_dimensions, epochs=200)
         sk_cca.fit((X, Y))
         sklearn_time = time.time() - start_time
 
@@ -53,7 +53,7 @@ for dim in dimensions:
         sk_score = sk_cca.score((X, Y))
 
         # Record results
-        results.append({"Dimension": dim, "Time": sklearn_time, "Method": "CCA-EY"})
+        results.append({"Dimension": dim, "Time": sklearn_time, "Method": "CCALoss-EY"})
 
 # Convert to DataFrame
 df = pd.DataFrame(results)
@@ -61,7 +61,7 @@ df = pd.DataFrame(results)
 # Seaborn Plot
 plt.figure(figsize=(10, 6))
 sns.lineplot(data=df, x="Dimension", y="Time", hue="Method", marker="o", errorbar="sd")
-plt.title("CCA Performance comparison with Uncertainty")
+plt.title("CCALoss Performance comparison with Uncertainty")
 plt.xlabel("Dimension")
 plt.ylabel("Average Execution Time (seconds)")
 plt.tight_layout()

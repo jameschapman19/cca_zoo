@@ -1,5 +1,5 @@
 """
-Class which allows for the different (or the same) processing of multiple views of data.
+Class which allows for the different (or the same) processing of multiple representations of data.
 """
 from mvlearn.utils import check_Xs
 from sklearn.base import TransformerMixin
@@ -26,7 +26,7 @@ class MultiViewPreprocessing(TransformerMixin):
             self.preprocessing_list = self.preprocessing_list * len(views)
         elif len(self.preprocessing_list) != len(views):
             raise ValueError(
-                "Length of preprocessing_list must be 1 (apply the same preprocessing to each view) or equal to the number of views"
+                "Length of preprocessing_list must be 1 (apply the same preprocessing to each view) or equal to the number of representations"
             )
         check_Xs(views, enforce_views=range(len(self.preprocessing_list)))
         for view, preprocessing in zip(views, self.preprocessing_list):

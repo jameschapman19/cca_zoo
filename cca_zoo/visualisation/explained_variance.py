@@ -10,7 +10,7 @@ from cca_zoo.utils.check_values import check_seaborn_support
 
 class ExplainedVarianceDisplay:
     """
-    Display the explained variance of the latent variables of the views.
+    Display the explained variance of the latent variables of the representations.
 
     Parameters
     ----------
@@ -33,7 +33,7 @@ class ExplainedVarianceDisplay:
     >>> from cca_zoo.visualisation import ExplainedVarianceDisplay
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
-    >>> from cca_zoo.linear import MCCA
+    >>> from cca_zoo.linear import MCCALoss
     >>>
     >>> # Generate Sample Data
     >>> # --------------------
@@ -44,18 +44,18 @@ class ExplainedVarianceDisplay:
     >>> X_train, X_test = X[:50], X[50:]
     >>> Y_train, Y_test = Y[:50], Y[50:]
     >>>
-    >>> views = [X_train, Y_train]
+    >>> representations = [X_train, Y_train]
     >>> test_views = [X_test, Y_test]
     >>>
-    >>> # Train an MCCA Model
+    >>> # Train an MCCALoss Model
     >>> # -------------------
-    >>> mcca = MCCA(latent_dimensions=2)
-    >>> mcca.fit(views)
+    >>> mcca = MCCALoss(latent_dimensions=2)
+    >>> mcca.fit(representations)
     >>>
     >>> # %%
     >>> # Plotting the Explained Variance
     >>> # ---------------------------------
-    >>> ExplainedVarianceDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    >>> ExplainedVarianceDisplay.from_estimator(mcca, representations, test_views=test_views).plot()
     >>> plt.show()
 
     """

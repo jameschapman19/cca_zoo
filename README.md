@@ -76,7 +76,7 @@ For citing our work, please use the following BibTeX entry:
 author = {Chapman, James and Wang, Hao-Ting and Wells, Lennie and Wiesner, Johannes},
 doi = {10.5281/zenodo.4382739},
 month = aug,
-title = {{CCA-Zoo}},
+title = {{CCALoss-Zoo}},
 url = {https://github.com/jameschapman19/cca_zoo},
 version = {2.3.0},
 year = {2023}
