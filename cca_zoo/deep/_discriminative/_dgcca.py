@@ -15,11 +15,7 @@ class DGCCA(DCCA):
     """
 
     def __init__(
-        self,
-        latent_dimensions: int,
-        encoders=None,
-        eps: float = 1e-5,
-        **kwargs
+        self, latent_dimensions: int, encoders=None, eps: float = 1e-5, **kwargs
     ):
         # Call the parent class constructor with the DGCCA objective function
         super().__init__(

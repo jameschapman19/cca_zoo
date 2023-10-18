@@ -39,7 +39,9 @@ class MCCALoss:
         """Calculate cross-covariance matrix."""
         all_views = torch.cat(representations, dim=1)
         C = torch.cov(all_views.T)
-        C = C - torch.block_diag(*[torch.cov(representation.T) for representation in representations])
+        C = C - torch.block_diag(
+            *[torch.cov(representation.T) for representation in representations]
+        )
         return C / len(representations)
 
     def D(self, representations):
@@ -47,7 +49,8 @@ class MCCALoss:
         D = torch.block_diag(
             *[
                 (1 - self.eps) * torch.cov(representation.T)
-                + self.eps * torch.eye(representation.shape[1], device=representation.device)
+                + self.eps
+                * torch.eye(representation.shape[1], device=representation.device)
                 for representation in representations
             ]
         )
@@ -89,7 +92,10 @@ class GCCALoss:
     def Q(self, representations):
         """Calculate Q matrix."""
         projections = [
-            representation @ torch.linalg.inv(torch.cov(representation.T)) @ representation.T for representation in representations
+            representation
+            @ torch.linalg.inv(torch.cov(representation.T))
+            @ representation.T
+            for representation in representations
         ]
         Q = torch.stack(projections, dim=0).sum(dim=0)
         return Q
@@ -138,9 +144,9 @@ class CCALoss:
 
         representations = _demean(representations)
 
-        SigmaHat12 = torch.cov(torch.hstack((representations[0], representations[1])).T)[
-            :latent_dims, latent_dims:
-        ]
+        SigmaHat12 = torch.cov(
+            torch.hstack((representations[0], representations[1])).T
+        )[:latent_dims, latent_dims:]
         SigmaHat11 = torch.cov(representations[0].T) + self.eps * torch.eye(
             o1, device=representations[0].device
         )
@@ -202,6 +208,7 @@ class TCCALoss:
         M_hat = cp_to_tensor(M_parafac)
         return torch.linalg.norm(M - M_hat)
 
+
 class CCA_EYLoss:
     def __init__(self, eps: float = 1e-4):
         self.eps = eps
@@ -233,10 +240,13 @@ class CCA_EYLoss:
                 if i == j:
                     B += torch.cov(zi.T)  # add the auto-covariance of each view to B
                 else:
-                    A += cross_cov(zi, zj, rowvar=False)  # add the cross-covariance of each view to A
+                    A += cross_cov(
+                        zi, zj, rowvar=False
+                    )  # add the cross-covariance of each view to A
         return A / len(representations), B / len(
             representations
         )  # return the normalized matrices (divided by the number of representations)
+
 
 class CCA_GHALoss(CCA_EYLoss):
     def loss(self, representations, independent_representations=None):
@@ -253,6 +263,7 @@ class CCA_GHALoss(CCA_EYLoss):
             "penalties": penalties,
         }
 
+
 class CCA_SVDLoss(CCA_EYLoss):
     def loss(self, representations, independent_representations=None):
         C = torch.cov(torch.hstack(representations).T)
@@ -264,9 +275,13 @@ class CCA_SVDLoss(CCA_EYLoss):
         if independent_representations is None:
             Cyy = C[latent_dims:, latent_dims:]
         else:
-            Cyy = cross_cov(independent_representations[1], independent_representations[1], rowvar=False)
+            Cyy = cross_cov(
+                independent_representations[1],
+                independent_representations[1],
+                rowvar=False,
+            )
 
-        rewards = torch.trace(2*Cxy)
+        rewards = torch.trace(2 * Cxy)
         penalties = torch.trace(Cxx @ Cyy)
         return {
             "objective": -rewards + penalties,  # return the negative objective value
@@ -285,6 +300,7 @@ class PLS_EYLoss(CCA_EYLoss):
             "rewards": rewards,
             "penalties": penalties,
         }
+
     def get_AB(self, representations, weights=None):
         latent_dimensions = representations[0].shape[1]
         A = torch.zeros(

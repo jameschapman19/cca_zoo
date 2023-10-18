@@ -12,6 +12,6 @@ class DCCA_SVD(DCCA_EY):
 
     def __init__(self, latent_dimensions: int, encoders=None, eps: float = 0, **kwargs):
         super().__init__(
-            latent_dimensions=latent_dimensions, encoders=encoders,eps=eps, **kwargs
+            latent_dimensions=latent_dimensions, encoders=encoders, eps=eps, **kwargs
         )
         self.objective = CCA_SVDLoss(eps=eps)
