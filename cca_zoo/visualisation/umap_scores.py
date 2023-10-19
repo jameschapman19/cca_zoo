@@ -9,7 +9,7 @@ class UMAPScoreDisplay(ScoreScatterDisplay):
         check_umap_support("UMAPScoreDisplay")
         check_seaborn_support("TSNEScoreDisplay")
 
-    def plot(self):
+    def plot(self, **kwargs):
         self._validate_plot_params()
         import umap
         import matplotlib.pyplot as plt

@@ -4,6 +4,9 @@ import pytest
 from cca_zoo._base import BaseModel
 from cca_zoo.linear import MPLS
 
+N = 50
+features = [4, 6, 8]
+
 
 @pytest.fixture
 def rng():
@@ -19,10 +22,10 @@ def toy_model(rng):
 
 @pytest.fixture
 def synthetic_views(rng):
-    # Generating three synthetic representations with 100 samples each
-    view1 = rng.random((100, 10))
-    view2 = rng.random((100, 8))
-    view3 = rng.random((100, 5))
+    # Generating three synthetic representations with N samples each
+    view1 = rng.random((N, features[0]))
+    view2 = rng.random((N, features[1]))
+    view3 = rng.random((N, features[2]))
     # demean
     view1 -= view1.mean(axis=0)
     view2 -= view2.mean(axis=0)

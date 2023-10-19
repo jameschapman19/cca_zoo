@@ -10,10 +10,12 @@ from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA, NCCA
 
 @pytest.fixture
 def data():
+    N = 50
+    features = [4, 6, 8]
     np.random.seed(1)
-    X = np.random.normal(size=(100, 10))
-    Y = np.random.normal(size=(100, 10))
-    Z = np.random.normal(size=(100, 10))
+    X = np.random.normal(size=(N, features[0]))
+    Y = np.random.normal(size=(N, features[1]))
+    Z = np.random.normal(size=(N, features[2]))
     return X, Y, Z
 
 

@@ -7,6 +7,7 @@ from cca_zoo.visualisation import (
     ExplainedVarianceDisplay,
     ExplainedCovarianceDisplay,
 )
+from sklearn.model_selection import train_test_split
 import numpy as np
 from cca_zoo.linear import MCCA
 import matplotlib.pyplot as plt
@@ -23,13 +24,13 @@ from cca_zoo.visualisation.umap_scores import UMAPScoreDisplay
 
 @pytest.fixture(scope="module")
 def setup_data():
-    X = np.random.rand(100, 10)
-    Y = np.random.rand(100, 10)
+    X = np.random.rand(50, 4)
+    Y = np.random.rand(50, 6)
     X -= X.mean(axis=0)
     Y -= Y.mean(axis=0)
 
-    X_train, X_test = X[:50], X[50:]
-    Y_train, Y_test = Y[:50], Y[50:]
+    # train test split
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
 
     views = [X_train, Y_train]
     test_views = [X_test, Y_test]

@@ -34,7 +34,7 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         batch_size=None,
         dataloader_kwargs=None,
         epochs=1,
-        learning_rate=1,
+        learning_rate=5e-2,
         initialization: Union[str, callable] = "random",
         trainer_kwargs=None,
         optimizer_kwargs=None,

@@ -52,8 +52,9 @@ def test_param2grid_with_iterable_types():
 
 @pytest.fixture
 def random_data():
-    X = np.random.normal(size=(100, 10))
-    Y = np.random.normal(size=(100, 10))
+    N = 50
+    X = np.random.normal(size=(N, 10))
+    Y = np.random.normal(size=(N, 10))
     return X, Y
 
 

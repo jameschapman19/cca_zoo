@@ -45,6 +45,7 @@ pytest-cov = "*"
 seaborn = "*"
 opentsne = "*"
 umap-learn = "*"
+rdata = "*"
 
 
 [build-system]

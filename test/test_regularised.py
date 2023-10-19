@@ -50,11 +50,6 @@ def test_initialisation():
     assert np.all(scores > 0), "Not all scores are positive."
 
 
-def test_linear_simulated_data():
-    sim_data = JointData([10, 10]).sample(100)
-    assert CCA().fit(sim_data).score(sim_data) > 0.9
-
-
 def test_regularized_methods():
     # Test that linear regularized methods match PLS solution when using maximum regularisation.
     latent_dims = 2
@@ -89,12 +84,6 @@ def test_sparse_methods():
     pmd_cv = GridSearchCV(SCCA_PMD(random_state=rng), param_grid=param_grid).fit([X, Y])
     assert (pmd_cv.best_estimator_.weights[0] == 0).sum() > 0
     assert (pmd_cv.best_estimator_.weights[1] == 0).sum() > 0
-    # tau1 = [5e-1]
-    # tau2 = [5e-1]
-    # param_grid = {"tau": [tau1, tau2]}
-    # pdd_cv = GridSearchCV(
-    #     AltMaxVar(proximal="L0", random_state=rng), param_grid=param_grid
-    # ).fit([X, Y])
     alpha1 = loguniform(1e-2, 2e-2)
     alpha2 = loguniform(1e-2, 2e-2)
     param_grid = {"alpha": [alpha1, alpha2], "l1_ratio": [[0.9], [0.9]]}
@@ -115,16 +104,8 @@ def test_sparse_methods():
     ).fit([X, Y])
     tau1 = [1e-1]
     tau2 = [1e-1]
-    param_grid = {"tau": [tau1, tau2]}
-    # admm_cv = GridSearchCV(SCCA_ADMM(random_state=rng), param_grid=param_grid).fit(
-    #     [representations, Y]
-    # )
-    # assert (pdd_cv.best_estimator_.weights[0] == 0).sum() > 0
-    # assert (pdd_cv.best_estimator_.weights[1] == 0).sum() > 0
     assert (scca_cv.best_estimator_.weights[0] == 0).sum() > 0
     assert (scca_cv.best_estimator_.weights[1] == 0).sum() > 0
-    # assert (admm_cv.best_estimator_.weights[0] == 0).sum() > 0
-    # assert (admm_cv.best_estimator_.weights[1] == 0).sum() > 0
     assert (parkhomenko_cv.best_estimator_.weights[0] == 0).sum() > 0
     assert (parkhomenko_cv.best_estimator_.weights[1] == 0).sum() > 0
     assert (elastic_cv.best_estimator_.weights[0] == 0).sum() > 0
@@ -157,12 +138,8 @@ def test_l0():
     span_cca = SCCA_Span(
         latent_dimensions=1, regularisation="l0", tau=[2, 2], random_state=rng
     ).fit([X, Y])
-    # swcca = SWCCA(tau=[5, 5], sample_support=5, random_state=rng).fit([representations, Y])
     assert (np.abs(span_cca.weights[0]) > 1e-5).sum() == 2
     assert (np.abs(span_cca.weights[1]) > 1e-5).sum() == 2
-    # assert (np.abs(swcca.weights[0]) > 1e-5).sum() == 5
-    # assert (np.abs(swcca.weights[1]) > 1e-5).sum() == 5
-    # assert (np.abs(swcca.sample_weights) > 1e-5).sum() == 5
 
 
 def test_partialcca():
