@@ -144,7 +144,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
                 "X1",
                 dist.MultivariateNormal(
                     z @ W1.T + mu1,
-                    covariance_matrix=(1 - self.c[0]) * psi1
+                    covariance_matrix=psi1
                     + self.c[0] * jnp.eye(self.n_features_[0]),
                 ),
                 obs=X1,
@@ -153,7 +153,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
                 "X2",
                 dist.MultivariateNormal(
                     z @ W2.T + mu2,
-                    covariance_matrix=(1 - self.c[1]) * psi2
+                    covariance_matrix=psi2
                     + self.c[1] * jnp.eye(self.n_features_[1]),
                 ),
                 obs=X2,
@@ -163,12 +163,12 @@ class ProbabilisticRCCA(ProbabilisticCCA):
         # Calculate the individual matrix blocks
         top_left = (
             self.params["W_1"] @ self.params["W_1"].T
-            + (1 - self.c[0]) * self.params["psi_1"]
+            + self.params["psi_1"]
             + self.c[0] * jnp.eye(self.n_features_[0])
         )
         bottom_right = (
             self.params["W_2"] @ self.params["W_2"].T
-            + (1 - self.c[1]) * self.params["psi_2"]
+            + self.params["psi_2"]
             + self.c[1] * jnp.eye(self.n_features_[1])
         )
         top_right = self.params["W_1"] @ self.params["W_2"].T

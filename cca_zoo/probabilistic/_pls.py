@@ -48,7 +48,7 @@ class ProbabilisticPLS(ProbabilisticCCA):
     [1] De Bie, T. and De Moor, B., 2003. On the regularization of canonical correlation analysis. Int. Sympos. ICA and BSS, pp.785-790.
     """
 
-    eps = 1e-3
+    eps = 1
 
     def _model(self, views):
         """

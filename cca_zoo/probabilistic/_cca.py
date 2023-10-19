@@ -54,7 +54,7 @@ class ProbabilisticCCA(BaseModel):
         latent_dimensions: int = 1,
         copy_data=True,
         random_state: int = 0,
-        learning_rate=1e-4,
+        learning_rate=1e-3,
         n_iter=20000,
         num_samples=1000,
         num_warmup=500,
@@ -196,7 +196,7 @@ class ProbabilisticCCA(BaseModel):
         n = X1.shape[0] if X1 is not None else X2.shape[0]
 
         with numpyro.plate("n", n):
-            numpyro.sample(
+            z=numpyro.sample(
                 "representations",
                 dist.MultivariateNormal(
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
