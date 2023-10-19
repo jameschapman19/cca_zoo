@@ -1,4 +1,4 @@
-from . import architectures, callbacks, objectives
+from . import architectures, objectives
 from ._discriminative import (
     DCCA,
     DCCA_EY,
@@ -24,7 +24,6 @@ __all__ = [
     "SplitAE",
     "architectures",
     "objectives",
-    "callbacks",
 ]
 
 classes = [

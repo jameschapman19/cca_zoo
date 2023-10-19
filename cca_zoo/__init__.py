@@ -1,5 +1,5 @@
 from . import (
-    data,
+    datasets,
     deep,
     linear,
     model_selection,
@@ -9,7 +9,7 @@ from . import (
 )
 
 __all__ = [
-    "data",
+    "datasets",
     "deep",
     "linear",
     "model_selection",

@@ -1,5 +1,5 @@
 """
-Benchmarking CCALoss on high dimensional data. Using CCALoss-Zoo and Scikit-learn.
+Benchmarking CCA on high dimensional data. Using CCA-Zoo and CCA-EY
 
 Use different dimensionalities and produce a nice seaborn plot of the runtimes.
 """
@@ -8,9 +8,10 @@ import time
 import pandas as pd
 import numpy as np
 from cca_zoo.linear import CCA
-from cca_zoo.linear import CCA_EYLoss
+from cca_zoo.linear import CCA_EY
 import seaborn as sns
 import matplotlib.pyplot as plt
+
 
 # Initialize empty list to hold the benchmarking results
 results = []
@@ -33,6 +34,8 @@ for dim in dimensions:
         # Generate synthetic data
         X = np.random.rand(n_samples, dim)
         Y = np.random.rand(n_samples, dim)
+        X -= X.mean(axis=0)
+        Y -= Y.mean(axis=0)
 
         # CCALoss-Zoo
         start_time = time.time()
@@ -41,21 +44,24 @@ for dim in dimensions:
         cca_zoo_time = time.time() - start_time
 
         # Record results
-        results.append(
-            {"Dimension": dim, "Time": cca_zoo_time, "Method": "CCALoss-Zoo"}
-        )
+        results.append({"Dimension": dim, "Time": cca_zoo_time, "Method": "CCA-Zoo"})
 
         # Scikit-learn
         start_time = time.time()
-        sk_cca = CCA_EYLoss(latent_dimensions=latent_dimensions, epochs=200)
-        sk_cca.fit((X, Y))
+        cca_ey = CCA_EY(
+            latent_dimensions=latent_dimensions,
+            epochs=100,
+            learning_rate=1e-1,
+            early_stopping=True,
+        )
+        cca_ey.fit((X, Y))
         sklearn_time = time.time() - start_time
 
         score = cca_zoo.score((X, Y))
-        sk_score = sk_cca.score((X, Y))
+        score_ey = cca_ey.score((X, Y))
 
         # Record results
-        results.append({"Dimension": dim, "Time": sklearn_time, "Method": "CCALoss-EY"})
+        results.append({"Dimension": dim, "Time": sklearn_time, "Method": "CCA-EY"})
 
 # Convert to DataFrame
 df = pd.DataFrame(results)

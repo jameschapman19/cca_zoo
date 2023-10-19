@@ -15,10 +15,13 @@ class CCA_EY(BaseGradientModel):
 
     def training_step(self, batch, batch_idx):
         representations = self(batch["views"])
-        independent_views = batch.get("independent_views", None)
-        independent_representations = (
-            self(independent_views) if independent_views is not None else None
-        )
+        if self.batch_size is None:
+            independent_representations = representations
+        else:
+            independent_views = batch.get("independent_views", None)
+            independent_representations = (
+                self(independent_views) if independent_views is not None else None
+            )
         loss = self.objective.loss(representations, independent_representations)
         # Logging the loss components with "train/" prefix
         for k, v in loss.items():
@@ -33,10 +36,13 @@ class CCA_EY(BaseGradientModel):
 
     def validation_step(self, batch, batch_idx):
         representations = self(batch["views"])
-        independent_views = batch.get("independent_views", None)
-        independent_representations = (
-            self(independent_views) if independent_views is not None else None
-        )
+        if self.batch_size is None:
+            independent_representations = representations
+        else:
+            independent_views = batch.get("independent_views", None)
+            independent_representations = (
+                self(independent_views) if independent_views is not None else None
+            )
         loss = self.objective.loss(representations, independent_representations)
         # Logging the loss components
         for k, v in loss.items():

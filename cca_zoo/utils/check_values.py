@@ -94,3 +94,13 @@ def check_gglasso_support(caller_name):
             f"{caller_name} requires gglasso. "
             "Please install glasso using `pip install gglasso`"
         )
+
+
+def check_rdata_support(caller_name):
+    try:
+        import rdata
+    except ImportError:
+        raise ImportError(
+            f"{caller_name} requires rdata. "
+            "Please install pyreadr using `pip install rdata`"
+        )

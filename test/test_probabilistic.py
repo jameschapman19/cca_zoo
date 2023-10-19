@@ -1,11 +1,10 @@
 import numpy as np
 import pytest
 
-from cca_zoo.data.simulated import JointDataGenerator
+from cca_zoo.datasets import JointData
 from cca_zoo.linear import CCA, PLS
 from cca_zoo.probabilistic import ProbabilisticCCA
 from cca_zoo.probabilistic._pls import ProbabilisticPLS
-from cca_zoo.probabilistic._plsregression import ProbabilisticPLSRegression
 from cca_zoo.probabilistic._rcca import ProbabilisticRCCA
 
 
@@ -13,7 +12,7 @@ from cca_zoo.probabilistic._rcca import ProbabilisticRCCA
 def setup_data():
     seed = 123
     latent_dims = 1
-    data = JointDataGenerator(
+    data = JointData(
         view_features=[5, 6],
         latent_dims=latent_dims,
         random_state=seed,

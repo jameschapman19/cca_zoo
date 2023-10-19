@@ -1,7 +1,8 @@
 import pytest
 import numpy as np
+
+from cca_zoo.datasets import JointData
 from cca_zoo.linear import rCCA
-from cca_zoo.data.simulated import JointDataGenerator
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.sequential import SequentialModel
 
@@ -9,7 +10,7 @@ from cca_zoo.sequential import SequentialModel
 # Fixtures
 @pytest.fixture
 def simulated_data():
-    data_generator = JointDataGenerator(
+    data_generator = JointData(
         view_features=[10, 10], latent_dims=5, correlation=0.8
     )
     X, Y = data_generator.sample(200)

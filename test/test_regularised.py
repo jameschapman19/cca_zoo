@@ -3,7 +3,7 @@ import scipy.sparse as sp
 from scipy.stats import loguniform
 from sklearn.utils.validation import check_random_state
 
-from cca_zoo.data.simulated import JointDataGenerator
+from cca_zoo.datasets import JointData
 from cca_zoo.linear import (
     CCA,
     GCCA,
@@ -51,7 +51,7 @@ def test_initialisation():
 
 
 def test_linear_simulated_data():
-    sim_data = JointDataGenerator([10, 10]).sample(100)
+    sim_data = JointData([10, 10]).sample(100)
     assert CCA().fit(sim_data).score(sim_data) > 0.9
 
 

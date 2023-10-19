@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import ShuffleSplit, KFold
 
-from cca_zoo.data.simulated import LinearSimulatedData
+from cca_zoo.data import JointDataGenerator
 from cca_zoo.linear import CCA
 from cca_zoo.model_selection import learning_curve, permutation_test_score
 
@@ -174,7 +174,7 @@ def plot_learning_curve(
 
 
 # Data generation
-(X, Y) = LinearSimulatedData(
+(X, Y) = JointDataGenerator(
     view_features=[p, q], latent_dims=latent_dims, correlation=correlations
 ).sample(n)
 

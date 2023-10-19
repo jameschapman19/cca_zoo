@@ -3,7 +3,7 @@ from typing import Iterable, List, Union
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from torch.utils import data
+from pytorch_lightning.callbacks import EarlyStopping
 from torch.utils.data import DataLoader
 
 from cca_zoo._base import BaseModel
@@ -38,6 +38,7 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         initialization: Union[str, callable] = "random",
         trainer_kwargs=None,
         optimizer_kwargs=None,
+        early_stopping=False,
     ):
         BaseModel.__init__(
             self,
@@ -61,6 +62,7 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         self.dataloader_kwargs = dataloader_kwargs or DEFAULT_LOADER_KWARGS
         self.trainer_kwargs = trainer_kwargs or DEFAULT_TRAINER_KWARGS
         self.optimizer_kwargs = optimizer_kwargs or DEFAULT_OPTIMIZER_KWARGS
+        self.early_stopping = early_stopping
 
     def fit(self, views: Iterable[np.ndarray], y=None, validation_views=None, **kwargs):
         views = self._validate_data(views)
@@ -78,7 +80,6 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
             for weight in self.weights
         ]
         self.torch_weights = torch.nn.ParameterList(self.torch_weights)
-        # make a trainer
         trainer = pl.Trainer(
             max_epochs=self.epochs,
             **self.trainer_kwargs,

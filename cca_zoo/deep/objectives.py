@@ -251,12 +251,14 @@ class CCA_EYLoss:
 class CCA_GHALoss(CCA_EYLoss):
     def loss(self, representations, independent_representations=None):
         A, B = self.get_AB(representations)
-        rewards = torch.trace(2 * A)
+        rewards = torch.trace(A)
         if independent_representations is None:
-            penalties = torch.trace(A.detach() @ B)
+            rewards += torch.trace(A)
+            penalties = torch.trace(A @ B)
         else:
             independent_A, independent_B = self.get_AB(independent_representations)
-            penalties = torch.trace(independent_A.detach() @ B)
+            rewards += torch.trace(independent_A)
+            penalties = torch.trace(independent_A @ B)
         return {
             "objective": -rewards + penalties,
             "rewards": rewards,
@@ -275,11 +277,7 @@ class CCA_SVDLoss(CCA_EYLoss):
         if independent_representations is None:
             Cyy = C[latent_dims:, latent_dims:]
         else:
-            Cyy = cross_cov(
-                independent_representations[1],
-                independent_representations[1],
-                rowvar=False,
-            )
+            Cyy = torch.cov(independent_representations[1].T)
 
         rewards = torch.trace(2 * Cxy)
         penalties = torch.trace(Cxx @ Cyy)
