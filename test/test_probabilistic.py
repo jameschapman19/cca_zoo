@@ -16,7 +16,7 @@ def setup_data():
         random_state=seed,
         structure="identity",
     )
-    X, Y = data.sample(100)
+    X, Y = data.sample(500)
     X -= X.mean(axis=0)
     Y -= Y.mean(axis=0)
     return X, Y, data.joint_cov
