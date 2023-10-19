@@ -9,5 +9,6 @@ __all__ = [
     "PLS_EY",
     "CCA_GHA",
     "CCA_SVD",
+    # "PLS_SVD",
     "PLSStochasticPower",
 ]
