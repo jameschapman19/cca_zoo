@@ -266,26 +266,26 @@ class CCA_GHALoss(CCA_EYLoss):
         }
 
 
-# class CCA_SVDLoss(CCA_EYLoss):
-#     def loss(self, representations, independent_representations=None):
-#         C = torch.cov(torch.hstack(representations).T)
-#         latent_dims = representations[0].shape[1]
-#
-#         Cxy = C[:latent_dims, latent_dims:]
-#         Cxx = C[:latent_dims, :latent_dims]
-#
-#         if independent_representations is None:
-#             Cyy = C[latent_dims:, latent_dims:]
-#         else:
-#             Cyy = torch.cov(independent_representations[1].T)
-#
-#         rewards = torch.trace(2 * Cxy)
-#         penalties = torch.trace(Cxx @ Cyy)
-#         return {
-#             "objective": -rewards + penalties,  # return the negative objective value
-#             "rewards": rewards,  # return the total rewards
-#             "penalties": penalties,  # return the penalties matrix
-#         }
+class CCA_SVDLoss(CCA_EYLoss):
+    def loss(self, representations, independent_representations=None):
+        C = torch.cov(torch.hstack(representations).T)
+        latent_dims = representations[0].shape[1]
+
+        Cxy = C[:latent_dims, latent_dims:]
+        Cxx = C[:latent_dims, :latent_dims]
+
+        if independent_representations is None:
+            Cyy = C[latent_dims:, latent_dims:]
+        else:
+            Cyy = torch.cov(independent_representations[1].T)
+
+        rewards = torch.trace(2 * Cxy)
+        penalties = torch.trace(Cxx @ Cyy)
+        return {
+            "objective": -rewards + penalties,  # return the negative objective value
+            "rewards": rewards,  # return the total rewards
+            "penalties": penalties,  # return the penalties matrix
+        }
 
 
 class PLS_EYLoss(CCA_EYLoss):
