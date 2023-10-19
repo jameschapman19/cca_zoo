@@ -8,8 +8,8 @@ from cca_zoo.preprocessing import MultiViewPreprocessing
 def mock_data():
     N = 50
     brain_data = np.random.rand(N, 10)
-    behavior_data = np.random.rand(100, 10)
-    groups = np.random.randint(0, 2, 100)
+    behavior_data = np.random.rand(N, 10)
+    groups = np.random.randint(0, 2, N)
     return brain_data, behavior_data, groups
 
 

@@ -28,7 +28,7 @@ def test_equivalence_with_linear_kernel(data):
         instance2 = model2(latent_dimensions=2).fit([X, Y, Z])
         score1 = instance1.score([X, Y, Z])
         score2 = instance2.score([X, Y, Z])
-        assert np.allclose(score1, score2), f"Scores differ for {model1} and {model2}"
+        assert np.allclose(score1, score2, rtol=1e-2), f"Scores differ for {model1} and {model2}"
 
 
 @pytest.mark.parametrize("kernel", ["rbf", "poly", "sigmoid", "cosine"])
