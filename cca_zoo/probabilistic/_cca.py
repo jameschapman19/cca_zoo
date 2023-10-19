@@ -196,7 +196,7 @@ class ProbabilisticCCA(BaseModel):
         n = X1.shape[0] if X1 is not None else X2.shape[0]
 
         with numpyro.plate("n", n):
-            z=numpyro.sample(
+            z = numpyro.sample(
                 "representations",
                 dist.MultivariateNormal(
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
