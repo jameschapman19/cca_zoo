@@ -73,7 +73,7 @@ def test_batch_cca():
     ).fit((X, Y))
     ccasvd = CCA_SVD(
         latent_dimensions=latent_dims,
-        epochs=epochs*2,
+        epochs=epochs * 2,
         random_state=random_state,
     ).fit((X, Y))
     cca_score = cca.score((X, Y))
