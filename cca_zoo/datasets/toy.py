@@ -49,7 +49,7 @@ def load_split_cifar10_data(data_home=None, cache=True):
     from sklearn.datasets import fetch_openml
 
     # Download CIFAR-10
-    cifar_data = fetch_openml(name="CIFAR_10", data_home=data_home,cache=cache)
+    cifar_data = fetch_openml(name="CIFAR_10", data_home=data_home, cache=cache)
 
     # Split into left and right halves
     X = cifar_data.data.values
