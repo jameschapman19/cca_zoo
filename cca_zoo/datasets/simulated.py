@@ -35,8 +35,10 @@ class LatentVariableData(BaseData):
         view_sparsity: Union[List[float], float] = None,
         positive: Union[bool, List[bool]] = False,
         structure="identity",
+        signal_to_noise: float = 1.0,
     ):
         super().__init__(view_features, latent_dims, random_state)
+        self.signal_to_noise = signal_to_noise
         self.view_sparsity = _process_parameter(
             "view_sparsity", view_sparsity, 1.0, len(view_features)
         )
@@ -71,6 +73,7 @@ class LatentVariableData(BaseData):
         loadings *= mask
         if is_positive:
             loadings = np.abs(loadings)
+        loadings = loadings / np.sqrt(np.diag(loadings.T @ loadings))
         return loadings
 
     def _generate_covariance_matrix(self, view_features, view_structure):
@@ -79,9 +82,11 @@ class LatentVariableData(BaseData):
             cov = np.eye(view_features)
         else:
             cov = make_spd_matrix(view_features, random_state=self.random_state)
+        # divide by sum of eigenvalues to normalize
+        cov = cov*view_features / np.sum(np.linalg.eigvals(cov))
         return cov
 
-    def sample(self, n_samples: int):
+    def sample(self, n_samples: int, return_latent: bool = False):
         random_latent = self.random_state.multivariate_normal(
             np.zeros(self.latent_dims), np.eye(self.latent_dims), n_samples
         )
@@ -89,9 +94,11 @@ class LatentVariableData(BaseData):
             random_latent @ true_loading.T
             + self.random_state.multivariate_normal(
                 np.zeros(cov.shape[0]), cov, n_samples
-            )
+            )/self.signal_to_noise
             for true_loading, cov in zip(self.true_loadings, self.cov_matrices)
         ]
+        if return_latent:
+            return views, random_latent
         return views
 
     @property
@@ -102,6 +109,12 @@ class LatentVariableData(BaseData):
         )
         cov[self.view_features[0] :, self.view_features[0] :] = (
             self.true_loadings[1] @ self.true_loadings[1].T + self.cov_matrices[1]
+        )
+        cov[: self.view_features[0], self.view_features[0] :] = (
+            self.true_loadings[0] @ self.true_loadings[1].T
+        )
+        cov[self.view_features[0] :, : self.view_features[0]] = (
+            self.true_loadings[1] @ self.true_loadings[0].T
         )
         return cov
 
@@ -145,6 +158,9 @@ class JointData(BaseData):
             for view_features, view_sparsity, is_positive, cov in zip(
                 self.view_features, self.view_sparsity, self.positive, cov_matrices
             )
+        ]
+        self.true_loadings = [
+            cov@weight for weight, cov in zip(self.true_features, cov_matrices)
         ]
         self.joint_cov = self._generate_joint_covariance(cov_matrices)
         self.chol = np.linalg.cholesky(self.joint_cov)

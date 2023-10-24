@@ -4,11 +4,10 @@ import jax.numpy as jnp
 import numpy as np
 import numpyro
 import numpyro.distributions as dist
-from jax import random
 from jax.random import PRNGKey
-from numpyro.infer import SVI, MCMC, NUTS
+from numpyro.infer import SVI
+
 from cca_zoo._base import BaseModel
-from numpyro import handlers
 
 
 class ProbabilisticCCA(BaseModel):
@@ -47,17 +46,17 @@ class ProbabilisticCCA(BaseModel):
 
     """
 
-    return_sites = ["representations"]
+    return_sites = ["z"]
 
     def __init__(
         self,
         latent_dimensions: int = 1,
         copy_data=True,
         random_state: int = 0,
-        learning_rate=1e-3,
-        n_iter=20000,
-        num_samples=1000,
-        num_warmup=500,
+        learning_rate=1e-1,
+        n_iter=40000,
+        num_samples=5000,
+        num_warmup=5000,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -117,55 +116,51 @@ class ProbabilisticCCA(BaseModel):
 
         W1 = numpyro.param(
             "W_1",
-            random.normal(
+            jnp.ones(
                 shape=(
                     self.n_features_[0],
                     self.latent_dimensions,
                 ),
-                key=self.rng_key,
             ),
         )
         W2 = numpyro.param(
             "W_2",
-            random.normal(
+            jnp.ones(
                 shape=(
                     self.n_features_[1],
                     self.latent_dimensions,
                 ),
-                key=self.rng_key,
             ),
         )
 
         # Add positive-definite constraint for psi1 and psi2
-        psi1 = numpyro.param("psi_1", jnp.eye(self.n_features_[0]))
-        psi2 = numpyro.param("psi_2", jnp.eye(self.n_features_[1]))
+        L1 = numpyro.param('L_1', jnp.eye(self.n_features_[0]), constraint=dist.constraints.lower_cholesky)
+        psi1 = L1 @ L1.T
+        L2 = numpyro.param('L_2', jnp.eye(self.n_features_[1]), constraint=dist.constraints.lower_cholesky)
+        psi2 = L2 @ L2.T
 
         mu1 = numpyro.param(
             "mu_1",
-            random.normal(
+            jnp.zeros(
                 shape=(
                     1,
                     self.n_features_[0],
                 ),
-                key=self.rng_key,
             ),
         )
         mu2 = numpyro.param(
             "mu_2",
-            random.normal(
+            jnp.zeros(
                 shape=(
                     1,
                     self.n_features_[1],
                 ),
-                key=self.rng_key,
             ),
         )
 
-        n_samples = X1.shape[0] if X1 is not None else X2.shape[0]
-
-        with numpyro.plate("n", n_samples):
+        with numpyro.plate("n", self.n_samples_):
             z = numpyro.sample(
-                "representations",
+                "z",
                 dist.MultivariateNormal(
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
                 ),
@@ -173,34 +168,39 @@ class ProbabilisticCCA(BaseModel):
 
             numpyro.sample(
                 "X1",
-                dist.MultivariateNormal(z @ W1.T + mu1, covariance_matrix=psi1),
+                dist.MultivariateNormal(
+                    jnp.outer(z, W1.T) + mu1,
+                    covariance_matrix=psi1,
+                    ),
                 obs=X1,
             )
             numpyro.sample(
                 "X2",
-                dist.MultivariateNormal(z @ W2.T + mu2, covariance_matrix=psi2),
+                dist.MultivariateNormal(
+                    jnp.outer(z, W2.T) + mu2,
+                    covariance_matrix=psi2,
+                    ),
                 obs=X2,
             )
 
     def _guide(self, views):
         """
-        Defines the variational family (guide) for approximate inference in Probabilistic CCALoss.
+        Defines the variational distribution for Probabilistic CCALoss.
 
         Parameters
         ----------
         views: tuple of np.ndarray
             A tuple containing the first and second representations, X1 and X2, each as a numpy array.
         """
-        X1, X2 = views
 
-        n = X1.shape[0] if X1 is not None else X2.shape[0]
+        # Variational parameters for the approximate posterior of z
+        z_loc = numpyro.param("z_loc", jnp.zeros((self.n_samples_, self.latent_dimensions)))
+        z_scale = numpyro.param("z_scale", jnp.ones((self.n_samples_, self.latent_dimensions)), constraint=dist.constraints.positive)
 
-        with numpyro.plate("n", n):
+        with numpyro.plate("n", self.n_samples_):
             z = numpyro.sample(
-                "representations",
-                dist.MultivariateNormal(
-                    jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
-                ),
+                "z",
+                dist.MultivariateNormal(z_loc, jnp.diag(z_scale))
             )
 
     def transform(self, views: Iterable[np.ndarray], y=None, return_std=False):
@@ -219,16 +219,14 @@ class ProbabilisticCCA(BaseModel):
         representations : np.ndarray
             The transformed data in the latent space.
         """
-        conditioned_model = handlers.substitute(self._model, self.params)
-        kernel = NUTS(conditioned_model)
-        mcmc = MCMC(kernel, num_warmup=self.num_warmup, num_samples=self.num_samples)
-        mcmc.run(self.rng_key, views)
-        samples = mcmc.get_samples()
-        z = samples["representations"]
-        if return_std:
-            return np.array(z.mean(axis=0)), np.array(z.std(axis=0))
-        else:
-            return np.array(z.mean(axis=0))
+        svi = SVI(
+            self._model,
+            self._guide,
+            numpyro.optim.Adam(self.learning_rate),
+            loss=numpyro.infer.Trace_ELBO(),
+        )
+        svi_result = svi.run(self.rng_key, self.n_iter, views)
+        return np.array(svi_result.params["z"])
 
     def render(self, views):
         # check if graphviz is installed
@@ -244,9 +242,11 @@ class ProbabilisticCCA(BaseModel):
         return {"probabilistic": True}
 
     def joint(self):
+        psi1 = self.params["L_1"] @ self.params["L_1"].T
+        psi2 = self.params["L_2"] @ self.params["L_2"].T
         # Calculate the individual matrix blocks
-        top_left = self.params["W_1"] @ self.params["W_1"].T + self.params["psi_1"]
-        bottom_right = self.params["W_2"] @ self.params["W_2"].T + self.params["psi_2"]
+        top_left = self.params["W_1"] @ self.params["W_1"].T + psi1
+        bottom_right = self.params["W_2"] @ self.params["W_2"].T + psi2
         top_right = self.params["W_1"] @ self.params["W_2"].T
         bottom_left = self.params["W_2"] @ self.params["W_1"].T
 
