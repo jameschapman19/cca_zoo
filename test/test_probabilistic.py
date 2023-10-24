@@ -34,10 +34,13 @@ def test_cca_vs_probabilisticCCA(setup_data):
     # Assert: Calculate correlation coefficient and ensure it's greater than 0.95
     z = cca.transform([X, Y])[0]
     # correlation between cca and pcca
-    correlation_matrix = np.abs(np.corrcoef(z.reshape(-1), pcca.params["z_loc"].reshape(-1)))
+    correlation_matrix = np.abs(
+        np.corrcoef(z.reshape(-1), pcca.params["z_loc"].reshape(-1))
+    )
     correlation = correlation_matrix[0, 1]
 
     assert correlation > 0.8
+
 
 def test_pls_vs_probabilisticPLS(setup_data):
     X, Y, data = setup_data
@@ -50,7 +53,9 @@ def test_pls_vs_probabilisticPLS(setup_data):
     # Assert: Calculate correlation coefficient and ensure it's greater than 0.95
     z = pls.transform([X, Y])[0]
     # correlation between cca and pcca
-    correlation_matrix = np.abs(np.corrcoef(z.reshape(-1), ppls.params["z_loc"].reshape(-1)))
+    correlation_matrix = np.abs(
+        np.corrcoef(z.reshape(-1), ppls.params["z_loc"].reshape(-1))
+    )
     correlation = correlation_matrix[0, 1]
 
     assert correlation > 0.8
