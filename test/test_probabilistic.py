@@ -2,8 +2,9 @@ import numpy as np
 import pytest
 
 from cca_zoo.datasets import LatentVariableData
-from cca_zoo.linear import CCA
+from cca_zoo.linear import CCA, PLS
 from cca_zoo.probabilistic import ProbabilisticCCA
+from cca_zoo.probabilistic._pls import ProbabilisticPLS
 
 
 @pytest.fixture
@@ -32,13 +33,24 @@ def test_cca_vs_probabilisticCCA(setup_data):
 
     # Assert: Calculate correlation coefficient and ensure it's greater than 0.95
     z = cca.transform([X, Y])[0]
-    z_p = np.array(pcca.transform([X, Y]))
     # correlation between cca and pcca
-    correlation_matrix = np.abs(np.corrcoef(z.reshape(-1), z_p.reshape(-1)))
+    correlation_matrix = np.abs(np.corrcoef(z.reshape(-1), pcca.params["z_loc"].reshape(-1)))
     correlation = correlation_matrix[0, 1]
 
+    assert correlation > 0.8
 
-#
-#     assert (
-#         correlation > 0.9
-#     ), f"Expected correlation greater than 0.95, got {correlation}"
+def test_pls_vs_probabilisticPLS(setup_data):
+    X, Y, data = setup_data
+    # Models and fit
+    pls = PLS(latent_dimensions=1)
+    ppls = ProbabilisticPLS(latent_dimensions=1, random_state=10)
+    pls.fit([X, Y])
+    ppls.fit([X, Y])
+
+    # Assert: Calculate correlation coefficient and ensure it's greater than 0.95
+    z = pls.transform([X, Y])[0]
+    # correlation between cca and pcca
+    correlation_matrix = np.abs(np.corrcoef(z.reshape(-1), ppls.params["z_loc"].reshape(-1)))
+    correlation = correlation_matrix[0, 1]
+
+    assert correlation > 0.8

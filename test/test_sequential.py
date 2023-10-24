@@ -10,7 +10,7 @@ from cca_zoo.sequential import SequentialModel
 # Fixtures
 @pytest.fixture
 def simulated_data():
-    data_generator = JointData(view_features=[4, 6], latent_dims=5, correlation=0.8)
+    data_generator = JointData(view_features=[4, 6], latent_dims=3, correlation=0.8)
     X, Y = data_generator.sample(50)
     return X, Y
 
@@ -32,7 +32,7 @@ def test_sequential_model_fits_and_identifies_effects(
     X, Y = simulated_data
     sequential_model = SequentialModel(
         grid_search_estimator,
-        latent_dimensions=10,
+        latent_dimensions=4,
         permutation_test=True,
         p_threshold=0.05,
     )

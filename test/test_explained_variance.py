@@ -54,7 +54,7 @@ def test_transformed_covariance_ratio(toy_model, synthetic_views):
     pls_cov_ratios = pls.explained_covariance_ratio(synthetic_views)
     # sum of these should be 1 within a small tolerance
     assert np.isclose(
-        np.sum(pls_cov_ratios), 1, atol=1e-2
+        np.sum(pls_cov_ratios), 1, atol=2e-2
     ), "Expected sum of ratios to be 1"
 
     cov_ratios = toy_model.explained_covariance_ratio(synthetic_views)

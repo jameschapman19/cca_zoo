@@ -54,7 +54,7 @@ class ProbabilisticCCA(BaseModel):
         copy_data=True,
         random_state: int = 0,
         learning_rate=1e-1,
-        n_iter=40000,
+        n_iter=20000,
         num_samples=5000,
         num_warmup=5000,
     ):
@@ -213,31 +213,6 @@ class ProbabilisticCCA(BaseModel):
 
         with numpyro.plate("n", self.n_samples_):
             z = numpyro.sample("z", dist.MultivariateNormal(z_loc, jnp.diag(z_scale)))
-
-    def transform(self, views: Iterable[np.ndarray], y=None, return_std=False):
-        """
-        Transform the data into the latent space.
-
-        Parameters
-        ----------
-        views : Iterable[np.ndarray]
-            A list or tuple of numpy arrays representing different representations of the same samples. Each numpy array must have the same number of rows.
-        y: Any, optional
-            Ignored in this implementation.
-
-        Returns
-        -------
-        representations : np.ndarray
-            The transformed data in the latent space.
-        """
-        svi = SVI(
-            self._model,
-            self._guide,
-            numpyro.optim.Adam(self.learning_rate),
-            loss=numpyro.infer.Trace_ELBO(),
-        )
-        svi_result = svi.run(self.rng_key, self.n_iter, views)
-        return np.array(svi_result.params["z"])
 
     def render(self, views):
         # check if graphviz is installed
