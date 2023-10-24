@@ -50,9 +50,9 @@
 #         # set trainer kwargs accelerator to 'cpu'
 #         self.trainer_kwargs["accelerator"] = "cpu"
 #
-#     def _get_pl_module(self, weights=None, k=None):
+#     def _get_pl_module(self, weights_=None, k=None):
 #         return AltMaxVarLoop(
-#             weights=weights,
+#             weights_=weights_,
 #             k=k,
 #             gamma=self.gamma,
 #             T=self.T,
@@ -92,7 +92,7 @@
 # class AltMaxVarLoop(BaseLoop):
 #     def __init__(
 #         self,
-#         weights,
+#         weights_,
 #         k=None,
 #         gamma=0.1,
 #         T=100,
@@ -102,7 +102,7 @@
 #         track=None,
 #     ):
 #         super().__init__(
-#             weights=weights,
+#             weights_=weights_,
 #             k=k,
 #             convergence_checking=convergence_checking,
 #             tracking=track,
@@ -115,7 +115,7 @@
 #     def forward(self, representations: list) -> list:
 #         # representations detach and numpy
 #         representations = [view.detach().numpy() for view in representations]
-#         return [view @ weight for view, weight in zip(representations, self.weights)]
+#         return [view @ weight for view, weight in zip(representations, self.weights_)]
 #
 #     def _get_target(self, scores):
 #         if hasattr(self, "G"):
@@ -126,49 +126,49 @@
 #         G = U @ Vt
 #         return G / np.sqrt(np.diag(np.atleast_1d(np.cov(G, rowvar=False))))
 #
-#     def objective(self, representations, scores, weights) -> int:
+#     def objective(self, representations, scores, weights_) -> int:
 #         least_squares = (np.linalg.norm(scores - self.G, axis=(1, 2)) ** 2).sum()
 #         regularization = np.array(
-#             [self.proximal_operators[view](weights[view]) for view in range(len(representations))]
+#             [self.proximal_operators[view](weights_[view]) for view in range(len(representations))]
 #         ).sum()
 #         return least_squares + regularization
 #
 #     def training_step(self, batch, batch_idx):
 #         scores = np.stack(self(batch["representations"]))
 #         self.G = self._get_target(scores)
-#         old_weights = self.weights.copy()
+#         old_weights = self.weights_.copy()
 #         for i, view in enumerate(batch["representations"]):
 #             view = view.detach().numpy()
 #             t = 0
 #             prev_weights = None
 #             converged = False
 #             while t < self.T and not converged:
-#                 grad = view.T @ (view @ self.weights[i] - self.G) / view.shape[0]
-#                 # update the weights using the gradient descent and proximal operator
-#                 self.weights[i] -= self.learning_rate * grad
-#                 self.weights[i] = self.proximal_operators[i].prox(
-#                     self.weights[i], self.learning_rate
+#                 grad = view.T @ (view @ self.weights_[i] - self.G) / view.shape[0]
+#                 # update the weights_ using the gradient descent and proximal operator
+#                 self.weights_[i] -= self.learning_rate * grad
+#                 self.weights_[i] = self.proximal_operators[i].prox(
+#                     self.weights_[i], self.learning_rate
 #                 )
-#                 # check if the weights have changed significantly from the previous iteration
+#                 # check if the weights_ have changed significantly from the previous iteration
 #                 if prev_weights is not None and np.allclose(
-#                     self.weights[i], prev_weights
+#                     self.weights_[i], prev_weights
 #                 ):
 #                     # if yes, set converged to True and break the loop
 #                     converged = True
-#                 # update the previous weights for the next iteration
-#                 prev_weights = self.weights[i].copy()
+#                 # update the previous weights_ for the next iteration
+#                 prev_weights = self.weights_[i].copy()
 #                 t += 1
 #
 #         # if track or convergence_checking is enabled, compute the objective function
 #         if self.tracking or self.convergence_checking:
-#             objective = self.objective(batch["representations"], scores, self.weights)
-#             # check that the maximum change in weights is smaller than the tolerance times the maximum absolute value of the weights
+#             objective = self.objective(batch["representations"], scores, self.weights_)
+#             # check that the maximum change in weights_ is smaller than the tolerance times the maximum absolute value of the weights_
 #             weights_change = torch.tensor(
 #                 np.max(
 #                     [
-#                         np.max(np.abs(old_weights[i] - self.weights[i]))
-#                         / np.max(np.abs(self.weights[i]))
-#                         for i in range(len(self.weights))
+#                         np.max(np.abs(old_weights[i] - self.weights_[i]))
+#                         / np.max(np.abs(self.weights_[i]))
+#                         for i in range(len(self.weights_))
 #                     ]
 #                 )
 #             )

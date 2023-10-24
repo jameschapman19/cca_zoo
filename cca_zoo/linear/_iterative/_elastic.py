@@ -58,7 +58,7 @@ class ElasticCCA(DeflationMixin, BaseIterative):
         )
 
     def _update_weights(self, views: Iterable[np.ndarray], i: int):
-        # Update the weights for the current view using Elastic
+        # Update the weights_ for the current view using Elastic
         # Get the scores of all representations
         scores = np.stack(self.transform(views))
         # Compute the target by summing the scores along dim 0 and dividing by the square root of the covariance of the target
@@ -67,9 +67,9 @@ class ElasticCCA(DeflationMixin, BaseIterative):
 
         # Loop over the representations and fit each regressor to the view and the target
         self.regressors[i] = self.regressors[i].fit(views[i], target)
-        # Update the weights with the coefficients of each regressor
+        # Update the weights_ with the coefficients of each regressor
         new_weights = np.squeeze(self.regressors[i].coef_)
-        # Return the updated weights
+        # Return the updated weights_
         return new_weights[:, None]
 
     def _objective(self, views: Iterable[np.ndarray]):
@@ -140,7 +140,7 @@ class SCCA_IPLS(DeflationMixin, BaseIterative):
         )
 
     def _update_weights(self, views: Iterable[np.ndarray], i: int):
-        # Update the weights for the current view using IPLS
+        # Update the weights_ for the current view using IPLS
         # Get the scores of all representations
         scores = np.stack(self.transform(views))
 
@@ -152,9 +152,9 @@ class SCCA_IPLS(DeflationMixin, BaseIterative):
         self.regressors[i] = self.regressors[i].fit(views[i], target)
         # Normalize the coefficients by dividing by the square root of the covariance of the view and the coefficients
         self.regressors[i].coef_ /= np.sqrt(np.cov(views[i] @ self.regressors[i].coef_))
-        # Update the weights with the coefficients of each regressor
+        # Update the weights_ with the coefficients of each regressor
         new_weights = self.regressors[i].coef_
-        # Return the updated weights
+        # Return the updated weights_
         return new_weights[:, None]
 
     def _objective(self, views: Iterable[np.ndarray]):

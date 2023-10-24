@@ -42,18 +42,18 @@ class SCCA_Parkhomenko(DeflationMixin, BaseIterative):
             )
 
     def _update_weights(self, views: Iterable[np.ndarray], i: int):
-        # Update the weights for the current view using Parkhomenko
+        # Update the weights_ for the current view using Parkhomenko
         # Get the scores of all representations
         scores = np.stack(self.transform(views))
         # Create a mask that is True for elements not equal to i along dim i
         mask = np.arange(scores.shape[0]) != i
         # Apply the mask to scores and sum along dim i
         target = np.sum(scores[mask], axis=0)
-        # Compute the new weights by multiplying the view with the target and dividing by the norm of the new weights
+        # Compute the new weights_ by multiplying the view with the target and dividing by the norm of the new weights_
         new_weights = views[i].T @ target / np.linalg.norm(views[i].T @ target)
-        # Apply soft thresholding to the new weights with optimal delta
+        # Apply soft thresholding to the new weights_ with optimal delta
         new_weights = np.clip(new_weights - self.tau[i] / 2, 0, None) - np.clip(
             -new_weights - self.tau[i] / 2, 0, None
         )
-        # Return the new weights
+        # Return the new weights_
         return new_weights

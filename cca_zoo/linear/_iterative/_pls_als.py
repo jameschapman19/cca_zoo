@@ -32,16 +32,16 @@ class PLS_ALS(DeflationMixin, BaseIterative):
         )
 
     def _update_weights(self, views: np.ndarray, i: int):
-        # Update the weights for the current view using PLS
+        # Update the weights_ for the current view using PLS
         # Get the scores of all representations
         scores = np.stack(self.transform(views))
         # Create a mask that is True for elements not equal to i along dim i
         mask = np.arange(scores.shape[0]) != i
         # Apply the mask to scores and sum along dim i
         target = np.sum(scores[mask], axis=0)
-        # Compute the new weights by computing the covariance between the view and the target
+        # Compute the new weights_ by computing the covariance between the view and the target
         new_weights = np.cov(np.hstack((views[i], target)).T)[:-1, -1]
-        # Normalize the new weights
+        # Normalize the new weights_
         new_weights /= np.linalg.norm(new_weights)
-        # Return the new weights
+        # Return the new weights_
         return new_weights[:, np.newaxis]

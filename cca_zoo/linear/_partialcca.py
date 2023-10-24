@@ -67,7 +67,7 @@ class PartialCCA(MCCA):
                 f"partial CCALoss."
             )
         check_is_fitted(
-            self, attributes=["weights"]
+            self
         )  # check if the model has been fitted before transforming
         transformed_views = []
         for i, (view) in enumerate(views):
@@ -77,7 +77,7 @@ class PartialCCA(MCCA):
                 @ self.confound_betas[
                     i
                 ]  # remove the confounding effect from each view using stored confounding betas
-            ) @ self.weights[
+            ) @ self.weights_[
                 i
             ]  # multiply each view by its corresponding weight matrix
             transformed_views.append(

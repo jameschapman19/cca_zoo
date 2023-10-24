@@ -90,9 +90,9 @@
 #         self.lam = _process_parameter("lam", self.lam, 1, self.n_views_)
 #         self.eta = _process_parameter("eta", self.eta, 0, self.n_views_)
 #
-#     def _get_pl_module(self, weights=None, k=None):
+#     def _get_pl_module(self, weights_=None, k=None):
 #         return SCCA_ADMM_PL(
-#             weights=weights,
+#             weights_=weights_,
 #             k=k,
 #             tau=self.tau,
 #             lam=self.lam,
@@ -105,7 +105,7 @@
 # class SCCA_ADMM_PL(BaseLoop):
 #     def __init__(
 #         self,
-#         weights,
+#         weights_,
 #         k=None,
 #         n_samples_=None,
 #         n_views_=None,
@@ -114,7 +114,7 @@
 #         lam=None,
 #         mu=None,
 #     ):
-#         super().__init__(weights=weights, k=k)
+#         super().__init__(weights_=weights_, k=k)
 #         self.eta = [np.ones(n_samples_) * eta for eta in eta]
 #         self.representations = [np.ones(n_samples_)] * n_views_
 #         self.mu = mu
@@ -135,13 +135,13 @@
 #             norm_proj = []
 #             for _ in range(self.max_iter):
 #                 # We multiply 'tau' by N in order to make regularisation match across the different sparse cca methods
-#                 self.weights[view_index] = self._prox_mu_f(
-#                     self.weights[view_index]
+#                 self.weights_[view_index] = self._prox_mu_f(
+#                     self.weights_[view_index]
 #                     - mu
 #                     / lam
 #                     * representations[view_index].T
 #                     @ (
-#                         representations[view_index] @ self.weights[view_index]
+#                         representations[view_index] @ self.weights_[view_index]
 #                         - self.representations[view_index]
 #                         + self.eta[view_index]
 #                     ),
@@ -151,23 +151,23 @@
 #                 )
 #                 unnorm_z.append(
 #                     np.linalg.norm(
-#                         representations[view_index] @ self.weights[view_index]
+#                         representations[view_index] @ self.weights_[view_index]
 #                         + self.eta[view_index]
 #                     )
 #                 )
 #                 self.representations[view_index] = self._prox_lam_g(
-#                     representations[view_index] @ self.weights[view_index] + self.eta[view_index]
+#                     representations[view_index] @ self.weights_[view_index] + self.eta[view_index]
 #                 )
 #                 self.eta[view_index] = (
 #                     self.eta[view_index]
-#                     + representations[view_index] @ self.weights[view_index]
+#                     + representations[view_index] @ self.weights_[view_index]
 #                     - self.representations[view_index]
 #                 )
 #                 norm_eta.append(np.linalg.norm(self.eta[view_index]))
 #                 norm_proj.append(
-#                     np.linalg.norm(representations[view_index] @ self.weights[view_index])
+#                     np.linalg.norm(representations[view_index] @ self.weights_[view_index])
 #                 )
-#                 norm_weights.append(np.linalg.norm(self.weights[view_index], 1))
+#                 norm_weights.append(np.linalg.norm(self.weights_[view_index], 1))
 #
 #     def _prox_mu_f(self, x, mu, c, tau):
 #         u_update = x.copy()

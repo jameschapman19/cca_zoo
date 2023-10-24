@@ -91,7 +91,7 @@ class WeightInferenceDisplay:
 
         for view in range(self.num_views):
             # Plot the posterior distribution of W_0 parameter (for just the first latent variable).
-            # Label the weights with their weight index. Make all parameters share x axis.
+            # Label the weights_ with their weight index. Make all parameters share x axis.
             trace_plot = az.plot_trace(
                 self.idata, var_names=[f"W_{view}"], compact=False, divergences=None
             )

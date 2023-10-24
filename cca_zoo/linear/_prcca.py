@@ -104,15 +104,15 @@ class PRCCA(MCCA):
         return D
 
     def _weights(self, eigvals, eigvecs, views, idxs=None, **kwargs):
-        # split eigvecs into weights for each view
-        self.weights = np.split(eigvecs, self.splits[:-1], axis=0)
+        # split eigvecs into weights_ for each view
+        self.weights_ = np.split(eigvecs, self.splits[:-1], axis=0)
         for i, idx in enumerate(idxs):
-            alpha_1 = self.weights[i][idx]
-            alpha_2 = np.delete(self.weights[i], idx, axis=0)
+            alpha_1 = self.weights_[i][idx]
+            alpha_2 = np.delete(self.weights_[i], idx, axis=0)
             alpha_2 -= self.B[i] @ alpha_1
-            mask = np.ones(self.weights[i].shape[0], dtype=bool)
+            mask = np.ones(self.weights_[i].shape[0], dtype=bool)
             mask[idx] = False
-            self.weights[i][mask] = alpha_2
+            self.weights_[i][mask] = alpha_2
 
     def _more_tags(self):
         return {"multiview": True}

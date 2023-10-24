@@ -71,7 +71,7 @@ class SCCA_Span(DeflationMixin, BaseIterative):
         )
 
     def _update_weights(self, views: np.ndarray, i: int) -> None:
-        """Update the weights for the i-th component.
+        """Update the weights_ for the i-th component.
 
         Args:
             views (np.ndarray): The input representations as numpy arrays.
@@ -89,10 +89,10 @@ class SCCA_Span(DeflationMixin, BaseIterative):
             # apply the update function to a with tau[0]
             u = self.update(a, self.tau[0])
             u /= np.linalg.norm(u)
-            # update the objective value and the weights if improved
+            # update the objective value and the weights_ if improved
             return u[:, np.newaxis]
         elif i == 1:
-            b = self.Q @ np.diag(self.D) @ self.P.T @ self.weights[0]
+            b = self.Q @ np.diag(self.D) @ self.P.T @ self.weights_[0]
             v = self.update(b, self.tau[1])
             v /= np.linalg.norm(v)
             return v

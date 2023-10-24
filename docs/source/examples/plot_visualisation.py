@@ -74,7 +74,7 @@ print(
 # Ever wondered how much each feature contributes? The weight heatmap unveils the importance of each feature in your model.
 WeightHeatmapDisplay.from_estimator(mcca).plot()
 plt.show()
-print("Did you know? Large weights are usually more influential in the model.")
+print("Did you know? Large weights_ are usually more influential in the model.")
 
 # The Scoreboard
 # --------------

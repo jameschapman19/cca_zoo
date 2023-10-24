@@ -57,23 +57,23 @@ class SCCA_PMD(DeflationMixin, BaseIterative):
 
     def _update_weights(self, views: np.ndarray, i: int):
         if not hasattr(self, "t"):
-            shape_sqrts = [np.sqrt(weight.shape[0]) for weight in self.weights]
+            shape_sqrts = [np.sqrt(weight.shape[0]) for weight in self.weights_]
             self.t = [max(1, x * y) for x, y in zip(self.tau, shape_sqrts)]
-        # Update the weights for the current view using PMD
+        # Update the weights_ for the current view using PMD
         # Get the scores of all representations
         scores = np.stack(self.transform(views))
         # Create a mask that is True for elements not equal to i along dim i
         mask = np.arange(scores.shape[0]) != i
         # Apply the mask to scores and sum along dim i
         target = np.sum(scores[mask], axis=0)
-        # Compute the new weights by multiplying the view with the target
+        # Compute the new weights_ by multiplying the view with the target
         new_weights = views[i].T @ target
         if self.positive[i]:
             # If positive is true, set all negative values to 0
             new_weights[new_weights < 0] = 0
-        # Apply the delta search function to the new weights with the regularization parameter
+        # Apply the delta search function to the new weights_ with the regularization parameter
         new_weights = _delta_search(new_weights, self.t[i], tol=self.tol)
-        # Return the new weights
+        # Return the new weights_
         return new_weights
 
     def _objective(self, views: Iterable[np.ndarray]):
@@ -87,7 +87,7 @@ class SCCA_PMD(DeflationMixin, BaseIterative):
         # the sum of covariances
         return np.sum(all_covs) - np.sum(
             [
-                self.tau[i] * np.linalg.norm(self.weights[i])
-                for i in range(len(self.weights))
+                self.tau[i] * np.linalg.norm(self.weights_[i])
+                for i in range(len(self.weights_))
             ]
         )

@@ -89,7 +89,7 @@ class MCCA(BaseModel):
         self._check_params()
         views = self._process_data(views, **kwargs)
         eigvals, eigvecs = self._solve_gevp(views, y=y, **kwargs)
-        # Compute the weights for each view
+        # Compute the weights_ for each view
         self._weights(eigvals, eigvecs, views, **kwargs)
         # delete pca to save memory
         if self.pca:
@@ -121,12 +121,12 @@ class MCCA(BaseModel):
         return np.flip(eigvals), eigvecs
 
     def _weights(self, eigvals, eigvecs, views, **kwargs):
-        # split eigvecs into weights for each view
-        self.weights = np.split(eigvecs, self.splits[:-1], axis=0)
+        # split eigvecs into weights_ for each view
+        self.weights_ = np.split(eigvecs, self.splits[:-1], axis=0)
         if self.pca:
-            # go from weights in PCA space to weights in original space
-            self.weights = [
-                pca.components_.T @ self.weights[i]
+            # go from weights_ in PCA space to weights_ in original space
+            self.weights_ = [
+                pca.components_.T @ self.weights_[i]
                 for i, pca in enumerate(self.pca_models)
             ]
 

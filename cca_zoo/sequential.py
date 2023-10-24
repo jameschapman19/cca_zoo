@@ -66,7 +66,7 @@ class SequentialModel(MetaEstimatorMixin, BaseModel, metaclass=ABCMeta):
         # Set the default latent dimensions to the minimum number of features
         if self.latent_dimensions is None:
             self.latent_dimensions = min([view.shape[1] for view in views])
-        # Initialize the weights and p-values lists
+        # Initialize the weights_ and p-values lists
         self.weights = [[] for view in views]
         self.p_values = []
         # Loop over the latent dimensions
@@ -97,12 +97,12 @@ class SequentialModel(MetaEstimatorMixin, BaseModel, metaclass=ABCMeta):
                 self.p_values.pop()
                 break
             else:
-                # Deflate the representations and store the weights
+                # Deflate the representations and store the weights_
                 views = deflate_views(views, best_estimator.weights)
                 for i, weight in enumerate(best_estimator.weights):
                     self.weights[i].append(weight)
         # Set the final latent dimensions to k
         self.latent_dimensions = k
-        # Concatenate the weights from each effect
+        # Concatenate the weights_ from each effect
         self.weights = [np.concatenate(weights, axis=1) for weights in self.weights]
         return self

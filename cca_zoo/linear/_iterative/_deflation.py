@@ -10,7 +10,7 @@ class DeflationMixin:
         if isinstance(views, tuple):
             views = list(views)
 
-        self.weights = [
+        self.weights_ = [
             np.empty((view.shape[1], self.latent_dimensions)) for view in views
         ]
 
@@ -23,7 +23,7 @@ class DeflationMixin:
             component_weights = clone(self).set_params(latent_dimensions=1)._fit(views)
 
             for i, weight in enumerate(component_weights):
-                self.weights[i][:, k] = weight.squeeze()
+                self.weights_[i][:, k] = weight.squeeze()
 
             if k < self.latent_dimensions - 1:
                 pls = True  # self._get_tags().get("pls", False)
@@ -52,7 +52,7 @@ def deflate_view_pls(residual: np.ndarray, weights: np.ndarray) -> np.ndarray:
     """
     Generalised deflation for PLS
 
-    This method ensures orthogonal weights in the consecutive associative effects in each data modality
+    This method ensures orthogonal weights_ in the consecutive associative effects in each data modality
 
     """
     score = residual @ weights

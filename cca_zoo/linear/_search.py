@@ -4,11 +4,11 @@ from scipy.optimize import minimize
 
 def _delta_search(w, c, tol=1e-8):
     """
-    Searches for threshold delta such that the 1-norm of weights w is less than or equal to c and the 2-norm is equal to 1.
+    Searches for threshold delta such that the 1-norm of weights_ w is less than or equal to c and the 2-norm is equal to 1.
     Parameters
     ----------
     w : numpy array
-        weights found by one power method iteration
+        weights_ found by one power method iteration
     c : float
         1-norm threshold
     init : float, optional
@@ -17,15 +17,15 @@ def _delta_search(w, c, tol=1e-8):
     Returns
     -------
     numpy array
-        updated weights
+        updated weights_
 
     """
-    # First normalize the weights to unit length
+    # First normalize the weights_ to unit length
     w = w / np.linalg.norm(w)
 
     # Define a scalar function that returns the difference between the 1-norm of coefficients and the threshold c
     def f(delta):
-        # Apply soft thresholding to the weights with delta
+        # Apply soft thresholding to the weights_ with delta
         coef = np.clip(w - delta, 0, None) - np.clip(-w - delta, 0, None)
 
         if np.sum(coef**2) == 0:
@@ -56,7 +56,7 @@ def _delta_search(w, c, tol=1e-8):
         # Get the optimal delta from the result object
         delta = result.x
 
-        # Apply soft thresholding to the weights with optimal delta
+        # Apply soft thresholding to the weights_ with optimal delta
         coef = np.where(w - delta > 0, w - delta, 0) - np.where(
             -w - delta > 0, -w - delta, 0
         )
@@ -64,7 +64,7 @@ def _delta_search(w, c, tol=1e-8):
         # Normalize the coefficients to unit length if nonzero
         coef /= np.linalg.norm(coef)
 
-        # Return updated weights
+        # Return updated weights_
         return coef
 
     else:

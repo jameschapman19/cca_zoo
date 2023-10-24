@@ -60,8 +60,8 @@ class KernelMixin:
 
     @property
     def alphas(self):
-        check_is_fitted(self, attributes=["weights"])
-        return self.weights
+        check_is_fitted(self)
+        return self.weights_
 
     def _more_tags(self):
         # Indicate that this class is for multiview data
@@ -198,7 +198,7 @@ class KGCCA(KernelMixin, GCCA):
     kernel_params: Iterable[dict], optional
         Additional parameters or list of parameters for the kernel function for each view, by default None.
     view_weights : Iterable[float], optional
-        Weights for each view in the objective function, by default None. If None, it will use equal weights for each view.
+        Weights for each view in the objective function, by default None. If None, it will use equal weights_ for each view.
 
     References
     ----------
@@ -258,7 +258,7 @@ class KGCCA(KernelMixin, GCCA):
             )
             for i, view in enumerate(self.train_views)
         ]
-        self.weights = [
+        self.weights_ = [
             np.linalg.pinv(kernel) @ eigvecs[:, : self.latent_dimensions]
             for kernel in kernels
         ]

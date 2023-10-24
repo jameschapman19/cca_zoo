@@ -69,16 +69,16 @@ class GRCCA(MCCA):
         self.splits = np.insert(np.cumsum(self.splits), 0, 0)
 
         # Slice eigenvectors according to splits
-        self.weights = [
+        self.weights_ = [
             eigvecs[split:next_split]
             for split, next_split in zip(self.splits[:-1], self.splits[1:])
         ]
 
-        # Adjust weights for each view based on group means and mu parameters
+        # Adjust weights_ for each view based on group means and mu parameters
         for i, view in enumerate(views):
             if self.c[i] > 0:
-                weights_1 = self.weights[i][: -self.n_groups_[i]]
-                weights_2 = self.weights[i][-self.n_groups_[i] :]
+                weights_1 = self.weights_[i][: -self.n_groups_[i]]
+                weights_2 = self.weights_[i][-self.n_groups_[i]:]
                 ids, unique_inverse, unique_counts, group_means = self._group_mean(
                     weights_1.T, feature_groups[i]
                 )
@@ -87,7 +87,7 @@ class GRCCA(MCCA):
                 weights_2 = weights_2 / np.sqrt(
                     mu * np.expand_dims(unique_counts, axis=1)
                 )
-                self.weights[i] = weights_1 + weights_2[feature_groups[i]]
+                self.weights_[i] = weights_1 + weights_2[feature_groups[i]]
 
     def _process_data(self, views, feature_groups=None, **kwargs):
         # Use all features if no feature groups are provided

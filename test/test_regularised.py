@@ -82,8 +82,8 @@ def test_sparse_methods():
     tau2 = [0.7]
     param_grid = {"tau": [tau1, tau2]}
     pmd_cv = GridSearchCV(SCCA_PMD(random_state=rng), param_grid=param_grid).fit([X, Y])
-    assert (pmd_cv.best_estimator_.weights[0] == 0).sum() > 0
-    assert (pmd_cv.best_estimator_.weights[1] == 0).sum() > 0
+    assert (pmd_cv.best_estimator_.weights_[0] == 0).sum() > 0
+    assert (pmd_cv.best_estimator_.weights_[1] == 0).sum() > 0
     alpha1 = loguniform(1e-2, 2e-2)
     alpha2 = loguniform(1e-2, 2e-2)
     param_grid = {"alpha": [alpha1, alpha2], "l1_ratio": [[0.9], [0.9]]}
@@ -104,12 +104,12 @@ def test_sparse_methods():
     ).fit([X, Y])
     tau1 = [1e-1]
     tau2 = [1e-1]
-    assert (scca_cv.best_estimator_.weights[0] == 0).sum() > 0
-    assert (scca_cv.best_estimator_.weights[1] == 0).sum() > 0
-    assert (parkhomenko_cv.best_estimator_.weights[0] == 0).sum() > 0
-    assert (parkhomenko_cv.best_estimator_.weights[1] == 0).sum() > 0
-    assert (elastic_cv.best_estimator_.weights[0] == 0).sum() > 0
-    assert (elastic_cv.best_estimator_.weights[1] == 0).sum() > 0
+    assert (scca_cv.best_estimator_.weights_[0] == 0).sum() > 0
+    assert (scca_cv.best_estimator_.weights_[1] == 0).sum() > 0
+    assert (parkhomenko_cv.best_estimator_.weights_[0] == 0).sum() > 0
+    assert (parkhomenko_cv.best_estimator_.weights_[1] == 0).sum() > 0
+    assert (elastic_cv.best_estimator_.weights_[0] == 0).sum() > 0
+    assert (elastic_cv.best_estimator_.weights_[1] == 0).sum() > 0
 
 
 def test_weighted_GCCA_methods():
@@ -138,8 +138,8 @@ def test_l0():
     span_cca = SCCA_Span(
         latent_dimensions=1, regularisation="l0", tau=[2, 2], random_state=rng
     ).fit([X, Y])
-    assert (np.abs(span_cca.weights[0]) > 1e-5).sum() == 2
-    assert (np.abs(span_cca.weights[1]) > 1e-5).sum() == 2
+    assert (np.abs(span_cca.weights_[0]) > 1e-5).sum() == 2
+    assert (np.abs(span_cca.weights_[1]) > 1e-5).sum() == 2
 
 
 def test_partialcca():

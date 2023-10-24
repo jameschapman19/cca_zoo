@@ -91,7 +91,7 @@ class GCCA(MCCA):
         return None
 
     def _weights(self, eigvals, eigvecs, views, **kwargs):
-        self.weights = [
+        self.weights_ = [
             np.linalg.pinv(view) @ eigvecs[:, : self.latent_dimensions]
             for view in views
         ]

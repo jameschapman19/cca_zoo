@@ -3,7 +3,7 @@ import seaborn as sns
 
 
 class WeightHeatmapDisplay:
-    """Heatmap of the weights of a model.
+    """Heatmap of the weights_ of a model.
 
     Parameters
     ----------
@@ -18,7 +18,7 @@ class WeightHeatmapDisplay:
 
     @classmethod
     def from_estimator(cls, model, view_labels=None, **kwargs):
-        weights = model.weights
+        weights = model.weights_
         return cls.from_weights(weights, view_labels=view_labels, **kwargs)
 
     @classmethod
@@ -44,7 +44,7 @@ class WeightHeatmapDisplay:
         if self.view_labels is None:
             self.view_labels = [f"View {i}" for i in range(len(self.weights))]
         self.weights_cov = [w.T @ w for w in self.weights]
-        # loop through each view and have a heatmap of the covariance of the weights
+        # loop through each view and have a heatmap of the covariance of the weights_
         for i, view_weights_cov in enumerate(self.weights_cov):
             sns.heatmap(view_weights_cov, ax=axs[i], **self.kwargs)
             axs[i].set_title(self.view_labels[i])

@@ -27,11 +27,11 @@ class DummyCCA(BaseModel):
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         self._validate_data(views)
         if self.uniform:
-            self.weights = [
+            self.weights_ = [
                 np.ones((view.shape[1], self.latent_dimensions)) for view in views
             ]
         else:
-            self.weights = [
+            self.weights_ = [
                 self.random_state.normal(
                     0, 1, size=(view.shape[1], self.latent_dimensions)
                 )
@@ -41,21 +41,21 @@ class DummyCCA(BaseModel):
         return self
 
     def normalize_weights(self, views):
-        self.weights = [
+        self.weights_ = [
             weight
             / np.sqrt(np.diag(np.atleast_1d(np.cov(view @ weight, rowvar=False))))
-            for view, weight in zip(views, self.weights)
+            for view, weight in zip(views, self.weights_)
         ]
         scores = self.average_pairwise_correlations(views)
         for i, score in enumerate(scores):
             if score < 0:
-                # flip the sign of the first weights
-                self.weights[0][:, i] = -self.weights[0][:, i]
+                # flip the sign of the first weights_
+                self.weights_[0][:, i] = -self.weights_[0][:, i]
 
 
 class DummyPLS(DummyCCA):
     def normalize_weights(self, views):
         self.weights = [
             weight / np.linalg.norm(weight, axis=0)
-            for view, weight in zip(views, self.weights)
+            for view, weight in zip(views, self.weights_)
         ]

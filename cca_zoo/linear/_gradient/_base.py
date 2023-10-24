@@ -69,15 +69,15 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         if validation_views is not None:
             validation_views = self._validate_data(validation_views)
         self._check_params()
-        self.weights = self._fit(views, validation_views=validation_views)
+        self.weights_ = self._fit(views, validation_views=validation_views)
         return self
 
     def _fit(self, views: Iterable[np.ndarray], validation_views=None):
         self._initialize(views)
-        # Set the weights attribute as torch parameters with gradients
+        # Set the weights_ attribute as torch parameters with gradients
         self.torch_weights = [
             torch.nn.Parameter(torch.from_numpy(weight), requires_grad=True)
-            for weight in self.weights
+            for weight in self.weights_
         ]
         self.torch_weights = torch.nn.ParameterList(self.torch_weights)
         trainer = pl.Trainer(
@@ -91,7 +91,7 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
             train_dataset, val_dataset
         )
         trainer.fit(self, train_dataloader, val_dataloader)
-        # return the weights from the module. They will need to be changed from torch tensors to numpy arrays
+        # return the weights_ from the module. They will need to be changed from torch tensors to numpy arrays
         weights = [weight.detach().cpu().numpy() for weight in self.torch_weights]
         return weights
 
@@ -124,20 +124,20 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         return train_loader, val_loader
 
     def _initialize(self, views: Iterable[np.ndarray]):
-        """Initialize the CCALoss weights using the initialization method or function.
+        """Initialize the CCALoss weights_ using the initialization method or function.
 
         Parameters
         ----------
         views : Iterable[np.ndarray]
-            The input representations to initialize the CCALoss weights from
+            The input representations to initialize the CCALoss weights_ from
         """
         pls = self._get_tags().get("pls", False)
         initializer = _default_initializer(
             self.initialization, self.random_state, self.latent_dimensions, pls
         )
-        # Fit the initializer on the input representations and get the weights as numpy arrays
-        self.weights = initializer.fit(views).weights
-        self.weights = [weights.astype(np.float32) for weights in self.weights]
+        # Fit the initializer on the input representations and get the weights_ as numpy arrays
+        self.weights_ = initializer.fit(views).weights_
+        self.weights_ = [weights.astype(np.float32) for weights in self.weights_]
 
     def _more_tags(self):
         # Indicate that this class is for multiview data

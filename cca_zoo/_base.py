@@ -37,6 +37,8 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         Number of representations.
     n_features_ : list of int
         Number of features for each view.
+    weights_ : list of numpy arrays
+        Weight vectors for each view.
 
     """
 
@@ -114,10 +116,10 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         transformed_views : list of numpy arrays
 
         """
-        check_is_fitted(self, attributes=["weights"])
+        check_is_fitted(self)
         transformed_views = []
         for i, view in enumerate(views):
-            transformed_view = view @ self.weights[i]
+            transformed_view = view @ self.weights_[i]
             transformed_views.append(transformed_view)
         return transformed_views
 
@@ -252,9 +254,9 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         Compute and return loadings for each view. These are cached for performance optimization.
 
-        In the context of the cca-zoo models, loadings are the normalized weights. Due to the structure of these models,
+        In the context of the cca-zoo models, loadings are the normalized weights_. Due to the structure of these models,
         weight vectors are normalized such that w'X'Xw = 1, as opposed to w'w = 1, which is commonly used in PCA.
-        As a result, when computing the loadings, the weights are normalized to have unit norm, ensuring that the loadings
+        As a result, when computing the loadings, the weights_ are normalized to have unit norm, ensuring that the loadings
         range between -1 and 1.
 
         It's essential to differentiate between these loadings and canonical loadings. The latter are correlations between
@@ -265,11 +267,11 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         List[np.ndarray]
             Loadings for each view.
         """
-        check_is_fitted(self, attributes=["weights"])
+        check_is_fitted(self, attributes=["weights_"])
         if self._loadings is None:
             # Compute loadings only if they haven't been computed yet
             self._loadings = [
-                weights / np.linalg.norm(weights, axis=0) for weights in self.weights
+                weights / np.linalg.norm(weights, axis=0) for weights in self.weights_
             ]
         return self._loadings
 
@@ -281,7 +283,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         -------
         transformed_vars : list of numpy arrays
         """
-        check_is_fitted(self, attributes=["weights"])
+        check_is_fitted(self, attributes=["weights_"])
 
         # Transform the representations using the loadings
         transformed_views = [
@@ -364,7 +366,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         explained_covariances : list of numpy arrays
             Covariance matrices for the transformed components of each view.
         """
-        check_is_fitted(self, attributes=["weights"])
+        check_is_fitted(self, attributes=["weights_"])
 
         # Transform the representations using the loadings
         transformed_views = [
@@ -436,22 +438,22 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         >>> X1_pred, X2_pred = cca.predict([X1, None])
 
         """
-        check_is_fitted(self, attributes=["weights"])
-        # check if representations is same length as weights
-        if len(views) != len(self.weights):
+        check_is_fitted(self, attributes=["weights_"])
+        # check if representations is same length as weights_
+        if len(views) != len(self.weights_):
             raise ValueError(
-                "The number of representations must be the same as the number of weights. Put None for missing representations."
+                "The number of representations must be the same as the number of weights_. Put None for missing representations."
             )
         transformed_views = []
         for i, view in enumerate(views):
             if view is not None:
-                transformed_view = view @ self.weights[i]
+                transformed_view = view @ self.weights_[i]
                 transformed_views.append(transformed_view)
         # average the transformed representations
         average_score = np.mean(transformed_views, axis=0)
         # return the average score transformed back to the original space
         reconstucted_views = []
         for i, view in enumerate(views):
-            reconstructed_view = average_score @ np.linalg.pinv(self.weights[i])
+            reconstructed_view = average_score @ np.linalg.pinv(self.weights_[i])
             reconstucted_views.append(reconstructed_view)
         return reconstucted_views

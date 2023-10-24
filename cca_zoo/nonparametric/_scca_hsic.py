@@ -130,10 +130,10 @@ class SCCA_HSIC(GradKCCA):
         transformed_views : list of numpy arrays
 
         """
-        check_is_fitted(self, attributes=["weights"])
+        check_is_fitted(self, attributes=["weights_"])
         transformed_views = []
         for i, (view) in enumerate(views):
-            transformed_view = view @ self.weights[i]
+            transformed_view = view @ self.weights_[i]
             transformed_views.append(transformed_view)
         return transformed_views
 

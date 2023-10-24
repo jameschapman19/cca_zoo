@@ -16,7 +16,7 @@ def rng():
 @pytest.fixture
 def toy_model(rng):
     model = BaseModel()
-    model.weights = [
+    model.weights_ = [
         rng.random((features[0], 3)),
         rng.random((features[1], 3)),
         rng.random((features[2], 3)),

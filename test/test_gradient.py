@@ -28,8 +28,8 @@ trainer_kwargs = dict(
 
 def scale_transform(model, X, Y):
     Zx, Zy = model.transform((X, Y))
-    Zx /= np.linalg.norm(model.weights[0], axis=0, keepdims=True)
-    Zy /= np.linalg.norm(model.weights[1], axis=0, keepdims=True)
+    Zx /= np.linalg.norm(model.weights_[0], axis=0, keepdims=True)
+    Zy /= np.linalg.norm(model.weights_[1], axis=0, keepdims=True)
     return np.abs(np.cov(Zx, Zy, rowvar=False)[:latent_dims, latent_dims:])
 
 

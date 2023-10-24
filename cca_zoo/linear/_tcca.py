@@ -61,7 +61,7 @@ class TCCA(MCCA):
         M = np.mean(M, 0)
         tl.set_backend("numpy")
         M_parafac = parafac(M, self.latent_dimensions, verbose=False)
-        self.weights = [
+        self.weights_ = [
             cov_invsqrt @ fac
             for i, (view, cov_invsqrt, fac) in enumerate(
                 zip(whitened_views, covs_invsqrt, M_parafac.factors)

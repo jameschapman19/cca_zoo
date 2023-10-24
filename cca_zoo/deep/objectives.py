@@ -318,12 +318,12 @@ class PLS_EYLoss(CCA_EYLoss):
 
 
 # class PLS_SVDLoss(PLS_EYLoss):
-#     def loss(self, representations, weights=None):
+#     def loss(self, representations, weights_=None):
 #         C = cross_cov(representations[0], representations[1], rowvar=False)
 #
 #         Cxy = C
-#         Cxx = weights[0].T @ weights[0] / representations[0].shape[0]
-#         Cyy = weights[1].T @ weights[1] / representations[1].shape[0]
+#         Cxx = weights_[0].T @ weights_[0] / representations[0].shape[0]
+#         Cyy = weights_[1].T @ weights_[1] / representations[1].shape[0]
 #
 #         rewards = torch.trace(2 * Cxy)
 #         penalties = torch.trace(Cxx @ Cyy)

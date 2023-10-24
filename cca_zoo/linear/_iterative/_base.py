@@ -45,7 +45,7 @@ class BaseIterative(BaseModel):
         self.early_stopping = early_stopping
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
-        self.weights = self._fit(views)
+        self.weights_ = self._fit(views)
         return self
 
     def _fit(self, views: Iterable[np.ndarray]):
@@ -53,9 +53,9 @@ class BaseIterative(BaseModel):
         self._initialize(views)
         self._check_params()
         # Solve using alternating optimisation across the representations until convergence
-        # Initialize the loss and the previous weights
+        # Initialize the loss and the previous weights_
         loss = np.inf
-        prev_weights = self.weights.copy()
+        prev_weights = self.weights_.copy()
         # Loop over the epochs
         for epoch in tqdm(
             range(self.epochs),
@@ -66,38 +66,38 @@ class BaseIterative(BaseModel):
         ):
             # Loop over the representations
             for i in range(len(views)):
-                # Update the weights for the current view by solving a linear system
-                self.weights[i] = self._update_weights(views, i)
+                # Update the weights_ for the current view by solving a linear system
+                self.weights_[i] = self._update_weights(views, i)
             # Check if the loss has decreased enough
             curr_loss = self._objective(views)
             if self.early_stopping:
                 weight_diff = np.sum(
                     [
                         np.linalg.norm(w - pw)
-                        for w, pw in zip(self.weights, prev_weights)
+                        for w, pw in zip(self.weights_, prev_weights)
                     ]
-                ) / len(self.weights)
+                ) / len(self.weights_)
                 if weight_diff < self.tol:
                     print(f"Early stopping at epoch {epoch}")
                     break
-        # Return the final weights
-        return self.weights
+        # Return the final weights_
+        return self.weights_
 
     @abstractmethod
     def _update_weights(self, view: np.ndarray, i: int):
-        """Update the CCALoss weights for a given view.
+        """Update the CCALoss weights_ for a given view.
 
         Parameters
         ----------
         view : np.ndarray
-            The input view to update the CCALoss weights for
+            The input view to update the CCALoss weights_ for
         i : int
             The index of the view
 
         Returns
         -------
         np.ndarray
-            The updated CCALoss weights for the view
+            The updated CCALoss weights_ for the view
         """
         pass
 
@@ -119,20 +119,20 @@ class BaseIterative(BaseModel):
         return np.sum(all_covs)
 
     def _initialize(self, views: Iterable[np.ndarray]):
-        """Initialize the CCALoss weights using the initialization method or function.
+        """Initialize the CCALoss weights_ using the initialization method or function.
 
         Parameters
         ----------
         views : Iterable[np.ndarray]
-            The input representations to initialize the CCALoss weights from
+            The input representations to initialize the CCALoss weights_ from
         """
         pls = self._get_tags().get("pls", False)
         initializer = _default_initializer(
             self.initialization, self.random_state, self.latent_dimensions, pls
         )
-        # Fit the initializer on the input representations and get the weights as numpy arrays
-        self.weights = initializer.fit(views).weights
-        self.weights = [weights.astype(np.float32) for weights in self.weights]
+        # Fit the initializer on the input representations and get the weights_ as numpy arrays
+        self.weights_ = initializer.fit(views).weights_
+        self.weights_ = [weights.astype(np.float32) for weights in self.weights_]
 
     def _more_tags(self):
         # Indicate that this class is for multiview data

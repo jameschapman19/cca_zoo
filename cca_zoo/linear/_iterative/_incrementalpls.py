@@ -64,10 +64,10 @@
 #         return False
 #
 #     def incremental_update(self, representations):
-#         hats = np.stack([view @ weight for view, weight in zip(representations, self.weights)])
+#         hats = np.stack([view @ weight for view, weight in zip(representations, self.weights_)])
 #         orths = [
 #             view - hat @ weight.T
-#             for view, weight, hat in zip(representations, self.weights, hats)
+#             for view, weight, hat in zip(representations, self.weights_, hats)
 #         ]
 #         self.incrsvd(hats, orths)
 #
@@ -76,11 +76,11 @@
 #             self.M = np.zeros((representations[0].shape[1], representations[1].shape[1]))
 #         self.M = (
 #             representations[0].T @ representations[1]
-#             + self.weights[0] @ np.diag(self.S) @ self.weights[1].T
+#             + self.weights_[0] @ np.diag(self.S) @ self.weights_[1].T
 #         )
 #         U, S, Vt = np.linalg.svd(self.M)
-#         self.weights[0] = U[:, : self.latent_dimensions]
-#         self.weights[1] = Vt.T[:, : self.latent_dimensions]
+#         self.weights_[0] = U[:, : self.latent_dimensions]
+#         self.weights_[1] = Vt.T[:, : self.latent_dimensions]
 #         self.S = S[: self.latent_dimensions]
 #
 #     def incrsvd(self, hats, orths):
@@ -104,12 +104,12 @@
 #             )
 #         )
 #         U, S, Vt = np.linalg.svd(Q)
-#         self.weights[0] = (
-#             np.hstack((self.weights[0], orths[0].T / np.linalg.norm(orths[0])))
+#         self.weights_[0] = (
+#             np.hstack((self.weights_[0], orths[0].T / np.linalg.norm(orths[0])))
 #             @ U[:, : self.latent_dimensions]
 #         )
-#         self.weights[1] = (
-#             np.hstack((self.weights[1], orths[1].T / np.linalg.norm(orths[1])))
+#         self.weights_[1] = (
+#             np.hstack((self.weights_[1], orths[1].T / np.linalg.norm(orths[1])))
 #             @ Vt.T[:, : self.latent_dimensions]
 #         )
 #         self.S = S[: self.latent_dimensions]
