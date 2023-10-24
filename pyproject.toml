@@ -46,6 +46,7 @@ seaborn = "*"
 opentsne = "*"
 umap-learn = "*"
 rdata = "*"
+torchvision = "*"
 
 
 [build-system]
