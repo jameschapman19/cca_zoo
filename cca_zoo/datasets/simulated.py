@@ -83,7 +83,7 @@ class LatentVariableData(BaseData):
         else:
             cov = make_spd_matrix(view_features, random_state=self.random_state)
         # divide by sum of eigenvalues to normalize
-        cov = cov*view_features / np.sum(np.linalg.eigvals(cov))
+        cov = cov * view_features / np.sum(np.linalg.eigvals(cov))
         return cov
 
     def sample(self, n_samples: int, return_latent: bool = False):
@@ -94,7 +94,8 @@ class LatentVariableData(BaseData):
             random_latent @ true_loading.T
             + self.random_state.multivariate_normal(
                 np.zeros(cov.shape[0]), cov, n_samples
-            )/self.signal_to_noise
+            )
+            / self.signal_to_noise
             for true_loading, cov in zip(self.true_loadings, self.cov_matrices)
         ]
         if return_latent:
@@ -160,7 +161,7 @@ class JointData(BaseData):
             )
         ]
         self.true_loadings = [
-            cov@weight for weight, cov in zip(self.true_features, cov_matrices)
+            cov @ weight for weight, cov in zip(self.true_features, cov_matrices)
         ]
         self.joint_cov = self._generate_joint_covariance(cov_matrices)
         self.chol = np.linalg.cholesky(self.joint_cov)

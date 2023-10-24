@@ -36,6 +36,8 @@ def test_cca_vs_probabilisticCCA(setup_data):
     # correlation between cca and pcca
     correlation_matrix = np.abs(np.corrcoef(z.reshape(-1), z_p.reshape(-1)))
     correlation = correlation_matrix[0, 1]
+
+
 #
 #     assert (
 #         correlation > 0.9

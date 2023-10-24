@@ -62,10 +62,14 @@ class ProbabilisticRCCA(ProbabilisticCCA):
             ),
         )
 
-        sigma1 = numpyro.param("sigma_1", jnp.ones(1), constraint=dist.constraints.positive)
-        sigma2 = numpyro.param("sigma_2", jnp.ones(1), constraint=dist.constraints.positive)
-        psi1 = jnp.eye(self.n_features_[0])*sigma1
-        psi2 = jnp.eye(self.n_features_[1])*sigma2
+        sigma1 = numpyro.param(
+            "sigma_1", jnp.ones(1), constraint=dist.constraints.positive
+        )
+        sigma2 = numpyro.param(
+            "sigma_2", jnp.ones(1), constraint=dist.constraints.positive
+        )
+        psi1 = jnp.eye(self.n_features_[0]) * sigma1
+        psi2 = jnp.eye(self.n_features_[1]) * sigma2
 
         mu1 = numpyro.param(
             "mu_1",
@@ -114,7 +118,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
     def _guide(self, views):
         """
         Defines the variational distribution for Probabilistic CCALoss.
-    
+
         Parameters
         ----------
         views: tuple of np.ndarray
@@ -122,21 +126,21 @@ class ProbabilisticRCCA(ProbabilisticCCA):
         """
 
         # Variational parameters for the approximate posterior of z
-        z_loc = numpyro.param("z_loc", jnp.zeros((self.n_samples_, self.latent_dimensions)))
+        z_loc = numpyro.param(
+            "z_loc", jnp.zeros((self.n_samples_, self.latent_dimensions))
+        )
         z_scale = numpyro.param(
             "z_scale",
             jnp.ones((self.n_samples_, self.latent_dimensions)),
             constraint=dist.constraints.positive,
         )
-    
+
         with numpyro.plate("n", self.n_samples_):
-            z = numpyro.sample(
-                "z", dist.MultivariateNormal(z_loc, jnp.diag(z_scale))
-            )
+            z = numpyro.sample("z", dist.MultivariateNormal(z_loc, jnp.diag(z_scale)))
 
     def joint(self):
-        psi1=jnp.eye(self.n_features_[0])*self.params["sigma_1"]
-        psi2=jnp.eye(self.n_features_[1])*self.params["sigma_2"]
+        psi1 = jnp.eye(self.n_features_[0]) * self.params["sigma_1"]
+        psi2 = jnp.eye(self.n_features_[1]) * self.params["sigma_2"]
         # Calculate the individual matrix blocks
         top_left = self.params["W_1"] @ self.params["W_1"].T + psi1
         bottom_right = self.params["W_2"] @ self.params["W_2"].T + psi2
