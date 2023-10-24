@@ -78,7 +78,7 @@ class GRCCA(MCCA):
         for i, view in enumerate(views):
             if self.c[i] > 0:
                 weights_1 = self.weights_[i][: -self.n_groups_[i]]
-                weights_2 = self.weights_[i][-self.n_groups_[i]:]
+                weights_2 = self.weights_[i][-self.n_groups_[i] :]
                 ids, unique_inverse, unique_counts, group_means = self._group_mean(
                     weights_1.T, feature_groups[i]
                 )

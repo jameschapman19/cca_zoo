@@ -66,9 +66,7 @@ class PartialCCA(MCCA):
                 f"partials is {partials}. Require matching partials to transform with"
                 f"partial CCALoss."
             )
-        check_is_fitted(
-            self
-        )  # check if the model has been fitted before transforming
+        check_is_fitted(self)  # check if the model has been fitted before transforming
         transformed_views = []
         for i, (view) in enumerate(views):
             transformed_view = (

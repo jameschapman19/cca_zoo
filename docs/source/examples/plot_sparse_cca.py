@@ -131,7 +131,11 @@ pmd = GridSearchCV(
 ).fit([X_train, Y_train])
 pmd_corr = pmd.score([X_val, Y_val])
 plot_model_weights(
-    pmd.best_estimator_.weights_[0], pmd.best_estimator_.weights_[1], tx, ty, title="PMD"
+    pmd.best_estimator_.weights_[0],
+    pmd.best_estimator_.weights_[1],
+    tx,
+    ty,
+    title="PMD",
 )
 
 param_grid_elastic = {"alpha": [1e-2, 1e-3]}
