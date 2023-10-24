@@ -52,8 +52,8 @@ class ProbabilisticPLS(ProbabilisticCCA):
             ),
         )
 
-        psi1=jnp.eye(self.n_features_[0])*self.eps
-        psi2=jnp.eye(self.n_features_[1])*self.eps
+        psi1 = jnp.eye(self.n_features_[0]) * self.eps
+        psi2 = jnp.eye(self.n_features_[1]) * self.eps
 
         mu1 = numpyro.param(
             "mu_1",
@@ -100,8 +100,8 @@ class ProbabilisticPLS(ProbabilisticCCA):
             )
 
     def joint(self):
-        psi1=jnp.eye(self.n_features_[0])*self.eps
-        psi2=jnp.eye(self.n_features_[1])*self.eps
+        psi1 = jnp.eye(self.n_features_[0]) * self.eps
+        psi2 = jnp.eye(self.n_features_[1]) * self.eps
         # Calculate the individual matrix blocks
         top_left = self.params["W_1"] @ self.params["W_1"].T + psi1
         bottom_right = self.params["W_2"] @ self.params["W_2"].T + psi2

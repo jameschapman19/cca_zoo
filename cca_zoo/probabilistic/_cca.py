@@ -134,9 +134,17 @@ class ProbabilisticCCA(BaseModel):
         )
 
         # Add positive-definite constraint for psi1 and psi2
-        L1 = numpyro.param('L_1', jnp.eye(self.n_features_[0]), constraint=dist.constraints.lower_cholesky)
+        L1 = numpyro.param(
+            "L_1",
+            jnp.eye(self.n_features_[0]),
+            constraint=dist.constraints.lower_cholesky,
+        )
         psi1 = L1 @ L1.T
-        L2 = numpyro.param('L_2', jnp.eye(self.n_features_[1]), constraint=dist.constraints.lower_cholesky)
+        L2 = numpyro.param(
+            "L_2",
+            jnp.eye(self.n_features_[1]),
+            constraint=dist.constraints.lower_cholesky,
+        )
         psi2 = L2 @ L2.T
 
         mu1 = numpyro.param(
@@ -171,7 +179,7 @@ class ProbabilisticCCA(BaseModel):
                 dist.MultivariateNormal(
                     jnp.outer(z, W1.T) + mu1,
                     covariance_matrix=psi1,
-                    ),
+                ),
                 obs=X1,
             )
             numpyro.sample(
@@ -179,7 +187,7 @@ class ProbabilisticCCA(BaseModel):
                 dist.MultivariateNormal(
                     jnp.outer(z, W2.T) + mu2,
                     covariance_matrix=psi2,
-                    ),
+                ),
                 obs=X2,
             )
 
@@ -194,14 +202,17 @@ class ProbabilisticCCA(BaseModel):
         """
 
         # Variational parameters for the approximate posterior of z
-        z_loc = numpyro.param("z_loc", jnp.zeros((self.n_samples_, self.latent_dimensions)))
-        z_scale = numpyro.param("z_scale", jnp.ones((self.n_samples_, self.latent_dimensions)), constraint=dist.constraints.positive)
+        z_loc = numpyro.param(
+            "z_loc", jnp.zeros((self.n_samples_, self.latent_dimensions))
+        )
+        z_scale = numpyro.param(
+            "z_scale",
+            jnp.ones((self.n_samples_, self.latent_dimensions)),
+            constraint=dist.constraints.positive,
+        )
 
         with numpyro.plate("n", self.n_samples_):
-            z = numpyro.sample(
-                "z",
-                dist.MultivariateNormal(z_loc, jnp.diag(z_scale))
-            )
+            z = numpyro.sample("z", dist.MultivariateNormal(z_loc, jnp.diag(z_scale)))
 
     def transform(self, views: Iterable[np.ndarray], y=None, return_std=False):
         """
