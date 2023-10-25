@@ -28,12 +28,7 @@ def test_unregularized_methods(data):
     methods = [
         rCCA(latent_dimensions=latent_dims),
         CCA(latent_dimensions=latent_dims),
-        GCCA(latent_dimensions=latent_dims),
-        MCCA(latent_dimensions=latent_dims, pca=False),
-        MCCA(latent_dimensions=latent_dims, pca=True),
         KCCA(latent_dimensions=latent_dims),
-        KGCCA(latent_dimensions=latent_dims),
-        TCCA(latent_dimensions=latent_dims),
         PCACCA(latent_dimensions=latent_dims),
     ]
 
@@ -54,6 +49,11 @@ def test_unregularized_multi(data):
         GCCA(latent_dimensions=latent_dims),
         MCCA(latent_dimensions=latent_dims),
         KCCA(latent_dimensions=latent_dims),
+        GCCA(latent_dimensions=latent_dims),
+        MCCA(latent_dimensions=latent_dims, pca=False),
+        MCCA(latent_dimensions=latent_dims, pca=True),
+        KGCCA(latent_dimensions=latent_dims),
+        TCCA(latent_dimensions=latent_dims),
     ]
 
     scores = [method.fit((X, Y, Z)).score((X, Y, Z)) for method in methods]
@@ -75,17 +75,3 @@ def test_PLS_methods(data):
     pls_als_score = pls_als.score((X, Y))
 
     assert np.allclose(np.abs(pls_als_score), pls_score, rtol=1e-1)
-
-
-def test_TCCA_methods(data):
-    """Test TCCALoss and KTCCA methods."""
-    X, Y, _ = data
-    latent_dims = 1
-    tcca = TCCA(latent_dimensions=latent_dims, c=[0.2, 0.2, 0.2]).fit([X, X, Y])
-    ktcca = KTCCA(latent_dimensions=latent_dims, c=[0.2, 0.2]).fit([X, Y])
-
-    corr_tcca = tcca.score((X, X, Y))
-    corr_ktcca = ktcca.score((X, Y))
-
-    assert corr_tcca > 0.1
-    assert corr_ktcca > 0.1

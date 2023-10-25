@@ -105,16 +105,16 @@ class LatentVariableData(BaseData):
     @property
     def joint_cov(self):
         cov = np.zeros((sum(self.view_features), sum(self.view_features)))
-        cov[: self.view_features[0], : self.view_features[0]] = (
+        cov[: self.view_features[0],: self.view_features[0]] = (
             self.true_loadings[0] @ self.true_loadings[0].T + self.cov_matrices[0]
         )
-        cov[self.view_features[0] :, self.view_features[0] :] = (
+        cov[self.view_features[0]:, self.view_features[0]:] = (
             self.true_loadings[1] @ self.true_loadings[1].T + self.cov_matrices[1]
         )
-        cov[: self.view_features[0], self.view_features[0] :] = (
+        cov[: self.view_features[0], self.view_features[0]:] = (
             self.true_loadings[0] @ self.true_loadings[1].T
         )
-        cov[self.view_features[0] :, : self.view_features[0]] = (
+        cov[self.view_features[0]:,: self.view_features[0]] = (
             self.true_loadings[1] @ self.true_loadings[0].T
         )
         return cov
@@ -200,12 +200,12 @@ class JointData(BaseData):
         for i, j in itertools.combinations(range(len(split_points) - 1), 2):
             cross_cov = self._compute_cross_cov(cov_matrices, i, j)
             joint_cov[
-                split_points[i] : split_points[i + 1],
-                split_points[j] : split_points[j + 1],
+                split_points[i]: split_points[i + 1],
+                split_points[j]: split_points[j + 1],
             ] = cross_cov
             joint_cov[
-                split_points[j] : split_points[j + 1],
-                split_points[i] : split_points[i + 1],
+                split_points[j]: split_points[j + 1],
+                split_points[i]: split_points[i + 1],
             ] = cross_cov.T
 
         return joint_cov

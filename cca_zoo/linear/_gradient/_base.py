@@ -1,12 +1,12 @@
 from typing import Iterable, List, Union
 
 import numpy as np
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch
 from torch.utils.data import DataLoader
 
 from cca_zoo._base import BaseModel
-from cca_zoo.deep.utils import NumpyDataset
+from cca_zoo.deep.data import NumpyDataset
 from cca_zoo.linear._iterative._base import _default_initializer
 
 # Default Trainer kwargs
@@ -14,7 +14,7 @@ DEFAULT_TRAINER_KWARGS = dict(
     enable_checkpointing=False,
     logger=False,
     enable_model_summary=False,
-    enable_progress_bar=True,
+    enable_progress_bar=False,
 )
 
 DEFAULT_LOADER_KWARGS = dict(pin_memory=False, drop_last=True, shuffle=True)

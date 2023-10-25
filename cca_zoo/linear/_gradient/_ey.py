@@ -1,10 +1,9 @@
 from typing import Iterable
 
 import numpy as np
-from sklearn.utils import check_random_state
 
 from cca_zoo.deep.objectives import CCA_EYLoss, PLS_EYLoss
-from cca_zoo.deep.utils import NumpyDataset
+from cca_zoo.deep.data import DoubleNumpyDataset
 from cca_zoo.linear._gradient._base import BaseGradientModel
 
 
@@ -95,21 +94,3 @@ class PLS_EY(CCA_EY):
                 batch_size=batch["views"][0].shape[0],
             )
         return loss["objective"]
-
-
-class DoubleNumpyDataset(NumpyDataset):
-    def __init__(self, views, batch_size=None):
-        super().__init__(views)
-        self.views = [view.astype(np.float32) for view in views]
-        self.batch_size = batch_size
-        self.random_state = check_random_state(0)
-
-    def __getitem__(self, index):
-        views = [view[index] for view in self.views]
-        independent_index = (
-            index
-            if self.batch_size is None
-            else self.random_state.randint(0, len(self))
-        )
-        independent_views = [view[independent_index] for view in self.views]
-        return {"views": views, "independent_views": independent_views}

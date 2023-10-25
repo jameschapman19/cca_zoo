@@ -7,9 +7,9 @@ from cca_zoo.preprocessing import MultiViewPreprocessing
 
 @pytest.fixture
 def mock_data():
-    N = 50
-    brain_data = np.random.rand(N, 10)
-    behavior_data = np.random.rand(N, 10)
+    N = 10
+    brain_data = np.random.rand(N, 3)
+    behavior_data = np.random.rand(N, 4)
     groups = np.random.randint(0, 2, N)
     return brain_data, behavior_data, groups
 

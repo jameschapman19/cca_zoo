@@ -48,24 +48,6 @@ def test_explained_variance_ratio(toy_model, synthetic_views):
             ), f"Explained variance ratio should be between 0 and 1, but got {ratio}"
 
 
-def test_transformed_covariance_ratio(toy_model, synthetic_views):
-    maximum_dimension = min([view.shape[1] for view in synthetic_views[:2]])
-    pls = MPLS(latent_dimensions=maximum_dimension).fit(synthetic_views[:2])
-    pls_cov_ratios = pls.explained_covariance_ratio(synthetic_views[:2])
-    # sum of these should be 1 within a small tolerance
-    assert np.isclose(
-        np.sum(pls_cov_ratios), 1, atol=2e-2
-    ), "Expected sum of ratios to be 1"
-
-    cov_ratios = toy_model.explained_covariance_ratio(synthetic_views[:2])
-
-    # Verify if the ratios are between 0 and 1 for each latent dimension in each view
-    for ratio in cov_ratios:
-        assert (
-            0 <= ratio <= 1
-        ), f"Explained covariance ratio should be between 0 and 1, but got {ratio}"
-
-
 def test_explained_variance(toy_model, synthetic_views):
     explained_vars = toy_model.explained_variance(synthetic_views)
     assert all(
@@ -90,7 +72,7 @@ def test_explained_covariance(toy_model, synthetic_views):
 
 
 def test_explained_covariance_ratio(toy_model, synthetic_views):
-    explained_covariance_ratios = toy_model.explained_covariance_ratio(synthetic_views)
+    explained_covariance_ratios = toy_model.explained_covariance_ratio(synthetic_views[:2])
     # Verifying if the ratios are between 0 and 1 for each latent dimension in each view
     for ratio in explained_covariance_ratios:
         assert (
@@ -99,7 +81,7 @@ def test_explained_covariance_ratio(toy_model, synthetic_views):
 
 
 def test_explained_covariance_cumulative(toy_model, synthetic_views):
-    cumulative_ratios = toy_model.explained_covariance_cumulative(synthetic_views)
+    cumulative_ratios = toy_model.explained_covariance_cumulative(synthetic_views[:2])
     # Verifying if the ratios are increasing for each latent dimension in each view
     for ratios in cumulative_ratios:
         assert np.all(

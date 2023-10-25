@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.utils import check_random_state
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -99,3 +100,21 @@ def get_dataloaders(
         )
         return train_dataloader, val_dataloader
     return train_dataloader
+
+
+class DoubleNumpyDataset(NumpyDataset):
+    def __init__(self, views, batch_size=None):
+        super().__init__(views)
+        self.views = [view.astype(np.float32) for view in views]
+        self.batch_size = batch_size
+        self.random_state = check_random_state(0)
+
+    def __getitem__(self, index):
+        views = [view[index] for view in self.views]
+        independent_index = (
+            index
+            if self.batch_size is None
+            else self.random_state.randint(0, len(self))
+        )
+        independent_views = [view[independent_index] for view in self.views]
+        return {"views": views, "independent_views": independent_views}

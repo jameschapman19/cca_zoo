@@ -1,8 +1,7 @@
 from abc import abstractmethod
 from typing import Any, Dict, List, Optional, Tuple, Union
-
+import lightning.pytorch as pl
 import numpy as np
-import pytorch_lightning as pl
 import torch
 from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 

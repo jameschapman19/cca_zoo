@@ -24,19 +24,15 @@ from cca_zoo.linear._dummy import DummyCCA
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.nonparametric import KCCA
 
-n = 50
+n = 10
 rng = check_random_state(0)
-X = rng.rand(n, 10)
-Y = rng.rand(n, 11)
-Z = rng.rand(n, 12)
-X_sp = sp.random(n, 10, density=0.5, random_state=rng)
-Y_sp = sp.random(n, 11, density=0.5, random_state=rng)
+X = rng.rand(n, 3)
+Y = rng.rand(n, 4)
+Z = rng.rand(n, 5)
 # centre the data
 X -= X.mean(axis=0)
 Y -= Y.mean(axis=0)
 Z -= Z.mean(axis=0)
-X_sp -= X_sp.mean(axis=0)
-Y_sp -= Y_sp.mean(axis=0)
 
 
 def test_initialisation():

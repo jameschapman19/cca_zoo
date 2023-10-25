@@ -1,6 +1,6 @@
 import numpy as np
-import pytorch_lightning as pl
-from pytorch_lightning import seed_everything
+import lightning.pytorch as pl
+from lightning import seed_everything
 from sklearn.utils.validation import check_random_state
 from torch.utils.data import random_split
 
@@ -20,7 +20,7 @@ from cca_zoo.deep import (
     architectures,
     objectives,
 )
-from cca_zoo.deep.utils import NumpyDataset, get_dataloaders, check_dataset
+from cca_zoo.deep.data import NumpyDataset, get_dataloaders, check_dataset
 from cca_zoo.linear import CCA, GCCA, MCCA
 
 seed_everything(0)
