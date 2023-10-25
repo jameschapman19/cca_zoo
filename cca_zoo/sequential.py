@@ -98,8 +98,8 @@ class SequentialModel(MetaEstimatorMixin, BaseModel, metaclass=ABCMeta):
                 break
             else:
                 # Deflate the representations and store the weights_
-                views = deflate_views(views, best_estimator.weights)
-                for i, weight in enumerate(best_estimator.weights):
+                views = deflate_views(views, best_estimator.weights_)
+                for i, weight in enumerate(best_estimator.weights_):
                     self.weights_[i].append(weight)
         # Set the final latent dimensions to k
         self.latent_dimensions = k

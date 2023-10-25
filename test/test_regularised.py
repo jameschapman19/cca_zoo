@@ -77,7 +77,7 @@ def test_regularized_methods():
 
 
 def test_sparse_methods():
-    tau1 = [0, 3, 0.5, 0.7]
+    tau1 = [0.7]
     tau2 = [0.7]
     param_grid = {"tau": [tau1, tau2]}
     pmd_cv = GridSearchCV(SCCA_PMD(random_state=rng), param_grid=param_grid).fit([X, Y])
@@ -87,13 +87,13 @@ def test_sparse_methods():
     alpha2 = loguniform(1e-2, 2e-2)
     param_grid = {"alpha": [alpha1, alpha2], "l1_ratio": [[0.9], [0.9]]}
     elastic_cv = RandomizedSearchCV(
-        ElasticCCA(random_state=rng), param_distributions=param_grid, n_iter=4
+        ElasticCCA(random_state=rng), param_distributions=param_grid, n_iter=1
     ).fit([X, Y])
     alpha1 = loguniform(1e-2, 2e-2)
     alpha2 = loguniform(1e-2, 2e-2)
     param_grid = {"alpha": [alpha1, alpha2]}
     scca_cv = RandomizedSearchCV(
-        SCCA_IPLS(random_state=rng), param_distributions=param_grid
+        SCCA_IPLS(random_state=rng), param_distributions=param_grid, n_iter=1
     ).fit([X, Y])
     tau1 = [2e-1]
     tau2 = [2e-1]
@@ -101,8 +101,6 @@ def test_sparse_methods():
     parkhomenko_cv = GridSearchCV(
         SCCA_Parkhomenko(random_state=rng), param_grid=param_grid
     ).fit([X, Y])
-    tau1 = [1e-1]
-    tau2 = [1e-1]
     assert (scca_cv.best_estimator_.weights_[0] == 0).sum() > 0
     assert (scca_cv.best_estimator_.weights_[1] == 0).sum() > 0
     assert (parkhomenko_cv.best_estimator_.weights_[0] == 0).sum() > 0

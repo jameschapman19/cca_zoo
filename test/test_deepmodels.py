@@ -1,7 +1,7 @@
 import numpy as np
 import pytorch_lightning as pl
+from pytorch_lightning import seed_everything
 from sklearn.utils.validation import check_random_state
-from torch import manual_seed
 from torch.utils.data import random_split
 
 from cca_zoo.deep import (
@@ -23,7 +23,7 @@ from cca_zoo.deep import (
 from cca_zoo.deep.utils import NumpyDataset, get_dataloaders, check_dataset
 from cca_zoo.linear import CCA, GCCA, MCCA
 
-manual_seed(0)
+seed_everything(0)
 rng = check_random_state(0)
 feature_size = [3, 4, 5]
 X = rng.rand(64, feature_size[0])

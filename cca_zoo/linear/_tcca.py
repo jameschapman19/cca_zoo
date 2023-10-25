@@ -66,7 +66,6 @@ class TCCA(MCCA):
             self.latent_dimensions,
             verbose=False,
             random_state=self.random_state,
-            init="random",
         )
         self.weights_ = [
             cov_invsqrt @ fac

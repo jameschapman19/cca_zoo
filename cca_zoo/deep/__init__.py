@@ -14,6 +14,9 @@ from ._generative import DCCAE, DVCCA, SplitAE
 
 __all__ = [
     "DCCA",
+    "DCCA_GHA",
+    "DCCA_SVD",
+    "DGCCA",
     "DCCAE",
     "DCCA_NOI",
     "DCCA_SDL",
@@ -24,16 +27,4 @@ __all__ = [
     "SplitAE",
     "architectures",
     "objectives",
-]
-
-classes = [
-    "DCCA",
-    "DCCAE",
-    "DCCA_NOI",
-    "DCCA_SDL",
-    "DVCCA",
-    "BarlowTwins",
-    "DTCCA",
-    "SplitAE",
-    "DCCA_EY",
 ]
