@@ -13,17 +13,17 @@ class GRCCA(MCCA):
 
     Parameters
     ----------
-    latent_dimensions : int, default=1
+    latent_dimensions: int, default=1
         Number of latent dimensions to use
-    copy_data : bool, default=True
+    copy_data: bool, default=True
         Whether to copy the data
-    random_state : int, default=None
+    random_state: int, default=None
         Random state for initialisation
-    eps : float, default=1e-3
+    eps: float, default=1e-3
         Tolerance for convergence
-    c : float, default=0
+    c: float, default=0
         Regularization parameter for the group means
-    mu : float, default=0
+    mu: float, default=0
         Regularization parameter for the group sizes
 
 
@@ -89,7 +89,7 @@ class GRCCA(MCCA):
                 weights_2 = weights_2 / np.sqrt(
                     mu * np.expand_dims(unique_counts, axis=1)
                 )
-                self.weights_[i] = weights_1 + weights_2[feature_groups[i]]
+                self.weights_[i] = weights_1 + weights_2[unique_inverse]
 
     def _process_data(self, views, feature_groups=None, **kwargs):
         # Use all features if no feature groups are provided
@@ -117,27 +117,30 @@ class GRCCA(MCCA):
 
         Parameters
         ----------
-        view : numpy array or array like with shape (n_samples, n_features)
+        view: numpy array or array like with shape (n_samples, n_features)
             The view to be processed.
 
-        group : numpy array or array like with shape (n_features,)
+        group: numpy array or array like with shape (n_features,)
             The feature group labels for the view.
 
-        mu : float
+        mu: float
             The regularization parameter for the group means.
 
-        c : float
+        c: float
             The regularization parameter for the view features.
 
         Returns
         -------
-        view : numpy array with shape (n_samples, n_features + n_groups)
+        view: numpy array with shape (n_samples, n_features + n_groups)
             The processed view with group means added as new features.
         """
         if c > 0:
-            ids, unique_inverse, unique_counts, group_means = self._group_mean(
-                view, group
-            )
+            (
+                ids,
+                unique_inverse,
+                unique_counts,
+                group_means,
+            ) = self._group_mean(view, group)
             mu = 1 if mu == 0 else mu
             view_1 = (view - group_means[:, unique_inverse]) / c
             view_2 = group_means / np.sqrt(mu / unique_counts)
@@ -155,24 +158,24 @@ class GRCCA(MCCA):
 
         Parameters
         ----------
-        view : numpy array or array like with shape (n_samples, n_features)
+        view: numpy array or array like with shape (n_samples, n_features)
             The view to compute the group means from.
 
-        group : numpy array or array like with shape (n_features,)
+        group: numpy array or array like with shape (n_features,)
             The feature group labels for the view.
 
         Returns
         -------
-        ids : numpy array with shape (n_groups,)
+        ids: numpy array with shape (n_groups,)
             The unique feature group ids.
 
-        unique_inverse : numpy array with shape (n_features,)
+        unique_inverse: numpy array with shape (n_features,)
             The indices to reconstruct the original group array from the unique ids.
 
-        unique_counts : numpy array with shape (n_groups,)
+        unique_counts: numpy array with shape (n_groups,)
             The number of occurrences of each unique id in the group array.
 
-        group_means : numpy array with shape (n_samples, n_groups)
+        group_means: numpy array with shape (n_samples, n_groups)
             The mean of each feature group in the view.
         """
         ids, unique_inverse, unique_counts = np.unique(

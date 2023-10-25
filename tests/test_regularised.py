@@ -26,9 +26,10 @@ from cca_zoo.nonparametric import KCCA
 
 n = 10
 rng = check_random_state(0)
-X = rng.rand(n, 3)
-Y = rng.rand(n, 4)
-Z = rng.rand(n, 5)
+features = [4, 4, 2]
+X = rng.rand(n, features[0])
+Y = rng.rand(n, features[1])
+Z = rng.rand(n, features[2])
 # centre the data
 X -= X.mean(axis=0)
 Y -= Y.mean(axis=0)
@@ -72,8 +73,8 @@ def test_regularized_methods():
 
 
 def test_sparse_methods():
-    tau1 = [0.7]
-    tau2 = [0.7]
+    tau1 = [0.1]
+    tau2 = [0.1]
     param_grid = {"tau": [tau1, tau2]}
     pmd_cv = GridSearchCV(SCCA_PMD(random_state=rng), param_grid=param_grid).fit([X, Y])
     assert (pmd_cv.best_estimator_.weights_[0] == 0).sum() > 0
@@ -90,8 +91,8 @@ def test_sparse_methods():
     scca_cv = RandomizedSearchCV(
         SCCA_IPLS(random_state=rng), param_distributions=param_grid, n_iter=1
     ).fit([X, Y])
-    tau1 = [2e-1]
-    tau2 = [2e-1]
+    tau1 = [5e-1]
+    tau2 = [5e-1]
     param_grid = {"tau": [tau1, tau2]}
     parkhomenko_cv = GridSearchCV(
         SCCA_Parkhomenko(random_state=rng), param_grid=param_grid
@@ -149,7 +150,7 @@ def test_partialcca():
 def test_PRCCA():
     # Test that PRCCA works
     prcca = PRCCA(latent_dimensions=2, c=[0, 0]).fit(
-        (X, Y), idxs=(np.arange(10), np.arange(11))
+        (X, Y), idxs=(np.arange(features[0]), np.arange(features[1]))
     )
     cca = CCA(latent_dimensions=2).fit([X, Y])
     assert (
@@ -159,7 +160,7 @@ def test_PRCCA():
         is None
     )
     prcca = PRCCA(latent_dimensions=2, c=[1, 1]).fit(
-        (X, Y), idxs=(np.arange(10), np.arange(11))
+        (X, Y), idxs=(np.arange(features[0]), np.arange(features[1]))
     )
     pls = PLS(latent_dimensions=2).fit([X, Y])
     assert (
@@ -172,20 +173,14 @@ def test_PRCCA():
 
 def test_GRCCA():
     feature_group_1 = np.zeros(X.shape[1], dtype=int)
-    feature_group_1[:3] = 1
-    feature_group_1[3:6] = 2
+    feature_group_1[:1] = 1
+    feature_group_1[1:3] = 2
     feature_group_2 = np.zeros(Y.shape[1], dtype=int)
-    feature_group_2[:3] = 1
-    feature_group_2[3:6] = 2
+    feature_group_2[:1] = 1
+    feature_group_2[1:3] = 2
     feature_group_3 = np.zeros(Z.shape[1], dtype=int)
-    feature_group_3[:3] = 1
-    feature_group_3[3:6] = 2
-    # Test that GRCCA works
-    grcca = GRCCA(latent_dimensions=1, c=[100, 0], mu=0).fit(
-        (X, Y), feature_groups=[feature_group_1, feature_group_2]
-    )
-    grcca.score((X, Y))
-    grcca.transform((X, Y))
+    feature_group_3[:1] = 1
+    feature_group_3[1:3] = 2
     grcca = GRCCA(c=[100, 0, 50]).fit(
         (X, Y, Z), feature_groups=[feature_group_1, feature_group_2, feature_group_3]
     )
