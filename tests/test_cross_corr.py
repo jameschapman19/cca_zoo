@@ -1,6 +1,6 @@
 import numpy as np
 
-from cca_zoo.utils.cross_correlation import cross_corrcoef, cross_cov
+from cca_zoo._utils.cross_correlation import cross_corrcoef, cross_cov
 
 N = 50
 features = [4, 6]
