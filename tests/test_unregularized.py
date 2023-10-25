@@ -23,7 +23,11 @@ def data():
 
 def test_unregularized_methods(data):
     """Test unregularized CCALoss methods for 2 representations."""
-    X, Y, _, = data
+    (
+        X,
+        Y,
+        _,
+    ) = data
     latent_dims = 2
     methods = [
         rCCA(latent_dimensions=latent_dims),
