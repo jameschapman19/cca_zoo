@@ -172,7 +172,7 @@ class ScoreScatterDisplay:
             ax,
         )
 
-    def plot(self, title=None):
+    def plot(self, title=""):
         dimensions = self.scores[0].shape[1]
         self.figures_ = []
 
@@ -226,7 +226,7 @@ class JointScoreScatterDisplay(ScoreScatterDisplay):
 
 
 class SeparateScoreScatterDisplay(ScoreScatterDisplay):
-    def plot(self, title=None):
+    def plot(self, title=""):
         dimensions = self.scores[0].shape[1]
         self.train_figures_ = []
         self.test_figures_ = []

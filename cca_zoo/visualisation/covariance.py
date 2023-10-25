@@ -85,14 +85,12 @@ class CovarianceHeatmapDisplay:
         sns.heatmap(
             self.train_covariances,
             annot=True,
-            cmap="coolwarm",
             ax=axs[0],
         )
         if self.test_covariances is not None:
             sns.heatmap(
                 self.test_covariances,
                 annot=True,
-                cmap="coolwarm",
                 ax=axs[1],
             )
         axs[0].set_title("Train Covariances")
