@@ -99,7 +99,7 @@ class SCCA_Span(DeflationMixin, BaseIterative):
 
     def _initialize_variables(self, views):
         self.max_obj = [0, 0]
-        cov = cross_cov(views[0], views[1],rowvar=False)
+        cov = cross_cov(views[0], views[1], rowvar=False)
         # Perform SVD on im and obtain individual matrices
         P, D, Q = np.linalg.svd(cov, full_matrices=True)
         self.P = P[:, : self.rank]

@@ -62,7 +62,9 @@ class GRCCA(MCCA):
         # Loop through c and add group means to splits if c > 0
         self.splits = [
             n_features + n_groups if c > 0 else n_features
-            for n_features, n_groups, c in zip(self.n_features_in_, self.n_groups_, self.c)
+            for n_features, n_groups, c in zip(
+                self.n_features_in_, self.n_groups_, self.c
+            )
         ]
 
         # Add zero at the beginning and compute cumulative sum of splits

@@ -38,6 +38,7 @@ class TCCA(MCCA):
     >>> model = TCCA()
     >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
     """
+
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         # Validate the input data
         views = self._validate_data(views)
@@ -60,12 +61,16 @@ class TCCA(MCCA):
                 M = np.expand_dims(M, -1) @ el
         M = np.mean(M, 0)
         tl.set_backend("numpy")
-        M_parafac = parafac(M, self.latent_dimensions, verbose=False, random_state=self.random_state, init="random")
+        M_parafac = parafac(
+            M,
+            self.latent_dimensions,
+            verbose=False,
+            random_state=self.random_state,
+            init="random",
+        )
         self.weights_ = [
             cov_invsqrt @ fac
-            for i, (cov_invsqrt, fac) in enumerate(
-                zip(covs_invsqrt, M_parafac.factors)
-            )
+            for i, (cov_invsqrt, fac) in enumerate(zip(covs_invsqrt, M_parafac.factors))
         ]
         return self
 

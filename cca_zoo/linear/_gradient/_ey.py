@@ -106,6 +106,10 @@ class DoubleNumpyDataset(NumpyDataset):
 
     def __getitem__(self, index):
         views = [view[index] for view in self.views]
-        independent_index = index if self.batch_size is None else self.random_state.randint(0, len(self))
+        independent_index = (
+            index
+            if self.batch_size is None
+            else self.random_state.randint(0, len(self))
+        )
         independent_views = [view[independent_index] for view in self.views]
         return {"views": views, "independent_views": independent_views}
