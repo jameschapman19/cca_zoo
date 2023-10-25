@@ -5,7 +5,7 @@ from sklearn.metrics import pairwise_kernels
 from sklearn.neighbors import NearestNeighbors
 
 from cca_zoo._base import BaseModel
-from cca_zoo.utils.check_values import _process_parameter
+from cca_zoo._utils.check_values import _process_parameter
 
 
 class NCCA(BaseModel):

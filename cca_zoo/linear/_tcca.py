@@ -96,15 +96,27 @@ class TCCA(MCCA):
         corrs = multiplied_views / norms
         return corrs
 
-    def score(self, views: Iterable[np.ndarray], **kwargs):
-        """
-        Returns the higher order correlations in each dimension
+    def average_pairwise_correlations(
+        self, views: Iterable[np.ndarray], **kwargs
+    ) -> np.ndarray:
+        transformed_views = self.transform(views, **kwargs)
+        transformed_views = [
+            transformed_view - transformed_view.mean(axis=0)
+            for transformed_view in transformed_views
+        ]
+        multiplied_views = np.stack(transformed_views, axis=0).prod(axis=0).sum(axis=0)
+        norms = np.stack(
+            [
+                np.linalg.norm(transformed_view, axis=0)
+                for transformed_view in transformed_views
+            ],
+            axis=0,
+        ).prod(axis=0)
+        corrs = multiplied_views / norms
+        return corrs
 
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        :param kwargs: any additional keyword arguments required by the given model
-        """
-        dim_corrs = self.correlations(views, **kwargs)
-        return dim_corrs
+    def score(self, views: Iterable[np.ndarray], **kwargs):
+        return self.average_pairwise_correlations(views, **kwargs).mean()
 
     def _setup_tensor(self, views: Iterable[np.ndarray], **kwargs):
         covs = [

@@ -6,6 +6,7 @@ from . import (
     visualisation,
     preprocessing,
     sequential,
+    nonparametric,
 )
 
 __all__ = [
@@ -16,6 +17,7 @@ __all__ = [
     "visualisation",
     "preprocessing",
     "sequential",
+    "nonparametric",
 ]
 try:
     from . import probabilistic

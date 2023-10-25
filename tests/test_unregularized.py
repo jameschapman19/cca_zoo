@@ -34,6 +34,8 @@ def test_unregularized_methods(data):
         CCA(latent_dimensions=latent_dims),
         KCCA(latent_dimensions=latent_dims),
         PCACCA(latent_dimensions=latent_dims),
+        TCCA(latent_dimensions=latent_dims),
+        KTCCA(latent_dimensions=latent_dims),
     ]
 
     scores = [
@@ -57,7 +59,6 @@ def test_unregularized_multi(data):
         MCCA(latent_dimensions=latent_dims, pca=False),
         MCCA(latent_dimensions=latent_dims, pca=True),
         KGCCA(latent_dimensions=latent_dims),
-        TCCA(latent_dimensions=latent_dims),
     ]
 
     scores = [method.fit((X, Y, Z)).score((X, Y, Z)) for method in methods]
