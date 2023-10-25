@@ -12,12 +12,12 @@ def setup_data():
     seed = 123
     latent_dims = 1
     data = LatentVariableData(
-        view_features=[5, 6],
+        view_features=[3, 3],
         latent_dims=latent_dims,
         random_state=seed,
         structure="identity",
     )
-    X, Y = data.sample(500)
+    X, Y = data.sample(20)
     X -= X.mean(axis=0)
     Y -= Y.mean(axis=0)
     return X, Y, data

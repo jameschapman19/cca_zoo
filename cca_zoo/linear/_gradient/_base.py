@@ -112,6 +112,7 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
             **self.dataloader_kwargs,
         )
         if val_dataset is not None:
+            self.dataloader_kwargs["shuffle"] = False
             val_loader = DataLoader(
                 val_dataset,
                 batch_size=len(val_dataset)
