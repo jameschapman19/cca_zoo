@@ -6,7 +6,6 @@ import numpy as np
 from numpy.linalg import svd
 from scipy.linalg import block_diag
 from sklearn.base import BaseEstimator, MultiOutputMixin, TransformerMixin
-from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted, check_array
 
 from cca_zoo.utils.cross_correlation import cross_corrcoef
@@ -41,6 +40,9 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         Weight vectors for each view.
 
     """
+
+    _loadings = None
+    _canonical_loadings = None
 
     def __init__(
         self,
@@ -209,6 +211,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         """
         return self.average_pairwise_correlations(views, **kwargs).sum()
 
+    @property
     def canonical_loadings_(
         self, views: Iterable[np.ndarray], normalize: bool = True, **kwargs
     ) -> List[np.ndarray]:
@@ -240,18 +243,20 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
             the respective original variables play a significant role in defining the canonical variate.
 
         """
-        transformed_views = self.transform(views, **kwargs)
-        if normalize:
-            loadings = [
-                cross_corrcoef(view, transformed_view, rowvar=False)
-                for view, transformed_view in zip(views, transformed_views)
-            ]
-        else:
-            loadings = [
-                view.T @ transformed_view
-                for view, transformed_view in zip(views, transformed_views)
-            ]
-        return loadings
+        check_is_fitted(self, attributes=["weights_"])
+        if self._loadings is None:
+            transformed_views = self.transform(views, **kwargs)
+            if normalize:
+                self._canonical_loadings = [
+                    cross_corrcoef(view, transformed_view, rowvar=False)
+                    for view, transformed_view in zip(views, transformed_views)
+                ]
+            else:
+                self._canonical_loadings = [
+                    view.T @ transformed_view
+                    for view, transformed_view in zip(views, transformed_views)
+                ]
+        return self._canonical_loadings
 
     @property
     def loadings_(self) -> List[np.ndarray]:

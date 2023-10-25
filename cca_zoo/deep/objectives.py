@@ -265,6 +265,25 @@ class CCA_GHALoss(CCA_EYLoss):
             "penalties": penalties,
         }
 
+    def get_AB(self, representations):
+        latent_dimensions = representations[0].shape[1]
+        A = torch.zeros(
+            latent_dimensions, latent_dimensions, device=representations[0].device
+        )  # initialize the cross-covariance matrix
+        B = torch.zeros(
+            latent_dimensions, latent_dimensions, device=representations[0].device
+        )  # initialize the auto-covariance matrix
+        for i, zi in enumerate(representations):
+            for j, zj in enumerate(representations):
+                if i == j:
+                    B += torch.cov(zi.T)  # add the auto-covariance of each view to B
+                A += cross_cov(
+                    zi, zj, rowvar=False
+                )  # add the cross-covariance of each view to A
+        return A / len(representations), B / len(
+            representations
+        )  # return the normalized matrices (divided by the number of representations)
+
 
 class CCA_SVDLoss(CCA_EYLoss):
     def loss(self, representations, independent_representations=None):

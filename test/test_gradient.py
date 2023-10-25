@@ -3,6 +3,7 @@ import pytest
 from sklearn.utils import check_random_state
 
 from cca_zoo.linear import CCA, PLS
+from cca_zoo.linear._gradient._svd import CCA_SVD
 
 n = 50
 rng = check_random_state(0)
@@ -15,7 +16,7 @@ Y -= Y.mean(axis=0)
 Z -= Z.mean(axis=0)
 
 latent_dims = 3
-epochs = 100
+epochs = 200
 batch_size = 5
 random_state = 1
 trainer_kwargs = dict(
@@ -71,10 +72,9 @@ def test_batch_cca():
     ).fit((X, Y))
     # ccasvd = CCA_SVD(
     #     latent_dimensions=latent_dims,
-    #     epochs=epochs*10,
+    #     epochs=epochs,
     #     random_state=random_state,
     #     trainer_kwargs=trainer_kwargs,
-    #     learning_rate=1e-1,
     # ).fit((X, Y))
     cca_score = cca.score((X, Y))
     ccaey_score = ccaey.score((X, Y))
@@ -122,6 +122,13 @@ def test_stochastic_cca():
     from cca_zoo.linear import CCA_EY, CCA_GHA
 
     cca = CCA(latent_dimensions=3).fit((X, Y))
+    ccagha = CCA_GHA(
+        latent_dimensions=latent_dims,
+        epochs=epochs,
+        batch_size=batch_size,
+        random_state=random_state,
+        trainer_kwargs=trainer_kwargs,
+    ).fit((X, Y))
     ccaey = CCA_EY(
         latent_dimensions=latent_dims,
         epochs=epochs,
@@ -129,28 +136,21 @@ def test_stochastic_cca():
         random_state=random_state,
         trainer_kwargs=trainer_kwargs,
     ).fit((X, Y))
-    ccagha = CCA_GHA(
-        latent_dimensions=3,
+    ccasvd = CCA_SVD(
+        latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
         random_state=random_state,
         trainer_kwargs=trainer_kwargs,
     ).fit((X, Y))
-    # ccasvd = CCA_SVD(
-    #     latent_dimensions=latent_dims,
-    #     epochs=epochs,
-    #     batch_size=batch_size,
-    #     random_state=random_state,
-    #     trainer_kwargs=trainer_kwargs,
-    # ).fit((X, Y))
     cca_score = cca.score((X, Y))
     ccaey_score = ccaey.score((X, Y))
     ccagha_score = ccagha.score((X, Y))
-    # ccasvd_score = ccasvd.score((X, Y))
+    ccasvd_score = ccasvd.score((X, Y))
     # check all methods are similar to cca
     assert np.allclose(cca_score.sum(), ccaey_score.sum(), atol=2e-1)
     assert np.allclose(cca_score.sum(), ccagha_score.sum(), atol=2e-1)
-    # assert np.allclose(cca_score.sum(), ccasvd_score.sum(), atol=2e-1)
+    assert np.allclose(cca_score.sum(), ccasvd_score.sum(), atol=2e-1)
 
 
 def test_with_validation():

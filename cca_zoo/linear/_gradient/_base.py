@@ -17,7 +17,7 @@ DEFAULT_TRAINER_KWARGS = dict(
     enable_progress_bar=True,
 )
 
-DEFAULT_LOADER_KWARGS = dict(pin_memory=False, drop_last=False, shuffle=False)
+DEFAULT_LOADER_KWARGS = dict(pin_memory=False, drop_last=True, shuffle=True)
 
 DEFAULT_OPTIMIZER_KWARGS = dict(optimizer="Adam")
 
@@ -33,8 +33,8 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         batch_size=None,
         dataloader_kwargs=None,
         epochs=1,
-        learning_rate=5e-2,
-        initialization: Union[str, callable] = "uniform",
+        learning_rate=1e-1,
+        initialization: Union[str, callable] = "random",
         trainer_kwargs=None,
         optimizer_kwargs=None,
         early_stopping=False,
