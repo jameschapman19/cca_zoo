@@ -42,7 +42,6 @@ class PartialCCA(MCCA):
             views, y=y, partials=partials, **kwargs
         )  # call the parent class fit method
 
-
     def _process_data(self, views, partials=None, **kwargs):
         if partials is None:
             return super()._process_data(views, **kwargs)
@@ -63,7 +62,9 @@ class PartialCCA(MCCA):
         if partials is None:
             return super().transform(views, **kwargs)
         else:
-            check_is_fitted(self)  # check if the model has been fitted before transforming
+            check_is_fitted(
+                self
+            )  # check if the model has been fitted before transforming
             transformed_views = []
             for i, (view) in enumerate(views):
                 transformed_view = (

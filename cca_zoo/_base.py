@@ -56,7 +56,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
     def _validate_data(self, views: Iterable[np.ndarray]):
         if self.copy_data:
-            views= [
+            views = [
                 check_array(
                     view,
                     copy=True,
@@ -68,7 +68,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
                 for view in views
             ]
         else:
-            views= [
+            views = [
                 check_array(
                     view,
                     copy=False,
@@ -87,7 +87,6 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         self.n_features_in_ = [view.shape[1] for view in views]
         self.n_samples_ = views[0].shape[0]
         return views
-
 
     def _check_params(self):
         """
@@ -129,16 +128,15 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         """
         check_is_fitted(self)
-        views =[
-                check_array(
-                    view,
-                    copy=True,
-                    accept_sparse=False,
-                    accept_large_sparse=False,
-
-                )
-                for view in views
-            ]
+        views = [
+            check_array(
+                view,
+                copy=True,
+                accept_sparse=False,
+                accept_large_sparse=False,
+            )
+            for view in views
+        ]
         transformed_views = []
         for i, view in enumerate(views):
             transformed_view = view @ self.weights_[i]

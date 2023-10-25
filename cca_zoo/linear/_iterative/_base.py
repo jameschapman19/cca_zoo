@@ -51,7 +51,7 @@ class BaseIterative(BaseModel):
 
     def _fit(self, views: Iterable[np.ndarray]):
         views = self._validate_data(views)
-        self.random_state= check_random_state(self.random_state)
+        self.random_state = check_random_state(self.random_state)
         self._initialize(views)
         self._check_params()
         # Solve using alternating optimisation across the representations until convergence
