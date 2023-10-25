@@ -98,7 +98,6 @@ class PLS_EY(CCA_EY):
 
 
 class DoubleNumpyDataset(NumpyDataset):
-
     def __init__(self, views, batch_size=None):
         super().__init__(views)
         self.views = [view.astype(np.float32) for view in views]
