@@ -11,7 +11,7 @@ class CCA_EY(BaseGradientModel):
     objective = CCA_EYLoss()
 
     def _more_tags(self):
-        return {"multiview": True, "stochastic": True}
+        return {"multiview": True, "stochastic": True, "non_deterministic": True}
 
     def training_step(self, batch, batch_idx):
         representations = self(batch["views"])
@@ -56,9 +56,9 @@ class CCA_EY(BaseGradientModel):
         return loss["objective"]
 
     def get_dataset(self, views: Iterable[np.ndarray], validation_views=None):
-        dataset = DoubleNumpyDataset(views)
+        dataset = DoubleNumpyDataset(views, self.batch_size)
         if validation_views is not None:
-            val_dataset = DoubleNumpyDataset(validation_views)
+            val_dataset = DoubleNumpyDataset(validation_views, self.batch_size)
         else:
             val_dataset = None
         return dataset, val_dataset
@@ -99,8 +99,13 @@ class PLS_EY(CCA_EY):
 class DoubleNumpyDataset(NumpyDataset):
     random_state = np.random.RandomState(0)
 
+    def __init__(self, views, batch_size=None):
+        super().__init__(views)
+        self.views = [view.astype(np.float32) for view in views]
+        self.batch_size = batch_size
+
     def __getitem__(self, index):
         views = [view[index] for view in self.views]
-        independent_index = self.random_state.randint(0, len(self))
+        independent_index = index if self.batch_size is None else self.random_state.randint(0, len(self))
         independent_views = [view[independent_index] for view in self.views]
         return {"views": views, "independent_views": independent_views}

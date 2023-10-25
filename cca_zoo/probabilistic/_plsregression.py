@@ -65,7 +65,7 @@ class ProbabilisticPLSRegression(ProbabilisticCCA):
             "W",
             random.normal(
                 shape=(
-                    self.n_features_[0],
+                    self.n_features_in_[0],
                     self.latent_dimensions,
                 ),
                 key=self.rng_key,
@@ -75,7 +75,7 @@ class ProbabilisticPLSRegression(ProbabilisticCCA):
             "C",
             random.normal(
                 shape=(
-                    self.n_features_[1],
+                    self.n_features_in_[1],
                     self.latent_dimensions,
                 ),
                 key=self.rng_key,
@@ -92,11 +92,11 @@ class ProbabilisticPLSRegression(ProbabilisticCCA):
         # Add positive-definite constraint for psi1 and psi2
         e = numpyro.param(
             "e",
-            jnp.ones(shape=(self.n_features_[0],)),
+            jnp.ones(shape=(self.n_features_in_[0],)),
         )
         f = numpyro.param(
             "f",
-            jnp.ones(shape=(self.n_features_[1],)),
+            jnp.ones(shape=(self.n_features_in_[1],)),
         )
         h = numpyro.param(
             "h",

@@ -1,6 +1,7 @@
 from typing import Iterable
 
 import numpy as np
+from sklearn.utils import check_random_state
 
 from cca_zoo._base import BaseModel
 
@@ -26,6 +27,7 @@ class DummyCCA(BaseModel):
 
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         self._validate_data(views)
+        self.random_state = check_random_state(self.random_state)
         if self.uniform:
             self.weights_ = [
                 np.ones((view.shape[1], self.latent_dimensions)) for view in views

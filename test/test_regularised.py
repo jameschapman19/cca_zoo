@@ -62,7 +62,6 @@ def test_regularized_methods():
         latent_dimensions=latent_dims, c=[c, c], kernel=["linear", "linear"]
     ).fit((X, Y))
     mpls = MPLS(latent_dimensions=latent_dims).fit([X, Y])
-    corr_gcca = gcca.score((X, Y))
     corr_mcca = mcca.score((X, Y))
     corr_kernel = kernel.score((X, Y))
     corr_pls = pls.score((X, Y))
@@ -196,20 +195,4 @@ def test_GRCCA():
     grcca.transform((X, Y))
     grcca = GRCCA(c=[100, 0, 50]).fit(
         (X, Y, Z), feature_groups=[feature_group_1, feature_group_2, feature_group_3]
-    )
-
-
-def test_deflation():
-    # test deflation works with pls and cca using SCCA_PMD
-    ccamodel = SCCA_PMD(latent_dimensions=2, tau=0.9, random_state=rng)
-    ccamodel.fit([X, Y])
-    pls = PLS(latent_dimensions=2)
-    pls.fit([X, Y])
-    plsmodel = SCCA_PMD(latent_dimensions=2, tau=0.9, random_state=rng)
-    plsmodel.fit([X, Y])
-    assert (
-        np.testing.assert_array_almost_equal(
-            np.abs(pls.score((X, Y))), np.abs(plsmodel.score((X, Y))), decimal=1
-        )
-        is None
     )

@@ -7,12 +7,11 @@ class NumpyDataset(Dataset):
     Class that turns numpy arrays into a torch dataset
     """
 
-    def __init__(self, views, labels=None):
+    def __init__(self, views):
         """
 
         :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
         """
-        self.labels = labels
         self.views = [view.astype(np.float32) for view in views]
 
     def __len__(self):

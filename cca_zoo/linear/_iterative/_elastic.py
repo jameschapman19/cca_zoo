@@ -61,16 +61,17 @@ class ElasticCCA(DeflationMixin, BaseIterative):
         # Update the weights_ for the current view using Elastic
         # Get the scores of all representations
         scores = np.stack(self.transform(views))
-        # Compute the target by summing the scores along dim 0 and dividing by the square root of the covariance of the target
+        # Compute the target by summing the scores along dim 0 and dividing by the square root of the covariance of
+        # the target
         target = np.sum(scores, axis=0)
         target = target / np.linalg.norm(target)
 
         # Loop over the representations and fit each regressor to the view and the target
         self.regressors[i] = self.regressors[i].fit(views[i], target)
         # Update the weights_ with the coefficients of each regressor
-        new_weights = np.squeeze(self.regressors[i].coef_)
+        new_weights = np.atleast_2d(self.regressors[i].coef_).T
         # Return the updated weights_
-        return new_weights[:, None]
+        return new_weights
 
     def _objective(self, views: Iterable[np.ndarray]):
         scores = np.stack(self.transform(views))

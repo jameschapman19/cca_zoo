@@ -3,12 +3,13 @@ from abc import abstractmethod
 from typing import Iterable, Union, Any
 
 import numpy as np
-from cca_zoo.linear._pls import MPLS
+from sklearn.utils import check_random_state
 from tqdm import tqdm
 
 from cca_zoo._base import BaseModel
 from cca_zoo.linear._dummy import DummyCCA, DummyPLS
 from cca_zoo.linear._mcca import MCCA
+from cca_zoo.linear._pls import MPLS
 
 
 class BaseIterative(BaseModel):
@@ -20,7 +21,7 @@ class BaseIterative(BaseModel):
         tol=1e-3,
         accept_sparse=None,
         epochs=100,
-        initialization: Union[str, callable] = "random",
+        initialization: Union[str, callable] = "uniform",
         early_stopping=False,
         verbose=True,
     ):
@@ -50,6 +51,7 @@ class BaseIterative(BaseModel):
 
     def _fit(self, views: Iterable[np.ndarray]):
         views = self._validate_data(views)
+        self.random_state= check_random_state(self.random_state)
         self._initialize(views)
         self._check_params()
         # Solve using alternating optimisation across the representations until convergence

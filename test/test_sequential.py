@@ -44,11 +44,11 @@ def test_sequential_model_fits_and_identifies_effects(
     assert sequential_model.latent_dimensions > 0
 
     # Test if the model has correct weight attributes
-    assert len(sequential_model.weights) == 2
+    assert len(sequential_model.weights_) == 2
     assert all(
         [
             weight.shape[1] == sequential_model.latent_dimensions
-            for weight in sequential_model.weights
+            for weight in sequential_model.weights_
         ]
     )
 

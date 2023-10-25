@@ -1,18 +1,93 @@
 import pytest
-
+from sklearn import clone
+from sklearn.base import TransformerMixin, BaseEstimator
+from sklearn.pipeline import Pipeline
+from sklearn.utils._testing import set_random_state
 from sklearn.utils.estimator_checks import check_estimator
-from cca_zoo.linear import *
 
-from cca_zoo.linear import __all__ as linear_all
+from cca_zoo.linear import (
+    GCCA,
+    CCA_EY,
+    CCA_GHA,
+    PLS_EY,
+    PLSStochasticPower,
+    GRCCA,
+    PLS_ALS,
+    SCCA_IPLS,
+    SCCA_PMD,
+    ElasticCCA,
+    SCCA_Parkhomenko,
+    SCCA_Span,
+    CCA,
+    MCCA,
+    rCCA,
+    PartialCCA,
+    PCACCA,
+    MPLS,
+    PLS,
+    PRCCA,
+    TCCA,
+)
 
-# make a list of all the estimators in the module
-estimators = linear_all
 
-# add the estimators to the pytest mark parametrize
+class HackyDuplicator(TransformerMixin, BaseEstimator):
+    def fit(self, X, y=None):
+        X = self._validate_data(
+            X,
+            accept_sparse="csc",
+        )
+
+        return self
+
+    def transform(self, X, y=None):
+        return [X, X]
+
+
+class HackyJoiner(TransformerMixin, BaseEstimator):
+    def fit(self, views, y=None):
+        X = self._validate_data(
+            views[0],
+            accept_sparse="csc",
+        )
+        return self
+
+    def transform(self, views, y=None):
+        return views[0]
+
 
 @pytest.mark.parametrize(
     "estimator",
-    estimators,
+    [
+        GCCA(),
+        CCA_EY(),
+        CCA_GHA(),
+        PLS_EY(),
+        PLSStochasticPower(),
+        GRCCA(),
+        PLS_ALS(),
+        SCCA_IPLS(),
+        SCCA_PMD(),
+        ElasticCCA(),
+        SCCA_Parkhomenko(),
+        SCCA_Span(),
+        CCA(),
+        MCCA(),
+        rCCA(),
+        PartialCCA(),
+        PCACCA(),
+        MPLS(),
+        PLS(),
+        PRCCA(),
+        TCCA(random_state=0),
+    ],
 )
 def test_all_estimators(estimator):
+    # hack to get around the two-view problem. We will make a pipeline with splitter
+    estimator = Pipeline(
+        [
+            ("splitter", HackyDuplicator()),
+            ("estimator", estimator),
+            ("joiner", HackyJoiner()),
+        ]
+    )
     return check_estimator(estimator)

@@ -235,9 +235,9 @@ class rCCA(MCCA):
         C = np.cov(
             views[self.primary_view], views[1 - self.primary_view], rowvar=False
         )[0 : views[self.primary_view].shape[1], views[self.primary_view].shape[1] :]
-        self.weights = [None] * 2
+        self.weights_ = [None] * 2
         # Compute the weight matrix for primary view
-        self.weights[1 - self.primary_view] = (
+        self.weights_[1 - self.primary_view] = (
             # Project view 1 onto its principal components
             self.pca_models[1 - self.primary_view].components_.T
             # Scale by the inverse of B[0]
@@ -253,7 +253,7 @@ class rCCA(MCCA):
         )
 
         # Compute the weight matrix for view 2
-        self.weights[self.primary_view] = (
+        self.weights_[self.primary_view] = (
             # Project view 2 onto its principal components
             self.pca_models[self.primary_view].components_.T
             # Scale by the inverse of the square root of B[1]

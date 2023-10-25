@@ -5,14 +5,14 @@ from typing import Iterable, Union, List, Optional, Any
 import numpy as np
 from numpy.linalg import svd
 from scipy.linalg import block_diag
-from sklearn.base import BaseEstimator, MultiOutputMixin, RegressorMixin
+from sklearn.base import BaseEstimator, MultiOutputMixin, TransformerMixin
 from sklearn.utils import check_random_state
-from sklearn.utils.validation import FLOAT_DTYPES, check_is_fitted, check_array
+from sklearn.utils.validation import check_is_fitted, check_array
 
 from cca_zoo.utils.cross_correlation import cross_corrcoef
 
 
-class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
+class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
     """
     A base class for multivariate latent variable linear.
 
@@ -35,7 +35,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
     ----------
     n_views_ : int
         Number of representations.
-    n_features_ : list of int
+    n_features_in_ : list of int
         Number of features for each view.
     weights_ : list of numpy arrays
         Weight vectors for each view.
@@ -52,32 +52,42 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         self.latent_dimensions = latent_dimensions
         self.copy_data = copy_data
         self.accept_sparse = accept_sparse
-        self.random_state = check_random_state(random_state)
-        self.dtypes = FLOAT_DTYPES
-        self._loadings = None
+        self.random_state = random_state
 
     def _validate_data(self, views: Iterable[np.ndarray]):
+        if self.copy_data:
+            views= [
+                check_array(
+                    view,
+                    copy=True,
+                    accept_sparse=False,
+                    accept_large_sparse=False,
+                    ensure_min_samples=max(2, self.latent_dimensions),
+                    ensure_min_features=self.latent_dimensions,
+                )
+                for view in views
+            ]
+        else:
+            views= [
+                check_array(
+                    view,
+                    copy=False,
+                    accept_sparse=False,
+                    accept_large_sparse=False,
+                    ensure_min_samples=max(2, self.latent_dimensions),
+                    ensure_min_features=self.latent_dimensions,
+                )
+                for view in views
+            ]
         if not all(view.shape[0] == views[0].shape[0] for view in views):
             raise ValueError("All representations must have the same number of samples")
         if not all(view.ndim == 2 for view in views):
             raise ValueError("All representations must have 2 dimensions")
-        if not all(view.dtype in self.dtypes for view in views):
-            raise ValueError(
-                "All representations must have dtype of {}.".format(self.dtypes)
-            )
-        if not all(view.shape[1] >= self.latent_dimensions for view in views):
-            raise ValueError(
-                "All representations must have at least {} features.".format(
-                    self.latent_dimensions
-                )
-            )
         self.n_views_ = len(views)
-        self.n_features_ = [view.shape[1] for view in views]
+        self.n_features_in_ = [view.shape[1] for view in views]
         self.n_samples_ = views[0].shape[0]
-        if self.copy_data:
-            return [check_array(view, copy=True, dtype=self.dtypes) for view in views]
-        else:
-            return [check_array(view, copy=False, dtype=self.dtypes) for view in views]
+        return views
+
 
     def _check_params(self):
         """
@@ -103,7 +113,9 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
         """
         return self
 
-    def transform(self, views: Iterable[np.ndarray], **kwargs) -> List[np.ndarray]:
+    def transform(
+        self, views: Iterable[np.ndarray], *args, **kwargs
+    ) -> List[np.ndarray]:
         """
 
         Parameters
@@ -117,27 +129,21 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
         """
         check_is_fitted(self)
+        views =[
+                check_array(
+                    view,
+                    copy=True,
+                    accept_sparse=False,
+                    accept_large_sparse=False,
+
+                )
+                for view in views
+            ]
         transformed_views = []
         for i, view in enumerate(views):
             transformed_view = view @ self.weights_[i]
             transformed_views.append(transformed_view)
         return transformed_views
-
-    def fit_transform(self, views: Iterable[np.ndarray], **kwargs) -> List[np.ndarray]:
-        """
-        Fits the model to the given data and returns the transformed representations
-
-        Parameters
-        ----------
-        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        kwargs : any additional keyword arguments required by the given model
-
-        Returns
-        -------
-        transformed_views : list of numpy arrays
-
-        """
-        return self.fit(views, **kwargs).transform(views, **kwargs)
 
     def pairwise_correlations(
         self, views: Iterable[np.ndarray], **kwargs
@@ -414,46 +420,46 @@ class BaseModel(BaseEstimator, MultiOutputMixin, RegressorMixin):
 
         return cumulative_ratios
 
-    def predict(self, views: Iterable[np.ndarray]) -> List[np.ndarray]:
-        """
-        Predicts the missing view from the given representations.
-
-
-        Parameters
-        ----------
-        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
-
-        Returns
-        -------
-        predicted_views : list of numpy arrays. None if the view is missing.
-            Predicted representations.
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> X1 = np.random.rand(100, 5)
-        >>> X2 = np.random.rand(100, 5)
-        >>> cca = CCALoss()
-        >>> cca.fit([X1, X2])
-        >>> X1_pred, X2_pred = cca.predict([X1, None])
-
-        """
-        check_is_fitted(self, attributes=["weights_"])
-        # check if representations is same length as weights_
-        if len(views) != len(self.weights_):
-            raise ValueError(
-                "The number of representations must be the same as the number of weights_. Put None for missing representations."
-            )
-        transformed_views = []
-        for i, view in enumerate(views):
-            if view is not None:
-                transformed_view = view @ self.weights_[i]
-                transformed_views.append(transformed_view)
-        # average the transformed representations
-        average_score = np.mean(transformed_views, axis=0)
-        # return the average score transformed back to the original space
-        reconstucted_views = []
-        for i, view in enumerate(views):
-            reconstructed_view = average_score @ np.linalg.pinv(self.weights_[i])
-            reconstucted_views.append(reconstructed_view)
-        return reconstucted_views
+    # def predict(self, views: Iterable[np.ndarray]) -> List[np.ndarray]:
+    #     """
+    #     Predicts the missing view from the given representations.
+    #
+    #
+    #     Parameters
+    #     ----------
+    #     views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+    #
+    #     Returns
+    #     -------
+    #     predicted_views : list of numpy arrays. None if the view is missing.
+    #         Predicted representations.
+    #
+    #     Examples
+    #     --------
+    #     >>> import numpy as np
+    #     >>> X1 = np.random.rand(100, 5)
+    #     >>> X2 = np.random.rand(100, 5)
+    #     >>> cca = CCALoss()
+    #     >>> cca.fit([X1, X2])
+    #     >>> X1_pred, X2_pred = cca.predict([X1, None])
+    #
+    #     """
+    #     check_is_fitted(self, attributes=["weights_"])
+    #     # check if representations is same length as weights_
+    #     if len(views) != len(self.weights_):
+    #         raise ValueError(
+    #             "The number of representations must be the same as the number of weights_. Put None for missing representations."
+    #         )
+    #     transformed_views = []
+    #     for i, view in enumerate(views):
+    #         if view is not None:
+    #             transformed_view = view @ self.weights_[i]
+    #             transformed_views.append(transformed_view)
+    #     # average the transformed representations
+    #     average_score = np.mean(transformed_views, axis=0)
+    #     # return the average score transformed back to the original space
+    #     reconstucted_views = []
+    #     for i, view in enumerate(views):
+    #         reconstructed_view = average_score @ np.linalg.pinv(self.weights_[i])
+    #         reconstucted_views.append(reconstructed_view)
+    #     return reconstucted_views

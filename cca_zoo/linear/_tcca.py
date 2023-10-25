@@ -30,16 +30,16 @@ class TCCA(MCCA):
 
     Examples
     --------
-    >>> from cca_zoo.linear import TCCALoss
+    >>> from cca_zoo.linear import TCCA
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
-    >>> model = TCCALoss()
+    >>> model = TCCA()
     >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
     """
-
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
+        # Validate the input data
         views = self._validate_data(views)
         self._check_params()
         # returns whitened representations along with whitening matrices
@@ -60,11 +60,11 @@ class TCCA(MCCA):
                 M = np.expand_dims(M, -1) @ el
         M = np.mean(M, 0)
         tl.set_backend("numpy")
-        M_parafac = parafac(M, self.latent_dimensions, verbose=False)
+        M_parafac = parafac(M, self.latent_dimensions, verbose=False, random_state=self.random_state, init="random")
         self.weights_ = [
             cov_invsqrt @ fac
-            for i, (view, cov_invsqrt, fac) in enumerate(
-                zip(whitened_views, covs_invsqrt, M_parafac.factors)
+            for i, (cov_invsqrt, fac) in enumerate(
+                zip(covs_invsqrt, M_parafac.factors)
             )
         ]
         return self

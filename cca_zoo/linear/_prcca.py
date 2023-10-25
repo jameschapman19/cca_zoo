@@ -65,6 +65,10 @@ class PRCCA(MCCA):
         kwargs: any additional keyword arguments required by the given model
 
         """
+        # Validate the input data
+        views = self._validate_data(views)
+        # Check the parameters
+        self._check_params()
         if idxs is None:
             warnings.warn(f"No idxs provided, using all features")
             idxs = [np.arange(views[0].shape[1], dtype=int)] * self.n_views_

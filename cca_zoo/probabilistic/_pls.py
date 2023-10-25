@@ -37,7 +37,7 @@ class ProbabilisticPLS(ProbabilisticCCA):
             "W_1",
             jnp.ones(
                 shape=(
-                    self.n_features_[0],
+                    self.n_features_in_[0],
                     self.latent_dimensions,
                 ),
             ),
@@ -46,21 +46,21 @@ class ProbabilisticPLS(ProbabilisticCCA):
             "W_2",
             jnp.ones(
                 shape=(
-                    self.n_features_[1],
+                    self.n_features_in_[1],
                     self.latent_dimensions,
                 ),
             ),
         )
 
-        psi1 = jnp.eye(self.n_features_[0]) * self.eps
-        psi2 = jnp.eye(self.n_features_[1]) * self.eps
+        psi1 = jnp.eye(self.n_features_in_[0]) * self.eps
+        psi2 = jnp.eye(self.n_features_in_[1]) * self.eps
 
         mu1 = numpyro.param(
             "mu_1",
             jnp.zeros(
                 shape=(
                     1,
-                    self.n_features_[0],
+                    self.n_features_in_[0],
                 ),
             ),
         )
@@ -69,7 +69,7 @@ class ProbabilisticPLS(ProbabilisticCCA):
             jnp.zeros(
                 shape=(
                     1,
-                    self.n_features_[1],
+                    self.n_features_in_[1],
                 ),
             ),
         )
@@ -100,8 +100,8 @@ class ProbabilisticPLS(ProbabilisticCCA):
             )
 
     def joint(self):
-        psi1 = jnp.eye(self.n_features_[0]) * self.eps
-        psi2 = jnp.eye(self.n_features_[1]) * self.eps
+        psi1 = jnp.eye(self.n_features_in_[0]) * self.eps
+        psi2 = jnp.eye(self.n_features_in_[1]) * self.eps
         # Calculate the individual matrix blocks
         top_left = self.params["W_1"] @ self.params["W_1"].T + psi1
         bottom_right = self.params["W_2"] @ self.params["W_2"].T + psi2

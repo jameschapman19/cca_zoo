@@ -6,7 +6,7 @@ from cca_zoo.linear._iterative._base import BaseIterative
 from cca_zoo.linear._iterative._deflation import DeflationMixin
 from cca_zoo.linear._search import _delta_search
 from cca_zoo.linear._search import support_threshold
-from cca_zoo.utils import _process_parameter
+from cca_zoo.utils import _process_parameter, cross_cov
 
 
 class SCCA_Span(DeflationMixin, BaseIterative):
@@ -65,7 +65,7 @@ class SCCA_Span(DeflationMixin, BaseIterative):
             self.update = support_threshold
         elif self.regularisation == "l1":
             self.update = _delta_search
-        self.tau = _process_parameter("tau", self.tau, 0, self.n_views_)
+        self.tau = _process_parameter("tau", self.tau, 1, self.n_views_)
         self.positive = _process_parameter(
             "positive", self.positive, False, self.n_views_
         )
@@ -82,7 +82,7 @@ class SCCA_Span(DeflationMixin, BaseIterative):
             self._initialize_variables(views)
         if i == 0:
             # generate a random vector c
-            c = np.random.randn(self.rank)
+            c = self.random_state.randn(self.rank)
             c /= np.linalg.norm(c)
             # compute a = P D c
             a = self.P @ np.diag(self.D) @ c
@@ -99,7 +99,7 @@ class SCCA_Span(DeflationMixin, BaseIterative):
 
     def _initialize_variables(self, views):
         self.max_obj = [0, 0]
-        cov = views[0].T @ views[1] / views[0].shape[0]
+        cov = cross_cov(views[0], views[1],rowvar=False)
         # Perform SVD on im and obtain individual matrices
         P, D, Q = np.linalg.svd(cov, full_matrices=True)
         self.P = P[:, : self.rank]

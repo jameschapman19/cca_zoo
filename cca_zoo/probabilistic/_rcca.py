@@ -47,7 +47,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
             "W_1",
             jnp.ones(
                 shape=(
-                    self.n_features_[0],
+                    self.n_features_in_[0],
                     self.latent_dimensions,
                 ),
             ),
@@ -56,7 +56,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
             "W_2",
             jnp.ones(
                 shape=(
-                    self.n_features_[1],
+                    self.n_features_in_[1],
                     self.latent_dimensions,
                 ),
             ),
@@ -68,15 +68,15 @@ class ProbabilisticRCCA(ProbabilisticCCA):
         sigma2 = numpyro.param(
             "sigma_2", jnp.ones(1), constraint=dist.constraints.positive
         )
-        psi1 = jnp.eye(self.n_features_[0]) * sigma1
-        psi2 = jnp.eye(self.n_features_[1]) * sigma2
+        psi1 = jnp.eye(self.n_features_in_[0]) * sigma1
+        psi2 = jnp.eye(self.n_features_in_[1]) * sigma2
 
         mu1 = numpyro.param(
             "mu_1",
             jnp.zeros(
                 shape=(
                     1,
-                    self.n_features_[0],
+                    self.n_features_in_[0],
                 ),
             ),
         )
@@ -85,7 +85,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
             jnp.zeros(
                 shape=(
                     1,
-                    self.n_features_[1],
+                    self.n_features_in_[1],
                 ),
             ),
         )
@@ -139,8 +139,8 @@ class ProbabilisticRCCA(ProbabilisticCCA):
             z = numpyro.sample("z", dist.MultivariateNormal(z_loc, jnp.diag(z_scale)))
 
     def joint(self):
-        psi1 = jnp.eye(self.n_features_[0]) * self.params["sigma_1"]
-        psi2 = jnp.eye(self.n_features_[1]) * self.params["sigma_2"]
+        psi1 = jnp.eye(self.n_features_in_[0]) * self.params["sigma_1"]
+        psi2 = jnp.eye(self.n_features_in_[1]) * self.params["sigma_2"]
         # Calculate the individual matrix blocks
         top_left = self.params["W_1"] @ self.params["W_1"].T + psi1
         bottom_right = self.params["W_2"] @ self.params["W_2"].T + psi2

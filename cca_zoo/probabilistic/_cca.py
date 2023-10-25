@@ -118,7 +118,7 @@ class ProbabilisticCCA(BaseModel):
             "W_1",
             jnp.ones(
                 shape=(
-                    self.n_features_[0],
+                    self.n_features_in_[0],
                     self.latent_dimensions,
                 ),
             ),
@@ -127,7 +127,7 @@ class ProbabilisticCCA(BaseModel):
             "W_2",
             jnp.ones(
                 shape=(
-                    self.n_features_[1],
+                    self.n_features_in_[1],
                     self.latent_dimensions,
                 ),
             ),
@@ -136,13 +136,13 @@ class ProbabilisticCCA(BaseModel):
         # Add positive-definite constraint for psi1 and psi2
         L1 = numpyro.param(
             "L_1",
-            jnp.eye(self.n_features_[0]),
+            jnp.eye(self.n_features_in_[0]),
             constraint=dist.constraints.lower_cholesky,
         )
         psi1 = L1 @ L1.T
         L2 = numpyro.param(
             "L_2",
-            jnp.eye(self.n_features_[1]),
+            jnp.eye(self.n_features_in_[1]),
             constraint=dist.constraints.lower_cholesky,
         )
         psi2 = L2 @ L2.T
@@ -152,7 +152,7 @@ class ProbabilisticCCA(BaseModel):
             jnp.zeros(
                 shape=(
                     1,
-                    self.n_features_[0],
+                    self.n_features_in_[0],
                 ),
             ),
         )
@@ -161,7 +161,7 @@ class ProbabilisticCCA(BaseModel):
             jnp.zeros(
                 shape=(
                     1,
-                    self.n_features_[1],
+                    self.n_features_in_[1],
                 ),
             ),
         )
