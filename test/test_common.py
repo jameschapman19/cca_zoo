@@ -55,6 +55,7 @@ class HackyJoiner(TransformerMixin, BaseEstimator):
         return views[0]
 
 
+
 @pytest.mark.parametrize(
     "estimator",
     [
