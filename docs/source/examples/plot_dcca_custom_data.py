@@ -25,13 +25,13 @@ import pytorch_lightning as pl
 # Subsequently, these datasets can be converted into dataloaders for use in CCALoss-Zoo models.
 
 from cca_zoo.deep import DCCA, architectures
-from cca_zoo.deep.utils import NumpyDataset
+from cca_zoo.deep.utils import NumpyDataset, check_dataset, get_dataloaders
 
 X = np.random.normal(size=(100, 10))
 Y = np.random.normal(size=(100, 10))
 Z = np.random.normal(size=(100, 10))
 
-numpy_dataset = NumpyDataset([X, Y, Z], labels=None)
+numpy_dataset = NumpyDataset([X, Y, Z])
 
 # %%
 # Dataset Validation
@@ -39,8 +39,6 @@ numpy_dataset = NumpyDataset([X, Y, Z], labels=None)
 # Before proceeding, it's a good practice to validate the constructed dataset.
 # The `check_dataset` function ensures that the dataset adheres to CCALoss-Zoo's
 # expected format.
-
-from cca_zoo.data.utils import check_dataset
 
 check_dataset(numpy_dataset)
 
@@ -74,8 +72,6 @@ check_dataset(custom_dataset)
 # --------------------------------------
 # The `get_dataloaders` function can now be used to transform the custom dataset
 # into dataloaders suitable for CCALoss-Zoo.
-
-from cca_zoo.data.utils import get_dataloaders
 
 train_loader = get_dataloaders(custom_dataset, batch_size=2)
 

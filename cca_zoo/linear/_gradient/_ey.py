@@ -1,6 +1,7 @@
 from typing import Iterable
 
 import numpy as np
+from sklearn.utils import check_random_state
 
 from cca_zoo.deep.objectives import CCA_EYLoss, PLS_EYLoss
 from cca_zoo.deep.utils import NumpyDataset
@@ -56,7 +57,7 @@ class CCA_EY(BaseGradientModel):
         return loss["objective"]
 
     def get_dataset(self, views: Iterable[np.ndarray], validation_views=None):
-        dataset = DoubleNumpyDataset(views, self.batch_size)
+        dataset = DoubleNumpyDataset(views, batch_size=self.batch_size)
         if validation_views is not None:
             val_dataset = DoubleNumpyDataset(validation_views, self.batch_size)
         else:
@@ -97,12 +98,12 @@ class PLS_EY(CCA_EY):
 
 
 class DoubleNumpyDataset(NumpyDataset):
-    random_state = np.random.RandomState(0)
 
     def __init__(self, views, batch_size=None):
         super().__init__(views)
         self.views = [view.astype(np.float32) for view in views]
         self.batch_size = batch_size
+        self.random_state = check_random_state(0)
 
     def __getitem__(self, index):
         views = [view[index] for view in self.views]
