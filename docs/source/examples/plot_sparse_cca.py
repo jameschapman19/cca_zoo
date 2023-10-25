@@ -12,6 +12,8 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+
+from cca_zoo.datasets import JointData
 from cca_zoo.linear import (
     CCA,
     PLS,
@@ -20,7 +22,6 @@ from cca_zoo.linear import (
     ElasticCCA,
     SCCA_Span,
 )
-from cca_zoo.data.simulated import LinearSimulatedData
 from cca_zoo.model_selection import GridSearchCV
 
 # Plotting Configuration
@@ -88,7 +89,7 @@ np.random.seed(42)
 n, p, q = 500, 200, 200
 latent_dims = 1
 view_1_sparsity, view_2_sparsity = 0.1, 0.1
-data = LinearSimulatedData(
+data = JointData(
     view_features=[p, q],
     latent_dims=latent_dims,
     view_sparsity=[view_1_sparsity, view_2_sparsity],

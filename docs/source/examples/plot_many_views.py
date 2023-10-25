@@ -10,7 +10,8 @@ various canonical correlation analysis (CCALoss) methods for datasets with more 
 # Dependencies
 # ------------
 import numpy as np
-from cca_zoo.data.simulated import LinearSimulatedData
+
+from cca_zoo.datasets import JointData
 from cca_zoo.linear import GCCA, MCCA, SCCA_PMD, TCCA
 from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA
 
@@ -23,7 +24,7 @@ from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA
 np.random.seed(42)
 n, p, q, r, latent_dims, cv = 30, 3, 3, 3, 1, 3
 
-(X, Y, Z) = LinearSimulatedData(
+(X, Y, Z) = JointData(
     view_features=[p, q, r], latent_dims=latent_dims, correlation=[0.9]
 ).sample(n)
 

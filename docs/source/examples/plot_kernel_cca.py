@@ -10,7 +10,8 @@ to perform Canonical Correlation Analysis (CCALoss) on a simulated dataset.
 # Dependencies
 # ------------
 import numpy as np
-from cca_zoo.data.simulated import LinearSimulatedData
+
+from cca_zoo.datasets import JointData
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.nonparametric import KCCA
 
@@ -22,7 +23,7 @@ np.random.seed(42)
 
 # Configuring and generating a simulated dataset with given specifications.
 n, p, q, latent_dims, correlation = 200, 100, 100, 1, 0.9
-(X, Y) = LinearSimulatedData(
+(X, Y) = JointData(
     view_features=[p, q], latent_dims=latent_dims, correlation=[correlation]
 ).sample(n)
 

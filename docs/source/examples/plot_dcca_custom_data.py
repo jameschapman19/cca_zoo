@@ -24,8 +24,8 @@ import pytorch_lightning as pl
 # numpy arrays, each representing a distinct view, and an optional list of labels.
 # Subsequently, these datasets can be converted into dataloaders for use in CCALoss-Zoo models.
 
-from cca_zoo.data.utils import NumpyDataset
 from cca_zoo.deep import DCCA, architectures
+from cca_zoo.deep.utils import NumpyDataset
 
 X = np.random.normal(size=(100, 10))
 Y = np.random.normal(size=(100, 10))

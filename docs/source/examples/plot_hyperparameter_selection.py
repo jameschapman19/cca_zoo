@@ -16,7 +16,8 @@ Note:
 import numpy as np
 import pandas as pd
 from scipy.stats import loguniform
-from cca_zoo.data.simulated import LinearSimulatedData
+
+from cca_zoo.datasets import JointData
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.nonparametric import KCCA
 
@@ -34,7 +35,7 @@ q = 100
 latent_dims = 1
 correlation = 0.9
 
-data = LinearSimulatedData(
+data = JointData(
     view_features=[p, q], latent_dims=latent_dims, correlation=[correlation]
 )
 (X, Y) = data.sample(n)

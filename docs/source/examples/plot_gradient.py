@@ -16,8 +16,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-from cca_zoo.data.simulated import LinearSimulatedData
-from cca_zoo.linear import CCA, CCA_EYLoss
+from cca_zoo.datasets import JointData
+from cca_zoo.linear import CCA, CCA_EY
 from cca_zoo.visualisation import ScoreScatterDisplay
 
 # %%
@@ -34,7 +34,7 @@ q = 1000
 latent_dims = 1
 correlation = 0.9
 
-(X, Y) = LinearSimulatedData(
+(X, Y) = JointData(
     view_features=[p, q], latent_dims=latent_dims, correlation=[correlation]
 ).sample(n)
 
@@ -80,7 +80,7 @@ batch_sizes = [200, 100, 50, 20, 10]
 
 # We loop over the batch sizes and create a CCA_EYLoss object for each one
 for batch_size in batch_sizes:
-    ccaey = CCA_EYLoss(
+    ccaey = CCA_EY(
         latent_dimensions=latent_dims,
         epochs=10,
         batch_size=batch_size,
