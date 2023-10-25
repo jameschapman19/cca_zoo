@@ -72,7 +72,9 @@ def test_explained_covariance(toy_model, synthetic_views):
 
 
 def test_explained_covariance_ratio(toy_model, synthetic_views):
-    explained_covariance_ratios = toy_model.explained_covariance_ratio(synthetic_views[:2])
+    explained_covariance_ratios = toy_model.explained_covariance_ratio(
+        synthetic_views[:2]
+    )
     # Verifying if the ratios are between 0 and 1 for each latent dimension in each view
     for ratio in explained_covariance_ratios:
         assert (
