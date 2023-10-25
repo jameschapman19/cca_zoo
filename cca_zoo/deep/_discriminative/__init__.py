@@ -5,9 +5,9 @@ from ._dcca_gha import DCCA_GHA
 from ._dcca_noi import DCCA_NOI
 from ._dcca_sdl import DCCA_SDL
 from ._dcca_svd import DCCA_SVD
+from ._dcca_vicreg import VICReg
 from ._dgcca import DGCCA
 from ._dtcca import DTCCA
-from ._dcca_vicreg import VICReg
 
 __all__ = [
     "DCCA",

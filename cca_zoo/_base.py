@@ -21,22 +21,22 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
     Parameters
     ----------
-    latent_dimensions : int, optional
+    latent_dimensions: int, optional
         Number of latent dimensions to fit. Default is 1.
-    copy_data : bool, optional
+    copy_data: bool, optional
         Whether to copy the data. Default is True.
-    accept_sparse : bool, optional
+    accept_sparse: bool, optional
         Whether to accept sparse data. Default is False.
-    random_state : int, RandomState instance or None, optional (default=None)
+    random_state: int, RandomState instance or None, optional (default=None)
         Pass an int for reproducible output across multiple function calls.
 
     Attributes
     ----------
-    n_views_ : int
+    n_views_: int
         Number of representations.
-    n_features_in_ : list of int
+    n_features_in_: list of int
         Number of features for each view.
-    weights_ : list of numpy arrays
+    weights_: list of numpy arrays
         Weight vectors for each view.
 
     """
@@ -103,13 +103,13 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         Parameters
         ----------
-        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        y : None
+        views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        y: None
         kwargs: any additional keyword arguments required by the given model
 
         Returns
         -------
-        self : object
+        self: object
 
         """
         return self
@@ -121,12 +121,12 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         Parameters
         ----------
-        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        kwargs : any additional keyword arguments required by the given model
+        views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        kwargs: any additional keyword arguments required by the given model
 
         Returns
         -------
-        transformed_views : list of numpy arrays
+        transformed_views: list of numpy arrays
 
         """
         check_is_fitted(self)
@@ -200,13 +200,13 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         Parameters
         ----------
-        views : list/tuple of numpy arrays or array-like objects with the same number of rows (samples)
-        y : None
-        kwargs : any additional keyword arguments required by the given model
+        views: list/tuple of numpy arrays or array-like objects with the same number of rows (samples)
+        y: None
+        kwargs: any additional keyword arguments required by the given model
 
         Returns
         -------
-        score : float
+        score: float
             Sum of average pairwise correlations between representations.
         """
         return self.average_pairwise_correlations(views, **kwargs).sum()
@@ -233,12 +233,12 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         Parameters
         ----------
-        views : list/tuple of numpy arrays
+        views: list/tuple of numpy arrays
             Each array corresponds to a view. All representations must have the same number of rows (observations).
 
         Returns
         -------
-        loadings_ : list of numpy arrays
+        loadings_: list of numpy arrays
             Canonical loadings_ for each view. High absolute values indicate that
             the respective original variables play a significant role in defining the canonical variate.
 
@@ -290,7 +290,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         Returns
         -------
-        transformed_vars : list of numpy arrays
+        transformed_vars: list of numpy arrays
         """
         check_is_fitted(self, attributes=["weights_"])
 
@@ -312,7 +312,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         Returns
         -------
-        explained_variance_ratios : list of numpy arrays
+        explained_variance_ratios: list of numpy arrays
         """
         total_vars = [
             (np.sum(s**2) / (view.shape[0] - 1))
@@ -338,7 +338,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         Returns
         -------
-        cumulative_ratios : list of numpy arrays
+        cumulative_ratios: list of numpy arrays
         """
         ratios = self.explained_variance_ratio(views)
         cumulative_ratios = [np.cumsum(ratio) for ratio in ratios]
@@ -351,11 +351,11 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         Parameters
         ----------
-        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
 
         Returns
         -------
-        cov : numpy array
+        cov: numpy array
             Computed covariance matrix.
         """
         cov = np.cov(np.hstack(views), rowvar=False)
@@ -368,11 +368,11 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         Parameters
         ----------
-        views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+        views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
 
         Returns
         -------
-        explained_covariances : list of numpy arrays
+        explained_covariances: list of numpy arrays
             Covariance matrices for the transformed components of each view.
         """
         check_is_fitted(self, attributes=["weights_"])
@@ -396,16 +396,16 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         return explained_covariances
 
     def explained_covariance_ratio(self, views: Iterable[np.ndarray]) -> np.ndarray:
+        # only works for 2 views
+        check_is_fitted(self, attributes=["weights_"])
+        assert len(views) == 2, "Only works for 2 views"
         minimum_dimension = min([view.shape[1] for view in views])
-
         cov = self._compute_covariance(views)
         _, S, _ = svd(cov)
         # select every other element starting from the first until the minimum dimension
         total_explained_covariance = S[::2][:minimum_dimension].sum()
-
         explained_covariances = self.explained_covariance(views)
         explained_covariance_ratios = explained_covariances / total_explained_covariance
-
         return explained_covariance_ratios
 
     def explained_covariance_cumulative(
@@ -416,7 +416,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         Returns
         -------
-        cumulative_ratios : list of numpy arrays
+        cumulative_ratios: list of numpy arrays
         """
         ratios = self.explained_covariance_ratio(views)
         cumulative_ratios = [np.cumsum(ratio) for ratio in ratios]
@@ -430,11 +430,11 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
     #
     #     Parameters
     #     ----------
-    #     views : list/tuple of numpy arrays or array likes with the same number of rows (samples)
+    #     views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
     #
     #     Returns
     #     -------
-    #     predicted_views : list of numpy arrays. None if the view is missing.
+    #     predicted_views: list of numpy arrays. None if the view is missing.
     #         Predicted representations.
     #
     #     Examples

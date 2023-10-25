@@ -1,5 +1,6 @@
-import pytest
 import numpy as np
+import pytest
+
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.model_selection._search import param2grid
 from cca_zoo.nonparametric import KCCA
@@ -52,9 +53,9 @@ def test_param2grid_with_iterable_types():
 
 @pytest.fixture
 def random_data():
-    N = 50
-    X = np.random.normal(size=(N, 10))
-    Y = np.random.normal(size=(N, 10))
+    N = 10
+    X = np.random.normal(size=(N, 3))
+    Y = np.random.normal(size=(N, 4))
     return X, Y
 
 

@@ -34,7 +34,8 @@ class SequentialModel(MetaEstimatorMixin, BaseModel, metaclass=ABCMeta):
             accept_sparse=accept_sparse,
             random_state=random_state,
         )
-        # Check the estimator has 1 latent dimension or if it is GridSearchCV or RandomizedSearchCV that the base estimator has 1 latent dimension
+        # Check the estimator has 1 latent dimension or if it is GridSearchCV or RandomizedSearchCV that the base
+        # estimator has 1 latent dimension
         if hasattr(estimator, "estimator"):
             if estimator.estimator.latent_dimensions != 1:
                 raise ValueError(
@@ -70,11 +71,14 @@ class SequentialModel(MetaEstimatorMixin, BaseModel, metaclass=ABCMeta):
         self.weights_ = [[] for view in views]
         self.p_values = []
         # Loop over the latent dimensions
-        for k in range(self.latent_dimensions):
+        k = 0
+        while k < self.latent_dimensions:
             # Fit the estimator with the current representations
             self.estimator.set_params(**self.estimator_hyperparams)
             self.estimator.fit(views)
             # Perform permutation test if required
+            p_value = None
+            best_estimator = self.estimator
             if self.permutation_test:
                 # Get the best estimator if it exists, otherwise use the original estimator
                 best_estimator = getattr(
@@ -91,16 +95,22 @@ class SequentialModel(MetaEstimatorMixin, BaseModel, metaclass=ABCMeta):
                 self.p_values.append(p_value)
             # Check if the stopping criterion is met based on p-value or correlation score
             if (
-                p_value >= self.p_threshold
-                or best_estimator.score(views) < self.corr_threshold
-            ):
-                self.p_values.pop()
+                p_value is not None and p_value >= self.p_threshold
+            ) or best_estimator.score(views) < self.corr_threshold:
+                if p_value is not None:
+                    self.p_values.pop()
                 break
             else:
                 # Deflate the representations and store the weights_
                 views = deflate_views(views, best_estimator.weights_)
                 for i, weight in enumerate(best_estimator.weights_):
                     self.weights_[i].append(weight)
+                k += 1
+
+        # Safety check to ensure the loop hasn't resulted in empty weights
+        if all(len(w) == 0 for w in self.weights_):
+            raise ValueError("No significant latent dimensions found.")
+
         # Set the final latent dimensions to k
         self.latent_dimensions = k
         # Concatenate the weights_ from each effect

@@ -3,7 +3,6 @@ import scipy.sparse as sp
 from scipy.stats import loguniform
 from sklearn.utils.validation import check_random_state
 
-from cca_zoo.datasets import JointData
 from cca_zoo.linear import (
     CCA,
     GCCA,

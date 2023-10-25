@@ -1,8 +1,6 @@
 import pytest
-from sklearn import clone
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.pipeline import Pipeline
-from sklearn.utils._testing import set_random_state
 from sklearn.utils.estimator_checks import check_estimator
 
 from cca_zoo.linear import (
@@ -26,7 +24,6 @@ from cca_zoo.linear import (
     MPLS,
     PLS,
     PRCCA,
-    TCCA,
 )
 
 

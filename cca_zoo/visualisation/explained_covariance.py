@@ -4,7 +4,6 @@ import matplotlib.ticker as mtick
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.ticker as mtick
 
 from cca_zoo.utils.check_values import check_seaborn_support
 

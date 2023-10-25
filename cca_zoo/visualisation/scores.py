@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-from cca_zoo.utils.check_values import check_seaborn_support
 import numpy as np
+import pandas as pd
+import seaborn as sns
 
+from cca_zoo.utils.check_values import check_seaborn_support
 from cca_zoo.utils.cross_correlation import cross_corrcoef
 
 

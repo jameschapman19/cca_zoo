@@ -32,11 +32,11 @@ class PLS(rCCA, PLSMixin):
 
     Parameters
     ----------
-    latent_dimensions : int, optional
+    latent_dimensions: int, optional
         Number of latent dimensions to use, by default 1
-    copy_data : bool, optional
+    copy_data: bool, optional
         Whether to copy the data, by default True
-    random_state : int, optional
+    random_state: int, optional
         Random state, by default None
 
     Examples
@@ -71,11 +71,11 @@ class MPLS(MCCA, PLSMixin):
 
     Parameters
     ----------
-    latent_dimensions : int, optional
+    latent_dimensions: int, optional
         Number of latent dimensions to use, by default 1
-    copy_data : bool, optional
+    copy_data: bool, optional
         Whether to copy the data, by default True
-    random_state : int, optional
+    random_state: int, optional
         Random state, by default None
     """
 

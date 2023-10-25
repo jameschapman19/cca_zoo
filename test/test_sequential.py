@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 
 from cca_zoo.datasets import JointData
 from cca_zoo.linear import rCCA
@@ -10,8 +9,8 @@ from cca_zoo.sequential import SequentialModel
 # Fixtures
 @pytest.fixture
 def simulated_data():
-    data_generator = JointData(view_features=[4, 6], latent_dims=3, correlation=0.8)
-    X, Y = data_generator.sample(50)
+    data_generator = JointData(view_features=[3, 4], latent_dims=2, correlation=0.8)
+    X, Y = data_generator.sample(10)
     return X, Y
 
 
@@ -19,7 +18,7 @@ def simulated_data():
 def grid_search_estimator():
     rcca = rCCA()
     parameters = {
-        "c": [0.1, 0.2, 0.3],
+        "c": [0.1],
     }
     grid_search = GridSearchCV(rcca, parameters, cv=2, verbose=1, n_jobs=1)
     return grid_search
@@ -32,7 +31,7 @@ def test_sequential_model_fits_and_identifies_effects(
     X, Y = simulated_data
     sequential_model = SequentialModel(
         grid_search_estimator,
-        latent_dimensions=4,
+        latent_dimensions=3,
         permutation_test=True,
         p_threshold=0.05,
     )

@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
-from sklearn.utils import check_matplotlib_support
+import seaborn as sns
 
 from cca_zoo.utils.check_values import check_seaborn_support
 

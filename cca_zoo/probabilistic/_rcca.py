@@ -1,12 +1,9 @@
 import jax.numpy as jnp
+import numpy as np
 import numpyro
 import numpyro.distributions as dist
-from jax import random
 
 from cca_zoo.probabilistic._cca import ProbabilisticCCA
-import numpy as np
-
-from cca_zoo.utils import _process_parameter
 
 
 class ProbabilisticRCCA(ProbabilisticCCA):

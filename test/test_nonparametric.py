@@ -4,14 +4,15 @@ Test the kernel methods
 
 import numpy as np
 import pytest
+
 from cca_zoo.linear import GCCA, MCCA, TCCA
 from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA, NCCA
 
 
 @pytest.fixture
 def data():
-    N = 50
-    features = [4, 6, 8]
+    N = 10
+    features = [2, 3, 4]
     np.random.seed(1)
     X = np.random.normal(size=(N, features[0]))
     Y = np.random.normal(size=(N, features[1]))

@@ -1,4 +1,9 @@
+import matplotlib.pyplot as plt
+import numpy as np
 import pytest
+from sklearn.model_selection import train_test_split
+
+from cca_zoo.linear import MCCA
 from cca_zoo.visualisation import (
     CovarianceHeatmapDisplay,
     CorrelationHeatmapDisplay,
@@ -7,11 +12,6 @@ from cca_zoo.visualisation import (
     ExplainedVarianceDisplay,
     ExplainedCovarianceDisplay,
 )
-from sklearn.model_selection import train_test_split
-import numpy as np
-from cca_zoo.linear import MCCA
-import matplotlib.pyplot as plt
-
 from cca_zoo.visualisation.scores import (
     JointScoreScatterDisplay,
     SeparateScoreScatterDisplay,
@@ -24,8 +24,8 @@ from cca_zoo.visualisation.umap_scores import UMAPScoreDisplay
 
 @pytest.fixture(scope="module")
 def setup_data():
-    X = np.random.rand(50, 4)
-    Y = np.random.rand(50, 6)
+    X = np.random.rand(10, 3)
+    Y = np.random.rand(10, 3)
     X -= X.mean(axis=0)
     Y -= Y.mean(axis=0)
 

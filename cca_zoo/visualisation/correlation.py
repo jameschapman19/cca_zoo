@@ -1,9 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from sklearn.utils import check_matplotlib_support
 
-from cca_zoo.utils.check_values import check_seaborn_support, check_tsne_support
+from cca_zoo.utils.check_values import check_seaborn_support
 
 
 class CorrelationHeatmapDisplay:

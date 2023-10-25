@@ -1,7 +1,7 @@
 import torch
+import torch.nn.functional as F
 
 from ._dcca import DCCA
-import torch.nn.functional as F
 
 
 class VICReg(DCCA):

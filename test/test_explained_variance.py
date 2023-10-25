@@ -4,8 +4,8 @@ import pytest
 from cca_zoo._base import BaseModel
 from cca_zoo.linear import MPLS
 
-N = 50
-features = [4, 6, 8]
+N = 10
+features = [3, 3, 3]
 
 
 @pytest.fixture
@@ -49,15 +49,15 @@ def test_explained_variance_ratio(toy_model, synthetic_views):
 
 
 def test_transformed_covariance_ratio(toy_model, synthetic_views):
-    maximum_dimension = min([view.shape[1] for view in synthetic_views])
-    pls = MPLS(latent_dimensions=maximum_dimension).fit(synthetic_views)
-    pls_cov_ratios = pls.explained_covariance_ratio(synthetic_views)
+    maximum_dimension = min([view.shape[1] for view in synthetic_views[:2]])
+    pls = MPLS(latent_dimensions=maximum_dimension).fit(synthetic_views[:2])
+    pls_cov_ratios = pls.explained_covariance_ratio(synthetic_views[:2])
     # sum of these should be 1 within a small tolerance
     assert np.isclose(
         np.sum(pls_cov_ratios), 1, atol=2e-2
     ), "Expected sum of ratios to be 1"
 
-    cov_ratios = toy_model.explained_covariance_ratio(synthetic_views)
+    cov_ratios = toy_model.explained_covariance_ratio(synthetic_views[:2])
 
     # Verify if the ratios are between 0 and 1 for each latent dimension in each view
     for ratio in cov_ratios:

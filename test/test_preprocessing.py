@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from sklearn.preprocessing import StandardScaler
+
 from cca_zoo.preprocessing import MultiViewPreprocessing
 
 

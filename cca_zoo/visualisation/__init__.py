@@ -1,4 +1,8 @@
+from .correlation import CorrelationHeatmapDisplay
+from .covariance import CovarianceHeatmapDisplay
+from .explained_covariance import ExplainedCovarianceDisplay
 from .explained_variance import ExplainedVarianceDisplay
+from .inference import WeightInferenceDisplay
 from .scores import (
     ScoreScatterDisplay,
     JointScoreScatterDisplay,
@@ -6,13 +10,9 @@ from .scores import (
     SeparateJointScoreDisplay,
     PairScoreScatterDisplay,
 )
-from .explained_covariance import ExplainedCovarianceDisplay
-from .weights import WeightHeatmapDisplay
-from .correlation import CorrelationHeatmapDisplay
-from .covariance import CovarianceHeatmapDisplay
 from .tsne_scores import TSNEScoreDisplay
 from .umap_scores import UMAPScoreDisplay
-from .inference import WeightInferenceDisplay
+from .weights import WeightHeatmapDisplay
 
 __all__ = [
     "ExplainedVarianceDisplay",

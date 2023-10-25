@@ -1,5 +1,3 @@
-import itertools
-
 import numpy as np
 from mvlearn.compose import SimpleSplitter
 from sklearn import clone
