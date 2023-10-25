@@ -3,7 +3,7 @@ from typing import Iterable, Union
 import numpy as np
 
 from cca_zoo.linear._mcca import MCCA
-from cca_zoo.utils.check_values import _process_parameter
+from cca_zoo._utils.check_values import _process_parameter
 
 
 class GCCA(MCCA):

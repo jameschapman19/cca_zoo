@@ -3,7 +3,7 @@ import os
 import numpy as np
 from sklearn.utils import Bunch
 
-from cca_zoo.utils.check_values import check_rdata_support
+from cca_zoo._utils.check_values import check_rdata_support
 
 DATA_MODULE = "cca_zoo.datasets.data"
 

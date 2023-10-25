@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-from cca_zoo.utils.check_values import check_seaborn_support
+from cca_zoo._utils.check_values import check_seaborn_support
 
 
 class CovarianceHeatmapDisplay:

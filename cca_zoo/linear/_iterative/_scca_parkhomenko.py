@@ -4,7 +4,7 @@ import numpy as np
 
 from cca_zoo.linear._iterative._base import BaseIterative
 from cca_zoo.linear._iterative._deflation import DeflationMixin
-from cca_zoo.utils import _process_parameter
+from cca_zoo._utils import _process_parameter
 
 
 class SCCA_Parkhomenko(DeflationMixin, BaseIterative):

@@ -4,7 +4,7 @@ from typing import Iterable
 import numpy as np
 
 from cca_zoo.linear._mcca import MCCA
-from cca_zoo.utils import _process_parameter
+from cca_zoo._utils import _process_parameter
 
 
 class GRCCA(MCCA):

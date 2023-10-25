@@ -12,7 +12,7 @@ Features:
 
 """
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from cca_zoo.deep import DCCA, DTCCA, architectures, objectives
 
 # %%

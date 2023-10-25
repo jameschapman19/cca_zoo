@@ -61,7 +61,7 @@ class CustomDataset(torch.utils.data.Dataset):
         return 10
 
     def __getitem__(self, index):
-        return {"representations": (torch.rand(10), torch.rand(10))}
+        return {"views": (torch.rand(10), torch.rand(10))}
 
 
 custom_dataset = CustomDataset()

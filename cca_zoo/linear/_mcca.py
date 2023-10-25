@@ -5,7 +5,7 @@ from scipy.linalg import block_diag, eigh
 from sklearn.decomposition import PCA
 
 from cca_zoo._base import BaseModel
-from cca_zoo.utils import _process_parameter
+from cca_zoo._utils import _process_parameter
 
 
 class MCCA(BaseModel):

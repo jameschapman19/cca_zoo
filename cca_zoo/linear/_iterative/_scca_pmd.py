@@ -7,8 +7,8 @@ import numpy as np
 from cca_zoo.linear._iterative._base import BaseIterative
 from cca_zoo.linear._iterative._deflation import DeflationMixin
 from cca_zoo.linear._search import _delta_search
-from cca_zoo.utils import _process_parameter
-from cca_zoo.utils.cross_correlation import cross_corrcoef
+from cca_zoo._utils import _process_parameter
+from cca_zoo._utils.cross_correlation import cross_corrcoef
 
 
 class SCCA_PMD(DeflationMixin, BaseIterative):

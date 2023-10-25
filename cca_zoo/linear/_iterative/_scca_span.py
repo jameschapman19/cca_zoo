@@ -6,7 +6,7 @@ from cca_zoo.linear._iterative._base import BaseIterative
 from cca_zoo.linear._iterative._deflation import DeflationMixin
 from cca_zoo.linear._search import _delta_search
 from cca_zoo.linear._search import support_threshold
-from cca_zoo.utils import _process_parameter, cross_cov
+from cca_zoo._utils import _process_parameter, cross_cov
 
 
 class SCCA_Span(DeflationMixin, BaseIterative):

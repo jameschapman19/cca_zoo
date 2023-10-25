@@ -1,4 +1,4 @@
-from cca_zoo.utils.check_values import check_arviz_support
+from cca_zoo._utils.check_values import check_arviz_support
 
 
 class WeightInferenceDisplay:

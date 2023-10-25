@@ -7,7 +7,7 @@ from scipy.linalg import block_diag
 from sklearn.datasets import make_spd_matrix
 from sklearn.utils.validation import check_random_state
 
-from cca_zoo.utils import _process_parameter
+from cca_zoo._utils import _process_parameter
 
 
 class BaseData(ABC):

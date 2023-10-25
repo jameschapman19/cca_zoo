@@ -8,7 +8,7 @@ from scipy.linalg import block_diag
 from sklearn.base import BaseEstimator, MultiOutputMixin, TransformerMixin
 from sklearn.utils.validation import check_is_fitted, check_array
 
-from cca_zoo.utils.cross_correlation import cross_corrcoef
+from cca_zoo._utils.cross_correlation import cross_corrcoef
 
 
 class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):

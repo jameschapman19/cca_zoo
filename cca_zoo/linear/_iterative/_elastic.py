@@ -5,7 +5,7 @@ from sklearn.linear_model import ElasticNet, Lasso, Ridge, SGDRegressor
 
 from cca_zoo.linear._iterative._base import BaseIterative
 from cca_zoo.linear._iterative._deflation import DeflationMixin
-from cca_zoo.utils import _process_parameter
+from cca_zoo._utils import _process_parameter
 
 
 # Define SCCA_Elastic class

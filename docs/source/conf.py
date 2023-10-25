@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath("../.."))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "CCALoss-Zoo"
+project = "CCA-Zoo"
 copyright = "2023, James Chapman"
 author = "James Chapman"
 
@@ -50,13 +50,10 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "sklearn": ("http://scikit-learn.org/dev", None),
     "torch": ("https://pytorch.org/docs/master", None),
-    "pytorch_lightning": (
-        "https://pytorch-lightning.readthedocs.io/en/stable/index.html#",
-        None,
-    ),
     "jax": ("https://jax.readthedocs.io/en/latest/", None),
     "numpyro": ("https://numpyro.readthedocs.io/en/latest/", None),
     "jaxlib": ("https://jax.readthedocs.io/en/latest/", None),
+    "lightning": ("https://pytorch-lightning.readthedocs.io/en/latest/", None),
 }
 
 autodoc_default_options = {

@@ -3,7 +3,7 @@ import torch
 from tensorly.cp_tensor import cp_to_tensor
 from tensorly.decomposition import parafac
 
-from cca_zoo.utils import cross_cov
+from cca_zoo._utils import cross_cov
 
 
 def inv_sqrtm(A, eps=1e-9):
