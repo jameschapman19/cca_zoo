@@ -42,7 +42,7 @@ dcca_mcca = DCCA(
     encoders=[encoder_1, encoder_2],
     objective=objectives.MCCALoss,
 )
-trainer_mcca = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False)
+trainer_mcca = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False, enable_model_summary=False,enable_progress_bar=False)
 trainer_mcca.fit(dcca_mcca, train_loader, val_loader)
 
 # %%
@@ -56,7 +56,7 @@ dcca_gcca = DCCA(
     encoders=[encoder_1, encoder_2],
     objective=objectives.GCCALoss,
 )
-trainer_gcca = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False)
+trainer_gcca = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False, enable_model_summary=False,enable_progress_bar=False)
 trainer_gcca.fit(dcca_gcca, train_loader, val_loader)
 
 # %%
@@ -65,5 +65,5 @@ trainer_gcca.fit(dcca_gcca, train_loader, val_loader)
 # An approach where representations share the same weight parameters during training.
 
 dcca_tcca = DTCCA(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
-trainer_tcca = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False)
+trainer_tcca = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False, enable_model_summary=False,enable_progress_bar=False)
 trainer_tcca.fit(dcca_tcca, train_loader, val_loader)

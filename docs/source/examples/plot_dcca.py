@@ -18,8 +18,8 @@ Key Features:
 # Imports
 # -------
 
-import pytorch_lightning as pl
-from pytorch_lightning import seed_everything
+import lightning.pytorch as pl
+from lightning import seed_everything
 from matplotlib import pyplot as plt
 from cca_zoo.deep import DCCA, DCCA_EY, DCCA_NOI, DCCA_SDL, BarlowTwins, architectures
 from cca_zoo.deep._discriminative import VICReg
@@ -56,7 +56,7 @@ encoder_2 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=39
 dcca = DCCA(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
-    enable_checkpointing=False,
+    enable_checkpointing=False, enable_model_summary=False, enable_progress_bar=False
 )
 trainer.fit(dcca, train_loader, val_loader)
 # Visualizing the Latent Space
@@ -68,7 +68,7 @@ trainer.fit(dcca, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     dcca, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot(title="Deep CCALoss")
+score_display.plot(title="Deep CCA")
 plt.show()
 
 # UMAP Visualization
@@ -98,7 +98,7 @@ dcca_eg = DCCA_EY(
 )
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
-    enable_checkpointing=False,
+    enable_checkpointing=False,enable_model_summary=False,enable_progress_bar=False
 )
 trainer.fit(dcca_eg, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
@@ -116,7 +116,7 @@ plt.show()
 dcca_noi = DCCA_NOI(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
-    enable_checkpointing=False,
+    enable_checkpointing=False, enable_model_summary=False,enable_progress_bar=False
 )
 trainer.fit(dcca_noi, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
@@ -136,7 +136,7 @@ dcca_sdl = DCCA_SDL(
 )
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
-    enable_checkpointing=False,
+    enable_checkpointing=False, enable_model_summary=False,enable_progress_bar=False
 )
 trainer.fit(dcca_sdl, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
@@ -157,7 +157,7 @@ barlowtwins = BarlowTwins(
 )
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
-    enable_checkpointing=False,
+    enable_checkpointing=False, enable_model_summary=False,enable_progress_bar=False
 )
 trainer.fit(barlowtwins, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
@@ -178,7 +178,7 @@ dcca_vicreg = DCCA_SDL(
 )
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
-    enable_checkpointing=False,
+    enable_checkpointing=False, enable_model_summary=False,enable_progress_bar=False
 )
 trainer.fit(dcca_vicreg, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
