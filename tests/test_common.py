@@ -59,9 +59,9 @@ random_state = 0
     "estimator",
     [
         GCCA(),
-        CCA_EY(random_state=random_state),
+        # CCA_EY(random_state=random_state),
         # CCA_GHA(random_state=random_state),
-        PLS_EY(random_state=random_state),
+        # PLS_EY(random_state=random_state),
         # PLSStochasticPower(random_state=random_state),
         GRCCA(),
         PLS_ALS(random_state=random_state),

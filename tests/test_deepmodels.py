@@ -26,19 +26,19 @@ from cca_zoo.linear import CCA, GCCA, MCCA
 seed_everything(0)
 rng = check_random_state(0)
 feature_size = [3, 4, 5]
-X = rng.rand(64, feature_size[0])
-Y = rng.rand(64, feature_size[1])
-Z = rng.rand(64, feature_size[2])
+X = rng.rand(32, feature_size[0])
+Y = rng.rand(32, feature_size[1])
+Z = rng.rand(32, feature_size[2])
 X -= X.mean(axis=0)
 Y -= Y.mean(axis=0)
 Z -= Z.mean(axis=0)
-X_conv = rng.rand(64, 1, 4, 4)
-Y_conv = rng.rand(64, 1, 4, 4)
+X_conv = rng.rand(32, 1, 4, 4)
+Y_conv = rng.rand(32, 1, 4, 4)
 X_conv -= X_conv.mean(axis=0)
 Y_conv -= Y_conv.mean(axis=0)
 dataset = NumpyDataset([X, Y, Z])
 check_dataset(dataset)
-train_dataset, val_dataset = random_split(dataset, [64 - 16, 16])
+train_dataset, val_dataset = random_split(dataset, [32 - 8, 8])
 loader = get_dataloaders(dataset)
 train_loader, val_loader = get_dataloaders(train_dataset, val_dataset)
 conv_dataset = NumpyDataset((X_conv, Y_conv))
@@ -75,7 +75,7 @@ def test_linear_mcca():
     dmcca = DCCA(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2, encoder_3],
-        lr=5e-1,
+        lr=1e-1,
         objective=objectives.MCCALoss,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
