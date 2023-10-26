@@ -41,8 +41,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
     """
 
-    _loadings = None
-    _canonical_loadings = None
+    weights_=None
 
     def __init__(
         self,
@@ -276,12 +275,10 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
             Loadings for each view.
         """
         check_is_fitted(self, attributes=["weights_"])
-        if self._loadings is None:
-            # Compute loadings_ only if they haven't been computed yet
-            self._loadings = [
+        loadings=[
                 weights / np.linalg.norm(weights, axis=0) for weights in self.weights_
             ]
-        return self._loadings
+        return loadings
 
     def explained_variance(self, views: Iterable[np.ndarray]) -> List[np.ndarray]:
         """

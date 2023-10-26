@@ -48,17 +48,16 @@ sphinx_gallery_conf = {
 intersphinx_mapping = {
     "numpy": ("https://docs.scipy.org/doc/numpy", None),
     "python": ("https://docs.python.org/3", None),
-    "sklearn": ("http://scikit-learn.org/dev", None),
-    # "torch": ("https://pytorch.org/docs/master", None),
-    # "jax": ("https://jax.readthedocs.io/en/latest/", None),
-    # "numpyro": ("https://numpyro.readthedocs.io/en/latest/", None),
-    # "jaxlib": ("https://jax.readthedocs.io/en/latest/", None),
-    # "lightning": ("https://pytorch-lightning.readthedocs.io/en/latest/", None),
+    "sklearn": ("https://scikit-learn.org/dev", None),
+    "torch": ("https://pytorch.org/docs/master", None),
+    "jax": ("https://jax.readthedocs.io/en/latest/", None),
+    "numpyro": ("https://numpyro.readthedocs.io/en/latest/", None),
+    "jaxlib": ("https://jax.readthedocs.io/en/latest/", None),
+    "lightning": ("https://pytorch-lightning.readthedocs.io/en/latest/", None),
 }
 
 autodoc_default_options = {
     "members": True,
-    "inherited-members": True,
     "show-inheritance": True,
     "member-order": "bysource",
 }
