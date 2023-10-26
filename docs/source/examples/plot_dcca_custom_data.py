@@ -14,7 +14,7 @@ Key Features:
 """
 
 import numpy as np
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 
 # %%
 # Converting Numpy Arrays into Datasets
