@@ -103,11 +103,11 @@ def get_dataloaders(
 
 
 class DoubleNumpyDataset(NumpyDataset):
-    def __init__(self, views, batch_size=None):
+    def __init__(self, views, batch_size=None, random_state=None):
         super().__init__(views)
         self.views = [view.astype(np.float32) for view in views]
         self.batch_size = batch_size
-        self.random_state = check_random_state(0)
+        self.random_state = check_random_state(random_state)
 
     def __getitem__(self, index):
         views = [view[index] for view in self.views]

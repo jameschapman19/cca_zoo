@@ -60,7 +60,7 @@ random_state = 0
     [
         GCCA(),
         CCA_EY(random_state=random_state),
-        CCA_GHA(random_state=random_state),
+        # CCA_GHA(random_state=random_state),
         PLS_EY(random_state=random_state),
         # PLSStochasticPower(random_state=random_state),
         GRCCA(),
