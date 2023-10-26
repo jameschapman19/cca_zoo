@@ -259,7 +259,7 @@ class KGCCA(KernelMixin, GCCA):
             for i, view in enumerate(self.train_views)
         ]
         self.weights_ = [
-            np.linalg.pinv(kernel) @ eigvecs[:,: self.latent_dimensions]
+            np.linalg.pinv(kernel) @ eigvecs[:, : self.latent_dimensions]
             for kernel in kernels
         ]
 
