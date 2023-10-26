@@ -56,7 +56,9 @@ encoder_2 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=39
 dcca = DCCA(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
-    enable_checkpointing=False, enable_model_summary=False, enable_progress_bar=False
+    enable_checkpointing=False,
+    enable_model_summary=False,
+    enable_progress_bar=False,
 )
 trainer.fit(dcca, train_loader, val_loader)
 # Visualizing the Latent Space
@@ -98,7 +100,9 @@ dcca_eg = DCCA_EY(
 )
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
-    enable_checkpointing=False,enable_model_summary=False,enable_progress_bar=False
+    enable_checkpointing=False,
+    enable_model_summary=False,
+    enable_progress_bar=False,
 )
 trainer.fit(dcca_eg, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
@@ -116,7 +120,9 @@ plt.show()
 dcca_noi = DCCA_NOI(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
-    enable_checkpointing=False, enable_model_summary=False,enable_progress_bar=False
+    enable_checkpointing=False,
+    enable_model_summary=False,
+    enable_progress_bar=False,
 )
 trainer.fit(dcca_noi, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
@@ -136,7 +142,9 @@ dcca_sdl = DCCA_SDL(
 )
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
-    enable_checkpointing=False, enable_model_summary=False,enable_progress_bar=False
+    enable_checkpointing=False,
+    enable_model_summary=False,
+    enable_progress_bar=False,
 )
 trainer.fit(dcca_sdl, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
@@ -157,7 +165,9 @@ barlowtwins = BarlowTwins(
 )
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
-    enable_checkpointing=False, enable_model_summary=False,enable_progress_bar=False
+    enable_checkpointing=False,
+    enable_model_summary=False,
+    enable_progress_bar=False,
 )
 trainer.fit(barlowtwins, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
@@ -178,7 +188,9 @@ dcca_vicreg = DCCA_SDL(
 )
 trainer = pl.Trainer(
     max_epochs=EPOCHS,
-    enable_checkpointing=False, enable_model_summary=False,enable_progress_bar=False
+    enable_checkpointing=False,
+    enable_model_summary=False,
+    enable_progress_bar=False,
 )
 trainer.fit(dcca_vicreg, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
