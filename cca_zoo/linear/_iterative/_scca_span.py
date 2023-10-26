@@ -2,16 +2,16 @@ from typing import Union, Iterable
 
 import numpy as np
 
-from cca_zoo.linear._iterative._base import BaseIterative
-from cca_zoo.linear._iterative._deflation import DeflationMixin
+from cca_zoo.linear._iterative._base import _BaseIterative
+from cca_zoo.linear._iterative._deflation import _DeflationMixin
 from cca_zoo.linear._search import _delta_search
 from cca_zoo.linear._search import support_threshold
 from cca_zoo._utils import _process_parameter, cross_cov
 
 
-class SCCA_Span(DeflationMixin, BaseIterative):
+class SCCA_Span(_DeflationMixin, _BaseIterative):
     r"""
-    Fits a Sparse CCALoss model using SpanCCA.
+    Fits a Sparse _CCALoss model using SpanCCA.
 
     .. math::
 
@@ -23,7 +23,7 @@ class SCCA_Span(DeflationMixin, BaseIterative):
 
     References
     ----------
-    Asteris, Megasthenis, et al. "A simple and provable algorithm for sparse diagonal CCALoss." International Conference on Machine Learning. PMLR, 2016.
+    Asteris, Megasthenis, et al. "A simple and provable algorithm for sparse diagonal _CCALoss." International Conference on Machine Learning. PMLR, 2016.
     """
 
     def __init__(

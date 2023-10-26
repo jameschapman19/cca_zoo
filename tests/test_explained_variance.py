@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from cca_zoo._base import BaseModel
+from cca_zoo._base import _BaseModel
 from cca_zoo.linear import MPLS
 
 N = 10
@@ -15,7 +15,7 @@ def rng():
 
 @pytest.fixture
 def toy_model(rng):
-    model = BaseModel()
+    model = _BaseModel()
     model.weights_ = [
         rng.random((features[0], 3)),
         rng.random((features[1], 3)),

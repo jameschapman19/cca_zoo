@@ -1,5 +1,5 @@
 from cca_zoo.deep._discriminative._dcca_ey import DCCA_EY
-from cca_zoo.deep.objectives import CCA_SVDLoss
+from cca_zoo.deep.objectives import _CCA_SVDLoss
 
 
 class DCCA_SVD(DCCA_EY):
@@ -14,4 +14,4 @@ class DCCA_SVD(DCCA_EY):
         super().__init__(
             latent_dimensions=latent_dimensions, encoders=encoders, eps=eps, **kwargs
         )
-        self.objective = CCA_SVDLoss(eps=eps)
+        self.objective = _CCA_SVDLoss(eps=eps)

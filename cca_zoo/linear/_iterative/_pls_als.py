@@ -2,11 +2,11 @@ from typing import Union
 
 import numpy as np
 
-from cca_zoo.linear._iterative._base import BaseIterative
-from cca_zoo.linear._iterative._deflation import DeflationMixin
+from cca_zoo.linear._iterative._base import _BaseIterative
+from cca_zoo.linear._iterative._deflation import _DeflationMixin
 
 
-class PLS_ALS(DeflationMixin, BaseIterative):
+class PLS_ALS(_DeflationMixin, _BaseIterative):
     def __init__(
         self,
         latent_dimensions: int = 1,

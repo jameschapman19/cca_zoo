@@ -37,7 +37,7 @@ for dim in dimensions:
         X -= X.mean(axis=0)
         Y -= Y.mean(axis=0)
 
-        # CCALoss-Zoo
+        # _CCALoss-Zoo
         start_time = time.time()
         cca_zoo = CCA(latent_dimensions=latent_dimensions)
         cca_zoo.fit((X, Y))
@@ -69,7 +69,7 @@ df = pd.DataFrame(results)
 # Seaborn Plot
 plt.figure(figsize=(10, 6))
 sns.lineplot(data=df, x="Dimension", y="Time", hue="Method", marker="o", errorbar="sd")
-plt.title("CCALoss Performance comparison with Uncertainty")
+plt.title("_CCALoss Performance comparison with Uncertainty")
 plt.xlabel("Dimension")
 plt.ylabel("Average Execution Time (seconds)")
 plt.tight_layout()

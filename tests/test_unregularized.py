@@ -22,7 +22,7 @@ def data():
 
 
 def test_unregularized_methods(data):
-    """Test unregularized CCALoss methods for 2 representations."""
+    """Test unregularized _CCALoss methods for 2 representations."""
     (
         X,
         Y,
@@ -42,13 +42,13 @@ def test_unregularized_methods(data):
         method.fit([X, Y]).average_pairwise_correlations((X, Y)) for method in methods
     ]
 
-    # Comparing all scores to the score of the first method (CCALoss here)
+    # Comparing all scores to the score of the first method (_CCALoss here)
     for score in scores[1:]:
         assert np.testing.assert_array_almost_equal(scores[0], score, decimal=1) is None
 
 
 def test_unregularized_multi(data):
-    """Test unregularized CCALoss methods for more than 2 representations."""
+    """Test unregularized _CCALoss methods for more than 2 representations."""
     X, Y, Z = data
     latent_dims = 2
     methods = [

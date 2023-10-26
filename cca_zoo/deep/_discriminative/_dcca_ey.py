@@ -1,5 +1,5 @@
 from ._dcca import DCCA
-from ..objectives import CCA_EYLoss
+from ..objectives import _CCA_EYLoss
 
 
 class DCCA_EY(DCCA):
@@ -14,7 +14,7 @@ class DCCA_EY(DCCA):
         super().__init__(
             latent_dimensions=latent_dimensions, encoders=encoders, eps=eps, **kwargs
         )
-        self.objective = CCA_EYLoss(eps=eps)
+        self.objective = _CCA_EYLoss(eps=eps)
 
     def loss(self, batch, **kwargs):
         # Encoding the representations with the forward method

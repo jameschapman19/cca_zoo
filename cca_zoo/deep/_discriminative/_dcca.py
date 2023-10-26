@@ -18,7 +18,7 @@ class DCCA(BaseDeep):
     def __init__(
         self,
         latent_dimensions: int,
-        objective=objectives.MCCALoss,
+        objective=objectives._MCCALoss,
         encoders=None,
         eps: float = 1e-5,
         **kwargs,

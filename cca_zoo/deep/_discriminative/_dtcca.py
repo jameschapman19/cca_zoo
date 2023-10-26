@@ -10,7 +10,7 @@ class DTCCA(DCCA):
 
     References
     ----------
-    Wong, Hok Shing, et al. "Deep Tensor CCALoss for Multi-view Learning." IEEE Transactions on Big Data (2021).
+    Wong, Hok Shing, et al. "Deep Tensor _CCALoss for Multi-view Learning." IEEE Transactions on Big Data (2021).
 
     """
 
@@ -20,7 +20,7 @@ class DTCCA(DCCA):
         # Call the parent class constructor with the DTCCA objective function
         super().__init__(
             latent_dimensions=latent_dimensions,
-            objective=objectives.TCCALoss,
+            objective=objectives._TCCALoss,
             encoders=encoders,
             eps=eps,
             **kwargs

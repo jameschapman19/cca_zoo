@@ -18,7 +18,7 @@ class DCCAE(DCCA, _GenerativeMixin):
     def __init__(
         self,
         latent_dimensions: int,
-        objective=objectives.MCCALoss,
+        objective=objectives._MCCALoss,
         encoders=None,
         decoders=None,
         eps: float = 1e-5,

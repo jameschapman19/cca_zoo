@@ -1,5 +1,5 @@
 from cca_zoo.deep._discriminative._dcca_ey import DCCA_EY
-from cca_zoo.deep.objectives import CCA_GHALoss
+from cca_zoo.deep.objectives import _CCA_GHALoss
 
 
 class DCCA_GHA(DCCA_EY):
@@ -14,4 +14,4 @@ class DCCA_GHA(DCCA_EY):
         super().__init__(
             latent_dimensions=latent_dimensions, encoders=encoders, eps=eps, **kwargs
         )
-        self.objective = CCA_GHALoss(eps=eps)
+        self.objective = _CCA_GHALoss(eps=eps)

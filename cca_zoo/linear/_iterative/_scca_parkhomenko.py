@@ -2,12 +2,12 @@ from typing import Union, Iterable
 
 import numpy as np
 
-from cca_zoo.linear._iterative._base import BaseIterative
-from cca_zoo.linear._iterative._deflation import DeflationMixin
+from cca_zoo.linear._iterative._base import _BaseIterative
+from cca_zoo.linear._iterative._deflation import _DeflationMixin
 from cca_zoo._utils import _process_parameter
 
 
-class SCCA_Parkhomenko(DeflationMixin, BaseIterative):
+class SCCA_Parkhomenko(_DeflationMixin, _BaseIterative):
     def __init__(
         self,
         latent_dimensions: int = 1,

@@ -76,7 +76,7 @@ def test_linear_mcca():
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2, encoder_3],
         lr=1e-1,
-        objective=objectives.MCCALoss,
+        objective=objectives._MCCALoss,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dmcca, loader)
@@ -119,7 +119,7 @@ def test_linear_gcca():
 
 def test_DTCCA_methods():
     max_epochs = 20
-    # check that DTCCA is equivalent to CCALoss for 2 representations with linear encoders
+    # check that DTCCA is equivalent to _CCALoss for 2 representations with linear encoders
     latent_dimensions = 2
     cca = CCA(latent_dimensions=latent_dimensions)
     encoder_1 = architectures.LinearEncoder(
@@ -160,7 +160,7 @@ def test_DCCA_methods():
     dcca = DCCA(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2],
-        objective=objectives.CCALoss,
+        objective=objectives._CCALoss,
         lr=1e-3,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
@@ -281,7 +281,7 @@ def test_DCCA_methods():
     dgcca = DCCA(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2],
-        objective=objectives.GCCALoss,
+        objective=objectives._GCCALoss,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dgcca, train_loader)
@@ -299,7 +299,7 @@ def test_DCCA_methods():
     dmcca = DCCA(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2],
-        objective=objectives.MCCALoss,
+        objective=objectives._MCCALoss,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dmcca, train_loader)

@@ -4,13 +4,13 @@ import numpy as np
 from sklearn.metrics import pairwise_kernels
 from sklearn.neighbors import NearestNeighbors
 
-from cca_zoo._base import BaseModel
+from cca_zoo._base import _BaseModel
 from cca_zoo._utils.check_values import _process_parameter
 
 
-class NCCA(BaseModel):
+class NCCA(_BaseModel):
     """
-    A class used to fit nonparametric (NCCA) model. This model extends CCALoss to nonlinear relationships by using local linear projections based on nearest neighbors.
+    A class used to fit nonparametric (NCCA) model. This model extends _CCALoss to nonlinear relationships by using local linear projections based on nearest neighbors.
 
     Parameters
     ----------

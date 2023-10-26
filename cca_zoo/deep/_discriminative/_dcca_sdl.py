@@ -14,11 +14,11 @@ def sdl_loss(view):
 
 class DCCA_SDL(DCCA):
     """
-    A class used to fit a Deep CCALoss by Stochastic Decorrelation model.
+    A class used to fit a Deep _CCALoss by Stochastic Decorrelation model.
 
     References
     ----------
-    Chang, Xiaobin, Tao Xiang, and Timothy M. Hospedales. "Scalable and effective deep CCALoss via soft decorrelation." Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2018.
+    Chang, Xiaobin, Tao Xiang, and Timothy M. Hospedales. "Scalable and effective deep _CCALoss via soft decorrelation." Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2018.
 
     """
 

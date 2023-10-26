@@ -4,13 +4,13 @@
 #
 # from cca_zoo.utils import _process_parameter
 #
-# from ._base import BaseIterative, BaseLoop
-# from ._deflation import DeflationMixin
+# from ._base import _BaseIterative, BaseLoop
+# from ._deflation import _DeflationMixin
 #
 #
-# class SCCA_ADMM(BaseIterative, DeflationMixin):
+# class SCCA_ADMM(_BaseIterative, _DeflationMixin):
 #     r"""
-#     Fits a sparse CCALoss model by alternating ADMM for two or more representations.
+#     Fits a sparse _CCALoss model by alternating ADMM for two or more representations.
 #
 #     .. math::
 #

@@ -1,3 +1,6 @@
+"""
+Linear CCA methods
+"""
 from ._gcca import GCCA
 from ._gradient import CCA_EY, CCA_GHA, PLS_EY, PLSStochasticPower
 from ._grcca import GRCCA
@@ -29,7 +32,6 @@ __all__ = [
     "PRCCA",
     "TCCA",
     "PCACCA",
-    # "AltMaxVar",
     "SCCA_IPLS",
     "ElasticCCA",
     "PLS_ALS",
@@ -39,6 +41,5 @@ __all__ = [
     "CCA_EY",
     "PLS_EY",
     "CCA_GHA",
-    # "CCA_SVD",
     "PLSStochasticPower",
 ]

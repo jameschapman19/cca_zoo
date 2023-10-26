@@ -10,9 +10,9 @@ from cca_zoo.linear._mcca import MCCA
 
 class TCCA(MCCA):
     r"""
-    A class used to fit TCCALoss model. This model extends MCCALoss to higher order correlations by using tensor products of the representations.
+    A class used to fit TCCA model. This model extends MCCA to higher order correlations by using tensor products of the representations.
 
-    The objective function of TCCALoss is:
+    The objective function of TCCA is:
 
     .. math::
 

@@ -8,9 +8,9 @@ from cca_zoo._utils.check_values import _process_parameter
 
 class GCCA(MCCA):
     r"""
-    A class used to fit GCCALoss model. This model extends CCALoss to more than two representations by optimizing the sum of correlations with a shared auxiliary vector.
+    A class used to fit GCCA model. This model extends CCA to more than two representations by optimizing the sum of correlations with a shared auxiliary vector.
 
-    The objective function of GCCALoss is:
+    The objective function of GCCA is:
 
     .. math::
 
@@ -24,13 +24,13 @@ class GCCA(MCCA):
 
     Examples
     --------
-    >>> from cca_zoo.linear import GCCALoss
+    >>> from cca_zoo.linear import GCCA
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))
     >>> X3 = rng.random((10,5))
-    >>> model = GCCALoss()
+    >>> model = GCCA()
     >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
 
     References

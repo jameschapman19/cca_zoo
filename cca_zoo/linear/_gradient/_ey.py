@@ -2,13 +2,13 @@ from typing import Iterable
 
 import numpy as np
 
-from cca_zoo.deep.objectives import CCA_EYLoss, PLS_EYLoss
+from cca_zoo.deep.objectives import _CCA_EYLoss, _PLS_EYLoss
 from cca_zoo.deep.data import DoubleNumpyDataset
 from cca_zoo.linear._gradient._base import BaseGradientModel
 
 
 class CCA_EY(BaseGradientModel):
-    objective = CCA_EYLoss()
+    objective = _CCA_EYLoss()
 
     def _more_tags(self):
         return {"multiview": True, "stochastic": True, "non_deterministic": True}
@@ -69,7 +69,7 @@ class CCA_EY(BaseGradientModel):
 
 
 class PLS_EY(CCA_EY):
-    objective = PLS_EYLoss()
+    objective = _PLS_EYLoss()
 
     def training_step(self, batch, batch_idx):
         representations = self(batch["views"])

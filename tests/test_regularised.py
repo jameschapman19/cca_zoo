@@ -106,7 +106,7 @@ def test_sparse_methods():
 
 
 def test_weighted_GCCA_methods():
-    # TODO we have view weighted GCCALoss and missing observation GCCALoss
+    # TODO we have view weighted _GCCALoss and missing observation _GCCALoss
     latent_dims = 2
     c = 0
     unweighted_gcca = GCCA(latent_dimensions=latent_dims, c=[c, c]).fit([X, Y])
@@ -136,7 +136,7 @@ def test_l0():
 
 
 def test_partialcca():
-    # Tests that partial CCALoss scores are not correlated with partials
+    # Tests that partial _CCALoss scores are not correlated with partials
     pcca = PartialCCA(latent_dimensions=3)
     pcca.fit((X, Y), partials=Z)
     assert np.allclose(

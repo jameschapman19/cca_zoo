@@ -2,10 +2,10 @@
 #
 # import numpy as np
 #
-# from cca_zoo.linear._iterative._base import BaseIterative
+# from cca_zoo.linear._iterative._base import _BaseIterative
 #
 #
-# class IncrementalPLS(BaseIterative):
+# class IncrementalPLS(_BaseIterative):
 #     r"""
 #     A class used to fit Incremental PLS
 #

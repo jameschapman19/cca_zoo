@@ -20,7 +20,7 @@ class DGCCA(DCCA):
         # Call the parent class constructor with the DGCCA objective function
         super().__init__(
             latent_dimensions=latent_dimensions,
-            objective=objectives.GCCALoss,
+            objective=objectives._GCCALoss,
             encoders=encoders,
             eps=eps,
             **kwargs

@@ -3,7 +3,7 @@ Sparse CCA Variants Comparison
 ==============================
 
 This script illustrates the training and evaluation of various Sparse Canonical Correlation Analysis (CCA) variants using synthetic data.
-For each variant, model weights_ are visualized, and their performance is compared based on their correlation score on validation data.
+For each variant, model weights are visualized, and their performance is compared based on their correlation score on validation data.
 
 """
 
@@ -39,7 +39,7 @@ plt.close("all")
 
 def plot_true_weights_coloured(ax, weights, true_weights, title="", legend=False):
     """
-    Create a scatterplot of weights_ differentiating between zero and non-zero true weights_.
+    Create a scatterplot of weights_ differentiating between zero and non-zero true weights.
     """
     weights = np.squeeze(weights)
     ind = np.arange(len(true_weights))
@@ -67,13 +67,13 @@ def plot_true_weights_coloured(ax, weights, true_weights, title="", legend=False
 
 def plot_model_weights(wx, wy, tx, ty, title="", save_path=None):
     """
-    Plot weights_ of the model against the true weights_.
+    Plot weights of the model against the true weights.
     """
     fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
-    plot_true_weights_coloured(axs[0, 0], tx, tx, title="True x weights_")
-    plot_true_weights_coloured(axs[0, 1], ty, ty, title="True y weights_")
-    plot_true_weights_coloured(axs[1, 0], wx, tx, title="Model x weights_")
-    plot_true_weights_coloured(axs[1, 1], wy, ty, title="Model y weights_", legend=True)
+    plot_true_weights_coloured(axs[0, 0], tx, tx, title="True x weights")
+    plot_true_weights_coloured(axs[0, 1], ty, ty, title="True y weights")
+    plot_true_weights_coloured(axs[1, 0], wx, tx, title="Model x weights")
+    plot_true_weights_coloured(axs[1, 1], wy, ty, title="Model y weights", legend=True)
     plt.legend([], [], frameon=False)
     fig.suptitle(title)
     sns.despine(trim=True)
@@ -103,7 +103,7 @@ X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2)
 
 def train_and_evaluate(model, title):
     """
-    Helper function to train, evaluate, and visualize weights_ of a model.
+    Helper function to train, evaluate, and visualize weights of a model.
     """
     model.fit([X_train, Y_train])
     plot_model_weights(model.weights_[0], model.weights_[1], tx, ty, title=title)

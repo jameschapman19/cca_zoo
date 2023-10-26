@@ -3,11 +3,11 @@
 # import numpy as np
 # import torch
 #
-# from cca_zoo.linear._iterative._base import BaseIterative, BaseLoop
+# from cca_zoo.linear._iterative._base import _BaseIterative, BaseLoop
 # from cca_zoo.utils import _process_parameter
 #
 # #
-# class AltMaxVar(BaseIterative):
+# class AltMaxVar(_BaseIterative):
 #     def __init__(
 #         self,
 #         latent_dimensions=1,

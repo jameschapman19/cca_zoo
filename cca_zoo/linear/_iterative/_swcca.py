@@ -3,13 +3,13 @@
 #
 # import numpy as np
 #
-# from cca_zoo.linear._iterative._base import BaseIterative
-# from cca_zoo.linear._iterative._deflation import DeflationMixin
+# from cca_zoo.linear._iterative._base import _BaseIterative
+# from cca_zoo.linear._iterative._deflation import _DeflationMixin
 # from cca_zoo.linear._search import _delta_search, support_threshold
 # from cca_zoo.utils import _process_parameter
 #
 #
-# class SWCCA(BaseIterative, DeflationMixin):
+# class SWCCA(_BaseIterative, _DeflationMixin):
 #     r"""
 #     A class used to fit SWCCA model
 #

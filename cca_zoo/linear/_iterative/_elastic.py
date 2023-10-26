@@ -3,13 +3,13 @@ from typing import Union, Iterable
 import numpy as np
 from sklearn.linear_model import ElasticNet, Lasso, Ridge, SGDRegressor
 
-from cca_zoo.linear._iterative._base import BaseIterative
-from cca_zoo.linear._iterative._deflation import DeflationMixin
+from cca_zoo.linear._iterative._base import _BaseIterative
+from cca_zoo.linear._iterative._deflation import _DeflationMixin
 from cca_zoo._utils import _process_parameter
 
 
 # Define SCCA_Elastic class
-class ElasticCCA(DeflationMixin, BaseIterative):
+class ElasticCCA(_DeflationMixin, _BaseIterative):
     def __init__(
         self,
         latent_dimensions: int = 1,
@@ -92,7 +92,7 @@ class ElasticCCA(DeflationMixin, BaseIterative):
 
 
 # Define SCCA_IPLS class
-class SCCA_IPLS(DeflationMixin, BaseIterative):
+class SCCA_IPLS(_DeflationMixin, _BaseIterative):
     def __init__(
         self,
         latent_dimensions: int = 1,

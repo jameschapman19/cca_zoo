@@ -10,7 +10,7 @@ Table of Contents
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: 📘 Using CCA-Zoo
 
    usage/introduction
@@ -19,21 +19,21 @@ Table of Contents
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: 📚 Tutorials
 
    auto_examples/index
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: 📖 API Reference
 
    reference
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: 🔧 Developer Information
 
    developer_info/contribute

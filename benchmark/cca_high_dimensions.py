@@ -1,5 +1,5 @@
 """
-Benchmarking CCALoss on high dimensional data. Using CCALoss-Zoo and Scikit-learn.
+Benchmarking _CCALoss on high dimensional data. Using _CCALoss-Zoo and Scikit-learn.
 
 Use different dimensionalities and produce a nice seaborn plot of the runtimes.
 """
@@ -34,7 +34,7 @@ for dim in dimensions:
         X = np.random.rand(n_samples, dim)
         Y = np.random.rand(n_samples, dim)
 
-        # CCALoss-Zoo
+        # _CCALoss-Zoo
         start_time = time.time()
         cca_zoo = CCA(latent_dimensions=latent_dimensions)
         cca_zoo.fit((X, Y))
@@ -42,7 +42,7 @@ for dim in dimensions:
 
         # Record results
         results.append(
-            {"Dimension": dim, "Time": cca_zoo_time, "Method": "CCALoss-Zoo"}
+            {"Dimension": dim, "Time": cca_zoo_time, "Method": "_CCALoss-Zoo"}
         )
 
         # Scikit-learn
@@ -62,7 +62,7 @@ df = pd.DataFrame(results)
 # Seaborn Plot
 plt.figure(figsize=(10, 6))
 sns.lineplot(data=df, x="Dimension", y="Time", hue="Method", marker="o", errorbar="sd")
-plt.title("CCALoss Performance comparison with Uncertainty")
+plt.title("_CCALoss Performance comparison with Uncertainty")
 plt.xlabel("Dimension")
 plt.ylabel("Average Execution Time (seconds)")
 plt.tight_layout()

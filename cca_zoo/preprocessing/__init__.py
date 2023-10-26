@@ -1,5 +1,5 @@
 """
-Class which allows for the different (or the same) processing of multiple representations of data.
+Preprocessing methods for multi-view data.
 """
 from mvlearn.utils import check_Xs
 from sklearn.base import TransformerMixin

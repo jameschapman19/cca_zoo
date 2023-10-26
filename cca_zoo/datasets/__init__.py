@@ -1,3 +1,6 @@
+"""
+Utilities for loading datasets.
+"""
 from .simulated import JointData, LatentVariableData
 from .toy import (
     load_breast_data,

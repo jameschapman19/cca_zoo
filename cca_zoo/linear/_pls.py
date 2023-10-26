@@ -18,7 +18,7 @@ class PLS(rCCA, PLSMixin):
     r"""
     A class used to fit a simple PLS model. This model finds the linear projections of two representations that maximize their covariance.
 
-    Implements PLS by inheriting regularised CCALoss with maximal regularisation. This is equivalent to solving the following optimization problem:
+    Implements PLS by inheriting regularised CCA with maximal regularisation. This is equivalent to solving the following optimization problem:
 
     .. math::
 
@@ -67,7 +67,7 @@ class MPLS(MCCA, PLSMixin):
     r"""
     A class used to fit a mutiview PLS model. This model finds the linear projections of two representations that maximize their covariance.
 
-    Implements PLS by inheriting regularised CCALoss with maximal regularisation. This is equivalent to solving the following optimization problem:
+    Implements PLS by inheriting regularised CCA with maximal regularisation. This is equivalent to solving the following optimization problem:
 
     Parameters
     ----------

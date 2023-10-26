@@ -40,7 +40,7 @@ encoder_2 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=39
 dcca_mcca = DCCA(
     latent_dimensions=LATENT_DIMS,
     encoders=[encoder_1, encoder_2],
-    objective=objectives.MCCALoss,
+    objective=objectives._MCCALoss,
 )
 trainer_mcca = pl.Trainer(
     max_epochs=EPOCHS,
@@ -59,7 +59,7 @@ trainer_mcca.fit(dcca_mcca, train_loader, val_loader)
 dcca_gcca = DCCA(
     latent_dimensions=LATENT_DIMS,
     encoders=[encoder_1, encoder_2],
-    objective=objectives.GCCALoss,
+    objective=objectives._GCCALoss,
 )
 trainer_gcca = pl.Trainer(
     max_epochs=EPOCHS,

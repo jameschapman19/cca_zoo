@@ -5,7 +5,7 @@ from sklearn import clone
 from tqdm import tqdm
 
 
-class DeflationMixin:
+class _DeflationMixin:
     def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
         views = self._validate_data(views)
         if isinstance(views, tuple):
@@ -64,7 +64,7 @@ def deflate_view_pls(residual: np.ndarray, weights: np.ndarray) -> np.ndarray:
 
 def deflate_view_cca(residual: np.ndarray, weights: np.ndarray) -> np.ndarray:
     """
-    PLS Mode-A deflation/ CCALoss deflation
+    PLS Mode-A deflation/ _CCALoss deflation
 
     This method ensures orthogonal latent variables in the consecutive associative effects in each data modality.
 

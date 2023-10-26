@@ -10,7 +10,7 @@ from sklearn.utils.validation import check_random_state
 from cca_zoo._utils import _process_parameter
 
 
-class BaseData(ABC):
+class _BaseData(ABC):
     def __init__(
         self,
         view_features: List[int],
@@ -26,7 +26,7 @@ class BaseData(ABC):
         pass
 
 
-class LatentVariableData(BaseData):
+class LatentVariableData(_BaseData):
     def __init__(
         self,
         view_features: List[int],
@@ -120,7 +120,7 @@ class LatentVariableData(BaseData):
         return cov
 
 
-class JointData(BaseData):
+class JointData(_BaseData):
     """
     Class for generating simulated data for a linear model with multiple representations.
     """

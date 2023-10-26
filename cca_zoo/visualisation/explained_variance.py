@@ -33,7 +33,7 @@ class ExplainedVarianceDisplay:
     >>> from cca_zoo.visualisation import ExplainedVarianceDisplay
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
-    >>> from cca_zoo.linear import MCCALoss
+    >>> from cca_zoo.linear import _MCCALoss
     >>>
     >>> # Generate Sample Data
     >>> # --------------------
@@ -47,9 +47,9 @@ class ExplainedVarianceDisplay:
     >>> representations = [X_train, Y_train]
     >>> test_views = [X_test, Y_test]
     >>>
-    >>> # Train an MCCALoss Model
+    >>> # Train an _MCCALoss Model
     >>> # -------------------
-    >>> mcca = MCCALoss(latent_dimensions=2)
+    >>> mcca = _MCCALoss(latent_dimensions=2)
     >>> mcca.fit(representations)
     >>>
     >>> # %%

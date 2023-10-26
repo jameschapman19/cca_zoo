@@ -5,10 +5,10 @@ import numpy as np
 import torch
 from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 
-from cca_zoo._base import BaseModel
+from cca_zoo._base import _BaseModel
 
 
-class BaseDeep(pl.LightningModule, BaseModel):
+class BaseDeep(pl.LightningModule, _BaseModel):
     """A base class for deep learning linear using PyTorch Lightning."""
 
     def __init__(

@@ -5,7 +5,7 @@ import lightning.pytorch as pl
 import torch
 from torch.utils.data import DataLoader
 
-from cca_zoo._base import BaseModel
+from cca_zoo._base import _BaseModel
 from cca_zoo.deep.data import NumpyDataset
 from cca_zoo.linear._iterative._base import _default_initializer
 
@@ -22,7 +22,7 @@ DEFAULT_LOADER_KWARGS = dict(pin_memory=False, drop_last=True, shuffle=True)
 DEFAULT_OPTIMIZER_KWARGS = dict(optimizer="Adam")
 
 
-class BaseGradientModel(BaseModel, pl.LightningModule):
+class BaseGradientModel(_BaseModel, pl.LightningModule):
     def __init__(
         self,
         latent_dimensions: int = 1,
@@ -39,7 +39,7 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         optimizer_kwargs=None,
         early_stopping=False,
     ):
-        BaseModel.__init__(
+        _BaseModel.__init__(
             self,
             latent_dimensions=latent_dimensions,
             copy_data=copy_data,
@@ -125,12 +125,12 @@ class BaseGradientModel(BaseModel, pl.LightningModule):
         return train_loader, val_loader
 
     def _initialize(self, views: Iterable[np.ndarray]):
-        """Initialize the CCALoss weights_ using the initialization method or function.
+        """Initialize the _CCALoss weights_ using the initialization method or function.
 
         Parameters
         ----------
         views : Iterable[np.ndarray]
-            The input representations to initialize the CCALoss weights_ from
+            The input representations to initialize the _CCALoss weights_ from
         """
         pls = self._get_tags().get("pls", False)
         initializer = _default_initializer(

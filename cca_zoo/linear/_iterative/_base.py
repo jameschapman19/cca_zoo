@@ -6,13 +6,13 @@ import numpy as np
 from sklearn.utils import check_random_state
 from tqdm import tqdm
 
-from cca_zoo._base import BaseModel
+from cca_zoo._base import _BaseModel
 from cca_zoo.linear._dummy import DummyCCA, DummyPLS
 from cca_zoo.linear._mcca import MCCA
 from cca_zoo.linear._pls import MPLS
 
 
-class BaseIterative(BaseModel):
+class _BaseIterative(_BaseModel):
     def __init__(
         self,
         latent_dimensions: int = 1,
@@ -87,19 +87,19 @@ class BaseIterative(BaseModel):
 
     @abstractmethod
     def _update_weights(self, view: np.ndarray, i: int):
-        """Update the CCALoss weights_ for a given view.
+        """Update the _CCALoss weights_ for a given view.
 
         Parameters
         ----------
         view : np.ndarray
-            The input view to update the CCALoss weights_ for
+            The input view to update the _CCALoss weights_ for
         i : int
             The index of the view
 
         Returns
         -------
         np.ndarray
-            The updated CCALoss weights_ for the view
+            The updated _CCALoss weights_ for the view
         """
         pass
 
@@ -121,12 +121,12 @@ class BaseIterative(BaseModel):
         return np.sum(all_covs)
 
     def _initialize(self, views: Iterable[np.ndarray]):
-        """Initialize the CCALoss weights_ using the initialization method or function.
+        """Initialize the _CCALoss weights_ using the initialization method or function.
 
         Parameters
         ----------
         views : Iterable[np.ndarray]
-            The input representations to initialize the CCALoss weights_ from
+            The input representations to initialize the _CCALoss weights_ from
         """
         pls = self._get_tags().get("pls", False)
         initializer = _default_initializer(

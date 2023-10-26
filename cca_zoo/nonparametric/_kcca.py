@@ -70,7 +70,7 @@ class KernelMixin:
 
 class KCCA(KernelMixin, MCCA):
     r"""
-    A class used to fit KCCA model. This model extends MCCALoss to nonlinear relationships by using kernel functions on each view.
+    A class used to fit KCCA model. This model extends _MCCALoss to nonlinear relationships by using kernel functions on each view.
 
     The objective function of KCCA is:
 
@@ -82,19 +82,19 @@ class KCCA(KernelMixin, MCCA):
 
         c_i\alpha_i^TK_i\alpha_i + (1-c_i)\alpha_i^TK_i^TK_i\alpha_i=1
 
-    where :math:`K_i` are the kernel matrices for each view and :math:`c_i` are the regularization parameters for each view.
+    where:math:`K_i` are the kernel matrices for each view and:math:`c_i` are the regularization parameters for each view.
 
     Parameters
     ----------
-    latent_dimensions : int, optional
+    latent_dimensions: int, optional
         Number of latent dimensions to use, by default 1
-    copy_data : bool, optional
+    copy_data: bool, optional
         Whether to copy the data, by default True
-    random_state : int, optional
+    random_state: int, optional
         Random seed for reproducibility, by default None
-    c : Union[Iterable[float], float], optional
+    c: Union[Iterable[float], float], optional
         Regularization parameter or list of parameters for each view, by default None. If None, it will be set to zero for each view.
-    eps : float, optional
+    eps: float, optional
         Small value to add to the diagonal of the kernel matrices, by default 1e-3
     kernel: Iterable[Union[float, callable]], optional
         Kernel function or list of functions for each view, by default None. If None, it will use a linear kernel for each view.
@@ -109,7 +109,7 @@ class KCCA(KernelMixin, MCCA):
 
     Examples
     --------
-    >>> from cca_zoo.linear import KCCA
+    >>> from cca_zoo.nonparametric import KCCA
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
@@ -163,7 +163,7 @@ class KCCA(KernelMixin, MCCA):
 
 class KGCCA(KernelMixin, GCCA):
     r"""
-    A class used to fit KGCCA model. This model extends GCCALoss to nonlinear relationships by using kernel functions on each view.
+    A class used to fit KGCCA model. This model extends _GCCALoss to nonlinear relationships by using kernel functions on each view.
 
     The objective function of KGCCA is:
 
@@ -175,17 +175,17 @@ class KGCCA(KernelMixin, GCCA):
 
     T^TT=1
 
-    where :math:`K_i` are the kernel matrices for each view and :math:`T` is the auxiliary vector.
+    where:math:`K_i` are the kernel matrices for each view and:math:`T` is the auxiliary vector.
 
     Parameters
     ----------
-    latent_dimensions : int, optional
+    latent_dimensions: int, optional
         Number of latent dimensions to use, by default 1
-    copy_data : bool, optional
+    copy_data: bool, optional
         Whether to copy the data, by default True
-    random_state : int, optional
+    random_state: int, optional
         Random seed for reproducibility, by default None
-    c : Union[Iterable[float], float], optional
+    c: Union[Iterable[float], float], optional
         Regularization parameter or list of parameters for each view, by default None. If None, it will be set to zero for each view.
     kernel: Iterable[Union[float, callable]], optional
         Kernel function or list of functions for each view, by default None. If None, it will use a linear kernel for each view.
@@ -197,7 +197,7 @@ class KGCCA(KernelMixin, GCCA):
         Coef0 parameter or list of parameters for the polynomial or sigmoid kernel for each view, by default None. Ignored if kernel is not polynomial or sigmoid.
     kernel_params: Iterable[dict], optional
         Additional parameters or list of parameters for the kernel function for each view, by default None.
-    view_weights : Iterable[float], optional
+    view_weights: Iterable[float], optional
         Weights for each view in the objective function, by default None. If None, it will use equal weights_ for each view.
 
     References
@@ -206,7 +206,7 @@ class KGCCA(KernelMixin, GCCA):
 
     Examples
     --------
-    >>> from cca_zoo.linear import KGCCA
+    >>> from cca_zoo.nonparametric import KGCCA
     >>> import numpy as np
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
@@ -259,14 +259,14 @@ class KGCCA(KernelMixin, GCCA):
             for i, view in enumerate(self.train_views)
         ]
         self.weights_ = [
-            np.linalg.pinv(kernel) @ eigvecs[:, : self.latent_dimensions]
+            np.linalg.pinv(kernel) @ eigvecs[:,: self.latent_dimensions]
             for kernel in kernels
         ]
 
 
 class KTCCA(KernelMixin, TCCA):
     r"""
-    A class used to fit KTCCA model. This model extends TCCALoss to nonlinear relationships by using kernel functions on each view.
+    A class used to fit KTCCA model. This model extends _TCCALoss to nonlinear relationships by using kernel functions on each view.
 
     The objective function of KTCCA is:
 
@@ -278,7 +278,7 @@ class KTCCA(KernelMixin, TCCA):
 
         c_i\alpha_i^TK_i\alpha_i + (1-c_i)\alpha_i^TK_i^TK_i\alpha_i=1
 
-    where :math:`K_i` are the kernel matrices for each view and :math:`c_i` are the regularization parameters for each view.
+    where:math:`K_i` are the kernel matrices for each view and:math:`c_i` are the regularization parameters for each view.
 
     References
     ----------
@@ -286,7 +286,7 @@ class KTCCA(KernelMixin, TCCA):
 
     Examples
     --------
-    >>> from cca_zoo.linear import KTCCA
+    >>> from cca_zoo.nonparametric import KTCCA
     >>> rng=np.random.RandomState(0)
     >>> X1 = rng.random((10,5))
     >>> X2 = rng.random((10,5))

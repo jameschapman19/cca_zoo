@@ -7,8 +7,8 @@ class WeightHeatmapDisplay:
 
     Parameters
     ----------
-    model : CCALoss model
-        A fitted CCALoss model.
+    model: _CCALoss model
+        A fitted _CCALoss model.
     """
 
     def __init__(self, weights, view_labels=None, **kwargs):
@@ -30,14 +30,14 @@ class WeightHeatmapDisplay:
 
         Parameters
         ----------
-        ax : matplotlib axes, optional
+        ax: matplotlib axes, optional
             Axes to plot on, by default None.
-        kwargs : dict
+        kwargs: dict
             Keyword arguments to pass to seaborn.heatmap
 
         Returns
         -------
-        ax : matplotlib axes
+        ax: matplotlib axes
             Axes with the heatmap.
         """
         fig, axs = plt.subplots(1, len(self.weights), figsize=(10, 5))

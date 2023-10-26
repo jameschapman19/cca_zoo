@@ -8,7 +8,7 @@ from cca_zoo.linear._mcca import MCCA
 
 class PartialCCA(MCCA):
     r"""
-    A class used to fit a partial CCALoss model. This model extends CCALoss to account for confounding variables that may affect the correlation between representations.
+    A class used to fit a partial CCA model. This model extends CCA to account for confounding variables that may affect the correlation between representations.
 
     .. math::
 

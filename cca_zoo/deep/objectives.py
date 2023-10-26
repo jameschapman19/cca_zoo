@@ -23,8 +23,8 @@ def _demean(views):
     return tuple([view - view.mean(dim=0) for view in views])
 
 
-class MCCALoss:
-    """Differentiable MCCALoss Loss. Solves the multiset eigenvalue problem.
+class _MCCALoss:
+    """Differentiable MCCA Loss. Solves the multiset eigenvalue problem.
 
     References
     ----------
@@ -78,8 +78,8 @@ class MCCALoss:
         return -corr
 
 
-class GCCALoss:
-    """Differentiable GCCALoss Loss. Solves the generalized CCALoss eigenproblem.
+class _GCCALoss:
+    """Differentiable GCCA Loss. Solves the generalized CCA eigenproblem.
 
     References
     ----------
@@ -130,8 +130,8 @@ class GCCALoss:
 
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-class CCALoss:
-    """Differentiable CCALoss Loss. Solves the CCALoss problem."""
+class _CCALoss:
+    """Differentiable CCA Loss. Solves the CCA problem."""
 
     def __init__(self, eps: float = 1e-3):
         self.eps = eps
@@ -170,8 +170,8 @@ class CCALoss:
         return -eigvals.sum()
 
 
-class TCCALoss:
-    """Differentiable TCCALoss Loss."""
+class _TCCALoss:
+    """Differentiable TCCA Loss."""
 
     def __init__(self, eps: float = 1e-4):
         self.eps = eps
@@ -209,7 +209,7 @@ class TCCALoss:
         return torch.linalg.norm(M - M_hat)
 
 
-class CCA_EYLoss:
+class _CCA_EYLoss:
     def __init__(self, eps: float = 1e-4):
         self.eps = eps
 
@@ -248,7 +248,7 @@ class CCA_EYLoss:
         )  # return the normalized matrices (divided by the number of representations)
 
 
-class CCA_GHALoss(CCA_EYLoss):
+class _CCA_GHALoss(_CCA_EYLoss):
     def loss(self, representations, independent_representations=None):
         A, B = self.get_AB(representations)
         rewards = torch.trace(A)
@@ -285,7 +285,7 @@ class CCA_GHALoss(CCA_EYLoss):
         )  # return the normalized matrices (divided by the number of representations)
 
 
-class CCA_SVDLoss(CCA_EYLoss):
+class _CCA_SVDLoss(_CCA_EYLoss):
     def loss(self, representations, independent_representations=None):
         C = torch.cov(torch.hstack(representations).T)
         latent_dims = representations[0].shape[1]
@@ -307,7 +307,7 @@ class CCA_SVDLoss(CCA_EYLoss):
         }
 
 
-class PLS_EYLoss(CCA_EYLoss):
+class _PLS_EYLoss(_CCA_EYLoss):
     def loss(self, representations, weights=None):
         A, B = self.get_AB(representations, weights)
         rewards = torch.trace(2 * A)
@@ -336,7 +336,7 @@ class PLS_EYLoss(CCA_EYLoss):
         return A / len(representations), B / len(representations)
 
 
-# class PLS_SVDLoss(PLS_EYLoss):
+# class PLS_SVDLoss(_PLS_EYLoss):
 #     def loss(self, representations, weights_=None):
 #         C = cross_cov(representations[0], representations[1], rowvar=False)
 #

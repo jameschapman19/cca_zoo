@@ -1,3 +1,6 @@
+"""
+Utilities for visualising CCA results.
+"""
 from .correlation import CorrelationHeatmapDisplay
 from .covariance import CovarianceHeatmapDisplay
 from .explained_covariance import ExplainedCovarianceDisplay

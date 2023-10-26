@@ -3,10 +3,10 @@ from typing import Iterable
 import numpy as np
 from sklearn.utils import check_random_state
 
-from cca_zoo._base import BaseModel
+from cca_zoo._base import _BaseModel
 
 
-class DummyCCA(BaseModel):
+class DummyCCA(_BaseModel):
     def __init__(
         self,
         latent_dimensions: int = 1,

@@ -1,4 +1,4 @@
-Getting Started with CCA-Zoo
+Getting Started
 ============================
 
 Embarking on Your Journey

@@ -11,7 +11,7 @@ from sklearn.utils.validation import check_is_fitted, check_array
 from cca_zoo._utils.cross_correlation import cross_corrcoef
 
 
-class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
+class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
     """
     A base class for multivariate latent variable linear.
 
@@ -214,9 +214,9 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         self, views: Iterable[np.ndarray], normalize: bool = True, **kwargs
     ) -> List[np.ndarray]:
         """
-        Calculate canonical loadings_ for each view.
+        Calculate canonical loadings for each view.
 
-        Canonical loadings_ represent the correlation between the original variables
+        Canonical loadings represent the correlation between the original variables
         in a view and their respective canonical variates. Canonical variates are
         linear combinations of the original variables formed to maximize the correlation
         with canonical variates from another view.
@@ -237,7 +237,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         Returns
         -------
         loadings_: list of numpy arrays
-            Canonical loadings_ for each view. High absolute values indicate that
+            Canonical loadings for each view. High absolute values indicate that
             the respective original variables play a significant role in defining the canonical variate.
 
         """
@@ -259,14 +259,14 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
     @property
     def loadings_(self) -> List[np.ndarray]:
         """
-        Compute and return loadings_ for each view. These are cached for performance optimization.
+        Compute and return loadings for each view. These are cached for performance optimization.
 
-        In the context of the cca-zoo models, loadings_ are the normalized weights_. Due to the structure of these models,
+        In the context of the cca-zoo models, loadings are the normalized weights. Due to the structure of these models,
         weight vectors are normalized such that w'X'Xw = 1, as opposed to w'w = 1, which is commonly used in PCA.
-        As a result, when computing the loadings_, the weights_ are normalized to have unit norm, ensuring that the loadings_
+        As a result, when computing the loadings, the weights are normalized to have unit norm, ensuring that the loadings
         range between -1 and 1.
 
-        It's essential to differentiate between these loadings_ and canonical loadings_. The latter are correlations between
+        It's essential to differentiate between these loadings and canonical loadings. The latter are correlations between
         the original variables and their corresponding canonical variates.
 
         Returns
@@ -290,7 +290,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         """
         check_is_fitted(self, attributes=["weights_"])
 
-        # Transform the representations using the loadings_
+        # Transform the representations using the loadings
         transformed_views = [
             view @ loading for view, loading in zip(views, self.loadings_)
         ]
@@ -438,7 +438,7 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
     #     >>> import numpy as np
     #     >>> X1 = np.random.rand(100, 5)
     #     >>> X2 = np.random.rand(100, 5)
-    #     >>> cca = CCALoss()
+    #     >>> cca = _CCALoss()
     #     >>> cca.fit([X1, X2])
     #     >>> X1_pred, X2_pred = cca.predict([X1, None])
     #

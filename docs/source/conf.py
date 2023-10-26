@@ -60,17 +60,56 @@ autodoc_default_options = {
     "members": True,
     "show-inheritance": True,
     "member-order": "bysource",
+    "inherited-members": True,
+    "autodoc_mock_imports": ["torch" "sklearn", "lightning", "jax", "jaxlib"],
 }
 
 # generate autosummary even if no references
 autosummary_generate = True
 
+# -- Options for HTML output -------------------------------------------------
+
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "sphinx_rtd_theme"
-html_logo = "cca-zoo-logo.jpg"
-html_favicon = "favicon.ico"
+html_theme = "pydata_sphinx_theme"
+
+# Theme options are theme-specific and customize the look and feel of a theme
+# further.  For a list of options available for each theme, see the
+# documentation.
+#
 html_theme_options = {
-    "style_external_links": True,
+    "show_nav_level": 1,
+    "icon_links": [
+        {
+            # Label for this link
+            "name": "GitHub",
+            # URL where the link will redirect
+            "url": "https://github.com/jameschapman19/proxtorch",  # required
+            # Icon class (if "type": "fontawesome"), or path to local image (if "type": "local")
+            "icon": "fa-brands fa-square-github",
+            # The type of image to be used (see below for details)
+            "type": "fontawesome",
+        }
+    ],
+    "use_edit_page_button": True,
 }
+
+html_context = {
+    "github_user": "jameschapman19",
+    "github_repo": "proxtorch",
+    "github_version": "main",
+    "doc_path": "docs/source",
+}
+
+# Custom sidebar templates, must be a dictionary that maps document names
+# to template names.
+#
+# The default sidebars (for documents that don't match any pattern) are
+# defined by theme itself.  Builtin themes are using these templates by
+# default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
+# 'searchbox.html']``.
+#
+# html_sidebars = {}
+html_logo = "cca-zoo-logo.png"
+html_favicon = "favicon.ico"

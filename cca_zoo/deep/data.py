@@ -62,8 +62,8 @@ def get_dataloaders(
     """
     A utility function to allow users to quickly get hold of the dataloaders required by pytorch lightning
 
-    :param dataset: A CCALoss dataset used for training
-    :param val_dataset: An optional CCALoss dataset used for validation
+    :param dataset: A _CCALoss dataset used for training
+    :param val_dataset: An optional _CCALoss dataset used for validation
     :param batch_size: batch size of train loader
     :param val_batch_size: batch size of val loader
     :param num_workers: number of workers used

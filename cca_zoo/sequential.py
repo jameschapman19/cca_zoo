@@ -1,5 +1,5 @@
 """
-Module for finding CCALoss effects sequentially by deflation.
+Module for finding _CCALoss effects sequentially by deflation.
 
 Check if each effect is significant, and if so, remove it from the data and repeat.
 """
@@ -9,12 +9,12 @@ from typing import Iterable
 import numpy as np
 from sklearn.base import MetaEstimatorMixin
 
-from cca_zoo._base import BaseModel
+from cca_zoo._base import _BaseModel
 from cca_zoo.linear._iterative._deflation import deflate_views
 from cca_zoo.model_selection._validation import permutation_test_score
 
 
-class SequentialModel(MetaEstimatorMixin, BaseModel, metaclass=ABCMeta):
+class SequentialModel(MetaEstimatorMixin, _BaseModel, metaclass=ABCMeta):
     def __init__(
         self,
         estimator,
