@@ -108,6 +108,8 @@ class BatchWhiten(Module):
                 # Calculate whitened input
                 input = torch.matmul(input, B)
                 return input
+        else:
+            return input
 
 
 def inv_sqrtm(A, eps=1e-9):

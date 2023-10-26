@@ -76,7 +76,7 @@ score_display = UMAPScoreDisplay.from_estimator(
     dcca, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
-score_display.figure_.suptitle("UMAP Deep CCALoss")
+score_display.figure_.suptitle("UMAP Deep CCA")
 plt.show()
 
 # t-SNE Visualization
@@ -84,7 +84,7 @@ score_display = TSNEScoreDisplay.from_estimator(
     dcca, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
-score_display.figure_.suptitle("TSNE Deep CCALoss")
+score_display.figure_.suptitle("TSNE Deep CCA")
 plt.show()
 
 # %%
@@ -104,7 +104,7 @@ trainer.fit(dcca_eg, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     dcca_eg, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot(title="Deep CCALoss EY")
+score_display.plot(title="Deep CCA EY")
 plt.show()
 
 # %%
@@ -122,7 +122,7 @@ trainer.fit(dcca_noi, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     dcca_noi, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot(title="Deep CCALoss NOI")
+score_display.plot(title="Deep CCA NOI")
 plt.show()
 
 # %%
@@ -142,7 +142,7 @@ trainer.fit(dcca_sdl, train_loader, val_loader)
 score_display = ScoreScatterDisplay.from_estimator(
     dcca_sdl, val_loader, labels=val_labels.astype(str)
 )
-score_display.plot(title="Deep CCALoss SDL")
+score_display.plot(title="Deep CCA SDL")
 plt.show()
 
 # %%
