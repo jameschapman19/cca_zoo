@@ -1,14 +1,14 @@
 """
-Deep Canonical Correlation Analysis (CCALoss) using `cca_zoo`
+Deep Canonical Correlation Analysis (CCA) using `cca_zoo`
 ========================================================
 
-This script showcases how to implement various Deep CCALoss methods and their
+This script showcases how to implement various Deep CCA methods and their
 variants using the `cca_zoo` library, a dedicated tool for canonical
 correlation analysis and its related techniques. The MNIST dataset is used
 as an example, where images are split into two halves to treat as separate representations.
 
 Key Features:
-- Demonstrates the training process of multiple Deep CCALoss variants.
+- Demonstrates the training process of multiple Deep CCA variants.
 - Visualizes the results of each variant for comparative analysis.
 - Leverages `cca_zoo` for canonical correlation analysis techniques.
 """
@@ -48,9 +48,9 @@ encoder_2 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=39
 
 
 # %%
-# Deep CCALoss
+# Deep CCA
 # ----------------------------
-# Deep CCALoss is a method that learns nonlinear transformations of two representations
+# Deep CCA is a method that learns nonlinear transformations of two representations
 # such that the resulting latent representations are maximally correlated.
 
 dcca = DCCA(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
@@ -88,9 +88,9 @@ score_display.figure_.suptitle("TSNE Deep CCA")
 plt.show()
 
 # %%
-# Deep CCALoss EY
+# Deep CCA EY
 # ----------------------------
-# Deep CCALoss EY is a variant of Deep CCALoss that uses an explicit objective function
+# Deep CCA EY is a variant of Deep CCA that uses an explicit objective function
 # based on the eigenvalue decomposition of the cross-covariance matrix.
 
 dcca_eg = DCCA_EY(
@@ -108,9 +108,9 @@ score_display.plot(title="Deep CCA EY")
 plt.show()
 
 # %%
-# Deep CCALoss by Non-Linear Orthogonal Iterations
+# Deep CCA by Non-Linear Orthogonal Iterations
 # ----------------------------------------------
-# Deep CCALoss by Non-Linear Orthogonal Iterations (DCCA_NOI) is another variant of Deep CCALoss
+# Deep CCA by Non-Linear Orthogonal Iterations (DCCA_NOI) is another variant of Deep CCA
 # that uses an iterative algorithm to orthogonalize the latent representations.
 
 dcca_noi = DCCA_NOI(latent_dimensions=LATENT_DIMS, encoders=[encoder_1, encoder_2])
@@ -126,9 +126,9 @@ score_display.plot(title="Deep CCA NOI")
 plt.show()
 
 # %%
-# Deep CCALoss by Stochastic Decorrelation Loss
+# Deep CCA by Stochastic Decorrelation Loss
 # ----------------------------------------------
-# Deep CCALoss by Stochastic Decorrelation Loss (DCCA_SDL) is yet another variant of Deep CCALoss
+# Deep CCA by Stochastic Decorrelation Loss (DCCA_SDL) is yet another variant of Deep CCA
 # that uses a stochastic gradient descent algorithm to minimize a decorrelation loss function.
 
 dcca_sdl = DCCA_SDL(
@@ -146,10 +146,10 @@ score_display.plot(title="Deep CCA SDL")
 plt.show()
 
 # %%
-# Deep CCALoss by Barlow Twins
+# Deep CCA by Barlow Twins
 # ----------------------------------------------
-# Deep CCALoss by Barlow Twins is a self-supervised learning method that learns representations
-# that are invariant to augmentations of the same data. It can be seen as a special case of Deep CCALoss
+# Deep CCA by Barlow Twins is a self-supervised learning method that learns representations
+# that are invariant to augmentations of the same data. It can be seen as a special case of Deep CCA
 # where the two representations are random augmentations of the same input.
 
 barlowtwins = BarlowTwins(
@@ -167,10 +167,10 @@ score_display.plot(title="Barlow Twins")
 plt.show()
 
 # %%
-# Deep CCALoss by VICReg
+# Deep CCA by VICReg
 # ----------------------------------------------
-# Deep CCALoss by VICReg is a self-supervised learning method that learns representations
-# that are invariant to distortions of the same data. It can be seen as a special case of Deep CCALoss
+# Deep CCA by VICReg is a self-supervised learning method that learns representations
+# that are invariant to distortions of the same data. It can be seen as a special case of Deep CCA
 # where the two representations are random distortions of the same input.
 
 dcca_vicreg = DCCA_SDL(

@@ -1,9 +1,9 @@
 """
-Kernel CCALoss Hyperparameter Tuning
+Kernel CCA Hyperparameter Tuning
 ================================
 
 This script demonstrates hyperparameter optimization for Kernel Canonical
-Correlation Analysis (Kernel CCALoss) using both grid search and randomized search methods.
+Correlation Analysis (Kernel CCA) using both grid search and randomized search methods.
 
 Note:
 - The grid search approach involves exhaustively trying every combination of provided parameters.

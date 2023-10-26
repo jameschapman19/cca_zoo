@@ -1,11 +1,11 @@
 """
-Probabilistic Canonical Correlation Analysis (CCALoss)
+Probabilistic Canonical Correlation Analysis (CCA)
 ==================================================
 Illustrates the usage of `ProbabilisticCCA` for understanding multiview data relationships.
 
 Overview:
 ---------
-Probabilistic CCALoss is a generative model that captures shared information among multiple representations of data. By assuming that each data view originates from a latent variable and view-specific parameters, this model offers a more flexible representation. It employs variational inference to approximate the posterior distributions of parameters and latent variables.
+Probabilistic CCA is a generative model that captures shared information among multiple representations of data. By assuming that each data view originates from a latent variable and view-specific parameters, this model offers a more flexible representation. It employs variational inference to approximate the posterior distributions of parameters and latent variables.
 
 Contents:
 ---------

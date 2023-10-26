@@ -1,9 +1,9 @@
 """
-Visualizing CCALoss Models with CCALoss-Zoo
+Visualizing CCA Models with CCA-Zoo
 ====================================
 
-Ever wondered how to peek into the inner workings of your Canonical Correlation Analysis (CCALoss) models?
-This example will guide you through CCALoss-Zoo's built-in plotting functionalities, showing you the keys to unlock those insights!
+Ever wondered how to peek into the inner workings of your Canonical Correlation Analysis (CCA) models?
+This example will guide you through CCA-Zoo's built-in plotting functionalities, showing you the keys to unlock those insights!
 """
 
 # %%
@@ -44,7 +44,7 @@ test_views = [X_test, Y_test]
 # %%
 # The Training Ritual
 # -------------------
-# We'll use Multi-Set Canonical Correlation Analysis (MCCALoss) to find shared patterns among the three representations.
+# We'll use Multi-Set Canonical Correlation Analysis (MCCA) to find shared patterns among the three representations.
 mcca = MCCA(latent_dimensions=2)
 mcca.fit(views)
 
@@ -76,7 +76,7 @@ print("Did you know? Large weights_ are usually more influential in the model.")
 
 # The Scoreboard
 # --------------
-# Score heatmaps help you visualize how the CCALoss projections from multiple representations relate to each other.
+# Score heatmaps help you visualize how the CCA projections from multiple representations relate to each other.
 
 # Example using ScoreScatterDisplay
 score_plot = ScoreScatterDisplay.from_estimator(
@@ -85,7 +85,7 @@ score_plot = ScoreScatterDisplay.from_estimator(
 score_plot.plot()
 plt.show()
 print(
-    "In this plot, you can visualize the CCALoss projections from multiple representations. It's useful for identifying clusters or patterns, which can help validate your model's effectiveness."
+    "In this plot, you can visualize the CCA projections from multiple representations. It's useful for identifying clusters or patterns, which can help validate your model's effectiveness."
 )
 
 # Example using SeparateScoreScatterDisplay

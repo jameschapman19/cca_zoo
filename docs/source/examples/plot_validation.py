@@ -2,7 +2,7 @@
 Model Validation
 ===========================
 
-This script will show how to use the model validation methods in CCALoss-Zoo including
+This script will show how to use the model validation methods in CCA-Zoo including
 permutation testing, learning curves, and cross-validation.
 """
 
@@ -202,7 +202,7 @@ plt.show()
 # Learning Curves
 fig, axes = plt.subplots(3, 1, figsize=(10, 15))
 
-title = "Learning Curves CCALoss"
+title = "Learning Curves CCA"
 cv = ShuffleSplit(n_splits=50, test_size=0.2, random_state=0)
 model = CCA()
 

@@ -1,8 +1,8 @@
 """
-Sparse CCALoss Variants Comparison
+Sparse CCA Variants Comparison
 ==============================
 
-This script illustrates the training and evaluation of various Sparse Canonical Correlation Analysis (CCALoss) variants using synthetic data.
+This script illustrates the training and evaluation of various Sparse Canonical Correlation Analysis (CCA) variants using synthetic data.
 For each variant, model weights_ are visualized, and their performance is compared based on their correlation score on validation data.
 
 """
@@ -112,10 +112,10 @@ def train_and_evaluate(model, title):
 
 # Model Training and Evaluation
 epochs = 50
-cca_corr = train_and_evaluate(CCA(), "CCALoss")
+cca_corr = train_and_evaluate(CCA(), "CCA")
 pls_corr = train_and_evaluate(PLS(), "PLS")
 span_cca_corr = train_and_evaluate(
-    SCCA_Span(tau=[10, 10], early_stopping=True), "Span CCALoss"
+    SCCA_Span(tau=[10, 10], early_stopping=True), "Span CCA"
 )
 scca_corr = train_and_evaluate(
     SCCA_IPLS(alpha=[1e-2, 1e-2], epochs=epochs, early_stopping=True), "SCCA_IPLS"
@@ -157,13 +157,13 @@ plot_model_weights(
 results_df = pd.DataFrame(
     {
         "Model": [
-            "CCALoss",
+            "CCA",
             "PLS",
-            "Span CCALoss",
+            "Span CCA",
             "PMD",
             "SCCA_IPLS",
             "SCCA_IPLS (Positive)",
-            "Elastic CCALoss",
+            "Elastic CCA",
         ],
         "Validation Correlation": [
             cca_corr.item(),

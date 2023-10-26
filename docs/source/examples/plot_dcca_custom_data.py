@@ -1,16 +1,16 @@
 """
-Working with Custom Datasets in CCALoss-Zoo
+Working with Custom Datasets in CCA-Zoo
 =======================================
 
 This script provides a guide on how to leverage custom multiview datasets with
-CCALoss-Zoo. It walks through various methods, including the use of provided
+CCA-Zoo. It walks through various methods, including the use of provided
 utilities and the creation of a bespoke dataset class.
 
 Key Features:
-- Transforming numpy arrays into CCALoss-Zoo compatible datasets.
+- Transforming numpy arrays into CCA-Zoo compatible datasets.
 - Validating custom datasets.
 - Creating a custom dataset class from scratch.
-- Training a Deep CCALoss model on custom datasets.
+- Training a Deep CCA model on custom datasets.
 """
 
 import numpy as np
@@ -19,10 +19,10 @@ import pytorch_lightning as pl
 # %%
 # Converting Numpy Arrays into Datasets
 # -------------------------------------
-# For those looking for a straightforward method, the `NumpyDataset` class from CCALoss-Zoo
+# For those looking for a straightforward method, the `NumpyDataset` class from CCA-Zoo
 # is a convenient way to convert numpy arrays into valid datasets. It accepts multiple
 # numpy arrays, each representing a distinct view, and an optional list of labels.
-# Subsequently, these datasets can be converted into dataloaders for use in CCALoss-Zoo models.
+# Subsequently, these datasets can be converted into dataloaders for use in CCA-Zoo models.
 
 from cca_zoo.deep import DCCA, architectures
 from cca_zoo.deep.data import NumpyDataset, check_dataset, get_dataloaders
@@ -37,7 +37,7 @@ numpy_dataset = NumpyDataset([X, Y, Z])
 # Dataset Validation
 # ------------------
 # Before proceeding, it's a good practice to validate the constructed dataset.
-# The `check_dataset` function ensures that the dataset adheres to CCALoss-Zoo's
+# The `check_dataset` function ensures that the dataset adheres to CCA-Zoo's
 # expected format.
 
 check_dataset(numpy_dataset)
@@ -71,14 +71,14 @@ check_dataset(custom_dataset)
 # Convert Custom Dataset into DataLoader
 # --------------------------------------
 # The `get_dataloaders` function can now be used to transform the custom dataset
-# into dataloaders suitable for CCALoss-Zoo.
+# into dataloaders suitable for CCA-Zoo.
 
 train_loader = get_dataloaders(custom_dataset, batch_size=2)
 
 # %%
-# Training with Deep CCALoss
+# Training with Deep CCA
 # -----------------------
-# Once the dataloaders are set, it's time to configure and train a Deep CCALoss model.
+# Once the dataloaders are set, it's time to configure and train a Deep CCA model.
 
 LATENT_DIMS = 1
 EPOCHS = 10

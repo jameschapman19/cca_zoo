@@ -1,14 +1,14 @@
 """
-Multiview Deep CCALoss Extensions
+Multiview Deep CCA Extensions
 =============================
 
 This script showcases how to train extensions of Deep Canonical Correlation Analysis
-(Deep CCALoss) that can handle more than two representations of data, using CCALoss-Zoo's functionalities.
+(Deep CCA) that can handle more than two representations of data, using CCA-Zoo's functionalities.
 
 Features:
-- Deep MCCALoss (Multiset CCALoss)
-- Deep GCCALoss (Generalized CCALoss)
-- Deep TCCALoss (Tied CCALoss)
+- Deep MCCA (Multiset CCA)
+- Deep GCCA (Generalized CCA)
+- Deep TCCA (Tied CCA)
 
 """
 
@@ -33,20 +33,20 @@ encoder_1 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=39
 encoder_2 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=392)
 
 # %%
-# Deep MCCALoss (Multiset CCALoss)
+# Deep MCCA (Multiset CCA)
 # ------------------------
-# A multiview extension of CCALoss, aiming to find latent spaces that are maximally correlated across multiple representations.
+# A multiview extension of CCA, aiming to find latent spaces that are maximally correlated across multiple representations.
 
 dcca_mcca = DCCA(
     latent_dimensions=LATENT_DIMS,
     encoders=[encoder_1, encoder_2],
-    objective=objectives.MCCALoss,
+    objective=objectives.MCCA,
 )
 trainer_mcca = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False, enable_model_summary=False,enable_progress_bar=False)
 trainer_mcca.fit(dcca_mcca, train_loader, val_loader)
 
 # %%
-# Deep GCCALoss (Generalized CCALoss)
+# Deep GCCA (Generalized CCA)
 # ---------------------------
 # A method that finds projections of multiple representations such that the variance explained
 # by the canonical components is maximized.
@@ -54,13 +54,13 @@ trainer_mcca.fit(dcca_mcca, train_loader, val_loader)
 dcca_gcca = DCCA(
     latent_dimensions=LATENT_DIMS,
     encoders=[encoder_1, encoder_2],
-    objective=objectives.GCCALoss,
+    objective=objectives.GCCA,
 )
 trainer_gcca = pl.Trainer(max_epochs=EPOCHS, enable_checkpointing=False, enable_model_summary=False,enable_progress_bar=False)
 trainer_gcca.fit(dcca_gcca, train_loader, val_loader)
 
 # %%
-# Deep TCCALoss (Tied CCALoss)
+# Deep TCCA (Tied CCA)
 # --------------------
 # An approach where representations share the same weight parameters during training.
 
