@@ -1,6 +1,6 @@
 """
 Exploring Canonical Correlation Analysis (CCA) with Kernel & Nonparametric Methods
-=================================================================================
+====================================================================================
 
 This script provides a walkthrough on using kernel and nonparametric techniques
 to perform Canonical Correlation Analysis (CCA) on a simulated dataset.

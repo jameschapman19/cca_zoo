@@ -1,6 +1,6 @@
 """
 Gradient-based CCA and CCA_EY
-============================
+==============================
 
 This script demonstrates how to use gradient-based methods
 to perform canonical correlation analysis (CCA) on high-dimensional data.
@@ -74,7 +74,7 @@ plt.show()
 
 # %%
 # CCA_EY with different batch sizes
-# --------------------------------
+# -----------------------------------
 # We create a list of batch sizes to try out
 batch_sizes = [200, 100, 50, 20, 10]
 
@@ -110,7 +110,7 @@ for batch_size in batch_sizes:
 
 # %%
 # Comparison
-# ----------
+# -----------
 # We can see that CCA_EY achieves a higher correlation than CCA on the test set,
 # indicating that it can handle high-dimensional data better by using gradient descent.
 # We can also see that the batch size affects the performance of CCA_EY, with smaller batch sizes

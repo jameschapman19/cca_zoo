@@ -43,14 +43,14 @@ test_views = [X_test, Y_test]
 
 # %%
 # The Training Ritual
-# -------------------
+# --------------------
 # We'll use Multi-Set Canonical Correlation Analysis (MCCA) to find shared patterns among the three representations.
 mcca = MCCA(latent_dimensions=2)
 mcca.fit(views)
 
 # %%
 # Why So Varied? Understanding Explained Variance
-# ----------------------------------------------
+# ------------------------------------------------
 # Explained variance can give you a quick insight into how well your model captures the variance in each view.
 ExplainedVarianceDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 plt.show()
@@ -58,7 +58,7 @@ print("Tip: Higher explained variance usually indicates better model fit.")
 
 # %%
 # When Covariance is Not Covert
-# -----------------------------
+# -------------------------------
 # Explained covariance dives deeper, revealing how well your model explains the covariance structure between different representations.
 ExplainedCovarianceDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 plt.show()
@@ -68,14 +68,14 @@ print(
 
 # %%
 # Peering into the Weights
-# ------------------------
+# --------------------------
 # Ever wondered how much each feature contributes? The weight heatmap unveils the importance of each feature in your model.
 WeightHeatmapDisplay.from_estimator(mcca).plot()
 plt.show()
 print("Did you know? Large weights_ are usually more influential in the model.")
 
 # The Scoreboard
-# --------------
+# ---------------
 # Score heatmaps help you visualize how the CCA projections from multiple representations relate to each other.
 
 # Example using ScoreScatterDisplay
@@ -130,7 +130,7 @@ print(
 
 # %%
 # The Covariance Matrix: A Mirror Into Your Model
-# -----------------------------------------------
+# -------------------------------------------------
 # The covariance heatmap provides a detailed look at how features from different representations covary.
 CovarianceHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 plt.show()
@@ -140,7 +140,7 @@ print(
 
 # %%
 # The Correlation Heatmap: A Normalized Tale
-# ------------------------------------------
+# --------------------------------------------
 # This heatmap normalizes the covariance, giving you a measure that's easier to compare across different scales.
 CorrelationHeatmapDisplay.from_estimator(mcca, views, test_views=test_views).plot()
 plt.show()

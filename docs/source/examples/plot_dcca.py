@@ -1,6 +1,6 @@
 """
 Deep Canonical Correlation Analysis (CCA) using `cca_zoo`
-========================================================
+==========================================================
 
 This script showcases how to implement various Deep CCA methods and their
 variants using the `cca_zoo` library, a dedicated tool for canonical
