@@ -257,7 +257,6 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
                 ]
         return self._canonical_loadings
 
-
     def loadings_(self) -> List[np.ndarray]:
         """
         Compute and return loadings_ for each view. These are cached for performance optimization.

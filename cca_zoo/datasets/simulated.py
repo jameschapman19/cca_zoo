@@ -125,9 +125,16 @@ class JointData(BaseData):
     Class for generating simulated data for a linear model with multiple representations.
     """
 
-    def __init__(self, view_features: List[int], latent_dims: int = 1, view_sparsity: Union[List[float], float] = None,
-                 correlation: Union[List[float], float] = 0.99, structure: str = "random",
-                 positive: Union[bool, List[bool]] = False, random_state: Union[int, np.random.RandomState] = None):
+    def __init__(
+        self,
+        view_features: List[int],
+        latent_dims: int = 1,
+        view_sparsity: Union[List[float], float] = None,
+        correlation: Union[List[float], float] = 0.99,
+        structure: str = "random",
+        positive: Union[bool, List[bool]] = False,
+        random_state: Union[int, np.random.RandomState] = None,
+    ):
         self.view_features = view_features
         self.latent_dims = latent_dims
         self.random_state = check_random_state(random_state)
