@@ -211,7 +211,6 @@ class BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         """
         return self.average_pairwise_correlations(views, **kwargs).sum()
 
-    @property
     def canonical_loadings_(
         self, views: Iterable[np.ndarray], normalize: bool = True, **kwargs
     ) -> List[np.ndarray]:
