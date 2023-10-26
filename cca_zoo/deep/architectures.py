@@ -110,9 +110,7 @@ class CNNEncoder(BaseEncoder):
                 nn.Dropout(p=dropout), nn.Linear(linear_input_size, latent_dimensions)
             )
 
-    def _build_conv_layers(
-        self, channels, kernel_sizes, strides, paddings, activation
-    ):
+    def _build_conv_layers(self, channels, kernel_sizes, strides, paddings, activation):
         layers = []
         current_channels = 1
         for idx in range(len(channels)):
