@@ -56,9 +56,13 @@ class CCA_EY(BaseGradientModel):
         return loss["objective"]
 
     def get_dataset(self, views: Iterable[np.ndarray], validation_views=None):
-        dataset = DoubleNumpyDataset(views, batch_size=self.batch_size, random_state=self.random_state)
+        dataset = DoubleNumpyDataset(
+            views, batch_size=self.batch_size, random_state=self.random_state
+        )
         if validation_views is not None:
-            val_dataset = DoubleNumpyDataset(validation_views, self.batch_size, self.random_state)
+            val_dataset = DoubleNumpyDataset(
+                validation_views, self.batch_size, self.random_state
+            )
         else:
             val_dataset = None
         return dataset, val_dataset
