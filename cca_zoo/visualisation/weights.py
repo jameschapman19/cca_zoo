@@ -46,7 +46,7 @@ class WeightHeatmapDisplay:
         self.weights_cov = [w.T @ w for w in self.weights]
         # loop through each view and have a heatmap of the covariance of the weights_
         for i, view_weights_cov in enumerate(self.weights_cov):
-            sns.heatmap(view_weights_cov, ax=axs[i],annot=True, **self.kwargs)
+            sns.heatmap(view_weights_cov, ax=axs[i], annot=True, **self.kwargs)
             axs[i].set_title(self.view_labels[i])
         plt.tight_layout()
         self.figure_ = fig
