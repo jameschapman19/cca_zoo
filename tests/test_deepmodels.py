@@ -75,7 +75,7 @@ def test_linear_mcca():
     dmcca = DCCA(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2, encoder_3],
-        lr=1e-2,
+        lr=5e-1,
         objective=objectives.MCCALoss,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
@@ -231,7 +231,7 @@ def test_DCCA_methods():
         latent_dimensions=latent_dimensions, feature_size=feature_size[1]
     )
     dcca_noi = DCCA_NOI(
-        latent_dimensions, encoders=[encoder_1, encoder_2], rho=0.2, lr=1e-3
+        latent_dimensions, encoders=[encoder_1, encoder_2], rho=0.2, lr=1e-1
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dcca_noi, train_loader)
