@@ -1,5 +1,5 @@
-CCA-Zoo: Canonical Correlation Analysis in Python
-===================================================================
+Introduction to CCA
+=======================
 
 Welcome to CCA-Zoo, a one-stop repository for state-of-the-art Canonical Correlation Analysis (CCA) algorithms. Over the years, a multitude of CCA extensions have emerged in the academic sphere. CCA-Zoo harnesses the power of modern computational techniques to facilitate the effortless application of these algorithms to real-world, multiview data scenarios.
 

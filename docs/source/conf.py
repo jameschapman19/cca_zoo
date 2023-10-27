@@ -27,10 +27,11 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx_gallery.gen_gallery",
+    "sphinx_favicon",
 ]
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "_templates"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -60,8 +61,6 @@ autodoc_default_options = {
     "members": True,
     "show-inheritance": True,
     "member-order": "bysource",
-    "inherited-members": True,
-    "autodoc_mock_imports": ["torch" "sklearn", "lightning", "jax", "jaxlib"],
 }
 
 # generate autosummary even if no references
@@ -69,47 +68,43 @@ autosummary_generate = True
 
 # -- Options for HTML output -------------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-#
 html_theme = "pydata_sphinx_theme"
+html_logo = "_static/cca-zoo-logo.svg"
+html_favicon = "_static/cca-zoo-logo.svg"
+html_sourcelink_suffix = ""
+html_last_updated_fmt = ""  # to reveal the build date in the pages meta
 
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-#
 html_theme_options = {
-    "show_nav_level": 1,
+    "header_links_before_dropdown": 4,
     "icon_links": [
         {
-            # Label for this link
             "name": "GitHub",
-            # URL where the link will redirect
-            "url": "https://github.com/jameschapman19/proxtorch",  # required
-            # Icon class (if "type": "fontawesome"), or path to local image (if "type": "local")
-            "icon": "fa-brands fa-square-github",
-            # The type of image to be used (see below for details)
-            "type": "fontawesome",
-        }
+            "url": "https://github.com/jameschapman19/cca_zoo",
+            "icon": "fa-brands fa-github",
+        },
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/cca-zoo/",
+            "icon": "fa-custom fa-pypi",
+        },
     ],
+    "logo": {
+        "text": "CCA-Zoo",
+        "image": "_static/cca-zoo-logo.svg",
+    },
     "use_edit_page_button": True,
+    "show_toc_level": 1,
+    "navbar_align": "left",
+    "navbar_center": ["navbar-nav"],
+    "footer_start": ["copyright"],
+    "footer_center": ["sphinx-version"],
+    "navigation_with_keys": False,
 }
+
 
 html_context = {
     "github_user": "jameschapman19",
-    "github_repo": "proxtorch",
+    "github_repo": "cca_zoo",
     "github_version": "main",
     "doc_path": "docs/source",
 }
-
-# Custom sidebar templates, must be a dictionary that maps document names
-# to template names.
-#
-# The default sidebars (for documents that don't match any pattern) are
-# defined by theme itself.  Builtin themes are using these templates by
-# default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
-# 'searchbox.html']``.
-#
-# html_sidebars = {}
-html_logo = "cca-zoo-logo.png"
-html_favicon = "favicon.ico"

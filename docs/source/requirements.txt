@@ -1,8 +1,9 @@
 protobuf==3.20.1
 sphinx
-sphinx-autodoc-typehints
 sphinx-gallery
+sphinx-favicon
 pydata_sphinx_theme
+myst-parser
 colorcet
 seaborn
 pandas

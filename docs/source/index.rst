@@ -5,12 +5,9 @@ Welcome to CCA-Zoo! 🚀
 --------------------------
 Dive into the world of CCA-Zoo! Unlock the hidden relationships in multiview data.
 
-Table of Contents
------------------
-
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: 📘 Using CCA-Zoo
 
    usage/introduction
@@ -33,7 +30,7 @@ Table of Contents
 
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: 🔧 Developer Information
 
    developer_info/contribute
