@@ -267,11 +267,11 @@ class _CCA_EYLoss(_CCAAB):
         }
 
     def derivative(
-        self,
-        views,
-        representations,
-        independent_views=None,
-        independent_representations=None,
+            self,
+            views,
+            representations,
+            independent_views=None,
+            independent_representations=None,
     ):
         A, B = self.get_AB(representations)
         sum_representations = torch.sum(torch.stack(representations), dim=0)
@@ -318,11 +318,11 @@ class _CCA_GHALoss(_CCA_EYLoss):
         }
 
     def derivative(
-        self,
-        views,
-        representations,
-        independent_views=None,
-        independent_representations=None,
+            self,
+            views,
+            representations,
+            independent_views=None,
+            independent_representations=None,
     ):
         A, B = self.get_AB(representations)
         sum_representations = torch.sum(torch.stack(representations), dim=0)
@@ -367,11 +367,11 @@ class _CCA_SVDLoss(_CCA_EYLoss):
         }
 
     def derivative(
-        self,
-        views,
-        representations,
-        independent_views=None,
-        independent_representations=None,
+            self,
+            views,
+            representations,
+            independent_views=None,
+            independent_representations=None,
     ):
         C = torch.cov(torch.hstack(representations).T)
         latent_dims = representations[0].shape[1]
@@ -415,3 +415,16 @@ class _PLS_EYLoss(_PLSAB):
             for view, representation in zip(views, representations)
         ]
         return [2 * (-reward + penalty) for reward, penalty in zip(rewards, penalties)]
+
+
+class _PLS_PowerLoss(_PLSAB):
+    def loss(self, representations):
+        cov = torch.cov(torch.hstack(representations).T)
+        return {
+            "objective": torch.trace(cov[: representations[0].shape[1], representations[0].shape[1]:])
+        }
+
+    @staticmethod
+    def derivative( views, representations):
+        grads = [views[0].T @ representations[1], views[1].T @ representations[0]]
+        return grads
