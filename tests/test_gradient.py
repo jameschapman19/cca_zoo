@@ -52,7 +52,7 @@ def test_batch_pls():
         random_state=random_state,
         trainer_kwargs=trainer_kwargs,
     ).fit((X, Y))
-    spls=PLSStochasticPower(
+    spls = PLSStochasticPower(
         latent_dimensions=latent_dims,
         epochs=epochs,
         random_state=random_state,

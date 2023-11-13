@@ -25,9 +25,7 @@ class PLSStochasticPower(PLS_EY, PLSMixin):
                 on_epoch=True,
                 batch_size=batch["views"][0].shape[0],
             )
-        manual_grads = self.objective.derivative(
-            batch["views"], representations
-        )
+        manual_grads = self.objective.derivative(batch["views"], representations)
         for i, weights in enumerate(self.torch_weights):
             weights.grad = manual_grads[i]
         opt.step()
