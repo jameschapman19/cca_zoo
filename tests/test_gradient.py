@@ -2,8 +2,17 @@ import numpy as np
 import pytest
 from sklearn.utils import check_random_state
 from torch import manual_seed
+
 manual_seed(42)
-from cca_zoo.linear import CCA, PLS,CCA_SVD,CCA_GHA, CCA_EY, PLS_EY, PLSStochasticPower
+from cca_zoo.linear import (
+    CCA,
+    PLS,
+    CCA_SVD,
+    CCA_GHA,
+    CCA_EY,
+    PLS_EY,
+    PLSStochasticPower,
+)
 
 n = 50
 rng = check_random_state(0)
