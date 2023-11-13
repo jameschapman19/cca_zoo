@@ -4,7 +4,7 @@ import numpy as np
 import lightning.pytorch as pl
 import torch
 from torch.utils.data import DataLoader
-
+from cca_zoo.linear._mcca import MCCA
 from cca_zoo._base import _BaseModel
 from cca_zoo.deep.data import NumpyDataset
 from cca_zoo.linear._iterative._base import _default_initializer
@@ -19,7 +19,7 @@ DEFAULT_TRAINER_KWARGS = dict(
 
 DEFAULT_LOADER_KWARGS = dict(pin_memory=False, drop_last=True, shuffle=True)
 
-DEFAULT_OPTIMIZER_KWARGS = dict(optimizer="Adam")
+DEFAULT_OPTIMIZER_KWARGS = dict(optimizer="SGD", nesterov=True, momentum=0.9)
 
 
 class BaseGradientModel(_BaseModel, pl.LightningModule):
@@ -33,7 +33,7 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         batch_size=None,
         dataloader_kwargs=None,
         epochs=1,
-        learning_rate=1e-1,
+        learning_rate=1e-2,
         initialization: Union[str, callable] = "random",
         trainer_kwargs=None,
         optimizer_kwargs=None,
@@ -92,7 +92,7 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         )
         trainer.fit(self, train_dataloader, val_dataloader)
         # return the weights_ from the module. They will need to be changed from torch tensors to numpy arrays
-        weights = [weight.detach().cpu().numpy() for weight in self.torch_weights]
+        weights = [weight.detach().numpy() for weight in self.torch_weights]
         return weights
 
     def get_dataset(self, views: Iterable[np.ndarray], validation_views=None):
@@ -182,3 +182,13 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
             NotImplementedError: If the method is not implemented by subclasses.
         """
         raise NotImplementedError
+
+    def correlation_captured(self, z):
+        # Remove mean from each view
+        z = [zi - zi.mean(0) for zi in z]
+        return MCCA(latent_dimensions=self.latent_dimensions).fit(z).score(z).sum()
+
+    def score(self, loader: torch.utils.data.DataLoader, **kwargs):
+        z = self.transform(loader)
+        corr = self.correlation_captured(z)
+        return corr

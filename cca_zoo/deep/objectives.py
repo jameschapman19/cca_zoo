@@ -209,7 +209,46 @@ class _TCCALoss:
         return torch.linalg.norm(M - M_hat)
 
 
-class _CCA_EYLoss:
+class _CCAAB:
+    def get_AB(self, representations):
+        latent_dimensions = representations[0].shape[1]
+        A = torch.zeros(
+            latent_dimensions, latent_dimensions, device=representations[0].device
+        )  # initialize the cross-covariance matrix
+        B = torch.zeros(
+            latent_dimensions, latent_dimensions, device=representations[0].device
+        )  # initialize the auto-covariance matrix
+        for i, zi in enumerate(representations):
+            for j, zj in enumerate(representations):
+                if i == j:
+                    B += torch.cov(zi.T)  # add the auto-covariance of each view to B
+                A += cross_cov(
+                    zi, zj, rowvar=False
+                )  # add the cross-covariance of each view to A
+        return A / len(representations), B / len(
+            representations
+        )  # return the normalized matrices (divided by the number of representations)
+
+
+class _PLSAB:
+    def get_AB(self, representations, weights=None):
+        latent_dimensions = representations[0].shape[1]
+        A = torch.zeros(
+            latent_dimensions, latent_dimensions, device=representations[0].device
+        )  # initialize the cross-covariance matrix
+        B = torch.zeros(
+            latent_dimensions, latent_dimensions, device=representations[0].device
+        )  # initialize the auto-covariance matrix
+        for i, zi in enumerate(representations):
+            for j, zj in enumerate(representations):
+                if i == j:
+                    B += weights[i].T @ weights[i]
+                else:
+                    A += cross_cov(zi, zj, rowvar=False)
+        return A / len(representations), B / len(representations)
+
+
+class _CCA_EYLoss(_CCAAB):
     def __init__(self, eps: float = 1e-4):
         self.eps = eps
 
@@ -227,25 +266,38 @@ class _CCA_EYLoss:
             "penalties": penalties,
         }
 
-    def get_AB(self, representations):
-        latent_dimensions = representations[0].shape[1]
-        A = torch.zeros(
-            latent_dimensions, latent_dimensions, device=representations[0].device
-        )  # initialize the cross-covariance matrix
-        B = torch.zeros(
-            latent_dimensions, latent_dimensions, device=representations[0].device
-        )  # initialize the auto-covariance matrix
-        for i, zi in enumerate(representations):
-            for j, zj in enumerate(representations):
-                if i == j:
-                    B += torch.cov(zi.T)  # add the auto-covariance of each view to B
-                else:
-                    A += cross_cov(
-                        zi, zj, rowvar=False
-                    )  # add the cross-covariance of each view to A
-        return A / len(representations), B / len(
-            representations
-        )  # return the normalized matrices (divided by the number of representations)
+    def derivative(
+        self,
+        views,
+        representations,
+        independent_views=None,
+        independent_representations=None,
+    ):
+        A, B = self.get_AB(representations)
+        sum_representations = torch.sum(torch.stack(representations), dim=0)
+        n = sum_representations.shape[0]
+        rewards = [2 * view.T @ sum_representations / (n - 1) for view in views]
+        if independent_representations is None:
+            penalties = [
+                2 * view.T @ representation @ B / (n - 1)
+                for view, representation in zip(views, representations)
+            ]
+        else:
+            _, independent_B = self.get_AB(independent_representations)
+            penalties = [
+                view.T @ representation @ B / (n - 1)
+                + independent_view.T
+                @ independent_representation
+                @ independent_B
+                / (n - 1)
+                for view, representation, independent_view, independent_representation in zip(
+                    views,
+                    representations,
+                    independent_views,
+                    independent_representations,
+                )
+            ]
+        return [2 * (-reward + penalty) for reward, penalty in zip(rewards, penalties)]
 
 
 class _CCA_GHALoss(_CCA_EYLoss):
@@ -265,24 +317,32 @@ class _CCA_GHALoss(_CCA_EYLoss):
             "penalties": penalties,
         }
 
-    def get_AB(self, representations):
-        latent_dimensions = representations[0].shape[1]
-        A = torch.zeros(
-            latent_dimensions, latent_dimensions, device=representations[0].device
-        )  # initialize the cross-covariance matrix
-        B = torch.zeros(
-            latent_dimensions, latent_dimensions, device=representations[0].device
-        )  # initialize the auto-covariance matrix
-        for i, zi in enumerate(representations):
-            for j, zj in enumerate(representations):
-                if i == j:
-                    B += torch.cov(zi.T)  # add the auto-covariance of each view to B
-                A += cross_cov(
-                    zi, zj, rowvar=False
-                )  # add the cross-covariance of each view to A
-        return A / len(representations), B / len(
-            representations
-        )  # return the normalized matrices (divided by the number of representations)
+    def derivative(
+        self,
+        views,
+        representations,
+        independent_views=None,
+        independent_representations=None,
+    ):
+        A, B = self.get_AB(representations)
+        sum_representations = torch.sum(torch.stack(representations), dim=0)
+        n = sum_representations.shape[0]
+        if independent_representations is None:
+            rewards = [2 * view.T @ sum_representations / (n - 1) for view in views]
+            penalties = [
+                view.T @ sum_representations @ B / (n - 1)
+                + view.T @ representation @ A / (n - 1)
+                for view, representation in zip(views, representations)
+            ]
+        else:
+            independent_A, independent_B = self.get_AB(independent_representations)
+            rewards = [2 * view.T @ sum_representations / (n - 1) for view in views]
+            penalties = [
+                view.T @ sum_representations @ independent_B / (n - 1)
+                + view.T @ representation @ independent_A / (n - 1)
+                for view, representation in zip(views, representations)
+            ]
+        return [2 * (-reward + penalty) for reward, penalty in zip(rewards, penalties)]
 
 
 class _CCA_SVDLoss(_CCA_EYLoss):
@@ -306,9 +366,36 @@ class _CCA_SVDLoss(_CCA_EYLoss):
             "penalties": penalties,  # return the penalties matrix
         }
 
+    def derivative(
+        self,
+        views,
+        representations,
+        independent_views=None,
+        independent_representations=None,
+    ):
+        C = torch.cov(torch.hstack(representations).T)
+        latent_dims = representations[0].shape[1]
 
-class _PLS_EYLoss(_CCA_EYLoss):
-    def loss(self, representations, weights=None):
+        Cxx = C[:latent_dims, :latent_dims]
+        sum_representations = torch.sum(torch.stack(representations), dim=0)
+        if independent_representations is None:
+            Cyy = C[latent_dims:, latent_dims:]
+        else:
+            Cyy = torch.cov(independent_representations[1].T)
+        n = sum_representations.shape[0]
+        rewards = [
+            2 * views[0].T @ representations[1] / (n - 1),
+            2 * views[1].T @ representations[0] / (n - 1),
+        ]
+        penalties = [
+            views[0].T @ representations[0] @ Cyy / (n - 1),
+            views[1].T @ representations[1] @ Cxx / (n - 1),
+        ]
+        return [2 * (-reward + penalty) for reward, penalty in zip(rewards, penalties)]
+
+
+class _PLS_EYLoss(_PLSAB):
+    def loss(self, representations, weights):
         A, B = self.get_AB(representations, weights)
         rewards = torch.trace(2 * A)
         penalties = torch.trace(B @ B)
@@ -318,37 +405,13 @@ class _PLS_EYLoss(_CCA_EYLoss):
             "penalties": penalties,
         }
 
-    def get_AB(self, representations, weights=None):
-        latent_dimensions = representations[0].shape[1]
-        A = torch.zeros(
-            latent_dimensions, latent_dimensions, device=representations[0].device
-        )  # initialize the cross-covariance matrix
-        B = torch.zeros(
-            latent_dimensions, latent_dimensions, device=representations[0].device
-        )  # initialize the auto-covariance matrix
-        n = representations[0].shape[0]
-        for i, zi in enumerate(representations):
-            for j, zj in enumerate(representations):
-                if i == j:
-                    B += weights[i].T @ weights[i] / n
-                else:
-                    A += cross_cov(zi, zj, rowvar=False)
-        return A / len(representations), B / len(representations)
-
-
-# class PLS_SVDLoss(_PLS_EYLoss):
-#     def loss(self, representations, weights_=None):
-#         C = cross_cov(representations[0], representations[1], rowvar=False)
-#
-#         Cxy = C
-#         Cxx = weights_[0].T @ weights_[0] / representations[0].shape[0]
-#         Cyy = weights_[1].T @ weights_[1] / representations[1].shape[0]
-#
-#         rewards = torch.trace(2 * Cxy)
-#         penalties = torch.trace(Cxx @ Cyy)
-#
-#         return {
-#             "objective": -rewards + penalties,
-#             "rewards": rewards,
-#             "penalties": penalties,
-#         }
+    def derivative(self, views, representations, weights):
+        A, B = self.get_AB(representations, weights)
+        sum_representations = torch.sum(torch.stack(representations), dim=0)
+        n = sum_representations.shape[0]
+        rewards = [2 * view.T @ sum_representations / (n - 1) for view in views]
+        penalties = [
+            2 * view.T @ representation @ B / (n - 1)
+            for view, representation in zip(views, representations)
+        ]
+        return [2 * (-reward + penalty) for reward, penalty in zip(rewards, penalties)]

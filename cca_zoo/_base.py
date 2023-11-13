@@ -242,19 +242,18 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         """
         check_is_fitted(self, attributes=["weights_"])
-        if self._loadings is None:
-            transformed_views = self.transform(views, **kwargs)
-            if normalize:
-                self._canonical_loadings = [
-                    cross_corrcoef(view, transformed_view, rowvar=False)
-                    for view, transformed_view in zip(views, transformed_views)
-                ]
-            else:
-                self._canonical_loadings = [
-                    view.T @ transformed_view
-                    for view, transformed_view in zip(views, transformed_views)
-                ]
-        return self._canonical_loadings
+        transformed_views = self.transform(views, **kwargs)
+        if normalize:
+            canonical_loadings = [
+                cross_corrcoef(view, transformed_view, rowvar=False)
+                for view, transformed_view in zip(views, transformed_views)
+            ]
+        else:
+            canonical_loadings = [
+                view.T @ transformed_view
+                for view, transformed_view in zip(views, transformed_views)
+            ]
+        return canonical_loadings
 
     @property
     def loadings_(self) -> List[np.ndarray]:

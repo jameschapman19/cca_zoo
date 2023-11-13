@@ -9,19 +9,23 @@ from cca_zoo.linear._gradient._base import BaseGradientModel
 
 class CCA_EY(BaseGradientModel):
     objective = _CCA_EYLoss()
+    automatic_optimization = False
 
     def _more_tags(self):
         return {"multiview": True, "stochastic": True, "non_deterministic": True}
 
     def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+        opt.zero_grad()
         representations = self(batch["views"])
-        if self.batch_size is None:
-            independent_representations = representations
-        else:
-            independent_views = batch.get("independent_views", None)
-            independent_representations = (
-                self(independent_views) if independent_views is not None else None
-            )
+        independent_views = (
+            None if self.batch_size is None else batch.get("independent_views", None)
+        )
+        independent_representations = (
+            None
+            if self.batch_size is None
+            else (self(independent_views) if independent_views is not None else None)
+        )
         loss = self.objective.loss(representations, independent_representations)
         # Logging the loss components with "train/" prefix
         for k, v in loss.items():
@@ -32,6 +36,15 @@ class CCA_EY(BaseGradientModel):
                 on_epoch=True,
                 batch_size=batch["views"][0].shape[0],
             )
+        manual_grads = self.objective.derivative(
+            batch["views"],
+            representations,
+            independent_views,
+            independent_representations,
+        )
+        for i, weights in enumerate(self.torch_weights):
+            weights.grad = manual_grads[i]
+        opt.step()
         return loss["objective"]
 
     def validation_step(self, batch, batch_idx):
@@ -72,6 +85,8 @@ class PLS_EY(CCA_EY):
     objective = _PLS_EYLoss()
 
     def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+        opt.zero_grad()
         representations = self(batch["views"])
         loss = self.objective.loss(representations, weights=self.torch_weights)
         # Logging the loss components with "train/" prefix
@@ -83,6 +98,12 @@ class PLS_EY(CCA_EY):
                 on_epoch=True,
                 batch_size=batch["views"][0].shape[0],
             )
+        manual_grads = self.objective.derivative(
+            batch["views"], representations, weights=self.torch_weights
+        )
+        for i, weights in enumerate(self.torch_weights):
+            weights.grad = manual_grads[i]
+        opt.step()
         return loss["objective"]
 
     def validation_step(self, batch, batch_idx):

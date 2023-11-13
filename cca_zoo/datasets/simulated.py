@@ -59,7 +59,7 @@ class LatentVariableData(_BaseData):
             for f, s in zip(self.view_features, self.structure)
         ]
         self.true_features = [
-            np.linalg.inv(cov) @ loading
+            np.linalg.inv(cov + loading.T @ loading) @ loading
             for cov, loading in zip(self.cov_matrices, self.true_loadings)
         ]
 
@@ -237,6 +237,8 @@ class JointData(_BaseData):
         return weights
 
     def sample(self, n_samples: int):
-        random_data = self.random_state.randn(self.chol.shape[0], n_samples)
-        samples = (self.chol @ random_data).T
+        random_data = self.random_state.standard_normal(
+            size=(n_samples, self.chol.shape[0])
+        )
+        samples = random_data @ self.chol.T
         return np.split(samples, np.cumsum(self.view_features)[:-1], axis=1)

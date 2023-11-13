@@ -9,9 +9,10 @@ from cca_zoo.linear._iterative._deflation import _DeflationMixin
 from cca_zoo.linear._search import _delta_search
 from cca_zoo._utils import _process_parameter
 from cca_zoo._utils.cross_correlation import cross_corrcoef
+from cca_zoo.linear._pls import PLSMixin
 
 
-class SCCA_PMD(_DeflationMixin, _BaseIterative):
+class SCCA_PMD(_DeflationMixin, _BaseIterative, PLSMixin):
     def __init__(
         self,
         latent_dimensions: int = 1,
