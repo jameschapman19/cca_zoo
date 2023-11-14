@@ -118,8 +118,8 @@ def test_linear_gcca():
 
 
 def test_DTCCA_methods():
-    max_epochs = 20
-    # check that DTCCA is equivalent to _CCALoss for 2 representations with linear encoders
+    max_epochs = 500
+    # check that DTCCA is equivalent to TCCA for 2 representations with linear encoders
     latent_dimensions = 2
     tcca = TCCA(latent_dimensions=latent_dimensions)
     encoder_1 = architectures.LinearEncoder(
@@ -129,17 +129,15 @@ def test_DTCCA_methods():
         latent_dimensions=latent_dimensions, feature_size=feature_size[1]
     )
     dtcca = DTCCA(
-        latent_dimensions=latent_dimensions, encoders=[encoder_1, encoder_2], lr=1e-2
+        latent_dimensions=latent_dimensions, encoders=[encoder_1, encoder_2], lr=10
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dtcca, train_loader)
-    z = dtcca.transform(train_loader)
     assert (
         np.testing.assert_array_almost_equal(
             tcca.fit((X[train_ids], Y[train_ids]))
-            .score((X[train_ids], Y[train_ids]))
-            .sum(),
-            tcca.fit((z)).score((z)).sum(),
+            .score((X[train_ids], Y[train_ids])),
+            dtcca.score((train_loader)),
             decimal=1,
         )
         is None

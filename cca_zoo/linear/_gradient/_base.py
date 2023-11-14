@@ -34,7 +34,7 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         batch_size=None,
         dataloader_kwargs=None,
         epochs=1,
-        learning_rate=1e-2,
+        learning_rate=1e-1,
         initialization: Union[str, callable] = "random",
         optimizer_kwargs=None,
         early_stopping=False,
@@ -87,7 +87,7 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         # Set the weights_ attribute as torch parameters with gradients
         self.torch_weights = torch.nn.ParameterList(
             [
-                torch.nn.Parameter(torch.from_numpy(weight), requires_grad=True)
+                torch.nn.Parameter(torch.from_numpy(weight/100), requires_grad=True)
                 for weight in self.weights_
             ]
         )

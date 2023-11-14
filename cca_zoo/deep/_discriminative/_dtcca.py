@@ -1,8 +1,9 @@
 from ._dcca import DCCA
 from .. import objectives
+from ...linear._tcca import TCCA
+import torch
 
-
-class DTCCA(DCCA):
+class DTCCA(TCCA,DCCA):
     """
     A class used to fit a DTCCA model.
 
@@ -10,15 +11,16 @@ class DTCCA(DCCA):
 
     References
     ----------
-    Wong, Hok Shing, et al. "Deep Tensor _CCALoss for Multi-view Learning." IEEE Transactions on Big Data (2021).
+    Wong, Hok Shing, et al. "Deep Tensor CCA for Multi-view Learning." IEEE Transactions on Big Data (2021).
 
     """
 
     def __init__(
         self, latent_dimensions: int, encoders=None, eps: float = 1e-5, **kwargs
     ):
-        # Call the parent class constructor with the DTCCA objective function
-        super().__init__(
+        # Initialize DCCA part with DTCCA objective function
+        DCCA.__init__(
+            self,
             latent_dimensions=latent_dimensions,
             objective=objectives._TCCALoss,
             encoders=encoders,
