@@ -37,7 +37,7 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         learning_rate=1e-1,
         initialization: Union[str, callable] = "random",
         optimizer_kwargs=None,
-        early_stopping=False,
+        early_stopping=True,
         logging=False,
     ):
         _BaseModel.__init__(
@@ -174,7 +174,7 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
             torch.optim.Optimizer: The optimizer object.
         """
         # construct optimizer using optimizer_kwargs
-        optimizer_name = self.optimizer_kwargs.get("optimizer", "Adam")
+        optimizer_name = self.optimizer_kwargs.get("optimizer")
         kwargs = self.optimizer_kwargs.copy()
         kwargs.pop("optimizer", None)
         optimizer = getattr(torch.optim, optimizer_name)(
