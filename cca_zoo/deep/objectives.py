@@ -211,7 +211,7 @@ class _TCCALoss:
 
 
 @torch.jit.script
-def CCA_AB(representations: list[torch.Tensor]):
+def CCA_AB(representations: List[torch.Tensor]):
     latent_dimensions = representations[0].shape[1]
     A = torch.zeros(
         latent_dimensions, latent_dimensions, device=representations[0].device
@@ -230,7 +230,7 @@ def CCA_AB(representations: list[torch.Tensor]):
 
 
 @torch.jit.script
-def PLS_AB(representations: list[torch.Tensor], weights: list[torch.Tensor]):
+def PLS_AB(representations: List[torch.Tensor], weights: List[torch.Tensor]):
     latent_dimensions = representations[0].shape[1]
     A = torch.zeros(
         latent_dimensions, latent_dimensions, device=representations[0].device
