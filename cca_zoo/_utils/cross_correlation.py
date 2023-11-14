@@ -2,6 +2,17 @@ import numpy as np
 import torch
 
 
+def torch_cross_cov(A, B):
+    A = A.T
+    B = B.T
+
+    A = A - A.mean(dim=1, keepdim=True)
+    B = B - B.mean(dim=1, keepdim=True)
+
+    C = A @ B.T
+    return C / (A.size(1) - 1)
+
+
 def cross_corrcoef(A, B, rowvar=True):
     """Cross correlation of two matrices.
 

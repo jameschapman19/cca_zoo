@@ -28,14 +28,15 @@ class CCA_EY(BaseGradientModel):
         )
         loss = self.objective.loss(representations, independent_representations)
         # Logging the loss components with "train/" prefix
-        for k, v in loss.items():
-            self.log(
-                f"train/{k}",
-                v,
-                prog_bar=True,
-                on_epoch=True,
-                batch_size=batch["views"][0].shape[0],
-            )
+        if self.logging:
+            for k, v in loss.items():
+                self.log(
+                    f"train/{k}",
+                    v,
+                    prog_bar=True,
+                    on_epoch=True,
+                    batch_size=batch["views"][0].shape[0],
+                )
         manual_grads = self.objective.derivative(
             batch["views"],
             representations,
@@ -58,14 +59,15 @@ class CCA_EY(BaseGradientModel):
             )
         loss = self.objective.loss(representations, independent_representations)
         # Logging the loss components
-        for k, v in loss.items():
-            self.log(
-                f"val/{k}",
-                v,
-                prog_bar=True,
-                on_epoch=True,
-                batch_size=batch["views"][0].shape[0],
-            )
+        if self.logging:
+            for k, v in loss.items():
+                self.log(
+                    f"val/{k}",
+                    v,
+                    prog_bar=True,
+                    on_epoch=True,
+                    batch_size=batch["views"][0].shape[0],
+                )
         return loss["objective"]
 
     def get_dataset(self, views: Iterable[np.ndarray], validation_views=None):

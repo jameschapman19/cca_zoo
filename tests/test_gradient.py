@@ -45,19 +45,17 @@ def scale_transform(model, X, Y):
 
 
 def test_batch_pls():
-    pls = PLS(latent_dimensions=3).fit((X, Y))
+    pls = PLS(latent_dimensions=latent_dims).fit((X, Y))
     plsey = PLS_EY(
         latent_dimensions=latent_dims,
         epochs=epochs,
         random_state=random_state,
-        trainer_kwargs=trainer_kwargs,
-    ).fit((X, Y))
+    ).fit((X, Y), **trainer_kwargs)
     spls = PLSStochasticPower(
         latent_dimensions=latent_dims,
         epochs=epochs,
         random_state=random_state,
-        trainer_kwargs=trainer_kwargs,
-    ).fit((X, Y))
+    ).fit((X, Y), **trainer_kwargs)
     pls_score = scale_transform(pls, X, Y)
     plsey_score = scale_transform(plsey, X, Y)
     spls_score = scale_transform(spls, X, Y)
@@ -66,28 +64,25 @@ def test_batch_pls():
 
 
 def test_batch_cca():
-    cca = CCA(latent_dimensions=3).fit((X, Y))
+    cca = CCA(latent_dimensions=latent_dims).fit((X, Y))
     ccaey = CCA_EY(
         latent_dimensions=latent_dims,
         epochs=epochs,
         random_state=random_state,
-        trainer_kwargs=trainer_kwargs,
         learning_rate=1e-1,
-    ).fit((X, Y))
+    ).fit((X, Y), **trainer_kwargs)
     ccagha = CCA_GHA(
         latent_dimensions=latent_dims,
         epochs=epochs,
         random_state=random_state,
-        trainer_kwargs=trainer_kwargs,
         learning_rate=1e-1,
-    ).fit((X, Y))
+    ).fit((X, Y), **trainer_kwargs)
     ccasvd = CCA_SVD(
         latent_dimensions=latent_dims,
         epochs=epochs,
         random_state=random_state,
-        trainer_kwargs=trainer_kwargs,
         learning_rate=1e-1,
-    ).fit((X, Y))
+    ).fit((X, Y), **trainer_kwargs)
     cca_score = cca.score((X, Y))
     ccaey_score = ccaey.score((X, Y))
     ccagh_score = ccagha.score((X, Y))
@@ -99,21 +94,19 @@ def test_batch_cca():
 
 
 def test_stochastic_pls():
-    pls = PLS(latent_dimensions=3).fit((X, Y))
+    pls = PLS(latent_dimensions=latent_dims).fit((X, Y))
     plsey = PLS_EY(
         latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
         random_state=random_state,
-        trainer_kwargs=trainer_kwargs,
-    ).fit((X, Y))
+    ).fit((X, Y), **trainer_kwargs)
     spls = PLSStochasticPower(
         latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
         random_state=random_state,
-        trainer_kwargs=trainer_kwargs,
-    ).fit((X, Y))
+    ).fit((X, Y), **trainer_kwargs)
 
     pls_score = scale_transform(pls, X, Y)
     spls_score = scale_transform(spls, X, Y)
@@ -124,28 +117,25 @@ def test_stochastic_pls():
 
 
 def test_stochastic_cca():
-    cca = CCA(latent_dimensions=3).fit((X, Y))
+    cca = CCA(latent_dimensions=latent_dims).fit((X, Y))
     ccagha = CCA_GHA(
         latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
         random_state=random_state,
-        trainer_kwargs=trainer_kwargs,
-    ).fit((X, Y))
+    ).fit((X, Y), **trainer_kwargs)
     ccaey = CCA_EY(
         latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
         random_state=random_state,
-        trainer_kwargs=trainer_kwargs,
-    ).fit((X, Y))
+    ).fit((X, Y), **trainer_kwargs)
     ccasvd = CCA_SVD(
         latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
         random_state=random_state,
-        trainer_kwargs=trainer_kwargs,
-    ).fit((X, Y))
+    ).fit((X, Y), **trainer_kwargs)
     cca_score = cca.score((X, Y))
     ccaey_score = ccaey.score((X, Y))
     ccagha_score = ccagha.score((X, Y))
@@ -157,11 +147,10 @@ def test_stochastic_cca():
 
 
 def test_with_validation():
-    cca = CCA(latent_dimensions=3).fit((X, Y))
+    cca = CCA(latent_dimensions=latent_dims).fit((X, Y))
     ccaey = CCA_EY(
         latent_dimensions=latent_dims,
         epochs=epochs,
         batch_size=batch_size,
         random_state=random_state,
-        trainer_kwargs=trainer_kwargs,
-    ).fit((X, Y), validation_views=(X, Y))
+    ).fit((X, Y), validation_views=(X, Y), **trainer_kwargs)

@@ -15,6 +15,7 @@ DEFAULT_TRAINER_KWARGS = dict(
     logger=False,
     enable_model_summary=False,
     enable_progress_bar=False,
+    accelerator="cpu",
 )
 
 DEFAULT_LOADER_KWARGS = dict(pin_memory=False, drop_last=True, shuffle=True)
@@ -35,9 +36,9 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         epochs=1,
         learning_rate=1e-2,
         initialization: Union[str, callable] = "random",
-        trainer_kwargs=None,
         optimizer_kwargs=None,
         early_stopping=False,
+        logging=False,
     ):
         _BaseModel.__init__(
             self,
@@ -59,19 +60,29 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         else:
             self.initialization = initialization
         self.dataloader_kwargs = dataloader_kwargs or DEFAULT_LOADER_KWARGS
-        self.trainer_kwargs = trainer_kwargs or DEFAULT_TRAINER_KWARGS
         self.optimizer_kwargs = optimizer_kwargs or DEFAULT_OPTIMIZER_KWARGS
         self.early_stopping = early_stopping
+        self.logging = logging
 
-    def fit(self, views: Iterable[np.ndarray], y=None, validation_views=None, **kwargs):
+    def fit(
+        self,
+        views: Iterable[np.ndarray],
+        y=None,
+        validation_views=None,
+        **trainer_kwargs
+    ):
         views = self._validate_data(views)
         if validation_views is not None:
             validation_views = self._validate_data(validation_views)
         self._check_params()
-        self.weights_ = self._fit(views, validation_views=validation_views)
+        self.weights_ = self._fit(
+            views, validation_views=validation_views, **trainer_kwargs
+        )
         return self
 
-    def _fit(self, views: Iterable[np.ndarray], validation_views=None):
+    def _fit(
+        self, views: Iterable[np.ndarray], validation_views=None, **trainer_kwargs
+    ):
         self._initialize(views)
         # Set the weights_ attribute as torch parameters with gradients
         self.torch_weights = torch.nn.ParameterList(
@@ -82,7 +93,8 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         )
         trainer = pl.Trainer(
             max_epochs=self.epochs,
-            **self.trainer_kwargs,
+            # if trainer_kwargs is not None trainer_kwargs will override the defaults
+            **{**DEFAULT_TRAINER_KWARGS, **trainer_kwargs},
         )
         train_dataset, val_dataset = self.get_dataset(
             views, validation_views=validation_views
