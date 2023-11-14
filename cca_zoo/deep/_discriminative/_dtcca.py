@@ -3,7 +3,8 @@ from .. import objectives
 from ...linear._tcca import TCCA
 import torch
 
-class DTCCA(TCCA,DCCA):
+
+class DTCCA(TCCA, DCCA):
     """
     A class used to fit a DTCCA model.
 
