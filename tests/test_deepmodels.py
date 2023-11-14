@@ -135,8 +135,7 @@ def test_DTCCA_methods():
     trainer.fit(dtcca, train_loader)
     assert (
         np.testing.assert_array_almost_equal(
-            tcca.fit((X[train_ids], Y[train_ids]))
-            .score((X[train_ids], Y[train_ids])),
+            tcca.fit((X[train_ids], Y[train_ids])).score((X[train_ids], Y[train_ids])),
             dtcca.score((train_loader)),
             decimal=1,
         )
