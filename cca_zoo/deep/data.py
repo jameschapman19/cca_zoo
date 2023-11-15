@@ -111,7 +111,7 @@ class DoubleNumpyDataset(NumpyDataset):
 
     def __getitem__(self, index):
         views = [view[index] for view in self.views]
-        independent_index=index
+        independent_index = index
         # independent_index = (
         #     index
         #     if self.batch_size is None
