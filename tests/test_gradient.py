@@ -47,7 +47,7 @@ def scale_transform(model, X, Y):
 
 
 def test_batch_pls():
-    epochs=50
+    epochs = 50
     pls = PLS(latent_dimensions=latent_dims).fit((X, Y))
     plsey = PLS_EY(
         latent_dimensions=latent_dims,
@@ -67,7 +67,7 @@ def test_batch_pls():
 
 
 def test_batch_cca():
-    epochs=50
+    epochs = 50
     cca = CCA(latent_dimensions=latent_dims).fit((X, Y))
     ccaey = CCA_EY(
         latent_dimensions=latent_dims,
