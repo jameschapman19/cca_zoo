@@ -10,6 +10,7 @@ from cca_zoo._base import _BaseModel
 from cca_zoo.deep.data import NumpyDataset
 from cca_zoo.linear._iterative._base import _default_initializer
 import warnings
+
 # Default Trainer kwargs
 DEFAULT_TRAINER_KWARGS = dict(
     enable_checkpointing=False,
@@ -65,10 +66,12 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         self.early_stopping = early_stopping
         if early_stopping:
             if not logging:
-                warnings.warn("Early stopping is enabled. Logging is automatically enabled.", RuntimeWarning)
+                warnings.warn(
+                    "Early stopping is enabled. Logging is automatically enabled.",
+                    RuntimeWarning,
+                )
             logging = True
         self.logging = logging
-
 
     def fit(
         self,
@@ -93,7 +96,7 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         # Set the weights_ attribute as torch parameters with gradients
         self.torch_weights = torch.nn.ParameterList(
             [
-                torch.nn.Parameter(torch.from_numpy(weight/1000), requires_grad=True)
+                torch.nn.Parameter(torch.from_numpy(weight / 1000), requires_grad=True)
                 for weight in self.weights_
             ]
         )

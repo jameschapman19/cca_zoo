@@ -43,11 +43,7 @@ class DummyCCA(_BaseModel):
         return self
 
     def normalize_weights(self, views):
-        self.weights_ = [
-            weight
-            / 1000
-            for view, weight in zip(views, self.weights_)
-        ]
+        self.weights_ = [weight / 1000 for view, weight in zip(views, self.weights_)]
 
 
 class DummyPLS(DummyCCA):
