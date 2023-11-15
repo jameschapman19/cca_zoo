@@ -3,12 +3,13 @@ from typing import Iterable, List, Union
 import numpy as np
 import lightning.pytorch as pl
 import torch
+from lightning.pytorch.callbacks import EarlyStopping
 from torch.utils.data import DataLoader
 from cca_zoo.linear._mcca import MCCA
 from cca_zoo._base import _BaseModel
 from cca_zoo.deep.data import NumpyDataset
 from cca_zoo.linear._iterative._base import _default_initializer
-
+import warnings
 # Default Trainer kwargs
 DEFAULT_TRAINER_KWARGS = dict(
     enable_checkpointing=False,
@@ -34,7 +35,7 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         batch_size=None,
         dataloader_kwargs=None,
         epochs=1,
-        learning_rate=1e-1,
+        learning_rate=1e-3,
         initialization: Union[str, callable] = "random",
         optimizer_kwargs=None,
         early_stopping=True,
@@ -62,7 +63,12 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         self.dataloader_kwargs = dataloader_kwargs or DEFAULT_LOADER_KWARGS
         self.optimizer_kwargs = optimizer_kwargs or DEFAULT_OPTIMIZER_KWARGS
         self.early_stopping = early_stopping
+        if early_stopping:
+            if not logging:
+                warnings.warn("Early stopping is enabled. Logging is automatically enabled.", RuntimeWarning)
+            logging = True
         self.logging = logging
+
 
     def fit(
         self,
@@ -87,12 +93,20 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         # Set the weights_ attribute as torch parameters with gradients
         self.torch_weights = torch.nn.ParameterList(
             [
-                torch.nn.Parameter(torch.from_numpy(weight / 100), requires_grad=True)
+                torch.nn.Parameter(torch.from_numpy(weight/1000), requires_grad=True)
                 for weight in self.weights_
             ]
         )
+        # if self.early_stopping:
+        #     # Define the EarlyStopping callback
+        #     early_stop_callback = EarlyStopping(
+        #         monitor='train/objective',  # Metric to monitor
+        #         min_delta=0.05,  # Minimum change to qualify as an improvement
+        #         patience=3,  # Number of epochs with no improvement after which training will be stopped
+        #     )
         trainer = pl.Trainer(
             max_epochs=self.epochs,
+            # callbacks=early_stop_callback if self.early_stopping else None,
             # if trainer_kwargs is not None trainer_kwargs will override the defaults
             **{**DEFAULT_TRAINER_KWARGS, **trainer_kwargs},
         )
@@ -135,6 +149,10 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         else:
             val_loader = None
         return train_loader, val_loader
+
+    def on_train_epoch_end(self) -> None:
+        scheduler = self.lr_schedulers()
+        scheduler.step()
 
     def _initialize(self, views: Iterable[np.ndarray]):
         """Initialize the _CCALoss weights_ using the initialization method or function.
@@ -180,7 +198,11 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         optimizer = getattr(torch.optim, optimizer_name)(
             self.torch_weights, lr=self.learning_rate, **kwargs
         )
-        return optimizer
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": scheduler,
+        }
 
     def objective(self, *args, **kwargs) -> float:
         """Compute the objective value for the loop.

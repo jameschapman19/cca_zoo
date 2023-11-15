@@ -219,9 +219,13 @@ def CCA_AB(representations: List[torch.Tensor]):
     B = torch.zeros(
         latent_dimensions, latent_dimensions, device=representations[0].device
     )  # initialize the auto-covariance matrix
-    for zi in representations:
+    # for zi in representations:
+    #     B.add_(torch.cov(zi.T))  # In-place addition
+    #     for zj in representations:
+    #         A.add_(torch_cross_cov(zi, zj))  # In-place addition
+    for i, zi in enumerate(representations):
         B.add_(torch.cov(zi.T))  # In-place addition
-        for zj in representations:
+        for j, zj in enumerate(representations):
             A.add_(torch_cross_cov(zi, zj))  # In-place addition
 
     A.div_(len(representations))  # In-place division
@@ -240,10 +244,9 @@ def PLS_AB(representations: List[torch.Tensor], weights: List[torch.Tensor]):
     )  # initialize the auto-covariance matrix
 
     for i, zi in enumerate(representations):
+        B.add_(weights[i].T @ weights[i])  # In-place addition
         for j, zj in enumerate(representations):
-            if i == j:
-                B.add_(weights[i].T @ weights[i])  # In-place addition
-            else:
+            if i != j:
                 A.add_(torch_cross_cov(zi, zj))  # In-place addition
 
     A.div_(len(representations))  # In-place division

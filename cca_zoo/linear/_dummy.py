@@ -45,14 +45,9 @@ class DummyCCA(_BaseModel):
     def normalize_weights(self, views):
         self.weights_ = [
             weight
-            / np.sqrt(np.diag(np.atleast_1d(np.cov(view @ weight, rowvar=False))))
+            / 1000
             for view, weight in zip(views, self.weights_)
         ]
-        scores = self.average_pairwise_correlations(views)
-        for i, score in enumerate(scores):
-            if score < 0:
-                # flip the sign of the first weights_
-                self.weights_[0][:, i] = -self.weights_[0][:, i]
 
 
 class DummyPLS(DummyCCA):
