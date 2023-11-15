@@ -35,7 +35,7 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         batch_size=None,
         dataloader_kwargs=None,
         epochs=1,
-        learning_rate=1e-3,
+        learning_rate=5e-3,
         initialization: Union[str, callable] = "random",
         optimizer_kwargs=None,
         early_stopping=True,
@@ -93,7 +93,7 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         # Set the weights_ attribute as torch parameters with gradients
         self.torch_weights = torch.nn.ParameterList(
             [
-                torch.nn.Parameter(torch.from_numpy(weight/1000), requires_grad=True)
+                torch.nn.Parameter(torch.from_numpy(weight), requires_grad=True)
                 for weight in self.weights_
             ]
         )
@@ -198,7 +198,7 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         optimizer = getattr(torch.optim, optimizer_name)(
             self.torch_weights, lr=self.learning_rate, **kwargs
         )
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=1.0 if self.batch_size is None else 0.9)
         return {
             "optimizer": optimizer,
             "lr_scheduler": scheduler,

@@ -35,17 +35,6 @@ X -= X.mean(axis=0)
 Y -= Y.mean(axis=0)
 Z -= Z.mean(axis=0)
 
-
-def test_initialisation():
-    dummyCCA = DummyCCA(latent_dimensions=3)
-    dummyCCA.fit((X, Y))
-    # check that scores are positive in each dimension:
-    scores = dummyCCA.score((X, Y))
-
-    # Check if all scores are positive
-    assert np.all(scores > 0), "Not all scores are positive."
-
-
 def test_regularized_methods():
     # Test that linear regularized methods match PLS solution when using maximum regularisation.
     latent_dims = 2

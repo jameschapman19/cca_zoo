@@ -346,16 +346,14 @@ class _CCA_GHALoss(_CCA_EYLoss):
         if independent_representations is None:
             rewards = [2 * view.T @ sum_representations / (n - 1) for view in views]
             penalties = [
-                view.T @ sum_representations @ B / (n - 1)
-                + view.T @ representation @ A / (n - 1)
+                2*view.T @ representation @ A / (n - 1)
                 for view, representation in zip(views, representations)
             ]
         else:
             independent_A, independent_B = CCA_AB(independent_representations)
             rewards = [2 * view.T @ sum_representations / (n - 1) for view in views]
             penalties = [
-                view.T @ sum_representations @ independent_B / (n - 1)
-                + view.T @ representation @ independent_A / (n - 1)
+                2*view.T @ representation @ independent_A / (n - 1)
                 for view, representation in zip(views, representations)
             ]
         return [2 * (-reward + penalty) for reward, penalty in zip(rewards, penalties)]
@@ -429,7 +427,7 @@ class _PLS_EYLoss:
         }
 
     @staticmethod
-    @torch.jit.script
+    # @torch.jit.script
     def derivative(
         views: List[torch.Tensor],
         representations: List[torch.Tensor],
