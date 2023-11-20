@@ -18,7 +18,7 @@ class _BaseData(ABC):
         latent_dimensions: int = 1,
         random_state: Union[int, np.random.RandomState] = None,
         rank: int = None,
-        density: float = 1.0
+        density: float = 1.0,
     ):
         self.view_features = view_features
         self.latent_dimensions = latent_dimensions
@@ -388,7 +388,7 @@ class LowRankLatentVariableData(LatentVariableData):
             covariance_structure,
             signal_to_noise_ratio,
             rank,
-            density
+            density,
         )
 
     def _covariance_factor(self, features, structure):
