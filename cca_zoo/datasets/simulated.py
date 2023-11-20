@@ -13,12 +13,12 @@ import scipy
 
 class _BaseData(ABC):
     def __init__(
-        self,
-        view_features: List[int],
-        latent_dimensions: int = 1,
-        random_state: Union[int, np.random.RandomState] = None,
-        rank: int = None,
-        density: float = 1.0
+            self,
+            view_features: List[int],
+            latent_dimensions: int = 1,
+            random_state: Union[int, np.random.RandomState] = None,
+            rank: int = None,
+            density: float = 1.0
     ):
         self.view_features = view_features
         self.latent_dimensions = latent_dimensions
@@ -104,16 +104,16 @@ class LatentVariableData(_BaseData):
     """
 
     def __init__(
-        self,
-        view_features: List[int],
-        latent_dimensions: int = 1,
-        random_state: Union[int, np.random.RandomState] = None,
-        sparsity_levels: Union[List[float], float] = None,
-        positivity_constraints: Union[bool, List[bool]] = False,
-        covariance_structure: str = "identity",
-        signal_to_noise_ratio: float = 1.0,
-        rank: int = None,
-        density: float = 0.01,
+            self,
+            view_features: List[int],
+            latent_dimensions: int = 1,
+            random_state: Union[int, np.random.RandomState] = None,
+            sparsity_levels: Union[List[float], float] = None,
+            positivity_constraints: Union[bool, List[bool]] = False,
+            covariance_structure: str = "identity",
+            signal_to_noise_ratio: float = 1.0,
+            rank: int = None,
+            density: float = 0.01,
     ):
         """
         Initializes the LatentVariableData class with specified parameters.
@@ -153,7 +153,7 @@ class LatentVariableData(_BaseData):
         ]
 
     def _generate_loading_matrix(
-        self, features: int, sparsity: float, positivity: bool
+            self, features: int, sparsity: float, positivity: bool
     ):
         """
         Generates a loading matrix for a view based on the specified sparsity and positivity.
@@ -209,18 +209,18 @@ class LatentVariableData(_BaseData):
         """
         joint_cov = np.zeros((sum(self.view_features), sum(self.view_features)))
         joint_cov[: self.view_features[0], : self.view_features[0]] = (
-            self.true_loadings[0] @ self.true_loadings[0].T
-            + self.covariance_matrices[0]
+                self.true_loadings[0] @ self.true_loadings[0].T
+                + self.covariance_matrices[0]
         )
-        joint_cov[self.view_features[0] :, self.view_features[0] :] = (
-            self.true_loadings[1] @ self.true_loadings[1].T
-            + self.covariance_matrices[1]
+        joint_cov[self.view_features[0]:, self.view_features[0]:] = (
+                self.true_loadings[1] @ self.true_loadings[1].T
+                + self.covariance_matrices[1]
         )
-        joint_cov[: self.view_features[0], self.view_features[0] :] = (
-            self.true_loadings[0] @ self.true_loadings[1].T
+        joint_cov[: self.view_features[0], self.view_features[0]:] = (
+                self.true_loadings[0] @ self.true_loadings[1].T
         )
-        joint_cov[self.view_features[0] :, : self.view_features[0]] = (
-            self.true_loadings[1] @ self.true_loadings[0].T
+        joint_cov[self.view_features[0]:, : self.view_features[0]] = (
+                self.true_loadings[1] @ self.true_loadings[0].T
         )
         return joint_cov
 
@@ -243,16 +243,16 @@ class JointData(_BaseData):
     """
 
     def __init__(
-        self,
-        view_features: List[int],
-        latent_dimensions: int = 1,
-        sparsity_levels: Union[List[float], float] = None,
-        correlation: Union[List[float], float] = 0.99,
-        covariance_structure: str = "random",
-        positive: Union[bool, List[bool]] = False,
-        random_state: Union[int, np.random.RandomState] = None,
-        rank: int = None,
-        density: float = 0.01,
+            self,
+            view_features: List[int],
+            latent_dimensions: int = 1,
+            sparsity_levels: Union[List[float], float] = None,
+            correlation: Union[List[float], float] = 0.99,
+            covariance_structure: str = "random",
+            positive: Union[bool, List[bool]] = False,
+            random_state: Union[int, np.random.RandomState] = None,
+            rank: int = None,
+            density: float = 0.01,
     ):
         super().__init__(view_features, latent_dimensions, random_state)
         self.rank = min(view_features)
@@ -285,16 +285,15 @@ class JointData(_BaseData):
             )
         ]
         self.true_loadings = [
-            cov @ weight
-            for weight, cov in zip(self.true_features, self.covariance_factors)
+            covariance_factor @ (covariance_factor.T @ weight)
+            for weight, covariance_factor in zip(self.true_features, self.covariance_factors)
         ]
-        self.joint_covariance_matrix = self._generate_joint_covariance(
-            self.covariance_matrices
-        )
-        self.cholesky_joint = np.linalg.cholesky(self.joint_covariance_matrix)
+        self.cholesky_joint = np.linalg.cholesky(self._generate_joint_covariance(
+            self.covariance_factors
+        ))
 
     def _generate_true_weight(
-        self, view_features, sparsity_levels, is_positive, covariance_factor
+            self, view_features, sparsity_levels, is_positive, covariance_factor
     ):
         loadings = self.random_state.randn(view_features, self.latent_dimensions)
         if sparsity_levels <= 1:
@@ -312,25 +311,26 @@ class JointData(_BaseData):
             np.diag(loadings.T @ covariance_factor @ covariance_factor.T @ loadings)
         )
 
-    def _generate_joint_covariance(self, cov_matrices):
+    def _generate_joint_covariance(self, covariance_factors):
         """Generates a joint covariance matrix for all representations."""
-        joint_cov = block_diag(*cov_matrices)
+        joint_covariance_factors = block_diag(*covariance_factors)
+        joint_covariance = block_diag(*covariance_factors)
+        joint_covariance = joint_covariance @ joint_covariance_factors.T
         split_points = np.concatenate(([0], np.cumsum(self.view_features)))
 
         for i, j in itertools.combinations(range(len(split_points) - 1), 2):
-            cross_cov = self._compute_cross_covariance(cov_matrices, i, j)
-            joint_cov[
-                split_points[i] : split_points[i + 1],
-                split_points[j] : split_points[j + 1],
+            cross_cov = self._compute_cross_covariance(covariance_factors, i, j)
+            joint_covariance[
+            split_points[i]: split_points[i + 1],
+            split_points[j]: split_points[j + 1],
             ] = cross_cov
-            joint_cov[
-                split_points[j] : split_points[j + 1],
-                split_points[i] : split_points[i + 1],
+            joint_covariance[
+            split_points[j]: split_points[j + 1],
+            split_points[i]: split_points[i + 1],
             ] = cross_cov.T
+        return joint_covariance
 
-        return joint_cov
-
-    def _compute_cross_covariance(self, cov_matrices, i, j):
+    def _compute_cross_covariance(self, cov_factors, i, j):
         """Computes the cross-covariance matrix for a pair of representations."""
         cross_cov = np.zeros((self.view_features[i], self.view_features[j]))
 
@@ -339,9 +339,11 @@ class JointData(_BaseData):
                 self.true_features[i][:, _], self.true_features[j][:, _]
             )
             cross_cov += (
-                cov_matrices[i]
-                @ (self.correlation[_] * outer_product)
-                @ cov_matrices[j]
+                    cov_factors[i]
+                    @ cov_factors[i].T
+                    @ (self.correlation[_] * outer_product)
+                    @ cov_factors[j]
+                    @ cov_factors[j].T
             )
 
         return cross_cov
@@ -366,16 +368,16 @@ class JointData(_BaseData):
 
 class LowRankLatentVariableData(LatentVariableData):
     def __init__(
-        self,
-        view_features: List[int],
-        latent_dimensions: int = 1,
-        random_state: Union[int, np.random.RandomState] = None,
-        sparsity_levels: Union[List[float], float] = None,
-        positivity_constraints: Union[bool, List[bool]] = False,
-        covariance_structure: str = "identity",
-        signal_to_noise_ratio: float = 1.0,
-        rank: int = None,
-        density: float = 1.0,
+            self,
+            view_features: List[int],
+            latent_dimensions: int = 1,
+            random_state: Union[int, np.random.RandomState] = None,
+            sparsity_levels: Union[List[float], float] = None,
+            positivity_constraints: Union[bool, List[bool]] = False,
+            covariance_structure: str = "identity",
+            signal_to_noise_ratio: float = 1.0,
+            rank: int = None,
+            density: float = 1.0,
     ):
         self.rank = min(view_features)
         self.density = density
