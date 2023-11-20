@@ -17,7 +17,9 @@ def test_cca_on_simulated_data_maintains_expected_correlation(
 ):
     # Generate Data
     data = JointData(
-        view_features=view_features, latent_dimensions=latent_dimensions, correlation=correlation
+        view_features=view_features,
+        latent_dimensions=latent_dimensions,
+        correlation=correlation,
     )
     x_train, y_train = data.sample(1000)
     x_test, y_test = data.sample(1000)

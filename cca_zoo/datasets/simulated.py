@@ -10,6 +10,7 @@ from sklearn.utils.validation import check_random_state
 from cca_zoo._utils import _process_parameter
 import scipy
 
+
 class _BaseData(ABC):
     def __init__(
         self,
@@ -63,15 +64,22 @@ class _BaseData(ABC):
         :param structure: Structure type of the covariance matrix.
         :return: A covariance factor matrix for the view.
         """
-        if structure=="identity":
-            if features<1000:
+        if structure == "identity":
+            if features < 1000:
                 return np.eye(features)
             else:
-                return scipy.sparse.eye(features,features)
-        elif features<1000:
-            return np.linalg.cholesky(self._generate_covariance_matrix(features, structure))
+                return scipy.sparse.eye(features, features)
+        elif features < 1000:
+            return np.linalg.cholesky(
+                self._generate_covariance_matrix(features, structure)
+            )
         else:
-            return scipy.sparse.random(features,self.rank,density=self.density, random_state=self.random_state)
+            return scipy.sparse.random(
+                features,
+                self.rank,
+                density=self.density,
+                random_state=self.random_state,
+            )
 
     @property
     def covariance_matrices(self):
@@ -101,7 +109,7 @@ class LatentVariableData(_BaseData):
         covariance_structure: str = "identity",
         signal_to_noise_ratio: float = 1.0,
         rank: int = None,
-        density: float = 0.01
+        density: float = 0.01,
     ):
         """
         Initializes the LatentVariableData class with specified parameters.
@@ -153,7 +161,9 @@ class LatentVariableData(_BaseData):
         :param positivity: Whether to enforce positivity constraints.
         :return: A loading matrix for the view.
         """
-        loading_matrix = self.random_state.standard_normal(size=(features, self.latent_dimensions))
+        loading_matrix = self.random_state.standard_normal(
+            size=(features, self.latent_dimensions)
+        )
         if sparsity <= 1:
             sparsity = int(np.ceil(sparsity * features))
         mask_elements = [0] * (features - sparsity) + [1] * sparsity
@@ -197,16 +207,18 @@ class LatentVariableData(_BaseData):
         """
         joint_cov = np.zeros((sum(self.view_features), sum(self.view_features)))
         joint_cov[: self.view_features[0], : self.view_features[0]] = (
-                self.true_loadings[0] @ self.true_loadings[0].T + self.covariance_matrices[0]
+            self.true_loadings[0] @ self.true_loadings[0].T
+            + self.covariance_matrices[0]
         )
-        joint_cov[self.view_features[0]:, self.view_features[0]:] = (
-                self.true_loadings[1] @ self.true_loadings[1].T + self.covariance_matrices[1]
+        joint_cov[self.view_features[0] :, self.view_features[0] :] = (
+            self.true_loadings[1] @ self.true_loadings[1].T
+            + self.covariance_matrices[1]
         )
-        joint_cov[: self.view_features[0], self.view_features[0]:] = (
-                self.true_loadings[0] @ self.true_loadings[1].T
+        joint_cov[: self.view_features[0], self.view_features[0] :] = (
+            self.true_loadings[0] @ self.true_loadings[1].T
         )
-        joint_cov[self.view_features[0]:, : self.view_features[0]] = (
-                self.true_loadings[1] @ self.true_loadings[0].T
+        joint_cov[self.view_features[0] :, : self.view_features[0]] = (
+            self.true_loadings[1] @ self.true_loadings[0].T
         )
         return joint_cov
 
@@ -238,7 +250,7 @@ class JointData(_BaseData):
         positive: Union[bool, List[bool]] = False,
         random_state: Union[int, np.random.RandomState] = None,
         rank: int = None,
-        density: float = 0.01
+        density: float = 0.01,
     ):
         super().__init__(view_features, latent_dimensions, random_state)
         self.rank = min(view_features)
@@ -264,27 +276,39 @@ class JointData(_BaseData):
         self.true_features = [
             self._generate_true_weight(view_features, sparsity_levels, is_positive, cov)
             for view_features, sparsity_levels, is_positive, cov in zip(
-                self.view_features, self.sparsity_levels, self.positive, self.covariance_factors
+                self.view_features,
+                self.sparsity_levels,
+                self.positive,
+                self.covariance_factors,
             )
         ]
         self.true_loadings = [
-            cov @ weight for weight, cov in zip(self.true_features, self.covariance_factors)
+            cov @ weight
+            for weight, cov in zip(self.true_features, self.covariance_factors)
         ]
-        self.joint_covariance_matrix = self._generate_joint_covariance(self.covariance_matrices)
+        self.joint_covariance_matrix = self._generate_joint_covariance(
+            self.covariance_matrices
+        )
         self.cholesky_joint = np.linalg.cholesky(self.joint_covariance_matrix)
 
-    def _generate_true_weight(self, view_features, sparsity_levels, is_positive, covariance_factor):
+    def _generate_true_weight(
+        self, view_features, sparsity_levels, is_positive, covariance_factor
+    ):
         loadings = self.random_state.randn(view_features, self.latent_dimensions)
         if sparsity_levels <= 1:
             sparsity_levels = np.ceil(sparsity_levels * loadings.shape[0]).astype(int)
-        mask_elements = [0] * (loadings.shape[0] - sparsity_levels) + [1] * sparsity_levels
+        mask_elements = [0] * (loadings.shape[0] - sparsity_levels) + [
+            1
+        ] * sparsity_levels
         mask = np.stack([mask_elements] * loadings.shape[1]).T
         self.random_state.shuffle(mask)
         loadings *= mask
         if is_positive:
             loadings = np.abs(loadings)
         loadings = self._decorrelate_weights(loadings, covariance_factor)
-        return loadings / np.sqrt(np.diag(loadings.T @ covariance_factor@covariance_factor.T @ loadings))
+        return loadings / np.sqrt(
+            np.diag(loadings.T @ covariance_factor @ covariance_factor.T @ loadings)
+        )
 
     def _generate_joint_covariance(self, cov_matrices):
         """Generates a joint covariance matrix for all representations."""
@@ -322,12 +346,12 @@ class JointData(_BaseData):
 
     @staticmethod
     def _decorrelate_weights(weights, covariance_factor):
-        product = (weights.T @ covariance_factor)@(covariance_factor.T @ weights)
+        product = (weights.T @ covariance_factor) @ (covariance_factor.T @ weights)
         for k in range(1, product.shape[0]):
             weights[:, k:] -= np.outer(
                 weights[:, k - 1], product[k - 1, k:] / product[k - 1, k - 1]
             )
-            product = (weights.T @ covariance_factor)@(covariance_factor.T @ weights)
+            product = (weights.T @ covariance_factor) @ (covariance_factor.T @ weights)
         return weights
 
     def sample(self, n_samples: int):
@@ -344,18 +368,27 @@ class LowRankLatentVariableData(LatentVariableData):
         view_features: List[int],
         latent_dimensions: int = 1,
         random_state: Union[int, np.random.RandomState] = None,
-            sparsity_levels: Union[List[float], float] = None,
-            positivity_constraints: Union[bool, List[bool]] = False,
-            covariance_structure: str = "identity",
-            signal_to_noise_ratio: float = 1.0,
-            rank: int = 1
+        sparsity_levels: Union[List[float], float] = None,
+        positivity_constraints: Union[bool, List[bool]] = False,
+        covariance_structure: str = "identity",
+        signal_to_noise_ratio: float = 1.0,
+        rank: int = None,
     ):
-        self.rank = rank
-        super().__init__(view_features, latent_dimensions, random_state, sparsity_levels, positivity_constraints, covariance_structure, signal_to_noise_ratio)
+        self.rank = min(view_features)
+        self.density = density
+        super().__init__(
+            view_features,
+            latent_dimensions,
+            random_state,
+            sparsity_levels,
+            positivity_constraints,
+            covariance_structure,
+            signal_to_noise_ratio,
+        )
 
     def _covariance_factor(self, features, structure):
         """Generates a factorized covariance matrix for a single view."""
-        factor =self.random_state.standard_normal(size=(features, self.rank))
+        factor = self.random_state.standard_normal(size=(features, self.rank))
         factor /= np.linalg.norm(factor, axis=0)
         return factor
 
