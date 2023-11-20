@@ -56,6 +56,11 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         self.random_state = random_state
 
     def _validate_data(self, views: Iterable[np.ndarray]):
+        if not self._get_tags().get("multiview", False) and len(views) > 2:
+            raise ValueError(
+                f"Model can only be used with two representations, but {len(views)} were given. "
+                "Use MCCA or GCCA instead for CCA or MPLS for PLS."
+            )
         if self.copy_data:
             views = [
                 check_array(

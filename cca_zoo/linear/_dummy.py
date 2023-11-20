@@ -44,7 +44,7 @@ class DummyCCA(_BaseModel):
 
     def normalize_weights(self, views):
         self.weights_ = [
-            weight/ np.linalg.norm(weight, axis=0)
+            weight / np.linalg.norm(weight, axis=0)
             for view, weight in zip(views, self.weights_)
         ]
 

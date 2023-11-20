@@ -35,6 +35,7 @@ X -= X.mean(axis=0)
 Y -= Y.mean(axis=0)
 Z -= Z.mean(axis=0)
 
+
 def test_regularized_methods():
     # Test that linear regularized methods match PLS solution when using maximum regularisation.
     latent_dims = 2

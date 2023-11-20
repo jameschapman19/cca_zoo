@@ -10,6 +10,7 @@ from cca_zoo._base import _BaseModel
 from cca_zoo.deep.data import NumpyDataset
 from cca_zoo.linear._iterative._base import _default_initializer
 import warnings
+
 # Default Trainer kwargs
 DEFAULT_TRAINER_KWARGS = dict(
     enable_checkpointing=False,
@@ -65,10 +66,12 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         self.early_stopping = early_stopping
         if early_stopping:
             if not logging:
-                warnings.warn("Early stopping is enabled. Logging is automatically enabled.", RuntimeWarning)
+                warnings.warn(
+                    "Early stopping is enabled. Logging is automatically enabled.",
+                    RuntimeWarning,
+                )
             logging = True
         self.logging = logging
-
 
     def fit(
         self,
@@ -198,7 +201,9 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         optimizer = getattr(torch.optim, optimizer_name)(
             self.torch_weights, lr=self.learning_rate, **kwargs
         )
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=1.0 if self.batch_size is None else 0.9)
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(
+            optimizer, gamma=1.0 if self.batch_size is None else 0.9
+        )
         return {
             "optimizer": optimizer,
             "lr_scheduler": scheduler,
