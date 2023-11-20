@@ -17,10 +17,14 @@ class _BaseData(ABC):
         view_features: List[int],
         latent_dimensions: int = 1,
         random_state: Union[int, np.random.RandomState] = None,
+        rank: int = None,
+        density: float = 1.0
     ):
         self.view_features = view_features
         self.latent_dimensions = latent_dimensions
         self.random_state = check_random_state(random_state)
+        self.rank = min(view_features) if None else rank
+        self.density = density
 
     def _generate_covariance_matrix(self, features: int, structure: str):
         """
@@ -124,9 +128,7 @@ class LatentVariableData(_BaseData):
         :param rank: Maximum rank for sparse covariance matrix factorization, used for large feature sets.
         :param density: Density of the sparse matrix in sparse covariance matrix factorization.
         """
-        super().__init__(view_features, latent_dimensions, random_state)
-        self.rank = min(view_features)
-        self.density = density
+        super().__init__(view_features, latent_dimensions, random_state, rank, density)
         self.signal_to_noise_ratio = signal_to_noise_ratio
         self.sparsity_levels = _process_parameter(
             "sparsity_levels", sparsity_levels, 1.0, len(view_features)
@@ -373,6 +375,7 @@ class LowRankLatentVariableData(LatentVariableData):
         covariance_structure: str = "identity",
         signal_to_noise_ratio: float = 1.0,
         rank: int = None,
+        density: float = 1.0,
     ):
         self.rank = min(view_features)
         self.density = density
@@ -384,6 +387,8 @@ class LowRankLatentVariableData(LatentVariableData):
             positivity_constraints,
             covariance_structure,
             signal_to_noise_ratio,
+            rank,
+            density
         )
 
     def _covariance_factor(self, features, structure):
@@ -396,5 +401,5 @@ class LowRankLatentVariableData(LatentVariableData):
     def true_features(self):
         return [
             np.linalg.inv(cov + loading.T @ loading) @ loading
-            for cov, loading in zip(self.cov_matrices, self.true_loadings)
+            for cov, loading in zip(self.covariance_matrices, self.true_loadings)
         ]
