@@ -43,8 +43,8 @@ def test_cca_on_simulated_data_maintains_expected_correlation(
 # Additional test to verify the shape of generated data
 def test_simulated_data_shapes():
     data = JointData(
-        view_features=[4, 6], latent_dimensions=2, correlation=[0.8, 0.7, 0.6, 0.5]
+        view_features=[14, 16], latent_dimensions=2, correlation=[0.8, 0.7]
     )
     x_train, y_train = data.sample(5)
-    assert x_train.shape == (5, 4)
-    assert y_train.shape == (5, 6)
+    assert x_train.shape == (5, 14)
+    assert y_train.shape == (5, 16)

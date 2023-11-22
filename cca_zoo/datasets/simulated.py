@@ -295,9 +295,8 @@ class JointData(_BaseData):
                 self.true_features, self.covariance_factors
             )
         ]
-        self.cholesky_joint = np.linalg.cholesky(
-            self._generate_joint_covariance(self.covariance_factors)
-        )
+        U,S, Vt= np.linalg.svd(self._generate_joint_covariance(self.covariance_factors),full_matrices=True)
+        self.US = U *np.sqrt(S)
 
     def _generate_true_weight(
         self, view_features, sparsity_levels, is_positive, covariance_factor
@@ -370,9 +369,9 @@ class JointData(_BaseData):
 
     def sample(self, n_samples: int):
         random_data = self.random_state.standard_normal(
-            size=(n_samples, self.cholesky_joint.shape[0])
+            size=(n_samples, self.US.shape[0])
         )
-        samples = random_data @ self.cholesky_joint.T
+        samples = random_data @ self.US.T
         return np.split(samples, np.cumsum(self.view_features)[:-1], axis=1)
 
 
