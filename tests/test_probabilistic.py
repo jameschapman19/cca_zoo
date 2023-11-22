@@ -10,12 +10,12 @@ from cca_zoo.probabilistic._pls import ProbabilisticPLS
 @pytest.fixture
 def setup_data():
     seed = 123
-    latent_dims = 1
+    latent_dimensions = 1
     data = LatentVariableData(
         view_features=[3, 3],
-        latent_dims=latent_dims,
+        latent_dimensions=latent_dimensions,
         random_state=seed,
-        structure="identity",
+        covariance_structure="identity",
     )
     X, Y = data.sample(20)
     X -= X.mean(axis=0)

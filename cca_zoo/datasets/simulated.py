@@ -3,13 +3,17 @@ from abc import ABC, abstractmethod
 from typing import List, Union
 
 import numpy as np
-from scipy.linalg import block_diag
+from scipy.sparse import block_diag
 from sklearn.datasets import make_spd_matrix
 from sklearn.utils.validation import check_random_state
 
 from cca_zoo._utils import _process_parameter
 import scipy
 
+
+def cov_eigvals(X):
+    S = np.linalg.svd(X, compute_uv=False) ** 2
+    return S.sum()
 
 class _BaseData(ABC):
     def __init__(
@@ -23,7 +27,7 @@ class _BaseData(ABC):
         self.view_features = view_features
         self.latent_dimensions = latent_dimensions
         self.random_state = check_random_state(random_state)
-        self.rank = min(view_features) if None else rank
+        self.rank = min(view_features) if rank is None else rank
         self.density = density
 
     def _generate_covariance_matrix(self, features: int, structure: str):
@@ -69,23 +73,20 @@ class _BaseData(ABC):
         :return: A covariance factor matrix for the view.
         """
         if structure == "identity":
-            if features < 1000:
-                return np.eye(features)
-            else:
-                return scipy.sparse.eye(features, features)
-        elif features < 1000:
-            return np.linalg.cholesky(
-                self._generate_covariance_matrix(features, structure)
-            )
+            factor= scipy.sparse.eye(features, features)
+            factor/= np.sqrt(features)
+            return factor
         else:
-            return scipy.sparse.random(
+            factor=scipy.sparse.random(
                 features,
                 self.rank,
                 density=self.density,
                 random_state=self.random_state,
             )
+            s=scipy.linalg.svdvals(factor.toarray())
+            factor/= np.sqrt(s.sum())
+            return factor
 
-    @property
     def covariance_matrices(self):
         return [factor @ factor.T for factor in self.covariance_factors]
 
@@ -113,7 +114,7 @@ class LatentVariableData(_BaseData):
             covariance_structure: str = "identity",
             signal_to_noise_ratio: float = 1.0,
             rank: int = None,
-            density: float = 0.01,
+            density: float = 1.0,
     ):
         """
         Initializes the LatentVariableData class with specified parameters.
@@ -174,7 +175,9 @@ class LatentVariableData(_BaseData):
         loading_matrix *= mask
         if positivity:
             loading_matrix = np.abs(loading_matrix)
-        return loading_matrix / np.sqrt(np.diag(loading_matrix.T @ loading_matrix))
+        # divide by sum of eigenvalues to normalize
+        loading_matrix/= np.sqrt(np.linalg.eigvalsh(loading_matrix.T @ loading_matrix).sum())
+        return loading_matrix
 
     def sample(self, num_samples: int, return_latent: bool = False):
         """
@@ -189,18 +192,18 @@ class LatentVariableData(_BaseData):
             np.eye(self.latent_dimensions),
             num_samples,
         )
+
         views = [
             latent_variables @ loading.T
-            + self.random_state.randn(num_samples, covariance_factor.shape[1])
+            + self.random_state.standard_normal(size=(num_samples, covariance_factor.shape[1]))
             @ covariance_factor.T
-            / self.signal_to_noise_ratio
+            / np.sqrt(self.signal_to_noise_ratio)
             for loading, covariance_factor in zip(
                 self.true_loadings, self.covariance_factors
             )
         ]
         return (views, latent_variables) if return_latent else views
 
-    @property
     def joint_covariance_matrix(self):
         """
         Computes the joint covariance matrix for all views.
@@ -224,7 +227,6 @@ class LatentVariableData(_BaseData):
         )
         return joint_cov
 
-    @property
     def true_features(self):
         """
         Estimates the true features based on the loading matrices and covariance matrices.
@@ -252,11 +254,9 @@ class JointData(_BaseData):
             positive: Union[bool, List[bool]] = False,
             random_state: Union[int, np.random.RandomState] = None,
             rank: int = None,
-            density: float = 0.01,
+            density: float = 1.0,
     ):
-        super().__init__(view_features, latent_dimensions, random_state)
-        self.rank = min(view_features)
-        self.density = density
+        super().__init__(view_features, latent_dimensions, random_state, rank, density)
         self.correlation = _process_parameter(
             "correlation", correlation, 0.99, self.latent_dimensions
         )
@@ -313,9 +313,7 @@ class JointData(_BaseData):
 
     def _generate_joint_covariance(self, covariance_factors):
         """Generates a joint covariance matrix for all representations."""
-        joint_covariance_factors = block_diag(*covariance_factors)
-        joint_covariance = block_diag(*covariance_factors)
-        joint_covariance = joint_covariance @ joint_covariance_factors.T
+        joint_covariance = block_diag([covariance_factor@covariance_factor.T for covariance_factor in covariance_factors]).toarray()
         split_points = np.concatenate(([0], np.cumsum(self.view_features)))
 
         for i, j in itertools.combinations(range(len(split_points) - 1), 2):
@@ -396,12 +394,5 @@ class LowRankLatentVariableData(LatentVariableData):
     def _covariance_factor(self, features, structure):
         """Generates a factorized covariance matrix for a single view."""
         factor = self.random_state.standard_normal(size=(features, self.rank))
-        factor /= np.linalg.norm(factor, axis=0)
+        factor/= np.sqrt(np.linalg.eigvalsh(factor @ factor.T).sum())
         return factor
-
-    @property
-    def true_features(self):
-        return [
-            np.linalg.inv(cov + loading.T @ loading) @ loading
-            for cov, loading in zip(self.covariance_matrices, self.true_loadings)
-        ]

@@ -60,7 +60,7 @@ class MCCA(_BaseModel):
         random_state=None,
         c: Union[Iterable[float], float] = None,
         accept_sparse=None,
-        eps: float = 1e-9,
+        eps: float = 1e-6,
         pca: bool = True,
     ):
         # Set the default value for accept_sparse
@@ -117,8 +117,16 @@ class MCCA(_BaseModel):
         )
         # Sort the eigenvalues and eigenvectors in descending order
         idx = np.argsort(eigvals, axis=0)[::-1]
+        if eigvals.shape[0] < self.latent_dimensions:
+            [eigvals, eigvecs] = eigh(
+                C,
+                D,
+            )
+            # Sort the eigenvalues and eigenvectors in descending order
+            idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dimensions]
         eigvecs = eigvecs[:, idx].real
-        return np.flip(eigvals), eigvecs
+        eigvals = eigvals[idx].real
+        return eigvals, eigvecs
 
     def _weights(self, eigvals, eigvecs, views, **kwargs):
         # split eigvecs into weights_ for each view
