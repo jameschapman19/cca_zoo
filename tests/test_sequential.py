@@ -9,7 +9,9 @@ from cca_zoo.sequential import SequentialModel
 # Fixtures
 @pytest.fixture
 def simulated_data():
-    data_generator = JointData(view_features=[4, 5], latent_dimensions=2, correlation=0.99, random_state=1)
+    data_generator = JointData(
+        view_features=[4, 5], latent_dimensions=2, correlation=0.99, random_state=1
+    )
     X, Y = data_generator.sample(20)
     return X, Y
 
