@@ -295,8 +295,10 @@ class JointData(_BaseData):
                 self.true_features, self.covariance_factors
             )
         ]
-        U,S, Vt= np.linalg.svd(self._generate_joint_covariance(self.covariance_factors),full_matrices=True)
-        self.US = U *np.sqrt(S)
+        U, S, Vt = np.linalg.svd(
+            self._generate_joint_covariance(self.covariance_factors), full_matrices=True
+        )
+        self.US = U * np.sqrt(S)
 
     def _generate_true_weight(
         self, view_features, sparsity_levels, is_positive, covariance_factor
