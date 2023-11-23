@@ -7,18 +7,19 @@ from tensorly.decomposition import parafac
 from cca_zoo._utils.cross_correlation import torch_cross_cov
 
 
-def inv_sqrtm(A:torch.Tensor, eps:float=1e-9):
+def inv_sqrtm(A: torch.Tensor, eps: float = 1e-9):
     """Compute the inverse square-root of a positive definite matrix."""
     # Perform eigendecomposition of covariance matrix
     U, S, V = torch.svd(A)
     # Enforce positive definite by taking a torch max() with eps
-    S[S<eps]=eps
+    S[S < eps] = eps
     # S = torch.max(S, torch.tensor(eps, device=S.device))
     # Calculate inverse square-root
     inv_sqrt_S = torch.diag_embed(torch.pow(S, -0.5))
     # Calculate inverse square-root matrix
     B = torch.matmul(torch.matmul(U, inv_sqrt_S), V.transpose(-1, -2))
     return B
+
 
 class _MCCALoss:
     """Differentiable MCCA Loss. Solves the multiset eigenvalue problem.
@@ -56,7 +57,10 @@ class _MCCALoss:
     def correlation(self, representations: List[torch.Tensor]):
         """Calculate correlation."""
         latent_dims = representations[0].shape[1]
-        representations = [representation - representation.mean(dim=0) for representation in representations]
+        representations = [
+            representation - representation.mean(dim=0)
+            for representation in representations
+        ]
         C = self.C(representations)
         D = self.D(representations)
         C += D
@@ -100,7 +104,10 @@ class _GCCALoss:
     def correlation(self, representations: List[torch.Tensor]):
         """Calculate correlation."""
         latent_dims = representations[0].shape[1]
-        representations = [representation - representation.mean(dim=0) for representation in representations]
+        representations = [
+            representation - representation.mean(dim=0)
+            for representation in representations
+        ]
         Q = self.Q(representations)
         eigvals = torch.linalg.eigvalsh(Q)
         idx = torch.argsort(eigvals, descending=True)
@@ -137,7 +144,10 @@ class _CCALoss:
         o1 = representations[0].shape[1]
         o2 = representations[1].shape[1]
 
-        representations = [representation - representation.mean(dim=0) for representation in representations]
+        representations = [
+            representation - representation.mean(dim=0)
+            for representation in representations
+        ]
 
         SigmaHat12 = torch.cov(
             torch.hstack((representations[0], representations[1])).T
@@ -173,7 +183,10 @@ class _TCCALoss:
 
     def loss(self, views):
         latent_dims = views[0].shape[1]
-        views = [representation - representation.mean(dim=0) for representation in representations]
+        views = [
+            representation - representation.mean(dim=0)
+            for representation in representations
+        ]
         covs = [
             (1 - self.eps) * torch.cov(view.T)
             + self.eps * torch.eye(view.size(1), device=view.device)
