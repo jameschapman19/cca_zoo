@@ -181,8 +181,8 @@ class _TCCALoss:
     def __init__(self, eps: float = 1e-4):
         self.eps = eps
 
-    def loss(self, views):
-        latent_dims = views[0].shape[1]
+    def loss(self, representations: List[torch.Tensor]):
+        latent_dims = representations[0].shape[1]
         views = [
             representation - representation.mean(dim=0)
             for representation in representations
