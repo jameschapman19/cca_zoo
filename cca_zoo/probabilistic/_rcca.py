@@ -8,12 +8,12 @@ from cca_zoo.probabilistic._cca import ProbabilisticCCA
 
 class ProbabilisticRCCA(ProbabilisticCCA):
     """
-    Probabilistic Ridge Canonical Correlation Analysis (Probabilistic Ridge _CCALoss).
+    Probabilistic Ridge Canonical Correlation Analysis (Probabilistic Ridge CCA).
 
-    Probabilistic Ridge _CCALoss extends the Probabilistic Canonical Correlation Analysis model
+    Probabilistic Ridge CCA extends the Probabilistic Canonical Correlation Analysis model
     by introducing regularization terms in the linear relationships between multiple representations
     of data. This regularization improves the conditioning of the problem and provides a
-    way to incorporate prior knowledge. It combines features of both _CCALoss and Ridge Regression.
+    way to incorporate prior knowledge. It combines features of both CCA and Ridge Regression.
 
     Parameters
     ----------
@@ -31,7 +31,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
 
     def _model(self, views):
         """
-        Defines the generative model for Probabilistic _CCALoss.
+        Defines the generative model for Probabilistic CCA.
 
         Parameters
         ----------
@@ -114,7 +114,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
 
     def _guide(self, views):
         """
-        Defines the variational distribution for Probabilistic _CCALoss.
+        Defines the variational distribution for Probabilistic CCA.
 
         Parameters
         ----------

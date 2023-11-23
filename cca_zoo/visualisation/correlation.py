@@ -27,7 +27,7 @@ class CorrelationHeatmapDisplay:
     >>> from cca_zoo.visualisation import CorrelationHeatmapDisplay
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
-    >>> from cca_zoo.linear import _MCCALoss
+    >>> from cca_zoo.linear import MCCA
     >>>
     >>> # Generate Sample Data
     >>> # --------------------
@@ -41,9 +41,9 @@ class CorrelationHeatmapDisplay:
     >>> representations = [X_train, Y_train]
     >>> test_views = [X_test, Y_test]
     >>>
-    >>> # Train an _MCCALoss Model
+    >>> # Train an MCCA Model
     >>> # -------------------
-    >>> mcca = _MCCALoss(latent_dimensions=2)
+    >>> mcca = MCCA(latent_dimensions=2)
     >>> mcca.fit(representations)
     >>>
     >>> # %%

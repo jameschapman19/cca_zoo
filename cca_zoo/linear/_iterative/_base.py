@@ -87,19 +87,19 @@ class _BaseIterative(_BaseModel):
 
     @abstractmethod
     def _update_weights(self, view: np.ndarray, i: int):
-        """Update the _CCALoss weights_ for a given view.
+        """Update the CCA weights_ for a given view.
 
         Parameters
         ----------
         view : np.ndarray
-            The input view to update the _CCALoss weights_ for
+            The input view to update the CCA weights_ for
         i : int
             The index of the view
 
         Returns
         -------
         np.ndarray
-            The updated _CCALoss weights_ for the view
+            The updated CCA weights_ for the view
         """
         pass
 
@@ -121,12 +121,12 @@ class _BaseIterative(_BaseModel):
         return np.sum(all_covs)
 
     def _initialize(self, views: Iterable[np.ndarray]):
-        """Initialize the _CCALoss weights_ using the initialization method or function.
+        """Initialize the CCA weights_ using the initialization method or function.
 
         Parameters
         ----------
         views : Iterable[np.ndarray]
-            The input representations to initialize the _CCALoss weights_ from
+            The input representations to initialize the CCA weights_ from
         """
         pls = self._get_tags().get("pls", False)
         initializer = _default_initializer(

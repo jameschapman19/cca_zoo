@@ -1,5 +1,5 @@
 """
-Benchmarking _CCALoss on high dimensional data. Using _CCALoss-Zoo and Scikit-learn.
+Benchmarking PLS on high dimensional data. Using CCA-Zoo and Scikit-learn.
 
 Use different dimensionalities and produce a nice seaborn plot of the runtimes.
 """
@@ -34,7 +34,7 @@ for dim in dimensions:
         X = np.random.rand(n_samples, dim)
         Y = np.random.rand(n_samples, dim)
 
-        # _CCALoss-Zoo
+        # CCA-Zoo
         start_time = time.time()
         cca_zoo = PLS(latent_dimensions=latent_dimensions)
         cca_zoo.fit((X, Y))
@@ -42,7 +42,7 @@ for dim in dimensions:
 
         # Record results
         results.append(
-            {"Dimension": dim, "Time": cca_zoo_time, "Method": "_CCALoss-Zoo"}
+            {"Dimension": dim, "Time": cca_zoo_time, "Method": "CCA-Zoo"}
         )
 
         # Scikit-learn
@@ -66,5 +66,5 @@ plt.title("PLS Performance comparison with Uncertainty")
 plt.xlabel("Dimension")
 plt.ylabel("Average Execution Time (seconds)")
 plt.tight_layout()
-plt.savefig("PLS_Speed_Benchmark.svg")
+plt.savefig("PLS_Speed_Benchmark.pdf")
 plt.show()

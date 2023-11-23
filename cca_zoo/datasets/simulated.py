@@ -373,37 +373,3 @@ class JointData(_BaseData):
         )
         samples = random_data @ self.US.T
         return np.split(samples, np.cumsum(self.view_features)[:-1], axis=1)
-
-
-class LowRankLatentVariableData(LatentVariableData):
-    def __init__(
-        self,
-        view_features: List[int],
-        latent_dimensions: int = 1,
-        random_state: Union[int, np.random.RandomState] = None,
-        sparsity_levels: Union[List[float], float] = None,
-        positivity_constraints: Union[bool, List[bool]] = False,
-        covariance_structure: str = "identity",
-        signal_to_noise_ratio: float = 1.0,
-        rank: int = None,
-        density: float = 1.0,
-    ):
-        self.rank = min(view_features)
-        self.density = density
-        super().__init__(
-            view_features,
-            latent_dimensions,
-            random_state,
-            sparsity_levels,
-            positivity_constraints,
-            covariance_structure,
-            signal_to_noise_ratio,
-            rank,
-            density,
-        )
-
-    def _covariance_factor(self, features, structure):
-        """Generates a factorized covariance matrix for a single view."""
-        factor = self.random_state.standard_normal(size=(features, self.rank))
-        factor /= np.sqrt(np.linalg.eigvalsh(factor @ factor.T).sum())
-        return factor

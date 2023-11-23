@@ -10,7 +10,7 @@ from cca_zoo._utils.check_values import _process_parameter
 
 class NCCA(_BaseModel):
     """
-    A class used to fit nonparametric (NCCA) model. This model extends _CCALoss to nonlinear relationships by using local linear projections based on nearest neighbors.
+    A class used to fit nonparametric (NCCA) model. This model extends CCA to nonlinear relationships by using local linear projections based on nearest neighbors.
 
     Parameters
     ----------

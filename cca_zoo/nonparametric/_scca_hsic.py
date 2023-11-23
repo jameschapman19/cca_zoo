@@ -6,14 +6,13 @@ from sklearn.preprocessing import KernelCenterer
 from sklearn.utils.validation import check_is_fitted
 
 from _gradkcca import GradKCCA
-from cca_zoo.utils import _process_parameter
 
 
 class SCCA_HSIC(GradKCCA):
     """
     References
     ----------
-    [1] Uurtio, V., Bhadra, S., Rousu, J. Sparse Non-Linear _CCALoss through Hilbert-Schmidt Independence Criterion. IEEE International Conference on Data Mining (ICDM 2018), to appear
+    [1] Uurtio, V., Bhadra, S., Rousu, J. Sparse Non-Linear CCA through Hilbert-Schmidt Independence Criterion. IEEE International Conference on Data Mining (ICDM 2018), to appear
 
     """
 

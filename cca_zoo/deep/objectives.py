@@ -7,22 +7,18 @@ from tensorly.decomposition import parafac
 from cca_zoo._utils.cross_correlation import torch_cross_cov
 
 
-def inv_sqrtm(A, eps=1e-9):
+def inv_sqrtm(A:torch.Tensor, eps:float=1e-9):
     """Compute the inverse square-root of a positive definite matrix."""
     # Perform eigendecomposition of covariance matrix
     U, S, V = torch.svd(A)
     # Enforce positive definite by taking a torch max() with eps
-    S = torch.max(S, torch.tensor(eps, device=S.device))
+    S[S<eps]=eps
+    # S = torch.max(S, torch.tensor(eps, device=S.device))
     # Calculate inverse square-root
     inv_sqrt_S = torch.diag_embed(torch.pow(S, -0.5))
     # Calculate inverse square-root matrix
     B = torch.matmul(torch.matmul(U, inv_sqrt_S), V.transpose(-1, -2))
     return B
-
-
-def _demean(views):
-    return tuple([view - view.mean(dim=0) for view in views])
-
 
 class _MCCALoss:
     """Differentiable MCCA Loss. Solves the multiset eigenvalue problem.
@@ -36,7 +32,7 @@ class _MCCALoss:
     def __init__(self, eps: float = 1e-3):
         self.eps = eps
 
-    def C(self, representations):
+    def C(self, representations: List[torch.Tensor]):
         """Calculate cross-covariance matrix."""
         all_views = torch.cat(representations, dim=1)
         C = torch.cov(all_views.T)
@@ -45,7 +41,7 @@ class _MCCALoss:
         )
         return C / len(representations)
 
-    def D(self, representations):
+    def D(self, representations: List[torch.Tensor]):
         """Calculate block covariance matrix."""
         D = torch.block_diag(
             *[
@@ -57,10 +53,10 @@ class _MCCALoss:
         )
         return D / len(representations)
 
-    def correlation(self, representations):
+    def correlation(self, representations: List[torch.Tensor]):
         """Calculate correlation."""
         latent_dims = representations[0].shape[1]
-        representations = _demean(representations)
+        representations = [representation - representation.mean(dim=0) for representation in representations]
         C = self.C(representations)
         D = self.D(representations)
         C += D
@@ -71,7 +67,7 @@ class _MCCALoss:
         eigvals = eigvals[idx[:latent_dims]]
         return eigvals
 
-    def loss(self, representations):
+    def loss(self, representations: List[torch.Tensor]):
         """Calculate loss."""
         eigvals = self.correlation(representations)
         eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)])
@@ -90,7 +86,7 @@ class _GCCALoss:
     def __init__(self, eps: float = 1e-3):
         self.eps = eps
 
-    def Q(self, representations):
+    def Q(self, representations: List[torch.Tensor]):
         """Calculate Q matrix."""
         projections = [
             representation
@@ -101,17 +97,17 @@ class _GCCALoss:
         Q = torch.stack(projections, dim=0).sum(dim=0)
         return Q
 
-    def correlation(self, representations):
+    def correlation(self, representations: List[torch.Tensor]):
         """Calculate correlation."""
         latent_dims = representations[0].shape[1]
-        representations = _demean(representations)
+        representations = [representation - representation.mean(dim=0) for representation in representations]
         Q = self.Q(representations)
         eigvals = torch.linalg.eigvalsh(Q)
         idx = torch.argsort(eigvals, descending=True)
         eigvals = eigvals[idx[:latent_dims]]
         return torch.nn.LeakyReLU()(eigvals)
 
-    def loss(self, representations):
+    def loss(self, representations: List[torch.Tensor]):
         """Calculate loss."""
         eigvals = self.correlation(representations)
         corr = eigvals.sum()
@@ -134,29 +130,27 @@ class _GCCALoss:
 class _CCALoss:
     """Differentiable CCA Loss. Solves the CCA problem."""
 
-    def __init__(self, eps: float = 1e-3):
-        self.eps = eps
-
-    def correlation(self, representations):
+    @torch.jit.script
+    def correlation(self, representations: List[torch.Tensor]):
         """Calculate correlation."""
         latent_dims = representations[0].shape[1]
         o1 = representations[0].shape[1]
         o2 = representations[1].shape[1]
 
-        representations = _demean(representations)
+        representations = [representation - representation.mean(dim=0) for representation in representations]
 
         SigmaHat12 = torch.cov(
             torch.hstack((representations[0], representations[1])).T
         )[:latent_dims, latent_dims:]
-        SigmaHat11 = torch.cov(representations[0].T) + self.eps * torch.eye(
+        SigmaHat11 = torch.cov(representations[0].T) + 1e-5 * torch.eye(
             o1, device=representations[0].device
         )
-        SigmaHat22 = torch.cov(representations[1].T) + self.eps * torch.eye(
+        SigmaHat22 = torch.cov(representations[1].T) + 1e-5 * torch.eye(
             o2, device=representations[1].device
         )
 
-        SigmaHat11RootInv = inv_sqrtm(SigmaHat11, self.eps)
-        SigmaHat22RootInv = inv_sqrtm(SigmaHat22, self.eps)
+        SigmaHat11RootInv = inv_sqrtm(SigmaHat11, 1e-5)
+        SigmaHat22RootInv = inv_sqrtm(SigmaHat22, 1e-5)
 
         Tval = SigmaHat11RootInv @ SigmaHat12 @ SigmaHat22RootInv
         trace_TT = Tval.T @ Tval
@@ -164,9 +158,9 @@ class _CCALoss:
 
         return eigvals
 
-    def loss(self, views):
+    def loss(self, representations: List[torch.Tensor]):
         """Calculate loss."""
-        eigvals = self.correlation(views)
+        eigvals = self.correlation(representations)
         eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)])
         return -eigvals.sum()
 
@@ -179,7 +173,7 @@ class _TCCALoss:
 
     def loss(self, views):
         latent_dims = views[0].shape[1]
-        views = _demean(views)
+        views = [representation - representation.mean(dim=0) for representation in representations]
         covs = [
             (1 - self.eps) * torch.cov(view.T)
             + self.eps * torch.eye(view.size(1), device=view.device)

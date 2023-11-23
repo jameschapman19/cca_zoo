@@ -12,9 +12,9 @@ from cca_zoo._base import _BaseModel
 
 class ProbabilisticCCA(_BaseModel):
     """
-    A class for performing Maximum Likelihood Estimation (MLE) in Probabilistic Canonical Correlation Analysis (_CCALoss) using variational inference.
+    A class for performing Maximum Likelihood Estimation (MLE) in Probabilistic Canonical Correlation Analysis (CCA) using variational inference.
 
-    Probabilistic _CCALoss is a generative model that makes the following assumptions:
+    Probabilistic CCA is a generative model that makes the following assumptions:
 
     1. A latent variable representations exists that influences both representations (X1, X2).
     2. Each observed view is generated via its own set of parameters: W (weight matrix), mu (mean), and psi (covariance).
@@ -73,7 +73,7 @@ class ProbabilisticCCA(_BaseModel):
 
     def fit(self, views: Iterable[np.ndarray], y=None):
         """
-        Infer the parameters and latent variables of the Probabilistic Canonical Correlation Analysis (_CCALoss) model.
+        Infer the parameters and latent variables of the Probabilistic Canonical Correlation Analysis (CCA) model.
 
         Parameters
         ----------
@@ -105,7 +105,7 @@ class ProbabilisticCCA(_BaseModel):
 
     def _model(self, views):
         """
-        Defines the generative model for Probabilistic _CCALoss.
+        Defines the generative model for Probabilistic CCA.
 
         Parameters
         ----------
@@ -193,7 +193,7 @@ class ProbabilisticCCA(_BaseModel):
 
     def _guide(self, views):
         """
-        Defines the variational distribution for Probabilistic _CCALoss.
+        Defines the variational distribution for Probabilistic CCA.
 
         Parameters
         ----------

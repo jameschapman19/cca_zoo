@@ -13,12 +13,12 @@ from cca_zoo.probabilistic._cca import ProbabilisticCCA
 
 class ProbabilisticPLSRegression(ProbabilisticCCA):
     """
-    Probabilistic Ridge Canonical Correlation Analysis (Probabilistic Ridge _CCALoss).
+    Probabilistic Ridge Canonical Correlation Analysis (Probabilistic Ridge CCA).
 
-    Probabilistic Ridge _CCALoss extends the Probabilistic Canonical Correlation Analysis model
+    Probabilistic Ridge CCA extends the Probabilistic Canonical Correlation Analysis model
     by introducing regularization terms in the linear relationships between multiple representations
     of data. This regularization improves the conditioning of the problem and provides a
-    way to incorporate prior knowledge. It combines features of both _CCALoss and Ridge Regression.
+    way to incorporate prior knowledge. It combines features of both CCA and Ridge Regression.
 
     Parameters
     ----------
@@ -132,7 +132,7 @@ class ProbabilisticPLSRegression(ProbabilisticCCA):
 
     def _guide(self, views):
         """
-        Defines the variational family (guide) for approximate inference in Probabilistic _CCALoss.
+        Defines the variational family (guide) for approximate inference in Probabilistic CCA.
 
         Parameters
         ----------
@@ -234,4 +234,4 @@ if __name__ == "__main__":
 
     assert (
         correlation_pls > correlation_cca
-    ), f"Expected correlation with PLS greater than _CCALoss, got {correlation_pls} and {correlation_cca}"
+    ), f"Expected correlation with PLS greater than CCA, got {correlation_pls} and {correlation_cca}"

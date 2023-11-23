@@ -158,12 +158,12 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         scheduler.step()
 
     def _initialize(self, views: Iterable[np.ndarray]):
-        """Initialize the _CCALoss weights_ using the initialization method or function.
+        """Initialize the CCA weights_ using the initialization method or function.
 
         Parameters
         ----------
         views : Iterable[np.ndarray]
-            The input representations to initialize the _CCALoss weights_ from
+            The input representations to initialize the CCA weights_ from
         """
         pls = self._get_tags().get("pls", False)
         initializer = _default_initializer(

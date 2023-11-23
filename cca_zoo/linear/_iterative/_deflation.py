@@ -64,7 +64,7 @@ def deflate_view_pls(residual: np.ndarray, weights: np.ndarray) -> np.ndarray:
 
 def deflate_view_cca(residual: np.ndarray, weights: np.ndarray) -> np.ndarray:
     """
-    PLS Mode-A deflation/ _CCALoss deflation
+    PLS Mode-A deflation/ CCA deflation
 
     This method ensures orthogonal latent variables in the consecutive associative effects in each data modality.
 

@@ -10,7 +10,7 @@
 #
 # class SCCA_ADMM(_BaseIterative, _DeflationMixin):
 #     r"""
-#     Fits a sparse _CCALoss model by alternating ADMM for two or more representations.
+#     Fits a sparse CCA model by alternating ADMM for two or more representations.
 #
 #     .. math::
 #

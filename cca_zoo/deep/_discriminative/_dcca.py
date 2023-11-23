@@ -20,7 +20,6 @@ class DCCA(BaseDeep):
         latent_dimensions: int,
         objective=objectives._MCCALoss,
         encoders=None,
-        eps: float = 1e-5,
         **kwargs,
     ):
         super().__init__(latent_dimensions=latent_dimensions, **kwargs)
@@ -30,7 +29,7 @@ class DCCA(BaseDeep):
                 "Encoders must be a list of torch.nn.Module with length equal to the number of representations."
             )
         self.encoders = torch.nn.ModuleList(encoders)
-        self.objective = objective(eps=eps)
+        self.objective = objective()
 
     def forward(self, views, **kwargs):
         if not hasattr(self, "n_views_"):
