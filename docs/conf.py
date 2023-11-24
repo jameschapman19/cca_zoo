@@ -98,7 +98,6 @@ autodoc_default_options = {
     "show-inheritance": True,
     "inherited-members": True,
     "exclude-members": "__init__",
-
 }
 
 
