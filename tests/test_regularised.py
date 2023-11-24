@@ -12,7 +12,7 @@ from cca_zoo.linear import (
     PLS,
     PRCCA,
     SCCA_IPLS,
-    SCCA_PMD,
+    SPLS,
     # AltMaxVar,
     ElasticCCA,
     PartialCCA,
@@ -66,7 +66,7 @@ def test_sparse_methods():
     tau1 = [0.1]
     tau2 = [0.1]
     param_grid = {"tau": [tau1, tau2]}
-    pmd_cv = GridSearchCV(SCCA_PMD(random_state=rng), param_grid=param_grid).fit([X, Y])
+    pmd_cv = GridSearchCV(SPLS(random_state=rng), param_grid=param_grid).fit([X, Y])
     assert (pmd_cv.best_estimator_.weights_[0] == 0).sum() > 0
     assert (pmd_cv.best_estimator_.weights_[1] == 0).sum() > 0
     alpha1 = loguniform(1e-2, 2e-2)
