@@ -1,7 +1,7 @@
 import torch
 
-from cca_zoo.deep.objectives import _CCALoss
 from cca_zoo.deep._base import BaseDeep
+from cca_zoo.deep.objectives import _CCALoss
 from cca_zoo.linear._mcca import MCCA
 
 
@@ -18,10 +18,10 @@ class DCCA(BaseDeep):
     objective = _CCALoss()
 
     def __init__(
-        self,
-        latent_dimensions: int,
-        encoders=None,
-        **kwargs,
+            self,
+            latent_dimensions: int,
+            encoders=None,
+            **kwargs,
     ):
         super().__init__(latent_dimensions=latent_dimensions, **kwargs)
         # Check if encoders are provided and have the same length as the number of representations

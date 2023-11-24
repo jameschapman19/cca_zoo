@@ -32,11 +32,11 @@ To begin, instantiate the CCA model and specify the desired number of latent dim
 
     from cca_zoo.models import CCA
 
-    latent_dims = 3
-    linear_cca = CCA(latent_dims=latent_dims)
+    latent_dimensions = 3
+    linear_cca = CCA(latent_dimensions=latent_dimensions)
 
     # Fit the model
-    linear_cca.fit([train_view_1, train_view_2])
+    linear_cca.fit((train_view_1, train_view_2))
 
 Hyperparameter Tuning
 ---------------------
@@ -64,8 +64,8 @@ Hyperparameters can either be manually configured during model initialization or
     cv = 5  # Number of folds in cross-validation
 
     # Conduct grid search
-    ridge = GridSearchCV(rCCA(latent_dims=latent_dims), param_grid=param_grid,
-                         cv=cv, verbose=True, scoring=scorer).fit([train_view_1, train_view_2]).best_estimator_
+    ridge = GridSearchCV(rCCA(latent_dimensions=latent_dimensions), param_grid=param_grid,
+                         cv=cv, verbose=True, scoring=scorer).fit((train_view_1, train_view_2)).best_estimator_
 
 Model Transformations
 ----------------------
@@ -74,13 +74,13 @@ Transform your data post-fitting to obtain latent projections for each view.
 
 .. code-block:: python
 
-    projections = ridge.transform([train_view_1, train_view_2])
+    projections = ridge.transform((train_view_1, train_view_2))
 
 Alternatively, use `fit_transform` for simultaneous fitting and transformation.
 
 .. code-block:: python
 
-    projections = ridge.fit_transform([train_view_1, train_view_2])
+    projections = ridge.fit_transform((train_view_1, train_view_2))
 
 Model Evaluation
 ----------------
@@ -89,7 +89,7 @@ Assess the performance of your model by evaluating the correlations in the laten
 
 .. code-block:: python
 
-    correlation = ridge.score([train_view_1, train_view_2])
+    correlation = ridge.score((train_view_1, train_view_2))
 
 For tensor-based CCA models, this score represents higher-order correlations in each dimension.
 
@@ -100,8 +100,8 @@ In specialized applications, it may be essential to access the model's linear tr
 
 .. code-block:: python
 
-    view_1_weights = ridge.weights[0]
-    view_2_weights = ridge.weights[1]
+    view_1_weights = ridge.weights_[0]
+    view_2_weights = ridge.weights_[1]
 
 Deep Models in CCA-Zoo
 ----------------------
@@ -117,8 +117,8 @@ Here, we define encoder architectures using multi-layer perceptrons (MLPs).
 
     from cca_zoo.deepmodels import architectures
 
-    encoder_1 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
-    encoder_2 = architectures.Encoder(latent_dims=latent_dims, feature_size=784)
+    encoder_1 = architectures.Encoder(latent_dimensions=latent_dimensions, feature_size=784)
+    encoder_2 = architectures.Encoder(latent_dimensions=latent_dimensions, feature_size=784)
 
 Deep CCA Model Initiation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -129,6 +129,6 @@ Initialize a Deep CCA model using the encoder architectures.
 
     from cca_zoo.deepmodels import DCCA
 
-    dcca_model = DCCA(latent_dims=latent_dims, encoders=[encoder_1, encoder_2])
+    dcca_model = DCCA(latent_dimensions=latent_dimensions, encoders=[encoder_1, encoder_2])
 
 The resulting object is a PyTorch.nn.Module, allowing for further updates in a custom training loop.

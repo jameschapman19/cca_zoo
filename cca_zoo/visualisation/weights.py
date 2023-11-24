@@ -3,7 +3,7 @@ import seaborn as sns
 
 
 class WeightHeatmapDisplay:
-    """Heatmap of the weights_ of a model.
+    """Heatmap of the weights of a model.
 
     Parameters
     ----------

@@ -28,7 +28,7 @@ def _delta_search(w, c, tol=1e-8):
         # Apply soft thresholding to the weights_ with delta
         coef = np.clip(w - delta, 0, None) - np.clip(-w - delta, 0, None)
 
-        if np.sum(coef**2) == 0:
+        if np.sum(coef ** 2) == 0:
             coef[:] = 1000
         else:
             # Normalize the coefficients to unit length if nonzero

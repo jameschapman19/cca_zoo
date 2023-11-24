@@ -23,14 +23,14 @@ class DCCA_SDL(DCCA):
     """
 
     def __init__(
-        self,
-        latent_dimensions: int,
-        encoders=None,
-        r: float = 0,
-        eps: float = 1e-5,
-        shared_target: bool = False,
-        lam=0.5,
-        **kwargs
+            self,
+            latent_dimensions: int,
+            encoders=None,
+            r: float = 0,
+            eps: float = 1e-5,
+            shared_target: bool = False,
+            lam=0.5,
+            **kwargs
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,

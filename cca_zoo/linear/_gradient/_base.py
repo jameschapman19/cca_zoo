@@ -1,15 +1,15 @@
+import warnings
 from typing import Iterable, List, Union
 
-import numpy as np
 import lightning.pytorch as pl
+import numpy as np
 import torch
-from lightning.pytorch.callbacks import EarlyStopping
 from torch.utils.data import DataLoader
-from cca_zoo.linear._mcca import MCCA
+
 from cca_zoo._base import _BaseModel
 from cca_zoo.deep.data import NumpyDataset
 from cca_zoo.linear._iterative._base import _default_initializer
-import warnings
+from cca_zoo.linear._mcca import MCCA
 
 # Default Trainer kwargs
 DEFAULT_TRAINER_KWARGS = dict(
@@ -27,20 +27,20 @@ DEFAULT_OPTIMIZER_KWARGS = dict(optimizer="SGD", nesterov=True, momentum=0.9)
 
 class BaseGradientModel(_BaseModel, pl.LightningModule):
     def __init__(
-        self,
-        latent_dimensions: int = 1,
-        copy_data=True,
-        random_state=None,
-        tol=1e-3,
-        accept_sparse=None,
-        batch_size=None,
-        dataloader_kwargs=None,
-        epochs=1,
-        learning_rate=5e-3,
-        initialization: Union[str, callable] = "random",
-        optimizer_kwargs=None,
-        early_stopping=True,
-        logging=False,
+            self,
+            latent_dimensions: int = 1,
+            copy_data=True,
+            random_state=None,
+            tol=1e-3,
+            accept_sparse=None,
+            batch_size=None,
+            dataloader_kwargs=None,
+            epochs=1,
+            learning_rate=5e-3,
+            initialization: Union[str, callable] = "random",
+            optimizer_kwargs=None,
+            early_stopping=True,
+            logging=False,
     ):
         _BaseModel.__init__(
             self,
@@ -74,11 +74,11 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         self.logging = logging
 
     def fit(
-        self,
-        views: Iterable[np.ndarray],
-        y=None,
-        validation_views=None,
-        **trainer_kwargs
+            self,
+            views: Iterable[np.ndarray],
+            y=None,
+            validation_views=None,
+            **trainer_kwargs
     ):
         views = self._validate_data(views)
         if validation_views is not None:
@@ -90,7 +90,7 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         return self
 
     def _fit(
-        self, views: Iterable[np.ndarray], validation_views=None, **trainer_kwargs
+            self, views: Iterable[np.ndarray], validation_views=None, **trainer_kwargs
     ):
         self._initialize(views)
         # Set the weights_ attribute as torch parameters with gradients

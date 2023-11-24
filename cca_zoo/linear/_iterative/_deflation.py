@@ -16,10 +16,10 @@ class _DeflationMixin:
         ]
 
         for k in tqdm(
-            range(self.latent_dimensions),
-            desc="Latent Dimension",
-            position=0,
-            leave=True,
+                range(self.latent_dimensions),
+                desc="Latent Dimension",
+                position=0,
+                leave=True,
         ):
             component_weights = clone(self).set_params(latent_dimensions=1)._fit(views)
 
@@ -34,7 +34,7 @@ class _DeflationMixin:
 
 
 def deflate_views(
-    residuals: Iterable[np.ndarray], weights: Iterable[np.ndarray], pls=False
+        residuals: Iterable[np.ndarray], weights: Iterable[np.ndarray], pls=False
 ):
     if pls:
         return [

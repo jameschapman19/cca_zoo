@@ -2,8 +2,8 @@ from typing import Iterable, Union
 
 import numpy as np
 
-from cca_zoo.linear._mcca import MCCA
 from cca_zoo._utils.check_values import _process_parameter
+from cca_zoo.linear._mcca import MCCA
 
 
 class GCCA(MCCA):
@@ -39,13 +39,13 @@ class GCCA(MCCA):
     """
 
     def __init__(
-        self,
-        latent_dimensions: int = 1,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        view_weights: Iterable[float] = None,
-        eps: float = 1e-6,
+            self,
+            latent_dimensions: int = 1,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            view_weights: Iterable[float] = None,
+            eps: float = 1e-6,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -81,9 +81,9 @@ class GCCA(MCCA):
             Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
         Q = np.sum(Q, axis=0)
         Q = (
-            np.diag(np.sqrt(np.sum(K, axis=0)))
-            @ Q
-            @ np.diag(np.sqrt(np.sum(K, axis=0)))
+                np.diag(np.sqrt(np.sum(K, axis=0)))
+                @ Q
+                @ np.diag(np.sqrt(np.sum(K, axis=0)))
         )
         return Q
 

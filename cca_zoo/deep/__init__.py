@@ -1,7 +1,9 @@
 """
 Deep CCA methods
 """
+from . import architectures
 from . import architectures, objectives
+from . import data
 from ._discriminative import (
     DCCA,
     DCCA_EY,
@@ -14,8 +16,6 @@ from ._discriminative import (
     BarlowTwins,
 )
 from ._generative import DCCAE, DVCCA, SplitAE
-from . import data
-from . import architectures
 
 __all__ = [
     "DCCA",

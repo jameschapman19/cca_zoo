@@ -16,14 +16,14 @@ class SplitAE(BaseDeep, _GenerativeMixin):
     """
 
     def __init__(
-        self,
-        latent_dimensions: int,
-        encoder=Encoder,
-        decoders=None,
-        latent_dropout=0,
-        recon_loss_type="mse",
-        img_dim=None,
-        **kwargs
+            self,
+            latent_dimensions: int,
+            encoder=Encoder,
+            decoders=None,
+            latent_dropout=0,
+            recon_loss_type="mse",
+            img_dim=None,
+            **kwargs
     ):
         """
 

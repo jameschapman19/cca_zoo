@@ -96,8 +96,6 @@ else:
     extensions.append("sphinx.ext.mathjax")
     mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
 
-autosummary_generate = True
-autodoc_typehints = "description"
 autodoc_member_order = "groupwise"
 autodoc_default_options = {
     "members": True,
@@ -156,6 +154,7 @@ html_context = {
     "github_version": "main",
     "doc_path": "docs",
 }
+
 
 def setup_to_main(
     app: Sphinx, pagename: str, templatename: str, context, doctree

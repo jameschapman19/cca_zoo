@@ -12,20 +12,20 @@ from sklearn.utils.parallel import Parallel, delayed
 
 
 def cross_validate(
-    estimator,
-    views,
-    y=None,
-    *,
-    groups=None,
-    scoring=None,
-    cv=None,
-    n_jobs=None,
-    verbose=0,
-    fit_params=None,
-    pre_dispatch="2*n_jobs",
-    return_train_score=False,
-    return_estimator=False,
-    error_score=np.nan,
+        estimator,
+        views,
+        y=None,
+        *,
+        groups=None,
+        scoring=None,
+        cv=None,
+        n_jobs=None,
+        verbose=0,
+        fit_params=None,
+        pre_dispatch="2*n_jobs",
+        return_train_score=False,
+        return_estimator=False,
+        error_score=np.nan,
 ):
     """
     Evaluate metric(s) by cross-validation and also record fit/score times.
@@ -60,40 +60,41 @@ def cross_validate(
     Notes
     -----
     For `scoring`:
-        If `scoring` represents a single score, one can use:
+    If `scoring` represents a single score, one can use:
         - a single string (see :ref:`scoring_parameter`);
         - a callable (see :ref:`scoring`) that returns a single value.
-        If `scoring` represents multiple scores, one can use:
+    If `scoring` represents multiple scores, one can use:
         - a list or tuple of unique strings;
         - a callable returning a dictionary where the keys are the metric
           names and the values are the metric scores;
         - a dictionary with metric names as keys and callables a values.
-        See :ref:`multimetric_grid_search` for an example.
+    See :ref:`multimetric_grid_search` for an example.
 
     For `cv`:
-        Possible inputs for cv are:
+    Possible inputs for cv are:
         - None, to use the default 5-fold cross validation,
         - int, to specify the number of folds in a `(Stratified)KFold`,
         - :term:`CV splitter`,
         - An iterable yielding (train, test) splits as arrays of indices.
-        For int/None inputs, if the estimator is a classifier and ``y`` is
-        either binary or multiclass, :class:`StratifiedKFold` is used. In all
-        other cases, :class:`.Fold` is used. These splitters are instantiated
-        with `shuffle=False` so the splits will be the same across calls.
-        Refer :ref:`User Guide <cross_validation>` for the various
-        cross-validation strategies that can be used here.
+    For int/None inputs, if the estimator is a classifier and ``y`` is
+    either binary or multiclass, :class:`StratifiedKFold` is used. In all
+    other cases, :class:`.Fold` is used. These splitters are instantiated
+    with `shuffle=False` so the splits will be the same across calls.
+    Refer :ref:`User Guide <cross_validation>` for the various
+    cross-validation strategies that can be used here.
 
     For `pre_dispatch`:
-        This parameter can be:
-            - None, in which case all the jobs are immediately
-              created and spawned. Use this for lightweight and
-              fast-running jobs, to avoid delays due to on-demand
-              spawning of the jobs
-            - An int, giving the exact number of total jobs that are
-              spawned
-            - A str, giving an expression as a function of n_jobs,
-              as in '2*n_jobs'
+    This parameter can be:
+        - None, in which case all the jobs are immediately
+          created and spawned. Use this for lightweight and
+          fast-running jobs, to avoid delays due to on-demand
+          spawning of the jobs
+        - An int, giving the exact number of total jobs that are
+          spawned
+        - A str, giving an expression as a function of n_jobs,
+          as in '2*n_jobs'
     """
+
     estimator = Pipeline(
         [
             ("splitter", SimpleSplitter([view.shape[1] for view in views])),
@@ -121,17 +122,17 @@ def cross_validate(
 
 
 def permutation_test_score(
-    estimator,
-    views,
-    y=None,
-    groups=None,
-    cv=None,
-    n_permutations=100,
-    n_jobs=None,
-    random_state=0,
-    verbose=0,
-    scoring=None,
-    fit_params=None,
+        estimator,
+        views,
+        y=None,
+        groups=None,
+        cv=None,
+        n_permutations=100,
+        n_jobs=None,
+        random_state=0,
+        verbose=0,
+        scoring=None,
+        fit_params=None,
 ):
     """
     Evaluate the significance of a cross-validated score with permutations.
@@ -226,22 +227,22 @@ def permutation_test_score(
 
 
 def learning_curve(
-    estimator,
-    X,
-    y=None,
-    groups=None,
-    train_sizes=np.linspace(0.1, 1.0, 5),
-    cv=None,
-    scoring=None,
-    exploit_incremental_learning=False,
-    n_jobs=None,
-    pre_dispatch="all",
-    verbose=0,
-    shuffle=False,
-    random_state=None,
-    error_score=np.nan,
-    return_times=False,
-    fit_params=None,
+        estimator,
+        X,
+        y=None,
+        groups=None,
+        train_sizes=np.linspace(0.1, 1.0, 5),
+        cv=None,
+        scoring=None,
+        exploit_incremental_learning=False,
+        n_jobs=None,
+        pre_dispatch="all",
+        verbose=0,
+        shuffle=False,
+        random_state=None,
+        error_score=np.nan,
+        return_times=False,
+        fit_params=None,
 ):
     """
     Learning Curve.

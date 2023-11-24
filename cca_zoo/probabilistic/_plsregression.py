@@ -190,7 +190,7 @@ class ProbabilisticPLSRegression(ProbabilisticCCA):
         top_right = self.params["W"] @ jnp.diag(self.params["B"]) @ self.params["C"].T
         bottom_left = self.params["C"] @ jnp.diag(self.params["B"]) @ self.params["W"].T
         bottom_right = self.params["C"] @ (
-            jnp.diag(self.params["B"] ** 2) + jnp.diag(self.params["h"])
+                jnp.diag(self.params["B"] ** 2) + jnp.diag(self.params["h"])
         ) @ self.params["C"].T + jnp.diag(self.params["f"])
 
         # Construct the matrix using the blocks
@@ -233,5 +233,5 @@ if __name__ == "__main__":
     S = np.cov(X.T, Y.T)
 
     assert (
-        correlation_pls > correlation_cca
+            correlation_pls > correlation_cca
     ), f"Expected correlation with PLS greater than CCA, got {correlation_pls} and {correlation_cca}"

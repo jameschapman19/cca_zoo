@@ -97,7 +97,7 @@ class TCCA(MCCA):
         return corrs
 
     def average_pairwise_correlations(
-        self, views: Iterable[np.ndarray], **kwargs
+            self, views: Iterable[np.ndarray], **kwargs
     ) -> np.ndarray:
         transformed_views = self.transform(views, **kwargs)
         transformed_views = [

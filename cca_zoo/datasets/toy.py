@@ -93,12 +93,12 @@ def load_split_cifar10_data(data_home=None, cache=True):
 
     Parameters:
     - data_home (str or None, optional): The directory where the CIFAR-10 dataset will be cached.
-      If None, the default Scikit-learn cache directory will be used.
+    If None, the default Scikit-learn cache directory will be used.
     - cache (bool, optional): Whether to cache the dataset for faster access.
 
     Returns:
     - cifar_data (Bunch object): A Scikit-learn Bunch object containing the CIFAR-10 dataset.
-      This object has 'data' and 'target' attributes.
+    This object has 'data' and 'target' attributes.
 
     The function fetches the CIFAR-10 dataset from Scikit-learn's dataset repository and splits it into two halves:
     - The first half, X1, contains images with the left 16x32 pixel region (red channel, green channel, and blue channel).
@@ -118,6 +118,7 @@ def load_split_cifar10_data(data_home=None, cache=True):
     >>> print(X1.shape)  # Shape of the first half of the dataset
     >>> print(X2.shape)  # Shape of the second half of the dataset
     """
+
     from sklearn.datasets import fetch_openml
 
     # Download CIFAR-10
@@ -153,13 +154,13 @@ def load_mfeat_data(features=None):
 
     Parameters:
     - features (list of str or None, optional): List of feature types to load.
-      Available feature types: ["fac", "fou", "kar", "mor", "pix", "zer"].
-      If None, all available features will be loaded.
+    Available feature types: ["fac", "fou", "kar", "mor", "pix", "zer"].
+    If None, all available features will be loaded.
 
     Returns:
     - data (Bunch object): A Scikit-learn Bunch object containing the MFeat dataset.
-      This object has 'views' (features), 'target' (class labels), 'DESCR' (description),
-      and 'data_module' attributes.
+    This object has 'views' (features), 'target' (class labels), 'DESCR' (description),
+    and 'data_module' attributes.
 
     The function downloads and extracts the MFeat dataset from a remote URL if it's not already
     downloaded. It allows you to specify which types of features to load (e.g., "fac", "fou", etc.).

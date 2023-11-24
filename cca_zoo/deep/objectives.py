@@ -4,6 +4,7 @@ import tensorly as tl
 import torch
 from tensorly.cp_tensor import cp_to_tensor
 from tensorly.decomposition import parafac
+
 from cca_zoo._utils.cross_correlation import torch_cross_cov
 
 
@@ -268,8 +269,8 @@ class _CCA_EYLoss:
     @staticmethod
     @torch.jit.script
     def loss(
-        representations: List[torch.Tensor],
-        independent_representations: Optional[List[torch.Tensor]] = None,
+            representations: List[torch.Tensor],
+            independent_representations: Optional[List[torch.Tensor]] = None,
     ):
         A, B = CCA_AB(representations)
         rewards = torch.trace(2 * A)
@@ -286,10 +287,10 @@ class _CCA_EYLoss:
 
     @staticmethod
     def derivative(
-        views: List[torch.Tensor],
-        representations: List[torch.Tensor],
-        independent_views: Optional[List[torch.Tensor]] = None,
-        independent_representations: Optional[List[torch.Tensor]] = None,
+            views: List[torch.Tensor],
+            representations: List[torch.Tensor],
+            independent_views: Optional[List[torch.Tensor]] = None,
+            independent_representations: Optional[List[torch.Tensor]] = None,
     ):
         A, B = CCA_AB(representations)
         sum_representations = torch.sum(torch.stack(representations), dim=0)
@@ -322,8 +323,8 @@ class _CCA_GHALoss(_CCA_EYLoss):
     @staticmethod
     @torch.jit.script
     def loss(
-        representations: List[torch.Tensor],
-        independent_representations: Optional[List[torch.Tensor]] = None,
+            representations: List[torch.Tensor],
+            independent_representations: Optional[List[torch.Tensor]] = None,
     ):
         A, B = CCA_AB(representations)
         rewards = torch.trace(A)
@@ -342,10 +343,10 @@ class _CCA_GHALoss(_CCA_EYLoss):
 
     @staticmethod
     def derivative(
-        views: List[torch.Tensor],
-        representations: List[torch.Tensor],
-        independent_views: Optional[List[torch.Tensor]] = None,
-        independent_representations: Optional[List[torch.Tensor]] = None,
+            views: List[torch.Tensor],
+            representations: List[torch.Tensor],
+            independent_views: Optional[List[torch.Tensor]] = None,
+            independent_representations: Optional[List[torch.Tensor]] = None,
     ):
         A, B = CCA_AB(representations)
         sum_representations = torch.sum(torch.stack(representations), dim=0)
@@ -370,8 +371,8 @@ class _CCA_SVDLoss(_CCA_EYLoss):
     @staticmethod
     @torch.jit.script
     def loss(
-        representations: List[torch.Tensor],
-        independent_representations: Optional[List[torch.Tensor]] = None,
+            representations: List[torch.Tensor],
+            independent_representations: Optional[List[torch.Tensor]] = None,
     ):
         C = torch.cov(torch.hstack(representations).T)
         latent_dims = representations[0].shape[1]
@@ -394,10 +395,10 @@ class _CCA_SVDLoss(_CCA_EYLoss):
 
     @staticmethod
     def derivative(
-        views: List[torch.Tensor],
-        representations: List[torch.Tensor],
-        independent_views: Optional[List[torch.Tensor]] = None,
-        independent_representations: Optional[List[torch.Tensor]] = None,
+            views: List[torch.Tensor],
+            representations: List[torch.Tensor],
+            independent_views: Optional[List[torch.Tensor]] = None,
+            independent_representations: Optional[List[torch.Tensor]] = None,
     ):
         C = torch.cov(torch.hstack(representations).T)
         latent_dims = representations[0].shape[1]
@@ -436,9 +437,9 @@ class _PLS_EYLoss:
     @staticmethod
     # @torch.jit.script
     def derivative(
-        views: List[torch.Tensor],
-        representations: List[torch.Tensor],
-        weights: List[torch.Tensor],
+            views: List[torch.Tensor],
+            representations: List[torch.Tensor],
+            weights: List[torch.Tensor],
     ):
         A, B = PLS_AB(representations, weights)
         sum_representations = torch.sum(torch.stack(representations), dim=0)
@@ -458,7 +459,7 @@ class _PLS_PowerLoss:
         cov = torch.cov(torch.hstack(representations).T)
         return {
             "objective": torch.trace(
-                cov[: representations[0].shape[1], representations[0].shape[1] :]
+                cov[: representations[0].shape[1], representations[0].shape[1]:]
             )
         }
 

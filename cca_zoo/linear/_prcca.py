@@ -31,12 +31,12 @@ class PRCCA(MCCA):
     """
 
     def __init__(
-        self,
-        latent_dimensions: int = 1,
-        copy_data=True,
-        random_state=None,
-        eps=1e-3,
-        c=0,
+            self,
+            latent_dimensions: int = 1,
+            copy_data=True,
+            random_state=None,
+            eps=1e-3,
+            c=0,
     ):
         """
         Parameters

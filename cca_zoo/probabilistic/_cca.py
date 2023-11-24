@@ -49,14 +49,14 @@ class ProbabilisticCCA(_BaseModel):
     return_sites = ["z"]
 
     def __init__(
-        self,
-        latent_dimensions: int = 1,
-        copy_data=True,
-        random_state: int = 0,
-        learning_rate=1e-1,
-        n_iter=20000,
-        num_samples=5000,
-        num_warmup=5000,
+            self,
+            latent_dimensions: int = 1,
+            copy_data=True,
+            random_state: int = 0,
+            learning_rate=1e-1,
+            n_iter=20000,
+            num_samples=5000,
+            num_warmup=5000,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,

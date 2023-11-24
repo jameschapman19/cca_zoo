@@ -9,13 +9,13 @@ from ._dcca import DCCA
 
 class BatchWhiten(Module):
     def __init__(
-        self,
-        num_features: int,
-        eps: float = 1e-5,
-        momentum: float = 0.1,
-        track_running_stats: bool = True,
-        device=None,
-        dtype=None,
+            self,
+            num_features: int,
+            eps: float = 1e-5,
+            momentum: float = 0.1,
+            track_running_stats: bool = True,
+            device=None,
+            dtype=None,
     ) -> None:
         factory_kwargs = {"device": device, "dtype": dtype}
         super(BatchWhiten, self).__init__()
@@ -137,13 +137,13 @@ class DCCA_NOI(DCCA):
     """
 
     def __init__(
-        self,
-        latent_dimensions: int,
-        encoders=None,
-        r: float = 0,
-        rho: float = 0.1,
-        eps: float = 1e-9,
-        **kwargs,
+            self,
+            latent_dimensions: int,
+            encoders=None,
+            r: float = 0,
+            rho: float = 0.1,
+            eps: float = 1e-9,
+            **kwargs,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,

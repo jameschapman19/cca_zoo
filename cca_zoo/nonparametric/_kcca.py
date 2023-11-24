@@ -5,10 +5,10 @@ from scipy.linalg import block_diag
 from sklearn.metrics import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 
+from cca_zoo._utils import _process_parameter
 from cca_zoo.linear._gcca import GCCA
 from cca_zoo.linear._mcca import MCCA
 from cca_zoo.linear._tcca import TCCA
-from cca_zoo._utils import _process_parameter
 
 
 class KernelMixin:
@@ -121,17 +121,17 @@ class KCCA(KernelMixin, MCCA):
     """
 
     def __init__(
-        self,
-        latent_dimensions: int = 1,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        eps=1e-3,
-        kernel: Iterable[Union[str, float, callable]] = None,
-        gamma: Iterable[float] = None,
-        degree: Iterable[float] = None,
-        coef0: Iterable[float] = None,
-        kernel_params: Iterable[dict] = None,
+            self,
+            latent_dimensions: int = 1,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            eps=1e-3,
+            kernel: Iterable[Union[str, float, callable]] = None,
+            gamma: Iterable[float] = None,
+            degree: Iterable[float] = None,
+            coef0: Iterable[float] = None,
+            kernel_params: Iterable[dict] = None,
     ):
         # Call the parent class constructor
         super().__init__(
@@ -220,7 +220,7 @@ class KGCCA(KernelMixin, GCCA):
     kernel_params: Iterable[dict], optional
         Additional parameters or list of parameters for the kernel function for each view, by default None.
     view_weights: Iterable[float], optional
-        Weights for each view in the objective function, by default None. If None, it will use equal weights_ for each view.
+        Weights for each view in the objective function, by default None. If None, it will use equal weights for each view.
 
     References
     ----------
@@ -240,18 +240,18 @@ class KGCCA(KernelMixin, GCCA):
     """
 
     def __init__(
-        self,
-        latent_dimensions: int = 1,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        kernel: Iterable[Union[float, callable]] = None,
-        gamma: Iterable[float] = None,
-        degree: Iterable[float] = None,
-        coef0: Iterable[float] = None,
-        kernel_params: Iterable[dict] = None,
-        view_weights: Iterable[float] = None,
-        eps: float = 1e-6,
+            self,
+            latent_dimensions: int = 1,
+            copy_data=True,
+            random_state=None,
+            c: Union[Iterable[float], float] = None,
+            kernel: Iterable[Union[float, callable]] = None,
+            gamma: Iterable[float] = None,
+            degree: Iterable[float] = None,
+            coef0: Iterable[float] = None,
+            kernel_params: Iterable[dict] = None,
+            view_weights: Iterable[float] = None,
+            eps: float = 1e-6,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -319,17 +319,17 @@ class KTCCA(KernelMixin, TCCA):
     """
 
     def __init__(
-        self,
-        latent_dimensions: int = 1,
-        copy_data=True,
-        random_state=None,
-        eps=1e-3,
-        c: Union[Iterable[float], float] = None,
-        kernel: Iterable[Union[float, callable]] = None,
-        gamma: Iterable[float] = None,
-        degree: Iterable[float] = None,
-        coef0: Iterable[float] = None,
-        kernel_params: Iterable[dict] = None,
+            self,
+            latent_dimensions: int = 1,
+            copy_data=True,
+            random_state=None,
+            eps=1e-3,
+            c: Union[Iterable[float], float] = None,
+            kernel: Iterable[Union[float, callable]] = None,
+            gamma: Iterable[float] = None,
+            degree: Iterable[float] = None,
+            coef0: Iterable[float] = None,
+            kernel_params: Iterable[dict] = None,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,

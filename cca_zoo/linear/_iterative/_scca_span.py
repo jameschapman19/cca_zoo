@@ -2,11 +2,11 @@ from typing import Union, Iterable
 
 import numpy as np
 
+from cca_zoo._utils import _process_parameter, cross_cov
 from cca_zoo.linear._iterative._base import _BaseIterative
 from cca_zoo.linear._iterative._deflation import _DeflationMixin
 from cca_zoo.linear._search import _delta_search
 from cca_zoo.linear._search import support_threshold
-from cca_zoo._utils import _process_parameter, cross_cov
 
 
 class SCCA_Span(_DeflationMixin, _BaseIterative):
@@ -27,19 +27,19 @@ class SCCA_Span(_DeflationMixin, _BaseIterative):
     """
 
     def __init__(
-        self,
-        latent_dimensions: int = 1,
-        epochs: int = 100,
-        copy_data=True,
-        initialization: str = "pls",
-        tol: float = 1e-3,
-        regularisation="l0",
-        tau: Union[Iterable[Union[float, int]], Union[float, int]] = None,
-        rank=1,
-        positive: Union[Iterable[bool], bool] = None,
-        random_state=None,
-        verbose=True,
-        early_stopping=False,
+            self,
+            latent_dimensions: int = 1,
+            epochs: int = 100,
+            copy_data=True,
+            initialization: str = "pls",
+            tol: float = 1e-3,
+            regularisation="l0",
+            tau: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+            rank=1,
+            positive: Union[Iterable[bool], bool] = None,
+            random_state=None,
+            verbose=True,
+            early_stopping=False,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,

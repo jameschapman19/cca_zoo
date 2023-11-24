@@ -43,13 +43,13 @@ class NCCA(_BaseModel):
     """
 
     def __init__(
-        self,
-        latent_dimensions: int = 1,
-        copy_data=True,
-        accept_sparse=False,
-        random_state: Union[int, np.random.RandomState] = None,
-        nearest_neighbors=None,
-        gamma: Iterable[float] = None,
+            self,
+            latent_dimensions: int = 1,
+            copy_data=True,
+            accept_sparse=False,
+            random_state: Union[int, np.random.RandomState] = None,
+            nearest_neighbors=None,
+            gamma: Iterable[float] = None,
     ):
         # Call the parent class constructor
         super().__init__(
@@ -102,10 +102,10 @@ class NCCA(_BaseModel):
         # Perform singular value decomposition on the cross-covariance matrix
         U, S, Vt = np.linalg.svd(S)
         # Compute the canonical score vectors for each view
-        self.f = U[:, 1 : self.latent_dimensions + 1] * np.sqrt(self.n_samples_)
-        self.g = Vt[1 : self.latent_dimensions + 1, :].T * np.sqrt(self.n_samples_)
+        self.f = U[:, 1: self.latent_dimensions + 1] * np.sqrt(self.n_samples_)
+        self.g = Vt[1: self.latent_dimensions + 1, :].T * np.sqrt(self.n_samples_)
         # Store the canonical correlations
-        self.S = S[1 : self.latent_dimensions + 1]
+        self.S = S[1: self.latent_dimensions + 1]
         return self
 
     def transform(self, views: Iterable[np.ndarray], **kwargs):

@@ -61,12 +61,12 @@ class ExplainedVarianceDisplay:
     """
 
     def __init__(
-        self,
-        explained_variance_train,
-        explained_variance_test=None,
-        ratio=True,
-        view_labels=None,
-        **kwargs,
+            self,
+            explained_variance_train,
+            explained_variance_test=None,
+            ratio=True,
+            view_labels=None,
+            **kwargs,
     ):
         self.explained_variance_train = explained_variance_train
         self.explained_variance_test = explained_variance_test
@@ -90,7 +90,7 @@ class ExplainedVarianceDisplay:
 
     @classmethod
     def from_estimator(
-        cls, model, train_views, test_views=None, ratio=True, view_labels=None, **kwargs
+            cls, model, train_views, test_views=None, ratio=True, view_labels=None, **kwargs
     ):
         # explained_variance_train will be a numpy array of shape (latent_dimensions,len(train_views))
         if ratio:
@@ -121,11 +121,11 @@ class ExplainedVarianceDisplay:
 
     @classmethod
     def from_explained_variance(
-        cls,
-        explained_variance_train,
-        explained_variance_test=None,
-        view_labels=None,
-        **kwargs,
+            cls,
+            explained_variance_train,
+            explained_variance_test=None,
+            view_labels=None,
+            **kwargs,
     ):
         return cls(
             explained_variance_train,
@@ -137,11 +137,11 @@ class ExplainedVarianceDisplay:
 
     @classmethod
     def from_explained_variance_ratio(
-        cls,
-        explained_variance_train,
-        explained_variance_test=None,
-        view_labels=None,
-        **kwargs,
+            cls,
+            explained_variance_train,
+            explained_variance_test=None,
+            view_labels=None,
+            **kwargs,
     ):
         return cls(
             explained_variance_train,

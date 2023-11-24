@@ -43,14 +43,14 @@ def cross_corrcoef(A, B, rowvar=True):
     C = A @ B.T
 
     A = (
-        np.sqrt(np.sum(A**2, axis=1))
+        np.sqrt(np.sum(A ** 2, axis=1))
         if not is_torch
-        else torch.sqrt(torch.sum(A**2, dim=1))
+        else torch.sqrt(torch.sum(A ** 2, dim=1))
     )
     B = (
-        np.sqrt(np.sum(B**2, axis=1))
+        np.sqrt(np.sum(B ** 2, axis=1))
         if not is_torch
-        else torch.sqrt(torch.sum(B**2, dim=1))
+        else torch.sqrt(torch.sum(B ** 2, dim=1))
     )
 
     return C / np.outer(A, B) if not is_torch else C / torch.outer(A, B)

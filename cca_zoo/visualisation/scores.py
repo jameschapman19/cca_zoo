@@ -25,14 +25,14 @@ class ScoreScatterDisplay:
     """
 
     def __init__(
-        self,
-        scores,
-        test_scores=None,
-        labels=None,
-        test_labels=None,
-        show_corr=True,
-        ax_labels=None,
-        **kwargs,
+            self,
+            scores,
+            test_scores=None,
+            labels=None,
+            test_labels=None,
+            show_corr=True,
+            ax_labels=None,
+            **kwargs,
     ):
         self.scores = scores
         self.test_scores = test_scores
@@ -89,15 +89,15 @@ class ScoreScatterDisplay:
 
     @classmethod
     def from_estimator(
-        cls,
-        model,
-        train_views,
-        test_views=None,
-        labels=None,
-        test_labels=None,
-        ax_labels=None,
-        show_corr=True,
-        **kwargs,
+            cls,
+            model,
+            train_views,
+            test_views=None,
+            labels=None,
+            test_labels=None,
+            ax_labels=None,
+            show_corr=True,
+            **kwargs,
     ):
         """
         Create a ScoreDisplay instance from an estimator and data representations.
@@ -125,14 +125,14 @@ class ScoreScatterDisplay:
 
     @classmethod
     def from_scores(
-        cls,
-        train_scores,
-        test_scores=None,
-        labels=None,
-        test_labels=None,
-        ax_labels=None,
-        show_corr=True,
-        **kwargs,
+            cls,
+            train_scores,
+            test_scores=None,
+            labels=None,
+            test_labels=None,
+            ax_labels=None,
+            show_corr=True,
+            **kwargs,
     ):
         """
         Create a ScoreDisplay instance from precomputed scores.
@@ -188,7 +188,7 @@ class ScoreScatterDisplay:
                 ax.set_xlabel(self.ax_labels[0])
                 ax.set_ylabel(self.ax_labels[1])
             # if g is a jointplot, get the underlying figure
-            plt.suptitle(f"{title} Latent Dimension {i+1}")
+            plt.suptitle(f"{title} Latent Dimension {i + 1}")
 
             if self.show_corr:
                 if self.test_scores is None:
@@ -251,7 +251,7 @@ class SeparateScoreScatterDisplay(ScoreScatterDisplay):
                     transform=ax.transAxes,
                     verticalalignment="top",
                 )
-            plt.suptitle(f"{title} Train - Latent Dimension {i+1}")
+            plt.suptitle(f"{title} Train - Latent Dimension {i + 1}")
             self.train_figures_.append(g)
 
             g, fig, ax = self._create_plot(
@@ -273,7 +273,7 @@ class SeparateScoreScatterDisplay(ScoreScatterDisplay):
                     transform=ax.transAxes,
                     verticalalignment="top",
                 )
-            plt.suptitle(f"{title} Test - Latent Dimension {i+1}")
+            plt.suptitle(f"{title} Test - Latent Dimension {i + 1}")
             self.test_figures_.append(g)
         plt.tight_layout()
         return self

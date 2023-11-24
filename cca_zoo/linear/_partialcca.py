@@ -68,14 +68,15 @@ class PartialCCA(MCCA):
             transformed_views = []
             for i, (view) in enumerate(views):
                 transformed_view = (
-                    view
-                    - partials
-                    @ self.confound_betas[
-                        i
-                    ]  # remove the confounding effect from each view using stored confounding betas
-                ) @ self.weights_[
-                    i
-                ]  # multiply each view by its corresponding weight matrix
+                                           view
+                                           - partials
+                                           @ self.confound_betas[
+                                               i
+                                           ]
+                                   # remove the confounding effect from each view using stored confounding betas
+                                   ) @ self.weights_[
+                                       i
+                                   ]  # multiply each view by its corresponding weight matrix
                 transformed_views.append(
                     transformed_view
                 )  # append the transformed view to the list of transformed representations
