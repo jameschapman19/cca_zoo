@@ -92,7 +92,7 @@ else:
     mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
 
 autosummary_generate = True
-autoclass_content = 'class'
+
 autodoc_default_options = {
     "members": True,
     "show-inheritance": True,
