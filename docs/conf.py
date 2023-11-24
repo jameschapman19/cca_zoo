@@ -4,9 +4,11 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
 import sys
+from pathlib import Path
+from typing import Any, Dict
+from sphinx.application import Sphinx
 
-
-sys.path.insert(0, os.path.abspath("."))
+sys.path.append(str(Path(".").resolve()))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -29,6 +31,8 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "sphinx_favicon",
 ]
+
+jupyterlite_config = "jupyterlite_config.json"
 
 # Produce `plot::` directives for examples that contain `import matplotlib` or
 # `from matplotlib import`.
@@ -93,7 +97,8 @@ else:
     mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
 
 autosummary_generate = True
-
+autodoc_typehints = "description"
+autodoc_member_order = "groupwise"
 autodoc_default_options = {
     "members": True,
     "show-inheritance": True,
@@ -151,3 +156,39 @@ html_context = {
     "github_version": "main",
     "doc_path": "docs",
 }
+
+def setup_to_main(
+    app: Sphinx, pagename: str, templatename: str, context, doctree
+) -> None:
+    """Add a function that jinja can access for returning an "edit this page" link pointing to `main`."""
+
+    def to_main(link: str) -> str:
+        """Transform "edit on github" links and make sure they always point to the main branch.
+
+        Args:
+            link: the link to the github edit interface
+
+        Returns:
+            the link to the tip of the main branch for the same file
+        """
+        links = link.split("/")
+        idx = links.index("edit")
+        return "/".join(links[: idx + 1]) + "/main/" + "/".join(links[idx + 2 :])
+
+    context["to_main"] = to_main
+
+
+def setup(app: Sphinx) -> Dict[str, Any]:
+    """Add custom configuration to sphinx app.
+
+    Args:
+        app: the Sphinx application
+    Returns:
+        the 2 parallel parameters set to ``True``.
+    """
+    app.connect("html-page-context", setup_to_main)
+
+    return {
+        "parallel_read_safe": True,
+        "parallel_write_safe": True,
+    }
