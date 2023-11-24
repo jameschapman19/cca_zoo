@@ -16,17 +16,17 @@ from cca_zoo.model_selection._validation import permutation_test_score
 
 class SequentialModel(MetaEstimatorMixin, _BaseModel, metaclass=ABCMeta):
     def __init__(
-            self,
-            estimator,
-            estimator_hyperparams=None,
-            permutation_test_params=None,
-            latent_dimensions=None,  # Maximum number of latent dimensions to fit
-            copy_data=True,
-            accept_sparse=False,
-            random_state=None,
-            permutation_test=False,  # Whether to use permutation test to determine significance
-            p_threshold=1e-3,  # Threshold for permutation test if used
-            corr_threshold=0.0,  # Threshold for effect size if permutation test not used
+        self,
+        estimator,
+        estimator_hyperparams=None,
+        permutation_test_params=None,
+        latent_dimensions=None,  # Maximum number of latent dimensions to fit
+        copy_data=True,
+        accept_sparse=False,
+        random_state=None,
+        permutation_test=False,  # Whether to use permutation test to determine significance
+        p_threshold=1e-3,  # Threshold for permutation test if used
+        corr_threshold=0.0,  # Threshold for effect size if permutation test not used
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -95,7 +95,7 @@ class SequentialModel(MetaEstimatorMixin, _BaseModel, metaclass=ABCMeta):
                 self.p_values.append(p_value)
             # Check if the stopping criterion is met based on p-value or correlation score
             if (
-                    p_value is not None and p_value >= self.p_threshold
+                p_value is not None and p_value >= self.p_threshold
             ) or best_estimator.score(views) < self.corr_threshold:
                 if p_value is not None:
                     self.p_values.pop()

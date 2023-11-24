@@ -121,17 +121,17 @@ class KCCA(KernelMixin, MCCA):
     """
 
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state=None,
-            c: Union[Iterable[float], float] = None,
-            eps=1e-3,
-            kernel: Iterable[Union[str, float, callable]] = None,
-            gamma: Iterable[float] = None,
-            degree: Iterable[float] = None,
-            coef0: Iterable[float] = None,
-            kernel_params: Iterable[dict] = None,
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
+        c: Union[Iterable[float], float] = None,
+        eps=1e-3,
+        kernel: Iterable[Union[str, float, callable]] = None,
+        gamma: Iterable[float] = None,
+        degree: Iterable[float] = None,
+        coef0: Iterable[float] = None,
+        kernel_params: Iterable[dict] = None,
     ):
         # Call the parent class constructor
         super().__init__(
@@ -240,18 +240,18 @@ class KGCCA(KernelMixin, GCCA):
     """
 
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state=None,
-            c: Union[Iterable[float], float] = None,
-            kernel: Iterable[Union[float, callable]] = None,
-            gamma: Iterable[float] = None,
-            degree: Iterable[float] = None,
-            coef0: Iterable[float] = None,
-            kernel_params: Iterable[dict] = None,
-            view_weights: Iterable[float] = None,
-            eps: float = 1e-6,
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
+        c: Union[Iterable[float], float] = None,
+        kernel: Iterable[Union[float, callable]] = None,
+        gamma: Iterable[float] = None,
+        degree: Iterable[float] = None,
+        coef0: Iterable[float] = None,
+        kernel_params: Iterable[dict] = None,
+        view_weights: Iterable[float] = None,
+        eps: float = 1e-6,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -319,17 +319,17 @@ class KTCCA(KernelMixin, TCCA):
     """
 
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state=None,
-            eps=1e-3,
-            c: Union[Iterable[float], float] = None,
-            kernel: Iterable[Union[float, callable]] = None,
-            gamma: Iterable[float] = None,
-            degree: Iterable[float] = None,
-            coef0: Iterable[float] = None,
-            kernel_params: Iterable[dict] = None,
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
+        eps=1e-3,
+        c: Union[Iterable[float], float] = None,
+        kernel: Iterable[Union[float, callable]] = None,
+        gamma: Iterable[float] = None,
+        degree: Iterable[float] = None,
+        coef0: Iterable[float] = None,
+        kernel_params: Iterable[dict] = None,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,

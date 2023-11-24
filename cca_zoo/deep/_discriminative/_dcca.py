@@ -18,10 +18,10 @@ class DCCA(BaseDeep):
     objective = _CCALoss()
 
     def __init__(
-            self,
-            latent_dimensions: int,
-            encoders=None,
-            **kwargs,
+        self,
+        latent_dimensions: int,
+        encoders=None,
+        **kwargs,
     ):
         super().__init__(latent_dimensions=latent_dimensions, **kwargs)
         # Check if encoders are provided and have the same length as the number of representations

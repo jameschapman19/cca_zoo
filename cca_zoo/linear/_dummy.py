@@ -8,12 +8,12 @@ from cca_zoo._base import _BaseModel
 
 class DummyCCA(_BaseModel):
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state=None,
-            accept_sparse=None,
-            uniform=False,
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
+        accept_sparse=None,
+        uniform=False,
     ):
         if accept_sparse is None:
             accept_sparse = ["csc", "csr"]

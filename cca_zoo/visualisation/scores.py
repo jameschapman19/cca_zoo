@@ -25,14 +25,14 @@ class ScoreScatterDisplay:
     """
 
     def __init__(
-            self,
-            scores,
-            test_scores=None,
-            labels=None,
-            test_labels=None,
-            show_corr=True,
-            ax_labels=None,
-            **kwargs,
+        self,
+        scores,
+        test_scores=None,
+        labels=None,
+        test_labels=None,
+        show_corr=True,
+        ax_labels=None,
+        **kwargs,
     ):
         self.scores = scores
         self.test_scores = test_scores
@@ -89,15 +89,15 @@ class ScoreScatterDisplay:
 
     @classmethod
     def from_estimator(
-            cls,
-            model,
-            train_views,
-            test_views=None,
-            labels=None,
-            test_labels=None,
-            ax_labels=None,
-            show_corr=True,
-            **kwargs,
+        cls,
+        model,
+        train_views,
+        test_views=None,
+        labels=None,
+        test_labels=None,
+        ax_labels=None,
+        show_corr=True,
+        **kwargs,
     ):
         """
         Create a ScoreDisplay instance from an estimator and data representations.
@@ -125,14 +125,14 @@ class ScoreScatterDisplay:
 
     @classmethod
     def from_scores(
-            cls,
-            train_scores,
-            test_scores=None,
-            labels=None,
-            test_labels=None,
-            ax_labels=None,
-            show_corr=True,
-            **kwargs,
+        cls,
+        train_scores,
+        test_scores=None,
+        labels=None,
+        test_labels=None,
+        ax_labels=None,
+        show_corr=True,
+        **kwargs,
     ):
         """
         Create a ScoreDisplay instance from precomputed scores.

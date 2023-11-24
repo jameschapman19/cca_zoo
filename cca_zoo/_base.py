@@ -43,11 +43,11 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
     weights_ = None
 
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            accept_sparse=False,
-            random_state: Union[int, np.random.RandomState] = None,
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        accept_sparse=False,
+        random_state: Union[int, np.random.RandomState] = None,
     ):
         self.latent_dimensions = latent_dimensions
         self.copy_data = copy_data
@@ -118,7 +118,7 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         return self
 
     def transform(
-            self, views: Iterable[np.ndarray], *args, **kwargs
+        self, views: Iterable[np.ndarray], *args, **kwargs
     ) -> List[np.ndarray]:
         """
         Transforms the given representations using the fitted model.
@@ -150,7 +150,7 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         return transformed_views
 
     def pairwise_correlations(
-            self, views: Iterable[np.ndarray], **kwargs
+        self, views: Iterable[np.ndarray], **kwargs
     ) -> np.ndarray:
         """
         Calculate pairwise correlations between representations in each dimension.
@@ -174,7 +174,7 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         return all_corrs
 
     def average_pairwise_correlations(
-            self, views: Iterable[np.ndarray], **kwargs
+        self, views: Iterable[np.ndarray], **kwargs
     ) -> np.ndarray:
         """
         Calculate the average pairwise correlations between representations in each dimension.
@@ -197,7 +197,7 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         return dim_corrs
 
     def score(
-            self, views: Iterable[np.ndarray], y: Optional[Any] = None, **kwargs
+        self, views: Iterable[np.ndarray], y: Optional[Any] = None, **kwargs
     ) -> float:
         """
         Calculate the sum of average pairwise correlations between representations.
@@ -216,7 +216,7 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         return self.average_pairwise_correlations(views, **kwargs).sum()
 
     def canonical_loadings_(
-            self, views: Iterable[np.ndarray], normalize: bool = True, **kwargs
+        self, views: Iterable[np.ndarray], normalize: bool = True, **kwargs
     ) -> List[np.ndarray]:
         """
         Calculate canonical loadings for each view.
@@ -315,7 +315,7 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         explained_variance_ratios: list of numpy arrays
         """
         total_vars = [
-            (np.sum(s ** 2) / (view.shape[0] - 1))
+            (np.sum(s**2) / (view.shape[0] - 1))
             for view in views
             for _, s, _ in [svd(view)]
         ]
@@ -331,7 +331,7 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         return explained_variance_ratios
 
     def explained_variance_cumulative(
-            self, views: Iterable[np.ndarray]
+        self, views: Iterable[np.ndarray]
     ) -> List[np.ndarray]:
         """
         Calculates the cumulative explained variance ratio for each latent dimension for each view.
@@ -409,7 +409,7 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         return explained_covariance_ratios
 
     def explained_covariance_cumulative(
-            self, views: Iterable[np.ndarray]
+        self, views: Iterable[np.ndarray]
     ) -> np.ndarray:
         """
         Calculates the cumulative explained covariance ratio for each latent dimension for each view.

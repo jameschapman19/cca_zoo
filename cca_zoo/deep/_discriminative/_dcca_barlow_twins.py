@@ -23,11 +23,11 @@ class BarlowTwins(DCCA):
     """
 
     def __init__(
-            self,
-            latent_dimensions: int,
-            encoders=None,
-            lamb=5e-3,
-            **kwargs,
+        self,
+        latent_dimensions: int,
+        encoders=None,
+        lamb=5e-3,
+        **kwargs,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions, encoders=encoders, **kwargs
@@ -49,7 +49,7 @@ class BarlowTwins(DCCA):
     def loss(self, batch, **kwargs):
         z = self(batch["views"])  # get the latent representations
         cross_cov = (
-                z[0].T @ z[1] / z[0].shape[0]
+            z[0].T @ z[1] / z[0].shape[0]
         )  # compute the cross-covariance matrix between the two representations
         invariance = torch.sum(
             torch.pow(1 - torch.diag(cross_cov), 2)
@@ -61,8 +61,8 @@ class BarlowTwins(DCCA):
         )  # compute the covariance term as the sum of squared values on the off-diagonal
         return {
             "objective": invariance
-                         + self.lamb
-                         * covariance,  # return the objective value as a combination of invariance and covariance terms
+            + self.lamb
+            * covariance,  # return the objective value as a combination of invariance and covariance terms
             "invariance": invariance,  # return the invariance term
             "covariance": covariance,  # return the covariance term
         }
