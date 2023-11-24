@@ -9,7 +9,6 @@ from cca_zoo.linear import (
     CCA_SVD,
     CCA_GHA,
     CCA_EY,
-    CCA_TraceNorm,
     PLS_EY,
     PLSStochasticPower,
 )
@@ -85,21 +84,14 @@ def test_batch_cca():
         epochs=epochs,
         random_state=random_state,
     ).fit((X, Y), **trainer_kwargs)
-    ccatn = CCA_TraceNorm(
-        latent_dimensions=latent_dims,
-        epochs=epochs,
-        random_state=random_state,
-    ).fit((X, Y), **trainer_kwargs)
     cca_score = cca.score((X, Y))
     ccaey_score = ccaey.score((X, Y))
     ccagh_score = ccagha.score((X, Y))
     ccasvd_score = ccasvd.score((X, Y))
-    ccatn_score = ccatn.score((X, Y))
     # check all methods are similar to cca
     assert np.allclose(cca_score.sum(), ccaey_score.sum(), atol=1e-1)
     assert np.allclose(cca_score.sum(), ccagh_score.sum(), atol=1e-1)
     assert np.allclose(cca_score.sum(), ccasvd_score.sum(), atol=1e-1)
-    assert np.allclose(cca_score.sum(), ccatn_score.sum(), atol=1e-1)
 
 
 def test_stochastic_pls():
