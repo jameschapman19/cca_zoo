@@ -157,6 +157,7 @@ html_context = {
     "doc_path": "docs",
 }
 
+
 def setup_to_main(
     app: Sphinx, pagename: str, templatename: str, context, doctree
 ) -> None:
