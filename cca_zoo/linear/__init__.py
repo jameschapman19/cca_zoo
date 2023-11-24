@@ -41,5 +41,7 @@ __all__ = [
     "CCA_EY",
     "PLS_EY",
     "CCA_GHA",
+    "CCA_SVD",
+    "CCA_TraceNorm",
     "PLSStochasticPower",
 ]
