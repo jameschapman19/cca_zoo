@@ -95,8 +95,9 @@ autosummary_generate = True
 
 autodoc_default_options = {
     "members": True,
-    # "show-inheritance": True,
+    "show-inheritance": True,
     "inherited-members": True,
+    "exclude-members": "__init__",
 
 }
 
