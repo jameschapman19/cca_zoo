@@ -93,14 +93,11 @@ else:
 
 autosummary_generate = True
 
-autodoc_member_order = "groupwise"
-autoclass_content = "both"
 autodoc_default_options = {
     "members": True,
-    "show-inheritance": True,
+    # "show-inheritance": True,
     "inherited-members": True,
-    "private-members": False,
-    "member-order": "bysource",
+
 }
 
 

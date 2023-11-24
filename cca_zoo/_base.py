@@ -38,7 +38,6 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         Number of features for each view.
     weights_: list of numpy arrays
         Weight vectors for each view.
-
     """
 
     weights_ = None
@@ -122,6 +121,7 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         self, views: Iterable[np.ndarray], *args, **kwargs
     ) -> List[np.ndarray]:
         """
+        Transforms the given representations using the fitted model.
 
         Parameters
         ----------

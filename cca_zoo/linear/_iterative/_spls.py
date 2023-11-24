@@ -92,3 +92,7 @@ class SPLS(_DeflationMixin, _BaseIterative, PLSMixin):
                 for i in range(len(self.weights_))
             ]
         )
+
+    def _more_tags(self):
+        # Indicate that this class is for multiview data
+        return {"multiview": True}
