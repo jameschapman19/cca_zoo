@@ -82,12 +82,18 @@ else:
     extensions.append("sphinx.ext.mathjax")
     mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
 
+autosummary_generate = True
+
+autodoc_member_order = "groupwise"
+autoclass_content = "both"
 autodoc_default_options = {
     "members": True,
     "show-inheritance": True,
     "inherited-members": True,
+    "private-members": False,
     "member-order": "bysource",
 }
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["templates"]

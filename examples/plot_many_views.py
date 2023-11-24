@@ -25,7 +25,7 @@ np.random.seed(42)
 n, p, q, r, latent_dims, cv = 30, 3, 3, 3, 1, 3
 
 (X, Y, Z) = JointData(
-    view_features=[p, q, r], latent_dims=latent_dims, correlation=[0.9]
+    view_features=[p, q, r], latent_dimensions=latent_dimensions, correlation=[0.9]
 ).sample(n)
 
 # %%
