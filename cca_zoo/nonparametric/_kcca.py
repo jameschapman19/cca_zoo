@@ -67,6 +67,7 @@ class KernelMixin:
         # Indicate that this class is for multiview data
         return {"kernel": True}
 
+
 class KCCA(KernelMixin, MCCA):
     r"""
     A class used to fit KCCA model. This model extends MCCA to nonlinear relationships by using kernel functions on each view.
@@ -159,6 +160,7 @@ class KCCA(KernelMixin, MCCA):
         D = D - D_smallest_eig * np.eye(D.shape[0])
         return D / len(views)
 
+
 class KMCCA(KCCA):
     r"""
     A class used to fit KMCCA model. This model extends KCCA to nonlinear relationships by using kernel functions on each view.
@@ -179,6 +181,7 @@ class KMCCA(KCCA):
     ----------
     Hardoon, David R., et al. "Canonical correlation analysis: An overview with application to learning methods." Neural computation 16.12 (2004): 2639-2664.
     """
+
 
 class KGCCA(KernelMixin, GCCA):
     r"""
