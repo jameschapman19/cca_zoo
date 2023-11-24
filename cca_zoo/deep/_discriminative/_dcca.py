@@ -16,6 +16,7 @@ class DCCA(BaseDeep):
     """
 
     objective = _CCALoss()
+
     def __init__(
         self,
         latent_dimensions: int,

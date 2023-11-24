@@ -154,8 +154,8 @@ def test_DCCA_methods():
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dmcca, train_loader, val_dataloaders=val_loader)
     assert (
-            np.testing.assert_array_less(cca.score((X, Y)), dmcca.score(train_loader))
-            is None
+        np.testing.assert_array_less(cca.score((X, Y)), dmcca.score(train_loader))
+        is None
     )
     # DCCA_GHA
     encoder_1 = architectures.Encoder(

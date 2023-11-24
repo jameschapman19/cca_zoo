@@ -15,7 +15,9 @@ class DTCCA(TCCA, DCCA):
     Wong, Hok Shing, et al. "Deep Tensor CCA for Multi-view Learning." IEEE Transactions on Big Data (2021).
 
     """
-    objective = _TCCALoss,
+
+    objective = (_TCCALoss,)
+
     def __init__(
         self, latent_dimensions: int, encoders=None, eps: float = 1e-5, **kwargs
     ):
