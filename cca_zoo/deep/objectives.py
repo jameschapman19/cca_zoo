@@ -7,19 +7,19 @@ from tensorly.decomposition import parafac
 from cca_zoo._utils.cross_correlation import torch_cross_cov
 
 
+@torch.jit.script
 def inv_sqrtm(A: torch.Tensor, eps: float = 1e-9):
     """Compute the inverse square-root of a positive definite matrix."""
     # Perform eigendecomposition of covariance matrix
     U, S, V = torch.svd(A)
     # Enforce positive definite by taking a torch max() with eps
-    S[S < eps] = eps
+    S=torch.clamp(S, min=eps)
     # S = torch.max(S, torch.tensor(eps, device=S.device))
     # Calculate inverse square-root
     inv_sqrt_S = torch.diag_embed(torch.pow(S, -0.5))
     # Calculate inverse square-root matrix
     B = torch.matmul(torch.matmul(U, inv_sqrt_S), V.transpose(-1, -2))
     return B
-
 
 class _MCCALoss:
     """Differentiable MCCA Loss. Solves the multiset eigenvalue problem.
@@ -137,7 +137,6 @@ class _GCCALoss:
 class _CCALoss:
     """Differentiable CCA Loss. Solves the CCA problem."""
 
-    @torch.jit.script
     def correlation(self, representations: List[torch.Tensor]):
         """Calculate correlation."""
         latent_dims = representations[0].shape[1]

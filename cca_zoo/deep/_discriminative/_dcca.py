@@ -1,6 +1,6 @@
 import torch
 
-from cca_zoo.deep import objectives
+from cca_zoo.deep.objectives import _CCALoss
 from cca_zoo.deep._base import BaseDeep
 from cca_zoo.linear._mcca import MCCA
 
@@ -15,10 +15,10 @@ class DCCA(BaseDeep):
 
     """
 
+    objective = _CCALoss()
     def __init__(
         self,
         latent_dimensions: int,
-        objective=objectives._MCCALoss,
         encoders=None,
         **kwargs,
     ):
@@ -29,7 +29,6 @@ class DCCA(BaseDeep):
                 "Encoders must be a list of torch.nn.Module with length equal to the number of representations."
             )
         self.encoders = torch.nn.ModuleList(encoders)
-        self.objective = objective()
 
     def forward(self, views, **kwargs):
         if not hasattr(self, "n_views_"):

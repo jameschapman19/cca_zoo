@@ -20,6 +20,7 @@ from cca_zoo.deep import (
     architectures,
     objectives,
 )
+from cca_zoo.deep._discriminative._dmcca import DMCCA
 from cca_zoo.deep.data import NumpyDataset, get_dataloaders, check_dataset
 from cca_zoo.linear import CCA, GCCA, MCCA, TCCA
 
@@ -62,7 +63,7 @@ def test_linear_mcca():
     max_epochs = 50
     latent_dimensions = 2
     mcca = MCCA(latent_dimensions=latent_dimensions).fit((X, Y, Z))
-    # DCCA_MCCA
+    # DMCCA
     encoder_1 = architectures.LinearEncoder(
         latent_dimensions=latent_dimensions, feature_size=feature_size[0]
     )
@@ -72,11 +73,10 @@ def test_linear_mcca():
     encoder_3 = architectures.LinearEncoder(
         latent_dimensions=latent_dimensions, feature_size=feature_size[2]
     )
-    dmcca = DCCA(
+    dmcca = DMCCA(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2, encoder_3],
         lr=1e-1,
-        objective=objectives._MCCALoss,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dmcca, loader)
@@ -131,14 +131,31 @@ def test_DCCA_methods():
     dcca = DCCA(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2],
-        objective=objectives._CCALoss,
-        lr=1e-3,
+        lr=1e-2,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dcca, train_loader, val_dataloaders=val_loader)
     assert (
         np.testing.assert_array_less(cca.score((X, Y)), dcca.score(train_loader))
         is None
+    )
+    # DMCCA
+    encoder_1 = architectures.Encoder(
+        latent_dimensions=latent_dimensions, feature_size=feature_size[0]
+    )
+    encoder_2 = architectures.Encoder(
+        latent_dimensions=latent_dimensions, feature_size=feature_size[1]
+    )
+    dmcca = DMCCA(
+        latent_dimensions=latent_dimensions,
+        encoders=[encoder_1, encoder_2],
+        lr=1e-3,
+    )
+    trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
+    trainer.fit(dmcca, train_loader, val_dataloaders=val_loader)
+    assert (
+            np.testing.assert_array_less(cca.score((X, Y)), dmcca.score(train_loader))
+            is None
     )
     # DCCA_GHA
     encoder_1 = architectures.Encoder(

@@ -92,21 +92,15 @@ else:
     mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
 
 autosummary_generate = True
-
+autoclass_content = 'class'
 autodoc_default_options = {
     "members": True,
     "show-inheritance": True,
     "inherited-members": True,
-    "exclude-members": "__init__",
-
 }
-
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["templates"]
-
-# generate autosummary even if no references
-autosummary_generate = True
 
 # The suffix of source filenames.
 source_suffix = ".rst"

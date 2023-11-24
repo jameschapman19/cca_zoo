@@ -32,6 +32,7 @@ Linear Models
 
 .. autosummary::
    :toctree: generated/
+   :template: class.rst
 
    linear.CCA
    linear.PLS
@@ -67,6 +68,7 @@ Non-Parametric Methods
 
 .. autosummary::
    :toctree: generated/
+   :template: class.rst
 
    nonparametric.KCCA
    nonparametric.KMCCA
@@ -87,6 +89,7 @@ Probabilistic Methods
 
 .. autosummary::
    :toctree: generated/
+   :template: class.rst
 
    probabilistic.ProbabilisticCCA
    probabilistic.ProbabilisticPLS
@@ -105,6 +108,7 @@ Deep Methods
 
 .. autosummary::
    :toctree: generated/
+   :template: class.rst
 
    deep.DCCA
    deep.DCCA
@@ -133,6 +137,7 @@ Model Selection
 
 .. autosummary::
    :toctree: generated/
+   :template: class.rst
 
    model_selection.GridSearchCV
    model_selection.RandomizedSearchCV
@@ -153,6 +158,7 @@ Visualisation
 
 .. autosummary::
    :toctree: generated/
+   :template: class.rst
 
    visualisation.ExplainedVarianceDisplay
    visualisation.ScoreScatterDisplay
@@ -182,6 +188,7 @@ Datasets
 
 .. autosummary::
    :toctree: generated/
+   :template: class.rst
 
    datasets.simulated.JointData
    datasets.simulated.LatentVariableData
@@ -203,6 +210,7 @@ Preprocessing
 
 .. autosummary::
    :toctree: generated/
+   :template: class.rst
 
    preprocessing.MultiViewPreprocessing
 
@@ -219,5 +227,6 @@ Sequential Methods
 
 .. autosummary::
    :toctree: generated/
+   :template: class.rst
 
    sequential.SequentialModel

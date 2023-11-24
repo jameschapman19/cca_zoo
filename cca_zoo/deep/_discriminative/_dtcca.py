@@ -1,5 +1,5 @@
 from ._dcca import DCCA
-from .. import objectives
+from ..objectives import _TCCALoss
 from ...linear._tcca import TCCA
 import torch
 
@@ -15,7 +15,7 @@ class DTCCA(TCCA, DCCA):
     Wong, Hok Shing, et al. "Deep Tensor CCA for Multi-view Learning." IEEE Transactions on Big Data (2021).
 
     """
-
+    objective = _TCCALoss,
     def __init__(
         self, latent_dimensions: int, encoders=None, eps: float = 1e-5, **kwargs
     ):
@@ -23,7 +23,6 @@ class DTCCA(TCCA, DCCA):
         DCCA.__init__(
             self,
             latent_dimensions=latent_dimensions,
-            objective=objectives._TCCALoss,
             encoders=encoders,
             eps=eps,
             **kwargs
