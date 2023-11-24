@@ -190,12 +190,12 @@ Datasets
    :toctree: generated/
    :template: class.rst
 
-   datasets.simulated.JointData
-   datasets.simulated.LatentVariableData
-   datasets.toy.load_breast_data,
-   datasets.toy.load_split_cifar10_data
-   datasets.toy.load_mfeat_data
-   datasets.toy.load_split_mnist_data
+   datasets.JointData
+   datasets.LatentVariableData
+   datasets.load_breast_data,
+   datasets.load_split_cifar10_data
+   datasets.load_mfeat_data
+   datasets.load_split_mnist_data
 
 :mod:`preprocessing`: Preprocessing
 ===========================================
