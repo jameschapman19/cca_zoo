@@ -37,7 +37,16 @@ numpydoc_use_plots = True
 numpydoc_class_members_toctree = False
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints","templates", "includes", "themes", "joss"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "**.ipynb_checkpoints",
+    "templates",
+    "includes",
+    "themes",
+    "joss",
+]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
