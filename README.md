@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/source/_static/cca-zoo-logo.svg" alt="drawing" width="200"/>
+<img src="docs/source/logos/cca-zoo-logo.svg" alt="drawing" width="200"/>
 
 # CCA-Zoo
 

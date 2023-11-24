@@ -12,7 +12,7 @@ various canonical correlation analysis (CCA) methods for datasets with more than
 import numpy as np
 
 from cca_zoo.datasets import JointData
-from cca_zoo.linear import GCCA, MCCA, SCCA_PMD, TCCA
+from cca_zoo.linear import GCCA, MCCA, SPLS, TCCA
 from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA
 
 # %%
@@ -57,9 +57,9 @@ kgcca = KGCCA(latent_dimensions=latent_dims).fit((X, Y, X)).score((X, Y, Z))
 # --------------------
 # These methods employ iterative algorithms to deduce optimal linear transformations for the representations.
 
-# SCCA_PMD (Sparse CCA by Penalized Matrix Decomposition) - A sparse CCA variant.
+# SPLS (Sparse CCA by Penalized Matrix Decomposition) - A sparse CCA variant.
 pmd = (
-    SCCA_PMD(latent_dimensions=latent_dims, tau=0.1, tol=1e-5)
+    SPLS(latent_dimensions=latent_dims, tau=0.1, tol=1e-5)
     .fit((X, Y, X))
     .score((X, Y, Z))
 )

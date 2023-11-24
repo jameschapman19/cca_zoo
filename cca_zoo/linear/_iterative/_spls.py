@@ -12,7 +12,7 @@ from cca_zoo._utils.cross_correlation import cross_corrcoef
 from cca_zoo.linear._pls import PLSMixin
 
 
-class SCCA_PMD(_DeflationMixin, _BaseIterative, PLSMixin):
+class SPLS(_DeflationMixin, _BaseIterative, PLSMixin):
     def __init__(
         self,
         latent_dimensions: int = 1,

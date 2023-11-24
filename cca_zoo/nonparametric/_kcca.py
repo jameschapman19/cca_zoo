@@ -67,7 +67,6 @@ class KernelMixin:
         # Indicate that this class is for multiview data
         return {"kernel": True}
 
-
 class KCCA(KernelMixin, MCCA):
     r"""
     A class used to fit KCCA model. This model extends MCCA to nonlinear relationships by using kernel functions on each view.
@@ -160,6 +159,26 @@ class KCCA(KernelMixin, MCCA):
         D = D - D_smallest_eig * np.eye(D.shape[0])
         return D / len(views)
 
+class KMCCA(KCCA):
+    r"""
+    A class used to fit KMCCA model. This model extends KCCA to nonlinear relationships by using kernel functions on each view.
+
+    The objective function of KMCCA is:
+
+    .. math::
+
+        \alpha_{opt}=\underset{\alpha}{\mathrm{argmax}}\{\alpha_1^TK_1^TK_2\alpha_2  \}\\
+
+        \text{subject to:}
+
+        c_i\alpha_i^TK_i\alpha_i + (1-c_i)\alpha_i^TK_i^TK_i\alpha_i=1
+
+    where:math:`K_i` are the kernel matrices for each view and:math:`c_i` are the regularization parameters for each view.
+
+    References
+    ----------
+    Hardoon, David R., et al. "Canonical correlation analysis: An overview with application to learning methods." Neural computation 16.12 (2004): 2639-2664.
+    """
 
 class KGCCA(KernelMixin, GCCA):
     r"""

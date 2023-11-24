@@ -18,7 +18,7 @@ from cca_zoo.linear import (
     CCA,
     PLS,
     SCCA_IPLS,
-    SCCA_PMD,
+    SPLS,
     ElasticCCA,
     SCCA_Span,
 )
@@ -87,12 +87,12 @@ def plot_model_weights(wx, wy, tx, ty, title="", save_path=None):
 # Data Generation
 np.random.seed(42)
 n, p, q = 500, 200, 200
-latent_dims = 1
+latent_dimensions = 1
 view_1_sparsity, view_2_sparsity = 0.1, 0.1
 data = JointData(
     view_features=[p, q],
-    latent_dims=latent_dims,
-    view_sparsity=[view_1_sparsity, view_2_sparsity],
+    latent_dimensions=latent_dimensions,
+    sparsity_levels=[view_1_sparsity, view_2_sparsity],
     correlation=[0.9],
     positive=True,
 )
@@ -128,7 +128,7 @@ scca_pos_corr = train_and_evaluate(
 # Grid Search for ElasticCCA and PMD models
 param_grid_pmd = {"tau": [[0.1, 0.5, 0.9], [0.1, 0.5, 0.9]]}
 pmd = GridSearchCV(
-    SCCA_PMD(epochs=epochs, early_stopping=True), param_grid=param_grid_pmd
+    SPLS(epochs=epochs, early_stopping=True), param_grid=param_grid_pmd
 ).fit([X_train, Y_train])
 pmd_corr = pmd.score([X_val, Y_val])
 plot_model_weights(

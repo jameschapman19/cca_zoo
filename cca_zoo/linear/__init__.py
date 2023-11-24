@@ -7,7 +7,7 @@ from ._grcca import GRCCA
 from ._iterative import (
     PLS_ALS,
     SCCA_IPLS,
-    SCCA_PMD,
+    SPLS,
     # AltMaxVar,
     ElasticCCA,
     SCCA_Parkhomenko,
@@ -35,7 +35,7 @@ __all__ = [
     "SCCA_IPLS",
     "ElasticCCA",
     "PLS_ALS",
-    "SCCA_PMD",
+    "SPLS",
     "SCCA_Parkhomenko",
     "SCCA_Span",
     "CCA_EY",
