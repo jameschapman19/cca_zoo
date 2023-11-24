@@ -27,7 +27,7 @@ Y /= Y.std(axis=0)
 Z /= Z.std(axis=0)
 
 latent_dims = 2
-epochs = 20
+epochs = 25
 batch_size = 4
 random_state = 1
 trainer_kwargs = dict(
