@@ -47,6 +47,7 @@ opentsne = "*"
 umap-learn = "*"
 rdata = "*"
 torchvision = "*"
+pre-commit = "*"
 
 
 [build-system]
