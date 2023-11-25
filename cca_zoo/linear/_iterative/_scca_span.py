@@ -27,19 +27,19 @@ class SCCA_Span(_DeflationMixin, _BaseIterative):
     """
 
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            epochs: int = 100,
-            copy_data=True,
-            initialization: str = "pls",
-            tol: float = 1e-3,
-            regularisation="l0",
-            tau: Union[Iterable[Union[float, int]], Union[float, int]] = None,
-            rank=1,
-            positive: Union[Iterable[bool], bool] = None,
-            random_state=None,
-            verbose=True,
-            early_stopping=False,
+        self,
+        latent_dimensions: int = 1,
+        epochs: int = 100,
+        copy_data=True,
+        initialization: str = "pls",
+        tol: float = 1e-3,
+        regularisation="l0",
+        tau: Union[Iterable[Union[float, int]], Union[float, int]] = None,
+        rank=1,
+        positive: Union[Iterable[bool], bool] = None,
+        random_state=None,
+        verbose=True,
+        early_stopping=False,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,

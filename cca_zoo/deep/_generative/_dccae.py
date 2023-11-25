@@ -16,17 +16,17 @@ class DCCAE(DCCA, _GenerativeMixin):
     """
 
     def __init__(
-            self,
-            latent_dimensions: int,
-            objective=objectives._MCCALoss,
-            encoders=None,
-            decoders=None,
-            eps: float = 1e-5,
-            lam=0.5,
-            latent_dropout=0,
-            img_dim=None,
-            recon_loss_type="mse",
-            **kwargs,
+        self,
+        latent_dimensions: int,
+        objective=objectives._MCCALoss,
+        encoders=None,
+        decoders=None,
+        eps: float = 1e-5,
+        lam=0.5,
+        latent_dropout=0,
+        img_dim=None,
+        recon_loss_type="mse",
+        **kwargs,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -79,6 +79,6 @@ class DCCAE(DCCA, _GenerativeMixin):
         ).sum()
         loss["correlation"] = self.objective.loss(z)
         loss["objective"] = (
-                self.lam * loss["reconstruction"] + (1 - self.lam) * loss["correlation"]
+            self.lam * loss["reconstruction"] + (1 - self.lam) * loss["correlation"]
         )
         return loss

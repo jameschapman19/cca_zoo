@@ -9,17 +9,17 @@ from cca_zoo.linear._iterative._deflation import _DeflationMixin
 
 class SCCA_Parkhomenko(_DeflationMixin, _BaseIterative):
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state=None,
-            tol=1e-3,
-            accept_sparse=None,
-            epochs=100,
-            initialization: Union[str, callable] = "pls",
-            early_stopping=False,
-            verbose=True,
-            tau=None,  # regularization parameter for Parkhomenko
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
+        tol=1e-3,
+        accept_sparse=None,
+        epochs=100,
+        initialization: Union[str, callable] = "pls",
+        early_stopping=False,
+        verbose=True,
+        tau=None,  # regularization parameter for Parkhomenko
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,

@@ -18,20 +18,20 @@ class SCCA_HSIC(GradKCCA):
     """
 
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            scale: bool = True,
-            centre=True,
-            copy_data=True,
-            random_state=None,
-            proj: Union[Iterable[float], float] = "l1",
-            gamma: Iterable[float] = None,
-            coef0: Iterable[float] = None,
-            repetitions=5,
-            initialization: Union[str, callable] = "random",
-            nystrom=False,
-            nystrom_components=100,
-            c=1,
+        self,
+        latent_dimensions: int = 1,
+        scale: bool = True,
+        centre=True,
+        copy_data=True,
+        random_state=None,
+        proj: Union[Iterable[float], float] = "l1",
+        gamma: Iterable[float] = None,
+        coef0: Iterable[float] = None,
+        repetitions=5,
+        initialization: Union[str, callable] = "random",
+        nystrom=False,
+        nystrom_components=100,
+        c=1,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -148,7 +148,7 @@ def gradf_gauss_sgd(K1, cK2, X, a, u):
     for i in id1:
         for j in id2:
             temp += (
-                    K1[i, j] * cK2[i, j] * np.outer(X[i, :] - X[j, :], X[i, :] - X[j, :])
+                K1[i, j] * cK2[i, j] * np.outer(X[i, :] - X[j, :], X[i, :] - X[j, :])
             )
     return -(2 * a * u.T @ temp).T
 

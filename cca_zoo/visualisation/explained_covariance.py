@@ -61,11 +61,11 @@ class ExplainedCovarianceDisplay:
     """
 
     def __init__(
-            self,
-            explained_covariance_train,
-            explained_covariance_test=None,
-            ratio=True,
-            **kwargs
+        self,
+        explained_covariance_train,
+        explained_covariance_test=None,
+        ratio=True,
+        **kwargs
     ):
         self.explained_covariance_train = explained_covariance_train
         self.explained_covariance_test = explained_covariance_test
@@ -100,7 +100,7 @@ class ExplainedCovarianceDisplay:
 
     @classmethod
     def from_explained_covariance(
-            cls, explained_covariance_train, explained_covariance_test=None, **kwargs
+        cls, explained_covariance_train, explained_covariance_test=None, **kwargs
     ):
         return cls(
             explained_covariance_train, explained_covariance_test, ratio=False, **kwargs
@@ -108,7 +108,7 @@ class ExplainedCovarianceDisplay:
 
     @classmethod
     def from_explained_covariance_ratio(
-            cls, explained_covariance_train, explained_covariance_test=None, **kwargs
+        cls, explained_covariance_train, explained_covariance_test=None, **kwargs
     ):
         return cls(
             explained_covariance_train, explained_covariance_test, ratio=True, **kwargs

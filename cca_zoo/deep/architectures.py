@@ -23,13 +23,13 @@ class BaseEncoder(nn.Module):
 
 class Encoder(BaseEncoder):
     def __init__(
-            self,
-            latent_dimensions: int,
-            feature_size: int,
-            variational: bool = False,
-            layer_sizes: tuple = None,
-            activation=nn.LeakyReLU(),
-            dropout=0,
+        self,
+        latent_dimensions: int,
+        feature_size: int,
+        variational: bool = False,
+        layer_sizes: tuple = None,
+        activation=nn.LeakyReLU(),
+        dropout=0,
     ):
         super(Encoder, self).__init__(latent_dimensions, variational=variational)
         if layer_sizes is None:
@@ -59,7 +59,7 @@ class Encoder(BaseEncoder):
 
 class LinearEncoder(BaseEncoder):
     def __init__(
-            self, latent_dimensions: int, feature_size: int, variational: bool = False
+        self, latent_dimensions: int, feature_size: int, variational: bool = False
     ):
         super(LinearEncoder, self).__init__(latent_dimensions, variational=variational)
         if self.variational:
@@ -75,16 +75,16 @@ class LinearEncoder(BaseEncoder):
 
 class CNNEncoder(BaseEncoder):
     def __init__(
-            self,
-            latent_dimensions: int,
-            feature_size: Iterable,
-            variational: bool = False,
-            channels: tuple = None,
-            kernel_sizes: tuple = None,
-            strides: tuple = None,
-            paddings: tuple = None,
-            activation=nn.LeakyReLU(),
-            dropout=0,
+        self,
+        latent_dimensions: int,
+        feature_size: Iterable,
+        variational: bool = False,
+        channels: tuple = None,
+        kernel_sizes: tuple = None,
+        strides: tuple = None,
+        paddings: tuple = None,
+        activation=nn.LeakyReLU(),
+        dropout=0,
     ):
         super(CNNEncoder, self).__init__(latent_dimensions, variational=variational)
 
@@ -139,12 +139,12 @@ class CNNEncoder(BaseEncoder):
 
 class Decoder(nn.Module):
     def __init__(
-            self,
-            latent_dimensions: int,
-            feature_size: int = 784,
-            layer_sizes: tuple = None,
-            activation=nn.LeakyReLU(),
-            dropout=0,
+        self,
+        latent_dimensions: int,
+        feature_size: int = 784,
+        layer_sizes: tuple = None,
+        activation=nn.LeakyReLU(),
+        dropout=0,
     ):
         super(Decoder, self).__init__()
         if layer_sizes is None:
@@ -166,15 +166,15 @@ class Decoder(nn.Module):
 
 class CNNDecoder(nn.Module):
     def __init__(
-            self,
-            latent_dimensions: int,
-            feature_size: Iterable = (28, 28),
-            channels: tuple = None,
-            kernel_sizes: tuple = None,
-            strides: tuple = None,
-            paddings: tuple = None,
-            activation=nn.LeakyReLU(),
-            dropout=0,
+        self,
+        latent_dimensions: int,
+        feature_size: Iterable = (28, 28),
+        channels: tuple = None,
+        kernel_sizes: tuple = None,
+        strides: tuple = None,
+        paddings: tuple = None,
+        activation=nn.LeakyReLU(),
+        dropout=0,
     ):
         super(CNNDecoder, self).__init__()
 
@@ -198,7 +198,7 @@ class CNNDecoder(nn.Module):
         )
 
     def _build_transpose_conv_layers(
-            self, feature_size, channels, kernel_sizes, strides, paddings, activation
+        self, feature_size, channels, kernel_sizes, strides, paddings, activation
     ):
         layers = []
         for idx in reversed(range(len(channels) - 1)):

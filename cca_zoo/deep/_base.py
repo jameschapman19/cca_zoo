@@ -13,20 +13,20 @@ class BaseDeep(pl.LightningModule, _BaseModel):
     """A base class for deep learning linear using PyTorch Lightning."""
 
     def __init__(
-            self,
-            latent_dimensions: int,
-            optimizer: str = "adam",
-            scheduler: Optional[str] = None,
-            lr: float = 1e-3,
-            weight_decay: float = 0,
-            extra_optimizer_kwargs: Optional[Dict[str, Any]] = None,
-            max_epochs: int = 1000,
-            min_lr: float = 1e-9,
-            lr_decay_steps: Optional[List[int]] = None,
-            correlation: bool = True,
-            eps: float = 1e-5,
-            *args,
-            **kwargs,
+        self,
+        latent_dimensions: int,
+        optimizer: str = "adam",
+        scheduler: Optional[str] = None,
+        lr: float = 1e-3,
+        weight_decay: float = 0,
+        extra_optimizer_kwargs: Optional[Dict[str, Any]] = None,
+        max_epochs: int = 1000,
+        min_lr: float = 1e-9,
+        lr_decay_steps: Optional[List[int]] = None,
+        correlation: bool = True,
+        eps: float = 1e-5,
+        *args,
+        **kwargs,
     ):
         super().__init__()
         if extra_optimizer_kwargs is None:
@@ -50,7 +50,7 @@ class BaseDeep(pl.LightningModule, _BaseModel):
 
     @abstractmethod
     def loss(
-            self, views: List[torch.Tensor], *args, **kwargs
+        self, views: List[torch.Tensor], *args, **kwargs
     ) -> Dict[str, torch.Tensor]:
         """Returns the loss components for each view."""
         raise NotImplementedError
@@ -99,8 +99,8 @@ class BaseDeep(pl.LightningModule, _BaseModel):
 
     @torch.no_grad()
     def get_representations(
-            self,
-            loader: torch.utils.data.DataLoader,
+        self,
+        loader: torch.utils.data.DataLoader,
     ):
         self.eval()  # Ensure the model is in evaluation mode
         all_z = []
@@ -117,14 +117,14 @@ class BaseDeep(pl.LightningModule, _BaseModel):
 
     @torch.no_grad()
     def transform(
-            self,
-            loader: torch.utils.data.DataLoader,
+        self,
+        loader: torch.utils.data.DataLoader,
     ) -> List[np.ndarray]:
         """Returns the latent representations for each view in the loader."""
         return [z.numpy() for z in self.get_representations(loader)]
 
     def configure_optimizers(
-            self,
+        self,
     ) -> Union[
         torch.optim.Optimizer,
         Tuple[List[torch.optim.Optimizer], List[torch.optim.lr_scheduler._LRScheduler]],

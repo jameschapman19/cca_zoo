@@ -14,16 +14,16 @@ from cca_zoo.linear._pls import MPLS
 
 class _BaseIterative(_BaseModel):
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state=None,
-            tol=1e-3,
-            accept_sparse=None,
-            epochs=100,
-            initialization: Union[str, callable] = "uniform",
-            early_stopping=False,
-            verbose=True,
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
+        tol=1e-3,
+        accept_sparse=None,
+        epochs=100,
+        initialization: Union[str, callable] = "uniform",
+        early_stopping=False,
+        verbose=True,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -60,11 +60,11 @@ class _BaseIterative(_BaseModel):
         prev_weights = self.weights_.copy()
         # Loop over the epochs
         for epoch in tqdm(
-                range(self.epochs),
-                desc="Epochs",
-                position=0,
-                leave=True,
-                disable=not self.verbose,
+            range(self.epochs),
+            desc="Epochs",
+            position=0,
+            leave=True,
+            disable=not self.verbose,
         ):
             # Loop over the representations
             for i in range(len(views)):
@@ -113,7 +113,7 @@ class _BaseIterative(_BaseModel):
             all_covs.append(
                 np.diag(
                     np.corrcoef(x.T, y.T)[
-                    : self.latent_dimensions, self.latent_dimensions:
+                        : self.latent_dimensions, self.latent_dimensions :
                     ]
                 )
             )
@@ -142,7 +142,7 @@ class _BaseIterative(_BaseModel):
 
 
 def _default_initializer(
-        initialization: str, random_state: Any, latent_dims: int, pls: bool
+    initialization: str, random_state: Any, latent_dims: int, pls: bool
 ) -> Union[DummyCCA, DummyPLS, MPLS, MCCA]:
     initializer_map = {
         "random": (DummyPLS if pls else DummyCCA)(

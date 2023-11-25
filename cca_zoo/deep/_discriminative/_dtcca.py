@@ -18,7 +18,7 @@ class DTCCA(TCCA, DCCA):
     objective = (_TCCALoss,)
 
     def __init__(
-            self, latent_dimensions: int, encoders=None, eps: float = 1e-5, **kwargs
+        self, latent_dimensions: int, encoders=None, eps: float = 1e-5, **kwargs
     ):
         # Initialize DCCA part with DTCCA objective function
         DCCA.__init__(

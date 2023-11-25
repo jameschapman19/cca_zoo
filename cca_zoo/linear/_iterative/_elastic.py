@@ -11,20 +11,20 @@ from cca_zoo.linear._iterative._deflation import _DeflationMixin
 # Define SCCA_Elastic class
 class ElasticCCA(_DeflationMixin, _BaseIterative):
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state=None,
-            tol=1e-3,
-            accept_sparse=None,
-            epochs=100,
-            initialization: Union[str, callable] = "uniform",
-            early_stopping=False,
-            verbose=None,
-            alpha=None,  # regularization parameter for Elastic
-            l1_ratio=None,  # ratio of L1 to L2 penalty for Elastic
-            positive=None,  # whether to enforce positive coefficients for Elastic
-            stochastic=False,  # whether to use stochastic gradient descent for Elastic
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
+        tol=1e-3,
+        accept_sparse=None,
+        epochs=100,
+        initialization: Union[str, callable] = "uniform",
+        early_stopping=False,
+        verbose=None,
+        alpha=None,  # regularization parameter for Elastic
+        l1_ratio=None,  # ratio of L1 to L2 penalty for Elastic
+        positive=None,  # whether to enforce positive coefficients for Elastic
+        stochastic=False,  # whether to use stochastic gradient descent for Elastic
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -94,20 +94,20 @@ class ElasticCCA(_DeflationMixin, _BaseIterative):
 # Define SCCA_IPLS class
 class SCCA_IPLS(_DeflationMixin, _BaseIterative):
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state=None,
-            tol=1e-3,
-            accept_sparse=None,
-            epochs=100,
-            initialization: Union[str, callable] = "uniform",
-            early_stopping=False,
-            verbose=True,
-            alpha=None,  # regularization parameter for Elastic
-            l1_ratio=1,  # ratio of L1 to L2 penalty for Elastic
-            positive=None,  # whether to enforce positive coefficients for Elastic
-            stochastic=False,  # whether to use stochastic gradient descent for Elastic
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
+        tol=1e-3,
+        accept_sparse=None,
+        epochs=100,
+        initialization: Union[str, callable] = "uniform",
+        early_stopping=False,
+        verbose=True,
+        alpha=None,  # regularization parameter for Elastic
+        l1_ratio=1,  # ratio of L1 to L2 penalty for Elastic
+        positive=None,  # whether to enforce positive coefficients for Elastic
+        stochastic=False,  # whether to use stochastic gradient descent for Elastic
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,

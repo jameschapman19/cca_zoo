@@ -22,13 +22,13 @@ class PCACCA(MCCA):
     """
 
     def __init__(
-            self,
-            latent_dimensions=1,
-            copy_data=True,
-            random_state=None,
-            c: Union[Iterable[float], float] = None,
-            eps=1e-9,
-            percent_variance=0.99,
+        self,
+        latent_dimensions=1,
+        copy_data=True,
+        random_state=None,
+        c: Union[Iterable[float], float] = None,
+        eps=1e-9,
+        percent_variance=0.99,
     ):
         super().__init__(
             latent_dimensions=latent_dimensions,
@@ -47,22 +47,22 @@ class PCACCA(MCCA):
             # Keep the components that explain the percentage of variance
             explained_variance = self.pca_models[i].explained_variance_ratio_
             n_components_ = (
-                    np.where(np.cumsum(explained_variance) >= self.percent_variance)[0][0]
-                    + 1
+                np.where(np.cumsum(explained_variance) >= self.percent_variance)[0][0]
+                + 1
             )
             self.pca_models[i].n_components_ = n_components_
             self.pca_models[i].components_ = self.pca_models[i].components_[
-                                             :n_components_
-                                             ]
+                :n_components_
+            ]
             self.pca_models[i].explained_variance_ = self.pca_models[
-                                                         i
-                                                     ].explained_variance_[:n_components_]
+                i
+            ].explained_variance_[:n_components_]
             self.pca_models[i].explained_variance_ratio_ = self.pca_models[
-                                                               i
-                                                           ].explained_variance_ratio_[:n_components_]
+                i
+            ].explained_variance_ratio_[:n_components_]
             self.pca_models[i].singular_values_ = self.pca_models[i].singular_values_[
-                                                  :n_components_
-                                                  ]
+                :n_components_
+            ]
         return [
             view[:, : self.pca_models[i].n_components_] for i, view in enumerate(views)
         ]

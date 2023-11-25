@@ -54,14 +54,14 @@ class MCCA(_BaseModel):
     """
 
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state=None,
-            c: Union[Iterable[float], float] = None,
-            accept_sparse=None,
-            eps: float = 1e-6,
-            pca: bool = True,
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
+        c: Union[Iterable[float], float] = None,
+        accept_sparse=None,
+        eps: float = 1e-6,
+        pca: bool = True,
     ):
         # Set the default value for accept_sparse
         if accept_sparse is None:
@@ -258,54 +258,54 @@ class rCCA(MCCA):
         self.weights_ = [None] * 2
         if self.pca:
             B = [
-                (1 - self.c[i]) * pc.singular_values_ ** 2 / self.n_samples_ + self.c[i]
+                (1 - self.c[i]) * pc.singular_values_**2 / self.n_samples_ + self.c[i]
                 for i, pc in enumerate(self.pca_models)
             ]
             C = np.cov(
                 views[self.primary_view], views[1 - self.primary_view], rowvar=False
             )[
-                0: views[self.primary_view].shape[1],
-                views[self.primary_view].shape[1]:,
-                ]
+                0 : views[self.primary_view].shape[1],
+                views[self.primary_view].shape[1] :,
+            ]
             # Compute the weight matrix for primary view
             self.weights_[1 - self.primary_view] = (
                 # Project view 1 onto its principal components
-                    self.pca_models[1 - self.primary_view].components_.T
-                    # Scale by the inverse of B[0]
-                    @ np.diag(1 / B[1 - self.primary_view])
-                    # Multiply by the cross-covariance matrix
-                    @ C.T
-                    # Scale by the inverse of the square root of B[1]
-                    @ np.diag(1 / np.sqrt(B[self.primary_view]))
-                    # Multiply by the eigenvectors
-                    @ eigvecs
-                    # Scale by the inverse of the square root of eigenvalues
-                    / np.sqrt(eigvals)
+                self.pca_models[1 - self.primary_view].components_.T
+                # Scale by the inverse of B[0]
+                @ np.diag(1 / B[1 - self.primary_view])
+                # Multiply by the cross-covariance matrix
+                @ C.T
+                # Scale by the inverse of the square root of B[1]
+                @ np.diag(1 / np.sqrt(B[self.primary_view]))
+                # Multiply by the eigenvectors
+                @ eigvecs
+                # Scale by the inverse of the square root of eigenvalues
+                / np.sqrt(eigvals)
             )
 
             # Compute the weight matrix for view 2
             self.weights_[self.primary_view] = (
                 # Project view 2 onto its principal components
-                    self.pca_models[self.primary_view].components_.T
-                    # Scale by the inverse of the square root of B[1]
-                    @ np.diag(1 / np.sqrt(B[self.primary_view]))
-                    # Multiply by the eigenvectors
-                    @ eigvecs
+                self.pca_models[self.primary_view].components_.T
+                # Scale by the inverse of the square root of B[1]
+                @ np.diag(1 / np.sqrt(B[self.primary_view]))
+                # Multiply by the eigenvectors
+                @ eigvecs
             )
         else:
             if self.primary_view == 0:
                 self.weights_[0] = self.L0.T @ eigvecs
                 self.weights_[1] = (
-                        (self.L1.T @ self.L1)
-                        @ cross_cov(views[1], views[0], rowvar=False)
-                        @ self.weights_[0]
+                    (self.L1.T @ self.L1)
+                    @ cross_cov(views[1], views[0], rowvar=False)
+                    @ self.weights_[0]
                 )
             else:
                 self.weights_[1] = self.L1.T @ eigvecs
                 self.weights_[0] = (
-                        (self.L0.T @ self.L0)
-                        @ cross_cov(views[0], views[1], rowvar=False)
-                        @ self.weights_[1]
+                    (self.L0.T @ self.L0)
+                    @ cross_cov(views[0], views[1], rowvar=False)
+                    @ self.weights_[1]
                 )
 
     def _more_tags(self):
@@ -356,13 +356,13 @@ class CCA(rCCA):
     """
 
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state=None,
-            accept_sparse=None,
-            eps: float = 1e-6,
-            pca: bool = True,
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
+        accept_sparse=None,
+        eps: float = 1e-6,
+        pca: bool = True,
     ):
         # Initialize the rCCA class with c set to 0
         super().__init__(

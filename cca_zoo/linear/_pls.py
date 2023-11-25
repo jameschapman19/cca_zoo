@@ -49,10 +49,10 @@ class PLS(rCCA, PLSMixin):
     """
 
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state=None,
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
     ):
         # Call the parent class constructor with c=1 to enable maximal regularization
         super().__init__(
@@ -80,10 +80,10 @@ class MPLS(MCCA, PLSMixin):
     """
 
     def __init__(
-            self,
-            latent_dimensions: int = 1,
-            copy_data=True,
-            random_state=None,
+        self,
+        latent_dimensions: int = 1,
+        copy_data=True,
+        random_state=None,
     ):
         # Call the parent class constructor with c=1 to enable maximal regularization
         super().__init__(
