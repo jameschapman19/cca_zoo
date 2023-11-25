@@ -1,5 +1,5 @@
 """
-Deep CCA methods
+The :mod:`cca_zoo.deep` module includes a variety of deep CCA algorithms.
 """
 from . import architectures
 from . import architectures, objectives

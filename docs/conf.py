@@ -9,6 +9,7 @@ from typing import Any, Dict
 from sphinx.application import Sphinx
 
 sys.path.append(str(Path(".").resolve()))
+sys.path.append(str(Path(".").resolve() / "cca_zoo"))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -30,6 +31,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx_gallery.gen_gallery",
     "sphinx_favicon",
+    "myst_parser",
 ]
 
 jupyterlite_config = "jupyterlite_config.json"
@@ -52,6 +54,23 @@ exclude_patterns = [
     "themes",
     "joss",
 ]
+
+# -- Sitemap -----------------------------------------------------------------
+
+# ReadTheDocs has its own way of generating sitemaps, etc.
+if not os.environ.get("READTHEDOCS"):
+    extensions += ["sphinx_sitemap"]
+
+    html_baseurl = os.environ.get("SITEMAP_URL_BASE", "http://127.0.0.1:8000/")
+    sitemap_locales = [None]
+    sitemap_url_scheme = "{link}"
+
+# -- MyST options ------------------------------------------------------------
+
+# This allows us to use ::: to denote directives, useful for admonitions
+myst_enable_extensions = ["colon_fence", "linkify", "substitution"]
+myst_heading_anchors = 2
+myst_substitutions = {"rtd": "[Read the Docs](https://readthedocs.org/)"}
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -105,12 +124,6 @@ autodoc_default_options = {
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["templates"]
-
-# The suffix of source filenames.
-source_suffix = ".rst"
-
-# The main toctree document.
-root_doc = "index"
 
 # -- Options for HTML output -------------------------------------------------
 

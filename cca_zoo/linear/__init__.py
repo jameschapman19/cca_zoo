@@ -1,5 +1,5 @@
 """
-Linear CCA methods
+The :mod:`cca_zoo.linear` module includes a variety of linear CCA algorithms.
 """
 from ._gcca import GCCA
 from ._gradient import CCA_EY, CCA_GHA, CCA_SVD, PLS_EY, PLSStochasticPower

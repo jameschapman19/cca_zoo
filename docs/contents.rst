@@ -3,7 +3,7 @@ CCA-Zoo Documentation
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: 📘 Using CCA-Zoo
 
    preface

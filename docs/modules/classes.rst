@@ -1,4 +1,4 @@
-.. _api_ref:
+.. _api_reference:
 
 =============
 API Reference
@@ -19,15 +19,14 @@ For reference on concepts repeated across the API, see :ref:`glossary`.
 
 .. currentmodule:: cca_zoo
 
-:mod:`linear`: Linear Models
-============================
+:mod:`cca_zoo.linear`: Linear Models
+======================================
 
 .. automodule:: cca_zoo.linear
     :no-members:
     :no-inherited-members:
 
-Linear Models
---------------
+
 .. currentmodule:: cca_zoo
 
 .. autosummary::
@@ -55,15 +54,13 @@ Linear Models
    linear.PartialCCA
 
 
-:mod:`nonparametric`: Non-Parametric Methods
-============================================
+:mod:`cca_zoo.nonparametric`: Non-Parametric Methods
+=====================================================
 
 .. automodule:: cca_zoo.nonparametric
     :no-members:
     :no-inherited-members:
 
-Non-Parametric Methods
-----------------------
 .. currentmodule:: cca_zoo
 
 .. autosummary::
@@ -76,15 +73,14 @@ Non-Parametric Methods
    nonparametric.KTCCA
    nonparametric.NCCA
 
-:mod:`probabilistic`: Probabilistic Methods
-===========================================
+:mod:`cca_zoo.probabilistic`: Probabilistic Methods
+====================================================
 
 .. automodule:: cca_zoo.probabilistic
     :no-members:
     :no-inherited-members:
 
-Probabilistic Methods
----------------------
+
 .. currentmodule:: cca_zoo
 
 .. autosummary::
@@ -95,15 +91,14 @@ Probabilistic Methods
    probabilistic.ProbabilisticPLS
    probabilistic.ProbabilisticRCCA
 
-:mod:`deep`: Deep Methods
+:mod:`cca_zoo.deep`: Deep Methods
 ===========================================
 
 .. automodule:: cca_zoo.deep
     :no-members:
     :no-inherited-members:
 
-Deep Methods
----------------------
+
 .. currentmodule:: cca_zoo
 
 .. autosummary::
@@ -124,15 +119,14 @@ Deep Methods
    deep.DCCA_EY
    deep.SplitAE
 
-:mod:`model_selection`: Model Selection
-===========================================
+:mod:`cca_zoo.model_selection`: Model Selection
+================================================
 
 .. automodule:: cca_zoo.model_selection
     :no-members:
     :no-inherited-members:
 
-Model Selection
----------------------
+
 .. currentmodule:: cca_zoo
 
 .. autosummary::
@@ -145,15 +139,14 @@ Model Selection
    model_selection.learning_curve
    model_selection.permutation_test_score
 
-:mod:`visualisation`: Visualisation
-===========================================
+:mod:`cca_zoo.visualisation`: Visualisation
+============================================
 
 .. automodule:: cca_zoo.visualisation
     :no-members:
     :no-inherited-members:
 
-Visualisation
----------------------
+
 .. currentmodule:: cca_zoo
 
 .. autosummary::
@@ -175,15 +168,14 @@ Visualisation
    visualisation.UMAPScoreDisplay
    visualisation.WeightInferenceDisplay
 
-:mod:`datasets`: Datasets
+:mod:`cca_zoo.datasets`: Datasets
 ===========================================
 
 .. automodule:: cca_zoo.datasets
     :no-members:
     :no-inherited-members:
 
-Datasets
----------------------
+
 .. currentmodule:: cca_zoo
 
 .. autosummary::
@@ -197,15 +189,14 @@ Datasets
    datasets.load_mfeat_data
    datasets.load_split_mnist_data
 
-:mod:`preprocessing`: Preprocessing
-===========================================
+:mod:`cca_zoo.preprocessing`: Preprocessing
+============================================
 
 .. automodule:: cca_zoo.preprocessing
     :no-members:
     :no-inherited-members:
 
-Preprocessing
----------------------
+
 .. currentmodule:: cca_zoo
 
 .. autosummary::
@@ -214,15 +205,14 @@ Preprocessing
 
    preprocessing.MultiViewPreprocessing
 
-:mod:`sequential`: Sequential Methods
-===========================================
+:mod:`cca_zoo.sequential`: Sequential Methods
+==============================================
 
 .. automodule:: cca_zoo.sequential
     :no-members:
     :no-inherited-members:
 
-Sequential Methods
----------------------
+
 .. currentmodule:: cca_zoo
 
 .. autosummary::

@@ -4,7 +4,7 @@
     paragraph instead of a header.
 
 :mod:`{{module}}`.{{objname}}
-{{ underline }}===============
+{{ underline }}^^^^^^^^^^^^^^^^
 
 .. currentmodule:: {{ module }}
 
