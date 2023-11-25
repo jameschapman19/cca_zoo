@@ -1,13 +1,3 @@
-from . import (
-    datasets,
-    deep,
-    linear,
-    model_selection,
-    visualisation,
-    preprocessing,
-    sequential,
-    nonparametric,
-)
 
 __all__ = [
     "datasets",
@@ -18,10 +8,5 @@ __all__ = [
     "preprocessing",
     "sequential",
     "nonparametric",
+    "probabilistic",
 ]
-try:
-    from . import probabilistic
-
-    __all__.append("probabilistic")
-except ModuleNotFoundError:
-    pass
