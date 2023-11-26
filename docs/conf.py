@@ -21,7 +21,7 @@ author = "James Chapman"
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 
-sys.path.insert(0, os.path.abspath('../sphinxext'))
+sys.path.insert(0, os.path.abspath("../sphinxext"))
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -33,7 +33,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx_gallery.gen_gallery",
     "sphinx_favicon",
-    'sphinx_design',
+    "sphinx_design",
 ]
 
 jupyterlite_config = "jupyterlite_config.json"
@@ -58,10 +58,10 @@ exclude_patterns = [
 ]
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The main toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -159,11 +159,11 @@ html_context = {
     "doc_path": "docs",
 }
 
-html_static_path = ['_static']
-html_last_updated_fmt = '%b %d, %Y'
+html_static_path = ["_static"]
+html_last_updated_fmt = "%b %d, %Y"
 
 html_additional_pages = {}
 html_use_modindex = True
 html_domain_indices = False
 html_copy_source = False
-html_file_suffix = '.html'
+html_file_suffix = ".html"
