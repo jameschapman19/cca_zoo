@@ -57,7 +57,10 @@ param_grid = {"kernel": ["poly"], "c": [[1e-1], [1e-1, 2e-1]], "degree": [[2], [
 
 # Using GridSearchCV to optimize KCCA with the polynomial kernel.
 kernel_reg_grid = GridSearchCV(
-    KCCA(latent_dimensions=latent_dimensions), param_grid=param_grid, cv=cv, verbose=True
+    KCCA(latent_dimensions=latent_dimensions),
+    param_grid=param_grid,
+    cv=cv,
+    verbose=True,
 ).fit([X, Y])
 
 # Displaying the grid search results.
