@@ -8,9 +8,6 @@ from pathlib import Path
 from typing import Any, Dict
 from sphinx.application import Sphinx
 
-sys.path.append(str(Path(".").resolve()))
-sys.path.append(str(Path(".").resolve() / "cca_zoo"))
-
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -20,6 +17,11 @@ author = "James Chapman"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
+
+# Add any Sphinx extension module names here, as strings. They can be extensions
+# coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
+
+sys.path.insert(0, os.path.abspath('../sphinxext'))
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -31,7 +33,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx_gallery.gen_gallery",
     "sphinx_favicon",
-    "myst_parser",
+    'sphinx_design',
 ]
 
 jupyterlite_config = "jupyterlite_config.json"
@@ -45,7 +47,7 @@ numpydoc_class_members_toctree = False
 
 templates_path = ["_templates"]
 exclude_patterns = [
-    "_build",
+    "build",
     "Thumbs.db",
     ".DS_Store",
     "**.ipynb_checkpoints",
@@ -55,22 +57,11 @@ exclude_patterns = [
     "joss",
 ]
 
-# -- Sitemap -----------------------------------------------------------------
+# The suffix of source filenames.
+source_suffix = '.rst'
 
-# ReadTheDocs has its own way of generating sitemaps, etc.
-if not os.environ.get("READTHEDOCS"):
-    extensions += ["sphinx_sitemap"]
-
-    html_baseurl = os.environ.get("SITEMAP_URL_BASE", "http://127.0.0.1:8000/")
-    sitemap_locales = [None]
-    sitemap_url_scheme = "{link}"
-
-# -- MyST options ------------------------------------------------------------
-
-# This allows us to use ::: to denote directives, useful for admonitions
-myst_enable_extensions = ["colon_fence", "linkify", "substitution"]
-myst_heading_anchors = 2
-myst_substitutions = {"rtd": "[Read the Docs](https://readthedocs.org/)"}
+# The main toctree document.
+master_doc = 'index'
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -168,39 +159,11 @@ html_context = {
     "doc_path": "docs",
 }
 
+html_static_path = ['_static']
+html_last_updated_fmt = '%b %d, %Y'
 
-def setup_to_main(
-    app: Sphinx, pagename: str, templatename: str, context, doctree
-) -> None:
-    """Add a function that jinja can access for returning an "edit this page" link pointing to `main`."""
-
-    def to_main(link: str) -> str:
-        """Transform "edit on github" links and make sure they always point to the main branch.
-
-        Args:
-            link: the link to the github edit interface
-
-        Returns:
-            the link to the tip of the main branch for the same file
-        """
-        links = link.split("/")
-        idx = links.index("edit")
-        return "/".join(links[: idx + 1]) + "/main/" + "/".join(links[idx + 2 :])
-
-    context["to_main"] = to_main
-
-
-def setup(app: Sphinx) -> Dict[str, Any]:
-    """Add custom configuration to sphinx app.
-
-    Args:
-        app: the Sphinx application
-    Returns:
-        the 2 parallel parameters set to ``True``.
-    """
-    app.connect("html-page-context", setup_to_main)
-
-    return {
-        "parallel_read_safe": True,
-        "parallel_write_safe": True,
-    }
+html_additional_pages = {}
+html_use_modindex = True
+html_domain_indices = False
+html_copy_source = False
+html_file_suffix = '.html'

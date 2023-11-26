@@ -3,7 +3,8 @@ sphinx
 sphinx-gallery
 sphinx-favicon
 sphinx-sitemap
-linkify-it-py
+sphinx-design
+numpydoc
 pydata_sphinx_theme
 myst-parser
 colorcet
