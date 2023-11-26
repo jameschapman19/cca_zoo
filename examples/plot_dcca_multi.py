@@ -14,13 +14,13 @@ Features:
 
 import lightning.pytorch as pl
 from cca_zoo.deep import DCCA, DTCCA, architectures, objectives
+from examples import example_mnist_data
 
 # %%
 # Data Preparation
 # ----------------
 # Here, we use a segmented MNIST dataset as an example of multiview data.
 
-from docs.source.examples import example_mnist_data
 
 LATENT_DIMS = 2
 EPOCHS = 10

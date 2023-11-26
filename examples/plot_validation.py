@@ -19,7 +19,7 @@ np.random.seed(42)  # We set the random seed for reproducibility
 n = 250  # number of samples
 p = 15  # features in view 1
 q = 15  # features in view 2
-latent_dims = 1  # latent dimensions
+latent_dimensions = 1  # latent dimensions
 correlations = [0.9]  # correlations between representations
 
 
@@ -175,19 +175,19 @@ def plot_learning_curve(
 
 # Data generation
 (X, Y) = JointData(
-    view_features=[p, q], latent_dims=latent_dims, correlation=correlations
+    view_features=[p, q], latent_dimensions=latent_dimensions, correlation=correlations
 ).sample(n)
 
 # Permutation Testing
-model = CCA(latent_dimensions=latent_dims)
+model = CCA(latent_dimensions=latent_dimensions)
 cv = KFold(2, shuffle=True, random_state=0)
 score, perm_scores, pvalue = permutation_test_score(
     model, (X, Y), cv=cv, n_permutations=100
 )
 
 # Permutation Test Visualization
-fig, ax = plt.subplots(latent_dims, figsize=[12, 8])
-for k in range(latent_dims):
+fig, ax = plt.subplots(latent_dimensions, figsize=[12, 8])
+for k in range(latent_dimensions):
     ax.hist(perm_scores)
     ax.axvline(score, ls="--", color="r")
     score_label = f"Score on original\ndata: {score:.2f}\n(p-value: {pvalue:.3f})"

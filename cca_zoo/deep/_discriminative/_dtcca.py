@@ -15,7 +15,7 @@ class DTCCA(TCCA, DCCA):
 
     """
 
-    objective = (_TCCALoss,)
+    objective = _TCCALoss()
 
     def __init__(
         self, latent_dimensions: int, encoders=None, eps: float = 1e-5, **kwargs

@@ -28,7 +28,7 @@ from cca_zoo.visualisation import (
     UMAPScoreDisplay,
     TSNEScoreDisplay,
 )
-from docs.source.examples import example_mnist_data
+from examples import example_mnist_data
 
 # %%
 # Data
@@ -183,7 +183,7 @@ plt.show()
 # that are invariant to distortions of the same data. It can be seen as a special case of Deep CCA
 # where the two representations are random distortions of the same input.
 
-dcca_vicreg = DCCA_SDL(
+dcca_vicreg = VICReg(
     latent_dimensions=LATENT_DIMS, N=N_TRAIN, encoders=[encoder_1, encoder_2]
 )
 trainer = pl.Trainer(

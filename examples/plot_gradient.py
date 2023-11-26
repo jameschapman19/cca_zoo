@@ -31,11 +31,11 @@ np.random.seed(42)
 n = 10000
 p = 1000
 q = 1000
-latent_dims = 1
+latent_dimensions = 1
 correlation = 0.9
 
 (X, Y) = JointData(
-    view_features=[p, q], latent_dims=latent_dims, correlation=[correlation]
+    view_features=[p, q], latent_dimensions=latent_dimensions, correlation=[correlation]
 ).sample(n)
 
 # We split the data into train and test sets with a ratio of 0.8
@@ -52,7 +52,7 @@ Y_test = Y[test_idx]
 # CCA
 # ---
 # We create a CCA object with the number of latent dimensions as 1
-cca = CCA(latent_dimensions=latent_dims)
+cca = CCA(latent_dimensions=latent_dimensions)
 
 # We record the start time of the model fitting
 start_time = time.time()
@@ -81,7 +81,7 @@ batch_sizes = [200, 100, 50, 20, 10]
 # We loop over the batch sizes and create a CCA_EY object for each one
 for batch_size in batch_sizes:
     ccaey = CCA_EY(
-        latent_dimensions=latent_dims,
+        latent_dimensions=latent_dimensions,
         epochs=10,
         batch_size=batch_size,
         learning_rate=0.1,

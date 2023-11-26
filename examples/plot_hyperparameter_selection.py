@@ -32,11 +32,11 @@ np.random.seed(42)
 n = 200
 p = 100
 q = 100
-latent_dims = 1
+latent_dimensions = 1
 correlation = 0.9
 
 data = JointData(
-    view_features=[p, q], latent_dims=latent_dims, correlation=[correlation]
+    view_features=[p, q], latent_dimensions=latent_dimensions, correlation=[correlation]
 )
 (X, Y) = data.sample(n)
 
@@ -57,7 +57,7 @@ param_grid = {"kernel": ["poly"], "c": [[1e-1], [1e-1, 2e-1]], "degree": [[2], [
 
 # Using GridSearchCV to optimize KCCA with the polynomial kernel.
 kernel_reg_grid = GridSearchCV(
-    KCCA(latent_dimensions=latent_dims), param_grid=param_grid, cv=cv, verbose=True
+    KCCA(latent_dimensions=latent_dimensions), param_grid=param_grid, cv=cv, verbose=True
 ).fit([X, Y])
 
 # Displaying the grid search results.
@@ -76,7 +76,7 @@ param_grid_random = {
 
 # Using RandomizedSearchCV for optimization.
 kernel_reg_random = RandomizedSearchCV(
-    KCCA(latent_dimensions=latent_dims, kernel="poly"),
+    KCCA(latent_dimensions=latent_dimensions, kernel="poly"),
     param_distributions=param_grid_random,
     cv=cv,
     verbose=True,

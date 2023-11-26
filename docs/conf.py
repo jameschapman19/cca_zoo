@@ -169,3 +169,7 @@ html_use_modindex = True
 html_domain_indices = False
 html_copy_source = False
 html_file_suffix = '.html'
+
+html_css_files = [
+    "cca-zoo.css",
+]

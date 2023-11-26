@@ -22,9 +22,9 @@ from cca_zoo.nonparametric import KCCA
 np.random.seed(42)
 
 # Configuring and generating a simulated dataset with given specifications.
-n, p, q, latent_dims, correlation = 200, 100, 100, 1, 0.9
+n, p, q, latent_dimensions, correlation = 200, 100, 100, 1, 0.9
 (X, Y) = JointData(
-    view_features=[p, q], latent_dims=latent_dims, correlation=[correlation]
+    view_features=[p, q], latent_dimensions=latent_dimensions, correlation=[correlation]
 ).sample(n)
 
 # Specifying the number of folds for cross-validation.
@@ -46,7 +46,7 @@ def my_kernel(X, Y, param=0, **kwargs):
 
 # Initializing the KCCA model with the custom kernel and specified parameters.
 kernel_custom = KCCA(
-    latent_dimensions=latent_dims,
+    latent_dimensions=latent_dimensions,
     kernel=[my_kernel, my_kernel],
     kernel_params=[{"param": 1}, {"param": 1}],
 ).fit([X, Y])
@@ -59,7 +59,7 @@ param_grid_linear = {"kernel": ["linear"], "c": [c_values, c_values]}
 
 # Tuning hyperparameters using GridSearchCV for the linear kernel.
 kernel_linear = GridSearchCV(
-    KCCA(latent_dimensions=latent_dims),
+    KCCA(latent_dimensions=latent_dimensions),
     param_grid=param_grid_linear,
     cv=cv,
     verbose=True,
@@ -78,7 +78,7 @@ param_grid_poly = {
 # Tuning hyperparameters using GridSearchCV for the polynomial kernel.
 kernel_poly = (
     GridSearchCV(
-        KCCA(latent_dimensions=latent_dims),
+        KCCA(latent_dimensions=latent_dimensions),
         param_grid=param_grid_poly,
         cv=cv,
         verbose=True,
@@ -100,7 +100,7 @@ param_grid_rbf = {
 # Tuning hyperparameters using GridSearchCV for the Gaussian/RBF kernel.
 kernel_rbf = (
     GridSearchCV(
-        KCCA(latent_dimensions=latent_dims),
+        KCCA(latent_dimensions=latent_dimensions),
         param_grid=param_grid_rbf,
         cv=cv,
         verbose=True,
