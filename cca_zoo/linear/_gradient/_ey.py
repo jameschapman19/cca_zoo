@@ -7,9 +7,9 @@ from typing import List, Optional
 
 class CCA_EY(BaseGradientModel):
     def loss(
-            self,
-            representations: List[np.ndarray],
-            independent_representations: Optional[List[np.ndarray]] = None,
+        self,
+        representations: List[np.ndarray],
+        independent_representations: Optional[List[np.ndarray]] = None,
     ):
         A, B = CCA_AB(representations)
         rewards = np.trace(2 * A)
@@ -25,11 +25,11 @@ class CCA_EY(BaseGradientModel):
         }
 
     def derivative(
-            self,
-            views: List[np.ndarray],
-            representations: List[np.ndarray],
-            independent_views: Optional[List[np.ndarray]] = None,
-            independent_representations: Optional[List[np.ndarray]] = None,
+        self,
+        views: List[np.ndarray],
+        representations: List[np.ndarray],
+        independent_views: Optional[List[np.ndarray]] = None,
+        independent_representations: Optional[List[np.ndarray]] = None,
     ):
         A, B = CCA_AB(representations)
         sum_representations = np.sum(np.stack(representations), axis=0)
@@ -60,9 +60,9 @@ class CCA_EY(BaseGradientModel):
 
 class PLS_EY(BaseGradientModel):
     def loss(
-            self,
-            representations: List[np.ndarray],
-            independent_representations: Optional[List[np.ndarray]] = None,
+        self,
+        representations: List[np.ndarray],
+        independent_representations: Optional[List[np.ndarray]] = None,
     ):
         A, B = PLS_AB(representations, self.weights_)
         rewards = np.trace(2 * A)
@@ -74,19 +74,22 @@ class PLS_EY(BaseGradientModel):
         }
 
     def derivative(
-            self,
-            views: List[np.ndarray],
-            representations: List[np.ndarray],
-            independent_views: Optional[List[np.ndarray]] = None,
-            independent_representations: Optional[List[np.ndarray]] = None,
+        self,
+        views: List[np.ndarray],
+        representations: List[np.ndarray],
+        independent_views: Optional[List[np.ndarray]] = None,
+        independent_representations: Optional[List[np.ndarray]] = None,
     ):
         sum_representations = np.sum(np.stack(representations), axis=0)
         rewards = [
-            2 * cross_cov(view, sum_representations, rowvar=False) - 2 * cross_cov(view, representation, rowvar=False)
-            for
-            view, representation in zip(views, representations)]
+            2 * cross_cov(view, sum_representations, rowvar=False)
+            - 2 * cross_cov(view, representation, rowvar=False)
+            for view, representation in zip(views, representations)
+        ]
         penalties = [
-            2 * weights @ (weights.T @ weights)/(view.shape[0]-1)
-            for view, representation, weights in zip(views, representations, self.weights_)
+            2 * weights @ (weights.T @ weights) / (view.shape[0] - 1)
+            for view, representation, weights in zip(
+                views, representations, self.weights_
+            )
         ]
         return [2 * (-reward + penalty) for reward, penalty in zip(rewards, penalties)]

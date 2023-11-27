@@ -7,8 +7,11 @@ from cca_zoo.linear._pls import PLSMixin
 
 
 class PLSStochasticPower(PLS_EY, PLSMixin):
-    def loss(self, representations: List[np.ndarray],
-        independent_representations: Optional[List[np.ndarray]] = None):
+    def loss(
+        self,
+        representations: List[np.ndarray],
+        independent_representations: Optional[List[np.ndarray]] = None,
+    ):
         cov = np.cov(np.hstack(representations).T)
         return {
             "objective": np.trace(
@@ -17,11 +20,11 @@ class PLSStochasticPower(PLS_EY, PLSMixin):
         }
 
     def derivative(
-            self,
-            views: List[np.ndarray],
-            representations: List[np.ndarray],
-            independent_views: Optional[List[np.ndarray]] = None,
-            independent_representations: Optional[List[np.ndarray]] = None,
+        self,
+        views: List[np.ndarray],
+        representations: List[np.ndarray],
+        independent_views: Optional[List[np.ndarray]] = None,
+        independent_representations: Optional[List[np.ndarray]] = None,
     ):
         grads = [views[0].T @ representations[1], views[1].T @ representations[0]]
         return grads
