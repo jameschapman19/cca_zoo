@@ -236,6 +236,7 @@ def CCA_AB(representations: List[torch.Tensor]):
     B.div_(len(representations))  # In-place division
     return A, B
 
+
 class _CCA_EYLoss:
     def __init__(self, eps: float = 1e-4):
         self.eps = eps

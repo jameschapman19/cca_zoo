@@ -159,8 +159,13 @@ class BaseGradientModel(_BaseModel):
         )
         for i in range(len(self.weights_)):
             if self.nesterov:
-                self.velocity[i] = -self.momentum * self.velocity[i] + (1-self.dampening)*manual_grads[i]
-                self.weights_[i] -= self.learning_rate * (manual_grads[i] - self.velocity[i])
+                self.velocity[i] = (
+                    -self.momentum * self.velocity[i]
+                    + (1 - self.dampening) * manual_grads[i]
+                )
+                self.weights_[i] -= self.learning_rate * (
+                    manual_grads[i] - self.velocity[i]
+                )
             else:
                 self.weights_[i] -= self.learning_rate * manual_grads[i]
 
