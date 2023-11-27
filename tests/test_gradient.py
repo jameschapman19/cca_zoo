@@ -68,22 +68,25 @@ def test_batch_pls():
 
 
 def test_batch_cca():
-    epochs = 50
+    epochs = 100
     cca = CCA(latent_dimensions=latent_dims).fit((X, Y))
     ccaey = CCA_EY(
         latent_dimensions=latent_dims,
         epochs=epochs,
         random_state=random_state,
+        learning_rate=0.1,
     ).fit((X, Y), **trainer_kwargs)
     ccagha = CCA_GHA(
         latent_dimensions=latent_dims,
         epochs=epochs,
         random_state=random_state,
+        learning_rate=0.1,
     ).fit((X, Y), **trainer_kwargs)
     ccasvd = CCA_SVD(
         latent_dimensions=latent_dims,
         epochs=epochs,
         random_state=random_state,
+        learning_rate=0.1,
     ).fit((X, Y), **trainer_kwargs)
     cca_score = cca.score((X, Y))
     ccaey_score = ccaey.score((X, Y))

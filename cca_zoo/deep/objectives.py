@@ -5,7 +5,7 @@ import torch
 from tensorly.cp_tensor import cp_to_tensor
 from tensorly.decomposition import parafac
 
-from cca_zoo._utils.cross_correlation import torch_cross_cov
+from cca_zoo.deep._utils import torch_cross_cov
 
 
 @torch.jit.script

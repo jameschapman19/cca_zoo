@@ -77,7 +77,7 @@ class DCCAE(DCCA, _GenerativeMixin):
                 for x, recon in zip(batch["views"], recons)
             ]
         ).sum()
-        loss["correlation"] = self.objective.loss(z)
+        loss["correlation"] = self.objective(z)
         loss["objective"] = (
             self.lam * loss["reconstruction"] + (1 - self.lam) * loss["correlation"]
         )

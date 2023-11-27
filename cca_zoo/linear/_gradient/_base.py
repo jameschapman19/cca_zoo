@@ -1,9 +1,6 @@
 from typing import Iterable, List, Union, Optional
 
 import numpy as np
-import torch
-from torch.utils.data import DataLoader
-
 from cca_zoo._base import _BaseModel
 from cca_zoo.linear._iterative._base import _default_initializer
 from cca_zoo.linear._mcca import MCCA
@@ -176,11 +173,6 @@ class BaseGradientModel(_BaseModel):
         # Remove mean from each view
         z = [zi - zi.mean(0) for zi in z]
         return MCCA(latent_dimensions=self.latent_dimensions).fit(z).score(z).sum()
-
-    def score(self, loader: torch.utils.data.DataLoader, **kwargs):
-        z = self.transform(loader)
-        corr = self.correlation_captured(z)
-        return corr
 
 
 class NumpyDataset:
