@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def cross_corrcoef(A, B, rowvar=True):
     """Cross correlation of two matrices.
 
@@ -22,7 +23,6 @@ def cross_corrcoef(A, B, rowvar=True):
 
     A = np.sqrt(np.sum(A**2, axis=1))
     B = np.sqrt(np.sum(B**2, axis=1))
-
 
     return C / np.outer(A, B)
 
