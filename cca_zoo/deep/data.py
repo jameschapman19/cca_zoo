@@ -8,19 +8,24 @@ class NumpyDataset(Dataset):
     Class that turns numpy arrays into a torch dataset
     """
 
-    def __init__(self, views):
-        """
-
-        :param views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        """
+    def __init__(self, views, batch_size=None, random_state=None):
+        super().__init__(views)
         self.views = [view.astype(np.float32) for view in views]
+        self.batch_size = batch_size
+        self.random_state = check_random_state(random_state)
 
     def __len__(self):
         return len(self.views[0])
 
     def __getitem__(self, index):
         views = [view[index] for view in self.views]
-        return {"views": views}
+        independent_index = (
+            index
+            if self.batch_size is None
+            else self.random_state.randint(0, len(self))
+        )
+        independent_views = [view[independent_index] for view in self.views]
+        return {"views": views, "independent_views": independent_views}
 
 
 def check_dataset(dataset):
@@ -100,22 +105,3 @@ def get_dataloaders(
         )
         return train_dataloader, val_dataloader
     return train_dataloader
-
-
-class DoubleNumpyDataset(NumpyDataset):
-    def __init__(self, views, batch_size=None, random_state=None):
-        super().__init__(views)
-        self.views = [view.astype(np.float32) for view in views]
-        self.batch_size = batch_size
-        self.random_state = check_random_state(random_state)
-
-    def __getitem__(self, index):
-        views = [view[index] for view in self.views]
-        independent_index = index
-        # independent_index = (
-        #     index
-        #     if self.batch_size is None
-        #     else self.random_state.randint(0, len(self))
-        # )
-        independent_views = [view[independent_index] for view in self.views]
-        return {"views": views, "independent_views": independent_views}

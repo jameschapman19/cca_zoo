@@ -10,213 +10,31 @@ function raw specifications may not be enough to give full guidelines on their
 uses.
 For reference on concepts repeated across the API, see :ref:`glossary`.
 
-:mod:`cca_zoo` Package
-=======================
+.. toctree::
+    :maxdepth: 3
 
-.. automodule:: cca_zoo
-    :no-members:
-    :no-inherited-members:
-
-.. currentmodule:: cca_zoo
-
-:mod:`cca_zoo.linear`: Linear Models
-======================================
-
-.. automodule:: cca_zoo.linear
-    :no-members:
-    :no-inherited-members:
+    cca-zoo
+    linear
+    nonparametric
+    deep
+    probabilistic
+    datasets
+    visualisation
+    sequential
+    model_selection
+    preprocessing
 
 
-.. currentmodule:: cca_zoo
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   linear.CCA
-   linear.PLS
-   linear.rCCA
-   linear.MCCA
-   linear.GCCA
-   linear.TCCA
-   linear.MPLS
-   linear.PCACCA
-   linear.SPLS
-   linear.ElasticCCA
-   linear.SCCA_IPLS
-   linear.CCA_EY
-   linear.PLS_EY
-   linear.CCA_GHA
-   linear.PLSStochasticPower
-   linear.SCCA_Span
-   linear.PRCCA
-   linear.GRCCA
-   linear.PartialCCA
 
 
-:mod:`cca_zoo.nonparametric`: Non-Parametric Methods
-=====================================================
-
-.. automodule:: cca_zoo.nonparametric
-    :no-members:
-    :no-inherited-members:
-
-.. currentmodule:: cca_zoo
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   nonparametric.KCCA
-   nonparametric.KMCCA
-   nonparametric.KGCCA
-   nonparametric.KTCCA
-   nonparametric.NCCA
-
-:mod:`cca_zoo.probabilistic`: Probabilistic Methods
-====================================================
-
-.. automodule:: cca_zoo.probabilistic
-    :no-members:
-    :no-inherited-members:
 
 
-.. currentmodule:: cca_zoo
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   probabilistic.ProbabilisticCCA
-   probabilistic.ProbabilisticPLS
-   probabilistic.ProbabilisticRCCA
-
-:mod:`cca_zoo.deep`: Deep Methods
-===========================================
-
-.. automodule:: cca_zoo.deep
-    :no-members:
-    :no-inherited-members:
 
 
-.. currentmodule:: cca_zoo
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   deep.DCCA
-   deep.DCCA
-   deep.DCCA_GHA
-   deep.DCCA_SVD
-   deep.DGCCA
-   deep.DCCAE
-   deep.DCCA_NOI
-   deep.DCCA_SDL
-   deep.DVCCA
-   deep.BarlowTwins
-   deep.DTCCA
-   deep.DCCA_EY
-   deep.SplitAE
-
-:mod:`cca_zoo.model_selection`: Model Selection
-================================================
-
-.. automodule:: cca_zoo.model_selection
-    :no-members:
-    :no-inherited-members:
 
 
-.. currentmodule:: cca_zoo
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   model_selection.GridSearchCV
-   model_selection.RandomizedSearchCV
-   model_selection.cross_validate
-   model_selection.learning_curve
-   model_selection.permutation_test_score
-
-:mod:`cca_zoo.visualisation`: Visualisation
-============================================
-
-.. automodule:: cca_zoo.visualisation
-    :no-members:
-    :no-inherited-members:
 
 
-.. currentmodule:: cca_zoo
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   visualisation.ExplainedVarianceDisplay
-   visualisation.ScoreScatterDisplay
-   visualisation.ScoreScatterDisplay
-   visualisation.JointScoreScatterDisplay
-   visualisation.SeparateScoreScatterDisplay
-   visualisation.SeparateJointScoreDisplay
-   visualisation.PairScoreScatterDisplay
-   visualisation.ExplainedCovarianceDisplay
-   visualisation.WeightHeatmapDisplay
-   visualisation.CorrelationHeatmapDisplay
-   visualisation.CovarianceHeatmapDisplay
-   visualisation.TSNEScoreDisplay
-   visualisation.UMAPScoreDisplay
-   visualisation.WeightInferenceDisplay
-
-:mod:`cca_zoo.datasets`: Datasets
-===========================================
-
-.. automodule:: cca_zoo.datasets
-    :no-members:
-    :no-inherited-members:
 
 
-.. currentmodule:: cca_zoo
 
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   datasets.JointData
-   datasets.LatentVariableData
-   datasets.load_breast_data
-   datasets.load_split_cifar10_data
-   datasets.load_mfeat_data
-   datasets.load_split_mnist_data
-
-:mod:`cca_zoo.preprocessing`: Preprocessing
-============================================
-
-.. automodule:: cca_zoo.preprocessing
-    :no-members:
-    :no-inherited-members:
-
-
-.. currentmodule:: cca_zoo
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   preprocessing.MultiViewPreprocessing
-
-:mod:`cca_zoo.sequential`: Sequential Methods
-==============================================
-
-.. automodule:: cca_zoo.sequential
-    :no-members:
-    :no-inherited-members:
-
-
-.. currentmodule:: cca_zoo
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   sequential.SequentialModel

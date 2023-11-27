@@ -27,7 +27,7 @@ Y /= Y.std(axis=0)
 Z /= Z.std(axis=0)
 
 latent_dims = 2
-epochs = 25
+epochs = 50
 batch_size = 4
 random_state = 1
 trainer_kwargs = dict(
@@ -47,12 +47,13 @@ def scale_transform(model, X, Y):
 
 
 def test_batch_pls():
-    epochs = 50
+    epochs = 100
     pls = PLS(latent_dimensions=latent_dims).fit((X, Y))
     plsey = PLS_EY(
         latent_dimensions=latent_dims,
         epochs=epochs,
         random_state=random_state,
+        learning_rate=0.1,
     ).fit((X, Y), **trainer_kwargs)
     spls = PLSStochasticPower(
         latent_dimensions=latent_dims,

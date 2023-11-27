@@ -1,56 +1,36 @@
-import torch
+from typing import List, Optional
 
-from cca_zoo.deep.objectives import _PLS_PowerLoss
+import numpy as np
+
 from cca_zoo.linear._gradient._ey import PLS_EY
 from cca_zoo.linear._pls import PLSMixin
 
 
 class PLSStochasticPower(PLS_EY, PLSMixin):
-    automatic_optimization = False
-    objective = _PLS_PowerLoss()
-
-    def _more_tags(self):
-        return {"multiview": True, "stochastic": True}
-
-    def training_step(self, batch, batch_idx):
-        opt = self.optimizers()
-        opt.zero_grad()
-        representations = self(batch["views"])
-        loss = self.objective.loss(representations)
-        for k, v in loss.items():
-            self.log(
-                f"train/{k}",
-                v,
-                prog_bar=True,
-                on_epoch=True,
-                batch_size=batch["views"][0].shape[0],
+    def loss(self, representations: List[np.ndarray],
+        independent_representations: Optional[List[np.ndarray]] = None):
+        cov = np.cov(np.hstack(representations).T)
+        return {
+            "objective": np.trace(
+                cov[: representations[0].shape[1], representations[0].shape[1] :]
             )
-        manual_grads = self.objective.derivative(batch["views"], representations)
-        for i, weights in enumerate(self.torch_weights):
-            weights.grad = manual_grads[i]
-        opt.step()
-        return loss["objective"]
+        }
 
-    def validation_step(self, batch, batch_idx):
-        representations = self(batch["views"])
-        loss = self.objective.loss(representations)
-        # Logging the loss components
-        for k, v in loss.items():
-            self.log(
-                f"val/{k}",
-                v,
-                prog_bar=True,
-                on_epoch=True,
-                batch_size=batch["views"][0].shape[0],
-            )
-        return loss["objective"]
+    def derivative(
+            self,
+            views: List[np.ndarray],
+            representations: List[np.ndarray],
+            independent_views: Optional[List[np.ndarray]] = None,
+            independent_representations: Optional[List[np.ndarray]] = None,
+    ):
+        grads = [views[0].T @ representations[1], views[1].T @ representations[0]]
+        return grads
 
-    def on_train_batch_start(self, batch, batch_idx):
-        for weight in self.torch_weights:
-            weight.data = self._orth(weight)
+    def on_training_step_start(self):
+        self.weights_ = [self._orth(weights) for weights in self.weights_]
 
     @staticmethod
     def _orth(U):
-        Qu, Ru = torch.linalg.qr(U)
-        Su = torch.sign(torch.sign(torch.diag(Ru)) + 0.5)
-        return Qu @ torch.diag(Su)
+        Qu, Ru = np.linalg.qr(U)
+        Su = np.sign(np.sign(np.diag(Ru)) + 0.5)
+        return Qu @ np.diag(Su)

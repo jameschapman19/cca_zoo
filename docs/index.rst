@@ -100,6 +100,7 @@ CCA-Zoo Documentation
     :maxdepth: 1
     :hidden:
 
+    Preface <preface>
     Getting Started <getting_started>
     User Guide <user_guide>
     API Reference <modules/classes>

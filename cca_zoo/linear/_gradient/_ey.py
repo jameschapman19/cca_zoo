@@ -1,123 +1,92 @@
-from typing import Iterable
-
-import numpy as np
-
-from cca_zoo.deep.data import DoubleNumpyDataset
-from cca_zoo.deep.objectives import _CCA_EYLoss, _PLS_EYLoss
+from cca_zoo._utils import cross_cov
 from cca_zoo.linear._gradient._base import BaseGradientModel
+from cca_zoo.linear._gradient._objectives import CCA_AB, PLS_AB
+import numpy as np
+from typing import List, Optional
 
 
 class CCA_EY(BaseGradientModel):
-    objective = _CCA_EYLoss()
-    automatic_optimization = False
-
-    def _more_tags(self):
-        return {"multiview": True, "stochastic": True, "non_deterministic": True}
-
-    def training_step(self, batch, batch_idx):
-        opt = self.optimizers()
-        opt.zero_grad()
-        representations = self(batch["views"])
-        independent_views = (
-            None if self.batch_size is None else batch.get("independent_views", None)
-        )
-        independent_representations = (
-            None
-            if self.batch_size is None
-            else (self(independent_views) if independent_views is not None else None)
-        )
-        loss = self.objective.loss(representations, independent_representations)
-        # Logging the loss components with "train/" prefix
-        if self.logging:
-            for k, v in loss.items():
-                self.log(
-                    f"train/{k}",
-                    v,
-                    prog_bar=True,
-                    on_epoch=True,
-                    batch_size=batch["views"][0].shape[0],
-                )
-        manual_grads = self.objective.derivative(
-            batch["views"],
-            representations,
-            independent_views,
-            independent_representations,
-        )
-        for i, weights in enumerate(self.torch_weights):
-            weights.grad = manual_grads[i]
-        opt.step()
-        return loss["objective"]
-
-    def validation_step(self, batch, batch_idx):
-        representations = self(batch["views"])
-        if self.batch_size is None:
-            independent_representations = representations
+    def loss(
+            self,
+            representations: List[np.ndarray],
+            independent_representations: Optional[List[np.ndarray]] = None,
+    ):
+        A, B = CCA_AB(representations)
+        rewards = np.trace(2 * A)
+        if independent_representations is None:
+            penalties = np.trace(B @ B)
         else:
-            independent_views = batch.get("independent_views", None)
-            independent_representations = (
-                self(independent_views) if independent_views is not None else None
-            )
-        loss = self.objective.loss(representations, independent_representations)
-        # Logging the loss components
-        if self.logging:
-            for k, v in loss.items():
-                self.log(
-                    f"val/{k}",
-                    v,
-                    prog_bar=True,
-                    on_epoch=True,
-                    batch_size=batch["views"][0].shape[0],
-                )
-        return loss["objective"]
+            independent_A, independent_B = CCA_AB(independent_representations)
+            penalties = np.trace(B @ independent_B)
+        return {
+            "objective": -rewards + penalties,
+            "rewards": rewards,
+            "penalties": penalties,
+        }
 
-    def get_dataset(self, views: Iterable[np.ndarray], validation_views=None):
-        dataset = DoubleNumpyDataset(
-            views, batch_size=self.batch_size, random_state=self.random_state
-        )
-        if validation_views is not None:
-            val_dataset = DoubleNumpyDataset(
-                validation_views, self.batch_size, self.random_state
-            )
+    def derivative(
+            self,
+            views: List[np.ndarray],
+            representations: List[np.ndarray],
+            independent_views: Optional[List[np.ndarray]] = None,
+            independent_representations: Optional[List[np.ndarray]] = None,
+    ):
+        A, B = CCA_AB(representations)
+        sum_representations = np.sum(np.stack(representations), axis=0)
+        n = sum_representations.shape[0]
+        rewards = [2 * view.T @ sum_representations / (n - 1) for view in views]
+        if independent_representations is None:
+            penalties = [
+                2 * view.T @ representation @ B / (n - 1)
+                for view, representation in zip(views, representations)
+            ]
         else:
-            val_dataset = None
-        return dataset, val_dataset
+            _, independent_B = CCA_AB(independent_representations)
+            penalties = [
+                view.T @ representation @ B / (n - 1)
+                + independent_view.T
+                @ independent_representation
+                @ independent_B
+                / (n - 1)
+                for view, representation, independent_view, independent_representation in zip(
+                    views,
+                    representations,
+                    independent_views,
+                    independent_representations,
+                )
+            ]
+        return [2 * (-reward + penalty) for reward, penalty in zip(rewards, penalties)]
 
 
-class PLS_EY(CCA_EY):
-    objective = _PLS_EYLoss()
+class PLS_EY(BaseGradientModel):
+    def loss(
+            self,
+            representations: List[np.ndarray],
+            independent_representations: Optional[List[np.ndarray]] = None,
+    ):
+        A, B = PLS_AB(representations, self.weights_)
+        rewards = np.trace(2 * A)
+        penalties = np.trace(B @ B)
+        return {
+            "objective": -rewards + penalties,
+            "rewards": rewards,
+            "penalties": penalties,
+        }
 
-    def training_step(self, batch, batch_idx):
-        opt = self.optimizers()
-        opt.zero_grad()
-        representations = self(batch["views"])
-        loss = self.objective.loss(representations, weights=self.torch_weights)
-        # Logging the loss components with "train/" prefix
-        for k, v in loss.items():
-            self.log(
-                f"train/{k}",
-                v,
-                prog_bar=True,
-                on_epoch=True,
-                batch_size=batch["views"][0].shape[0],
-            )
-        manual_grads = self.objective.derivative(
-            batch["views"], representations, weights=self.torch_weights
-        )
-        for i, weights in enumerate(self.torch_weights):
-            weights.grad = manual_grads[i]
-        opt.step()
-        return loss["objective"]
-
-    def validation_step(self, batch, batch_idx):
-        representations = self(batch["views"])
-        loss = self.objective.loss(representations, weights=self.torch_weights)
-        # Logging the loss components
-        for k, v in loss.items():
-            self.log(
-                f"val/{k}",
-                v,
-                prog_bar=True,
-                on_epoch=True,
-                batch_size=batch["views"][0].shape[0],
-            )
-        return loss["objective"]
+    def derivative(
+            self,
+            views: List[np.ndarray],
+            representations: List[np.ndarray],
+            independent_views: Optional[List[np.ndarray]] = None,
+            independent_representations: Optional[List[np.ndarray]] = None,
+    ):
+        sum_representations = np.sum(np.stack(representations), axis=0)
+        rewards = [
+            2 * cross_cov(view, sum_representations, rowvar=False) - 2 * cross_cov(view, representation, rowvar=False)
+            for
+            view, representation in zip(views, representations)]
+        penalties = [
+            2 * weights @ (weights.T @ weights)/(view.shape[0]-1)
+            for view, representation, weights in zip(views, representations, self.weights_)
+        ]
+        return [2 * (-reward + penalty) for reward, penalty in zip(rewards, penalties)]

@@ -4,9 +4,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
 import sys
-from pathlib import Path
-from typing import Any, Dict
-from sphinx.application import Sphinx
+import re
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -21,9 +19,9 @@ author = "James Chapman"
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 
-sys.path.insert(0, os.path.abspath('../..'))
-sys.path.insert(0, os.path.abspath('..'))
-sys.path.insert(0, os.path.abspath('../sphinxext'))
+sys.path.insert(0, os.path.abspath("../.."))
+sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("../sphinxext"))
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -35,7 +33,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx_gallery.gen_gallery",
     "sphinx_favicon",
-    'sphinx_design',
+    "sphinx_design",
 ]
 
 jupyterlite_config = "jupyterlite_config.json"
@@ -60,10 +58,28 @@ exclude_patterns = [
 ]
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The main toctree document.
-master_doc = 'index'
+master_doc = "index"
+
+# The default replacements for |version| and |release|, also used in various
+# other places throughout the built documents.
+import importlib.metadata
+
+__version__ = importlib.metadata.version("cca-zoo")
+version = re.sub(r"\.dev.*$", r".dev", __version__)
+release = version
+
+if (
+    os.environ.get("CIRCLE_JOB", False)
+    and os.environ.get("CIRCLE_BRANCH", "") != "main"
+):
+    version = os.environ["CIRCLE_BRANCH"]
+    release = version
+
+print(f"{project} (VERSION {version})")
+
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -124,7 +140,7 @@ html_theme = "pydata_sphinx_theme"
 html_logo = "logos/cca-zoo-logo.svg"
 html_favicon = "logos/cca-zoo-logo.svg"
 html_sourcelink_suffix = ""
-html_last_updated_fmt = ""  # to reveal the build date in the pages meta
+html_last_updated_fmt = ""
 
 html_theme_options = {
     "header_links_before_dropdown": 4,
@@ -150,7 +166,11 @@ html_theme_options = {
     "navbar_center": ["navbar-nav"],
     "footer_start": ["copyright"],
     "footer_center": ["sphinx-version"],
-    "navigation_with_keys": False,
+    "navbar_end": ["theme-switcher", "version-switcher", "navbar-icon-links"],
+    "switcher": {
+        "json_url": "https://scipy.github.io/devdocs/_static/version_switcher.json",
+        "version_match": version,
+    },
 }
 
 
@@ -161,14 +181,14 @@ html_context = {
     "doc_path": "docs",
 }
 
-html_static_path = ['_static']
-html_last_updated_fmt = '%b %d, %Y'
+html_static_path = ["_static"]
+html_last_updated_fmt = "%b %d, %Y"
 
 html_additional_pages = {}
 html_use_modindex = True
 html_domain_indices = False
 html_copy_source = False
-html_file_suffix = '.html'
+html_file_suffix = ".html"
 
 html_css_files = [
     "cca-zoo.css",

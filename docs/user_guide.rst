@@ -1,15 +1,15 @@
 .. _user_guide:
-
+===========
 User Guide
-==========
+===========
 
 Explore the robust capabilities of `cca-zoo` in facilitating multiview data analysis through Canonical Correlation Analysis (CCA) and its advanced variations.
 
 Model Fitting
--------------
+==============
 
 Preparing Your Data
-~~~~~~~~~~~~~~~~~~~
+==================-
 
 Ensure your data is appropriately preprocessed before analysis. In this example, we create two synthetic views, each containing 10 features.
 
@@ -26,7 +26,7 @@ Ensure your data is appropriately preprocessed before analysis. In this example,
     train_view_2 -= train_view_2.mean(axis=0)
 
 Initiating and Fitting Your Model
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------
 
 To begin, instantiate the CCA model and specify the desired number of latent dimensions.
 
@@ -41,10 +41,10 @@ To begin, instantiate the CCA model and specify the desired number of latent dim
     linear_cca.fit((train_view_1, train_view_2))
 
 Hyperparameter Tuning
----------------------
+=======================
 
 Manual vs Data-Driven Approaches
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------
 
 Hyperparameters can either be manually configured during model initialization or tuned in a data-driven manner using the `gridsearch_fit()` method.
 
@@ -111,7 +111,7 @@ Deep Models in CCA-Zoo
 Deep models in `cca-zoo` utilize neural networks as view encoders, capturing complex relationships between different views.
 
 Constructing Encoder Architectures
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--
 
 Here, we define encoder architectures using multi-layer perceptrons (MLPs).
 
@@ -123,7 +123,7 @@ Here, we define encoder architectures using multi-layer perceptrons (MLPs).
     encoder_2 = architectures.Encoder(latent_dimensions=latent_dimensions, feature_size=784)
 
 Deep CCA Model Initiation
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 Initialize a Deep CCA model using the encoder architectures.
 

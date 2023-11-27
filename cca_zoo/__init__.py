@@ -1,3 +1,5 @@
+__version__ = "latest"
+
 __all__ = [
     "datasets",
     "deep",

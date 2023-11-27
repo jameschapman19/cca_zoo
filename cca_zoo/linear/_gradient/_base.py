@@ -1,31 +1,17 @@
-import warnings
-from typing import Iterable, List, Union
+from typing import Iterable, List, Union, Optional
 
-import lightning.pytorch as pl
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
 from cca_zoo._base import _BaseModel
-from cca_zoo.deep.data import NumpyDataset
 from cca_zoo.linear._iterative._base import _default_initializer
 from cca_zoo.linear._mcca import MCCA
-
-# Default Trainer kwargs
-DEFAULT_TRAINER_KWARGS = dict(
-    enable_checkpointing=False,
-    logger=False,
-    enable_model_summary=False,
-    enable_progress_bar=False,
-    accelerator="cpu",
-)
-
-DEFAULT_LOADER_KWARGS = dict(pin_memory=False, drop_last=True, shuffle=True)
 
 DEFAULT_OPTIMIZER_KWARGS = dict(optimizer="SGD", nesterov=True, momentum=0.9)
 
 
-class BaseGradientModel(_BaseModel, pl.LightningModule):
+class BaseGradientModel(_BaseModel):
     def __init__(
         self,
         latent_dimensions: int = 1,
@@ -34,26 +20,25 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         tol=1e-3,
         accept_sparse=None,
         batch_size=None,
-        dataloader_kwargs=None,
         epochs=1,
         learning_rate=5e-3,
         initialization: Union[str, callable] = "random",
-        optimizer_kwargs=None,
-        early_stopping=True,
-        logging=False,
+        early_stopping=False,
+        patience=5,
+        nesterov=True,
+        momentum=0.9,
+        dampening=0.0,
     ):
-        _BaseModel.__init__(
-            self,
-            latent_dimensions=latent_dimensions,
-            copy_data=copy_data,
-            random_state=random_state,
-            accept_sparse=accept_sparse,
-        )
-        pl.LightningModule.__init__(self)
+        super().__init__(latent_dimensions, copy_data, accept_sparse, random_state)
         self.tol = tol
         self.batch_size = batch_size
         self.epochs = epochs
         self.learning_rate = learning_rate
+        self.early_stopping = early_stopping
+        self.patience = patience
+        self.nesterov = nesterov
+        self.momentum = momentum
+        self.dampening = dampening
         # validate the initialization method
         if initialization not in ["random", "uniform", "unregularized", "pls"]:
             raise ValueError(
@@ -61,17 +46,21 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
             )
         else:
             self.initialization = initialization
-        self.dataloader_kwargs = dataloader_kwargs or DEFAULT_LOADER_KWARGS
-        self.optimizer_kwargs = optimizer_kwargs or DEFAULT_OPTIMIZER_KWARGS
-        self.early_stopping = early_stopping
-        if early_stopping:
-            if not logging:
-                warnings.warn(
-                    "Early stopping is enabled. Logging is automatically enabled.",
-                    RuntimeWarning,
-                )
-            logging = True
-        self.logging = logging
+
+    def __call__(self, views: Iterable[np.ndarray]):
+        """Transform the input views using the learned weights_.
+
+        Parameters
+        ----------
+        views : Iterable[np.ndarray]
+            The input views to transform
+
+        Returns
+        -------
+        List[np.ndarray]
+            The transformed views
+        """
+        return self.transform(views)
 
     def fit(
         self,
@@ -84,78 +73,38 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         if validation_views is not None:
             validation_views = self._validate_data(validation_views)
         self._check_params()
-        self.weights_ = self._fit(
-            views, validation_views=validation_views, **trainer_kwargs
-        )
-        return self
-
-    def _fit(
-        self, views: Iterable[np.ndarray], validation_views=None, **trainer_kwargs
-    ):
         self._initialize(views)
-        # Set the weights_ attribute as torch parameters with gradients
-        self.torch_weights = torch.nn.ParameterList(
-            [
-                torch.nn.Parameter(torch.from_numpy(weight), requires_grad=True)
-                for weight in self.weights_
-            ]
-        )
-        # if self.early_stopping:
-        #     # Define the EarlyStopping callback
-        #     early_stop_callback = EarlyStopping(
-        #         monitor='train/objective',  # Metric to monitor
-        #         min_delta=0.05,  # Minimum change to qualify as an improvement
-        #         patience=3,  # Number of epochs with no improvement after which training will be stopped
-        #     )
-        trainer = pl.Trainer(
-            max_epochs=self.epochs,
-            # callbacks=early_stop_callback if self.early_stopping else None,
-            # if trainer_kwargs is not None trainer_kwargs will override the defaults
-            **{**DEFAULT_TRAINER_KWARGS, **trainer_kwargs},
-        )
+        self.velocity = [np.zeros_like(weight) for weight in self.weights_]
         train_dataset, val_dataset = self.get_dataset(
             views, validation_views=validation_views
         )
-        train_dataloader, val_dataloader = self.get_dataloader(
-            train_dataset, val_dataset
-        )
-        trainer.fit(self, train_dataloader, val_dataloader)
-        # return the weights_ from the module. They will need to be changed from torch tensors to numpy arrays
-        weights = [weight.detach().numpy() for weight in self.torch_weights]
-        return weights
+        best_val_loss = np.inf
+        for i in range(self.epochs):
+            for batch, independent_batch in train_dataset:
+                self.training_step(batch, independent_batch)
+            if val_dataset is not None:
+                val_loss = 0
+                for batch, independent_batch in val_dataset:
+                    val_loss += self.validation_step(batch, independent_batch)
+                val_loss /= len(val_dataset)
+
+                if self.early_stopping:
+                    if val_loss < best_val_loss:
+                        best_val_loss = val_loss
+                        best_weights = self.weights_
+                    else:
+                        if i > self.patience:
+                            self.weights_ = best_weights
+                            break
+        return self
 
     def get_dataset(self, views: Iterable[np.ndarray], validation_views=None):
-        dataset = NumpyDataset(views)
+        dataset = NumpyDataset(views, batch_size=self.batch_size)
         if validation_views is not None:
-            val_dataset = NumpyDataset(validation_views)
+            val_dataset = NumpyDataset(validation_views, batch_size=self.batch_size)
         else:
             val_dataset = None
         return dataset, val_dataset
-
-    def get_dataloader(self, train_dataset, val_dataset):
-        train_loader = DataLoader(
-            train_dataset,
-            batch_size=len(train_dataset)
-            if self.batch_size is None
-            else self.batch_size,
-            **self.dataloader_kwargs,
-        )
-        if val_dataset is not None:
-            self.dataloader_kwargs["shuffle"] = False
-            val_loader = DataLoader(
-                val_dataset,
-                batch_size=len(val_dataset)
-                if self.batch_size is None
-                else self.batch_size,
-                **self.dataloader_kwargs,
-            )
-        else:
-            val_loader = None
-        return train_loader, val_loader
-
-    def on_train_epoch_end(self) -> None:
-        scheduler = self.lr_schedulers()
-        scheduler.step()
 
     def _initialize(self, views: Iterable[np.ndarray]):
         """Initialize the CCA weights_ using the initialization method or function.
@@ -174,53 +123,54 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         self.weights_ = [weights.astype(np.float32) for weights in self.weights_]
 
     def _more_tags(self):
-        # Indicate that this class is for multiview data
-        return {"iterative": True}
+        return {"multiview": True, "stochastic": True}
 
-    def forward(self, views: List[torch.Tensor]) -> List[torch.Tensor]:
-        """Perform a forward pass on the input representations.
-
-        Args:
-            views (List[torch.Tensor]): The input representations as torch tensors.
-
-        Returns:
-            List[torch.Tensor]: The output representations as torch tensors.
-        """
-        return [view @ weight for view, weight in zip(views, self.torch_weights)]
-
-    def configure_optimizers(self) -> torch.optim.Optimizer:
-        """Configure the optimizer for the loop.
-
-        Returns:
-            torch.optim.Optimizer: The optimizer object.
-        """
-        # construct optimizer using optimizer_kwargs
-        optimizer_name = self.optimizer_kwargs.get("optimizer")
-        kwargs = self.optimizer_kwargs.copy()
-        kwargs.pop("optimizer", None)
-        optimizer = getattr(torch.optim, optimizer_name)(
-            self.torch_weights, lr=self.learning_rate, **kwargs
-        )
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(
-            optimizer, gamma=1.0 if self.batch_size is None else 0.9
-        )
-        return {
-            "optimizer": optimizer,
-            "lr_scheduler": scheduler,
-        }
-
-    def objective(self, *args, **kwargs) -> float:
-        """Compute the objective value for the loop.
-
-        This method should be implemented by subclasses.
-
-        Returns:
-            float: The objective value.
-
-        Raises:
-            NotImplementedError: If the method is not implemented by subclasses.
-        """
+    def loss(
+        self,
+        representations: List[np.ndarray],
+        independent_representations: Optional[List[np.ndarray]] = None,
+    ):
         raise NotImplementedError
+
+    def derivative(
+        self,
+        views: List[np.ndarray],
+        representations: List[np.ndarray],
+        independent_views: Optional[List[np.ndarray]] = None,
+        independent_representations: Optional[List[np.ndarray]] = None,
+    ):
+        raise NotImplementedError
+
+    def on_training_step_start(self):
+        pass
+
+    def training_step(self, batch, independent_batch=None):
+        self.on_training_step_start()
+        representations = self(batch)
+        independent_representations = (
+            self(independent_batch) if independent_batch is not None else None
+        )
+        loss = self.loss(representations, independent_representations)
+        manual_grads = self.derivative(
+            batch,
+            representations,
+            independent_batch,
+            independent_representations,
+        )
+        for i in range(len(self.weights_)):
+            if self.nesterov:
+                self.velocity[i] = -self.momentum * self.velocity[i] + (1-self.dampening)*manual_grads[i]
+                self.weights_[i] -= self.learning_rate * (manual_grads[i] - self.velocity[i])
+            else:
+                self.weights_[i] -= self.learning_rate * manual_grads[i]
+
+    def validation_step(self, batch, independent_batch=None):
+        representations = self(batch)
+        independent_representations = (
+            self(independent_batch) if independent_batch is not None else None
+        )
+        loss = self.loss(representations, independent_representations)
+        return loss["objective"]
 
     def correlation_captured(self, z):
         # Remove mean from each view
@@ -231,3 +181,40 @@ class BaseGradientModel(_BaseModel, pl.LightningModule):
         z = self.transform(loader)
         corr = self.correlation_captured(z)
         return corr
+
+
+class NumpyDataset:
+    def __init__(self, views, batch_size=None, shuffle=True, random_state=None):
+        self.views = [np.array(view, dtype=np.float32) for view in views]
+        self.batch_size = batch_size if batch_size is not None else len(self.views[0])
+        self.shuffle = shuffle
+        self.random_state = np.random.RandomState(random_state)
+        self.indices = np.arange(len(self.views[0]))
+
+    def __iter__(self):
+        if self.shuffle:
+            self.random_state.shuffle(self.indices)
+        self.n_batches = len(self) // self.batch_size
+        self.i = 0
+        return self
+
+    def __next__(self):
+        if self.i < self.n_batches:
+            indices = self.indices[
+                self.i * self.batch_size : (self.i + 1) * self.batch_size
+            ]
+            batch = [view[indices] for view in self.views]
+
+            # Generate random indices for the independent batch
+            independent_indices = self.random_state.randint(
+                0, len(self.views[0]), self.batch_size
+            )
+            independent_batch = [view[independent_indices] for view in self.views]
+
+            self.i += 1
+            return batch, independent_batch
+        else:
+            raise StopIteration
+
+    def __len__(self):
+        return len(self.views[0])
