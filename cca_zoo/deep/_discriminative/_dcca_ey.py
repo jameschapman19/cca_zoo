@@ -18,6 +18,6 @@ class DCCA_EY(DCCA):
 
     def loss(self, batch, **kwargs):
         # Encoding the representations with the forward method
-        z = self(batch["views"])
-        independent_views = batch.get("independent_views", None)
-        return self.objective.loss(z, independent_views)
+        representations = self(batch["views"])
+        independent_representations = self(batch["independent_views"])
+        return self.objective(representations, independent_representations)

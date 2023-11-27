@@ -73,7 +73,7 @@ class _MCCALoss:
         eigvals = eigvals[idx[:latent_dims]]
         return eigvals
 
-    def loss(self, representations: List[torch.Tensor]):
+    def __call__(self, representations: List[torch.Tensor]):
         """Calculate loss."""
         eigvals = self.correlation(representations)
         eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)])
@@ -116,7 +116,7 @@ class _GCCALoss:
         eigvals = eigvals[idx[:latent_dims]]
         return torch.nn.LeakyReLU()(eigvals)
 
-    def loss(self, representations: List[torch.Tensor]):
+    def __call__(self, representations: List[torch.Tensor]):
         """Calculate loss."""
         eigvals = self.correlation(representations)
         corr = eigvals.sum()
@@ -169,7 +169,7 @@ class _CCALoss:
 
         return eigvals
 
-    def loss(self, representations: List[torch.Tensor]):
+    def __call__(self, representations: List[torch.Tensor]):
         """Calculate loss."""
         eigvals = self.correlation(representations)
         eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)])
@@ -182,7 +182,7 @@ class _TCCALoss:
     def __init__(self, eps: float = 1e-4):
         self.eps = eps
 
-    def loss(self, representations: List[torch.Tensor]):
+    def __call__(self, representations: List[torch.Tensor]):
         latent_dims = representations[0].shape[1]
         views = [
             representation - representation.mean(dim=0)
@@ -227,10 +227,6 @@ def CCA_AB(representations: List[torch.Tensor]):
     B = torch.zeros(
         latent_dimensions, latent_dimensions, device=representations[0].device
     )  # initialize the auto-covariance matrix
-    # for zi in representations:
-    #     B.add_(torch.cov(zi.T))  # In-place addition
-    #     for zj in representations:
-    #         A.add_(torch_cross_cov(zi, zj))  # In-place addition
     for i, zi in enumerate(representations):
         B.add_(torch.cov(zi.T))  # In-place addition
         for j, zj in enumerate(representations):
@@ -240,35 +236,13 @@ def CCA_AB(representations: List[torch.Tensor]):
     B.div_(len(representations))  # In-place division
     return A, B
 
-
-@torch.jit.script
-def PLS_AB(representations: List[torch.Tensor], weights: List[torch.Tensor]):
-    latent_dimensions = representations[0].shape[1]
-    A = torch.zeros(
-        latent_dimensions, latent_dimensions, device=representations[0].device
-    )  # initialize the cross-covariance matrix
-    B = torch.zeros(
-        latent_dimensions, latent_dimensions, device=representations[0].device
-    )  # initialize the auto-covariance matrix
-
-    for i, zi in enumerate(representations):
-        B.add_(weights[i].T @ weights[i])  # In-place addition
-        for j, zj in enumerate(representations):
-            if i != j:
-                A.add_(torch_cross_cov(zi, zj))  # In-place addition
-
-    A.div_(len(representations))  # In-place division
-    B.div_(len(representations))  # In-place division
-    return A, B
-
-
 class _CCA_EYLoss:
     def __init__(self, eps: float = 1e-4):
         self.eps = eps
 
     @staticmethod
     @torch.jit.script
-    def loss(
+    def __call__(
         representations: List[torch.Tensor],
         independent_representations: Optional[List[torch.Tensor]] = None,
     ):
@@ -285,55 +259,22 @@ class _CCA_EYLoss:
             "penalties": penalties,
         }
 
-    @staticmethod
-    def derivative(
-        views: List[torch.Tensor],
-        representations: List[torch.Tensor],
-        independent_views: Optional[List[torch.Tensor]] = None,
-        independent_representations: Optional[List[torch.Tensor]] = None,
-    ):
-        A, B = CCA_AB(representations)
-        sum_representations = torch.sum(torch.stack(representations), dim=0)
-        n = sum_representations.shape[0]
-        rewards = [2 * view.T @ sum_representations / (n - 1) for view in views]
-        if independent_representations is None:
-            penalties = [
-                2 * view.T @ representation @ B / (n - 1)
-                for view, representation in zip(views, representations)
-            ]
-        else:
-            _, independent_B = CCA_AB(independent_representations)
-            penalties = [
-                view.T @ representation @ B / (n - 1)
-                + independent_view.T
-                @ independent_representation
-                @ independent_B
-                / (n - 1)
-                for view, representation, independent_view, independent_representation in zip(
-                    views,
-                    representations,
-                    independent_views,
-                    independent_representations,
-                )
-            ]
-        return [2 * (-reward + penalty) for reward, penalty in zip(rewards, penalties)]
-
 
 class _CCA_GHALoss(_CCA_EYLoss):
     @staticmethod
     @torch.jit.script
-    def loss(
+    def __call__(
         representations: List[torch.Tensor],
         independent_representations: Optional[List[torch.Tensor]] = None,
     ):
         A, B = CCA_AB(representations)
         rewards = torch.trace(A)
         if independent_representations is None:
-            rewards += torch.trace(A)
+            rewards.add_(torch.trace(A))
             penalties = torch.trace(A @ B)
         else:
             independent_A, independent_B = CCA_AB(independent_representations)
-            rewards += torch.trace(independent_A)
+            rewards.add_(torch.trace(independent_A))
             penalties = torch.trace(independent_A @ B)
         return {
             "objective": -rewards + penalties,
@@ -341,36 +282,11 @@ class _CCA_GHALoss(_CCA_EYLoss):
             "penalties": penalties,
         }
 
-    @staticmethod
-    def derivative(
-        views: List[torch.Tensor],
-        representations: List[torch.Tensor],
-        independent_views: Optional[List[torch.Tensor]] = None,
-        independent_representations: Optional[List[torch.Tensor]] = None,
-    ):
-        A, B = CCA_AB(representations)
-        sum_representations = torch.sum(torch.stack(representations), dim=0)
-        n = sum_representations.shape[0]
-        if independent_representations is None:
-            rewards = [2 * view.T @ sum_representations / (n - 1) for view in views]
-            penalties = [
-                2 * view.T @ representation @ A / (n - 1)
-                for view, representation in zip(views, representations)
-            ]
-        else:
-            independent_A, independent_B = CCA_AB(independent_representations)
-            rewards = [2 * view.T @ sum_representations / (n - 1) for view in views]
-            penalties = [
-                2 * view.T @ representation @ independent_A / (n - 1)
-                for view, representation in zip(views, representations)
-            ]
-        return [2 * (-reward + penalty) for reward, penalty in zip(rewards, penalties)]
-
 
 class _CCA_SVDLoss(_CCA_EYLoss):
     @staticmethod
     @torch.jit.script
-    def loss(
+    def __call__(
         representations: List[torch.Tensor],
         independent_representations: Optional[List[torch.Tensor]] = None,
     ):
@@ -392,79 +308,3 @@ class _CCA_SVDLoss(_CCA_EYLoss):
             "rewards": rewards,  # return the total rewards
             "penalties": penalties,  # return the penalties matrix
         }
-
-    @staticmethod
-    def derivative(
-        views: List[torch.Tensor],
-        representations: List[torch.Tensor],
-        independent_views: Optional[List[torch.Tensor]] = None,
-        independent_representations: Optional[List[torch.Tensor]] = None,
-    ):
-        C = torch.cov(torch.hstack(representations).T)
-        latent_dims = representations[0].shape[1]
-
-        Cxx = C[:latent_dims, :latent_dims]
-        sum_representations = torch.sum(torch.stack(representations), dim=0)
-        if independent_representations is None:
-            Cyy = C[latent_dims:, latent_dims:]
-        else:
-            Cyy = torch.cov(independent_representations[1].T)
-        n = sum_representations.shape[0]
-        rewards = [
-            2 * views[0].T @ representations[1] / (n - 1),
-            2 * views[1].T @ representations[0] / (n - 1),
-        ]
-        penalties = [
-            views[0].T @ representations[0] @ Cyy / (n - 1),
-            views[1].T @ representations[1] @ Cxx / (n - 1),
-        ]
-        return [2 * (-reward + penalty) for reward, penalty in zip(rewards, penalties)]
-
-
-class _PLS_EYLoss:
-    @staticmethod
-    @torch.jit.script
-    def loss(representations: List[torch.Tensor], weights: List[torch.Tensor]):
-        A, B = PLS_AB(representations, weights)
-        rewards = torch.trace(2 * A)
-        penalties = torch.trace(B @ B)
-        return {
-            "objective": -rewards + penalties,
-            "rewards": rewards,
-            "penalties": penalties,
-        }
-
-    @staticmethod
-    # @torch.jit.script
-    def derivative(
-        views: List[torch.Tensor],
-        representations: List[torch.Tensor],
-        weights: List[torch.Tensor],
-    ):
-        A, B = PLS_AB(representations, weights)
-        sum_representations = torch.sum(torch.stack(representations), dim=0)
-        n = sum_representations.shape[0]
-        rewards = [2 * view.T @ sum_representations / (n - 1) for view in views]
-        penalties = [
-            2 * view.T @ representation @ B / (n - 1)
-            for view, representation in zip(views, representations)
-        ]
-        return [2 * (-reward + penalty) for reward, penalty in zip(rewards, penalties)]
-
-
-class _PLS_PowerLoss:
-    @staticmethod
-    @torch.jit.script
-    def loss(representations: List[torch.Tensor]):
-        cov = torch.cov(torch.hstack(representations).T)
-        return {
-            "objective": torch.trace(
-                cov[: representations[0].shape[1], representations[0].shape[1] :]
-            )
-        }
-
-    @staticmethod
-    @torch.jit.script
-    def derivative(views: List[torch.Tensor], representations: List[torch.Tensor]):
-        grads = [views[0].T @ representations[1], views[1].T @ representations[0]]
-        return grads
