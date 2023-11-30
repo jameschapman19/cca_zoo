@@ -1,4 +1,4 @@
-__version__ = "latest"
+__version__ = "2.4.0"
 
 __all__ = [
     "datasets",

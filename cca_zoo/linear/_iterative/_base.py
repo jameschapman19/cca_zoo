@@ -18,9 +18,9 @@ class _BaseIterative(_BaseModel):
         latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
-        tol=1e-3,
+        tol=1e-6,
         accept_sparse=None,
-        epochs=100,
+        epochs=500,
         initialization: Union[str, callable] = "uniform",
         early_stopping=False,
         verbose=True,
@@ -70,17 +70,7 @@ class _BaseIterative(_BaseModel):
             for i in range(len(views)):
                 # Update the weights_ for the current view by solving a linear system
                 self.weights_[i] = self._update_weights(views, i)
-            # Check if the loss has decreased enough
-            curr_loss = self._objective(views)
-            if self.early_stopping:
-                weight_diff = np.sum(
-                    [
-                        np.linalg.norm(w - pw)
-                        for w, pw in zip(self.weights_, prev_weights)
-                    ]
-                ) / len(self.weights_)
-                if weight_diff < self.tol:
-                    print(f"Early stopping at epoch {epoch}")
+                if np.dot(self.weights_, prev_weights)<self.tol:
                     break
         # Return the final weights_
         return self.weights_
