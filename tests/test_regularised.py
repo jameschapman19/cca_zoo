@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.sparse as sp
 from scipy.stats import loguniform
 from sklearn.utils.validation import check_random_state
 
@@ -13,14 +12,12 @@ from cca_zoo.linear import (
     PRCCA,
     SCCA_IPLS,
     SPLS,
-    # AltMaxVar,
     ElasticCCA,
     PartialCCA,
     SCCA_Parkhomenko,
     SCCA_Span,
     rCCA,
 )
-from cca_zoo.linear._dummy import DummyCCA
 from cca_zoo.model_selection import GridSearchCV, RandomizedSearchCV
 from cca_zoo.nonparametric import KCCA
 
@@ -69,17 +66,23 @@ def test_sparse_methods():
     pmd_cv = GridSearchCV(SPLS(random_state=rng), param_grid=param_grid).fit([X, Y])
     assert (pmd_cv.best_estimator_.weights_[0] == 0).sum() > 0
     assert (pmd_cv.best_estimator_.weights_[1] == 0).sum() > 0
-    alpha1 = loguniform(1e-2, 2e-2)
-    alpha2 = loguniform(1e-2, 2e-2)
+    alpha1 = loguniform(1e-2, 5e-2)
+    alpha2 = loguniform(1e-2, 5e-2)
     param_grid = {"alpha": [alpha1, alpha2], "l1_ratio": [[0.9], [0.9]]}
     elastic_cv = RandomizedSearchCV(
-        ElasticCCA(random_state=rng), param_distributions=param_grid, n_iter=1
+        ElasticCCA(random_state=rng),
+        param_distributions=param_grid,
+        n_iter=10,
+        random_state=rng,
     ).fit([X, Y])
-    alpha1 = loguniform(1e-2, 2e-2)
-    alpha2 = loguniform(1e-2, 2e-2)
+    alpha1 = loguniform(1e-2, 5e-2)
+    alpha2 = loguniform(1e-2, 5e-2)
     param_grid = {"alpha": [alpha1, alpha2]}
     scca_cv = RandomizedSearchCV(
-        SCCA_IPLS(random_state=rng), param_distributions=param_grid, n_iter=1
+        SCCA_IPLS(random_state=rng),
+        param_distributions=param_grid,
+        n_iter=10,
+        random_state=rng,
     ).fit([X, Y])
     tau1 = [5e-1]
     tau2 = [5e-1]

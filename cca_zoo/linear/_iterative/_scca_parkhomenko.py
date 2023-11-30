@@ -4,13 +4,11 @@ import numpy as np
 
 from cca_zoo._utils import _process_parameter
 from cca_zoo.linear._iterative._base import _BaseIterative
-from cca_zoo.linear._iterative._deflation import _DeflationMixin
 
 
-class SCCA_Parkhomenko(_DeflationMixin, _BaseIterative):
+class SCCA_Parkhomenko(_BaseIterative):
     def __init__(
         self,
-        latent_dimensions: int = 1,
         copy_data=True,
         random_state=None,
         tol=1e-3,
@@ -22,7 +20,7 @@ class SCCA_Parkhomenko(_DeflationMixin, _BaseIterative):
         tau=None,  # regularization parameter for Parkhomenko
     ):
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            latent_dimensions=1,
             copy_data=copy_data,
             random_state=random_state,
             tol=tol,

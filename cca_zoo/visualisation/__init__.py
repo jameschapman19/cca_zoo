@@ -1,6 +1,14 @@
 """
 Utilities for visualising CCA results.
 """
+try:
+    import seaborn
+    import openTSNE
+    import umap
+except ImportError as error:
+    print(
+        "Warning: seaborn, openTSNE and/or umap are not installed. Some functionality in cca_zoo.visualisation may be limited."
+    )
 from .correlation import CorrelationHeatmapDisplay
 from .covariance import CovarianceHeatmapDisplay
 from .explained_covariance import ExplainedCovarianceDisplay

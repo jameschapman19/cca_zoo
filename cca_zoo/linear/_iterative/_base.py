@@ -70,8 +70,14 @@ class _BaseIterative(_BaseModel):
             for i in range(len(views)):
                 # Update the weights_ for the current view by solving a linear system
                 self.weights_[i] = self._update_weights(views, i)
-                if np.dot(self.weights_, prev_weights)<self.tol:
-                    break
+            if all(
+                [
+                    np.linalg.norm(self.weights_[j] - prev_weights[j]) < self.tol
+                    for j in range(len(views))
+                ]
+            ):
+                break
+            prev_weights = self.weights_.copy()
         # Return the final weights_
         return self.weights_
 

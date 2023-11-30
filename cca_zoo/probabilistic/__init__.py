@@ -4,7 +4,9 @@ Probabilistic CCA methods
 try:
     import numpyro
 except ModuleNotFoundError as error:
-    print("Warning: numpyro is not installed. Some functionality in cca_zoo.probabilistic may be limited.")
+    print(
+        "Warning: numpyro is not installed. Some functionality in cca_zoo.probabilistic may be limited."
+    )
 from ._cca import ProbabilisticCCA
 from ._pls import ProbabilisticPLS
 from ._plsregression import ProbabilisticPLSRegression
