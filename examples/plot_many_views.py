@@ -58,11 +58,7 @@ kgcca = KGCCA(latent_dimensions=latent_dimensions).fit((X, Y, X)).score((X, Y, Z
 # These methods employ iterative algorithms to deduce optimal linear transformations for the representations.
 
 # SPLS (Sparse CCA by Penalized Matrix Decomposition) - A sparse CCA variant.
-pmd = (
-    SPLS(tau=0.1, tol=1e-5)
-    .fit((X, Y, X))
-    .score((X, Y, Z))
-)
+pmd = SPLS(tau=0.1, tol=1e-5).fit((X, Y, X)).score((X, Y, Z))
 
 # %%
 # Tensor Decomposition Methods
