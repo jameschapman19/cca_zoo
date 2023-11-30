@@ -18,7 +18,7 @@ from ._discriminative._dcca_gha import DCCA_GHA
 from ._discriminative._dcca_noi import DCCA_NOI
 from ._discriminative._dcca_sdl import DCCA_SDL
 from ._discriminative._dcca_svd import DCCA_SVD
-from ._discriminative._dcca_vicreg import VICReg
+from ._discriminative._vicreg import VICReg
 from ._discriminative._dgcca import DGCCA
 from ._discriminative._dmcca import DMCCA
 from ._discriminative._dtcca import DTCCA
