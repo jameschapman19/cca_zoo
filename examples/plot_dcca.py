@@ -21,7 +21,15 @@ Key Features:
 import lightning.pytorch as pl
 from lightning import seed_everything
 from matplotlib import pyplot as plt
-from cca_zoo.deep import DCCA, DCCA_EY, DCCA_NOI, DCCA_SDL, BarlowTwins, VICReg, architectures
+from cca_zoo.deep import (
+    DCCA,
+    DCCA_EY,
+    DCCA_NOI,
+    DCCA_SDL,
+    BarlowTwins,
+    VICReg,
+    architectures,
+)
 from cca_zoo.visualisation import (
     ScoreScatterDisplay,
     UMAPScoreDisplay,
