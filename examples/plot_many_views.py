@@ -59,7 +59,7 @@ kgcca = KGCCA(latent_dimensions=latent_dimensions).fit((X, Y, X)).score((X, Y, Z
 
 # SPLS (Sparse CCA by Penalized Matrix Decomposition) - A sparse CCA variant.
 pmd = (
-    SPLS(latent_dimensions=latent_dimensions, tau=0.1, tol=1e-5)
+    SPLS(tau=0.1, tol=1e-5)
     .fit((X, Y, X))
     .score((X, Y, Z))
 )
