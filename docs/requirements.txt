@@ -1,5 +1,12 @@
 protobuf==3.20.1
-cca_zoo[all]
+cca_zoo
+jax
+numpyro
+arviz
+funsor
+torch
+lightning
+torchvision
 sphinx
 sphinx-gallery
 sphinx-favicon
@@ -12,8 +19,6 @@ colorcet
 seaborn
 pandas
 matplotlib
-torch
-torchvision
 Pillow
 multiviewdata
 matplotlib==3.8.0
