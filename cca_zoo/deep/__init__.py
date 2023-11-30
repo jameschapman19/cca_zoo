@@ -5,7 +5,9 @@ try:
     import lightning.pytorch as pl
 except ModuleNotFoundError as error:
     # Handle the ImportError here, for example, you can print a warning message
-    print("Warning: PyTorch is not installed. Some functionality in cca_zoo.deep may be limited.")
+    print(
+        "Warning: PyTorch is not installed. Some functionality in cca_zoo.deep may be limited."
+    )
 from . import architectures
 from . import architectures, objectives
 from . import data
