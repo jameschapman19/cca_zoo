@@ -12,7 +12,7 @@ from cca_zoo.linear._pls import PLSMixin
 from cca_zoo.linear._search import _delta_search
 
 
-class SPLS(_DeflationMixin,_BaseIterative, PLSMixin):
+class SPLS(_DeflationMixin, _BaseIterative, PLSMixin):
     def __init__(
         self,
         latent_dimensions: int = 1,

@@ -7,7 +7,7 @@ from cca_zoo.linear._iterative._base import _BaseIterative
 from cca_zoo.linear._iterative._deflation import _DeflationMixin
 
 
-class SCCA_Parkhomenko(_DeflationMixin,_BaseIterative):
+class SCCA_Parkhomenko(_DeflationMixin, _BaseIterative):
     def __init__(
         self,
         latent_dimensions: int = 1,
