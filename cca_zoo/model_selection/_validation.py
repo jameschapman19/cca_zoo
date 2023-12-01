@@ -1,5 +1,4 @@
 import numpy as np
-from mvlearn.compose import SimpleSplitter
 from sklearn import clone
 from sklearn.base import is_classifier
 from sklearn.metrics import check_scoring
@@ -9,6 +8,8 @@ from sklearn.model_selection._validation import _permutation_test_score, _shuffl
 from sklearn.pipeline import Pipeline
 from sklearn.utils import indexable, check_random_state
 from sklearn.utils.parallel import Parallel, delayed
+
+from cca_zoo._utils._splitter import SimpleSplitter
 
 
 def cross_validate(
