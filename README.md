@@ -41,7 +41,7 @@ Whether you're a `pip` enthusiast or a `poetry` aficionado, installing CCA-Zoo i
 ```bash
 pip install cca-zoo
 # For additional features
-pip install cca-zoo[probabilistic]
+pip install cca-zoo[probabilistic, visualisation, deep]
 ```
 
 For Poetry users:
@@ -49,8 +49,14 @@ For Poetry users:
 ```bash
 poetry add cca-zoo
 # For extra features
-poetry add cca-zoo[probabilistic]
+poetry add cca-zoo[probabilistic, visualisation, deep]
 ```
+
+Note that `deep` requires `torch` and `lightning` which may be better installed separately following the [PyTorch installation guide](https://pytorch.org/get-started/locally/).
+
+`probabilistic` requires `numpyro` which may be better installed separately following the [NumPyro installation guide](https://num.pyro.ai/en/stable/getting_started.html#installation).
+
+`visualisation` requires `matplotlib` and `seaborn`
 
 ## 🏎️ Performance Highlights
 CCA-Zoo shines when it comes to high-dimensional data analysis. It significantly outperforms scikit-learn, particularly as dimensionality increases. For comprehensive benchmarks, see our [script](benchmark/cca_high_dimensions.py) and the graph below.
