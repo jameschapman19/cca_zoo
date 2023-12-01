@@ -70,7 +70,7 @@ class PRCCA(MCCA):
         # Check the parameters
         self._check_params()
         if idxs is None:
-            warnings.warn(f"No idxs provided, using all features")
+            warnings.warn("No idxs provided, using all features")
             idxs = [np.arange(views[0].shape[1], dtype=int)] * self.n_views_
         for idx in idxs:
             assert np.issubdtype(

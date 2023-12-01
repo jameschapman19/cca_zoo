@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from cca_zoo._base import _BaseModel
-from cca_zoo.linear import MPLS
 
 N = 10
 features = [3, 3, 3]

@@ -59,7 +59,7 @@ class SCCA_Span(_DeflationMixin, _BaseIterative):
     def _check_params(self):
         """check number of representations=2"""
         if self.n_views_ != 2:
-            raise ValueError(f"SCCA_Span requires only 2 representations")
+            raise ValueError("SCCA_Span requires only 2 representations")
         self.max_obj = 0
         if self.regularisation == "l0":
             self.update = support_threshold

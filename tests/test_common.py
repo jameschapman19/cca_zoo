@@ -5,10 +5,6 @@ from sklearn.utils.estimator_checks import check_estimator
 
 from cca_zoo.linear import (
     GCCA,
-    CCA_EY,
-    CCA_GHA,
-    PLS_EY,
-    PLSStochasticPower,
     GRCCA,
     PLS_ALS,
     SCCA_IPLS,

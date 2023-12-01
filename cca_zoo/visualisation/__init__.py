@@ -4,7 +4,7 @@ Utilities for visualising CCA results.
 try:
     import seaborn
     import matplotlib.pyplot as plt
-except ImportError as error:
+except ImportError:
     print(
         "Warning: seaborn or matplotlib are not installed. Some functionality in cca_zoo.visualisation may be limited."
     )

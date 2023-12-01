@@ -13,7 +13,6 @@ from cca_zoo.deep import (
     DCCA_SVD,
     DCCAE,
     DGCCA,
-    DTCCA,
     DVCCA,
     BarlowTwins,
     SplitAE,
@@ -22,7 +21,7 @@ from cca_zoo.deep import (
 )
 from cca_zoo.deep._discriminative._dmcca import DMCCA
 from cca_zoo.deep.data import NumpyDataset, get_dataloaders, check_dataset
-from cca_zoo.linear import CCA, GCCA, MCCA, TCCA
+from cca_zoo.linear import CCA, GCCA, MCCA
 
 seed_everything(0)
 rng = check_random_state(0)

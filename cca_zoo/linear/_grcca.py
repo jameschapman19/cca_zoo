@@ -94,7 +94,7 @@ class GRCCA(MCCA):
     def _process_data(self, views, feature_groups=None, **kwargs):
         # Use all features if no feature groups are provided
         if feature_groups is None:
-            warnings.warn(f"No feature groups provided, using all features")
+            warnings.warn("No feature groups provided, using all features")
             feature_groups = [np.ones(view.shape[1], dtype=int) for view in views]
 
         # Check that feature groups are integers

@@ -1,7 +1,6 @@
 # Import the necessary modules
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
-import numpy as np
 import pandas as pd
 import seaborn as sns
 

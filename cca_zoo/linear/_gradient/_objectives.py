@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 import numpy as np
 
 from cca_zoo._utils import cross_cov

@@ -3,7 +3,7 @@ Probabilistic CCA methods
 """
 try:
     import numpyro
-except ModuleNotFoundError as error:
+except ModuleNotFoundError:
     print(
         "Warning: numpyro is not installed. Some functionality in cca_zoo.probabilistic may be limited."
     )
