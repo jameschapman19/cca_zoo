@@ -1,14 +1,15 @@
 """
 The :mod:`cca_zoo.deep` module includes a variety of deep CCA algorithms.
 """
-try:
-    import lightning.pytorch as pl
-except ModuleNotFoundError:
-    # Handle the ImportError here, for example, you can print a warning message
+import importlib.util
+
+if (
+    importlib.util.find_spec("torch") is None
+    or importlib.util.find_spec("lightning") is None
+):
     print(
-        "Warning: PyTorch is not installed. Some functionality in cca_zoo.deep may be limited."
+        "Warning: torch or lightning are not installed. Some functionality in cca_zoo.deep may be limited."
     )
-from . import architectures
 from . import architectures, objectives
 from ._discriminative._dcca import DCCA
 from ._discriminative._dcca_barlow_twins import BarlowTwins

@@ -209,6 +209,16 @@ def check_gglasso_support(caller_name):
         )
 
 
+def check_graphviz_support(caller_name):
+    try:
+        import graphviz
+    except ImportError:
+        raise ImportError(
+            f"{caller_name} requires rdata. "
+            "Please install pyreadr using `pip install rdata`"
+        )
+
+
 def check_rdata_support(caller_name):
     try:
         import rdata

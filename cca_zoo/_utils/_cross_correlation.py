@@ -12,7 +12,7 @@ def cross_corrcoef(A, B, rowvar=True):
     Returns:
         np.ndarray or torch.Tensor: Matrix of size (p, q) containing the cross correlation of A and B.
     """
-    if rowvar == False:
+    if rowvar is False:
         A = A.T
         B = B.T
 
@@ -38,7 +38,7 @@ def cross_cov(A, B, rowvar=True, bias=False):
     Returns:
         np.ndarray or torch.Tensor: Matrix of size (p, q) containing the cross covariance of A and B.
     """
-    if rowvar == False:
+    if rowvar is False:
         A = A.T
         B = B.T
     A = A - A.mean(axis=1, keepdims=True)

@@ -5,6 +5,7 @@
 import os
 import sys
 import re
+import importlib.metadata
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -62,10 +63,6 @@ source_suffix = ".rst"
 
 # The main toctree document.
 master_doc = "index"
-
-# The default replacements for |version| and |release|, also used in various
-# other places throughout the built documents.
-import importlib.metadata
 
 __version__ = importlib.metadata.version("cca-zoo")
 version = re.sub(r"\.dev.*$", r".dev", __version__)

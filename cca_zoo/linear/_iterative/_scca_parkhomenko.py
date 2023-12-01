@@ -2,7 +2,7 @@ from typing import Union, Iterable
 
 import numpy as np
 
-from cca_zoo._utils import _process_parameter
+from cca_zoo._utils._checks import _process_parameter
 from cca_zoo.linear._iterative._base import _BaseIterative
 from cca_zoo.linear._iterative._deflation import _DeflationMixin
 

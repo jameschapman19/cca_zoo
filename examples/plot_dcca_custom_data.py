@@ -12,7 +12,7 @@ Key Features:
 - Creating a custom dataset class from scratch.
 - Training a Deep CCA model on custom datasets.
 """
-
+import torch
 import numpy as np
 import lightning.pytorch as pl
 
@@ -49,8 +49,6 @@ check_dataset(numpy_dataset)
 # The new class should inherit from the native `torch.utils.data.Dataset` class.
 # The class must implement the `__getitem__` method to return a tuple consisting
 # of multiple representations and an associated label, where representations are represented as torch tensors.
-
-import torch
 
 
 class CustomDataset(torch.utils.data.Dataset):

@@ -1,4 +1,4 @@
-from cca_zoo._utils import cross_cov
+from cca_zoo._utils._cross_correlation import cross_cov
 from cca_zoo.linear._gradient._base import BaseGradientModel
 from cca_zoo.linear._gradient._objectives import CCA_AB, PLS_AB
 import numpy as np

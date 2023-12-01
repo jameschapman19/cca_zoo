@@ -1,10 +1,11 @@
 """
 Utilities for visualising CCA results.
 """
-try:
-    import seaborn
-    import matplotlib.pyplot as plt
-except ImportError:
+import importlib.util
+
+if importlib.util.find_spec("seaborn") is None or importlib.util.find_spec(
+    "matplotlib.pyplot"
+):
     print(
         "Warning: seaborn or matplotlib are not installed. Some functionality in cca_zoo.visualisation may be limited."
     )

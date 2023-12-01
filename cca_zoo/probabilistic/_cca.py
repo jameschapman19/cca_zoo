@@ -8,6 +8,7 @@ from jax.random import PRNGKey
 from numpyro.infer import SVI
 
 from cca_zoo._base import _BaseModel
+from cca_zoo._utils._checks import check_graphviz_support
 
 
 class ProbabilisticCCA(_BaseModel):
@@ -212,14 +213,10 @@ class ProbabilisticCCA(_BaseModel):
         )
 
         with numpyro.plate("n", self.n_samples_):
-            z = numpyro.sample("z", dist.MultivariateNormal(z_loc, jnp.diag(z_scale)))
+            numpyro.sample("z", dist.MultivariateNormal(z_loc, jnp.diag(z_scale)))
 
     def render(self, views):
-        # check if graphviz is installed
-        try:
-            import graphviz
-        except ImportError:
-            raise ImportError("In order to use render, graphviz must be installed.")
+        check_graphviz_support("ProbabilisticCCA")
         self.rendering = numpyro.render_model(
             self._model, model_args=(views,), filename="model.pdf"
         )

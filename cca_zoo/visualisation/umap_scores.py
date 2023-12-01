@@ -1,6 +1,6 @@
 import seaborn as sns
 
-from cca_zoo._utils.check_values import check_umap_support, check_seaborn_support
+from cca_zoo._utils._checks import check_umap_support, check_seaborn_support
 from cca_zoo.visualisation import ScoreScatterDisplay
 
 

@@ -2,7 +2,7 @@ from typing import Iterable, Union
 
 import numpy as np
 
-from cca_zoo._utils.check_values import _process_parameter
+from cca_zoo._utils._checks import _process_parameter
 from cca_zoo.linear._mcca import MCCA
 
 

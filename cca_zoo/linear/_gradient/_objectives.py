@@ -1,7 +1,7 @@
 from typing import List
 import numpy as np
 
-from cca_zoo._utils import cross_cov
+from cca_zoo._utils._cross_correlation import cross_cov
 
 
 def CCA_AB(representations: List[np.ndarray]):

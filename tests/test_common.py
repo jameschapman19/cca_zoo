@@ -38,7 +38,7 @@ class HackyDuplicator(TransformerMixin, BaseEstimator):
 
 class HackyJoiner(TransformerMixin, BaseEstimator):
     def fit(self, views, y=None):
-        X = self._validate_data(
+        self._validate_data(
             views[0],
             accept_sparse="csc",
         )

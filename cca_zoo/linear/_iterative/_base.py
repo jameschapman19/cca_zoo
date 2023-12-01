@@ -55,8 +55,6 @@ class _BaseIterative(_BaseModel):
         self._initialize(views)
         self._check_params()
         # Solve using alternating optimisation across the representations until convergence
-        # Initialize the loss and the previous weights_
-        loss = np.inf
         prev_weights = self.weights_.copy()
         # Loop over the epochs
         for epoch in tqdm(

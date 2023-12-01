@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from cca_zoo._utils.check_values import check_seaborn_support
-from cca_zoo._utils.cross_correlation import cross_corrcoef
+from cca_zoo._utils._checks import check_seaborn_support
+from cca_zoo._utils._cross_correlation import cross_corrcoef
 
 
 class ScoreScatterDisplay:

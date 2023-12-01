@@ -133,7 +133,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
         )
 
         with numpyro.plate("n", self.n_samples_):
-            z = numpyro.sample("z", dist.MultivariateNormal(z_loc, jnp.diag(z_scale)))
+            numpyro.sample("z", dist.MultivariateNormal(z_loc, jnp.diag(z_scale)))
 
     def joint(self):
         psi1 = jnp.eye(self.n_features_in_[0]) * self.params["sigma_1"]

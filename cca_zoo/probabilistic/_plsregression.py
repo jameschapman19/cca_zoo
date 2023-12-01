@@ -144,13 +144,13 @@ class ProbabilisticPLSRegression(ProbabilisticCCA):
         n = X1.shape[0] if X1 is not None else X2.shape[0]
 
         with numpyro.plate("n", n):
-            t = numpyro.sample(
+            numpyro.sample(
                 "t",
                 dist.MultivariateNormal(
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
                 ),
             )
-            u = numpyro.sample(
+            numpyro.sample(
                 "u",
                 dist.MultivariateNormal(
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)

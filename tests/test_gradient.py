@@ -1,8 +1,6 @@
 import numpy as np
 from sklearn.utils import check_random_state
 from torch import manual_seed
-
-manual_seed(42)
 from cca_zoo.linear import (
     CCA,
     PLS,
@@ -12,7 +10,7 @@ from cca_zoo.linear import (
     PLS_EY,
     PLSStochasticPower,
 )
-
+manual_seed(42)
 n = 100
 rng = check_random_state(0)
 X = rng.rand(n, 4)
