@@ -1,9 +1,10 @@
 """
 Preprocessing methods for multi-view data.
 """
-from mvlearn.utils import check_Xs
 from sklearn.base import TransformerMixin
 from sklearn.utils.validation import check_is_fitted
+
+from cca_zoo._utils._checks import check_Xs
 
 
 class MultiViewPreprocessing(TransformerMixin):
