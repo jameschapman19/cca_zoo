@@ -10,6 +10,7 @@ from cca_zoo.linear import (
     PLS_EY,
     PLSStochasticPower,
 )
+
 manual_seed(42)
 n = 100
 rng = check_random_state(0)
