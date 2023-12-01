@@ -16,7 +16,6 @@ scikit-learn = "^1.2.2"
 pandas = "*"
 tensorly = "*"
 joblib = "*"
-mvlearn = "*"
 tqdm = "*"
 
 # Optional dependencies
@@ -36,6 +35,7 @@ lightning = "*"
  priority = "explicit"
 
 [tool.poetry.extras]
+visualisation = ["seaborn", "opentsne", "umap-learn", "matplotlib"]
 probabilistic = ["jax", "numpyro", "arviz", "funsor"]
 deep = ["torch", "lightning"]
 

@@ -5,9 +5,10 @@ try:
     import seaborn
     import openTSNE
     import umap
+    import matplotlib.pyplot as plt
 except ImportError as error:
     print(
-        "Warning: seaborn, openTSNE and/or umap are not installed. Some functionality in cca_zoo.visualisation may be limited."
+        "Warning: seaborn, matplotlib, openTSNE and/or umap are not installed. Some functionality in cca_zoo.visualisation may be limited."
     )
 from .correlation import CorrelationHeatmapDisplay
 from .covariance import CovarianceHeatmapDisplay
