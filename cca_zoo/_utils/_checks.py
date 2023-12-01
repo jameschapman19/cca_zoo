@@ -161,7 +161,7 @@ def _check_batch_size(batch_size, latent_dimensions):
 
 def check_tsne_support(caller_name):
     try:
-        import openTSNE
+        import openTSNE  # noqa
     except ImportError:
         raise ImportError(
             f"{caller_name} requires openTSNE. "
@@ -171,7 +171,7 @@ def check_tsne_support(caller_name):
 
 def check_umap_support(caller_name):
     try:
-        import umap
+        import umap  # noqa
     except ImportError:
         raise ImportError(
             f"{caller_name} requires umap. "
@@ -181,7 +181,7 @@ def check_umap_support(caller_name):
 
 def check_seaborn_support(caller_name):
     try:
-        import seaborn
+        import seaborn  # noqa
     except ImportError:
         raise ImportError(
             f"{caller_name} requires seaborn. "
@@ -191,7 +191,7 @@ def check_seaborn_support(caller_name):
 
 def check_arviz_support(caller_name):
     try:
-        import arviz as az
+        import arviz as az  # noqa
     except ImportError:
         raise ImportError(
             f"{caller_name} requires arviz. "
@@ -201,7 +201,7 @@ def check_arviz_support(caller_name):
 
 def check_gglasso_support(caller_name):
     try:
-        import gglasso
+        import gglasso  # noqa
     except ImportError:
         raise ImportError(
             f"{caller_name} requires gglasso. "
@@ -211,7 +211,7 @@ def check_gglasso_support(caller_name):
 
 def check_graphviz_support(caller_name):
     try:
-        import graphviz
+        import graphviz  # noqa
     except ImportError:
         raise ImportError(
             f"{caller_name} requires rdata. "
@@ -221,7 +221,7 @@ def check_graphviz_support(caller_name):
 
 def check_rdata_support(caller_name):
     try:
-        import rdata
+        import rdata  # noqa
     except ImportError:
         raise ImportError(
             f"{caller_name} requires rdata. "

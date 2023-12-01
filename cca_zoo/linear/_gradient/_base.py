@@ -147,7 +147,7 @@ class BaseGradientModel(_BaseModel):
         independent_representations = (
             self(independent_batch) if independent_batch is not None else None
         )
-        loss = self.loss(representations, independent_representations)
+        loss = self.loss(representations, independent_representations)  # noqa
         manual_grads = self.derivative(
             batch,
             representations,

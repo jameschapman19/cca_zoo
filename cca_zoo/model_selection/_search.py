@@ -2,7 +2,6 @@ import itertools
 from typing import Iterable
 
 import numpy as np
-from mvlearn.compose import SimpleSplitter
 from sklearn import clone
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.model_selection import ParameterGrid
@@ -12,6 +11,8 @@ from sklearn.model_selection._search import (
 from sklearn.model_selection._search import ParameterSampler
 from sklearn.pipeline import Pipeline
 from sklearn.utils import check_random_state
+
+from cca_zoo._utils._splitter import SimpleSplitter
 
 
 def param2grid(params):
