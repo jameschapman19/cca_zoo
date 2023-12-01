@@ -35,6 +35,7 @@ __all__ = [
     "DCCA_SDL",
     "DVCCA",
     "BarlowTwins",
+    "VICReg",
     "DTCCA",
     "DCCA_EY",
     "SplitAE",
