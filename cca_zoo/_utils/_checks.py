@@ -114,6 +114,7 @@ def check_Xs(
     else:
         return Xs
 
+
 def _process_parameter(parameter_name: str, parameter, default, n_views: int):
     if parameter is None:
         parameter = [default] * n_views

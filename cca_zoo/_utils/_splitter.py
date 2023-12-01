@@ -51,6 +51,7 @@ class SimpleSplitter(TransformerMixin):
     --------
     ConcatMerger
     """
+
     def __init__(self, n_features):
         self.n_features = n_features
 
@@ -76,8 +77,9 @@ class SimpleSplitter(TransformerMixin):
         _, n_total_features = X.shape
         self.n_total_features_ = sum(self.n_features)
         if self.n_total_features_ != n_total_features:
-            raise ValueError("The number of features of X should equal the sum"
-                             " of n_features")
+            raise ValueError(
+                "The number of features of X should equal the sum" " of n_features"
+            )
         self.n_views_ = len(self.n_features)
         return self
 
@@ -145,7 +147,8 @@ class SimpleSplitter(TransformerMixin):
         Xs = check_Xs(Xs)
         for X, n_feature in zip(Xs, self.n_features):
             if X.shape[1] != n_feature:
-                raise ValueError("The number of features in Xs does not match"
-                                 " n_features")
+                raise ValueError(
+                    "The number of features in Xs does not match" " n_features"
+                )
 
         return np.hstack(Xs)

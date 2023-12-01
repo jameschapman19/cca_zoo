@@ -5,4 +5,3 @@ from ._checks import (
     _process_parameter,
 )
 from ._cross_correlation import cross_cov, cross_corrcoef
-
