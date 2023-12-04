@@ -12,12 +12,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+      - uses: actions/checkout@v4
+        with: 
+          ref: ${{ github.head_ref }}
       - name: Bump pyproject.toml Version
         run: perl -pi -e "s/0\.0\.0/${GITHUB_REF##*/v}/g" ./pyproject.toml
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          ref: ${{ github.head_ref }}
           commit_message: Automated Change
           branch: version_bump
           create_branch: true
