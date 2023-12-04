@@ -23,6 +23,7 @@ jobs:
         with:
           commit_message: Format code with black
           push_options: '--force'
+          ref: ${{ github.head_ref }}
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
