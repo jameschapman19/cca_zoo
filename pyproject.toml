@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cca-zoo"
-version = "0.0.0"
+version = "2.5.0"
 description = "Canonical Correlation Analysis Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic methods in a scikit-learn style framework"
 authors = ["jameschapman <james.chapman.19@ucl.ac.uk>"]
 license = "MIT"
