@@ -17,6 +17,7 @@ jobs:
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
+          ref: ${{ github.head_ref }}
           commit_message: Automated Change
           branch: version_bump
           create_branch: true
