@@ -21,10 +21,9 @@ jobs:
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          branch: feature-123
+          branch: main
           commit_message: Format code with black
           push_options: '--force'
-          create_branch: true
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
