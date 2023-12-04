@@ -6,26 +6,16 @@ name: Upload Python Package
 on:
   release:
     types: [ published ]
-    branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.8"
-
       - name: Bump pyproject.toml Version
         run: perl -pi -e "s/0\.0\.0/${GITHUB_REF##*/v}/g" ./pyproject.toml
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: Format code with black
-          branch: ${{ github.head_ref }}
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
