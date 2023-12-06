@@ -10,12 +10,8 @@ keywords = ["cca"]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0.0"
-numpy = "*"
-scipy = "*"
 scikit-learn = "^1.2.2"
-pandas = "*"
 tensorly = "*"
-joblib = "*"
 tqdm = "*"
 
 # Optional dependencies

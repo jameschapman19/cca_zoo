@@ -314,9 +314,8 @@ class JointData(_BaseData):
         loadings *= mask
         if is_positive:
             loadings = np.abs(loadings)
-        loadings = self._decorrelate_weights(loadings, covariance_factor)
         return loadings / np.sqrt(
-            np.diag(loadings.T @ covariance_factor @ covariance_factor.T @ loadings)
+            np.diag((loadings.T @ covariance_factor) @ (covariance_factor.T @ loadings))
         )
 
     def _generate_joint_covariance(self, covariance_factors):
@@ -326,9 +325,8 @@ class JointData(_BaseData):
                 covariance_factor @ covariance_factor.T
                 for covariance_factor in covariance_factors
             ]
-        ).toarray()
+        )
         split_points = np.concatenate(([0], np.cumsum(self.view_features)))
-
         for i, j in itertools.combinations(range(len(split_points) - 1), 2):
             cross_cov = self._compute_cross_covariance(covariance_factors, i, j)
             joint_covariance[
@@ -343,10 +341,10 @@ class JointData(_BaseData):
 
     def _compute_cross_covariance(self, cov_factors, i, j):
         """Computes the cross-covariance matrix for a pair of representations."""
-        cross_cov = np.zeros((self.view_features[i], self.view_features[j]))
+        cross_cov = scipy.zeros((self.view_features[i], self.view_features[j]))
 
         for _ in range(self.latent_dimensions):
-            outer_product = np.outer(
+            outer_product = scipy.outer(
                 self.true_features[i][:, _], self.true_features[j][:, _]
             )
             cross_cov += (
@@ -358,16 +356,6 @@ class JointData(_BaseData):
             )
 
         return cross_cov
-
-    @staticmethod
-    def _decorrelate_weights(weights, covariance_factor):
-        product = (weights.T @ covariance_factor) @ (covariance_factor.T @ weights)
-        for k in range(1, product.shape[0]):
-            weights[:, k:] -= np.outer(
-                weights[:, k - 1], product[k - 1, k:] / product[k - 1, k - 1]
-            )
-            product = (weights.T @ covariance_factor) @ (covariance_factor.T @ weights)
-        return weights
 
     def sample(self, n_samples: int):
         random_data = self.random_state.standard_normal(
