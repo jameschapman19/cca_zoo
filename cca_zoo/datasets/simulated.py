@@ -18,12 +18,12 @@ def cov_eigvals(X):
 
 class _BaseData(ABC):
     def __init__(
-        self,
-        view_features: List[int],
-        latent_dimensions: int = 1,
-        random_state: Union[int, np.random.RandomState] = None,
-        rank: int = None,
-        density: float = 1.0,
+            self,
+            view_features: List[int],
+            latent_dimensions: int = 1,
+            random_state: Union[int, np.random.RandomState] = None,
+            rank: int = None,
+            density: float = 1.0,
     ):
         self.view_features = view_features
         self.latent_dimensions = latent_dimensions
@@ -106,16 +106,16 @@ class LatentVariableData(_BaseData):
     """
 
     def __init__(
-        self,
-        view_features: List[int],
-        latent_dimensions: int = 1,
-        random_state: Union[int, np.random.RandomState] = None,
-        sparsity_levels: Union[List[float], float] = None,
-        positivity_constraints: Union[bool, List[bool]] = False,
-        covariance_structure: str = "identity",
-        signal_to_noise_ratio: float = 1.0,
-        rank: int = None,
-        density: float = 1.0,
+            self,
+            view_features: List[int],
+            latent_dimensions: int = 1,
+            random_state: Union[int, np.random.RandomState] = None,
+            sparsity_levels: Union[List[float], float] = None,
+            positivity_constraints: Union[bool, List[bool]] = False,
+            covariance_structure: str = "identity",
+            signal_to_noise_ratio: float = 1.0,
+            rank: int = None,
+            density: float = 1.0,
     ):
         """
         Initializes the LatentVariableData class with specified parameters.
@@ -155,7 +155,7 @@ class LatentVariableData(_BaseData):
         ]
 
     def _generate_loading_matrix(
-        self, features: int, sparsity: float, positivity: bool
+            self, features: int, sparsity: float, positivity: bool
     ):
         """
         Generates a loading matrix for a view based on the specified sparsity and positivity.
@@ -217,18 +217,18 @@ class LatentVariableData(_BaseData):
         """
         joint_cov = np.zeros((sum(self.view_features), sum(self.view_features)))
         joint_cov[: self.view_features[0], : self.view_features[0]] = (
-            self.true_loadings[0] @ self.true_loadings[0].T
-            + self.covariance_matrices[0]
+                self.true_loadings[0] @ self.true_loadings[0].T
+                + self.covariance_matrices[0]
         )
-        joint_cov[self.view_features[0] :, self.view_features[0] :] = (
-            self.true_loadings[1] @ self.true_loadings[1].T
-            + self.covariance_matrices[1]
+        joint_cov[self.view_features[0]:, self.view_features[0]:] = (
+                self.true_loadings[1] @ self.true_loadings[1].T
+                + self.covariance_matrices[1]
         )
-        joint_cov[: self.view_features[0], self.view_features[0] :] = (
-            self.true_loadings[0] @ self.true_loadings[1].T
+        joint_cov[: self.view_features[0], self.view_features[0]:] = (
+                self.true_loadings[0] @ self.true_loadings[1].T
         )
-        joint_cov[self.view_features[0] :, : self.view_features[0]] = (
-            self.true_loadings[1] @ self.true_loadings[0].T
+        joint_cov[self.view_features[0]:, : self.view_features[0]] = (
+                self.true_loadings[1] @ self.true_loadings[0].T
         )
         return joint_cov
 
@@ -250,16 +250,16 @@ class JointData(_BaseData):
     """
 
     def __init__(
-        self,
-        view_features: List[int],
-        latent_dimensions: int = 1,
-        sparsity_levels: Union[List[float], float] = None,
-        correlation: Union[List[float], float] = 0.99,
-        covariance_structure: str = "random",
-        positive: Union[bool, List[bool]] = False,
-        random_state: Union[int, np.random.RandomState] = None,
-        rank: int = None,
-        density: float = 1.0,
+            self,
+            view_features: List[int],
+            latent_dimensions: int = 1,
+            sparsity_levels: Union[List[float], float] = None,
+            correlation: Union[List[float], float] = 0.99,
+            covariance_structure: str = "random",
+            positive: Union[bool, List[bool]] = False,
+            random_state: Union[int, np.random.RandomState] = None,
+            rank: int = None,
+            density: float = 1.0,
     ):
         super().__init__(view_features, latent_dimensions, random_state, rank, density)
         self.correlation = _process_parameter(
@@ -301,7 +301,7 @@ class JointData(_BaseData):
         self.US = U * np.sqrt(S)
 
     def _generate_true_weight(
-        self, view_features, sparsity_levels, is_positive, covariance_factor
+            self, view_features, sparsity_levels, is_positive, covariance_factor
     ):
         loadings = self.random_state.randn(view_features, self.latent_dimensions)
         if sparsity_levels <= 1:
@@ -330,12 +330,12 @@ class JointData(_BaseData):
         for i, j in itertools.combinations(range(len(split_points) - 1), 2):
             cross_cov = self._compute_cross_covariance(covariance_factors, i, j)
             joint_covariance[
-                split_points[i] : split_points[i + 1],
-                split_points[j] : split_points[j + 1],
+            split_points[i]: split_points[i + 1],
+            split_points[j]: split_points[j + 1],
             ] = cross_cov
             joint_covariance[
-                split_points[j] : split_points[j + 1],
-                split_points[i] : split_points[i + 1],
+            split_points[j]: split_points[j + 1],
+            split_points[i]: split_points[i + 1],
             ] = cross_cov.T
         return joint_covariance
 
@@ -348,11 +348,11 @@ class JointData(_BaseData):
                 self.true_features[i][:, _], self.true_features[j][:, _]
             )
             cross_cov += (
-                cov_factors[i]
-                @ cov_factors[i].T
-                @ (self.correlation[_] * outer_product)
-                @ cov_factors[j]
-                @ cov_factors[j].T
+                    cov_factors[i]
+                    @ cov_factors[i].T
+                    @ (self.correlation[_] * outer_product)
+                    @ cov_factors[j]
+                    @ cov_factors[j].T
             )
 
         return cross_cov
