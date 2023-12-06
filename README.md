@@ -58,6 +58,12 @@ Note that `deep` requires `torch` and `lightning` which may be better installed 
 
 `visualisation` requires `matplotlib` and `seaborn`
 
+## Plug into the Machine Learning Ecosystem
+
+CCA-Zoo is designed to be compatible with the machine learning ecosystem. It is built on top of `scikit-learn`, `tensorly`, `torch`, `pytorch-lightning`, and `numpyro`.
+
+<img src="docs/_static/CCA_zoo_map.svg" alt="drawing" width="1000"/>
+
 ## 🏎️ Performance Highlights
 CCA-Zoo shines when it comes to high-dimensional data analysis. It significantly outperforms scikit-learn, particularly as dimensionality increases. For comprehensive benchmarks, see our [script](benchmark/cca_high_dimensions.py) and the graph below.
 

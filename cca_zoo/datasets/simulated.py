@@ -325,7 +325,7 @@ class JointData(_BaseData):
                 covariance_factor @ covariance_factor.T
                 for covariance_factor in covariance_factors
             ]
-        )
+        ).toarray()
         split_points = np.concatenate(([0], np.cumsum(self.view_features)))
         for i, j in itertools.combinations(range(len(split_points) - 1), 2):
             cross_cov = self._compute_cross_covariance(covariance_factors, i, j)
