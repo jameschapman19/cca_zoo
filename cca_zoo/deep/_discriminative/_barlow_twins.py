@@ -24,13 +24,12 @@ class BarlowTwins(DCCA):
 
     def __init__(
         self,
-        latent_dimensions: int,
-        encoders=None,
+        *args,
         lamb=5e-3,
         **kwargs,
     ):
         super().__init__(
-            latent_dimensions=latent_dimensions, encoders=encoders, **kwargs
+            *args, **kwargs
         )
         self.lamb = lamb  # the lambda parameter for the off-diagonal terms of the cross-covariance matrix
         self.bns = torch.nn.ModuleList(

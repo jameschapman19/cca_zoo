@@ -24,23 +24,14 @@ class DCCA_SDL(DCCA):
 
     def __init__(
         self,
-        latent_dimensions: int,
-        encoders=None,
-        r: float = 0,
-        eps: float = 1e-5,
-        shared_target: bool = False,
+        *args,
         lam=0.5,
         **kwargs
     ):
         super().__init__(
-            latent_dimensions=latent_dimensions,
-            encoders=encoders,
-            r=r,
-            eps=eps,
-            shared_target=shared_target,
+            *args
             **kwargs
         )
-        self.c = None
         self.lam = lam
         self.bns = torch.nn.ModuleList(
             [

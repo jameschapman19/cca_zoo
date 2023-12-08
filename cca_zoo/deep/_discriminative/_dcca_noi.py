@@ -3,7 +3,7 @@ from typing import Optional
 import torch
 from torch import Tensor
 from torch.nn import Module
-
+from .._utils import inv_sqrtm
 from ._dcca import DCCA
 
 
@@ -11,7 +11,6 @@ class BatchWhiten(Module):
     def __init__(
         self,
         num_features: int,
-        eps: float = 1e-5,
         momentum: float = 0.1,
         track_running_stats: bool = True,
         device=None,
@@ -112,19 +111,6 @@ class BatchWhiten(Module):
             return input
 
 
-def inv_sqrtm(A, eps=1e-9):
-    """Compute the inverse square-root of a positive definite matrix."""
-    # Perform eigendecomposition of covariance matrix
-    U, S, V = torch.svd(A)
-    # Enforce positive definite by taking a torch max() with eps
-    S = torch.max(S, torch.tensor(eps, device=S.device))
-    # Calculate inverse square-root
-    inv_sqrt_S = torch.diag_embed(torch.pow(S, -0.5))
-    # Calculate inverse square-root matrix
-    B = torch.matmul(torch.matmul(U, inv_sqrt_S), V.transpose(-1, -2))
-    return B
-
-
 class DCCA_NOI(DCCA):
     """
     A class used to fit a DCCA model by non-linear orthogonal iterations
@@ -138,23 +124,16 @@ class DCCA_NOI(DCCA):
 
     def __init__(
         self,
-        latent_dimensions: int,
-        encoders=None,
-        r: float = 0,
+        *args,
         rho: float = 0.1,
-        eps: float = 1e-9,
         **kwargs,
     ):
         super().__init__(
-            latent_dimensions=latent_dimensions,
-            encoders=encoders,
-            r=r,
-            eps=eps,
+            *args,
             **kwargs,
         )
         if rho < 0 or rho > 1:
             raise ValueError(f"rho should be between 0 and 1. rho={rho}")
-        self.eps = eps
         self.rho = rho
         self.mse = torch.nn.MSELoss(reduction="sum")
         # Replace BatchNorm1d with BatchWhiten

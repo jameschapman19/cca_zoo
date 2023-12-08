@@ -23,9 +23,9 @@ class BaseDeep(pl.LightningModule, _BaseModel):
         extra_optimizer_kwargs: Optional[Dict[str, Any]] = None,
         max_epochs: int = 1000,
         min_lr: float = 1e-9,
+        eps=1e-6,
         lr_decay_steps: Optional[List[int]] = None,
         correlation: bool = True,
-        eps: float = 1e-5,
         *args,
         **kwargs,
     ):

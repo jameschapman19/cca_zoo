@@ -29,15 +29,14 @@ class VICReg(DCCA):
 
     def __init__(
         self,
-        latent_dimensions: int,
-        encoders=None,
+        *args,
         sim_loss_weight: float = 25.0,
         var_loss_weight: float = 25.0,
         cov_loss_weight: float = 1.0,
         **kwargs,
     ):
         super().__init__(
-            latent_dimensions=latent_dimensions, encoders=encoders, **kwargs
+            *args, **kwargs
         )
         self.sim_loss_weight = sim_loss_weight
         self.var_loss_weight = var_loss_weight

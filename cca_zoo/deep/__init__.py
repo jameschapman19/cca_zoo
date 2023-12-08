@@ -24,7 +24,6 @@ from ._discriminative._dtcca import DTCCA
 from ._discriminative._vicreg import VICReg
 from ._generative._dccae import DCCAE
 from ._generative._dvcca import DVCCA
-from ._generative._splitae import SplitAE
 
 __all__ = [
     "DCCA",
@@ -40,7 +39,6 @@ __all__ = [
     "VICReg",
     "DTCCA",
     "DCCA_EY",
-    "SplitAE",
     "architectures",
     "objectives",
 ]

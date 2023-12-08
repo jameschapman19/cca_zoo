@@ -13,14 +13,11 @@ class DCCAE(DCCA, _GenerativeMixin):
     Wang, Weiran, et al. "On deep multi-view representation learning." International conference on machine learning. PMLR, 2015.
 
     """
-    objective = _MCCALoss
+    objective = _MCCALoss()
     def __init__(
         self,
-        latent_dimensions: int,
-
-        encoders=None,
+        *args,
         decoders=None,
-        eps: float = 1e-5,
         lam=0.5,
         latent_dropout=0,
         img_dim=None,
@@ -28,10 +25,7 @@ class DCCAE(DCCA, _GenerativeMixin):
         **kwargs,
     ):
         super().__init__(
-            latent_dimensions=latent_dimensions,
-            objective=objective,
-            encoders=encoders,
-            eps=eps,
+            *args,
             **kwargs,
         )
         self.img_dim = img_dim
@@ -39,7 +33,6 @@ class DCCAE(DCCA, _GenerativeMixin):
         if lam < 0 or lam > 1:
             raise ValueError(f"lam should be between 0 and 1. rho={lam}")
         self.lam = lam
-        self.objective = objective(eps=eps)
         self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
         self.recon_loss_type = recon_loss_type
 

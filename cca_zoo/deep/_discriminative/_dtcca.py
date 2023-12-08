@@ -13,9 +13,6 @@ from ...linear._tcca import TCCA
 class _TCCALoss:
     """Differentiable TCCA Loss."""
 
-    def __init__(self, eps: float = 1e-4):
-        self.eps = eps
-
     def __call__(self, representations: List[torch.Tensor]):
         latent_dims = representations[0].shape[1]
         views = [

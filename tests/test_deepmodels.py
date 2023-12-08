@@ -17,7 +17,6 @@ from cca_zoo.deep import (
     DGCCA,
     DVCCA,
     BarlowTwins,
-    SplitAE,
     architectures,
 )
 from cca_zoo.deep.data import NumpyDataset, get_dataloaders, check_dataset
