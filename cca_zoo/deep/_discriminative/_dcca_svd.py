@@ -17,7 +17,7 @@ class DCCA_SVD(DCCA_EY):
         super().__init__(
             latent_dimensions=latent_dimensions, encoders=encoders, eps=eps, **kwargs
         )
-        self.objective = _CCA_SVDLoss
+        self.objective = _CCA_SVDLoss()
 
 
 class _CCA_SVDLoss(_CCA_EYLoss):

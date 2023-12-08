@@ -28,20 +28,20 @@ def inv_sqrtm(A: torch.Tensor, eps: float = 1e-9):
     B = torch.matmul(torch.matmul(U, inv_sqrt_S), V.transpose(-1, -2))
     return B
 
-
-def CCA_AB(representations: List[torch.Tensor]):
+@torch.jit.script
+def CCA_CV(representations: List[torch.Tensor]):
     latent_dimensions = representations[0].shape[1]
-    A = torch.zeros(
+    C = torch.zeros(
         latent_dimensions, latent_dimensions, device=representations[0].device
     )  # initialize the cross-covariance matrix
-    B = torch.zeros(
+    V = torch.zeros(
         latent_dimensions, latent_dimensions, device=representations[0].device
     )  # initialize the auto-covariance matrix
     for i, zi in enumerate(representations):
-        B.add_(torch.cov(zi.T))  # In-place addition
+        V.add_(torch.cov(zi.T))  # In-place addition
         for j, zj in enumerate(representations):
-            A.add_(torch_cross_cov(zi, zj))  # In-place addition
+            C.add_(torch_cross_cov(zi, zj))  # In-place addition
 
-    A.div_(len(representations))  # In-place division
-    B.div_(len(representations))  # In-place division
-    return A, B
+    C.div_(len(representations))  # In-place division
+    V.div_(len(representations))  # In-place division
+    return C, V

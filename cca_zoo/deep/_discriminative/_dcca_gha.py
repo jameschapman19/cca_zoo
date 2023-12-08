@@ -3,7 +3,7 @@ from typing import List, Optional
 import torch
 
 from cca_zoo.deep._discriminative._dcca_ey import DCCA_EY, _CCA_EYLoss
-from cca_zoo.deep._utils import CCA_AB
+from cca_zoo.deep._utils import CCA_CV
 
 
 class DCCA_GHA(DCCA_EY):
@@ -18,7 +18,7 @@ class DCCA_GHA(DCCA_EY):
         super().__init__(
             latent_dimensions=latent_dimensions, encoders=encoders, eps=eps, **kwargs
         )
-        self.objective = _CCA_GHALoss
+        self.objective = _CCA_GHALoss()
 
 
 class _CCA_GHALoss(_CCA_EYLoss):
@@ -28,15 +28,17 @@ class _CCA_GHALoss(_CCA_EYLoss):
         representations: List[torch.Tensor],
         independent_representations: Optional[List[torch.Tensor]] = None,
     ):
-        A, B = CCA_AB(representations)
-        rewards = torch.trace(A)
+        C, V = CCA_CV(representations)
+        C=C+V
+        rewards = torch.trace(C)
         if independent_representations is None:
-            rewards.add_(torch.trace(A))
-            penalties = torch.trace(A @ B)
+            rewards.add_(torch.trace(C))
+            penalties = torch.trace(C @ V)
         else:
-            independent_A, independent_B = CCA_AB(independent_representations)
-            rewards.add_(torch.trace(independent_A))
-            penalties = torch.trace(independent_A @ B)
+            independent_C, independent_V = CCA_CV(independent_representations)
+            independent_C=independent_C+independent_V
+            rewards.add_(torch.trace(independent_C))
+            penalties = torch.trace(independent_C @ V)
         return {
             "objective": -rewards + penalties,
             "rewards": rewards,

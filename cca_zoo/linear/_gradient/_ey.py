@@ -1,6 +1,6 @@
 from cca_zoo._utils._cross_correlation import cross_cov
 from cca_zoo.linear._gradient._base import BaseGradientModel
-from cca_zoo.linear._gradient._objectives import CCA_AB, PLS_AB
+from cca_zoo.linear._gradient._objectives import CCA_CV, PLS_AB
 import numpy as np
 from typing import List, Optional
 
@@ -11,12 +11,12 @@ class CCA_EY(BaseGradientModel):
         representations: List[np.ndarray],
         independent_representations: Optional[List[np.ndarray]] = None,
     ):
-        A, B = CCA_AB(representations)
+        A, B = CCA_CV(representations)
         rewards = np.trace(2 * A)
         if independent_representations is None:
             penalties = np.trace(B @ B)
         else:
-            independent_A, independent_B = CCA_AB(independent_representations)
+            independent_A, independent_B = CCA_CV(independent_representations)
             penalties = np.trace(B @ independent_B)
         return {
             "objective": -rewards + penalties,
@@ -31,7 +31,7 @@ class CCA_EY(BaseGradientModel):
         independent_views: Optional[List[np.ndarray]] = None,
         independent_representations: Optional[List[np.ndarray]] = None,
     ):
-        A, B = CCA_AB(representations)
+        A, B = CCA_CV(representations)
         sum_representations = np.sum(np.stack(representations), axis=0)
         n = sum_representations.shape[0]
         rewards = [2 * view.T @ sum_representations / (n - 1) for view in views]
@@ -41,7 +41,7 @@ class CCA_EY(BaseGradientModel):
                 for view, representation in zip(views, representations)
             ]
         else:
-            _, independent_B = CCA_AB(independent_representations)
+            _, independent_B = CCA_CV(independent_representations)
             penalties = [
                 view.T @ representation @ B / (n - 1)
                 + independent_view.T

@@ -42,11 +42,32 @@ class BaseDeep(pl.LightningModule, _BaseModel):
         self.lr_decay_steps = lr_decay_steps
         self.correlation = correlation
         self.eps = eps
+        self.encoders = torch.nn.ModuleList(encoders)
 
-    @abstractmethod
-    def forward(self, views: List[torch.Tensor], *args, **kwargs) -> List[torch.Tensor]:
-        """Returns the latent representations for each view."""
-        raise NotImplementedError
+    def forward(self, views, **kwargs):
+        if not hasattr(self, "n_views_"):
+            self.n_views_ = len(views)
+        # Use list comprehension to encode each view
+        z = [encoder(view) for encoder, view in zip(self.encoders, views)]
+        return z
+
+    def loss(self, batch, **kwargs):
+        representations = self(batch["views"])
+        return {"objective": self.objective(representations)}
+
+    def pairwise_correlations(self, loader: torch.utils.data.DataLoader):
+        # Call the parent class method
+        return super().pairwise_correlations(loader)
+
+    def correlation_captured(self, z):
+        # Remove mean from each view
+        z = [zi - zi.mean(0) for zi in z]
+        return MCCA(latent_dimensions=self.latent_dimensions).fit(z).score(z).sum()
+
+    def score(self, loader: torch.utils.data.DataLoader, **kwargs):
+        z = self.transform(loader)
+        corr = self.correlation_captured(z)
+        return corr
 
     @abstractmethod
     def loss(
