@@ -18,14 +18,10 @@ class BaseDeep(pl.LightningModule, _BaseModel):
         encoders=None,
         optimizer: str = "adam",
         scheduler: Optional[str] = None,
-        lr: float = 1e-3,
-        weight_decay: float = 0,
+        lr: float = 1e-2,
         extra_optimizer_kwargs: Optional[Dict[str, Any]] = None,
         max_epochs: int = 1000,
-        min_lr: float = 1e-9,
         eps=1e-6,
-        lr_decay_steps: Optional[List[int]] = None,
-        correlation: bool = True,
         *args,
         **kwargs,
     ):
@@ -36,12 +32,8 @@ class BaseDeep(pl.LightningModule, _BaseModel):
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.lr = lr
-        self.weight_decay = weight_decay
         self.extra_optimizer_kwargs = extra_optimizer_kwargs
         self.max_epochs = max_epochs
-        self.min_lr = min_lr
-        self.lr_decay_steps = lr_decay_steps
-        self.correlation = correlation
         self.eps = eps
         if encoders is None:
             raise ValueError(
@@ -166,17 +158,7 @@ class BaseDeep(pl.LightningModule, _BaseModel):
             lr=self.lr,
             **self.extra_optimizer_kwargs,
         )
-        if self.scheduler is None:
-            return optimizer
-        elif self.scheduler == "cosine":
-            scheduler = CosineAnnealingLR(
-                optimizer, self.max_epochs, eta_min=self.min_lr
-            )
-        elif self.scheduler == "step":
-            scheduler = MultiStepLR(optimizer, self.lr_decay_steps)
-        else:
-            raise ValueError(f"{self.scheduler} not in (warmup_cosine, cosine, step)")
-        return [optimizer], [scheduler]
+        return optimizer
 
     def configure_callbacks(self) -> None:
         """Configures the callbacks for the model."""

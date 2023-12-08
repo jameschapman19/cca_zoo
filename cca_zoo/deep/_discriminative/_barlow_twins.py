@@ -34,7 +34,7 @@ class BarlowTwins(DCCA):
         self.lamb = lamb  # the lambda parameter for the off-diagonal terms of the cross-covariance matrix
         self.bns = torch.nn.ModuleList(
             [
-                torch.nn.BatchNorm1d(latent_dimensions, affine=False)
+                torch.nn.BatchNorm1d(self.latent_dimensions, affine=False)
                 for _ in self.encoders
             ]
         )  # a list of batch normalization layers for each encoder

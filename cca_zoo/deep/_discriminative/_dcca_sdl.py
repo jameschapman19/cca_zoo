@@ -29,13 +29,13 @@ class DCCA_SDL(DCCA):
         **kwargs
     ):
         super().__init__(
-            *args
+            *args,
             **kwargs
         )
         self.lam = lam
         self.bns = torch.nn.ModuleList(
             [
-                torch.nn.BatchNorm1d(latent_dimensions, affine=False)
+                torch.nn.BatchNorm1d(self.latent_dimensions, affine=False)
                 for _ in self.encoders
             ]
         )

@@ -20,7 +20,6 @@ class BatchWhiten(Module):
         super(BatchWhiten, self).__init__()
 
         self.num_features = num_features
-        self.eps = eps
         self.momentum = momentum
         self.track_running_stats = track_running_stats
 
@@ -100,10 +99,8 @@ class BatchWhiten(Module):
                 # Calculate whitened input
                 if running_covar is not None:
                     covar = running_covar
-                # Enforce positive definite by taking a torch max() with eps
-                covar = torch.max(covar, torch.tensor(self.eps, device=covar.device))
                 # Calculate inverse square-root matrix
-                B = inv_sqrtm(covar, self.eps)
+                B = inv_sqrtm(covar)
                 # Calculate whitened input
                 input = torch.matmul(input, B)
                 return input
@@ -138,7 +135,7 @@ class DCCA_NOI(DCCA):
         self.mse = torch.nn.MSELoss(reduction="sum")
         # Replace BatchNorm1d with BatchWhiten
         self.bws = torch.nn.ModuleList(
-            [BatchWhiten(latent_dimensions, momentum=rho) for _ in self.encoders]
+            [BatchWhiten(self.latent_dimensions, momentum=rho) for _ in self.encoders]
         )
 
     def loss(self, batch, **kwargs):
