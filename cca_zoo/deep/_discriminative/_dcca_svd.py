@@ -4,17 +4,6 @@ import torch
 
 from cca_zoo.deep._discriminative._dcca_ey import DCCA_EY, _CCA_EYLoss
 
-
-class DCCA_SVD(DCCA_EY):
-    """
-
-    References
-    ----------
-    Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
-    """
-    objective = _CCA_SVDLoss()
-
-
 class _CCA_SVDLoss(_CCA_EYLoss):
     @staticmethod
     @torch.jit.script
@@ -40,3 +29,13 @@ class _CCA_SVDLoss(_CCA_EYLoss):
             "rewards": rewards,  # return the total rewards
             "penalties": penalties,  # return the penalties matrix
         }
+
+
+class DCCA_SVD(DCCA_EY):
+    """
+
+    References
+    ----------
+    Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
+    """
+    objective = _CCA_SVDLoss()
