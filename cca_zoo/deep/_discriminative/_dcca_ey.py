@@ -31,7 +31,6 @@ class DCCA_EY(DCCA):
 
 
 class _CCA_EYLoss:
-
     @staticmethod
     @torch.jit.script
     def __call__(
