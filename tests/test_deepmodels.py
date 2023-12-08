@@ -4,6 +4,7 @@ from lightning import seed_everything
 from sklearn.utils.validation import check_random_state
 from torch.utils.data import random_split
 
+import cca_zoo.deep._discriminative._dmcca
 from cca_zoo.deep import (
     DCCA,
     DCCA_EY,
@@ -12,14 +13,13 @@ from cca_zoo.deep import (
     DCCA_SDL,
     DCCA_SVD,
     DCCAE,
+    DMCCA,
     DGCCA,
     DVCCA,
     BarlowTwins,
     SplitAE,
     architectures,
-    objectives,
 )
-from cca_zoo.deep._discriminative._dmcca import DMCCA
 from cca_zoo.deep.data import NumpyDataset, get_dataloaders, check_dataset
 from cca_zoo.linear import CCA, GCCA, MCCA
 
@@ -166,7 +166,6 @@ def test_DCCA_methods():
     dcca_gha = DCCA_GHA(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2],
-        lr=1e-1,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dcca_gha, train_loader, val_dataloaders=val_loader)
@@ -184,7 +183,6 @@ def test_DCCA_methods():
     dcca_svd = DCCA_SVD(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2],
-        lr=1e-1,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dcca_svd, train_loader, val_dataloaders=val_loader)
@@ -202,7 +200,6 @@ def test_DCCA_methods():
     dcca_ey = DCCA_EY(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2],
-        lr=1e-1,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dcca_ey, train_loader, val_dataloaders=val_loader)
@@ -265,10 +262,9 @@ def test_DCCA_methods():
     encoder_2 = architectures.Encoder(
         latent_dimensions=latent_dimensions, feature_size=feature_size[1]
     )
-    dgcca = DCCA(
+    dgcca = DGCCA(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2],
-        objective=objectives._GCCALoss,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dgcca, train_loader)
@@ -283,10 +279,9 @@ def test_DCCA_methods():
     encoder_2 = architectures.Encoder(
         latent_dimensions=latent_dimensions, feature_size=feature_size[1]
     )
-    dmcca = DCCA(
+    dmcca = DMCCA(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2],
-        objective=objectives._MCCALoss,
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dmcca, train_loader)

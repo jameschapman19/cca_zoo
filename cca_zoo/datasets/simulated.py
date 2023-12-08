@@ -18,12 +18,12 @@ def cov_eigvals(X):
 
 class _BaseData(ABC):
     def __init__(
-            self,
-            view_features: List[int],
-            latent_dimensions: int = 1,
-            random_state: Union[int, np.random.RandomState] = None,
-            rank: int = None,
-            density: float = 1.0,
+        self,
+        view_features: List[int],
+        latent_dimensions: int = 1,
+        random_state: Union[int, np.random.RandomState] = None,
+        rank: int = None,
+        density: float = 1.0,
     ):
         self.view_features = view_features
         self.latent_dimensions = latent_dimensions
@@ -106,16 +106,16 @@ class LatentVariableData(_BaseData):
     """
 
     def __init__(
-            self,
-            view_features: List[int],
-            latent_dimensions: int = 1,
-            random_state: Union[int, np.random.RandomState] = None,
-            sparsity_levels: Union[List[float], float] = None,
-            positivity_constraints: Union[bool, List[bool]] = False,
-            covariance_structure: str = "identity",
-            signal_to_noise_ratio: float = 1.0,
-            rank: int = None,
-            density: float = 1.0,
+        self,
+        view_features: List[int],
+        latent_dimensions: int = 1,
+        random_state: Union[int, np.random.RandomState] = None,
+        sparsity_levels: Union[List[float], float] = None,
+        positivity_constraints: Union[bool, List[bool]] = False,
+        covariance_structure: str = "identity",
+        signal_to_noise_ratio: float = 1.0,
+        rank: int = None,
+        density: float = 1.0,
     ):
         """
         Initializes the LatentVariableData class with specified parameters.
@@ -153,9 +153,26 @@ class LatentVariableData(_BaseData):
                 self.view_features, self.covariance_structure
             )
         ]
+        self._true_features = None
+
+    @property
+    def true_features(self):
+        if self._true_features is None:
+            self._true_features = [
+                np.linalg.inv(
+                    loading @ loading.T
+                    + (cov_factor @ cov_factor.T).toarray()
+                    / np.sqrt(self.signal_to_noise_ratio)
+                )
+                @ loading
+                for loading, cov_factor in zip(
+                    self.true_loadings, self.covariance_factors
+                )
+            ]
+        return self._true_features
 
     def _generate_loading_matrix(
-            self, features: int, sparsity: float, positivity: bool
+        self, features: int, sparsity: float, positivity: bool
     ):
         """
         Generates a loading matrix for a view based on the specified sparsity and positivity.
@@ -195,7 +212,6 @@ class LatentVariableData(_BaseData):
             np.eye(self.latent_dimensions),
             num_samples,
         )
-
         views = [
             latent_variables @ loading.T
             + self.random_state.standard_normal(
@@ -217,31 +233,20 @@ class LatentVariableData(_BaseData):
         """
         joint_cov = np.zeros((sum(self.view_features), sum(self.view_features)))
         joint_cov[: self.view_features[0], : self.view_features[0]] = (
-                self.true_loadings[0] @ self.true_loadings[0].T
-                + self.covariance_matrices[0]
+            self.true_loadings[0] @ self.true_loadings[0].T
+            + self.covariance_matrices[0]
         )
-        joint_cov[self.view_features[0]:, self.view_features[0]:] = (
-                self.true_loadings[1] @ self.true_loadings[1].T
-                + self.covariance_matrices[1]
+        joint_cov[self.view_features[0] :, self.view_features[0] :] = (
+            self.true_loadings[1] @ self.true_loadings[1].T
+            + self.covariance_matrices[1]
         )
-        joint_cov[: self.view_features[0], self.view_features[0]:] = (
-                self.true_loadings[0] @ self.true_loadings[1].T
+        joint_cov[: self.view_features[0], self.view_features[0] :] = (
+            self.true_loadings[0] @ self.true_loadings[1].T
         )
-        joint_cov[self.view_features[0]:, : self.view_features[0]] = (
-                self.true_loadings[1] @ self.true_loadings[0].T
+        joint_cov[self.view_features[0] :, : self.view_features[0]] = (
+            self.true_loadings[1] @ self.true_loadings[0].T
         )
         return joint_cov
-
-    def true_features(self):
-        """
-        Estimates the true features based on the loading matrices and covariance matrices.
-
-        :return: List of estimated true features for each view.
-        """
-        return [
-            np.linalg.inv(cov + loading.T @ loading) @ loading
-            for cov, loading in zip(self.covariance_matrices, self.true_loadings)
-        ]
 
 
 class JointData(_BaseData):
@@ -250,16 +255,16 @@ class JointData(_BaseData):
     """
 
     def __init__(
-            self,
-            view_features: List[int],
-            latent_dimensions: int = 1,
-            sparsity_levels: Union[List[float], float] = None,
-            correlation: Union[List[float], float] = 0.99,
-            covariance_structure: str = "random",
-            positive: Union[bool, List[bool]] = False,
-            random_state: Union[int, np.random.RandomState] = None,
-            rank: int = None,
-            density: float = 1.0,
+        self,
+        view_features: List[int],
+        latent_dimensions: int = 1,
+        sparsity_levels: Union[List[float], float] = None,
+        correlation: Union[List[float], float] = 0.99,
+        covariance_structure: str = "random",
+        positive: Union[bool, List[bool]] = False,
+        random_state: Union[int, np.random.RandomState] = None,
+        rank: int = None,
+        density: float = 1.0,
     ):
         super().__init__(view_features, latent_dimensions, random_state, rank, density)
         self.correlation = _process_parameter(
@@ -290,7 +295,7 @@ class JointData(_BaseData):
             )
         ]
         self.true_loadings = [
-            covariance_factor @ (covariance_factor.T @ weight)
+            covariance_factor.T @ (covariance_factor @ weight)
             for weight, covariance_factor in zip(
                 self.true_features, self.covariance_factors
             )
@@ -301,7 +306,7 @@ class JointData(_BaseData):
         self.US = U * np.sqrt(S)
 
     def _generate_true_weight(
-            self, view_features, sparsity_levels, is_positive, covariance_factor
+        self, view_features, sparsity_levels, is_positive, covariance_factor
     ):
         loadings = self.random_state.randn(view_features, self.latent_dimensions)
         if sparsity_levels <= 1:
@@ -330,12 +335,12 @@ class JointData(_BaseData):
         for i, j in itertools.combinations(range(len(split_points) - 1), 2):
             cross_cov = self._compute_cross_covariance(covariance_factors, i, j)
             joint_covariance[
-            split_points[i]: split_points[i + 1],
-            split_points[j]: split_points[j + 1],
+                split_points[i] : split_points[i + 1],
+                split_points[j] : split_points[j + 1],
             ] = cross_cov
             joint_covariance[
-            split_points[j]: split_points[j + 1],
-            split_points[i]: split_points[i + 1],
+                split_points[j] : split_points[j + 1],
+                split_points[i] : split_points[i + 1],
             ] = cross_cov.T
         return joint_covariance
 
@@ -348,11 +353,11 @@ class JointData(_BaseData):
                 self.true_features[i][:, _], self.true_features[j][:, _]
             )
             cross_cov += (
-                    cov_factors[i]
-                    @ cov_factors[i].T
-                    @ (self.correlation[_] * outer_product)
-                    @ cov_factors[j]
-                    @ cov_factors[j].T
+                cov_factors[i]
+                @ cov_factors[i].T
+                @ (self.correlation[_] * outer_product)
+                @ cov_factors[j]
+                @ cov_factors[j].T
             )
 
         return cross_cov

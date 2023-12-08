@@ -10,7 +10,7 @@ if (
     print(
         "Warning: torch or lightning are not installed. Some functionality in cca_zoo.deep may be limited."
     )
-from . import architectures, objectives
+from . import architectures
 from ._discriminative._dcca import DCCA
 from ._discriminative._barlow_twins import BarlowTwins
 from ._discriminative._dcca_ey import DCCA_EY
@@ -18,6 +18,7 @@ from ._discriminative._dcca_gha import DCCA_GHA
 from ._discriminative._dcca_noi import DCCA_NOI
 from ._discriminative._dcca_sdl import DCCA_SDL
 from ._discriminative._dcca_svd import DCCA_SVD
+from ._discriminative._dmcca import DMCCA
 from ._discriminative._dgcca import DGCCA
 from ._discriminative._dtcca import DTCCA
 from ._discriminative._vicreg import VICReg
@@ -29,6 +30,7 @@ __all__ = [
     "DCCA",
     "DCCA_GHA",
     "DCCA_SVD",
+    "DMCCA",
     "DGCCA",
     "DCCAE",
     "DCCA_NOI",

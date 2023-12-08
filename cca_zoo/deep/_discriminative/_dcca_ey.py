@@ -1,5 +1,9 @@
+from typing import List, Optional
+
+import torch
+
 from ._dcca import DCCA
-from ..objectives import _CCA_EYLoss
+from .._utils import CCA_AB
 
 
 class DCCA_EY(DCCA):
@@ -14,7 +18,7 @@ class DCCA_EY(DCCA):
         super().__init__(
             latent_dimensions=latent_dimensions, encoders=encoders, eps=eps, **kwargs
         )
-        self.objective = _CCA_EYLoss(eps=eps)
+        self.objective = _CCA_EYLoss
 
     def loss(self, batch, **kwargs):
         # Encoding the representations with the forward method
@@ -24,3 +28,25 @@ class DCCA_EY(DCCA):
         else:
             independent_representations = self(batch["independent_views"])
         return self.objective(representations, independent_representations)
+
+
+class _CCA_EYLoss:
+
+    @staticmethod
+    @torch.jit.script
+    def __call__(
+        representations: List[torch.Tensor],
+        independent_representations: Optional[List[torch.Tensor]] = None,
+    ):
+        A, B = CCA_AB(representations)
+        rewards = torch.trace(2 * A)
+        if independent_representations is None:
+            penalties = torch.trace(B @ B)
+        else:
+            independent_A, independent_B = CCA_AB(independent_representations)
+            penalties = torch.trace(B @ independent_B)
+        return {
+            "objective": -rewards + penalties,
+            "rewards": rewards,
+            "penalties": penalties,
+        }

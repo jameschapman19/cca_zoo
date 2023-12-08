@@ -13,6 +13,8 @@ Features:
 """
 
 import lightning.pytorch as pl
+
+import cca_zoo.deep._discriminative._dmcca
 from cca_zoo.deep import DCCA, DTCCA, architectures, objectives
 from examples import example_mnist_data
 
@@ -40,7 +42,7 @@ encoder_2 = architectures.Encoder(latent_dimensions=LATENT_DIMS, feature_size=39
 dcca_mcca = DCCA(
     latent_dimensions=LATENT_DIMS,
     encoders=[encoder_1, encoder_2],
-    objective=objectives._MCCALoss,
+    objective=cca_zoo.deep._discriminative._dmcca._MCCALoss,
 )
 trainer_mcca = pl.Trainer(
     max_epochs=EPOCHS,
