@@ -68,4 +68,5 @@ class DCCA(BaseDeep):
     ----------
 
     """
+
     objective = _CCALoss()

@@ -5,8 +5,8 @@ import torch
 from ._dcca import DCCA
 from .._utils import CCA_CV
 
-class _CCA_EYLoss:
 
+class _CCA_EYLoss:
     @staticmethod
     @torch.jit.script
     def __call__(
@@ -34,6 +34,7 @@ class DCCA_EY(DCCA):
     ----------
     Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
     """
+
     objective = _CCA_EYLoss()
 
     def loss(self, batch, **kwargs):

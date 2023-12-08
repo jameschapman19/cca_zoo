@@ -28,6 +28,7 @@ def inv_sqrtm(A: torch.Tensor, eps: float = 1e-9):
     B = torch.matmul(torch.matmul(U, inv_sqrt_S), V.transpose(-1, -2))
     return B
 
+
 @torch.jit.script
 def CCA_CV(representations: List[torch.Tensor]):
     latent_dimensions = representations[0].shape[1]

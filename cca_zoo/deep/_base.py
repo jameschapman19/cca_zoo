@@ -9,6 +9,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 from cca_zoo._base import _BaseModel
 from cca_zoo.linear._mcca import MCCA
 
+
 class BaseDeep(pl.LightningModule, _BaseModel):
     """A base class for deep learning linear using PyTorch Lightning."""
 

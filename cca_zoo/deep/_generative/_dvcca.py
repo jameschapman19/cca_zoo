@@ -5,6 +5,7 @@ import torch
 from .._base import BaseDeep
 from . import _GenerativeMixin
 
+
 class DVCCA(BaseDeep, _GenerativeMixin):
     """
     A class used to fit a DVCCA model.

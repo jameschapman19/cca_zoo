@@ -4,6 +4,7 @@ from .._discriminative._dcca import DCCA
 from .._discriminative._dmcca import _MCCALoss
 from . import _GenerativeMixin
 
+
 class DCCAE(DCCA, _GenerativeMixin):
     """
     A class used to fit a DCCAE model.
@@ -13,7 +14,9 @@ class DCCAE(DCCA, _GenerativeMixin):
     Wang, Weiran, et al. "On deep multi-view representation learning." International conference on machine learning. PMLR, 2015.
 
     """
+
     objective = _MCCALoss()
+
     def __init__(
         self,
         *args,

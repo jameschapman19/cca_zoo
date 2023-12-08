@@ -5,6 +5,7 @@ import torch
 from cca_zoo.deep._discriminative._dcca_ey import DCCA_EY, _CCA_EYLoss
 from cca_zoo.deep._utils import CCA_CV
 
+
 class _CCA_GHALoss(_CCA_EYLoss):
     @staticmethod
     @torch.jit.script
@@ -13,14 +14,14 @@ class _CCA_GHALoss(_CCA_EYLoss):
         independent_representations: Optional[List[torch.Tensor]] = None,
     ):
         C, V = CCA_CV(representations)
-        C=C+V
+        C = C + V
         rewards = torch.trace(C)
         if independent_representations is None:
             rewards.add_(torch.trace(C))
             penalties = torch.trace(C @ V)
         else:
             independent_C, independent_V = CCA_CV(independent_representations)
-            independent_C=independent_C+independent_V
+            independent_C = independent_C + independent_V
             rewards.add_(torch.trace(independent_C))
             penalties = torch.trace(independent_C @ V)
         return {

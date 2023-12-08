@@ -22,16 +22,8 @@ class DCCA_SDL(DCCA):
 
     """
 
-    def __init__(
-        self,
-        *args,
-        lam=0.5,
-        **kwargs
-    ):
-        super().__init__(
-            *args,
-            **kwargs
-        )
+    def __init__(self, *args, lam=0.5, **kwargs):
+        super().__init__(*args, **kwargs)
         self.lam = lam
         self.bns = torch.nn.ModuleList(
             [

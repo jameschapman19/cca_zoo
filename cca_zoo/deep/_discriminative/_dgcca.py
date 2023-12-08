@@ -58,4 +58,5 @@ class DGCCA(DCCA):
 
 
     """
+
     objective = _GCCALoss()

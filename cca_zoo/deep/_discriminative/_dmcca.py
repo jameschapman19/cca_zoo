@@ -75,4 +75,5 @@ class DMCCA(DCCA):
 
 
     """
+
     objective = _MCCALoss()

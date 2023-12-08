@@ -35,9 +35,7 @@ class VICReg(DCCA):
         cov_loss_weight: float = 1.0,
         **kwargs,
     ):
-        super().__init__(
-            *args, **kwargs
-        )
+        super().__init__(*args, **kwargs)
         self.sim_loss_weight = sim_loss_weight
         self.var_loss_weight = var_loss_weight
         self.cov_loss_weight = cov_loss_weight
