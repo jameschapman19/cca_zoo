@@ -16,7 +16,7 @@ def CCA_CV(representations: List[np.ndarray]):
     for i, zi in enumerate(representations):
         V += np.cov(zi.T)  # In-place addition
         for j, zj in enumerate(representations):
-            C += cross_cov(zi, zj)  # In-place addition
+            C += cross_cov(zi, zj, rowvar=False)  # In-place addition
 
     C /= len(representations)  # In-place division
     V /= len(representations)  # In-place division

@@ -295,7 +295,7 @@ class JointData(_BaseData):
             )
         ]
         self.true_loadings = [
-            covariance_factor.T @ (covariance_factor @ weight)
+            covariance_factor @ (covariance_factor.T @ weight)
             for weight, covariance_factor in zip(
                 self.true_features, self.covariance_factors
             )
