@@ -3,8 +3,7 @@ from typing import Iterable
 import torch
 
 from .._base import BaseDeep
-from .._generative._base import _GenerativeMixin
-
+from . import _GenerativeMixin
 
 class DVCCA(BaseDeep, _GenerativeMixin):
     """
@@ -32,7 +31,6 @@ class DVCCA(BaseDeep, _GenerativeMixin):
         super().__init__(latent_dimensions=latent_dimensions, **kwargs)
         self.img_dim = img_dim
         self.latent_dropout = torch.nn.Dropout(p=latent_dropout)
-        self.encoders = torch.nn.ModuleList(encoders)
         self.decoders = torch.nn.ModuleList(decoders)
         if private_encoders:
             self.private_encoders = torch.nn.ModuleList(private_encoders)

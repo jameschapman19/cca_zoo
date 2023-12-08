@@ -7,7 +7,7 @@ import torch
 from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 
 from cca_zoo._base import _BaseModel
-
+from cca_zoo.linear._mcca import MCCA
 
 class BaseDeep(pl.LightningModule, _BaseModel):
     """A base class for deep learning linear using PyTorch Lightning."""
@@ -15,6 +15,7 @@ class BaseDeep(pl.LightningModule, _BaseModel):
     def __init__(
         self,
         latent_dimensions: int,
+        encoders=None,
         optimizer: str = "adam",
         scheduler: Optional[str] = None,
         lr: float = 1e-3,
@@ -42,6 +43,10 @@ class BaseDeep(pl.LightningModule, _BaseModel):
         self.lr_decay_steps = lr_decay_steps
         self.correlation = correlation
         self.eps = eps
+        if encoders is None:
+            raise ValueError(
+                "Encoders must be a list of torch.nn.Module with length equal to the number of representations."
+            )
         self.encoders = torch.nn.ModuleList(encoders)
 
     def forward(self, views, **kwargs):
@@ -68,13 +73,6 @@ class BaseDeep(pl.LightningModule, _BaseModel):
         z = self.transform(loader)
         corr = self.correlation_captured(z)
         return corr
-
-    @abstractmethod
-    def loss(
-        self, views: List[torch.Tensor], *args, **kwargs
-    ) -> Dict[str, torch.Tensor]:
-        """Returns the loss components for each view."""
-        raise NotImplementedError
 
     def training_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
         """Performs one step of training on a batch of representations."""

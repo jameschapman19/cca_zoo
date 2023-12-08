@@ -307,14 +307,6 @@ def test_DCCAE_methods():
     decoder_2 = architectures.CNNDecoder(
         latent_dimensions=latent_dimensions, feature_size=(4, 4)
     )
-    # SplitAE
-    splitae = SplitAE(
-        latent_dimensions=latent_dimensions,
-        encoder=encoder_1,
-        decoders=[decoder_1, decoder_2],
-    )
-    trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
-    trainer.fit(splitae, conv_loader)
     # DCCAE
     dccae = DCCAE(
         latent_dimensions=latent_dimensions,

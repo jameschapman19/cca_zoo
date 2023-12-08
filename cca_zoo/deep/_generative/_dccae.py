@@ -2,8 +2,7 @@ import torch
 
 from .._discriminative._dcca import DCCA
 from .._discriminative._dmcca import _MCCALoss
-from .._generative._base import _GenerativeMixin
-
+from . import _GenerativeMixin
 
 class DCCAE(DCCA, _GenerativeMixin):
     """
@@ -14,11 +13,11 @@ class DCCAE(DCCA, _GenerativeMixin):
     Wang, Weiran, et al. "On deep multi-view representation learning." International conference on machine learning. PMLR, 2015.
 
     """
-
+    objective = _MCCALoss
     def __init__(
         self,
         latent_dimensions: int,
-        objective=_MCCALoss,
+
         encoders=None,
         decoders=None,
         eps: float = 1e-5,
