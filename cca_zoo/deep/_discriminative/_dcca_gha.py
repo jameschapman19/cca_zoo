@@ -14,11 +14,7 @@ class DCCA_GHA(DCCA_EY):
     Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
     """
 
-    def __init__(self, latent_dimensions: int, encoders=None, eps: float = 0, **kwargs):
-        super().__init__(
-            latent_dimensions=latent_dimensions, encoders=encoders, eps=eps, **kwargs
-        )
-        self.objective = _CCA_GHALoss()
+    objective = _CCA_GHALoss()
 
 
 class _CCA_GHALoss(_CCA_EYLoss):
