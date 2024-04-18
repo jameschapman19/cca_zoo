@@ -44,6 +44,7 @@ seaborn = "*"
 opentsne = "*"
 umap-learn = "*"
 rdata = "*"
+torch = "*"
 torchvision = "*"
 pre-commit = "*"
 
