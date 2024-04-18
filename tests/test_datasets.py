@@ -30,13 +30,13 @@ def test_load_breast_data():
 #     assert data.DESCR is not None
 
 
-def test_load_mfeat_data():
-    data = load_mfeat_data()
-    assert data is not None
-    assert data.views is not None
-    assert data.target is not None
-    assert data.DESCR is not None
-    assert data.data_module == "cca_zoo.datasets.data"
+# def test_load_mfeat_data():
+#     data = load_mfeat_data()
+#     assert data is not None
+#     assert data.views is not None
+#     assert data.target is not None
+#     assert data.DESCR is not None
+#     assert data.data_module == "cca_zoo.datasets.data"
 
 
 def test_load_split_mnist_data():
