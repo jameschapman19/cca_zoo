@@ -6,6 +6,7 @@ from . import _GenerativeMixin
 from .._base import BaseDeep
 
 
+
 class DVCCA(BaseDeep, _GenerativeMixin):
     """
     A class used to fit a DVCCA model.
