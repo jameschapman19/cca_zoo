@@ -20,10 +20,9 @@ numpyro = {version = "*", optional = true}
 arviz = {version = "*", optional = true}
 funsor = {version = "*", optional = true}
 torch = [
-     {version = "<=2.1.0", platform = "darwin"},
-     {version = "<=2.1.0", platform = "linux", source = "torch"},
-     {version = "<=2.1.0", platform = "win32", source = "torch"},
-]
+     {version = "^2.0.1", platform = "darwin"},
+     {version = "^2.0.1", platform = "linux", source = "torch"},
+     {version = "^2.0.1", platform = "win32", source = "torch"}, ]
 lightning = "*"
 
 [[tool.poetry.source]]
@@ -46,7 +45,7 @@ opentsne = "*"
 umap-learn = "*"
 rdata = "*"
 torch = "*"
-torchvision = "*"
+torchvision = "0.17.0"
 pre-commit = "*"
 
 
