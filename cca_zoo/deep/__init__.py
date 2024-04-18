@@ -1,6 +1,7 @@
 """
 The :mod:`cca_zoo.deep` module includes a variety of deep CCA algorithms.
 """
+
 import importlib.util
 
 if (

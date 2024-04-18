@@ -13,7 +13,6 @@ Key Features:
 - Leverages `cca_zoo` for canonical correlation analysis techniques.
 """
 
-
 # %%
 # Imports
 # -------

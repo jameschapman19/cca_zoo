@@ -184,9 +184,11 @@ class RepresentationScatterDisplay:
             g, fig, ax = self._create_plot(
                 x=self.combined_scores_x[:, i],
                 y=self.combined_scores_y[:, i],
-                hue=self.combined_labels
-                if self.combined_labels is not None
-                else self.mode_labels,
+                hue=(
+                    self.combined_labels
+                    if self.combined_labels is not None
+                    else self.mode_labels
+                ),
             )
             if self.ax_labels is not None:
                 ax.set_xlabel(self.ax_labels[0])

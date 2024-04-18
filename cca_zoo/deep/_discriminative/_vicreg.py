@@ -45,7 +45,7 @@ class VICReg(DCCA):
     def loss(
         self,
         representations: List[torch.Tensor],
-        independent_representations: List[torch.Tensor]=None,
+        independent_representations: List[torch.Tensor] = None,
     ):
         sim_loss = invariance_loss(*representations)
         var_loss = variance_loss(*representations)

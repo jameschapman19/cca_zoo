@@ -50,7 +50,7 @@ class BarlowTwins(DCCA):
     def loss(
         self,
         representations: List[torch.Tensor],
-        independent_representations: List[torch.Tensor]=None,
+        independent_representations: List[torch.Tensor] = None,
     ):
         cross_cov = (
             representations[0].T @ representations[1] / representations[0].shape[0]

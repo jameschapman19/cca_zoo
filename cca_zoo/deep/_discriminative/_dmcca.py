@@ -21,7 +21,7 @@ class DMCCA(DCCA):
     def loss(
         self,
         representations: List[torch.Tensor],
-        independent_representations: List[torch.Tensor]=None,
+        independent_representations: List[torch.Tensor] = None,
     ):
         latent_dims = representations[0].shape[1]
         representations = [
@@ -38,7 +38,7 @@ class DMCCA(DCCA):
         eigvals = eigvals[idx[:latent_dims]]
         eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)])
         corr = eigvals.sum()
-        return {"objective":-corr}
+        return {"objective": -corr}
 
     def A(self, representations: List[torch.Tensor]):
         """Calculate cross-covariance matrix."""

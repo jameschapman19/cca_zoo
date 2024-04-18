@@ -12,6 +12,7 @@ Key Features:
 - Creating a custom dataset class from scratch.
 - Training a Deep CCA model on custom datasets.
 """
+
 import torch
 import numpy as np
 import lightning.pytorch as pl

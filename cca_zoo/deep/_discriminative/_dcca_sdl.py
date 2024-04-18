@@ -43,7 +43,7 @@ class DCCA_SDL(DCCA):
     def loss(
         self,
         representations: List[torch.Tensor],
-        independent_representations: List[torch.Tensor]=None,
+        independent_representations: List[torch.Tensor] = None,
     ):
         l2_loss = F.mse_loss(representations[0], representations[1])
         SDL_loss = torch.sum(

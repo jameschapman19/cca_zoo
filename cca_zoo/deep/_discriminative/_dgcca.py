@@ -17,7 +17,7 @@ class DGCCA(DCCA):
     def loss(
         self,
         representations: List[torch.Tensor],
-        independent_representations: List[torch.Tensor]=None,
+        independent_representations: List[torch.Tensor] = None,
     ):
         latent_dims = representations[0].shape[1]
         representations = [

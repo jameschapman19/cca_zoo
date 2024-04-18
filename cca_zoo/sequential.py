@@ -3,6 +3,7 @@ Module for finding _CCALoss effects sequentially by deflation.
 
 Check if each effect is significant, and if so, remove it from the data and repeat.
 """
+
 from abc import ABCMeta
 from typing import Iterable
 

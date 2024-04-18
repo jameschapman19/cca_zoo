@@ -1,6 +1,7 @@
 """
 The :mod:`cca_zoo.linear` module includes a variety of linear CCA algorithms.
 """
+
 from ._gcca import GCCA
 from ._gradient._ey import CCA_EY, PLS_EY
 from ._gradient._gha import CCA_GHA
