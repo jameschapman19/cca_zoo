@@ -64,7 +64,7 @@ class DTCCA(TCCA, DCCA):
     def loss(
         self,
         representations: List[torch.Tensor],
-        independent_representations: List[torch.Tensor]=None,
+        independent_representations: List[torch.Tensor] = None,
     ):
         latent_dims = representations[0].shape[1]
         views = [
@@ -98,4 +98,4 @@ class DTCCA(TCCA, DCCA):
         )
         M_parafac.weights = 1
         M_hat = cp_to_tensor(M_parafac)
-        return {"objective":torch.linalg.norm(M - M_hat)}
+        return {"objective": torch.linalg.norm(M - M_hat)}

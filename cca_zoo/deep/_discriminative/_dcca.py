@@ -15,11 +15,10 @@ class DCCA(BaseDeep):
 
     """
 
-
     def loss(
         self,
         representations: List[torch.Tensor],
-        independent_representations: List[torch.Tensor]=None,
+        independent_representations: List[torch.Tensor] = None,
     ):
         latent_dims = representations[0].shape[1]
         o1 = representations[0].shape[1]
@@ -47,4 +46,4 @@ class DCCA(BaseDeep):
         trace_TT = Tval.T @ Tval
         eigvals = torch.linalg.eigvalsh(trace_TT)
         eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)])
-        return {"objective":-eigvals.sum()}
+        return {"objective": -eigvals.sum()}

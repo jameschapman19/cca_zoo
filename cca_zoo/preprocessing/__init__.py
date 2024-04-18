@@ -1,6 +1,7 @@
 """
 Preprocessing methods for multi-view data.
 """
+
 from sklearn.base import TransformerMixin
 from sklearn.utils.validation import check_is_fitted
 

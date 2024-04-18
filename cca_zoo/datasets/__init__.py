@@ -1,6 +1,7 @@
 """
 The :mod:`cca_zoo.datasets` module includes utilities to load datasets.
 """
+
 from .simulated import JointData, LatentVariableData
 from .toy import (
     load_breast_data,

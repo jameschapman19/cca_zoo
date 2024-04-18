@@ -1,6 +1,7 @@
 """
 Utilities for visualising CCA results.
 """
+
 import importlib.util
 
 if importlib.util.find_spec("seaborn") is None or importlib.util.find_spec(

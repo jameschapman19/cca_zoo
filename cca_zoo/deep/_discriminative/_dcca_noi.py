@@ -142,7 +142,7 @@ class DCCA_NOI(DCCA):
     def loss(
         self,
         representations: List[torch.Tensor],
-        independent_representations: List[torch.Tensor]=None,
+        independent_representations: List[torch.Tensor] = None,
     ) -> torch.Tensor:
         representations_w = [
             bw(representation) for representation, bw in zip(representations, self.bws)
@@ -150,4 +150,4 @@ class DCCA_NOI(DCCA):
         loss = self.mse(representations[0], representations_w[1].detach()) + self.mse(
             representations[1], representations_w[0].detach()
         )
-        return {"objective":loss}
+        return {"objective": loss}

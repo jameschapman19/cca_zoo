@@ -6,7 +6,6 @@ from . import _GenerativeMixin
 from .._base import BaseDeep
 
 
-
 class DVCCA(BaseDeep, _GenerativeMixin):
     """
     A class used to fit a DVCCA model.
@@ -21,14 +20,14 @@ class DVCCA(BaseDeep, _GenerativeMixin):
     """
 
     def __init__(
-            self,
-            *args,
-            decoders=None,
-            private_encoders: Iterable = None,
-            latent_dropout=0,
-            img_dim=None,
-            recon_loss_type="mse",
-            **kwargs,
+        self,
+        *args,
+        decoders=None,
+        private_encoders: Iterable = None,
+        latent_dropout=0,
+        img_dim=None,
+        recon_loss_type="mse",
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.img_dim = img_dim
@@ -125,16 +124,16 @@ class DVCCA(BaseDeep, _GenerativeMixin):
             ]
         ).sum()
         loss["kl shared"] = (
-                self.kl_loss(representations["mu_shared"],
-                             representations["logvar_shared"]) / batch["views"][
-                    0].numel()
+            self.kl_loss(representations["mu_shared"], representations["logvar_shared"])
+            / batch["views"][0].numel()
         )
         if "private" in representations:
             loss["kl private"] = torch.stack(
                 [
                     self.kl_loss(mu_, logvar_) / batch["views"][0].numel()
-                    for mu_, logvar_ in zip(representations["mu_private"],
-                                            representations["logvar_private"])
+                    for mu_, logvar_ in zip(
+                        representations["mu_private"], representations["logvar_private"]
+                    )
                 ]
             ).sum()
         loss["objective"] = torch.stack(tuple(loss.values())).sum()
@@ -142,8 +141,8 @@ class DVCCA(BaseDeep, _GenerativeMixin):
 
     @torch.no_grad()
     def transform(
-            self,
-            loader: torch.utils.data.DataLoader,
+        self,
+        loader: torch.utils.data.DataLoader,
     ):
         self.eval()  # Ensure the model is in evaluation mode
         representations_shared = []
@@ -154,12 +153,17 @@ class DVCCA(BaseDeep, _GenerativeMixin):
             representations_shared.append(representations["shared"].cpu().detach())
             if "private" in representations:
                 representations_private.append(
-                    [representation.cpu().detach() for representation in
-                     representations["private"]])
+                    [
+                        representation.cpu().detach()
+                        for representation in representations["private"]
+                    ]
+                )
         representations_shared = {
-            "shared": torch.vstack(representations_shared).numpy()}
+            "shared": torch.vstack(representations_shared).numpy()
+        }
         if representations_private:
-            representations_private = [torch.vstack(representation).numpy()
-                                       for representation in representations_private
-                                       ]
+            representations_private = [
+                torch.vstack(representation).numpy()
+                for representation in representations_private
+            ]
         return representations_shared, representations_private

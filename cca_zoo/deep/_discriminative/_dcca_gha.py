@@ -17,7 +17,7 @@ class DCCA_GHA(DCCA_EY):
     def loss(
         self,
         representations: List[torch.Tensor],
-        independent_representations: List[torch.Tensor]=None,
+        independent_representations: List[torch.Tensor] = None,
     ):
         C, V = CCA_CV(representations)
         C = C + V

@@ -17,7 +17,7 @@ class DCCA_EY(DCCA):
     def loss(
         self,
         representations: List[torch.Tensor],
-        independent_representations: List[torch.Tensor]=None,
+        independent_representations: List[torch.Tensor] = None,
     ):
         C, V = CCA_CV(representations)
         rewards = torch.trace(2 * C)

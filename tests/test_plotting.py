@@ -14,7 +14,12 @@ from cca_zoo.visualisation import (
     TSNERepresentationDisplay,
     UMAPRepresentationDisplay,
 )
-from cca_zoo.visualisation.representations import JointRepresentationScatterDisplay,SeparateRepresentationScatterDisplay,SeparateJointRepresentationDisplay,PairRepresentationScatterDisplay
+from cca_zoo.visualisation.representations import (
+    JointRepresentationScatterDisplay,
+    SeparateRepresentationScatterDisplay,
+    SeparateJointRepresentationDisplay,
+    PairRepresentationScatterDisplay,
+)
 
 
 @pytest.fixture(scope="module")

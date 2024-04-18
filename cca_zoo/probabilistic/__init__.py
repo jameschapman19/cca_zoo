@@ -1,6 +1,7 @@
 """
 Probabilistic CCA methods
 """
+
 import importlib.util
 
 if importlib.util.find_spec("numpyro") is None:

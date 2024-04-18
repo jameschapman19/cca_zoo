@@ -16,7 +16,7 @@ class DCCA_SVD(DCCA_EY):
     def loss(
         self,
         representations: List[torch.Tensor],
-        independent_representations: List[torch.Tensor]=None,
+        independent_representations: List[torch.Tensor] = None,
     ):
         C = torch.cov(torch.hstack(representations).T)
         latent_dims = representations[0].shape[1]

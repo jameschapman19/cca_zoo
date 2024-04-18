@@ -135,7 +135,11 @@ class LatentVariableData(_BaseData):
                 if self.rank is None:
                     self._true_features.append(loading)
                 else:
-                    cov=loading @ loading.T + (cov_factor @ cov_factor.T).toarray()/self.signal_to_noise_ratio
+                    cov = (
+                        loading @ loading.T
+                        + (cov_factor @ cov_factor.T).toarray()
+                        / self.signal_to_noise_ratio
+                    )
                     inv_cov = np.linalg.inv(cov)
                     self._true_features.append(inv_cov @ loading)
 
