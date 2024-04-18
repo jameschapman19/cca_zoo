@@ -2,8 +2,9 @@ from typing import Iterable
 
 import torch
 
-from .._base import BaseDeep
 from . import _GenerativeMixin
+from .._base import BaseDeep
+
 
 class DVCCA(BaseDeep, _GenerativeMixin):
     """
@@ -11,21 +12,22 @@ class DVCCA(BaseDeep, _GenerativeMixin):
 
     References
     ----------
-    Wang, Weiran, et al. 'Deep variational canonical correlation analysis.' arXiv preprint arXiv:1610.03454 (2016).
+    Wang, Weiran, et al. 'Deep variational canonical correlation analysis.' arXiv
+    preprint arXiv:1610.03454 (2016).
     https: // arxiv.org / pdf / 1610.03454.pdf
     https: // github.com / pytorch / examples / blob / master / vae / main.py
 
     """
 
     def __init__(
-        self,
-        *args,
-        decoders=None,
-        private_encoders: Iterable = None,
-        latent_dropout=0,
-        img_dim=None,
-        recon_loss_type="mse",
-        **kwargs,
+            self,
+            *args,
+            decoders=None,
+            private_encoders: Iterable = None,
+            latent_dropout=0,
+            img_dim=None,
+            recon_loss_type="mse",
+            **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.img_dim = img_dim
@@ -62,7 +64,8 @@ class DVCCA(BaseDeep, _GenerativeMixin):
 
         :param mu:
         :param logvar:
-        :param mle: whether to return the maximum likelihood (i.e. mean) or whether to sample
+        :param mle: whether to return the maximum likelihood (i.e. mean) or whether
+        to sample
         :return: a sample from latent vector
         """
         if mle:
@@ -110,9 +113,9 @@ class DVCCA(BaseDeep, _GenerativeMixin):
             x.append(x_i)
         return x
 
-    def loss(self, batch, **kwargs):
-        z = self(batch["views"], mle=False)
-        recons = self._decode(z)
+    def minibatch_loss(self, batch, **kwargs):
+        representations = self(batch["views"], mle=False)
+        recons = self._decode(representations)
         loss = dict()
         loss["reconstruction"] = torch.stack(
             [
@@ -121,36 +124,41 @@ class DVCCA(BaseDeep, _GenerativeMixin):
             ]
         ).sum()
         loss["kl shared"] = (
-            self.kl_loss(z["mu_shared"], z["logvar_shared"]) / batch["views"][0].numel()
+                self.kl_loss(representations["mu_shared"],
+                             representations["logvar_shared"]) / batch["views"][
+                    0].numel()
         )
-        if "private" in z:
+        if "private" in representations:
             loss["kl private"] = torch.stack(
                 [
                     self.kl_loss(mu_, logvar_) / batch["views"][0].numel()
-                    for mu_, logvar_ in zip(z["mu_private"], z["logvar_private"])
+                    for mu_, logvar_ in zip(representations["mu_private"],
+                                            representations["logvar_private"])
                 ]
             ).sum()
         loss["objective"] = torch.stack(tuple(loss.values())).sum()
         return loss
 
+    @torch.no_grad()
     def transform(
-        self,
-        loader: torch.utils.data.DataLoader,
+            self,
+            loader: torch.utils.data.DataLoader,
     ):
-        """
-        :param loader: a dataloader that matches the structure of that used for training
-        :return: transformed representations
-        """
-        with torch.no_grad():
-            z_shared = []
-            z_private = []
-            for batch_idx, batch in enumerate(loader):
-                views = [view.to(self.device) for view in batch["views"]]
-                z_ = self(views)
-                z_shared.append(z_["shared"].cpu())
-                if "private" in z_:
-                    z_private.append(self.detach_all(z_["private"]))
-        z = {"shared": torch.vstack(z_shared).cpu().numpy()}
-        if "private" in z_:
-            z["private"] = [torch.vstack(i).cpu().numpy() for i in zip(*z_private)]
-        return z
+        self.eval()  # Ensure the model is in evaluation mode
+        representations_shared = []
+        representations_private = []
+        for batch_idx, batch in enumerate(loader):
+            views = [view.to(self.device) for view in batch["views"]]
+            representations = self(views)
+            representations_shared.append(representations["shared"].cpu().detach())
+            if "private" in representations:
+                representations_private.append(
+                    [representation.cpu().detach() for representation in
+                     representations["private"]])
+        representations_shared = {
+            "shared": torch.vstack(representations_shared).numpy()}
+        if representations_private:
+            representations_private = [torch.vstack(representation).numpy()
+                                       for representation in representations_private
+                                       ]
+        return representations_shared, representations_private

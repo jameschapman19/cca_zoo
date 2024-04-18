@@ -84,6 +84,19 @@ def test_linear_mcca():
         )
         is None
     )
+    ey = DCCA_EY(
+        latent_dimensions=latent_dimensions,
+        encoders=[encoder_1, encoder_2, encoder_3],
+        lr=1e-1,
+    )
+    trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
+    trainer.fit(ey, loader)
+    assert (
+        np.testing.assert_array_almost_equal(
+            mcca.score((X, Y, Z)), ey.score(loader), decimal=2
+        )
+        is None
+    )
 
 
 def test_linear_gcca():
@@ -199,7 +212,6 @@ def test_DCCA_methods():
     dcca_ey = DCCA_EY(
         latent_dimensions=latent_dimensions,
         encoders=[encoder_1, encoder_2],
-
     )
     trainer = pl.Trainer(max_epochs=max_epochs, **trainer_kwargs)
     trainer.fit(dcca_ey, train_loader, val_dataloaders=val_loader)

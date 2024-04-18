@@ -34,9 +34,9 @@ class _BaseIterative(_BaseModel):
         self.tol = tol
         self.epochs = epochs
         # validate the initialization method
-        if initialization not in ["random", "uniform", "unregularized", "pls"]:
+        if initialization not in ["random", "uniform", "unregularized", "pls", "cca"]:
             raise ValueError(
-                "Initialization method must be one of ['random', 'uniform', 'unregularized', 'pls']"
+                "Initialization method must be one of ['random', 'uniform', 'unregularized', 'pls', 'cca']"
             )
         else:
             self.initialization = initialization
@@ -151,6 +151,7 @@ def _default_initializer(
         "pls": MPLS(
             latent_dims, random_state=random_state
         ),  # Assuming PLS initialization can be used for both pls=True/False
+        "cca": MCCA(latent_dims, random_state=random_state),
     }
 
     initializer = initializer_map.get(initialization)

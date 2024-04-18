@@ -31,9 +31,9 @@ from cca_zoo.deep import (
     architectures,
 )
 from cca_zoo.visualisation import (
-    ScoreScatterDisplay,
-    UMAPScoreDisplay,
-    TSNEScoreDisplay,
+    RepresentationScatterDisplay,
+    UMAPRepresentationDisplay,
+    TSNERepresentationDisplay,
 )
 from examples import example_mnist_data
 
@@ -74,14 +74,14 @@ trainer.fit(dcca, train_loader, val_loader)
 # For this, we provide three options: Scatter, UMAP and t-SNE.
 
 # Scatterplot of the latent space
-score_display = ScoreScatterDisplay.from_estimator(
+score_display = RepresentationScatterDisplay.from_estimator(
     dcca, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot(title="Deep CCA")
 plt.show()
 
 # UMAP Visualization
-score_display = UMAPScoreDisplay.from_estimator(
+score_display = UMAPRepresentationDisplay.from_estimator(
     dcca, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
@@ -89,7 +89,7 @@ score_display.figure_.suptitle("UMAP Deep CCA")
 plt.show()
 
 # t-SNE Visualization
-score_display = TSNEScoreDisplay.from_estimator(
+score_display = TSNERepresentationDisplay.from_estimator(
     dcca, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot()
@@ -112,7 +112,7 @@ trainer = pl.Trainer(
     enable_progress_bar=False,
 )
 trainer.fit(dcca_eg, train_loader, val_loader)
-score_display = ScoreScatterDisplay.from_estimator(
+score_display = RepresentationScatterDisplay.from_estimator(
     dcca_eg, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot(title="Deep CCA EY")
@@ -132,7 +132,7 @@ trainer = pl.Trainer(
     enable_progress_bar=False,
 )
 trainer.fit(dcca_noi, train_loader, val_loader)
-score_display = ScoreScatterDisplay.from_estimator(
+score_display = RepresentationScatterDisplay.from_estimator(
     dcca_noi, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot(title="Deep CCA NOI")
@@ -142,7 +142,7 @@ plt.show()
 # Deep CCA by Stochastic Decorrelation Loss
 # ----------------------------------------------
 # Deep CCA by Stochastic Decorrelation Loss (DCCA_SDL) is yet another variant of Deep CCA
-# that uses a stochastic gradient descent algorithm to minimize a decorrelation loss function.
+# that uses a stochastic gradient descent algorithm to minimize a decorrelation minibatch_loss function.
 
 dcca_sdl = DCCA_SDL(
     latent_dimensions=LATENT_DIMS, N=N_TRAIN, encoders=[encoder_1, encoder_2]
@@ -154,7 +154,7 @@ trainer = pl.Trainer(
     enable_progress_bar=False,
 )
 trainer.fit(dcca_sdl, train_loader, val_loader)
-score_display = ScoreScatterDisplay.from_estimator(
+score_display = RepresentationScatterDisplay.from_estimator(
     dcca_sdl, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot(title="Deep CCA SDL")
@@ -177,7 +177,7 @@ trainer = pl.Trainer(
     enable_progress_bar=False,
 )
 trainer.fit(barlowtwins, train_loader, val_loader)
-score_display = ScoreScatterDisplay.from_estimator(
+score_display = RepresentationScatterDisplay.from_estimator(
     barlowtwins, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot(title="Barlow Twins")
@@ -200,7 +200,7 @@ trainer = pl.Trainer(
     enable_progress_bar=False,
 )
 trainer.fit(dcca_vicreg, train_loader, val_loader)
-score_display = ScoreScatterDisplay.from_estimator(
+score_display = RepresentationScatterDisplay.from_estimator(
     dcca_vicreg, val_loader, labels=val_labels.astype(str)
 )
 score_display.plot(title="VICReg")

@@ -1,8 +1,10 @@
+from typing import List, Optional
+
+import numpy as np
+
 from cca_zoo._utils._cross_correlation import cross_cov
 from cca_zoo.linear._gradient._base import BaseGradientModel
 from cca_zoo.linear._gradient._objectives import CCA_CV, PLS_AB
-import numpy as np
-from typing import List, Optional
 
 
 class CCA_EY(BaseGradientModel):

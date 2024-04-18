@@ -39,7 +39,7 @@ class KernelMixin:
         return kernels
 
     def transform(self, views: Iterable[np.ndarray], **kwargs):
-        check_is_fitted(self, attributes=["alphas"])
+        check_is_fitted(self, attributes=["alphas_"])
         Ktest = [
             pairwise_kernels(
                 self.train_views[i],
@@ -53,13 +53,11 @@ class KernelMixin:
             )
             for i, view in enumerate(views)
         ]
-        transformed_views = [
-            kernel.T @ self.alphas[i] for i, kernel in enumerate(Ktest)
-        ]
-        return transformed_views
+        representations = [kernel.T @ self.alphas_[i] for i, kernel in enumerate(Ktest)]
+        return representations
 
     @property
-    def alphas(self):
+    def alphas_(self):
         check_is_fitted(self)
         return self.weights_
 
@@ -149,7 +147,7 @@ class KCCA(KernelMixin, MCCA):
         self.kernel = kernel
         self.degree = degree
 
-    def _D(self, views, **kwargs):
+    def _B(self, views, **kwargs):
         D = block_diag(
             *[
                 (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[i] * view

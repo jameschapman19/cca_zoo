@@ -1,11 +1,4 @@
-import numpy as np
-
 from cca_zoo.linear._mcca import MCCA, rCCA
-
-
-def reduce_dims(x):
-    U, S, _ = np.linalg.svd(x, full_matrices=False)
-    return U @ np.diag(S)
 
 
 class PLSMixin:

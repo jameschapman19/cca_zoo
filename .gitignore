@@ -11,7 +11,7 @@ __pycache__/
 # https://python-poetry.org/docs/faq/#why-is-it-recommended-to-check-poetry-lock-file-into-version-control
 poetry.lock
 
-# _C extensions
+# _A extensions
 *.so
 
 # Distribution / packaging

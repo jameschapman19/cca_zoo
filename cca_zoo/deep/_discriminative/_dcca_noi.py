@@ -1,10 +1,11 @@
-from typing import Optional
+from typing import Optional, List
 
 import torch
 from torch import Tensor
 from torch.nn import Module
-from .._utils import inv_sqrtm
+
 from ._dcca import DCCA
+from .._utils import inv_sqrtm
 
 
 class BatchWhiten(Module):
@@ -138,8 +139,15 @@ class DCCA_NOI(DCCA):
             [BatchWhiten(self.latent_dimensions, momentum=rho) for _ in self.encoders]
         )
 
-    def loss(self, batch, **kwargs):
-        z = self(batch["views"])
-        z_w = [bw(z_) for z_, bw in zip(z, self.bws)]
-        loss = self.mse(z[0], z_w[1].detach()) + self.mse(z[1], z_w[0].detach())
-        return {"objective": loss}
+    def loss(
+        self,
+        representations: List[torch.Tensor],
+        independent_representations: List[torch.Tensor]=None,
+    ) -> torch.Tensor:
+        representations_w = [
+            bw(representation) for representation, bw in zip(representations, self.bws)
+        ]
+        loss = self.mse(representations[0], representations_w[1].detach()) + self.mse(
+            representations[1], representations_w[0].detach()
+        )
+        return {"objective":loss}

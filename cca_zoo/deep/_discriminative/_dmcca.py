@@ -6,64 +6,6 @@ from ._dcca import DCCA
 from .._utils import inv_sqrtm
 
 
-class _MCCALoss:
-    """Differentiable MCCA Loss. Solves the multiset eigenvalue problem.
-
-    References
-    ----------
-    https://arxiv.org/pdf/2005.11914.pdf
-
-    """
-
-    def __init__(self, eps: float = 1e-3):
-        self.eps = eps
-
-    def C(self, representations: List[torch.Tensor]):
-        """Calculate cross-covariance matrix."""
-        all_views = torch.cat(representations, dim=1)
-        C = torch.cov(all_views.T)
-        C = C - torch.block_diag(
-            *[torch.cov(representation.T) for representation in representations]
-        )
-        return C / len(representations)
-
-    def D(self, representations: List[torch.Tensor]):
-        """Calculate block covariance matrix."""
-        D = torch.block_diag(
-            *[
-                (1 - self.eps) * torch.cov(representation.T)
-                + self.eps
-                * torch.eye(representation.shape[1], device=representation.device)
-                for representation in representations
-            ]
-        )
-        return D / len(representations)
-
-    def correlation(self, representations: List[torch.Tensor]):
-        """Calculate correlation."""
-        latent_dims = representations[0].shape[1]
-        representations = [
-            representation - representation.mean(dim=0)
-            for representation in representations
-        ]
-        C = self.C(representations)
-        D = self.D(representations)
-        C += D
-        R = inv_sqrtm(D, self.eps)
-        C_whitened = R @ C @ R.T
-        eigvals = torch.linalg.eigvalsh(C_whitened)
-        idx = torch.argsort(eigvals, descending=True)
-        eigvals = eigvals[idx[:latent_dims]]
-        return eigvals
-
-    def __call__(self, representations: List[torch.Tensor]):
-        """Calculate loss."""
-        eigvals = self.correlation(representations)
-        eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)])
-        corr = eigvals.sum()
-        return -corr
-
-
 class DMCCA(DCCA):
     """
     A class used to fit a DMCCA model.
@@ -75,4 +17,46 @@ class DMCCA(DCCA):
 
 
     """
-    objective = _MCCALoss()
+
+    def loss(
+        self,
+        representations: List[torch.Tensor],
+        independent_representations: List[torch.Tensor]=None,
+    ):
+        latent_dims = representations[0].shape[1]
+        representations = [
+            representation - representation.mean(dim=0)
+            for representation in representations
+        ]
+        A = self.A(representations)
+        B = self.B(representations)
+        A += B
+        R = inv_sqrtm(B, self.eps)
+        C_whitened = R @ A @ R.T
+        eigvals = torch.linalg.eigvalsh(C_whitened)
+        idx = torch.argsort(eigvals, descending=True)
+        eigvals = eigvals[idx[:latent_dims]]
+        eigvals = torch.nn.LeakyReLU()(eigvals[torch.gt(eigvals, 0)])
+        corr = eigvals.sum()
+        return {"objective":-corr}
+
+    def A(self, representations: List[torch.Tensor]):
+        """Calculate cross-covariance matrix."""
+        all_views = torch.cat(representations, dim=1)
+        A = torch.cov(all_views.T)
+        A = A - torch.block_diag(
+            *[torch.cov(representation.T) for representation in representations]
+        )
+        return A / len(representations)
+
+    def B(self, representations: List[torch.Tensor]):
+        """Calculate block covariance matrix."""
+        B = torch.block_diag(
+            *[
+                (1 - self.eps) * torch.cov(representation.T)
+                + self.eps
+                * torch.eye(representation.shape[1], device=representation.device)
+                for representation in representations
+            ]
+        )
+        return B / len(representations)

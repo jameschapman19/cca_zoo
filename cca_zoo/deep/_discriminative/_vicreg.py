@@ -1,3 +1,5 @@
+from typing import List
+
 import torch
 import torch.nn.functional as F
 
@@ -15,11 +17,11 @@ class VICReg(DCCA):
     ----------
 
     sim_loss_weight : float, optional
-        weight of the similarity loss. Defaults to 25.0.
+        weight of the similarity minibatch_loss. Defaults to 25.0.
     var_loss_weight : float, optional
-        weight of the variance loss. Defaults to 25.0.
+        weight of the variance minibatch_loss. Defaults to 25.0.
     cov_loss_weight : float, optional
-        weight of the covariance loss. Defaults to 1.0.
+        weight of the covariance minibatch_loss. Defaults to 1.0.
 
     References
     ----------
@@ -35,25 +37,26 @@ class VICReg(DCCA):
         cov_loss_weight: float = 1.0,
         **kwargs,
     ):
-        super().__init__(
-            *args, **kwargs
-        )
+        super().__init__(*args, **kwargs)
         self.sim_loss_weight = sim_loss_weight
         self.var_loss_weight = var_loss_weight
         self.cov_loss_weight = cov_loss_weight
 
-    def loss(self, batch, **kwargs):
-        z = self(batch["views"])  # get the latent representations
-        sim_loss = invariance_loss(*z)
-        var_loss = variance_loss(*z)
-        cov_loss = covariance_loss(*z)
+    def loss(
+        self,
+        representations: List[torch.Tensor],
+        independent_representations: List[torch.Tensor]=None,
+    ):
+        sim_loss = invariance_loss(*representations)
+        var_loss = variance_loss(*representations)
+        cov_loss = covariance_loss(*representations)
         loss = (
             self.sim_loss_weight * sim_loss
             + self.var_loss_weight * var_loss
             + self.cov_loss_weight * cov_loss
         )
         return {
-            "objective": loss,  # return the loss
+            "objective": loss,  # return the minibatch_loss
             "sim_loss": sim_loss,
             "var_loss": var_loss,
             "cov_loss": cov_loss,
@@ -81,7 +84,7 @@ class VICReg(DCCA):
 
 
 def invariance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
-    """Computes mse loss given batch of projected features z1 from view 1 and
+    """Computes mse minibatch_loss given batch of projected features z1 from view 1 and
     projected features z2 from view 2.
 
     Args:
@@ -89,14 +92,14 @@ def invariance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
         z2 (torch.Tensor): NxD Tensor containing projected features from view 2.
 
     Returns:
-        torch.Tensor: invariance loss (mean squared error).
+        torch.Tensor: invariance minibatch_loss (mean squared error).
     """
 
     return F.mse_loss(z1, z2)
 
 
 def variance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
-    """Computes variance loss given batch of projected features z1 from view 1 and
+    """Computes variance minibatch_loss given batch of projected features z1 from view 1 and
     projected features z2 from view 2.
 
     Args:
@@ -104,7 +107,7 @@ def variance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
         z2 (torch.Tensor): NxD Tensor containing projected features from view 2.
 
     Returns:
-        torch.Tensor: variance regularization loss.
+        torch.Tensor: variance regularization minibatch_loss.
     """
 
     eps = 1e-4
@@ -115,7 +118,7 @@ def variance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
 
 
 def covariance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
-    """Computes covariance loss given batch of projected features z1 from view 1 and
+    """Computes covariance minibatch_loss given batch of projected features z1 from view 1 and
     projected features z2 from view 2.
 
     Args:
@@ -123,7 +126,7 @@ def covariance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
         z2 (torch.Tensor): NxD Tensor containing projected features from view 2.
 
     Returns:
-        torch.Tensor: covariance regularization loss.
+        torch.Tensor: covariance regularization minibatch_loss.
     """
 
     N, D = z1.size()

@@ -1,13 +1,11 @@
-from abc import abstractmethod
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import lightning.pytorch as pl
-import numpy as np
 import torch
-from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 
 from cca_zoo._base import _BaseModel
 from cca_zoo.linear._mcca import MCCA
+
 
 class BaseDeep(pl.LightningModule, _BaseModel):
     """A base class for deep learning linear using PyTorch Lightning."""
@@ -45,30 +43,43 @@ class BaseDeep(pl.LightningModule, _BaseModel):
         if not hasattr(self, "n_views_"):
             self.n_views_ = len(views)
         # Use list comprehension to encode each view
-        z = [encoder(view) for encoder, view in zip(self.encoders, views)]
-        return z
+        representations = [encoder(view) for encoder, view in zip(self.encoders, views)]
+        return representations
 
-    def loss(self, batch, **kwargs):
+    def minibatch_loss(self, batch, **kwargs):
+        # Encoding the representations with the forward method
         representations = self(batch["views"])
-        return {"objective": self.objective(representations)}
+        if batch.get("independent_views") is None:
+            independent_representations = None
+        else:
+            independent_representations = self(batch["independent_views"])
+        return self.loss(representations, independent_representations)
 
     def pairwise_correlations(self, loader: torch.utils.data.DataLoader):
         # Call the parent class method
         return super().pairwise_correlations(loader)
 
-    def correlation_captured(self, z):
+    def correlation_captured(self, representations):
         # Remove mean from each view
-        z = [zi - zi.mean(0) for zi in z]
-        return MCCA(latent_dimensions=self.latent_dimensions).fit(z).score(z).sum()
+        representations = [
+            representation - representation.mean(0)
+            for representation in representations
+        ]
+        return (
+            MCCA(latent_dimensions=self.latent_dimensions)
+            .fit(representations)
+            .score(representations)
+            .sum()
+        )
 
     def score(self, loader: torch.utils.data.DataLoader, **kwargs):
-        z = self.transform(loader)
-        corr = self.correlation_captured(z)
+        representations = self.transform(loader)
+        corr = self.correlation_captured(representations)
         return corr
 
     def training_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
         """Performs one step of training on a batch of representations."""
-        loss = self.loss(batch)
+        loss = self.minibatch_loss(batch)
         for k, v in loss.items():
             # Use f-string instead of concatenation
             self.log(
@@ -82,7 +93,7 @@ class BaseDeep(pl.LightningModule, _BaseModel):
 
     def validation_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
         """Performs one step of validation on a batch of representations."""
-        loss = self.loss(batch)
+        loss = self.minibatch_loss(batch)
         for k, v in loss.items():
             # Use f-string instead of concatenation
             self.log(
@@ -96,7 +107,7 @@ class BaseDeep(pl.LightningModule, _BaseModel):
 
     def test_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
         """Performs one step of testing on a batch of representations."""
-        loss = self.loss(batch)
+        loss = self.minibatch_loss(batch)
         for k, v in loss.items():
             # Use f-string instead of concatenation
             self.log(
@@ -109,30 +120,22 @@ class BaseDeep(pl.LightningModule, _BaseModel):
         return loss["objective"]
 
     @torch.no_grad()
-    def get_representations(
+    def transform(
         self,
         loader: torch.utils.data.DataLoader,
     ):
         self.eval()  # Ensure the model is in evaluation mode
-        all_z = []
+        representations = []
 
         for batch in loader:
             views_device = [view.to(self.device) for view in batch["views"]]
             z = self(views_device)
-            all_z.append([z_.cpu() for z_ in z])
+            representations.append([z_.cpu().detach() for z_ in z])
 
         # Stack all latent vectors along dimension 0 (batches)
-        stacked_z = [torch.vstack(z_) for z_ in zip(*all_z)]
+        representations = [torch.vstack(z_) for z_ in zip(*representations)]
 
-        return stacked_z
-
-    @torch.no_grad()
-    def transform(
-        self,
-        loader: torch.utils.data.DataLoader,
-    ) -> List[np.ndarray]:
-        """Returns the latent representations for each view in the loader."""
-        return [z.numpy() for z in self.get_representations(loader)]
+        return [representation.numpy() for representation in representations]
 
     def configure_optimizers(
         self,
@@ -163,9 +166,3 @@ class BaseDeep(pl.LightningModule, _BaseModel):
     def configure_callbacks(self) -> None:
         """Configures the callbacks for the model."""
         pass
-
-    @staticmethod
-    def detach_all(z: List[torch.Tensor]) -> List[torch.Tensor]:
-        """Detaches all tensors in a list from the computation graph."""
-        # Use list comprehension instead of for loop
-        return [z_.detach() for z_ in z]

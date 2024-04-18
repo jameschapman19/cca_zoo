@@ -77,7 +77,7 @@ class ProbabilisticPLS(ProbabilisticCCA):
 
         with numpyro.plate("n", self.n_samples_):
             z = numpyro.sample(
-                "z",
+                "representations",
                 dist.MultivariateNormal(
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
                 ),

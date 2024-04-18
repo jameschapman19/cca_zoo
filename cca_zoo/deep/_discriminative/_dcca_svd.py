@@ -1,15 +1,22 @@
-from typing import List, Optional
+from typing import List
 
 import torch
 
-from cca_zoo.deep._discriminative._dcca_ey import DCCA_EY, _CCA_EYLoss
+from cca_zoo.deep._discriminative._dcca_ey import DCCA_EY
 
-class _CCA_SVDLoss(_CCA_EYLoss):
-    @staticmethod
-    @torch.jit.script
-    def __call__(
+
+class DCCA_SVD(DCCA_EY):
+    """
+
+    References
+    ----------
+    Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
+    """
+
+    def loss(
+        self,
         representations: List[torch.Tensor],
-        independent_representations: Optional[List[torch.Tensor]] = None,
+        independent_representations: List[torch.Tensor]=None,
     ):
         C = torch.cov(torch.hstack(representations).T)
         latent_dims = representations[0].shape[1]
@@ -29,13 +36,3 @@ class _CCA_SVDLoss(_CCA_EYLoss):
             "rewards": rewards,  # return the total rewards
             "penalties": penalties,  # return the penalties matrix
         }
-
-
-class DCCA_SVD(DCCA_EY):
-    """
-
-    References
-    ----------
-    Chapman, James, Ana Lawry Aguila, and Lennie Wells. "A Generalized EigenGame with Extensions to Multiview Representation Learning." arXiv preprint arXiv:2211.11323 (2022).
-    """
-    objective = _CCA_SVDLoss()

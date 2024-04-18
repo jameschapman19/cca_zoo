@@ -1,6 +1,7 @@
 from typing import Iterable, List, Union, Optional
 
 import numpy as np
+
 from cca_zoo._base import _BaseModel
 from cca_zoo.linear._iterative._base import _default_initializer
 from cca_zoo.linear._mcca import MCCA

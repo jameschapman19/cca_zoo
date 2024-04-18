@@ -14,29 +14,27 @@ from .covariance import CovarianceHeatmapDisplay
 from .explained_covariance import ExplainedCovarianceDisplay
 from .explained_variance import ExplainedVarianceDisplay
 from .inference import WeightInferenceDisplay
-from .scores import (
-    ScoreScatterDisplay,
-    JointScoreScatterDisplay,
-    SeparateScoreScatterDisplay,
-    SeparateJointScoreDisplay,
-    PairScoreScatterDisplay,
+from .representations import (
+    RepresentationScatterDisplay,
+    JointRepresentationScatterDisplay,
+    SeparateRepresentationScatterDisplay,
+    SeparateJointRepresentationDisplay,
+    PairRepresentationScatterDisplay,
+    TSNERepresentationDisplay,
+    UMAPRepresentationDisplay,
 )
-from .tsne_scores import TSNEScoreDisplay
-from .umap_scores import UMAPScoreDisplay
 from .weights import WeightHeatmapDisplay
 
 __all__ = [
     "ExplainedVarianceDisplay",
-    "ScoreScatterDisplay",
-    "JointScoreScatterDisplay",
-    "SeparateScoreScatterDisplay",
-    "SeparateJointScoreDisplay",
-    "PairScoreScatterDisplay",
+    "RepresentationScatterDisplay",
+    "JointRepresentationScatterDisplay",
+    "SeparateRepresentationScatterDisplay",
+    "SeparateJointRepresentationDisplay",
+    "PairRepresentationScatterDisplay",
     "ExplainedCovarianceDisplay",
     "WeightHeatmapDisplay",
     "CorrelationHeatmapDisplay",
     "CovarianceHeatmapDisplay",
-    "TSNEScoreDisplay",
-    "UMAPScoreDisplay",
     "WeightInferenceDisplay",
 ]

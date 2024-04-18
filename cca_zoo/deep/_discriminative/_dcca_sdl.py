@@ -1,3 +1,5 @@
+from typing import List
+
 import torch
 import torch.nn.functional as F
 
@@ -5,7 +7,7 @@ from ._dcca import DCCA
 
 
 def sdl_loss(view):
-    """Calculate SDL loss."""
+    """Calculate SDL minibatch_loss."""
     cov = torch.cov(view.T)
     sgn = torch.sign(cov)
     sgn.fill_diagonal_(0)
@@ -22,16 +24,8 @@ class DCCA_SDL(DCCA):
 
     """
 
-    def __init__(
-        self,
-        *args,
-        lam=0.5,
-        **kwargs
-    ):
-        super().__init__(
-            *args,
-            **kwargs
-        )
+    def __init__(self, *args, lam=0.5, **kwargs):
+        super().__init__(*args, **kwargs)
         self.lam = lam
         self.bns = torch.nn.ModuleList(
             [
@@ -41,22 +35,21 @@ class DCCA_SDL(DCCA):
         )
 
     def forward(self, views, **kwargs):
-        z = []
+        representations = []
         for i, (encoder, bn) in enumerate(zip(self.encoders, self.bns)):
-            z.append(bn(encoder(views[i])))
-        return z
+            representations.append(bn(encoder(views[i])))
+        return representations
 
-    def loss(self, batch, **kwargs):
-        z = self(batch["views"])
-        l2_loss = F.mse_loss(z[0], z[1])
-        SDL_loss = torch.sum(torch.stack([sdl_loss(z_) for z_ in z]))
+    def loss(
+        self,
+        representations: List[torch.Tensor],
+        independent_representations: List[torch.Tensor]=None,
+    ):
+        l2_loss = F.mse_loss(representations[0], representations[1])
+        SDL_loss = torch.sum(
+            torch.stack(
+                [sdl_loss(representation) for representation in representations]
+            )
+        )
         loss = l2_loss + self.lam * SDL_loss
         return {"objective": loss, "l2": l2_loss, "sdl": SDL_loss}
-
-    def _sdl_loss(self, covs):
-        loss = 0
-        for cov in covs:
-            sgn = torch.sign(cov)
-            sgn.fill_diagonal_(0)
-            loss += torch.mean(cov * sgn)
-        return loss

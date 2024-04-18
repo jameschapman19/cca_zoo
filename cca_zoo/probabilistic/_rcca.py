@@ -89,7 +89,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
 
         with numpyro.plate("n", self.n_samples_):
             z = numpyro.sample(
-                "z",
+                "representations",
                 dist.MultivariateNormal(
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
                 ),
@@ -122,7 +122,7 @@ class ProbabilisticRCCA(ProbabilisticCCA):
             A tuple containing the first and second representations, X1 and X2, each as a numpy array.
         """
 
-        # Variational parameters for the approximate posterior of z
+        # Variational parameters for the approximate posterior of representations
         z_loc = numpyro.param(
             "z_loc", jnp.zeros((self.n_samples_, self.latent_dimensions))
         )
@@ -133,7 +133,9 @@ class ProbabilisticRCCA(ProbabilisticCCA):
         )
 
         with numpyro.plate("n", self.n_samples_):
-            numpyro.sample("z", dist.MultivariateNormal(z_loc, jnp.diag(z_scale)))
+            numpyro.sample(
+                "representations", dist.MultivariateNormal(z_loc, jnp.diag(z_scale))
+            )
 
     def joint(self):
         psi1 = jnp.eye(self.n_features_in_[0]) * self.params["sigma_1"]

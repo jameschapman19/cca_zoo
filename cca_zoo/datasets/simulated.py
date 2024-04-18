@@ -5,7 +5,6 @@ from typing import List, Union
 import numpy as np
 import scipy
 from scipy.sparse import block_diag
-from sklearn.datasets import make_spd_matrix
 from sklearn.utils.validation import check_random_state
 
 from cca_zoo._utils._checks import _process_parameter
@@ -31,39 +30,6 @@ class _BaseData(ABC):
         self.rank = min(view_features) if rank is None else rank
         self.density = density
 
-    def _generate_covariance_matrix(self, features: int, structure: str):
-        """
-        Generates a covariance matrix for a view based on the specified structure.
-
-        :param features: Number of features in the view.
-        :param structure: Structure type of the covariance matrix.
-        :return: A covariance matrix for the view.
-        """
-        if structure == "identity":
-            return np.eye(features)
-        else:
-            covariance_matrix = make_spd_matrix(
-                features, random_state=self.random_state
-            )
-            return self._scale_covariance_matrix(covariance_matrix)
-
-    @staticmethod
-    def _scale_covariance_matrix(covariance_matrix):
-        """
-        Scales a covariance matrix so that its diagonal elements are 1, effectively
-        converting it to a correlation matrix.
-
-        :param cov_matrix: A numpy array representing the covariance matrix.
-        :return: Scaled covariance matrix with 1s on the diagonal.
-        """
-        # Extract the standard deviations from the diagonal of the covariance matrix
-        std_devs = np.sqrt(np.diag(covariance_matrix))
-
-        # Scale the covariance matrix
-        scaled_cov_matrix = covariance_matrix / np.outer(std_devs, std_devs)
-
-        return scaled_cov_matrix
-
     def _covariance_factor(self, features, structure):
         """
         Generates a covariance factor matrix based on the specified structure. For a large number of
@@ -75,9 +41,14 @@ class _BaseData(ABC):
         """
         if structure == "identity":
             factor = scipy.sparse.eye(features, features)
-            factor /= np.sqrt(features)
-            return factor
-        else:
+            factor /= features
+        elif structure == "correlated":
+            factor = scipy.sparse.csr_matrix(
+                self.random_state.uniform(-1, 1, size=(features, self.rank))
+            )
+            s = scipy.linalg.svdvals(factor.toarray())
+            factor /= s.sum()
+        elif structure == "random":
             factor = scipy.sparse.random(
                 features,
                 self.rank,
@@ -85,11 +56,12 @@ class _BaseData(ABC):
                 random_state=self.random_state,
             )
             s = scipy.linalg.svdvals(factor.toarray())
-            factor /= np.sqrt(s.sum())
-            return factor
-
-    def covariance_matrices(self):
-        return [factor @ factor.T for factor in self.covariance_factors]
+            factor /= s.sum()
+        else:
+            raise ValueError(
+                "Invalid covariance structure. Must be one of 'identity', 'correlated', or 'random'."
+            )
+        return factor
 
     @abstractmethod
     def sample(self, n_samples: int):
@@ -158,17 +130,33 @@ class LatentVariableData(_BaseData):
     @property
     def true_features(self):
         if self._true_features is None:
-            self._true_features = [
-                np.linalg.inv(
-                    loading @ loading.T
-                    + (cov_factor @ cov_factor.T).toarray()
-                    / np.sqrt(self.signal_to_noise_ratio)
-                )
-                @ loading
-                for loading, cov_factor in zip(
-                    self.true_loadings, self.covariance_factors
-                )
-            ]
+            self._true_features = []
+            for loading, cov_factor in zip(self.true_loadings, self.covariance_factors):
+                if self.rank is None:
+                    self._true_features.append(loading)
+                else:
+                    cov=loading @ loading.T + (cov_factor @ cov_factor.T).toarray()/self.signal_to_noise_ratio
+                    inv_cov = np.linalg.inv(cov)
+                    self._true_features.append(inv_cov @ loading)
+
+                    # U_l, S_l, Vt_l = np.linalg.svd(loading, full_matrices=False)
+                    # U_c, S_c, Vt_c = np.linalg.svd(
+                    #     cov_factor.toarray(), full_matrices=False
+                    # )
+                    #
+                    # M = np.hstack((U_l, U_c))
+                    # V, R = np.linalg.qr(M)
+                    #
+                    # A_prime = (
+                    #     (V.T @ cov_factor.toarray())
+                    #     @ (cov_factor.toarray().T @ V)
+                    #     / self.signal_to_noise_ratio
+                    # )
+                    # B_prime = (V.T @ loading) @ (loading.T @ V)
+                    # C = A_prime + B_prime
+                    # inv_matrix = np.linalg.inv(C)
+                    # self._true_features.append(V @ (inv_matrix @ (V.T @ loading)))
+
         return self._true_features
 
     def _generate_loading_matrix(
@@ -234,11 +222,11 @@ class LatentVariableData(_BaseData):
         joint_cov = np.zeros((sum(self.view_features), sum(self.view_features)))
         joint_cov[: self.view_features[0], : self.view_features[0]] = (
             self.true_loadings[0] @ self.true_loadings[0].T
-            + self.covariance_matrices[0]
+            + self.covariance_factors[0] @ self.covariance_factors[0].T
         )
         joint_cov[self.view_features[0] :, self.view_features[0] :] = (
             self.true_loadings[1] @ self.true_loadings[1].T
-            + self.covariance_matrices[1]
+            + self.covariance_factors[1] @ self.covariance_factors[1].T
         )
         joint_cov[: self.view_features[0], self.view_features[0] :] = (
             self.true_loadings[0] @ self.true_loadings[1].T
@@ -301,7 +289,8 @@ class JointData(_BaseData):
             )
         ]
         U, S, Vt = np.linalg.svd(
-            self._generate_joint_covariance(self.covariance_factors), full_matrices=True
+            self._generate_joint_covariance(self.covariance_factors),
+            full_matrices=False,
         )
         self.US = U * np.sqrt(S)
 

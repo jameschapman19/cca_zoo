@@ -172,7 +172,7 @@
 #                     ]
 #                 )
 #             )
-#             return {"loss": torch.tensor(objective), "weights_change": weights_change}
+#             return {"minibatch_loss": torch.tensor(objective), "weights_change": weights_change}
 #
 #
 # from pyproximal import (

@@ -130,7 +130,7 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         Returns
         -------
-        transformed_views: list of numpy arrays
+        representations: list of numpy arrays
 
         """
         check_is_fitted(self)
@@ -143,11 +143,11 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
             )
             for view in views
         ]
-        transformed_views = []
+        representations = []
         for i, view in enumerate(views):
-            transformed_view = view @ self.weights_[i]
-            transformed_views.append(transformed_view)
-        return transformed_views
+            representation = view @ self.weights_[i]
+            representations.append(representation)
+        return representations
 
     def pairwise_correlations(
         self, views: Iterable[np.ndarray], **kwargs
@@ -164,9 +164,9 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         -------
         pairwise_correlations: numpy array of shape (n_views, n_views, latent_dimensions)
         """
-        transformed_views = self.transform(views, **kwargs)
+        representations = self.transform(views, **kwargs)
         all_corrs = []
-        for x, y in itertools.product(transformed_views, repeat=2):
+        for x, y in itertools.product(representations, repeat=2):
             all_corrs.append(np.diag(cross_corrcoef(x.T, y.T)))
         all_corrs = np.array(all_corrs).reshape(
             (self.n_views_, self.n_views_, self.latent_dimensions)
@@ -215,9 +215,7 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         """
         return self.average_pairwise_correlations(views, **kwargs).sum()
 
-    def canonical_loadings_(
-        self, views: Iterable[np.ndarray], normalize: bool = True, **kwargs
-    ) -> List[np.ndarray]:
+    def loadings_(self, views: Iterable[np.ndarray], **kwargs) -> List[np.ndarray]:
         """
         Calculate canonical loadings for each view.
 
@@ -247,103 +245,74 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
 
         """
         check_is_fitted(self, attributes=["weights_"])
-        transformed_views = self.transform(views, **kwargs)
-        if normalize:
-            canonical_loadings = [
-                cross_corrcoef(view, transformed_view, rowvar=False)
-                for view, transformed_view in zip(views, transformed_views)
-            ]
-        else:
-            canonical_loadings = [
-                view.T @ transformed_view
-                for view, transformed_view in zip(views, transformed_views)
-            ]
-        return canonical_loadings
-
-    @property
-    def loadings_(self) -> List[np.ndarray]:
-        """
-        Compute and return loadings for each view. These are cached for performance optimization.
-
-        In the context of the cca-zoo models, loadings are the normalized weights. Due to the structure of these models,
-        weight vectors are normalized such that w'X'Xw = 1, as opposed to w'w = 1, which is commonly used in PCA.
-        As a result, when computing the loadings, the weights are normalized to have unit norm, ensuring that the loadings
-        range between -1 and 1.
-
-        It's essential to differentiate between these loadings and canonical loadings. The latter are correlations between
-        the original variables and their corresponding canonical variates.
-
-        Returns
-        -------
-        List[np.ndarray]
-            Loadings for each view.
-        """
-        check_is_fitted(self, attributes=["weights_"])
+        representations = self.transform(views, **kwargs)
         loadings = [
-            weights / np.linalg.norm(weights, axis=0) for weights in self.weights_
+            cross_corrcoef(view, representation, rowvar=False)
+            for view, representation in zip(views, representations)
         ]
         return loadings
 
     def explained_variance(self, views: Iterable[np.ndarray]) -> List[np.ndarray]:
         """
-        Calculates the variance captured by each latent dimension for each view.
+        Calculates variance captured by each latent dimension for each view.
 
         Returns
         -------
-        transformed_vars: list of numpy arrays
+        variances_by_dimension: list of numpy arrays
         """
         check_is_fitted(self, attributes=["weights_"])
 
-        # Transform the representations using the loadings
+        normalized_weights_ = [
+            weight / np.linalg.norm(weight, axis=0) for weight in self.weights_
+        ]
+
+        # Transform views using normalized weights
         transformed_views = [
-            view @ loading for view, loading in zip(views, self.loadings_)
+            view @ weights for view, weights in zip(views, normalized_weights_)
         ]
 
-        # Calculate the variance of each latent dimension in the transformed representations
-        transformed_vars = [
-            np.var(transformed, axis=0) for transformed in transformed_views
+        # Calculate variance for each latent dimension
+        variances_by_dimension = [
+            np.var(transformed_view, axis=0) for transformed_view in transformed_views
         ]
-
-        return transformed_vars
+        return variances_by_dimension
 
     def explained_variance_ratio(self, views: Iterable[np.ndarray]) -> List[np.ndarray]:
         """
-        Calculates the ratio of the variance captured by each latent dimension to the total variance for each view.
+        Calculates variance ratio captured by each latent dimension for each view.
 
         Returns
         -------
-        explained_variance_ratios: list of numpy arrays
+        variance_ratios: list of numpy arrays
         """
-        total_vars = [
-            (np.sum(s**2) / (view.shape[0] - 1))
+        total_variances = [
+            np.sum(s**2) / (view.shape[0] - 1)
             for view in views
             for _, s, _ in [svd(view)]
         ]
 
-        transformed_vars = self.explained_variance(views)
+        variances_by_dimension = self.explained_variance(views)
 
-        # Calculate the explained variance ratio for each latent dimension for each view
-        explained_variance_ratios = [
-            transformed_var / total_var
-            for transformed_var, total_var in zip(transformed_vars, total_vars)
+        # Calculate variance ratio for each dimension
+        variance_ratios = [
+            var_by_dim / total_var
+            for var_by_dim, total_var in zip(variances_by_dimension, total_variances)
         ]
-
-        return explained_variance_ratios
+        return variance_ratios
 
     def explained_variance_cumulative(
         self, views: Iterable[np.ndarray]
     ) -> List[np.ndarray]:
         """
-        Calculates the cumulative explained variance ratio for each latent dimension for each view.
+        Calculates cumulative explained variance ratio for each latent dimension.
 
         Returns
         -------
-        cumulative_ratios: list of numpy arrays
+        cumulative_variance_ratios: list of numpy arrays
         """
-        ratios = self.explained_variance_ratio(views)
-        cumulative_ratios = [np.cumsum(ratio) for ratio in ratios]
-
-        return cumulative_ratios
+        variance_ratios = self.explained_variance_ratio(views)
+        cumulative_variance_ratios = [np.cumsum(ratio) for ratio in variance_ratios]
+        return cumulative_variance_ratios
 
     def _compute_covariance(self, views: Iterable[np.ndarray]) -> np.ndarray:
         """
@@ -378,18 +347,18 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         check_is_fitted(self, attributes=["weights_"])
 
         # Transform the representations using the loadings_
-        transformed_views = [
-            view @ loading for view, loading in zip(views, self.loadings_)
+        representations = [
+            view @ loading for view, loading in zip(views, self.loadings_(views))
         ]
 
-        k = transformed_views[0].shape[1]
+        k = representations[0].shape[1]
 
         explained_covariances = np.zeros(k)
 
         # just take the kth column of each transformed view and _compute_covariance
         for i in range(k):
-            transformed_views_k = [view[:, i][:, None] for view in transformed_views]
-            cov_ = self._compute_covariance(transformed_views_k)
+            representations_k = [view[:, i][:, None] for view in representations]
+            cov_ = self._compute_covariance(representations_k)
             _, s_, _ = svd(cov_)
             explained_covariances[i] = s_[0]
 
@@ -422,47 +391,3 @@ class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
         cumulative_ratios = [np.cumsum(ratio) for ratio in ratios]
 
         return cumulative_ratios
-
-    # def predict(self, views: Iterable[np.ndarray]) -> List[np.ndarray]:
-    #     """
-    #     Predicts the missing view from the given representations.
-    #
-    #
-    #     Parameters
-    #     ----------
-    #     views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-    #
-    #     Returns
-    #     -------
-    #     predicted_views: list of numpy arrays. None if the view is missing.
-    #         Predicted representations.
-    #
-    #     Examples
-    #     --------
-    #     >>> import numpy as np
-    #     >>> X1 = np.random.rand(100, 5)
-    #     >>> X2 = np.random.rand(100, 5)
-    #     >>> cca = _CCALoss()
-    #     >>> cca.fit([X1, X2])
-    #     >>> X1_pred, X2_pred = cca.predict([X1, None])
-    #
-    #     """
-    #     check_is_fitted(self, attributes=["weights_"])
-    #     # check if representations is same length as weights_
-    #     if len(views) != len(self.weights_):
-    #         raise ValueError(
-    #             "The number of representations must be the same as the number of weights_. Put None for missing representations."
-    #         )
-    #     transformed_views = []
-    #     for i, view in enumerate(views):
-    #         if view is not None:
-    #             transformed_view = view @ self.weights_[i]
-    #             transformed_views.append(transformed_view)
-    #     # average the transformed representations
-    #     average_score = np.mean(transformed_views, axis=0)
-    #     # return the average score transformed back to the original space
-    #     reconstucted_views = []
-    #     for i, view in enumerate(views):
-    #         reconstructed_view = average_score @ np.linalg.pinv(self.weights_[i])
-    #         reconstucted_views.append(reconstructed_view)
-    #     return reconstucted_views

@@ -3,11 +3,15 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from cca_zoo._utils._checks import check_seaborn_support
+from cca_zoo._utils._checks import (
+    check_seaborn_support,
+    check_tsne_support,
+    check_umap_support,
+)
 from cca_zoo._utils._cross_correlation import cross_corrcoef
 
 
-class ScoreScatterDisplay:
+class RepresentationScatterDisplay:
     """
     Display the scores of a model.
 
@@ -85,7 +89,7 @@ class ScoreScatterDisplay:
         """
         Validate plot parameters and check Seaborn support.
         """
-        check_seaborn_support("ScoreScatterDisplay")
+        check_seaborn_support("RepresentationScatterDisplay")
 
     @classmethod
     def from_estimator(
@@ -109,7 +113,7 @@ class ScoreScatterDisplay:
             **kwargs: Additional keyword arguments passed to the ScoreDisplay constructor.
 
         Returns:
-            ScoreScatterDisplay: An instance of ScoreDisplay.
+            RepresentationScatterDisplay: An instance of ScoreDisplay.
         """
         train_scores = model.transform(train_views)
         test_scores = model.transform(test_views) if test_views is not None else None
@@ -143,7 +147,7 @@ class ScoreScatterDisplay:
             **kwargs: Additional keyword arguments passed to the ScoreDisplay constructor.
 
         Returns:
-            ScoreScatterDisplay: An instance of ScoreDisplay.
+            RepresentationScatterDisplay: An instance of ScoreDisplay.
         """
 
         return cls(
@@ -214,7 +218,7 @@ class ScoreScatterDisplay:
             self.figures_.append(fig)
 
 
-class JointScoreScatterDisplay(ScoreScatterDisplay):
+class JointRepresentationScatterDisplay(RepresentationScatterDisplay):
     def _create_plot(self, x, y, hue=None, palette=None):
         g = sns.jointplot(
             x=x,
@@ -225,7 +229,7 @@ class JointScoreScatterDisplay(ScoreScatterDisplay):
         return g, g.fig, g.ax_joint
 
 
-class SeparateScoreScatterDisplay(ScoreScatterDisplay):
+class SeparateRepresentationScatterDisplay(RepresentationScatterDisplay):
     def plot(self, title=""):
         dimensions = self.scores[0].shape[1]
         self.train_figures_ = []
@@ -279,7 +283,7 @@ class SeparateScoreScatterDisplay(ScoreScatterDisplay):
         return self
 
 
-class SeparateJointScoreDisplay(SeparateScoreScatterDisplay):
+class SeparateJointRepresentationDisplay(SeparateRepresentationScatterDisplay):
     def _create_plot(self, x, y, hue=None, palette=None):
         g = sns.jointplot(
             x=x,
@@ -290,7 +294,7 @@ class SeparateJointScoreDisplay(SeparateScoreScatterDisplay):
         return g, g.fig, g.ax_joint
 
 
-class PairScoreScatterDisplay(ScoreScatterDisplay):
+class PairRepresentationScatterDisplay(RepresentationScatterDisplay):
     def plot(self):
         # Put the combined scores into a dataframe with dimension as column names
         x_vars = [f"X{i}" for i in range(self.combined_scores_x.shape[1])]
@@ -312,4 +316,78 @@ class PairScoreScatterDisplay(ScoreScatterDisplay):
                 verticalalignment="top",
             )
         self.figure_ = g.fig
+        return self
+
+
+class TSNERepresentationDisplay(RepresentationScatterDisplay):
+    def _validate_plot_params(self):
+        check_tsne_support("TSNERepresentationDisplay")
+        check_seaborn_support("TSNERepresentationDisplay")
+
+    def plot(self):
+        self._validate_plot_params()
+        import openTSNE
+        import matplotlib.pyplot as plt
+
+        reducer = openTSNE.TSNE()
+        embedding = reducer.fit(self.scores[0])
+        fig, ax = plt.subplots()
+        sns.scatterplot(
+            x=embedding[:, 0],
+            y=embedding[:, 1],
+            hue=self.labels,
+            ax=ax,
+            alpha=0.1 if self.test_scores is not None else 1.0,
+            label="Train" if self.test_scores is not None else None,
+            **self.kwargs,
+        )
+        if self.test_scores is not None:
+            embedding = reducer.fit(self.test_scores[0])
+            sns.scatterplot(
+                x=embedding[:, 0],
+                y=embedding[:, 1],
+                hue=self.test_labels,
+                ax=ax,
+                label="Test",
+                **self.kwargs,
+            )
+        plt.tight_layout()
+        self.figure_ = fig
+        return self
+
+
+class UMAPRepresentationDisplay(RepresentationScatterDisplay):
+    def _validate_plot_params(self):
+        check_umap_support("UMAPRepresentationDisplay")
+        check_seaborn_support("TSNERepresentationDisplay")
+
+    def plot(self, **kwargs):
+        self._validate_plot_params()
+        import umap
+        import matplotlib.pyplot as plt
+
+        reducer = umap.UMAP()
+        embedding = reducer.fit_transform(self.scores[0])
+        fig, ax = plt.subplots()
+        sns.scatterplot(
+            x=embedding[:, 0],
+            y=embedding[:, 1],
+            hue=self.labels,
+            ax=ax,
+            alpha=0.1 if self.test_scores is not None else 1.0,
+            label="Train" if self.test_scores is not None else None,
+            **self.kwargs,
+        )
+        if self.test_scores is not None:
+            embedding = reducer.transform(self.test_scores[0])
+            sns.scatterplot(
+                x=embedding[:, 0],
+                y=embedding[:, 1],
+                hue=self.test_labels,
+                ax=ax,
+                label="Test",
+                **self.kwargs,
+            )
+        plt.tight_layout()
+        self.figure_ = fig
         return self

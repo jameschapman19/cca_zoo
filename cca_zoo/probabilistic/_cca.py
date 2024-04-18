@@ -47,7 +47,7 @@ class ProbabilisticCCA(_BaseModel):
 
     """
 
-    return_sites = ["z"]
+    return_sites = ["representations"]
 
     def __init__(
         self,
@@ -169,7 +169,7 @@ class ProbabilisticCCA(_BaseModel):
 
         with numpyro.plate("n", self.n_samples_):
             z = numpyro.sample(
-                "z",
+                "representations",
                 dist.MultivariateNormal(
                     jnp.zeros(self.latent_dimensions), jnp.eye(self.latent_dimensions)
                 ),
@@ -202,7 +202,7 @@ class ProbabilisticCCA(_BaseModel):
             A tuple containing the first and second representations, X1 and X2, each as a numpy array.
         """
 
-        # Variational parameters for the approximate posterior of z
+        # Variational parameters for the approximate posterior of representations
         z_loc = numpyro.param(
             "z_loc", jnp.zeros((self.n_samples_, self.latent_dimensions))
         )
@@ -213,7 +213,9 @@ class ProbabilisticCCA(_BaseModel):
         )
 
         with numpyro.plate("n", self.n_samples_):
-            numpyro.sample("z", dist.MultivariateNormal(z_loc, jnp.diag(z_scale)))
+            numpyro.sample(
+                "representations", dist.MultivariateNormal(z_loc, jnp.diag(z_scale))
+            )
 
     def render(self, views):
         check_graphviz_support("ProbabilisticCCA")

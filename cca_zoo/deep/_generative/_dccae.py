@@ -1,10 +1,12 @@
+from typing import List
+
 import torch
 
-from .._discriminative._dcca import DCCA
-from .._discriminative._dmcca import _MCCALoss
 from . import _GenerativeMixin
+from .. import DMCCA
 
-class DCCAE(DCCA, _GenerativeMixin):
+
+class DCCAE(DMCCA, _GenerativeMixin):
     """
     A class used to fit a DCCAE model.
 
@@ -13,7 +15,7 @@ class DCCAE(DCCA, _GenerativeMixin):
     Wang, Weiran, et al. "On deep multi-view representation learning." International conference on machine learning. PMLR, 2015.
 
     """
-    objective = _MCCALoss()
+
     def __init__(
         self,
         *args,
@@ -49,28 +51,32 @@ class DCCAE(DCCA, _GenerativeMixin):
             z.append(encoder(views[i]))
         return z
 
-    def _decode(self, z, **kwargs):
+    def _decode(self, representations, **kwargs):
         """
         This method is used to decode from the latent space to the best prediction of the original representations
 
         """
         recon = []
         for i, decoder in enumerate(self.decoders):
-            recon.append(decoder(self.latent_dropout(z[i])))
+            recon.append(decoder(self.latent_dropout(representations[i])))
         return recon
 
-    def loss(self, batch, **kwargs):
-        z = self(batch["views"])
-        recons = self._decode(z)
-        loss = dict()
+    def minibatch_loss(self, batch, **kwargs):
+        # Encoding the representations with the forward method
+        representations = self(batch["views"])
+        if batch.get("independent_views") is None:
+            independent_representations = None
+        else:
+            independent_representations = self(batch["independent_views"])
+        recons = self._decode(representations)
+        loss = DMCCA.loss(self, representations, independent_representations)
         loss["reconstruction"] = torch.stack(
             [
                 self.recon_loss(x, recon, loss_type=self.recon_loss_type)
                 for x, recon in zip(batch["views"], recons)
             ]
         ).sum()
-        loss["correlation"] = self.objective(z)
         loss["objective"] = (
-            self.lam * loss["reconstruction"] + (1 - self.lam) * loss["correlation"]
+            self.lam * loss["reconstruction"] + (1 - self.lam) * loss["objective"]
         )
         return loss

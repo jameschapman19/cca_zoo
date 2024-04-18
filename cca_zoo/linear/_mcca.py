@@ -11,19 +11,9 @@ from cca_zoo._utils._cross_correlation import cross_cov
 
 class MCCA(_BaseModel):
     r"""
-    A class used to fit a Regularised CCA (canonical ridge) model. This model adds a regularization term to the CCA objective function to avoid overfitting and improve stability. It uses PCA to perform the optimization efficiently for high dimensional data.
-
-    The objective function of regularised CCA is:
-
-    .. math::
-
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
-
-        \text{subject to:}
-
-        (1-c_1)w_1^TX_1^TX_1w_1+c_1w_1^Tw_1=n
-
-        (1-c_2)w_2^TX_2^TX_2w_2+c_2w_2^Tw_2=n
+    A class used to fit a Multiview Ridge CCA model.
+    This model adds a regularization term to the MCCA objective function to avoid overfitting and improve stability.
+    It uses PCA to perform the optimization efficiently for high dimensional data.
 
     where :math:`c_i` are the regularization parameters for each view.
 
@@ -51,7 +41,7 @@ class MCCA(_BaseModel):
 
     References
     --------
-    Vinod, Hrishikesh _D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
+    Vinod, Hrishikesh _B. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
     """
 
     def __init__(
@@ -92,9 +82,6 @@ class MCCA(_BaseModel):
         eigvals, eigvecs = self._solve_gevp(views, y=y, **kwargs)
         # Compute the weights_ for each view
         self._weights(eigvals, eigvecs, views, **kwargs)
-        # delete pca to save memory
-        if self.pca:
-            del self.pca_models
         return self
 
     def _process_data(self, views, **kwargs):
@@ -104,24 +91,24 @@ class MCCA(_BaseModel):
 
     def _solve_gevp(self, views: Iterable[np.ndarray], y=None, **kwargs):
         # Setup the eigenvalue problem
-        C = self._C(views, **kwargs)
-        D = self._D(views, **kwargs)
+        A = self._A(views, **kwargs)
+        B = self._B(views, **kwargs)
         self.splits = np.cumsum([view.shape[1] for view in views])
         # Solve the eigenvalue problem
-        # Get the dimension of _C
-        p = C.shape[0]
+        # Get the dimension of _A
+        p = A.shape[0]
         # Solve the generalized eigenvalue problem Cx=lambda Dx using a subset of eigenvalues and eigenvectors
         [eigvals, eigvecs] = eigh(
-            C,
-            D,
+            A,
+            B,
             subset_by_index=[p - self.latent_dimensions, p - 1],
         )
         # Sort the eigenvalues and eigenvectors in descending order
         idx = np.argsort(eigvals, axis=0)[::-1]
         if eigvals.shape[0] < self.latent_dimensions:
             [eigvals, eigvecs] = eigh(
-                C,
-                D,
+                A,
+                B,
             )
             # Sort the eigenvalues and eigenvectors in descending order
             idx = np.argsort(eigvals, axis=0)[::-1][: self.latent_dimensions]
@@ -138,6 +125,7 @@ class MCCA(_BaseModel):
                 pca.components_.T @ self.weights_[i]
                 for i, pca in enumerate(self.pca_models)
             ]
+            del self.pca_models
 
     def _apply_pca(self, views):
         """
@@ -147,32 +135,70 @@ class MCCA(_BaseModel):
         # Fit PCA on each view
         return [self.pca_models[i].fit_transform(view) for i, view in enumerate(views)]
 
-    def _C(self, views, **kwargs):
-        all_views = np.hstack(views)
-        C = np.cov(all_views, rowvar=False)
-        C -= block_diag(*[np.cov(view, rowvar=False) for view in views])
-        return C / len(views)
+    def _A(self, views, **kwargs):
+        """
+        Constructs the matrix A for the generalized eigenvalue problem in MCCA.
 
-    def _D(self, views, **kwargs):
+        Matrix A represents the between-view covariance matrix, capturing the
+        covariance among all different views. It is calculated as the covariance
+        matrix of the stacked views, from which the within-view covariance matrices
+        are subtracted.
+
+        Parameters
+        ----------
+        views : list of numpy.ndarray
+            The input views, where each view is a numpy array.
+
+        Returns
+        -------
+        numpy.ndarray
+            The matrix A, representing the between-view covariance matrix.
+        """
+        all_views = np.hstack(views)
+        A = np.cov(all_views, rowvar=False)
+        A -= block_diag(*[np.cov(view, rowvar=False) for view in views])
+        return A / len(views)
+
+    def _B(self, views, **kwargs):
+        """
+        Constructs the matrix B for the generalized eigenvalue problem in MCCA.
+
+        Matrix B represents the within-view covariance matrix with regularization.
+        In the PCA case, it is constructed using the explained variance of each view
+        with regularization terms added to the diagonal. Without PCA, it is the
+        block diagonal matrix of each view's covariance matrix adjusted by the
+        regularization parameter.
+
+        The regularization improves numerical stability and controls overfitting.
+
+        Parameters
+        ----------
+        views : list of numpy.ndarray
+            The input views, where each view is a numpy array.
+
+        Returns
+        -------
+        numpy.ndarray
+            The matrix B, representing the regularized within-view covariance matrix.
+        """
         if self.pca:
-            # Can regularise by adding to diagonal
-            D = block_diag(
+            B = block_diag(
                 *[
                     np.diag((1 - self.c[i]) * pc.explained_variance_ + self.c[i])
                     for i, pc in enumerate(self.pca_models)
                 ]
             )
         else:
-            D = block_diag(
+            B = block_diag(
                 *[
                     (1 - self.c[i]) * np.cov(view, rowvar=False)
                     + self.c[i] * np.eye(view.shape[1])
                     for i, view in enumerate(views)
                 ]
             )
-        D_smallest_eig = min(0, np.linalg.eigvalsh(D).min()) - self.eps
-        D = D - D_smallest_eig * np.eye(D.shape[0])
-        return D / len(views)
+        B_smallest_eig = min(0, np.linalg.eigvalsh(B).min()) - self.eps
+        B = B - B_smallest_eig * np.eye(B.shape[0])
+        return B / len(views)
 
     def _more_tags(self):
         # Indicate that this class is for multiview data
@@ -209,10 +235,10 @@ class rCCA(MCCA):
 
     References
     --------
-    Vinod, Hrishikesh _D. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
+    Vinod, Hrishikesh _B. "Canonical ridge and econometrics of joint production." Journal of econometrics 4.2 (1976): 147-166.
     """
 
-    def _C(self, views, **kwargs):
+    def _A(self, views, **kwargs):
         if len(views) != 2:
             raise ValueError(
                 f"Model can only be used with two representations, but {len(views)} were given. Use MCCA or GCCA instead for CCA or MPLS for PLS."
@@ -252,7 +278,7 @@ class rCCA(MCCA):
                 self.T = self.L1 @ C.T @ self.L0 @ self.L0.T @ C @ self.L1.T
                 return self.T
 
-    def _D(self, views, **kwargs):
+    def _B(self, views, **kwargs):
         return None
 
     def _weights(self, eigvals, eigvecs, views):

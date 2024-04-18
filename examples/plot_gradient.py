@@ -7,7 +7,7 @@ to perform canonical correlation analysis (CCA) on high-dimensional data.
 We will compare the performance of CCA and CCA_EY, which is a variant of CCA
 that uses stochastic gradient descent to solve the optimization problem.
 We will also explore the effect of different batch sizes on CCA_EY and plot
-the loss function over iterations.
+the minibatch_loss function over iterations.
 """
 
 # %%
@@ -18,7 +18,7 @@ import time
 
 from cca_zoo.datasets import JointData
 from cca_zoo.linear import CCA, CCA_EY
-from cca_zoo.visualisation import ScoreScatterDisplay
+from cca_zoo.visualisation import RepresentationScatterDisplay
 
 # %%
 # Data
@@ -66,7 +66,7 @@ X_test_cca, Y_test_cca = cca.transform([X_test, Y_test])
 end_time = time.time()
 elapsed_time = end_time - start_time
 
-score_display = ScoreScatterDisplay.from_estimator(
+score_display = RepresentationScatterDisplay.from_estimator(
     cca, [X_train, Y_train], [X_test, Y_test]
 )
 score_display.plot(title=f"CCA (Time: {elapsed_time:.2f} s)")
@@ -99,8 +99,8 @@ for batch_size in batch_sizes:
     elapsed_time = end_time - start_time
 
     # We plot the transformed representations on a scatter plot with different colors for train and test sets
-    # Use ScoreScatterDisplay or a similar plotting class for the visualization
-    score_display = ScoreScatterDisplay.from_estimator(
+    # Use RepresentationScatterDisplay or a similar plotting class for the visualization
+    score_display = RepresentationScatterDisplay.from_estimator(
         ccaey, [X_train, Y_train], [X_test, Y_test]
     )
     score_display.plot(
@@ -118,5 +118,5 @@ for batch_size in batch_sizes:
 # allow for more frequent updates and exploration of the parameter space, but also introduce more noise
 # and instability in the optimization process. A trade-off between batch size and learning rate may be needed
 # to achieve the best results. We can also see that CCA_EY converges faster than CCA, as it takes less time
-# to fit the model. The loss function plots show how the objective value decreases over iterations for different
+# to fit the model. The minibatch_loss function plots show how the objective value decreases over iterations for different
 # batch sizes, and we can see that smaller batch sizes tend to have more fluctuations and slower convergence.

@@ -1,3 +1,5 @@
+from typing import List
+
 import torch
 
 from ._dcca import DCCA
@@ -28,9 +30,7 @@ class BarlowTwins(DCCA):
         lamb=5e-3,
         **kwargs,
     ):
-        super().__init__(
-            *args, **kwargs
-        )
+        super().__init__(*args, **kwargs)
         self.lamb = lamb  # the lambda parameter for the off-diagonal terms of the cross-covariance matrix
         self.bns = torch.nn.ModuleList(
             [
@@ -40,15 +40,20 @@ class BarlowTwins(DCCA):
         )  # a list of batch normalization layers for each encoder
 
     def forward(self, views, **kwargs):
-        z = []
+        representations = []
         for i, (encoder, bn) in enumerate(zip(self.encoders, self.bns)):
-            z.append(bn(encoder(views[i])))  # encode and normalize each view
-        return z  # return a list of normalized latent representations
+            representations.append(
+                bn(encoder(views[i]))
+            )  # encode and normalize each view
+        return representations  # return a list of normalized latent representations
 
-    def loss(self, batch, **kwargs):
-        z = self(batch["views"])  # get the latent representations
+    def loss(
+        self,
+        representations: List[torch.Tensor],
+        independent_representations: List[torch.Tensor]=None,
+    ):
         cross_cov = (
-            z[0].T @ z[1] / z[0].shape[0]
+            representations[0].T @ representations[1] / representations[0].shape[0]
         )  # compute the cross-covariance matrix between the two representations
         invariance = torch.sum(
             torch.pow(1 - torch.diag(cross_cov), 2)

@@ -7,19 +7,14 @@ from cca_zoo.linear import MCCA
 from cca_zoo.visualisation import (
     CovarianceHeatmapDisplay,
     CorrelationHeatmapDisplay,
-    ScoreScatterDisplay,
+    RepresentationScatterDisplay,
     WeightHeatmapDisplay,
     ExplainedVarianceDisplay,
     ExplainedCovarianceDisplay,
+    TSNERepresentationDisplay,
+    UMAPRepresentationDisplay,
 )
-from cca_zoo.visualisation.scores import (
-    JointScoreScatterDisplay,
-    SeparateScoreScatterDisplay,
-    SeparateJointScoreDisplay,
-    PairScoreScatterDisplay,
-)
-from cca_zoo.visualisation.tsne_scores import TSNEScoreDisplay
-from cca_zoo.visualisation.umap_scores import UMAPScoreDisplay
+from cca_zoo.visualisation.representations import JointRepresentationScatterDisplay,SeparateRepresentationScatterDisplay,SeparateJointRepresentationDisplay,PairRepresentationScatterDisplay
 
 
 @pytest.fixture(scope="module")
@@ -62,7 +57,7 @@ def test_weight_heatmap_plot(setup_data):
 
 def test_score_plot(setup_data):
     mcca, views, test_views = setup_data
-    ScoreScatterDisplay.from_estimator(
+    RepresentationScatterDisplay.from_estimator(
         mcca, views, test_views=test_views, ax_labels=["Brain", "Behaviour"]
     ).plot()
     plt.close()
@@ -70,7 +65,7 @@ def test_score_plot(setup_data):
 
 def test_score_plot_separate(setup_data):
     mcca, views, test_views = setup_data
-    SeparateScoreScatterDisplay.from_estimator(
+    SeparateRepresentationScatterDisplay.from_estimator(
         mcca, views, test_views=test_views, ax_labels=["Brain", "Behaviour"]
     ).plot()
     plt.close()
@@ -78,7 +73,7 @@ def test_score_plot_separate(setup_data):
 
 def test_joint_score_plot(setup_data):
     mcca, views, test_views = setup_data
-    JointScoreScatterDisplay.from_estimator(
+    JointRepresentationScatterDisplay.from_estimator(
         mcca, views, test_views=test_views, ax_labels=["Brain", "Behaviour"]
     ).plot()
     plt.close()
@@ -86,7 +81,7 @@ def test_joint_score_plot(setup_data):
 
 def test_joint_score_plot_separate(setup_data):
     mcca, views, test_views = setup_data
-    SeparateJointScoreDisplay.from_estimator(
+    SeparateJointRepresentationDisplay.from_estimator(
         mcca, views, test_views=test_views, ax_labels=["Brain", "Behaviour"]
     ).plot()
     plt.close()
@@ -94,7 +89,9 @@ def test_joint_score_plot_separate(setup_data):
 
 def test_pairplot(setup_data):
     mcca, views, test_views = setup_data
-    PairScoreScatterDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    PairRepresentationScatterDisplay.from_estimator(
+        mcca, views, test_views=test_views
+    ).plot()
     plt.close()
 
 
@@ -122,11 +119,11 @@ def test_correlation_heatmap_plot(setup_data):
 
 def test_tsne_plot(setup_data):
     mcca, views, test_views = setup_data
-    TSNEScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    TSNERepresentationDisplay.from_estimator(mcca, views, test_views=test_views).plot()
     plt.close()
 
 
 def test_umap_plot(setup_data):
     mcca, views, test_views = setup_data
-    UMAPScoreDisplay.from_estimator(mcca, views, test_views=test_views).plot()
+    UMAPRepresentationDisplay.from_estimator(mcca, views, test_views=test_views).plot()
     plt.close()
