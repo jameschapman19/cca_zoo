@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, "rewrite/**"]
+    branches: [main]
     tags: ["v*"]
   pull_request:
     branches: [main]
@@ -120,7 +120,7 @@ jobs:
         run: mkdocs build --strict
 
       - name: Deploy to GitHub Pages
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
