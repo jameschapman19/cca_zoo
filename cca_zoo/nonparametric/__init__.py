@@ -1,8 +1,7 @@
-"""
-Nonparametric CCA methods
-"""
+"""Nonparametric (kernel-based) CCA methods."""
 
-from ._kcca import KCCA, KGCCA, KTCCA, KMCCA
-from ._ncca import NCCA
+from ._kcca import KCCA
+from ._kgcca import KGCCA
+from ._ktcca import KTCCA
 
-__all__ = ["KCCA", "KMCCA", "KGCCA", "KTCCA", "NCCA"]
+__all__ = ["KCCA", "KGCCA", "KTCCA"]

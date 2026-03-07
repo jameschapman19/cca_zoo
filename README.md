@@ -1,112 +1,149 @@
 <div align="center">
-
-<img src="docs/logos/cca-zoo-logo.svg" alt="drawing" width="200"/>
+<img src="docs/logos/cca-zoo-logo.svg" alt="CCA-Zoo" width="180"/>
 
 # CCA-Zoo
 
-**Unlock the hidden relationships in multiview data.**
+**Multiview Canonical Correlation Analysis in Python**
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5748062.svg)](https://doi.org/10.5281/zenodo.4382739)
-[![codecov](https://codecov.io/gh/jameschapman19/cca_zoo/branch/main/graph/badge.svg?token=JHG9VUB0L8)](https://codecov.io/gh/jameschapman19/cca_zoo)
-![Build Status](https://github.com/jameschapman19/cca_zoo/actions/workflows/changes.yml/badge.svg)
-[![Documentation Status](https://readthedocs.org/projects/cca-zoo/badge/?version=latest)](https://cca-zoo.readthedocs.io/en/latest/?badge=latest)
-[![version](https://img.shields.io/pypi/v/cca-zoo)](https://pypi.org/project/cca-zoo/)
-[![downloads](https://img.shields.io/pypi/dm/cca-zoo)](https://pypi.org/project/cca-zoo/)
+[![PyPI](https://img.shields.io/pypi/v/cca-zoo)](https://pypi.org/project/cca-zoo/)
+[![Python](https://img.shields.io/pypi/pyversions/cca-zoo)](https://pypi.org/project/cca-zoo/)
+[![CI](https://github.com/jameschapman19/cca_zoo/actions/workflows/ci.yml/badge.svg)](https://github.com/jameschapman19/cca_zoo/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jameschapman19/cca_zoo/branch/main/graph/badge.svg)](https://codecov.io/gh/jameschapman19/cca_zoo)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.03823/status.svg)](https://doi.org/10.21105/joss.03823)
-
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 </div>
 
-## Introduction
+CCA-Zoo is a Python library implementing a wide range of **Canonical Correlation Analysis** (CCA) and related multiview learning methods. It follows the [scikit-learn](https://scikit-learn.org) estimator API: every model exposes `fit`, `transform`, `fit_transform`, and `score`.
 
-In today's data-driven world, revealing hidden relationships across multiview datasets is critical. **CCA-Zoo** is your go-to library, featuring a robust selection of linear, kernel, and deep canonical correlation analysis methods.
+---
 
-Designed to be user-friendly, CCA-Zoo is inspired by the ease of use in `scikit-learn` and `mvlearn`. It provides a seamless programming experience with familiar `fit`, `transform`, and `fit_transform` methods.
-
-## 📖 Table of Contents
-
-- [Quick Start](#-quick-start)
-- [Performance Highlights](#-performance-highlights)
-- [Detailed Documentation](#-detailed-documentation)
-- [How to Cite](#-how-to-cite)
-- [Contribute](#-contribute)
-- [Acknowledgments](#-acknowledgments)
-
-## 🚀 Quick Start
-
-### Installation
-
-Whether you're a `pip` enthusiast or a `poetry` aficionado, installing CCA-Zoo is a breeze:
+## Installation
 
 ```bash
 pip install cca-zoo
-# For additional features
-pip install cca-zoo[probabilistic, visualisation, deep]
 ```
 
-For Poetry users:
+Install optional extras as needed:
 
 ```bash
-poetry add cca-zoo
-# For extra features
-poetry add cca-zoo[probabilistic, visualisation, deep]
+pip install cca-zoo[deep]          # DCCA variants (requires PyTorch + Lightning)
+pip install cca-zoo[probabilistic] # Probabilistic CCA (requires NumPyro + JAX)
+pip install cca-zoo[all]           # Everything above
 ```
 
-Note that `deep` requires `torch` and `lightning` which may be better installed separately following the [PyTorch installation guide](https://pytorch.org/get-started/locally/).
+---
 
-`probabilistic` requires `numpyro` which may be better installed separately following the [NumPyro installation guide](https://num.pyro.ai/en/stable/getting_started.html#installation).
+## Quick start
 
-`visualisation` requires `matplotlib` and `seaborn`
+```python
+import numpy as np
+from cca_zoo.datasets import JointData
+from cca_zoo.linear import CCA
 
-## Plug into the Machine Learning Ecosystem
+# Generate correlated two-view data from a linear latent variable model
+data = JointData(
+    n_views=2,
+    n_samples=200,
+    n_features=[50, 50],
+    latent_dimensions=2,
+    signal_to_noise=2.0,
+    random_state=0,
+)
+train_views = data.sample()
+test_views  = data.sample()
 
-CCA-Zoo is designed to be compatible with the machine learning ecosystem. It is built on top of `scikit-learn`, `tensorly`, `torch`, `pytorch-lightning`, and `numpyro`.
+# Fit CCA and evaluate
+model = CCA(latent_dimensions=2).fit(train_views)
+print(model.score(test_views))     # canonical correlations, shape (2,)
 
-<img src="docs/_static/CCA_Zoo_map.svg" alt="drawing" width="1000"/>
+# Project views into the shared latent space
+z1, z2 = model.transform(test_views)  # each shape (200, 2)
+```
 
-## 🏎️ Performance Highlights
-CCA-Zoo shines when it comes to high-dimensional data analysis. It significantly outperforms scikit-learn, particularly as dimensionality increases. For comprehensive benchmarks, see our [script](benchmark/cca_high_dimensions.py) and the graph below.
+---
 
-![Benchmark Plot CCA](benchmark/CCA_Speed_Benchmark.svg)
-![Benchmark Plot PLS](benchmark/PLS_Speed_Benchmark.svg)
+## Available methods
 
-## 📚 Detailed Documentation
+### `cca_zoo.linear`
 
-Embark on a journey through multiview correlations with our [comprehensive guide](https://cca-zoo.readthedocs.io/en/latest/).
+| Class | Description | Views |
+|---|---|---|
+| `CCA` | Standard CCA (Hotelling 1936) | 2 |
+| `rCCA` | Regularised CCA / canonical ridge | 2 |
+| `PLS` | Partial Least Squares | 2 |
+| `MCCA` | Multiset CCA — pairwise sum objective | ≥2 |
+| `GCCA` | Generalised CCA — shared latent projection | ≥2 |
+| `TCCA` | Tensor CCA — higher-order cross-moment | ≥2 |
+| `CCA_EY` | Stochastic Eckart-Young CCA (Riemannian GD) | 2 |
+| `PLS_EY` | Stochastic Eckart-Young PLS (Riemannian GD) | 2 |
+| `MCCA_EY` | Multiview Eckart-Young CCA (Riemannian GD) | ≥2 |
+| `SCCA_PMD` | Sparse CCA via PMD (Witten 2009) | ≥2 |
+| `SCCA_ADMM` | Sparse CCA via ADMM (Suo 2017) | ≥2 |
+| `SCCA_IPLS` | Sparse CCA via iterative PLS (Mai & Zhang 2019) | ≥2 |
+| `SCCA_Span` | SpanCCA (Asteris 2016) | ≥2 |
+| `ElasticCCA` | Elastic net regularised CCA (Waaijenborg 2008) | ≥2 |
+| `ParkhomenkoCCA` | Soft-threshold sparse CCA (Parkhomenko 2009) | ≥2 |
+| `PLS_ALS` | ALS variant of PLS (power iteration) | ≥2 |
 
-## 🙏 How to Cite
+### `cca_zoo.nonparametric`
 
-Your support means a lot to us! If CCA-Zoo has been beneficial for your research, there are two ways to show your appreciation:
+| Class | Description |
+|---|---|
+| `KCCA` | Kernel CCA |
+| `KGCCA` | Kernel Generalised CCA |
+| `KTCCA` | Kernel Tensor CCA |
 
-1. Star our GitHub repository.
-2. Cite our research paper in your publications.
+### `cca_zoo.deep` *(requires `[deep]`)*
 
-For citing our work, please use the following BibTeX entry:
+| Class | Reference |
+|---|---|
+| `DCCA` | Andrew et al. 2013 — pluggable objective |
+| `DCCA_EY` | Eigengame / Eckart-Young objective |
+| `DCCA_NOI` | Wang et al. 2015 — non-linear orthogonal iterations |
+| `DCCA_SDL` | Chang et al. 2018 — stochastic decorrelation loss |
+| `DCCAE` | Wang et al. 2015 — with autoencoder reconstruction |
+| `DVCCA` | Wang et al. 2016 — variational |
+| `DTCCA` | Wong et al. 2021 — deep tensor CCA |
+| `SplitAE` | Split autoencoder baseline |
+| `BarlowTwins` | Zbontar et al. 2021 |
+| `VICReg` | Bardes et al. 2022 |
+
+### `cca_zoo.probabilistic` *(requires `[probabilistic]`)*
+
+| Class | Reference |
+|---|---|
+| `ProbabilisticCCA` | Bach & Jordan 2005; Wang 2007 — MCMC via NumPyro |
+
+---
+
+## Documentation
+
+Full documentation, user guides, and API reference at:
+**[https://jameschapman19.github.io/cca_zoo/](https://jameschapman19.github.io/cca_zoo/)**
+
+---
+
+## Citing
+
+If CCA-Zoo is useful in your research, please cite:
 
 ```bibtex
-@software{Chapman_CCA-Zoo_2023,
-author = {Chapman, James and Wang, Hao-Ting and Wells, Lennie and Wiesner, Johannes},
-doi = {10.5281/zenodo.4382739},
-month = aug,
-title = {{CCA-Zoo}},
-url = {https://github.com/jameschapman19/cca_zoo},
-version = {2.3.0},
-year = {2023}
+@article{Chapman2021,
+  title   = {{CCA-Zoo}: A collection of Regularized, Deep Learning based, Kernel,
+             and Probabilistic {CCA} methods in a scikit-learn style framework},
+  author  = {Chapman, James and Wang, Hao-Ting and Wells, Lennie and Wiesner, Johannes},
+  journal = {Journal of Open Source Software},
+  volume  = {6},
+  number  = {68},
+  pages   = {3823},
+  year    = {2021},
+  doi     = {10.21105/joss.03823},
 }
 ```
 
-Or check out our JOSS paper:
+---
 
-📜 Chapman et al., (2021). CCA-Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic CCA methods in a scikit-learn style framework. Journal of Open Source Software, 6(68), 3823, [Link](https://doi.org/10.21105/joss.03823).
+## Contributing
 
-## 👩‍💻 Contribute
-
-Every idea, every line of code adds value. Check out our [contribution guide](https://cca-zoo.readthedocs.io/en/latest/developer_info/contribute.html) and help CCA-Zoo soar to new heights!
-
-## 🙌 Acknowledgments
-
-Special thanks to the pioneers whose work has shaped this field. Explore their work:
-
-- Regularised CCA/PLS: [MATLAB](https://github.com/anaston/PLS_CCA_framework)
-- Sparse PLS: [MATLAB SPLS](https://github.com/jmmonteiro/spls)
-- DCCA/DCCAE: [Keras DCCA](https://github.com/VahidooX), [Torch DCCA](https://github.com/Michaelvll/DeepCCA)
+Contributions are welcome. See [docs/contributing.md](docs/contributing.md) for development setup, coding standards, and pull request guidelines.

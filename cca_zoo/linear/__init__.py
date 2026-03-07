@@ -1,46 +1,46 @@
-"""
-The :mod:`cca_zoo.linear` module includes a variety of linear CCA algorithms.
+"""Linear CCA methods.
+
+This module provides classical linear multiview CCA algorithms ranging from
+the standard two-view CCA and PLS to multiset and generalised variants, as
+well as sparse/regularised iterative methods and gradient-descent methods
+suited to high-dimensional or streaming data.
 """
 
+from ._cca import CCA
 from ._gcca import GCCA
-from ._gradient._ey import CCA_EY, PLS_EY
-from ._gradient._gha import CCA_GHA
-from ._gradient._stochasticpls import PLSStochasticPower
-from ._gradient._svd import CCA_SVD
-from ._grcca import GRCCA
-from ._iterative._elastic import SCCA_IPLS, ElasticCCA
-from ._iterative._pls_als import PLS_ALS
-from ._iterative._scca_parkhomenko import SCCA_Parkhomenko
-from ._iterative._scca_span import SCCA_Span
-from ._iterative._spls import SPLS
-from ._mcca import CCA, MCCA, rCCA
-from ._partialcca import PartialCCA
-from ._pcacca import PCACCA
-from ._pls import MPLS, PLS
-from ._prcca import PRCCA
+from ._gradient import CCA_EY, MCCA_EY, PLS_EY
+from ._iterative import (
+    PLS_ALS,
+    SCCA_ADMM,
+    SCCA_IPLS,
+    SCCA_PMD,
+    ElasticCCA,
+    ParkhomenkoCCA,
+    SCCA_Span,
+)
+from ._mcca import MCCA
+from ._pls import PLS
+from ._rcca import rCCA
 from ._tcca import TCCA
 
 __all__ = [
-    "MCCA",
+    # Exact eigendecomposition
     "CCA",
     "rCCA",
     "PLS",
-    "MPLS",
+    "MCCA",
     "GCCA",
-    "GRCCA",
-    "PartialCCA",
-    "PRCCA",
     "TCCA",
-    "PCACCA",
-    "SCCA_IPLS",
-    "ElasticCCA",
-    "PLS_ALS",
-    "SPLS",
-    "SCCA_Parkhomenko",
-    "SCCA_Span",
-    "CCA_EY",
+    # Gradient descent (high-dimensional / streaming)
     "PLS_EY",
-    "CCA_GHA",
-    "CCA_SVD",
-    "PLSStochasticPower",
+    "CCA_EY",
+    "MCCA_EY",
+    # Sparse / regularised ALS
+    "SCCA_PMD",
+    "SCCA_ADMM",
+    "SCCA_IPLS",
+    "SCCA_Span",
+    "ElasticCCA",
+    "ParkhomenkoCCA",
+    "PLS_ALS",
 ]

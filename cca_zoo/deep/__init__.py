@@ -1,45 +1,44 @@
+"""Deep multiview CCA models powered by PyTorch Lightning.
+
+This module is only available when both ``torch`` and ``lightning``
+are installed.  Import errors are deferred to usage time rather than
+raised at import of ``cca_zoo``.
 """
-The :mod:`cca_zoo.deep` module includes a variety of deep CCA algorithms.
-"""
+
+from __future__ import annotations
 
 import importlib.util
 
-if (
-    importlib.util.find_spec("torch") is None
-    or importlib.util.find_spec("lightning") is None
-):
-    print(
-        "Warning: torch or lightning are not installed. Some functionality in cca_zoo.deep may be limited."
-    )
-from . import architectures
-from ._discriminative._dcca import DCCA
-from ._discriminative._barlow_twins import BarlowTwins
-from ._discriminative._dcca_ey import DCCA_EY
-from ._discriminative._dcca_gha import DCCA_GHA
-from ._discriminative._dcca_noi import DCCA_NOI
-from ._discriminative._dcca_sdl import DCCA_SDL
-from ._discriminative._dcca_svd import DCCA_SVD
-from ._discriminative._dmcca import DMCCA
-from ._discriminative._dgcca import DGCCA
-from ._discriminative._dtcca import DTCCA
-from ._discriminative._vicreg import VICReg
-from ._generative._dccae import DCCAE
-from ._generative._dvcca import DVCCA
+_torch_available = importlib.util.find_spec("torch") is not None
+_lightning_available = importlib.util.find_spec("lightning") is not None
 
-__all__ = [
-    "DCCA",
-    "DCCA_GHA",
-    "DCCA_SVD",
-    "DMCCA",
-    "DGCCA",
-    "DCCAE",
-    "DCCA_NOI",
-    "DCCA_SDL",
-    "DVCCA",
-    "BarlowTwins",
-    "VICReg",
-    "DTCCA",
-    "DCCA_EY",
-    "architectures",
-    "objectives",
-]
+if _torch_available and _lightning_available:
+    from cca_zoo.deep import objectives
+    from cca_zoo.deep._barlowtwins import BarlowTwins
+    from cca_zoo.deep._base import BaseDeep
+    from cca_zoo.deep._dcca import DCCA
+    from cca_zoo.deep._dcca_ey import DCCA_EY
+    from cca_zoo.deep._dcca_noi import DCCA_NOI
+    from cca_zoo.deep._dcca_sdl import DCCA_SDL
+    from cca_zoo.deep._dccae import DCCAE
+    from cca_zoo.deep._dtcca import DTCCA
+    from cca_zoo.deep._dvcca import DVCCA
+    from cca_zoo.deep._splitae import SplitAE
+    from cca_zoo.deep._vicreg import VICReg
+
+    __all__ = [
+        "BaseDeep",
+        "BarlowTwins",
+        "DCCA",
+        "DCCA_EY",
+        "DCCA_NOI",
+        "DCCA_SDL",
+        "DCCAE",
+        "DTCCA",
+        "DVCCA",
+        "SplitAE",
+        "VICReg",
+        "objectives",
+    ]
+else:
+    __all__ = []

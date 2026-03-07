@@ -147,3 +147,7 @@ dmypy.json
 
 # profiling data
 .prof
+
+# Claude Code
+.claude/
+CLAUDE.md
