@@ -433,7 +433,7 @@ def test_mcca_two_views_matches_cca(correlated_views: list[np.ndarray]) -> None:
 
 
 def test_cca_canonical_variates_are_uncorrelated() -> None:
-    """CCA canonical variates are orthogonal across dimensions (unit-variance, decorrelated)."""
+    """CCA canonical variates are orthogonal across dimensions."""
     rng = np.random.default_rng(0)
     x = rng.standard_normal((100, 10))
     k = 3
