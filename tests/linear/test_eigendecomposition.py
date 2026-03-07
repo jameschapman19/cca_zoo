@@ -337,10 +337,48 @@ def test_tcca_reproducibility(three_views: list[np.ndarray]) -> None:
 def test_cca_high_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
-    """CCA should find high correlation on views sharing a latent structure."""
+    """CCA finds near-perfect correlation on low-noise correlated views (SNR ~10)."""
     model = CCA(latent_dimensions=2).fit(correlated_views)
     s = model.score(correlated_views)
-    assert np.all(s > 0.5), f"Expected high correlation, got {s}"
+    assert np.all(s > 0.95), f"Expected near-perfect correlation, got {s}"
+
+
+def test_cca_perfect_correlation_identical_views() -> None:
+    """CCA on identical views (X1 == X2) should give correlation == 1.0."""
+    rng = np.random.default_rng(0)
+    x = rng.standard_normal((50, 5))
+    model = CCA(latent_dimensions=3).fit([x, x])
+    s = model.score([x, x])
+    np.testing.assert_allclose(s, 1.0, atol=1e-6)
+
+
+def test_cca_correlations_are_decreasing(correlated_views: list[np.ndarray]) -> None:
+    """Canonical correlations are returned in non-increasing order."""
+    s = CCA(latent_dimensions=2).fit(correlated_views).score(correlated_views)
+    assert s[0] >= s[1] - 1e-10
+
+
+def test_rcca_zero_regularisation_matches_cca(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """RCCA with c=0 should give the same correlations as CCA."""
+    s_cca = CCA(latent_dimensions=2).fit(correlated_views).score(correlated_views)
+    s_rcca = (
+        rCCA(latent_dimensions=2, c=0.0).fit(correlated_views).score(correlated_views)
+    )
+    np.testing.assert_allclose(s_rcca, s_cca, atol=1e-6)
+
+
+@pytest.mark.parametrize("ModelClass", [CCA, PLS, MCCA, GCCA])
+def test_model_finds_high_correlation_on_correlated_views(
+    ModelClass: type, correlated_views: list[np.ndarray]
+) -> None:
+    """All unregularised models find high correlation on clearly correlated views."""
+    model = _make_multi_view_model(ModelClass, latent_dimensions=2).fit(
+        correlated_views
+    )
+    s = model.score(correlated_views)
+    assert np.all(s > 0.8), f"{ModelClass.__name__} got low correlation: {s}"
 
 
 # ---------------------------------------------------------------------------

@@ -67,7 +67,6 @@ def test_pcca_fit_completes(pcca_class: type) -> None:
         latent_dimensions=1,
         num_warmup=10,
         num_samples=10,
-        n_iter=50,
         random_state=0,
     )
     fitted = model.fit(views)
@@ -82,12 +81,11 @@ def test_pcca_fit_sets_params(pcca_class: type) -> None:
         latent_dimensions=1,
         num_warmup=10,
         num_samples=10,
-        n_iter=50,
         random_state=0,
     )
     model.fit(views)
-    # After SVI, params should be set
-    assert model.params is not None
+    assert hasattr(model, "posterior_samples_")
+    assert model.posterior_samples_ is not None
 
 
 # ---------------------------------------------------------------------------
@@ -104,7 +102,6 @@ def test_pcca_transform_output_shapes(pcca_class: type) -> None:
         latent_dimensions=k,
         num_warmup=10,
         num_samples=10,
-        n_iter=50,
         random_state=0,
     )
     model.fit(views)
@@ -132,7 +129,6 @@ def test_pcca_latent_dimensions(pcca_class: type, k: int) -> None:
         latent_dimensions=k,
         num_warmup=5,
         num_samples=5,
-        n_iter=20,
         random_state=0,
     )
     views = _make_small_views(n=15)
@@ -154,7 +150,6 @@ def test_pcca_requires_two_views(pcca_class: type) -> None:
         latent_dimensions=1,
         num_warmup=5,
         num_samples=5,
-        n_iter=10,
         random_state=0,
     )
     # The model may raise or silently handle this; either behaviour is

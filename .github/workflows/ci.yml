@@ -116,8 +116,8 @@ jobs:
       - name: Install package with all extras
         run: uv pip install --system -e ".[dev,deep,probabilistic]"
 
-      - name: Run slow tests
-        run: pytest -m slow --cov=cca_zoo --cov-report=xml
+      - name: Run all tests (fast + slow) with coverage gate
+        run: pytest --cov=cca_zoo --cov-report=xml --cov-fail-under=100
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
