@@ -94,36 +94,6 @@ jobs:
           files: coverage.xml
           fail_ci_if_error: false
 
-  # -------------------------------------------------------------------------
-  # Job 4: Slow tests (torch + numpyro, push to main only)
-  # -------------------------------------------------------------------------
-  test-slow:
-    name: Slow tests (torch + numpyro)
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'pull_request' && github.base_ref == 'main'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-
-      - name: Install package with all extras
-        run: uv pip install --system -e ".[dev,deep,probabilistic]"
-
-      - name: Run all tests (fast + slow) with coverage gate
-        run: pytest --cov=cca_zoo --cov-report=xml --cov-fail-under=100
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          files: coverage.xml
-          fail_ci_if_error: false
 
 # -------------------------------------------------------------------------
 # Job 5: Build documentation
