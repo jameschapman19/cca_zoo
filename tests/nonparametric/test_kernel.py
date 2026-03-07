@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from cca_zoo.linear import CCA
 from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA
 
 ALL_KERNEL_MODELS = [KCCA, KGCCA, KTCCA]
@@ -274,3 +275,47 @@ def test_pairwise_correlations_shape(
     model = _make_kernel_model(ModelClass, latent_dimensions=k).fit(two_views_small)
     corrs = model.pairwise_correlations(two_views_small)
     assert corrs.shape == (2, 2, k)
+
+
+# ---------------------------------------------------------------------------
+# Correctness / optimality
+# ---------------------------------------------------------------------------
+
+
+def test_kcca_linear_kernel_matches_cca(correlated_views: list[np.ndarray]) -> None:
+    """KCCA with a linear kernel recovers the same correlations as CCA (small c)."""
+    k = 2
+    s_cca = CCA(latent_dimensions=k).fit(correlated_views).score(correlated_views)
+    s_kcca = (
+        KCCA(latent_dimensions=k, kernel="linear", c=1e-4)
+        .fit(correlated_views)
+        .score(correlated_views)
+    )
+    np.testing.assert_allclose(s_kcca, s_cca, atol=1e-3)
+
+
+def test_kcca_finds_high_correlation(correlated_views: list[np.ndarray]) -> None:
+    """KCCA with rbf kernel finds high correlation on clearly correlated views."""
+    s = (
+        KCCA(latent_dimensions=1, c=0.01, kernel="rbf")
+        .fit(correlated_views)
+        .score(correlated_views)
+    )
+    assert np.all(s > 0.8), f"Expected high correlation, got {s}"
+
+
+def test_kcca_regularisation_reduces_correlation(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """Higher regularisation c gives lower (or equal) training correlation."""
+    s_low = (
+        KCCA(latent_dimensions=1, kernel="linear", c=1e-4)
+        .fit(correlated_views)
+        .score(correlated_views)
+    )
+    s_high = (
+        KCCA(latent_dimensions=1, kernel="linear", c=10.0)
+        .fit(correlated_views)
+        .score(correlated_views)
+    )
+    assert s_low[0] >= s_high[0] - 1e-6

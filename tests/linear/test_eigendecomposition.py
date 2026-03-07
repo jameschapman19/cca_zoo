@@ -417,3 +417,39 @@ def test_pairwise_correlations_shape_three_view(
     model = MCCA(latent_dimensions=k).fit(three_views)
     corrs = model.pairwise_correlations(three_views)
     assert corrs.shape == (3, 3, k)
+
+
+# ---------------------------------------------------------------------------
+# Mathematical properties / correctness
+# ---------------------------------------------------------------------------
+
+
+def test_mcca_two_views_matches_cca(correlated_views: list[np.ndarray]) -> None:
+    """MCCA with two views is equivalent to CCA (same canonical correlations)."""
+    k = 2
+    s_cca = CCA(latent_dimensions=k).fit(correlated_views).score(correlated_views)
+    s_mcca = MCCA(latent_dimensions=k).fit(correlated_views).score(correlated_views)
+    np.testing.assert_allclose(s_mcca, s_cca, atol=1e-6)
+
+
+def test_cca_canonical_variates_are_uncorrelated() -> None:
+    """CCA canonical variates are orthogonal across dimensions (unit-variance, decorrelated)."""
+    rng = np.random.default_rng(0)
+    x = rng.standard_normal((100, 10))
+    k = 3
+    model = CCA(latent_dimensions=k).fit([x, x])
+    Z = model.transform([x, x])
+    for z in Z:
+        corr = np.corrcoef(z.T)
+        off_diag = corr - np.eye(k)
+        np.testing.assert_allclose(off_diag, 0.0, atol=1e-6)
+
+
+def test_tcca_finds_high_correlation(correlated_views: list[np.ndarray]) -> None:
+    """TCCA finds high correlation on clearly correlated views."""
+    s = (
+        TCCA(latent_dimensions=1, random_state=0)
+        .fit(correlated_views)
+        .score(correlated_views)
+    )
+    assert np.all(s > 0.8), f"Expected high correlation, got {s}"
