@@ -17,7 +17,6 @@ import importlib.util
 import numpy as np
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Guard: check if the datasets module is importable
 # ---------------------------------------------------------------------------
@@ -69,9 +68,7 @@ class TestJointData:
         from cca_zoo.datasets import JointData  # type: ignore[attr-defined]
 
         n_features = [10, 8]
-        gen = JointData(
-            latent_dimensions=2, n_views=2, n_features=n_features
-        )
+        gen = JointData(latent_dimensions=2, n_views=2, n_features=n_features)
         views = gen.sample(n_samples=30, random_state=2)
         for v, p in zip(views, n_features):
             assert v.shape[1] == p
@@ -99,9 +96,7 @@ class TestJointData:
         """JointData.sample() works for three views."""
         from cca_zoo.datasets import JointData  # type: ignore[attr-defined]
 
-        gen = JointData(
-            latent_dimensions=2, n_views=3, n_features=[6, 5, 4]
-        )
+        gen = JointData(latent_dimensions=2, n_views=3, n_features=[6, 5, 4])
         views = gen.sample(n_samples=40, random_state=0)
         assert len(views) == 3
         for v, p in zip(views, [6, 5, 4]):

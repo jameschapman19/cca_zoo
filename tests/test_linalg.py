@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from cca_zoo._utils._linalg import deflate, gevp, soft_threshold, svd_whiten
-
 
 # ---------------------------------------------------------------------------
 # svd_whiten
@@ -54,7 +52,7 @@ class TestSvdWhiten:
         np.testing.assert_allclose(x_w, x @ w, atol=1e-12)
 
     def test_regularization_one_gives_sphering(self) -> None:
-        """With regularization=1, inverse sqrt eigenvalue is 1/sqrt(c)=1 since lambda+c=c."""
+        """With regularization=1, inverse sqrt eigenvalue is 1/sqrt(c)=1."""
         rng = np.random.default_rng(0)
         x = rng.standard_normal((30, 5))
         x -= x.mean(axis=0)
@@ -110,7 +108,7 @@ class TestGevp:
         assert eigvecs.shape == (5, 3)
 
     def test_returns_k_eigenpairs(self) -> None:
-        """gevp returns exactly k eigenpairs."""
+        """Gevp returns exactly k eigenpairs."""
         rng = np.random.default_rng(0)
         a = rng.standard_normal((8, 8))
         a = a @ a.T
@@ -122,7 +120,7 @@ class TestGevp:
             assert eigvecs.shape == (8, k)
 
     def test_descending_eigenvalue_order(self) -> None:
-        """gevp returns eigenvalues in descending order."""
+        """Gevp returns eigenvalues in descending order."""
         rng = np.random.default_rng(0)
         a = rng.standard_normal((6, 6))
         a = a @ a.T
@@ -238,7 +236,7 @@ class TestDeflate:
         np.testing.assert_allclose(projection, np.zeros(n), atol=1e-12)
 
     def test_deflate_preserves_shape(self) -> None:
-        """deflate preserves the shape of each view."""
+        """Deflate preserves the shape of each view."""
         rng = np.random.default_rng(0)
         views = [rng.standard_normal((20, 4)), rng.standard_normal((20, 6))]
         weights = [rng.standard_normal(4), rng.standard_normal(6)]
@@ -260,7 +258,7 @@ class TestDeflate:
         assert score_after < score_before * 1e-20
 
     def test_deflate_multiple_views(self) -> None:
-        """deflate handles multiple views simultaneously."""
+        """Deflate handles multiple views simultaneously."""
         rng = np.random.default_rng(0)
         views = [rng.standard_normal((25, p)) for p in [5, 7, 3]]
         weights = [rng.standard_normal(p) for p in [5, 7, 3]]

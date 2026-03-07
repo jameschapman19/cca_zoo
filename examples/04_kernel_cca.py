@@ -16,8 +16,8 @@ Kernel hyperparameters are selected via ``GridSearchCV``.
 # %%
 # Setup
 # -----
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 from cca_zoo.datasets import JointData
 from cca_zoo.model_selection import GridSearchCV
@@ -40,7 +40,7 @@ data = JointData(
     random_state=0,
 )
 train_views = data.sample()
-test_views  = data.sample()
+test_views = data.sample()
 
 # %%
 # Linear kernel
@@ -83,10 +83,12 @@ print("Mixed KCCA: ", np.round(kcca_mixed.score(test_views), 3))
 # ----------------------
 # Any callable with signature f(X, Y, **params) -> np.ndarray is accepted.
 
+
 def laplacian_kernel(X: np.ndarray, Y: np.ndarray, gamma: float = 1.0) -> np.ndarray:
     """Laplacian (L1-RBF) kernel: exp(-gamma * ||x - y||_1)."""
     diff = np.abs(X[:, None, :] - Y[None, :, :]).sum(axis=-1)
     return np.exp(-gamma * diff)
+
 
 kcca_custom = KCCA(
     latent_dimensions=2,

@@ -9,7 +9,6 @@ from sklearn.exceptions import NotFittedError
 from cca_zoo._base import BaseModel
 from cca_zoo.linear._cca import CCA
 
-
 # ---------------------------------------------------------------------------
 # Concrete minimal subclass for testing abstract interface
 # ---------------------------------------------------------------------------
@@ -18,7 +17,7 @@ from cca_zoo.linear._cca import CCA
 class _MinimalModel(BaseModel):
     """Minimal concrete subclass that stores identity weight matrices."""
 
-    def fit(self, views: list, y: None = None) -> "_MinimalModel":
+    def fit(self, views: list, y: None = None) -> _MinimalModel:
         """Fit by storing identity-like weight matrices."""
         validated = self._setup_fit(views)
         self.weights_ = [np.eye(v.shape[1], self.latent_dimensions) for v in validated]
@@ -137,7 +136,7 @@ def test_fit_transform_equals_fit_then_transform(
 
 
 def test_score_shape(two_views: list[np.ndarray]) -> None:
-    """score returns shape (latent_dimensions,)."""
+    """Score returns shape (latent_dimensions,)."""
     k = 2
     model = CCA(latent_dimensions=k).fit(two_views)
     s = model.score(two_views)

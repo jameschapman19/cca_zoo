@@ -15,9 +15,9 @@ Topics covered:
 # %%
 # Setup
 # -----
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from cca_zoo.datasets import JointData
 from cca_zoo.linear import CCA, SCCA_PMD, rCCA
@@ -100,12 +100,16 @@ print("SCCA_PMD — best CV score:", round(gs_pmd.best_score_, 3))
 # %%
 # Comparing CCA, rCCA (tuned), and SCCA_PMD (tuned) on test data
 # ---------------------------------------------------------------
-cca_score  = float(CCA(latent_dimensions=2).fit(views).score(test_views).mean())
+cca_score = float(CCA(latent_dimensions=2).fit(views).score(test_views).mean())
 rcca_score = float(gs_rcca.best_estimator_.score(test_views).mean())
-pmd_score  = float(gs_pmd.best_estimator_.score(test_views).mean())
+pmd_score = float(gs_pmd.best_estimator_.score(test_views).mean())
 
-models  = ["CCA", f"rCCA (c={gs_rcca.best_params_['c']})", f"SCCA_PMD (τ={gs_pmd.best_params_['tau']})"]
-scores  = [cca_score, rcca_score, pmd_score]
+models = [
+    "CCA",
+    f"rCCA (c={gs_rcca.best_params_['c']})",
+    f"SCCA_PMD (τ={gs_pmd.best_params_['tau']})",
+]
+scores = [cca_score, rcca_score, pmd_score]
 
 fig, ax = plt.subplots(figsize=(6, 4))
 colors = ["C0", "C1", "C2"]

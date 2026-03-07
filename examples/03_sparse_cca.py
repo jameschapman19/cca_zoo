@@ -19,17 +19,17 @@ Methods compared:
 # %%
 # Setup
 # -----
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 from cca_zoo.datasets import JointData
 from cca_zoo.linear import (
     CCA,
-    ElasticCCA,
-    ParkhomenkoCCA,
     SCCA_ADMM,
     SCCA_IPLS,
     SCCA_PMD,
+    ElasticCCA,
+    ParkhomenkoCCA,
 )
 
 rng = np.random.default_rng(0)
@@ -49,18 +49,24 @@ data = JointData(
     random_state=0,
 )
 train_views = data.sample()
-test_views  = data.sample()
+test_views = data.sample()
 
 # %%
 # Fit models
 # ----------
 models = {
-    "CCA":              CCA(latent_dimensions=1),
+    "CCA": CCA(latent_dimensions=1),
     "SCCA_PMD (τ=0.3)": SCCA_PMD(latent_dimensions=1, tau=0.3, random_state=0),
     "SCCA_ADMM (τ=0.1)": SCCA_ADMM(latent_dimensions=1, tau=0.1, random_state=0),
-    "SCCA_IPLS (α=0.01)": SCCA_IPLS(latent_dimensions=1, alpha=0.01, l1_ratio=1.0, random_state=0),
-    "ElasticCCA (α=0.01)": ElasticCCA(latent_dimensions=1, alpha=0.01, l1_ratio=0.5, random_state=0),
-    "ParkhomenkoCCA (τ=0.05)": ParkhomenkoCCA(latent_dimensions=1, tau=0.05, random_state=0),
+    "SCCA_IPLS (α=0.01)": SCCA_IPLS(
+        latent_dimensions=1, alpha=0.01, l1_ratio=1.0, random_state=0
+    ),
+    "ElasticCCA (α=0.01)": ElasticCCA(
+        latent_dimensions=1, alpha=0.01, l1_ratio=0.5, random_state=0
+    ),
+    "ParkhomenkoCCA (τ=0.05)": ParkhomenkoCCA(
+        latent_dimensions=1, tau=0.05, random_state=0
+    ),
 }
 
 results = {}
@@ -103,7 +109,7 @@ plt.show()
 # ---------------------------------------
 tau_values = np.linspace(0.1, 1.0, 10)
 pmd_scores = []
-pmd_nnz    = []
+pmd_nnz = []
 
 for tau in tau_values:
     m = SCCA_PMD(latent_dimensions=1, tau=tau, random_state=0).fit(train_views)

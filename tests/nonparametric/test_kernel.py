@@ -21,7 +21,9 @@ def _make_kernel_model(
 ) -> object:
     """Construct a kernel model, passing random_state=0 only if supported."""
     if ModelClass in _KERNEL_MODELS_WITH_RANDOM_STATE:
-        return ModelClass(latent_dimensions=latent_dimensions, c=c, random_state=0, **kwargs)
+        return ModelClass(
+            latent_dimensions=latent_dimensions, c=c, random_state=0, **kwargs
+        )
     return ModelClass(latent_dimensions=latent_dimensions, c=c, **kwargs)
 
 
@@ -34,7 +36,7 @@ def _make_kernel_model(
 def test_two_view_fit_completes(
     ModelClass: type, two_views_small: list[np.ndarray]
 ) -> None:
-    """fit completes on two-view data without error."""
+    """Fit completes on two-view data without error."""
     model = ModelClass(latent_dimensions=1, c=0.1)
     fitted = model.fit(two_views_small)
     assert fitted is model
@@ -44,7 +46,7 @@ def test_two_view_fit_completes(
 def test_three_view_fit_completes(
     ModelClass: type, three_views_small: list[np.ndarray]
 ) -> None:
-    """fit completes on three-view data without error."""
+    """Fit completes on three-view data without error."""
     model = _make_kernel_model(ModelClass, latent_dimensions=1, c=0.1)
     fitted = model.fit(three_views_small)
     assert fitted is model
@@ -59,7 +61,7 @@ def test_three_view_fit_completes(
 def test_transform_shapes_training_data(
     ModelClass: type, two_views_small: list[np.ndarray]
 ) -> None:
-    """transform on training data returns (n_samples, latent_dimensions) arrays."""
+    """Transform on training data returns (n_samples, latent_dimensions) arrays."""
     k = 2
     model = _make_kernel_model(ModelClass, latent_dimensions=k).fit(two_views_small)
     result = model.transform(two_views_small)
@@ -78,7 +80,7 @@ def test_transform_shapes_training_data(
 def test_transform_on_test_data(
     ModelClass: type, two_views_small: list[np.ndarray]
 ) -> None:
-    """transform returns correct shapes for new (unseen) test samples."""
+    """Transform returns correct shapes for new (unseen) test samples."""
     rng = np.random.default_rng(99)
     test_views = [rng.standard_normal((10, 5)), rng.standard_normal((10, 5))]
     k = 1
@@ -113,10 +115,8 @@ def test_fit_transform_consistency(
 
 
 @pytest.mark.parametrize("ModelClass", ALL_KERNEL_MODELS)
-def test_score_shape(
-    ModelClass: type, two_views_small: list[np.ndarray]
-) -> None:
-    """score returns array of shape (latent_dimensions,)."""
+def test_score_shape(ModelClass: type, two_views_small: list[np.ndarray]) -> None:
+    """Score returns array of shape (latent_dimensions,)."""
     k = 2
     model = _make_kernel_model(ModelClass, latent_dimensions=k).fit(two_views_small)
     s = model.score(two_views_small)
@@ -127,7 +127,7 @@ def test_score_shape(
 def test_score_values_in_range(
     ModelClass: type, two_views_small: list[np.ndarray]
 ) -> None:
-    """score values lie in [-1, 1]."""
+    """Score values lie in [-1, 1]."""
     model = _make_kernel_model(ModelClass, latent_dimensions=1).fit(two_views_small)
     s = model.score(two_views_small)
     assert np.all(s >= -1.0 - 1e-9)
@@ -162,9 +162,7 @@ def test_set_params_roundtrip(ModelClass: type) -> None:
 
 
 @pytest.mark.parametrize("ModelClass", ALL_KERNEL_MODELS)
-def test_weights_shapes(
-    ModelClass: type, two_views_small: list[np.ndarray]
-) -> None:
+def test_weights_shapes(ModelClass: type, two_views_small: list[np.ndarray]) -> None:
     """Kernel model weights are dual variables of shape (n_samples, k)."""
     k = 2
     model = _make_kernel_model(ModelClass, latent_dimensions=k).fit(two_views_small)
@@ -199,9 +197,7 @@ def test_get_factor_loadings_shapes(
 
 
 @pytest.mark.parametrize("kernel", ["linear", "rbf", "poly"])
-def test_kcca_different_kernels(
-    kernel: str, two_views_small: list[np.ndarray]
-) -> None:
+def test_kcca_different_kernels(kernel: str, two_views_small: list[np.ndarray]) -> None:
     """KCCA works with linear, rbf, and polynomial kernels."""
     model = KCCA(latent_dimensions=1, c=0.1, kernel=kernel).fit(two_views_small)
     result = model.transform(two_views_small)
@@ -227,9 +223,9 @@ def test_ktcca_different_kernels(
     kernel: str, two_views_small: list[np.ndarray]
 ) -> None:
     """KTCCA works with linear and rbf kernels."""
-    model = KTCCA(
-        latent_dimensions=1, c=0.1, kernel=kernel, random_state=0
-    ).fit(two_views_small)
+    model = KTCCA(latent_dimensions=1, c=0.1, kernel=kernel, random_state=0).fit(
+        two_views_small
+    )
     result = model.transform(two_views_small)
     n = two_views_small[0].shape[0]
     for arr in result:
@@ -243,9 +239,9 @@ def test_ktcca_different_kernels(
 
 def test_kcca_per_view_kernel(two_views_small: list[np.ndarray]) -> None:
     """KCCA accepts per-view kernel specification as a list."""
-    model = KCCA(
-        latent_dimensions=1, c=0.1, kernel=["linear", "rbf"]
-    ).fit(two_views_small)
+    model = KCCA(latent_dimensions=1, c=0.1, kernel=["linear", "rbf"]).fit(
+        two_views_small
+    )
     result = model.transform(two_views_small)
     assert len(result) == 2
 
@@ -256,9 +252,7 @@ def test_kcca_per_view_kernel(two_views_small: list[np.ndarray]) -> None:
 
 
 @pytest.mark.parametrize("ModelClass", ALL_KERNEL_MODELS)
-def test_center_false(
-    ModelClass: type, two_views_small: list[np.ndarray]
-) -> None:
+def test_center_false(ModelClass: type, two_views_small: list[np.ndarray]) -> None:
     """All kernel models work with center=False."""
     model = _make_kernel_model(ModelClass, latent_dimensions=1, center=False)
     model.fit(two_views_small)

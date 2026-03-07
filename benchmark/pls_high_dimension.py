@@ -5,12 +5,14 @@ Use different dimensionalities and produce a nice seaborn plot of the runtimes.
 """
 
 import time
-import pandas as pd
-import numpy as np
-from cca_zoo.linear import PLS
-from sklearn.cross_decomposition import PLSCanonical as sklearn_PLS
-import seaborn as sns
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from sklearn.cross_decomposition import PLSCanonical as sklearn_PLS
+
+from cca_zoo.linear import PLS
 
 # Initialize empty list to hold the benchmarking results
 results = []

@@ -21,10 +21,8 @@ _FIT_KWARGS: dict = dict(latent_dimensions=1, max_iter=50, random_state=0)
 
 
 @pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_TWO_VIEW)
-def test_two_view_fit_completes(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
-    """fit completes on two-view data without error."""
+def test_two_view_fit_completes(ModelClass: type, two_views: list[np.ndarray]) -> None:
+    """Fit completes on two-view data without error."""
     model = ModelClass(**_FIT_KWARGS)
     fitted = model.fit(two_views)
     assert fitted is model
@@ -59,11 +57,9 @@ def test_three_view_fit_completes(
 def test_transform_shapes_two_view(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
-    """transform returns list of (n_samples, latent_dimensions) arrays."""
+    """Transform returns list of (n_samples, latent_dimensions) arrays."""
     k = 2
-    model = ModelClass(
-        latent_dimensions=k, max_iter=50, random_state=0
-    ).fit(two_views)
+    model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
     result = model.transform(two_views)
     assert len(result) == len(two_views)
     for arr, view in zip(result, two_views):
@@ -76,9 +72,9 @@ def test_transform_shapes_multi_view(
 ) -> None:
     """MCCA_EY transform returns correct shapes for three views."""
     k = 2
-    model = ModelClass(
-        latent_dimensions=k, max_iter=50, random_state=0
-    ).fit(three_views)
+    model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(
+        three_views
+    )
     result = model.transform(three_views)
     assert len(result) == len(three_views)
     for arr, view in zip(result, three_views):
@@ -109,11 +105,9 @@ def test_fit_transform_consistency(
 
 @pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_TWO_VIEW)
 def test_score_shape(ModelClass: type, two_views: list[np.ndarray]) -> None:
-    """score returns array of shape (latent_dimensions,)."""
+    """Score returns array of shape (latent_dimensions,)."""
     k = 2
-    model = ModelClass(
-        latent_dimensions=k, max_iter=50, random_state=0
-    ).fit(two_views)
+    model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
     s = model.score(two_views)
     assert s.shape == (k,)
 
@@ -122,11 +116,11 @@ def test_score_shape(ModelClass: type, two_views: list[np.ndarray]) -> None:
 def test_score_shape_multi_view(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
-    """score returns array of shape (latent_dimensions,) for multi-view."""
+    """Score returns array of shape (latent_dimensions,) for multi-view."""
     k = 2
-    model = ModelClass(
-        latent_dimensions=k, max_iter=50, random_state=0
-    ).fit(three_views)
+    model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(
+        three_views
+    )
     s = model.score(three_views)
     assert s.shape == (k,)
 
@@ -160,14 +154,10 @@ def test_set_params_roundtrip(ModelClass: type) -> None:
 
 
 @pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_TWO_VIEW)
-def test_weights_shapes_two_view(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
-    """weights shapes are (n_features_i, latent_dimensions) per view."""
+def test_weights_shapes_two_view(ModelClass: type, two_views: list[np.ndarray]) -> None:
+    """Weights shapes are (n_features_i, latent_dimensions) per view."""
     k = 2
-    model = ModelClass(
-        latent_dimensions=k, max_iter=50, random_state=0
-    ).fit(two_views)
+    model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
     w = model.weights
     assert len(w) == len(two_views)
     for weight, view in zip(w, two_views):
@@ -185,9 +175,7 @@ def test_get_factor_loadings_shapes(
 ) -> None:
     """get_factor_loadings returns (n_features_i, k) per view."""
     k = 2
-    model = ModelClass(
-        latent_dimensions=k, max_iter=50, random_state=0
-    ).fit(two_views)
+    model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
     loadings = model.get_factor_loadings(two_views)
     assert len(loadings) == len(two_views)
     for loading, view in zip(loadings, two_views):
@@ -200,13 +188,9 @@ def test_get_factor_loadings_shapes(
 
 
 @pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_TWO_VIEW)
-def test_mini_batch_training(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
+def test_mini_batch_training(ModelClass: type, two_views: list[np.ndarray]) -> None:
     """Models train without error with batch_size=16."""
-    model = ModelClass(
-        latent_dimensions=1, max_iter=20, batch_size=16, random_state=0
-    )
+    model = ModelClass(latent_dimensions=1, max_iter=20, batch_size=16, random_state=0)
     model.fit(two_views)
     result = model.transform(two_views)
     assert len(result) == 2
@@ -215,9 +199,7 @@ def test_mini_batch_training(
 
 
 @pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_TWO_VIEW)
-def test_full_batch_training(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
+def test_full_batch_training(ModelClass: type, two_views: list[np.ndarray]) -> None:
     """Models train without error with batch_size=None (full batch)."""
     model = ModelClass(
         latent_dimensions=1, max_iter=20, batch_size=None, random_state=0
@@ -277,13 +259,9 @@ def test_cca_ey_c_parameter(c: float, two_views: list[np.ndarray]) -> None:
 
 
 @pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
-def test_center_false(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
+def test_center_false(ModelClass: type, two_views: list[np.ndarray]) -> None:
     """All gradient models work with center=False."""
-    model = ModelClass(
-        latent_dimensions=1, max_iter=20, center=False, random_state=0
-    )
+    model = ModelClass(latent_dimensions=1, max_iter=20, center=False, random_state=0)
     model.fit(two_views)
     result = model.transform(two_views)
     assert len(result) == 2

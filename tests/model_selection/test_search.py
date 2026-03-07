@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from cca_zoo.linear import CCA, MCCA, rCCA
 from cca_zoo.model_selection import GridSearchCV
-
 
 # ---------------------------------------------------------------------------
 # Basic fit

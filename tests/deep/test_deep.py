@@ -17,12 +17,9 @@ lightning = pytest.importorskip("lightning")
 import torch.nn as nn
 import torch.utils.data as data
 
-
 # ---------------------------------------------------------------------------
 # Import the available deep classes directly
 # ---------------------------------------------------------------------------
-
-from cca_zoo.deep._base import BaseDeep
 from cca_zoo.deep._dcca import DCCA
 from cca_zoo.deep.objectives import (
     CCALoss,
@@ -30,7 +27,6 @@ from cca_zoo.deep.objectives import (
     MCCALoss,
     TCCALoss,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helper: tiny dataset and DataLoader
@@ -81,7 +77,9 @@ def test_dcca_training_completes() -> None:
     encoders = _make_encoders(5, latent)
     model = DCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
     loader = _make_loader()
-    trainer = lightning.pytorch.Trainer(max_epochs=2, enable_progress_bar=False, logger=False)
+    trainer = lightning.pytorch.Trainer(
+        max_epochs=2, enable_progress_bar=False, logger=False
+    )
     trainer.fit(model, loader)
 
 
@@ -94,7 +92,9 @@ def test_dcca_transform_output_shapes() -> None:
     encoders = _make_encoders(p, latent)
     model = DCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
     loader = _make_loader(n=n, p=p)
-    trainer = lightning.pytorch.Trainer(max_epochs=2, enable_progress_bar=False, logger=False)
+    trainer = lightning.pytorch.Trainer(
+        max_epochs=2, enable_progress_bar=False, logger=False
+    )
     trainer.fit(model, loader)
     result = model.transform(loader)
     assert len(result) == 2
@@ -109,7 +109,9 @@ def test_dcca_score_shape() -> None:
     encoders = _make_encoders(5, latent)
     model = DCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
     loader = _make_loader()
-    trainer = lightning.pytorch.Trainer(max_epochs=2, enable_progress_bar=False, logger=False)
+    trainer = lightning.pytorch.Trainer(
+        max_epochs=2, enable_progress_bar=False, logger=False
+    )
     trainer.fit(model, loader)
     s = model.score(loader)
     assert s.shape == (latent,)
@@ -127,7 +129,9 @@ def test_dcca_with_mcca_objective() -> None:
         max_epochs=2,
     )
     loader = _make_loader()
-    trainer = lightning.pytorch.Trainer(max_epochs=2, enable_progress_bar=False, logger=False)
+    trainer = lightning.pytorch.Trainer(
+        max_epochs=2, enable_progress_bar=False, logger=False
+    )
     trainer.fit(model, loader)
     result = model.transform(loader)
     assert len(result) == 2
@@ -145,7 +149,9 @@ def test_dcca_with_gcca_objective() -> None:
         max_epochs=2,
     )
     loader = _make_loader()
-    trainer = lightning.pytorch.Trainer(max_epochs=2, enable_progress_bar=False, logger=False)
+    trainer = lightning.pytorch.Trainer(
+        max_epochs=2, enable_progress_bar=False, logger=False
+    )
     trainer.fit(model, loader)
     result = model.transform(loader)
     assert len(result) == 2
@@ -263,7 +269,9 @@ def test_dcca_three_view_training() -> None:
         objective=MCCALoss(eps=1e-4),
         max_epochs=2,
     )
-    trainer = lightning.pytorch.Trainer(max_epochs=2, enable_progress_bar=False, logger=False)
+    trainer = lightning.pytorch.Trainer(
+        max_epochs=2, enable_progress_bar=False, logger=False
+    )
     trainer.fit(model, loader)
     result = model.transform(loader)
     assert len(result) == 3

@@ -35,10 +35,8 @@ def _make_multi_view_model(ModelClass: type, latent_dimensions: int = 1) -> obje
 
 
 @pytest.mark.parametrize("ModelClass", ALL_EIGEN_MODELS)
-def test_two_view_fit_completes(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
-    """fit completes without error on two-view data."""
+def test_two_view_fit_completes(ModelClass: type, two_views: list[np.ndarray]) -> None:
+    """Fit completes without error on two-view data."""
     model = ModelClass(latent_dimensions=1)
     fitted = model.fit(two_views)
     assert fitted is model
@@ -53,7 +51,7 @@ def test_two_view_fit_completes(
 def test_three_view_fit_completes_no_random_state(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
-    """fit completes without error on three-view data (MCCA/GCCA)."""
+    """Fit completes without error on three-view data (MCCA/GCCA)."""
     model = ModelClass(latent_dimensions=1)
     fitted = model.fit(three_views)
     assert fitted is model
@@ -84,7 +82,7 @@ def test_two_view_models_reject_three_views(
 def test_two_view_transform_shapes(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
-    """transform returns list of (n_samples, latent_dimensions) arrays."""
+    """Transform returns list of (n_samples, latent_dimensions) arrays."""
     k = 2
     model = ModelClass(latent_dimensions=k).fit(two_views)
     result = model.transform(two_views)
@@ -97,7 +95,7 @@ def test_two_view_transform_shapes(
 def test_multi_view_transform_shapes(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
-    """transform on 3 views returns list of (n_samples, latent_dimensions) arrays."""
+    """Transform on 3 views returns list of (n_samples, latent_dimensions) arrays."""
     k = 2
     model = _make_multi_view_model(ModelClass, latent_dimensions=k).fit(three_views)
     result = model.transform(three_views)
@@ -127,9 +125,9 @@ def test_fit_transform_consistency_multi_view(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
     """fit_transform equals fit().transform() for multi-view models."""
-    result_ft = _make_multi_view_model(
-        ModelClass, latent_dimensions=1
-    ).fit_transform(three_views)
+    result_ft = _make_multi_view_model(ModelClass, latent_dimensions=1).fit_transform(
+        three_views
+    )
     result_sep = (
         _make_multi_view_model(ModelClass, latent_dimensions=1)
         .fit(three_views)
@@ -145,10 +143,8 @@ def test_fit_transform_consistency_multi_view(
 
 
 @pytest.mark.parametrize("ModelClass", TWO_VIEW_MODELS)
-def test_score_shape_two_view(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
-    """score returns array of shape (latent_dimensions,)."""
+def test_score_shape_two_view(ModelClass: type, two_views: list[np.ndarray]) -> None:
+    """Score returns array of shape (latent_dimensions,)."""
     k = 2
     model = ModelClass(latent_dimensions=k).fit(two_views)
     s = model.score(two_views)
@@ -159,7 +155,7 @@ def test_score_shape_two_view(
 def test_score_values_in_valid_range_two_view(
     ModelClass: type, correlated_views: list[np.ndarray]
 ) -> None:
-    """score values are in [-1, 1]."""
+    """Score values are in [-1, 1]."""
     model = ModelClass(latent_dimensions=2).fit(correlated_views)
     s = model.score(correlated_views)
     assert np.all(s >= -1.0 - 1e-9)
@@ -170,7 +166,7 @@ def test_score_values_in_valid_range_two_view(
 def test_score_shape_multi_view(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
-    """score returns array of shape (latent_dimensions,) for multi-view models."""
+    """Score returns array of shape (latent_dimensions,) for multi-view models."""
     k = 2
     model = _make_multi_view_model(ModelClass, latent_dimensions=k).fit(three_views)
     s = model.score(three_views)
@@ -204,10 +200,8 @@ def test_set_params_roundtrip(ModelClass: type) -> None:
 
 
 @pytest.mark.parametrize("ModelClass", TWO_VIEW_MODELS)
-def test_weights_shape_two_view(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
-    """weights has correct shapes (n_features_i, latent_dimensions) per view."""
+def test_weights_shape_two_view(ModelClass: type, two_views: list[np.ndarray]) -> None:
+    """Weights has correct shapes (n_features_i, latent_dimensions) per view."""
     k = 2
     model = ModelClass(latent_dimensions=k).fit(two_views)
     w = model.weights
@@ -220,7 +214,7 @@ def test_weights_shape_two_view(
 def test_weights_shape_multi_view(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
-    """weights shapes are correct for multi-view models."""
+    """Weights shapes are correct for multi-view models."""
     k = 2
     model = _make_multi_view_model(ModelClass, latent_dimensions=k).fit(three_views)
     w = model.weights
@@ -284,14 +278,14 @@ def test_multiple_latent_dimensions(
 
 @pytest.mark.parametrize("c", [0.0, 0.1, 0.5, 1.0])
 def test_rcca_c_parameter(c: float, two_views: list[np.ndarray]) -> None:
-    """rCCA works for various values of the ridge parameter c."""
+    """RCCA works for various values of the ridge parameter c."""
     model = rCCA(latent_dimensions=1, c=c).fit(two_views)
     result = model.transform(two_views)
     assert len(result) == 2
 
 
 def test_rcca_per_view_c_parameter(two_views: list[np.ndarray]) -> None:
-    """rCCA accepts per-view c=[c1, c2]."""
+    """RCCA accepts per-view c=[c1, c2]."""
     model = rCCA(latent_dimensions=1, c=[0.1, 0.3]).fit(two_views)
     result = model.transform(two_views)
     assert len(result) == 2
@@ -317,9 +311,7 @@ def test_mcca_pca_flag(pca: bool, two_views: list[np.ndarray]) -> None:
 
 def test_gcca_view_weights(three_views: list[np.ndarray]) -> None:
     """GCCA accepts per-view weights."""
-    model = GCCA(
-        latent_dimensions=1, view_weights=[1.0, 1.0, 2.0]
-    ).fit(three_views)
+    model = GCCA(latent_dimensions=1, view_weights=[1.0, 1.0, 2.0]).fit(three_views)
     result = model.transform(three_views)
     assert len(result) == 3
 
@@ -357,9 +349,7 @@ def test_cca_high_correlation_on_correlated_views(
 
 
 @pytest.mark.parametrize("ModelClass", TWO_VIEW_MODELS)
-def test_center_false_two_view(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
+def test_center_false_two_view(ModelClass: type, two_views: list[np.ndarray]) -> None:
     """All two-view models run correctly with center=False."""
     model = ModelClass(latent_dimensions=1, center=False).fit(two_views)
     result = model.transform(two_views)

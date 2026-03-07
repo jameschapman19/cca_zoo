@@ -13,8 +13,8 @@ Demonstrates the core CCA-Zoo workflow:
 # %%
 # Setup
 # -----
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 from cca_zoo.datasets import JointData
 from cca_zoo.linear import CCA, PLS
@@ -36,7 +36,7 @@ data = JointData(
     random_state=0,
 )
 train_views = data.sample()
-test_views  = data.sample()
+test_views = data.sample()
 
 print("View shapes:", [v.shape for v in train_views])
 
@@ -58,15 +58,15 @@ print("PLS canonical correlations:", np.round(pls.score(test_views), 3))
 # %%
 # Transform: project views into the shared latent space
 # -----------------------------------------------------
-z_cca = cca.transform(test_views)    # list of two arrays, each (300, 3)
+z_cca = cca.transform(test_views)  # list of two arrays, each (300, 3)
 z1, z2 = z_cca
 print("Latent shape:", z1.shape)
 
 # %%
 # Inspect weights
 # ---------------
-W1, W2 = cca.weights          # list of weight matrices
-print("Weight shapes:", W1.shape, W2.shape)   # (50, 3), (40, 3)
+W1, W2 = cca.weights  # list of weight matrices
+print("Weight shapes:", W1.shape, W2.shape)  # (50, 3), (40, 3)
 
 # %%
 # Compare CCA vs PLS correlations

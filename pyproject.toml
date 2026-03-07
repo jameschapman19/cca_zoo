@@ -50,6 +50,7 @@ dev-dependencies = ["cca-zoo[dev]"]
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+exclude = ["benchmark"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "ANN", "N", "D"]
@@ -66,6 +67,11 @@ ignore = [
     # __init__ docstrings not required (class docstring covers it)
     "D107",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"examples/*.py" = ["D"]          # scripts, not library code
+"tests/**/__init__.py" = ["D104"]  # test packages don't need docstrings
+"tests/deep/test_deep.py" = ["E402"]  # torch imports must follow importorskip
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

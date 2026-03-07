@@ -12,8 +12,8 @@ Demonstrates multiview CCA methods for three or more views.
 # %%
 # Setup
 # -----
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 from cca_zoo.datasets import JointData
 from cca_zoo.linear import GCCA, MCCA, TCCA
@@ -30,7 +30,7 @@ data = JointData(
     random_state=0,
 )
 train_views = data.sample()
-test_views  = data.sample()
+test_views = data.sample()
 
 print("View shapes:", [v.shape for v in train_views])
 
@@ -53,7 +53,9 @@ gcca = GCCA(latent_dimensions=2, c=0.01).fit(train_views)
 print("GCCA correlations:", np.round(gcca.score(test_views), 3))
 
 # Weighted GCCA: upweight the first view
-gcca_w = GCCA(latent_dimensions=2, c=0.01, view_weights=[2.0, 1.0, 1.0]).fit(train_views)
+gcca_w = GCCA(latent_dimensions=2, c=0.01, view_weights=[2.0, 1.0, 1.0]).fit(
+    train_views
+)
 print("Weighted GCCA:", np.round(gcca_w.score(test_views), 3))
 
 # %%
@@ -94,5 +96,5 @@ plt.show()
 # %%
 # Transform all views
 # -------------------
-z = mcca.transform(test_views)    # list of three arrays, each (200, 2)
+z = mcca.transform(test_views)  # list of three arrays, each (200, 2)
 print("Latent shapes:", [zi.shape for zi in z])

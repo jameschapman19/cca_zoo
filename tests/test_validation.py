@@ -7,7 +7,6 @@ import pytest
 
 from cca_zoo._utils._validation import perview_parameter, validate_views
 
-
 # ---------------------------------------------------------------------------
 # validate_views
 # ---------------------------------------------------------------------------
