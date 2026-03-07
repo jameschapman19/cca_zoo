@@ -100,19 +100,19 @@ class MCCA(BaseModel):
             ValueError: If fewer than 2 views are provided.
             ValueError: If views have inconsistent numbers of samples.
         """
-        views = self._setup_fit(views)
+        views_: list[np.ndarray] = self._setup_fit(views)
         c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
 
         if self.pca:
-            pca_models = [PCA().fit(v) for v in views]
-            views_pca = [m.transform(v) for m, v in zip(pca_models, views)]
+            pca_models = [PCA().fit(v) for v in views_]
+            views_pca = [m.transform(v) for m, v in zip(pca_models, views_)]
             A = self._build_A(views_pca)
             B = self._build_B_pca(pca_models, c_)
         else:
-            A = self._build_A(views)
-            B = self._build_B(views, c_)
+            A = self._build_A(views_)
+            B = self._build_B(views_, c_)
 
-        splits = np.cumsum([v.shape[1] for v in (views_pca if self.pca else views)])
+        splits = np.cumsum([v.shape[1] for v in (views_pca if self.pca else views_)])
         _, eigvecs = gevp(A, B, self.latent_dimensions)
 
         raw_weights = np.split(eigvecs, splits[:-1], axis=0)
@@ -156,11 +156,11 @@ class MCCA(BaseModel):
             (1.0 - c[i]) * np.cov(v, rowvar=False) + c[i] * np.eye(v.shape[1])
             for i, v in enumerate(views)
         ]
-        B = block_diag(*blocks)
+        B: np.ndarray = np.asarray(block_diag(*blocks))
         min_eig = np.linalg.eigvalsh(B).min()
         if min_eig < self.eps:
             B += (self.eps - min_eig) * np.eye(B.shape[0])
-        return B / len(views)
+        return np.asarray(B / len(views))
 
     def _build_B_pca(
         self,
@@ -180,8 +180,8 @@ class MCCA(BaseModel):
             np.diag((1.0 - c[i]) * m.explained_variance_ + c[i])
             for i, m in enumerate(pca_models)
         ]
-        B = block_diag(*blocks)
+        B: np.ndarray = np.asarray(block_diag(*blocks))
         min_eig = np.linalg.eigvalsh(B).min()
         if min_eig < self.eps:
             B += (self.eps - min_eig) * np.eye(B.shape[0])
-        return B / len(pca_models)
+        return np.asarray(B / len(pca_models))

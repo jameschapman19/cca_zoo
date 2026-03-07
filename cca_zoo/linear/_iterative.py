@@ -75,13 +75,13 @@ class _BaseIterative(BaseModel):
             ValueError: If fewer than 2 views are provided.
             ValueError: If views have inconsistent numbers of samples.
         """
-        views = self._setup_fit(views)
+        views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
         # Initialise weight storage: (n_features_i, latent_dimensions)
         self.weights_: list[np.ndarray] = [
             np.zeros((p, self.latent_dimensions)) for p in self.n_features_in_
         ]
-        deflated = [v.copy() for v in views]
+        deflated = [v.copy() for v in views_]
         for d in range(self.latent_dimensions):
             # Random initialisation for this dimension
             w = [rng.standard_normal(p) for p in self.n_features_in_]
@@ -150,7 +150,7 @@ def _target_score(
         Summed score array of shape (n_samples,) or (n_samples, 1).
     """
     scores = [views[j] @ weights[j] for j in range(len(views)) if j != i]
-    target = sum(scores)
+    target: np.ndarray = np.asarray(sum(scores))
     norm = np.linalg.norm(target)
     if norm > 1e-12:
         target = target / norm
@@ -209,7 +209,7 @@ class PLS_ALS(_BaseIterative):
             Normalised weight vector for view i.
         """
         target = _target_score(views, weights, i)
-        new_w = views[i].T @ target
+        new_w: np.ndarray = np.asarray(views[i].T @ target)
         norm = np.linalg.norm(new_w)
         if norm > 1e-12:
             new_w /= norm
@@ -234,7 +234,7 @@ def _bisect_threshold(x: np.ndarray, l1_bound: float) -> np.ndarray:
         Soft-thresholded vector with L2-normalised result.
     """
     if np.linalg.norm(x, 1) <= l1_bound:
-        return x / np.linalg.norm(x)
+        return np.asarray(x / np.linalg.norm(x))
     lo, hi = 0.0, np.abs(x).max()
     for _ in range(50):
         mid = (lo + hi) / 2.0
@@ -325,7 +325,8 @@ class SCCA_PMD(_BaseIterative):
         """
         # Store processed tau for use in _update_weight
         self._tau: list[float] = []  # set in super().fit via _setup_fit
-        return super().fit(views, y)  # type: ignore[return-value]
+        super().fit(views, y)
+        return self
 
     def _setup_tau(self) -> list[float]:
         """Compute per-view L1 bounds from tau and feature dimensions.
@@ -596,7 +597,7 @@ class SCCA_IPLS(_BaseIterative):
         target = _target_score(views, weights, i)
         reg = self._regressors[i]
         reg.fit(views[i], target)
-        w_new = reg.coef_.copy()
+        w_new: np.ndarray = np.asarray(reg.coef_).copy()
         score = views[i] @ w_new
         score_std = score.std()
         if score_std > 1e-12:
@@ -691,7 +692,7 @@ class SCCA_Span(_BaseIterative):
             Sparse normalised weight vector for view i.
         """
         target = _target_score(views, weights, i)
-        raw = views[i].T @ target
+        raw: np.ndarray = np.asarray(views[i].T @ target)
         # Keep only the top-span entries
         s = self._spans[i]
         if s < len(raw):

@@ -80,6 +80,7 @@ convention = "google"
 strict = true
 python_version = "3.10"
 ignore_missing_imports = true
+disable_error_code = ["misc", "untyped-decorator"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=cca_zoo --cov-report=term-missing --cov-fail-under=100"

@@ -80,9 +80,9 @@ class TCCA(BaseModel):
             ValueError: If fewer than 2 views are provided.
             ValueError: If views have inconsistent numbers of samples.
         """
-        views = self._setup_fit(views)
+        views_: list[np.ndarray] = self._setup_fit(views)
         c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
-        whitened, cov_invsqrt = self._whiten_views(views, c_)
+        whitened, cov_invsqrt = self._whiten_views(views_, c_)
 
         # Build cross-moment tensor via sequential outer products
         M: np.ndarray | None = None

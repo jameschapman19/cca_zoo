@@ -42,7 +42,7 @@ def _stiefel_retract(W: np.ndarray) -> np.ndarray:
         Matrix of shape (p, k) with orthonormal columns.
     """
     U, _, Vt = np.linalg.svd(W, full_matrices=False)
-    return U @ Vt
+    return np.asarray(U @ Vt)
 
 
 def _riemannian_grad(euclidean_grad: np.ndarray, W: np.ndarray) -> np.ndarray:
@@ -65,7 +65,7 @@ def _riemannian_grad(euclidean_grad: np.ndarray, W: np.ndarray) -> np.ndarray:
     """
     sym = W.T @ euclidean_grad
     sym = (sym + sym.T) / 2.0
-    return euclidean_grad - W @ sym
+    return np.asarray(euclidean_grad - W @ sym)
 
 
 # ---------------------------------------------------------------------------
@@ -146,7 +146,7 @@ class PLS_EY(BaseModel):
             ValueError: If fewer than 2 views are provided.
             ValueError: If views have inconsistent numbers of samples.
         """
-        views = self._setup_fit(views)
+        views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
         n = self.n_samples_
         bs = n if self.batch_size is None else min(self.batch_size, n)
@@ -159,7 +159,7 @@ class PLS_EY(BaseModel):
         prev_obj = np.inf
         for iteration in range(self.max_iter):
             idx = rng.choice(n, bs, replace=False)
-            batch = [v[idx] for v in views]
+            batch = [v[idx] for v in views_]
             obj, W = self._step(batch, W)
             if abs(prev_obj - obj) < self.tol:
                 logger.debug("PLS_EY converged at iteration %d", iteration)
@@ -322,12 +322,12 @@ class CCA_EY(PLS_EY):
             ValueError: If fewer than 2 views are provided.
             ValueError: If views have inconsistent numbers of samples.
         """
-        views = self._setup_fit(views)
+        views_: list[np.ndarray] = self._setup_fit(views)
         c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
         # Whiten each view; store whitening matrices to back-project weights
         whitened = []
         self._whiten_mats: list[np.ndarray] = []
-        for v, ci in zip(views, c_):
+        for v, ci in zip(views_, c_):
             v_w, W_whiten = svd_whiten(v, ci)
             whitened.append(v_w)
             self._whiten_mats.append(W_whiten)
@@ -414,4 +414,5 @@ class MCCA_EY(CCA_EY):
             ValueError: If fewer than 2 views are provided.
             ValueError: If views have inconsistent numbers of samples.
         """
-        return super().fit(views, y)  # type: ignore[return-value]
+        super().fit(views, y)
+        return self

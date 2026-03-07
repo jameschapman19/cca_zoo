@@ -60,10 +60,10 @@ class KGCCA(BaseModel):
         center: bool = True,
         c: float | list[float] = 0.1,
         kernel: str | list[str] = "linear",
-        gamma: float | list[float] | None = None,
+        gamma: float | list[float | None] | None = None,
         degree: float | list[float] = 1.0,
         coef0: float | list[float] = 1.0,
-        kernel_params: dict | list[dict] | None = None,
+        kernel_params: dict[str, object] | list[dict[str, object]] | None = None,
         view_weights: list[float] | None = None,
         eps: float = 1e-6,
     ) -> None:
@@ -91,7 +91,7 @@ class KGCCA(BaseModel):
             ValueError: If fewer than 2 views are provided.
             ValueError: If views have inconsistent numbers of samples.
         """
-        views = self._setup_fit(views)
+        views_: list[np.ndarray] = self._setup_fit(views)
         c_ = perview_parameter("c", self.c, 0.1, self.n_views_)
         mu = perview_parameter("view_weights", self.view_weights, 1.0, self.n_views_)
         kernel_ = perview_parameter("kernel", self.kernel, "linear", self.n_views_)
@@ -100,7 +100,7 @@ class KGCCA(BaseModel):
         coef0_ = perview_parameter("coef0", self.coef0, 1.0, self.n_views_)
         kp_ = perview_parameter("kernel_params", self.kernel_params, {}, self.n_views_)
 
-        self.train_views_: list[np.ndarray] = views
+        self.train_views_: list[np.ndarray] = views_
         kernels = [
             pairwise_kernels(
                 v,
@@ -111,7 +111,7 @@ class KGCCA(BaseModel):
                 filter_params=True,
                 **(kp_[i] if kp_[i] else {}),
             )
-            for i, v in enumerate(views)
+            for i, v in enumerate(views_)
         ]
         # Build Q (n x n)
         Q = np.zeros((self.n_samples_, self.n_samples_))

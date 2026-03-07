@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TypeVar
+
 import numpy as np
+
+_S = TypeVar("_S", int, float)
 
 
 class JointData:
@@ -79,10 +83,10 @@ class JointData:
 
     @staticmethod
     def _broadcast_param(
-        value: int | float | list[int] | list[float],
+        value: _S | list[_S],
         n_views: int,
         name: str,
-    ) -> list[float]:
+    ) -> list[_S]:
         """Broadcast a scalar or list parameter to a list of length n_views.
 
         Args:
@@ -91,20 +95,19 @@ class JointData:
             name: Parameter name for error messages.
 
         Returns:
-            List of floats with exactly ``n_views`` elements.
+            List with exactly ``n_views`` elements of the same type as value.
 
         Raises:
             ValueError: If ``value`` is a list with wrong length.
         """
-        if isinstance(value, (int, float)):
-            return [float(value)] * n_views
-        items = list(value)
-        if len(items) != n_views:
-            raise ValueError(
-                f"Parameter '{name}' must be a scalar or a list of length "
-                f"{n_views}, got {len(items)}."
-            )
-        return [float(v) for v in items]
+        if isinstance(value, list):
+            if len(value) != n_views:
+                raise ValueError(
+                    f"Parameter '{name}' must be a scalar or a list of length "
+                    f"{n_views}, got {len(value)}."
+                )
+            return list(value)
+        return [value] * n_views
 
     # ------------------------------------------------------------------
     # Public API

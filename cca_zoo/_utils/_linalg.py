@@ -85,7 +85,7 @@ def soft_threshold(x: np.ndarray, threshold: float) -> np.ndarray:
     Returns:
         Thresholded array of the same shape as ``x``.
     """
-    return np.sign(x) * np.maximum(np.abs(x) - threshold, 0.0)
+    return np.asarray(np.sign(x) * np.maximum(np.abs(x) - threshold, 0.0))
 
 
 def deflate(

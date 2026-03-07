@@ -72,4 +72,4 @@ def perview_parameter(
             )
         return value
     # scalar broadcast (covers int, float, str, etc.)
-    return [value] * n_views  # type: ignore[return-value]
+    return [value] * n_views

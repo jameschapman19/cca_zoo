@@ -83,13 +83,13 @@ class GCCA(BaseModel):
             ValueError: If fewer than 2 views are provided.
             ValueError: If views have inconsistent numbers of samples.
         """
-        views = self._setup_fit(views)
+        views_: list[np.ndarray] = self._setup_fit(views)
         c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
         mu = perview_parameter("view_weights", self.view_weights, 1.0, self.n_views_)
 
         # Build Q = sum_i mu_i X_i (cov_i)^{-1} X_i^T
         Q = np.zeros((self.n_samples_, self.n_samples_))
-        for i, (v, ci, mi) in enumerate(zip(views, c_, mu)):
+        for i, (v, ci, mi) in enumerate(zip(views_, c_, mu)):
             cov_i = (1.0 - ci) * np.cov(v, rowvar=False) + ci * np.eye(v.shape[1])
             min_eig = np.linalg.eigvalsh(cov_i).min()
             if min_eig < self.eps:
@@ -98,5 +98,5 @@ class GCCA(BaseModel):
 
         _, eigvecs = gevp(Q, None, self.latent_dimensions)
         T = eigvecs[:, : self.latent_dimensions]  # (n_samples, k)
-        self.weights_: list[np.ndarray] = [np.linalg.pinv(v) @ T for v in views]
+        self.weights_: list[np.ndarray] = [np.linalg.pinv(v) @ T for v in views_]
         return self

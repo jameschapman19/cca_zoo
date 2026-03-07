@@ -64,10 +64,10 @@ class KCCA(BaseModel):
         center: bool = True,
         c: float | list[float] = 0.1,
         kernel: str | list[str] = "linear",
-        gamma: float | list[float] | None = None,
+        gamma: float | list[float | None] | None = None,
         degree: float | list[float] = 1.0,
         coef0: float | list[float] = 1.0,
-        kernel_params: dict | list[dict] | None = None,
+        kernel_params: dict[str, object] | list[dict[str, object]] | None = None,
         eps: float = 1e-3,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)
@@ -93,7 +93,7 @@ class KCCA(BaseModel):
             ValueError: If fewer than 2 views are provided.
             ValueError: If views have inconsistent numbers of samples.
         """
-        views = self._setup_fit(views)
+        views_: list[np.ndarray] = self._setup_fit(views)
         c_ = perview_parameter("c", self.c, 0.1, self.n_views_)
         kernel_ = perview_parameter("kernel", self.kernel, "linear", self.n_views_)
         gamma_ = perview_parameter("gamma", self.gamma, None, self.n_views_)
@@ -101,8 +101,8 @@ class KCCA(BaseModel):
         coef0_ = perview_parameter("coef0", self.coef0, 1.0, self.n_views_)
         kp_ = perview_parameter("kernel_params", self.kernel_params, {}, self.n_views_)
 
-        self.train_views_: list[np.ndarray] = views
-        kernels = self._compute_kernels(views, kernel_, gamma_, degree_, coef0_, kp_)
+        self.train_views_: list[np.ndarray] = views_
+        kernels = self._compute_kernels(views_, kernel_, gamma_, degree_, coef0_, kp_)
         A = self._build_A(kernels)
         B = self._build_B(kernels, c_)
         splits = np.cumsum([k.shape[1] for k in kernels])
@@ -113,7 +113,7 @@ class KCCA(BaseModel):
         self._gamma: list[float | None] = gamma_
         self._degree: list[float] = degree_
         self._coef0: list[float] = coef0_
-        self._kp: list[dict] = kp_
+        self._kp: list[dict[str, object]] = kp_
         return self
 
     def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
@@ -154,7 +154,7 @@ class KCCA(BaseModel):
         gamma: list[float | None],
         degree: list[float],
         coef0: list[float],
-        kp: list[dict],
+        kp: list[dict[str, object]],
     ) -> list[np.ndarray]:
         """Compute training kernel matrices.
 
@@ -210,8 +210,8 @@ class KCCA(BaseModel):
             c[i] * kernels[i] + (1.0 - c[i]) * kernels[i] @ kernels[i]
             for i in range(len(kernels))
         ]
-        B = block_diag(*blocks)
+        B: np.ndarray = np.asarray(block_diag(*blocks))
         min_eig = np.linalg.eigvalsh(B).min()
         if min_eig < self.eps:
             B += (self.eps - min_eig) * np.eye(B.shape[0])
-        return B / len(kernels)
+        return np.asarray(B / len(kernels))

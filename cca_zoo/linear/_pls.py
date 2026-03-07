@@ -75,4 +75,4 @@ class PLS(rCCA):
             >>> X2 = rng.standard_normal((50, 8))
             >>> model = PLS(latent_dimensions=2).fit([X1, X2])
         """
-        return super().fit(views, y)  # type: ignore[return-value]
+        return super().fit(views, y)

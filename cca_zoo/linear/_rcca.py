@@ -73,14 +73,14 @@ class rCCA(BaseModel):
             ValueError: If the number of views is not exactly 2.
             ValueError: If views have inconsistent numbers of samples.
         """
-        views = self._setup_fit(views)
+        views_: list[np.ndarray] = self._setup_fit(views)
         if self.n_views_ != 2:
             raise ValueError(
                 f"rCCA requires exactly 2 views, got {self.n_views_}. "
                 "Use MCCA for more than 2 views."
             )
         c_ = perview_parameter("c", self.c, 0.0, 2)
-        X1, X2 = views
+        X1, X2 = views_
         # Whiten each view with its regularised covariance
         X1_w, W1 = svd_whiten(X1, c_[0])
         X2_w, W2 = svd_whiten(X2, c_[1])

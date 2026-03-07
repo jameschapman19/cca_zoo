@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -81,8 +83,8 @@ class ProbabilisticCCA(BaseModel):
         k = self.latent_dimensions
 
         # Sample per-view parameters
-        ws: list = []
-        psis: list = []
+        ws: list[Any] = []
+        psis: list[Any] = []
         for i, xi in enumerate(views):
             p_i = xi.shape[1]
             w_i = numpyro.sample(
@@ -142,7 +144,7 @@ class ProbabilisticCCA(BaseModel):
         )
         rng_key = jax.random.PRNGKey(self.random_state)
         mcmc.run(rng_key, validated)
-        self.posterior_samples_: dict = mcmc.get_samples()
+        self.posterior_samples_: dict[str, Any] = mcmc.get_samples()
 
         # Set weights_ to posterior mean W matrices (p_i x k) for each view
         self.weights_: list[np.ndarray] = [

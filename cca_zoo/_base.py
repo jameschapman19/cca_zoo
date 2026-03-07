@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import cast
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -181,7 +182,7 @@ class BaseModel(BaseEstimator, ABC):
             sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
         """
         check_is_fitted(self)
-        return self.weights_
+        return cast(list[np.ndarray], self.weights_)
 
     def get_factor_loadings(self, views: list[ArrayLike]) -> list[np.ndarray]:
         """Compute canonical factor loadings for each view.
