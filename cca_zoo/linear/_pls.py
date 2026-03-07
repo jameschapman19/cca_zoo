@@ -1,87 +1,78 @@
-from cca_zoo.linear._mcca import MCCA, rCCA
+"""PLS — Partial Least Squares (c=1 special case of rCCA)."""
+
+from __future__ import annotations
+
+from numpy.typing import ArrayLike
+
+from cca_zoo.linear._rcca import rCCA
 
 
-class PLSMixin:
-    def _more_tags(self):
-        # Indicate that this class is for multiview data
-        return {"pls": True}
+class PLS(rCCA):
+    r"""Partial Least Squares (two-view).
 
-
-class PLS(rCCA, PLSMixin):
-    r"""
-    A class used to fit a simple PLS model. This model finds the linear projections of two representations that maximize their covariance.
-
-    Implements PLS by inheriting regularised CCA with maximal regularisation. This is equivalent to solving the following optimization problem:
+    Finds the pair of unit-norm weight vectors that maximise the covariance
+    between the projected views:
 
     .. math::
 
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{ w_1^TX_1^TX_2w_2  \}\\
+        \max_{\mathbf{w}_1, \mathbf{w}_2}
+            \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
 
-        \text{subject to:}
+        \text{subject to }
+        \|\mathbf{w}_i\|_2 = 1
 
-        w_1^Tw_1=1
+    This is equivalent to the truncated SVD of the sample cross-covariance
+    matrix :math:`X_1^\top X_2 / (n - 1)`, and corresponds to :class:`rCCA`
+    with ``c=1``.
 
-        w_2^Tw_2=1
+    References:
+        Wold, H. (1975). Soft modelling by latent variables: the nonlinear
+        iterative partial least squares (NIPALS) approach. *Perspectives in
+        Probability and Statistics*, 117–142.
 
-    Parameters
-    ----------
-    latent_dimensions: int, optional
-        Number of latent dimensions to use, by default 1
-    copy_data: bool, optional
-        Whether to copy the data, by default True
-    random_state: int, optional
-        Random state, by default None
+    Args:
+        latent_dimensions: Number of latent dimensions. Default is 1.
+        center: Whether to subtract column means before fitting. Default True.
 
-    Examples
-    --------
-    >>> import numpy as np
-    >>> X1 = np.random.rand(100, 5)
-    >>> X2 = np.random.rand(100, 5)
-    >>> pls = PLS(latent_dimensions=2)
-    >>> pls.fit([X1, X2])
+    Example:
+        >>> import numpy as np
+        >>> rng = np.random.default_rng(0)
+        >>> X1 = rng.standard_normal((50, 10))
+        >>> X2 = rng.standard_normal((50, 8))
+        >>> model = PLS(latent_dimensions=2).fit([X1, X2])
+        >>> scores = model.transform([X1, X2])
     """
 
     def __init__(
         self,
         latent_dimensions: int = 1,
-        copy_data=True,
-        random_state=None,
-    ):
-        # Call the parent class constructor with c=1 to enable maximal regularization
+        center: bool = True,
+    ) -> None:
         super().__init__(
             latent_dimensions=latent_dimensions,
-            copy_data=copy_data,
-            c=1,
-            random_state=random_state,
+            center=center,
+            c=1.0,
         )
 
+    def fit(self, views: list[ArrayLike], y: None = None) -> PLS:
+        """Fit the PLS model.
 
-class MPLS(MCCA, PLSMixin):
-    r"""
-    A class used to fit a mutiview PLS model. This model finds the linear projections of two representations that maximize their covariance.
+        Args:
+            views: List of exactly two arrays, each (n_samples, n_features_i).
+            y: Ignored.
 
-    Implements PLS by inheriting regularised CCA with maximal regularisation. This is equivalent to solving the following optimization problem:
+        Returns:
+            self: Fitted estimator.
 
-    Parameters
-    ----------
-    latent_dimensions: int, optional
-        Number of latent dimensions to use, by default 1
-    copy_data: bool, optional
-        Whether to copy the data, by default True
-    random_state: int, optional
-        Random state, by default None
-    """
+        Raises:
+            ValueError: If the number of views is not exactly 2.
+            ValueError: If views have inconsistent numbers of samples.
 
-    def __init__(
-        self,
-        latent_dimensions: int = 1,
-        copy_data=True,
-        random_state=None,
-    ):
-        # Call the parent class constructor with c=1 to enable maximal regularization
-        super().__init__(
-            latent_dimensions=latent_dimensions,
-            copy_data=copy_data,
-            c=1,
-            random_state=random_state,
-        )
+        Example:
+            >>> import numpy as np
+            >>> rng = np.random.default_rng(0)
+            >>> X1 = rng.standard_normal((50, 10))
+            >>> X2 = rng.standard_normal((50, 8))
+            >>> model = PLS(latent_dimensions=2).fit([X1, X2])
+        """
+        return super().fit(views, y)

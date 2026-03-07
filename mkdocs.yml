@@ -1,0 +1,114 @@
+site_name: CCA-Zoo
+site_description: Multiview CCA methods in a scikit-learn style framework
+site_url: https://jameschapman19.github.io/cca_zoo/
+repo_url: https://github.com/jameschapman19/cca_zoo
+repo_name: jameschapman19/cca_zoo
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2024 James Chapman
+
+theme:
+  name: material
+  logo: logos/cca-zoo-logo.svg
+  favicon: logos/favicon.ico
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.indexes
+    - navigation.footer
+    - navigation.path
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+    - announce.dismiss
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+            show_bases: true
+            merge_init_into_class: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.snippets
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/jameschapman19/cca_zoo
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/cca-zoo/
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - User Guide:
+      - user-guide/index.md
+      - Linear Methods: user-guide/linear.md
+      - Nonparametric Methods: user-guide/nonparametric.md
+      - Deep Methods: user-guide/deep.md
+      - Probabilistic CCA: user-guide/probabilistic.md
+      - Datasets: user-guide/datasets.md
+      - Model Selection: user-guide/model-selection.md
+  - API Reference:
+      - api/index.md
+      - Linear: api/linear.md
+      - Nonparametric: api/nonparametric.md
+      - Deep: api/deep.md
+      - Probabilistic: api/probabilistic.md
+      - Datasets: api/datasets.md
+      - Model Selection: api/model-selection.md
+  - Contributing: contributing.md

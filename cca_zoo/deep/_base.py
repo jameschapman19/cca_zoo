@@ -1,87 +1,99 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+"""BaseDeep — LightningModule base for all deep CCA models."""
+
+from __future__ import annotations
+
+from typing import Any
 
 import lightning.pytorch as pl
+import numpy as np
 import torch
+import torch.nn as nn
 
-from cca_zoo._base import _BaseModel
 from cca_zoo.linear._mcca import MCCA
 
 
-class BaseDeep(pl.LightningModule, _BaseModel):
-    """A base class for deep learning linear using PyTorch Lightning."""
+class BaseDeep(pl.LightningModule):
+    """Base class for deep multiview CCA models using PyTorch Lightning.
+
+    Subclasses override :meth:`loss` to implement the specific objective
+    function.  Training is handled by a :class:`lightning.Trainer`.
+
+    The sklearn-compatible interface (``fit``, ``transform``, ``score``) is
+    provided for convenience, wrapping the Lightning training loop.
+
+    Args:
+        latent_dimensions: Dimensionality of the latent space.
+        encoders: List of :class:`torch.nn.Module` objects, one per view.
+        lr: Learning rate for the Adam optimiser. Default is 1e-3.
+        max_epochs: Maximum training epochs. Default is 100.
+        eps: Small constant for numerical stability. Default is 1e-6.
+    """
 
     def __init__(
         self,
         latent_dimensions: int,
-        encoders=None,
-        optimizer: str = "adam",
-        scheduler: Optional[str] = None,
-        lr: float = 1e-2,
-        extra_optimizer_kwargs: Optional[Dict[str, Any]] = None,
-        max_epochs: int = 1000,
-        eps=1e-6,
-        *args,
-        **kwargs,
-    ):
+        encoders: list[nn.Module],
+        lr: float = 1e-3,
+        max_epochs: int = 100,
+        eps: float = 1e-6,
+    ) -> None:
         super().__init__()
-        if extra_optimizer_kwargs is None:
-            extra_optimizer_kwargs = {}
         self.latent_dimensions = latent_dimensions
-        self.optimizer = optimizer
-        self.scheduler = scheduler
         self.lr = lr
-        self.extra_optimizer_kwargs = extra_optimizer_kwargs
         self.max_epochs = max_epochs
         self.eps = eps
-        if encoders is None:
-            raise ValueError(
-                "Encoders must be a list of torch.nn.Module with length equal to the number of representations."
-            )
-        self.encoders = torch.nn.ModuleList(encoders)
+        self.encoders = nn.ModuleList(encoders)
 
-    def forward(self, views, **kwargs):
-        if not hasattr(self, "n_views_"):
-            self.n_views_ = len(views)
-        # Use list comprehension to encode each view
-        representations = [encoder(view) for encoder, view in zip(self.encoders, views)]
-        return representations
+    def forward(self, views: list[torch.Tensor]) -> list[torch.Tensor]:
+        """Encode all views into latent representations.
 
-    def minibatch_loss(self, batch, **kwargs):
-        # Encoding the representations with the forward method
+        Args:
+            views: List of tensors, each (batch_size, n_features_i).
+
+        Returns:
+            List of tensors, each (batch_size, latent_dimensions).
+        """
+        return [enc(v) for enc, v in zip(self.encoders, views)]
+
+    def loss(
+        self,
+        representations: list[torch.Tensor],
+        independent_representations: list[torch.Tensor] | None = None,
+    ) -> dict[str, torch.Tensor]:
+        """Compute the training objective.
+
+        Args:
+            representations: Encoded views from the current batch.
+            independent_representations: Optional second set of encodings
+                (e.g., for gradient correction in NOI).
+
+        Returns:
+            Dictionary with at least the key ``"objective"`` (to minimise).
+
+        Raises:
+            NotImplementedError: If not overridden by a subclass.
+        """
+        raise NotImplementedError
+
+    def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
+        """Compute the training loss for one mini-batch.
+
+        Args:
+            batch: Dictionary with key ``"views"`` (list of tensors) and
+                optionally ``"independent_views"``.
+            batch_idx: Batch index (unused).
+
+        Returns:
+            Scalar loss tensor.
+        """
         representations = self(batch["views"])
-        if batch.get("independent_views") is None:
-            independent_representations = None
-        else:
-            independent_representations = self(batch["independent_views"])
-        return self.loss(representations, independent_representations)
-
-    def pairwise_correlations(self, loader: torch.utils.data.DataLoader):
-        # Call the parent class method
-        return super().pairwise_correlations(loader)
-
-    def correlation_captured(self, representations):
-        # Remove mean from each view
-        representations = [
-            representation - representation.mean(0)
-            for representation in representations
-        ]
-        return (
-            MCCA(latent_dimensions=self.latent_dimensions)
-            .fit(representations)
-            .score(representations)
-            .sum()
+        ind_repr = (
+            self(batch["independent_views"])
+            if batch.get("independent_views") is not None
+            else None
         )
-
-    def score(self, loader: torch.utils.data.DataLoader, **kwargs):
-        representations = self.transform(loader)
-        corr = self.correlation_captured(representations)
-        return corr
-
-    def training_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Performs one step of training on a batch of representations."""
-        loss = self.minibatch_loss(batch)
-        for k, v in loss.items():
-            # Use f-string instead of concatenation
+        loss_dict = self.loss(representations, ind_repr)
+        for k, v in loss_dict.items():
             self.log(
                 f"train/{k}",
                 v,
@@ -89,13 +101,21 @@ class BaseDeep(pl.LightningModule, _BaseModel):
                 on_epoch=True,
                 batch_size=batch["views"][0].shape[0],
             )
-        return loss["objective"]
+        return loss_dict["objective"]
 
-    def validation_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Performs one step of validation on a batch of representations."""
-        loss = self.minibatch_loss(batch)
-        for k, v in loss.items():
-            # Use f-string instead of concatenation
+    def validation_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
+        """Compute the validation loss for one mini-batch.
+
+        Args:
+            batch: Dictionary with ``"views"`` key.
+            batch_idx: Batch index (unused).
+
+        Returns:
+            Scalar loss tensor.
+        """
+        representations = self(batch["views"])
+        loss_dict = self.loss(representations)
+        for k, v in loss_dict.items():
             self.log(
                 f"val/{k}",
                 v,
@@ -103,66 +123,66 @@ class BaseDeep(pl.LightningModule, _BaseModel):
                 on_epoch=True,
                 batch_size=batch["views"][0].shape[0],
             )
-        return loss["objective"]
+        return loss_dict["objective"]
 
-    def test_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Performs one step of testing on a batch of representations."""
-        loss = self.minibatch_loss(batch)
-        for k, v in loss.items():
-            # Use f-string instead of concatenation
-            self.log(
-                f"test/{k}",
-                v,
-                on_step=False,
-                on_epoch=True,
-                batch_size=batch["views"][0].shape[0],
-            )
-        return loss["objective"]
+    def configure_optimizers(self) -> torch.optim.Optimizer:
+        """Create the Adam optimiser.
+
+        Returns:
+            Adam optimiser with the configured learning rate.
+        """
+        return torch.optim.Adam(self.parameters(), lr=self.lr)
 
     @torch.no_grad()
-    def transform(
-        self,
-        loader: torch.utils.data.DataLoader,
-    ):
-        self.eval()  # Ensure the model is in evaluation mode
-        representations = []
+    def transform(self, loader: torch.utils.data.DataLoader) -> list[np.ndarray]:
+        """Project all samples in a DataLoader into the latent space.
 
+        Args:
+            loader: DataLoader yielding batches with a ``"views"`` key.
+
+        Returns:
+            List of numpy arrays, each (n_samples, latent_dimensions).
+        """
+        self.eval()
+        all_reprs: list[list[torch.Tensor]] = []
         for batch in loader:
-            views_device = [view.to(self.device) for view in batch["views"]]
-            z = self(views_device)
-            representations.append([z_.cpu().detach() for z_ in z])
+            views_dev = [v.to(self.device) for v in batch["views"]]
+            z = self(views_dev)
+            all_reprs.append([zi.cpu() for zi in z])
+        # Concatenate batches per view
+        stacked = [
+            torch.cat([b[i] for b in all_reprs], dim=0)
+            for i in range(len(all_reprs[0]))
+        ]
+        return [t.numpy() for t in stacked]
 
-        # Stack all latent vectors along dimension 0 (batches)
-        representations = [torch.vstack(z_) for z_ in zip(*representations)]
+    def score(self, loader: torch.utils.data.DataLoader) -> np.ndarray:
+        """Return average pairwise canonical correlations after linear CCA.
 
-        return [representation.numpy() for representation in representations]
+        Args:
+            loader: DataLoader with a ``"views"`` key.
 
-    def configure_optimizers(
-        self,
-    ) -> Union[
-        torch.optim.Optimizer,
-        Tuple[List[torch.optim.Optimizer], List[torch.optim.lr_scheduler._LRScheduler]],
-    ]:
-        """Configures the optimizer and the learning rate scheduler."""
-        if self.optimizer == "sgd":
-            optimizer = torch.optim.SGD
-        elif self.optimizer == "adam":
-            optimizer = torch.optim.Adam
-        elif self.optimizer == "adamw":
-            optimizer = torch.optim.AdamW
-        elif self.optimizer == "lbfgs":
-            optimizer = torch.optim.LBFGS
-        else:
-            raise ValueError(f"{self.optimizer} not in (sgd, adam, adamw)")
-
-        # create optimizer
-        optimizer = optimizer(
-            self.parameters(),
-            lr=self.lr,
-            **self.extra_optimizer_kwargs,
+        Returns:
+            Array of shape ``(latent_dimensions,)``.
+        """
+        representations = self.transform(loader)
+        return (
+            MCCA(latent_dimensions=self.latent_dimensions)
+            .fit(representations)
+            .score(representations)
         )
-        return optimizer
 
-    def configure_callbacks(self) -> None:
-        """Configures the callbacks for the model."""
-        pass
+
+def _inv_sqrtm(A: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
+    """Compute the inverse square root of a symmetric positive definite matrix.
+
+    Args:
+        A: Symmetric PD tensor of shape (n, n).
+        eps: Regularisation added to eigenvalues for stability.
+
+    Returns:
+        Tensor of shape (n, n): :math:`A^{-1/2}`.
+    """
+    L, V = torch.linalg.eigh(A)
+    L = torch.clamp(L, min=eps)
+    return V @ torch.diag(1.0 / torch.sqrt(L)) @ V.T

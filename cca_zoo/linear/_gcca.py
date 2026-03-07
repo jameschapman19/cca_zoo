@@ -1,100 +1,102 @@
-from typing import Iterable, Union
+"""GCCA — Generalised Canonical Correlation Analysis."""
+
+from __future__ import annotations
 
 import numpy as np
+from numpy.typing import ArrayLike
 
-from cca_zoo._utils._checks import _process_parameter
-from cca_zoo.linear._mcca import MCCA
+from cca_zoo._base import BaseModel
+from cca_zoo._utils._linalg import gevp
+from cca_zoo._utils._validation import perview_parameter
 
 
-class GCCA(MCCA):
-    r"""
-    A class used to fit GCCA model. This model extends CCA to more than two representations by optimizing the sum of correlations with a shared auxiliary vector.
+class GCCA(BaseModel):
+    r"""Generalised Canonical Correlation Analysis.
 
-    The objective function of GCCA is:
+    Finds linear projections of multiple (>=2) views that maximise their
+    joint correlation with a shared auxiliary latent vector:
 
     .. math::
 
-        w_{opt}=\underset{w}{\mathrm{argmax}}\{ \sum_iw_i^TX_i^TT  \}\\
+        \max_{\mathbf{w}_i, T}
+            \sum_{i=1}^M \mathbf{w}_i^\top X_i^\top T
 
-        \text{subject to:}
+        \text{subject to }
+        T^\top T = I
 
-        T^TT=1
+    The solution is obtained by constructing the weighted projection matrix:
 
-    where :math:`T` is the auxiliary vector.
+    .. math::
 
-    Examples
-    --------
-    >>> from cca_zoo.linear import GCCA
-    >>> import numpy as np
-    >>> rng=np.random.RandomState(0)
-    >>> X1 = rng.random((10,5))
-    >>> X2 = rng.random((10,5))
-    >>> X3 = rng.random((10,5))
-    >>> model = GCCA()
-    >>> model.fit((X1,X2,X3)).score((X1,X2,X3))
+        Q = \sum_{i=1}^M \mu_i X_i
+            \bigl((1-c_i) X_i^\top X_i + c_i I\bigr)^{-1} X_i^\top
 
-    References
-    ----------
-    Tenenhaus, Arthur, and Michel Tenenhaus. "Regularized generalized canonical correlation analysis." Psychometrika 76.2 (2011): 257.
+    and computing its top-k eigenvectors :math:`V`, then recovering the
+    per-view weights as :math:`\mathbf{w}_i = X_i^+ V`.
+
+    References:
+        Tenenhaus, A., & Tenenhaus, M. (2011). Regularized generalized
+        canonical correlation analysis. *Psychometrika*, 76(2), 257–284.
+
+    Args:
+        latent_dimensions: Number of latent dimensions. Default is 1.
+        center: Whether to subtract column means before fitting. Default True.
+        c: Ridge regularisation parameter(s) in ``[0, 1]``.  Default is 0.
+        view_weights: Per-view weights :math:`\mu_i` in the GCCA objective.
+            Default is equal weights (1 for all views).
+        eps: Regularisation floor for within-view matrices.  Default is 1e-6.
+
+    Example:
+        >>> import numpy as np
+        >>> rng = np.random.default_rng(0)
+        >>> X1 = rng.standard_normal((50, 10))
+        >>> X2 = rng.standard_normal((50, 8))
+        >>> X3 = rng.standard_normal((50, 6))
+        >>> model = GCCA(latent_dimensions=2).fit([X1, X2, X3])
+        >>> scores = model.transform([X1, X2, X3])
     """
 
     def __init__(
         self,
         latent_dimensions: int = 1,
-        copy_data=True,
-        random_state=None,
-        c: Union[Iterable[float], float] = None,
-        view_weights: Iterable[float] = None,
+        center: bool = True,
+        c: float | list[float] = 0.0,
+        view_weights: list[float] | None = None,
         eps: float = 1e-6,
-    ):
-        super().__init__(
-            latent_dimensions=latent_dimensions,
-            copy_data=copy_data,
-            accept_sparse=["csc", "csr"],
-            random_state=random_state,
-            c=c,
-            eps=eps,
-            pca=False,
-        )
+    ) -> None:
+        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        self.c = c
         self.view_weights = view_weights
+        self.eps = eps
 
-    def fit(self, views: Iterable[np.ndarray], y=None, K=None, **kwargs):
-        return super().fit(views, y=y, K=K, **kwargs)
+    def fit(self, views: list[ArrayLike], y: None = None) -> GCCA:
+        """Fit the GCCA model.
 
-    def _check_params(self):
-        self.c = _process_parameter("c", self.c, 0, self.n_views_)
+        Args:
+            views: List of arrays, each (n_samples, n_features_i).
+            y: Ignored.
 
-    def _A(self, views, K=None):
-        if K is None:
-            # just use identity when all rows are observed in all representations.
-            K = np.ones((len(views), views[0].shape[0]))
-        Q = []
-        self.view_weights = _process_parameter(
-            "view_weights", self.view_weights, 1, self.n_views_
-        )
-        for i, (view, view_weight) in enumerate(zip(views, self.view_weights)):
-            view_cov = (1 - self.c[i]) * np.cov(view, rowvar=False) + self.c[
-                i
-            ] * np.eye(view.shape[1])
-            smallest_eig = min(0, np.linalg.eigvalsh(view_cov).min()) - self.eps
-            view_cov = view_cov - smallest_eig * np.eye(view_cov.shape[0])
-            Q.append(view_weight * view @ np.linalg.inv(view_cov) @ view.T)
-        Q = np.sum(Q, axis=0)
-        Q = (
-            np.diag(np.sqrt(np.sum(K, axis=0)))
-            @ Q
-            @ np.diag(np.sqrt(np.sum(K, axis=0)))
-        )
-        return Q
+        Returns:
+            self: Fitted estimator.
 
-    def _B(self, views, **kwargs):
-        return None
+        Raises:
+            ValueError: If fewer than 2 views are provided.
+            ValueError: If views have inconsistent numbers of samples.
+        """
+        views_: list[np.ndarray] = self._setup_fit(views)
+        c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
+        mu = perview_parameter("view_weights", self.view_weights, 1.0, self.n_views_)
 
-    def _weights(self, eigvals, eigvecs, views, **kwargs):
-        self.weights_ = [
-            np.linalg.pinv(view) @ eigvecs[:, : self.latent_dimensions]
-            for view in views
-        ]
+        # Build Q = sum_i mu_i X_i (cov_i)^{-1} X_i^T
+        Q = np.zeros((self.n_samples_, self.n_samples_))
+        for i, (v, ci, mi) in enumerate(zip(views_, c_, mu)):
+            cov_i = (1.0 - ci) * np.cov(v, rowvar=False) + ci * np.eye(v.shape[1])
+            min_eig = np.linalg.eigvalsh(cov_i).min()
+            if min_eig < self.eps:
+                cov_i += (self.eps - min_eig) * np.eye(cov_i.shape[0])
+            Q += mi * (v @ np.linalg.inv(cov_i) @ v.T)
 
-    def _more_tags(self):
-        return {"multiview": True}
+        _, eigvecs = gevp(Q, None, self.latent_dimensions)
+        T = eigvecs[:, : self.latent_dimensions]  # (n_samples, k)
+        self.weights_: list[np.ndarray] = [np.linalg.pinv(v) @ T for v in views_]
+        return self

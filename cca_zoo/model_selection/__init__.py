@@ -1,14 +1,7 @@
-"""
-Utilities to evaluate models and hyperparameters.
-"""
+"""Model selection utilities for multiview CCA models."""
 
-from ._search import GridSearchCV, RandomizedSearchCV
-from ._validation import cross_validate, learning_curve, permutation_test_score
+from __future__ import annotations
 
-__all__ = [
-    "GridSearchCV",
-    "RandomizedSearchCV",
-    "cross_validate",
-    "learning_curve",
-    "permutation_test_score",
-]
+from cca_zoo.model_selection._search import GridSearchCV
+
+__all__ = ["GridSearchCV"]

@@ -5,13 +5,13 @@ Use different dimensionalities and produce a nice seaborn plot of the runtimes.
 """
 
 import time
-import pandas as pd
-import numpy as np
-from cca_zoo.linear import CCA
-from cca_zoo.linear import CCA_EY
-import seaborn as sns
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+from cca_zoo.linear import CCA, CCA_EY
 
 # Initialize empty list to hold the benchmarking results
 results = []

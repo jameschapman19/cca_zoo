@@ -1,393 +1,225 @@
-import itertools
-from abc import abstractmethod
-from typing import Iterable, Union, List, Optional, Any
+"""Abstract base class for all cca-zoo models."""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import cast
 
 import numpy as np
-from numpy.linalg import svd
-from scipy.linalg import block_diag
-from sklearn.base import BaseEstimator, MultiOutputMixin, TransformerMixin
-from sklearn.utils.validation import check_is_fitted, check_array
+from numpy.typing import ArrayLike
+from sklearn.base import BaseEstimator
+from sklearn.utils.validation import check_is_fitted
 
-from cca_zoo._utils._cross_correlation import cross_corrcoef
+from cca_zoo._utils._validation import validate_views
 
 
-class _BaseModel(BaseEstimator, MultiOutputMixin, TransformerMixin):
-    """
-    A base class for multivariate latent variable linear.
+class BaseModel(BaseEstimator, ABC):
+    """Abstract base class for all multiview CCA models.
 
-    This class implements common methods and attributes for fitting and transforming
-    multiple representations of data using latent variable linear. It inherits from scikit-learn's
-    BaseEstimator, MultiOutputMixin and RegressorMixin classes.
+    Subclasses must implement :meth:`fit`.  All other public methods
+    (``transform``, ``fit_transform``, ``score``, ``pairwise_correlations``,
+    ``average_pairwise_correlations``, ``get_factor_loadings``) are provided
+    here using the ``weights_`` attribute set by ``fit``.
 
-    Parameters
-    ----------
-    latent_dimensions: int, optional
-        Number of latent dimensions to fit. Default is 1.
-    copy_data: bool, optional
-        Whether to copy the data. Default is True.
-    accept_sparse: bool, optional
-        Whether to accept sparse data. Default is False.
-    random_state: int, RandomState instance or None, optional (default=None)
-        Pass an int for reproducible output across multiple function calls.
+    This class inherits from :class:`sklearn.base.BaseEstimator` so that
+    ``get_params`` / ``set_params`` round-trip correctly and sklearn model
+    selection utilities work out of the box.
 
-    Attributes
-    ----------
-    n_views_: int
-        Number of representations.
-    n_features_in_: list of int
-        Number of features for each view.
-    weights_: list of numpy arrays
-        Weight vectors for each view.
+    Args:
+        latent_dimensions: Number of latent dimensions to fit. Default is 1.
+        center: Whether to subtract per-view column means before fitting.
+            The means are stored in ``means_`` and applied in ``transform``.
     """
 
-    weights_ = None
-
-    def __init__(
-        self,
-        latent_dimensions: int = 1,
-        copy_data=True,
-        accept_sparse=False,
-        random_state: Union[int, np.random.RandomState] = None,
-    ):
+    def __init__(self, latent_dimensions: int = 1, center: bool = True) -> None:
         self.latent_dimensions = latent_dimensions
-        self.copy_data = copy_data
-        self.accept_sparse = accept_sparse
-        self.random_state = random_state
+        self.center = center
 
-    def _validate_data(self, views: Iterable[np.ndarray]):
-        if not self._get_tags().get("multiview", False) and len(views) > 2:
-            raise ValueError(
-                f"Model can only be used with two representations, but {len(views)} were given. "
-                "Use MCCA or GCCA instead for CCA or MPLS for PLS."
-            )
-        if self.copy_data:
-            views = [
-                check_array(
-                    view,
-                    copy=True,
-                    accept_sparse=False,
-                    accept_large_sparse=False,
-                    ensure_min_samples=max(2, self.latent_dimensions),
-                    ensure_min_features=self.latent_dimensions,
-                )
-                for view in views
-            ]
-        else:
-            views = [
-                check_array(
-                    view,
-                    copy=False,
-                    accept_sparse=False,
-                    accept_large_sparse=False,
-                    ensure_min_samples=max(2, self.latent_dimensions),
-                    ensure_min_features=self.latent_dimensions,
-                )
-                for view in views
-            ]
-        if not all(view.shape[0] == views[0].shape[0] for view in views):
-            raise ValueError("All representations must have the same number of samples")
-        if not all(view.ndim == 2 for view in views):
-            raise ValueError("All representations must have 2 dimensions")
-        self.n_views_ = len(views)
-        self.n_features_in_ = [view.shape[1] for view in views]
-        self.n_samples_ = views[0].shape[0]
-        return views
-
-    def _check_params(self):
-        """
-        Checks the parameters of the model.
-        """
-        pass
+    # ------------------------------------------------------------------
+    # Abstract interface
+    # ------------------------------------------------------------------
 
     @abstractmethod
-    def fit(self, views: Iterable[np.ndarray], y=None, **kwargs):
+    def fit(self, views: list[ArrayLike], y: None = None) -> BaseModel:
+        """Fit the model to multiview data.
+
+        Args:
+            views: List of arrays, each of shape (n_samples, n_features_i).
+                All arrays must have the same number of rows.
+            y: Ignored.  Present for scikit-learn API compatibility.
+
+        Returns:
+            self: Fitted estimator.
+
+        Raises:
+            ValueError: If fewer than 2 views are provided.
+            ValueError: If views have inconsistent numbers of samples.
         """
-        Fits the model to the given data
 
-        Parameters
-        ----------
-        views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        y: None
-        kwargs: any additional keyword arguments required by the given model
+    # ------------------------------------------------------------------
+    # Shared sklearn-compatible helpers
+    # ------------------------------------------------------------------
 
-        Returns
-        -------
-        self: object
+    def _setup_fit(self, views: list[ArrayLike]) -> list[np.ndarray]:
+        """Validate views, record metadata, and optionally centre.
 
+        Args:
+            views: Raw input views.
+
+        Returns:
+            Validated (and optionally centred) list of numpy arrays.
         """
-        return self
+        validated = validate_views(views)
+        self.n_views_: int = len(validated)
+        self.n_features_in_: list[int] = [v.shape[1] for v in validated]
+        self.n_samples_: int = validated[0].shape[0]
+        if self.center:
+            self.means_: list[np.ndarray] = [v.mean(axis=0) for v in validated]
+            validated = [v - m for v, m in zip(validated, self.means_)]
+        else:
+            self.means_ = [np.zeros(p) for p in self.n_features_in_]
+        return validated
 
-    def transform(
-        self, views: Iterable[np.ndarray], *args, **kwargs
-    ) -> List[np.ndarray]:
-        """
-        Transforms the given representations using the fitted model.
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
-        Parameters
-        ----------
-        views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-        kwargs: any additional keyword arguments required by the given model
+    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
+        """Project views into the latent space using the fitted weights.
 
-        Returns
-        -------
-        representations: list of numpy arrays
+        Args:
+            views: List of arrays, each of shape (n_samples, n_features_i).
 
+        Returns:
+            List of arrays, each of shape (n_samples, latent_dimensions).
+
+        Raises:
+            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
         """
         check_is_fitted(self)
-        views = [
-            check_array(
-                view,
-                copy=True,
-                accept_sparse=False,
-                accept_large_sparse=False,
-            )
-            for view in views
-        ]
-        representations = []
-        for i, view in enumerate(views):
-            representation = view @ self.weights_[i]
-            representations.append(representation)
-        return representations
+        validated = validate_views(views)
+        centred = [v - m for v, m in zip(validated, self.means_)]
+        return [v @ w for v, w in zip(centred, self.weights_)]
 
-    def pairwise_correlations(
-        self, views: Iterable[np.ndarray], **kwargs
-    ) -> np.ndarray:
+    def fit_transform(self, views: list[ArrayLike], y: None = None) -> list[np.ndarray]:
+        """Fit and then transform the training data.
+
+        Equivalent to ``self.fit(views).transform(views)`` but may be more
+        efficient for some subclasses.
+
+        Args:
+            views: List of arrays, each of shape (n_samples, n_features_i).
+            y: Ignored.
+
+        Returns:
+            List of arrays, each of shape (n_samples, latent_dimensions).
         """
-        Calculate pairwise correlations between representations in each dimension.
+        return self.fit(views, y).transform(views)
 
-        Parameters
-        ----------
-        views: list/tuple of numpy arrays or array-like objects with the same number of rows (samples)
-        kwargs: any additional keyword arguments required by the given model
+    def score(self, views: list[ArrayLike], y: None = None) -> np.ndarray:
+        """Return average pairwise canonical correlations for each dimension.
 
-        Returns
-        -------
-        pairwise_correlations: numpy array of shape (n_views, n_views, latent_dimensions)
+        Args:
+            views: List of arrays, each of shape (n_samples, n_features_i).
+            y: Ignored.
+
+        Returns:
+            Array of shape ``(latent_dimensions,)`` with the average
+            pairwise correlation for each canonical dimension.
         """
-        representations = self.transform(views, **kwargs)
-        all_corrs = []
-        for x, y in itertools.product(representations, repeat=2):
-            all_corrs.append(np.diag(cross_corrcoef(x.T, y.T)))
-        all_corrs = np.array(all_corrs).reshape(
-            (self.n_views_, self.n_views_, self.latent_dimensions)
+        return self.average_pairwise_correlations(views)
+
+    def pairwise_correlations(self, views: list[ArrayLike]) -> np.ndarray:
+        """Compute the full pairwise correlation matrix per latent dimension.
+
+        Args:
+            views: List of arrays, each of shape (n_samples, n_features_i).
+
+        Returns:
+            Array of shape ``(n_views, n_views, latent_dimensions)`` where
+            entry ``[i, j, d]`` is the Pearson correlation between the
+            d-th canonical variate of view i and view j.
+        """
+        transformed = self.transform(views)
+        # Stack: shape (n_views, n_samples, k)
+        T = np.stack(transformed, axis=0)
+        # Centre per view per dimension
+        T = T - T.mean(axis=1, keepdims=True)
+        # Normalise per view per dimension
+        norms = np.sqrt((T**2).sum(axis=1, keepdims=True))
+        T_norm = T / np.where(norms > 1e-12, norms, 1.0)
+        # Correlation via einsum over samples
+        corrs: np.ndarray = np.einsum("isd,jsd->ijd", T_norm, T_norm)
+        return corrs
+
+    def average_pairwise_correlations(self, views: list[ArrayLike]) -> np.ndarray:
+        """Return the mean off-diagonal pairwise correlation per dimension.
+
+        Args:
+            views: List of arrays, each of shape (n_samples, n_features_i).
+
+        Returns:
+            Array of shape ``(latent_dimensions,)`` with the average
+            off-diagonal pairwise correlation for each canonical dimension.
+        """
+        corrs = self.pairwise_correlations(views)  # (n_views, n_views, k)
+        n_views = corrs.shape[0]
+        # Sum all off-diagonal entries (exclude self-correlations on diagonal)
+        off_diag_sum: np.ndarray = corrs.sum(axis=(0, 1)) - sum(
+            corrs[i, i, :] for i in range(n_views)
         )
-        return all_corrs
+        n_pairs = n_views * (n_views - 1)
+        result: np.ndarray = off_diag_sum / n_pairs
+        return result
 
-    def average_pairwise_correlations(
-        self, views: Iterable[np.ndarray], **kwargs
-    ) -> np.ndarray:
+    @property
+    def weights(self) -> list[np.ndarray]:
+        """Weight matrices post-fit, one per view.
+
+        Shape is ``(n_features_i, latent_dimensions)`` for each view.
+
+        Raises:
+            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
         """
-        Calculate the average pairwise correlations between representations in each dimension.
+        check_is_fitted(self)
+        return cast(list[np.ndarray], self.weights_)
 
-        Parameters
-        ----------
-        views: list/tuple of numpy arrays or array-like objects with the same number of rows (samples)
-        kwargs: any additional keyword arguments required by the given model
+    def get_factor_loadings(self, views: list[ArrayLike]) -> list[np.ndarray]:
+        """Compute canonical factor loadings for each view.
 
-        Returns
-        -------
-        average_pairwise_correlations: numpy array of shape (latent_dimensions, )
+        A loading is the Pearson correlation between an original feature and a
+        canonical variate.  Loadings indicate which original variables drive
+        each canonical direction.
+
+        Args:
+            views: List of arrays, each of shape (n_samples, n_features_i).
+
+        Returns:
+            List of arrays, each of shape (n_features_i, latent_dimensions),
+            where entry ``[j, d]`` is the correlation between feature j of
+            view i and the d-th canonical variate of view i.
         """
-        pair_corrs = self.pairwise_correlations(views, **kwargs)
-        # Sum all the pairwise correlations for each dimension, subtract self-correlations, and divide by the number of representations
-        dim_corrs = np.sum(pair_corrs, axis=(0, 1)) - pair_corrs.shape[0]
-        # Number of pairs is n_views choose 2
-        num_pairs = (self.n_views_ * (self.n_views_ - 1)) / 2
-        dim_corrs = dim_corrs / (2 * num_pairs)
-        return dim_corrs
-
-    def score(
-        self, views: Iterable[np.ndarray], y: Optional[Any] = None, **kwargs
-    ) -> float:
-        """
-        Calculate the sum of average pairwise correlations between representations.
-
-        Parameters
-        ----------
-        views: list/tuple of numpy arrays or array-like objects with the same number of rows (samples)
-        y: None
-        kwargs: any additional keyword arguments required by the given model
-
-        Returns
-        -------
-        score: float
-            Sum of average pairwise correlations between representations.
-        """
-        return self.average_pairwise_correlations(views, **kwargs).sum()
-
-    def loadings_(self, views: Iterable[np.ndarray], **kwargs) -> List[np.ndarray]:
-        """
-        Calculate canonical loadings for each view.
-
-        Canonical loadings represent the correlation between the original variables
-        in a view and their respective canonical variates. Canonical variates are
-        linear combinations of the original variables formed to maximize the correlation
-        with canonical variates from another view.
-
-        Mathematically, given two representations \(X_i\), canonical variates
-        from the representations are:
-
-            \(Z_i = w_i^T X_i\)
-
-        The canonical loading for a variable in \(X_i\) is the correlation between
-        that variable and \(Z_i\).
-
-        Parameters
-        ----------
-        views: list/tuple of numpy arrays
-            Each array corresponds to a view. All representations must have the same number of rows (observations).
-
-        Returns
-        -------
-        loadings_: list of numpy arrays
-            Canonical loadings for each view. High absolute values indicate that
-            the respective original variables play a significant role in defining the canonical variate.
-
-        """
-        check_is_fitted(self, attributes=["weights_"])
-        representations = self.transform(views, **kwargs)
-        loadings = [
-            cross_corrcoef(view, representation, rowvar=False)
-            for view, representation in zip(views, representations)
-        ]
+        validated = validate_views(views)
+        transformed = self.transform(views)
+        loadings = []
+        for v, t in zip(validated, transformed):
+            v_c = v - v.mean(axis=0)
+            t_c = t - t.mean(axis=0)
+            # Covariance between features and variates
+            cov = v_c.T @ t_c / (v.shape[0] - 1)  # (p, k)
+            std_v = np.maximum(v_c.std(axis=0, ddof=1), 1e-12)  # (p,)
+            std_t = np.maximum(t_c.std(axis=0, ddof=1), 1e-12)  # (k,)
+            loadings.append(cov / np.outer(std_v, std_t))
         return loadings
 
-    def explained_variance(self, views: Iterable[np.ndarray]) -> List[np.ndarray]:
+    # ------------------------------------------------------------------
+    # Sklearn compatibility
+    # ------------------------------------------------------------------
+
+    def _more_tags(self) -> dict[str, object]:
+        """Return sklearn tag overrides.
+
+        Returns:
+            Dictionary of sklearn tag overrides.
         """
-        Calculates variance captured by each latent dimension for each view.
-
-        Returns
-        -------
-        variances_by_dimension: list of numpy arrays
-        """
-        check_is_fitted(self, attributes=["weights_"])
-
-        normalized_weights_ = [
-            weight / np.linalg.norm(weight, axis=0) for weight in self.weights_
-        ]
-
-        # Transform views using normalized weights
-        transformed_views = [
-            view @ weights for view, weights in zip(views, normalized_weights_)
-        ]
-
-        # Calculate variance for each latent dimension
-        variances_by_dimension = [
-            np.var(transformed_view, axis=0) for transformed_view in transformed_views
-        ]
-        return variances_by_dimension
-
-    def explained_variance_ratio(self, views: Iterable[np.ndarray]) -> List[np.ndarray]:
-        """
-        Calculates variance ratio captured by each latent dimension for each view.
-
-        Returns
-        -------
-        variance_ratios: list of numpy arrays
-        """
-        total_variances = [
-            np.sum(s**2) / (view.shape[0] - 1)
-            for view in views
-            for _, s, _ in [svd(view)]
-        ]
-
-        variances_by_dimension = self.explained_variance(views)
-
-        # Calculate variance ratio for each dimension
-        variance_ratios = [
-            var_by_dim / total_var
-            for var_by_dim, total_var in zip(variances_by_dimension, total_variances)
-        ]
-        return variance_ratios
-
-    def explained_variance_cumulative(
-        self, views: Iterable[np.ndarray]
-    ) -> List[np.ndarray]:
-        """
-        Calculates cumulative explained variance ratio for each latent dimension.
-
-        Returns
-        -------
-        cumulative_variance_ratios: list of numpy arrays
-        """
-        variance_ratios = self.explained_variance_ratio(views)
-        cumulative_variance_ratios = [np.cumsum(ratio) for ratio in variance_ratios]
-        return cumulative_variance_ratios
-
-    def _compute_covariance(self, views: Iterable[np.ndarray]) -> np.ndarray:
-        """
-        Computes the covariance matrix for the given representations.
-
-        Parameters
-        ----------
-        views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-
-        Returns
-        -------
-        cov: numpy array
-            Computed covariance matrix.
-        """
-        cov = np.cov(np.hstack(views), rowvar=False)
-        cov -= block_diag(*[np.cov(view, rowvar=False) for view in views])
-        return cov
-
-    def explained_covariance(self, views: Iterable[np.ndarray]) -> np.ndarray:
-        """
-        Calculates the covariance matrix of the transformed components for each view.
-
-        Parameters
-        ----------
-        views: list/tuple of numpy arrays or array likes with the same number of rows (samples)
-
-        Returns
-        -------
-        explained_covariances: list of numpy arrays
-            Covariance matrices for the transformed components of each view.
-        """
-        check_is_fitted(self, attributes=["weights_"])
-
-        # Transform the representations using the loadings_
-        representations = [
-            view @ loading for view, loading in zip(views, self.loadings_(views))
-        ]
-
-        k = representations[0].shape[1]
-
-        explained_covariances = np.zeros(k)
-
-        # just take the kth column of each transformed view and _compute_covariance
-        for i in range(k):
-            representations_k = [view[:, i][:, None] for view in representations]
-            cov_ = self._compute_covariance(representations_k)
-            _, s_, _ = svd(cov_)
-            explained_covariances[i] = s_[0]
-
-        return explained_covariances
-
-    def explained_covariance_ratio(self, views: Iterable[np.ndarray]) -> np.ndarray:
-        # only works for 2 views
-        check_is_fitted(self, attributes=["weights_"])
-        assert len(views) == 2, "Only works for 2 views"
-        minimum_dimension = min([view.shape[1] for view in views])
-        cov = self._compute_covariance(views)
-        _, S, _ = svd(cov)
-        # select every other element starting from the first until the minimum dimension
-        total_explained_covariance = S[::2][:minimum_dimension].sum()
-        explained_covariances = self.explained_covariance(views)
-        explained_covariance_ratios = explained_covariances / total_explained_covariance
-        return explained_covariance_ratios
-
-    def explained_covariance_cumulative(
-        self, views: Iterable[np.ndarray]
-    ) -> np.ndarray:
-        """
-        Calculates the cumulative explained covariance ratio for each latent dimension for each view.
-
-        Returns
-        -------
-        cumulative_ratios: list of numpy arrays
-        """
-        ratios = self.explained_covariance_ratio(views)
-        cumulative_ratios = [np.cumsum(ratio) for ratio in ratios]
-
-        return cumulative_ratios
+        return {"multioutput": True}

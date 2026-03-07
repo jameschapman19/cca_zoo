@@ -1,53 +1,92 @@
-[tool.poetry]
-name = "cca-zoo"
-version = "2.6.0"
-description = "Canonical Correlation Analysis Zoo: A collection of Regularized, Deep Learning based, Kernel, and Probabilistic methods in a scikit-learn style framework"
-authors = ["jameschapman <james.chapman.19@ucl.ac.uk>"]
-license = "MIT"
-readme = "README.md"
-homepage = "https://github.com/jameschapman19/cca_zoo"
-keywords = ["cca"]
-
-[tool.poetry.dependencies]
-python = ">=3.8,<4.0.0"
-scikit-learn = "^1.2.2"
-tensorly = "*"
-tqdm = "*"
-
-# Optional dependencies
-jax = {version = "*", optional = true}
-numpyro = {version = "*", optional = true}
-arviz = {version = "*", optional = true}
-funsor = {version = "*", optional = true}
-torch = [
-     {version = "^2.0.1", platform = "darwin"},
-     {version = "^2.0.1", platform = "linux", source = "torch"},
-     {version = "^2.0.1", platform = "win32", source = "torch"}, ]
-lightning = "*"
-
-[[tool.poetry.source]]
- name = "torch"
- url = "https://download.pytorch.org/whl/cpu"
- priority = "explicit"
-
-[tool.poetry.extras]
-visualisation = ["seaborn", "opentsne", "umap-learn", "matplotlib"]
-probabilistic = ["jax", "numpyro", "arviz", "funsor"]
-deep = ["torch", "lightning"]
-
-[tool.poetry.dev-dependencies]
-black = "*"
-flake8 = "*"
-codecov = "*"
-pytest-cov = "*"
-seaborn = "*"
-opentsne = "*"
-umap-learn = "*"
-rdata = "*"
-torchvision = "*"
-pre-commit = "*"
-
-
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cca-zoo"
+version = "3.0.0"
+description = "Multiview CCA methods in a scikit-learn style framework"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "James Chapman", email = "james.chapman.19@ucl.ac.uk" }]
+keywords = ["cca", "multiview", "canonical correlation analysis"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "scikit-learn>=1.4",
+    "tensorly>=0.8",
+]
+
+[project.optional-dependencies]
+deep = ["torch>=2.1", "lightning>=2.1"]
+probabilistic = ["numpyro>=0.13", "jax>=0.4", "arviz>=0.17"]
+dev = ["pytest>=8", "pytest-cov>=5", "mypy>=1.8", "ruff>=0.4"]
+docs = [
+    "mkdocs>=1.5,<2.0",
+    "mkdocs-material>=9.5,<10.0",
+    "mkdocstrings[python]>=0.24",
+]
+all = ["cca-zoo[deep,probabilistic]"]
+
+[project.urls]
+Homepage = "https://github.com/jameschapman19/cca_zoo"
+Repository = "https://github.com/jameschapman19/cca_zoo"
+Documentation = "https://jameschapman19.github.io/cca_zoo/"
+"Bug Tracker" = "https://github.com/jameschapman19/cca_zoo/issues"
+
+[tool.uv]
+dev-dependencies = ["cca-zoo[dev]"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+exclude = ["benchmark"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "ANN", "N", "D"]
+ignore = [
+    "D203", "D212",
+    # Scientific naming conventions: uppercase matrices (A, B, W, X, U, V, K, Q, T)
+    "N801",  # class names like rCCA, SCCA_PMD, PLS_ALS are intentional
+    "N802",  # function names like _build_A, _build_B
+    "N803",  # argument names like X, W, A
+    "N806",  # variable names like A, B, W, U, V, K, T
+    "N812",  # import alias like F for torch.nn.functional
+    # Allow Any in complex generic/sklearn-compatible signatures
+    "ANN401",
+    # __init__ docstrings not required (class docstring covers it)
+    "D107",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"examples/*.py" = ["D"]          # scripts, not library code
+"tests/**/__init__.py" = ["D104"]  # test packages don't need docstrings
+"tests/deep/test_deep.py" = ["E402"]  # torch imports must follow importorskip
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+strict = true
+python_version = "3.10"
+ignore_missing_imports = true
+disable_error_code = ["misc", "untyped-decorator"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=cca_zoo --cov-report=term-missing"
+markers = [
+    "slow: tests requiring torch/numpyro (deselect with -m 'not slow')",
+]
+
+[tool.coverage.report]
+exclude_lines = []
