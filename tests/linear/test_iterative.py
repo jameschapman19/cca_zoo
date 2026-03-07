@@ -297,3 +297,35 @@ def test_pairwise_correlations_shape(
     model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
     corrs = model.pairwise_correlations(two_views)
     assert corrs.shape == (2, 2, k)
+
+
+# ---------------------------------------------------------------------------
+# Correctness / optimality
+# ---------------------------------------------------------------------------
+
+
+def test_pls_als_matches_pls(correlated_views: list[np.ndarray]) -> None:
+    """PLS_ALS (converged) recovers the same correlations as exact PLS."""
+    from cca_zoo.linear import PLS
+
+    k = 2
+    s_pls = PLS(latent_dimensions=k).fit(correlated_views).score(correlated_views)
+    s_als = (
+        PLS_ALS(latent_dimensions=k, max_iter=1000, random_state=0)
+        .fit(correlated_views)
+        .score(correlated_views)
+    )
+    np.testing.assert_allclose(s_als, s_pls, atol=0.05)
+
+
+def test_iterative_models_find_high_correlation(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """All iterative models find substantial correlation on clearly correlated views."""
+    for ModelClass in ALL_ITERATIVE_MODELS:
+        s = (
+            ModelClass(latent_dimensions=1, max_iter=500, random_state=0)
+            .fit(correlated_views)
+            .score(correlated_views)
+        )
+        assert np.all(s > 0.5), f"{ModelClass.__name__} got low correlation: {s}"
