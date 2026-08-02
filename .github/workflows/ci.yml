@@ -92,6 +92,15 @@ jobs:
       - name: Run fast tests
         run: uv run pytest -m "not slow" --cov=cca_zoo --cov-report=xml
 
+      # Only the modules importable without optional heavy deps (torch,
+      # xgboost, numpyro/jax) — same rationale as the "not slow" filter
+      # above. Runs once since doctest results don't vary by interpreter.
+      - name: Run doctests
+        if: matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'
+        run: |
+          uv run pytest --doctest-modules --no-cov \
+            cca_zoo/linear cca_zoo/nonparametric cca_zoo/datasets cca_zoo/model_selection
+
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         if: matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'

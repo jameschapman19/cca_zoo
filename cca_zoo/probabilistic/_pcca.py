@@ -203,11 +203,3 @@ class ProbabilisticCCA(BaseModel):
         sigma_z = np.linalg.inv(precision)  # (k, k) — symmetric
         mu_z = information @ sigma_z  # (n, k)
         return [mu_z]
-
-    def _more_tags(self) -> dict[str, object]:
-        """Return sklearn tag overrides.
-
-        Returns:
-            Dictionary indicating this is a probabilistic model.
-        """
-        return {"multioutput": True, "no_validation": True}

@@ -8,6 +8,7 @@ from typing import cast
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
+from sklearn.utils import Tags
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._utils._validation import validate_views
@@ -216,10 +217,22 @@ class BaseModel(BaseEstimator, ABC):
     # Sklearn compatibility
     # ------------------------------------------------------------------
 
-    def _more_tags(self) -> dict[str, object]:
-        """Return sklearn tag overrides.
+    def __sklearn_tags__(self) -> Tags:
+        """Return sklearn tags, corrected for this class's non-standard ``fit``.
+
+        ``BaseModel`` subclasses deliberately don't conform to sklearn's
+        standard estimator interface: ``fit``/``transform``/``score`` take a
+        *list* of per-view arrays, not a single 2-D ``X``, so sklearn's own
+        input validation and common estimator checks don't apply. This is
+        surfaced honestly via tags rather than left to silently mismatch.
 
         Returns:
-            Dictionary of sklearn tag overrides.
+            Tags: sklearn tags with ``no_validation`` and ``_skip_test`` set,
+            and ``input_tags.two_d_array`` cleared since a bare 2-D array is
+            not a valid input on its own.
         """
-        return {"multioutput": True}
+        tags = super().__sklearn_tags__()
+        tags.no_validation = True
+        tags.input_tags.two_d_array = False
+        tags._skip_test = True
+        return tags

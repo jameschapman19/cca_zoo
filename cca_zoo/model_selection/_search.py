@@ -31,7 +31,7 @@ class _MultiviewWrapper(BaseEstimator):
         >>> X1 = np.random.randn(50, 5)
         >>> X2 = np.random.randn(50, 4)
         >>> wrapper = _MultiviewWrapper(CCA(), split_indices=[5, 4])
-        >>> wrapper.fit(np.hstack([X1, X2]))
+        >>> wrapper = wrapper.fit(np.hstack([X1, X2]))
     """
 
     def __init__(
@@ -168,7 +168,7 @@ class GridSearchCV:
         >>> gs = GridSearchCV(
         ...     CCA(), param_grid={"latent_dimensions": [1, 2]}, cv=2
         ... )
-        >>> gs.fit([X1, X2])
+        >>> gs = gs.fit([X1, X2])
     """
 
     def __init__(
