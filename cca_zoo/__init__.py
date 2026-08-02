@@ -2,7 +2,7 @@
 
 A scikit-learn style library implementing a wide range of multiview
 Canonical Correlation Analysis methods including linear, kernel,
-deep learning, and probabilistic variants.
+deep learning, tree-based, and probabilistic variants.
 """
 
 import importlib.metadata
@@ -16,4 +16,5 @@ __all__ = [
     "model_selection",
     "nonparametric",
     "probabilistic",
+    "tree",
 ]

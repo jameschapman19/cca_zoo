@@ -29,6 +29,7 @@ Install optional extras as needed:
 ```bash
 pip install cca-zoo[deep]          # DCCA variants (requires PyTorch + Lightning)
 pip install cca-zoo[probabilistic] # Probabilistic CCA (requires NumPyro + JAX)
+pip install cca-zoo[tree]          # TreeCCA (requires XGBoost)
 pip install cca-zoo[all]           # Everything above
 ```
 
@@ -93,6 +94,12 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `KCCA` | Kernel CCA |
 | `KGCCA` | Kernel Generalised CCA |
 | `KTCCA` | Kernel Tensor CCA |
+
+### `cca_zoo.tree` *(requires `[tree]`)*
+
+| Class | Description | Views |
+|---|---|---|
+| `TreeCCA` | Gradient-boosted-tree CCA (Eckart-Young objective) | 2 |
 
 ### `cca_zoo.deep` *(requires `[deep]`)*
 

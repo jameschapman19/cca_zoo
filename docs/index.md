@@ -46,6 +46,13 @@ CCA-Zoo extends classical CCA in several directions:
 
     [Kernel methods →](user-guide/nonparametric.md)
 
+- :material-pine-tree: **Gradient-boosted trees**
+
+    TreeCCA fits nonlinear encoders as gradient-boosted-tree ensembles, with
+    built-in per-component feature importance — no SHAP required.
+
+    [Tree methods →](user-guide/tree.md)
+
 - :material-brain: **Deep learning**
 
     DCCA and variants (EY, NOI, SDL, DCCAE, DVCCA, DTCCA, BarlowTwins, VICReg)

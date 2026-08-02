@@ -30,13 +30,14 @@ dependencies = [
 [project.optional-dependencies]
 deep = ["torch>=2.1", "lightning>=2.1"]
 probabilistic = ["numpyro>=0.13", "jax>=0.4", "arviz>=0.17"]
+tree = ["xgboost>=2.0"]
 dev = ["pytest>=8", "pytest-cov>=5", "mypy>=1.8", "ruff>=0.4"]
 docs = [
     "mkdocs>=1.5,<2.0",
     "mkdocs-material>=9.5,<10.0",
     "mkdocstrings[python]>=0.24",
 ]
-all = ["cca-zoo[deep,probabilistic]"]
+all = ["cca-zoo[deep,probabilistic,tree]"]
 
 [project.urls]
 Homepage = "https://github.com/jameschapman19/cca_zoo"
@@ -72,6 +73,7 @@ ignore = [
 "examples/*.py" = ["D"]          # scripts, not library code
 "tests/**/__init__.py" = ["D104"]  # test packages don't need docstrings
 "tests/deep/test_deep.py" = ["E402"]  # torch imports must follow importorskip
+"tests/tree/test_treecca.py" = ["E402"]  # xgboost import must follow importorskip
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -85,7 +87,7 @@ disable_error_code = ["misc", "untyped-decorator"]
 [tool.pytest.ini_options]
 addopts = "--cov=cca_zoo --cov-report=term-missing"
 markers = [
-    "slow: tests requiring torch/numpyro (deselect with -m 'not slow')",
+    "slow: tests requiring torch/numpyro/xgboost (deselect with -m 'not slow')",
 ]
 
 [tool.coverage.report]
