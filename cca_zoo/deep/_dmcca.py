@@ -18,6 +18,14 @@ class DMCCA(DCCA):
     latent space. Unlike the base :class:`DCCA`, this supports more than
     two encoders/views out of the box.
 
+    This is the same SUMCOR multiset objective used by the linear
+    :class:`~cca_zoo.linear.MCCA`, here optimised over neural encoder
+    outputs by gradient descent rather than via eigendecomposition.
+
+    Reference:
+        Kettenring, J. R. (1971). Canonical analysis of several sets of
+        variables. *Biometrika*, 58(3), 433-451.
+
     Args:
         latent_dimensions: Dimensionality of the shared latent space.
         encoders: List of :class:`torch.nn.Module` objects, one per view.

@@ -11,34 +11,44 @@
 [![codecov](https://codecov.io/gh/jameschapman19/cca_zoo/branch/main/graph/badge.svg)](https://codecov.io/gh/jameschapman19/cca_zoo)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.03823/status.svg)](https://doi.org/10.21105/joss.03823)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Types: mypy strict](https://img.shields.io/badge/types-mypy%20strict-blue.svg)](https://mypy-lang.org/)
 
 </div>
 
-CCA-Zoo is a Python library implementing a wide range of **Canonical Correlation Analysis** (CCA) and related multiview learning methods. It follows the [scikit-learn](https://scikit-learn.org) estimator API: every model exposes `fit`, `transform`, `fit_transform`, and `score`.
+CCA-Zoo is a Python library of **reference implementations of Canonical Correlation Analysis
+(CCA) algorithms from the literature**, from classical CCA (Hotelling 1936) through sparse,
+kernel, deep, and probabilistic variants — each documented with the paper it comes from. It's
+also built to be used directly: every model follows the same
+[scikit-learn](https://scikit-learn.org) estimator API (`fit`, `transform`, `fit_transform`,
+`score`), is fully typed (PEP 561), and is tested against known closed-form solutions where one
+exists.
 
 ---
 
 ## Installation
 
 ```bash
-pip install cca-zoo
+uv add cca-zoo        # or: pip install cca-zoo
 ```
 
 Install optional extras as needed:
 
 ```bash
-pip install cca-zoo[deep]          # DCCA variants (requires PyTorch + Lightning)
-pip install cca-zoo[probabilistic] # Probabilistic CCA (requires NumPyro + JAX)
-pip install cca-zoo[tree]          # TreeCCA (requires XGBoost, optionally LightGBM)
-pip install cca-zoo[all]           # Everything above
+uv add "cca-zoo[deep]"          # DCCA variants (requires PyTorch + Lightning)
+uv add "cca-zoo[probabilistic]" # Probabilistic CCA (requires NumPyro + JAX)
+uv add "cca-zoo[tree]"          # TreeCCA (requires XGBoost, optionally LightGBM)
+uv add "cca-zoo[all]"           # Everything above
 ```
+
+(substitute `pip install` for `uv add` if you're not using [uv](https://docs.astral.sh/uv/))
 
 ---
 
 ## Quick start
 
 ```python
-import numpy as np
 from cca_zoo.datasets import JointData
 from cca_zoo.linear import CCA
 
@@ -76,6 +86,8 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `MCCA` | Multiset CCA — pairwise sum objective | ≥2 |
 | `GCCA` | Generalised CCA — shared latent projection | ≥2 |
 | `TCCA` | Tensor CCA — higher-order cross-moment | ≥2 |
+| `PartialCCA` | CCA adjusted for confounding variables (Rao 1969) | ≥2 |
+| `GRCCA` | Group-regularised CCA (Tuzhilina, Tozzi & Hastie 2021) | ≥2 |
 | `CCA_EY` | Stochastic Eckart-Young CCA (unconstrained gradient descent) | 2 |
 | `PLS_EY` | Stochastic Eckart-Young PLS (unconstrained gradient descent) | 2 |
 | `MCCA_EY` | Multiview Eckart-Young CCA (unconstrained gradient descent) | ≥2 |
@@ -103,6 +115,9 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 
 ### `cca_zoo.deep` *(requires `[deep]`)*
 
+Built on PyTorch Lightning — models are trained with a standard `lightning.Trainer`, not a
+`fit()` wrapper. See the [deep learning guide](https://jameschapman19.github.io/cca_zoo/user-guide/deep/).
+
 | Class | Reference |
 |---|---|
 | `DCCA` | Andrew et al. 2013 — pluggable objective |
@@ -112,6 +127,8 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `DCCAE` | Wang et al. 2015 — with autoencoder reconstruction |
 | `DVCCA` | Wang et al. 2016 — variational |
 | `DTCCA` | Wong et al. 2021 — deep tensor CCA |
+| `DMCCA` | Deep multiset CCA — pairwise-sum objective, ≥2 views |
+| `DGCCA` | Benton et al. 2019 — deep generalised CCA, ≥2 views |
 | `SplitAE` | Split autoencoder baseline |
 | `BarlowTwins` | Zbontar et al. 2021 |
 | `VICReg` | Bardes et al. 2022 |
@@ -121,6 +138,12 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | Class | Reference |
 |---|---|
 | `ProbabilisticCCA` | Bach & Jordan 2005; Wang 2007 — MCMC via NumPyro |
+
+### `cca_zoo.model_selection`
+
+| Class | Description |
+|---|---|
+| `GridSearchCV` | Cross-validated hyperparameter search for multiview models |
 
 ---
 
