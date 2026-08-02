@@ -165,12 +165,20 @@ class ProbabilisticCCA(BaseModel):
         As an approximation, diagonal noise variances are estimated from
         the posterior samples.
 
+        Note:
+            Unlike every other model in ``cca_zoo`` (one array per view),
+            this returns a **single-element** list: ``ProbabilisticCCA`` is a
+            fully generative joint model with one shared latent variable
+            rather than a per-view projection, so there is only one array to
+            return.
+
         Args:
             views: List of arrays, each of shape (n_samples, n_features_i).
 
         Returns:
-            List with one numpy array of shape (n_samples, latent_dimensions)
-            containing the posterior mean of z for each observation.
+            List with exactly one numpy array of shape
+            (n_samples, latent_dimensions) containing the posterior mean of
+            the shared latent variable z for each observation.
 
         Raises:
             sklearn.exceptions.NotFittedError: If ``fit`` has not been called.

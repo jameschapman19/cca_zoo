@@ -31,33 +31,37 @@ model = DCCA(
 )
 ```
 
-All deep models are Lightning modules and can be trained with a standard
-`lightning.Trainer`:
+All deep models are Lightning modules, trained with a standard `lightning.Trainer` —
+there is deliberately no `model.fit(...)` shortcut. This is the one training path,
+for every deep model, always.
+
+The one thing to get right is the batch shape: `training_step`/`validation_step` read
+each batch as a dict with a `"views"` key holding a list of per-view tensors — a plain
+`torch.utils.data.TensorDataset` yields *tuples*, which is a different shape and will
+raise a `TypeError`. For the common case of already having each view as a single
+in-memory array, use `MultiviewDataset`:
 
 ```python
 import lightning as L
-from torch.utils.data import DataLoader, TensorDataset
-import torch
+from torch.utils.data import DataLoader
+from cca_zoo.deep import MultiviewDataset
 
-dataset = TensorDataset(
-    torch.tensor(X1, dtype=torch.float32), torch.tensor(X2, dtype=torch.float32)
-)
-loader = DataLoader(dataset, batch_size=64, shuffle=True)
+loader = DataLoader(MultiviewDataset([X1, X2]), batch_size=64, shuffle=True)
 
 trainer = L.Trainer(max_epochs=50)
 trainer.fit(model, loader)
 ```
 
-After training, `transform` takes a DataLoader and returns the encoded representations:
+`MultiviewDataset` is a small, optional convenience — for anything more custom (lazy
+loading, augmentation, streaming, file-backed views), write your own
+`torch.utils.data.Dataset` whose `__getitem__` returns `{"views": [tensor_1, ..., tensor_n]}`
+for a single sample; that dict shape is the actual contract, not the class itself.
+
+After training, `transform` takes a DataLoader (built the same way) and returns the
+encoded representations:
 
 ```python
-test_loader = DataLoader(
-    TensorDataset(
-        torch.tensor(X1_test, dtype=torch.float32),
-        torch.tensor(X2_test, dtype=torch.float32),
-    ),
-    batch_size=256,
-)
+test_loader = DataLoader(MultiviewDataset([X1_test, X2_test]), batch_size=256)
 
 z1, z2 = model.transform(test_loader)
 ```
@@ -201,13 +205,12 @@ model = VICReg(latent_dimensions=8, encoders=[e1, e2])
 ## Full training example
 
 ```python
-import torch
 import torch.nn as nn
 import lightning as L
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader
 
 from cca_zoo.datasets import JointData
-from cca_zoo.deep import DCCA
+from cca_zoo.deep import DCCA, MultiviewDataset
 
 # Simulate data
 data = JointData(
@@ -215,10 +218,7 @@ data = JointData(
 )
 views = data.sample()
 
-X1 = torch.tensor(views[0], dtype=torch.float32)
-X2 = torch.tensor(views[1], dtype=torch.float32)
-
-train_loader = DataLoader(TensorDataset(X1, X2), batch_size=64, shuffle=True)
+train_loader = DataLoader(MultiviewDataset(views), batch_size=64, shuffle=True)
 
 
 # Build encoders
@@ -241,7 +241,7 @@ trainer = L.Trainer(max_epochs=30, enable_progress_bar=True)
 trainer.fit(model, train_loader)
 
 # Evaluate
-test_loader = DataLoader(TensorDataset(X1, X2), batch_size=256)
+test_loader = DataLoader(MultiviewDataset(views), batch_size=256)
 z1, z2 = model.transform(test_loader)
 print("Representation shape:", z1.shape)  # (1000, 4)
 ```
