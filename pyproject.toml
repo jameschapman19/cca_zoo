@@ -45,8 +45,8 @@ Repository = "https://github.com/jameschapman19/cca_zoo"
 Documentation = "https://jameschapman19.github.io/cca_zoo/"
 "Bug Tracker" = "https://github.com/jameschapman19/cca_zoo/issues"
 
-[tool.uv]
-dev-dependencies = ["cca-zoo[dev]"]
+[dependency-groups]
+dev = ["cca-zoo[dev]"]
 
 [tool.ruff]
 line-length = 88

@@ -24,15 +24,17 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
 
-      - name: Install dev dependencies
-        run: uv pip install --system ruff
+      - name: Sync dependencies
+        run: uv sync --group dev --locked
 
       - name: Run ruff check
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Run ruff format check
-        run: ruff format --check .
+        run: uv run ruff format --check .
 
   # -------------------------------------------------------------------------
   # Job 2: Type checking
@@ -50,14 +52,14 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
 
-      - name: Install package + mypy
-        run: |
-          uv pip install --system -e ".[dev]"
-          uv pip install --system mypy
+      - name: Sync dependencies
+        run: uv sync --group dev --locked
 
       - name: Run mypy
-        run: mypy cca_zoo
+        run: uv run mypy cca_zoo
 
   # -------------------------------------------------------------------------
   # Job 3: Tests (fast, no slow markers)
@@ -81,12 +83,14 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
 
-      - name: Install package + dev dependencies
-        run: uv pip install --system -e ".[dev]"
+      - name: Sync dependencies
+        run: uv sync --group dev --locked --python ${{ matrix.python-version }}
 
       - name: Run fast tests
-        run: pytest -m "not slow" --cov=cca_zoo --cov-report=xml
+        run: uv run pytest -m "not slow" --cov=cca_zoo --cov-report=xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -112,12 +116,14 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
 
-      - name: Install package + docs dependencies
-        run: uv pip install --system -e ".[docs]"
+      - name: Sync dependencies
+        run: uv sync --extra docs --locked
 
       - name: Build docs
-        run: mkdocs build --strict
+        run: uv run mkdocs build --strict
 
       - name: Deploy to GitHub Pages
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
