@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -83,7 +85,7 @@ class PLS_EY(BaseGradientModel):
         Returns:
             Matrix of shape (k, k).
         """
-        return sum(w.T @ w for w in weights) / len(weights)
+        return cast(np.ndarray, sum(w.T @ w for w in weights) / len(weights))
 
     def _derivative(
         self,

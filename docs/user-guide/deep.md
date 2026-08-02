@@ -22,7 +22,7 @@ from cca_zoo.deep import DCCA
 
 # Define encoders for each view
 encoder1 = nn.Sequential(nn.Linear(100, 64), nn.ReLU(), nn.Linear(64, 16))
-encoder2 = nn.Sequential(nn.Linear(80,  64), nn.ReLU(), nn.Linear(64, 16))
+encoder2 = nn.Sequential(nn.Linear(80, 64), nn.ReLU(), nn.Linear(64, 16))
 
 model = DCCA(
     latent_dimensions=8,
@@ -39,9 +39,10 @@ import lightning as L
 from torch.utils.data import DataLoader, TensorDataset
 import torch
 
-dataset = TensorDataset(torch.tensor(X1, dtype=torch.float32),
-                        torch.tensor(X2, dtype=torch.float32))
-loader  = DataLoader(dataset, batch_size=64, shuffle=True)
+dataset = TensorDataset(
+    torch.tensor(X1, dtype=torch.float32), torch.tensor(X2, dtype=torch.float32)
+)
+loader = DataLoader(dataset, batch_size=64, shuffle=True)
 
 trainer = L.Trainer(max_epochs=50)
 trainer.fit(model, loader)
@@ -50,10 +51,13 @@ trainer.fit(model, loader)
 After training, `transform` takes a DataLoader and returns the encoded representations:
 
 ```python
-test_loader = DataLoader(TensorDataset(
-    torch.tensor(X1_test, dtype=torch.float32),
-    torch.tensor(X2_test, dtype=torch.float32),
-), batch_size=256)
+test_loader = DataLoader(
+    TensorDataset(
+        torch.tensor(X1_test, dtype=torch.float32),
+        torch.tensor(X2_test, dtype=torch.float32),
+    ),
+    batch_size=256,
+)
 
 z1, z2 = model.transform(test_loader)
 ```
@@ -133,7 +137,7 @@ model = DCCAE(
     latent_dimensions=8,
     encoders=[e1, e2],
     decoders=[decoder1, decoder2],
-    lam=0.01,   # reconstruction loss weight
+    lam=0.01,  # reconstruction loss weight
 )
 ```
 
@@ -206,14 +210,16 @@ from cca_zoo.datasets import JointData
 from cca_zoo.deep import DCCA
 
 # Simulate data
-data = JointData(n_views=2, n_samples=1000, n_features=[100, 80],
-                 latent_dimensions=4, random_state=0)
+data = JointData(
+    n_views=2, n_samples=1000, n_features=[100, 80], latent_dimensions=4, random_state=0
+)
 views = data.sample()
 
 X1 = torch.tensor(views[0], dtype=torch.float32)
 X2 = torch.tensor(views[1], dtype=torch.float32)
 
 train_loader = DataLoader(TensorDataset(X1, X2), batch_size=64, shuffle=True)
+
 
 # Build encoders
 def make_encoder(in_features: int, latent_dim: int) -> nn.Module:
@@ -223,6 +229,7 @@ def make_encoder(in_features: int, latent_dim: int) -> nn.Module:
         nn.ReLU(),
         nn.Linear(128, latent_dim),
     )
+
 
 model = DCCA(
     latent_dimensions=4,
@@ -236,7 +243,7 @@ trainer.fit(model, train_loader)
 # Evaluate
 test_loader = DataLoader(TensorDataset(X1, X2), batch_size=256)
 z1, z2 = model.transform(test_loader)
-print("Representation shape:", z1.shape)   # (1000, 4)
+print("Representation shape:", z1.shape)  # (1000, 4)
 ```
 
 ---

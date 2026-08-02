@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 from abc import abstractmethod
+from typing import cast
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -810,7 +811,7 @@ class ElasticCCA(_BaseIterative):
             target /= norm
         reg = self._regressors[i]
         reg.fit(views[i], target)
-        return np.atleast_1d(reg.coef_).ravel()
+        return cast(np.ndarray, np.atleast_1d(reg.coef_).ravel())
 
 
 # ---------------------------------------------------------------------------

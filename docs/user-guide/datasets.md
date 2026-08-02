@@ -28,14 +28,14 @@ from cca_zoo.datasets import JointData
 data = JointData(
     n_views=2,
     n_samples=200,
-    n_features=[50, 40],       # different feature counts per view
+    n_features=[50, 40],  # different feature counts per view
     latent_dimensions=2,
-    signal_to_noise=2.0,       # higher = less noise
+    signal_to_noise=2.0,  # higher = less noise
     random_state=0,
 )
 
-train_views = data.sample()    # list of 2 arrays: (200, 50), (200, 40)
-test_views  = data.sample()    # independent sample from the same model
+train_views = data.sample()  # list of 2 arrays: (200, 50), (200, 40)
+test_views = data.sample()  # independent sample from the same model
 ```
 
 ### Parameters
@@ -53,11 +53,14 @@ test_views  = data.sample()    # independent sample from the same model
 
 ```python
 # Same features for all views (scalar broadcasts)
-data = JointData(n_views=3, n_samples=100, n_features=20, latent_dimensions=2, random_state=0)
+data = JointData(
+    n_views=3, n_samples=100, n_features=20, latent_dimensions=2, random_state=0
+)
 
 # Different SNR per view
-data = JointData(n_views=2, n_samples=100, n_features=20,
-                 signal_to_noise=[4.0, 1.0], random_state=0)
+data = JointData(
+    n_views=2, n_samples=100, n_features=20, signal_to_noise=[4.0, 1.0], random_state=0
+)
 
 # Callable shorthand (same as sample())
 views = data()
@@ -80,8 +83,8 @@ Wraps `sklearn.datasets.load_linnerud`. Returns two arrays:
 from cca_zoo.datasets import load_linnerud
 
 exercise, physiological = load_linnerud()
-print(exercise.shape)        # (20, 3)
-print(physiological.shape)   # (20, 3)
+print(exercise.shape)  # (20, 3)
+print(physiological.shape)  # (20, 3)
 ```
 
 ### `load_breast_cancer`
@@ -96,6 +99,6 @@ a two-view dataset:
 from cca_zoo.datasets import load_breast_cancer
 
 view1, view2 = load_breast_cancer()
-print(view1.shape)   # (569, 15)
-print(view2.shape)   # (569, 15)
+print(view1.shape)  # (569, 15)
+print(view2.shape)  # (569, 15)
 ```
