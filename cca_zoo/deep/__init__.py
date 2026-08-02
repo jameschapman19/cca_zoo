@@ -21,6 +21,8 @@ if _torch_available and _lightning_available:
     from cca_zoo.deep._dcca_noi import DCCA_NOI
     from cca_zoo.deep._dcca_sdl import DCCA_SDL
     from cca_zoo.deep._dccae import DCCAE
+    from cca_zoo.deep._dgcca import DGCCA
+    from cca_zoo.deep._dmcca import DMCCA
     from cca_zoo.deep._dtcca import DTCCA
     from cca_zoo.deep._dvcca import DVCCA
     from cca_zoo.deep._splitae import SplitAE
@@ -34,6 +36,8 @@ if _torch_available and _lightning_available:
         "DCCA_NOI",
         "DCCA_SDL",
         "DCCAE",
+        "DGCCA",
+        "DMCCA",
         "DTCCA",
         "DVCCA",
         "SplitAE",

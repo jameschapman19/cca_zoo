@@ -49,6 +49,16 @@ Linear CCA methods. All classes are `sklearn.base.BaseEstimator` subclasses.
 
 ---
 
+## Confound-adjusted / structured methods
+
+::: cca_zoo.linear.PartialCCA
+
+---
+
+::: cca_zoo.linear.GRCCA
+
+---
+
 ## Gradient-descent methods
 
 ::: cca_zoo.linear.PLS_EY

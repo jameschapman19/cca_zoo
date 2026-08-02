@@ -21,6 +21,8 @@ import torch.utils.data as data
 # Import the available deep classes directly
 # ---------------------------------------------------------------------------
 from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep._dgcca import DGCCA
+from cca_zoo.deep._dmcca import DMCCA
 from cca_zoo.deep.objectives import (
     CCALoss,
     GCCALoss,
@@ -269,6 +271,85 @@ def test_dcca_three_view_training() -> None:
         objective=MCCALoss(eps=1e-4),
         max_epochs=2,
     )
+    trainer = lightning.pytorch.Trainer(
+        max_epochs=2, enable_progress_bar=False, logger=False
+    )
+    trainer.fit(model, loader)
+    result = model.transform(loader)
+    assert len(result) == 3
+    for arr in result:
+        assert arr.shape == (n, latent)
+
+
+# ---------------------------------------------------------------------------
+# DMCCA / DGCCA
+# ---------------------------------------------------------------------------
+
+
+def _make_three_view_loader(n: int = 20, p: int = 5) -> data.DataLoader:
+    """Create a small DataLoader for three views."""
+
+    class ThreeViewDataset(data.Dataset):
+        def __init__(self) -> None:
+            rng = np.random.default_rng(0)
+            self.views = [
+                torch.from_numpy(rng.standard_normal((n, p)).astype(np.float32))
+                for _ in range(3)
+            ]
+
+        def __len__(self) -> int:
+            return n
+
+        def __getitem__(self, idx: int) -> dict:
+            return {"views": [v[idx] for v in self.views]}
+
+    return data.DataLoader(ThreeViewDataset(), batch_size=n)
+
+
+@pytest.mark.slow
+def test_dmcca_defaults_to_mcca_loss() -> None:
+    """DMCCA uses MCCALoss regardless of the objective passed in."""
+    latent = 2
+    encoders = _make_encoders(5, latent)
+    model = DMCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
+    assert isinstance(model.objective, MCCALoss)
+
+
+@pytest.mark.slow
+def test_dmcca_three_view_training() -> None:
+    """DMCCA trains on three-view data and transforms to the right shapes."""
+    latent = 2
+    n, p = 20, 5
+    encoders = [nn.Linear(p, latent) for _ in range(3)]
+    loader = _make_three_view_loader(n=n, p=p)
+    model = DMCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
+    trainer = lightning.pytorch.Trainer(
+        max_epochs=2, enable_progress_bar=False, logger=False
+    )
+    trainer.fit(model, loader)
+    result = model.transform(loader)
+    assert len(result) == 3
+    for arr in result:
+        assert arr.shape == (n, latent)
+
+
+@pytest.mark.slow
+def test_dgcca_defaults_to_gcca_loss() -> None:
+    """DGCCA uses GCCALoss regardless of the objective passed in."""
+    latent = 2
+    encoders = _make_encoders(5, latent)
+    model = DGCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
+    assert isinstance(model.objective, GCCALoss)
+
+
+@pytest.mark.slow
+def test_dgcca_three_view_training() -> None:
+    """DGCCA trains on three-view data and transforms to the right shapes."""
+    latent = 2
+    n, p = 20, 5
+    encoders = [nn.Linear(p, latent) for _ in range(3)]
+    loader = _make_three_view_loader(n=n, p=p)
+    model = DGCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
     trainer = lightning.pytorch.Trainer(
         max_epochs=2, enable_progress_bar=False, logger=False
     )
