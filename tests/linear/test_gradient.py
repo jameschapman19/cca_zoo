@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.linear import CCA_EY, MCCA_EY, PLS_EY
+from cca_zoo.linear import CCA, CCA_EY, MCCA, MCCA_EY, PLS, PLS_EY
 
 GRADIENT_MODELS_TWO_VIEW = [PLS_EY, CCA_EY]
 GRADIENT_MODELS_MULTI_VIEW = [MCCA_EY]
@@ -13,6 +13,17 @@ ALL_GRADIENT_MODELS = GRADIENT_MODELS_TWO_VIEW + GRADIENT_MODELS_MULTI_VIEW
 
 # Use fewer iterations for speed in tests
 _FIT_KWARGS: dict = dict(latent_dimensions=1, max_iter=50, random_state=0)
+
+
+@pytest.fixture
+def three_correlated_views() -> list[np.ndarray]:
+    """Three views sharing a latent structure, for MCCA_EY correctness checks."""
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((300, 2))
+    x1 = z @ rng.standard_normal((2, 10)) + 0.1 * rng.standard_normal((300, 10))
+    x2 = z @ rng.standard_normal((2, 8)) + 0.1 * rng.standard_normal((300, 8))
+    x3 = z @ rng.standard_normal((2, 6)) + 0.1 * rng.standard_normal((300, 6))
+    return [x1, x2, x3]
 
 
 # ---------------------------------------------------------------------------
@@ -265,3 +276,75 @@ def test_center_false(ModelClass: type, two_views: list[np.ndarray]) -> None:
     model.fit(two_views)
     result = model.transform(two_views)
     assert len(result) == 2
+
+
+# ---------------------------------------------------------------------------
+# Correctness / optimality
+#
+# The EY-loss gradient computed here (see cca_zoo._utils._ey) is verified
+# against finite-difference gradients; these tests additionally check that
+# converged gradient descent recovers the same canonical correlations as the
+# exact eigendecomposition solutions, which the pre-fix implementation did
+# not (it optimised a different, unrelated objective).
+# ---------------------------------------------------------------------------
+
+
+def test_cca_ey_matches_cca(correlated_views: list[np.ndarray]) -> None:
+    """Converged CCA_EY recovers the same correlations as exact CCA."""
+    k = 2
+    s_cca = CCA(latent_dimensions=k).fit(correlated_views).score(correlated_views)
+    s_ey = (
+        CCA_EY(latent_dimensions=k, max_iter=1000, random_state=0)
+        .fit(correlated_views)
+        .score(correlated_views)
+    )
+    # Gradient descent does not guarantee components are returned in
+    # descending-correlation order, unlike the exact eigendecomposition.
+    np.testing.assert_allclose(
+        sorted(s_ey, reverse=True), sorted(s_cca, reverse=True), atol=0.05
+    )
+
+
+def test_pls_ey_matches_pls(correlated_views: list[np.ndarray]) -> None:
+    """Converged PLS_EY recovers the same correlations as exact PLS."""
+    k = 2
+    s_pls = PLS(latent_dimensions=k).fit(correlated_views).score(correlated_views)
+    s_ey = (
+        PLS_EY(latent_dimensions=k, max_iter=1000, random_state=0)
+        .fit(correlated_views)
+        .score(correlated_views)
+    )
+    np.testing.assert_allclose(
+        sorted(s_ey, reverse=True), sorted(s_pls, reverse=True), atol=0.05
+    )
+
+
+def test_mcca_ey_matches_mcca(three_correlated_views: list[np.ndarray]) -> None:
+    """Converged MCCA_EY recovers the same correlations as exact MCCA."""
+    k = 2
+    s_mcca = (
+        MCCA(latent_dimensions=k)
+        .fit(three_correlated_views)
+        .score(three_correlated_views)
+    )
+    s_ey = (
+        MCCA_EY(latent_dimensions=k, max_iter=1000, random_state=0)
+        .fit(three_correlated_views)
+        .score(three_correlated_views)
+    )
+    np.testing.assert_allclose(
+        sorted(s_ey, reverse=True), sorted(s_mcca, reverse=True), atol=0.05
+    )
+
+
+@pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
+def test_gradient_models_find_high_correlation(
+    ModelClass: type, correlated_views: list[np.ndarray]
+) -> None:
+    """All gradient models find substantial correlation on correlated views."""
+    s = (
+        ModelClass(latent_dimensions=1, max_iter=500, random_state=0)
+        .fit(correlated_views)
+        .score(correlated_views)
+    )
+    assert np.all(s > 0.8), f"{ModelClass.__name__} got low correlation: {s}"

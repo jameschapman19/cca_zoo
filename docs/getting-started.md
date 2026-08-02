@@ -17,6 +17,7 @@ Install extras for additional method families:
 ```bash
 pip install cca-zoo[deep]          # DCCA variants (PyTorch + Lightning)
 pip install cca-zoo[probabilistic] # Probabilistic CCA (NumPyro + JAX)
+pip install cca-zoo[tree]          # TreeCCA (XGBoost + LightGBM)
 pip install cca-zoo[all]           # Everything above
 ```
 
@@ -157,5 +158,6 @@ print("Best params:", gs.best_params_)
 
 - **[User Guide — Linear Methods](user-guide/linear.md)** — learn which linear model to choose
 - **[User Guide — Nonparametric Methods](user-guide/nonparametric.md)** — kernel CCA explained
+- **[User Guide — Tree Methods](user-guide/tree.md)** — gradient-boosted-tree CCA
 - **[User Guide — Deep Methods](user-guide/deep.md)** — using neural network encoders
 - **[API Reference](api/linear.md)** — full class and method documentation

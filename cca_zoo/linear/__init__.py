@@ -8,7 +8,6 @@ suited to high-dimensional or streaming data.
 
 from ._cca import CCA
 from ._gcca import GCCA
-from ._gradient import CCA_EY, MCCA_EY, PLS_EY
 from ._grcca import GRCCA
 from ._iterative import (
     PLS_ALS,
@@ -24,6 +23,7 @@ from ._partialcca import PartialCCA
 from ._pls import PLS
 from ._rcca import rCCA
 from ._tcca import TCCA
+from .gradient import CCA_EY, MCCA_EY, PLS_EY
 
 __all__ = [
     # Exact eigendecomposition
