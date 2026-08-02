@@ -10,29 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://jameschapman19.github.io/cca_zoo/contributing/">
+        <link rel="canonical" href="https://jameschapman19.github.io/cca_zoo/user-guide/tree/">
       
       
-        <link rel="prev" href="../api/model-selection/">
+        <link rel="prev" href="../nonparametric/">
       
+      
+        <link rel="next" href="../deep/">
       
       
         
       
       
-      <link rel="icon" href="../logos/favicon.ico">
+      <link rel="icon" href="../../logos/favicon.ico">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Contributing - CCA-Zoo</title>
+        <title>Tree Methods - CCA-Zoo</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,11 +53,11 @@
       
     
     
-      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#contributing" class="md-skip">
+        <a href="#tree-methods" class="md-skip">
           Skip to content
         </a>
       
@@ -94,9 +96,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="CCA-Zoo" class="md-header__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
+    <a href="../.." title="CCA-Zoo" class="md-header__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
       
-  <img src="../logos/cca-zoo-logo.svg" alt="logo">
+  <img src="../../logos/cca-zoo-logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -113,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Contributing
+              Tree Methods
             
           </span>
         </div>
@@ -231,7 +233,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -250,7 +252,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../getting-started/" class="md-tabs__link">
+      <a href="../../getting-started/" class="md-tabs__link">
         
   
   
@@ -267,11 +269,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../user-guide/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
           
   
   
@@ -293,7 +297,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../api/" class="md-tabs__link">
+        <a href="../../api/" class="md-tabs__link">
           
   
   
@@ -311,11 +315,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="./" class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../../contributing/" class="md-tabs__link">
         
   
   
@@ -350,9 +352,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="CCA-Zoo" class="md-nav__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
+    <a href="../.." title="CCA-Zoo" class="md-nav__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
       
-  <img src="../logos/cca-zoo-logo.svg" alt="logo">
+  <img src="../../logos/cca-zoo-logo.svg" alt="logo">
 
     </a>
     CCA-Zoo
@@ -379,7 +381,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -406,7 +408,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/" class="md-nav__link">
+      <a href="../../getting-started/" class="md-nav__link">
         
   
   
@@ -430,6 +432,8 @@
       
   
   
+    
+  
   
   
     
@@ -457,22 +461,23 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../user-guide/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   
@@ -490,13 +495,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -516,7 +521,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-guide/linear/" class="md-nav__link">
+      <a href="../linear/" class="md-nav__link">
         
   
   
@@ -544,7 +549,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-guide/nonparametric/" class="md-nav__link">
+      <a href="../nonparametric/" class="md-nav__link">
         
   
   
@@ -569,10 +574,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../user-guide/tree/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tree Methods
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -588,6 +620,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#background" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic usage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-importance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature importance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key parameters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -600,7 +707,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-guide/deep/" class="md-nav__link">
+      <a href="../deep/" class="md-nav__link">
         
   
   
@@ -628,7 +735,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-guide/probabilistic/" class="md-nav__link">
+      <a href="../probabilistic/" class="md-nav__link">
         
   
   
@@ -656,7 +763,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-guide/datasets/" class="md-nav__link">
+      <a href="../datasets/" class="md-nav__link">
         
   
   
@@ -684,7 +791,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-guide/model-selection/" class="md-nav__link">
+      <a href="../model-selection/" class="md-nav__link">
         
   
   
@@ -758,7 +865,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../api/" class="md-nav__link ">
+            <a href="../../api/" class="md-nav__link ">
               
   
   
@@ -802,7 +909,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/linear/" class="md-nav__link">
+      <a href="../../api/linear/" class="md-nav__link">
         
   
   
@@ -830,7 +937,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/nonparametric/" class="md-nav__link">
+      <a href="../../api/nonparametric/" class="md-nav__link">
         
   
   
@@ -858,7 +965,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/tree/" class="md-nav__link">
+      <a href="../../api/tree/" class="md-nav__link">
         
   
   
@@ -886,7 +993,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/deep/" class="md-nav__link">
+      <a href="../../api/deep/" class="md-nav__link">
         
   
   
@@ -914,7 +1021,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/probabilistic/" class="md-nav__link">
+      <a href="../../api/probabilistic/" class="md-nav__link">
         
   
   
@@ -942,7 +1049,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/datasets/" class="md-nav__link">
+      <a href="../../api/datasets/" class="md-nav__link">
         
   
   
@@ -970,7 +1077,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/model-selection/" class="md-nav__link">
+      <a href="../../api/model-selection/" class="md-nav__link">
         
   
   
@@ -1002,37 +1109,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Contributing
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
         
   
   
@@ -1048,142 +1128,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#development-setup" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Development setup
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Development setup">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-clone-and-install" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Clone and install
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-run-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Run tests
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-lint-and-format" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Lint and format
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-type-checking" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. Type checking
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-build-docs-locally" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Build docs locally
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#coding-standards" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Coding standards
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#adding-a-new-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Adding a new model
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pull-request-guidelines" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pull request guidelines
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#reporting-issues" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Reporting issues
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1215,82 +1159,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#development-setup" class="md-nav__link">
+  <a href="#background" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Development setup
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Development setup">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-clone-and-install" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Clone and install
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-run-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Run tests
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-lint-and-format" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Lint and format
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-type-checking" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. Type checking
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-build-docs-locally" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Build docs locally
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#coding-standards" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Coding standards
+        Background
       
     </span>
   </a>
@@ -1298,10 +1170,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#adding-a-new-model" class="md-nav__link">
+  <a href="#basic-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Adding a new model
+        Basic usage
       
     </span>
   </a>
@@ -1309,10 +1181,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#pull-request-guidelines" class="md-nav__link">
+  <a href="#feature-importance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pull request guidelines
+        Feature importance
       
     </span>
   </a>
@@ -1320,10 +1192,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#reporting-issues" class="md-nav__link">
+  <a href="#key-parameters" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Reporting issues
+        Key parameters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical notes
       
     </span>
   </a>
@@ -1348,6 +1231,46 @@
   
 
 
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    User Guide
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
               
               <article class="md-content__inner md-typeset">
                 
@@ -1355,7 +1278,7 @@
 
 
   
-    <a href="https://github.com/jameschapman19/cca_zoo/edit/main/docs/contributing.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/jameschapman19/cca_zoo/edit/main/docs/user-guide/tree.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1363,79 +1286,118 @@
   
 
 
-<h1 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">&para;</a></h1>
-<p>Contributions are welcome. This guide covers the development setup, coding standards, and the
-pull request process.</p>
-<hr />
-<h2 id="development-setup">Development setup<a class="headerlink" href="#development-setup" title="Permanent link">&para;</a></h2>
-<p>CCA-Zoo uses <a href="https://docs.astral.sh/uv/">uv</a> in CI, but you can use pip for local development.</p>
-<h3 id="1-clone-and-install">1. Clone and install<a class="headerlink" href="#1-clone-and-install" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/jameschapman19/cca_zoo.git
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>cca_zoo
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
-</span></code></pre></div>
-<p>For documentation development:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,docs]&quot;</span>
-</span></code></pre></div>
-<h3 id="2-run-tests">2. Run tests<a class="headerlink" href="#2-run-tests" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not slow&quot;</span><span class="w">             </span><span class="c1"># fast tests only (no torch / numpyro required)</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pytest<span class="w"> </span>-m<span class="w"> </span>slow<span class="w">                   </span><span class="c1"># deep and probabilistic tests (requires extras)</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pytest<span class="w"> </span>--cov<span class="o">=</span>cca_zoo<span class="w">             </span><span class="c1"># with coverage report</span>
-</span></code></pre></div>
-<h3 id="3-lint-and-format">3. Lint and format<a class="headerlink" href="#3-lint-and-format" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ruff<span class="w"> </span>check<span class="w"> </span>.<span class="w">                     </span><span class="c1"># lint</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>ruff<span class="w"> </span>format<span class="w"> </span>--check<span class="w"> </span>.<span class="w">            </span><span class="c1"># format check</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>ruff<span class="w"> </span>format<span class="w"> </span>.<span class="w">                    </span><span class="c1"># auto-format</span>
-</span></code></pre></div>
-<h3 id="4-type-checking">4. Type checking<a class="headerlink" href="#4-type-checking" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>mypy<span class="w"> </span>cca_zoo
-</span></code></pre></div>
-<h3 id="5-build-docs-locally">5. Build docs locally<a class="headerlink" href="#5-build-docs-locally" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>mkdocs<span class="w"> </span>serve<span class="w">                     </span><span class="c1"># live-reload preview at http://127.0.0.1:8000</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>mkdocs<span class="w"> </span>build<span class="w">                     </span><span class="c1"># build static site into site/</span>
+<h1 id="tree-methods">Tree Methods<a class="headerlink" href="#tree-methods" title="Permanent link">&para;</a></h1>
+<p>The <code>cca_zoo.tree</code> module provides <code>TreeCCA</code>, a nonlinear multiview CCA method that uses
+gradient-boosted trees as the per-view encoders, via either
+<a href="https://xgboost.readthedocs.io/">XGBoost</a> (default) or
+<a href="https://lightgbm.readthedocs.io/">LightGBM</a>. Install it with:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>cca-zoo<span class="o">[</span>tree<span class="o">]</span>
 </span></code></pre></div>
 <hr />
-<h2 id="coding-standards">Coding standards<a class="headerlink" href="#coding-standards" title="Permanent link">&para;</a></h2>
-<p>All contributions must comply with the standards defined in <code>CLAUDE.md</code>. Key points:</p>
+<h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
+<p><code>TreeCCA</code> maximises the same unconstrained Eckart-Young (EY) objective used by the stochastic
+<code>*_EY</code> models in <code>cca_zoo.linear</code> and by <code>DCCA_EY</code> in <code>cca_zoo.deep</code> (the numpy-based models
+share the exact same implementation, in <code>cca_zoo._utils._ey</code>):</p>
+<p>$$
+\mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
+$$</p>
+<p>where, for embeddings $Z_i = f_i(X_i)$, $C$ is the mean pairwise cross-covariance (including
+$i = j$ terms) and $V$ the mean auto-covariance across all views. <code>TreeCCA</code> uses a
+gradient-boosted-tree ensemble in place of a linear map or neural network as the function class
+for each $f_i$.</p>
+<p>Each of the <code>latent_dimensions</code> canonical components is a separate scalar booster per view.
+Training proceeds by alternating (Gauss-Seidel) gradient boosting: each round, for every view in
+turn, the EY-loss gradient is computed from the current embeddings and used as a custom
+regression objective to add one tree to that view's boosters; with <code>gauss_seidel=True</code> (the
+default) the gradient is recomputed from the freshest embeddings before moving to the next view.
+Boosters start from a random-orthogonal, unit-variance initial embedding per view — random
+directions in feature space, rescaled so each component has unit variance. Unit-variance scaling
+is what matters for a well-conditioned, non-vanishing gradient at round zero; orthogonality keeps
+the initial components uncorrelated.</p>
+<p>Because each component is its own boosted-tree ensemble, per-component feature importance (split
+gain) is available directly from the fitted boosters — no separate interpretability method (such
+as SHAP) is required.</p>
+<p><strong>When to use:</strong> Nonlinear multiview CCA where you want built-in, per-component feature
+importance, and where a tree-based model is a natural fit for the data (e.g. tabular data with
+mixed scales, non-smooth or threshold-like relationships).</p>
+<hr />
+<h2 id="basic-usage">Basic usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.tree</span><span class="w"> </span><span class="kn">import</span> <span class="n">TreeCCA</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">TreeCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_estimators</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">max_depth</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">corrs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># TreeCCA also supports more than two views</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">model3</span> <span class="o">=</span> <span class="n">TreeCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_estimators</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
+</span></code></pre></div>
+<p>Use <code>backend="lightgbm"</code> to train with LightGBM instead of XGBoost (requires
+<code>pip install lightgbm</code>, included in the <code>tree</code> extra):</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">model</span> <span class="o">=</span> <span class="n">TreeCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;lightgbm&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span></code></pre></div>
+<h2 id="feature-importance">Feature importance<a class="headerlink" href="#feature-importance" title="Permanent link">&para;</a></h2>
+<p><code>TreeCCA</code> has no linear weight matrices, so <code>model.weights</code> raises <code>NotImplementedError</code>. Use the
+fitted <code>boosters_</code> attribute instead — a <code>list[list[Booster]]</code> indexed <code>[view][component]</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">model</span> <span class="o">=</span> <span class="n">TreeCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Split-gain feature importance for view 1, canonical component 0 (xgboost backend)</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">importance</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">boosters_</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_score</span><span class="p">(</span><span class="n">importance_type</span><span class="o">=</span><span class="s2">&quot;gain&quot;</span><span class="p">)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Equivalent for backend=&quot;lightgbm&quot;</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># importance = model.boosters_[0][0].feature_importance(importance_type=&quot;gain&quot;)</span>
+</span></code></pre></div>
+<hr />
+<h2 id="key-parameters">Key parameters<a class="headerlink" href="#key-parameters" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>backend</code></td>
+<td><code>"xgboost"</code> (default) or <code>"lightgbm"</code>.</td>
+</tr>
+<tr>
+<td><code>n_estimators</code></td>
+<td>Boosting rounds (trees added per booster). Higher values fit more complex relationships but risk overfitting and cost more time.</td>
+</tr>
+<tr>
+<td><code>max_depth</code></td>
+<td>Maximum tree depth.</td>
+</tr>
+<tr>
+<td><code>learning_rate</code></td>
+<td>Boosting shrinkage.</td>
+</tr>
+<tr>
+<td><code>subsample</code>, <code>colsample_bytree</code></td>
+<td>Row/column subsampling ratios per tree, for regularisation.</td>
+</tr>
+<tr>
+<td><code>gauss_seidel</code></td>
+<td>Use freshly-updated view-1 embeddings when computing view 2's gradient each round (default <code>True</code>); set <code>False</code> for Jacobi-style stale updates.</td>
+</tr>
+<tr>
+<td><code>random_state</code></td>
+<td>Seed for the boosters and the random-orthogonal initial embedding.</td>
+</tr>
+</tbody>
+</table>
+<p>Hyperparameters are best selected by cross-validation with <code>GridSearchCV</code> from
+<code>cca_zoo.model_selection</code>, as for other models.</p>
+<hr />
+<h2 id="practical-notes">Practical notes<a class="headerlink" href="#practical-notes" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Python ≥ 3.10 only.</strong> Use <code>X | Y</code> unions, <code>list[x]</code>/<code>dict[x]</code>/<code>tuple[x]</code> generics.</li>
-<li><strong>Google-style docstrings</strong> on all public classes and methods with Args, Returns, Raises,
-  and Example sections.</li>
-<li><strong>Full type annotations</strong> — <code>mypy --strict</code> must pass cleanly.</li>
-<li><strong>No <code>try/except</code></strong> — write code that does not need them.</li>
-<li><strong>No <code>print</code></strong> — use <code>logging</code> if diagnostic output is needed.</li>
-<li><strong>100% test coverage</strong> — every new code path needs a test.</li>
-<li><strong>No <code># pragma: no cover</code></strong> — this is banned.</li>
-</ul>
-<hr />
-<h2 id="adding-a-new-model">Adding a new model<a class="headerlink" href="#adding-a-new-model" title="Permanent link">&para;</a></h2>
-<ol>
-<li>Create the implementation file in the appropriate subpackage
-   (e.g. <code>cca_zoo/linear/_mymodel.py</code>).</li>
-<li>Inherit from <code>BaseModel</code> (linear/nonparametric) or <code>BaseDeep</code> (deep).</li>
-<li>Add Google-style docstrings including the mathematical objective and reference(s).</li>
-<li>Export from the subpackage's <code>__init__.py</code> and add to <code>__all__</code>.</li>
-<li>Write tests in <code>tests/&lt;subpackage&gt;/test_mymodel.py</code> covering all required test cases
-   (see <code>CLAUDE.md</code> for the full list).</li>
-<li>Open a pull request against <code>main</code>.</li>
-</ol>
-<hr />
-<h2 id="pull-request-guidelines">Pull request guidelines<a class="headerlink" href="#pull-request-guidelines" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Keep PRs focused — one feature or fix per PR.</li>
-<li>Include tests for all new/changed behaviour.</li>
-<li>Ensure <code>ruff check</code>, <code>ruff format --check</code>, <code>mypy cca_zoo</code>, and <code>pytest -m "not slow"</code> all
-  pass before requesting review.</li>
-<li>Reference any related issues in the PR description.</li>
-</ul>
-<hr />
-<h2 id="reporting-issues">Reporting issues<a class="headerlink" href="#reporting-issues" title="Permanent link">&para;</a></h2>
-<p>Use <a href="https://github.com/jameschapman19/cca_zoo/issues">GitHub Issues</a> to report bugs or
-request features. Please include:</p>
-<ul>
-<li>A minimal reproducible example</li>
-<li>The version of cca-zoo (<code>python -c "import cca_zoo; print(cca_zoo.__version__)"</code>)</li>
-<li>Your Python version and OS</li>
+<li><code>TreeCCA</code> supports 2 or more views.</li>
+<li><code>latent_dimensions</code> must not exceed the number of features in any view (the random-orthogonal
+  initialisation draws that many orthogonal directions in feature space).</li>
+<li>Unlike <code>KCCA</code>, <code>TreeCCA</code> does not store the training data for inference — new data is passed
+  directly through the fitted boosters, so <code>transform</code> on held-out data is inexpensive.</li>
+<li>Reference: Chapman, J., Wells, L., &amp; Lawry Aguila, L. (2024). <em>Unconstrained stochastic CCA:
+  Unifying multiview and self-supervised learning.</em> arXiv:2310.01012.</li>
 </ul>
 
 
@@ -1472,7 +1434,7 @@ request features. Please include:</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../api/model-selection/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Model Selection">
+          <a href="../nonparametric/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Nonparametric Methods">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1482,11 +1444,27 @@ request features. Please include:</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Model Selection
+                Nonparametric Methods
               </div>
             </div>
           </a>
         
+        
+          
+          <a href="../deep/" class="md-footer__link md-footer__link--next" aria-label="Next: Deep Methods">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Deep Methods
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
         
       </nav>
     
@@ -1547,10 +1525,10 @@ request features. Please include:</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "navigation.footer", "navigation.path", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.action.edit", "announce.dismiss"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "navigation.footer", "navigation.path", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.action.edit", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
