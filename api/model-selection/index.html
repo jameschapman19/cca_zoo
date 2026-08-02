@@ -1438,7 +1438,7 @@ X2 = rng.standard_normal((50, 4))
 gs = GridSearchCV(
 ...     CCA(), param_grid={"latent_dimensions": [1, 2]}, cv=2
 ... )
-gs.fit([X1, X2])</p>
+gs = gs.fit([X1, X2])</p>
 </blockquote>
 </blockquote>
 </blockquote>

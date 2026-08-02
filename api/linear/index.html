@@ -6893,7 +6893,7 @@ rng = np.random.default_rng(0)
 X1 = rng.standard_normal((200, 500))
 X2 = rng.standard_normal((200, 400))
 model = PLS_EY(latent_dimensions=4, batch_size=64, random_state=0)
-model.fit([X1, X2])</p>
+model = model.fit([X1, X2])</p>
 </blockquote>
 </blockquote>
 </blockquote>
@@ -7350,7 +7350,7 @@ rng = np.random.default_rng(0)
 X1 = rng.standard_normal((200, 500))
 X2 = rng.standard_normal((200, 400))
 model = CCA_EY(latent_dimensions=4, c=0.1, batch_size=64, random_state=0)
-model.fit([X1, X2])</p>
+model = model.fit([X1, X2])</p>
 </blockquote>
 </blockquote>
 </blockquote>
@@ -7827,7 +7827,7 @@ X1 = rng.standard_normal((200, 500))
 X2 = rng.standard_normal((200, 400))
 X3 = rng.standard_normal((200, 300))
 model = MCCA_EY(latent_dimensions=4, c=0.1, batch_size=64, random_state=0)
-model.fit([X1, X2, X3])</p>
+model = model.fit([X1, X2, X3])</p>
 </blockquote>
 </blockquote>
 </blockquote>
