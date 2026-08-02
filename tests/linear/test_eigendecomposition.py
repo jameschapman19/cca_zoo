@@ -8,7 +8,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.linear import CCA, GCCA, MCCA, PLS, TCCA, rCCA
+from cca_zoo.linear import CCA, GCCA, GRCCA, MCCA, PLS, TCCA, PartialCCA, rCCA
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -453,3 +453,139 @@ def test_tcca_finds_high_correlation(correlated_views: list[np.ndarray]) -> None
         .score(correlated_views)
     )
     assert np.all(s > 0.8), f"Expected high correlation, got {s}"
+
+
+# ---------------------------------------------------------------------------
+# PartialCCA
+# ---------------------------------------------------------------------------
+
+
+def test_partial_cca_fit_transform(two_views: list[np.ndarray]) -> None:
+    """PartialCCA fits and transforms with confound variables removed."""
+    rng = np.random.default_rng(1)
+    partials = rng.standard_normal((50, 3))
+    k = 2
+    model = PartialCCA(latent_dimensions=k).fit(two_views, partials=partials)
+    result = model.transform(two_views, partials=partials)
+    assert len(result) == 2
+    for arr, view in zip(result, two_views):
+        assert arr.shape == (view.shape[0], k)
+
+
+def test_partial_cca_requires_partials(two_views: list[np.ndarray]) -> None:
+    """PartialCCA.fit raises ValueError when partials is not provided."""
+    with pytest.raises(ValueError, match="partials"):
+        PartialCCA(latent_dimensions=1).fit(two_views)
+
+
+def test_partial_cca_transform_without_partials_falls_back(
+    two_views: list[np.ndarray],
+) -> None:
+    """PartialCCA.transform without partials falls back to a plain projection."""
+    rng = np.random.default_rng(1)
+    partials = rng.standard_normal((50, 3))
+    model = PartialCCA(latent_dimensions=1).fit(two_views, partials=partials)
+    result = model.transform(two_views)
+    assert len(result) == 2
+
+
+def test_partial_cca_score_and_fit_transform(two_views: list[np.ndarray]) -> None:
+    """PartialCCA supports score() and fit_transform() with partials."""
+    rng = np.random.default_rng(1)
+    partials = rng.standard_normal((50, 3))
+    model = PartialCCA(latent_dimensions=2)
+    ft = model.fit_transform(two_views, partials=partials)
+    fit_then_transform = (
+        PartialCCA(latent_dimensions=2)
+        .fit(two_views, partials=partials)
+        .transform(two_views, partials=partials)
+    )
+    for a, b in zip(ft, fit_then_transform):
+        np.testing.assert_allclose(np.abs(a), np.abs(b), atol=1e-10)
+    s = model.score(two_views)
+    assert s.shape == (2,)
+
+
+def test_partial_cca_removes_confound_effect() -> None:
+    """PartialCCA recovers a shared signal even when a strong confound dominates."""
+    rng = np.random.default_rng(0)
+    n = 200
+    z = rng.standard_normal((n, 2))
+    confound = rng.standard_normal((n, 1))
+    x1 = (
+        z @ rng.standard_normal((2, 6))
+        + confound @ rng.standard_normal((1, 6)) * 5.0
+        + 0.1 * rng.standard_normal((n, 6))
+    )
+    x2 = (
+        z @ rng.standard_normal((2, 6))
+        + confound @ rng.standard_normal((1, 6)) * 5.0
+        + 0.1 * rng.standard_normal((n, 6))
+    )
+    model = PartialCCA(latent_dimensions=2).fit([x1, x2], partials=confound)
+    z1, z2 = model.transform([x1, x2], partials=confound)
+    corrs = np.array(
+        [np.corrcoef(z1[:, d], z2[:, d])[0, 1] for d in range(z1.shape[1])]
+    )
+    assert np.all(corrs > 0.5), (
+        f"Expected residual correlation after deconfounding, got {corrs}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# GRCCA
+# ---------------------------------------------------------------------------
+
+
+def test_grcca_fit_transform(two_views: list[np.ndarray]) -> None:
+    """GRCCA fits and transforms using feature groups."""
+    rng = np.random.default_rng(2)
+    groups1 = rng.integers(0, 3, size=two_views[0].shape[1])
+    groups2 = rng.integers(0, 3, size=two_views[1].shape[1])
+    k = 2
+    model = GRCCA(latent_dimensions=k, c=0.5).fit(
+        two_views, feature_groups=[groups1, groups2]
+    )
+    result = model.transform(two_views)
+    assert len(result) == 2
+    for arr, view in zip(result, two_views):
+        assert arr.shape == (view.shape[0], k)
+
+
+def test_grcca_weights_shape_matches_original_features(
+    two_views: list[np.ndarray],
+) -> None:
+    """GRCCA weights_ operate on the original (un-augmented) feature space."""
+    rng = np.random.default_rng(2)
+    groups1 = rng.integers(0, 3, size=two_views[0].shape[1])
+    groups2 = rng.integers(0, 3, size=two_views[1].shape[1])
+    model = GRCCA(latent_dimensions=1, c=[0.5, 0.0]).fit(
+        two_views, feature_groups=[groups1, groups2]
+    )
+    for w, view in zip(model.weights_, two_views):
+        assert w.shape == (view.shape[1], 1)
+
+
+def test_grcca_zero_c_matches_mcca(two_views: list[np.ndarray]) -> None:
+    """GRCCA with c=0 reduces to plain MCCA."""
+    k = 2
+    s_grcca = GRCCA(latent_dimensions=k, c=0.0).fit(two_views).score(two_views)
+    s_mcca = MCCA(latent_dimensions=k, pca=False).fit(two_views).score(two_views)
+    np.testing.assert_allclose(s_grcca, s_mcca, atol=1e-6)
+
+
+def test_grcca_default_feature_groups_warns_when_c_nonzero(
+    two_views: list[np.ndarray],
+) -> None:
+    """GRCCA warns when c>0 but no feature_groups are provided."""
+    with pytest.warns(UserWarning, match="feature_groups"):
+        GRCCA(latent_dimensions=1, c=0.5).fit(two_views)
+
+
+def test_grcca_three_views(three_views: list[np.ndarray]) -> None:
+    """GRCCA fits on more than two views."""
+    rng = np.random.default_rng(3)
+    groups = [rng.integers(0, 2, size=v.shape[1]) for v in three_views]
+    model = GRCCA(latent_dimensions=1, c=0.3).fit(three_views, feature_groups=groups)
+    result = model.transform(three_views)
+    assert len(result) == 3

@@ -48,6 +48,14 @@ Deep CCA variants. Requires `pip install cca-zoo[deep]`.
 
 ---
 
+::: cca_zoo.deep.DMCCA
+
+---
+
+::: cca_zoo.deep.DGCCA
+
+---
+
 ::: cca_zoo.deep.SplitAE
 
 ---
