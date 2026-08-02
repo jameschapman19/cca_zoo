@@ -135,8 +135,12 @@ model = TCCA(latent_dimensions=2, c=0.01, random_state=0).fit([X1, X2, X3])
 
 ## Gradient-descent methods
 
-These methods replace the full eigendecomposition with mini-batch Riemannian gradient descent on
-the Stiefel manifold, making them practical for very high-dimensional or streaming data.
+These methods replace the full eigendecomposition with mini-batch momentum gradient descent on
+the unconstrained Eckart-Young (EY) objective (see [`cca_zoo.tree`](tree.md) and
+[`cca_zoo.deep`](deep.md) for the same objective applied to tree and neural-network encoders),
+making them practical for very high-dimensional or streaming data. No manifold projection step
+is needed: the EY loss's quadratic penalty term drives the weights towards the canonical
+directions on its own.
 
 | Class | Description |
 |---|---|
@@ -147,7 +151,7 @@ the Stiefel manifold, making them practical for very high-dimensional or streami
 ```python
 from cca_zoo.linear import CCA_EY
 
-model = CCA_EY(latent_dimensions=2, lr=0.01, batch_size=64, max_iter=200)
+model = CCA_EY(latent_dimensions=2, learning_rate=0.01, batch_size=64, max_iter=200)
 model.fit([X1, X2])
 ```
 
