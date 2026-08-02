@@ -22,26 +22,26 @@ class MCCA(BaseModel):
 
     The primal objective is:
 
-    .. math::
-
-        \max_{\mathbf{w}} \sum_{i \neq j} \mathbf{w}_i^\top X_i^\top X_j
-        \mathbf{w}_j
-
-        \text{subject to } \mathbf{w}_i^\top
+    $$
+    \begin{aligned}
+    \max_{\mathbf{w}} \sum_{i \neq j} \mathbf{w}_i^\top X_i^\top X_j \mathbf{w}_j \\
+    \text{subject to } \mathbf{w}_i^\top
         \bigl((1-c_i) X_i^\top X_i + c_i I\bigr) \mathbf{w}_i = 1
+    \end{aligned}
+    $$
 
     This is solved as a generalised eigenvalue problem:
 
-    .. math::
+    $$
+    A \mathbf{v} = \lambda B \mathbf{v}
+    $$
 
-        A \mathbf{v} = \lambda B \mathbf{v}
-
-    where :math:`A` is the between-view block covariance matrix and :math:`B`
+    where $A$ is the between-view block covariance matrix and $B$
     is the block-diagonal regularised within-view covariance matrix.
 
     When ``pca=True`` (default), each view is first reduced to its principal
     components, which makes the problem numerically stable for
-    high-dimensional data and allows an efficient closed-form :math:`B`.
+    high-dimensional data and allows an efficient closed-form $B$.
 
     References:
         Kettenring, J. R. (1971). Canonical analysis of several sets of

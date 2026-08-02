@@ -22,14 +22,23 @@ def _inv_sqrtm(A: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
 
 
 class CCALoss(nn.Module):
-    """Andrew 2013 deep CCA correlation loss for two views.
+    r"""Andrew 2013 deep CCA correlation loss for two views.
 
-    Computes the negative sum of squared singular values of
-    S11^{-1/2} S12 S22^{-1/2}, where S11, S12, S22 are empirical
-    (co)variances with ridge regularisation.  Minimising this loss
-    maximises the total canonical correlation.
+    Computes the negative sum of squared singular values of the whitened
+    cross-covariance:
 
-    Reference:
+    $$
+    \mathcal{L} = -\left\|
+        \Sigma_{11}^{-1/2} \Sigma_{12} \Sigma_{22}^{-1/2}
+    \right\|_F^2
+    $$
+
+    where $\Sigma_{11}, \Sigma_{22}$ are the (ridge-regularised)
+    empirical within-view covariances of the two encoder outputs over the
+    mini-batch and $\Sigma_{12}$ their cross-covariance. Minimising
+    this loss maximises the sum of squared canonical correlations.
+
+    References:
         Andrew, G., et al. "Deep canonical correlation analysis."
         ICML 2013.
 
@@ -94,11 +103,21 @@ class CCALoss(nn.Module):
 
 
 class MCCALoss(nn.Module):
-    """Multiview extension of CCALoss that sums pairwise CCA losses.
+    r"""Multiview extension of CCALoss that sums pairwise CCA losses.
 
-    For each ordered pair (i, j) with i < j, the pairwise CCALoss is
-    computed and the results are summed.  This encourages all views to
-    be mutually correlated in the latent space.
+    $$
+    \mathcal{L} = \sum_{i < j} \mathcal{L}_{\text{CCA}}(z_i, z_j)
+    $$
+
+    where $\mathcal{L}_{\text{CCA}}$ is :class:`CCALoss` applied to
+    each pair of views. This is the deep, gradient-descent analogue of the
+    SUMCOR multiset objective (Kettenring 1971) also used by the linear
+    :class:`~cca_zoo.linear.MCCA`, and encourages every pair of views to be
+    mutually correlated in the shared latent space.
+
+    References:
+        Kettenring, J. R. (1971). Canonical analysis of several sets of
+        variables. *Biometrika*, 58(3), 433-451.
 
     Args:
         eps: Ridge regularisation passed to each pairwise CCALoss.
@@ -135,16 +154,25 @@ class MCCALoss(nn.Module):
 
 
 class GCCALoss(nn.Module):
-    """Generalised CCA loss for multiple views (GCCA objective).
+    r"""Generalised CCA loss for multiple views (MAX-VAR GCCA objective).
 
     Maximises the sum of squared correlations between each whitened view
-    and a shared latent target T.  In practice we minimise::
+    and a shared latent target. Equivalently, minimises the negative sum
+    of the top $k$ eigenvalues of the summed whitened Gram matrix:
 
-        -tr( sum_i H_i^T T T^T H_i )
+    $$
+    \mathcal{L} = -\sum_{d=1}^{k} \lambda_d\!\left(\sum_i H_i H_i^\top\right)
+    $$
 
-    where H_i = X_i (X_i^T X_i + eps*I)^{-1/2} is the whitened
-    representation of view i.  T is obtained as the top-k eigenvectors
-    of sum_i H_i H_i^T.
+    where $H_i = \tilde{Z}_i (\tilde{Z}_i^\top \tilde{Z}_i +
+    \epsilon I)^{-1/2}$ is the (mean-centred, ridge-whitened) representation
+    of view $i$, and $\lambda_d(\cdot)$ denotes the $d$-th
+    largest eigenvalue. This mirrors the generalised eigenvalue problem
+    solved in closed form by the linear :class:`~cca_zoo.linear.GCCA`.
+
+    References:
+        Benton, A., et al. "Deep Generalized Canonical Correlation
+        Analysis." RepL4NLP 2019.
 
     Args:
         eps: Ridge regularisation for within-view covariance inversion.
@@ -193,12 +221,27 @@ class GCCALoss(nn.Module):
 
 
 class TCCALoss(nn.Module):
-    """Tensor CCA loss (proxy via Frobenius norm of cross-moment tensor).
+    r"""Tensor CCA loss (proxy via Frobenius norm of cross-moment tensor).
 
-    Forms the cross-moment tensor M where
-    M[d1, d2, ..., dV] = (1/n) sum_s prod_i H_i[s, d_i]
-    for whitened representations H_i, then returns -||M||_F as a
-    differentiable proxy for the tensor CCA objective.
+    Forms the higher-order cross-moment tensor of the whitened
+    representations and returns the negative Frobenius norm as a
+    differentiable proxy for the tensor CCA objective:
+
+    $$
+    M = \frac{1}{n} \sum_{s=1}^{n} H_1[s] \otimes H_2[s] \otimes
+        \cdots \otimes H_V[s], \qquad
+    \mathcal{L} = -\left\| M \right\|_F
+    $$
+
+    where $\otimes$ denotes the outer product and $H_i =
+    \tilde{Z}_i (\tilde{Z}_i^\top \tilde{Z}_i + \epsilon I)^{-1/2}$ is the
+    whitened representation of view $i$. This is the deep,
+    gradient-descent analogue of the higher-order cross-moment maximised
+    in closed form by the linear :class:`~cca_zoo.linear.TCCA`.
+
+    References:
+        Kim, T.-K., Wong, S.-F., & Cipolla, R. (2007). Tensor canonical
+        correlation analysis for action classification. *CVPR 2007*. IEEE.
 
     Args:
         eps: Ridge regularisation for whitening. Default is 1e-5.

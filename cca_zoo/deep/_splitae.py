@@ -12,17 +12,25 @@ from cca_zoo.deep._base import BaseDeep
 
 
 class SplitAE(BaseDeep):
-    """Split Autoencoder baseline for multiview learning.
+    r"""Split Autoencoder baseline for multiview learning.
 
     All views are encoded individually into a shared latent space.
     The concatenated representations are used to reconstruct each
-    view via dedicated decoders.  The loss is the sum of MSE
-    reconstruction losses across all views::
+    view via dedicated decoders:
 
-        L = sum_i MSE(x_i, decoder_i(cat(z_1, ..., z_V)))
+    $$
+    \mathcal{L} = \sum_i \operatorname{MSE}\!\bigl(
+        x_i,\ \text{decoder}_i(z_1 \,\|\, \cdots \,\|\, z_V)
+    \bigr)
+    $$
 
-    This model serves as a reconstruction-based baseline that does
-    not explicitly maximise correlation.
+    where $\|$ denotes concatenation. This model serves as a
+    reconstruction-based baseline that does not explicitly maximise
+    correlation between views — "split autoencoder" architectures of this
+    kind are a common baseline in the deep multiview representation
+    learning literature (e.g. compared against by Wang, W., et al. in
+    "On deep multi-view representation learning." ICML 2015), rather than
+    a single-paper reproduction.
 
     Args:
         latent_dimensions: Dimensionality of each encoder's output.

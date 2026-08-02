@@ -13,13 +13,12 @@ class CCA(rCCA):
     Finds the pair of linear projections that maximise the Pearson correlation
     between two views subject to unit within-view variance constraints:
 
-    .. math::
-
-        \max_{\mathbf{w}_1, \mathbf{w}_2}
-            \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
-
-        \text{subject to }
-        \mathbf{w}_i^\top X_i^\top X_i \mathbf{w}_i = 1
+    $$
+    \begin{aligned}
+    \max_{\mathbf{w}_1, \mathbf{w}_2} \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2 \\
+    \text{subject to } \mathbf{w}_i^\top X_i^\top X_i \mathbf{w}_i = 1
+    \end{aligned}
+    $$
 
     This is a special case of :class:`rCCA` with ``c=0``.  The solution uses
     PCA whitening followed by an SVD of the cross-covariance matrix, which is

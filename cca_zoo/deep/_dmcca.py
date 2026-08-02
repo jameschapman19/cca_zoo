@@ -10,19 +10,24 @@ from cca_zoo.deep.objectives import MCCALoss
 
 
 class DMCCA(DCCA):
-    """Deep Multiset CCA.
+    r"""Deep Multiset CCA.
 
     Applies the multiview pairwise-sum CCA loss
     (:class:`~cca_zoo.deep.objectives.MCCALoss`) to neural representations,
     encouraging every pair of views to be mutually correlated in the shared
-    latent space. Unlike the base :class:`DCCA`, this supports more than
-    two encoders/views out of the box.
+    latent space:
 
-    This is the same SUMCOR multiset objective used by the linear
-    :class:`~cca_zoo.linear.MCCA`, here optimised over neural encoder
-    outputs by gradient descent rather than via eigendecomposition.
+    $$
+    \mathcal{L} = \sum_{i < j} \mathcal{L}_{\text{CCA}}(z_i, z_j)
+    $$
 
-    Reference:
+    Unlike the base :class:`DCCA`, this supports more than two
+    encoders/views out of the box. This is the same SUMCOR multiset
+    objective used by the linear :class:`~cca_zoo.linear.MCCA`, here
+    optimised over neural encoder outputs by gradient descent rather than
+    via eigendecomposition.
+
+    References:
         Kettenring, J. R. (1971). Canonical analysis of several sets of
         variables. *Biometrika*, 58(3), 433-451.
 

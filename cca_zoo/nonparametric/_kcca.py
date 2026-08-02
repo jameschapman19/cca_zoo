@@ -17,20 +17,20 @@ class KCCA(BaseModel):
     r"""Kernel Canonical Correlation Analysis.
 
     Extends MCCA to nonlinear relationships by mapping each view into a
-    reproducing kernel Hilbert space via a kernel function :math:`k_i`.  The
-    dual variables (kernel coefficients) :math:`\boldsymbol{\alpha}_i` are
+    reproducing kernel Hilbert space via a kernel function $k_i$.  The
+    dual variables (kernel coefficients) $\boldsymbol{\alpha}_i$ are
     found by solving the kernelised generalised eigenvalue problem:
 
-    .. math::
-
-        A \boldsymbol{\alpha} = \lambda B \boldsymbol{\alpha}
+    $$
+    A \boldsymbol{\alpha} = \lambda B \boldsymbol{\alpha}
+    $$
 
     where:
 
-    * :math:`A` is the between-kernel cross-covariance block matrix.
-    * :math:`B = \mathrm{block\_diag}\bigl(
+    * $A$ is the between-kernel cross-covariance block matrix.
+    * $B = \mathrm{block\_diag}\bigl(
           c_i K_i + (1 - c_i) K_i^2
-      \bigr)` is the regularised within-kernel matrix.
+      \bigr)$ is the regularised within-kernel matrix.
 
     References:
         Hardoon, D. R., Szedmak, S., & Shawe-Taylor, J. (2004). Canonical

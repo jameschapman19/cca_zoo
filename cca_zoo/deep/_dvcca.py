@@ -13,7 +13,7 @@ from cca_zoo.deep._base import BaseDeep
 
 
 class DVCCA(BaseDeep):
-    """Deep Variational Canonical Correlation Analysis.
+    r"""Deep Variational Canonical Correlation Analysis.
 
     A variational autoencoder framework for multiview data.  Each
     encoder maps a view to a 2 * latent_dimensions output, which is
@@ -21,14 +21,24 @@ class DVCCA(BaseDeep):
     latent code z is sampled via the reparameterisation trick and then
     decoded to reconstruct all views.
 
-    The training objective is the negative ELBO::
+    The training objective is the negative ELBO:
 
-        L = sum_i MSE(x_i, decoder_i(z)) + KL(q(z|X) || p(z))
+    $$
+    \mathcal{L} = \sum_i \operatorname{MSE}\!\bigl(x_i,\ \text{decoder}_i(z)\bigr)
+        + \mathrm{KL}\!\bigl(q(z \mid X) \,\|\, p(z)\bigr)
+    $$
 
-    where q(z|X) = N(sum_i mu_i, diag(exp(sum_i log_var_i))) and
-    p(z) = N(0, I).
+    where the approximate posterior aggregates all views' encoders and the
+    prior is a standard normal:
 
-    Reference:
+    $$
+    q(z \mid X) = \mathcal{N}\!\Bigl(
+        \textstyle\sum_i \mu_i,\
+        \operatorname{diag}\bigl(\exp(\textstyle\sum_i \log\sigma_i^2)\bigr)
+    \Bigr), \qquad p(z) = \mathcal{N}(0, I)
+    $$
+
+    References:
         Wang, W., et al. "Deep variational canonical correlation
         analysis." arXiv:1610.03454 (2016).
 

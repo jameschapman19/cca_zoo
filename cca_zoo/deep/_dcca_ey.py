@@ -39,19 +39,26 @@ def _cca_cv(
 
 
 class DCCA_EY(DCCA):
-    """DCCA using the EigenGame / Eckart-Young (EY) objective.
+    r"""DCCA using the EigenGame / Eckart-Young (EY) objective.
 
-    The EY objective for CCA can be written as::
+    For $M$ views with embeddings $Z_1, \dots, Z_M$, define the
+    mean pairwise cross-covariance $C$ and mean auto-covariance
+    $V$ (see :mod:`cca_zoo._utils._ey` for the full definitions).
+    The EY loss minimised is:
 
-        L = -tr(2 * C) + tr(V @ V)
+    $$
+    \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(VV)
+    $$
 
-    where C is the averaged cross-covariance and V is the averaged
-    auto-covariance of the latent representations.  When
-    ``independent_representations`` are provided, the penalty term
-    becomes ``tr(V @ V_ind)`` to decouple estimation of the two
-    quantities (as in the EigenGame formulation).
+    This is an *unconstrained* stand-in for CCA — unlike the exact
+    eigendecomposition solution, it requires no manifold projection and is
+    a stationary point exactly at the canonical directions, making it
+    suitable for mini-batch gradient descent. When
+    ``independent_representations`` are provided, the $\operatorname{tr}(VV)$
+    penalty becomes $\operatorname{tr}(V V_{\text{ind}})$ to decouple
+    estimation of the two quantities (as in the EigenGame formulation).
 
-    Reference:
+    References:
         Chapman, J., Aguila, A. L., & Wells, L. "A Generalised EigenGame
         with Extensions to Multiview Representation Learning."
         arXiv:2211.11323 (2022).

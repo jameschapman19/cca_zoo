@@ -9,19 +9,21 @@ from cca_zoo.deep._dcca import DCCA
 
 
 class BarlowTwins(DCCA):
-    """Barlow Twins self-supervised learning model.
+    r"""Barlow Twins self-supervised learning model.
 
     Learns representations by encouraging the cross-correlation matrix
-    between two views to be close to the identity.  The loss has two
-    components::
+    between two views to be close to the identity:
 
-        L = sum_i (1 - C_ii)^2 + lam * sum_{i != j} C_ij^2
+    $$
+    \mathcal{L} = \sum_i (1 - C_{ii})^2 + \lambda \sum_{i \neq j} C_{ij}^2,
+    \qquad C = \frac{1}{n} Z_1^\top Z_2
+    $$
 
-    where C is the cross-correlation matrix between batch-normalised
-    representations of the two views.  Batch normalisation is applied
-    per-view before computing C.
+    where $Z_1, Z_2$ are the batch-normalised representations of the
+    two views. Batch normalisation is applied per-view before computing
+    $C$.
 
-    Reference:
+    References:
         Zbontar, J., et al. "Barlow twins: Self-supervised learning via
         redundancy reduction." ICML 2021.
 

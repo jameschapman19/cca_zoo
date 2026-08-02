@@ -13,16 +13,23 @@ from cca_zoo.deep.objectives import CCALoss
 
 
 class DCCAE(BaseDeep):
-    """Deep CCA with Autoencoders.
+    r"""Deep CCA with Autoencoders.
 
     Extends DCCA by adding per-view reconstruction losses.  The total
     objective is a convex combination of the CCA loss and the summed
-    MSE reconstruction losses::
+    MSE reconstruction losses:
 
-        L = lam * sum_i MSE(x_i, decoder_i(encoder_i(x_i)))
-            + (1 - lam) * CCALoss(z_1, ..., z_V)
+    $$
+    \mathcal{L} = (1 - \lambda) \, \mathcal{L}_{\text{CCA}}(z_1, \dots, z_V)
+        + \lambda \sum_i \operatorname{MSE}\!\bigl(x_i,\ \text{decoder}_i(z_i)\bigr)
+    $$
 
-    Reference:
+    where $\mathcal{L}_{\text{CCA}}$ defaults to
+    :class:`~cca_zoo.deep.objectives.CCALoss`. When $\lambda = 0$ the
+    model reduces to :class:`~cca_zoo.deep.DCCA`; when $\lambda = 1$
+    it is a pure autoencoder.
+
+    References:
         Wang, W., et al. "On deep multi-view representation learning."
         ICML 2015.
 

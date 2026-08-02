@@ -68,21 +68,29 @@ def _covariance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
 
 
 class VICReg(DCCA):
-    """Variance-Invariance-Covariance Regularization.
+    r"""Variance-Invariance-Covariance Regularization.
 
-    Three-term self-supervised objective that jointly encourages::
+    Three-term self-supervised objective that jointly encourages
+    invariance (MSE similarity between the two views' representations),
+    variance (per-feature standard deviation at least 1, preventing
+    collapse), and covariance (off-diagonal covariance close to zero,
+    reducing redundancy between feature dimensions):
 
-        - Invariance: MSE similarity between the two views' representations.
-        - Variance: Standard deviation of each feature dimension >= 1.
-        - Covariance: Off-diagonal covariance close to zero.
+    $$
+    \mathcal{L} = \gamma \operatorname{MSE}(z_1, z_2)
+        + \mu \sum_{k \in \{1,2\}} \operatorname{mean}\bigl(
+            \max(0,\ 1 - \sigma(z_k))
+        \bigr)
+        + \nu \sum_{k \in \{1,2\}} \frac{1}{d} \sum_{i \neq j}
+            \operatorname{Cov}(z_k)_{ij}^2
+    $$
 
-    The total loss is::
+    where $\gamma, \mu, \nu$ are ``sim_coeff``, ``std_coeff``, and
+    ``cov_coeff`` respectively, $\sigma(z_k)$ is the per-dimension
+    standard deviation of view $k$'s representation, and $d$
+    is the latent dimensionality.
 
-        L = sim_coeff * MSE(z1, z2)
-            + std_coeff * (hinge_var(z1) + hinge_var(z2))
-            + cov_coeff * (off_diag_cov(z1) + off_diag_cov(z2))
-
-    Reference:
+    References:
         Bardes, A., Ponce, J., & LeCun, Y. "VICReg: Variance-Invariance-
         Covariance Regularization for Self-Supervised Learning."
         arXiv:2105.04906 (2022).

@@ -169,14 +169,20 @@ class PLS_ALS(_BaseIterative):
     Maximises the sum of cross-view covariances using simple power-iteration
     updates, without regularisation:
 
-    .. math::
+    $$
+    \mathbf{w}_i \leftarrow
+        \frac{X_i^\top \bar{\mathbf{s}}_{\neg i}}
+             {\|X_i^\top \bar{\mathbf{s}}_{\neg i}\|_2}
+    $$
 
-        \mathbf{w}_i \leftarrow
-            \frac{X_i^\top \bar{\mathbf{s}}_{\neg i}}
-                 {\|X_i^\top \bar{\mathbf{s}}_{\neg i}\|_2}
+    where $\bar{\mathbf{s}}_{\neg i}$ is the normalised sum of
+    projected scores from all views except $i$. This is the
+    multiset generalisation of the NIPALS alternating power iteration.
 
-    where :math:`\bar{\mathbf{s}}_{\neg i}` is the normalised sum of
-    projected scores from all views except :math:`i`.
+    References:
+        Wold, H. (1975). Soft modelling by latent variables: the nonlinear
+        iterative partial least squares (NIPALS) approach. *Perspectives in
+        Probability and Statistics*, 117-142.
 
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
@@ -258,14 +264,13 @@ class SCCA_PMD(_BaseIterative):
     Maximises the cross-view covariance subject to L1 norm constraints on
     each weight vector:
 
-    .. math::
-
-        \max_{\mathbf{w}_1, \mathbf{w}_2}
-            \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
-
-        \text{subject to }
-        \|\mathbf{w}_i\|_1 \leq \tau_i \sqrt{p_i},\quad
+    $$
+    \begin{aligned}
+    \max_{\mathbf{w}_1, \mathbf{w}_2} \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2 \\
+    \text{subject to } \|\mathbf{w}_i\|_1 \leq \tau_i \sqrt{p_i},\quad
         \|\mathbf{w}_i\|_2 = 1
+    \end{aligned}
+    $$
 
     The update for each view uses bisection to find the soft-threshold that
     satisfies the L1 constraint exactly.
@@ -385,14 +390,26 @@ class SCCA_ADMM(_BaseIterative):
 
     Solves the sparse CCA problem using ADMM to enforce both the L1 sparsity
     constraint on weight vectors and the unit-norm constraint on the projected
-    scores simultaneously.
+    scores simultaneously. For view $i$, each outer iteration performs:
 
-    For view :math:`i` the ADMM sub-problems are:
+    $$
+    \begin{aligned}
+    \mathbf{w}_i &\leftarrow \mathbf{w}_i - \gamma_i \Bigl(
+        X_i^\top X_i \mathbf{w}_i - X_i^\top \bar{\mathbf{s}}_{\neg i}
+        + \mu (\mathbf{w}_i - \mathbf{z}_i + \mathbf{u}_i)
+    \Bigr) \\
+    \mathbf{z}_i &\leftarrow \Pi_{\|\cdot\|_2 \le 1}\Bigl(
+        \mathcal{S}_{\tau_i / \mu}(\mathbf{w}_i + \mathbf{u}_i)
+    \Bigr) \\
+    \mathbf{u}_i &\leftarrow \mathbf{u}_i + \mathbf{w}_i - \mathbf{z}_i
+    \end{aligned}
+    $$
 
-    * :math:`\mathbf{w}_i` update — proximal gradient step w.r.t. the data
-      fidelity term.
-    * Auxiliary variable :math:`\mathbf{z}_i` update — soft thresholding.
-    * Dual variable update.
+    where $\bar{\mathbf{s}}_{\neg i}$ is the summed projected score
+    from all other views, $\mathcal{S}_\lambda$ is the elementwise
+    soft-threshold operator, $\Pi_{\|\cdot\|_2 \le 1}$ projects onto
+    the unit ball, $\mathbf{u}_i$ is the scaled dual variable, and
+    $\gamma_i = \bigl(\|X_i^\top X_i\| / n + \mu\bigr)^{-1}$.
 
     References:
         Suo, X., Mineiro, P., & Anandkumar, A. (2017). Sparse canonical
@@ -505,16 +522,16 @@ class SCCA_ADMM(_BaseIterative):
 class SCCA_IPLS(_BaseIterative):
     r"""Iterative PLS with elastic net penalty on weight vectors.
 
-    Alternates between penalised regression sub-problems.  For view :math:`i`:
+    Alternates between penalised regression sub-problems.  For view $i$:
 
-    .. math::
-
-        \hat{\mathbf{w}}_i = \arg\min_{\mathbf{w}}
-            \frac{1}{2n} \|X_i \mathbf{w} - \bar{\mathbf{s}}_{\neg i}\|_2^2
-            + \alpha_i \Bigl(
-                l_1 \|\mathbf{w}\|_1
-                + \tfrac{1-l_1}{2} \|\mathbf{w}\|_2^2
-            \Bigr)
+    $$
+    \hat{\mathbf{w}}_i = \arg\min_{\mathbf{w}}
+        \frac{1}{2n} \|X_i \mathbf{w} - \bar{\mathbf{s}}_{\neg i}\|_2^2
+        + \alpha_i \Bigl(
+            l_1 \|\mathbf{w}\|_1
+            + \tfrac{1-l_1}{2} \|\mathbf{w}\|_2^2
+        \Bigr)
+    $$
 
     followed by a normalisation step to enforce unit variance of the score.
 
@@ -716,16 +733,16 @@ class ElasticCCA(_BaseIterative):
     Alternates between elastic net regression sub-problems, regressing each
     view's score against the sum of all other views' scores:
 
-    .. math::
+    $$
+    \hat{\mathbf{w}}_i = \arg\min_{\mathbf{w}}
+        \frac{1}{2n} \|X_i \mathbf{w} - \mathbf{s}_{\text{all}}\|_2^2
+        + \alpha_i \Bigl(
+            l_1 \|\mathbf{w}\|_1
+            + \tfrac{1 - l_1}{2} \|\mathbf{w}\|_2^2
+        \Bigr)
+    $$
 
-        \hat{\mathbf{w}}_i = \arg\min_{\mathbf{w}}
-            \frac{1}{2n} \|X_i \mathbf{w} - \mathbf{s}_{\text{all}}\|_2^2
-            + \alpha_i \Bigl(
-                l_1 \|\mathbf{w}\|_1
-                + \tfrac{1 - l_1}{2} \|\mathbf{w}\|_2^2
-            \Bigr)
-
-    where :math:`\mathbf{s}_{\text{all}} = \sum_j X_j \mathbf{w}_j / \|\cdot\|`.
+    where $\mathbf{s}_{\text{all}} = \sum_j X_j \mathbf{w}_j / \|\cdot\|$.
 
     References:
         Waaijenborg, S., de Witt Hamer, P. C. V., & Zwinderman, A. H.
@@ -822,15 +839,15 @@ class ElasticCCA(_BaseIterative):
 class ParkhomenkoCCA(_BaseIterative):
     r"""Sparse CCA via soft-thresholding power iteration (Parkhomenko 2009).
 
-    Uses a fixed soft-threshold :math:`\tau_i` rather than the adaptive
+    Uses a fixed soft-threshold $\tau_i$ rather than the adaptive
     bisection search of :class:`SCCA_PMD`:
 
-    .. math::
+    $$
+    \mathbf{w}_i \leftarrow
+        S_{\tau_i}(X_i^\top \bar{\mathbf{s}}_{\neg i})
+    $$
 
-        \mathbf{w}_i \leftarrow
-            S_{\tau_i}(X_i^\top \bar{\mathbf{s}}_{\neg i})
-
-    where :math:`S_\tau` is the element-wise soft-threshold operator.
+    where $S_\tau$ is the element-wise soft-threshold operator.
 
     References:
         Parkhomenko, E., Tritchler, D., & Beyene, J. (2009). Sparse

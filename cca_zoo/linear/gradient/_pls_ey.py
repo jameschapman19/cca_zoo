@@ -19,16 +19,16 @@ class PLS_EY(BaseGradientModel):
     the quadratic penalty on the weight Gram matrices below drives the
     weights towards (approximate) orthonormality at the optimum on its own.
 
-    For :math:`M` views with weights :math:`W_i` and embeddings
-    :math:`Z_i = X_i W_i`, define:
+    For $M$ views with weights $W_i$ and embeddings
+    $Z_i = X_i W_i$, define:
 
-    .. math::
+    $$
+    A = \frac{1}{M} \sum_{i \neq j} \operatorname{Cov}(Z_i, Z_j), \qquad
+    B = \frac{1}{M} \sum_i W_i^\top W_i
+    $$
 
-        A = \frac{1}{M} \sum_{i \neq j} \operatorname{Cov}(Z_i, Z_j), \qquad
-        B = \frac{1}{M} \sum_i W_i^\top W_i
-
-    and minimise :math:`\mathcal{L} = -2 \operatorname{tr}(A)
-    + \operatorname{tr}(B B)`.
+    and minimise $\mathcal{L} = -2 \operatorname{tr}(A)
+    + \operatorname{tr}(B B)$.
 
     Suitable for high-dimensional or streaming data where forming the full
     (p x p) cross-covariance matrix is too expensive.
@@ -93,15 +93,15 @@ class PLS_EY(BaseGradientModel):
         representations: list[np.ndarray],
         weights: list[np.ndarray],
     ) -> list[np.ndarray]:
-        r"""Analytic gradient :math:`\partial \mathcal{L} / \partial W_k`.
+        r"""Analytic gradient $\partial \mathcal{L} / \partial W_k$.
 
-        .. math::
+        $$
+        \frac{\partial \mathcal{L}}{\partial W_k} =
+            -\frac{4}{M(n-1)} X_k^\top \left(S - Z_k\right)
+            + \frac{4}{M} W_k B
+        $$
 
-            \frac{\partial \mathcal{L}}{\partial W_k} =
-                -\frac{4}{M(n-1)} X_k^\top \left(S - Z_k\right)
-                + \frac{4}{M} W_k B
-
-        where :math:`S = \sum_i Z_i` (all centred) and :math:`B` is the mean
+        where $S = \sum_i Z_i$ (all centred) and $B$ is the mean
         weight Gram matrix. Verified against finite-difference gradients for
         M = 2, 3, 4.
 

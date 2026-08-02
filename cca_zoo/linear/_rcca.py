@@ -16,14 +16,13 @@ class rCCA(BaseModel):
     Finds the pair of linear projections of two views that maximise their
     correlation subject to regularised within-view variance constraints:
 
-    .. math::
-
-        \max_{\mathbf{w}_1, \mathbf{w}_2}
-            \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
-
-        \text{subject to }
-        \mathbf{w}_i^\top
+    $$
+    \begin{aligned}
+    \max_{\mathbf{w}_1, \mathbf{w}_2} \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2 \\
+    \text{subject to } \mathbf{w}_i^\top
         \bigl((1 - c_i) X_i^\top X_i + c_i I\bigr) \mathbf{w}_i = 1
+    \end{aligned}
+    $$
 
     The solution is found by whitening each view with its regularised
     covariance matrix and computing the SVD of the resulting cross-covariance.

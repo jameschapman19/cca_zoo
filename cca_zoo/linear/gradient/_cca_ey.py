@@ -17,14 +17,14 @@ class CCA_EY(BaseGradientModel):
     Applies per-view PCA whitening, then optimises the unconstrained
     Eckart-Young (EY) objective by mini-batch momentum gradient descent in
     the whitened space, with no manifold projection step. For embeddings
-    :math:`Z_i` (from the whitened views), let :math:`C` be the mean
-    pairwise cross-covariance (including :math:`i = j` terms) and :math:`V`
+    $Z_i$ (from the whitened views), let $C$ be the mean
+    pairwise cross-covariance (including $i = j$ terms) and $V$
     the mean auto-covariance across views (see
     :func:`cca_zoo._utils._ey.ey_cross_covariance`); the loss minimised is
 
-    .. math::
-
-        \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
+    $$
+    \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
+    $$
 
     This objective has the canonical directions as a stationary point
     without requiring an explicit orthonormality constraint, unlike a plain

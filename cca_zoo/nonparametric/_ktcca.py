@@ -19,7 +19,7 @@ class KTCCA(BaseModel):
 
     Extends TCCA to nonlinear relationships by computing the cross-moment
     tensor from whitened kernel matrices rather than from the raw views.
-    Each kernel matrix :math:`K_i` is whitened using its regularised
+    Each kernel matrix $K_i$ is whitened using its regularised
     self-product, then PARAFAC is applied to the resulting cross-moment
     tensor.
 

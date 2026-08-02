@@ -181,7 +181,7 @@ def _inv_sqrtm(A: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
         eps: Regularisation added to eigenvalues for stability.
 
     Returns:
-        Tensor of shape (n, n): :math:`A^{-1/2}`.
+        Tensor of shape (n, n): $A^{-1/2}$.
     """
     L, V = torch.linalg.eigh(A)
     L = torch.clamp(L, min=eps)

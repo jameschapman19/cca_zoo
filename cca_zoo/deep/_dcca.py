@@ -10,17 +10,27 @@ from cca_zoo.deep.objectives import CCALoss
 
 
 class DCCA(BaseDeep):
-    """Deep Canonical Correlation Analysis with a pluggable objective.
+    r"""Deep Canonical Correlation Analysis with a pluggable objective.
 
     Trains two (or more) neural network encoders to maximise canonical
-    correlation between their outputs.  The objective function is
-    controlled by the ``objective`` parameter, which defaults to the
-    Andrew 2013 CCALoss.
+    correlation between their outputs, by minimising, per mini-batch:
+
+    $$
+    \mathcal{L} = -\left\|
+        \Sigma_{11}^{-1/2} \Sigma_{12} \Sigma_{22}^{-1/2}
+    \right\|_F^2
+    $$
+
+    where $\Sigma_{11}, \Sigma_{22}$ are the (ridge-regularised)
+    within-view covariances of the two encoder outputs and
+    $\Sigma_{12}$ their cross-covariance (see
+    :class:`~cca_zoo.deep.objectives.CCALoss`). The objective is pluggable
+    via the ``objective`` parameter, which defaults to the above.
 
     The model is a :class:`lightning.pytorch.LightningModule` and is
     trained via a :class:`lightning.Trainer`.
 
-    Reference:
+    References:
         Andrew, G., et al. "Deep canonical correlation analysis."
         ICML 2013.
 

@@ -6,23 +6,23 @@ This is the loss used by :class:`~cca_zoo.linear.gradient.CCA_EY`,
 required) stand-in for canonical correlation analysis that is a stationary
 point exactly at the canonical directions.
 
-For :math:`M` views with (possibly non-orthonormal) embeddings
-:math:`Z_1, \dots, Z_M`, each :math:`(n, k)`, define the mean pairwise
+For $M$ views with (possibly non-orthonormal) embeddings
+$Z_1, \dots, Z_M$, each $(n, k)$, define the mean pairwise
 cross-covariance and mean auto-covariance:
 
-.. math::
+$$
+C = \frac{1}{M} \sum_{i, j} \operatorname{Cov}(Z_i, Z_j), \qquad
+V = \frac{1}{M} \sum_i \operatorname{Cov}(Z_i, Z_i)
+$$
 
-    C = \frac{1}{M} \sum_{i, j} \operatorname{Cov}(Z_i, Z_j), \qquad
-    V = \frac{1}{M} \sum_i \operatorname{Cov}(Z_i, Z_i)
+(the sum for $C$ ranges over *all* ordered pairs, including
+$i = j$). The EY loss to minimise is:
 
-(the sum for :math:`C` ranges over *all* ordered pairs, including
-:math:`i = j`). The EY loss to minimise is:
+$$
+\mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
+$$
 
-.. math::
-
-    \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
-
-Reference:
+References:
     Chapman, J., Lawry Aguila, A., & Wells, L. (2022). A Generalised
     EigenGame with Extensions to Multiview Representation Learning.
     arXiv:2211.11323.
@@ -44,9 +44,9 @@ def ey_cross_covariance(
 
     Returns:
         Tuple ``(C, V)``, each of shape (k, k):
-        ``C`` is the mean of :math:`\operatorname{Cov}(Z_i, Z_j)` over all
-        ordered pairs (including :math:`i = j`); ``V`` is the mean of
-        :math:`\operatorname{Cov}(Z_i, Z_i)`.
+        ``C`` is the mean of $\operatorname{Cov}(Z_i, Z_j)$ over all
+        ordered pairs (including $i = j$); ``V`` is the mean of
+        $\operatorname{Cov}(Z_i, Z_i)$.
     """
     n = representations[0].shape[0]
     m = len(representations)
@@ -85,13 +85,13 @@ def ey_loss(representations: list[np.ndarray]) -> dict[str, float]:
 def ey_grad_z(representations: list[np.ndarray]) -> list[np.ndarray]:
     r"""Gradient of the EY loss w.r.t. each embedding (M-view generalised).
 
-    .. math::
+    $$
+    \frac{\partial \mathcal{L}_{EY}}{\partial Z_k}
+        = \frac{4}{M (n - 1)} \left( \tilde{Z}_k V - S \right)
+    $$
 
-        \frac{\partial \mathcal{L}_{EY}}{\partial Z_k}
-            = \frac{4}{M (n - 1)} \left( \tilde{Z}_k V - S \right)
-
-    where :math:`\tilde{Z}_k` is the centred k-th embedding,
-    :math:`S = \sum_i \tilde{Z}_i`, and :math:`V` is the mean auto-covariance
+    where $\tilde{Z}_k$ is the centred k-th embedding,
+    $S = \sum_i \tilde{Z}_i$, and $V$ is the mean auto-covariance
     (see :func:`ey_cross_covariance`). Verified against finite-difference
     gradients of :func:`ey_loss` for M = 2, 3, 4.
 
