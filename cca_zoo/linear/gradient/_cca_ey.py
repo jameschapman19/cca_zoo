@@ -53,7 +53,7 @@ class CCA_EY(BaseGradientModel):
         >>> X1 = rng.standard_normal((200, 500))
         >>> X2 = rng.standard_normal((200, 400))
         >>> model = CCA_EY(latent_dimensions=4, c=0.1, batch_size=64, random_state=0)
-        >>> model.fit([X1, X2])
+        >>> model = model.fit([X1, X2])
     """
 
     def __init__(

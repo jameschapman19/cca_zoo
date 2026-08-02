@@ -23,7 +23,7 @@ classifiers = [
 dependencies = [
     "numpy>=1.26",
     "scipy>=1.11",
-    "scikit-learn>=1.4",
+    "scikit-learn>=1.6",
     "tensorly>=0.8",
 ]
 
