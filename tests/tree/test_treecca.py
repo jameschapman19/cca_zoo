@@ -33,11 +33,12 @@ def test_two_view_fit_completes(two_views_small: list[np.ndarray]) -> None:
     assert fitted is model
 
 
-def test_three_views_raises(three_views_small: list[np.ndarray]) -> None:
-    """Fitting with more than two views raises ValueError."""
+def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
+    """Fit completes on three-view data without error."""
     model = _make_model()
-    with pytest.raises(ValueError, match="exactly two views"):
-        model.fit(three_views_small)
+    fitted = model.fit(three_views_small)
+    assert fitted is model
+    assert len(model.boosters_) == 3
 
 
 # ---------------------------------------------------------------------------
@@ -68,11 +69,15 @@ def test_transform_on_test_data(two_views_small: list[np.ndarray]) -> None:
         assert arr.shape == (10, k)
 
 
-def test_transform_three_views_raises(two_views_small: list[np.ndarray]) -> None:
-    """Transform with more than two views raises ValueError."""
-    model = _make_model().fit(two_views_small)
-    with pytest.raises(ValueError, match="exactly two views"):
-        model.transform([*two_views_small, two_views_small[0]])
+def test_transform_shapes_three_views(three_views_small: list[np.ndarray]) -> None:
+    """Transform on three-view data returns one array per view."""
+    k = 2
+    model = _make_model(latent_dimensions=k).fit(three_views_small)
+    result = model.transform(three_views_small)
+    assert len(result) == 3
+    n = three_views_small[0].shape[0]
+    for arr in result:
+        assert arr.shape == (n, k)
 
 
 # ---------------------------------------------------------------------------
@@ -285,4 +290,17 @@ def test_treecca_finds_correlation_on_correlated_views(
     """TreeCCA finds substantial correlation on views with shared latent structure."""
     model = TreeCCA(latent_dimensions=1, n_estimators=60, max_depth=3, random_state=0)
     s = model.fit(correlated_views).score(correlated_views)
+    assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
+
+
+def test_treecca_finds_correlation_on_three_correlated_views() -> None:
+    """TreeCCA (multiview) finds substantial correlation on 3 correlated views."""
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((200, 1))
+    views = [
+        z @ rng.standard_normal((1, 5)) + 0.1 * rng.standard_normal((200, 5))
+        for _ in range(3)
+    ]
+    model = TreeCCA(latent_dimensions=1, n_estimators=300, max_depth=3, random_state=0)
+    s = model.fit(views).score(views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"

@@ -76,9 +76,9 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `MCCA` | Multiset CCA — pairwise sum objective | ≥2 |
 | `GCCA` | Generalised CCA — shared latent projection | ≥2 |
 | `TCCA` | Tensor CCA — higher-order cross-moment | ≥2 |
-| `CCA_EY` | Stochastic Eckart-Young CCA (Riemannian GD) | 2 |
-| `PLS_EY` | Stochastic Eckart-Young PLS (Riemannian GD) | 2 |
-| `MCCA_EY` | Multiview Eckart-Young CCA (Riemannian GD) | ≥2 |
+| `CCA_EY` | Stochastic Eckart-Young CCA (unconstrained gradient descent) | 2 |
+| `PLS_EY` | Stochastic Eckart-Young PLS (unconstrained gradient descent) | 2 |
+| `MCCA_EY` | Multiview Eckart-Young CCA (unconstrained gradient descent) | ≥2 |
 | `SCCA_PMD` | Sparse CCA via PMD (Witten 2009) | ≥2 |
 | `SCCA_ADMM` | Sparse CCA via ADMM (Suo 2017) | ≥2 |
 | `SCCA_IPLS` | Sparse CCA via iterative PLS (Mai & Zhang 2019) | ≥2 |
@@ -99,7 +99,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 
 | Class | Description | Views |
 |---|---|---|
-| `TreeCCA` | Gradient-boosted-tree CCA (Eckart-Young objective) | 2 |
+| `TreeCCA` | Gradient-boosted-tree CCA (Eckart-Young objective) | ≥2 |
 
 ### `cca_zoo.deep` *(requires `[deep]`)*
 

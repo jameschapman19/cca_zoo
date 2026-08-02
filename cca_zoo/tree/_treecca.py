@@ -10,6 +10,7 @@ from numpy.typing import ArrayLike
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._ey import ey_grad_z
 from cca_zoo._utils._validation import validate_views
 
 try:
@@ -20,31 +21,28 @@ except ImportError:
     _LGBM_AVAILABLE = False
 
 
-def _ey_grad(
-    Z1: np.ndarray, Z2: np.ndarray, target_std: float = 0.1
-) -> tuple[np.ndarray, np.ndarray]:
-    """Compute the Eckart-Young (EY) loss gradient w.r.t. two centred embeddings.
+def _rescale_to_target_std(
+    grads: list[np.ndarray], target_std: float = 0.1
+) -> list[np.ndarray]:
+    """Rescale a set of per-view gradients to a common target standard deviation.
+
+    Boosted-tree leaf values are well-conditioned only for a roughly-fixed
+    gradient scale, so the exact (analytic) EY gradient is rescaled by a
+    single shared scalar before being used as a custom-objective target.
+    Since the same scalar is applied to every view, this changes only the
+    effective step size, not the gradient's direction or relative
+    cross-view magnitudes.
 
     Args:
-        Z1: View-1 embedding, shape (n_samples, k).
-        Z2: View-2 embedding, shape (n_samples, k).
-        target_std: Target standard deviation used to rescale the raw
-            gradient so that boosted-tree leaf values stay well-conditioned.
+        grads: One gradient array per view, each (n_samples, k).
+        target_std: Target standard deviation. Default is 0.1.
 
     Returns:
-        Tuple ``(G1, G2)`` of gradients, each shape (n_samples, k) and
-        dtype ``float32`` (required as custom-objective gradients).
+        List of rescaled gradients, dtype ``float32`` (required for
+        XGBoost/LightGBM custom objectives).
     """
-    n = Z1.shape[0]
-    Z1c = Z1 - Z1.mean(axis=0)
-    Z2c = Z2 - Z2.mean(axis=0)
-    V = (Z1c.T @ Z1c + Z2c.T @ Z2c) / (n - 1)
-    G1_raw = -Z2c + Z1c @ V
-    G2_raw = -Z1c + Z2c @ V
-    scale = max(float(G1_raw.std()), float(G2_raw.std()), 1e-6)
-    G1 = (G1_raw / scale * target_std).astype(np.float32)
-    G2 = (G2_raw / scale * target_std).astype(np.float32)
-    return G1, G2
+    scale = max(max(float(g.std()) for g in grads), 1e-6)
+    return [(g / scale * target_std).astype(np.float32) for g in grads]
 
 
 def _random_orthogonal_base_margin(
@@ -159,32 +157,37 @@ class _Encoder:
 
 
 class TreeCCA(BaseModel):
-    r"""TreeCCA — nonlinear two-view CCA with gradient-boosted-tree encoders.
+    r"""TreeCCA — nonlinear multiview CCA with gradient-boosted-tree encoders.
 
-    Learns two nonlinear encoders :math:`f_1, f_2` (one gradient-boosted tree
-    ensemble per latent dimension, per view) that maximise the Eckart-Young
-    (EY) unconstrained-CCA objective:
+    Learns one nonlinear encoder :math:`f_i` per view (a gradient-boosted
+    tree ensemble per latent dimension) that jointly maximise the
+    Eckart-Young (EY) unconstrained-CCA objective:
 
     .. math::
 
-        \mathcal{L}_{EY}(Z_1, Z_2) = 2 \operatorname{tr}(C_{12})
-            - \operatorname{tr}(V_{11} + V_{22})
+        \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
 
-    where :math:`Z_i = f_i(X_i)`, :math:`C_{12}` is the cross-covariance and
-    :math:`V_{ii}` the within-view covariance of the centred embeddings. The
-    encoders are fit by alternating (Gauss-Seidel) gradient boosting: each
-    round, one tree is added to each of the :math:`2k` boosters
-    (:math:`k` = ``latent_dimensions``) using the EY-loss gradient as a
-    custom regression objective, starting from a random-orthogonal,
-    unit-variance initial embedding. Because each latent component is a
-    boosted-tree ensemble, per-component feature importance (split gain) is
-    available directly, without a separate interpretability method such as
-    SHAP.
+    where, for embeddings :math:`Z_i = f_i(X_i)`, :math:`C` is the mean
+    pairwise cross-covariance (including :math:`i = j` terms) and :math:`V`
+    the mean auto-covariance across all views (see
+    :mod:`cca_zoo._utils._ey`, the same shared EY-loss machinery used by
+    :class:`~cca_zoo.linear.gradient.CCA_EY` and
+    :class:`~cca_zoo.deep.DCCA_EY`). The encoders are fit by alternating
+    (Gauss-Seidel) gradient boosting: each round, for every view in turn, one
+    tree is added to each of its ``latent_dimensions`` boosters using the
+    EY-loss gradient (rescaled to a fixed target standard deviation for
+    well-conditioned tree leaves) as a custom regression objective, and —
+    when ``gauss_seidel=True`` — the gradient is recomputed from the
+    freshest embeddings before moving to the next view. Training starts from
+    a random-orthogonal, unit-variance initial embedding per view. Because
+    each latent component is a boosted-tree ensemble, per-component feature
+    importance (split gain) is available directly, without a separate
+    interpretability method such as SHAP.
 
     This is a from-scratch reimplementation, as a scikit-learn-style
     :class:`~cca_zoo._base.BaseModel`, of the "Design A" (sequential,
-    scalar-booster) training procedure from the TreeCCA research codebase.
-    Only two views are currently supported.
+    scalar-booster) training procedure from the TreeCCA research codebase,
+    generalised from two views to an arbitrary number of views.
 
     References:
         Chapman, J., Wells, L., & Lawry Aguila, L. (2024). Unconstrained
@@ -193,7 +196,7 @@ class TreeCCA(BaseModel):
 
     Args:
         latent_dimensions: Number of latent components. Must not exceed the
-            number of features in either view. Default is 1.
+            number of features in any view. Default is 1.
         center: Whether to subtract per-view column means before fitting.
             Default is True.
         backend: Gradient-boosting library used for the per-component
@@ -302,14 +305,14 @@ class TreeCCA(BaseModel):
         """Fit the TreeCCA model.
 
         Args:
-            views: List of exactly two arrays, each (n_samples, n_features_i).
+            views: List of 2 or more arrays, each (n_samples, n_features_i).
             y: Ignored.
 
         Returns:
             self: Fitted estimator.
 
         Raises:
-            ValueError: If a number of views other than two is provided.
+            ValueError: If fewer than 2 views are provided.
             ValueError: If views have inconsistent numbers of samples.
             ValueError: If ``backend`` is not ``"xgboost"`` or ``"lightgbm"``.
             ImportError: If ``backend="lightgbm"`` but lightgbm is not
@@ -325,57 +328,54 @@ class TreeCCA(BaseModel):
                 "Install with: pip install lightgbm"
             )
         views_ = self._setup_fit(views)
-        if len(views_) != 2:
-            raise ValueError(
-                f"TreeCCA currently supports exactly two views, got {len(views_)}."
-            )
         k = self.latent_dimensions
-        X1, X2 = views_
+        n_views = len(views_)
 
         rng = np.random.default_rng(self.random_state)
-        bm1, proj1 = _random_orthogonal_base_margin(X1, k, rng)
-        bm2, proj2 = _random_orthogonal_base_margin(X2, k, rng)
-        self._projections_: list[np.ndarray] = [proj1, proj2]
+        base_margins = []
+        projections = []
+        for X in views_:
+            bm, proj = _random_orthogonal_base_margin(X, k, rng)
+            base_margins.append(bm)
+            projections.append(proj)
+        self._projections_: list[np.ndarray] = projections
 
         params = self._booster_params()
-        encoder1 = _Encoder(self.backend, X1, k, params)
-        encoder2 = _Encoder(self.backend, X2, k, params)
+        encoders = [_Encoder(self.backend, X, k, params) for X in views_]
 
         for _ in range(self.n_estimators):
-            Z1 = bm1 + encoder1.predict()
-            Z2 = bm2 + encoder2.predict()
-            G1, G2 = _ey_grad(Z1, Z2)
+            representations = [
+                bm + enc.predict() for bm, enc in zip(base_margins, encoders)
+            ]
+            grads = _rescale_to_target_std(ey_grad_z(representations))
 
-            encoder1.boost(G1)
+            for view_idx in range(n_views):
+                encoders[view_idx].boost(grads[view_idx])
+                if self.gauss_seidel and view_idx < n_views - 1:
+                    representations[view_idx] = (
+                        base_margins[view_idx] + encoders[view_idx].predict()
+                    )
+                    grads = _rescale_to_target_std(ey_grad_z(representations))
 
-            if self.gauss_seidel:
-                Z1 = bm1 + encoder1.predict()
-                _, G2 = _ey_grad(Z1, Z2)
-
-            encoder2.boost(G2)
-
-        self.boosters_: list[list[Any]] = [encoder1.boosters, encoder2.boosters]
+        self.boosters_: list[list[Any]] = [enc.boosters for enc in encoders]
         return self
 
     def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
         """Project views into the latent space using the fitted boosters.
 
         Args:
-            views: List of exactly two arrays, each (n_samples, n_features_i).
+            views: List of arrays, each (n_samples, n_features_i), matching
+                the number of views passed to ``fit``.
 
         Returns:
-            List of two arrays, each (n_samples, latent_dimensions).
+            List of arrays, each (n_samples, latent_dimensions).
 
         Raises:
             sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            ValueError: If a number of views other than two is provided.
+            ValueError: If fewer than 2 views are provided.
         """
         check_is_fitted(self)
         validated = validate_views(views)
-        if len(validated) != 2:
-            raise ValueError(
-                f"TreeCCA currently supports exactly two views, got {len(validated)}."
-            )
         centred = [v - m for v, m in zip(validated, self.means_)]
         result = []
         for v, boosters, projection in zip(centred, self.boosters_, self._projections_):
