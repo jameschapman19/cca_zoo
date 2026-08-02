@@ -1,8 +1,9 @@
 # Tree Methods
 
 The `cca_zoo.tree` module provides `TreeCCA`, a nonlinear two-view CCA method that uses
-gradient-boosted trees (via [XGBoost](https://xgboost.readthedocs.io/)) as the per-view encoders.
-Install it with:
+gradient-boosted trees as the per-view encoders, via either
+[XGBoost](https://xgboost.readthedocs.io/) (default) or
+[LightGBM](https://lightgbm.readthedocs.io/). Install it with:
 
 ```bash
 pip install cca-zoo[tree]
@@ -24,10 +25,13 @@ their within-view covariance. This is the same objective used by the stochastic 
 gradient-boosted-tree ensemble in place of a linear map or neural network as the function class
 for $f_i$.
 
-Each of the `latent_dimensions` canonical components is a separate scalar XGBoost booster per
-view. Training proceeds by alternating (Gauss-Seidel) gradient boosting: each round, the EY-loss
+Each of the `latent_dimensions` canonical components is a separate scalar booster per view.
+Training proceeds by alternating (Gauss-Seidel) gradient boosting: each round, the EY-loss
 gradient with respect to the current embedding is computed and used as a custom regression
-objective to add one tree to every booster.
+objective to add one tree to every booster. Boosters start from a random-orthogonal,
+unit-variance initial embedding — random directions in feature space, rescaled so each component
+has unit variance. Unit-variance scaling is what matters for a well-conditioned, non-vanishing
+gradient at round zero; orthogonality keeps the initial components uncorrelated.
 
 Because each component is its own boosted-tree ensemble, per-component feature importance (split
 gain) is available directly from the fitted boosters — no separate interpretability method (such
@@ -49,16 +53,26 @@ z1, z2 = model.transform([X1, X2])
 corrs = model.score([X1, X2])
 ```
 
+Use `backend="lightgbm"` to train with LightGBM instead of XGBoost (requires
+`pip install lightgbm`, included in the `tree` extra):
+
+```python
+model = TreeCCA(latent_dimensions=2, backend="lightgbm").fit([X1, X2])
+```
+
 ## Feature importance
 
 `TreeCCA` has no linear weight matrices, so `model.weights` raises `NotImplementedError`. Use the
-fitted `boosters_` attribute instead — a `list[list[xgboost.Booster]]` indexed `[view][component]`:
+fitted `boosters_` attribute instead — a `list[list[Booster]]` indexed `[view][component]`:
 
 ```python
 model = TreeCCA(latent_dimensions=2).fit([X1, X2])
 
-# Split-gain feature importance for view 1, canonical component 0
+# Split-gain feature importance for view 1, canonical component 0 (xgboost backend)
 importance = model.boosters_[0][0].get_score(importance_type="gain")
+
+# Equivalent for backend="lightgbm"
+# importance = model.boosters_[0][0].feature_importance(importance_type="gain")
 ```
 
 ---
@@ -67,11 +81,13 @@ importance = model.boosters_[0][0].get_score(importance_type="gain")
 
 | Parameter | Description |
 |---|---|
+| `backend` | `"xgboost"` (default) or `"lightgbm"`. |
 | `n_estimators` | Boosting rounds (trees added per booster). Higher values fit more complex relationships but risk overfitting and cost more time. |
 | `max_depth` | Maximum tree depth. |
-| `learning_rate` | Boosting shrinkage (XGBoost `eta`). |
+| `learning_rate` | Boosting shrinkage. |
 | `subsample`, `colsample_bytree` | Row/column subsampling ratios per tree, for regularisation. |
 | `gauss_seidel` | Use freshly-updated view-1 embeddings when computing view 2's gradient each round (default `True`); set `False` for Jacobi-style stale updates. |
+| `random_state` | Seed for the boosters and the random-orthogonal initial embedding. |
 
 Hyperparameters are best selected by cross-validation with `GridSearchCV` from
 `cca_zoo.model_selection`, as for other models.
@@ -81,6 +97,8 @@ Hyperparameters are best selected by cross-validation with `GridSearchCV` from
 ## Practical notes
 
 - `TreeCCA` currently supports exactly two views.
+- `latent_dimensions` must not exceed the number of features in either view (the random-orthogonal
+  initialisation draws that many orthogonal directions in feature space).
 - Unlike `KCCA`, `TreeCCA` does not store the training data for inference — new data is passed
   directly through the fitted boosters, so `transform` on held-out data is inexpensive.
 - Reference: Chapman, J., Wells, L., & Lawry Aguila, L. (2024). *Unconstrained stochastic CCA:

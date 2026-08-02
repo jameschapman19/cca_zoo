@@ -223,6 +223,58 @@ def test_boosters_attribute_shape(two_views_small: list[np.ndarray]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# backend selection
+# ---------------------------------------------------------------------------
+
+
+def test_invalid_backend_raises(two_views_small: list[np.ndarray]) -> None:
+    """An unrecognised backend raises ValueError."""
+    model = _make_model(backend="not-a-backend")
+    with pytest.raises(ValueError, match="backend must be"):
+        model.fit(two_views_small)
+
+
+def test_lightgbm_backend_fit_completes(two_views_small: list[np.ndarray]) -> None:
+    """Fit completes end-to-end with backend='lightgbm'."""
+    lightgbm = pytest.importorskip("lightgbm", reason="lightgbm is not installed")
+    k = 2
+    model = _make_model(latent_dimensions=k, backend="lightgbm").fit(two_views_small)
+    result = model.transform(two_views_small)
+    n = two_views_small[0].shape[0]
+    for arr in result:
+        assert arr.shape == (n, k)
+    for view_boosters in model.boosters_:
+        assert len(view_boosters) == k
+        for booster in view_boosters:
+            assert isinstance(booster, lightgbm.Booster)
+
+
+def test_lightgbm_backend_missing_raises_import_error(
+    two_views_small: list[np.ndarray], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """backend='lightgbm' without the lightgbm package raises ImportError."""
+    import cca_zoo.tree._treecca as treecca_module
+
+    monkeypatch.setattr(treecca_module, "_LGBM_AVAILABLE", False)
+    model = _make_model(backend="lightgbm")
+    with pytest.raises(ImportError, match="lightgbm"):
+        model.fit(two_views_small)
+
+
+def test_lightgbm_backend_fit_transform_consistency(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """fit_transform equals fit().transform() for the lightgbm backend."""
+    pytest.importorskip("lightgbm", reason="lightgbm is not installed")
+    m1 = _make_model(backend="lightgbm")
+    m2 = _make_model(backend="lightgbm")
+    result_ft = m1.fit_transform(two_views_small)
+    result_sep = m2.fit(two_views_small).transform(two_views_small)
+    for a, b in zip(result_ft, result_sep):
+        np.testing.assert_allclose(a, b, atol=1e-6)
+
+
+# ---------------------------------------------------------------------------
 # Correctness / optimality
 # ---------------------------------------------------------------------------
 

@@ -29,7 +29,7 @@ Install optional extras as needed:
 ```bash
 pip install cca-zoo[deep]          # DCCA variants (requires PyTorch + Lightning)
 pip install cca-zoo[probabilistic] # Probabilistic CCA (requires NumPyro + JAX)
-pip install cca-zoo[tree]          # TreeCCA (requires XGBoost)
+pip install cca-zoo[tree]          # TreeCCA (requires XGBoost, optionally LightGBM)
 pip install cca-zoo[all]           # Everything above
 ```
 

@@ -17,7 +17,7 @@ Install extras for additional method families:
 ```bash
 pip install cca-zoo[deep]          # DCCA variants (PyTorch + Lightning)
 pip install cca-zoo[probabilistic] # Probabilistic CCA (NumPyro + JAX)
-pip install cca-zoo[tree]          # TreeCCA (XGBoost)
+pip install cca-zoo[tree]          # TreeCCA (XGBoost + LightGBM)
 pip install cca-zoo[all]           # Everything above
 ```
 
