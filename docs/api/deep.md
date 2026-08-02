@@ -18,6 +18,12 @@ Deep CCA variants. Requires `pip install cca-zoo[deep]`.
 
 ---
 
+## Data
+
+::: cca_zoo.deep.MultiviewDataset
+
+---
+
 ## Models
 
 ::: cca_zoo.deep.DCCA

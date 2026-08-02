@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import sklearn.model_selection as skms
@@ -260,6 +260,29 @@ class GridSearchCV:
                 self._inner_cv.best_estimator_.estimator_
             )
         return self
+
+    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
+        """Transform multiview data using the best estimator.
+
+        Mirrors :meth:`sklearn.model_selection.GridSearchCV.transform`,
+        forwarding to ``best_estimator_``.
+
+        Args:
+            views: List of arrays, each of shape (n_samples, n_features_i).
+
+        Returns:
+            List of arrays, each of shape (n_samples, latent_dimensions).
+
+        Raises:
+            AttributeError: If ``refit=False``, so no ``best_estimator_``
+                was fitted.
+        """
+        if not self.refit:
+            raise AttributeError(
+                "`transform` is not available when `refit=False`; no "
+                "`best_estimator_` was fitted. Set `refit=True` to use it."
+            )
+        return cast(list[np.ndarray], self.best_estimator_.transform(views))
 
     def score(self, views: list[ArrayLike], y: None = None) -> float:
         """Score the best estimator on held-out multiview data.

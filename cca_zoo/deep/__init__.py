@@ -16,6 +16,7 @@ if _torch_available and _lightning_available:
     from cca_zoo.deep import objectives
     from cca_zoo.deep._barlowtwins import BarlowTwins
     from cca_zoo.deep._base import BaseDeep
+    from cca_zoo.deep._data import MultiviewDataset
     from cca_zoo.deep._dcca import DCCA
     from cca_zoo.deep._dcca_ey import DCCA_EY
     from cca_zoo.deep._dcca_noi import DCCA_NOI
@@ -40,6 +41,7 @@ if _torch_available and _lightning_available:
         "DMCCA",
         "DTCCA",
         "DVCCA",
+        "MultiviewDataset",
         "SplitAE",
         "VICReg",
         "objectives",

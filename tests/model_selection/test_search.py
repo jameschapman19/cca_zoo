@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from cca_zoo.linear import CCA, MCCA, rCCA
 from cca_zoo.model_selection import GridSearchCV
@@ -239,3 +240,36 @@ def test_grid_search_three_view_model(three_views: list[np.ndarray]) -> None:
     gs.fit(three_views)
     assert isinstance(gs.best_score_, float)
     assert "latent_dimensions" in gs.best_params_
+
+
+# ---------------------------------------------------------------------------
+# transform (delegates to best_estimator_)
+# ---------------------------------------------------------------------------
+
+
+def test_transform_after_fit(two_views: list[np.ndarray]) -> None:
+    """GridSearchCV.transform delegates to best_estimator_.transform."""
+    gs = GridSearchCV(
+        CCA(),
+        param_grid={"latent_dimensions": [1, 2]},
+        cv=2,
+    )
+    gs.fit(two_views)
+    result = gs.transform(two_views)
+    expected = gs.best_estimator_.transform(two_views)
+    assert len(result) == len(two_views)
+    for a, b in zip(result, expected):
+        np.testing.assert_array_equal(a, b)
+
+
+def test_transform_without_refit_raises(two_views: list[np.ndarray]) -> None:
+    """GridSearchCV.transform raises when refit=False (no best_estimator_)."""
+    gs = GridSearchCV(
+        CCA(),
+        param_grid={"latent_dimensions": [1, 2]},
+        cv=2,
+        refit=False,
+    )
+    gs.fit(two_views)
+    with pytest.raises(AttributeError, match="refit"):
+        gs.transform(two_views)

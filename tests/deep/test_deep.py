@@ -20,6 +20,7 @@ import torch.utils.data as data
 # ---------------------------------------------------------------------------
 # Import the available deep classes directly
 # ---------------------------------------------------------------------------
+from cca_zoo.deep._data import MultiviewDataset
 from cca_zoo.deep._dcca import DCCA
 from cca_zoo.deep._dgcca import DGCCA
 from cca_zoo.deep._dmcca import DMCCA
@@ -65,6 +66,52 @@ def _make_loader(n: int = 20, p: int = 5, batch_size: int = 20) -> data.DataLoad
 def _make_encoders(p_in: int = 5, latent: int = 2) -> list[nn.Module]:
     """Create two simple linear encoders."""
     return [nn.Linear(p_in, latent), nn.Linear(p_in, latent)]
+
+
+# ---------------------------------------------------------------------------
+# MultiviewDataset
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.slow
+def test_multiview_dataset_batch_shape() -> None:
+    """MultiviewDataset yields {"views": [...]} batches, not tuples."""
+    rng = np.random.default_rng(0)
+    x1 = rng.standard_normal((20, 5)).astype(np.float32)
+    x2 = rng.standard_normal((20, 4)).astype(np.float32)
+    loader = data.DataLoader(MultiviewDataset([x1, x2]), batch_size=20)
+    batch = next(iter(loader))
+    assert isinstance(batch, dict)
+    assert list(batch.keys()) == ["views"]
+    assert len(batch["views"]) == 2
+    assert batch["views"][0].shape == (20, 5)
+    assert batch["views"][1].shape == (20, 4)
+
+
+@pytest.mark.slow
+def test_dcca_trains_with_multiview_dataset() -> None:
+    """DCCA trains against a real DataLoader(MultiviewDataset(...)) end to end.
+
+    Regression test: torch.utils.data.TensorDataset yields tuples, not the
+    {"views": [...]} dict shape training_step/validation_step require, so a
+    naive DataLoader(TensorDataset(...)) raises TypeError. This must keep
+    passing against the documented docs/user-guide/deep.md example.
+    """
+    rng = np.random.default_rng(0)
+    x1 = rng.standard_normal((40, 6)).astype(np.float32)
+    x2 = rng.standard_normal((40, 5)).astype(np.float32)
+    loader = data.DataLoader(MultiviewDataset([x1, x2]), batch_size=20, shuffle=True)
+
+    encoders = [nn.Linear(6, 2), nn.Linear(5, 2)]
+    model = DCCA(latent_dimensions=2, encoders=encoders, max_epochs=1)
+    trainer = lightning.pytorch.Trainer(
+        max_epochs=1, enable_progress_bar=False, logger=False
+    )
+    trainer.fit(model, loader)
+    result = model.transform(loader)
+    assert len(result) == 2
+    for arr in result:
+        assert arr.shape == (40, 2)
 
 
 # ---------------------------------------------------------------------------
