@@ -29,7 +29,7 @@ from cca_zoo.linear import CCA
 
 model = CCA(latent_dimensions=2).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
-print(model.score([X1, X2]))   # canonical correlations
+print(model.score([X1, X2]))  # canonical correlations
 ```
 
 ### rCCA — Regularised CCA
@@ -207,7 +207,9 @@ Uses an elastic net regression (sklearn) at each ALS step (Mai & Zhang 2019).
 ```python
 from cca_zoo.linear import SCCA_IPLS
 
-model = SCCA_IPLS(latent_dimensions=2, alpha=0.01, l1_ratio=1.0, random_state=0).fit([X1, X2])
+model = SCCA_IPLS(latent_dimensions=2, alpha=0.01, l1_ratio=1.0, random_state=0).fit(
+    [X1, X2]
+)
 ```
 
 ### ElasticCCA
@@ -218,7 +220,9 @@ the sum-of-all-other-view scores against the current view via elastic net.
 ```python
 from cca_zoo.linear import ElasticCCA
 
-model = ElasticCCA(latent_dimensions=2, alpha=0.01, l1_ratio=0.5, random_state=0).fit([X1, X2])
+model = ElasticCCA(latent_dimensions=2, alpha=0.01, l1_ratio=0.5, random_state=0).fit(
+    [X1, X2]
+)
 ```
 
 ### ParkhomenkoCCA

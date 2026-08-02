@@ -41,8 +41,9 @@ param_grid = {"c": [0.01, 0.1, 1.0]}
 # Per-view c (list of two values for a two-view model)
 param_grid = {"c": [[0.01, 0.1], [0.1, 1.0]]}
 
-gs = GridSearchCV(KCCA(latent_dimensions=2, kernel="rbf", gamma=0.01),
-                  param_grid=param_grid, cv=5)
+gs = GridSearchCV(
+    KCCA(latent_dimensions=2, kernel="rbf", gamma=0.01), param_grid=param_grid, cv=5
+)
 gs.fit([X1, X2])
 ```
 
@@ -55,7 +56,9 @@ import pandas as pd
 
 # Full CV results table
 df = pd.DataFrame(gs.cv_results_)
-print(df[["param_c", "mean_test_score", "std_test_score"]].sort_values("mean_test_score"))
+print(
+    df[["param_c", "mean_test_score", "std_test_score"]].sort_values("mean_test_score")
+)
 
 # Best parameters and score
 print(gs.best_params_)
@@ -76,8 +79,14 @@ from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.nonparametric import KCCA
 
 # Simulate data
-data = JointData(n_views=2, n_samples=200, n_features=[30, 30],
-                 latent_dimensions=2, signal_to_noise=2.0, random_state=0)
+data = JointData(
+    n_views=2,
+    n_samples=200,
+    n_features=[30, 30],
+    latent_dimensions=2,
+    signal_to_noise=2.0,
+    random_state=0,
+)
 views = data.sample()
 
 # Grid search over kernel and regularisation

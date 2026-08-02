@@ -80,7 +80,12 @@ convention = "google"
 
 [tool.mypy]
 strict = true
-python_version = "3.10"
+# Matches the Python version the "Typecheck (mypy)" CI job actually runs on
+# (a single, non-matrixed job). This must track that job's setup-python
+# version: newer numpy releases ship stub files using syntax (e.g. PEP 695
+# `type` aliases) that requires mypy's target to be >= the numpy stub's
+# minimum Python, regardless of the package's own `requires-python` floor.
+python_version = "3.12"
 ignore_missing_imports = true
 disable_error_code = ["misc", "untyped-decorator"]
 

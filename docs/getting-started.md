@@ -35,8 +35,8 @@ pip install cca-zoo[all]           # Everything above
 CCA-Zoo expects data as a **list of arrays**, one per view:
 
 ```python
-views = [X1, X2]          # two views
-views = [X1, X2, X3]      # three views
+views = [X1, X2]  # two views
+views = [X1, X2, X3]  # three views
 ```
 
 Each array has shape `(n_samples, n_features_i)`. All views must share the same number of rows.
@@ -49,8 +49,8 @@ Every model follows the same three-step pattern:
 from cca_zoo.linear import CCA
 
 model = CCA(latent_dimensions=2)  # 1. construct
-model.fit(views)                   # 2. fit
-z = model.transform(views)         # 3. use
+model.fit(views)  # 2. fit
+z = model.transform(views)  # 3. use
 ```
 
 Or equivalently:
@@ -64,8 +64,8 @@ z = CCA(latent_dimensions=2).fit_transform(views)
 `score` returns the average pairwise canonical correlation per latent dimension:
 
 ```python
-corrs = model.score(views)   # np.ndarray, shape (latent_dimensions,)
-print(corrs)                  # e.g. [0.94, 0.87]
+corrs = model.score(views)  # np.ndarray, shape (latent_dimensions,)
+print(corrs)  # e.g. [0.94, 0.87]
 ```
 
 ### Inspecting weights
@@ -73,7 +73,7 @@ print(corrs)                  # e.g. [0.94, 0.87]
 After fitting, `model.weights` is a list of weight matrices (one per view):
 
 ```python
-W1, W2 = model.weights   # each shape (n_features_i, latent_dimensions)
+W1, W2 = model.weights  # each shape (n_features_i, latent_dimensions)
 ```
 
 ---
@@ -97,7 +97,7 @@ data = JointData(
     random_state=0,
 )
 train_views = data.sample()
-test_views  = data.sample()
+test_views = data.sample()
 
 # Fit and evaluate
 model = CCA(latent_dimensions=2).fit(train_views)

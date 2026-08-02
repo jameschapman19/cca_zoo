@@ -67,7 +67,9 @@ $$
 $$
 
 ```python
-z = model.transform([X1, X2])   # list with one array of shape (n_samples, latent_dimensions)
+z = model.transform(
+    [X1, X2]
+)  # list with one array of shape (n_samples, latent_dimensions)
 ```
 
 ---

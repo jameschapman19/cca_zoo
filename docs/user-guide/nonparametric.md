@@ -104,7 +104,9 @@ PARAFAC decomposition:
 ```python
 from cca_zoo.nonparametric import KTCCA
 
-model = KTCCA(latent_dimensions=2, kernel="rbf", gamma=0.01, c=0.1, random_state=0).fit([X1, X2, X3])
+model = KTCCA(latent_dimensions=2, kernel="rbf", gamma=0.01, c=0.1, random_state=0).fit(
+    [X1, X2, X3]
+)
 ```
 
 ---
@@ -142,10 +144,12 @@ Pass any callable with signature `k(X, Y, **params) -> np.ndarray`:
 import numpy as np
 from cca_zoo.nonparametric import KCCA
 
+
 def my_kernel(X, Y, sigma=1.0):
     """Gaussian kernel with explicit sigma."""
     diff = X[:, None, :] - Y[None, :, :]
     return np.exp(-np.sum(diff**2, axis=-1) / (2 * sigma**2))
+
 
 model = KCCA(
     latent_dimensions=2,
