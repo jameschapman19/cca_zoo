@@ -1423,14 +1423,27 @@ on every commit:</p>
 <ol>
 <li>Create the implementation file in the appropriate subpackage
    (e.g. <code>cca_zoo/linear/_mymodel.py</code>).</li>
-<li>Inherit from <code>BaseModel</code> (linear/nonparametric) or <code>BaseDeep</code> (deep).</li>
+<li>Inherit from <code>BaseModel</code> (linear/nonparametric) or <code>BaseDeep</code> (deep). This gets you
+   <code>transform</code>, <code>fit_transform</code>, <code>score</code>, <code>pairwise_correlations</code>, <code>get_factor_loadings</code>,
+   and correct sklearn <code>get_params</code>/<code>set_params</code>/tags for free — implement <code>fit</code> only.</li>
 <li>Add Google-style docstrings including the mathematical objective and reference(s).</li>
-<li>Export from the subpackage's <code>__init__.py</code> and add to <code>__all__</code>.</li>
-<li>Write tests in <code>tests/&lt;subpackage&gt;/test_mymodel.py</code> covering, at minimum: <code>fit</code> completing
-   without error, <code>transform</code>/<code>fit_transform</code> output shapes, <code>score</code> shape and value range,
-   <code>get_params</code>/<code>set_params</code> round-tripping, and — where a closed-form or known-correct
-   reference solution exists — a correctness check against it (see
-   <code>tests/linear/test_eigendecomposition.py</code> for the established pattern).</li>
+<li>If any constructor parameter has a documented range (e.g. a ridge parameter in
+   <code>[0, 1]</code>), declare it in <code>_parameter_constraints</code> (merging in the parent class's, e.g.
+   <code>{**BaseModel._parameter_constraints, "c": RIDGE_PARAMETER}</code> — see
+   <code>cca_zoo/_utils/_param_constraints.py</code> for shared constraint fragments and
+   <code>cca_zoo/linear/_mcca.py</code> for an example). This is optional but recommended: it turns
+   an invalid parameter into a clear error at <code>fit()</code> time instead of a cryptic failure
+   deep in the linear algebra.</li>
+<li>Export from the subpackage's <code>__init__.py</code> and add to <code>__all__</code>. Doing this is also
+   what gets your model automatically covered by <code>tests/test_sklearn_compat.py</code>'s
+   generic sklearn-estimator-contract checks (<code>get_params</code>/<code>set_params</code> round-tripping,
+   <code>repr</code>, init purity) — no per-model test needed for that part.</li>
+<li>Write tests in <code>tests/&lt;subpackage&gt;/test_mymodel.py</code> covering, at minimum: <code>fit</code>
+   completing without error, <code>transform</code>/<code>fit_transform</code> output shapes, <code>score</code> shape and
+   value range, and — where a closed-form or known-correct reference solution exists — a
+   correctness check against it (see <code>tests/linear/test_eigendecomposition.py</code> for the
+   established pattern). If you added <code>_parameter_constraints</code>, add a rejection test per
+   constraint (see <code>tests/linear/test_parameter_constraints.py</code>).</li>
 <li>Add a <code>cca_zoo.&lt;subpackage&gt;.MyModel</code> entry to the relevant <code>docs/api/*.md</code> page —
    <code>tests/test_docs_coverage.py</code> enforces this.</li>
 <li>Open a pull request against <code>main</code>.</li>
