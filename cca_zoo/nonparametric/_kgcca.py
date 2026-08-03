@@ -19,14 +19,14 @@ class KGCCA(BaseModel):
     solving the eigenvalue problem on the weighted sum of kernel projection
     matrices:
 
-    .. math::
-
-        Q = \sum_{i=1}^M \mu_i K_i
-            \bigl(c_i K_i + (1 - c_i) K_i^2\bigr)^{-1} K_i
+    $$
+    Q = \sum_{i=1}^M \mu_i K_i
+        \bigl(c_i K_i + (1 - c_i) K_i^2\bigr)^{-1} K_i
+    $$
 
     and the dual variables (kernel coefficients) are recovered as
-    :math:`\boldsymbol{\alpha}_i = K_i^+ T` where :math:`T` is the matrix
-    of top-k eigenvectors of :math:`Q`.
+    $\boldsymbol{\alpha}_i = K_i^+ T$ where $T$ is the matrix
+    of top-k eigenvectors of $Q$.
 
     References:
         Tenenhaus, A., Philippe, C., & Frouin, V. (2015). Kernel generalized

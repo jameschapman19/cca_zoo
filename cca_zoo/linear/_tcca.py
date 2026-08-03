@@ -19,17 +19,17 @@ class TCCA(BaseModel):
     cross-view correlations via a tensor product structure.  The method
     constructs the order-M cross-moment tensor:
 
-    .. math::
+    $$
+    \mathcal{M}_{p_1 p_2 \ldots p_M}
+        = \frac{1}{n} \sum_{i=1}^n
+            \tilde{x}_{1,i}^{(p_1)}
+            \tilde{x}_{2,i}^{(p_2)}
+            \cdots
+            \tilde{x}_{M,i}^{(p_M)}
+    $$
 
-        \mathcal{M}_{p_1 p_2 \ldots p_M}
-            = \frac{1}{n} \sum_{i=1}^n
-                \tilde{x}_{1,i}^{(p_1)}
-                \tilde{x}_{2,i}^{(p_2)}
-                \cdots
-                \tilde{x}_{M,i}^{(p_M)}
-
-    where :math:`\tilde{X}_j = X_j \Sigma_j^{-1/2}` are the whitened views,
-    and then decomposes :math:`\mathcal{M}` using PARAFAC to recover the
+    where $\tilde{X}_j = X_j \Sigma_j^{-1/2}$ are the whitened views,
+    and then decomposes $\mathcal{M}$ using PARAFAC to recover the
     canonical directions.
 
     References:

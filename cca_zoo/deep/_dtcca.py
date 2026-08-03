@@ -10,14 +10,25 @@ from cca_zoo.deep.objectives import TCCALoss
 
 
 class DTCCA(DCCA):
-    """Deep Tensor CCA.
+    r"""Deep Tensor CCA.
 
-    Applies the tensor CCA loss to neural representations.  The
-    cross-moment tensor is formed from whitened latent codes, and the
-    objective is the negative Frobenius norm of that tensor (serving as
-    a differentiable proxy for the TCCA criterion).
+    Applies the tensor CCA loss (:class:`~cca_zoo.deep.objectives.TCCALoss`)
+    to neural representations. The cross-moment tensor is formed from
+    whitened latent codes, and the objective is the negative Frobenius norm
+    of that tensor — a differentiable proxy for the tensor CCA criterion:
 
-    Reference:
+    $$
+    M = \frac{1}{n} \sum_{s=1}^{n} H_1[s] \otimes H_2[s] \otimes
+        \cdots \otimes H_V[s], \qquad
+    \mathcal{L} = -\left\| M \right\|_F
+    $$
+
+    where $\otimes$ denotes the outer product and $H_i$ is the
+    ridge-whitened representation of view $i$. This is the deep
+    analogue of the higher-order cross-moment maximised in closed form by
+    the linear :class:`~cca_zoo.linear.TCCA`.
+
+    References:
         Wong, H. S., et al. "Deep Tensor CCA for Multi-view Learning."
         IEEE Transactions on Big Data (2021).
 

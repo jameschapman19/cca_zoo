@@ -159,16 +159,16 @@ class _Encoder:
 class TreeCCA(BaseModel):
     r"""TreeCCA — nonlinear multiview CCA with gradient-boosted-tree encoders.
 
-    Learns one nonlinear encoder :math:`f_i` per view (a gradient-boosted
+    Learns one nonlinear encoder $f_i$ per view (a gradient-boosted
     tree ensemble per latent dimension) that jointly maximise the
     Eckart-Young (EY) unconstrained-CCA objective:
 
-    .. math::
+    $$
+    \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
+    $$
 
-        \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
-
-    where, for embeddings :math:`Z_i = f_i(X_i)`, :math:`C` is the mean
-    pairwise cross-covariance (including :math:`i = j` terms) and :math:`V`
+    where, for embeddings $Z_i = f_i(X_i)$, $C$ is the mean
+    pairwise cross-covariance (including $i = j$ terms) and $V$
     the mean auto-covariance across all views (see
     :mod:`cca_zoo._utils._ey`, the same shared EY-loss machinery used by
     :class:`~cca_zoo.linear.gradient.CCA_EY` and

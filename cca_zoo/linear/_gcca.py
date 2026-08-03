@@ -16,23 +16,22 @@ class GCCA(BaseModel):
     Finds linear projections of multiple (>=2) views that maximise their
     joint correlation with a shared auxiliary latent vector:
 
-    .. math::
-
-        \max_{\mathbf{w}_i, T}
-            \sum_{i=1}^M \mathbf{w}_i^\top X_i^\top T
-
-        \text{subject to }
-        T^\top T = I
+    $$
+    \begin{aligned}
+    \max_{\mathbf{w}_i, T} \sum_{i=1}^M \mathbf{w}_i^\top X_i^\top T \\
+    \text{subject to } T^\top T = I
+    \end{aligned}
+    $$
 
     The solution is obtained by constructing the weighted projection matrix:
 
-    .. math::
+    $$
+    Q = \sum_{i=1}^M \mu_i X_i
+        \bigl((1-c_i) X_i^\top X_i + c_i I\bigr)^{-1} X_i^\top
+    $$
 
-        Q = \sum_{i=1}^M \mu_i X_i
-            \bigl((1-c_i) X_i^\top X_i + c_i I\bigr)^{-1} X_i^\top
-
-    and computing its top-k eigenvectors :math:`V`, then recovering the
-    per-view weights as :math:`\mathbf{w}_i = X_i^+ V`.
+    and computing its top-k eigenvectors $V$, then recovering the
+    per-view weights as $\mathbf{w}_i = X_i^+ V$.
 
     References:
         Tenenhaus, A., & Tenenhaus, M. (2011). Regularized generalized
@@ -42,7 +41,7 @@ class GCCA(BaseModel):
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default True.
         c: Ridge regularisation parameter(s) in ``[0, 1]``.  Default is 0.
-        view_weights: Per-view weights :math:`\mu_i` in the GCCA objective.
+        view_weights: Per-view weights $\mu_i$ in the GCCA objective.
             Default is equal weights (1 for all views).
         eps: Regularisation floor for within-view matrices.  Default is 1e-6.
 

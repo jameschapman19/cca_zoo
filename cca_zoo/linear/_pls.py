@@ -13,16 +13,15 @@ class PLS(rCCA):
     Finds the pair of unit-norm weight vectors that maximise the covariance
     between the projected views:
 
-    .. math::
-
-        \max_{\mathbf{w}_1, \mathbf{w}_2}
-            \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
-
-        \text{subject to }
-        \|\mathbf{w}_i\|_2 = 1
+    $$
+    \begin{aligned}
+    \max_{\mathbf{w}_1, \mathbf{w}_2} \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2 \\
+    \text{subject to } \|\mathbf{w}_i\|_2 = 1
+    \end{aligned}
+    $$
 
     This is equivalent to the truncated SVD of the sample cross-covariance
-    matrix :math:`X_1^\top X_2 / (n - 1)`, and corresponds to :class:`rCCA`
+    matrix $X_1^\top X_2 / (n - 1)$, and corresponds to :class:`rCCA`
     with ``c=1``.
 
     References:

@@ -68,14 +68,22 @@ class _BatchWhiten(nn.Module):
 
 
 class DCCA_NOI(DCCA):
-    """Deep CCA via Non-linear Orthogonal Iterations.
+    r"""Deep CCA via Non-linear Orthogonal Iterations.
 
     Uses batch whitening to approximate the CCA whitening step
-    stochastically.  The loss enforces each view's representations
-    to match the whitened version of the other view's representations
-    (with a stop-gradient on the whitened targets).
+    stochastically. The loss pushes each view's representations towards a
+    stop-gradient copy of the other views' whitened representations:
 
-    Reference:
+    $$
+    \mathcal{L} = \sum_{i \neq j}
+        \left\| z_i - \operatorname{sg}\!\bigl(W_j z_j\bigr) \right\|_2^2
+    $$
+
+    where $W_j$ is an exponential-moving-average batch-whitening
+    transform for view $j$ (see :class:`_BatchWhiten`) and
+    $\operatorname{sg}(\cdot)$ denotes stop-gradient.
+
+    References:
         Wang, W., et al. "Stochastic optimization for deep CCA via
         nonlinear orthogonal iterations." Allerton 2015. IEEE.
 

@@ -12,13 +12,17 @@ from cca_zoo._utils._validation import validate_views
 
 
 class ProbabilisticCCA(BaseModel):
-    """Probabilistic Canonical Correlation Analysis via NUTS MCMC.
+    r"""Probabilistic Canonical Correlation Analysis via NUTS MCMC.
 
     Fits a Bayesian latent variable model with the following generative
-    process for V views::
+    process for $V$ views:
 
-        z ~ N(0, I)                         (latent variable)
-        x_i | z ~ N(W_i z + mu_i, Psi_i)   (per-view likelihood)
+    $$
+    \begin{aligned}
+    z &\sim \mathcal{N}(0, I) \\
+    x_i \mid z &\sim \mathcal{N}(W_i z + \mu_i,\ \Psi_i), \quad i = 1, \dots, V
+    \end{aligned}
+    $$
 
     MCMC sampling is performed with the No-U-Turn Sampler (NUTS) from
     numpyro.  After fitting, :meth:`transform` returns the posterior

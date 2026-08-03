@@ -27,19 +27,21 @@ def _sdl_loss(view: torch.Tensor) -> torch.Tensor:
 
 
 class DCCA_SDL(DCCA):
-    """Deep CCA via Stochastic Decorrelation Loss.
+    r"""Deep CCA via Stochastic Decorrelation Loss.
 
     Combines an MSE alignment loss between views with a within-view
     decorrelation penalty.  Batch normalisation is applied to each
     encoder output before the loss is computed.
 
-    The total loss is::
+    $$
+    \mathcal{L} = \operatorname{MSE}(z_1, z_2)
+        + \lambda \sum_{i} \operatorname{SDL}(z_i), \qquad
+    \operatorname{SDL}(z) = \operatorname{mean}\bigl(
+        \left|\text{off-diag}(\operatorname{Cov}(z))\right|
+    \bigr)
+    $$
 
-        L = MSE(z1, z2) + lam * (SDL(z1) + SDL(z2))
-
-    where SDL(z) = mean|off-diag(Cov(z))|.
-
-    Reference:
+    References:
         Chang, X., Xiang, T., & Hospedales, T. M. "Scalable and
         effective deep CCA via soft decorrelation." CVPR 2018.
 

@@ -20,12 +20,12 @@ class PartialCCA(MCCA):
     CCA is then applied to the residuals, subject to the additional
     constraint that canonical weights are orthogonal to the confounds:
 
-    .. math::
-
-        w_{opt} = \underset{w}{\mathrm{argmax}}\ w_1^\top X_1^\top X_2 w_2
-
-        \text{subject to } w_i^\top X_i^\top X_i w_i = 1, \quad
-        w_i^\top X_i^\top Z = 0
+    $$
+    \begin{aligned}
+    w_{opt} = \underset{w}{\mathrm{argmax}}\ w_1^\top X_1^\top X_2 w_2 \\
+    \text{subject to } w_i^\top X_i^\top X_i w_i = 1, \quad w_i^\top X_i^\top Z = 0
+    \end{aligned}
+    $$
 
     References:
         Rao, B. R. (1969). Partial canonical correlations. *Trabajos de

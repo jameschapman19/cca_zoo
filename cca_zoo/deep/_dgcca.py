@@ -10,15 +10,24 @@ from cca_zoo.deep.objectives import GCCALoss
 
 
 class DGCCA(DCCA):
-    """Deep Generalised CCA.
+    r"""Deep Generalised CCA.
 
     Applies the generalised CCA (MAX-VAR) loss
     (:class:`~cca_zoo.deep.objectives.GCCALoss`) to neural representations,
     maximising correlation of each view with a shared latent target rather
-    than with every other view pairwise. Unlike the base :class:`DCCA`,
-    this supports more than two encoders/views out of the box.
+    than with every other view pairwise:
 
-    Reference:
+    $$
+    \mathcal{L} = -\sum_{d=1}^{k} \lambda_d\!\left(\sum_i H_i H_i^\top\right)
+    $$
+
+    where $H_i$ is the ridge-whitened representation of view
+    $i$ and $\lambda_d(\cdot)$ is the $d$-th largest
+    eigenvalue. Unlike the base :class:`DCCA`, this supports more than two
+    encoders/views out of the box, mirroring the linear
+    :class:`~cca_zoo.linear.GCCA`.
+
+    References:
         Benton, A., et al. "Deep Generalized Canonical Correlation
         Analysis." RepL4NLP 2019.
 
