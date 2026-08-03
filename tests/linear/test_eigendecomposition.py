@@ -8,7 +8,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.linear import CCA, GCCA, GRCCA, MCCA, PLS, TCCA, PartialCCA, rCCA
+from cca_zoo.linear import CCA, CCAR3, GCCA, GRCCA, MCCA, PLS, TCCA, PartialCCA, rCCA
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -173,25 +173,9 @@ def test_score_shape_multi_view(
     assert s.shape == (k,)
 
 
-# ---------------------------------------------------------------------------
-# get_params / set_params roundtrip
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("ModelClass", ALL_EIGEN_MODELS)
-def test_get_params_roundtrip(ModelClass: type) -> None:
-    """get_params returns the correct parameter values."""
-    model = ModelClass(latent_dimensions=3)
-    params = model.get_params()
-    assert params["latent_dimensions"] == 3
-
-
-@pytest.mark.parametrize("ModelClass", ALL_EIGEN_MODELS)
-def test_set_params_roundtrip(ModelClass: type) -> None:
-    """set_params correctly updates model parameters."""
-    model = ModelClass(latent_dimensions=1)
-    model.set_params(latent_dimensions=3)
-    assert model.latent_dimensions == 3
+# get_params/set_params roundtrip behaviour (sklearn.BaseEstimator machinery,
+# unmodified by cca_zoo) is exercised generically for every model in the
+# package by tests/test_sklearn_compat.py, rather than per-class here.
 
 
 # ---------------------------------------------------------------------------
@@ -589,3 +573,71 @@ def test_grcca_three_views(three_views: list[np.ndarray]) -> None:
     model = GRCCA(latent_dimensions=1, c=0.3).fit(three_views, feature_groups=groups)
     result = model.transform(three_views)
     assert len(result) == 3
+
+
+# ---------------------------------------------------------------------------
+# CCAR3
+# ---------------------------------------------------------------------------
+
+
+def test_ccar3_fit_transform(two_views: list[np.ndarray]) -> None:
+    """CCAR3 fits and transforms in both the low-dim and high-dim regimes."""
+    k = 2
+    for highdim in (False, True):
+        model = CCAR3(latent_dimensions=k, highdim=highdim).fit(two_views)
+        result = model.transform(two_views)
+        assert len(result) == 2
+        for arr, view in zip(result, two_views):
+            assert arr.shape == (view.shape[0], k)
+
+
+def test_ccar3_rejects_three_views(three_views: list[np.ndarray]) -> None:
+    """CCAR3 raises ValueError when given 3 views."""
+    with pytest.raises(ValueError):
+        CCAR3(latent_dimensions=1).fit(three_views)
+
+
+def test_ccar3_highdim_zero_penalty_matches_lowdim(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """With lambda_=0, the ADMM solver converges to the closed-form B."""
+    k = 2
+    s_lowdim = (
+        CCAR3(latent_dimensions=k, highdim=False, ledoit_wolf=False)
+        .fit(correlated_views)
+        .score(correlated_views)
+    )
+    s_highdim = (
+        CCAR3(
+            latent_dimensions=k,
+            highdim=True,
+            ledoit_wolf=False,
+            lambda_=0.0,
+            tol=1e-8,
+        )
+        .fit(correlated_views)
+        .score(correlated_views)
+    )
+    np.testing.assert_allclose(s_highdim, s_lowdim, atol=1e-4)
+
+
+def test_ccar3_sparsity_zeroes_rows(two_views: list[np.ndarray]) -> None:
+    """A moderate lambda_ drives some rows of the X weights to zero, not all."""
+    model = CCAR3(
+        latent_dimensions=2,
+        highdim=True,
+        lambda_=0.3,
+        ledoit_wolf=False,
+        tol=1e-8,
+    ).fit(two_views)
+    row_norms = np.linalg.norm(model.weights_[0], axis=1)
+    assert np.any(row_norms < 1e-3)
+    assert np.any(row_norms > 1e-2)
+
+
+def test_ccar3_score_shape(two_views: list[np.ndarray]) -> None:
+    """CCAR3's score returns an array of shape (latent_dimensions,)."""
+    k = 2
+    model = CCAR3(latent_dimensions=k).fit(two_views)
+    s = model.score(two_views)
+    assert s.shape == (k,)

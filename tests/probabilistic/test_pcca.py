@@ -1,9 +1,6 @@
 """Tests for probabilistic CCA (ProbabilisticCCA).
 
 All tests are marked slow and require numpyro + jax.
-The probabilistic module in this rewrite snapshot still uses v2-style
-internals (_BaseModel, etc.); these tests focus on the public interface
-described in the v3 spec and gracefully skip if the module cannot load.
 """
 
 from __future__ import annotations
@@ -137,13 +134,13 @@ def test_pcca_latent_dimensions(pcca_class: type, k: int) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Two-view constraint
+# View-count handling
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.slow
-def test_pcca_requires_two_views(pcca_class: type) -> None:
-    """ProbabilisticCCA expects exactly two views (v2 model_)."""
+def test_pcca_supports_more_than_two_views(pcca_class: type) -> None:
+    """ProbabilisticCCA's generative model is view-count generic (>=2)."""
     rng = np.random.default_rng(0)
     three_views = [rng.standard_normal((15, 4)) for _ in range(3)]
     model = pcca_class(
@@ -152,7 +149,20 @@ def test_pcca_requires_two_views(pcca_class: type) -> None:
         num_samples=5,
         random_state=0,
     )
-    # The model may raise or silently handle this; either behaviour is
-    # acceptable at this rewrite stage
-    with pytest.raises((ValueError, Exception)):
-        model.fit(three_views)
+    model.fit(three_views)
+    assert len(model.weights_) == 3
+
+
+@pytest.mark.slow
+def test_pcca_rejects_single_view(pcca_class: type) -> None:
+    """ProbabilisticCCA raises ValueError when given fewer than 2 views."""
+    rng = np.random.default_rng(0)
+    one_view = [rng.standard_normal((15, 4))]
+    model = pcca_class(
+        latent_dimensions=1,
+        num_warmup=5,
+        num_samples=5,
+        random_state=0,
+    )
+    with pytest.raises(ValueError, match="views"):
+        model.fit(one_view)

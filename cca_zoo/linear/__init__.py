@@ -7,6 +7,7 @@ suited to high-dimensional or streaming data.
 """
 
 from ._cca import CCA
+from ._ccar3 import CCAR3
 from ._gcca import GCCA
 from ._grcca import GRCCA
 from ._iterative import (
@@ -36,6 +37,8 @@ __all__ = [
     # Confound-adjusted / structured
     "PartialCCA",
     "GRCCA",
+    # Reduced-rank regression
+    "CCAR3",
     # Gradient descent (high-dimensional / streaming)
     "PLS_EY",
     "CCA_EY",

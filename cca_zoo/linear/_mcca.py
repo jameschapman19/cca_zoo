@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, ClassVar
+
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.linalg import block_diag
@@ -9,6 +11,7 @@ from sklearn.decomposition import PCA
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import gevp
+from cca_zoo._utils._param_constraints import POSITIVE_EPS, RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
 
@@ -72,6 +75,13 @@ class MCCA(BaseModel):
         >>> model = MCCA(latent_dimensions=2).fit([X1, X2, X3])
         >>> scores = model.transform([X1, X2, X3])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **BaseModel._parameter_constraints,
+        "c": RIDGE_PARAMETER,
+        "pca": ["boolean"],
+        "eps": POSITIVE_EPS,
+    }
 
     def __init__(
         self,

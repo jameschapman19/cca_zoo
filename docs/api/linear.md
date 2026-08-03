@@ -59,6 +59,12 @@ Linear CCA methods. All classes are `sklearn.base.BaseEstimator` subclasses.
 
 ---
 
+## Reduced-rank regression methods
+
+::: cca_zoo.linear.CCAR3
+
+---
+
 ## Gradient-descent methods
 
 ::: cca_zoo.linear.PLS_EY

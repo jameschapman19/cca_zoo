@@ -91,17 +91,30 @@ All contributions must comply with the following:
 
 1. Create the implementation file in the appropriate subpackage
    (e.g. `cca_zoo/linear/_mymodel.py`).
-2. Inherit from `BaseModel` (linear/nonparametric) or `BaseDeep` (deep).
+2. Inherit from `BaseModel` (linear/nonparametric) or `BaseDeep` (deep). This gets you
+   `transform`, `fit_transform`, `score`, `pairwise_correlations`, `get_factor_loadings`,
+   and correct sklearn `get_params`/`set_params`/tags for free — implement `fit` only.
 3. Add Google-style docstrings including the mathematical objective and reference(s).
-4. Export from the subpackage's `__init__.py` and add to `__all__`.
-5. Write tests in `tests/<subpackage>/test_mymodel.py` covering, at minimum: `fit` completing
-   without error, `transform`/`fit_transform` output shapes, `score` shape and value range,
-   `get_params`/`set_params` round-tripping, and — where a closed-form or known-correct
-   reference solution exists — a correctness check against it (see
-   `tests/linear/test_eigendecomposition.py` for the established pattern).
-6. Add a `::: cca_zoo.<subpackage>.MyModel` entry to the relevant `docs/api/*.md` page —
+4. If any constructor parameter has a documented range (e.g. a ridge parameter in
+   `[0, 1]`), declare it in `_parameter_constraints` (merging in the parent class's, e.g.
+   `{**BaseModel._parameter_constraints, "c": RIDGE_PARAMETER}` — see
+   `cca_zoo/_utils/_param_constraints.py` for shared constraint fragments and
+   `cca_zoo/linear/_mcca.py` for an example). This is optional but recommended: it turns
+   an invalid parameter into a clear error at `fit()` time instead of a cryptic failure
+   deep in the linear algebra.
+5. Export from the subpackage's `__init__.py` and add to `__all__`. Doing this is also
+   what gets your model automatically covered by `tests/test_sklearn_compat.py`'s
+   generic sklearn-estimator-contract checks (`get_params`/`set_params` round-tripping,
+   `repr`, init purity) — no per-model test needed for that part.
+6. Write tests in `tests/<subpackage>/test_mymodel.py` covering, at minimum: `fit`
+   completing without error, `transform`/`fit_transform` output shapes, `score` shape and
+   value range, and — where a closed-form or known-correct reference solution exists — a
+   correctness check against it (see `tests/linear/test_eigendecomposition.py` for the
+   established pattern). If you added `_parameter_constraints`, add a rejection test per
+   constraint (see `tests/linear/test_parameter_constraints.py`).
+7. Add a `::: cca_zoo.<subpackage>.MyModel` entry to the relevant `docs/api/*.md` page —
    `tests/test_docs_coverage.py` enforces this.
-7. Open a pull request against `main`.
+8. Open a pull request against `main`.
 
 ---
 
