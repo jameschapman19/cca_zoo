@@ -8,10 +8,10 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._validation import validate_views
+from cca_zoo.probabilistic._utils import PosteriorMeanTransformMixin
 
 
-class ProbabilisticCCA(BaseModel):
+class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
     r"""Probabilistic Canonical Correlation Analysis via NUTS MCMC.
 
     Fits a Bayesian latent variable model with the following generative
@@ -148,6 +148,7 @@ class ProbabilisticCCA(BaseModel):
         )
         rng_key = jax.random.PRNGKey(self.random_state)
         mcmc.run(rng_key, validated)
+        self.mcmc_ = mcmc
         self.posterior_samples_: dict[str, Any] = mcmc.get_samples()
 
         # Set weights_ to posterior mean W matrices (p_i x k) for each view
@@ -156,62 +157,3 @@ class ProbabilisticCCA(BaseModel):
             for i in range(self.n_views_)
         ]
         return self
-
-    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Return the posterior mean of the shared latent variable z.
-
-        The posterior mean is computed analytically for a linear Gaussian
-        model using the posterior mean W matrices::
-
-            Sigma_z|x = (I + sum_i W_i^T Psi_i^{-1} W_i)^{-1}
-            mu_z|x    = Sigma_z|x sum_i W_i^T Psi_i^{-1} (x_i - mu_i)
-
-        As an approximation, diagonal noise variances are estimated from
-        the posterior samples.
-
-        Note:
-            Unlike every other model in ``cca_zoo`` (one array per view),
-            this returns a **single-element** list: ``ProbabilisticCCA`` is a
-            fully generative joint model with one shared latent variable
-            rather than a per-view projection, so there is only one array to
-            return.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-
-        Returns:
-            List with exactly one numpy array of shape
-            (n_samples, latent_dimensions) containing the posterior mean of
-            the shared latent variable z for each observation.
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-        """
-        from sklearn.utils.validation import check_is_fitted
-
-        check_is_fitted(self)
-        validated = validate_views(views)
-        centered = [v - m for v, m in zip(validated, self.means_)]
-
-        k = self.latent_dimensions
-        n = centered[0].shape[0]
-
-        # Build posterior precision and information
-        precision = np.eye(k)
-        information = np.zeros((n, k))
-
-        for i, (xi, w_i) in enumerate(zip(centered, self.weights_)):
-            # Estimate noise variance from posterior samples
-            psi_samples = np.exp(np.array(self.posterior_samples_[f"log_psi_{i}"]))
-            psi_mean = psi_samples.mean(axis=0)  # (p_i,)
-            psi_inv = 1.0 / np.maximum(psi_mean, 1e-8)
-            # Accumulate: W^T diag(psi^{-1}) W — shape (k,p) @ (p,k)
-            # w_i: (p,k); w_i.T: (k,p); w_i * psi_inv broadcasts (p,k)*(p,)
-            precision = precision + w_i.T @ (w_i * psi_inv[:, np.newaxis])
-            # Accumulate: W^T diag(psi^{-1}) x_i  — shapes: (n,p) * (p,) = (n,p)
-            # then (n,p) @ (p,k) = (n,k)
-            information = information + (xi * psi_inv) @ w_i
-
-        sigma_z = np.linalg.inv(precision)  # (k, k) — symmetric
-        mu_z = information @ sigma_z  # (n, k)
-        return [mu_z]

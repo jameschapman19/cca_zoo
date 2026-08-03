@@ -7,6 +7,25 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `VariationalBayesCCA`: probabilistic CCA fit via mean-field stochastic variational inference
+  (numpyro SVI), a much cheaper alternative to `ProbabilisticCCA`'s full NUTS MCMC. Adds a
+  hierarchical automatic relevance determination (ARD) prior shared across views, giving
+  automatic latent-dimensionality selection via the new `ard_relevance_` attribute instead of a
+  `GridSearchCV` sweep over `latent_dimensions`. This is the "VB-CCA" (Wang 2007) previously
+  only cited, not implemented, by `ProbabilisticCCA`'s docstring.
+
+### Fixed
+
+- `ProbabilisticCCA.score()` returned `nan` and `.get_factor_loadings()` silently returned only
+  the first view's loadings: both are inherited from `BaseModel`, which assumes `transform()`
+  returns one array per view, but these joint-latent models return a single shared-z array.
+  Fixed for both `ProbabilisticCCA` and the new `VariationalBayesCCA` via a shared mixin that
+  correlates each view's own posterior-mean projection instead.
+- `ProbabilisticCCA`'s docs referenced a `model.mcmc_` attribute for ArviZ diagnostics that
+  `fit()` never actually set; now stored.
+
 ## [3.1.0] - 2026-08-03
 
 ### Added

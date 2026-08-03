@@ -13,7 +13,8 @@ _jax_available = importlib.util.find_spec("jax") is not None
 
 if _numpyro_available and _jax_available:
     from cca_zoo.probabilistic._pcca import ProbabilisticCCA
+    from cca_zoo.probabilistic._vbcca import VariationalBayesCCA
 
-    __all__ = ["ProbabilisticCCA"]
+    __all__ = ["ProbabilisticCCA", "VariationalBayesCCA"]
 else:
     __all__ = []
