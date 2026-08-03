@@ -190,9 +190,8 @@ class TreeCCA(BaseModel):
     generalised from two views to an arbitrary number of views.
 
     References:
-        Chapman, J., Wells, L., & Lawry Aguila, L. (2024). Unconstrained
-        stochastic CCA: Unifying multiview and self-supervised learning.
-        arXiv:2310.01012.
+        Chapman, J. (2026). TreeCCA: Canonical Correlation Analysis via
+        Gradient-Boosted Trees. arXiv:2607.27027.
 
     Args:
         latent_dimensions: Number of latent components. Must not exceed the
