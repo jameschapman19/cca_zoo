@@ -15,6 +15,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
   automatic latent-dimensionality selection via the new `ard_relevance_` attribute instead of a
   `GridSearchCV` sweep over `latent_dimensions`. This is the "VB-CCA" (Wang 2007) previously
   only cited, not implemented, by `ProbabilisticCCA`'s docstring.
+- `log_likelihood()` on both `ProbabilisticCCA` and `VariationalBayesCCA`: the marginal
+  log-likelihood of held-out data with the shared latent variable integrated out, evaluated
+  jointly across the concatenation of all views (not per view) so it correctly captures the
+  cross-view covariance induced by the shared latent structure. Computed via the Woodbury
+  identity and matrix determinant lemma (verified against a brute-force
+  `scipy.stats.multivariate_normal` computation to machine precision). This is the
+  statistically proper Bayesian model-fit criterion, complementing (not replacing) `score()`,
+  which every model in the package shares for `GridSearchCV` consistency.
 
 ### Fixed
 

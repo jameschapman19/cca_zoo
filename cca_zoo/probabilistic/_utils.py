@@ -48,6 +48,67 @@ def posterior_mean_latent(
     return information @ sigma_z
 
 
+def marginal_log_likelihood(
+    centered_views: list[np.ndarray],
+    weights: list[np.ndarray],
+    psi: list[np.ndarray],
+) -> float:
+    r"""Mean per-sample log-likelihood with the shared latent variable integrated out.
+
+    Marginalising $z \sim \mathcal{N}(0, I_k)$ out of the generative model
+    gives, for the concatenation $x$ of every view's centred features for
+    one sample:
+
+    $$
+    x \sim \mathcal{N}\!\left(0,\ \Psi + WW^\top\right)
+    $$
+
+    where $W$ stacks every view's loading matrix row-wise and $\Psi$ is the
+    (block-)diagonal noise-variance matrix. Crucially this is evaluated on
+    the *concatenation* of all views, not per view independently: because
+    every view shares the same $z$, marginalising it induces cross-view
+    covariance ($W_i W_j^\top$ blocks) that a per-view likelihood would
+    silently ignore, understating how well the shared structure fits.
+
+    Uses the Woodbury identity and the matrix determinant lemma so the cost
+    is linear in the total feature dimension $P = \sum_i p_i$ and only cubic
+    in the (typically much smaller) latent dimension $k$, rather than
+    requiring a $P \times P$ inverse.
+
+    Args:
+        centered_views: Per-view arrays, each ``(n_samples, n_features_i)``,
+            already centred by the caller.
+        weights: Per-view loading matrices, each ``(n_features_i, k)``.
+        psi: Per-view noise-variance vectors, each ``(n_features_i,)``.
+
+    Returns:
+        The mean log-likelihood per sample (a scalar), averaged rather than
+        summed so it's comparable across differently-sized held-out sets.
+    """
+    w_full = np.concatenate(weights, axis=0)  # (P, k)
+    psi_full = np.concatenate(psi, axis=0)  # (P,)
+    x_full = np.concatenate(centered_views, axis=1)  # (n, P)
+    n_samples, n_features = x_full.shape
+    k = w_full.shape[1]
+
+    psi_inv = 1.0 / np.maximum(psi_full, 1e-8)  # (P,)
+    m = np.eye(k) + (w_full.T * psi_inv) @ w_full  # I + W^T Psi^-1 W, (k, k)
+    m_inv = np.linalg.inv(m)
+
+    # log det(Psi + W W^T) = log det(Psi) + log det(I + W^T Psi^-1 W)
+    log_det_sigma = np.sum(np.log(np.maximum(psi_full, 1e-300)))
+    log_det_sigma += np.linalg.slogdet(m)[1]
+
+    x_scaled = x_full * psi_inv  # x^T Psi^-1, per sample: (n, P)
+    quad_diag = np.einsum("np,np->n", x_full, x_scaled)  # x^T Psi^-1 x
+    proj = x_scaled @ w_full  # (Psi^-1 x)^T W, per sample: (n, k)
+    quad_correction = np.einsum("nk,kj,nj->n", proj, m_inv, proj)
+    quad = quad_diag - quad_correction  # x^T Sigma^-1 x, via Woodbury
+
+    log_lik_per_sample = -0.5 * (n_features * np.log(2 * np.pi) + log_det_sigma + quad)
+    return float(np.mean(log_lik_per_sample))
+
+
 class PosteriorMeanTransformMixin:
     """Shared ``transform`` for models storing posterior samples of ``log_psi_i``.
 
@@ -205,3 +266,39 @@ class PosteriorMeanTransformMixin:
             std_t = np.maximum(t_c.std(axis=0, ddof=1), 1e-12)
             loadings.append(cov / np.outer(std_v, std_t))
         return loadings
+
+    def log_likelihood(self, views: list[ArrayLike]) -> float:
+        """Mean per-sample log-likelihood under the fitted generative model.
+
+        Unlike :meth:`score` (average pairwise correlation — the same
+        metric every model in ``cca_zoo`` uses, kept for consistency with
+        e.g. `GridSearchCV`), this is the statistically proper Bayesian
+        model-fit criterion for a probabilistic model: the marginal
+        likelihood of held-out data with the shared latent variable
+        integrated out (see
+        :func:`~cca_zoo.probabilistic._utils.marginal_log_likelihood`).
+        Larger (less negative) is better; useful for comparing different
+        ``latent_dimensions`` or comparing this fit against another
+        probabilistic model on the same data.
+
+        Args:
+            views: List of arrays, each of shape (n_samples, n_features_i).
+
+        Returns:
+            Mean log-likelihood per sample (a scalar).
+
+        Raises:
+            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
+        """
+        from sklearn.utils.validation import check_is_fitted
+
+        from cca_zoo._utils._validation import validate_views
+
+        check_is_fitted(self)
+        validated = validate_views(views)
+        centered = [v - m for v, m in zip(validated, self.means_)]
+        psi = [
+            np.exp(np.array(self.posterior_samples_[f"log_psi_{i}"])).mean(axis=0)
+            for i in range(self.n_views_)
+        ]
+        return marginal_log_likelihood(centered, self.weights_, psi)

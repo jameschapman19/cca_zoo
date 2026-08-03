@@ -120,3 +120,50 @@ def test_get_factor_loadings_one_per_view(
     assert len(loadings) == 3
     for loading, view in zip(loadings, three_views):
         assert loading.shape == (view.shape[1], k)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "ModelClass", _model_classes(), ids=[c.__name__ for c in _model_classes()]
+)
+def test_log_likelihood_is_finite_scalar(
+    ModelClass: type, three_views: list[np.ndarray]
+) -> None:
+    """log_likelihood returns a finite scalar, evaluated jointly across views."""
+    model = ModelClass(
+        latent_dimensions=2, random_state=0, **_fast_kwargs(ModelClass)
+    ).fit(three_views)
+    ll = model.log_likelihood(three_views)
+    assert isinstance(ll, float)
+    assert np.isfinite(ll)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "ModelClass", _model_classes(), ids=[c.__name__ for c in _model_classes()]
+)
+def test_log_likelihood_prefers_better_fit(ModelClass: type) -> None:
+    """A model fit to correlated views scores better than one fit to noise.
+
+    Compares log-likelihood on the same held-in correlated data between a
+    model actually fit to it and a model fit to unrelated, uncorrelated
+    views, sanity-checking that log_likelihood responds to fit quality
+    rather than being a constant or a shape-only computation.
+    """
+    rng = np.random.default_rng(0)
+    n, k = 200, 1
+    z = rng.standard_normal((n, k))
+    x1 = z @ rng.standard_normal((k, 4)) + 0.05 * rng.standard_normal((n, 4))
+    x2 = z @ rng.standard_normal((k, 3)) + 0.05 * rng.standard_normal((n, 3))
+    good_views = [x1, x2]
+
+    bad_views = [rng.standard_normal((n, 4)), rng.standard_normal((n, 3))]
+
+    good_model = ModelClass(
+        latent_dimensions=k, random_state=0, **_fast_kwargs(ModelClass)
+    ).fit(good_views)
+    bad_model = ModelClass(
+        latent_dimensions=k, random_state=0, **_fast_kwargs(ModelClass)
+    ).fit(bad_views)
+
+    assert good_model.log_likelihood(good_views) > bad_model.log_likelihood(good_views)

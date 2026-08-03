@@ -34,6 +34,30 @@ where:
 Both classes share this model and the same posterior-mean projection formula for `transform`;
 they differ only in how the posterior is approximated.
 
+### Scoring: correlation vs likelihood
+
+Both classes implement `score` (average pairwise correlation) for consistency with every other
+model in `cca_zoo` — this is what `GridSearchCV` optimizes by default. But a correlation between
+projections isn't the statistically natural fit criterion for a *probabilistic* model. Both
+classes also implement `log_likelihood`, the marginal log-likelihood of the data with the shared
+latent variable integrated out:
+
+$$
+\mathbf{x} \sim \mathcal{N}\!\left(0,\ \Psi + WW^\top\right)
+$$
+
+where $\mathbf{x}$ is the concatenation of every view's centred features for one sample, $W$
+stacks every view's loading matrix, and $\Psi$ is the (block-)diagonal noise-variance matrix.
+This is evaluated jointly across the concatenated views rather than per view: because every view
+shares the same $z$, marginalising it induces cross-view covariance that a per-view likelihood
+would silently ignore. Use `log_likelihood` to compare `latent_dimensions` choices, or to compare
+`ProbabilisticCCA` against `VariationalBayesCCA` on the same data — larger (less negative) is
+better.
+
+```python
+model.log_likelihood([X1, X2])  # mean log-likelihood per sample
+```
+
 ---
 
 ## `ProbabilisticCCA`: full MCMC
@@ -182,3 +206,7 @@ print("Latent shape:", z[0].shape)  # (100, 4)
   default). The priors on $W_i$ assume unit-scale inputs.
 - **Convergence diagnostics.** Use [ArviZ](https://python.arviz.org/) on the NumPyro MCMC object
   (accessible via `model.mcmc_` on `ProbabilisticCCA`) for R-hat and effective sample size checks.
+- **Comparing models.** Use `model.log_likelihood(held_out_views)` rather than `model.score(...)`
+  when the question is "which model/latent_dimensions fits this data better" — it's the
+  statistically proper Bayesian criterion, unlike the correlation-based `score` every model
+  shares for `GridSearchCV` consistency.
