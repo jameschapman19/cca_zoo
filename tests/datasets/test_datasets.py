@@ -1,120 +1,70 @@
 """Tests for cca_zoo.datasets utilities.
 
-The datasets module exposes JointData, LatentVariableData (simulated) and
-toy dataset loaders.  These tests verify that the public API returns arrays
-of the expected shape.
-
-Note: the simulated and toy submodules are referenced in datasets/__init__.py
-but the underlying .py files may not yet exist in this rewrite snapshot.
-Each test group is guarded by an importorskip / pytest.skip where appropriate.
+The datasets module exposes JointData (a simulated multiview generator) and
+two toy real-world loaders backed by scikit-learn's bundled datasets.
 """
 
 from __future__ import annotations
 
-import importlib
-import importlib.util
-
 import numpy as np
-import pytest
+
+from cca_zoo.datasets import JointData, load_breast_cancer, load_linnerud
 
 # ---------------------------------------------------------------------------
-# Guard: check if the datasets module is importable
-# ---------------------------------------------------------------------------
-
-datasets = pytest.importorskip(
-    "cca_zoo.datasets",
-    reason="cca_zoo.datasets could not be imported",
-)
-
-
-# ---------------------------------------------------------------------------
-# JointData / LatentVariableData — simulated data
+# JointData — simulated multiview data
 # ---------------------------------------------------------------------------
 
 
-def _has_simulated() -> bool:
-    """Return True if the simulated submodule is importable."""
-    spec = importlib.util.find_spec("cca_zoo.datasets.simulated")
-    return spec is not None
-
-
-@pytest.mark.skipif(
-    not _has_simulated(),
-    reason="cca_zoo.datasets.simulated not available in this rewrite snapshot",
-)
 class TestJointData:
     """Tests for JointData (linear latent variable data generator)."""
 
-    def test_sample_returns_list(self) -> None:
-        """JointData.sample() returns a list of numpy arrays."""
-        from cca_zoo.datasets import JointData  # type: ignore[attr-defined]
-
-        gen = JointData(latent_dimensions=2, n_views=2, n_features=[10, 8])
-        views = gen.sample(n_samples=50, random_state=0)
+    def test_sample_returns_list_of_numpy_arrays(self) -> None:
+        """sample() returns a list of numpy.ndarray, one per view."""
+        gen = JointData(n_views=2, n_samples=50, n_features=[10, 8], random_state=0)
+        views = gen.sample()
         assert isinstance(views, list)
         assert len(views) == 2
-
-    def test_sample_correct_n_samples(self) -> None:
-        """JointData.sample() returns arrays with the requested number of samples."""
-        from cca_zoo.datasets import JointData  # type: ignore[attr-defined]
-
-        gen = JointData(latent_dimensions=2, n_views=2, n_features=[10, 8])
-        views = gen.sample(n_samples=60, random_state=1)
-        for v in views:
-            assert v.shape[0] == 60
-
-    def test_sample_correct_n_features(self) -> None:
-        """JointData.sample() returns arrays with the specified feature dimensions."""
-        from cca_zoo.datasets import JointData  # type: ignore[attr-defined]
-
-        n_features = [10, 8]
-        gen = JointData(latent_dimensions=2, n_views=2, n_features=n_features)
-        views = gen.sample(n_samples=30, random_state=2)
-        for v, p in zip(views, n_features):
-            assert v.shape[1] == p
-
-    def test_sample_returns_numpy_arrays(self) -> None:
-        """JointData.sample() returns numpy.ndarray objects."""
-        from cca_zoo.datasets import JointData  # type: ignore[attr-defined]
-
-        gen = JointData(latent_dimensions=1, n_views=2, n_features=[5, 5])
-        views = gen.sample(n_samples=20, random_state=3)
         for v in views:
             assert isinstance(v, np.ndarray)
 
-    def test_sample_reproducible(self) -> None:
-        """JointData.sample() is reproducible with the same random_state."""
-        from cca_zoo.datasets import JointData  # type: ignore[attr-defined]
-
-        gen = JointData(latent_dimensions=1, n_views=2, n_features=[5, 5])
-        v1 = gen.sample(n_samples=20, random_state=0)
-        v2 = gen.sample(n_samples=20, random_state=0)
-        for a, b in zip(v1, v2):
-            np.testing.assert_array_equal(a, b)
+    def test_sample_shapes_match_constructor_args(self) -> None:
+        """Each view's shape matches the requested n_samples/n_features."""
+        gen = JointData(n_views=2, n_samples=60, n_features=[10, 8], random_state=1)
+        views = gen.sample()
+        assert views[0].shape == (60, 10)
+        assert views[1].shape == (60, 8)
 
     def test_sample_three_views(self) -> None:
-        """JointData.sample() works for three views."""
-        from cca_zoo.datasets import JointData  # type: ignore[attr-defined]
-
-        gen = JointData(latent_dimensions=2, n_views=3, n_features=[6, 5, 4])
-        views = gen.sample(n_samples=40, random_state=0)
+        """JointData supports more than two views."""
+        gen = JointData(
+            n_views=3, n_samples=40, latent_dimensions=2, n_features=[6, 5, 4]
+        )
+        views = gen.sample()
         assert len(views) == 3
         for v, p in zip(views, [6, 5, 4]):
             assert v.shape == (40, p)
 
+    def test_same_random_state_reproducible_across_instances(self) -> None:
+        """Two freshly constructed generators with the same seed match."""
+        gen1 = JointData(n_views=2, n_samples=20, n_features=5, random_state=0)
+        gen2 = JointData(n_views=2, n_samples=20, n_features=5, random_state=0)
+        for a, b in zip(gen1.sample(), gen2.sample()):
+            np.testing.assert_array_equal(a, b)
 
-@pytest.mark.skipif(
-    not _has_simulated(),
-    reason="cca_zoo.datasets.simulated not available in this rewrite snapshot",
-)
-class TestLatentVariableData:
-    """Tests for LatentVariableData (if present alongside JointData)."""
+    def test_repeated_sample_calls_draw_fresh_noise(self) -> None:
+        """Calling sample() twice on the same instance gives different draws."""
+        gen = JointData(n_views=2, n_samples=20, n_features=5, random_state=0)
+        first = gen.sample()
+        second = gen.sample()
+        assert not np.array_equal(first[0], second[0])
 
-    def test_latent_variable_data_importable(self) -> None:
-        """LatentVariableData is importable from cca_zoo.datasets."""
-        from cca_zoo.datasets import LatentVariableData  # type: ignore[attr-defined]
-
-        assert LatentVariableData is not None
+    def test_call_is_alias_for_sample(self) -> None:
+        """Calling the instance directly is equivalent to calling sample()."""
+        gen = JointData(n_views=2, n_samples=20, n_features=5, random_state=2)
+        views = gen()
+        assert len(views) == 2
+        for v in views:
+            assert v.shape == (20, 5)
 
 
 # ---------------------------------------------------------------------------
@@ -122,45 +72,18 @@ class TestLatentVariableData:
 # ---------------------------------------------------------------------------
 
 
-def _has_toy() -> bool:
-    """Return True if the toy submodule is importable."""
-    spec = importlib.util.find_spec("cca_zoo.datasets.toy")
-    return spec is not None
+def test_load_breast_cancer_returns_two_equal_views() -> None:
+    """load_breast_cancer splits the 30 features into two 15-feature views."""
+    x1, x2 = load_breast_cancer()
+    assert x1.shape == (569, 15)
+    assert x2.shape == (569, 15)
 
 
-@pytest.mark.skipif(
-    not _has_toy(),
-    reason="cca_zoo.datasets.toy not available in this rewrite snapshot",
-)
-class TestToyDatasets:
-    """Tests for real-world toy dataset loaders."""
-
-    def test_load_breast_data_returns_numpy(self) -> None:
-        """load_breast_data returns numpy arrays."""
-        from cca_zoo.datasets import load_breast_data  # type: ignore[attr-defined]
-
-        result = load_breast_data()
-        assert isinstance(result, (list, tuple))
-        for arr in result:
-            assert isinstance(arr, np.ndarray)
-
-    def test_load_breast_data_consistent_samples(self) -> None:
-        """load_breast_data views share the same number of rows."""
-        from cca_zoo.datasets import load_breast_data  # type: ignore[attr-defined]
-
-        result = load_breast_data()
-        n = result[0].shape[0]
-        for arr in result:
-            assert arr.shape[0] == n
-
-    def test_load_mfeat_data_returns_numpy(self) -> None:
-        """load_mfeat_data returns numpy arrays."""
-        from cca_zoo.datasets import load_mfeat_data  # type: ignore[attr-defined]
-
-        result = load_mfeat_data()
-        assert isinstance(result, (list, tuple))
-        for arr in result:
-            assert isinstance(arr, np.ndarray)
+def test_load_linnerud_returns_expected_shapes() -> None:
+    """load_linnerud returns the exercise/physiological views."""
+    x1, x2 = load_linnerud()
+    assert x1.shape == (20, 3)
+    assert x2.shape == (20, 3)
 
 
 # ---------------------------------------------------------------------------
