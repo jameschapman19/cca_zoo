@@ -7,8 +7,7 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-Everything below has landed on `main` since the `v3.0.0` tag but has not yet been released
-to PyPI.
+## [3.1.0] - 2026-08-03
 
 ### Added
 
@@ -54,6 +53,8 @@ to PyPI.
 - `README.md` rewritten to reflect the current method list, install instructions, and
   badges.
 - Every public class's docstring now includes a literature `References:` section.
+- Project logo and favicon replaced with a hand-authored two-ring mark (previously a large
+  auto-traced SVG); the favicon is now a proper multi-resolution `.ico` generated from it.
 
 ### Removed
 
@@ -67,6 +68,9 @@ to PyPI.
 - Redundant hand-written `get_params`/`set_params` roundtrip tests, now that
   `tests/test_sklearn_compat.py` covers every model generically.
 - `.readthedocs.yaml` (dead Sphinx config; docs are built with MkDocs).
+- Unused favicon-generator output (`favicon-16x16.png`, `favicon-32x32.png`,
+  `apple-touch-icon.png`, `android-chrome-*.png`, `site.webmanifest`) — never referenced by
+  `mkdocs.yml`, `README.md`, or the built site.
 
 ## [3.0.0] - 2026-03-07
 
