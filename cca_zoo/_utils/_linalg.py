@@ -10,10 +10,18 @@ def svd_whiten(
     X: np.ndarray,
     regularization: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Whiten X using a regularised SVD decomposition.
+    """Whiten X using a regularised decomposition.
 
-    Computes W such that X @ W has covariance approximately equal to the
+    Computes W such that ``X @ W`` has covariance approximately equal to the
     identity matrix (or a regularised version thereof).
+
+    When ``n_samples >= n_features`` the sample covariance matrix (p x p) is
+    formed explicitly and diagonalised with ``eigh``. This is O(n p^2) in
+    FLOPs and O(p^2) in peak memory -- much cheaper than computing the full
+    thin SVD of X (which allocates an n x p matrix U).
+
+    When ``n_samples < n_features`` the original SVD path is used, which
+    avoids forming the n x n Gram matrix.
 
     Args:
         X: Array of shape (n_samples, n_features), assumed mean-centred.
@@ -24,20 +32,37 @@ def svd_whiten(
         Tuple ``(X_white, W)`` where ``X_white = X @ W`` and ``W`` is the
         (n_features, rank) whitening matrix.
     """
-    n = X.shape[0]
-    U, s, Vt = np.linalg.svd(X, full_matrices=False)
-    # Keep only dimensions with positive singular values
-    pos = s > 0
-    s = s[pos]
-    U = U[:, pos]
-    Vt = Vt[pos, :]
-    # Eigenvalues of the sample covariance
-    lam = s**2 / (n - 1)
-    # Regularised inverse square root: ((1 - c) * lam + c)^{-1/2}
-    inv_sqrt = 1.0 / np.sqrt((1.0 - regularization) * lam + regularization)
-    # Whitening matrix: shape (n_features, rank)
-    W = Vt.T * inv_sqrt
-    X_white = U * (s * inv_sqrt)
+    n, p = X.shape
+    if n >= p:
+        # Covariance path -- avoids the large n x p matrix U from thin SVD.
+        C = X.T @ X / (n - 1)
+        lam, V = np.linalg.eigh(C)
+        # A strict ``lam > 0`` is not numerically safe here: forming X.T @ X
+        # squares the condition number, so near-zero eigenvalues of
+        # rank-deficient data can carry noise of either sign and slip
+        # through a zero threshold. Use a relative tolerance instead,
+        # matching numpy.linalg.matrix_rank's convention.
+        tol = lam.max() * p * np.finfo(lam.dtype).eps
+        pos = lam > tol
+        lam, V = lam[pos], V[:, pos]
+        inv_sqrt = 1.0 / np.sqrt((1.0 - regularization) * lam + regularization)
+        W = V * inv_sqrt
+        X_white = X @ W
+    else:
+        # SVD path -- avoids forming the p x p covariance matrix.
+        U, s, Vt = np.linalg.svd(X, full_matrices=False)
+        # Keep only dimensions with positive singular values
+        pos = s > 0
+        s = s[pos]
+        U = U[:, pos]
+        Vt = Vt[pos, :]
+        # Eigenvalues of the sample covariance
+        lam = s**2 / (n - 1)
+        # Regularised inverse square root: ((1 - c) * lam + c)^{-1/2}
+        inv_sqrt = 1.0 / np.sqrt((1.0 - regularization) * lam + regularization)
+        # Whitening matrix: shape (n_features, rank)
+        W = Vt.T * inv_sqrt
+        X_white = U * (s * inv_sqrt)
     return X_white, W
 
 

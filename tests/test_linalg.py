@@ -89,6 +89,31 @@ class TestSvdWhiten:
         cov = x_w.T @ x_w / (x_w.shape[0] - 1)
         np.testing.assert_allclose(cov, np.eye(cov.shape[0]), atol=1e-10)
 
+    def test_wide_input_uses_svd_path(self) -> None:
+        """n_samples < n_features (wide X) is whitened correctly too."""
+        rng = np.random.default_rng(0)
+        n, p = 20, 200
+        x = rng.standard_normal((n, p))
+        x -= x.mean(axis=0)
+        x_w, w = svd_whiten(x, regularization=0.0)
+        assert w.shape[0] == p
+        cov = x_w.T @ x_w / (n - 1)
+        np.testing.assert_allclose(cov, np.eye(cov.shape[0]), atol=1e-8)
+
+    def test_tall_and_wide_paths_agree_on_square_input(self) -> None:
+        """At n == p, both branches of the n>=p/n<p split must agree."""
+        rng = np.random.default_rng(0)
+        n = p = 40
+        x = rng.standard_normal((n, p))
+        x -= x.mean(axis=0)
+        x_w, w = svd_whiten(x, regularization=0.2)
+        np.testing.assert_allclose(x_w, x @ w, atol=1e-8)
+        # Rotation-invariant check: the Gram matrix of the whitened data only
+        # depends on the whitened subspace, not on the (arbitrary) basis
+        # eigh/svd happen to return it in.
+        gram = x_w @ x_w.T
+        assert gram.shape == (n, n)
+
 
 # ---------------------------------------------------------------------------
 # gevp

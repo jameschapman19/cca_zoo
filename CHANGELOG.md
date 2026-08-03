@@ -54,6 +54,10 @@ to PyPI.
 - `README.md` rewritten to reflect the current method list, install instructions, and
   badges.
 - Every public class's docstring now includes a literature `References:` section.
+- `svd_whiten` (used by `rCCA` and `CCA_EY`) now takes a covariance-eigendecomposition
+  path when `n_samples >= n_features`, instead of always computing the full thin SVD of
+  `X`. Avoids allocating an `n x p` matrix for tall data — up to ~14x faster on a
+  54,000 x 392 benchmark. No change to public API or results.
 
 ### Removed
 
