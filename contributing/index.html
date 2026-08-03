@@ -1368,35 +1368,46 @@
 pull request process.</p>
 <hr />
 <h2 id="development-setup">Development setup<a class="headerlink" href="#development-setup" title="Permanent link">&para;</a></h2>
-<p>CCA-Zoo uses <a href="https://docs.astral.sh/uv/">uv</a> in CI, but you can use pip for local development.</p>
+<p>CCA-Zoo uses <a href="https://docs.astral.sh/uv/">uv</a> for dependency management, both in CI and for
+local development. A <code>uv.lock</code> is committed so everyone (and CI) resolves the exact same
+dependency versions.</p>
 <h3 id="1-clone-and-install">1. Clone and install<a class="headerlink" href="#1-clone-and-install" title="Permanent link">&para;</a></h3>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/jameschapman19/cca_zoo.git
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>cca_zoo
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>dev<span class="w"> </span>--locked
 </span></code></pre></div>
-<p>For documentation development:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,docs]&quot;</span>
+<p><code>uv sync</code> creates <code>.venv</code> for you; prefix commands with <code>uv run</code>, or <code>source .venv/bin/activate</code>
+first. For documentation development:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>docs<span class="w"> </span>--locked
 </span></code></pre></div>
+<p>For a specific optional extra (e.g. to work on the deep module):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>dev<span class="w"> </span>--extra<span class="w"> </span>deep<span class="w"> </span>--locked
+</span></code></pre></div>
+<p>If you don't want to use uv, <code>pip install -e ".[dev]"</code> also works, but won't use the lockfile.</p>
 <h3 id="2-run-tests">2. Run tests<a class="headerlink" href="#2-run-tests" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not slow&quot;</span><span class="w">             </span><span class="c1"># fast tests only (no torch / numpyro required)</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pytest<span class="w"> </span>-m<span class="w"> </span>slow<span class="w">                   </span><span class="c1"># deep and probabilistic tests (requires extras)</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pytest<span class="w"> </span>--cov<span class="o">=</span>cca_zoo<span class="w">             </span><span class="c1"># with coverage report</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not slow&quot;</span><span class="w">      </span><span class="c1"># fast tests only (no torch / numpyro / xgboost required)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-m<span class="w"> </span>slow<span class="w">            </span><span class="c1"># deep, probabilistic, and tree tests (requires extras)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>--cov<span class="o">=</span>cca_zoo<span class="w">      </span><span class="c1"># with coverage report</span>
 </span></code></pre></div>
 <h3 id="3-lint-and-format">3. Lint and format<a class="headerlink" href="#3-lint-and-format" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ruff<span class="w"> </span>check<span class="w"> </span>.<span class="w">                     </span><span class="c1"># lint</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>ruff<span class="w"> </span>format<span class="w"> </span>--check<span class="w"> </span>.<span class="w">            </span><span class="c1"># format check</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>ruff<span class="w"> </span>format<span class="w"> </span>.<span class="w">                    </span><span class="c1"># auto-format</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>.<span class="w">              </span><span class="c1"># lint</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>format<span class="w"> </span>--check<span class="w"> </span>.<span class="w">     </span><span class="c1"># format check</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>format<span class="w"> </span>.<span class="w">             </span><span class="c1"># auto-format</span>
+</span></code></pre></div>
+<p>Optionally, install <a href="https://pre-commit.com/">pre-commit</a> to run these (plus mypy) automatically
+on every commit:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>uvx<span class="w"> </span>pre-commit<span class="w"> </span>install
 </span></code></pre></div>
 <h3 id="4-type-checking">4. Type checking<a class="headerlink" href="#4-type-checking" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>mypy<span class="w"> </span>cca_zoo
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>run<span class="w"> </span>mypy<span class="w"> </span>cca_zoo
 </span></code></pre></div>
 <h3 id="5-build-docs-locally">5. Build docs locally<a class="headerlink" href="#5-build-docs-locally" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>mkdocs<span class="w"> </span>serve<span class="w">                     </span><span class="c1"># live-reload preview at http://127.0.0.1:8000</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>mkdocs<span class="w"> </span>build<span class="w">                     </span><span class="c1"># build static site into site/</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>run<span class="w"> </span>mkdocs<span class="w"> </span>serve<span class="w">               </span><span class="c1"># live-reload preview at http://127.0.0.1:8000</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>uv<span class="w"> </span>run<span class="w"> </span>mkdocs<span class="w"> </span>build<span class="w"> </span>--strict<span class="w">      </span><span class="c1"># build static site into site/</span>
 </span></code></pre></div>
 <hr />
 <h2 id="coding-standards">Coding standards<a class="headerlink" href="#coding-standards" title="Permanent link">&para;</a></h2>
-<p>All contributions must comply with the standards defined in <code>CLAUDE.md</code>. Key points:</p>
+<p>All contributions must comply with the following:</p>
 <ul>
 <li><strong>Python ≥ 3.10 only.</strong> Use <code>X | Y</code> unions, <code>list[x]</code>/<code>dict[x]</code>/<code>tuple[x]</code> generics.</li>
 <li><strong>Google-style docstrings</strong> on all public classes and methods with Args, Returns, Raises,
@@ -1415,8 +1426,13 @@ pull request process.</p>
 <li>Inherit from <code>BaseModel</code> (linear/nonparametric) or <code>BaseDeep</code> (deep).</li>
 <li>Add Google-style docstrings including the mathematical objective and reference(s).</li>
 <li>Export from the subpackage's <code>__init__.py</code> and add to <code>__all__</code>.</li>
-<li>Write tests in <code>tests/&lt;subpackage&gt;/test_mymodel.py</code> covering all required test cases
-   (see <code>CLAUDE.md</code> for the full list).</li>
+<li>Write tests in <code>tests/&lt;subpackage&gt;/test_mymodel.py</code> covering, at minimum: <code>fit</code> completing
+   without error, <code>transform</code>/<code>fit_transform</code> output shapes, <code>score</code> shape and value range,
+   <code>get_params</code>/<code>set_params</code> round-tripping, and — where a closed-form or known-correct
+   reference solution exists — a correctness check against it (see
+   <code>tests/linear/test_eigendecomposition.py</code> for the established pattern).</li>
+<li>Add a <code>cca_zoo.&lt;subpackage&gt;.MyModel</code> entry to the relevant <code>docs/api/*.md</code> page —
+   <code>tests/test_docs_coverage.py</code> enforces this.</li>
 <li>Open a pull request against <code>main</code>.</li>
 </ol>
 <hr />
@@ -1424,8 +1440,8 @@ pull request process.</p>
 <ul>
 <li>Keep PRs focused — one feature or fix per PR.</li>
 <li>Include tests for all new/changed behaviour.</li>
-<li>Ensure <code>ruff check</code>, <code>ruff format --check</code>, <code>mypy cca_zoo</code>, and <code>pytest -m "not slow"</code> all
-  pass before requesting review.</li>
+<li>Ensure <code>uv run ruff check .</code>, <code>uv run ruff format --check .</code>, <code>uv run mypy cca_zoo</code>, and
+  <code>uv run pytest -m "not slow"</code> all pass before requesting review.</li>
 <li>Reference any related issues in the PR description.</li>
 </ul>
 <hr />
@@ -1551,6 +1567,10 @@ request features. Please include:</p>
     
     
       <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>

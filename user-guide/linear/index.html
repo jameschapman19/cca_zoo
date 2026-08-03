@@ -1616,12 +1616,12 @@
 <p>These methods operate on exactly two views.</p>
 <h3 id="cca-standard-canonical-correlation-analysis">CCA — Standard Canonical Correlation Analysis<a class="headerlink" href="#cca-standard-canonical-correlation-analysis" title="Permanent link">&para;</a></h3>
 <p><strong>When to use:</strong> The default choice for two balanced, moderately-sized views.</p>
-<p>CCA finds directions $\mathbf{w}_1, \mathbf{w}_2$ that maximise the Pearson correlation between
+<p>CCA finds directions <span class="arithmatex">\(\mathbf{w}_1, \mathbf{w}_2\)</span> that maximise the Pearson correlation between
 projected views:</p>
-<p>$$
+<div class="arithmatex">\[
 \max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
 \quad \text{s.t.} \quad \mathbf{w}_i^\top X_i^\top X_i \mathbf{w}_i = 1
-$$</p>
+\]</div>
 <p>The solution uses PCA whitening followed by an SVD of the cross-covariance matrix, giving a
 numerically stable result even for high-dimensional views.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCA</span>
@@ -1631,7 +1631,7 @@ numerically stable result even for high-dimensional views.</p>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]))</span>  <span class="c1"># canonical correlations</span>
 </span></code></pre></div>
 <h3 id="rcca-regularised-cca">rCCA — Regularised CCA<a class="headerlink" href="#rcca-regularised-cca" title="Permanent link">&para;</a></h3>
-<p><strong>When to use:</strong> CCA breaks down when $n &lt; p$ (more features than samples). rCCA adds a ridge
+<p><strong>When to use:</strong> CCA breaks down when <span class="arithmatex">\(n &lt; p\)</span> (more features than samples). rCCA adds a ridge
 penalty to stabilise the covariance matrices.</p>
 <p>The parameter <code>c</code> controls the regularisation strength:</p>
 <ul>
@@ -1647,10 +1647,10 @@ penalty to stabilise the covariance matrices.</p>
 <p><strong>When to use:</strong> When you want to maximise <em>covariance</em> rather than <em>correlation</em>. PLS is
 more robust to noise and does not require invertible covariance matrices.</p>
 <p>PLS is a special case of rCCA with <code>c=1</code>:</p>
-<p>$$
+<div class="arithmatex">\[
 \max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
-\quad \text{s.t.} \quad |\mathbf{w}_i|_2 = 1
-$$</p>
+\quad \text{s.t.} \quad \|\mathbf{w}_i\|_2 = 1
+\]</div>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">PLS</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">PLS</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
@@ -1662,10 +1662,10 @@ $$</p>
 <p><strong>When to use:</strong> Multiple views, interpretable pairwise-sum objective.</p>
 <p>MCCA maximises the sum of pairwise correlations across all view pairs. It solves a generalised
 eigenvalue problem on block matrices:</p>
-<p>$$
+<div class="arithmatex">\[
 A \mathbf{v} = \lambda B \mathbf{v}
-$$</p>
-<p>where $A$ contains the cross-view covariances and $B$ the regularised within-view covariances.</p>
+\]</div>
+<p>where <span class="arithmatex">\(A\)</span> contains the cross-view covariances and <span class="arithmatex">\(B\)</span> the regularised within-view covariances.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">MCCA</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">MCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
@@ -1673,11 +1673,11 @@ $$</p>
 <h3 id="gcca-generalised-cca">GCCA — Generalised CCA<a class="headerlink" href="#gcca-generalised-cca" title="Permanent link">&para;</a></h3>
 <p><strong>When to use:</strong> Multiple views with potentially different numbers of features; best when you
 want a single shared low-dimensional representation.</p>
-<p>GCCA finds a common latent variable $G$ (of shape $n \times k$) such that each view can be
+<p>GCCA finds a common latent variable <span class="arithmatex">\(G\)</span> (of shape <span class="arithmatex">\(n \times k\)</span>) such that each view can be
 reconstructed from it:</p>
-<p>$$
-\min_{G, W_i} \sum_{i} \mu_i |X_i W_i - G|_F^2
-$$</p>
+<div class="arithmatex">\[
+\min_{G, W_i} \sum_{i} \mu_i \|X_i W_i - G\|_F^2
+\]</div>
 <p>This is equivalent to maximising the sum of squared canonical correlations between each view and
 the shared projection.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">GCCA</span>
@@ -1687,11 +1687,11 @@ the shared projection.</p>
 <h3 id="tcca-tensor-cca">TCCA — Tensor CCA<a class="headerlink" href="#tcca-tensor-cca" title="Permanent link">&para;</a></h3>
 <p><strong>When to use:</strong> When you want to capture higher-order (beyond pairwise) correlations among
 multiple views.</p>
-<p>TCCA builds a joint cross-moment tensor of the whitened views and finds its best rank-$k$
+<p>TCCA builds a joint cross-moment tensor of the whitened views and finds its best rank-<span class="arithmatex">\(k\)</span>
 PARAFAC decomposition:</p>
-<p>$$
+<div class="arithmatex">\[
 T = \frac{1}{n} \sum_{j} \tilde{\mathbf{x}}^{(1)}_j \otimes \cdots \otimes \tilde{\mathbf{x}}^{(M)}_j
-$$</p>
+\]</div>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">TCCA</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">TCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
@@ -1749,10 +1749,10 @@ Gram-Schmidt deflation to extract multiple canonical directions.</p>
 </div>
 <h3 id="scca_pmd">SCCA_PMD<a class="headerlink" href="#scca_pmd" title="Permanent link">&para;</a></h3>
 <p>Imposes L1 constraints via bisection-based soft-thresholding (Witten 2009):</p>
-<p>$$
+<div class="arithmatex">\[
 \max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
-\quad \text{s.t.} \quad |\mathbf{w}_i|_1 \leq \tau_i\sqrt{p_i},\; |\mathbf{w}_i|_2 = 1
-$$</p>
+\quad \text{s.t.} \quad \|\mathbf{w}_i\|_1 \leq \tau_i\sqrt{p_i},\; \|\mathbf{w}_i\|_2 = 1
+\]</div>
 <p><code>tau=1</code> (default) gives no sparsity; smaller values give sparser solutions.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">SCCA_PMD</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
@@ -1815,11 +1815,11 @@ when data are already low-dimensional.</p>
 </thead>
 <tbody>
 <tr>
-<td>$n \gg p$, two views</td>
+<td><span class="arithmatex">\(n \gg p\)</span>, two views</td>
 <td><code>CCA</code></td>
 </tr>
 <tr>
-<td>$n &lt; p$ or ill-conditioned</td>
+<td><span class="arithmatex">\(n &lt; p\)</span> or ill-conditioned</td>
 <td><code>rCCA</code> (tune <code>c</code>)</td>
 </tr>
 <tr>
@@ -1839,7 +1839,7 @@ when data are already low-dimensional.</p>
 <td><code>SCCA_PMD</code> or <code>SCCA_IPLS</code></td>
 </tr>
 <tr>
-<td>Very large $p$ / streaming data</td>
+<td>Very large <span class="arithmatex">\(p\)</span> / streaming data</td>
 <td><code>CCA_EY</code>, <code>PLS_EY</code></td>
 </tr>
 <tr>
@@ -1978,6 +1978,10 @@ when data are already low-dimensional.</p>
     
     
       <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>

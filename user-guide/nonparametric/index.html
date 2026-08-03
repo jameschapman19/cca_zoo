@@ -1369,8 +1369,8 @@
 relationships between views without explicitly constructing feature maps.</p>
 <hr />
 <h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
-<p>Kernel methods replace the inner product $\mathbf{x}_i^\top \mathbf{x}_j$ with a kernel
-function $k(\mathbf{x}_i, \mathbf{x}_j)$, implicitly mapping data into a potentially
+<p>Kernel methods replace the inner product <span class="arithmatex">\(\mathbf{x}_i^\top \mathbf{x}_j\)</span> with a kernel
+function <span class="arithmatex">\(k(\mathbf{x}_i, \mathbf{x}_j)\)</span>, implicitly mapping data into a potentially
 infinite-dimensional reproducing kernel Hilbert space (RKHS). The canonical directions are found
 in that RKHS and expressed via the <em>dual</em> (kernel coefficient) representation.</p>
 <p><strong>Supported kernels</strong> (passed directly to <code>sklearn.metrics.pairwise_kernels</code>):</p>
@@ -1413,14 +1413,14 @@ in that RKHS and expressed via the <em>dual</em> (kernel coefficient) representa
 <hr />
 <h2 id="kcca-kernel-cca">KCCA — Kernel CCA<a class="headerlink" href="#kcca-kernel-cca" title="Permanent link">&para;</a></h2>
 <p><strong>When to use:</strong> Nonlinear two-view CCA. The kernel generalises MCCA.</p>
-<p>KCCA finds dual variables $\boldsymbol{\alpha}_i$ (one set per view) by solving:</p>
-<p>$$
+<p>KCCA finds dual variables <span class="arithmatex">\(\boldsymbol{\alpha}_i\)</span> (one set per view) by solving:</p>
+<div class="arithmatex">\[
 A \boldsymbol{\alpha} = \lambda B \boldsymbol{\alpha}
-$$</p>
+\]</div>
 <p>where:</p>
 <ul>
-<li>$A$ is the block off-diagonal kernel cross-covariance matrix</li>
-<li>$B = \mathrm{block_diag}(c_i K_i + (1-c_i) K_i^2)$ regularises the within-view kernel matrices</li>
+<li><span class="arithmatex">\(A\)</span> is the block off-diagonal kernel cross-covariance matrix</li>
+<li><span class="arithmatex">\(B = \mathrm{block\_diag}(c_i K_i + (1-c_i) K_i^2)\)</span> regularises the within-view kernel matrices</li>
 </ul>
 <p>The parameter <code>c</code> controls regularisation: larger <code>c</code> → stronger regularisation.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">KCCA</span>
@@ -1452,10 +1452,10 @@ the fitted dual variables:</p>
 <h2 id="kgcca-kernel-generalised-cca">KGCCA — Kernel Generalised CCA<a class="headerlink" href="#kgcca-kernel-generalised-cca" title="Permanent link">&para;</a></h2>
 <p><strong>When to use:</strong> Nonlinear extension of GCCA for three or more views.</p>
 <p>KGCCA builds a shared kernel-space latent representation analogously to GCCA:</p>
-<p>$$
+<div class="arithmatex">\[
 Q = \sum_i \mu_i K_i \, B_i^{-1} \, K_i
-$$</p>
-<p>where $B_i = c_i K_i + (1-c_i) K_i^2$.</p>
+\]</div>
+<p>where <span class="arithmatex">\(B_i = c_i K_i + (1-c_i) K_i^2\)</span>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">KGCCA</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KGCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
@@ -1514,8 +1514,8 @@ Use <code>GridSearchCV</code> from <code>cca_zoo.model_selection</code>:</p>
 <hr />
 <h2 id="practical-notes">Practical notes<a class="headerlink" href="#practical-notes" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Kernel methods store the full $n \times n$ kernel matrices. Memory is $O(n^2)$; be cautious
-  with $n &gt; 10{,}000$.</li>
+<li>Kernel methods store the full <span class="arithmatex">\(n \times n\)</span> kernel matrices. Memory is <span class="arithmatex">\(O(n^2)\)</span>; be cautious
+  with <span class="arithmatex">\(n &gt; 10{,}000\)</span>.</li>
 <li>For large datasets, prefer the linear stochastic methods (<code>CCA_EY</code>, <code>PLS_EY</code>) or deep methods.</li>
 <li>The <code>c</code> parameter is crucial: too small → numerical instability; too large → loss of structure.
   Use cross-validation (see <a href="../model-selection/">Model Selection</a>).</li>
@@ -1650,6 +1650,10 @@ Use <code>GridSearchCV</code> from <code>cca_zoo.model_selection</code>:</p>
     
     
       <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>

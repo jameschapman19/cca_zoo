@@ -1447,18 +1447,18 @@
 
         <p>Kernel Canonical Correlation Analysis.</p>
 <p>Extends MCCA to nonlinear relationships by mapping each view into a
-reproducing kernel Hilbert space via a kernel function :math:<code>k_i</code>.  The
-dual variables (kernel coefficients) :math:<code>\boldsymbol{\alpha}_i</code> are
+reproducing kernel Hilbert space via a kernel function <span class="arithmatex">\(k_i\)</span>.  The
+dual variables (kernel coefficients) <span class="arithmatex">\(\boldsymbol{\alpha}_i\)</span> are
 found by solving the kernelised generalised eigenvalue problem:</p>
-<p>.. math::</p>
-<div class="language-text highlight"><pre><span></span><code>A \boldsymbol{\alpha} = \lambda B \boldsymbol{\alpha}
-</code></pre></div>
+<div class="arithmatex">\[
+A \boldsymbol{\alpha} = \lambda B \boldsymbol{\alpha}
+\]</div>
 <p>where:</p>
 <ul>
-<li>:math:<code>A</code> is the between-kernel cross-covariance block matrix.</li>
-<li>:math:<code>B = \mathrm{block\_diag}\bigl(
+<li><span class="arithmatex">\(A\)</span> is the between-kernel cross-covariance block matrix.</li>
+<li><span class="arithmatex">\(B = \mathrm{block\_diag}\bigl(
       c_i K_i + (1 - c_i) K_i^2
-  \bigr)</code> is the regularised within-kernel matrix.</li>
+  \bigr)\)</span> is the regularised within-kernel matrix.</li>
 </ul>
 
 
@@ -2110,13 +2110,13 @@ scores = model.transform([X1, X2])</p>
 <p>Kernelised version of GCCA.  The shared latent vector is found by
 solving the eigenvalue problem on the weighted sum of kernel projection
 matrices:</p>
-<p>.. math::</p>
-<div class="language-text highlight"><pre><span></span><code>Q = \sum_{i=1}^M \mu_i K_i
+<div class="arithmatex">\[
+Q = \sum_{i=1}^M \mu_i K_i
     \bigl(c_i K_i + (1 - c_i) K_i^2\bigr)^{-1} K_i
-</code></pre></div>
+\]</div>
 <p>and the dual variables (kernel coefficients) are recovered as
-:math:<code>\boldsymbol{\alpha}_i = K_i^+ T</code> where :math:<code>T</code> is the matrix
-of top-k eigenvectors of :math:<code>Q</code>.</p>
+<span class="arithmatex">\(\boldsymbol{\alpha}_i = K_i^+ T\)</span> where <span class="arithmatex">\(T\)</span> is the matrix
+of top-k eigenvectors of <span class="arithmatex">\(Q\)</span>.</p>
 
 
 <details class="references" open>
@@ -2823,7 +2823,7 @@ model = KGCCA(latent_dimensions=2).fit([X1, X2, X3])</p>
         <p>Kernel Tensor Canonical Correlation Analysis.</p>
 <p>Extends TCCA to nonlinear relationships by computing the cross-moment
 tensor from whitened kernel matrices rather than from the raw views.
-Each kernel matrix :math:<code>K_i</code> is whitened using its regularised
+Each kernel matrix <span class="arithmatex">\(K_i\)</span> is whitened using its regularised
 self-product, then PARAFAC is applied to the resulting cross-moment
 tensor.</p>
 
@@ -3649,6 +3649,10 @@ model = KTCCA(latent_dimensions=1, random_state=0).fit([X1, X2, X3])</p>
     
     
       <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>

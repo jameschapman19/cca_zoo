@@ -1338,14 +1338,14 @@ small real-world datasets.</p>
 <hr />
 <h2 id="jointdata-simulated-multiview-data">JointData — simulated multiview data<a class="headerlink" href="#jointdata-simulated-multiview-data" title="Permanent link">&para;</a></h2>
 <p><code>JointData</code> generates data from a <strong>linear latent variable model</strong>:</p>
-<p>$$
+<div class="arithmatex">\[
 X_i = Z W_i^\top + E_i
-$$</p>
+\]</div>
 <p>where:</p>
 <ul>
-<li>$Z \in \mathbb{R}^{n \times k}$ is the shared latent variable ($k$ = <code>latent_dimensions</code>)</li>
-<li>$W_i \in \mathbb{R}^{p_i \times k}$ is the view-specific loading matrix (drawn once at construction)</li>
-<li>$E_i$ is independent Gaussian noise, with variance controlled by <code>signal_to_noise</code></li>
+<li><span class="arithmatex">\(Z \in \mathbb{R}^{n \times k}\)</span> is the shared latent variable (<span class="arithmatex">\(k\)</span> = <code>latent_dimensions</code>)</li>
+<li><span class="arithmatex">\(W_i \in \mathbb{R}^{p_i \times k}\)</span> is the view-specific loading matrix (drawn once at construction)</li>
+<li><span class="arithmatex">\(E_i\)</span> is independent Gaussian noise, with variance controlled by <code>signal_to_noise</code></li>
 </ul>
 <p>The loading matrices are fixed at construction so that successive calls to <code>sample()</code> share
 the same generative parameters.</p>
@@ -1584,6 +1584,10 @@ a two-view dataset:</p>
     
     
       <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>

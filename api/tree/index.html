@@ -1312,14 +1312,14 @@
 
 
         <p>TreeCCA — nonlinear multiview CCA with gradient-boosted-tree encoders.</p>
-<p>Learns one nonlinear encoder :math:<code>f_i</code> per view (a gradient-boosted
+<p>Learns one nonlinear encoder <span class="arithmatex">\(f_i\)</span> per view (a gradient-boosted
 tree ensemble per latent dimension) that jointly maximise the
 Eckart-Young (EY) unconstrained-CCA objective:</p>
-<p>.. math::</p>
-<div class="language-text highlight"><pre><span></span><code>\mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
-</code></pre></div>
-<p>where, for embeddings :math:<code>Z_i = f_i(X_i)</code>, :math:<code>C</code> is the mean
-pairwise cross-covariance (including :math:<code>i = j</code> terms) and :math:<code>V</code>
+<div class="arithmatex">\[
+\mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
+\]</div>
+<p>where, for embeddings <span class="arithmatex">\(Z_i = f_i(X_i)\)</span>, <span class="arithmatex">\(C\)</span> is the mean
+pairwise cross-covariance (including <span class="arithmatex">\(i = j\)</span> terms) and <span class="arithmatex">\(V\)</span>
 the mean auto-covariance across all views (see
 :mod:<code>cca_zoo._utils._ey</code>, the same shared EY-loss machinery used by
 :class:<code>~cca_zoo.linear.gradient.CCA_EY</code> and
@@ -2253,6 +2253,10 @@ the number of views passed to <code>fit</code>.</p>
     
     
       <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>

@@ -1298,13 +1298,13 @@ gradient-boosted trees as the per-view encoders, via either
 <p><code>TreeCCA</code> maximises the same unconstrained Eckart-Young (EY) objective used by the stochastic
 <code>*_EY</code> models in <code>cca_zoo.linear</code> and by <code>DCCA_EY</code> in <code>cca_zoo.deep</code> (the numpy-based models
 share the exact same implementation, in <code>cca_zoo._utils._ey</code>):</p>
-<p>$$
+<div class="arithmatex">\[
 \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
-$$</p>
-<p>where, for embeddings $Z_i = f_i(X_i)$, $C$ is the mean pairwise cross-covariance (including
-$i = j$ terms) and $V$ the mean auto-covariance across all views. <code>TreeCCA</code> uses a
+\]</div>
+<p>where, for embeddings <span class="arithmatex">\(Z_i = f_i(X_i)\)</span>, <span class="arithmatex">\(C\)</span> is the mean pairwise cross-covariance (including
+<span class="arithmatex">\(i = j\)</span> terms) and <span class="arithmatex">\(V\)</span> the mean auto-covariance across all views. <code>TreeCCA</code> uses a
 gradient-boosted-tree ensemble in place of a linear map or neural network as the function class
-for each $f_i$.</p>
+for each <span class="arithmatex">\(f_i\)</span>.</p>
 <p>Each of the <code>latent_dimensions</code> canonical components is a separate scalar booster per view.
 Training proceeds by alternating (Gauss-Seidel) gradient boosting: each round, for every view in
 turn, the EY-loss gradient is computed from the current embeddings and used as a custom
@@ -1529,6 +1529,10 @@ fitted <code>boosters_</code> attribute instead — a <code>list[list[Booster]]<
     
     
       <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>

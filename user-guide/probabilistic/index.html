@@ -1310,17 +1310,17 @@ Carlo (MCMC) inference. It requires the <code>[probabilistic]</code> extra:</p>
 uses MCMC to obtain a full posterior distribution over the weights, enabling uncertainty
 quantification.</p>
 <p>The generative model is:</p>
-<p>$$
+<div class="arithmatex">\[
 \mathbf{z} \sim \mathcal{N}(\mathbf{0}, I_k)
-$$</p>
-<p>$$
+\]</div>
+<div class="arithmatex">\[
 \mathbf{x}_i \mid \mathbf{z} \sim \mathcal{N}(W_i \mathbf{z},\; \mathrm{diag}(\boldsymbol{\psi}_i))
-$$</p>
+\]</div>
 <p>where:</p>
 <ul>
-<li>$\mathbf{z}$ is the $k$-dimensional shared latent variable</li>
-<li>$W_i$ is the view-specific loading matrix with a Normal prior</li>
-<li>$\boldsymbol{\psi}_i$ are per-feature noise variances with a log-Normal prior</li>
+<li><span class="arithmatex">\(\mathbf{z}\)</span> is the <span class="arithmatex">\(k\)</span>-dimensional shared latent variable</li>
+<li><span class="arithmatex">\(W_i\)</span> is the view-specific loading matrix with a Normal prior</li>
+<li><span class="arithmatex">\(\boldsymbol{\psi}_i\)</span> are per-feature noise variances with a log-Normal prior</li>
 </ul>
 <p>Inference is performed using the <strong>No-U-Turn Sampler</strong> (NUTS) via
 <a href="https://num.pyro.ai/">NumPyro</a>.</p>
@@ -1340,12 +1340,12 @@ $$</p>
 <p>After fitting, <code>model.weights</code> holds the <strong>posterior mean</strong> loading matrices.</p>
 <h3 id="transform-posterior-mean-prediction">Transform (posterior mean prediction)<a class="headerlink" href="#transform-posterior-mean-prediction" title="Permanent link">&para;</a></h3>
 <p>The latent representation is computed via the analytical posterior mean:</p>
-<p>$$
+<div class="arithmatex">\[
 \Sigma_z = \left(I + \sum_i W_i^\top \Psi_i^{-1} W_i\right)^{-1}
-$$</p>
-<p>$$
-\hat{\mathbf{z}}<em ij="ij">j = \Sigma_z \sum_i W_i^\top \Psi_i^{-1} \mathbf{x}</em>
-$$</p>
+\]</div>
+<div class="arithmatex">\[
+\hat{\mathbf{z}}_j = \Sigma_z \sum_i W_i^\top \Psi_i^{-1} \mathbf{x}_{ij}
+\]</div>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">z</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="p">)</span>  <span class="c1"># list with one array of shape (n_samples, latent_dimensions)</span>
@@ -1387,10 +1387,10 @@ $$</p>
 <li><strong>Warmup vs samples.</strong> NUTS requires a warm-up phase to adapt the step size. A typical
   setting is <code>num_warmup=500, num_samples=1000</code>. For exploration, <code>num_warmup=100,
   num_samples=200</code> is enough.</li>
-<li><strong>Small datasets.</strong> Probabilistic CCA is most useful when $n$ is small enough that
-  uncertainty in the weights is meaningful (rough guide: $n &lt; 500$).</li>
+<li><strong>Small datasets.</strong> Probabilistic CCA is most useful when <span class="arithmatex">\(n\)</span> is small enough that
+  uncertainty in the weights is meaningful (rough guide: <span class="arithmatex">\(n &lt; 500\)</span>).</li>
 <li><strong>Feature scaling.</strong> Center and scale your views before fitting (<code>center=True</code> is the
-  default). The prior on $W_i$ assumes unit-scale inputs.</li>
+  default). The prior on <span class="arithmatex">\(W_i\)</span> assumes unit-scale inputs.</li>
 <li><strong>Convergence diagnostics.</strong> Use <a href="https://python.arviz.org/">ArviZ</a> on the NumPyro
   MCMC object (accessible via <code>model.mcmc_</code>) for R-hat and effective sample size checks.</li>
 </ul>
@@ -1524,6 +1524,10 @@ $$</p>
     
     
       <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>
