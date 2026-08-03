@@ -153,6 +153,8 @@ Built on PyTorch Lightning — models are trained with a standard `lightning.Tra
 Full documentation, user guides, and API reference at:
 **[https://jameschapman19.github.io/cca_zoo/](https://jameschapman19.github.io/cca_zoo/)**
 
+See [CHANGELOG.md](CHANGELOG.md) for what's changed between releases.
+
 ---
 
 ## Citing

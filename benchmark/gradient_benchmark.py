@@ -1,5 +1,5 @@
 """
-Benchmarking CCA on high dimensional data. Using CCA-Zoo and CCA-EY
+Benchmarking CCA on high dimensional data. Using CCA-Zoo's exact CCA and CCA_EY.
 
 Use different dimensionalities and produce a nice seaborn plot of the runtimes.
 """
@@ -37,7 +37,7 @@ for dim in dimensions:
         X -= X.mean(axis=0)
         Y -= Y.mean(axis=0)
 
-        # _CCALoss-Zoo
+        # CCA (exact, eigendecomposition-based)
         start_time = time.time()
         cca_zoo = CCA(latent_dimensions=latent_dimensions)
         cca_zoo.fit((X, Y))
@@ -46,22 +46,18 @@ for dim in dimensions:
         # Record results
         results.append({"Dimension": dim, "Time": cca_zoo_time, "Method": "CCA-Zoo"})
 
-        # Scikit-learn
+        # CCA_EY (stochastic gradient descent, Eckart-Young objective)
         start_time = time.time()
         cca_ey = CCA_EY(
             latent_dimensions=latent_dimensions,
-            epochs=100,
+            max_iter=100,
             learning_rate=1e-1,
-            early_stopping=True,
         )
         cca_ey.fit((X, Y))
-        sklearn_time = time.time() - start_time
-
-        score = cca_zoo.score((X, Y))
-        score_ey = cca_ey.score((X, Y))
+        cca_ey_time = time.time() - start_time
 
         # Record results
-        results.append({"Dimension": dim, "Time": sklearn_time, "Method": "CCA-EY"})
+        results.append({"Dimension": dim, "Time": cca_ey_time, "Method": "CCA-EY"})
 
 # Convert to DataFrame
 df = pd.DataFrame(results)
@@ -69,9 +65,9 @@ df = pd.DataFrame(results)
 # Seaborn Plot
 plt.figure(figsize=(10, 6))
 sns.lineplot(data=df, x="Dimension", y="Time", hue="Method", marker="o", errorbar="sd")
-plt.title("_CCALoss Performance comparison with Uncertainty")
+plt.title("CCA vs. CCA-EY Performance comparison with Uncertainty")
 plt.xlabel("Dimension")
 plt.ylabel("Average Execution Time (seconds)")
 plt.tight_layout()
-plt.savefig("CCA_Speed_Benchmark.svg")
+plt.savefig("CCA_EY_Speed_Benchmark.svg")
 plt.show()
