@@ -88,6 +88,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `TCCA` | Tensor CCA — higher-order cross-moment | ≥2 |
 | `PartialCCA` | CCA adjusted for confounding variables (Rao 1969) | ≥2 |
 | `GRCCA` | Group-regularised CCA (Tuzhilina, Tozzi & Hastie 2021) | ≥2 |
+| `CCAR3` | CCA via reduced-rank regression, row-sparse in high dimensions (Donnat & Tuzhilina 2024) | 2 |
 | `CCA_EY` | Stochastic Eckart-Young CCA (unconstrained gradient descent) | 2 |
 | `PLS_EY` | Stochastic Eckart-Young PLS (unconstrained gradient descent) | 2 |
 | `MCCA_EY` | Multiview Eckart-Young CCA (unconstrained gradient descent) | ≥2 |
