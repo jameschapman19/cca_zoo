@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+from numbers import Integral
+from typing import Any, ClassVar
+
 import numpy as np
 import tensorly as tl
 from numpy.typing import ArrayLike
 from scipy.linalg import sqrtm
+from sklearn.utils._param_validation import Interval
 from tensorly.decomposition import parafac
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._param_constraints import POSITIVE_EPS, RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
 
@@ -52,6 +57,13 @@ class TCCA(BaseModel):
         >>> model = TCCA(latent_dimensions=2, random_state=0).fit([X1, X2, X3])
         >>> scores = model.transform([X1, X2, X3])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **BaseModel._parameter_constraints,
+        "c": RIDGE_PARAMETER,
+        "eps": POSITIVE_EPS,
+        "random_state": [None, Interval(Integral, 0, None, closed="left")],
+    }
 
     def __init__(
         self,

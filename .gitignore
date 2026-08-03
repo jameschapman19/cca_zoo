@@ -148,3 +148,6 @@ dmypy.json
 # Claude Code
 .claude/
 CLAUDE.md
+
+# PyTorch Lightning default checkpoint dir (created by running deep tests locally)
+checkpoints/

@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Any, ClassVar
+
 import numpy as np
 from numpy.typing import ArrayLike
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import svd_whiten
+from cca_zoo._utils._param_constraints import RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
 
@@ -48,6 +51,11 @@ class rCCA(BaseModel):
         >>> model = rCCA(latent_dimensions=2, c=0.1).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **BaseModel._parameter_constraints,
+        "c": RIDGE_PARAMETER,
+    }
 
     def __init__(
         self,

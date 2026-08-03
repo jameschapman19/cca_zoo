@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+from numbers import Real
+from typing import Any, ClassVar
+
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.covariance import LedoitWolf
+from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._param_constraints import POSITIVE_EPS, POSITIVE_INT
 
 
 def _sqrt_inv_psd(S: np.ndarray, threshold: float = 1e-4) -> np.ndarray:
@@ -185,6 +190,17 @@ class CCAR3(BaseModel):
         >>> model = CCAR3(latent_dimensions=2, highdim=False).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **BaseModel._parameter_constraints,
+        "lambda_": [Interval(Real, 0, None, closed="left")],
+        "highdim": ["boolean"],
+        "ledoit_wolf": ["boolean"],
+        "rho": POSITIVE_EPS,
+        "max_iter": POSITIVE_INT,
+        "tol": POSITIVE_EPS,
+        "eps": POSITIVE_EPS,
+    }
 
     def __init__(
         self,

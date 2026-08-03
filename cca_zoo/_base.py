@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import cast
+from numbers import Integral
+from typing import Any, ClassVar, cast
 
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.utils import Tags
+from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._utils._validation import validate_views
@@ -26,11 +28,23 @@ class BaseModel(BaseEstimator, ABC):
     ``get_params`` / ``set_params`` round-trip correctly and sklearn model
     selection utilities work out of the box.
 
+    Constructor parameters are validated with sklearn's
+    ``_parameter_constraints`` mechanism (see :meth:`_setup_fit`).
+    Subclasses that add their own constructor parameters may extend
+    ``_parameter_constraints`` by merging in ``BaseModel._parameter_constraints``;
+    parameters with no declared constraint are left unvalidated, so this is
+    always safe to skip.
+
     Args:
         latent_dimensions: Number of latent dimensions to fit. Default is 1.
         center: Whether to subtract per-view column means before fitting.
             The means are stored in ``means_`` and applied in ``transform``.
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        "latent_dimensions": [Interval(Integral, 1, None, closed="left")],
+        "center": ["boolean"],
+    }
 
     def __init__(self, latent_dimensions: int = 1, center: bool = True) -> None:
         self.latent_dimensions = latent_dimensions
@@ -62,14 +76,20 @@ class BaseModel(BaseEstimator, ABC):
     # ------------------------------------------------------------------
 
     def _setup_fit(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Validate views, record metadata, and optionally centre.
+        """Validate constructor parameters and views, record metadata, centre.
 
         Args:
             views: Raw input views.
 
         Returns:
             Validated (and optionally centred) list of numpy arrays.
+
+        Raises:
+            sklearn.utils._param_validation.InvalidParameterError: If a
+                constructor parameter violates its declared constraint
+                (a ``ValueError`` subclass).
         """
+        self._validate_params()
         validated = validate_views(views)
         self.n_views_: int = len(validated)
         self.n_features_in_: list[int] = [v.shape[1] for v in validated]
