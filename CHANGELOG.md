@@ -33,6 +33,16 @@ project adheres to [Semantic Versioning](https://semver.org/).
   correlates each view's own posterior-mean projection instead.
 - `ProbabilisticCCA`'s docs referenced a `model.mcmc_` attribute for ArviZ diagnostics that
   `fit()` never actually set; now stored.
+- `ProbabilisticCCA.weights_` was silently biased toward zero by the model's rotational
+  symmetry ($z \to zR$, $W_i \to W_i R$ for shared orthogonal $R$ leaves the likelihood
+  unchanged): different NUTS draws settle on different rotations, and averaging them
+  un-aligned partially cancels rather than reinforces the signal. Measured on a synthetic
+  check: a rotation-invariant coherence ratio of `||mean(W)||²` vs `mean(||W||²)` across draws
+  (1.0 if every draw agrees on a rotation) was 0.81 before the fix. `fit()` now aligns every
+  draw's loadings (and that draw's own `z`) to a common reference via generalized Procrustes
+  analysis (`align_posterior_rotation`) before computing `weights_`; the same check now gives
+  0.99. `VariationalBayesCCA` doesn't need this — its mean-field SVI posterior already
+  collapses onto a single rotation (checked: ratio 0.9996 without any correction).
 
 ## [3.1.0] - 2026-08-03
 

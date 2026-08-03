@@ -109,6 +109,61 @@ def marginal_log_likelihood(
     return float(np.mean(log_lik_per_sample))
 
 
+def _orthogonal_procrustes_rotation(
+    source: np.ndarray, target: np.ndarray
+) -> np.ndarray:
+    """Orthogonal ``R`` minimising ``||source @ R - target||_F`` (via SVD)."""
+    u, _, vt = np.linalg.svd(source.T @ target)
+    return u @ vt
+
+
+def align_posterior_rotation(
+    w_samples: np.ndarray, n_iter: int = 3
+) -> tuple[np.ndarray, np.ndarray]:
+    r"""Resolve rotational ambiguity across posterior draws via generalized Procrustes.
+
+    Bayesian CCA (like probabilistic PCA/factor analysis) has an exact
+    symmetry: replacing $z \to zR$ and $W_i \to W_i R$ for *any* orthogonal
+    $R$ (shared across every view) leaves the likelihood completely
+    unchanged, since $(zR)(W_iR)^\top = zRR^\top W_i^\top = zW_i^\top$.
+    Different posterior draws (MCMC steps, in particular) can settle on
+    different rotations along this exact ridge of equal density.
+
+    Averaging *un-aligned* draws for a posterior-mean point estimate is
+    then not just noisy but **biased toward zero**: draws pointing along
+    different rotations of the same subspace partially cancel rather than
+    reinforce each other. This aligns every draw to a shared reference
+    (iterating a few rounds since the reference is itself re-estimated from
+    the aligned draws — generalized orthogonal Procrustes analysis) before
+    any downstream averaging.
+
+    Args:
+        w_samples: Posterior draws of stacked loadings, shape
+            ``(num_samples, P, k)`` where ``P`` is the number of features
+            stacked across every view.
+        n_iter: Number of alignment refinement passes.
+
+    Returns:
+        aligned: ``w_samples`` with each draw right-multiplied by its
+            fitted per-draw rotation, same shape.
+        rotations: The per-draw rotation matrices applied, shape
+            ``(num_samples, k, k)``. Apply the same rotation to that draw's
+            ``z`` (or anything else with a latent-dimension axis) to keep
+            the draw internally consistent.
+    """
+    num_samples, _, k = w_samples.shape
+    reference = w_samples.mean(axis=0)
+    rotations = np.tile(np.eye(k), (num_samples, 1, 1))
+    aligned = w_samples.copy()
+    for _ in range(n_iter):
+        for s in range(num_samples):
+            r = _orthogonal_procrustes_rotation(w_samples[s], reference)
+            rotations[s] = r
+            aligned[s] = w_samples[s] @ r
+        reference = aligned.mean(axis=0)
+    return aligned, rotations
+
+
 class PosteriorMeanTransformMixin:
     """Shared ``transform`` for models storing posterior samples of ``log_psi_i``.
 

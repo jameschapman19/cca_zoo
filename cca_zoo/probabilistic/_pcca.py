@@ -8,7 +8,10 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from cca_zoo._base import BaseModel
-from cca_zoo.probabilistic._utils import PosteriorMeanTransformMixin
+from cca_zoo.probabilistic._utils import (
+    PosteriorMeanTransformMixin,
+    align_posterior_rotation,
+)
 
 
 class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
@@ -29,9 +32,20 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
     mean of z conditioned on the observed views (computed analytically
     using the posterior mean formula for linear Gaussian models).
 
-    The ``weights_`` attribute is set to the posterior mean of each W_i
-    matrix so that :class:`~cca_zoo._base.BaseModel`'s scoring utilities
-    work without modification.
+    This model has an exact rotational symmetry ($z \to zR$, $W_i \to W_i R$
+    for any orthogonal $R$ shared across views leaves the likelihood
+    unchanged), and different NUTS draws can settle on different rotations
+    along that ridge of equal density. Averaging *un-aligned* draws for a
+    point estimate is then biased toward zero (draws along different
+    rotations partially cancel), so ``fit`` aligns every draw's loadings
+    (and correspondingly, that draw's $z$) to a common reference via
+    generalized Procrustes analysis (see
+    :func:`~cca_zoo.probabilistic._utils.align_posterior_rotation`) before
+    computing ``weights_`` or storing ``posterior_samples_``.
+
+    The ``weights_`` attribute is set to the (rotation-aligned) posterior
+    mean of each W_i matrix so that :class:`~cca_zoo._base.BaseModel`'s
+    scoring utilities work without modification.
 
     References:
         Bach, F. R. & Jordan, M. I. "A probabilistic interpretation of
@@ -149,11 +163,27 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
         rng_key = jax.random.PRNGKey(self.random_state)
         mcmc.run(rng_key, validated)
         self.mcmc_ = mcmc
-        self.posterior_samples_: dict[str, Any] = mcmc.get_samples()
+        self.posterior_samples_ = {
+            k: np.array(v) for k, v in mcmc.get_samples().items()
+        }
+
+        # Resolve the model's rotational symmetry (see class docstring)
+        # before any cross-draw averaging: stack every view's W_i draws,
+        # align them to a common reference, then rotate that draw's z by
+        # the same rotation to keep it internally consistent.
+        w_stack = np.concatenate(
+            [self.posterior_samples_[f"W_{i}"] for i in range(self.n_views_)], axis=1
+        )  # (num_samples, P, k)
+        aligned_w, rotations = align_posterior_rotation(w_stack)
+        splits = np.cumsum(self.n_features_in_)[:-1]
+        for i, w_i_aligned in enumerate(np.split(aligned_w, splits, axis=1)):
+            self.posterior_samples_[f"W_{i}"] = w_i_aligned
+        self.posterior_samples_["z"] = np.einsum(
+            "snk,skj->snj", self.posterior_samples_["z"], rotations
+        )
 
         # Set weights_ to posterior mean W matrices (p_i x k) for each view
         self.weights_: list[np.ndarray] = [
-            np.array(self.posterior_samples_[f"W_{i}"].mean(axis=0))
-            for i in range(self.n_views_)
+            self.posterior_samples_[f"W_{i}"].mean(axis=0) for i in range(self.n_views_)
         ]
         return self
