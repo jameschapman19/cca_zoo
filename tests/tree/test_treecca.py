@@ -116,25 +116,9 @@ def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
     assert np.all(s <= 1.0 + 1e-9)
 
 
-# ---------------------------------------------------------------------------
-# get_params / set_params roundtrip
-# ---------------------------------------------------------------------------
-
-
-def test_get_params_roundtrip() -> None:
-    """get_params returns the correct parameter values."""
-    model = TreeCCA(latent_dimensions=2, n_estimators=7, max_depth=3)
-    params = model.get_params()
-    assert params["latent_dimensions"] == 2
-    assert params["n_estimators"] == 7
-    assert params["max_depth"] == 3
-
-
-def test_set_params_roundtrip() -> None:
-    """set_params correctly updates model parameters."""
-    model = TreeCCA(latent_dimensions=1)
-    model.set_params(latent_dimensions=3)
-    assert model.latent_dimensions == 3
+# get_params/set_params roundtrip behaviour is exercised generically for
+# every model in the package (including TreeCCA) by
+# tests/test_sklearn_compat.py.
 
 
 # ---------------------------------------------------------------------------

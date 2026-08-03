@@ -135,26 +135,8 @@ def test_score_values_in_range(
     assert np.all(s <= 1.0 + 1e-9)
 
 
-# ---------------------------------------------------------------------------
-# get_params / set_params roundtrip
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("ModelClass", ALL_KERNEL_MODELS)
-def test_get_params_roundtrip(ModelClass: type) -> None:
-    """get_params returns the correct parameter values."""
-    model = ModelClass(latent_dimensions=2, c=0.2)
-    params = model.get_params()
-    assert params["latent_dimensions"] == 2
-    assert params["c"] == pytest.approx(0.2)
-
-
-@pytest.mark.parametrize("ModelClass", ALL_KERNEL_MODELS)
-def test_set_params_roundtrip(ModelClass: type) -> None:
-    """set_params correctly updates model parameters."""
-    model = ModelClass(latent_dimensions=1)
-    model.set_params(latent_dimensions=3)
-    assert model.latent_dimensions == 3
+# get_params/set_params roundtrip behaviour is exercised generically for
+# every model in the package by tests/test_sklearn_compat.py.
 
 
 # ---------------------------------------------------------------------------
