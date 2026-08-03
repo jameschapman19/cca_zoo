@@ -32,15 +32,6 @@ For a specific optional extra (e.g. to work on the deep module):
 uv sync --group dev --extra deep --locked
 ```
 
-The `benchmark/` folder has runtime-comparison scripts (cca_zoo vs. scikit-learn, and
-exact vs. gradient-descent solvers) that plot results with matplotlib/seaborn — install
-their extra to run them:
-
-```bash
-uv sync --extra benchmark --locked
-uv run python benchmark/cca_high_dimensions.py
-```
-
 If you don't want to use uv, `pip install -e ".[dev]"` also works, but won't use the lockfile.
 
 ### 2. Run tests

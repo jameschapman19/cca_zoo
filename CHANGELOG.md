@@ -29,8 +29,6 @@ to PyPI.
   instead of failing deep inside the linear algebra.
 - CI now also runs the `deep`/`probabilistic`/`tree` test suites (previously only ever run
   locally, never in CI) and doctests for those modules.
-- A `benchmark` optional-dependency extra (`pip install cca-zoo[benchmark]`) for the runtime
-  comparison scripts in `benchmark/`.
 
 ### Fixed
 
@@ -62,6 +60,10 @@ to PyPI.
 - `examples/` deleted: it wasn't wired into the docs site or CI, and every script had been
   silently broken for a while (`matplotlib` was never a declared dependency). Its content
   overlapped with the maintained `docs/user-guide/*.md` pages.
+- `benchmark/` deleted: the same problem as `examples/` (undeclared `matplotlib`/`seaborn`/
+  `pandas` dependencies, plus API drift against the current `CCA_EY` signature), and even
+  once made runnable its output wasn't linked from anywhere a user would see it, and it only
+  compared runtime — not accuracy — for 3 of the ~24 model classes in the package.
 - Redundant hand-written `get_params`/`set_params` roundtrip tests, now that
   `tests/test_sklearn_compat.py` covers every model generically.
 - `.readthedocs.yaml` (dead Sphinx config; docs are built with MkDocs).

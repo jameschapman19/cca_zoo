@@ -39,7 +39,6 @@ docs = [
     "mkdocs-material>=9.5,<10.0",
     "mkdocstrings[python]>=0.24",
 ]
-benchmark = ["matplotlib>=3.8", "seaborn>=0.13", "pandas>=2.1"]
 all = ["cca-zoo[deep,probabilistic,tree]"]
 
 [project.urls]
@@ -54,7 +53,6 @@ dev = ["cca-zoo[dev]"]
 [tool.ruff]
 line-length = 88
 target-version = "py310"
-exclude = ["benchmark"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "ANN", "N", "D"]
