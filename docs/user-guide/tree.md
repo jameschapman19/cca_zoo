@@ -107,5 +107,5 @@ Hyperparameters are best selected by cross-validation with `GridSearchCV` from
   initialisation draws that many orthogonal directions in feature space).
 - Unlike `KCCA`, `TreeCCA` does not store the training data for inference — new data is passed
   directly through the fitted boosters, so `transform` on held-out data is inexpensive.
-- Reference: Chapman, J., Wells, L., & Lawry Aguila, L. (2024). *Unconstrained stochastic CCA:
-  Unifying multiview and self-supervised learning.* arXiv:2310.01012.
+- Reference: Chapman, J. (2026). *TreeCCA: Canonical Correlation Analysis via
+  Gradient-Boosted Trees.* arXiv:2607.27027.
