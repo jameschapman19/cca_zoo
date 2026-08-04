@@ -7,6 +7,7 @@ from abc import abstractmethod
 import numpy as np
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._ey import random_orthonormal_weights
 
 
 class BaseGradientModel(BaseModel):
@@ -78,24 +79,24 @@ class BaseGradientModel(BaseModel):
         """Scalar loss value, used only for the ``tol`` convergence check."""
 
     def _initial_weights(
-        self, dims: list[int], rng: np.random.Generator
+        self, views: list[np.ndarray], rng: np.random.Generator
     ) -> list[np.ndarray]:
-        """Random-orthogonal initial weights, one per view.
+        """Cheap, data-independent orthonormal initial weights, one per view.
+
+        The default for this base class; :class:`~cca_zoo.linear.gradient.CCA_EY`
+        overrides this with a data-informed initialisation more appropriate
+        to its own loss (see
+        :func:`cca_zoo._utils._ey.cheap_orthonormal_projection_weights`).
 
         Args:
-            dims: Number of features per view.
+            views: Per-view arrays; only used for their feature counts.
             rng: Random generator.
 
         Returns:
             List of weight matrices, each (p_i, k) with orthonormal columns,
             where ``k = min(latent_dimensions, p_i)``.
         """
-        weights = []
-        for p in dims:
-            k = min(self.latent_dimensions, p)
-            w, _ = np.linalg.qr(rng.standard_normal((p, k)))
-            weights.append(w)
-        return weights
+        return random_orthonormal_weights(views, self.latent_dimensions, rng)
 
     def _gradient_descent(
         self, views: list[np.ndarray], rng: np.random.Generator
@@ -111,7 +112,7 @@ class BaseGradientModel(BaseModel):
         """
         n = views[0].shape[0]
         bs = n if self.batch_size is None else min(self.batch_size, n)
-        weights = self._initial_weights([v.shape[1] for v in views], rng)
+        weights = self._initial_weights(views, rng)
         velocity = [np.zeros_like(w) for w in weights]
         prev_obj = np.inf
         for _ in range(self.max_iter):

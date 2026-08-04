@@ -263,13 +263,30 @@ def test_cca_ey_accepts_c_pls_ey_does_not() -> None:
     assert "c" not in PLS_EY().get_params()
 
 
-def test_pls_ey_is_cca_ey_with_c_equal_one(two_views: list[np.ndarray]) -> None:
-    """PLS_EY produces identical weights to CCA_EY(c=1) given the same seed."""
-    kwargs = dict(latent_dimensions=1, max_iter=50, batch_size=16, random_state=0)
-    w_pls = PLS_EY(**kwargs).fit(two_views).weights
-    w_cca = CCA_EY(c=1.0, **kwargs).fit(two_views).weights
-    for a, b in zip(w_pls, w_cca):
+def test_pls_ey_loss_matches_cca_ey_at_c_equal_one(
+    two_views: list[np.ndarray],
+) -> None:
+    """PLS_EY's derivative/objective are exactly CCA_EY's own formula at c=1.
+
+    PLS_EY no longer fits identical weights to CCA_EY(c=1) given the same
+    seed, since the two now deliberately use different initial-weights
+    strategies (see cca_zoo._utils._ey.random_orthonormal_weights vs.
+    cheap_orthonormal_projection_weights) -- this checks the invariant that
+    actually matters instead: the shared loss/gradient formula itself.
+    """
+    k = 2
+    rng = np.random.default_rng(0)
+    weights = [rng.standard_normal((v.shape[1], k)) for v in two_views]
+    representations = [v @ w for v, w in zip(two_views, weights)]
+    pls = PLS_EY(latent_dimensions=k)
+    cca_c1 = CCA_EY(latent_dimensions=k, c=1.0)
+    grads_pls = pls._derivative(two_views, representations, weights)
+    grads_cca = cca_c1._derivative(two_views, representations, weights)
+    for a, b in zip(grads_pls, grads_cca):
         np.testing.assert_array_equal(a, b)
+    assert pls._objective(two_views, representations, weights) == cca_c1._objective(
+        two_views, representations, weights
+    )
 
 
 def test_cca_ey_c_zero_matches_shared_ey_gradient(
@@ -376,3 +393,76 @@ def test_gradient_models_find_high_correlation(
         .score(correlated_views)
     )
     assert np.all(s > 0.8), f"{ModelClass.__name__} got low correlation: {s}"
+
+
+# ---------------------------------------------------------------------------
+# Initial weights: PLS_EY gets plain orthonormal weights (matching its own
+# weight-space penalty); CCA_EY (and MCCA_EY, which inherits it) gets a
+# cheap, data-informed init giving exactly unit-variance, uncorrelated
+# projections on the first mini-batch instead (a cheap stand-in for
+# classical CCA's full whitening step, and a direct counter to the
+# near-null-direction divergence risk noted in CCA_EY's own docstring).
+# ---------------------------------------------------------------------------
+
+
+def test_pls_ey_initial_weights_are_orthonormal(two_views: list[np.ndarray]) -> None:
+    """PLS_EY's initial weights have exactly orthonormal columns per view."""
+    k = 2
+    rng = np.random.default_rng(0)
+    model = PLS_EY(latent_dimensions=k, random_state=0)
+    weights = model._initial_weights(two_views, rng)
+    for w in weights:
+        np.testing.assert_allclose(w.T @ w, np.eye(k), atol=1e-10)
+
+
+def test_cca_ey_initial_weights_give_orthonormal_projections(
+    two_views: list[np.ndarray],
+) -> None:
+    """CCA_EY's initial weights give unit-variance, uncorrelated projections.
+
+    Unlike PLS_EY's plain weight-orthonormal init, CCA_EY's own initial
+    *weights* are not themselves orthonormal in general -- what's
+    orthonormal is the projection onto the mini-batch used to build them.
+    """
+    k = 2
+    bs = 16
+    rng = np.random.default_rng(0)
+    model = CCA_EY(latent_dimensions=k, batch_size=bs, random_state=0)
+    weights = model._initial_weights(two_views, rng)
+    # Re-derive, with a fresh rng in the same state, exactly which rows the
+    # initialiser sampled, so the projection can be checked on that batch.
+    rng2 = np.random.default_rng(0)
+    n = two_views[0].shape[0]
+    idx = rng2.choice(n, bs, replace=False)
+    for view, w in zip(two_views, weights):
+        z = view[idx] @ w
+        np.testing.assert_allclose(z.T @ z, np.eye(k), atol=1e-8)
+
+
+def test_cca_ey_initial_weights_differ_from_pls_ey(
+    two_views: list[np.ndarray],
+) -> None:
+    """The two initialisers give different weights from the same seed."""
+    k = 2
+    rng_pls = np.random.default_rng(0)
+    rng_cca = np.random.default_rng(0)
+    w_pls = PLS_EY(latent_dimensions=k)._initial_weights(two_views, rng_pls)
+    w_cca = CCA_EY(latent_dimensions=k)._initial_weights(two_views, rng_cca)
+    assert any(not np.allclose(a, b) for a, b in zip(w_pls, w_cca))
+
+
+def test_mcca_ey_initial_weights_give_orthonormal_projections(
+    three_correlated_views: list[np.ndarray],
+) -> None:
+    """MCCA_EY inherits CCA_EY's data-informed initialiser unchanged."""
+    k = 2
+    bs = 32
+    rng = np.random.default_rng(0)
+    model = MCCA_EY(latent_dimensions=k, batch_size=bs, random_state=0)
+    weights = model._initial_weights(three_correlated_views, rng)
+    rng2 = np.random.default_rng(0)
+    n = three_correlated_views[0].shape[0]
+    idx = rng2.choice(n, bs, replace=False)
+    for view, w in zip(three_correlated_views, weights):
+        z = view[idx] @ w
+        np.testing.assert_allclose(z.T @ z, np.eye(k), atol=1e-8)

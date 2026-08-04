@@ -9,7 +9,11 @@ import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.utils._param_validation import Interval
 
-from cca_zoo._utils._ey import ey_cross_covariance, weight_gram_mean
+from cca_zoo._utils._ey import (
+    cheap_orthonormal_projection_weights,
+    ey_cross_covariance,
+    weight_gram_mean,
+)
 from cca_zoo.linear.gradient._base import BaseGradientModel
 
 
@@ -62,7 +66,14 @@ class CCA_EY(BaseGradientModel):
         data's near-null directions. If you see ``nan`` weights, increase
         ``c`` (a small value like 0.1-0.3 is usually enough) or
         ``batch_size`` rather than assuming the model doesn't apply to your
-        data.
+        data. (Initial weights give exactly unit-variance, uncorrelated
+        projections on one mini-batch — see
+        :func:`cca_zoo._utils._ey.cheap_orthonormal_projection_weights` — a
+        cheap stand-in for classical CCA's full whitening step and the
+        natural match for this loss's own fixed point; empirically this
+        does *not* postpone the divergence above, since every later
+        mini-batch is an independent fresh draw, so ``c``/``batch_size``
+        remain the actual remedy.)
 
     References:
         Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
@@ -138,6 +149,23 @@ class CCA_EY(BaseGradientModel):
         rng = np.random.default_rng(self.random_state)
         self.weights_ = self._gradient_descent(views_, rng)
         return self
+
+    def _initial_weights(
+        self, views: list[np.ndarray], rng: np.random.Generator
+    ) -> list[np.ndarray]:
+        """Cheap, data-informed initial weights (see class docstring note).
+
+        Overrides :meth:`BaseGradientModel._initial_weights`'s plain
+        weight-orthonormal default: gives exactly unit-variance,
+        uncorrelated projections on one mini-batch instead, matching this
+        loss's own reward term at its fixed point (see
+        :func:`cca_zoo._utils._ey.cheap_orthonormal_projection_weights`).
+        Note this does not, by itself, prevent the ``c=0`` divergence risk
+        noted above — see that note for why, and the actual remedy.
+        """
+        return cheap_orthonormal_projection_weights(
+            views, self.latent_dimensions, self.batch_size, rng
+        )
 
     def _derivative(
         self,

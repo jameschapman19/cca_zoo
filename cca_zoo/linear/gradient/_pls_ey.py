@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import numpy as np
 from numpy.typing import ArrayLike
 
+from cca_zoo._utils._ey import random_orthonormal_weights
 from cca_zoo.linear.gradient._cca_ey import CCA_EY
 
 
@@ -19,6 +21,13 @@ class PLS_EY(CCA_EY):
 
     Suitable for high-dimensional or streaming data where forming the full
     (p x p) cross-covariance matrix is too expensive.
+
+    Initial weights have exactly orthonormal columns (unit-norm, mutually
+    orthogonal) before any gradient step, matching the shape of this loss's
+    own penalty on $B$ — unlike :class:`~cca_zoo.linear.gradient.CCA_EY`'s
+    own data-informed default, which instead orthonormalises the initial
+    *projections* (see :func:`cca_zoo._utils._ey.random_orthonormal_weights`
+    vs. :func:`cca_zoo._utils._ey.cheap_orthonormal_projection_weights`).
 
     References:
         Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
@@ -82,3 +91,14 @@ class PLS_EY(CCA_EY):
             ValueError: If views have inconsistent numbers of samples.
         """
         return super().fit(views, y)
+
+    def _initial_weights(
+        self, views: list[np.ndarray], rng: np.random.Generator
+    ) -> list[np.ndarray]:
+        """Plain orthonormal-weight initial weights (see class docstring).
+
+        Overrides :class:`~cca_zoo.linear.gradient.CCA_EY`'s data-informed
+        default, since this loss's own penalty targets weight-space
+        orthonormality rather than projection-space decorrelation.
+        """
+        return random_orthonormal_weights(views, self.latent_dimensions, rng)
