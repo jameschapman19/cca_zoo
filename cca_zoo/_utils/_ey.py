@@ -95,6 +95,95 @@ def weight_gram_mean(weights: list[np.ndarray]) -> np.ndarray:
     return total
 
 
+def random_orthonormal_weights(
+    views: list[np.ndarray], latent_dimensions: int, rng: np.random.Generator
+) -> list[np.ndarray]:
+    r"""Cheap, data-independent initial weights with orthonormal columns.
+
+    Each view's weight matrix is the $Q$ factor of a QR decomposition of
+    an i.i.d. standard normal matrix, so $W_i^\top W_i = I$ exactly, before
+    any gradient step and without looking at the data at all. This matches
+    the structure of :class:`~cca_zoo.linear.gradient.PLS_EY`'s own penalty,
+    which drives weights towards orthonormality directly in weight space
+    (see :func:`weight_gram_mean`) — the loss's own fixed point is already
+    the natural initial point's shape.
+
+    Args:
+        views: Per-view arrays; only ``.shape[1]`` (feature count) is used.
+        latent_dimensions: Requested number of latent dimensions.
+        rng: Random generator.
+
+    Returns:
+        List of weight matrices, each $(p_i, k)$ with orthonormal columns,
+        where $k = \min(\text{latent\_dimensions}, p_i)$.
+    """
+    weights = []
+    for v in views:
+        p = v.shape[1]
+        k = min(latent_dimensions, p)
+        w, _ = np.linalg.qr(rng.standard_normal((p, k)))
+        weights.append(w)
+    return weights
+
+
+def cheap_orthonormal_projection_weights(
+    views: list[np.ndarray],
+    latent_dimensions: int,
+    batch_size: int | None,
+    rng: np.random.Generator,
+) -> list[np.ndarray]:
+    r"""Cheap initial weights giving unit-variance projections on one batch.
+
+    Classical CCA whitens each view with a full $(p, p)$ eigendecomposition
+    of its covariance before fitting; that full-batch pass is exactly what
+    the EY reformulation exists to avoid (see
+    :class:`~cca_zoo.linear.gradient.CCA_EY`). This is a cheap substitute
+    usable only at initialisation: draw random directions, project one
+    mini-batch, and QR-orthonormalise the resulting $(n, k)$ projection
+    instead of the $(p, p)$ data covariance, then pull that
+    orthonormalisation back into the weight matrix via the QR's $(k, k)$
+    triangular factor — one small QR and one $k \times k$ solve per view,
+    independent of $p$. Concretely, for random directions $W_0$,
+    mini-batch $X$, and $X W_0 = QR$:
+
+    $$
+    W = W_0 R^{-1}, \qquad X W = X W_0 R^{-1} = Q R R^{-1} = Q
+    $$
+
+    so the resulting projections are exactly orthonormal ($Q^\top Q = I$)
+    on that mini-batch — a cheap stand-in for the reward term's ideal
+    starting point ($V \approx I$; see :func:`ey_cross_covariance`) and
+    the natural match for :class:`~cca_zoo.linear.gradient.CCA_EY`'s own
+    fixed point. This orthonormalises only the *first* mini-batch, though:
+    every later step draws an independent fresh batch, so this does not,
+    by itself, prevent the ``c=0`` divergence risk noted in that class's
+    docstring (empirically confirmed: it does not measurably postpone it
+    either) — ``c`` or ``batch_size`` remain the actual remedy for that.
+
+    Args:
+        views: Per-view arrays, each $(n, p_i)$.
+        latent_dimensions: Requested number of latent dimensions.
+        batch_size: Mini-batch size used for the initial projection.
+            ``None`` uses the full dataset.
+        rng: Random generator.
+
+    Returns:
+        List of weight matrices, each $(p_i, k)$.
+    """
+    n = views[0].shape[0]
+    bs = n if batch_size is None else min(batch_size, n)
+    idx = rng.choice(n, bs, replace=False)
+    weights = []
+    for v in views:
+        p = v.shape[1]
+        k = min(latent_dimensions, p)
+        w0, _ = np.linalg.qr(rng.standard_normal((p, k)))
+        z0 = v[idx] @ w0
+        _, r = np.linalg.qr(z0)
+        weights.append(w0 @ np.linalg.solve(r, np.eye(k)))
+    return weights
+
+
 def ey_grad_z(representations: list[np.ndarray]) -> list[np.ndarray]:
     r"""Gradient of the EY loss w.r.t. each embedding (M-view generalised).
 

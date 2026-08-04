@@ -9,6 +9,23 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- `CCA_EY` (and `MCCA_EY`, which inherits it) now initialises its weights
+  differently from `PLS_EY`, matching each loss's own structure: `PLS_EY`
+  keeps a plain, data-independent unit-norm-orthogonal-weight
+  initialisation (`cca_zoo._utils._ey.random_orthonormal_weights`), while
+  `CCA_EY` now uses a cheap, data-informed initialisation
+  (`cheap_orthonormal_projection_weights`) that gives exactly
+  unit-variance, uncorrelated *projections* on one mini-batch instead — a
+  cheap stand-in for classical CCA's full whitening step, without the
+  full-batch cost. As a side effect, `PLS_EY` and `CCA_EY(c=1)` no longer
+  fit identical weights from the same seed (only their loss/gradient
+  formula is still identical; `tests/linear/test_gradient.py` was updated
+  to check that invariant directly instead). Note this initialisation
+  change does not, by itself, mitigate the `c=0` divergence risk described
+  above — empirically confirmed it does not measurably postpone it either,
+  since every later step draws an independent fresh mini-batch — `c` and
+  `batch_size` remain the actual remedy for that.
+
 - The package version is now derived from git tags (`hatch-vcs`) instead of a hand-maintained
   `version = "..."` string in `pyproject.toml`. This closes the exact failure mode that
   motivated it: a tag and the shipped version silently disagreeing because someone forgot the
