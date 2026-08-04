@@ -15,14 +15,17 @@ class MCCA_EY(CCA_EY):
     arbitrary number of views, so no multiview-specific logic is needed here.
 
     References:
-        Chapman, J., Lawry Aguila, A., & Wells, L. (2022). A Generalised
-        EigenGame with Extensions to Multiview Representation Learning.
-        arXiv:2211.11323.
+        Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
+        Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
+        arXiv:2310.01012.
 
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
-        c: Ridge regularisation parameter(s) in ``[0, 1]``.  Default is 0.
+        c: Ridge blend in ``[0, 1]`` between ``CCA_EY``-like (0) and
+            ``PLS_EY``-like (1) behaviour. Default is 0; see
+            :class:`CCA_EY`'s docstring for the numerical-stability note on
+            high-dimensional data.
         learning_rate: Gradient step size. Default is 1e-2.
         max_iter: Number of gradient steps. Default is 1000.
         batch_size: Mini-batch size.  ``None`` uses the full dataset.
@@ -33,10 +36,10 @@ class MCCA_EY(CCA_EY):
     Example:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((200, 500))
-        >>> X2 = rng.standard_normal((200, 400))
-        >>> X3 = rng.standard_normal((200, 300))
-        >>> model = MCCA_EY(latent_dimensions=4, c=0.1, batch_size=64, random_state=0)
+        >>> X1 = rng.standard_normal((5000, 200))
+        >>> X2 = rng.standard_normal((5000, 150))
+        >>> X3 = rng.standard_normal((5000, 100))
+        >>> model = MCCA_EY(latent_dimensions=4, batch_size=128, random_state=0)
         >>> model = model.fit([X1, X2, X3])
     """
 

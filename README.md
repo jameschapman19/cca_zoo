@@ -134,11 +134,13 @@ Built on PyTorch Lightning — models are trained with a standard `lightning.Tra
 | `BarlowTwins` | Zbontar et al. 2021 |
 | `VICReg` | Bardes et al. 2022 |
 
-### `cca_zoo.probabilistic` *(requires `[probabilistic]`)*
+### `cca_zoo.probabilistic`
 
 | Class | Reference |
 |---|---|
-| `ProbabilisticCCA` | Bach & Jordan 2005; Wang 2007 — MCMC via NumPyro |
+| `GFA` | Klami, Virtanen & Kaski 2013 — Group Factor Analysis, per-view ARD; no extra dependencies |
+| `ProbabilisticCCA` *(requires `[probabilistic]`)* | Bach & Jordan 2005 — MCMC via NumPyro |
+| `VariationalBayesCCA` *(requires `[probabilistic]`)* | Wang 2007 — variational inference + ARD via NumPyro |
 
 ### `cca_zoo.model_selection`
 

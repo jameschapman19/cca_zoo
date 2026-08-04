@@ -23,9 +23,9 @@ $$
 $$
 
 References:
-    Chapman, J., Lawry Aguila, A., & Wells, L. (2022). A Generalised
-    EigenGame with Extensions to Multiview Representation Learning.
-    arXiv:2211.11323.
+    Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
+    Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
+    arXiv:2310.01012.
 """
 
 from __future__ import annotations
@@ -80,6 +80,19 @@ def ey_loss(representations: list[np.ndarray]) -> dict[str, float]:
         "rewards": rewards,
         "penalties": penalties,
     }
+
+
+def weight_gram_mean(weights: list[np.ndarray]) -> np.ndarray:
+    r"""Mean weight Gram matrix $B = \frac{1}{M} \sum_i W_i^\top W_i$.
+
+    Args:
+        weights: Per-view weight matrices, each of shape (p_i, k).
+
+    Returns:
+        Matrix of shape (k, k).
+    """
+    total: np.ndarray = sum(w.T @ w for w in weights) / len(weights)
+    return total
 
 
 def ey_grad_z(representations: list[np.ndarray]) -> list[np.ndarray]:

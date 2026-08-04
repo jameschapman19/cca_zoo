@@ -1,42 +1,29 @@
-"""PLS_EY — stochastic Eckart-Young PLS."""
+"""PLS_EY — stochastic Eckart-Young PLS (c=1 special case of CCA_EY)."""
 
 from __future__ import annotations
 
-from typing import cast
-
-import numpy as np
 from numpy.typing import ArrayLike
 
-from cca_zoo._utils._ey import ey_cross_covariance
-from cca_zoo.linear.gradient._base import BaseGradientModel
+from cca_zoo.linear.gradient._cca_ey import CCA_EY
 
 
-class PLS_EY(BaseGradientModel):
+class PLS_EY(CCA_EY):
     r"""Stochastic Eckart-Young PLS for large-scale data.
 
-    Optimises the unconstrained Eckart-Young (EY) objective for PLS by
-    mini-batch momentum gradient descent, with no manifold projection step:
-    the quadratic penalty on the weight Gram matrices below drives the
-    weights towards (approximate) orthonormality at the optimum on its own.
-
-    For $M$ views with weights $W_i$ and embeddings
-    $Z_i = X_i W_i$, define:
-
-    $$
-    A = \frac{1}{M} \sum_{i \neq j} \operatorname{Cov}(Z_i, Z_j), \qquad
-    B = \frac{1}{M} \sum_i W_i^\top W_i
-    $$
-
-    and minimise $\mathcal{L} = -2 \operatorname{tr}(A)
-    + \operatorname{tr}(B B)$.
+    This is equivalent to :class:`~cca_zoo.linear.gradient.CCA_EY` with
+    ``c=1``: the reward excludes the $i = j$ terms that ``CCA_EY``'s
+    ($c=0$) reward includes, and the penalty is purely
+    $\operatorname{tr}(BB)$ on the weight Gram matrix $B$, which
+    drives the weights towards (approximate) orthonormality at the optimum
+    on its own — no manifold projection step, and no upfront whitening.
 
     Suitable for high-dimensional or streaming data where forming the full
     (p x p) cross-covariance matrix is too expensive.
 
     References:
-        Chapman, J., Lawry Aguila, A., & Wells, L. (2022). A Generalised
-        EigenGame with Extensions to Multiview Representation Learning.
-        arXiv:2211.11323.
+        Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
+        Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
+        arXiv:2310.01012.
 
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
@@ -57,6 +44,29 @@ class PLS_EY(BaseGradientModel):
         >>> model = model.fit([X1, X2])
     """
 
+    def __init__(
+        self,
+        latent_dimensions: int = 1,
+        center: bool = True,
+        learning_rate: float = 1e-2,
+        max_iter: int = 1000,
+        batch_size: int | None = None,
+        tol: float = 1e-6,
+        momentum: float = 0.9,
+        random_state: int | None = None,
+    ) -> None:
+        super().__init__(
+            latent_dimensions=latent_dimensions,
+            center=center,
+            c=1.0,
+            learning_rate=learning_rate,
+            max_iter=max_iter,
+            batch_size=batch_size,
+            tol=tol,
+            momentum=momentum,
+            random_state=random_state,
+        )
+
     def fit(self, views: list[ArrayLike], y: None = None) -> PLS_EY:
         """Fit PLS_EY by mini-batch momentum gradient descent.
 
@@ -71,81 +81,4 @@ class PLS_EY(BaseGradientModel):
             ValueError: If fewer than 2 views are provided.
             ValueError: If views have inconsistent numbers of samples.
         """
-        views_: list[np.ndarray] = self._setup_fit(views)
-        rng = np.random.default_rng(self.random_state)
-        self.weights_ = self._gradient_descent(views_, rng)
-        return self
-
-    def _weight_gram_mean(self, weights: list[np.ndarray]) -> np.ndarray:
-        """Mean weight Gram matrix ``B = (1/M) sum_i W_i^T W_i``.
-
-        Args:
-            weights: Current weight matrices.
-
-        Returns:
-            Matrix of shape (k, k).
-        """
-        return cast(np.ndarray, sum(w.T @ w for w in weights) / len(weights))
-
-    def _derivative(
-        self,
-        views: list[np.ndarray],
-        representations: list[np.ndarray],
-        weights: list[np.ndarray],
-    ) -> list[np.ndarray]:
-        r"""Analytic gradient $\partial \mathcal{L} / \partial W_k$.
-
-        $$
-        \frac{\partial \mathcal{L}}{\partial W_k} =
-            -\frac{4}{M(n-1)} X_k^\top \left(S - Z_k\right)
-            + \frac{4}{M} W_k B
-        $$
-
-        where $S = \sum_i Z_i$ (all centred) and $B$ is the mean
-        weight Gram matrix. Verified against finite-difference gradients for
-        M = 2, 3, 4.
-
-        Args:
-            views: Mini-batch of view arrays.
-            representations: Current embeddings.
-            weights: Current weight matrices.
-
-        Returns:
-            List of gradient matrices, one per view.
-        """
-        m = len(views)
-        n = views[0].shape[0]
-        B = self._weight_gram_mean(weights)
-        centred_reps = [z - z.mean(axis=0) for z in representations]
-        total = sum(centred_reps)
-        grads = []
-        for k, (view, zk) in enumerate(zip(views, centred_reps)):
-            view_c = view - view.mean(axis=0)
-            other = total - zk
-            reward_grad = -(4.0 / (m * (n - 1))) * (view_c.T @ other)
-            penalty_grad = (4.0 / m) * (weights[k] @ B)
-            grads.append(reward_grad + penalty_grad)
-        return grads
-
-    def _objective(
-        self,
-        views: list[np.ndarray],
-        representations: list[np.ndarray],
-        weights: list[np.ndarray],
-    ) -> float:
-        """Scalar PLS_EY loss, used only for the ``tol`` convergence check.
-
-        Args:
-            views: Mini-batch of view arrays (unused; kept for interface
-                consistency with :meth:`_derivative`).
-            representations: Current embeddings.
-            weights: Current weight matrices.
-
-        Returns:
-            Scalar loss value.
-        """
-        del views
-        C, V = ey_cross_covariance(representations)
-        A = C - V  # exclude the i == j terms that ey_cross_covariance includes
-        B = self._weight_gram_mean(weights)
-        return float(-np.trace(2.0 * A) + np.trace(B @ B))
+        return super().fit(views, y)

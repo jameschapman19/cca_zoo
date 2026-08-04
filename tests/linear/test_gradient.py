@@ -233,16 +233,63 @@ def test_different_seeds_give_different_results(
 
 
 # ---------------------------------------------------------------------------
-# CCA_EY: c parameter
+# No upfront whitening (regression: CCA_EY used to whiten the full dataset
+# with a full-batch SVD before any gradient step, defeating the entire
+# point of a mini-batch/streaming stochastic method; MCCA_EY inherited the
+# same bug via CCA_EY.fit(). PLS_EY, TreeCCA, and DCCA_EY all apply the same
+# shared EY loss directly to raw embeddings with no such step, and the
+# family's own docs describe it as needing no full-batch preprocessing.)
+#
+# CCA_EY keeps a ``c`` ridge parameter that continuously blends its loss
+# towards PLS_EY's (see cca_zoo._utils._ey.weight_gram_mean); PLS_EY is
+# implemented as a thin CCA_EY subclass with ``c`` fixed at 1, mirroring how
+# CCA/PLS are thin rCCA subclasses with ``c`` fixed at 0/1.
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("c", [0.0, 0.1, 0.5])
-def test_cca_ey_c_parameter(c: float, two_views: list[np.ndarray]) -> None:
-    """CCA_EY runs without error for different values of c."""
-    model = CCA_EY(latent_dimensions=1, max_iter=20, c=c, random_state=0)
-    model.fit(two_views)
-    assert hasattr(model, "weights_")
+def test_cca_ey_module_does_not_reference_svd_whiten() -> None:
+    """CCA_EY's source no longer calls the full-batch whitening routine."""
+    import inspect
+
+    from cca_zoo.linear.gradient import _cca_ey
+
+    source = inspect.getsource(_cca_ey)
+    assert "svd_whiten" not in source
+
+
+def test_cca_ey_accepts_c_pls_ey_does_not() -> None:
+    """C blends CCA_EY towards PLS_EY; PLS_EY fixes it at 1, unexposed."""
+    assert CCA_EY().get_params()["c"] == 0.0
+    assert "c" not in PLS_EY().get_params()
+
+
+def test_pls_ey_is_cca_ey_with_c_equal_one(two_views: list[np.ndarray]) -> None:
+    """PLS_EY produces identical weights to CCA_EY(c=1) given the same seed."""
+    kwargs = dict(latent_dimensions=1, max_iter=50, batch_size=16, random_state=0)
+    w_pls = PLS_EY(**kwargs).fit(two_views).weights
+    w_cca = CCA_EY(c=1.0, **kwargs).fit(two_views).weights
+    for a, b in zip(w_pls, w_cca):
+        np.testing.assert_array_equal(a, b)
+
+
+def test_cca_ey_c_zero_matches_shared_ey_gradient(
+    two_views: list[np.ndarray],
+) -> None:
+    """c=0 (the default) reduces exactly to the shared, unregularised ey_grad_z."""
+    from cca_zoo._utils._ey import ey_grad_z
+
+    k = 2
+    model = CCA_EY(latent_dimensions=k, c=0.0, random_state=0)
+    views_ = model._setup_fit(two_views)
+    rng = np.random.default_rng(0)
+    weights = [rng.standard_normal((v.shape[1], k)) for v in views_]
+    representations = [v @ w for v, w in zip(views_, weights)]
+
+    grads = model._derivative(views_, representations, weights)
+    z_grads = ey_grad_z(representations)
+    expected = [(v - v.mean(axis=0)).T @ zg for v, zg in zip(views_, z_grads)]
+    for a, b in zip(grads, expected):
+        np.testing.assert_allclose(a, b, atol=1e-10)
 
 
 # ---------------------------------------------------------------------------
