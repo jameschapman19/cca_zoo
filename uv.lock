@@ -373,7 +373,6 @@ wheels = [
 
 [[package]]
 name = "cca-zoo"
-version = "3.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -439,16 +438,20 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "arviz", marker = "extra == 'all'", specifier = ">=0.17" },
     { name = "arviz", marker = "extra == 'probabilistic'", specifier = ">=0.17" },
-    { name = "cca-zoo", extras = ["deep", "probabilistic", "tree"], marker = "extra == 'all'" },
+    { name = "jax", marker = "extra == 'all'", specifier = ">=0.4" },
     { name = "jax", marker = "extra == 'probabilistic'", specifier = ">=0.4" },
+    { name = "lightgbm", marker = "extra == 'all'", specifier = ">=4.0" },
     { name = "lightgbm", marker = "extra == 'tree'", specifier = ">=4.0" },
+    { name = "lightning", marker = "extra == 'all'", specifier = ">=2.1" },
     { name = "lightning", marker = "extra == 'deep'", specifier = ">=2.1" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.5,<2.0" },
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5,<10.0" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.24" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.8" },
     { name = "numpy", specifier = ">=1.26" },
+    { name = "numpyro", marker = "extra == 'all'", specifier = ">=0.13" },
     { name = "numpyro", marker = "extra == 'probabilistic'", specifier = ">=0.13" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5" },
@@ -456,10 +459,12 @@ requires-dist = [
     { name = "scikit-learn", specifier = ">=1.6" },
     { name = "scipy", specifier = ">=1.11" },
     { name = "tensorly", specifier = ">=0.8" },
+    { name = "torch", marker = "extra == 'all'", specifier = ">=2.1" },
     { name = "torch", marker = "extra == 'deep'", specifier = ">=2.1" },
+    { name = "xgboost", marker = "extra == 'all'", specifier = ">=2.0" },
     { name = "xgboost", marker = "extra == 'tree'", specifier = ">=2.0" },
 ]
-provides-extras = ["deep", "probabilistic", "tree", "dev", "docs", "all"]
+provides-extras = ["all", "deep", "dev", "docs", "probabilistic", "tree"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "cca-zoo", extras = ["dev"] }]

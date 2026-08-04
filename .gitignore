@@ -35,6 +35,9 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# hatch-vcs writes this at build time from the current git tag; never commit it.
+cca_zoo/_version.py
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.

@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "cca-zoo"
-version = "3.2.0"
+dynamic = ["version"]
 description = "Multiview CCA methods in a scikit-learn style framework"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -49,6 +49,12 @@ Documentation = "https://jameschapman19.github.io/cca_zoo/"
 
 [dependency-groups]
 dev = ["cca-zoo[dev]"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "cca_zoo/_version.py"
 
 [tool.ruff]
 line-length = 88
