@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cca-zoo"
-version = "3.1.0"
+version = "3.2.0"
 description = "Multiview CCA methods in a scikit-learn style framework"
 readme = "README.md"
 requires-python = ">=3.10"
