@@ -635,6 +635,34 @@ def test_ccar3_sparsity_zeroes_rows(two_views: list[np.ndarray]) -> None:
     assert np.any(row_norms > 1e-2)
 
 
+def test_ccar3_sparsity_at_default_tol(correlated_views: list[np.ndarray]) -> None:
+    """Regression test for the ADMM solver's returned variable.
+
+    The solver must return the row-thresholded variable (Z), not the smooth
+    working variable (B), or `lambda_` has no effect on sparsity at the
+    default `tol=1e-4` -- B only converges *towards* Z within `tol` in an
+    aggregate Frobenius sense, so individual rows of B stay generically
+    nonzero (just small) well past that tolerance, while Z has exact zero
+    rows by construction of the group soft-threshold applied to it. Uses the
+    library's default `tol` deliberately, unlike test_ccar3_sparsity_zeroes_rows
+    above (tol=1e-8): that tighter tolerance can mask this bug by converging
+    B close enough to Z anyway.
+    """
+    dense = CCAR3(latent_dimensions=2, lambda_=0.0, ledoit_wolf=False).fit(
+        correlated_views
+    )
+    sparse = CCAR3(latent_dimensions=2, lambda_=0.05, ledoit_wolf=False).fit(
+        correlated_views
+    )
+
+    dense_row_norms = np.linalg.norm(dense.weights_[0], axis=1)
+    sparse_row_norms = np.linalg.norm(sparse.weights_[0], axis=1)
+
+    assert np.all(dense_row_norms > 1e-8), "lambda_=0 should not zero any rows"
+    assert np.any(sparse_row_norms == 0.0), "a moderate lambda_ should zero some rows"
+    assert np.any(sparse_row_norms > 1e-8), "and leave others exactly as nonzero"
+
+
 def test_ccar3_score_shape(two_views: list[np.ndarray]) -> None:
     """CCAR3's score returns an array of shape (latent_dimensions,)."""
     k = 2
