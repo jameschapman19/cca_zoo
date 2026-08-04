@@ -7,6 +7,31 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- The package version is now derived from git tags (`hatch-vcs`) instead of a hand-maintained
+  `version = "..."` string in `pyproject.toml`. This closes the exact failure mode that
+  motivated it: a tag and the shipped version silently disagreeing because someone forgot the
+  bump-version PR (or the version happened not to be on PyPI yet, in which case the mismatch
+  would previously have published *permanently* under the wrong number). Version-bump PRs going
+  forward only need to move `CHANGELOG.md`'s `Unreleased` section into a dated one — there's no
+  version field left to edit. Verified: a checkout at a tagged commit builds exactly that
+  version; any other commit builds a `<last-tag>.dev<N>+g<hash>` version; a shallow/no-tags
+  checkout falls back to a `0.1.dev...` version rather than failing the build outright.
+- The PyPI publish job now triggers on a GitHub *Release* being published, not a raw
+  `git push --tags`. Drafting a Release (`gh release create` or the UI) is a more deliberate,
+  visible act than pushing a tag, and is also the trigger most current guidance recommends for
+  Trusted Publishing. The job also now runs behind a `pypi` GitHub Environment for an
+  independent required-reviewer approval gate — **the environment itself must still be created
+  with a required reviewer under Settings > Environments**, since protection rules aren't
+  configurable from a workflow file.
+- Added a publish-job step that re-derives the version from the built sdist's filename and
+  compares it to the release tag, failing loudly (before any upload) if they disagree, as a
+  second, independent check behind the `hatch-vcs`/tag-based versioning above.
+- `CITATION.cff`'s `version`/`date-released` fields were stale at `3.0.0` (never updated across
+  the `3.1.0` or `3.2.0` releases) — bumped to match. These fields can't be derived automatically
+  (Zenodo metadata, not a build artifact), so they stay a manual step in the release checklist.
+
 ## [3.2.0] - 2026-08-04
 
 ### Added
