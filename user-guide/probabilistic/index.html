@@ -701,18 +701,46 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
+    <nav class="md-nav" aria-label="Background">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scoring-correlation-vs-likelihood" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Usage
+        Scoring: correlation vs likelihood
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Usage">
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gfa-per-view-ard-no-extra-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GFA: per-view ARD, no extra dependencies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#probabilisticcca-full-mcmc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProbabilisticCCA: full MCMC
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ProbabilisticCCA: full MCMC">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -728,6 +756,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#variationalbayescca-variational-inference-with-automatic-relevance-determination" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VariationalBayesCCA: variational inference with automatic relevance determination
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1173,18 +1212,46 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
+    <nav class="md-nav" aria-label="Background">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scoring-correlation-vs-likelihood" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Usage
+        Scoring: correlation vs likelihood
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Usage">
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gfa-per-view-ard-no-extra-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GFA: per-view ARD, no extra dependencies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#probabilisticcca-full-mcmc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProbabilisticCCA: full MCMC
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ProbabilisticCCA: full MCMC">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1200,6 +1267,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#variationalbayescca-variational-inference-with-automatic-relevance-determination" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VariationalBayesCCA: variational inference with automatic relevance determination
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1299,17 +1377,23 @@
 
 
 <h1 id="probabilistic-cca">Probabilistic CCA<a class="headerlink" href="#probabilistic-cca" title="Permanent link">&para;</a></h1>
-<p>The <code>cca_zoo.probabilistic</code> module provides a Bayesian treatment of CCA via Markov Chain Monte
-Carlo (MCMC) inference. It requires the <code>[probabilistic]</code> extra:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>cca-zoo<span class="o">[</span>probabilistic<span class="o">]</span>
+<p>The <code>cca_zoo.probabilistic</code> module provides a Bayesian treatment of CCA, with three inference
+backends:</p>
+<ul>
+<li><code>GFA</code> — closed-form coordinate-ascent variational Bayes with <strong>per-view</strong> automatic relevance
+  determination (ARD). No extra dependencies; always available.</li>
+<li><code>ProbabilisticCCA</code> — full MCMC sampling via NumPyro. Requires the <code>[probabilistic]</code> extra.</li>
+<li><code>VariationalBayesCCA</code> — black-box variational inference with ARD <strong>shared</strong> across views, via
+  NumPyro. Requires the <code>[probabilistic]</code> extra.</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>cca-zoo<span class="o">[</span>probabilistic<span class="o">]</span><span class="w">  </span><span class="c1"># only needed for ProbabilisticCCA / VariationalBayesCCA</span>
 </span></code></pre></div>
 <hr />
 <h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
 <p>Classical CCA finds a single point estimate of the canonical weights. <strong>Probabilistic CCA</strong>
-(Bach &amp; Jordan 2005; Wang 2007) instead defines a generative model with explicit priors and
-uses MCMC to obtain a full posterior distribution over the weights, enabling uncertainty
-quantification.</p>
-<p>The generative model is:</p>
+(Bach &amp; Jordan 2005) instead defines a generative model with explicit priors, enabling
+uncertainty quantification over the weights. <code>ProbabilisticCCA</code> and <code>VariationalBayesCCA</code> share
+this base generative model:</p>
 <div class="arithmatex">\[
 \mathbf{z} \sim \mathcal{N}(\mathbf{0}, I_k)
 \]</div>
@@ -1322,77 +1406,218 @@ quantification.</p>
 <li><span class="arithmatex">\(W_i\)</span> is the view-specific loading matrix with a Normal prior</li>
 <li><span class="arithmatex">\(\boldsymbol{\psi}_i\)</span> are per-feature noise variances with a log-Normal prior</li>
 </ul>
-<p>Inference is performed using the <strong>No-U-Turn Sampler</strong> (NUTS) via
-<a href="https://num.pyro.ai/">NumPyro</a>.</p>
-<hr />
-<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.probabilistic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilisticCCA</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ProbabilisticCCA</span><span class="p">(</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">center</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">num_warmup</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">num_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">)</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+<p>They share this model and the same posterior-mean projection formula for <code>transform</code>; they
+differ only in how the posterior is approximated. <code>GFA</code> modifies the model itself (per-view ARD,
+per-view scalar noise instead of per-feature) — see its own section below.</p>
+<h3 id="scoring-correlation-vs-likelihood">Scoring: correlation vs likelihood<a class="headerlink" href="#scoring-correlation-vs-likelihood" title="Permanent link">&para;</a></h3>
+<p>All three classes implement <code>score</code> (average pairwise correlation) for consistency with every
+other model in <code>cca_zoo</code> — this is what <code>GridSearchCV</code> optimizes by default. But a correlation
+between projections isn't the statistically natural fit criterion for a <em>probabilistic</em> model.
+All three also implement <code>log_likelihood</code>, the marginal log-likelihood of the data with the
+shared latent variable integrated out:</p>
+<div class="arithmatex">\[
+\mathbf{x} \sim \mathcal{N}\!\left(0,\ \Psi + WW^\top\right)
+\]</div>
+<p>where <span class="arithmatex">\(\mathbf{x}\)</span> is the concatenation of every view's centred features for one sample, <span class="arithmatex">\(W\)</span>
+stacks every view's loading matrix, and <span class="arithmatex">\(\Psi\)</span> is the (block-)diagonal noise-variance matrix.
+This is evaluated jointly across the concatenated views rather than per view: because every view
+shares the same <span class="arithmatex">\(z\)</span>, marginalising it induces cross-view covariance that a per-view likelihood
+would silently ignore. Use <code>log_likelihood</code> to compare <code>latent_dimensions</code> choices, or to compare
+any of the three classes against each other on the same data — larger (less negative) is better.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">model</span><span class="o">.</span><span class="n">log_likelihood</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>  <span class="c1"># mean log-likelihood per sample</span>
 </span></code></pre></div>
-<p>After fitting, <code>model.weights</code> holds the <strong>posterior mean</strong> loading matrices.</p>
+<hr />
+<h2 id="gfa-per-view-ard-no-extra-dependencies"><code>GFA</code>: per-view ARD, no extra dependencies<a class="headerlink" href="#gfa-per-view-ard-no-extra-dependencies" title="Permanent link">&para;</a></h2>
+<p><code>GFA</code> (Group Factor Analysis; Klami, Virtanen &amp; Kaski 2013) is ported directly from the
+reference R package <a href="https://github.com/cran/CCAGFA"><code>CCAGFA</code></a> — the update equations are
+transliterated from that source, not re-derived. It fits a single shared latent variable <span class="arithmatex">\(z\)</span>,
+but gives <strong>each view its own ARD precision</strong> <span class="arithmatex">\(\alpha_{i,k}\)</span> per latent dimension, rather than
+tying every view to the same precision like <code>VariationalBayesCCA</code>:</p>
+<div class="arithmatex">\[
+\alpha_{i,k} \sim \mathrm{Gamma}(a_0, b_0), \qquad W_i[:, k] \sim \mathcal{N}(0,\ \alpha_{i,k}^{-1} I)
+\]</div>
+<p>"Shared" vs. "private" dimensions are therefore <em>emergent</em>, not a fixed split of <span class="arithmatex">\(z\)</span> into
+blocks: a dimension ends up shared if its <span class="arithmatex">\(\alpha_{i,k}\)</span> stays small in several views at once,
+and private to view <span class="arithmatex">\(i\)</span> if it shrinks toward zero loadings in every <em>other</em> view. This is the
+actual mechanism behind "Bayesian CCA" that distinguishes it from <code>VariationalBayesCCA</code>'s single
+shared ARD parameter per dimension. It also uses a different noise model: <span class="arithmatex">\(\tau_i\)</span> is a single
+scalar precision per view (homoscedastic), not a per-feature diagonal.</p>
+<p>Inference is closed-form coordinate-ascent variational Bayes — fully conjugate, so there's no
+need for NumPyro/JAX at all. <code>GFA</code> works with just the base <code>cca-zoo</code> install.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.probabilistic</span><span class="w"> </span><span class="kn">import</span> <span class="n">GFA</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># latent_dimensions is an upper bound; drop_k=True (default) prunes it</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GFA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">n_components_</span><span class="p">)</span>  <span class="c1"># &lt;= 5: how many components survived pruning</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">view_relevance_</span><span class="p">)</span>  <span class="c1"># (n_views, n_components_) posterior mean alpha</span>
+</span></code></pre></div>
+<p><code>view_relevance_[i, k]</code> large means "dimension k is shrunk away in view i" — a component with a
+small value in one view and a huge one in every other view is private to that view; a component
+with small values everywhere is shared.</p>
+<div class="admonition warning">
+<p class="admonition-title">Convergence is a best-effort heuristic, not a guarantee</p>
+<p>Fitting stops once a proxy (relative change in <span class="arithmatex">\(z\)</span>) stays small for 1000 consecutive
+iterations, rather than the R package's full variational lower bound (which is provably
+monotonic, and so immune to this). Checking against a run with early stopping disabled
+caught this proxy staying below tolerance for 700+ iterations in the middle of a slow
+pruning process before rising again — a patience window makes this less likely, but can't
+rule it out. If <code>n_components_</code> looks larger than you'd expect, raise <code>max_iter</code> (default
+10000) rather than assuming the result is final.</p>
+</div>
+<p><code>GFA.transform</code> and <code>GFA.weights</code> behave identically to the other two classes; <code>n_iter_</code> reports
+how many iterations were actually run.</p>
+<hr />
+<h2 id="probabilisticcca-full-mcmc"><code>ProbabilisticCCA</code>: full MCMC<a class="headerlink" href="#probabilisticcca-full-mcmc" title="Permanent link">&para;</a></h2>
+<p>Inference is performed using the <strong>No-U-Turn Sampler</strong> (NUTS) via <a href="https://num.pyro.ai/">NumPyro</a>,
+giving samples from the exact posterior (up to MCMC error). This is the more accurate option, but
+full-batch NUTS scales poorly with <span class="arithmatex">\(n\)</span>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.probabilistic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilisticCCA</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ProbabilisticCCA</span><span class="p">(</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">center</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">num_warmup</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">num_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">)</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span></code></pre></div>
+<p>After fitting, <code>model.weights</code> holds the <strong>posterior mean</strong> loading matrices, and
+<code>model.posterior_samples_</code> holds the full set of MCMC draws.</p>
+<div class="admonition note">
+<p class="admonition-title">Rotational symmetry</p>
+<p>This model has an exact symmetry — <span class="arithmatex">\(z \to zR\)</span>, <span class="arithmatex">\(W_i \to W_i R\)</span> for any orthogonal <span class="arithmatex">\(R\)</span>
+shared across views leaves the likelihood unchanged — and different NUTS draws can settle
+on different rotations along that ridge. Averaging un-aligned draws would then be <em>biased
+toward zero</em> (draws pointing along different rotations partially cancel), so <code>fit</code> aligns
+every draw's loadings (and that draw's own <code>z</code>, to stay internally consistent) to a common
+reference via generalized Procrustes analysis before computing <code>weights_</code> or storing
+<code>posterior_samples_</code>. On a synthetic check, this raised a rotation-invariant coherence
+ratio (<code>||mean(W)||²</code> vs the mean of <code>||W||²</code> across draws — 1.0 if every draw agrees on a
+rotation) from 0.81 to 0.99.</p>
+</div>
 <h3 id="transform-posterior-mean-prediction">Transform (posterior mean prediction)<a class="headerlink" href="#transform-posterior-mean-prediction" title="Permanent link">&para;</a></h3>
-<p>The latent representation is computed via the analytical posterior mean:</p>
+<p>The latent representation is computed via the analytical posterior mean, using the posterior
+mean loadings and noise variances:</p>
 <div class="arithmatex">\[
 \Sigma_z = \left(I + \sum_i W_i^\top \Psi_i^{-1} W_i\right)^{-1}
 \]</div>
 <div class="arithmatex">\[
 \hat{\mathbf{z}}_j = \Sigma_z \sum_i W_i^\top \Psi_i^{-1} \mathbf{x}_{ij}
 \]</div>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">z</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="p">)</span>  <span class="c1"># list with one array of shape (n_samples, latent_dimensions)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">z</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="p">)</span>  <span class="c1"># list with one array of shape (n_samples, latent_dimensions)</span>
 </span></code></pre></div>
 <hr />
+<h2 id="variationalbayescca-variational-inference-with-automatic-relevance-determination"><code>VariationalBayesCCA</code>: variational inference with automatic relevance determination<a class="headerlink" href="#variationalbayescca-variational-inference-with-automatic-relevance-determination" title="Permanent link">&para;</a></h2>
+<p><code>VariationalBayesCCA</code> fits the same model, extended with a hierarchical <strong>automatic relevance
+determination (ARD)</strong> prior shared across views:</p>
+<div class="arithmatex">\[
+\alpha_k \sim \mathrm{Gamma}(a_0, b_0), \qquad W_i[:, k] \sim \mathcal{N}(0,\ \alpha_k^{-1} I)
+\]</div>
+<p>Because <span class="arithmatex">\(\alpha_k\)</span> ties every view's <span class="arithmatex">\(k\)</span>-th loading column together, a shared latent dimension
+is only retained if some view actually uses it — irrelevant dimensions get shrunk toward zero in
+every view at once. The posterior mean of <span class="arithmatex">\(\alpha_k\)</span> (<code>model.ard_relevance_</code>) is a direct
+usefulness score per dimension: large values mean "shrunk away, safe to drop". This gives
+automatic latent-dimensionality selection, as an alternative to sweeping <code>latent_dimensions</code> with
+<code>GridSearchCV</code>.</p>
+<p>Inference uses mean-field <strong>stochastic variational inference (SVI)</strong> rather than the closed-form
+conjugate updates in Wang (2007)'s original derivation — SVI reuses the same NumPyro generative
+model as <code>ProbabilisticCCA</code> and extends to non-conjugate variants unmodified, at the cost of the
+mean-field independence assumption between latent variables. It is substantially cheaper than
+full NUTS.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.probabilistic</span><span class="w"> </span><span class="kn">import</span> <span class="n">VariationalBayesCCA</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="c1"># latent_dimensions is an upper bound here — set it generously and let ARD prune it</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">VariationalBayesCCA</span><span class="p">(</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">num_steps</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">learning_rate</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">,</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">)</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">ard_relevance_</span><span class="p">)</span>  <span class="c1"># one score per dimension; large = pruned</span>
+</span></code></pre></div>
+<p><code>model.transform</code> and <code>model.weights</code> behave identically to <code>ProbabilisticCCA</code>. <code>model.losses_</code>
+holds the ELBO trace across SVI steps, useful for checking convergence.</p>
+<hr />
 <h2 id="full-example">Full example<a class="headerlink" href="#full-example" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">JointData</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.probabilistic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilisticCCA</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Simulate correlated views</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">data</span> <span class="o">=</span> <span class="n">JointData</span><span class="p">(</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">n_views</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">n_samples</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">n_features</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="n">signal_to_noise</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="p">)</span>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="n">views</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="c1"># Fit with MCMC (reduce warmup/samples for speed in examples)</span>
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ProbabilisticCCA</span><span class="p">(</span>
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    <span class="n">num_warmup</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
-</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>    <span class="n">num_samples</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
-</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
-</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="p">)</span>
-</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
-</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>
-</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Posterior mean weights shape:&quot;</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># (10, 2)</span>
-</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>
-</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="n">z</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
-</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Latent shape:&quot;</span><span class="p">,</span> <span class="n">z</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># (100, 2)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">JointData</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.probabilistic</span><span class="w"> </span><span class="kn">import</span> <span class="n">GFA</span><span class="p">,</span> <span class="n">ProbabilisticCCA</span><span class="p">,</span> <span class="n">VariationalBayesCCA</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="c1"># Simulate correlated views</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">data</span> <span class="o">=</span> <span class="n">JointData</span><span class="p">(</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">n_views</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">n_samples</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">n_features</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="n">signal_to_noise</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="p">)</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="n">views</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="c1"># Fit with GFA (no extra dependencies), requesting more dimensions than</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="c1"># needed to see per-view ARD prune the unsupported ones</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="n">gfa_model</span> <span class="o">=</span> <span class="n">GFA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="n">gfa_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;GFA n_components_ after pruning:&quot;</span><span class="p">,</span> <span class="n">gfa_model</span><span class="o">.</span><span class="n">n_components_</span><span class="p">)</span>
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Per-view relevance:&quot;</span><span class="p">,</span> <span class="n">gfa_model</span><span class="o">.</span><span class="n">view_relevance_</span><span class="p">)</span>
+</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>
+</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a><span class="c1"># Fit with MCMC (reduce warmup/samples for speed in examples)</span>
+</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="n">mcmc_model</span> <span class="o">=</span> <span class="n">ProbabilisticCCA</span><span class="p">(</span>
+</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>    <span class="n">num_warmup</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>    <span class="n">num_samples</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+</span><span id="__span-6-29"><a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a><span class="p">)</span>
+</span><span id="__span-6-30"><a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a><span class="n">mcmc_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
+</span><span id="__span-6-31"><a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Posterior mean weights shape:&quot;</span><span class="p">,</span> <span class="n">mcmc_model</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># (10, 2)</span>
+</span><span id="__span-6-32"><a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a>
+</span><span id="__span-6-33"><a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a><span class="c1"># Fit with variational inference, requesting more dimensions than needed</span>
+</span><span id="__span-6-34"><a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a><span class="c1"># to see ARD prune the unsupported ones</span>
+</span><span id="__span-6-35"><a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a><span class="n">vb_model</span> <span class="o">=</span> <span class="n">VariationalBayesCCA</span><span class="p">(</span>
+</span><span id="__span-6-36"><a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+</span><span id="__span-6-37"><a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a>    <span class="n">num_steps</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
+</span><span id="__span-6-38"><a id="__codelineno-6-38" name="__codelineno-6-38" href="#__codelineno-6-38"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+</span><span id="__span-6-39"><a id="__codelineno-6-39" name="__codelineno-6-39" href="#__codelineno-6-39"></a><span class="p">)</span>
+</span><span id="__span-6-40"><a id="__codelineno-6-40" name="__codelineno-6-40" href="#__codelineno-6-40"></a><span class="n">vb_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
+</span><span id="__span-6-41"><a id="__codelineno-6-41" name="__codelineno-6-41" href="#__codelineno-6-41"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ARD relevance per dimension:&quot;</span><span class="p">,</span> <span class="n">vb_model</span><span class="o">.</span><span class="n">ard_relevance_</span><span class="p">)</span>
+</span><span id="__span-6-42"><a id="__codelineno-6-42" name="__codelineno-6-42" href="#__codelineno-6-42"></a>
+</span><span id="__span-6-43"><a id="__codelineno-6-43" name="__codelineno-6-43" href="#__codelineno-6-43"></a><span class="n">z</span> <span class="o">=</span> <span class="n">vb_model</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
+</span><span id="__span-6-44"><a id="__codelineno-6-44" name="__codelineno-6-44" href="#__codelineno-6-44"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Latent shape:&quot;</span><span class="p">,</span> <span class="n">z</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># (100, 4)</span>
 </span></code></pre></div>
 <hr />
 <h2 id="tips">Tips<a class="headerlink" href="#tips" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Warmup vs samples.</strong> NUTS requires a warm-up phase to adapt the step size. A typical
+<li><strong>Choosing a backend.</strong> Start with <code>GFA</code> — no extra install, and per-view ARD is the more
+  informative dimensionality signal if you care about shared-vs-private structure. Prefer
+  <code>VariationalBayesCCA</code> when you specifically want ARD shared across views (fewer, more
+  conservative retained dimensions) or need NumPyro's ecosystem. Prefer <code>ProbabilisticCCA</code> when
+  you need the most accurate posterior (e.g. for final reported credible intervals) and <span class="arithmatex">\(n\)</span> is
+  small enough for MCMC to be practical.</li>
+<li><strong>Warmup vs samples (MCMC).</strong> NUTS requires a warm-up phase to adapt the step size. A typical
   setting is <code>num_warmup=500, num_samples=1000</code>. For exploration, <code>num_warmup=100,
   num_samples=200</code> is enough.</li>
+<li><strong>num_steps vs learning_rate (VB).</strong> Check <code>model.losses_</code> — if it hasn't plateaued, increase
+  <code>num_steps</code>. If it's noisy or diverging, lower <code>learning_rate</code>.</li>
+<li><strong>max_iter vs tol (GFA).</strong> Convergence-based early stopping is a best-effort heuristic (see the
+  warning above) — if <code>n_components_</code> looks too large, raise <code>max_iter</code> rather than lowering
+  <code>tol</code> further.</li>
 <li><strong>Small datasets.</strong> Probabilistic CCA is most useful when <span class="arithmatex">\(n\)</span> is small enough that
-  uncertainty in the weights is meaningful (rough guide: <span class="arithmatex">\(n &lt; 500\)</span>).</li>
+  uncertainty in the weights is meaningful (rough guide: <span class="arithmatex">\(n &lt; 500\)</span> for MCMC; VB scales further).</li>
 <li><strong>Feature scaling.</strong> Center and scale your views before fitting (<code>center=True</code> is the
-  default). The prior on <span class="arithmatex">\(W_i\)</span> assumes unit-scale inputs.</li>
-<li><strong>Convergence diagnostics.</strong> Use <a href="https://python.arviz.org/">ArviZ</a> on the NumPyro
-  MCMC object (accessible via <code>model.mcmc_</code>) for R-hat and effective sample size checks.</li>
+  default). The priors on <span class="arithmatex">\(W_i\)</span> assume unit-scale inputs.</li>
+<li><strong>Convergence diagnostics.</strong> Use <a href="https://python.arviz.org/">ArviZ</a> on the NumPyro MCMC object
+  (accessible via <code>model.mcmc_</code> on <code>ProbabilisticCCA</code>) for R-hat and effective sample size checks.</li>
+<li><strong>Comparing models.</strong> Use <code>model.log_likelihood(held_out_views)</code> rather than <code>model.score(...)</code>
+  when the question is "which model/latent_dimensions fits this data better" — it's the
+  statistically proper Bayesian criterion, unlike the correlation-based <code>score</code> every model
+  shares for <code>GridSearchCV</code> consistency.</li>
 </ul>
 
 
