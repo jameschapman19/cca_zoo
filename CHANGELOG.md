@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-08-04
+
 ### Added
 
 - `GFA` (Group Factor Analysis): a third probabilistic CCA backend, ported faithfully from the
@@ -74,6 +76,17 @@ project adheres to [Semantic Versioning](https://semver.org/).
   The blended gradient is verified against finite differences and, at its `c=0`/`c=1` endpoints,
   against bit-for-bit exact matches with the pre-existing unregularised EY gradient and with
   `PLS_EY`'s own independently verified gradient.
+- `CCAR3`'s ADMM row-sparse solver returned `B`, the smooth ADMM working variable, instead of
+  `Z`, the variable its group soft-threshold is actually applied to. `B` only converges
+  *towards* `Z` within `tol` in an aggregate Frobenius sense, so individual rows of `B` stay
+  generically nonzero (just small) well past the default `tol=1e-4` — meaning `lambda_` had no
+  visible effect on row sparsity across several orders of magnitude at the library's own
+  default tolerance, even though `Z` was correctly sparse throughout. Verified against the
+  reference R implementation (`jameschapman19/ccar3`), which hits the same issue and works
+  around it with a post-hoc absolute threshold; returning `Z` directly is more robust since it's
+  exactly sparse by construction regardless of how tight `tol` happens to be. Added a regression
+  test at the library's default `tol` (the pre-existing sparsity test used `tol=1e-8`, tight
+  enough to mask the bug).
 
 ## [3.1.0] - 2026-08-03
 
