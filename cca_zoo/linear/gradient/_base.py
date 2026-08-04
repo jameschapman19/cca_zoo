@@ -17,7 +17,9 @@ class BaseGradientModel(BaseModel):
     :meth:`_objective` (scalar loss, used only for the ``tol`` early-stopping
     check) and call :meth:`_gradient_descent` from their own ``fit``. See
     :mod:`cca_zoo._utils._ey` for the shared EY-loss machinery used by the
-    CCA-family subclasses.
+    CCA-family subclasses. A proximal-gradient variant (e.g. a sparsity
+    penalty on the weights) needs nothing more than an override of
+    :meth:`_post_step`.
 
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
@@ -78,6 +80,26 @@ class BaseGradientModel(BaseModel):
     ) -> float:
         """Scalar loss value, used only for the ``tol`` convergence check."""
 
+    def _post_step(self, weights: list[np.ndarray]) -> list[np.ndarray]:
+        """Optional hook applied to the weights after each momentum step,
+        before the convergence check.
+
+        Default is the identity (no-op). Override this to implement a
+        proximal-gradient variant of an EY-style model (e.g. a sparsity
+        penalty) without duplicating :meth:`_gradient_descent`: the
+        momentum update, batching, initial weights, and convergence check
+        are all inherited unchanged, and only the proximal step itself
+        needs to be supplied here.
+
+        Args:
+            weights: Post-momentum-update weight matrices, one per view.
+
+        Returns:
+            The (possibly modified) weight matrices; same shapes as the
+            input.
+        """
+        return weights
+
     def _initial_weights(
         self, views: list[np.ndarray], rng: np.random.Generator
     ) -> list[np.ndarray]:
@@ -123,6 +145,7 @@ class BaseGradientModel(BaseModel):
             for i, g in enumerate(grads):
                 velocity[i] = self.momentum * velocity[i] - self.learning_rate * g
                 weights[i] = weights[i] + velocity[i]
+            weights = self._post_step(weights)
             obj = self._objective(batch, representations, weights)
             if abs(prev_obj - obj) < self.tol:
                 break

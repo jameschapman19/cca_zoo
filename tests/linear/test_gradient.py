@@ -466,3 +466,44 @@ def test_mcca_ey_initial_weights_give_orthonormal_projections(
     for view, w in zip(three_correlated_views, weights):
         z = view[idx] @ w
         np.testing.assert_allclose(z.T @ z, np.eye(k), atol=1e-8)
+
+
+# ---------------------------------------------------------------------------
+# _post_step hook (lets a proximal-gradient variant subclass without
+# duplicating _gradient_descent)
+# ---------------------------------------------------------------------------
+
+
+def test_post_step_default_is_identity(two_views: list[np.ndarray]) -> None:
+    """The unmodified base hook does not change fitted weights."""
+    baseline = CCA_EY(**_FIT_KWARGS).fit(two_views).weights_
+
+    class _NoOpVariant(CCA_EY):
+        def _post_step(self, weights):
+            return weights
+
+    variant = _NoOpVariant(**_FIT_KWARGS).fit(two_views).weights_
+    for a, b in zip(baseline, variant):
+        np.testing.assert_allclose(a, b)
+
+
+def test_post_step_override_is_applied_during_training(
+    two_views: list[np.ndarray],
+) -> None:
+    """A _post_step override (hard-thresholding) actually runs every
+    iteration, not just once at the end -- checked by confirming the
+    thresholded entries are exactly zero in the final fit, which a
+    single post-hoc clip would also produce, combined with a call
+    counter that must fire max_iter times."""
+    calls = []
+
+    class _HardThresholdVariant(CCA_EY):
+        def _post_step(self, weights):
+            calls.append(1)
+            return [np.where(np.abs(w) < 0.05, 0.0, w) for w in weights]
+
+    model = _HardThresholdVariant(**_FIT_KWARGS).fit(two_views)
+    assert len(calls) == _FIT_KWARGS["max_iter"]
+    for w in model.weights_:
+        small = np.abs(w) < 0.05
+        assert np.all(w[small] == 0.0)
