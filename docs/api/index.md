@@ -8,6 +8,6 @@ Complete API documentation auto-generated from source docstrings.
 | [`cca_zoo.nonparametric`](nonparametric.md) | KCCA, KGCCA, KTCCA |
 | [`cca_zoo.tree`](tree.md) | TreeCCA |
 | [`cca_zoo.deep`](deep.md) | DCCA and variants, objectives |
-| [`cca_zoo.probabilistic`](probabilistic.md) | ProbabilisticCCA |
+| [`cca_zoo.probabilistic`](probabilistic.md) | GFA, ProbabilisticCCA, VariationalBayesCCA |
 | [`cca_zoo.datasets`](datasets.md) | JointData, toy loaders |
 | [`cca_zoo.model_selection`](model-selection.md) | GridSearchCV |

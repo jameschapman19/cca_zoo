@@ -9,13 +9,26 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `GFA` (Group Factor Analysis): a third probabilistic CCA backend, ported faithfully from the
+  reference R package [`CCAGFA`](https://github.com/cran/CCAGFA) (Klami, Virtanen & Kaski,
+  2013) — the update equations are transliterated directly from that source. Unlike
+  `VariationalBayesCCA`'s single ARD parameter shared across every view per latent dimension,
+  `GFA` gives each view its **own** ARD precision per dimension, so "shared" vs. "private"
+  latent structure is emergent from the fitted per-view relevance
+  (`view_relevance_`) rather than a fixed split. Inference is closed-form coordinate-ascent
+  variational Bayes with no dependency beyond numpy/scikit-learn — no numpyro/jax needed, unlike
+  the other two classes, so it's always available regardless of the `[probabilistic]` extra.
+  Dynamic dimensionality pruning (`drop_k`, `n_components_`) matches the R package's `dropK`
+  default. Deliberately omits the R package's optional rotation-optimization step (an
+  optimization-path speedup, not a model change) rather than risk porting it without a
+  reference R run to verify against.
 - `VariationalBayesCCA`: probabilistic CCA fit via mean-field stochastic variational inference
   (numpyro SVI), a much cheaper alternative to `ProbabilisticCCA`'s full NUTS MCMC. Adds a
   hierarchical automatic relevance determination (ARD) prior shared across views, giving
   automatic latent-dimensionality selection via the new `ard_relevance_` attribute instead of a
   `GridSearchCV` sweep over `latent_dimensions`. This is the "VB-CCA" (Wang 2007) previously
   only cited, not implemented, by `ProbabilisticCCA`'s docstring.
-- `log_likelihood()` on both `ProbabilisticCCA` and `VariationalBayesCCA`: the marginal
+- `log_likelihood()` on `GFA`, `ProbabilisticCCA`, and `VariationalBayesCCA`: the marginal
   log-likelihood of held-out data with the shared latent variable integrated out, evaluated
   jointly across the concatenation of all views (not per view) so it correctly captures the
   cross-view covariance induced by the shared latent structure. Computed via the Woodbury
