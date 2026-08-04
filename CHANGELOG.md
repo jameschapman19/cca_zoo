@@ -56,6 +56,24 @@ project adheres to [Semantic Versioning](https://semver.org/).
   analysis (`align_posterior_rotation`) before computing `weights_`; the same check now gives
   0.99. `VariationalBayesCCA` doesn't need this — its mean-field SVI posterior already
   collapses onto a single rotation (checked: ratio 0.9996 without any correction).
+- `CCA_EY` (and `MCCA_EY`, which shares its `fit()`) whitened the *entire* dataset with a
+  full-batch SVD (`svd_whiten`) before doing any mini-batch gradient descent — an O(full-dataset)
+  step fundamentally at odds with these classes being the large-scale/streaming member of the
+  Eckart-Young family. `PLS_EY`, `TreeCCA`, and `DCCA_EY` already applied the shared EY loss
+  directly to raw mini-batches with no such step; `CCA_EY` now does too. Removing the whitening
+  step surfaced a real numerical-stability gap: gradient descent on the raw, unregularised loss
+  can diverge to `nan` when a mini-batch's `batch_size` doesn't comfortably exceed
+  `n_features` (nothing then bounds the weights in the mini-batch's near-null directions).
+  `CCA_EY` keeps its `c` ridge parameter to address this — reworked into a blend, in the
+  unconstrained/stochastic setting, of the same canonical-ridge idea `rCCA` already uses
+  ($(1-c)X^\top X + cI$): `c=0` is exactly the original, unregularised objective (default,
+  unchanged for well-conditioned data), and `c=1` is exactly `PLS_EY`'s objective, so `c`
+  continuously blends `CCA_EY` towards `PLS_EY`'s (empirically more stable) loss. `PLS_EY` is
+  now implemented as a thin `CCA_EY` subclass with `c` fixed at `1` (not exposed in its own
+  `__init__`), mirroring how `CCA`/`PLS` are thin `rCCA` subclasses with `c` fixed at `0`/`1`.
+  The blended gradient is verified against finite differences and, at its `c=0`/`c=1` endpoints,
+  against bit-for-bit exact matches with the pre-existing unregularised EY gradient and with
+  `PLS_EY`'s own independently verified gradient.
 
 ## [3.1.0] - 2026-08-03
 

@@ -59,9 +59,9 @@ class DCCA_EY(DCCA):
     estimation of the two quantities (as in the EigenGame formulation).
 
     References:
-        Chapman, J., Aguila, A. L., & Wells, L. "A Generalised EigenGame
-        with Extensions to Multiview Representation Learning."
-        arXiv:2211.11323 (2022).
+        Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
+        Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
+        arXiv:2310.01012.
 
     Args:
         latent_dimensions: Dimensionality of the shared latent space.
