@@ -64,8 +64,18 @@ def _admm_row_sparse_rrr(
         # back/forward-substitution -- 6.4x faster at p=600 in a direct
         # benchmark, bit-identical output (verified against the previous
         # np.linalg.solve result to machine precision).
+        #
+        # check_finite=False skips solve_triangular's own default full-array
+        # NaN/Inf scan on every call, safe here because rhs and L are both
+        # derived from finite inputs (X, Y_tilde, and a Cholesky factor of a
+        # ridge-regularized PSD matrix) at every iteration -- another 2.1x
+        # on top of the above at p=200 in a direct benchmark (0.104s ->
+        # 0.049s for 2000 double-solves), bit-identical output.
         B = solve_triangular(
-            L.T, solve_triangular(L, rhs, lower=True), lower=False
+            L.T,
+            solve_triangular(L, rhs, lower=True, check_finite=False),
+            lower=False,
+            check_finite=False,
         )
         Z_old = Z
         Z = B + U
