@@ -186,6 +186,53 @@ def test_scca_pmd_achieves_sparsity(two_views: list[np.ndarray]) -> None:
         assert n_zeros > 0, f"Expected some zero weights, got {n_zeros}"
 
 
+def test_scca_pmd_invariant_to_input_scale(two_views: list[np.ndarray]) -> None:
+    """SCCA_PMD's fitted weights (up to sign) must not depend on the
+    overall scale of the input data -- tau is the only sparsity control.
+
+    Regression test: _bisect_threshold used to compare the *unnormalised*
+    power-iteration update's L1 norm directly against l1_bound (a bound
+    that is only meaningful for a unit-L2-norm vector), so scaling the
+    input data changed the effective sparsity even at a fixed tau -- in
+    the common case where the raw update's magnitude exceeds l1_bound,
+    tau bound far more aggressively than intended, up to tau=1 (nominally
+    "no constraint") still producing near-total sparsity.
+    """
+    scaled_views = [v * 37.0 for v in two_views]
+    model_a = SCCA_PMD(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
+        two_views
+    )
+    model_b = SCCA_PMD(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
+        scaled_views
+    )
+    for w_a, w_b in zip(model_a.weights, model_b.weights):
+        # sign of the leading direction is arbitrary; align before comparing
+        sign = np.sign((w_a * w_b).sum()) or 1.0
+        np.testing.assert_allclose(w_a, sign * w_b, atol=1e-6)
+
+
+def test_scca_pmd_tau_controls_sparsity_monotonically(
+    two_views: list[np.ndarray],
+) -> None:
+    """Increasing tau must not decrease the number of selected features:
+    tau=1 bounds by the Cauchy-Schwarz maximum for a unit vector, so it
+    should recover the (denser) unconstrained solution, not one sparser
+    than a smaller tau's."""
+    taus = [0.3, 0.5, 0.7, 1.0]
+    nnz_by_tau = []
+    for tau in taus:
+        model = SCCA_PMD(
+            latent_dimensions=1, tau=tau, max_iter=200, random_state=0
+        ).fit(two_views)
+        nnz_by_tau.append(sum(int(np.sum(np.abs(w) > 1e-10)) for w in model.weights))
+    assert nnz_by_tau == sorted(nnz_by_tau), (
+        f"nnz should be non-decreasing in tau, got {dict(zip(taus, nnz_by_tau))}"
+    )
+    # tau=1 imposes no real constraint (L1 bound = sqrt(p), the max
+    # possible for a unit vector), so it must not be sparse.
+    assert nnz_by_tau[-1] == sum(v.shape[1] for v in two_views)
+
+
 def test_parkhomenko_achieves_sparsity(two_views: list[np.ndarray]) -> None:
     """ParkhomenkoCCA with positive tau produces sparse weights."""
     model = ParkhomenkoCCA(
