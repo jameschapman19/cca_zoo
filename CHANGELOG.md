@@ -176,6 +176,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 - `README.md` rewritten to reflect the current method list, install instructions, and
   badges.
 - Every public class's docstring now includes a literature `References:` section.
+- `svd_whiten` (used by `rCCA` and `CCA_EY`) now takes a covariance-eigendecomposition
+  path when `n_samples >= n_features`, instead of always computing the full thin SVD of
+  `X`. Avoids allocating an `n x p` matrix for tall data — up to ~14x faster on a
+  54,000 x 392 benchmark. No change to public API or results.
 - Project logo and favicon replaced with a hand-authored two-ring mark (previously a large
   auto-traced SVG); the favicon is now a proper multi-resolution `.ico` generated from it.
 
