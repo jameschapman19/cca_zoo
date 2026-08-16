@@ -139,19 +139,26 @@ These methods replace the full eigendecomposition with mini-batch momentum gradi
 the unconstrained Eckart-Young (EY) objective (see [`cca_zoo.tree`](tree.md) and
 [`cca_zoo.deep`](deep.md) for the same objective applied to tree and neural-network encoders),
 making them practical for very high-dimensional or streaming data. No manifold projection step
-is needed: the EY loss's quadratic penalty term drives the weights towards the canonical
-directions on its own.
+and no upfront whitening pass over the full dataset are needed: the EY loss's quadratic penalty
+term drives the weights towards the canonical directions on its own, directly from raw
+mini-batches.
 
 | Class | Description |
 |---|---|
 | `PLS_EY` | Eckart-Young PLS objective, stochastic updates |
-| `CCA_EY` | Eckart-Young CCA (whitened), stochastic updates |
+| `CCA_EY` | Eckart-Young CCA, stochastic updates, ridge-blended with `PLS_EY` via `c` |
 | `MCCA_EY` | Multiview EY-CCA for ≥2 views |
+
+`CCA_EY`'s `c` parameter (default `0`) blends its loss towards `PLS_EY`'s (`c=1`) — in fact
+`PLS_EY` is implemented as `CCA_EY` with `c` fixed at `1`. Gradient descent on the raw,
+unregularised (`c=0`) objective can diverge when a mini-batch's samples don't outnumber the
+number of features by a healthy margin; if you see `nan` weights, increase `c` (0.1-0.3 is
+usually enough) or `batch_size`.
 
 ```python
 from cca_zoo.linear import CCA_EY
 
-model = CCA_EY(latent_dimensions=2, learning_rate=0.01, batch_size=64, max_iter=200)
+model = CCA_EY(latent_dimensions=2, learning_rate=0.01, batch_size=128, max_iter=200)
 model.fit([X1, X2])
 ```
 

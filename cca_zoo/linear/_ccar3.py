@@ -68,7 +68,16 @@ def _admm_row_sparse_rrr(
         dual = np.linalg.norm(Z_old - Z) / np.sqrt(p)
         if max(primal, dual) < tol:
             break
-    return np.asarray(B)
+    # Return Z, not B: Z is the variable the group soft-threshold above was
+    # actually applied to, so it has exact zero rows by construction. B is
+    # only the smooth (unconstrained) ADMM working variable -- it merely
+    # converges *towards* Z within `tol` in aggregate (Frobenius) norm, so
+    # individual rows of B are generically still nonzero (just small) even
+    # once the primal/dual residual check has passed at the default
+    # tol=1e-4, which made `lambda_` appear to have no effect on sparsity
+    # at that default. Returning Z fixes this without depending on how
+    # tight `tol` happens to be.
+    return np.asarray(Z)
 
 
 def _postprocess_rrr_fit(

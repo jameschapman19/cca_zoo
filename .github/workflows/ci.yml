@@ -3,9 +3,10 @@ name: CI
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   pull_request:
     branches: [main]
+  release:
+    types: [published]
 
 jobs:
   # -------------------------------------------------------------------------
@@ -16,6 +17,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # hatch-vcs derives the package version from git tag history; a
+          # shallow/no-tags checkout falls back to a "0.1.dev..." version
+          # rather than failing, but every job should still see the real one.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -44,6 +50,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # hatch-vcs derives the package version from git tag history; a
+          # shallow/no-tags checkout falls back to a "0.1.dev..." version
+          # rather than failing, but every job should still see the real one.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -75,6 +86,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # hatch-vcs derives the package version from git tag history; a
+          # shallow/no-tags checkout falls back to a "0.1.dev..." version
+          # rather than failing, but every job should still see the real one.
+          fetch-depth: 0
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -116,6 +132,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # hatch-vcs derives the package version from git tag history; a
+          # shallow/no-tags checkout falls back to a "0.1.dev..." version
+          # rather than failing, but every job should still see the real one.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -153,6 +174,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # hatch-vcs derives the package version from git tag history; a
+          # shallow/no-tags checkout falls back to a "0.1.dev..." version
+          # rather than failing, but every job should still see the real one.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -171,25 +197,37 @@ jobs:
         run: uv run mkdocs build --strict
 
       - name: Deploy to GitHub Pages
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./site
 
 # -------------------------------------------------------------------------
-# Publish job (triggered by version tags)
+# Publish job (triggered by a published GitHub Release, not a raw tag push —
+# drafting a Release is the deliberate human act that should gate publishing).
+# Requires a "pypi" GitHub Environment (Settings > Environments) with
+# required reviewers configured for a manual approval gate in addition to
+# this workflow's own condition; create it there since environment
+# protection rules aren't settable from a workflow file.
 # -------------------------------------------------------------------------
   publish:
     name: Publish to PyPI
-    needs: [lint, typecheck, test]
+    needs: [lint, typecheck, test, test-slow, docs]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'release' && github.event.action == 'published'
+    environment:
+      name: pypi
+      url: https://pypi.org/project/cca-zoo/
     permissions:
       id-token: write  # OIDC Trusted Publishing — no API secrets needed
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # hatch-vcs derives the package version from the release's git tag;
+          # a shallow checkout would silently ship the wrong version instead.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -200,9 +238,18 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       - name: Build
+        run: uv build
+
+      - name: Verify the release tag matches the built package version
         run: |
-          uv pip install --system hatchling
-          python -m hatchling build
+          sdist="$(ls dist/*.tar.gz)"
+          built_version="$(basename "$sdist" .tar.gz | sed 's/^cca_zoo-//')"
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [ "$built_version" != "$tag_version" ]; then
+            echo "::error::Release tag 'v$tag_version' does not match the version hatch-vcs derived from git history ('$built_version', from $sdist). Refusing to publish." >&2
+            exit 1
+          fi
+          echo "Publishing cca-zoo $built_version for tag $GITHUB_REF_NAME"
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
