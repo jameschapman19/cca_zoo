@@ -229,25 +229,51 @@ class PLS_ALS(_BaseIterative):
 
 
 def _bisect_threshold(x: np.ndarray, l1_bound: float) -> np.ndarray:
-    """Find the soft threshold that achieves ||soft_threshold(x, delta)||_1 = l1_bound.
+    """Find the soft threshold that makes the L2-normalised thresholded
+    vector's L1 norm equal ``l1_bound``.
 
-    Uses bisection.  If ||x||_1 <= l1_bound no thresholding is applied.
+    ``l1_bound`` (``tau * sqrt(p)``, see :class:`SCCA_PMD`) is only a
+    meaningful constraint on a *unit-L2-norm* vector: ``||w||_1 <= sqrt(p)``
+    for ``||w||_2 = 1`` is the Cauchy-Schwarz bound the ``tau in (0, 1]``
+    parameterisation relies on. The bisection therefore has to search on
+    the L1/L2 ratio of the thresholded vector, ``||soft_threshold(x,
+    delta)||_1 / ||soft_threshold(x, delta)||_2``, not on
+    ``||soft_threshold(x, delta)||_1`` alone: that ratio is invariant to
+    the overall scale of ``x`` (scaling ``x`` by any ``c > 0`` scales the
+    optimal ``delta`` by the same ``c`` and leaves the ratio unchanged),
+    whereas the raw L1 norm is not. ``x`` here is an un-normalised
+    power-iteration update whose scale depends on the data
+    (:meth:`SCCA_PMD._update_weight` passes ``views[i].T @ target``,
+    typically :math:`O(\\sqrt{n})` in magnitude for standardised data),
+    not on ``tau``, so comparing that raw L1 norm directly against
+    ``l1_bound`` made the constraint's effective strength depend on the
+    data's scale rather than only on ``tau`` -- in the regime where the
+    raw update's magnitude exceeds ``l1_bound`` (the common case for
+    reasonably-sized ``n``), it made ``tau`` bind far more aggressively
+    than intended, up to and including ``tau=1`` (nominally "no sparsity
+    constraint") still producing near-maximal sparsity.
 
     Args:
-        x: Input vector.
-        l1_bound: Target L1 norm.
+        x: Input vector (un-normalised).
+        l1_bound: Target L1 norm of the L2-normalised result, in
+            ``(0, sqrt(len(x))]``.
 
     Returns:
-        Soft-thresholded vector with L2-normalised result.
+        Soft-thresholded, L2-normalised vector.
     """
-    if np.linalg.norm(x, 1) <= l1_bound:
-        return np.asarray(x / np.linalg.norm(x))
+    norm_x = np.linalg.norm(x)
+    if norm_x <= 1e-12:
+        return np.zeros_like(x)
+    unit_x = x / norm_x
+    if np.linalg.norm(unit_x, 1) <= l1_bound:
+        return np.asarray(unit_x)
     lo, hi = 0.0, np.abs(x).max()
     for _ in range(50):
         mid = (lo + hi) / 2.0
         thresholded = soft_threshold(x, mid)
-        l1 = np.linalg.norm(thresholded, 1)
-        if l1 > l1_bound:
+        norm_t = np.linalg.norm(thresholded)
+        l1_over_l2 = np.linalg.norm(thresholded, 1) / norm_t if norm_t > 1e-12 else 0.0
+        if l1_over_l2 > l1_bound:
             lo = mid
         else:
             hi = mid
