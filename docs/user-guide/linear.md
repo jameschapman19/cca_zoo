@@ -245,8 +245,10 @@ model = ParkhomenkoCCA(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2
 
 ### SCCA_Span
 
-Hard-thresholding retaining only the top `span` entries (Asteris 2016). Useful when the
-number of active features is known in advance.
+Hard-thresholding retaining only the top `span` entries, an ALS heuristic
+inspired by SpanCCA (Asteris 2016) rather than a reimplementation of its
+own randomized low-rank sampling algorithm. Useful when the number of
+active features is known in advance.
 
 ```python
 from cca_zoo.linear import SCCA_Span

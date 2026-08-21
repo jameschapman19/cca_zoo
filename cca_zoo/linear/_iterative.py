@@ -8,7 +8,7 @@ Classes:
     SCCA_PMD: Sparse CCA via Penalized Matrix Decomposition (Witten 2009).
     SCCA_ADMM: Sparse CCA via ADMM (Suo 2017).
     SCCA_IPLS: Iterative PLS with lasso penalty (Mai & Zhang 2019).
-    SCCA_Span: SpanCCA (Asteris 2016).
+    SCCA_Span: hard-thresholding ALS inspired by SpanCCA (Asteris 2016).
     ElasticCCA: Elastic net regularised CCA (Waaijenborg 2008).
     ParkhomenkoCCA: Sparse CCA via soft-thresholding (Parkhomenko 2009).
 """
@@ -650,20 +650,30 @@ class SCCA_IPLS(_BaseIterative):
 
 
 # ---------------------------------------------------------------------------
-# SCCA_Span — SpanCCA (Asteris 2016)
+# SCCA_Span — hard-thresholding ALS inspired by SpanCCA (Asteris 2016)
 # ---------------------------------------------------------------------------
 
 
 class SCCA_Span(_BaseIterative):
-    r"""SpanCCA — sparse CCA via truncated power iteration.
+    r"""Hard-thresholding ALS for sparse CCA, inspired by SpanCCA.
 
-    Solves sparse CCA by a sparse power iteration where each weight update
-    retains only the ``span`` entries with the largest absolute values.
+    Solves sparse CCA by an alternating least squares loop where each
+    weight update retains only the ``span`` entries with the largest
+    absolute values.
+
+    Note that this is an ALS-based heuristic, not a reimplementation of
+    SpanCCA's own Algorithm 1: the paper instead takes a single rank-r
+    SVD of the cross-covariance matrix up front, then draws many
+    independent random directions on the low-rank subspace, hard-
+    thresholds each one, and returns whichever independent candidate
+    scored highest -- it never alternately refines one running weight
+    vector the way this class (and every other class in this module,
+    see the module docstring) does.
 
     References:
-        Asteris, M., Khanna, R., Kyrillidis, A., & Dimakis, A. G. (2016).
-        Bilinear approaches for online learning over large feature spaces.
-        *NeurIPS 2016*. (SpanCCA algorithm).
+        Asteris, M., Kyrillidis, A., Koyejo, O., & Poldrack, R. (2016).
+        A simple and provable algorithm for sparse diagonal CCA. *ICML*,
+        *arXiv:1605.08961*.
 
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.

@@ -95,7 +95,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `SCCA_PMD` | Sparse CCA via PMD (Witten 2009) | ≥2 |
 | `SCCA_ADMM` | Sparse CCA via ADMM (Suo 2017) | ≥2 |
 | `SCCA_IPLS` | Sparse CCA via iterative PLS (Mai & Zhang 2019) | ≥2 |
-| `SCCA_Span` | SpanCCA (Asteris 2016) | ≥2 |
+| `SCCA_Span` | Hard-threshold ALS inspired by SpanCCA (Asteris 2016) | ≥2 |
 | `ElasticCCA` | Elastic net regularised CCA (Waaijenborg 2008) | ≥2 |
 | `ParkhomenkoCCA` | Soft-threshold sparse CCA (Parkhomenko 2009) | ≥2 |
 | `PLS_ALS` | ALS variant of PLS (power iteration) | ≥2 |
