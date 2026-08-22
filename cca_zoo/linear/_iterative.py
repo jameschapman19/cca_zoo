@@ -847,7 +847,7 @@ class ElasticCCA(_BaseIterative):
         weights: list[np.ndarray],
         i: int,
     ) -> np.ndarray:
-        """Elastic net regression against sum-of-all-scores target.
+        """Elastic net regression against sum-of-other-views-scores target.
 
         Args:
             views: Current view arrays.
@@ -857,11 +857,7 @@ class ElasticCCA(_BaseIterative):
         Returns:
             Updated weight vector for view i.
         """
-        scores = np.stack([views[j] @ weights[j] for j in range(len(views))], axis=0)
-        target = scores.sum(axis=0)
-        norm = np.linalg.norm(target)
-        if norm > 1e-12:
-            target /= norm
+        target = _target_score(views, weights, i)
         reg = self._regressors[i]
         reg.fit(views[i], target)
         return cast(np.ndarray, np.atleast_1d(reg.coef_).ravel())
@@ -875,15 +871,27 @@ class ElasticCCA(_BaseIterative):
 class ParkhomenkoCCA(_BaseIterative):
     r"""Sparse CCA via soft-thresholding power iteration (Parkhomenko 2009).
 
-    Uses a fixed soft-threshold $\tau_i$ rather than the adaptive
-    bisection search of :class:`SCCA_PMD`:
+    The paper's own criterion is $K = \hat\Sigma_{XX}^{-1/2} \hat\Sigma_{XY}
+    \hat\Sigma_{YY}^{-1/2}$, with $\hat\Sigma_{XX}, \hat\Sigma_{YY}$ replaced
+    by their diagonals -- the paper states directly that sparsity is only
+    guaranteed under this diagonal approximation, not the full sample
+    covariance. Since diagonal whitening of a matrix is exactly per-column
+    standardisation, this is implemented by standardising each view to unit
+    per-feature variance once per latent dimension (on top of the existing
+    mean-centring), then running the same power iteration
+    :class:`SCCA_PMD`'s raw-covariance methods use on that standardised
+    data, with a fixed soft-threshold $\tau_i$ in place of the adaptive
+    bisection search:
 
     $$
     \mathbf{w}_i \leftarrow
-        S_{\tau_i}(X_i^\top \bar{\mathbf{s}}_{\neg i})
+        S_{\tau_i}(\tilde X_i^\top \bar{\mathbf{s}}_{\neg i})
     $$
 
-    where $S_\tau$ is the element-wise soft-threshold operator.
+    where $S_\tau$ is the element-wise soft-threshold operator and $\tilde
+    X_i$ denotes $X_i$ with each column scaled to unit variance. The final
+    weight is converted back to the original (unstandardised) feature scale
+    before being returned.
 
     References:
         Parkhomenko, E., Tritchler, D., & Beyene, J. (2009). Sparse
@@ -931,7 +939,7 @@ class ParkhomenkoCCA(_BaseIterative):
         w: list[np.ndarray],
         d: int,
     ) -> None:
-        """Set per-view tau values and run ALS.
+        """Set per-view tau values, run ALS on diagonally-whitened views.
 
         Args:
             views: Deflated view arrays.
@@ -939,7 +947,18 @@ class ParkhomenkoCCA(_BaseIterative):
             d: Current latent dimension index.
         """
         self._tau_vals = perview_parameter("tau", self.tau, 0.1, len(views))
-        super()._fit_single(views, w, d)
+        scales = [v.std(axis=0, keepdims=True) for v in views]
+        scales = [np.where(s < 1e-12, 1.0, s) for s in scales]
+        scaled_views = [v / s for v, s in zip(views, scales)]
+        super()._fit_single(scaled_views, w, d)
+        # w is in the standardised views' coordinates; convert back to the
+        # original feature scale and re-normalise to unit L2 norm, matching
+        # every other class in this module's convention.
+        for i in range(len(w)):
+            w[i] = w[i] / scales[i].ravel()
+            norm = np.linalg.norm(w[i])
+            if norm > 1e-12:
+                w[i] = w[i] / norm
 
     def _update_weight(
         self,
