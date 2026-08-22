@@ -176,6 +176,7 @@ Gram-Schmidt deflation to extract multiple canonical directions.
     - **ElasticCCA** — elastic net applied to the multiview sum-of-scores target
     - **ParkhomenkoCCA** — simple fixed soft-threshold; fast but less adaptive
     - **SCCA_Span** — hard threshold (top-k entries); useful when sparsity level is known
+    - **SAR** — penalty strength chosen automatically by BIC; no sparsity hyperparameter to tune
     - **PLS_ALS** — no sparsity; ALS version of PLS (useful as a baseline)
 
 ### SCCA_PMD
@@ -254,6 +255,20 @@ active features is known in advance.
 from cca_zoo.linear import SCCA_Span
 
 model = SCCA_Span(latent_dimensions=2, span=10, random_state=0).fit([X1, X2])
+```
+
+### SAR
+
+Sparse Alternating Regression (Wilms & Croux 2015): the same alternating-regression
+structure as ElasticCCA, but the lasso penalty at each step is picked automatically
+by BIC rather than left as a hyperparameter, so there is no `alpha`/`tau`/`span` to
+tune. Latent dimensions beyond the first need an extra re-expression step a lasso fit
+requires and an OLS-based one does not (see the class docstring for why).
+
+```python
+from cca_zoo.linear import SAR
+
+model = SAR(latent_dimensions=2, random_state=0).fit([X1, X2])
 ```
 
 ### PLS_ALS

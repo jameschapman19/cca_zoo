@@ -11,6 +11,7 @@ Classes:
     SCCA_Span: hard-thresholding ALS inspired by SpanCCA (Asteris 2016).
     ElasticCCA: Elastic net regularised CCA (Waaijenborg 2008).
     ParkhomenkoCCA: Sparse CCA via soft-thresholding (Parkhomenko 2009).
+    SAR: Sparse Alternating Regression, BIC-selected (Wilms & Croux 2015).
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ from typing import cast
 
 import numpy as np
 from numpy.typing import ArrayLike
-from sklearn.linear_model import ElasticNet, Lasso, Ridge
+from sklearn.linear_model import ElasticNet, Lasso, Ridge, lasso_path
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import deflate, soft_threshold
@@ -983,6 +984,202 @@ class ParkhomenkoCCA(_BaseIterative):
         if norm > 1e-12:
             result /= norm
         return result
+
+
+# ---------------------------------------------------------------------------
+# SAR — Sparse Alternating Regression (Wilms & Croux 2015)
+# ---------------------------------------------------------------------------
+
+
+def _sar_bic_lasso(
+    x: np.ndarray,
+    y: np.ndarray,
+    n_lambda: int,
+    tol: float,
+) -> np.ndarray:
+    r"""Fit a lasso path and pick the BIC-minimising coefficient vector.
+
+    Solves $\hat\beta_\lambda = \arg\min_\beta \|y - X\beta\|_2^2 +
+    n\lambda\|\beta\|_1$ over an automatically-generated $\lambda$ grid
+    (:func:`sklearn.linear_model.lasso_path`'s own default geometric
+    grid from $\lambda_{\max}$, the smallest value giving an all-zero
+    fit), then selects $\hat\lambda = \arg\min_\lambda \mathrm{BIC}_\lambda$
+    with $\mathrm{BIC}_\lambda = n\log(\mathrm{RSS}_\lambda/n) +
+    k_\lambda\log n$, $k_\lambda$ the number of nonzero coefficients --
+    the same criterion Wilms \& Croux (2015) use, up to the additive
+    constants in $-2\log L$ that do not depend on $\lambda$ and so do
+    not affect which $\lambda$ minimises it.
+
+    Args:
+        x: Predictor matrix, shape (n_samples, n_features).
+        y: Response vector, shape (n_samples,).
+        n_lambda: Number of grid points along the lasso path.
+        tol: Coordinate-descent convergence tolerance.
+
+    Returns:
+        Coefficient vector at the BIC-selected $\lambda$, shape
+        (n_features,).
+    """
+    n = x.shape[0]
+    _, coefs, _ = lasso_path(x, y, alphas=n_lambda, tol=tol)
+    residuals = y[:, None] - x @ coefs
+    rss = np.maximum((residuals**2).sum(axis=0), 1e-12)
+    nnz = (np.abs(coefs) > 1e-12).sum(axis=0)
+    bic = n * np.log(rss / n) + nnz * np.log(n)
+    return cast(np.ndarray, coefs[:, np.argmin(bic)])
+
+
+class SAR(_BaseIterative):
+    r"""Sparse Alternating Regression, with BIC-selected sparsity.
+
+    Wilms \& Croux (2015) recast CCA as the Brillinger (1975) / Izenman
+    (1975) regression problem $(\hat A, \hat B) = \arg\min_{A,B}\sum_i\|A^\top
+    \mathbf{x}_i - B^\top\mathbf{y}_i\|_2^2$, solved by alternating
+    regression (Wold 1968): with $A$ fixed, $B$ is a regression of the
+    score $XA$ on $Y$; with $B$ fixed, $A$ is a regression of $YB$ on
+    $X$. Ordinary least squares makes this exact but neither sparse nor
+    usable once a view has more features than samples, so each
+    regression step is replaced by a lasso fit (:func:`_sar_bic_lasso`)
+    with its penalty strength selected by BIC rather than left as a
+    user-set hyperparameter -- the paper's own point of departure from
+    every other alternating-regression method in this module. The
+    multiview generalisation (each view regressed against the summed
+    score of every *other* view, via the same :func:`_target_score`
+    helper :class:`SCCA_Span`, :class:`ParkhomenkoCCA`, and
+    :class:`ElasticCCA` use) is this implementation's own extension,
+    not something the two-view paper itself considers.
+
+    Because a lasso fit does not commute with deflation the way an
+    ordinary-least-squares fit does, latent dimensions beyond the first
+    need an extra step the rest of this module's classes do not: after
+    alternating regression on the deflated views for dimension $d>0$
+    yields a direction in the *deflated* coordinate system, that
+    direction's score is regressed once more against each view's
+    *original*, undeflated data (again by BIC-selected lasso) to obtain
+    the final sparse weight vector reported for that dimension --
+    Wilms \& Croux (2015, Section 3, "Higher order canonical vector
+    pairs") introduce this re-expression step for exactly this reason.
+    The first dimension needs no such step, since the deflated and
+    original views coincide before any deflation has happened.
+
+    References:
+        Wilms, I., & Croux, C. (2015). Sparse canonical correlation
+        analysis from a predictive point of view. *Biometrical
+        Journal*, 57(5), 834-851. *arXiv:1501.01231*.
+
+    Args:
+        latent_dimensions: Number of latent dimensions. Default is 1.
+        center: Whether to subtract column means. Default True.
+        n_lambda: Number of points in each BIC-selected lasso path's
+            automatically-generated $\lambda$ grid. Default is 100.
+        max_iter: Maximum ALS iterations per latent dimension. Default
+            is 500.
+        tol: Convergence tolerance, for both the ALS loop and each
+            lasso path's coordinate descent. Default is 1e-6.
+        random_state: Seed for reproducible random initialisation.
+
+    Example:
+        >>> import numpy as np
+        >>> rng = np.random.default_rng(0)
+        >>> latent = rng.standard_normal(50)
+        >>> X1 = np.column_stack([latent, rng.standard_normal((50, 9))])
+        >>> X2 = np.column_stack([latent, rng.standard_normal((50, 7))])
+        >>> model = SAR(random_state=0).fit([X1, X2])
+    """
+
+    def __init__(
+        self,
+        latent_dimensions: int = 1,
+        center: bool = True,
+        n_lambda: int = 100,
+        max_iter: int = 500,
+        tol: float = 1e-6,
+        random_state: int | None = None,
+    ) -> None:
+        super().__init__(
+            latent_dimensions=latent_dimensions,
+            center=center,
+            max_iter=max_iter,
+            tol=tol,
+            random_state=random_state,
+        )
+        self.n_lambda = n_lambda
+
+    def fit(self, views: list[ArrayLike], y: None = None) -> SAR:
+        """Fit by ALS with deflation.
+
+        Dimensions past the first are re-expressed in each view's
+        original (undeflated) coordinates.
+
+        Args:
+            views: List of arrays, each (n_samples, n_features_i).
+            y: Ignored.
+
+        Returns:
+            self: Fitted estimator.
+        """
+        views_: list[np.ndarray] = self._setup_fit(views)
+        rng = np.random.default_rng(self.random_state)
+        self.weights_: list[np.ndarray] = [
+            np.zeros((p, self.latent_dimensions)) for p in self.n_features_in_
+        ]
+        deflated = [v.copy() for v in views_]
+        for d in range(self.latent_dimensions):
+            w = [rng.standard_normal(p) for p in self.n_features_in_]
+            w = [wi / np.linalg.norm(wi) for wi in w]
+            self._fit_single(deflated, w, d)
+            if d == 0:
+                w_final = w
+            else:
+                w_final = [
+                    self._reexpress(views_[j], deflated[j] @ w[j])
+                    for j in range(self.n_views_)
+                ]
+            for j in range(self.n_views_):
+                self.weights_[j][:, d] = w_final[j]
+            deflated = deflate(deflated, w)
+        return self
+
+    def _reexpress(
+        self, original_view: np.ndarray, deflated_score: np.ndarray
+    ) -> np.ndarray:
+        """Re-fit a deflated-space direction's score against the original view.
+
+        See the class docstring for why this is needed.
+        """
+        coef = _sar_bic_lasso(
+            original_view, deflated_score.ravel(), self.n_lambda, self.tol
+        )
+        norm = np.linalg.norm(coef)
+        if norm > 1e-12:
+            coef = coef / norm
+        return coef
+
+    def _update_weight(
+        self,
+        views: list[np.ndarray],
+        weights: list[np.ndarray],
+        i: int,
+    ) -> np.ndarray:
+        """BIC-selected lasso regression against the other views' score.
+
+        Regresses view i's own data against the summed score of every
+        other view.
+
+        Args:
+            views: Current (deflated) view arrays.
+            weights: Current weight vectors.
+            i: View index to update.
+
+        Returns:
+            Sparse normalised weight vector for view i.
+        """
+        target = _target_score(views, weights, i)
+        coef = _sar_bic_lasso(views[i], target.ravel(), self.n_lambda, self.tol)
+        norm = np.linalg.norm(coef)
+        if norm > 1e-12:
+            coef = coef / norm
+        return coef
 
 
 # ---------------------------------------------------------------------------

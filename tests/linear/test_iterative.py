@@ -1,7 +1,7 @@
 """Tests for ALS-based sparse/regularised CCA variants.
 
 Covers PLS_ALS, SCCA_PMD, SCCA_ADMM, SCCA_IPLS, SCCA_Span, ElasticCCA,
-ParkhomenkoCCA.
+ParkhomenkoCCA, SAR.
 """
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ import pytest
 
 from cca_zoo.linear import (
     PLS_ALS,
+    SAR,
     SCCA_ADMM,
     SCCA_IPLS,
     SCCA_PMD,
@@ -27,6 +28,7 @@ ALL_ITERATIVE_MODELS = [
     SCCA_Span,
     ElasticCCA,
     ParkhomenkoCCA,
+    SAR,
 ]
 
 # Use few iterations for test speed
@@ -280,6 +282,79 @@ def test_scca_ipls_with_lasso(two_views: list[np.ndarray]) -> None:
         latent_dimensions=1, alpha=0.1, l1_ratio=1.0, max_iter=100, random_state=0
     ).fit(two_views)
     assert hasattr(model, "weights_")
+
+
+def test_sar_finds_zero_weights_when_no_signal(two_views: list[np.ndarray]) -> None:
+    """SAR's BIC selection should prefer the all-zero fit on pure noise.
+
+    Where the true regression coefficient really is zero -- unlike
+    every other class here, SAR has no user-set penalty strength to
+    check sparsity against, so this checks the BIC selection itself
+    rather than a fixed hyperparameter's effect.
+    """
+    model = SAR(latent_dimensions=1, max_iter=50, random_state=0).fit(two_views)
+    for w in model.weights:
+        assert np.all(w == 0.0)
+
+
+def test_sar_recovers_correlated_support() -> None:
+    """SAR should select the columns carrying real shared signal.
+
+    And reject the pure-noise columns, on a case with both present in
+    each view -- the same before/after signal-recovery standard used
+    to verify ParkhomenkoCCA's whitening fix.
+    """
+    rng = np.random.default_rng(0)
+    n = 200
+    latent = rng.standard_normal(n)
+    x_signal = latent[:, None] + 0.2 * rng.standard_normal((n, 3))
+    y_signal = latent[:, None] + 0.2 * rng.standard_normal((n, 3))
+    x = np.column_stack([x_signal, rng.standard_normal((n, 27))])
+    y = np.column_stack([y_signal, rng.standard_normal((n, 17))])
+    model = SAR(latent_dimensions=1, random_state=0).fit([x, y])
+    for w in model.weights:
+        signal_idx, noise_idx = w[:3, 0], w[3:, 0]
+        assert np.all(np.abs(signal_idx) > 1e-10), "true-signal columns were zeroed"
+        n_false_positives = np.sum(np.abs(noise_idx) > 1e-10)
+        assert n_false_positives <= 2, (
+            f"expected mostly-zero noise columns, got {n_false_positives} nonzero"
+        )
+        assert np.sum(signal_idx**2) > 10 * np.sum(noise_idx**2), (
+            "signal columns should carry most of the weight mass"
+        )
+    zx, zy = model.transform([x, y])
+    assert np.corrcoef(zx.ravel(), zy.ravel())[0, 1] > 0.9
+
+
+def test_sar_multicomponent_deflation_and_reexpression() -> None:
+    """A second SAR component should stay close to uncorrelated with the first.
+
+    This exercises the deflate-then-re-express path a lasso-based fit
+    needs, unlike this module's other classes (see the class
+    docstring).
+    """
+    rng = np.random.default_rng(1)
+    n = 200
+    latent1, latent2 = rng.standard_normal(n), rng.standard_normal(n)
+    x = np.column_stack(
+        [
+            latent1[:, None] + 0.2 * rng.standard_normal((n, 3)),
+            latent2[:, None] + 0.2 * rng.standard_normal((n, 3)),
+            rng.standard_normal((n, 24)),
+        ]
+    )
+    y = np.column_stack(
+        [
+            latent1[:, None] + 0.2 * rng.standard_normal((n, 3)),
+            latent2[:, None] + 0.2 * rng.standard_normal((n, 3)),
+            rng.standard_normal((n, 14)),
+        ]
+    )
+    model = SAR(latent_dimensions=2, random_state=0).fit([x, y])
+    zx, zy = model.transform([x, y])
+    for d in range(2):
+        assert np.corrcoef(zx[:, d], zy[:, d])[0, 1] > 0.9
+    assert abs(np.corrcoef(zx[:, 0], zx[:, 1])[0, 1]) < 0.3
 
 
 # ---------------------------------------------------------------------------
