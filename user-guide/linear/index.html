@@ -770,6 +770,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SAR
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pls_als" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1509,6 +1520,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SAR
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pls_als" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1750,6 +1772,7 @@ Gram-Schmidt deflation to extract multiple canonical directions.</p>
 <li><strong>ElasticCCA</strong> — elastic net applied to the multiview sum-of-scores target</li>
 <li><strong>ParkhomenkoCCA</strong> — simple fixed soft-threshold; fast but less adaptive</li>
 <li><strong>SCCA_Span</strong> — hard threshold (top-k entries); useful when sparsity level is known</li>
+<li><strong>SAR</strong> — penalty strength chosen automatically by BIC; no sparsity hyperparameter to tune</li>
 <li><strong>PLS_ALS</strong> — no sparsity; ALS version of PLS (useful as a baseline)</li>
 </ul>
 </div>
@@ -1805,12 +1828,22 @@ active features is known in advance.</p>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SCCA_Span</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">span</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
+<h3 id="sar">SAR<a class="headerlink" href="#sar" title="Permanent link">&para;</a></h3>
+<p>Sparse Alternating Regression (Wilms &amp; Croux 2015): the same alternating-regression
+structure as ElasticCCA, but the lasso penalty at each step is picked automatically
+by BIC rather than left as a hyperparameter, so there is no <code>alpha</code>/<code>tau</code>/<code>span</code> to
+tune. Latent dimensions beyond the first need an extra re-expression step a lasso fit
+requires and an OLS-based one does not (see the class docstring for why).</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">SAR</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SAR</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span></code></pre></div>
 <h3 id="pls_als">PLS_ALS<a class="headerlink" href="#pls_als" title="Permanent link">&para;</a></h3>
 <p>Standard ALS/power-iteration variant of PLS without regularisation. Useful as a baseline or
 when data are already low-dimensional.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">PLS_ALS</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">PLS_ALS</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">PLS_ALS</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">PLS_ALS</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <hr />
 <h2 id="choosing-a-method">Choosing a method<a class="headerlink" href="#choosing-a-method" title="Permanent link">&para;</a></h2>
