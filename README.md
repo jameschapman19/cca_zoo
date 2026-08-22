@@ -98,6 +98,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `SCCA_Span` | Hard-threshold ALS inspired by SpanCCA (Asteris 2016) | ≥2 |
 | `ElasticCCA` | Elastic net regularised CCA (Waaijenborg 2008) | ≥2 |
 | `ParkhomenkoCCA` | Soft-threshold sparse CCA (Parkhomenko 2009) | ≥2 |
+| `SAR` | Sparse alternating regression, BIC-selected penalty (Wilms & Croux 2015) | ≥2 |
 | `PLS_ALS` | ALS variant of PLS (power iteration) | ≥2 |
 
 ### `cca_zoo.nonparametric`

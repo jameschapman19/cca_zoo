@@ -12,6 +12,7 @@ from ._gcca import GCCA
 from ._grcca import GRCCA
 from ._iterative import (
     PLS_ALS,
+    SAR,
     SCCA_ADMM,
     SCCA_IPLS,
     SCCA_PMD,
@@ -50,5 +51,6 @@ __all__ = [
     "SCCA_Span",
     "ElasticCCA",
     "ParkhomenkoCCA",
+    "SAR",
     "PLS_ALS",
 ]

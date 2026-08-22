@@ -106,3 +106,7 @@ Linear CCA methods. All classes are `sklearn.base.BaseEstimator` subclasses.
 ---
 
 ::: cca_zoo.linear.ParkhomenkoCCA
+
+---
+
+::: cca_zoo.linear.SAR
