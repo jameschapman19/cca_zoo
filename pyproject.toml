@@ -79,6 +79,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**/__init__.py" = ["D104"]  # test packages don't need docstrings
 "tests/deep/test_deep.py" = ["E402"]  # torch imports must follow importorskip
+"tests/deep/test_sigreg.py" = ["E402"]  # torch imports must follow importorskip
 "tests/tree/test_treecca.py" = ["E402"]  # xgboost import must follow importorskip
 
 [tool.ruff.lint.pydocstyle]
