@@ -7,6 +7,7 @@ Complete API documentation auto-generated from source docstrings.
 | [`cca_zoo.linear`](linear.md) | CCA, rCCA, PLS, MCCA, GCCA, TCCA, gradient and sparse variants |
 | [`cca_zoo.nonparametric`](nonparametric.md) | KCCA, KGCCA, KTCCA |
 | [`cca_zoo.tree`](tree.md) | TreeCCA |
+| [`cca_zoo.gam`](gam.md) | GAMCCA |
 | [`cca_zoo.deep`](deep.md) | DCCA and variants, objectives |
 | [`cca_zoo.probabilistic`](probabilistic.md) | GFA, ProbabilisticCCA, VariationalBayesCCA |
 | [`cca_zoo.datasets`](datasets.md) | JointData, toy loaders |

@@ -7,6 +7,59 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `GAMCCA`: nonlinear multiview CCA using a generalized additive model (one B-spline term
+  per input feature) as the per-view encoder, trained on the same Eckart-Young objective
+  as `TreeCCA` and the `*_EY` models, but fit the way GAM software such as `mgcv` fits an
+  ordinary GAM rather than by boosting: an inner P-IRLS loop takes Newton steps on the EY
+  loss (a working response built from the loss's analytic gradient and a diagonal-Hessian
+  weight, ridge-regressed onto each view's fixed B-spline basis) to convergence at fixed
+  smoothing parameters, wrapped in an outer loop that re-selects those smoothing
+  parameters via `RidgeCV`'s efficient leave-one-out cross-validation (the GCV/REML role)
+  and repeats until both levels stabilise. Unlike `TreeCCA`, which must take many small
+  shrunk boosting steps because a tree ensemble has no closed-form fit to a moving target,
+  GAMCCA has no `learning_rate` or `n_estimators` to tune — smoothing strength is chosen
+  automatically. Built entirely on scikit-learn's own `SplineTransformer`, `Ridge` and
+  `RidgeCV` rather than a from-scratch spline or Newton/GCV solver, so no new dependency
+  is required. Fitted per-feature shape functions are inspectable directly via
+  `model.shape_function(view, feature, x)`. On data where the true per-feature
+  relationship is smooth, GAMCCA reaches a higher held-out canonical correlation than
+  `TreeCCA` without any round-count tuning (see `tests/gam/test_gamcca.py`'s
+  outperformance test for a worked example).
+- `cca_zoo._utils._ey.random_orthogonal_embedding`: the random-orthogonal
+  initial-embedding helper previously private to `TreeCCA` is now a shared EY-loss
+  utility, used by `TreeCCA`, `GAMCCA`, and `GPCCA`.
+- `GPCCA`: nonlinear multiview CCA using a Gaussian process with a joint (non-additive)
+  ARD-RBF kernel over each view's raw feature vector as the per-view encoder, trained on
+  the same Eckart-Young objective as `TreeCCA` and `GAMCCA`. Fit with the same inner/outer
+  recipe as `GAMCCA`'s P-IRLS/GCV loop, with `GaussianProcessRegressor` standing in for
+  `Ridge`/`RidgeCV`: an inner loop takes Newton steps on the EY loss at fixed kernel
+  hyperparameters (`optimizer=None`, with the diagonal-Hessian weight passed as the GP's
+  per-sample `alpha`), wrapped in an outer loop that re-fits the kernel hyperparameters via
+  the GP's own marginal-likelihood optimisation and repeats until both levels stabilise.
+  Unlike `GAMCCA`'s additive splines, a joint GP kernel can represent a genuine interaction
+  between two features of the same view directly. As a Bayesian model, `transform(...,
+  return_std=True)` also returns each latent component's posterior standard deviation,
+  propagated through the whitening transform. Built entirely on scikit-learn's own
+  `GaussianProcessRegressor`, `RBF` and `ConstantKernel`, so no new dependency is required.
+- `cca_zoo._utils._ey.ey_diag_hessian`: the diagonal-Hessian approximation of the EY loss
+  (previously private to `GAMCCA`) is now a shared EY-loss utility, used by both `GAMCCA`
+  (as a `Ridge`/`RidgeCV` `sample_weight`) and `GPCCA` (as a `GaussianProcessRegressor`
+  per-sample `alpha`).
+- `GPCCA(n_inducing=...)`: a sparse (Deterministic Training Conditional) approximation for
+  datasets too large for exact GP inference's `O(n^3)` cost. Conditions each encoder on
+  `n_inducing` inducing points — an actual subset of the training rows, chosen via
+  `sklearn.cluster.kmeans_plusplus`'s seeding — reducing fitting to `O(n * n_inducing^2)`.
+  Kernel hyperparameters are still selected by an exact marginal-likelihood fit on just the
+  inducing rows (cheap, since there are few of them), while the working-response fit used to
+  build each round's representation always uses every training row via the DTC posterior
+  formula, so no training signal is discarded at the point it matters most. `None` (the
+  default) keeps exact inference, unchanged from GPCCA's initial release; values at or above
+  the number of training samples fall back to exact inference automatically. Verified to fit
+  in well under a second at 4,000 training samples (where exact inference is impractical)
+  while still recovering held-out correlation above 0.7 on a smooth nonlinear benchmark.
+
 ### Changed
 
 - `CCA_EY` (and `MCCA_EY`, which inherits it) now initialises its weights

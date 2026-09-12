@@ -10,7 +10,11 @@ from numpy.typing import ArrayLike
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._ey import ey_grad_z
+from cca_zoo._utils._ey import (
+    ey_grad_z,
+    random_orthogonal_embedding,
+    rescale_grads_to_target_std,
+)
 from cca_zoo._utils._validation import validate_views
 
 try:
@@ -24,56 +28,20 @@ except ImportError:
 def _rescale_to_target_std(
     grads: list[np.ndarray], target_std: float = 0.1
 ) -> list[np.ndarray]:
-    """Rescale a set of per-view gradients to a common target standard deviation.
+    """As :func:`cca_zoo._utils._ey.rescale_grads_to_target_std`, cast to float32.
 
-    Boosted-tree leaf values are well-conditioned only for a roughly-fixed
-    gradient scale, so the exact (analytic) EY gradient is rescaled by a
-    single shared scalar before being used as a custom-objective target.
-    Since the same scalar is applied to every view, this changes only the
-    effective step size, not the gradient's direction or relative
-    cross-view magnitudes.
+    ``float32`` is required for XGBoost/LightGBM custom objectives.
 
     Args:
         grads: One gradient array per view, each (n_samples, k).
         target_std: Target standard deviation. Default is 0.1.
 
     Returns:
-        List of rescaled gradients, dtype ``float32`` (required for
-        XGBoost/LightGBM custom objectives).
+        List of rescaled gradients, dtype ``float32``.
     """
-    scale = max(max(float(g.std()) for g in grads), 1e-6)
-    return [(g / scale * target_std).astype(np.float32) for g in grads]
-
-
-def _random_orthogonal_base_margin(
-    Xc: np.ndarray, k: int, rng: np.random.Generator
-) -> tuple[np.ndarray, np.ndarray]:
-    """Unit-variance random-orthogonal initial embedding and its projection.
-
-    Draws ``k`` random orthogonal directions in feature space (independent of
-    the data's principal directions) and rescales them so each initial
-    component has unit variance. The unit-variance scaling is what matters
-    for a well-conditioned, non-vanishing EY gradient from round zero;
-    orthogonality keeps the initial cross-component covariance at zero.
-
-    Args:
-        Xc: Mean-centred training view, shape (n_samples, n_features).
-        k: Number of components. Must not exceed ``n_features``.
-        rng: Random generator used to draw the orthogonal directions.
-
-    Returns:
-        Tuple ``(base_margin, projection)``: ``base_margin`` has shape
-        (n_samples, k) and is the initial embedding for training;
-        ``projection`` has shape (n_features, k) and reproduces the same
-        unit-variance embedding for unseen data via ``Xc_new @ projection``.
-    """
-    n, p = Xc.shape
-    W, _ = np.linalg.qr(rng.standard_normal((p, k)))
-    Z = Xc @ W
-    scale = np.linalg.norm(Z, axis=0, keepdims=True) / np.sqrt(n - 1)
-    projection = (W / scale).astype(np.float32)
-    base_margin = (Z / scale).astype(np.float32)
-    return base_margin, projection
+    return [
+        g.astype(np.float32) for g in rescale_grads_to_target_std(grads, target_std)
+    ]
 
 
 class _Encoder:
@@ -334,7 +302,7 @@ class TreeCCA(BaseModel):
         base_margins = []
         projections = []
         for X in views_:
-            bm, proj = _random_orthogonal_base_margin(X, k, rng)
+            bm, proj = random_orthogonal_embedding(X, k, rng)
             base_margins.append(bm)
             projections.append(proj)
         self._projections_: list[np.ndarray] = projections

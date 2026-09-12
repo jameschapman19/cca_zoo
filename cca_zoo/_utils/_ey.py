@@ -184,6 +184,68 @@ def cheap_orthonormal_projection_weights(
     return weights
 
 
+def random_orthogonal_embedding(
+    Xc: np.ndarray, k: int, rng: np.random.Generator
+) -> tuple[np.ndarray, np.ndarray]:
+    """Unit-variance random-orthogonal initial embedding and its projection.
+
+    Draws ``k`` random orthogonal directions in feature space (independent of
+    the data's principal directions) and rescales them so each initial
+    component has unit variance. The unit-variance scaling is what matters
+    for a well-conditioned, non-vanishing EY gradient from round zero;
+    orthogonality keeps the initial cross-component covariance at zero. Used
+    as the fixed starting point for nonlinear encoders trained by functional
+    gradient boosting (:class:`~cca_zoo.tree.TreeCCA`,
+    :class:`~cca_zoo.gam.GAMCCA`), which — unlike a linear map — have no
+    natural "zero" to start from.
+
+    Args:
+        Xc: Mean-centred training view, shape (n_samples, n_features).
+        k: Number of components. Must not exceed ``n_features``.
+        rng: Random generator used to draw the orthogonal directions.
+
+    Returns:
+        Tuple ``(base_margin, projection)``: ``base_margin`` has shape
+        (n_samples, k) and is the initial embedding for training;
+        ``projection`` has shape (n_features, k) and reproduces the same
+        unit-variance embedding for unseen data via ``Xc_new @ projection``.
+    """
+    n, p = Xc.shape
+    W, _ = np.linalg.qr(rng.standard_normal((p, k)))
+    Z = Xc @ W
+    scale = np.linalg.norm(Z, axis=0, keepdims=True) / np.sqrt(n - 1)
+    projection = (W / scale).astype(np.float32)
+    base_margin = (Z / scale).astype(np.float32)
+    return base_margin, projection
+
+
+def rescale_grads_to_target_std(
+    grads: list[np.ndarray], target_std: float = 0.1
+) -> list[np.ndarray]:
+    r"""Rescale a set of per-view EY gradients to a common target standard deviation.
+
+    The analytic EY gradient (:func:`ey_grad_z`) has magnitude $O(1/n)$
+    (from its ``4 / (M (n - 1))`` prefactor), far smaller than the natural
+    scale of a boosted-tree leaf value. Used unscaled as a functional
+    gradient-boosting target, a single round would then contribute a
+    negligible increment relative to the encoder's starting embedding, no
+    matter the learning rate. Rescaling by one shared scalar restores a
+    well-conditioned target for :class:`~cca_zoo.tree.TreeCCA`'s trees.
+    Since the same scalar is applied to every view, this changes only the
+    effective step size, not the gradient's direction or relative
+    cross-view magnitudes.
+
+    Args:
+        grads: One gradient array per view, each (n_samples, k).
+        target_std: Target standard deviation. Default is 0.1.
+
+    Returns:
+        List of rescaled gradients, same dtype as the input.
+    """
+    scale = max(max(float(g.std()) for g in grads), 1e-6)
+    return [g / scale * target_std for g in grads]
+
+
 def ey_grad_z(representations: list[np.ndarray]) -> list[np.ndarray]:
     r"""Gradient of the EY loss w.r.t. each embedding (M-view generalised).
 
@@ -210,3 +272,72 @@ def ey_grad_z(representations: list[np.ndarray]) -> list[np.ndarray]:
     _, V = ey_cross_covariance(representations)
     scale = 4.0 / (m * (n - 1))
     return [scale * (zc @ V - total) for zc in centred]
+
+
+def ey_diag_hessian(
+    Z_i: np.ndarray,
+    V: np.ndarray,
+    n_views: int,
+    n_minus_1: int,
+    floor_percentile: float,
+) -> np.ndarray:
+    r"""Diagonal (per-sample) approximation of the EY loss's Hessian.
+
+    The exact Hessian of $\mathcal{L}_{EY}$ w.r.t. one view's embedding
+    $Z_i$ (holding the other views fixed) is
+
+    $$
+    \frac{\partial^2 \mathcal{L}_{EY}}{\partial Z_i^2}
+        = \frac{4}{M(n-1)}(V-1)\,P + \frac{8}{M^2(n-1)^2}\, Z_i Z_i^\top
+    $$
+
+    where $P = I - \tfrac1n\mathbf{1}\mathbf{1}^\top$ is the centring
+    projection (needed because the EY loss re-centres every embedding
+    internally, so it is invariant to shifting $Z_i$ by a constant — the
+    true Hessian must annihilate that direction) and $V$ is the (diagonal
+    of the) mean auto-covariance. This is an $(n, n)$ matrix — using its
+    diagonal as a per-sample weight is the same simplification every
+    P-IRLS-based GAM/GLM solver already makes (treating observations as
+    independent); the ``P`` term drops out of the diagonal (its diagonal
+    entries are all $1 - 1/n$, folded into the same additive constant as
+    the $(V-1)$ term).
+
+    That diagonal is usable directly only after floor-damping it: near the
+    loss's own well-conditioned fixed point ($V \approx 1$), the $(V-1)$
+    term vanishes and the diagonal collapses to just $Z_{i,m}^2$ for each
+    sample $m$ — the diagonal slice of a rank-1 matrix, an extremely poor
+    per-sample curvature estimate for most samples (verified empirically:
+    the per-sample ratio ``gradient / raw diagonal`` swings across several
+    orders of magnitude with sign changes). Flooring at a high percentile
+    of its own values — rather than a fixed constant, which would need
+    re-tuning for every ``(n_samples, n_views)`` combination — is a
+    self-calibrating Levenberg-Marquardt-style damping: it behaves like an
+    (approximately) uniform weight for typical samples and only lets the
+    Hessian's real signal through for high-leverage outliers.
+
+    Used by both :class:`~cca_zoo.gam.GAMCCA` (as a ``Ridge``/``RidgeCV``
+    ``sample_weight``) and :class:`~cca_zoo.gp.GPCCA` (as a
+    ``GaussianProcessRegressor`` per-sample ``alpha``, the heteroscedastic-
+    noise parameter that plays the same "how much to trust this
+    observation" role there).
+
+    Args:
+        Z_i: Current embedding for this view, shape (n_samples, k).
+        V: Current (k, k) mean auto-covariance matrix (see
+            :func:`ey_cross_covariance`).
+        n_views: Number of views, $M$.
+        n_minus_1: $n - 1$, the sample-covariance denominator.
+        floor_percentile: Percentile (0-100) of the raw diagonal used as
+            the damping floor.
+
+    Returns:
+        Array of shape (n_samples, k): positive per-sample weights, one
+        per latent component.
+    """
+    v_diag = np.diag(V)
+    a_coef = 4.0 / (n_views * n_minus_1) * (v_diag - 1.0)
+    b_coef = 8.0 / (n_views**2 * n_minus_1**2)
+    raw = a_coef[None, :] + b_coef * Z_i**2
+    floor = np.maximum(np.percentile(raw, floor_percentile, axis=0), 1e-10)
+    result: np.ndarray = np.maximum(raw, floor)
+    return result
