@@ -121,6 +121,12 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 |---|---|---|
 | `GAMCCA` | Generalized-additive-model CCA (Eckart-Young objective) | ≥2 |
 
+### `cca_zoo.gp`
+
+| Class | Description | Views |
+|---|---|---|
+| `GPCCA` | Gaussian-process CCA (Eckart-Young objective), with predictive uncertainty | ≥2 |
+
 ### `cca_zoo.deep` *(requires `[deep]`)*
 
 Built on PyTorch Lightning — models are trained with a standard `lightning.Trainer`, not a

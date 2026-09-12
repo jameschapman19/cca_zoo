@@ -29,7 +29,24 @@ project adheres to [Semantic Versioning](https://semver.org/).
   outperformance test for a worked example).
 - `cca_zoo._utils._ey.random_orthogonal_embedding`: the random-orthogonal
   initial-embedding helper previously private to `TreeCCA` is now a shared EY-loss
-  utility, used by both `TreeCCA` and `GAMCCA`.
+  utility, used by `TreeCCA`, `GAMCCA`, and `GPCCA`.
+- `GPCCA`: nonlinear multiview CCA using a Gaussian process with a joint (non-additive)
+  ARD-RBF kernel over each view's raw feature vector as the per-view encoder, trained on
+  the same Eckart-Young objective as `TreeCCA` and `GAMCCA`. Fit with the same inner/outer
+  recipe as `GAMCCA`'s P-IRLS/GCV loop, with `GaussianProcessRegressor` standing in for
+  `Ridge`/`RidgeCV`: an inner loop takes Newton steps on the EY loss at fixed kernel
+  hyperparameters (`optimizer=None`, with the diagonal-Hessian weight passed as the GP's
+  per-sample `alpha`), wrapped in an outer loop that re-fits the kernel hyperparameters via
+  the GP's own marginal-likelihood optimisation and repeats until both levels stabilise.
+  Unlike `GAMCCA`'s additive splines, a joint GP kernel can represent a genuine interaction
+  between two features of the same view directly. As a Bayesian model, `transform(...,
+  return_std=True)` also returns each latent component's posterior standard deviation,
+  propagated through the whitening transform. Built entirely on scikit-learn's own
+  `GaussianProcessRegressor`, `RBF` and `ConstantKernel`, so no new dependency is required.
+- `cca_zoo._utils._ey.ey_diag_hessian`: the diagonal-Hessian approximation of the EY loss
+  (previously private to `GAMCCA`) is now a shared EY-loss utility, used by both `GAMCCA`
+  (as a `Ridge`/`RidgeCV` `sample_weight`) and `GPCCA` (as a `GaussianProcessRegressor`
+  per-sample `alpha`).
 
 ### Changed
 

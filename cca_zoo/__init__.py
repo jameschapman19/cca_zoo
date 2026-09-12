@@ -13,6 +13,7 @@ __all__ = [
     "datasets",
     "deep",
     "gam",
+    "gp",
     "linear",
     "model_selection",
     "nonparametric",

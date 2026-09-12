@@ -15,74 +15,12 @@ from sklearn.utils.validation import check_is_fitted
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import (
     ey_cross_covariance,
+    ey_diag_hessian,
     ey_grad_z,
     ey_loss,
     random_orthogonal_embedding,
 )
 from cca_zoo._utils._validation import validate_views
-
-
-def _diag_hessian(
-    Z_i: np.ndarray,
-    V: np.ndarray,
-    n_views: int,
-    n_minus_1: int,
-    floor_percentile: float,
-) -> np.ndarray:
-    r"""Diagonal (per-sample) approximation of the EY loss's Hessian.
-
-    The exact Hessian of $\mathcal{L}_{EY}$ w.r.t. one view's embedding
-    $Z_i$ (holding the other views fixed) is
-
-    $$
-    \frac{\partial^2 \mathcal{L}_{EY}}{\partial Z_i^2}
-        = \frac{4}{M(n-1)}(V-1)\,P + \frac{8}{M^2(n-1)^2}\, Z_i Z_i^\top
-    $$
-
-    where $P = I - \tfrac1n\mathbf{1}\mathbf{1}^\top$ is the centring
-    projection (needed because the EY loss re-centres every embedding
-    internally, so it is invariant to shifting $Z_i$ by a constant — the
-    true Hessian must annihilate that direction) and $V$ is the (diagonal
-    of the) mean auto-covariance. This is an $(n, n)$ matrix — using its
-    diagonal as a per-sample weight is the same simplification every
-    P-IRLS-based GAM/GLM solver already makes (treating observations as
-    independent); the ``P`` term drops out of the diagonal (its diagonal
-    entries are all $1 - 1/n$, folded into the same additive constant as
-    the $(V-1)$ term).
-
-    That diagonal is usable directly only after floor-damping it: near the
-    loss's own well-conditioned fixed point ($V \approx 1$), the $(V-1)$
-    term vanishes and the diagonal collapses to just $Z_{i,m}^2$ for each
-    sample $m$ — the diagonal slice of a rank-1 matrix, an extremely poor
-    per-sample curvature estimate for most samples (verified empirically:
-    the per-sample ratio ``gradient / raw diagonal`` swings across several
-    orders of magnitude with sign changes). Flooring at a high percentile
-    of its own values — rather than a fixed constant, which would need
-    re-tuning for every ``(n_samples, n_views)`` combination — is a
-    self-calibrating Levenberg-Marquardt-style damping: it behaves like an
-    (approximately) uniform weight for typical samples and only lets the
-    Hessian's real signal through for high-leverage outliers.
-
-    Args:
-        Z_i: Current embedding for this view, shape (n_samples, k).
-        V: Current (k, k) mean auto-covariance matrix (see
-            :func:`cca_zoo._utils._ey.ey_cross_covariance`).
-        n_views: Number of views, $M$.
-        n_minus_1: $n - 1$, the sample-covariance denominator.
-        floor_percentile: Percentile (0-100) of the raw diagonal used as
-            the damping floor.
-
-    Returns:
-        Array of shape (n_samples, k): positive per-sample weights, one
-        per latent component.
-    """
-    v_diag = np.diag(V)
-    a_coef = 4.0 / (n_views * n_minus_1) * (v_diag - 1.0)
-    b_coef = 8.0 / (n_views**2 * n_minus_1**2)
-    raw = a_coef[None, :] + b_coef * Z_i**2
-    floor = np.maximum(np.percentile(raw, floor_percentile, axis=0), 1e-10)
-    result: np.ndarray = np.maximum(raw, floor)
-    return result
 
 
 class _GamEncoder:
@@ -99,9 +37,10 @@ class _GamEncoder:
       (P-IRLS) Newton update of the spline coefficients at the *current,
       fixed* smoothing parameter (``alphas_``): ridge-regress the working
       response $Z_i - \nabla_i / h_i$ (a Newton step on the EY loss, where
-      $\nabla_i$ is :func:`cca_zoo._utils._ey.ey_grad_z`'s gradient and $h_i$
-      the diagonal-Hessian weight from :func:`_diag_hessian`) onto the fixed
-      basis, weighted by $h_i$.
+      $\nabla_i$ is :func:`~cca_zoo._utils._ey.ey_grad_z`'s gradient and
+      $h_i$ the diagonal-Hessian weight from
+      :func:`~cca_zoo._utils._ey.ey_diag_hessian`) onto the fixed basis,
+      weighted by $h_i$.
     - :meth:`outer_step` — re-selects the smoothing parameter itself via
       :class:`~sklearn.linear_model.RidgeCV`'s efficient leave-one-out
       cross-validation (the same statistical job GCV/REML do in ``mgcv``),
@@ -162,9 +101,9 @@ class _GamEncoder:
         Args:
             Z_self: This view's current embedding, shape (n_samples, k).
             grad: EY-loss gradient for this view (see
-                :func:`cca_zoo._utils._ey.ey_grad_z`), shape (n_samples, k).
-            diag_hess: Diagonal-Hessian weights (see :func:`_diag_hessian`),
-                shape (n_samples, k).
+                :func:`~cca_zoo._utils._ey.ey_grad_z`), shape (n_samples, k).
+            diag_hess: Diagonal-Hessian weights (see
+                :func:`~cca_zoo._utils._ey.ey_diag_hessian`), shape (n_samples, k).
         """
         raw_cols = []
         models = []
@@ -279,8 +218,9 @@ class GAMCCA(BaseModel):
        repeatedly form a Newton step on $\mathcal{L}_{EY}$ for each view in
        turn — a working response $Z_i - \nabla_i / h_i$ (from the analytic
        gradient :func:`~cca_zoo._utils._ey.ey_grad_z` and a diagonal-Hessian
-       weight, see :func:`_diag_hessian`) ridge-fit onto that view's fixed
-       B-spline basis — cycling through every view until the EY loss itself
+       weight, see :func:`~cca_zoo._utils._ey.ey_diag_hessian`) ridge-fit
+       onto that view's fixed B-spline basis — cycling through every view
+       until the EY loss itself
        stops moving.
     2. **Outer (GCV-style)**: only once the inner loop has converged, re-fit
        each view's smoothing parameter with :class:`~sklearn.linear_model.RidgeCV`
@@ -355,7 +295,7 @@ class GAMCCA(BaseModel):
             between successive full passes over all views. Default is 1e-4.
         hess_floor_percentile: Percentile (0-100) of each round's raw
             diagonal-Hessian values used to floor them (see
-            :func:`_diag_hessian`). Default is 90.0.
+            :func:`~cca_zoo._utils._ey.ey_diag_hessian`). Default is 90.0.
         random_state: Seed for drawing the random-orthogonal initial
             embedding. Default is 0.
 
@@ -437,7 +377,7 @@ class GAMCCA(BaseModel):
             for i in range(n_views):
                 grad = ey_grad_z(representations)[i]
                 _, V = ey_cross_covariance(representations)
-                diag_hess = _diag_hessian(
+                diag_hess = ey_diag_hessian(
                     representations[i],
                     V,
                     n_views,
@@ -449,7 +389,7 @@ class GAMCCA(BaseModel):
 
             # Inner loop: P-IRLS Newton steps at these now-fixed smoothing
             # parameters, cycling through every view, until the EY loss
-            # itself stops moving (see _diag_hessian's docstring for why
+            # itself stops moving (see ey_diag_hessian's docstring for why
             # this, rather than raw per-sample values, is the right
             # convergence signal to track).
             prev_obj = ey_loss(representations)["objective"]
@@ -457,7 +397,7 @@ class GAMCCA(BaseModel):
                 for i in range(n_views):
                     grad = ey_grad_z(representations)[i]
                     _, V = ey_cross_covariance(representations)
-                    diag_hess = _diag_hessian(
+                    diag_hess = ey_diag_hessian(
                         representations[i],
                         V,
                         n_views,
