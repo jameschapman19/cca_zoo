@@ -6,13 +6,18 @@ eigendecomposition used by the exact linear models. See
 :mod:`cca_zoo._utils._ey` for the shared EY-loss machinery.
 
 Classes:
-    PLS_EY: Eckart-Young PLS.
-    CCA_EY: Eckart-Young CCA (whitened).
-    MCCA_EY: Multiview extension of CCA_EY (>=2 views).
+    PLSEY: Eckart-Young PLS.
+    CCAEY: Eckart-Young CCA (whitened).
+    MCCAEY: Multiview extension of CCAEY (>=2 views).
 """
 
-from cca_zoo.linear.gradient._cca_ey import CCA_EY
-from cca_zoo.linear.gradient._mcca_ey import MCCA_EY
-from cca_zoo.linear.gradient._pls_ey import PLS_EY
+from cca_zoo.linear.gradient._cca_ey import CCA_EY as CCA_EY
+from cca_zoo.linear.gradient._cca_ey import CCAEY
+from cca_zoo.linear.gradient._mcca_ey import MCCA_EY as MCCA_EY
+from cca_zoo.linear.gradient._mcca_ey import MCCAEY
+from cca_zoo.linear.gradient._pls_ey import PLS_EY as PLS_EY
+from cca_zoo.linear.gradient._pls_ey import PLSEY
 
-__all__ = ["PLS_EY", "CCA_EY", "MCCA_EY"]
+__all__ = ["PLSEY", "CCAEY", "MCCAEY"]
+# Deprecated aliases PLS_EY, CCA_EY, MCCA_EY stay importable for backward
+# compatibility but are intentionally left out of __all__/docs.

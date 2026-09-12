@@ -165,6 +165,6 @@ model = KCCA(
 
 - Kernel methods store the full $n \times n$ kernel matrices. Memory is $O(n^2)$; be cautious
   with $n > 10{,}000$.
-- For large datasets, prefer the linear stochastic methods (`CCA_EY`, `PLS_EY`) or deep methods.
+- For large datasets, prefer the linear stochastic methods (`CCAEY`, `PLSEY`) or deep methods.
 - The `c` parameter is crucial: too small → numerical instability; too large → loss of structure.
   Use cross-validation (see [Model Selection](model-selection.md)).

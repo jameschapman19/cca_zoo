@@ -201,7 +201,7 @@ class GAMCCA(BaseModel):
     cross-covariance (including $i = j$ terms) and $V$ the mean
     auto-covariance across all views (see :mod:`cca_zoo._utils._ey`, the
     same shared EY-loss machinery used by
-    :class:`~cca_zoo.linear.gradient.CCA_EY`, :class:`~cca_zoo.deep.DCCA_EY`,
+    :class:`~cca_zoo.linear.gradient.CCAEY`, :class:`~cca_zoo.deep.DCCAEY`,
     and :class:`~cca_zoo.tree.TreeCCA`).
 
     Unlike those models, which reach the EY loss's optimum by many small

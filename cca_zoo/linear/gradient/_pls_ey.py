@@ -1,19 +1,20 @@
-"""PLS_EY — stochastic Eckart-Young PLS (c=1 special case of CCA_EY)."""
+"""PLSEY — stochastic Eckart-Young PLS (c=1 special case of CCAEY)."""
 
 from __future__ import annotations
 
 import numpy as np
 from numpy.typing import ArrayLike
+from sklearn.utils import deprecated
 
 from cca_zoo._utils._ey import random_orthonormal_weights
-from cca_zoo.linear.gradient._cca_ey import CCA_EY
+from cca_zoo.linear.gradient._cca_ey import CCAEY
 
 
-class PLS_EY(CCA_EY):
+class PLSEY(CCAEY):
     r"""Stochastic Eckart-Young PLS for large-scale data.
 
-    This is equivalent to :class:`~cca_zoo.linear.gradient.CCA_EY` with
-    ``c=1``: the reward excludes the $i = j$ terms that ``CCA_EY``'s
+    This is equivalent to :class:`~cca_zoo.linear.gradient.CCAEY` with
+    ``c=1``: the reward excludes the $i = j$ terms that ``CCAEY``'s
     ($c=0$) reward includes, and the penalty is purely
     $\operatorname{tr}(BB)$ on the weight Gram matrix $B$, which
     drives the weights towards (approximate) orthonormality at the optimum
@@ -24,7 +25,7 @@ class PLS_EY(CCA_EY):
 
     Initial weights have exactly orthonormal columns (unit-norm, mutually
     orthogonal) before any gradient step, matching the shape of this loss's
-    own penalty on $B$ — unlike :class:`~cca_zoo.linear.gradient.CCA_EY`'s
+    own penalty on $B$ — unlike :class:`~cca_zoo.linear.gradient.CCAEY`'s
     own data-informed default, which instead orthonormalises the initial
     *projections* (see :func:`cca_zoo._utils._ey.random_orthonormal_weights`
     vs. :func:`cca_zoo._utils._ey.cheap_orthonormal_projection_weights`).
@@ -49,7 +50,7 @@ class PLS_EY(CCA_EY):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 500))
         >>> X2 = rng.standard_normal((200, 400))
-        >>> model = PLS_EY(latent_dimensions=4, batch_size=64, random_state=0)
+        >>> model = PLSEY(latent_dimensions=4, batch_size=64, random_state=0)
         >>> model = model.fit([X1, X2])
     """
 
@@ -76,8 +77,8 @@ class PLS_EY(CCA_EY):
             random_state=random_state,
         )
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> PLS_EY:
-        """Fit PLS_EY by mini-batch momentum gradient descent.
+    def fit(self, views: list[ArrayLike], y: None = None) -> PLSEY:
+        """Fit PLSEY by mini-batch momentum gradient descent.
 
         Args:
             views: List of arrays, each (n_samples, n_features_i).
@@ -97,8 +98,13 @@ class PLS_EY(CCA_EY):
     ) -> list[np.ndarray]:
         """Plain orthonormal-weight initial weights (see class docstring).
 
-        Overrides :class:`~cca_zoo.linear.gradient.CCA_EY`'s data-informed
+        Overrides :class:`~cca_zoo.linear.gradient.CCAEY`'s data-informed
         default, since this loss's own penalty targets weight-space
         orthonormality rather than projection-space decorrelation.
         """
         return random_orthonormal_weights(views, self.latent_dimensions, rng)
+
+
+@deprecated("Renamed to PLSEY for sklearn-style naming; use PLSEY instead.")
+class PLS_EY(PLSEY):
+    pass

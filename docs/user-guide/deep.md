@@ -93,37 +93,37 @@ Available objectives (from `cca_zoo.deep.objectives`):
 | `GCCALoss` | Negative sum of top-$k$ eigenvalues of $\sum_i H_i H_i^\top$ |
 | `TCCALoss` | Negative Frobenius norm of whitened cross-moment tensor |
 
-### DCCA_EY — Eckart-Young objective
+### DCCAEY — Eckart-Young objective
 
 Uses the Eckart-Young decomposition as the differentiable objective (Benton et al. 2022).
 Tends to be more stable than the original CCA loss on small batches.
 
 ```python
-from cca_zoo.deep import DCCA_EY
+from cca_zoo.deep import DCCAEY
 
-model = DCCA_EY(latent_dimensions=8, encoders=[e1, e2])
+model = DCCAEY(latent_dimensions=8, encoders=[e1, e2])
 ```
 
-### DCCA_NOI — Non-linear Orthogonal Iterations
+### DCCANOI — Non-linear Orthogonal Iterations
 
 Wang et al. 2015. An iterative approach that alternately optimises each encoder
 while holding the others fixed.
 
 ```python
-from cca_zoo.deep import DCCA_NOI
+from cca_zoo.deep import DCCANOI
 
-model = DCCA_NOI(latent_dimensions=8, encoders=[e1, e2])
+model = DCCANOI(latent_dimensions=8, encoders=[e1, e2])
 ```
 
-### DCCA_SDL — Stochastic Decorrelation Loss
+### DCCASDL — Stochastic Decorrelation Loss
 
 Chang et al. 2018. Adds an explicit decorrelation term that penalises off-diagonal
 cross-covariance entries.
 
 ```python
-from cca_zoo.deep import DCCA_SDL
+from cca_zoo.deep import DCCASDL
 
-model = DCCA_SDL(latent_dimensions=8, encoders=[e1, e2])
+model = DCCASDL(latent_dimensions=8, encoders=[e1, e2])
 ```
 
 ### DCCAE — Deep CCA with Autoencoders
@@ -254,7 +254,7 @@ print("Representation shape:", z1.shape)  # (1000, 4)
   `batch_size ≥ 4 * latent_dimensions` for stable estimates.
 - **Encoder output dimension ≥ `latent_dimensions`.** The model projects down inside the
   loss; do not make encoders narrower than the requested latent space.
-- **Use `DCCA_EY` for small batches.** The Eckart-Young objective is more numerically stable
+- **Use `DCCAEY` for small batches.** The Eckart-Young objective is more numerically stable
   than the original `CCALoss` when batch sizes are small.
 - **Score after training** via `model.score(loader)`, which fits a linear `MCCA` on the
   learned representations to report canonical correlations.

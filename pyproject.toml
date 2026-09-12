@@ -65,7 +65,7 @@ select = ["E", "F", "I", "UP", "ANN", "N", "D"]
 ignore = [
     "D203", "D212",
     # Scientific naming conventions: uppercase matrices (A, B, W, X, U, V, K, Q, T)
-    "N801",  # class names like rCCA, SCCA_PMD, PLS_ALS are intentional
+    "N801",  # rCCA's lowercase start, and the deprecated *_EY/*_PMD/etc. aliases
     "N802",  # function names like _build_A, _build_B
     "N803",  # argument names like X, W, A
     "N806",  # variable names like A, B, W, U, V, K, T

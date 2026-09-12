@@ -1,6 +1,6 @@
 # GP Methods
 
-The `cca_zoo.gp` module provides `GPCCA`, a nonlinear multiview CCA method that uses a
+The `cca_zoo.gp` module provides `GaussianProcessCCA`, a nonlinear multiview CCA method that uses a
 Gaussian process with a joint (non-additive) kernel as the per-view encoder. It has no optional
 dependency: the kernel and its fit are built entirely from scikit-learn's own
 `GaussianProcessRegressor`, `RBF` and `ConstantKernel`, all already required by `cca_zoo`.
@@ -9,8 +9,8 @@ dependency: the kernel and its fit are built entirely from scikit-learn's own
 
 ## Background
 
-`GPCCA` maximises the same unconstrained Eckart-Young (EY) objective used by the stochastic
-`*_EY` models in `cca_zoo.linear`, by `DCCA_EY` in `cca_zoo.deep`, by `TreeCCA` in `cca_zoo.tree`,
+`GaussianProcessCCA` maximises the same unconstrained Eckart-Young (EY) objective used by the stochastic
+`*_EY` models in `cca_zoo.linear`, by `DCCAEY` in `cca_zoo.deep`, by `TreeCCA` in `cca_zoo.tree`,
 and by `GAMCCA` in `cca_zoo.gam` (all share the exact same implementation, in
 `cca_zoo._utils._ey`):
 
@@ -21,12 +21,12 @@ $$
 where, for embeddings $Z_i = f_i(X_i)$, $C$ is the mean pairwise cross-covariance (including
 $i = j$ terms) and $V$ the mean auto-covariance across all views. Where `GAMCCA` sums one
 univariate B-spline term per input feature — additive, and so structurally unable to represent an
-interaction between two features of the same view — `GPCCA` fits a Gaussian process with an ARD
+interaction between two features of the same view — `GaussianProcessCCA` fits a Gaussian process with an ARD
 (per-feature-lengthscale) RBF kernel directly over each view's *raw, joint* feature vector: a
 genuine, non-additive function of all of that view's features at once. As a Bayesian model it
 also comes with calibrated predictive uncertainty for free.
 
-`GPCCA` is fit with the same inner/outer split as `GAMCCA`'s P-IRLS/GCV recipe, with the GP's own
+`GaussianProcessCCA` is fit with the same inner/outer split as `GAMCCA`'s P-IRLS/GCV recipe, with the GP's own
 machinery in place of `Ridge`/`RidgeCV`:
 
 1. **Inner loop — fixed-kernel Newton steps.** For the *current* kernel hyperparameters,
@@ -55,14 +55,14 @@ expect fitting to be markedly slower than `GAMCCA` or `TreeCCA` on large dataset
 ## Basic usage
 
 ```python
-from cca_zoo.gp import GPCCA
+from cca_zoo.gp import GaussianProcessCCA
 
-model = GPCCA(latent_dimensions=1).fit([X1, X2])
+model = GaussianProcessCCA(latent_dimensions=1).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
 corrs = model.score([X1, X2])
 
-# GPCCA also supports more than two views
-model3 = GPCCA(latent_dimensions=1).fit([X1, X2, X3])
+# GaussianProcessCCA also supports more than two views
+model3 = GaussianProcessCCA(latent_dimensions=1).fit([X1, X2, X3])
 ```
 
 ## Predictive uncertainty
@@ -78,7 +78,7 @@ means, stds = model.transform([X1, X2], return_std=True)
 standard deviation of view `i`'s latent component, propagated through the whitening transform —
 larger away from the training data, smaller near it, exactly as for any other GP posterior.
 
-`GPCCA` has no linear weight matrices and no per-feature decomposition analogous to `GAMCCA`'s
+`GaussianProcessCCA` has no linear weight matrices and no per-feature decomposition analogous to `GAMCCA`'s
 `shape_function` (the kernel is not additive across features), so `model.weights` raises
 `NotImplementedError`.
 
@@ -96,7 +96,7 @@ function of the $(n, m)$ and $(m, m)$ inducing-covariance matrices instead of th
 one, costing $O(n \, m^2 + m^3)$ instead of $O(n^3)$:
 
 ```python
-model = GPCCA(latent_dimensions=1, n_inducing=200).fit(
+model = GaussianProcessCCA(latent_dimensions=1, n_inducing=200).fit(
     [X1, X2]
 )  # X1, X2 have many samples
 ```
@@ -128,12 +128,12 @@ held-out canonical correlation.
 
 ## Practical notes
 
-- `GPCCA` supports 2 or more views.
+- `GaussianProcessCCA` supports 2 or more views.
 - `latent_dimensions` must not exceed the number of features in any view (the random-orthogonal
   initialisation draws that many orthogonal directions in feature space).
 - Exact GP inference (`n_inducing=None`) is $O(n^3)$ in the number of training samples; set
   `n_inducing` for datasets beyond a few thousand samples, or consider `GAMCCA` (if the
   relationship is additive) or `TreeCCA` instead.
 - No optional dependency is required (unlike `cca_zoo.tree`, which needs `xgboost`/`lightgbm`):
-  `GPCCA` is built entirely on `scikit-learn`'s `GaussianProcessRegressor`, `RBF`, `ConstantKernel`
+  `GaussianProcessCCA` is built entirely on `scikit-learn`'s `GaussianProcessRegressor`, `RBF`, `ConstantKernel`
   and `kmeans_plusplus`.

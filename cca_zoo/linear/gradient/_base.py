@@ -83,7 +83,7 @@ class BaseGradientModel(BaseModel):
     ) -> list[np.ndarray]:
         """Cheap, data-independent orthonormal initial weights, one per view.
 
-        The default for this base class; :class:`~cca_zoo.linear.gradient.CCA_EY`
+        The default for this base class; :class:`~cca_zoo.linear.gradient.CCAEY`
         overrides this with a data-informed initialisation more appropriate
         to its own loss (see
         :func:`cca_zoo._utils._ey.cheap_orthonormal_projection_weights`).

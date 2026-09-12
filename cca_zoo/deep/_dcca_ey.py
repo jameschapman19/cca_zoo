@@ -1,8 +1,9 @@
-"""DCCA_EY — Deep CCA with EigenGame / Eckart-Young objective."""
+"""DCCAEY — Deep CCA with EigenGame / Eckart-Young objective."""
 
 from __future__ import annotations
 
 import torch
+from sklearn.utils import deprecated
 
 from cca_zoo.deep._dcca import DCCA
 
@@ -38,7 +39,7 @@ def _cca_cv(
     return c, v
 
 
-class DCCA_EY(DCCA):
+class DCCAEY(DCCA):
     r"""DCCA using the EigenGame / Eckart-Young (EY) objective.
 
     For $M$ views with embeddings $Z_1, \dots, Z_M$, define the
@@ -77,7 +78,7 @@ class DCCA_EY(DCCA):
         >>> import torch.nn as nn
         >>> enc1 = nn.Linear(10, 4)
         >>> enc2 = nn.Linear(8, 4)
-        >>> model = DCCA_EY(latent_dimensions=4, encoders=[enc1, enc2])
+        >>> model = DCCAEY(latent_dimensions=4, encoders=[enc1, enc2])
     """
 
     def loss(
@@ -109,3 +110,8 @@ class DCCA_EY(DCCA):
             "rewards": rewards,
             "penalties": penalties,
         }
+
+
+@deprecated("Renamed to DCCAEY for sklearn-style naming; use DCCAEY instead.")
+class DCCA_EY(DCCAEY):
+    pass

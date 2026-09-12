@@ -67,37 +67,37 @@ Linear CCA methods. All classes are `sklearn.base.BaseEstimator` subclasses.
 
 ## Gradient-descent methods
 
-::: cca_zoo.linear.PLS_EY
+::: cca_zoo.linear.PLSEY
 
 ---
 
-::: cca_zoo.linear.CCA_EY
+::: cca_zoo.linear.CCAEY
 
 ---
 
-::: cca_zoo.linear.MCCA_EY
+::: cca_zoo.linear.MCCAEY
 
 ---
 
 ## Sparse / iterative methods
 
-::: cca_zoo.linear.PLS_ALS
+::: cca_zoo.linear.PLSALS
 
 ---
 
-::: cca_zoo.linear.SCCA_PMD
+::: cca_zoo.linear.SCCAPMD
 
 ---
 
-::: cca_zoo.linear.SCCA_ADMM
+::: cca_zoo.linear.SCCAADMM
 
 ---
 
-::: cca_zoo.linear.SCCA_IPLS
+::: cca_zoo.linear.SCCAIPLS
 
 ---
 
-::: cca_zoo.linear.SCCA_Span
+::: cca_zoo.linear.SCCASpan
 
 ---
 

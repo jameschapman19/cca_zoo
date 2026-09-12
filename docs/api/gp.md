@@ -5,4 +5,4 @@ Gaussian-process (GP) nonlinear CCA methods. Built entirely on scikit-learn's ow
 
 ---
 
-::: cca_zoo.gp.GPCCA
+::: cca_zoo.gp.GaussianProcessCCA
