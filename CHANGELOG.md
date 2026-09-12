@@ -9,6 +9,21 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `BaseModel.predict`: reconstructs every view from whichever views are observed (pass
+  `None` for a view to predict, including one you supplied, as a diagnostic). The shared
+  latent score is estimated from the observed views' own projections, then each view is
+  reconstructed via a per-view loading matrix fit by least squares at training time —
+  deliberately not the simpler `scores @ weights.T`, which is only a correct inverse of
+  `transform` for CCA when the data happens to be pre-whitened (see #182). Available on
+  every `BaseModel` subclass with no per-model changes needed.
+- `cca_zoo.model_selection.permutation_test_significance`: permutation test for both
+  canonical-correlation significance (per latent dimension) and feature-loading
+  significance (per feature, per dimension), following the resampling-based approach used
+  in the neuroimaging CCA/PLS literature (Xia et al. 2018; McIntosh & Lobaugh 2004, see
+  #130). Since a permuted refit can recover canonical variates in an arbitrary rotated or
+  reflected order relative to the true fit, each permutation's loadings are realigned via
+  the new `cca_zoo.model_selection.procrustes_rotation` (the SVD solution to the
+  orthogonal Procrustes problem) before being compared feature-by-feature.
 - `GAMCCA`: nonlinear multiview CCA using a generalized additive model (one B-spline term
   per input feature) as the per-view encoder, trained on the same Eckart-Young objective
   as `TreeCCA` and the `*_EY` models, but fit the way GAM software such as `mgcv` fits an
