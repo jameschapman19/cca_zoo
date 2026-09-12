@@ -170,16 +170,16 @@ All sparse methods in `cca_zoo.linear` use an **Alternating Least Squares (ALS)*
 Gram-Schmidt deflation to extract multiple canonical directions.
 
 !!! tip "Choosing a sparse method"
-    - **SCCA_PMD** — fast, interpretable L1 bound; good default for sparse CCA
-    - **SCCA_ADMM** — more principled L1 penalty via ADMM
-    - **SCCA_IPLS** — elastic net penalty; handles both L1 and L2 regularisation
+    - **SCCAPMD** — fast, interpretable L1 bound; good default for sparse CCA
+    - **SCCAADMM** — more principled L1 penalty via ADMM
+    - **SCCAIPLS** — elastic net penalty; handles both L1 and L2 regularisation
     - **ElasticCCA** — elastic net applied to the multiview sum-of-scores target
     - **ParkhomenkoCCA** — simple fixed soft-threshold; fast but less adaptive
     - **SCCASpan** — hard threshold (top-k entries); useful when sparsity level is known
     - **SAR** — penalty strength chosen automatically by BIC; no sparsity hyperparameter to tune
-    - **PLS_ALS** — no sparsity; ALS version of PLS (useful as a baseline)
+    - **PLSALS** — no sparsity; ALS version of PLS (useful as a baseline)
 
-### SCCA_PMD
+### SCCAPMD
 
 Imposes L1 constraints via bisection-based soft-thresholding (Witten 2009):
 
@@ -191,31 +191,31 @@ $$
 `tau=1` (default) gives no sparsity; smaller values give sparser solutions.
 
 ```python
-from cca_zoo.linear import SCCA_PMD
+from cca_zoo.linear import SCCAPMD
 
-model = SCCA_PMD(latent_dimensions=2, tau=0.5, random_state=0).fit([X1, X2])
+model = SCCAPMD(latent_dimensions=2, tau=0.5, random_state=0).fit([X1, X2])
 ```
 
-### SCCA_ADMM
+### SCCAADMM
 
 Solves the same L1-constrained problem via the Alternating Direction Method of Multipliers
 (Suo 2017). Often more precise than PMD for tight sparsity budgets.
 
 ```python
-from cca_zoo.linear import SCCA_ADMM
+from cca_zoo.linear import SCCAADMM
 
-model = SCCA_ADMM(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
+model = SCCAADMM(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
 ```
 
-### SCCA_IPLS
+### SCCAIPLS
 
 Uses an elastic net regression (sklearn) at each ALS step (Mai & Zhang 2019).
 `alpha` controls overall regularisation; `l1_ratio=1` gives Lasso, `l1_ratio=0` gives Ridge.
 
 ```python
-from cca_zoo.linear import SCCA_IPLS
+from cca_zoo.linear import SCCAIPLS
 
-model = SCCA_IPLS(latent_dimensions=2, alpha=0.01, l1_ratio=1.0, random_state=0).fit(
+model = SCCAIPLS(latent_dimensions=2, alpha=0.01, l1_ratio=1.0, random_state=0).fit(
     [X1, X2]
 )
 ```
@@ -271,15 +271,15 @@ from cca_zoo.linear import SAR
 model = SAR(latent_dimensions=2, random_state=0).fit([X1, X2])
 ```
 
-### PLS_ALS
+### PLSALS
 
 Standard ALS/power-iteration variant of PLS without regularisation. Useful as a baseline or
 when data are already low-dimensional.
 
 ```python
-from cca_zoo.linear import PLS_ALS
+from cca_zoo.linear import PLSALS
 
-model = PLS_ALS(latent_dimensions=2, random_state=0).fit([X1, X2])
+model = PLSALS(latent_dimensions=2, random_state=0).fit([X1, X2])
 ```
 
 ---
@@ -293,6 +293,6 @@ model = PLS_ALS(latent_dimensions=2, random_state=0).fit([X1, X2])
 | Maximise covariance, not correlation | `PLS` |
 | Three or more views | `MCCA` or `GCCA` |
 | Higher-order cross-view structure | `TCCA` |
-| Sparse weights needed | `SCCA_PMD` or `SCCA_IPLS` |
+| Sparse weights needed | `SCCAPMD` or `SCCAIPLS` |
 | Very large $p$ / streaming data | `CCAEY`, `PLSEY` |
 | Nonlinear relationships | See [Nonparametric Methods](nonparametric.md) |

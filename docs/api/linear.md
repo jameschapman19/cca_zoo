@@ -81,19 +81,19 @@ Linear CCA methods. All classes are `sklearn.base.BaseEstimator` subclasses.
 
 ## Sparse / iterative methods
 
-::: cca_zoo.linear.PLS_ALS
+::: cca_zoo.linear.PLSALS
 
 ---
 
-::: cca_zoo.linear.SCCA_PMD
+::: cca_zoo.linear.SCCAPMD
 
 ---
 
-::: cca_zoo.linear.SCCA_ADMM
+::: cca_zoo.linear.SCCAADMM
 
 ---
 
-::: cca_zoo.linear.SCCA_IPLS
+::: cca_zoo.linear.SCCAIPLS
 
 ---
 

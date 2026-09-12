@@ -1,9 +1,10 @@
-"""DCCA_NOI — Deep CCA via Non-linear Orthogonal Iterations (Wang 2015)."""
+"""DCCANOI — Deep CCA via Non-linear Orthogonal Iterations (Wang 2015)."""
 
 from __future__ import annotations
 
 import torch
 import torch.nn as nn
+from sklearn.utils import deprecated
 
 from cca_zoo.deep._dcca import DCCA
 from cca_zoo.deep.objectives import _inv_sqrtm
@@ -67,7 +68,7 @@ class _BatchWhiten(nn.Module):
         return x @ w
 
 
-class DCCA_NOI(DCCA):
+class DCCANOI(DCCA):
     r"""Deep CCA via Non-linear Orthogonal Iterations.
 
     Uses batch whitening to approximate the CCA whitening step
@@ -106,7 +107,7 @@ class DCCA_NOI(DCCA):
         >>> import torch.nn as nn
         >>> enc1 = nn.Linear(10, 4)
         >>> enc2 = nn.Linear(8, 4)
-        >>> model = DCCA_NOI(latent_dimensions=4, encoders=[enc1, enc2], rho=0.1)
+        >>> model = DCCANOI(latent_dimensions=4, encoders=[enc1, enc2], rho=0.1)
     """
 
     def __init__(
@@ -162,3 +163,8 @@ class DCCA_NOI(DCCA):
                 if i != j:
                     total = total + self.mse(representations[i], whitened[j].detach())
         return {"objective": total}
+
+
+@deprecated("Renamed to DCCANOI for sklearn-style naming; use DCCANOI instead.")
+class DCCA_NOI(DCCANOI):
+    pass

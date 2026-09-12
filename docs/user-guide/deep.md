@@ -104,26 +104,26 @@ from cca_zoo.deep import DCCAEY
 model = DCCAEY(latent_dimensions=8, encoders=[e1, e2])
 ```
 
-### DCCA_NOI — Non-linear Orthogonal Iterations
+### DCCANOI — Non-linear Orthogonal Iterations
 
 Wang et al. 2015. An iterative approach that alternately optimises each encoder
 while holding the others fixed.
 
 ```python
-from cca_zoo.deep import DCCA_NOI
+from cca_zoo.deep import DCCANOI
 
-model = DCCA_NOI(latent_dimensions=8, encoders=[e1, e2])
+model = DCCANOI(latent_dimensions=8, encoders=[e1, e2])
 ```
 
-### DCCA_SDL — Stochastic Decorrelation Loss
+### DCCASDL — Stochastic Decorrelation Loss
 
 Chang et al. 2018. Adds an explicit decorrelation term that penalises off-diagonal
 cross-covariance entries.
 
 ```python
-from cca_zoo.deep import DCCA_SDL
+from cca_zoo.deep import DCCASDL
 
-model = DCCA_SDL(latent_dimensions=8, encoders=[e1, e2])
+model = DCCASDL(latent_dimensions=8, encoders=[e1, e2])
 ```
 
 ### DCCAE — Deep CCA with Autoencoders

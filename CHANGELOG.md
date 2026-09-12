@@ -62,16 +62,27 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- Renamed `CCA_EY` -> `CCAEY`, `MCCA_EY` -> `MCCAEY`, `PLS_EY` -> `PLSEY`, `DCCA_EY` -> `DCCAEY`,
-  and `SCCA_Span` -> `SCCASpan` to drop the underscore, matching sklearn's own class-naming
-  convention (`RidgeCV`, `SGDRegressor`, never `Ridge_CV`). The old underscored names still work
-  but now emit a `FutureWarning` (via `sklearn.utils.deprecated`) and will be removed in a future
-  release. `SCCA_PMD`, `SCCA_ADMM`, `SCCA_IPLS`, `DCCA_NOI`, `DCCA_SDL`, and `PLS_ALS` keep their
-  underscore deliberately: `EY` and `Span` are short enough (or already word-shaped) to read fine
-  concatenated onto their base name, but stacking `PMD`/`ADMM`/`IPLS`/`NOI`/`SDL`/`ALS` directly
-  onto `SCCA`/`DCCA`/`PLS` with no separator produces a run of 7-8 capital letters with no visual
-  seam at all (e.g. `SCCAADMM`) — worse than any real sklearn precedent, which never concatenates
-  two multi-letter all-caps acronyms with nothing letter-shaped between them.
+- Renamed every underscored algorithm-suffix class to drop the underscore, matching sklearn's own
+  class-naming convention (`RidgeCV`, `SGDRegressor`, never `Ridge_CV`), with no exceptions:
+  `CCA_EY` -> `CCAEY`, `MCCA_EY` -> `MCCAEY`, `PLS_EY` -> `PLSEY`, `DCCA_EY` -> `DCCAEY`,
+  `PLS_ALS` -> `PLSALS`, `SCCA_PMD` -> `SCCAPMD`, `SCCA_ADMM` -> `SCCAADMM`,
+  `SCCA_IPLS` -> `SCCAIPLS`, `SCCA_Span` -> `SCCASpan`, `DCCA_NOI` -> `DCCANOI`,
+  `DCCA_SDL` -> `DCCASDL`. The old underscored names still work but now emit a `FutureWarning`
+  (via `sklearn.utils.deprecated`) and will be removed in a future release. This only affects the
+  *algorithm*-suffix slot (how a model is fit, e.g. `SCCA` + `PMD`/`ADMM`/`IPLS`/`Span`); the
+  *architecture*-prefix slot (what a model is, e.g. `K`/`G`/`T`/`D`/`M`/`Tree` + `CCA`) is otherwise
+  untouched, since those already match the abbreviation each method's own literature uses (`DCCA`
+  for Deep CCA, `KCCA` for Kernel CCA, etc.) rather than being a naming-convention artifact that
+  could be tidied.
+- Renamed `GPCCA` -> `GaussianProcessCCA`, matching sklearn's own `GaussianProcessRegressor`/
+  `GaussianProcessClassifier` naming rather than abbreviating "Gaussian Process" to `GP` — unlike
+  `DCCA`/`KCCA`/`TCCA`/`GCCA`, `GPCCA` isn't an abbreviation inherited from an external paper (it's
+  new to this library), so there's no established literature form to preserve, and sklearn's own
+  precedent for this exact algorithm spells it out in full. `GAMCCA` and `TreeCCA` keep their
+  current names: `GAM` is a self-sufficient term of art in statistics the way `MLP`/`PLS`/`ARD` are
+  in sklearn (nobody spells out "Generalized Additive Model" as a model name), and `TreeCCA` is
+  already the name given in its own source paper. `GPCCA` still works but now emits a
+  `FutureWarning` and will be removed in a future release.
 - `CCA_EY` (and `MCCA_EY`, which inherits it) now initialises its weights
   differently from `PLS_EY`, matching each loss's own structure: `PLS_EY`
   keeps a plain, data-independent unit-norm-orthogonal-weight

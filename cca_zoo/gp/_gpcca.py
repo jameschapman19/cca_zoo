@@ -1,4 +1,4 @@
-"""GPCCA — Gaussian-process Canonical Correlation Analysis."""
+"""GaussianProcessCCA — Gaussian-process Canonical Correlation Analysis."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from scipy.linalg import cho_solve, cholesky, solve_triangular
 from sklearn.cluster import kmeans_plusplus
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel
+from sklearn.utils import deprecated
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
@@ -208,7 +209,7 @@ class _SparseGpEncoder(_GpEncoder):
 
     where $\Lambda = \operatorname{diag}(\alpha)$ is the (heteroscedastic)
     per-sample noise variance — here the same diagonal-Hessian weight used
-    throughout GPCCA. This costs $O(n m^2 + m^3)$: linear rather than
+    throughout GaussianProcessCCA. This costs $O(n m^2 + m^3)$: linear rather than
     cubic in $n$, at the price of an approximation whose quality depends
     on how well $m$ inducing points span the data.
 
@@ -356,8 +357,8 @@ class _SparseGpEncoder(_GpEncoder):
         return mean
 
 
-class GPCCA(BaseModel):
-    r"""GPCCA — nonlinear multiview CCA with Gaussian-process encoders.
+class GaussianProcessCCA(BaseModel):
+    r"""GaussianProcessCCA — nonlinear multiview CCA with Gaussian-process encoders.
 
     Learns one nonlinear encoder $f_i$ per view — a Gaussian process with
     an ARD (per-feature-lengthscale) RBF kernel over that view's *raw,
@@ -469,11 +470,11 @@ class GPCCA(BaseModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((100, 3))
         >>> X2 = rng.standard_normal((100, 3))
-        >>> model = GPCCA(latent_dimensions=1).fit([X1, X2])
+        >>> model = GaussianProcessCCA(latent_dimensions=1).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
         >>> means, stds = model.transform([X1, X2], return_std=True)
         >>> # For larger datasets, cap inference cost with inducing points:
-        >>> big_model = GPCCA(latent_dimensions=1, n_inducing=200)
+        >>> big_model = GaussianProcessCCA(latent_dimensions=1, n_inducing=200)
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -504,8 +505,8 @@ class GPCCA(BaseModel):
         self.n_inducing = n_inducing
         self.random_state = random_state
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> GPCCA:
-        """Fit the GPCCA model.
+    def fit(self, views: list[ArrayLike], y: None = None) -> GaussianProcessCCA:
+        """Fit the GaussianProcessCCA model.
 
         Args:
             views: List of 2 or more arrays, each (n_samples, n_features_i).
@@ -614,11 +615,11 @@ class GPCCA(BaseModel):
 
     @property
     def weights(self) -> list[np.ndarray]:
-        """Not implemented for GPCCA.
+        """Not implemented for GaussianProcessCCA.
 
         Raises:
             sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            NotImplementedError: GPCCA encoders are Gaussian processes over
+            NotImplementedError: GaussianProcessCCA encoders are Gaussian processes over
                 the joint feature vector, not linear weight matrices, and
                 have no per-feature decomposition analogous to
                 :meth:`~cca_zoo.gam.GAMCCA.shape_function` (the kernel is
@@ -626,8 +627,16 @@ class GPCCA(BaseModel):
         """
         check_is_fitted(self)
         raise NotImplementedError(
-            "GPCCA has no linear weight matrices; its encoders are "
+            "GaussianProcessCCA has no linear weight matrices; its encoders are "
             "Gaussian processes with a joint (non-additive) kernel over "
             "each view's raw features, so there is no per-feature "
             "decomposition to expose."
         )
+
+
+@deprecated(
+    "Renamed to GaussianProcessCCA for sklearn-style naming "
+    "(matching GaussianProcessRegressor/Classifier); use GaussianProcessCCA instead."
+)
+class GPCCA(GaussianProcessCCA):
+    pass

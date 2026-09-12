@@ -1,10 +1,11 @@
-"""DCCA_SDL — Stochastic Decorrelation Loss (Chang 2018)."""
+"""DCCASDL — Stochastic Decorrelation Loss (Chang 2018)."""
 
 from __future__ import annotations
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from sklearn.utils import deprecated
 
 from cca_zoo.deep._dcca import DCCA
 
@@ -26,7 +27,7 @@ def _sdl_loss(view: torch.Tensor) -> torch.Tensor:
     return cov[mask].abs().mean()
 
 
-class DCCA_SDL(DCCA):
+class DCCASDL(DCCA):
     r"""Deep CCA via Stochastic Decorrelation Loss.
 
     Combines an MSE alignment loss between views with a within-view
@@ -60,7 +61,7 @@ class DCCA_SDL(DCCA):
         >>> import torch.nn as nn
         >>> enc1 = nn.Linear(10, 4)
         >>> enc2 = nn.Linear(8, 4)
-        >>> model = DCCA_SDL(latent_dimensions=4, encoders=[enc1, enc2], lam=0.5)
+        >>> model = DCCASDL(latent_dimensions=4, encoders=[enc1, enc2], lam=0.5)
     """
 
     def __init__(
@@ -119,3 +120,8 @@ class DCCA_SDL(DCCA):
             "l2": l2,
             "sdl": sdl,
         }
+
+
+@deprecated("Renamed to DCCASDL for sklearn-style naming; use DCCASDL instead.")
+class DCCA_SDL(DCCASDL):
+    pass

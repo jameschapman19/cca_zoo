@@ -316,7 +316,7 @@ def ey_diag_hessian(
     Hessian's real signal through for high-leverage outliers.
 
     Used by both :class:`~cca_zoo.gam.GAMCCA` (as a ``Ridge``/``RidgeCV``
-    ``sample_weight``) and :class:`~cca_zoo.gp.GPCCA` (as a
+    ``sample_weight``) and :class:`~cca_zoo.gp.GaussianProcessCCA` (as a
     ``GaussianProcessRegressor`` per-sample ``alpha``, the heteroscedastic-
     noise parameter that plays the same "how much to trust this
     observation" role there).

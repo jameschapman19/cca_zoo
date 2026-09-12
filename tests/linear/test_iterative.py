@@ -1,6 +1,6 @@
 """Tests for ALS-based sparse/regularised CCA variants.
 
-Covers PLS_ALS, SCCA_PMD, SCCA_ADMM, SCCA_IPLS, SCCASpan, ElasticCCA,
+Covers PLSALS, SCCAPMD, SCCAADMM, SCCAIPLS, SCCASpan, ElasticCCA,
 ParkhomenkoCCA, SAR.
 """
 
@@ -10,21 +10,21 @@ import numpy as np
 import pytest
 
 from cca_zoo.linear import (
-    PLS_ALS,
+    PLSALS,
     SAR,
-    SCCA_ADMM,
-    SCCA_IPLS,
-    SCCA_PMD,
+    SCCAADMM,
+    SCCAIPLS,
+    SCCAPMD,
     ElasticCCA,
     ParkhomenkoCCA,
     SCCASpan,
 )
 
 ALL_ITERATIVE_MODELS = [
-    PLS_ALS,
-    SCCA_PMD,
-    SCCA_ADMM,
-    SCCA_IPLS,
+    PLSALS,
+    SCCAPMD,
+    SCCAADMM,
+    SCCAIPLS,
     SCCASpan,
     ElasticCCA,
     ParkhomenkoCCA,
@@ -179,8 +179,8 @@ def test_get_factor_loadings_shapes(
 
 
 def test_scca_pmd_achieves_sparsity(two_views: list[np.ndarray]) -> None:
-    """SCCA_PMD with small tau produces sparse weights (some zeros)."""
-    model = SCCA_PMD(latent_dimensions=1, tau=0.3, max_iter=200, random_state=0).fit(
+    """SCCAPMD with small tau produces sparse weights (some zeros)."""
+    model = SCCAPMD(latent_dimensions=1, tau=0.3, max_iter=200, random_state=0).fit(
         two_views
     )
     for w in model.weights:
@@ -189,7 +189,7 @@ def test_scca_pmd_achieves_sparsity(two_views: list[np.ndarray]) -> None:
 
 
 def test_scca_pmd_invariant_to_input_scale(two_views: list[np.ndarray]) -> None:
-    """SCCA_PMD's fitted weights (up to sign) must not depend on the
+    """SCCAPMD's fitted weights (up to sign) must not depend on the
     overall scale of the input data -- tau is the only sparsity control.
 
     Regression test: _bisect_threshold used to compare the *unnormalised*
@@ -201,10 +201,10 @@ def test_scca_pmd_invariant_to_input_scale(two_views: list[np.ndarray]) -> None:
     "no constraint") still producing near-total sparsity.
     """
     scaled_views = [v * 37.0 for v in two_views]
-    model_a = SCCA_PMD(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
+    model_a = SCCAPMD(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
         two_views
     )
-    model_b = SCCA_PMD(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
+    model_b = SCCAPMD(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
         scaled_views
     )
     for w_a, w_b in zip(model_a.weights, model_b.weights):
@@ -223,7 +223,7 @@ def test_scca_pmd_tau_controls_sparsity_monotonically(
     taus = [0.3, 0.5, 0.7, 1.0]
     nnz_by_tau = []
     for tau in taus:
-        model = SCCA_PMD(
+        model = SCCAPMD(
             latent_dimensions=1, tau=tau, max_iter=200, random_state=0
         ).fit(two_views)
         nnz_by_tau.append(sum(int(np.sum(np.abs(w) > 1e-10)) for w in model.weights))
@@ -259,8 +259,8 @@ def test_scca_span_achieves_sparsity(two_views: list[np.ndarray]) -> None:
 
 
 def test_scca_admm_achieves_sparsity(two_views: list[np.ndarray]) -> None:
-    """SCCA_ADMM with positive tau produces some sparse weights."""
-    model = SCCA_ADMM(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
+    """SCCAADMM with positive tau produces some sparse weights."""
+    model = SCCAADMM(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
         two_views
     )
     assert hasattr(model, "weights_")
@@ -277,8 +277,8 @@ def test_elastic_cca_with_lasso(two_views: list[np.ndarray]) -> None:
 
 
 def test_scca_ipls_with_lasso(two_views: list[np.ndarray]) -> None:
-    """SCCA_IPLS with alpha > 0 runs without error."""
-    model = SCCA_IPLS(
+    """SCCAIPLS with alpha > 0 runs without error."""
+    model = SCCAIPLS(
         latent_dimensions=1, alpha=0.1, l1_ratio=1.0, max_iter=100, random_state=0
     ).fit(two_views)
     assert hasattr(model, "weights_")
@@ -408,13 +408,13 @@ def test_pairwise_correlations_shape(
 
 
 def test_pls_als_matches_pls(correlated_views: list[np.ndarray]) -> None:
-    """PLS_ALS (converged) recovers the same correlations as exact PLS."""
+    """PLSALS (converged) recovers the same correlations as exact PLS."""
     from cca_zoo.linear import PLS
 
     k = 2
     s_pls = PLS(latent_dimensions=k).fit(correlated_views).score(correlated_views)
     s_als = (
-        PLS_ALS(latent_dimensions=k, max_iter=1000, random_state=0)
+        PLSALS(latent_dimensions=k, max_iter=1000, random_state=0)
         .fit(correlated_views)
         .score(correlated_views)
     )

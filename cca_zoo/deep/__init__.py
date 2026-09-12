@@ -20,8 +20,10 @@ if _torch_available and _lightning_available:
     from cca_zoo.deep._dcca import DCCA
     from cca_zoo.deep._dcca_ey import DCCA_EY as DCCA_EY
     from cca_zoo.deep._dcca_ey import DCCAEY
-    from cca_zoo.deep._dcca_noi import DCCA_NOI
-    from cca_zoo.deep._dcca_sdl import DCCA_SDL
+    from cca_zoo.deep._dcca_noi import DCCA_NOI as DCCA_NOI
+    from cca_zoo.deep._dcca_noi import DCCANOI
+    from cca_zoo.deep._dcca_sdl import DCCA_SDL as DCCA_SDL
+    from cca_zoo.deep._dcca_sdl import DCCASDL
     from cca_zoo.deep._dccae import DCCAE
     from cca_zoo.deep._dgcca import DGCCA
     from cca_zoo.deep._dmcca import DMCCA
@@ -35,8 +37,8 @@ if _torch_available and _lightning_available:
         "BarlowTwins",
         "DCCA",
         "DCCAEY",
-        "DCCA_NOI",
-        "DCCA_SDL",
+        "DCCANOI",
+        "DCCASDL",
         "DCCAE",
         "DGCCA",
         "DMCCA",
@@ -47,7 +49,8 @@ if _torch_available and _lightning_available:
         "VICReg",
         "objectives",
     ]
-    # Deprecated alias DCCA_EY stays importable for backward compatibility
-    # but is intentionally left out of __all__/docs.
+    # Deprecated aliases DCCA_EY, DCCA_NOI, DCCA_SDL stay importable for
+    # backward compatibility but are intentionally left out of
+    # __all__/docs.
 else:
     __all__ = []
