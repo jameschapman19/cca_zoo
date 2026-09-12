@@ -96,7 +96,9 @@ function of the $(n, m)$ and $(m, m)$ inducing-covariance matrices instead of th
 one, costing $O(n \, m^2 + m^3)$ instead of $O(n^3)$:
 
 ```python
-model = GPCCA(latent_dimensions=1, n_inducing=200).fit([X1, X2])  # X1, X2 have many samples
+model = GPCCA(latent_dimensions=1, n_inducing=200).fit(
+    [X1, X2]
+)  # X1, X2 have many samples
 ```
 
 Kernel hyperparameters are still selected by an *exact* marginal-likelihood fit — just on the
