@@ -1,0 +1,42 @@
+name: Bug report
+description: Report an error or unexpected behaviour in CCA-Zoo
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproducible example
+      description: A short, self-contained code snippet that reproduces the issue.
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    id: traceback
+    attributes:
+      label: Full error output / traceback
+      render: shell
+
+  - type: input
+    id: version
+    attributes:
+      label: cca-zoo version
+      description: Output of `python -c "import cca_zoo; print(cca_zoo.__version__)"`
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Python version and OS
+      placeholder: e.g. Python 3.12, Ubuntu 22.04
+    validations:
+      required: true

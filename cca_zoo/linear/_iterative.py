@@ -231,8 +231,7 @@ class PLSALS(_BaseIterative):
 
 
 def _bisect_threshold(x: np.ndarray, l1_bound: float) -> np.ndarray:
-    """Find the soft threshold that makes the L2-normalised thresholded
-    vector's L1 norm equal ``l1_bound``.
+    r"""Find the soft threshold hitting ``l1_bound`` L1 norm after L2-normalising.
 
     ``l1_bound`` (``tau * sqrt(p)``, see :class:`SCCAPMD`) is only a
     meaningful constraint on a *unit-L2-norm* vector: ``||w||_1 <= sqrt(p)``
@@ -246,7 +245,7 @@ def _bisect_threshold(x: np.ndarray, l1_bound: float) -> np.ndarray:
     whereas the raw L1 norm is not. ``x`` here is an un-normalised
     power-iteration update whose scale depends on the data
     (:meth:`SCCAPMD._update_weight` passes ``views[i].T @ target``,
-    typically :math:`O(\\sqrt{n})` in magnitude for standardised data),
+    typically :math:`O(\sqrt{n})` in magnitude for standardised data),
     not on ``tau``, so comparing that raw L1 norm directly against
     ``l1_bound`` made the constraint's effective strength depend on the
     data's scale rather than only on ``tau`` -- in the regime where the

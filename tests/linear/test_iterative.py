@@ -189,8 +189,9 @@ def test_scca_pmd_achieves_sparsity(two_views: list[np.ndarray]) -> None:
 
 
 def test_scca_pmd_invariant_to_input_scale(two_views: list[np.ndarray]) -> None:
-    """SCCAPMD's fitted weights (up to sign) must not depend on the
-    overall scale of the input data -- tau is the only sparsity control.
+    """SCCAPMD's fitted weights (up to sign) must not depend on input scale.
+
+    tau is the only sparsity control.
 
     Regression test: _bisect_threshold used to compare the *unnormalised*
     power-iteration update's L1 norm directly against l1_bound (a bound
@@ -216,10 +217,12 @@ def test_scca_pmd_invariant_to_input_scale(two_views: list[np.ndarray]) -> None:
 def test_scca_pmd_tau_controls_sparsity_monotonically(
     two_views: list[np.ndarray],
 ) -> None:
-    """Increasing tau must not decrease the number of selected features:
+    """Increasing tau must not decrease the number of selected features.
+
     tau=1 bounds by the Cauchy-Schwarz maximum for a unit vector, so it
     should recover the (denser) unconstrained solution, not one sparser
-    than a smaller tau's."""
+    than a smaller tau's.
+    """
     taus = [0.3, 0.5, 0.7, 1.0]
     nnz_by_tau = []
     for tau in taus:
