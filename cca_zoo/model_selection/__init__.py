@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
-from cca_zoo.model_selection._search import GridSearchCV
+from cca_zoo.model_selection._search import (
+    GridSearchCV,
+    MultiviewWrapper,
+    RandomizedSearchCV,
+)
 
-__all__ = ["GridSearchCV"]
+__all__ = ["GridSearchCV", "MultiviewWrapper", "RandomizedSearchCV"]

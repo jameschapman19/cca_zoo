@@ -59,8 +59,37 @@ project adheres to [Semantic Versioning](https://semver.org/).
   the number of training samples fall back to exact inference automatically. Verified to fit
   in well under a second at 4,000 training samples (where exact inference is impractical)
   while still recovering held-out correlation above 0.7 on a smooth nonlinear benchmark.
+- `cca_zoo.model_selection.RandomizedSearchCV`: a multiview adapter around
+  `sklearn.model_selection.RandomizedSearchCV`, alongside the existing `GridSearchCV`, for
+  sampling continuous hyperparameters (e.g. `c` via `scipy.stats.loguniform`) instead of only
+  searching a fixed grid.
+- `cca_zoo.model_selection.MultiviewWrapper`: the adapter `GridSearchCV`/`RandomizedSearchCV`
+  use internally to make a multiview estimator's `fit(views)` look like sklearn's
+  `fit(X)` (views horizontally stacked into one array, split back before delegating) is now
+  public, so it composes directly with any sklearn model-selection tool -
+  `HalvingGridSearchCV`, `cross_val_score`, `cross_validate`, `learning_curve`, `Pipeline`
+  - not just the two search classes cca_zoo ships.
+
+### Fixed
+
+- `GridSearchCV.cv_results_`'s `param_*` keys carried an internal `estimator__` prefix
+  (`param_estimator__c` rather than `param_c`), inconsistent with the unprefixed keys in
+  `best_params_` and with the docs' own `cv_results_` examples, which would `KeyError`.
+  `cv_results_` (both its `param_*` columns and its `params` list of dicts) is now stripped of
+  the prefix the same way `best_params_` already was.
+- `GridSearchCV` previously copied over only four hand-picked attributes from the underlying
+  `sklearn.model_selection.GridSearchCV` search (`cv_results_`, `best_score_`, `best_params_`,
+  `best_estimator_`), silently dropping the rest of sklearn's attribute surface
+  (`best_index_`, `scorer_`, `n_splits_`, `refit_time_`, `multimetric_`, ...). Every fitted
+  (trailing-underscore) attribute is now forwarded generically, so newer sklearn attributes are
+  picked up automatically instead of needing this module updated by hand.
 
 ### Changed
+
+- `GridSearchCV` and `RandomizedSearchCV` are now themselves `sklearn.base.BaseEstimator`
+  subclasses (previously plain classes), so `get_params`/`set_params`/`clone`/`repr` work on the
+  search objects too - e.g. `sklearn.base.clone(gs)` before fitting, or nesting one inside
+  another meta-estimator.
 
 - Renamed every underscored algorithm-suffix class to drop the underscore, matching sklearn's own
   class-naming convention (`RidgeCV`, `SGDRegressor`, never `Ridge_CV`), with no exceptions:

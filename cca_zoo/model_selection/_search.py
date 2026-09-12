@@ -1,4 +1,27 @@
-"""GridSearchCV wrapper for multiview CCA models."""
+"""Sklearn-idiomatic hyperparameter search for multiview CCA models.
+
+Every multiview estimator in cca_zoo already subclasses
+:class:`sklearn.base.BaseEstimator`, so ``get_params``/``set_params``/``clone``
+work out of the box. The one thing standing between these models and sklearn's
+model-selection tools is the calling convention: ``fit``/``transform``/``score``
+take a ``list[ArrayLike]`` of per-view arrays, not a single 2-D ``X``, so
+:class:`sklearn.model_selection.GridSearchCV` and friends can't split folds
+correctly on it.
+
+:class:`MultiviewWrapper` bridges that gap: it concatenates the views into one
+2-D array (so sklearn can index rows/folds normally) and splits them back
+before delegating to the wrapped multiview estimator. It is a plain
+``BaseEstimator``, so once wrapped, *any* sklearn tool applies directly:
+``GridSearchCV``, ``RandomizedSearchCV``, ``HalvingGridSearchCV``,
+``cross_val_score``, ``cross_validate``, ``learning_curve``, ``Pipeline``, etc.
+
+:class:`GridSearchCV` and :class:`RandomizedSearchCV` below are thin
+convenience wrappers that do this concatenation automatically and delegate
+the actual search to :class:`sklearn.model_selection.GridSearchCV` /
+:class:`sklearn.model_selection.RandomizedSearchCV`, so all of sklearn's
+search machinery (parallelism, scoring, ``cv_results_``, multimetric support,
+...) is reused rather than reimplemented.
+"""
 
 from __future__ import annotations
 
@@ -9,48 +32,42 @@ import sklearn.model_selection as skms
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator, clone
 
+_PARAM_PREFIX = "estimator__"
 
-class _MultiviewWrapper(BaseEstimator):
-    """Internal wrapper that makes a multiview estimator sklearn-compatible.
 
-    Sklearn's :class:`sklearn.model_selection.GridSearchCV` requires an
-    estimator whose ``fit`` and ``score`` methods accept ``(X, y)`` where
-    X is a 2-D array.  This wrapper encodes the split indices of the
-    multiview data into a single concatenated array and restores the views
-    before forwarding calls to the underlying multiview estimator.
+class MultiviewWrapper(BaseEstimator):
+    """Adapt a multiview estimator to sklearn's single-``X`` estimator API.
+
+    Sklearn's model-selection tools (``GridSearchCV``, ``cross_val_score``,
+    ``Pipeline``, ...) require an estimator whose ``fit``/``score`` accept
+    ``(X, y)`` with ``X`` a single 2-D array, so they can index and split rows
+    into folds. This wrapper concatenates the views' feature axes into one
+    array on the way in and splits them back into views on the way out, so
+    any sklearn tool that only ever sees the concatenated array can be used
+    unmodified with a cca_zoo multiview estimator.
 
     Args:
-        estimator: A fitted or unfitted multiview CCA estimator (e.g.
-            :class:`~cca_zoo.linear.CCA`).
-        split_indices: List of feature counts per view, used to split the
-            concatenated array back into individual views.
+        estimator: A multiview CCA estimator (e.g. :class:`~cca_zoo.linear.CCA`).
+        split_indices: Number of features in each view, in order. Used to
+            split the concatenated array back into views.
 
     Example:
         >>> import numpy as np
+        >>> from sklearn.model_selection import cross_val_score
         >>> from cca_zoo.linear import CCA
-        >>> X1 = np.random.randn(50, 5)
-        >>> X2 = np.random.randn(50, 4)
-        >>> wrapper = _MultiviewWrapper(CCA(), split_indices=[5, 4])
-        >>> wrapper = wrapper.fit(np.hstack([X1, X2]))
+        >>> from cca_zoo.model_selection import MultiviewWrapper
+        >>> rng = np.random.default_rng(0)
+        >>> X1, X2 = rng.standard_normal((50, 5)), rng.standard_normal((50, 4))
+        >>> wrapper = MultiviewWrapper(CCA(), split_indices=[5, 4])
+        >>> scores = cross_val_score(wrapper, np.hstack([X1, X2]), cv=3)
     """
 
-    def __init__(
-        self,
-        estimator: BaseEstimator,
-        split_indices: list[int],
-    ) -> None:
+    def __init__(self, estimator: BaseEstimator, split_indices: list[int]) -> None:
         self.estimator = estimator
         self.split_indices = split_indices
 
     def _split_views(self, X: np.ndarray) -> list[np.ndarray]:
-        """Split a concatenated matrix back into individual views.
-
-        Args:
-            X: Concatenated array of shape (n_samples, sum(split_indices)).
-
-        Returns:
-            List of arrays, one per view.
-        """
+        """Split a concatenated matrix back into individual views."""
         views = []
         start = 0
         for p in self.split_indices:
@@ -60,88 +77,116 @@ class _MultiviewWrapper(BaseEstimator):
 
     def fit(
         self, X: np.ndarray, y: None = None, **fit_params: Any
-    ) -> _MultiviewWrapper:
-        """Fit the wrapped estimator on the multiview data.
-
-        Args:
-            X: Concatenated views, shape (n_samples, sum(n_features)).
-            y: Ignored.
-            **fit_params: Additional keyword arguments forwarded to
-                the estimator's ``fit`` method.
-
-        Returns:
-            self: Fitted wrapper.
-        """
+    ) -> MultiviewWrapper:
+        """Fit the wrapped estimator on the concatenated multiview data."""
         self.estimator_ = clone(self.estimator)
-        views = self._split_views(X)
-        self.estimator_.fit(views, **fit_params)
+        self.estimator_.fit(self._split_views(X), **fit_params)
         return self
 
     def score(self, X: np.ndarray, y: None = None) -> float:
-        """Return the mean canonical correlation over all latent dimensions.
-
-        Args:
-            X: Concatenated views, shape (n_samples, sum(n_features)).
-            y: Ignored.
-
-        Returns:
-            Scalar: mean of the per-dimension average pairwise correlations.
-        """
-        views = self._split_views(X)
-        scores: np.ndarray = self.estimator_.score(views)
+        """Mean canonical correlation over all latent dimensions."""
+        scores: np.ndarray = self.estimator_.score(self._split_views(X))
         return float(scores.mean())
 
-    def get_params(self, deep: bool = True) -> dict[str, Any]:
-        """Return parameters for this estimator.
+    def transform(self, X: np.ndarray) -> np.ndarray:
+        """Transform and re-concatenate, so the wrapper composes with Pipeline."""
+        transformed = self.estimator_.transform(self._split_views(X))
+        return np.hstack(transformed)
 
-        Args:
-            deep: If True, also return the parameters of the wrapped
-                estimator prefixed with ``estimator__``.
 
-        Returns:
-            Dictionary of parameter names to values.
+def _wrap_param_space(
+    param_space: dict[str, list[Any]] | list[dict[str, list[Any]]],
+) -> dict[str, list[Any]] | list[dict[str, list[Any]]]:
+    """Prefix a param_grid/param_distributions' keys with ``estimator__``."""
+    if isinstance(param_space, dict):
+        return {f"{_PARAM_PREFIX}{k}": v for k, v in param_space.items()}
+    return [
+        {f"{_PARAM_PREFIX}{k}": v for k, v in space.items()} for space in param_space
+    ]
+
+
+def _unprefix(key: str) -> str:
+    return key[len(_PARAM_PREFIX) :] if key.startswith(_PARAM_PREFIX) else key
+
+
+def _unwrap_cv_results(cv_results: dict[str, Any]) -> dict[str, Any]:
+    """Strip the ``estimator__`` prefix from ``cv_results_`` keys/params.
+
+    Without this, ``cv_results_["param_c"]`` doesn't exist -- only
+    ``cv_results_["param_estimator__c"]`` does -- which is inconsistent with
+    the unprefixed keys in ``best_params_``.
+    """
+    unwrapped: dict[str, Any] = {}
+    for key, value in cv_results.items():
+        if key.startswith(f"param_{_PARAM_PREFIX}"):
+            unwrapped[f"param_{_unprefix(key[len('param_') :])}"] = value
+        elif key == "params":
+            unwrapped[key] = [
+                {_unprefix(k): v for k, v in params.items()} for params in value
+            ]
+        else:
+            unwrapped[key] = value
+    return unwrapped
+
+
+def _copy_fitted_attrs(target: Any, inner: BaseEstimator) -> None:
+    """Copy every fitted (trailing-underscore) attribute from ``inner``.
+
+    ``cv_results_``, ``best_params_`` and ``best_estimator_`` need their
+    ``estimator__`` prefix undone; every other fitted attribute (``best_score_``,
+    ``best_index_``, ``scorer_``, ``n_splits_``, ``refit_time_``,
+    ``multimetric_``, ...) is forwarded as-is, so new sklearn attributes are
+    picked up automatically instead of needing to be listed by hand here.
+    """
+    special = {"cv_results_", "best_params_", "best_estimator_"}
+    for attr, value in vars(inner).items():
+        if attr in special or not attr.endswith("_") or attr.endswith("__"):
+            continue
+        setattr(target, attr, value)
+
+    if "cv_results_" in vars(inner):
+        target.cv_results_ = _unwrap_cv_results(inner.cv_results_)
+    if "best_params_" in vars(inner):
+        target.best_params_ = {_unprefix(k): v for k, v in inner.best_params_.items()}
+    if "best_estimator_" in vars(inner):
+        target.best_estimator_ = inner.best_estimator_.estimator_
+
+
+class _MultiviewSearchMixin:
+    """Shared ``transform``/``score`` for the wrapped multiview search classes."""
+
+    refit: bool
+    _inner_cv: BaseEstimator
+    best_estimator_: BaseEstimator
+
+    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
+        """Transform multiview data using the best estimator.
+
+        Raises:
+            AttributeError: If ``refit=False``, so no ``best_estimator_``
+                was fitted.
         """
-        params: dict[str, Any] = {
-            "estimator": self.estimator,
-            "split_indices": self.split_indices,
-        }
-        if deep:
-            inner = self.estimator.get_params(deep=True)
-            params.update({f"estimator__{k}": v for k, v in inner.items()})
-        return params
+        if not self.refit:
+            raise AttributeError(
+                "`transform` is not available when `refit=False`; no "
+                "`best_estimator_` was fitted. Set `refit=True` to use it."
+            )
+        return cast(list[np.ndarray], self.best_estimator_.transform(views))
 
-    def set_params(self, **params: Any) -> _MultiviewWrapper:
-        """Set parameters for this estimator.
-
-        Args:
-            **params: Parameters to set. Keys prefixed with
-                ``estimator__`` are forwarded to the wrapped estimator.
-
-        Returns:
-            self: Updated wrapper.
-        """
-        inner_params = {
-            k[len("estimator__") :]: v
-            for k, v in params.items()
-            if k.startswith("estimator__")
-        }
-        own_params = {
-            k: v for k, v in params.items() if not k.startswith("estimator__")
-        }
-        if own_params:
-            super().set_params(**own_params)
-        if inner_params:
-            self.estimator.set_params(**inner_params)
-        return self
+    def score(self, views: list[ArrayLike], y: None = None) -> float:
+        """Score the best estimator on held-out multiview data."""
+        x_concat = np.hstack([np.asarray(v) for v in views])
+        return float(self._inner_cv.score(x_concat, y))
 
 
-class GridSearchCV:
-    """Grid search with cross-validation for multiview CCA models.
+class GridSearchCV(_MultiviewSearchMixin, BaseEstimator):
+    """Exhaustive grid search with cross-validation for multiview CCA models.
 
-    Wraps :class:`sklearn.model_selection.GridSearchCV` to support the
-    ``list[ArrayLike]`` interface of cca_zoo models.  Views are
-    horizontally stacked before being passed to sklearn and split back
-    inside the wrapped estimator.
+    A thin multiview adapter around
+    :class:`sklearn.model_selection.GridSearchCV`: views are horizontally
+    stacked into one array via :class:`MultiviewWrapper`, and the actual
+    search (candidate generation, parallel fold evaluation, ``cv_results_``,
+    refitting, ...) is entirely sklearn's.
 
     Args:
         estimator: A multiview CCA estimator (e.g.
@@ -157,6 +202,12 @@ class GridSearchCV:
         refit: Whether to refit the best estimator on the full dataset.
             Default is ``True``.
         verbose: Verbosity level. Default is 0.
+        pre_dispatch: Controls the number of jobs dispatched during
+            parallel execution, forwarded to sklearn's ``GridSearchCV``.
+        error_score: Value to assign to the score if fitting a candidate
+            raises an exception, forwarded to sklearn's ``GridSearchCV``.
+        return_train_score: If ``True``, ``cv_results_`` also includes
+            training scores.
 
     Example:
         >>> import numpy as np
@@ -175,11 +226,15 @@ class GridSearchCV:
         self,
         estimator: BaseEstimator,
         param_grid: dict[str, list[Any]] | list[dict[str, list[Any]]],
+        *,
         cv: int | Any = 5,
         scoring: str | None = None,
         n_jobs: int | None = None,
         refit: bool = True,
         verbose: int = 0,
+        pre_dispatch: str | int = "2*n_jobs",
+        error_score: float = np.nan,
+        return_train_score: bool = False,
     ) -> None:
         self.estimator = estimator
         self.param_grid = param_grid
@@ -188,25 +243,9 @@ class GridSearchCV:
         self.n_jobs = n_jobs
         self.refit = refit
         self.verbose = verbose
-
-    def _make_wrapped_param_grid(
-        self,
-        split_indices: list[int],
-    ) -> dict[str, list[Any]] | list[dict[str, list[Any]]]:
-        """Prefix all param_grid keys with ``estimator__``.
-
-        Args:
-            split_indices: Feature counts per view (used only to create
-                the wrapper, not the grid itself).
-
-        Returns:
-            Updated parameter grid with ``estimator__`` prefixes.
-        """
-        if isinstance(self.param_grid, dict):
-            return {f"estimator__{k}": v for k, v in self.param_grid.items()}
-        return [
-            {f"estimator__{k}": v for k, v in grid.items()} for grid in self.param_grid
-        ]
+        self.pre_dispatch = pre_dispatch
+        self.error_score = error_score
+        self.return_train_score = return_train_score
 
     def fit(
         self,
@@ -227,73 +266,146 @@ class GridSearchCV:
             self: Fitted grid search object.
         """
         arrays = [np.asarray(v) for v in views]
-        split_indices = [a.shape[1] for a in arrays]
-        x_concat = np.hstack(arrays)
-
-        wrapped_estimator = _MultiviewWrapper(
+        wrapped_estimator = MultiviewWrapper(
             estimator=self.estimator,
-            split_indices=split_indices,
+            split_indices=[a.shape[1] for a in arrays],
         )
-        wrapped_grid = self._make_wrapped_param_grid(split_indices)
-
-        self._inner_cv: skms.GridSearchCV = skms.GridSearchCV(
+        self._inner_cv = skms.GridSearchCV(
             estimator=wrapped_estimator,
-            param_grid=wrapped_grid,
+            param_grid=_wrap_param_space(self.param_grid),
             cv=self.cv,
             scoring=self.scoring,
             n_jobs=self.n_jobs,
             refit=self.refit,
             verbose=self.verbose,
+            pre_dispatch=self.pre_dispatch,
+            error_score=self.error_score,
+            return_train_score=self.return_train_score,
         )
-        self._inner_cv.fit(x_concat, y, **fit_params)
-
-        # Expose the most important attributes at the top level
-        self.cv_results_: dict[str, Any] = self._inner_cv.cv_results_
-        self.best_score_: float = self._inner_cv.best_score_
-        # Strip the estimator__ prefix from best_params_
-        raw_best: dict[str, Any] = self._inner_cv.best_params_
-        self.best_params_: dict[str, Any] = {
-            k[len("estimator__") :]: v for k, v in raw_best.items()
-        }
-        if self.refit:
-            self.best_estimator_: BaseEstimator = (
-                self._inner_cv.best_estimator_.estimator_
-            )
+        self._inner_cv.fit(np.hstack(arrays), y, **fit_params)
+        _copy_fitted_attrs(self, self._inner_cv)
         return self
 
-    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Transform multiview data using the best estimator.
 
-        Mirrors :meth:`sklearn.model_selection.GridSearchCV.transform`,
-        forwarding to ``best_estimator_``.
+class RandomizedSearchCV(_MultiviewSearchMixin, BaseEstimator):
+    """Randomized search with cross-validation for multiview CCA models.
+
+    Samples ``n_iter`` parameter settings from ``param_distributions``
+    instead of exhaustively trying every combination in a grid -- useful
+    when a hyperparameter (e.g. ``c``) is continuous, or when the grid is
+    too large to search exhaustively. A thin multiview adapter around
+    :class:`sklearn.model_selection.RandomizedSearchCV`, following the same
+    :class:`MultiviewWrapper` pattern as :class:`GridSearchCV`.
+
+    Args:
+        estimator: A multiview CCA estimator (e.g.
+            :class:`~cca_zoo.linear.CCA`).
+        param_distributions: Dictionary (or list of dictionaries) with
+            parameter names as keys and either a list of values to sample
+            from, or a distribution (anything with a ``rvs`` method, e.g.
+            ``scipy.stats.loguniform``).
+        n_iter: Number of parameter settings sampled. Default is 10.
+        cv: Number of cross-validation folds or a cross-validation
+            splitter.  Default is 5.
+        scoring: Scoring strategy.  When ``None`` the estimator's
+            default :meth:`score` method is used.
+        n_jobs: Number of jobs to run in parallel. Default is ``None``
+            (sequential).
+        refit: Whether to refit the best estimator on the full dataset.
+            Default is ``True``.
+        verbose: Verbosity level. Default is 0.
+        random_state: Controls the randomness of the parameter sampling.
+        pre_dispatch: Controls the number of jobs dispatched during
+            parallel execution, forwarded to sklearn's ``RandomizedSearchCV``.
+        error_score: Value to assign to the score if fitting a candidate
+            raises an exception, forwarded to sklearn's ``RandomizedSearchCV``.
+        return_train_score: If ``True``, ``cv_results_`` also includes
+            training scores.
+
+    Example:
+        >>> import numpy as np
+        >>> from scipy.stats import loguniform
+        >>> from cca_zoo.linear import rCCA
+        >>> from cca_zoo.model_selection import RandomizedSearchCV
+        >>> rng = np.random.default_rng(0)
+        >>> X1 = rng.standard_normal((50, 5))
+        >>> X2 = rng.standard_normal((50, 4))
+        >>> rs = RandomizedSearchCV(
+        ...     rCCA(),
+        ...     param_distributions={"c": loguniform(1e-3, 1.0)},
+        ...     n_iter=5,
+        ...     cv=2,
+        ...     random_state=0,
+        ... )
+        >>> rs = rs.fit([X1, X2])
+    """
+
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        param_distributions: dict[str, Any] | list[dict[str, Any]],
+        *,
+        n_iter: int = 10,
+        cv: int | Any = 5,
+        scoring: str | None = None,
+        n_jobs: int | None = None,
+        refit: bool = True,
+        verbose: int = 0,
+        random_state: int | Any = None,
+        pre_dispatch: str | int = "2*n_jobs",
+        error_score: float = np.nan,
+        return_train_score: bool = False,
+    ) -> None:
+        self.estimator = estimator
+        self.param_distributions = param_distributions
+        self.n_iter = n_iter
+        self.cv = cv
+        self.scoring = scoring
+        self.n_jobs = n_jobs
+        self.refit = refit
+        self.verbose = verbose
+        self.random_state = random_state
+        self.pre_dispatch = pre_dispatch
+        self.error_score = error_score
+        self.return_train_score = return_train_score
+
+    def fit(
+        self,
+        views: list[ArrayLike],
+        y: None = None,
+        **fit_params: Any,
+    ) -> RandomizedSearchCV:
+        """Run randomized search with cross-validation on multiview data.
 
         Args:
             views: List of arrays, each of shape (n_samples, n_features_i).
-
-        Returns:
-            List of arrays, each of shape (n_samples, latent_dimensions).
-
-        Raises:
-            AttributeError: If ``refit=False``, so no ``best_estimator_``
-                was fitted.
-        """
-        if not self.refit:
-            raise AttributeError(
-                "`transform` is not available when `refit=False`; no "
-                "`best_estimator_` was fitted. Set `refit=True` to use it."
-            )
-        return cast(list[np.ndarray], self.best_estimator_.transform(views))
-
-    def score(self, views: list[ArrayLike], y: None = None) -> float:
-        """Score the best estimator on held-out multiview data.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
+                All arrays must have the same number of rows.
             y: Ignored.
+            **fit_params: Additional keyword arguments forwarded to the
+                estimator's ``fit`` method during each fold.
 
         Returns:
-            Scalar: mean canonical correlation of the best estimator.
+            self: Fitted randomized search object.
         """
         arrays = [np.asarray(v) for v in views]
-        x_concat = np.hstack(arrays)
-        return float(self._inner_cv.score(x_concat, y))
+        wrapped_estimator = MultiviewWrapper(
+            estimator=self.estimator,
+            split_indices=[a.shape[1] for a in arrays],
+        )
+        self._inner_cv = skms.RandomizedSearchCV(
+            estimator=wrapped_estimator,
+            param_distributions=_wrap_param_space(self.param_distributions),
+            n_iter=self.n_iter,
+            cv=self.cv,
+            scoring=self.scoring,
+            n_jobs=self.n_jobs,
+            refit=self.refit,
+            verbose=self.verbose,
+            random_state=self.random_state,
+            pre_dispatch=self.pre_dispatch,
+            error_score=self.error_score,
+            return_train_score=self.return_train_score,
+        )
+        self._inner_cv.fit(np.hstack(arrays), y, **fit_params)
+        _copy_fitted_attrs(self, self._inner_cv)
+        return self
