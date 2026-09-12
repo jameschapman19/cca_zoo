@@ -372,7 +372,7 @@ class GPCCA(BaseModel):
     cross-covariance (including $i = j$ terms) and $V$ the mean
     auto-covariance across all views (see :mod:`cca_zoo._utils._ey`, the
     same shared EY-loss machinery used by
-    :class:`~cca_zoo.linear.gradient.CCA_EY`, :class:`~cca_zoo.deep.DCCA_EY`,
+    :class:`~cca_zoo.linear.gradient.CCAEY`, :class:`~cca_zoo.deep.DCCAEY`,
     :class:`~cca_zoo.tree.TreeCCA`, and :class:`~cca_zoo.gam.GAMCCA`).
 
     Unlike :class:`~cca_zoo.gam.GAMCCA`'s per-feature additive splines, a

@@ -1,16 +1,17 @@
-"""MCCA_EY — Multiview Eckart-Young CCA."""
+"""MCCAEY — Multiview Eckart-Young CCA."""
 
 from __future__ import annotations
 
 from numpy.typing import ArrayLike
+from sklearn.utils import deprecated
 
-from cca_zoo.linear.gradient._cca_ey import CCA_EY
+from cca_zoo.linear.gradient._cca_ey import CCAEY
 
 
-class MCCA_EY(CCA_EY):
+class MCCAEY(CCAEY):
     r"""Eckart-Young multiview CCA for large-scale data (>=2 views).
 
-    Identical to :class:`CCA_EY`; the shared Eckart-Young loss and its
+    Identical to :class:`CCAEY`; the shared Eckart-Young loss and its
     gradient (see :mod:`cca_zoo._utils._ey`) are already defined for an
     arbitrary number of views, so no multiview-specific logic is needed here.
 
@@ -22,9 +23,9 @@ class MCCA_EY(CCA_EY):
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
-        c: Ridge blend in ``[0, 1]`` between ``CCA_EY``-like (0) and
-            ``PLS_EY``-like (1) behaviour. Default is 0; see
-            :class:`CCA_EY`'s docstring for the numerical-stability note on
+        c: Ridge blend in ``[0, 1]`` between ``CCAEY``-like (0) and
+            ``PLSEY``-like (1) behaviour. Default is 0; see
+            :class:`CCAEY`'s docstring for the numerical-stability note on
             high-dimensional data.
         learning_rate: Gradient step size. Default is 1e-2.
         max_iter: Number of gradient steps. Default is 1000.
@@ -39,12 +40,12 @@ class MCCA_EY(CCA_EY):
         >>> X1 = rng.standard_normal((5000, 200))
         >>> X2 = rng.standard_normal((5000, 150))
         >>> X3 = rng.standard_normal((5000, 100))
-        >>> model = MCCA_EY(latent_dimensions=4, batch_size=128, random_state=0)
+        >>> model = MCCAEY(latent_dimensions=4, batch_size=128, random_state=0)
         >>> model = model.fit([X1, X2, X3])
     """
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> MCCA_EY:
-        """Fit MCCA_EY for 2 or more views.
+    def fit(self, views: list[ArrayLike], y: None = None) -> MCCAEY:
+        """Fit MCCAEY for 2 or more views.
 
         Args:
             views: List of arrays, each (n_samples, n_features_i).
@@ -59,3 +60,8 @@ class MCCA_EY(CCA_EY):
         """
         super().fit(views, y)
         return self
+
+
+@deprecated("Renamed to MCCAEY for sklearn-style naming; use MCCAEY instead.")
+class MCCA_EY(MCCAEY):
+    pass

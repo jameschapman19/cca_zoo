@@ -14,7 +14,7 @@ pip install cca-zoo[tree]
 ## Background
 
 `TreeCCA` maximises the same unconstrained Eckart-Young (EY) objective used by the stochastic
-`*_EY` models in `cca_zoo.linear` and by `DCCA_EY` in `cca_zoo.deep` (the numpy-based models
+`*_EY` models in `cca_zoo.linear` and by `DCCAEY` in `cca_zoo.deep` (the numpy-based models
 share the exact same implementation, in `cca_zoo._utils._ey`):
 
 $$

@@ -18,7 +18,8 @@ if _torch_available and _lightning_available:
     from cca_zoo.deep._base import BaseDeep
     from cca_zoo.deep._data import MultiviewDataset
     from cca_zoo.deep._dcca import DCCA
-    from cca_zoo.deep._dcca_ey import DCCA_EY
+    from cca_zoo.deep._dcca_ey import DCCA_EY as DCCA_EY
+    from cca_zoo.deep._dcca_ey import DCCAEY
     from cca_zoo.deep._dcca_noi import DCCA_NOI
     from cca_zoo.deep._dcca_sdl import DCCA_SDL
     from cca_zoo.deep._dccae import DCCAE
@@ -33,7 +34,7 @@ if _torch_available and _lightning_available:
         "BaseDeep",
         "BarlowTwins",
         "DCCA",
-        "DCCA_EY",
+        "DCCAEY",
         "DCCA_NOI",
         "DCCA_SDL",
         "DCCAE",
@@ -46,5 +47,7 @@ if _torch_available and _lightning_available:
         "VICReg",
         "objectives",
     ]
+    # Deprecated alias DCCA_EY stays importable for backward compatibility
+    # but is intentionally left out of __all__/docs.
 else:
     __all__ = []

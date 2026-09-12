@@ -1,6 +1,6 @@
 """Tests for ALS-based sparse/regularised CCA variants.
 
-Covers PLS_ALS, SCCA_PMD, SCCA_ADMM, SCCA_IPLS, SCCA_Span, ElasticCCA,
+Covers PLS_ALS, SCCA_PMD, SCCA_ADMM, SCCA_IPLS, SCCASpan, ElasticCCA,
 ParkhomenkoCCA, SAR.
 """
 
@@ -17,7 +17,7 @@ from cca_zoo.linear import (
     SCCA_PMD,
     ElasticCCA,
     ParkhomenkoCCA,
-    SCCA_Span,
+    SCCASpan,
 )
 
 ALL_ITERATIVE_MODELS = [
@@ -25,7 +25,7 @@ ALL_ITERATIVE_MODELS = [
     SCCA_PMD,
     SCCA_ADMM,
     SCCA_IPLS,
-    SCCA_Span,
+    SCCASpan,
     ElasticCCA,
     ParkhomenkoCCA,
     SAR,
@@ -246,10 +246,10 @@ def test_parkhomenko_achieves_sparsity(two_views: list[np.ndarray]) -> None:
 
 
 def test_scca_span_achieves_sparsity(two_views: list[np.ndarray]) -> None:
-    """SCCA_Span with span < n_features produces sparse weights."""
+    """SCCASpan with span < n_features produces sparse weights."""
     n_features = two_views[0].shape[1]
     span = n_features // 2
-    model = SCCA_Span(latent_dimensions=1, span=span, max_iter=200, random_state=0).fit(
+    model = SCCASpan(latent_dimensions=1, span=span, max_iter=200, random_state=0).fit(
         two_views
     )
     # First view should have at most 'span' nonzero entries per dimension

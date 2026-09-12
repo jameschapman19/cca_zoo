@@ -18,14 +18,18 @@ from ._iterative import (
     SCCA_PMD,
     ElasticCCA,
     ParkhomenkoCCA,
-    SCCA_Span,
+    SCCASpan,
 )
+from ._iterative import SCCA_Span as SCCA_Span
 from ._mcca import MCCA
 from ._partialcca import PartialCCA
 from ._pls import PLS
 from ._rcca import rCCA
 from ._tcca import TCCA
-from .gradient import CCA_EY, MCCA_EY, PLS_EY
+from .gradient import CCA_EY as CCA_EY
+from .gradient import CCAEY, MCCAEY, PLSEY
+from .gradient import MCCA_EY as MCCA_EY
+from .gradient import PLS_EY as PLS_EY
 
 __all__ = [
     # Exact eigendecomposition
@@ -41,16 +45,21 @@ __all__ = [
     # Reduced-rank regression
     "CCAR3",
     # Gradient descent (high-dimensional / streaming)
-    "PLS_EY",
-    "CCA_EY",
-    "MCCA_EY",
+    "PLSEY",
+    "CCAEY",
+    "MCCAEY",
     # Sparse / regularised ALS
     "SCCA_PMD",
     "SCCA_ADMM",
     "SCCA_IPLS",
-    "SCCA_Span",
+    "SCCASpan",
     "ElasticCCA",
     "ParkhomenkoCCA",
     "SAR",
     "PLS_ALS",
 ]
+# Deprecated underscored aliases (CCA_EY, MCCA_EY, PLS_EY, SCCA_Span) stay
+# importable for backward compatibility via the `from .gradient import ...`
+# / `from ._iterative import ...` statements above, but are intentionally
+# left out of __all__ (and therefore out of the API docs) since they are
+# being removed in a future release.

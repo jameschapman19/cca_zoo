@@ -62,6 +62,16 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Renamed `CCA_EY` -> `CCAEY`, `MCCA_EY` -> `MCCAEY`, `PLS_EY` -> `PLSEY`, `DCCA_EY` -> `DCCAEY`,
+  and `SCCA_Span` -> `SCCASpan` to drop the underscore, matching sklearn's own class-naming
+  convention (`RidgeCV`, `SGDRegressor`, never `Ridge_CV`). The old underscored names still work
+  but now emit a `FutureWarning` (via `sklearn.utils.deprecated`) and will be removed in a future
+  release. `SCCA_PMD`, `SCCA_ADMM`, `SCCA_IPLS`, `DCCA_NOI`, `DCCA_SDL`, and `PLS_ALS` keep their
+  underscore deliberately: `EY` and `Span` are short enough (or already word-shaped) to read fine
+  concatenated onto their base name, but stacking `PMD`/`ADMM`/`IPLS`/`NOI`/`SDL`/`ALS` directly
+  onto `SCCA`/`DCCA`/`PLS` with no separator produces a run of 7-8 capital letters with no visual
+  seam at all (e.g. `SCCAADMM`) — worse than any real sklearn precedent, which never concatenates
+  two multi-letter all-caps acronyms with nothing letter-shaped between them.
 - `CCA_EY` (and `MCCA_EY`, which inherits it) now initialises its weights
   differently from `PLS_EY`, matching each loss's own structure: `PLS_EY`
   keeps a plain, data-independent unit-norm-orthogonal-weight

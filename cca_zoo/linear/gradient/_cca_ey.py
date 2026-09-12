@@ -1,4 +1,4 @@
-"""CCA_EY — Eckart-Young CCA, continuously blended with PLS_EY via a ridge parameter."""
+"""CCAEY — Eckart-Young CCA, continuously blended with PLSEY via a ridge parameter."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from sklearn.utils import deprecated
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._utils._ey import (
@@ -17,8 +18,8 @@ from cca_zoo._utils._ey import (
 from cca_zoo.linear.gradient._base import BaseGradientModel
 
 
-class CCA_EY(BaseGradientModel):
-    r"""Eckart-Young CCA for large-scale data, ridge-blended with PLS_EY.
+class CCAEY(BaseGradientModel):
+    r"""Eckart-Young CCA for large-scale data, ridge-blended with PLSEY.
 
     Optimises the unconstrained Eckart-Young (EY) objective by mini-batch
     momentum gradient descent directly on the raw (centred) views, with no
@@ -27,8 +28,8 @@ class CCA_EY(BaseGradientModel):
     reformulation folds the orthonormalising pressure into the loss itself,
     so a full-batch preprocessing pass over the data is never needed. This
     matches how the same underlying loss is used, unwhitened, by
-    :class:`~cca_zoo.linear.gradient.PLS_EY`, :class:`~cca_zoo.tree.TreeCCA`,
-    and :class:`~cca_zoo.deep.DCCA_EY`.
+    :class:`~cca_zoo.linear.gradient.PLSEY`, :class:`~cca_zoo.tree.TreeCCA`,
+    and :class:`~cca_zoo.deep.DCCAEY`.
 
     For embeddings $Z_i = X_i W_i$, let $C$ and $V$ be the mean
     pairwise cross-covariance and mean auto-covariance across views (see
@@ -46,12 +47,12 @@ class CCA_EY(BaseGradientModel):
     \mathcal{L}_{EY}(c) = -2 \operatorname{tr}(C - c V) + \operatorname{tr}(V_c V_c)
     $$
 
-    ``c=0`` recovers plain (unregularised) ``CCA_EY`` exactly; ``c=1``
-    recovers :class:`~cca_zoo.linear.gradient.PLS_EY`'s loss exactly (its
+    ``c=0`` recovers plain (unregularised) ``CCAEY`` exactly; ``c=1``
+    recovers :class:`~cca_zoo.linear.gradient.PLSEY`'s loss exactly (its
     reward excludes the $i=j$ terms that $\mathcal{L}_{EY}(0)$
     includes, and its penalty is purely $\operatorname{tr}(BB)$) —
     both endpoints, and the gradient at intermediate $c$, are verified
-    against finite differences and against ``PLS_EY``'s own independently
+    against finite differences and against ``PLSEY``'s own independently
     verified gradient. This objective has the canonical directions as a
     stationary point without requiring an explicit orthonormality
     constraint, unlike a plain squared-projection-distance loss.
@@ -83,8 +84,8 @@ class CCA_EY(BaseGradientModel):
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
-        c: Ridge blend in ``[0, 1]`` between ``CCA_EY`` (0) and ``PLS_EY``
-            (1). Default is 0 (standard, unregularised CCA_EY); see the
+        c: Ridge blend in ``[0, 1]`` between ``CCAEY`` (0) and ``PLSEY``
+            (1). Default is 0 (standard, unregularised CCAEY); see the
             note above on numerical stability for high-dimensional data.
         learning_rate: Gradient step size. Default is 1e-2.
         max_iter: Number of gradient steps. Default is 1000.
@@ -98,7 +99,7 @@ class CCA_EY(BaseGradientModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((5000, 200))
         >>> X2 = rng.standard_normal((5000, 150))
-        >>> model = CCA_EY(latent_dimensions=4, batch_size=128, random_state=0)
+        >>> model = CCAEY(latent_dimensions=4, batch_size=128, random_state=0)
         >>> model = model.fit([X1, X2])
     """
 
@@ -131,8 +132,8 @@ class CCA_EY(BaseGradientModel):
         )
         self.c = c
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> CCA_EY:
-        """Fit CCA_EY by mini-batch momentum gradient descent.
+    def fit(self, views: list[ArrayLike], y: None = None) -> CCAEY:
+        """Fit CCAEY by mini-batch momentum gradient descent.
 
         Args:
             views: List of arrays, each (n_samples, n_features_i).
@@ -176,12 +177,12 @@ class CCA_EY(BaseGradientModel):
         r"""Analytic gradient of $\mathcal{L}_{EY}(c)$ w.r.t. each $W_k$.
 
         Combines the chain-rule gradient through the embeddings (as for
-        plain ``CCA_EY``, scaled by ``(1 - c)`` plus a direct
+        plain ``CCAEY``, scaled by ``(1 - c)`` plus a direct
         ``c``-scaled reward correction) with a *direct* weight-space
         gradient contribution from ``B``'s dependence on $W_k$ (as for
-        ``PLS_EY``, scaled by ``c``). Verified against finite differences
+        ``PLSEY``, scaled by ``c``). Verified against finite differences
         for ``c`` in ``{0, 0.3, 0.5, 0.7, 1}``, and, at ``c=0``/``c=1``,
-        against the unregularised ``CCA_EY`` gradient and ``PLS_EY``'s own
+        against the unregularised ``CCAEY`` gradient and ``PLSEY``'s own
         gradient respectively (both matches exact).
 
         Args:
@@ -223,3 +224,8 @@ class CCA_EY(BaseGradientModel):
         v_blend = (1 - c) * v_data + c * b
         reward = C - c * v_data
         return float(-2.0 * np.trace(reward) + np.trace(v_blend @ v_blend))
+
+
+@deprecated("Renamed to CCAEY for sklearn-style naming; use CCAEY instead.")
+class CCA_EY(CCAEY):
+    pass

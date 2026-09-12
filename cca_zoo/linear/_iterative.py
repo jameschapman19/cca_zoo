@@ -8,7 +8,7 @@ Classes:
     SCCA_PMD: Sparse CCA via Penalized Matrix Decomposition (Witten 2009).
     SCCA_ADMM: Sparse CCA via ADMM (Suo 2017).
     SCCA_IPLS: Iterative PLS with lasso penalty (Mai & Zhang 2019).
-    SCCA_Span: hard-thresholding ALS inspired by SpanCCA (Asteris 2016).
+    SCCASpan: hard-thresholding ALS inspired by SpanCCA (Asteris 2016).
     ElasticCCA: Elastic net regularised CCA (Waaijenborg 2008).
     ParkhomenkoCCA: Sparse CCA via soft-thresholding (Parkhomenko 2009).
     SAR: Sparse Alternating Regression, BIC-selected (Wilms & Croux 2015).
@@ -23,6 +23,7 @@ from typing import cast
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.linear_model import ElasticNet, Lasso, Ridge, lasso_path
+from sklearn.utils import deprecated
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import deflate, soft_threshold
@@ -651,11 +652,11 @@ class SCCA_IPLS(_BaseIterative):
 
 
 # ---------------------------------------------------------------------------
-# SCCA_Span — hard-thresholding ALS inspired by SpanCCA (Asteris 2016)
+# SCCASpan — hard-thresholding ALS inspired by SpanCCA (Asteris 2016)
 # ---------------------------------------------------------------------------
 
 
-class SCCA_Span(_BaseIterative):
+class SCCASpan(_BaseIterative):
     r"""Hard-thresholding ALS for sparse CCA, inspired by SpanCCA.
 
     Solves sparse CCA by an alternating least squares loop where each
@@ -690,7 +691,7 @@ class SCCA_Span(_BaseIterative):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = SCCA_Span(span=5, random_state=0).fit([X1, X2])
+        >>> model = SCCASpan(span=5, random_state=0).fit([X1, X2])
     """
 
     def __init__(
@@ -1045,7 +1046,7 @@ class SAR(_BaseIterative):
     every other alternating-regression method in this module. The
     multiview generalisation (each view regressed against the summed
     score of every *other* view, via the same :func:`_target_score`
-    helper :class:`SCCA_Span`, :class:`ParkhomenkoCCA`, and
+    helper :class:`SCCASpan`, :class:`ParkhomenkoCCA`, and
     :class:`ElasticCCA` use) is this implementation's own extension,
     not something the two-view paper itself considers.
 
@@ -1232,3 +1233,13 @@ def _make_regressors(
                 )
             )
     return regressors
+
+
+# ---------------------------------------------------------------------------
+# Deprecated underscored alias (removed in a future release)
+# ---------------------------------------------------------------------------
+
+
+@deprecated("Renamed to SCCASpan for sklearn-style naming; use SCCASpan instead.")
+class SCCA_Span(SCCASpan):
+    pass

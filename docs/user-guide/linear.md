@@ -145,20 +145,20 @@ mini-batches.
 
 | Class | Description |
 |---|---|
-| `PLS_EY` | Eckart-Young PLS objective, stochastic updates |
-| `CCA_EY` | Eckart-Young CCA, stochastic updates, ridge-blended with `PLS_EY` via `c` |
-| `MCCA_EY` | Multiview EY-CCA for ≥2 views |
+| `PLSEY` | Eckart-Young PLS objective, stochastic updates |
+| `CCAEY` | Eckart-Young CCA, stochastic updates, ridge-blended with `PLSEY` via `c` |
+| `MCCAEY` | Multiview EY-CCA for ≥2 views |
 
-`CCA_EY`'s `c` parameter (default `0`) blends its loss towards `PLS_EY`'s (`c=1`) — in fact
-`PLS_EY` is implemented as `CCA_EY` with `c` fixed at `1`. Gradient descent on the raw,
+`CCAEY`'s `c` parameter (default `0`) blends its loss towards `PLSEY`'s (`c=1`) — in fact
+`PLSEY` is implemented as `CCAEY` with `c` fixed at `1`. Gradient descent on the raw,
 unregularised (`c=0`) objective can diverge when a mini-batch's samples don't outnumber the
 number of features by a healthy margin; if you see `nan` weights, increase `c` (0.1-0.3 is
 usually enough) or `batch_size`.
 
 ```python
-from cca_zoo.linear import CCA_EY
+from cca_zoo.linear import CCAEY
 
-model = CCA_EY(latent_dimensions=2, learning_rate=0.01, batch_size=128, max_iter=200)
+model = CCAEY(latent_dimensions=2, learning_rate=0.01, batch_size=128, max_iter=200)
 model.fit([X1, X2])
 ```
 
@@ -175,7 +175,7 @@ Gram-Schmidt deflation to extract multiple canonical directions.
     - **SCCA_IPLS** — elastic net penalty; handles both L1 and L2 regularisation
     - **ElasticCCA** — elastic net applied to the multiview sum-of-scores target
     - **ParkhomenkoCCA** — simple fixed soft-threshold; fast but less adaptive
-    - **SCCA_Span** — hard threshold (top-k entries); useful when sparsity level is known
+    - **SCCASpan** — hard threshold (top-k entries); useful when sparsity level is known
     - **SAR** — penalty strength chosen automatically by BIC; no sparsity hyperparameter to tune
     - **PLS_ALS** — no sparsity; ALS version of PLS (useful as a baseline)
 
@@ -244,7 +244,7 @@ from cca_zoo.linear import ParkhomenkoCCA
 model = ParkhomenkoCCA(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
 ```
 
-### SCCA_Span
+### SCCASpan
 
 Hard-thresholding retaining only the top `span` entries, an ALS heuristic
 inspired by SpanCCA (Asteris 2016) rather than a reimplementation of its
@@ -252,9 +252,9 @@ own randomized low-rank sampling algorithm. Useful when the number of
 active features is known in advance.
 
 ```python
-from cca_zoo.linear import SCCA_Span
+from cca_zoo.linear import SCCASpan
 
-model = SCCA_Span(latent_dimensions=2, span=10, random_state=0).fit([X1, X2])
+model = SCCASpan(latent_dimensions=2, span=10, random_state=0).fit([X1, X2])
 ```
 
 ### SAR
@@ -294,5 +294,5 @@ model = PLS_ALS(latent_dimensions=2, random_state=0).fit([X1, X2])
 | Three or more views | `MCCA` or `GCCA` |
 | Higher-order cross-view structure | `TCCA` |
 | Sparse weights needed | `SCCA_PMD` or `SCCA_IPLS` |
-| Very large $p$ / streaming data | `CCA_EY`, `PLS_EY` |
+| Very large $p$ / streaming data | `CCAEY`, `PLSEY` |
 | Nonlinear relationships | See [Nonparametric Methods](nonparametric.md) |

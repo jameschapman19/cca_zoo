@@ -139,8 +139,8 @@ class TreeCCA(BaseModel):
     pairwise cross-covariance (including $i = j$ terms) and $V$
     the mean auto-covariance across all views (see
     :mod:`cca_zoo._utils._ey`, the same shared EY-loss machinery used by
-    :class:`~cca_zoo.linear.gradient.CCA_EY` and
-    :class:`~cca_zoo.deep.DCCA_EY`). The encoders are fit by alternating
+    :class:`~cca_zoo.linear.gradient.CCAEY` and
+    :class:`~cca_zoo.deep.DCCAEY`). The encoders are fit by alternating
     (Gauss-Seidel) gradient boosting: each round, for every view in turn, one
     tree is added to each of its ``latent_dimensions`` boosters using the
     EY-loss gradient (rescaled to a fixed target standard deviation for

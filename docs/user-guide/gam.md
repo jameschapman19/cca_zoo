@@ -11,7 +11,7 @@ by `cca_zoo`, rather than reimplemented from scratch.
 ## Background
 
 `GAMCCA` maximises the same unconstrained Eckart-Young (EY) objective used by the stochastic
-`*_EY` models in `cca_zoo.linear`, by `DCCA_EY` in `cca_zoo.deep`, and by `TreeCCA` in
+`*_EY` models in `cca_zoo.linear`, by `DCCAEY` in `cca_zoo.deep`, and by `TreeCCA` in
 `cca_zoo.tree` (the numpy-based models share the exact same implementation, in
 `cca_zoo._utils._ey`):
 
@@ -22,7 +22,7 @@ $$
 where, for embeddings $Z_i = f_i(X_i)$, $C$ is the mean pairwise cross-covariance (including
 $i = j$ terms) and $V$ the mean auto-covariance across all views. `GAMCCA` uses a generalized
 additive model — $f_i(x) = \sum_j s_j(x_j)$, one B-spline term per input feature — in place of a
-linear map (`CCA_EY`) or a boosted-tree ensemble (`TreeCCA`) as the function class for each
+linear map (`CCAEY`) or a boosted-tree ensemble (`TreeCCA`) as the function class for each
 $f_i$.
 
 Unlike those models, which reach the EY loss's optimum by many small (stochastic-)gradient steps,

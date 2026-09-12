@@ -10,7 +10,7 @@ dependency: the kernel and its fit are built entirely from scikit-learn's own
 ## Background
 
 `GPCCA` maximises the same unconstrained Eckart-Young (EY) objective used by the stochastic
-`*_EY` models in `cca_zoo.linear`, by `DCCA_EY` in `cca_zoo.deep`, by `TreeCCA` in `cca_zoo.tree`,
+`*_EY` models in `cca_zoo.linear`, by `DCCAEY` in `cca_zoo.deep`, by `TreeCCA` in `cca_zoo.tree`,
 and by `GAMCCA` in `cca_zoo.gam` (all share the exact same implementation, in
 `cca_zoo._utils._ey`):
 

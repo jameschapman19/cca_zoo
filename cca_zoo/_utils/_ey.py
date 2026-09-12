@@ -1,7 +1,7 @@
 r"""Shared machinery for the Eckart-Young (EY) unconstrained CCA objective.
 
-This is the loss used by :class:`~cca_zoo.linear.gradient.CCA_EY`,
-:class:`~cca_zoo.linear.gradient.MCCA_EY`, :class:`~cca_zoo.deep.DCCA_EY`, and
+This is the loss used by :class:`~cca_zoo.linear.gradient.CCAEY`,
+:class:`~cca_zoo.linear.gradient.MCCAEY`, :class:`~cca_zoo.deep.DCCAEY`, and
 :class:`~cca_zoo.tree.TreeCCA`: an unconstrained (no manifold projection
 required) stand-in for canonical correlation analysis that is a stationary
 point exactly at the canonical directions.
@@ -103,7 +103,7 @@ def random_orthonormal_weights(
     Each view's weight matrix is the $Q$ factor of a QR decomposition of
     an i.i.d. standard normal matrix, so $W_i^\top W_i = I$ exactly, before
     any gradient step and without looking at the data at all. This matches
-    the structure of :class:`~cca_zoo.linear.gradient.PLS_EY`'s own penalty,
+    the structure of :class:`~cca_zoo.linear.gradient.PLSEY`'s own penalty,
     which drives weights towards orthonormality directly in weight space
     (see :func:`weight_gram_mean`) — the loss's own fixed point is already
     the natural initial point's shape.
@@ -137,7 +137,7 @@ def cheap_orthonormal_projection_weights(
     Classical CCA whitens each view with a full $(p, p)$ eigendecomposition
     of its covariance before fitting; that full-batch pass is exactly what
     the EY reformulation exists to avoid (see
-    :class:`~cca_zoo.linear.gradient.CCA_EY`). This is a cheap substitute
+    :class:`~cca_zoo.linear.gradient.CCAEY`). This is a cheap substitute
     usable only at initialisation: draw random directions, project one
     mini-batch, and QR-orthonormalise the resulting $(n, k)$ projection
     instead of the $(p, p)$ data covariance, then pull that
@@ -153,7 +153,7 @@ def cheap_orthonormal_projection_weights(
     so the resulting projections are exactly orthonormal ($Q^\top Q = I$)
     on that mini-batch — a cheap stand-in for the reward term's ideal
     starting point ($V \approx I$; see :func:`ey_cross_covariance`) and
-    the natural match for :class:`~cca_zoo.linear.gradient.CCA_EY`'s own
+    the natural match for :class:`~cca_zoo.linear.gradient.CCAEY`'s own
     fixed point. This orthonormalises only the *first* mini-batch, though:
     every later step draws an independent fresh batch, so this does not,
     by itself, prevent the ``c=0`` divergence risk noted in that class's

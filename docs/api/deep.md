@@ -30,7 +30,7 @@ Deep CCA variants. Requires `pip install cca-zoo[deep]`.
 
 ---
 
-::: cca_zoo.deep.DCCA_EY
+::: cca_zoo.deep.DCCAEY
 
 ---
 
