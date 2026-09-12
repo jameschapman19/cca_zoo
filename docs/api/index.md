@@ -11,4 +11,4 @@ Complete API documentation auto-generated from source docstrings.
 | [`cca_zoo.deep`](deep.md) | DCCA and variants, objectives |
 | [`cca_zoo.probabilistic`](probabilistic.md) | GFA, ProbabilisticCCA, VariationalBayesCCA |
 | [`cca_zoo.datasets`](datasets.md) | JointData, toy loaders |
-| [`cca_zoo.model_selection`](model-selection.md) | GridSearchCV, RandomizedSearchCV, MultiviewWrapper |
+| [`cca_zoo.model_selection`](model-selection.md) | GridSearchCV, RandomizedSearchCV, MultiviewWrapper, permutation_test_significance |

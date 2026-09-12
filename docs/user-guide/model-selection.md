@@ -182,3 +182,40 @@ print("Best score: ", gs.best_score_)
 - `MultiviewWrapper` composes with any sklearn model-selection tool, not just the two
   classes above — reach for it directly when you need `HalvingGridSearchCV`,
   `cross_val_score`, or a `Pipeline` step.
+
+---
+
+## Assessing significance
+
+`permutation_test_significance` answers two different questions: is a canonical
+correlation stronger than you'd expect by chance, and which individual features
+reliably drive it?
+
+```python
+from cca_zoo.linear import CCA
+from cca_zoo.model_selection import permutation_test_significance
+
+result = permutation_test_significance(
+    CCA(latent_dimensions=2), [X1, X2], n_permutations=1000, random_state=0
+)
+
+print("Canonical correlations:", result.correlations_)
+print("p-values (per dimension):", result.p_values_)
+
+# Per-feature, per-dimension p-values for view 1's loadings
+print(result.loading_p_values_[0])
+```
+
+It works by refitting the model many times on data where every view except the first
+has had its rows independently shuffled, breaking the true cross-view relationship while
+keeping each view's own covariance structure intact. `p_values_` compares each
+dimension's true correlation directly against its shuffled counterparts. For the
+loadings, a shuffled refit isn't guaranteed to recover components in the same order or
+sign as the true fit — permutation can rotate or reflect near-tied dimensions — so each
+permutation's loadings are first realigned to the true fit via `procrustes_rotation`
+before being compared feature-by-feature. This follows the resampling-based significance
+testing approach used in the neuroimaging CCA/PLS literature (Xia et al. 2018; McIntosh &
+Lobaugh 2004).
+
+`n_permutations` trades off precision against runtime (each permutation refits the model
+from scratch); pass `n_jobs` to parallelise across permutations.

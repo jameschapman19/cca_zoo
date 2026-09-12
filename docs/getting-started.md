@@ -76,6 +76,20 @@ After fitting, `model.weights` is a list of weight matrices (one per view):
 W1, W2 = model.weights  # each shape (n_features_i, latent_dimensions)
 ```
 
+### Predicting a missing view
+
+`predict` reconstructs every view from whichever ones you pass — pass `None` for a view
+you want reconstructed, including one you don't have:
+
+```python
+X2_pred = model.predict([X1_test, None])[1]  # predict view 2 from view 1 alone
+```
+
+Unlike a plain `transform`-then-project-back approach, this is a proper least-squares
+reconstruction fitted at training time, so it stays accurate even on unwhitened,
+differently-scaled views (see `BaseModel.predict` in the [API reference](api/linear.md)
+for the full explanation of why CCA needs this and PLS doesn't).
+
 ---
 
 ## Quick start
