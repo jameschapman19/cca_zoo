@@ -25,6 +25,7 @@ search machinery (parallelism, scoring, ``cv_results_``, multimetric support,
 
 from __future__ import annotations
 
+import re
 from typing import Any, cast
 
 import numpy as np
@@ -33,6 +34,7 @@ from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator, clone
 
 _PARAM_PREFIX = "estimator__"
+_VIEW_PARAM_RE = re.compile(r"^(.+)__(\d+)$")
 
 
 class MultiviewWrapper(BaseEstimator):
@@ -60,6 +62,19 @@ class MultiviewWrapper(BaseEstimator):
         >>> X1, X2 = rng.standard_normal((50, 5)), rng.standard_normal((50, 4))
         >>> wrapper = MultiviewWrapper(CCA(), split_indices=[5, 4])
         >>> scores = cross_val_score(wrapper, np.hstack([X1, X2]), cv=3)
+
+    Per-view hyperparameters (a per-view CCA model accepts a scalar,
+    broadcast to every view, or an explicit list with one value per view --
+    e.g. ``KCCA(c=[0.01, 0.1])``) can be set independently through
+    ``set_params`` using a ``name__<view index>`` suffix, e.g.
+    ``estimator__c__0``. This is mainly useful for grid/randomized search:
+    a param grid of ``{"c__0": [0.01, 0.1], "c__1": [0.1, 1.0]}`` makes
+    sklearn's ``ParameterGrid`` search the Cartesian product of the two
+    views' values independently, which a single ``"c": [[...], [...]]``
+    grid of whole per-view vectors cannot express. Indices left unset keep
+    the estimator's current value for that view (broadcast if it was a
+    scalar); the whole-vector form (``c=[0.01, 0.1]``) still works exactly
+    as before, and the two styles compose freely.
     """
 
     def __init__(self, estimator: BaseEstimator, split_indices: list[int]) -> None:
@@ -74,6 +89,62 @@ class MultiviewWrapper(BaseEstimator):
             views.append(X[:, start : start + p])
             start += p
         return views
+
+    def set_params(self, **params: Any) -> MultiviewWrapper:
+        """Set parameters, honouring per-view ``name__<view index>`` overrides.
+
+        Args:
+            **params: Parameter names/values. A key of the form
+                ``estimator__<name>__<index>`` sets view ``<index>``'s
+                value of the wrapped estimator's ``<name>`` parameter
+                without disturbing the other views.
+        """
+        own: dict[str, Any] = {}
+        inner: dict[str, Any] = {}
+        for key, value in params.items():
+            if key.startswith(_PARAM_PREFIX):
+                inner[key[len(_PARAM_PREFIX) :]] = value
+            else:
+                own[key] = value
+        if own:
+            super().set_params(**own)
+        if inner:
+            self._set_inner_params(**inner)
+        return self
+
+    def _set_inner_params(self, **inner_params: Any) -> None:
+        """Apply the wrapped estimator's params, expanding per-view keys."""
+        direct: dict[str, Any] = {}
+        per_view: dict[str, dict[int, Any]] = {}
+        for key, value in inner_params.items():
+            match = _VIEW_PARAM_RE.match(key)
+            if match:
+                name, current = match.group(1), getattr(
+                    self.estimator, match.group(1), None
+                )
+                if not hasattr(current, "set_params"):
+                    per_view.setdefault(name, {})[int(match.group(2))] = value
+                    continue
+            direct[key] = value
+
+        if direct:
+            self.estimator.set_params(**direct)
+
+        n_views = len(self.split_indices)
+        for name, overrides in per_view.items():
+            bad = sorted(idx for idx in overrides if idx >= n_views)
+            if bad:
+                raise ValueError(
+                    f"Per-view parameter '{name}' has index/indices {bad} but "
+                    f"there are only {n_views} views."
+                )
+            current = getattr(self.estimator, name)
+            values = (
+                list(current) if isinstance(current, list) else [current] * n_views
+            )
+            for idx, value in overrides.items():
+                values[idx] = value
+            self.estimator.set_params(**{name: values})
 
     def fit(
         self, X: np.ndarray, y: None = None, **fit_params: Any

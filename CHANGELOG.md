@@ -69,6 +69,16 @@ project adheres to [Semantic Versioning](https://semver.org/).
   public, so it composes directly with any sklearn model-selection tool -
   `HalvingGridSearchCV`, `cross_val_score`, `cross_validate`, `learning_curve`, `Pipeline`
   - not just the two search classes cca_zoo ships.
+- Independent per-view parameter grids: `MultiviewWrapper.set_params` now understands a
+  `name__<view index>` suffix (e.g. `c__0`, `c__1`), so `param_grid={"c__0": [...], "c__1":
+  [...]}` searches the two views' values independently - sklearn's `ParameterGrid` takes
+  their Cartesian product automatically. Previously the only way to sweep a per-view
+  parameter was `param_grid={"c": [[0.01, 0.1], [0.5, 0.9]]}`, a fixed list of whole
+  per-view vectors that conflates "one candidate" with "one vector per view" and requires
+  the user to hand-enumerate any Cartesian product themselves; that form still works
+  unchanged; and the two compose freely in the same grid. An index not mentioned in the
+  grid keeps the estimator's current value for that view rather than requiring every view
+  to be listed.
 
 ### Fixed
 

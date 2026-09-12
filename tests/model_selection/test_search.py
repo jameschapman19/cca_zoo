@@ -374,3 +374,70 @@ def test_multiview_wrapper_with_cross_val_score(two_views: list[np.ndarray]) -> 
     x_concat = np.hstack(two_views)
     scores = cross_val_score(wrapper, x_concat, cv=2)
     assert scores.shape == (2,)
+
+
+# ---------------------------------------------------------------------------
+# Independent per-view hyperparameter grids via "name__<view index>"
+# ---------------------------------------------------------------------------
+
+
+def test_per_view_grid_searches_cartesian_product(
+    two_views: list[np.ndarray],
+) -> None:
+    """'c__0'/'c__1' are searched independently, not as one paired vector."""
+    gs = GridSearchCV(
+        rCCA(latent_dimensions=1),
+        param_grid={"c__0": [0.0, 0.5], "c__1": [0.1, 0.9]},
+        cv=2,
+    )
+    gs.fit(two_views)
+    assert len(gs.cv_results_["params"]) == 4  # full 2x2 Cartesian product
+    assert set(gs.best_params_) == {"c__0", "c__1"}
+    assert gs.best_params_["c__0"] in [0.0, 0.5]
+    assert gs.best_params_["c__1"] in [0.1, 0.9]
+    assert gs.best_estimator_.c == [gs.best_params_["c__0"], gs.best_params_["c__1"]]
+
+
+def test_per_view_grid_partial_override_keeps_other_view_default(
+    two_views: list[np.ndarray],
+) -> None:
+    """Only the indices present in the grid are overridden; others keep their value."""
+    gs = GridSearchCV(
+        rCCA(latent_dimensions=1, c=0.3),
+        param_grid={"c__0": [0.0, 0.9]},
+        cv=2,
+    )
+    gs.fit(two_views)
+    assert gs.best_estimator_.c[1] == 0.3
+    assert gs.best_estimator_.c[0] in [0.0, 0.9]
+
+
+def test_per_view_grid_out_of_range_index_raises(two_views: list[np.ndarray]) -> None:
+    """An index beyond the number of views raises a clear ValueError."""
+    gs = GridSearchCV(rCCA(latent_dimensions=1), param_grid={"c__5": [0.1]}, cv=2)
+    with pytest.raises(ValueError, match="views"):
+        gs.fit(two_views)
+
+
+def test_whole_vector_per_view_style_still_works(two_views: list[np.ndarray]) -> None:
+    """The original 'c': [[v0, v1], ...] whole-vector style is unaffected."""
+    gs = GridSearchCV(
+        rCCA(latent_dimensions=1),
+        param_grid={"c": [[0.0, 0.1], [0.5, 0.9]]},
+        cv=2,
+    )
+    gs.fit(two_views)
+    assert gs.best_estimator_.c in ([0.0, 0.1], [0.5, 0.9])
+
+
+def test_per_view_grid_with_randomized_search(two_views: list[np.ndarray]) -> None:
+    """Per-view keys work with RandomizedSearchCV too (same wrapper)."""
+    rs = RandomizedSearchCV(
+        rCCA(latent_dimensions=1),
+        param_distributions={"c__0": [0.0, 0.5], "c__1": [0.1, 0.9]},
+        n_iter=3,
+        cv=2,
+        random_state=0,
+    )
+    rs.fit(two_views)
+    assert rs.best_estimator_.c == [rs.best_params_["c__0"], rs.best_params_["c__1"]]
