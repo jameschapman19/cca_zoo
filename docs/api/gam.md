@@ -1,7 +1,7 @@
 # cca_zoo.gam
 
-Generalized-additive-model (GAM) nonlinear CCA methods. Pure numpy/scipy — no optional
-dependency required.
+Generalized-additive-model (GAM) nonlinear CCA methods. Built entirely on scikit-learn's own
+`SplineTransformer`/`Ridge` — no optional dependency required.
 
 ---
 

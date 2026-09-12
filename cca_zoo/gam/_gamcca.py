@@ -7,6 +7,8 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from sklearn.linear_model import Ridge
+from sklearn.preprocessing import SplineTransformer
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
@@ -19,137 +21,80 @@ from cca_zoo._utils._ey import (
 from cca_zoo._utils._validation import validate_views
 
 
-def _cubic_spline_basis(
-    x: np.ndarray, knots: np.ndarray, lo: float, hi: float
-) -> np.ndarray:
-    """Truncated-power cubic regression spline basis for one feature.
-
-    Args:
-        x: Feature values (already scaled to unit standard deviation),
-            shape (n_samples,).
-        knots: Interior knot locations (quantiles of the training data, in
-            the same scaled units), shape (n_knots,).
-        lo: Training-data lower bound, used to clip inputs before
-            evaluating the basis so that cubic extrapolation on unseen data
-            cannot blow up.
-        hi: Training-data upper bound (see ``lo``).
-
-    Returns:
-        Design matrix of shape (n_samples, 4 + n_knots): columns
-        ``1, x, x^2, x^3`` followed by one ``(x - knot)_+^3`` column per
-        interior knot.
-    """
-    xc = np.clip(x, lo, hi)
-    cols = [np.ones_like(xc), xc, xc**2, xc**3]
-    for knot in knots:
-        cols.append(np.clip(xc - knot, 0.0, None) ** 3)
-    return np.column_stack(cols)
-
-
-def _ridge_pinv(basis: np.ndarray, ridge: float) -> np.ndarray:
-    """Ridge pseudo-inverse of a design matrix, column-norm-preconditioned.
-
-    Cubic-spline basis columns (``x``, ``x^3``, truncated-cubic terms, ...)
-    have wildly different natural scales, so a single ``ridge`` value only
-    penalises them comparably after each column is rescaled to unit norm;
-    the returned pseudo-inverse already undoes that rescaling, so
-    ``basis @ (_ridge_pinv(basis, ridge) @ y)`` is the ridge fit of ``y`` in
-    the *original* column scale.
-
-    Args:
-        basis: Design matrix, shape (n_samples, n_basis).
-        ridge: Ridge penalty strength (applied after column-norm scaling,
-            so it is comparable across features regardless of their raw
-            scale).
-
-    Returns:
-        Pseudo-inverse matrix, shape (n_basis, n_samples).
-    """
-    col_scale = np.maximum(np.linalg.norm(basis, axis=0), 1e-8)
-    normed = basis / col_scale
-    gram = normed.T @ normed + ridge * np.eye(normed.shape[1])
-    pinv_normed = np.linalg.solve(gram, normed.T)
-    result: np.ndarray = pinv_normed / col_scale[:, None]
-    return result
-
-
 class _GamEncoder:
-    r"""Per-view additive spline encoder, fit by componentwise L2 boosting.
+    """Per-view additive-spline encoder, fit by componentwise L2Boosting.
 
-    Each latent component is modelled as $f(x) = \\sum_j s_j(x_j)$, one
-    cubic regression spline per input feature. Every boosting round performs
-    one ridge-regularised least-squares fit of *all* per-feature spline
-    bases at once against the (rescaled) EY gradient, shrunk by
-    ``learning_rate`` and added to the running coefficients — i.e. L2Boosting
-    (Bühlmann & Yu, 2003) with a penalised additive-spline base learner, used
-    only during ``fit``.
+    Each latent component is modelled as a generalized additive model —
+    one B-spline term per input feature — using only scikit-learn's own,
+    already-required machinery: :class:`~sklearn.preprocessing.SplineTransformer`
+    builds the per-feature B-spline design matrix (one contiguous block of
+    columns per feature) and :class:`~sklearn.linear_model.Ridge` fits it,
+    rather than reimplementing either. Every boosting round fits a fresh
+    ridge regression of the (rescaled) EY gradient onto that fixed basis and
+    accumulates it, shrunk by ``learning_rate`` — i.e. L2Boosting (Bühlmann
+    & Yu, 2003) with a penalised-spline base learner, the same
+    meta-algorithm :class:`~cca_zoo.tree.TreeCCA` uses with a decision-tree
+    base learner instead. Used only during ``fit``.
     """
 
     def __init__(self, X: np.ndarray, k: int, n_knots: int, ridge: float) -> None:
-        n, p = X.shape
-        self.n = n
-        self.p = p
+        self.n, self.p = X.shape
         self.k = k
-        self.scales_ = np.maximum(X.std(axis=0), 1e-8)
-        scaled = X / self.scales_
-        self.lo_ = scaled.min(axis=0)
-        self.hi_ = scaled.max(axis=0)
-        quantiles = np.linspace(0.0, 1.0, n_knots + 2)[1:-1]
-        self.knots_ = [np.quantile(scaled[:, j], quantiles) for j in range(p)]
-        bases = [
-            _cubic_spline_basis(scaled[:, j], self.knots_[j], self.lo_[j], self.hi_[j])
-            for j in range(p)
-        ]
-        self.df_: int = bases[0].shape[1]
-        self._basis: np.ndarray = np.column_stack(bases)  # (n, p * df)
-        self._pinv: np.ndarray = _ridge_pinv(self._basis, ridge)  # (p * df, n)
-        self.coefs_: np.ndarray = np.zeros((p * self.df_, k))
+        self.ridge = ridge
+        self._spline = SplineTransformer(
+            n_knots=n_knots,
+            degree=3,
+            knots="quantile",
+            extrapolation="constant",
+            include_bias=True,
+        )
+        self._basis: np.ndarray = self._spline.fit_transform(X)
+        self.n_splines_: int = self._basis.shape[1] // self.p
+        self.coefs_: np.ndarray = np.zeros((self._basis.shape[1], k))
+        self._train_pred: np.ndarray = np.zeros((self.n, k))
 
     def predict(self) -> np.ndarray:
         """Encoder output on the training data, shape (n_samples, k)."""
-        result: np.ndarray = self._basis @ self.coefs_
-        return result
+        return self._train_pred
 
     def boost(self, gradient: np.ndarray, learning_rate: float) -> None:
-        """Add one ridge-fitted, shrunk round to every feature's spline terms.
+        """Ridge-fit the negative gradient onto the spline basis and accumulate.
 
         Args:
             gradient: EY gradient for this view, shape (n_samples, k).
             learning_rate: Shrinkage applied to this round's fit.
         """
-        beta = self._pinv @ (-gradient)  # (p * df, k)
-        self.coefs_ += learning_rate * beta
-
-    def _basis_new(self, X: np.ndarray) -> np.ndarray:
-        scaled = X / self.scales_
-        bases = [
-            _cubic_spline_basis(scaled[:, j], self.knots_[j], self.lo_[j], self.hi_[j])
-            for j in range(self.p)
-        ]
-        return np.column_stack(bases)
+        target = -gradient
+        model = Ridge(alpha=self.ridge, fit_intercept=False)
+        model.fit(self._basis, target)
+        coef = np.atleast_2d(model.coef_).T  # (n_basis, k)
+        self.coefs_ += learning_rate * coef
+        self._train_pred += learning_rate * (self._basis @ coef)
 
     def predict_new(self, X: np.ndarray) -> np.ndarray:
         """Encoder output for arbitrary (e.g. test) data, shape (n, k)."""
-        result: np.ndarray = self._basis_new(X) @ self.coefs_
+        basis = self._spline.transform(X)
+        result: np.ndarray = basis @ self.coefs_
         return result
 
     def feature_term(self, feature_idx: int, x: np.ndarray) -> np.ndarray:
-        """Single feature's additive contribution $s_j(x_j)$ at given values.
+        """Single feature's additive contribution, shape (n, k).
 
         Args:
-            feature_idx: Index of the input feature (in the centred-view
-                column order).
+            feature_idx: Index of the input feature.
             x: Raw (mean-centred) values for that feature, shape (n,).
 
         Returns:
-            Array of shape (n, k): this feature's spline term alone, for
-            each latent component.
+            Array of shape (n, k): this feature's term alone, for each
+            latent component.
         """
-        scaled = x / self.scales_[feature_idx]
-        lo, hi = self.lo_[feature_idx], self.hi_[feature_idx]
-        basis = _cubic_spline_basis(scaled, self.knots_[feature_idx], lo, hi)
-        block = slice(feature_idx * self.df_, (feature_idx + 1) * self.df_)
-        result: np.ndarray = basis @ self.coefs_[block]
+        grid = np.zeros((len(x), self.p))
+        grid[:, feature_idx] = x
+        basis = self._spline.transform(grid)
+        block = slice(
+            feature_idx * self.n_splines_, (feature_idx + 1) * self.n_splines_
+        )
+        result: np.ndarray = basis[:, block] @ self.coefs_[block]
         return result
 
 
@@ -158,7 +103,7 @@ class GAMCCA(BaseModel):
 
     Learns one nonlinear encoder $f_i$ per view — a generalized additive
     model (GAM), $f_i(x) = \sum_j s_{ij}(x_{ij})$, summing one univariate
-    cubic-spline term per input feature — that jointly maximise the
+    B-spline term per input feature — that jointly maximise the
     Eckart-Young (EY) unconstrained-CCA objective:
 
     $$
@@ -170,26 +115,34 @@ class GAMCCA(BaseModel):
     auto-covariance across all views (see :mod:`cca_zoo._utils._ey`, the
     same shared EY-loss machinery used by
     :class:`~cca_zoo.linear.gradient.CCA_EY`, :class:`~cca_zoo.deep.DCCA_EY`,
-    and :class:`~cca_zoo.tree.TreeCCA`). The encoders are fit by alternating
-    (Gauss-Seidel) L2Boosting (Bühlmann & Yu, 2003): each round, for every
-    view in turn, the EY-loss gradient (rescaled to a fixed target standard
-    deviation — see :func:`cca_zoo._utils._ey.rescale_grads_to_target_std`,
-    needed since the analytic gradient's natural scale is far smaller than a
-    well-conditioned regression target) is fit, *jointly across all of that
-    view's features*, by a ridge-penalised cubic-regression-spline additive
-    model, shrunk by ``learning_rate`` and added to the running per-feature
-    coefficients — when ``gauss_seidel=True`` (default), the gradient is
-    recomputed from the freshest embeddings before moving to the next view.
-    Training starts from a random-orthogonal, unit-variance initial
-    embedding per view, as for :class:`~cca_zoo.tree.TreeCCA`.
+    and :class:`~cca_zoo.tree.TreeCCA`). Rather than reimplementing spline
+    fitting from scratch, each encoder is built entirely from scikit-learn's
+    own, already-required machinery:
+    :class:`~sklearn.preprocessing.SplineTransformer` builds the per-feature
+    B-spline design matrix (one contiguous block of columns per feature,
+    giving the additive structure) and :class:`~sklearn.linear_model.Ridge`
+    fits it. The encoders are fit by alternating (Gauss-Seidel) L2Boosting
+    (Bühlmann & Yu, 2003): each round, for every view in turn, the EY-loss
+    gradient (rescaled to a fixed target standard deviation — see
+    :func:`cca_zoo._utils._ey.rescale_grads_to_target_std`, needed since the
+    analytic gradient's natural scale is far smaller than a well-conditioned
+    regression target) is ridge-fit onto that view's fixed spline basis,
+    shrunk by ``learning_rate`` and added to a running total — the same
+    meta-algorithm :class:`~cca_zoo.tree.TreeCCA` uses with tree base
+    learners instead of splines. With ``gauss_seidel=True`` (default), the
+    gradient is recomputed from the freshest embeddings before moving to the
+    next view. Training starts from a random-orthogonal, unit-variance
+    initial embedding per view, as for :class:`~cca_zoo.tree.TreeCCA`. No
+    optional dependency is required — everything here is already part of
+    ``cca_zoo``'s required scikit-learn dependency.
 
     Because each latent component decomposes exactly into one additive term
     per input feature, the fitted shape of any feature's contribution is
     available directly via :meth:`shape_function`, without a separate
     interpretability method such as SHAP — and, unlike a boosted-tree
-    ensemble's step-function contributions, each term is a smooth curve
-    by construction. This smoothness is also a genuine inductive bias, not
-    just a cosmetic one: on data where the true per-feature relationship is
+    ensemble's step-function contributions, each term is a smooth curve by
+    construction. This smoothness is also a genuine inductive bias, not just
+    a cosmetic one: on data where the true per-feature relationship is
     smooth, GAMCCA reaches a given held-out canonical correlation in far
     fewer boosting rounds than :class:`~cca_zoo.tree.TreeCCA`, and can
     generalise better at a matched round budget (see the module's test
@@ -206,6 +159,9 @@ class GAMCCA(BaseModel):
         do better instead.
 
     References:
+        Eilers, P. H., & Marx, B. D. (1996). Flexible smoothing with
+        B-splines and penalties. Statistical Science, 11(2), 89-121.
+
         Bühlmann, P., & Yu, B. (2003). Boosting with the L2 loss:
         regression and classification. Journal of the American Statistical
         Association, 98(462), 324-339.
@@ -220,19 +176,16 @@ class GAMCCA(BaseModel):
         center: Whether to subtract per-view column means before fitting.
             Default is True.
         n_estimators: Number of boosting rounds. Default is 150.
-        n_knots: Number of interior knots per feature's cubic regression
-            spline (basis dimension is ``4 + n_knots``: intercept, linear,
-            quadratic, cubic, plus one truncated-cubic term per knot).
-            Default is 3.
+        n_knots: Number of knots per feature's B-spline term, passed
+            straight through to ``sklearn.preprocessing.SplineTransformer(
+            n_knots=...)``. Default is 5.
         learning_rate: Boosting shrinkage applied to each round's ridge fit.
             Default is 0.3.
-        ridge: Ridge penalty for each round's per-view spline fit, applied
-            after normalising every basis column to unit norm (so it
-            penalises all features/terms comparably regardless of their raw
-            scale). Higher values give smoother, less wiggly per-feature
-            curves at the cost of slower convergence, and are the main
-            defence against overfitting a single view's noise. Default is
-            0.1.
+        ridge: Ridge penalty for each round's per-view spline fit, passed
+            straight through to ``sklearn.linear_model.Ridge(alpha=...)``.
+            Higher values give smoother, less wiggly per-feature curves at
+            the cost of slower convergence, and are the main defence
+            against overfitting a single view's noise. Default is 0.1.
         gauss_seidel: If True, re-predict view 1's embedding after updating
             its encoder and use the fresh values when computing view 2's
             gradient (Gauss-Seidel); if False, both gradients are computed
@@ -252,7 +205,7 @@ class GAMCCA(BaseModel):
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         "n_estimators": [Interval(Integral, 1, None, closed="left")],
-        "n_knots": [Interval(Integral, 1, None, closed="left")],
+        "n_knots": [Interval(Integral, 2, None, closed="left")],
         "learning_rate": [Interval(Real, 0, None, closed="neither")],
         "ridge": [Interval(Real, 0, None, closed="left")],
         "gauss_seidel": ["boolean"],
@@ -263,7 +216,7 @@ class GAMCCA(BaseModel):
         latent_dimensions: int = 1,
         center: bool = True,
         n_estimators: int = 150,
-        n_knots: int = 3,
+        n_knots: int = 5,
         learning_rate: float = 0.3,
         ridge: float = 0.1,
         gauss_seidel: bool = True,
@@ -352,7 +305,8 @@ class GAMCCA(BaseModel):
         Because GAMCCA's encoder is additive across features, each term can
         be inspected in isolation — the direct GAM analogue of
         :class:`~cca_zoo.tree.TreeCCA`'s split-gain feature importance, but
-        exact and shape-preserving rather than a single importance score.
+        an exact, shape-preserving curve rather than a single importance
+        score.
 
         Args:
             view: Index of the view.
@@ -385,7 +339,7 @@ class GAMCCA(BaseModel):
         check_is_fitted(self)
         raise NotImplementedError(
             "GAMCCA has no linear weight matrices; its encoders are "
-            "generalized additive models (one cubic spline per feature). "
+            "generalized additive models (one B-spline term per feature). "
             "Use the `shape_function` method instead to inspect a fitted "
             "feature's contribution directly."
         )

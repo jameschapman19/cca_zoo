@@ -1,9 +1,15 @@
-"""Tests for GAMCCA."""
+"""Tests for GAMCCA.
+
+Unlike TreeCCA, GAMCCA has no optional dependency (it is built entirely on
+scikit-learn's SplineTransformer/Ridge, already required by cca_zoo), so
+these tests run unconditionally.
+"""
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
+from sklearn.preprocessing import SplineTransformer
 
 from cca_zoo.gam import GAMCCA
 
@@ -202,6 +208,19 @@ def test_encoders_attribute_shape(two_views_small: list[np.ndarray]) -> None:
         assert enc.predict().shape == (two_views_small[0].shape[0], k)
 
 
+def test_encoder_basis_is_sklearn_spline_transformer(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """The per-view spline basis is an actual fitted SplineTransformer.
+
+    Confirms basis construction is delegated to scikit-learn rather than
+    reimplemented.
+    """
+    model = _make_model().fit(two_views_small)
+    for enc in model.encoders_:
+        assert isinstance(enc._spline, SplineTransformer)
+
+
 # ---------------------------------------------------------------------------
 # shape_function
 # ---------------------------------------------------------------------------
@@ -274,11 +293,15 @@ def test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data() -> Non
     linear combination of view 1's raw features can align with view 2 (so
     ``rCCA`` is expected to fail), while a per-view nonlinear encoder that
     (approximately) learns the "square" transform recovers near-perfect
-    cross-view correlation. GAMCCA's cubic-spline basis represents an exact
-    quadratic directly, so it should reach a given held-out correlation in
-    far fewer boosting rounds than TreeCCA's step-function tree ensembles,
-    and should out-generalise TreeCCA even at a matched round budget.
+    cross-view correlation. GAMCCA's B-spline basis represents a quadratic
+    almost exactly, so it should reach a given held-out correlation in far
+    fewer boosting rounds than TreeCCA's step-function tree ensembles, and
+    should out-generalise TreeCCA even at a matched round budget.
+
+    Marked slow since it also requires TreeCCA's optional ``xgboost``
+    dependency, not part of the base ``dev`` install.
     """
+    pytest.importorskip("xgboost", reason="xgboost is not installed")
     from cca_zoo.linear import rCCA
     from cca_zoo.tree import TreeCCA
 

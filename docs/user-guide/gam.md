@@ -1,9 +1,10 @@
 # GAM Methods
 
 The `cca_zoo.gam` module provides `GAMCCA`, a nonlinear multiview CCA method that uses a
-generalized additive model (GAM) — one smooth univariate spline per input feature — as the
-per-view encoder. It has no optional dependency; it only needs numpy/scipy, already required by
-`cca_zoo`.
+generalized additive model (GAM) — one smooth univariate B-spline per input feature — as the
+per-view encoder. It has no optional dependency: the spline basis and its penalised fit are built
+entirely from scikit-learn's own `SplineTransformer` and `Ridge`, both already required by
+`cca_zoo`, rather than reimplemented from scratch.
 
 ---
 
@@ -20,19 +21,21 @@ $$
 
 where, for embeddings $Z_i = f_i(X_i)$, $C$ is the mean pairwise cross-covariance (including
 $i = j$ terms) and $V$ the mean auto-covariance across all views. `GAMCCA` uses a generalized
-additive model — $f_i(x) = \sum_j s_j(x_j)$, one cubic-regression-spline term per input
-feature — in place of a linear map (`CCA_EY`) or a boosted-tree ensemble (`TreeCCA`) as the
-function class for each $f_i$.
+additive model — $f_i(x) = \sum_j s_j(x_j)$, one B-spline term per input feature — in place of a
+linear map (`CCA_EY`) or a boosted-tree ensemble (`TreeCCA`) as the function class for each
+$f_i$. The per-feature basis comes from `sklearn.preprocessing.SplineTransformer` (one contiguous
+block of B-spline columns per feature, giving the additive structure directly) and each round's
+penalised fit from `sklearn.linear_model.Ridge` — both scikit-learn's own, already-required
+implementations, not reimplemented here.
 
 Training proceeds by alternating (Gauss-Seidel) L2Boosting (Bühlmann & Yu, 2003): each round, for
 every view in turn, the EY-loss gradient is computed from the current embeddings, rescaled to a
 fixed target standard deviation (the analytic gradient's natural scale is far smaller than a
 well-conditioned regression target — the same fix `TreeCCA` applies to its own boosters), and
-fit — *jointly across all of that view's features* — by a single ridge-penalised regression onto
-the concatenated per-feature spline basis. The fit is shrunk by `learning_rate` and added to the
-running per-feature coefficients. With `gauss_seidel=True` (the default) the gradient is
-recomputed from the freshest embeddings before moving to the next view. Encoders start from a
-random-orthogonal, unit-variance initial embedding per view, exactly as `TreeCCA` does.
+ridge-fit onto that view's fixed spline basis. The fit is shrunk by `learning_rate` and added to a
+running total. With `gauss_seidel=True` (the default) the gradient is recomputed from the
+freshest embeddings before moving to the next view. Encoders start from a random-orthogonal,
+unit-variance initial embedding per view, exactly as `TreeCCA` does.
 
 Because each latent component decomposes exactly into one additive term per input feature, the
 fitted shape of any feature's contribution is available directly via `model.shape_function(...)`
@@ -51,7 +54,8 @@ noisy linear copy of `z ** 2` (a smooth but non-monotonic transform, so no linea
 either view's raw features can align with the other — `rCCA` gets essentially nothing). At a
 matched budget of 150 boosting rounds, `GAMCCA` reaches a held-out canonical correlation of about
 0.97, versus about 0.60 for `TreeCCA` — which does not reach that level even at 600 rounds (about
-0.90).
+0.90) — and `GAMCCA` is also markedly cheaper per round, since a ridge-regularised least-squares
+solve is far cheaper than growing a tree.
 
 If cross-view structure instead depends on an *interaction* between two features of the same view
 (e.g. $x_1 x_2$), a GAM's additive structure cannot represent that the way a tree's multivariate
@@ -97,9 +101,9 @@ score.
 | Parameter | Description |
 |---|---|
 | `n_estimators` | Boosting rounds. Higher values fit more complex relationships but risk overfitting and cost more time. |
-| `n_knots` | Interior knots per feature's cubic regression spline; basis dimension is `4 + n_knots`. More knots allow wigglier per-feature curves. |
+| `n_knots` | Knots per feature's B-spline term, passed straight through to `SplineTransformer(n_knots=...)`. More knots allow wigglier per-feature curves. |
 | `learning_rate` | Boosting shrinkage applied to each round's ridge fit. |
-| `ridge` | Ridge penalty for each round's per-view spline fit (applied after normalising every basis column to unit norm, so it penalises all features/terms comparably). The main defence against overfitting a single view's noise — increase it for smoother, less wiggly curves. |
+| `ridge` | Ridge penalty for each round's per-view spline fit, passed straight through to `Ridge(alpha=...)`. The main defence against overfitting a single view's noise — increase it for smoother, less wiggly curves. |
 | `gauss_seidel` | Use freshly-updated view-1 embeddings when computing view 2's gradient each round (default `True`); set `False` for Jacobi-style stale updates. |
 | `random_state` | Seed for the random-orthogonal initial embedding. |
 
@@ -115,4 +119,5 @@ Hyperparameters are best selected by cross-validation with `GridSearchCV` from
   initialisation draws that many orthogonal directions in feature space).
 - Unlike `KCCA`, `GAMCCA` does not store the training data for inference — new data is passed
   directly through the fitted per-feature splines, so `transform` on held-out data is inexpensive.
-- No optional dependency is required (unlike `cca_zoo.tree`, which needs `xgboost`/`lightgbm`).
+- No optional dependency is required (unlike `cca_zoo.tree`, which needs `xgboost`/`lightgbm`):
+  `GAMCCA` is built entirely on `scikit-learn`'s `SplineTransformer` and `Ridge`.
