@@ -116,8 +116,9 @@ class MultiviewWrapper(BaseEstimator):
         for key, value in inner_params.items():
             match = _VIEW_PARAM_RE.match(key)
             if match:
-                name, current = match.group(1), getattr(
-                    self.estimator, match.group(1), None
+                name, current = (
+                    match.group(1),
+                    getattr(self.estimator, match.group(1), None),
                 )
                 if not hasattr(current, "set_params"):
                     per_view.setdefault(name, {})[int(match.group(2))] = value
@@ -136,16 +137,12 @@ class MultiviewWrapper(BaseEstimator):
                     f"there are only {n_views} views."
                 )
             current = getattr(self.estimator, name)
-            values = (
-                list(current) if isinstance(current, list) else [current] * n_views
-            )
+            values = list(current) if isinstance(current, list) else [current] * n_views
             for idx, value in overrides.items():
                 values[idx] = value
             self.estimator.set_params(**{name: values})
 
-    def fit(
-        self, X: np.ndarray, y: None = None, **fit_params: Any
-    ) -> MultiviewWrapper:
+    def fit(self, X: np.ndarray, y: None = None, **fit_params: Any) -> MultiviewWrapper:
         """Fit the wrapped estimator on the concatenated multiview data."""
         self.estimator_ = clone(self.estimator)
         self.estimator_.fit(self._split_views(X), **fit_params)
