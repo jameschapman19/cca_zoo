@@ -194,4 +194,6 @@ If CCA-Zoo is useful in your research, please cite:
 
 ## Contributing
 
-Contributions are welcome. See [docs/contributing.md](docs/contributing.md) for development setup, coding standards, and pull request guidelines.
+Contributions are welcome. See [docs/contributing.md](docs/contributing.md) for development setup, coding standards, and pull request guidelines. Please also read our [Code of Conduct](CODE_OF_CONDUCT.md).
+
+Found a security issue? See [SECURITY.md](SECURITY.md) for how to report it privately.
