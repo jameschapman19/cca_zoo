@@ -195,6 +195,105 @@ def test_get_factor_loadings_shapes(two_views: list[np.ndarray]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# predict
+# ---------------------------------------------------------------------------
+
+
+def test_predict_raises_before_fit(two_views: list[np.ndarray]) -> None:
+    """Calling predict before fit raises NotFittedError."""
+    model = CCA()
+    with pytest.raises(NotFittedError):
+        model.predict(two_views)
+
+
+def test_predict_wrong_length_raises(two_views: list[np.ndarray]) -> None:
+    """Predict raises ValueError when views has the wrong length."""
+    model = CCA().fit(two_views)
+    with pytest.raises(ValueError, match="Expected 2 views"):
+        model.predict([two_views[0]])
+
+
+def test_predict_all_none_raises(two_views: list[np.ndarray]) -> None:
+    """Predict raises ValueError when every view is None."""
+    model = CCA().fit(two_views)
+    with pytest.raises(ValueError, match="At least one view"):
+        model.predict([None, None])
+
+
+def test_predict_mismatched_samples_raises(two_views: list[np.ndarray]) -> None:
+    """Predict raises ValueError when observed views disagree on n_samples."""
+    model = CCA().fit(two_views)
+    with pytest.raises(ValueError, match="same number of samples"):
+        model.predict([two_views[0], two_views[1][:5]])
+
+
+def test_predict_wrong_n_features_raises(two_views: list[np.ndarray]) -> None:
+    """Predict raises ValueError when an observed view has the wrong width."""
+    model = CCA().fit(two_views)
+    with pytest.raises(ValueError, match="expected 10"):
+        model.predict([two_views[0][:, :3], None])
+
+
+def test_predict_output_shapes(two_views: list[np.ndarray]) -> None:
+    """Predict returns one reconstruction per view, each matching its input shape."""
+    model = CCA(latent_dimensions=2).fit(two_views)
+    preds = model.predict([two_views[0], None])
+    assert len(preds) == 2
+    assert preds[0].shape == two_views[0].shape
+    assert preds[1].shape == (two_views[0].shape[0], two_views[1].shape[1])
+
+
+def test_predict_reconstructs_correlated_views(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """Predict cross-reconstructs a view from the other with high fidelity.
+
+    Regression test for the CCA forward-model ambiguity discussed in #182:
+    a naive ``scores @ weights.T`` reconstruction is only correct when the
+    data is pre-whitened, so this checks the actual, unwhitened, correlated
+    fixture data reconstructs well via the least-squares loadings instead.
+    """
+    model = CCA(latent_dimensions=2).fit(correlated_views)
+    x2_pred = model.predict([correlated_views[0], None])[1]
+    corr = np.corrcoef(x2_pred.ravel(), correlated_views[1].ravel())[0, 1]
+    assert corr > 0.9
+
+
+def test_predict_self_reconstruction_beats_naive_weights_reconstruction(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """The fitted loadings reconstruct better than a naive weights.T formula.
+
+    On heterogeneous, unwhitened per-feature scales -- the case reported in
+    #182 -- ``scores @ weights.T`` is a poor inverse of ``transform`` for
+    CCA. Rescale the fixture's views to heterogeneous per-feature scales and
+    check predict's least-squares loadings noticeably outperform the naive
+    formula.
+    """
+    rng = np.random.default_rng(1)
+    scales = [rng.uniform(0.5, 20, size=v.shape[1]) for v in correlated_views]
+    views = [v * s for v, s in zip(correlated_views, scales)]
+    model = CCA(latent_dimensions=2).fit(views)
+
+    x2_pred = model.predict([views[0], None])[1]
+    corr_predict = np.corrcoef(x2_pred.ravel(), views[1].ravel())[0, 1]
+
+    z_hat = (views[0] - model.means_[0]) @ model.weights_[0]
+    naive_pred = z_hat @ model.weights_[1].T + model.means_[1]
+    corr_naive = np.corrcoef(naive_pred.ravel(), views[1].ravel())[0, 1]
+
+    assert corr_predict > corr_naive
+
+
+def test_predict_ignores_extra_observed_views(two_views: list[np.ndarray]) -> None:
+    """Passing an observed (not None) target view doesn't change its shape."""
+    model = CCA(latent_dimensions=2).fit(two_views)
+    both_observed = model.predict(two_views)
+    one_observed = model.predict([two_views[0], None])
+    assert both_observed[1].shape == one_observed[1].shape
+
+
+# ---------------------------------------------------------------------------
 # sklearn get_params / set_params roundtrip
 # ---------------------------------------------------------------------------
 

@@ -21,8 +21,8 @@ class BaseModel(BaseEstimator, ABC):
 
     Subclasses must implement :meth:`fit`.  All other public methods
     (``transform``, ``fit_transform``, ``score``, ``pairwise_correlations``,
-    ``average_pairwise_correlations``, ``get_factor_loadings``) are provided
-    here using the ``weights_`` attribute set by ``fit``.
+    ``average_pairwise_correlations``, ``get_factor_loadings``, ``predict``)
+    are provided here using the ``weights_`` attribute set by ``fit``.
 
     This class inherits from :class:`sklearn.base.BaseEstimator` so that
     ``get_params`` / ``set_params`` round-trip correctly and sklearn model
@@ -99,6 +99,9 @@ class BaseModel(BaseEstimator, ABC):
             validated = [v - m for v, m in zip(validated, self.means_)]
         else:
             self.means_ = [np.zeros(p) for p in self.n_features_in_]
+        # Retained for predict()'s lazily-fitted reconstruction loadings,
+        # which need the actual (centred) training data, not just weights_.
+        self._views_fit_: list[np.ndarray] = validated
         return validated
 
     # ------------------------------------------------------------------
@@ -232,6 +235,110 @@ class BaseModel(BaseEstimator, ABC):
             std_t = np.maximum(t_c.std(axis=0, ddof=1), 1e-12)  # (k,)
             loadings.append(cov / np.outer(std_v, std_t))
         return loadings
+
+    def predict(self, views: list[ArrayLike | None]) -> list[np.ndarray]:
+        """Reconstruct every view from whichever views are observed.
+
+        ``transform`` maps data to the shared latent space; ``predict`` maps
+        back the other way, from the latent space to each view's original
+        feature space. Pass ``None`` for any view you want reconstructed —
+        typically one you don't have, but you can also ask for a view you
+        *did* supply, as a diagnostic (its own self-reconstruction).
+
+        The shared latent score is estimated as the mean, over the observed
+        views only, of that view's own projection (``(view - mean) @
+        weights``). Each requested view is then reconstructed as that score
+        against a per-view loading matrix fitted by least squares at fit
+        time: the regression of that view's centred training data onto the
+        training data's own shared latent score.
+
+        This regression-based reconstruction is deliberate rather than the
+        simpler ``score @ weights.T``: for CCA (unlike PLS), that simpler
+        formula is only a correct inverse of ``transform`` when the data
+        happens to be pre-whitened, since the true forward map needs an
+        extra view-covariance factor that isn't recovered from ``weights_``
+        alone (see the discussion on
+        https://github.com/jameschapman19/cca_zoo/issues/182). Fitting the
+        reconstruction directly against training data sidesteps that
+        entirely, at the cost of a fitted model retaining a reference to
+        its own (centred) training views.
+
+        Args:
+            views: List of length ``n_views_``. Each entry is either an
+                array of shape (n_samples, n_features_i) or ``None`` for a
+                view to reconstruct from the others. All non-``None``
+                entries must have the same number of samples.
+
+        Returns:
+            List of length ``n_views_``: every view's reconstruction, each
+            of shape (n_samples, n_features_i) with the same ``n_samples``
+            as the observed view(s) passed in.
+
+        Raises:
+            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
+            ValueError: If ``views`` has the wrong length, every entry is
+                ``None``, the observed views have inconsistent numbers of
+                samples, or an observed view has the wrong number of
+                features.
+
+        Example:
+            >>> import numpy as np
+            >>> from cca_zoo.linear import CCA
+            >>> rng = np.random.default_rng(0)
+            >>> X1 = rng.standard_normal((50, 10))
+            >>> X2 = rng.standard_normal((50, 8))
+            >>> model = CCA(latent_dimensions=2).fit([X1, X2])
+            >>> X2_pred = model.predict([X1, None])[1]
+            >>> X2_pred.shape
+            (50, 8)
+        """
+        check_is_fitted(self)
+        if len(views) != self.n_views_:
+            raise ValueError(
+                f"Expected {self.n_views_} views (pass None for an "
+                f"unobserved view), got {len(views)}."
+            )
+        observed = {i: np.asarray(v) for i, v in enumerate(views) if v is not None}
+        if not observed:
+            raise ValueError("At least one view must be observed to predict.")
+        first_i = next(iter(observed))
+        n_samples = observed[first_i].shape[0]
+        for i, v in observed.items():
+            if v.shape[0] != n_samples:
+                raise ValueError(
+                    "All observed views must have the same number of "
+                    f"samples. Got shapes: "
+                    f"{[(j, a.shape) for j, a in observed.items()]}."
+                )
+            if v.shape[1] != self.n_features_in_[i]:
+                raise ValueError(
+                    f"View {i} has {v.shape[1]} features, expected "
+                    f"{self.n_features_in_[i]}."
+                )
+        self._fit_reconstruction_loadings()
+        scores = [(v - self.means_[i]) @ self.weights_[i] for i, v in observed.items()]
+        z_hat: np.ndarray = np.mean(scores, axis=0)
+        return [
+            z_hat @ self._reconstruction_loadings_[i] + self.means_[i]
+            for i in range(self.n_views_)
+        ]
+
+    def _fit_reconstruction_loadings(self) -> None:
+        """Lazily fit and cache the least-squares latent-to-view mapping.
+
+        Regresses each view's centred training data onto the mean training
+        latent score, giving ``predict``'s inverse-of-``transform`` mapping.
+        Cached after the first call since it depends only on data already
+        fixed by ``fit``.
+        """
+        if hasattr(self, "_reconstruction_loadings_"):
+            return
+        train_scores = [vc @ w for vc, w in zip(self._views_fit_, self.weights_)]
+        z_train = np.mean(train_scores, axis=0)
+        z_pinv = np.linalg.pinv(z_train)
+        self._reconstruction_loadings_: list[np.ndarray] = [
+            z_pinv @ vc for vc in self._views_fit_
+        ]
 
     # ------------------------------------------------------------------
     # Sklearn compatibility
