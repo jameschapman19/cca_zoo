@@ -84,6 +84,33 @@ larger away from the training data, smaller near it, exactly as for any other GP
 
 ---
 
+## Scaling to larger datasets: the sparse (inducing-point) approximation
+
+Exact GP inference costs $O(n^3)$ per Newton step — every `inner_step`/`outer_step` call redoes a
+full Cholesky factorisation of an $(n, n)$ matrix — which becomes impractical somewhere in the
+low thousands of samples. Setting `n_inducing` switches each encoder to the **Deterministic
+Training Conditional (DTC)** sparse approximation (Quiñonero-Candela & Rasmussen, 2005): the GP is
+conditioned on `n_inducing` inducing points — an actual, well-spread subset of the training rows,
+selected via `sklearn.cluster.kmeans_plusplus`'s seeding — and every posterior formula becomes a
+function of the $(n, m)$ and $(m, m)$ inducing-covariance matrices instead of the full $(n, n)$
+one, costing $O(n \, m^2 + m^3)$ instead of $O(n^3)$:
+
+```python
+model = GPCCA(latent_dimensions=1, n_inducing=200).fit([X1, X2])  # X1, X2 have many samples
+```
+
+Kernel hyperparameters are still selected by an *exact* marginal-likelihood fit — just on the
+`n_inducing` inducing rows alone, where it's cheap — while the actual working-response fit used to
+build each round's representation always uses *every* training row via the DTC formula, so no
+training signal is thrown away at the point that matters most. `n_inducing` values at or above the
+number of training samples are equivalent to (and internally fall back to) exact inference. Larger
+`n_inducing` trades speed for a closer approximation to the exact posterior; there's no universal
+default, since how many inducing points are "enough" depends on how smooth/low-rank the true
+underlying function is — start with a few hundred and check whether increasing it changes the
+held-out canonical correlation.
+
+---
+
 ## Key parameters
 
 | Parameter | Description |
@@ -92,7 +119,8 @@ larger away from the training data, smaller near it, exactly as for any other GP
 | `max_outer_iter` | Cap on kernel-hyperparameter re-selection rounds. |
 | `tol` | Inner-loop convergence tolerance, on the change in the EY loss between successive full passes over all views. |
 | `hess_floor_percentile` | Percentile (0-100) of each round's raw diagonal-Hessian values used to floor them — self-calibrating damping against the Hessian's poor conditioning near the loss's own fixed point (see `GAMCCA`'s class docstring for why). Default is 90. |
-| `random_state` | Seed for the random-orthogonal initial embedding. |
+| `n_inducing` | Number of inducing points for the sparse DTC approximation (see above). `None` (default) uses exact GP inference. |
+| `random_state` | Seed for the random-orthogonal initial embedding, and (if `n_inducing` is set) for selecting inducing points. |
 
 ---
 
@@ -101,8 +129,9 @@ larger away from the training data, smaller near it, exactly as for any other GP
 - `GPCCA` supports 2 or more views.
 - `latent_dimensions` must not exceed the number of features in any view (the random-orthogonal
   initialisation draws that many orthogonal directions in feature space).
-- Exact GP inference is $O(n^3)$ in the number of training samples; for large datasets consider
-  `GAMCCA` (if the relationship is additive) or `TreeCCA` instead.
+- Exact GP inference (`n_inducing=None`) is $O(n^3)$ in the number of training samples; set
+  `n_inducing` for datasets beyond a few thousand samples, or consider `GAMCCA` (if the
+  relationship is additive) or `TreeCCA` instead.
 - No optional dependency is required (unlike `cca_zoo.tree`, which needs `xgboost`/`lightgbm`):
-  `GPCCA` is built entirely on `scikit-learn`'s `GaussianProcessRegressor`, `RBF` and
-  `ConstantKernel`.
+  `GPCCA` is built entirely on `scikit-learn`'s `GaussianProcessRegressor`, `RBF`, `ConstantKernel`
+  and `kmeans_plusplus`.

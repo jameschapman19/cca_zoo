@@ -7,6 +7,8 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from scipy.linalg import cho_solve, cholesky, solve_triangular
+from sklearn.cluster import kmeans_plusplus
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel
 from sklearn.utils._param_validation import Interval
@@ -172,6 +174,188 @@ class _GpEncoder:
         return result
 
 
+_JITTER = 1e-6
+
+
+class _SparseGpEncoder(_GpEncoder):
+    r"""Sparse (inducing-point) variant of :class:`_GpEncoder`, for $n \gg m$.
+
+    Exact GP inference costs $O(n^3)$ per Newton step (a full Cholesky of
+    an $(n, n)$ matrix, repeated at every :meth:`inner_step` and
+    :meth:`outer_step` call) — prohibitive once ``n_samples`` reaches a few
+    thousand. This encoder instead uses the **Deterministic Training
+    Conditional (DTC)** / projected-process sparse approximation (Csató &
+    Opper, 2002; Seeger et al., 2003; unified with FITC and other sparse
+    methods by Quiñonero-Candela & Rasmussen, 2005, "A Unifying View of
+    Sparse Approximate Gaussian Process Regression", JMLR 6:1939-1959):
+    the GP is conditioned on $m \ll n$ **inducing points** $Z$ (chosen as
+    an actual, well-spread subset of the $n$ training rows, via
+    :func:`sklearn.cluster.kmeans_plusplus`'s seeding — the same
+    initialisation scheme :class:`~sklearn.cluster.KMeans` uses to spread
+    its starting centroids over the data), and every posterior formula is
+    then a function of the $(n, m)$ and $(m, m)$ cross/inducing covariance
+    matrices instead of the full $(n, n)$ one:
+
+    $$
+    Q_{mm} = K_{mm} + K_{mn} \Lambda^{-1} K_{nm}, \qquad
+    \text{mean}(x_*) = k_{*m} Q_{mm}^{-1} K_{mn} \Lambda^{-1} y
+    $$
+
+    $$
+    \operatorname{var}(x_*) = k_{**} - k_{*m} K_{mm}^{-1} k_{m*}
+        + k_{*m} Q_{mm}^{-1} k_{m*}
+    $$
+
+    where $\Lambda = \operatorname{diag}(\alpha)$ is the (heteroscedastic)
+    per-sample noise variance — here the same diagonal-Hessian weight used
+    throughout GPCCA. This costs $O(n m^2 + m^3)$: linear rather than
+    cubic in $n$, at the price of an approximation whose quality depends
+    on how well $m$ inducing points span the data.
+
+    The inner/outer split carries over directly, with the *hyperparameter
+    search* delegated to a cheap exact GP fit on the $m$ inducing rows
+    alone (the marginal-likelihood optimisation itself is what would be
+    expensive at full scale; on $m$ points it costs $O(m^3)$), while the
+    actual *predictions* used to build each round's representation are
+    always computed from the DTC formula over all $n$ training rows — so
+    only the hyperparameter search, not the fit itself, is approximated
+    from a subsample:
+
+    - :meth:`inner_step` — holds the kernel (and therefore $K_{mm}$,
+      $K_{nm}$) fixed, and only recomputes $Q_{mm}$ and the posterior mean
+      from the current working response.
+    - :meth:`outer_step` — refits kernel hyperparameters on the $m$
+      inducing rows via :class:`~sklearn.gaussian_process.GaussianProcessRegressor`'s
+      default marginal-likelihood optimiser, refreshes the cached
+      $K_{mm}$/$K_{nm}$ for the new kernel, then computes the DTC
+      posterior mean over all $n$ rows at that kernel.
+
+    Used only during ``fit``.
+    """
+
+    def __init__(
+        self, X: np.ndarray, k: int, n_inducing: int, random_state: int
+    ) -> None:
+        super().__init__(X, k)
+        self.n_inducing = n_inducing
+        _, inducing_idx = kmeans_plusplus(
+            X, n_clusters=n_inducing, random_state=random_state
+        )
+        self.inducing_idx_ = inducing_idx
+        self.Z_ = X[inducing_idx]
+        self._Kmm: list[np.ndarray] = [np.empty((0, 0))] * k
+        self._Lmm: list[np.ndarray] = [np.empty((0, 0))] * k
+        self._Knm: list[np.ndarray] = [np.empty((0, 0))] * k
+        self._Lq: list[np.ndarray] = [np.empty((0, 0))] * k
+        self._coef: list[np.ndarray] = [np.zeros(n_inducing)] * k
+
+    def _refresh_kernel_cache(self, c: int) -> None:
+        """Recompute $K_{mm}$/$K_{nm}$ (and $K_{mm}$'s Cholesky) for component ``c``.
+
+        Only needed when component ``c``'s kernel hyperparameters change
+        (i.e. from :meth:`outer_step`) — both matrices depend on the
+        kernel and inducing/training locations alone, not on the working
+        response or its noise weights, so :meth:`inner_step` reuses them
+        unchanged across every Newton iteration at a fixed kernel.
+        """
+        kernel = self.kernels_[c]
+        Kmm = kernel(self.Z_) + _JITTER * np.eye(self.n_inducing)
+        self._Kmm[c] = Kmm
+        self._Lmm[c] = cholesky(Kmm, lower=True)
+        self._Knm[c] = kernel(self.X, self.Z_)
+
+    def _dtc_mean(
+        self, c: int, working_response: np.ndarray, alpha: np.ndarray
+    ) -> np.ndarray:
+        """DTC posterior mean on the training rows; caches $Q_{mm}$'s solve.
+
+        Args:
+            c: Component index.
+            working_response: This component's working response, shape (n,).
+            alpha: This component's per-sample noise variance, shape (n,).
+
+        Returns:
+            Posterior mean on the training rows, shape (n,).
+        """
+        Knm = self._Knm[c]
+        Kmn_scaled = Knm.T / alpha[None, :]
+        Qmm = self._Kmm[c] + Kmn_scaled @ Knm + _JITTER * np.eye(self.n_inducing)
+        Lq = cholesky(Qmm, lower=True)
+        b = Kmn_scaled @ working_response
+        coef = cho_solve((Lq, True), b)
+        self._Lq[c] = Lq
+        self._coef[c] = coef
+        result: np.ndarray = Knm @ coef
+        return result
+
+    def inner_step(
+        self, Z_self: np.ndarray, grad: np.ndarray, diag_hess: np.ndarray
+    ) -> None:
+        """One DTC Newton update with the kernel hyperparameters held fixed.
+
+        Args: as :meth:`_GpEncoder.inner_step`.
+        """
+        raw_cols = []
+        for c in range(self.k):
+            working_response, alpha = self._working_response_and_alpha(
+                Z_self, grad, diag_hess, c
+            )
+            raw_cols.append(self._dtc_mean(c, working_response, alpha))
+        self._update_from_raw(np.column_stack(raw_cols))
+
+    def outer_step(
+        self, Z_self: np.ndarray, grad: np.ndarray, diag_hess: np.ndarray
+    ) -> None:
+        """Re-fit kernel hyperparameters on the inducing rows, via exact GP.
+
+        Args: as :meth:`_GpEncoder.outer_step`.
+        """
+        models = []
+        raw_cols = []
+        idx = self.inducing_idx_
+        for c in range(self.k):
+            working_response, alpha = self._working_response_and_alpha(
+                Z_self, grad, diag_hess, c
+            )
+            model = GaussianProcessRegressor(kernel=self.kernels_[c], alpha=alpha[idx])
+            model.fit(self.Z_, working_response[idx])
+            models.append(model)
+            self.kernels_[c] = model.kernel_
+            self._refresh_kernel_cache(c)
+            raw_cols.append(self._dtc_mean(c, working_response, alpha))
+        self.models_ = models
+        self._update_from_raw(np.column_stack(raw_cols))
+
+    def predict_new(
+        self, X: np.ndarray, return_std: bool = False
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+        """Encoder output for arbitrary (e.g. test) data, via the DTC formula.
+
+        Args: as :meth:`_GpEncoder.predict_new`.
+        """
+        n_new = X.shape[0]
+        raw_mean = np.empty((n_new, self.k))
+        if return_std:
+            raw_std = np.empty((n_new, self.k))
+        for c in range(self.k):
+            Kem = self.kernels_[c](X, self.Z_)
+            raw_mean[:, c] = Kem @ self._coef[c]
+            if return_std:
+                v = solve_triangular(self._Lmm[c], Kem.T, lower=True)
+                u = solve_triangular(self._Lq[c], Kem.T, lower=True)
+                var = (
+                    self.kernels_[c].diag(X)
+                    - np.sum(v**2, axis=0)
+                    + np.sum(u**2, axis=0)
+                )
+                raw_std[:, c] = np.sqrt(np.maximum(var, 1e-10))
+        mean: np.ndarray = (raw_mean - self.raw_mean_) @ self.whiten_
+        if return_std:
+            var_prop = raw_std**2 @ (self.whiten_**2)
+            return mean, np.sqrt(var_prop)
+        return mean
+
+
 class GPCCA(BaseModel):
     r"""GPCCA — nonlinear multiview CCA with Gaussian-process encoders.
 
@@ -241,7 +425,9 @@ class GPCCA(BaseModel):
         A GP over the raw feature vector scales cubically in the number of
         training samples (exact GP inference); for very large datasets
         expect fitting to be markedly slower than
-        :class:`~cca_zoo.gam.GAMCCA` or :class:`~cca_zoo.tree.TreeCCA`.
+        :class:`~cca_zoo.gam.GAMCCA` or :class:`~cca_zoo.tree.TreeCCA`
+        unless ``n_inducing`` is set (see below), which trades some
+        approximation error for linear-in-``n_samples`` scaling.
 
     References:
         Rasmussen, C. E., & Williams, C. K. I. (2006). Gaussian Processes
@@ -265,8 +451,18 @@ class GPCCA(BaseModel):
         hess_floor_percentile: Percentile (0-100) of each round's raw
             diagonal-Hessian values used to floor them (see
             :func:`~cca_zoo._utils._ey.ey_diag_hessian`). Default is 90.0.
+        n_inducing: Number of inducing points for the sparse (Deterministic
+            Training Conditional) approximation described above. ``None``
+            (the default) uses exact GP inference — appropriate for
+            datasets up to a few thousand samples. For larger datasets,
+            set this to a few hundred inducing points to make fitting
+            scale as $O(n \, \text{n\_inducing}^2)$ instead of $O(n^3)$;
+            larger values trade speed for a closer approximation to the
+            exact posterior. Values at or above the number of training
+            samples fall back to exact inference automatically.
         random_state: Seed for drawing the random-orthogonal initial
-            embedding. Default is 0.
+            embedding, and (if ``n_inducing`` is set) for selecting
+            inducing points. Default is 0.
 
     Example:
         >>> import numpy as np
@@ -276,6 +472,8 @@ class GPCCA(BaseModel):
         >>> model = GPCCA(latent_dimensions=1).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
         >>> means, stds = model.transform([X1, X2], return_std=True)
+        >>> # For larger datasets, cap inference cost with inducing points:
+        >>> big_model = GPCCA(latent_dimensions=1, n_inducing=200)
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -284,6 +482,7 @@ class GPCCA(BaseModel):
         "max_outer_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
         "hess_floor_percentile": [Interval(Real, 0, 100, closed="both")],
+        "n_inducing": [None, Interval(Integral, 2, None, closed="left")],
     }
 
     def __init__(
@@ -294,6 +493,7 @@ class GPCCA(BaseModel):
         max_outer_iter: int = 4,
         tol: float = 1e-3,
         hess_floor_percentile: float = 90.0,
+        n_inducing: int | None = None,
         random_state: int = 0,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)
@@ -301,6 +501,7 @@ class GPCCA(BaseModel):
         self.max_outer_iter = max_outer_iter
         self.tol = tol
         self.hess_floor_percentile = hess_floor_percentile
+        self.n_inducing = n_inducing
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> GPCCA:
@@ -324,7 +525,13 @@ class GPCCA(BaseModel):
         n_minus_1 = n - 1
 
         rng = np.random.default_rng(self.random_state)
-        encoders = [_GpEncoder(X, k) for X in views_]
+        use_sparse = self.n_inducing is not None and self.n_inducing < n
+        encoders: list[_GpEncoder] = [
+            _SparseGpEncoder(X, k, self.n_inducing, self.random_state)  # type: ignore[arg-type]
+            if use_sparse
+            else _GpEncoder(X, k)
+            for X in views_
+        ]
         representations = []
         for X in views_:
             bm, _ = random_orthogonal_embedding(X, k, rng)

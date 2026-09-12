@@ -12,6 +12,7 @@ import pytest
 from sklearn.gaussian_process import GaussianProcessRegressor
 
 from cca_zoo.gp import GPCCA
+from cca_zoo.gp._gpcca import _GpEncoder, _SparseGpEncoder
 
 
 def _make_model(latent_dimensions: int = 1, **kwargs: object) -> GPCCA:
@@ -255,6 +256,84 @@ def test_gpcca_finds_correlation_on_three_correlated_views() -> None:
     model = GPCCA(latent_dimensions=1, random_state=0)
     s = model.fit(views).score(views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
+
+
+# ---------------------------------------------------------------------------
+# sparse (inducing-point) approximation
+# ---------------------------------------------------------------------------
+
+
+def test_sparse_fit_completes_and_shapes(two_views_small: list[np.ndarray]) -> None:
+    """n_inducing < n_samples switches to the sparse DTC encoder and fits."""
+    k = 2
+    n = two_views_small[0].shape[0]
+    model = _make_model(latent_dimensions=k, n_inducing=n // 2).fit(two_views_small)
+    for enc in model.encoders_:
+        assert isinstance(enc, _SparseGpEncoder)
+    result = model.transform(two_views_small)
+    assert len(result) == 2
+    for arr in result:
+        assert arr.shape == (n, k)
+
+
+def test_sparse_return_std_shapes_and_positive(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """Sparse transform(..., return_std=True) returns positive, matching-shape stds."""
+    k = 2
+    n = two_views_small[0].shape[0]
+    model = _make_model(latent_dimensions=k, n_inducing=n // 2).fit(two_views_small)
+    means, stds = model.transform(two_views_small, return_std=True)
+    for mean, std in zip(means, stds):
+        assert mean.shape == (n, k)
+        assert std.shape == (n, k)
+        assert np.all(std > 0)
+
+
+def test_n_inducing_at_least_n_samples_falls_back_to_exact(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """n_inducing >= n_samples is equivalent to exact (dense) GP inference."""
+    n = two_views_small[0].shape[0]
+    model = _make_model(n_inducing=10 * n).fit(two_views_small)
+    for enc in model.encoders_:
+        assert isinstance(enc, _GpEncoder)
+        assert not isinstance(enc, _SparseGpEncoder)
+
+
+def test_sparse_finds_correlation_on_correlated_views(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """The sparse approximation still recovers substantial correlation."""
+    n = correlated_views[0].shape[0]
+    model = GPCCA(latent_dimensions=1, random_state=0, n_inducing=max(10, n // 3))
+    s = model.fit(correlated_views).score(correlated_views)
+    assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
+
+
+@pytest.mark.slow
+def test_sparse_scales_to_large_sample_sizes() -> None:
+    """Sparse GPCCA fits at a sample size that would defeat exact GP inference.
+
+    Exact GP inference redoes an O(n^3) Cholesky factorisation at every
+    Newton step of every inner/outer round, which would be impractically
+    slow here; the sparse approximation should still recover the
+    underlying correlation.
+    """
+    rng = np.random.default_rng(0)
+    n_train, n_test, noise = 4000, 500, 0.3
+    n = n_train + n_test
+    z = rng.standard_normal(n)
+    X1 = np.column_stack([z + noise * rng.standard_normal(n) for _ in range(3)])
+    X2 = np.column_stack([z**2 + noise * rng.standard_normal(n) for _ in range(3)])
+    X1_tr, X1_te = X1[:n_train], X1[n_train:]
+    X2_tr, X2_te = X2[:n_train], X2[n_train:]
+
+    model = GPCCA(latent_dimensions=1, random_state=0, n_inducing=100)
+    test_corr = model.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
+    assert test_corr > 0.7, (
+        f"Expected substantial held-out correlation, got {test_corr}"
+    )
 
 
 @pytest.mark.slow

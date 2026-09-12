@@ -47,6 +47,18 @@ project adheres to [Semantic Versioning](https://semver.org/).
   (previously private to `GAMCCA`) is now a shared EY-loss utility, used by both `GAMCCA`
   (as a `Ridge`/`RidgeCV` `sample_weight`) and `GPCCA` (as a `GaussianProcessRegressor`
   per-sample `alpha`).
+- `GPCCA(n_inducing=...)`: a sparse (Deterministic Training Conditional) approximation for
+  datasets too large for exact GP inference's `O(n^3)` cost. Conditions each encoder on
+  `n_inducing` inducing points — an actual subset of the training rows, chosen via
+  `sklearn.cluster.kmeans_plusplus`'s seeding — reducing fitting to `O(n * n_inducing^2)`.
+  Kernel hyperparameters are still selected by an exact marginal-likelihood fit on just the
+  inducing rows (cheap, since there are few of them), while the working-response fit used to
+  build each round's representation always uses every training row via the DTC posterior
+  formula, so no training signal is discarded at the point it matters most. `None` (the
+  default) keeps exact inference, unchanged from GPCCA's initial release; values at or above
+  the number of training samples fall back to exact inference automatically. Verified to fit
+  in well under a second at 4,000 training samples (where exact inference is impractical)
+  while still recovering held-out correlation above 0.7 on a smooth nonlinear benchmark.
 
 ### Changed
 
