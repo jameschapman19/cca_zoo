@@ -226,9 +226,9 @@ def test_scca_pmd_tau_controls_sparsity_monotonically(
     taus = [0.3, 0.5, 0.7, 1.0]
     nnz_by_tau = []
     for tau in taus:
-        model = SCCAPMD(
-            latent_dimensions=1, tau=tau, max_iter=200, random_state=0
-        ).fit(two_views)
+        model = SCCAPMD(latent_dimensions=1, tau=tau, max_iter=200, random_state=0).fit(
+            two_views
+        )
         nnz_by_tau.append(sum(int(np.sum(np.abs(w) > 1e-10)) for w in model.weights))
     assert nnz_by_tau == sorted(nnz_by_tau), (
         f"nnz should be non-decreasing in tau, got {dict(zip(taus, nnz_by_tau))}"

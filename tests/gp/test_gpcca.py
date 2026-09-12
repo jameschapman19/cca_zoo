@@ -239,14 +239,14 @@ def test_encoder_models_are_sklearn_gaussian_process_regressor(
 def test_gpcca_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
-    """GaussianProcessCCA finds substantial correlation on views with shared latent structure."""
+    """GaussianProcessCCA finds substantial correlation on shared latent structure."""
     model = GaussianProcessCCA(latent_dimensions=1, random_state=0)
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
 
 def test_gpcca_finds_correlation_on_three_correlated_views() -> None:
-    """GaussianProcessCCA (multiview) finds substantial correlation on 3 correlated views."""
+    """GaussianProcessCCA (multiview) finds substantial correlation on 3 views."""
     rng = np.random.default_rng(0)
     z = rng.standard_normal((200, 1))
     views = [
@@ -306,14 +306,16 @@ def test_sparse_finds_correlation_on_correlated_views(
 ) -> None:
     """The sparse approximation still recovers substantial correlation."""
     n = correlated_views[0].shape[0]
-    model = GaussianProcessCCA(latent_dimensions=1, random_state=0, n_inducing=max(10, n // 3))
+    model = GaussianProcessCCA(
+        latent_dimensions=1, random_state=0, n_inducing=max(10, n // 3)
+    )
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
 
 @pytest.mark.slow
 def test_sparse_scales_to_large_sample_sizes() -> None:
-    """Sparse GaussianProcessCCA fits at a sample size that would defeat exact GP inference.
+    """Sparse GaussianProcessCCA fits at a size that would defeat exact GP inference.
 
     Exact GP inference redoes an O(n^3) Cholesky factorisation at every
     Newton step of every inner/outer round, which would be impractically
@@ -338,7 +340,7 @@ def test_sparse_scales_to_large_sample_sizes() -> None:
 
 @pytest.mark.slow
 def test_gpcca_outperforms_others_on_genuine_interaction() -> None:
-    """GaussianProcessCCA beats GAMCCA, TreeCCA, and rCCA on a genuine feature-interaction task.
+    """GaussianProcessCCA beats GAMCCA, TreeCCA, and rCCA on a feature-interaction task.
 
     View 1 is two noisy independent factors ``u, v``; view 2 is a noisy
     copy of their *interaction* ``u * v`` -- not additively separable into
@@ -346,8 +348,8 @@ def test_gpcca_outperforms_others_on_genuine_interaction() -> None:
     encoder structurally cannot represent this; ``TreeCCA`` can only
     approximate it via multivariate splits, and at its default
     ``colsample_bytree`` a single tree is often starved of joint access to
-    both features. GaussianProcessCCA's joint (non-additive) RBF kernel represents the
-    interaction directly.
+    both features. GaussianProcessCCA's joint (non-additive) RBF kernel
+    represents the interaction directly.
 
     Marked slow since it also requires TreeCCA's optional ``xgboost``
     dependency, not part of the base ``dev`` install.
@@ -382,7 +384,9 @@ def test_gpcca_outperforms_others_on_genuine_interaction() -> None:
     rcca = rCCA(latent_dimensions=1, c=[0.3, 0.3])
     rcca_test = rcca.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
 
-    assert gp_test > 0.7, f"Expected GaussianProcessCCA to recover the interaction, got {gp_test}"
+    assert gp_test > 0.7, (
+        f"Expected GaussianProcessCCA to recover the interaction, got {gp_test}"
+    )
     assert gp_test > gam_test + 0.05, (
         f"Expected GaussianProcessCCA ({gp_test}) to beat additive GAMCCA ({gam_test}) "
         f"on a genuine feature interaction"
@@ -392,5 +396,6 @@ def test_gpcca_outperforms_others_on_genuine_interaction() -> None:
         f"TreeCCA's default colsample_bytree"
     )
     assert gp_test > rcca_test + 0.3, (
-        f"Expected GaussianProcessCCA ({gp_test}) to clearly beat linear rCCA ({rcca_test})"
+        f"Expected GaussianProcessCCA ({gp_test}) to clearly beat linear "
+        f"rCCA ({rcca_test})"
     )
