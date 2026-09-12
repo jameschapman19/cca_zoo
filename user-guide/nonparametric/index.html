@@ -1636,7 +1636,7 @@ Use <code>GridSearchCV</code> from <code>cca_zoo.model_selection</code>:</p>
 <ul>
 <li>Kernel methods store the full <span class="arithmatex">\(n \times n\)</span> kernel matrices. Memory is <span class="arithmatex">\(O(n^2)\)</span>; be cautious
   with <span class="arithmatex">\(n &gt; 10{,}000\)</span>.</li>
-<li>For large datasets, prefer the linear stochastic methods (<code>CCA_EY</code>, <code>PLS_EY</code>) or deep methods.</li>
+<li>For large datasets, prefer the linear stochastic methods (<code>CCAEY</code>, <code>PLSEY</code>) or deep methods.</li>
 <li>The <code>c</code> parameter is crucial: too small → numerical instability; too large → loss of structure.
   Use cross-validation (see <a href="../model-selection/">Model Selection</a>).</li>
 </ul>

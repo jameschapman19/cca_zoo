@@ -1442,8 +1442,8 @@ Eckart-Young (EY) unconstrained-CCA objective:</p>
 pairwise cross-covariance (including <span class="arithmatex">\(i = j\)</span> terms) and <span class="arithmatex">\(V\)</span>
 the mean auto-covariance across all views (see
 :mod:<code>cca_zoo._utils._ey</code>, the same shared EY-loss machinery used by
-:class:<code>~cca_zoo.linear.gradient.CCA_EY</code> and
-:class:<code>~cca_zoo.deep.DCCA_EY</code>). The encoders are fit by alternating
+:class:<code>~cca_zoo.linear.gradient.CCAEY</code> and
+:class:<code>~cca_zoo.deep.DCCAEY</code>). The encoders are fit by alternating
 (Gauss-Seidel) gradient boosting: each round, for every view in turn, one
 tree is added to each of its <code>latent_dimensions</code> boosters using the
 EY-loss gradient (rescaled to a fixed target standard deviation for

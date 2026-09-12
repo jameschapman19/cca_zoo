@@ -708,10 +708,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#scca_pmd" class="md-nav__link">
+  <a href="#sccapmd" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SCCA_PMD
+        SCCAPMD
       
     </span>
   </a>
@@ -719,10 +719,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#scca_admm" class="md-nav__link">
+  <a href="#sccaadmm" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SCCA_ADMM
+        SCCAADMM
       
     </span>
   </a>
@@ -730,10 +730,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#scca_ipls" class="md-nav__link">
+  <a href="#sccaipls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SCCA_IPLS
+        SCCAIPLS
       
     </span>
   </a>
@@ -763,10 +763,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#scca_span" class="md-nav__link">
+  <a href="#sccaspan" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SCCA_Span
+        SCCASpan
       
     </span>
   </a>
@@ -785,10 +785,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#pls_als" class="md-nav__link">
+  <a href="#plsals" class="md-nav__link">
     <span class="md-ellipsis">
       
-        PLS_ALS
+        PLSALS
       
     </span>
   </a>
@@ -1574,10 +1574,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#scca_pmd" class="md-nav__link">
+  <a href="#sccapmd" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SCCA_PMD
+        SCCAPMD
       
     </span>
   </a>
@@ -1585,10 +1585,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#scca_admm" class="md-nav__link">
+  <a href="#sccaadmm" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SCCA_ADMM
+        SCCAADMM
       
     </span>
   </a>
@@ -1596,10 +1596,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#scca_ipls" class="md-nav__link">
+  <a href="#sccaipls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SCCA_IPLS
+        SCCAIPLS
       
     </span>
   </a>
@@ -1629,10 +1629,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#scca_span" class="md-nav__link">
+  <a href="#sccaspan" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SCCA_Span
+        SCCASpan
       
     </span>
   </a>
@@ -1651,10 +1651,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#pls_als" class="md-nav__link">
+  <a href="#plsals" class="md-nav__link">
     <span class="md-ellipsis">
       
-        PLS_ALS
+        PLSALS
       
     </span>
   </a>
@@ -1856,27 +1856,27 @@ mini-batches.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>PLS_EY</code></td>
+<td><code>PLSEY</code></td>
 <td>Eckart-Young PLS objective, stochastic updates</td>
 </tr>
 <tr>
-<td><code>CCA_EY</code></td>
-<td>Eckart-Young CCA, stochastic updates, ridge-blended with <code>PLS_EY</code> via <code>c</code></td>
+<td><code>CCAEY</code></td>
+<td>Eckart-Young CCA, stochastic updates, ridge-blended with <code>PLSEY</code> via <code>c</code></td>
 </tr>
 <tr>
-<td><code>MCCA_EY</code></td>
+<td><code>MCCAEY</code></td>
 <td>Multiview EY-CCA for ≥2 views</td>
 </tr>
 </tbody>
 </table>
-<p><code>CCA_EY</code>'s <code>c</code> parameter (default <code>0</code>) blends its loss towards <code>PLS_EY</code>'s (<code>c=1</code>) — in fact
-<code>PLS_EY</code> is implemented as <code>CCA_EY</code> with <code>c</code> fixed at <code>1</code>. Gradient descent on the raw,
+<p><code>CCAEY</code>'s <code>c</code> parameter (default <code>0</code>) blends its loss towards <code>PLSEY</code>'s (<code>c=1</code>) — in fact
+<code>PLSEY</code> is implemented as <code>CCAEY</code> with <code>c</code> fixed at <code>1</code>. Gradient descent on the raw,
 unregularised (<code>c=0</code>) objective can diverge when a mini-batch's samples don't outnumber the
 number of features by a healthy margin; if you see <code>nan</code> weights, increase <code>c</code> (0.1-0.3 is
 usually enough) or <code>batch_size</code>.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCA_EY</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCAEY</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">CCA_EY</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">CCAEY</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <hr />
@@ -1886,40 +1886,40 @@ Gram-Schmidt deflation to extract multiple canonical directions.</p>
 <div class="admonition tip">
 <p class="admonition-title">Choosing a sparse method</p>
 <ul>
-<li><strong>SCCA_PMD</strong> — fast, interpretable L1 bound; good default for sparse CCA</li>
-<li><strong>SCCA_ADMM</strong> — more principled L1 penalty via ADMM</li>
-<li><strong>SCCA_IPLS</strong> — elastic net penalty; handles both L1 and L2 regularisation</li>
+<li><strong>SCCAPMD</strong> — fast, interpretable L1 bound; good default for sparse CCA</li>
+<li><strong>SCCAADMM</strong> — more principled L1 penalty via ADMM</li>
+<li><strong>SCCAIPLS</strong> — elastic net penalty; handles both L1 and L2 regularisation</li>
 <li><strong>ElasticCCA</strong> — elastic net applied to the multiview sum-of-scores target</li>
 <li><strong>ParkhomenkoCCA</strong> — simple fixed soft-threshold; fast but less adaptive</li>
-<li><strong>SCCA_Span</strong> — hard threshold (top-k entries); useful when sparsity level is known</li>
+<li><strong>SCCASpan</strong> — hard threshold (top-k entries); useful when sparsity level is known</li>
 <li><strong>SAR</strong> — penalty strength chosen automatically by BIC; no sparsity hyperparameter to tune</li>
-<li><strong>PLS_ALS</strong> — no sparsity; ALS version of PLS (useful as a baseline)</li>
+<li><strong>PLSALS</strong> — no sparsity; ALS version of PLS (useful as a baseline)</li>
 </ul>
 </div>
-<h3 id="scca_pmd">SCCA_PMD<a class="headerlink" href="#scca_pmd" title="Permanent link">&para;</a></h3>
+<h3 id="sccapmd">SCCAPMD<a class="headerlink" href="#sccapmd" title="Permanent link">&para;</a></h3>
 <p>Imposes L1 constraints via bisection-based soft-thresholding (Witten 2009):</p>
 <div class="arithmatex">\[
 \max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
 \quad \text{s.t.} \quad \|\mathbf{w}_i\|_1 \leq \tau_i\sqrt{p_i},\; \|\mathbf{w}_i\|_2 = 1
 \]</div>
 <p><code>tau=1</code> (default) gives no sparsity; smaller values give sparser solutions.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">SCCA_PMD</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">SCCAPMD</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SCCA_PMD</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SCCAPMD</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
-<h3 id="scca_admm">SCCA_ADMM<a class="headerlink" href="#scca_admm" title="Permanent link">&para;</a></h3>
+<h3 id="sccaadmm">SCCAADMM<a class="headerlink" href="#sccaadmm" title="Permanent link">&para;</a></h3>
 <p>Solves the same L1-constrained problem via the Alternating Direction Method of Multipliers
 (Suo 2017). Often more precise than PMD for tight sparsity budgets.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">SCCA_ADMM</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">SCCAADMM</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SCCA_ADMM</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SCCAADMM</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
-<h3 id="scca_ipls">SCCA_IPLS<a class="headerlink" href="#scca_ipls" title="Permanent link">&para;</a></h3>
+<h3 id="sccaipls">SCCAIPLS<a class="headerlink" href="#sccaipls" title="Permanent link">&para;</a></h3>
 <p>Uses an elastic net regression (sklearn) at each ALS step (Mai &amp; Zhang 2019).
 <code>alpha</code> controls overall regularisation; <code>l1_ratio=1</code> gives Lasso, <code>l1_ratio=0</code> gives Ridge.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">SCCA_IPLS</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">SCCAIPLS</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SCCA_IPLS</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SCCAIPLS</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]</span>
 </span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="p">)</span>
 </span></code></pre></div>
@@ -1939,14 +1939,14 @@ but <code>tau</code> is a fixed threshold, not an L1 bound.</p>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ParkhomenkoCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
-<h3 id="scca_span">SCCA_Span<a class="headerlink" href="#scca_span" title="Permanent link">&para;</a></h3>
+<h3 id="sccaspan">SCCASpan<a class="headerlink" href="#sccaspan" title="Permanent link">&para;</a></h3>
 <p>Hard-thresholding retaining only the top <code>span</code> entries, an ALS heuristic
 inspired by SpanCCA (Asteris 2016) rather than a reimplementation of its
 own randomized low-rank sampling algorithm. Useful when the number of
 active features is known in advance.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">SCCA_Span</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">SCCASpan</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SCCA_Span</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">span</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SCCASpan</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">span</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="sar">SAR<a class="headerlink" href="#sar" title="Permanent link">&para;</a></h3>
 <p>Sparse Alternating Regression (Wilms &amp; Croux 2015): the same alternating-regression
@@ -1958,12 +1958,12 @@ requires and an OLS-based one does not (see the class docstring for why).</p>
 </span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
 </span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SAR</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
-<h3 id="pls_als">PLS_ALS<a class="headerlink" href="#pls_als" title="Permanent link">&para;</a></h3>
+<h3 id="plsals">PLSALS<a class="headerlink" href="#plsals" title="Permanent link">&para;</a></h3>
 <p>Standard ALS/power-iteration variant of PLS without regularisation. Useful as a baseline or
 when data are already low-dimensional.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">PLS_ALS</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">PLSALS</span>
 </span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">PLS_ALS</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">PLSALS</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <hr />
 <h2 id="choosing-a-method">Choosing a method<a class="headerlink" href="#choosing-a-method" title="Permanent link">&para;</a></h2>
@@ -1997,11 +1997,11 @@ when data are already low-dimensional.</p>
 </tr>
 <tr>
 <td>Sparse weights needed</td>
-<td><code>SCCA_PMD</code> or <code>SCCA_IPLS</code></td>
+<td><code>SCCAPMD</code> or <code>SCCAIPLS</code></td>
 </tr>
 <tr>
 <td>Very large <span class="arithmatex">\(p\)</span> / streaming data</td>
-<td><code>CCA_EY</code>, <code>PLS_EY</code></td>
+<td><code>CCAEY</code>, <code>PLSEY</code></td>
 </tr>
 <tr>
 <td>Nonlinear relationships</td>

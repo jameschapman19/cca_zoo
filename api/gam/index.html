@@ -1464,7 +1464,7 @@ Eckart-Young (EY) unconstrained-CCA objective:</p>
 cross-covariance (including <span class="arithmatex">\(i = j\)</span> terms) and <span class="arithmatex">\(V\)</span> the mean
 auto-covariance across all views (see :mod:<code>cca_zoo._utils._ey</code>, the
 same shared EY-loss machinery used by
-:class:<code>~cca_zoo.linear.gradient.CCA_EY</code>, :class:<code>~cca_zoo.deep.DCCA_EY</code>,
+:class:<code>~cca_zoo.linear.gradient.CCAEY</code>, :class:<code>~cca_zoo.deep.DCCAEY</code>,
 and :class:<code>~cca_zoo.tree.TreeCCA</code>).</p>
 <p>Unlike those models, which reach the EY loss's optimum by many small
 (stochastic-)gradient steps, GAMCCA fits it the way GAM software such as

@@ -759,10 +759,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#dcca_ey-eckart-young-objective" class="md-nav__link">
+  <a href="#dccaey-eckart-young-objective" class="md-nav__link">
     <span class="md-ellipsis">
       
-        DCCA_EY — Eckart-Young objective
+        DCCAEY — Eckart-Young objective
       
     </span>
   </a>
@@ -770,10 +770,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#dcca_noi-non-linear-orthogonal-iterations" class="md-nav__link">
+  <a href="#dccanoi-non-linear-orthogonal-iterations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        DCCA_NOI — Non-linear Orthogonal Iterations
+        DCCANOI — Non-linear Orthogonal Iterations
       
     </span>
   </a>
@@ -781,10 +781,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#dcca_sdl-stochastic-decorrelation-loss" class="md-nav__link">
+  <a href="#dccasdl-stochastic-decorrelation-loss" class="md-nav__link">
     <span class="md-ellipsis">
       
-        DCCA_SDL — Stochastic Decorrelation Loss
+        DCCASDL — Stochastic Decorrelation Loss
       
     </span>
   </a>
@@ -1418,10 +1418,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#dcca_ey-eckart-young-objective" class="md-nav__link">
+  <a href="#dccaey-eckart-young-objective" class="md-nav__link">
     <span class="md-ellipsis">
       
-        DCCA_EY — Eckart-Young objective
+        DCCAEY — Eckart-Young objective
       
     </span>
   </a>
@@ -1429,10 +1429,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#dcca_noi-non-linear-orthogonal-iterations" class="md-nav__link">
+  <a href="#dccanoi-non-linear-orthogonal-iterations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        DCCA_NOI — Non-linear Orthogonal Iterations
+        DCCANOI — Non-linear Orthogonal Iterations
       
     </span>
   </a>
@@ -1440,10 +1440,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#dcca_sdl-stochastic-decorrelation-loss" class="md-nav__link">
+  <a href="#dccasdl-stochastic-decorrelation-loss" class="md-nav__link">
     <span class="md-ellipsis">
       
-        DCCA_SDL — Stochastic Decorrelation Loss
+        DCCASDL — Stochastic Decorrelation Loss
       
     </span>
   </a>
@@ -1705,26 +1705,26 @@ mini-batches of encoder outputs.</p>
 </tr>
 </tbody>
 </table>
-<h3 id="dcca_ey-eckart-young-objective">DCCA_EY — Eckart-Young objective<a class="headerlink" href="#dcca_ey-eckart-young-objective" title="Permanent link">&para;</a></h3>
+<h3 id="dccaey-eckart-young-objective">DCCAEY — Eckart-Young objective<a class="headerlink" href="#dccaey-eckart-young-objective" title="Permanent link">&para;</a></h3>
 <p>Uses the Eckart-Young decomposition as the differentiable objective (Benton et al. 2022).
 Tends to be more stable than the original CCA loss on small batches.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.deep</span><span class="w"> </span><span class="kn">import</span> <span class="n">DCCA_EY</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.deep</span><span class="w"> </span><span class="kn">import</span> <span class="n">DCCAEY</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">DCCA_EY</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">encoders</span><span class="o">=</span><span class="p">[</span><span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">])</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">DCCAEY</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">encoders</span><span class="o">=</span><span class="p">[</span><span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">])</span>
 </span></code></pre></div>
-<h3 id="dcca_noi-non-linear-orthogonal-iterations">DCCA_NOI — Non-linear Orthogonal Iterations<a class="headerlink" href="#dcca_noi-non-linear-orthogonal-iterations" title="Permanent link">&para;</a></h3>
+<h3 id="dccanoi-non-linear-orthogonal-iterations">DCCANOI — Non-linear Orthogonal Iterations<a class="headerlink" href="#dccanoi-non-linear-orthogonal-iterations" title="Permanent link">&para;</a></h3>
 <p>Wang et al. 2015. An iterative approach that alternately optimises each encoder
 while holding the others fixed.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.deep</span><span class="w"> </span><span class="kn">import</span> <span class="n">DCCA_NOI</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.deep</span><span class="w"> </span><span class="kn">import</span> <span class="n">DCCANOI</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">DCCA_NOI</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">encoders</span><span class="o">=</span><span class="p">[</span><span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">])</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">DCCANOI</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">encoders</span><span class="o">=</span><span class="p">[</span><span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">])</span>
 </span></code></pre></div>
-<h3 id="dcca_sdl-stochastic-decorrelation-loss">DCCA_SDL — Stochastic Decorrelation Loss<a class="headerlink" href="#dcca_sdl-stochastic-decorrelation-loss" title="Permanent link">&para;</a></h3>
+<h3 id="dccasdl-stochastic-decorrelation-loss">DCCASDL — Stochastic Decorrelation Loss<a class="headerlink" href="#dccasdl-stochastic-decorrelation-loss" title="Permanent link">&para;</a></h3>
 <p>Chang et al. 2018. Adds an explicit decorrelation term that penalises off-diagonal
 cross-covariance entries.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.deep</span><span class="w"> </span><span class="kn">import</span> <span class="n">DCCA_SDL</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.deep</span><span class="w"> </span><span class="kn">import</span> <span class="n">DCCASDL</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">DCCA_SDL</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">encoders</span><span class="o">=</span><span class="p">[</span><span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">])</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">DCCASDL</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">encoders</span><span class="o">=</span><span class="p">[</span><span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="dccae-deep-cca-with-autoencoders">DCCAE — Deep CCA with Autoencoders<a class="headerlink" href="#dccae-deep-cca-with-autoencoders" title="Permanent link">&para;</a></h3>
 <p>Wang et al. 2015. Adds a reconstruction loss to DCCA, encouraging each encoder to
@@ -1825,7 +1825,7 @@ and <strong>C</strong>ovariance terms.</p>
   <code>batch_size ≥ 4 * latent_dimensions</code> for stable estimates.</li>
 <li><strong>Encoder output dimension ≥ <code>latent_dimensions</code>.</strong> The model projects down inside the
   loss; do not make encoders narrower than the requested latent space.</li>
-<li><strong>Use <code>DCCA_EY</code> for small batches.</strong> The Eckart-Young objective is more numerically stable
+<li><strong>Use <code>DCCAEY</code> for small batches.</strong> The Eckart-Young objective is more numerically stable
   than the original <code>CCALoss</code> when batch sizes are small.</li>
 <li><strong>Score after training</strong> via <code>model.score(loader)</code>, which fits a linear <code>MCCA</code> on the
   learned representations to report canonical correlations.</li>
