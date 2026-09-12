@@ -20,9 +20,10 @@ class BaseModel(BaseEstimator, ABC):
     """Abstract base class for all multiview CCA models.
 
     Subclasses must implement :meth:`fit`.  All other public methods
-    (``transform``, ``fit_transform``, ``score``, ``pairwise_correlations``,
-    ``average_pairwise_correlations``, ``get_factor_loadings``, ``predict``)
-    are provided here using the ``weights_`` attribute set by ``fit``.
+    (``transform``, ``inverse_transform``, ``fit_transform``, ``score``,
+    ``pairwise_correlations``, ``average_pairwise_correlations``,
+    ``get_factor_loadings``, ``predict``) are provided here using the
+    ``weights_`` attribute set by ``fit``.
 
     This class inherits from :class:`sklearn.base.BaseEstimator` so that
     ``get_params`` / ``set_params`` round-trip correctly and sklearn model
@@ -99,8 +100,9 @@ class BaseModel(BaseEstimator, ABC):
             validated = [v - m for v, m in zip(validated, self.means_)]
         else:
             self.means_ = [np.zeros(p) for p in self.n_features_in_]
-        # Retained for predict()'s lazily-fitted reconstruction loadings,
-        # which need the actual (centred) training data, not just weights_.
+        # Retained for predict()'s and inverse_transform()'s lazily-fitted
+        # reconstruction loadings, which need the actual (centred) training
+        # data, not just weights_.
         self._views_fit_: list[np.ndarray] = validated
         return validated
 
@@ -124,6 +126,70 @@ class BaseModel(BaseEstimator, ABC):
         validated = validate_views(views)
         centred = [v - m for v, m in zip(validated, self.means_)]
         return [v @ w for v, w in zip(centred, self.weights_)]
+
+    def inverse_transform(self, scores: list[ArrayLike]) -> list[np.ndarray]:
+        """Approximately invert ``transform``, mapping latent scores back to each view.
+
+        Each view is reconstructed from *that same view's own* latent
+        score only, via a per-view loading matrix fit by least squares at
+        fit time: the regression of that view's centred training data onto
+        that view's own training latent score. This makes
+        ``inverse_transform(transform(views))`` an approximate round trip
+        of ``views`` (exact wherever ``latent_dimensions`` and each view's
+        own weights span it exactly), mirroring
+        :meth:`sklearn.decomposition.PCA.inverse_transform`.
+
+        This is a different operation from :meth:`predict`: ``predict``
+        combines the *observed* views' scores into one shared consensus
+        estimate to reconstruct views you don't have, which is only
+        possible once at least one other view actually is observed.
+        ``inverse_transform`` never mixes information across views — it
+        needs a view's own score to reconstruct that same view, so it
+        cannot be used to impute a view you never transformed in the first
+        place; use :meth:`predict` for that.
+
+        Args:
+            scores: List of length ``n_views_``, each an array of shape
+                (n_samples, latent_dimensions) — typically the output of
+                :meth:`transform`.
+
+        Returns:
+            List of length ``n_views_``, each an array of shape
+            (n_samples, n_features_i): the reconstructed view.
+
+        Raises:
+            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
+            ValueError: If ``scores`` has the wrong length, or an entry has
+                the wrong number of latent dimensions.
+
+        Example:
+            >>> import numpy as np
+            >>> from cca_zoo.linear import CCA
+            >>> rng = np.random.default_rng(0)
+            >>> X1 = rng.standard_normal((50, 10))
+            >>> X2 = rng.standard_normal((50, 8))
+            >>> model = CCA(latent_dimensions=2).fit([X1, X2])
+            >>> scores = model.transform([X1, X2])
+            >>> X1_approx, X2_approx = model.inverse_transform(scores)
+            >>> X1_approx.shape
+            (50, 10)
+        """
+        check_is_fitted(self)
+        if len(scores) != self.n_views_:
+            raise ValueError(
+                f"Expected {self.n_views_} score arrays, got {len(scores)}."
+            )
+        arrays = [np.asarray(s) for s in scores]
+        for i, s in enumerate(arrays):
+            if s.shape[1] != self.latent_dimensions:
+                raise ValueError(
+                    f"scores[{i}] has {s.shape[1]} columns, expected "
+                    f"latent_dimensions={self.latent_dimensions}."
+                )
+        self._fit_view_loadings()
+        return [
+            s @ self._view_loadings_[i] + self.means_[i] for i, s in enumerate(arrays)
+        ]
 
     def fit_transform(self, views: list[ArrayLike], y: None = None) -> list[np.ndarray]:
         """Fit and then transform the training data.
@@ -263,6 +329,11 @@ class BaseModel(BaseEstimator, ABC):
         entirely, at the cost of a fitted model retaining a reference to
         its own (centred) training views.
 
+        See also :meth:`inverse_transform`, which reconstructs a view from
+        that same view's own score (no cross-view imputation) — the
+        appropriate choice when you already have every view's scores and
+        just want to invert ``transform``.
+
         Args:
             views: List of length ``n_views_``. Each entry is either an
                 array of shape (n_samples, n_features_i) or ``None`` for a
@@ -338,6 +409,22 @@ class BaseModel(BaseEstimator, ABC):
         z_pinv = np.linalg.pinv(z_train)
         self._reconstruction_loadings_: list[np.ndarray] = [
             z_pinv @ vc for vc in self._views_fit_
+        ]
+
+    def _fit_view_loadings(self) -> None:
+        """Lazily fit and cache each view's own inverse-of-``transform`` mapping.
+
+        Regresses each view's centred training data onto *that same
+        view's own* training latent score (unlike
+        :meth:`_fit_reconstruction_loadings`, which regresses onto the
+        mean score across all views). Cached after the first call since
+        it depends only on data already fixed by ``fit``.
+        """
+        if hasattr(self, "_view_loadings_"):
+            return
+        self._view_loadings_: list[np.ndarray] = [
+            np.linalg.pinv(vc @ w) @ vc
+            for vc, w in zip(self._views_fit_, self.weights_)
         ]
 
     # ------------------------------------------------------------------

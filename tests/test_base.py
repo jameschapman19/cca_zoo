@@ -294,6 +294,97 @@ def test_predict_ignores_extra_observed_views(two_views: list[np.ndarray]) -> No
 
 
 # ---------------------------------------------------------------------------
+# inverse_transform
+# ---------------------------------------------------------------------------
+
+
+def test_inverse_transform_raises_before_fit(two_views: list[np.ndarray]) -> None:
+    """Calling inverse_transform before fit raises NotFittedError."""
+    model = CCA()
+    with pytest.raises(NotFittedError):
+        model.inverse_transform(two_views)
+
+
+def test_inverse_transform_wrong_length_raises(two_views: list[np.ndarray]) -> None:
+    """inverse_transform raises ValueError when scores has the wrong length."""
+    model = CCA(latent_dimensions=2).fit(two_views)
+    scores = model.transform(two_views)
+    with pytest.raises(ValueError, match="Expected 2 score arrays"):
+        model.inverse_transform([scores[0]])
+
+
+def test_inverse_transform_wrong_n_latent_dims_raises(
+    two_views: list[np.ndarray],
+) -> None:
+    """inverse_transform raises ValueError when a score array has the wrong width."""
+    model = CCA(latent_dimensions=2).fit(two_views)
+    scores = model.transform(two_views)
+    with pytest.raises(ValueError, match="expected latent_dimensions=2"):
+        model.inverse_transform([scores[0][:, :1], scores[1]])
+
+
+def test_inverse_transform_output_shapes(two_views: list[np.ndarray]) -> None:
+    """inverse_transform returns one reconstruction per view, matching its width."""
+    model = CCA(latent_dimensions=2).fit(two_views)
+    scores = model.transform(two_views)
+    approx = model.inverse_transform(scores)
+    assert len(approx) == 2
+    for a, view in zip(approx, two_views):
+        assert a.shape == view.shape
+
+
+def test_inverse_transform_round_trips_correlated_views(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """inverse_transform(transform(views)) approximately recovers views."""
+    model = CCA(latent_dimensions=2).fit(correlated_views)
+    scores = model.transform(correlated_views)
+    approx = model.inverse_transform(scores)
+    for a, view in zip(approx, correlated_views):
+        corr = np.corrcoef(a.ravel(), view.ravel())[0, 1]
+        assert corr > 0.9
+
+
+def test_inverse_transform_round_trips_on_heterogeneous_scales(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """The round trip holds even on unwhitened, heterogeneously-scaled views.
+
+    Unlike predict's cross-view reconstruction, inverse_transform never
+    needs to correct for the CCA forward-model whitening subtlety from
+    #182/#195, since it regresses each view onto its own score rather than
+    a consensus score borrowed from another view -- this checks that
+    holds even when features are rescaled to very different magnitudes.
+    """
+    rng = np.random.default_rng(2)
+    scales = [rng.uniform(0.5, 20, size=v.shape[1]) for v in correlated_views]
+    views = [v * s for v, s in zip(correlated_views, scales)]
+    model = CCA(latent_dimensions=2).fit(views)
+    scores = model.transform(views)
+    approx = model.inverse_transform(scores)
+    for a, view in zip(approx, views):
+        corr = np.corrcoef(a.ravel(), view.ravel())[0, 1]
+        assert corr > 0.9
+
+
+def test_inverse_transform_differs_from_predict(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """inverse_transform and predict answer different questions.
+
+    inverse_transform reconstructs a view from its own score;
+    predict reconstructs it from other views' scores. On two correlated
+    but distinct views, they should not give numerically identical
+    reconstructions of view 2.
+    """
+    model = CCA(latent_dimensions=2).fit(correlated_views)
+    scores = model.transform(correlated_views)
+    via_inverse_transform = model.inverse_transform(scores)[1]
+    via_predict = model.predict([correlated_views[0], None])[1]
+    assert not np.allclose(via_inverse_transform, via_predict)
+
+
+# ---------------------------------------------------------------------------
 # sklearn get_params / set_params roundtrip
 # ---------------------------------------------------------------------------
 
