@@ -869,6 +869,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#assessing-significance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assessing significance
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1345,6 +1356,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#assessing-significance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assessing significance
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1518,6 +1540,36 @@ In the parameter grid, use lists to specify per-view values:</p>
 <li>When the grid is large, prefer a coarse-to-fine search: run <code>GridSearchCV</code> on a coarse grid
   first, then refine around the best value.</li>
 </ul>
+<hr />
+<h2 id="assessing-significance">Assessing significance<a class="headerlink" href="#assessing-significance" title="Permanent link">&para;</a></h2>
+<p><code>permutation_test_significance</code> answers two different questions: is a canonical
+correlation stronger than you'd expect by chance, and which individual features
+reliably drive it?</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCA</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">permutation_test_significance</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">result</span> <span class="o">=</span> <span class="n">permutation_test_significance</span><span class="p">(</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">CCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">],</span> <span class="n">n_permutations</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">)</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Canonical correlations:&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">correlations_</span><span class="p">)</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;p-values (per dimension):&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">p_values_</span><span class="p">)</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1"># Per-feature, per-dimension p-values for view 1&#39;s loadings</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">loading_p_values_</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span></code></pre></div>
+<p>It works by refitting the model many times on data where every view except the first
+has had its rows independently shuffled, breaking the true cross-view relationship while
+keeping each view's own covariance structure intact. <code>p_values_</code> compares each
+dimension's true correlation directly against its shuffled counterparts. For the
+loadings, a shuffled refit isn't guaranteed to recover components in the same order or
+sign as the true fit — permutation can rotate or reflect near-tied dimensions — so each
+permutation's loadings are first realigned to the true fit via <code>procrustes_rotation</code>
+before being compared feature-by-feature. This follows the resampling-based significance
+testing approach used in the neuroimaging CCA/PLS literature (Xia et al. 2018; McIntosh &amp;
+Lobaugh 2004).</p>
+<p><code>n_permutations</code> trades off precision against runtime (each permutation refits the model
+from scratch); pass <code>n_jobs</code> to parallelise across permutations.</p>
 
 
 

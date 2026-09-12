@@ -2647,8 +2647,8 @@
         <p>Abstract base class for all multiview CCA models.</p>
 <p>Subclasses must implement :meth:<code>fit</code>.  All other public methods
 (<code>transform</code>, <code>fit_transform</code>, <code>score</code>, <code>pairwise_correlations</code>,
-<code>average_pairwise_correlations</code>, <code>get_factor_loadings</code>) are provided
-here using the <code>weights_</code> attribute set by <code>fit</code>.</p>
+<code>average_pairwise_correlations</code>, <code>get_factor_loadings</code>, <code>predict</code>)
+are provided here using the <code>weights_</code> attribute set by <code>fit</code>.</p>
 <p>This class inherits from :class:<code>sklearn.base.BaseEstimator</code> so that
 <code>get_params</code> / <code>set_params</code> round-trip correctly and sklearn model
 selection utilities work out of the box.</p>
