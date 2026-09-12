@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from cca_zoo.sparse._sparsecca import ElasticNetCCA
+from cca_zoo.sparse._elasticnetcca import ElasticNetCCA
 
 __all__ = ["ElasticNetCCA"]
