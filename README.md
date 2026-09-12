@@ -115,6 +115,12 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 |---|---|---|
 | `TreeCCA` | Gradient-boosted-tree CCA (Eckart-Young objective) | ≥2 |
 
+### `cca_zoo.gam`
+
+| Class | Description | Views |
+|---|---|---|
+| `GAMCCA` | Generalized-additive-model CCA (Eckart-Young objective) | ≥2 |
+
 ### `cca_zoo.deep` *(requires `[deep]`)*
 
 Built on PyTorch Lightning — models are trained with a standard `lightning.Trainer`, not a

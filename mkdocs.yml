@@ -106,6 +106,7 @@ nav:
       - Linear Methods: user-guide/linear.md
       - Nonparametric Methods: user-guide/nonparametric.md
       - Tree Methods: user-guide/tree.md
+      - GAM Methods: user-guide/gam.md
       - Deep Methods: user-guide/deep.md
       - Probabilistic CCA: user-guide/probabilistic.md
       - Datasets: user-guide/datasets.md
@@ -115,6 +116,7 @@ nav:
       - Linear: api/linear.md
       - Nonparametric: api/nonparametric.md
       - Tree: api/tree.md
+      - GAM: api/gam.md
       - Deep: api/deep.md
       - Probabilistic: api/probabilistic.md
       - Datasets: api/datasets.md

@@ -184,6 +184,70 @@ def cheap_orthonormal_projection_weights(
     return weights
 
 
+def random_orthogonal_embedding(
+    Xc: np.ndarray, k: int, rng: np.random.Generator
+) -> tuple[np.ndarray, np.ndarray]:
+    """Unit-variance random-orthogonal initial embedding and its projection.
+
+    Draws ``k`` random orthogonal directions in feature space (independent of
+    the data's principal directions) and rescales them so each initial
+    component has unit variance. The unit-variance scaling is what matters
+    for a well-conditioned, non-vanishing EY gradient from round zero;
+    orthogonality keeps the initial cross-component covariance at zero. Used
+    as the fixed starting point for nonlinear encoders trained by functional
+    gradient boosting (:class:`~cca_zoo.tree.TreeCCA`,
+    :class:`~cca_zoo.gam.GAMCCA`), which — unlike a linear map — have no
+    natural "zero" to start from.
+
+    Args:
+        Xc: Mean-centred training view, shape (n_samples, n_features).
+        k: Number of components. Must not exceed ``n_features``.
+        rng: Random generator used to draw the orthogonal directions.
+
+    Returns:
+        Tuple ``(base_margin, projection)``: ``base_margin`` has shape
+        (n_samples, k) and is the initial embedding for training;
+        ``projection`` has shape (n_features, k) and reproduces the same
+        unit-variance embedding for unseen data via ``Xc_new @ projection``.
+    """
+    n, p = Xc.shape
+    W, _ = np.linalg.qr(rng.standard_normal((p, k)))
+    Z = Xc @ W
+    scale = np.linalg.norm(Z, axis=0, keepdims=True) / np.sqrt(n - 1)
+    projection = (W / scale).astype(np.float32)
+    base_margin = (Z / scale).astype(np.float32)
+    return base_margin, projection
+
+
+def rescale_grads_to_target_std(
+    grads: list[np.ndarray], target_std: float = 0.1
+) -> list[np.ndarray]:
+    r"""Rescale a set of per-view EY gradients to a common target standard deviation.
+
+    The analytic EY gradient (:func:`ey_grad_z`) has magnitude $O(1/n)$
+    (from its ``4 / (M (n - 1))`` prefactor), far smaller than the natural
+    scale of a per-round base learner's output — a boosted-tree leaf value,
+    or a ridge-fitted spline coefficient. Used unscaled as a functional
+    gradient-boosting target, a single round would then contribute a
+    negligible increment relative to the encoder's starting embedding, no
+    matter the learning rate. Rescaling by one shared scalar restores a
+    well-conditioned target for that base learner, whichever form it takes
+    (:class:`~cca_zoo.tree.TreeCCA`'s trees, :class:`~cca_zoo.gam.GAMCCA`'s
+    splines). Since the same scalar is applied to every view, this changes
+    only the effective step size, not the gradient's direction or relative
+    cross-view magnitudes.
+
+    Args:
+        grads: One gradient array per view, each (n_samples, k).
+        target_std: Target standard deviation. Default is 0.1.
+
+    Returns:
+        List of rescaled gradients, same dtype as the input.
+    """
+    scale = max(max(float(g.std()) for g in grads), 1e-6)
+    return [g / scale * target_std for g in grads]
+
+
 def ey_grad_z(representations: list[np.ndarray]) -> list[np.ndarray]:
     r"""Gradient of the EY loss w.r.t. each embedding (M-view generalised).
 

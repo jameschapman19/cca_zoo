@@ -7,6 +7,22 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `GAMCCA`: nonlinear multiview CCA using a generalized additive model (one cubic
+  regression spline per input feature) as the per-view encoder, trained via the same
+  Eckart-Young objective as `TreeCCA` and the `*_EY` models — via alternating
+  (Gauss-Seidel) L2Boosting rather than `TreeCCA`'s tree boosting. No optional dependency
+  required. Fitted per-feature shape functions are inspectable directly via
+  `model.shape_function(view, feature, x)`. On data where the true per-feature
+  relationship is smooth, `GAMCCA` reaches a given held-out canonical correlation in far
+  fewer boosting rounds than `TreeCCA`, and generalises better at a matched round budget
+  (see `tests/gam/test_gamcca.py`'s outperformance test for a worked example).
+- `cca_zoo._utils._ey.random_orthogonal_embedding` and
+  `rescale_grads_to_target_std`: the random-orthogonal initial-embedding and
+  gradient-rescaling helpers previously private to `TreeCCA` are now shared EY-loss
+  utilities, used by both `TreeCCA` and the new `GAMCCA`.
+
 ### Changed
 
 - `CCA_EY` (and `MCCA_EY`, which inherits it) now initialises its weights
