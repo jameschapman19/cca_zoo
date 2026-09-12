@@ -1733,6 +1733,9 @@ for the full explanation of why CCA needs this and PLS doesn't).</p>
 </span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="n">gs</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_views</span><span class="p">)</span>
 </span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Best params:&quot;</span><span class="p">,</span> <span class="n">gs</span><span class="o">.</span><span class="n">best_params_</span><span class="p">)</span>
 </span></code></pre></div>
+<p><code>RandomizedSearchCV</code> and the underlying <code>MultiviewWrapper</code> adapter are also available for
+sampling distributions or plugging cca_zoo models into other sklearn model-selection tools
+directly — see <a href="../user-guide/model-selection/">Model Selection</a>.</p>
 <hr />
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>

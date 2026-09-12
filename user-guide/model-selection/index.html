@@ -848,6 +848,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#randomizedsearchcv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RandomizedSearchCV
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-sklearn-tools-directly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using sklearn tools directly
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#full-example-tuning-kernel-cca" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1335,6 +1357,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#randomizedsearchcv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RandomizedSearchCV
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-sklearn-tools-directly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using sklearn tools directly
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#full-example-tuning-kernel-cca" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1441,8 +1485,17 @@
 
 
 <h1 id="model-selection">Model Selection<a class="headerlink" href="#model-selection" title="Permanent link">&para;</a></h1>
-<p><code>cca_zoo.model_selection</code> provides cross-validated hyperparameter search for multiview models.
-It wraps sklearn's <code>GridSearchCV</code> with a multiview-compatible interface.</p>
+<p>Every <code>cca_zoo</code> model is a <code>sklearn.base.BaseEstimator</code>, but its <code>fit</code>/<code>transform</code>/<code>score</code>
+take a <code>list[ArrayLike]</code> of per-view arrays rather than a single 2-D <code>X</code>. That's the one
+thing that stops sklearn's own model-selection tools (<code>GridSearchCV</code>, <code>cross_val_score</code>,
+<code>Pipeline</code>, ...) from working with it directly — they need to slice <code>X</code> by row to build
+folds, and can't do that across a Python list of differently-shaped arrays.</p>
+<p><code>cca_zoo.model_selection.MultiviewWrapper</code> closes that gap: it horizontally stacks the
+views into one array on the way in, and splits them back before calling the wrapped
+estimator. Once wrapped, the estimator is an ordinary sklearn estimator, so <em>any</em> sklearn
+tool — not just grid search — applies unmodified. <code>GridSearchCV</code> and <code>RandomizedSearchCV</code>
+below do this wrapping for you and otherwise delegate entirely to
+<code>sklearn.model_selection.GridSearchCV</code> / <code>RandomizedSearchCV</code>.</p>
 <hr />
 <h2 id="gridsearchcv">GridSearchCV<a class="headerlink" href="#gridsearchcv" title="Permanent link">&para;</a></h2>
 <p><code>GridSearchCV</code> finds the hyperparameters that maximise the average canonical correlation on
@@ -1462,22 +1515,24 @@ held-out folds, using sklearn's cross-validation machinery under the hood.</p>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">best_model</span><span class="o">.</span><span class="n">transform</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="per-view-parameters">Per-view parameters<a class="headerlink" href="#per-view-parameters" title="Permanent link">&para;</a></h3>
-<p>Many CCA models accept per-view parameters as a scalar (broadcast to all views) or a list.
-In the parameter grid, use lists to specify per-view values:</p>
+<p>Many CCA models accept per-view parameters as a scalar (broadcast to all views) or an
+explicit list, e.g. <code>KCCA(c=[0.01, 0.1])</code>. To search each view's value independently,
+suffix the parameter name with <code>__&lt;view index&gt;</code>; sklearn then searches the full Cartesian
+product across views:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridSearchCV</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">KCCA</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Scalar c applies to all views</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">param_grid</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]}</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Per-view c (list of two values for a two-view model)</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">param_grid</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]]}</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">gs</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">KCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.01</span><span class="p">),</span> <span class="n">param_grid</span><span class="o">=</span><span class="n">param_grid</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="mi">5</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">)</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">gs</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">param_grid</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;c__0&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="s2">&quot;c__1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">]}</span>  <span class="c1"># all 6 combinations</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">gs</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">KCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.01</span><span class="p">),</span> <span class="n">param_grid</span><span class="o">=</span><span class="n">param_grid</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="mi">5</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">gs</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">gs</span><span class="o">.</span><span class="n">best_params_</span><span class="p">)</span>  <span class="c1"># e.g. {&quot;c__0&quot;: 0.1, &quot;c__1&quot;: 0.01}</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">gs</span><span class="o">.</span><span class="n">best_estimator_</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>  <span class="c1"># [0.1, 0.01]</span>
 </span></code></pre></div>
+<p>An index you don't mention in the grid keeps the estimator's current value for that view,
+so <code>param_grid={"c__0": [...]}</code> alone only tunes view 0, leaving view 1 fixed.</p>
 <h3 id="accessing-results">Accessing results<a class="headerlink" href="#accessing-results" title="Permanent link">&para;</a></h3>
 <p><code>GridSearchCV</code> exposes the standard sklearn attributes:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
@@ -1496,38 +1551,77 @@ In the parameter grid, use lists to specify per-view values:</p>
 </span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="n">best</span> <span class="o">=</span> <span class="n">gs</span><span class="o">.</span><span class="n">best_estimator_</span>
 </span></code></pre></div>
 <hr />
+<h2 id="randomizedsearchcv">RandomizedSearchCV<a class="headerlink" href="#randomizedsearchcv" title="Permanent link">&para;</a></h2>
+<p>For a continuous hyperparameter like <code>c</code>, sampling a distribution is usually more efficient
+than searching a fixed grid. <code>RandomizedSearchCV</code> mirrors
+<code>sklearn.model_selection.RandomizedSearchCV</code>: pass a distribution (anything with an <code>rvs</code>
+method, e.g. <code>scipy.stats.loguniform</code>) instead of a list of values, and it draws <code>n_iter</code>
+random parameter settings rather than trying every grid point.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">loguniform</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">RandomizedSearchCV</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">rCCA</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">rs</span> <span class="o">=</span> <span class="n">RandomizedSearchCV</span><span class="p">(</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">rCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">param_distributions</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="n">loguniform</span><span class="p">(</span><span class="mf">1e-4</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)},</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">n_iter</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="p">)</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">rs</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Best c:&quot;</span><span class="p">,</span> <span class="n">rs</span><span class="o">.</span><span class="n">best_params_</span><span class="p">[</span><span class="s2">&quot;c&quot;</span><span class="p">])</span>
+</span></code></pre></div>
+<hr />
+<h2 id="using-sklearn-tools-directly">Using sklearn tools directly<a class="headerlink" href="#using-sklearn-tools-directly" title="Permanent link">&para;</a></h2>
+<p><code>GridSearchCV</code> and <code>RandomizedSearchCV</code> cover the common case, but they don't need to be
+the only way in: <code>MultiviewWrapper</code> is the same adapter they use internally, and it's
+public, so any other sklearn model-selection tool — <code>HalvingGridSearchCV</code>,
+<code>cross_val_score</code>, <code>cross_validate</code>, <code>learning_curve</code>, <code>Pipeline</code>, ... — works with it too.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">cross_validate</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">MultiviewWrapper</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCA</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">views</span> <span class="o">=</span> <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">split_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">views</span><span class="p">]</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">wrapper</span> <span class="o">=</span> <span class="n">MultiviewWrapper</span><span class="p">(</span><span class="n">CCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">split_indices</span><span class="o">=</span><span class="n">split_indices</span><span class="p">)</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="n">results</span> <span class="o">=</span> <span class="n">cross_validate</span><span class="p">(</span><span class="n">wrapper</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">views</span><span class="p">),</span> <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">return_train_score</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;test_score&quot;</span><span class="p">])</span>
+</span></code></pre></div>
+<hr />
 <h2 id="full-example-tuning-kernel-cca">Full example: tuning kernel CCA<a class="headerlink" href="#full-example-tuning-kernel-cca" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">JointData</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridSearchCV</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">KCCA</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Simulate data</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">data</span> <span class="o">=</span> <span class="n">JointData</span><span class="p">(</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">n_views</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">n_samples</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">n_features</span><span class="o">=</span><span class="p">[</span><span class="mi">30</span><span class="p">,</span> <span class="mi">30</span><span class="p">],</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="n">signal_to_noise</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="p">)</span>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="n">views</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="c1"># Grid search over kernel and regularisation</span>
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="n">param_grid</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    <span class="s2">&quot;kernel&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="s2">&quot;poly&quot;</span><span class="p">],</span>
-</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>    <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
-</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>    <span class="s2">&quot;gamma&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span>
-</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="p">}</span>
-</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="n">gs</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span>
-</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>    <span class="n">KCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
-</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>    <span class="n">param_grid</span><span class="o">=</span><span class="n">param_grid</span><span class="p">,</span>
-</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>    <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="p">)</span>
-</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="n">gs</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
-</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>
-</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Best params:&quot;</span><span class="p">,</span> <span class="n">gs</span><span class="o">.</span><span class="n">best_params_</span><span class="p">)</span>
-</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Best score: &quot;</span><span class="p">,</span> <span class="n">gs</span><span class="o">.</span><span class="n">best_score_</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">JointData</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridSearchCV</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">KCCA</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1"># Simulate data</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">data</span> <span class="o">=</span> <span class="n">JointData</span><span class="p">(</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">n_views</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="n">n_samples</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="n">n_features</span><span class="o">=</span><span class="p">[</span><span class="mi">30</span><span class="p">,</span> <span class="mi">30</span><span class="p">],</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">signal_to_noise</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="p">)</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="n">views</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="c1"># Grid search over kernel and regularisation</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="n">param_grid</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="s2">&quot;kernel&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="s2">&quot;poly&quot;</span><span class="p">],</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>    <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>    <span class="s2">&quot;gamma&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span>
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="p">}</span>
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="n">gs</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span>
+</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>    <span class="n">KCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>    <span class="n">param_grid</span><span class="o">=</span><span class="n">param_grid</span><span class="p">,</span>
+</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>    <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+</span><span id="__span-5-27"><a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a><span class="p">)</span>
+</span><span id="__span-5-28"><a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a><span class="n">gs</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
+</span><span id="__span-5-29"><a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>
+</span><span id="__span-5-30"><a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Best params:&quot;</span><span class="p">,</span> <span class="n">gs</span><span class="o">.</span><span class="n">best_params_</span><span class="p">)</span>
+</span><span id="__span-5-31"><a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Best score: &quot;</span><span class="p">,</span> <span class="n">gs</span><span class="o">.</span><span class="n">best_score_</span><span class="p">)</span>
 </span></code></pre></div>
 <hr />
 <h2 id="tips">Tips<a class="headerlink" href="#tips" title="Permanent link">&para;</a></h2>
@@ -1537,26 +1631,29 @@ In the parameter grid, use lists to specify per-view values:</p>
 <li>Cross-validation is done on the full set of views passed to <code>fit</code>; train/test splits are
   row-wise (same rows held out across all views).</li>
 <li>For sparse CCA methods, tune <code>tau</code> or <code>alpha</code> just like any other hyperparameter.</li>
-<li>When the grid is large, prefer a coarse-to-fine search: run <code>GridSearchCV</code> on a coarse grid
-  first, then refine around the best value.</li>
+<li>When the grid is large, prefer <code>RandomizedSearchCV</code>, or a coarse-to-fine <code>GridSearchCV</code>:
+  search a coarse grid first, then refine around the best value.</li>
+<li><code>MultiviewWrapper</code> composes with any sklearn model-selection tool, not just the two
+  classes above — reach for it directly when you need <code>HalvingGridSearchCV</code>,
+  <code>cross_val_score</code>, or a <code>Pipeline</code> step.</li>
 </ul>
 <hr />
 <h2 id="assessing-significance">Assessing significance<a class="headerlink" href="#assessing-significance" title="Permanent link">&para;</a></h2>
 <p><code>permutation_test_significance</code> answers two different questions: is a canonical
 correlation stronger than you'd expect by chance, and which individual features
 reliably drive it?</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCA</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">permutation_test_significance</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">result</span> <span class="o">=</span> <span class="n">permutation_test_significance</span><span class="p">(</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">CCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">],</span> <span class="n">n_permutations</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">)</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Canonical correlations:&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">correlations_</span><span class="p">)</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;p-values (per dimension):&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">p_values_</span><span class="p">)</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1"># Per-feature, per-dimension p-values for view 1&#39;s loadings</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">loading_p_values_</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCA</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">permutation_test_significance</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">result</span> <span class="o">=</span> <span class="n">permutation_test_significance</span><span class="p">(</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">CCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">],</span> <span class="n">n_permutations</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="p">)</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Canonical correlations:&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">correlations_</span><span class="p">)</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;p-values (per dimension):&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">p_values_</span><span class="p">)</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="c1"># Per-feature, per-dimension p-values for view 1&#39;s loadings</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">loading_p_values_</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 </span></code></pre></div>
 <p>It works by refitting the model many times on data where every view except the first
 has had its rows independently shuffled, breaking the true cross-view relationship while
