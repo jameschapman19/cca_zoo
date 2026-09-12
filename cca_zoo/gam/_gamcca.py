@@ -7,47 +7,32 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
-from sklearn.linear_model import Ridge, RidgeCV
 from sklearn.preprocessing import SplineTransformer
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._ey import (
-    ey_cross_covariance,
-    ey_diag_hessian,
-    ey_grad_z,
-    ey_loss,
-    random_orthogonal_embedding,
-)
+from cca_zoo._utils._ey import coordinate_descent_ey
 from cca_zoo._utils._validation import validate_views
 
 
 class _GamEncoder:
-    r"""Per-view additive-spline encoder, fit by P-IRLS + GCV/REML-style search.
+    r"""Per-view additive-spline encoder: a fixed, centred B-spline basis.
 
-    Mirrors how GAM software such as ``mgcv`` actually fits a smooth term:
     :class:`~sklearn.preprocessing.SplineTransformer` builds the per-feature
-    B-spline design matrix (one contiguous block of columns per feature) and
-    :class:`~sklearn.linear_model.Ridge` / :class:`~sklearn.linear_model.RidgeCV`
-    do the penalised fitting, rather than either being reimplemented. Two
-    kinds of step are exposed, matching ``mgcv``'s own two nested loops:
+    B-spline design matrix once (one contiguous block of columns per
+    feature) — the basis itself is fixed for the whole fit, never
+    reimplemented. Centring it here (subtracting each basis column's own
+    mean) is what makes $Z_i = \text{basis}_i B_i$ automatically zero-mean
+    for *any* coefficients $B_i$, the same way centring the raw features
+    already does for a plain linear encoder — no separate recentring step
+    is needed anywhere downstream, unlike the whitening/recentring
+    :class:`_GamEncoder` used to require.
 
-    - :meth:`inner_step` — one penalised-iteratively-reweighted-least-squares
-      (P-IRLS) Newton update of the spline coefficients at the *current,
-      fixed* smoothing parameter (``alphas_``): ridge-regress the working
-      response $Z_i - \nabla_i / h_i$ (a Newton step on the EY loss, where
-      $\nabla_i$ is :func:`~cca_zoo._utils._ey.ey_grad_z`'s gradient and
-      $h_i$ the diagonal-Hessian weight from
-      :func:`~cca_zoo._utils._ey.ey_diag_hessian`) onto the fixed basis,
-      weighted by $h_i$.
-    - :meth:`outer_step` — re-selects the smoothing parameter itself via
-      :class:`~sklearn.linear_model.RidgeCV`'s efficient leave-one-out
-      cross-validation (the same statistical job GCV/REML do in ``mgcv``),
-      at whatever working response/weights the inner loop has most recently
-      converged to.
-
-    Used only during ``fit``.
+    The coefficients $B_i$ (``coef_``) are fit by
+    :func:`~cca_zoo._utils._ey.coordinate_descent_ey`, not by this class —
+    it only builds and holds the fixed basis, and evaluates it (``predict``,
+    ``predict_new``, ``feature_term``) once coefficients exist.
     """
 
     def __init__(self, X: np.ndarray, k: int, n_knots: int) -> None:
@@ -58,102 +43,23 @@ class _GamEncoder:
             degree=3,
             knots="quantile",
             extrapolation="constant",
-            include_bias=True,
+            include_bias=False,
         )
-        self._basis: np.ndarray = self._spline.fit_transform(X)
-        self.n_splines_: int = self._basis.shape[1] // self.p
-        self.models_: list[Ridge] = []
-        self.alphas_: np.ndarray = np.ones(k)
-        self.whiten_: np.ndarray = np.eye(k)
-        self.raw_mean_: np.ndarray = np.zeros(k)
+        raw_basis = self._spline.fit_transform(X)
+        self.n_splines_: int = raw_basis.shape[1] // self.p
+        self.basis_mean_: np.ndarray = raw_basis.mean(axis=0)
+        self.basis_: np.ndarray = raw_basis - self.basis_mean_
+        self.coef_: np.ndarray = np.zeros((self.basis_.shape[1], k))
         self._train_pred: np.ndarray = np.zeros((self.n, k))
 
     def predict(self) -> np.ndarray:
         """Encoder output on the training data, shape (n_samples, k)."""
         return self._train_pred
 
-    def _update_from_raw(self, raw: np.ndarray) -> None:
-        """Whiten a raw (pre-decorrelation) prediction and cache it.
-
-        The raw per-component fit is not itself guaranteed zero-mean (the
-        basis's own intercept-like capacity is fit freely), so it is
-        explicitly re-centred here; ``raw_mean_`` is cached so
-        :meth:`predict_new` and :meth:`feature_term` apply the exact same
-        correction rather than each output silently carrying its own,
-        slightly different constant offset.
-
-        Args:
-            raw: Raw per-component predictions, shape (n_samples, k).
-        """
-        self.raw_mean_ = raw.mean(axis=0)
-        centred = raw - self.raw_mean_
-        cov = (centred.T @ centred) / (centred.shape[0] - 1)
-        vals, vecs = np.linalg.eigh(cov)
-        vals = np.maximum(vals, 1e-8)
-        self.whiten_ = vecs @ np.diag(vals**-0.5) @ vecs.T
-        self._train_pred = centred @ self.whiten_
-
-    def inner_step(
-        self, Z_self: np.ndarray, grad: np.ndarray, diag_hess: np.ndarray
-    ) -> None:
-        """One P-IRLS Newton update at the current, fixed ``alphas_``.
-
-        Args:
-            Z_self: This view's current embedding, shape (n_samples, k).
-            grad: EY-loss gradient for this view (see
-                :func:`~cca_zoo._utils._ey.ey_grad_z`), shape (n_samples, k).
-            diag_hess: Diagonal-Hessian weights (see
-                :func:`~cca_zoo._utils._ey.ey_diag_hessian`), shape (n_samples, k).
-        """
-        raw_cols = []
-        models = []
-        for c in range(self.k):
-            working_response = Z_self[:, c] - grad[:, c] / diag_hess[:, c]
-            model = Ridge(alpha=self.alphas_[c], fit_intercept=False)
-            model.fit(self._basis, working_response, sample_weight=diag_hess[:, c])
-            models.append(model)
-            raw_cols.append(model.predict(self._basis))
-        self.models_ = models
-        self._update_from_raw(np.column_stack(raw_cols))
-
-    def outer_step(
-        self,
-        Z_self: np.ndarray,
-        grad: np.ndarray,
-        diag_hess: np.ndarray,
-        alpha_grid: np.ndarray,
-    ) -> np.ndarray:
-        """Re-select the smoothing parameter via RidgeCV's efficient LOOCV.
-
-        Args:
-            Z_self: This view's current embedding, shape (n_samples, k).
-            grad: EY-loss gradient for this view, shape (n_samples, k).
-            diag_hess: Diagonal-Hessian weights, shape (n_samples, k).
-            alpha_grid: Candidate smoothing parameters to search over.
-
-        Returns:
-            The newly selected smoothing parameter per component, shape (k,).
-        """
-        raw_cols = []
-        models = []
-        new_alphas = np.empty(self.k)
-        for c in range(self.k):
-            working_response = Z_self[:, c] - grad[:, c] / diag_hess[:, c]
-            model = RidgeCV(alphas=alpha_grid)
-            model.fit(self._basis, working_response, sample_weight=diag_hess[:, c])
-            models.append(model)
-            new_alphas[c] = model.alpha_
-            raw_cols.append(model.predict(self._basis))
-        self.models_ = models
-        self.alphas_ = new_alphas
-        self._update_from_raw(np.column_stack(raw_cols))
-        return new_alphas
-
     def predict_new(self, X: np.ndarray) -> np.ndarray:
         """Encoder output for arbitrary (e.g. test) data, shape (n, k)."""
-        basis = self._spline.transform(X)
-        raw = np.column_stack([m.predict(basis) for m in self.models_])
-        result: np.ndarray = (raw - self.raw_mean_) @ self.whiten_
+        basis = self._spline.transform(X) - self.basis_mean_
+        result: np.ndarray = basis @ self.coef_
         return result
 
     def feature_term(self, feature_idx: int, x: np.ndarray) -> np.ndarray:
@@ -165,23 +71,20 @@ class _GamEncoder:
 
         Returns:
             Array of shape (n, k): this feature's term alone, for each
-            latent component, after the same whitening transform applied
-            to the full encoder output. Whitening is linear, so the
-            feature-wise decomposition of the raw fit carries through
-            exactly — summing this over every feature reproduces
-            :meth:`predict` exactly — except for the overall mean
-            correction cached in ``raw_mean_``, which has no natural home
-            in any single feature (it is a property of the whole additive
-            sum) and is therefore split evenly across the ``p`` features.
+            latent component. Because the basis is centred per *column*
+            (not just overall), each feature's own share of that centring
+            is exactly ``basis_mean_[block]`` — so summing this over every
+            feature reproduces :meth:`predict` exactly, with no leftover
+            constant to split arbitrarily across features.
         """
         grid = np.zeros((len(x), self.p))
         grid[:, feature_idx] = x
-        basis = self._spline.transform(grid)
+        raw_basis = self._spline.transform(grid)
         block = slice(
             feature_idx * self.n_splines_, (feature_idx + 1) * self.n_splines_
         )
-        raw = np.column_stack([basis[:, block] @ m.coef_[block] for m in self.models_])
-        result: np.ndarray = (raw - self.raw_mean_ / self.p) @ self.whiten_
+        centred_block = raw_basis[:, block] - self.basis_mean_[block]
+        result: np.ndarray = centred_block @ self.coef_[block]
         return result
 
 
@@ -190,80 +93,65 @@ class GAMCCA(BaseModel):
 
     Learns one nonlinear encoder $f_i$ per view — a generalized additive
     model (GAM), $f_i(x) = \sum_j s_{ij}(x_{ij})$, summing one univariate
-    B-spline term per input feature — that jointly maximise the
-    Eckart-Young (EY) unconstrained-CCA objective:
+    B-spline term per input feature — that jointly minimise the
+    elastic-net-penalised Eckart-Young (EY) objective:
 
     $$
     \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
     $$
 
-    where, for embeddings $Z_i = f_i(X_i)$, $C$ is the mean pairwise
-    cross-covariance (including $i = j$ terms) and $V$ the mean
-    auto-covariance across all views (see :mod:`cca_zoo._utils._ey`, the
-    same shared EY-loss machinery used by
+    where, for embeddings $Z_i = f_i(X_i)$, $C$ is the mean
+    pairwise cross-covariance (including $i = j$ terms) and $V$
+    the mean auto-covariance across all views (see
+    :mod:`cca_zoo._utils._ey`, the same shared EY-loss machinery used by
     :class:`~cca_zoo.linear.gradient.CCAEY`, :class:`~cca_zoo.deep.DCCAEY`,
-    and :class:`~cca_zoo.tree.TreeCCA`).
+    :class:`~cca_zoo.tree.TreeCCA`, and :class:`~cca_zoo.sparse.ElasticNetCCA`).
+    Writing $f_i(x) = \sum_j s_{ij}(x_{ij})$ as $\text{basis}_i(x) B_i$ for
+    a fixed per-feature B-spline basis (:class:`_GamEncoder`, built by
+    :class:`~sklearn.preprocessing.SplineTransformer`) makes fitting $B_i$
+    exactly the same problem :class:`~cca_zoo.sparse.ElasticNetCCA` solves
+    for a raw linear encoder, just with a nonlinear (but *fixed*) feature
+    map in place of the raw features: both are fit by
+    :func:`~cca_zoo._utils._ey.coordinate_descent_ey` — cyclic coordinate
+    descent directly on $\mathcal{L}_{EY}$, one scalar spline coefficient
+    at a time, each solved to its exact global minimiser (see that
+    function's docstring for the derivation).
 
-    Unlike those models, which reach the EY loss's optimum by many small
-    (stochastic-)gradient steps, GAMCCA fits it the way GAM software such as
-    ``mgcv`` fits an ordinary GAM: by directly Newton-optimising the loss
-    with **P-IRLS** (penalised iteratively reweighted least squares) for the
-    basis coefficients, wrapped in an **outer** loop that re-selects each
-    view's smoothing parameter by (efficient, leave-one-out) cross-validation
-    — the same statistical job ``mgcv``'s GCV/REML step does — and
-    alternating the two until both the coefficients and the smoothing
-    parameters stop changing:
+    This is a deliberate departure from the P-IRLS-plus-GCV recipe GAMCCA
+    used before: that scheme reached a Newton step by working in the
+    $n$-dimensional embedding space $Z_i$ with a per-sample diagonal
+    approximation of $\mathcal{L}_{EY}$'s Hessian, which then needed a
+    post-hoc whitening/decorrelation retraction to compensate for the
+    curvature the diagonal approximation throws away (see
+    :func:`~cca_zoo._utils._ey.ey_diag_hessian`'s docstring). Fitting
+    directly in the encoder's own (much smaller) coefficient space instead
+    needs no such approximation or retraction: coordinate descent solves
+    the *exact* (quartic, not linearised) restriction of $\mathcal{L}_{EY}$
+    to each coefficient, so every update is already consistent with the
+    true loss.
 
-    1. **Inner (P-IRLS)**: for the *current, fixed* smoothing parameters,
-       repeatedly form a Newton step on $\mathcal{L}_{EY}$ for each view in
-       turn — a working response $Z_i - \nabla_i / h_i$ (from the analytic
-       gradient :func:`~cca_zoo._utils._ey.ey_grad_z` and a diagonal-Hessian
-       weight, see :func:`~cca_zoo._utils._ey.ey_diag_hessian`) ridge-fit
-       onto that view's fixed B-spline basis — cycling through every view
-       until the EY loss itself
-       stops moving.
-    2. **Outer (GCV-style)**: only once the inner loop has converged, re-fit
-       each view's smoothing parameter with :class:`~sklearn.linear_model.RidgeCV`
-       at that converged state, then re-run the inner loop at the new
-       parameters. Repeat until the smoothing parameters stabilise too.
+    The trade-off is that each view's smoothing strength (``alpha``) is now
+    a fixed hyperparameter rather than automatically re-selected each round
+    by :class:`~sklearn.linear_model.RidgeCV`'s leave-one-out
+    cross-validation — that automatic search was specific to the working
+    response/Newton-step framing (a well-posed quadratic problem at every
+    step) and has no direct analogue once fitting minimises the true
+    quartic loss instead.
 
-    This is a genuine departure from the boosting-based recipe
-    :class:`~cca_zoo.tree.TreeCCA` uses (necessary there because a
-    tree ensemble has no closed-form single-shot fit to a moving target):
-    GAMCCA never takes a small shrunk step, and has no `learning_rate` or
-    `n_estimators` to tune — each view's smoothing strength is chosen
-    automatically, the same way it would be for any other GAM. Everything
-    here is built from scikit-learn's own, already-required machinery
-    (``SplineTransformer``, ``Ridge``, ``RidgeCV``); no optional dependency
-    or custom Newton/GCV solver is needed.
+    Because each latent component still decomposes exactly into one
+    additive term per input feature, the fitted shape of any feature's
+    contribution remains available directly via ``shape_function`` — the
+    GAM analogue of :class:`~cca_zoo.tree.TreeCCA`'s split-gain feature
+    importance, but an exact curve rather than a single importance score.
 
     Note:
-        The Hessian used above is a *diagonal* (per-sample) approximation
-        of the true, dense Hessian (which has a rank-1 correction beyond
-        diagonal — every sample's curvature is coupled to every other's
-        through $\operatorname{Var}(Z_i)$). That approximation needs its own
-        damping: near the loss's own well-conditioned fixed point
-        ($V \approx 1$), the diagonal collapses to a per-sample value with
-        an enormous, sign-changing dynamic range, so it is floored at a high
-        percentile of its own distribution (self-calibrating, rather than a
-        fixed constant that would need re-tuning per dataset) — this acts
-        like Levenberg-Marquardt damping, treating typical samples with an
-        approximately uniform weight and only letting the Hessian's signal
-        through for high-leverage outliers. The same diagonal Hessian does
-        *not* carry over usefully to :class:`~cca_zoo.tree.TreeCCA`'s
-        boosting: tree splits aggregate `grad`/`hess` sums *within each
-        leaf* as if independent, which requires the Hessian to genuinely be
-        (close to) diagonal — true for an ordinary GLM's per-observation
-        likelihood, false here, where the curvature is fundamentally a
-        global, rank-1 object. A ridge fit instead solves one global,
-        basis-regularised system, so it isn't sensitive to the same mismatch.
-
-        A GAM's additive structure also assumes each feature contributes
+        A GAM's additive structure assumes each feature contributes
         independently; it cannot represent a genuine *interaction* between
         two features of the same view (e.g. $x_1 x_2$) the way a
-        multivariate tree split can. If cross-view structure only shows up
-        through such interactions, expect :class:`~cca_zoo.tree.TreeCCA` to
-        do better instead.
+        multivariate tree split or a joint kernel can. If cross-view
+        structure only shows up through such interactions, expect
+        :class:`~cca_zoo.tree.TreeCCA` or
+        :class:`~cca_zoo.gp.GaussianProcessCCA` to do better instead.
 
     References:
         Wood, S. N. (2017). Generalized Additive Models: An Introduction
@@ -284,20 +172,13 @@ class GAMCCA(BaseModel):
         n_knots: Number of knots per feature's B-spline term, passed
             straight through to ``sklearn.preprocessing.SplineTransformer(
             n_knots=...)``. Default is 5.
-        alphas: Candidate smoothing parameters searched by
-            :class:`~sklearn.linear_model.RidgeCV` in the outer loop.
-            Default (``None``) uses ``numpy.logspace(-6, 3, 10)``.
-        max_inner_iter: Maximum P-IRLS rounds (cycling once through every
-            view per round) per outer iteration. Default is 50.
-        max_outer_iter: Maximum smoothing-parameter re-selection rounds.
-            Default is 10.
-        tol: Inner-loop convergence tolerance, on the change in the EY loss
-            between successive full passes over all views. Default is 1e-4.
-        hess_floor_percentile: Percentile (0-100) of each round's raw
-            diagonal-Hessian values used to floor them (see
-            :func:`~cca_zoo._utils._ey.ey_diag_hessian`). Default is 90.0.
-        random_state: Seed for drawing the random-orthogonal initial
-            embedding. Default is 0.
+        alpha: Ridge (smoothing) penalty strength applied to every spline
+            coefficient. Default is 0.1.
+        max_iter: Maximum number of full coordinate-descent sweeps (every
+            view, feature, and component once each). Default is 100.
+        tol: Convergence tolerance on the penalised objective's change
+            between consecutive sweeps. Default is 1e-6.
+        random_state: Seed for the initial coefficients.
 
     Example:
         >>> import numpy as np
@@ -311,10 +192,9 @@ class GAMCCA(BaseModel):
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         "n_knots": [Interval(Integral, 2, None, closed="left")],
-        "max_inner_iter": [Interval(Integral, 1, None, closed="left")],
-        "max_outer_iter": [Interval(Integral, 1, None, closed="left")],
+        "alpha": [Interval(Real, 0, None, closed="left")],
+        "max_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
-        "hess_floor_percentile": [Interval(Real, 0, 100, closed="both")],
     }
 
     def __init__(
@@ -322,24 +202,20 @@ class GAMCCA(BaseModel):
         latent_dimensions: int = 1,
         center: bool = True,
         n_knots: int = 5,
-        alphas: ArrayLike | None = None,
-        max_inner_iter: int = 50,
-        max_outer_iter: int = 10,
-        tol: float = 1e-4,
-        hess_floor_percentile: float = 90.0,
+        alpha: float = 0.1,
+        max_iter: int = 100,
+        tol: float = 1e-6,
         random_state: int = 0,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)
         self.n_knots = n_knots
-        self.alphas = alphas
-        self.max_inner_iter = max_inner_iter
-        self.max_outer_iter = max_outer_iter
+        self.alpha = alpha
+        self.max_iter = max_iter
         self.tol = tol
-        self.hess_floor_percentile = hess_floor_percentile
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> GAMCCA:
-        """Fit the GAMCCA model.
+        """Fit the GAMCCA model by cyclic coordinate descent on the EY loss.
 
         Args:
             views: List of 2 or more arrays, each (n_samples, n_features_i).
@@ -354,71 +230,21 @@ class GAMCCA(BaseModel):
         """
         views_ = self._setup_fit(views)
         k = self.latent_dimensions
-        n_views = len(views_)
-        n = views_[0].shape[0]
-        n_minus_1 = n - 1
-        alpha_grid = (
-            np.asarray(self.alphas)
-            if self.alphas is not None
-            else np.logspace(-6, 3, 10)
-        )
+        encoders = [_GamEncoder(X, k, self.n_knots) for X in views_]
 
         rng = np.random.default_rng(self.random_state)
-        encoders = [_GamEncoder(X, k, self.n_knots) for X in views_]
-        representations = []
-        for X in views_:
-            bm, _ = random_orthogonal_embedding(X, k, rng)
-            representations.append(bm)
-
-        prev_alphas = [enc.alphas_.copy() for enc in encoders]
-        for outer_it in range(self.max_outer_iter):
-            # Outer loop: re-select each view's smoothing parameter via
-            # RidgeCV's efficient LOOCV, at the current representations.
-            for i in range(n_views):
-                grad = ey_grad_z(representations)[i]
-                _, V = ey_cross_covariance(representations)
-                diag_hess = ey_diag_hessian(
-                    representations[i],
-                    V,
-                    n_views,
-                    n_minus_1,
-                    self.hess_floor_percentile,
-                )
-                encoders[i].outer_step(representations[i], grad, diag_hess, alpha_grid)
-                representations[i] = encoders[i].predict()
-
-            # Inner loop: P-IRLS Newton steps at these now-fixed smoothing
-            # parameters, cycling through every view, until the EY loss
-            # itself stops moving (see ey_diag_hessian's docstring for why
-            # this, rather than raw per-sample values, is the right
-            # convergence signal to track).
-            prev_obj = ey_loss(representations)["objective"]
-            for _ in range(self.max_inner_iter):
-                for i in range(n_views):
-                    grad = ey_grad_z(representations)[i]
-                    _, V = ey_cross_covariance(representations)
-                    diag_hess = ey_diag_hessian(
-                        representations[i],
-                        V,
-                        n_views,
-                        n_minus_1,
-                        self.hess_floor_percentile,
-                    )
-                    encoders[i].inner_step(representations[i], grad, diag_hess)
-                    representations[i] = encoders[i].predict()
-                obj = ey_loss(representations)["objective"]
-                if abs(obj - prev_obj) < self.tol:
-                    break
-                prev_obj = obj
-
-            alphas_now = [enc.alphas_.copy() for enc in encoders]
-            alpha_change = max(
-                np.max(np.abs(np.log(now) - np.log(prev)))
-                for now, prev in zip(alphas_now, prev_alphas)
-            )
-            prev_alphas = alphas_now
-            if outer_it > 0 and alpha_change < 0.05:
-                break
+        coefficients, representations = coordinate_descent_ey(
+            bases=[enc.basis_ for enc in encoders],
+            k=k,
+            alpha=self.alpha,
+            l1_ratio=0.0,
+            max_iter=self.max_iter,
+            tol=self.tol,
+            rng=rng,
+        )
+        for enc, coef, rep in zip(encoders, coefficients, representations):
+            enc.coef_ = coef
+            enc._train_pred = rep
 
         self.encoders_: list[_GamEncoder] = encoders
         return self

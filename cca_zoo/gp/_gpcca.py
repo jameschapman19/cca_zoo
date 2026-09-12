@@ -7,141 +7,95 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
-from scipy.linalg import cho_solve, cholesky, solve_triangular
+from sklearn.base import clone
 from sklearn.cluster import kmeans_plusplus
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, Kernel
+from sklearn.preprocessing import KernelCenterer
 from sklearn.utils import deprecated
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._ey import (
-    ey_cross_covariance,
-    ey_diag_hessian,
-    ey_grad_z,
-    ey_loss,
-    random_orthogonal_embedding,
-)
+from cca_zoo._utils._ey import coordinate_descent_ey
 from cca_zoo._utils._validation import validate_views
 
 
 class _GpEncoder:
-    r"""Per-view joint-kernel GP encoder, fit by inner/outer Newton + ML-II steps.
+    r"""Per-view kernel encoder: a fixed, centred cross-kernel basis.
 
-    Where :class:`~cca_zoo.gam._gamcca._GamEncoder` sums one univariate
-    B-spline term per feature (additive, so it cannot see cross-feature
-    interactions), this encoder fits one
-    :class:`~sklearn.gaussian_process.GaussianProcessRegressor` per latent
-    component directly on the raw (joint) feature vector, using an ARD
-    (per-dimension-lengthscale) RBF kernel — a genuine, non-additive
-    function of all of that view's features at once. The two step kinds
-    mirror ``_GamEncoder``'s inner/outer split exactly, with the GP's own
-    machinery standing in for ``Ridge``/``RidgeCV``:
+    Writes the encoder as $f_i(x) = k(x, Z_i)^\top B_i$ for a *fixed* set of
+    basis points $Z_i$ (``inducing_``) and kernel $k$ — the standard
+    Nyström/"subset of regressors" reduced-rank construction (Quiñonero-
+    Candela & Rasmussen, 2005). ``inducing_`` is every training row when
+    ``n_inducing`` is ``None`` or at least ``n_samples`` (exact inference);
+    otherwise it is ``n_inducing`` rows selected via
+    :func:`sklearn.cluster.kmeans_plusplus`'s seeding. Centring the
+    cross-kernel with :class:`~sklearn.preprocessing.KernelCenterer` (fit on
+    the inducing-point Gram matrix, the same textbook double-centring
+    :class:`~sklearn.decomposition.KernelPCA` uses) is what makes
+    $Z_i = \text{basis}_i B_i$ automatically zero-mean for *any*
+    coefficients $B_i$ — no separate recentring step is needed anywhere
+    downstream, unlike the whitening/recentring the old Newton-step fit
+    required.
 
-    - :meth:`inner_step` — one Newton step on the EY loss (a working
-      response $Z_i - \nabla_i / h_i$, from
-      :func:`~cca_zoo._utils._ey.ey_grad_z` and
-      :func:`~cca_zoo._utils._ey.ey_diag_hessian`) fit with the kernel's
-      hyperparameters held fixed at their current value
-      (``optimizer=None``), passing the diagonal-Hessian weights as the
-      GP's per-sample ``alpha`` (heteroscedastic observation noise).
-    - :meth:`outer_step` — re-fits the same working response with the
-      kernel hyperparameters (lengthscales, signal variance) free to move,
-      via the GP's own default marginal-likelihood optimisation — the
-      direct GP analogue of GCV/REML smoothing-parameter search.
+    The coefficients $B_i$ (``coef_``) are fit by
+    :func:`~cca_zoo._utils._ey.coordinate_descent_ey` with
+    ``ridge_matrices`` set to the centred inducing-point Gram matrix — the
+    RKHS-norm penalty $B_i^\top K_{mm} B_i$ a Gaussian process's own
+    posterior mean actually minimises, not a plain $\|B_i\|_2^2$ that would
+    ignore the kernel's geometry — not by this class, which only builds and
+    holds the fixed basis and evaluates it once coefficients exist.
 
-    Used only during ``fit``.
+    Predictive uncertainty (``predict_new(..., return_std=True)``) does not
+    depend on $B_i$ at all — a standard GP/kernel-ridge fact, since the
+    posterior variance formula only involves the kernel, the noise level,
+    and the design points, never the fitted targets — so it is obtained
+    directly from an actual :class:`~sklearn.gaussian_process.GaussianProcessRegressor`
+    fit on the inducing points with a placeholder (all-zero) target and
+    ``optimizer=None``: only its ``predict(..., return_std=True)``'s second
+    output is ever used. This computes the exact posterior standard
+    deviation under the (uncentred) GP prior implied by the same kernel,
+    noise level, and inducing points as the mean fit — a standard, easily
+    verified sparse-GP variance approximation, computed independently of
+    the centred-basis construction used for the mean.
     """
 
-    def __init__(self, X: np.ndarray, k: int) -> None:
+    def __init__(
+        self,
+        X: np.ndarray,
+        k: int,
+        kernel: Kernel,
+        ridge: float,
+        n_inducing: int | None,
+        random_state: int,
+    ) -> None:
         self.n, self.p = X.shape
         self.k = k
-        self.X = X
-        self.kernels_: list[Any] = [
-            ConstantKernel(1.0) * RBF(length_scale=np.ones(self.p)) for _ in range(k)
-        ]
-        self.models_: list[GaussianProcessRegressor] = []
-        self.whiten_: np.ndarray = np.eye(k)
-        self.raw_mean_: np.ndarray = np.zeros(k)
+        if n_inducing is None or n_inducing >= self.n:
+            self.inducing_: np.ndarray = X
+        else:
+            _, idx = kmeans_plusplus(
+                X, n_clusters=n_inducing, random_state=random_state
+            )
+            self.inducing_ = X[idx]
+
+        self.kernel_: Kernel = kernel
+        k_ind_raw = self.kernel_(self.inducing_, self.inducing_)
+        self._centerer = KernelCenterer().fit(k_ind_raw)
+        self.ridge_matrix_: np.ndarray = self._centerer.transform(k_ind_raw)
+        self.basis_: np.ndarray = self._centerer.transform(
+            self.kernel_(X, self.inducing_)
+        )
+        self.coef_: np.ndarray = np.zeros((self.inducing_.shape[0], k))
         self._train_pred: np.ndarray = np.zeros((self.n, k))
+        self._variance_model = GaussianProcessRegressor(
+            kernel=self.kernel_, alpha=ridge, optimizer=None
+        ).fit(self.inducing_, np.zeros(self.inducing_.shape[0]))
 
     def predict(self) -> np.ndarray:
         """Encoder output on the training data, shape (n_samples, k)."""
         return self._train_pred
-
-    def _update_from_raw(self, raw: np.ndarray) -> None:
-        """Whiten a raw (pre-decorrelation) prediction and cache it.
-
-        See :meth:`cca_zoo.gam._gamcca._GamEncoder._update_from_raw` for why
-        this re-centring, and caching ``raw_mean_`` for reuse by
-        :meth:`predict_new`, is necessary.
-        """
-        self.raw_mean_ = raw.mean(axis=0)
-        centred = raw - self.raw_mean_
-        cov = (centred.T @ centred) / (centred.shape[0] - 1)
-        vals, vecs = np.linalg.eigh(cov)
-        vals = np.maximum(vals, 1e-8)
-        self.whiten_ = vecs @ np.diag(vals**-0.5) @ vecs.T
-        self._train_pred = centred @ self.whiten_
-
-    def _working_response_and_alpha(
-        self, Z_self: np.ndarray, grad: np.ndarray, diag_hess: np.ndarray, c: int
-    ) -> tuple[np.ndarray, np.ndarray]:
-        working_response = Z_self[:, c] - grad[:, c] / diag_hess[:, c]
-        alpha = np.clip(1.0 / diag_hess[:, c], 1e-6, 1e6)
-        return working_response, alpha
-
-    def inner_step(
-        self, Z_self: np.ndarray, grad: np.ndarray, diag_hess: np.ndarray
-    ) -> None:
-        """One Newton update with the kernel hyperparameters held fixed.
-
-        Args:
-            Z_self: This view's current embedding, shape (n_samples, k).
-            grad: EY-loss gradient for this view (see
-                :func:`~cca_zoo._utils._ey.ey_grad_z`), shape (n_samples, k).
-            diag_hess: Diagonal-Hessian weights (see
-                :func:`~cca_zoo._utils._ey.ey_diag_hessian`), shape (n_samples, k).
-        """
-        raw_cols = []
-        models = []
-        for c in range(self.k):
-            working_response, alpha = self._working_response_and_alpha(
-                Z_self, grad, diag_hess, c
-            )
-            model = GaussianProcessRegressor(
-                kernel=self.kernels_[c], alpha=alpha, optimizer=None
-            )
-            model.fit(self.X, working_response)
-            models.append(model)
-            raw_cols.append(model.predict(self.X))
-        self.models_ = models
-        self._update_from_raw(np.column_stack(raw_cols))
-
-    def outer_step(
-        self, Z_self: np.ndarray, grad: np.ndarray, diag_hess: np.ndarray
-    ) -> None:
-        """Re-fit the kernel hyperparameters via marginal-likelihood search.
-
-        Args:
-            Z_self: This view's current embedding, shape (n_samples, k).
-            grad: EY-loss gradient for this view, shape (n_samples, k).
-            diag_hess: Diagonal-Hessian weights, shape (n_samples, k).
-        """
-        raw_cols = []
-        models = []
-        for c in range(self.k):
-            working_response, alpha = self._working_response_and_alpha(
-                Z_self, grad, diag_hess, c
-            )
-            model = GaussianProcessRegressor(kernel=self.kernels_[c], alpha=alpha)
-            model.fit(self.X, working_response)
-            models.append(model)
-            self.kernels_[c] = model.kernel_
-            raw_cols.append(model.predict(self.X))
-        self.models_ = models
-        self._update_from_raw(np.column_stack(raw_cols))
 
     def predict_new(
         self, X: np.ndarray, return_std: bool = False
@@ -151,219 +105,28 @@ class _GpEncoder:
         Args:
             X: Input data, shape (n_samples, n_features).
             return_std: If True, also return the posterior standard
-                deviation of each latent component, propagated through the
-                (linear) whitening transform.
+                deviation of each latent component (identical across
+                components, since all ``k`` share the same kernel/noise/
+                inducing points — see the class docstring).
 
         Returns:
             Array of shape (n, k), or, if ``return_std`` is True, a tuple
             ``(mean, std)`` of two arrays each of shape (n, k).
         """
-        if return_std:
-            raw_mean = np.empty((X.shape[0], self.k))
-            raw_std = np.empty((X.shape[0], self.k))
-            for c, m in enumerate(self.models_):
-                raw_mean[:, c], raw_std[:, c] = m.predict(X, return_std=True)
-            mean = (raw_mean - self.raw_mean_) @ self.whiten_
-            # Each component's raw GP posterior is fit independently, so
-            # the raw covariance is diagonal; propagating variances through
-            # the whitening transform is then a plain matrix product of
-            # variances against squared whitening weights (no cross terms).
-            var = raw_std**2 @ (self.whiten_**2)
-            return mean, np.sqrt(var)
-        raw = np.column_stack([m.predict(X) for m in self.models_])
-        result: np.ndarray = (raw - self.raw_mean_) @ self.whiten_
-        return result
-
-
-_JITTER = 1e-6
-
-
-class _SparseGpEncoder(_GpEncoder):
-    r"""Sparse (inducing-point) variant of :class:`_GpEncoder`, for $n \gg m$.
-
-    Exact GP inference costs $O(n^3)$ per Newton step (a full Cholesky of
-    an $(n, n)$ matrix, repeated at every :meth:`inner_step` and
-    :meth:`outer_step` call) — prohibitive once ``n_samples`` reaches a few
-    thousand. This encoder instead uses the **Deterministic Training
-    Conditional (DTC)** / projected-process sparse approximation (Csató &
-    Opper, 2002; Seeger et al., 2003; unified with FITC and other sparse
-    methods by Quiñonero-Candela & Rasmussen, 2005, "A Unifying View of
-    Sparse Approximate Gaussian Process Regression", JMLR 6:1939-1959):
-    the GP is conditioned on $m \ll n$ **inducing points** $Z$ (chosen as
-    an actual, well-spread subset of the $n$ training rows, via
-    :func:`sklearn.cluster.kmeans_plusplus`'s seeding — the same
-    initialisation scheme :class:`~sklearn.cluster.KMeans` uses to spread
-    its starting centroids over the data), and every posterior formula is
-    then a function of the $(n, m)$ and $(m, m)$ cross/inducing covariance
-    matrices instead of the full $(n, n)$ one:
-
-    $$
-    Q_{mm} = K_{mm} + K_{mn} \Lambda^{-1} K_{nm}, \qquad
-    \text{mean}(x_*) = k_{*m} Q_{mm}^{-1} K_{mn} \Lambda^{-1} y
-    $$
-
-    $$
-    \operatorname{var}(x_*) = k_{**} - k_{*m} K_{mm}^{-1} k_{m*}
-        + k_{*m} Q_{mm}^{-1} k_{m*}
-    $$
-
-    where $\Lambda = \operatorname{diag}(\alpha)$ is the (heteroscedastic)
-    per-sample noise variance — here the same diagonal-Hessian weight used
-    throughout GaussianProcessCCA. This costs $O(n m^2 + m^3)$: linear rather than
-    cubic in $n$, at the price of an approximation whose quality depends
-    on how well $m$ inducing points span the data.
-
-    The inner/outer split carries over directly, with the *hyperparameter
-    search* delegated to a cheap exact GP fit on the $m$ inducing rows
-    alone (the marginal-likelihood optimisation itself is what would be
-    expensive at full scale; on $m$ points it costs $O(m^3)$), while the
-    actual *predictions* used to build each round's representation are
-    always computed from the DTC formula over all $n$ training rows — so
-    only the hyperparameter search, not the fit itself, is approximated
-    from a subsample:
-
-    - :meth:`inner_step` — holds the kernel (and therefore $K_{mm}$,
-      $K_{nm}$) fixed, and only recomputes $Q_{mm}$ and the posterior mean
-      from the current working response.
-    - :meth:`outer_step` — refits kernel hyperparameters on the $m$
-      inducing rows via :class:`~sklearn.gaussian_process.GaussianProcessRegressor`'s
-      default marginal-likelihood optimiser, refreshes the cached
-      $K_{mm}$/$K_{nm}$ for the new kernel, then computes the DTC
-      posterior mean over all $n$ rows at that kernel.
-
-    Used only during ``fit``.
-    """
-
-    def __init__(
-        self, X: np.ndarray, k: int, n_inducing: int, random_state: int
-    ) -> None:
-        super().__init__(X, k)
-        self.n_inducing = n_inducing
-        _, inducing_idx = kmeans_plusplus(
-            X, n_clusters=n_inducing, random_state=random_state
-        )
-        self.inducing_idx_ = inducing_idx
-        self.Z_ = X[inducing_idx]
-        self._Kmm: list[np.ndarray] = [np.empty((0, 0))] * k
-        self._Lmm: list[np.ndarray] = [np.empty((0, 0))] * k
-        self._Knm: list[np.ndarray] = [np.empty((0, 0))] * k
-        self._Lq: list[np.ndarray] = [np.empty((0, 0))] * k
-        self._coef: list[np.ndarray] = [np.zeros(n_inducing)] * k
-
-    def _refresh_kernel_cache(self, c: int) -> None:
-        """Recompute $K_{mm}$/$K_{nm}$ (and $K_{mm}$'s Cholesky) for component ``c``.
-
-        Only needed when component ``c``'s kernel hyperparameters change
-        (i.e. from :meth:`outer_step`) — both matrices depend on the
-        kernel and inducing/training locations alone, not on the working
-        response or its noise weights, so :meth:`inner_step` reuses them
-        unchanged across every Newton iteration at a fixed kernel.
-        """
-        kernel = self.kernels_[c]
-        Kmm = kernel(self.Z_) + _JITTER * np.eye(self.n_inducing)
-        self._Kmm[c] = Kmm
-        self._Lmm[c] = cholesky(Kmm, lower=True)
-        self._Knm[c] = kernel(self.X, self.Z_)
-
-    def _dtc_mean(
-        self, c: int, working_response: np.ndarray, alpha: np.ndarray
-    ) -> np.ndarray:
-        """DTC posterior mean on the training rows; caches $Q_{mm}$'s solve.
-
-        Args:
-            c: Component index.
-            working_response: This component's working response, shape (n,).
-            alpha: This component's per-sample noise variance, shape (n,).
-
-        Returns:
-            Posterior mean on the training rows, shape (n,).
-        """
-        Knm = self._Knm[c]
-        Kmn_scaled = Knm.T / alpha[None, :]
-        Qmm = self._Kmm[c] + Kmn_scaled @ Knm + _JITTER * np.eye(self.n_inducing)
-        Lq = cholesky(Qmm, lower=True)
-        b = Kmn_scaled @ working_response
-        coef = cho_solve((Lq, True), b)
-        self._Lq[c] = Lq
-        self._coef[c] = coef
-        result: np.ndarray = Knm @ coef
-        return result
-
-    def inner_step(
-        self, Z_self: np.ndarray, grad: np.ndarray, diag_hess: np.ndarray
-    ) -> None:
-        """One DTC Newton update with the kernel hyperparameters held fixed.
-
-        Args: as :meth:`_GpEncoder.inner_step`.
-        """
-        raw_cols = []
-        for c in range(self.k):
-            working_response, alpha = self._working_response_and_alpha(
-                Z_self, grad, diag_hess, c
-            )
-            raw_cols.append(self._dtc_mean(c, working_response, alpha))
-        self._update_from_raw(np.column_stack(raw_cols))
-
-    def outer_step(
-        self, Z_self: np.ndarray, grad: np.ndarray, diag_hess: np.ndarray
-    ) -> None:
-        """Re-fit kernel hyperparameters on the inducing rows, via exact GP.
-
-        Args: as :meth:`_GpEncoder.outer_step`.
-        """
-        models = []
-        raw_cols = []
-        idx = self.inducing_idx_
-        for c in range(self.k):
-            working_response, alpha = self._working_response_and_alpha(
-                Z_self, grad, diag_hess, c
-            )
-            model = GaussianProcessRegressor(kernel=self.kernels_[c], alpha=alpha[idx])
-            model.fit(self.Z_, working_response[idx])
-            models.append(model)
-            self.kernels_[c] = model.kernel_
-            self._refresh_kernel_cache(c)
-            raw_cols.append(self._dtc_mean(c, working_response, alpha))
-        self.models_ = models
-        self._update_from_raw(np.column_stack(raw_cols))
-
-    def predict_new(
-        self, X: np.ndarray, return_std: bool = False
-    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
-        """Encoder output for arbitrary (e.g. test) data, via the DTC formula.
-
-        Args: as :meth:`_GpEncoder.predict_new`.
-        """
-        n_new = X.shape[0]
-        raw_mean = np.empty((n_new, self.k))
-        if return_std:
-            raw_std = np.empty((n_new, self.k))
-        for c in range(self.k):
-            Kem = self.kernels_[c](X, self.Z_)
-            raw_mean[:, c] = Kem @ self._coef[c]
-            if return_std:
-                v = solve_triangular(self._Lmm[c], Kem.T, lower=True)
-                u = solve_triangular(self._Lq[c], Kem.T, lower=True)
-                var = (
-                    self.kernels_[c].diag(X)
-                    - np.sum(v**2, axis=0)
-                    + np.sum(u**2, axis=0)
-                )
-                raw_std[:, c] = np.sqrt(np.maximum(var, 1e-10))
-        mean: np.ndarray = (raw_mean - self.raw_mean_) @ self.whiten_
-        if return_std:
-            var_prop = raw_std**2 @ (self.whiten_**2)
-            return mean, np.sqrt(var_prop)
-        return mean
+        basis = self._centerer.transform(self.kernel_(X, self.inducing_))
+        mean: np.ndarray = basis @ self.coef_
+        if not return_std:
+            return mean
+        _, std = self._variance_model.predict(X, return_std=True)
+        return mean, np.tile(std[:, None], (1, self.k))
 
 
 class GaussianProcessCCA(BaseModel):
     r"""GaussianProcessCCA — nonlinear multiview CCA with Gaussian-process encoders.
 
-    Learns one nonlinear encoder $f_i$ per view — a Gaussian process with
-    an ARD (per-feature-lengthscale) RBF kernel over that view's *raw,
-    joint* feature vector — that jointly maximise the Eckart-Young (EY)
-    unconstrained-CCA objective:
+    Learns one nonlinear encoder $f_i$ per view — a Gaussian process with a
+    joint (non-additive) kernel over that view's raw feature vector — that
+    jointly minimise the ridge-penalised Eckart-Young (EY) objective:
 
     $$
     \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
@@ -374,65 +137,74 @@ class GaussianProcessCCA(BaseModel):
     auto-covariance across all views (see :mod:`cca_zoo._utils._ey`, the
     same shared EY-loss machinery used by
     :class:`~cca_zoo.linear.gradient.CCAEY`, :class:`~cca_zoo.deep.DCCAEY`,
-    :class:`~cca_zoo.tree.TreeCCA`, and :class:`~cca_zoo.gam.GAMCCA`).
+    :class:`~cca_zoo.tree.TreeCCA`, :class:`~cca_zoo.gam.GAMCCA`, and
+    :class:`~cca_zoo.sparse.ElasticNetCCA`). Writing $f_i(x) =
+    k(x, Z_i)^\top B_i$ for a fixed kernel $k$ and fixed basis points $Z_i$
+    (:class:`_GpEncoder`; every training row, or ``n_inducing`` of them
+    selected via :func:`sklearn.cluster.kmeans_plusplus`) turns fitting
+    $B_i$ into exactly the same problem
+    :class:`~cca_zoo.gam.GAMCCA` solves for its spline coefficients, with an
+    RKHS-norm penalty $B_i^\top K_{mm} B_i$ in place of a plain ridge:
+    both are fit by :func:`~cca_zoo._utils._ey.coordinate_descent_ey` —
+    cyclic coordinate descent directly on $\mathcal{L}_{EY}$, one scalar
+    coefficient at a time, each solved to its exact global minimiser (see
+    that function's docstring for the derivation).
 
     Unlike :class:`~cca_zoo.gam.GAMCCA`'s per-feature additive splines, a
-    GP with a joint kernel is not restricted to a sum of univariate terms:
-    it can represent a genuine *interaction* between two features of the
-    same view (e.g. cross-view structure that only shows up through
-    $x_1 x_2$, not through $x_1$ or $x_2$ alone) directly and efficiently,
-    the way a decision tree's multivariate splits can but an additive GAM
-    structurally cannot. As a Bayesian model it also comes with calibrated
-    predictive uncertainty for free: :meth:`transform` can return each
-    latent component's posterior standard deviation alongside its mean.
+    joint kernel is not restricted to a sum of univariate terms: it can
+    represent a genuine *interaction* between two features of the same view
+    directly, the way a decision tree's multivariate splits can but an
+    additive GAM structurally cannot.
 
-    Fitting follows the same inner/outer split as
-    :class:`~cca_zoo.gam.GAMCCA`'s P-IRLS/GCV recipe, with the GP's own
-    machinery in place of ``Ridge``/``RidgeCV``:
+    This is a deliberate departure from the P-IRLS-plus-marginal-likelihood
+    recipe GaussianProcessCCA used before: that scheme reached a Newton
+    step by working in the $n$-dimensional embedding space $Z_i$ with a
+    per-sample diagonal approximation of $\mathcal{L}_{EY}$'s Hessian
+    (passed to :class:`~sklearn.gaussian_process.GaussianProcessRegressor`
+    as heteroscedastic ``alpha``), which then needed a post-hoc whitening/
+    decorrelation retraction to compensate for the curvature the diagonal
+    approximation throws away (see
+    :func:`~cca_zoo._utils._ey.ey_diag_hessian`'s docstring). Fitting
+    directly in the encoder's own (much smaller, $m$-dimensional)
+    coefficient space instead needs no such approximation or retraction:
+    coordinate descent solves the *exact* (quartic, not linearised)
+    restriction of $\mathcal{L}_{EY}$ to each coefficient. The trade-off is
+    that kernel hyperparameters (lengthscales, signal variance) are now
+    fixed — pass ``kernel`` explicitly, or tune it externally (e.g. with
+    :class:`~sklearn.model_selection.GridSearchCV`, since this is an
+    ordinary ``BaseEstimator``) — rather than automatically re-selected
+    each round by the GP's own marginal-likelihood optimisation; that
+    automatic search was specific to the working-response/Newton-step
+    framing and has no direct analogue once fitting minimises the true
+    quartic loss instead.
 
-    1. **Inner (fixed-kernel Newton steps)**: for the *current* kernel
-       hyperparameters, repeatedly form a Newton step on
-       $\mathcal{L}_{EY}$ for each view in turn — a working response
-       $Z_i - \nabla_i / h_i$ (from the analytic gradient
-       :func:`~cca_zoo._utils._ey.ey_grad_z` and a diagonal-Hessian weight,
-       see :func:`~cca_zoo._utils._ey.ey_diag_hessian`) fit with
-       :class:`~sklearn.gaussian_process.GaussianProcessRegressor`
-       (``optimizer=None``, so the kernel is held fixed), passing the
-       diagonal-Hessian weights as the GP's per-sample ``alpha``
-       (heteroscedastic observation noise) — cycling through every view
-       until the EY loss itself stops moving.
-    2. **Outer (marginal-likelihood kernel search)**: only once the inner
-       loop has converged, re-fit each view's kernel hyperparameters at
-       that converged working response via the GP's own default
-       log-marginal-likelihood optimisation (the same statistical role
-       GCV/REML plays for GAMCCA), then re-run the inner loop at the new
-       kernel. Repeat until the kernel hyperparameters stabilise too.
-
-    Everything here is built from scikit-learn's own, already-required
-    ``GaussianProcessRegressor``/``RBF``/``ConstantKernel``; no optional
-    dependency or custom solver is needed.
+    As a Bayesian model it still comes with calibrated predictive
+    uncertainty for free: :meth:`transform` can return each latent
+    component's posterior standard deviation alongside its mean. This does
+    not depend on the fitted coefficients at all — a standard GP fact, since
+    posterior variance only involves the kernel, the noise level, and the
+    design points — so it is computed directly by an actual
+    :class:`~sklearn.gaussian_process.GaussianProcessRegressor` fit with a
+    placeholder target purely to reuse its variance formula (see
+    :class:`_GpEncoder`).
 
     Note:
-        As with :class:`~cca_zoo.gam.GAMCCA`, the diagonal-Hessian weight
-        is only a per-sample approximation of the loss's true (dense,
-        rank-1-coupled) Hessian — see
-        :func:`~cca_zoo._utils._ey.ey_diag_hessian`'s docstring for the
-        full derivation and why it needs floor-damping. It is used here in
-        exactly the role a GP's heteroscedastic ``alpha`` already exists
-        to play (how much to trust each observation), so no further
-        adaptation is needed beyond what :class:`~cca_zoo.gam.GAMCCA`
-        already requires.
-
-        A GP over the raw feature vector scales cubically in the number of
-        training samples (exact GP inference); for very large datasets
-        expect fitting to be markedly slower than
-        :class:`~cca_zoo.gam.GAMCCA` or :class:`~cca_zoo.tree.TreeCCA`
-        unless ``n_inducing`` is set (see below), which trades some
-        approximation error for linear-in-``n_samples`` scaling.
+        `n_inducing` no longer switches to a different, approximate
+        *algorithm* the way it used to (the old Deterministic Training
+        Conditional recipe): exact and sparse inference are now both the
+        same reduced-rank ("subset of regressors") construction, differing
+        only in how many basis points $Z_i$ are used ($n$, i.e. every
+        training row, for exact; ``n_inducing`` < $n$, chosen by
+        ``kmeans_plusplus``, for sparse) — so fitting still costs
+        $O(n m^2 + m^3)$ for $m$ basis points, linear in $n$ once $m \ll n$.
 
     References:
         Rasmussen, C. E., & Williams, C. K. I. (2006). Gaussian Processes
         for Machine Learning. MIT Press.
+
+        Quiñonero-Candela, J., & Rasmussen, C. E. (2005). A Unifying View
+        of Sparse Approximate Gaussian Process Regression. Journal of
+        Machine Learning Research, 6, 1939-1959.
 
         Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
         Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
@@ -443,27 +215,27 @@ class GaussianProcessCCA(BaseModel):
             number of features in any view. Default is 1.
         center: Whether to subtract per-view column means before fitting.
             Default is True.
-        max_inner_iter: Maximum fixed-kernel Newton rounds (cycling once
-            through every view per round) per outer iteration. Default is 15.
-        max_outer_iter: Maximum kernel-hyperparameter re-selection rounds.
-            Default is 4.
-        tol: Inner-loop convergence tolerance, on the change in the EY loss
-            between successive full passes over all views. Default is 1e-3.
-        hess_floor_percentile: Percentile (0-100) of each round's raw
-            diagonal-Hessian values used to floor them (see
-            :func:`~cca_zoo._utils._ey.ey_diag_hessian`). Default is 90.0.
-        n_inducing: Number of inducing points for the sparse (Deterministic
-            Training Conditional) approximation described above. ``None``
-            (the default) uses exact GP inference — appropriate for
-            datasets up to a few thousand samples. For larger datasets,
-            set this to a few hundred inducing points to make fitting
-            scale as $O(n \, \text{n\_inducing}^2)$ instead of $O(n^3)$;
-            larger values trade speed for a closer approximation to the
-            exact posterior. Values at or above the number of training
-            samples fall back to exact inference automatically.
-        random_state: Seed for drawing the random-orthogonal initial
-            embedding, and (if ``n_inducing`` is set) for selecting
-            inducing points. Default is 0.
+        kernel: Fixed kernel used for every view. ``None`` (the default)
+            uses ``ConstantKernel(1.0) * RBF(length_scale=np.ones(p))`` for
+            each view's own feature count ``p``. If given explicitly, the
+            same kernel (cloned per view) is used for every view, so its
+            hyperparameters (e.g. an ARD ``length_scale`` array) must be
+            compatible with every view's feature count.
+        alpha: Ridge (RKHS-norm) penalty strength, also used as the noise
+            level for the posterior-variance calculation. Default is 0.01.
+        n_inducing: Number of basis ("inducing") points. ``None`` (the
+            default) uses every training row (exact inference, appropriate
+            up to a few thousand samples). For larger datasets, set this to
+            a few hundred to make fitting scale as
+            $O(n \, \text{n\_inducing}^2)$ instead of $O(n^3)$. Values at or
+            above the number of training samples fall back to exact
+            inference automatically.
+        max_iter: Maximum number of full coordinate-descent sweeps (every
+            view, feature, and component once each). Default is 100.
+        tol: Convergence tolerance on the penalised objective's change
+            between consecutive sweeps. Default is 1e-6.
+        random_state: Seed for the initial coefficients and (if
+            ``n_inducing`` is set) for selecting inducing points.
 
     Example:
         >>> import numpy as np
@@ -479,10 +251,9 @@ class GaussianProcessCCA(BaseModel):
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "max_inner_iter": [Interval(Integral, 1, None, closed="left")],
-        "max_outer_iter": [Interval(Integral, 1, None, closed="left")],
+        "alpha": [Interval(Real, 0, None, closed="left")],
+        "max_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
-        "hess_floor_percentile": [Interval(Real, 0, 100, closed="both")],
         "n_inducing": [None, Interval(Integral, 2, None, closed="left")],
     }
 
@@ -490,23 +261,23 @@ class GaussianProcessCCA(BaseModel):
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        max_inner_iter: int = 15,
-        max_outer_iter: int = 4,
-        tol: float = 1e-3,
-        hess_floor_percentile: float = 90.0,
+        kernel: Kernel | None = None,
+        alpha: float = 0.01,
         n_inducing: int | None = None,
+        max_iter: int = 100,
+        tol: float = 1e-6,
         random_state: int = 0,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)
-        self.max_inner_iter = max_inner_iter
-        self.max_outer_iter = max_outer_iter
-        self.tol = tol
-        self.hess_floor_percentile = hess_floor_percentile
+        self.kernel = kernel
+        self.alpha = alpha
         self.n_inducing = n_inducing
+        self.max_iter = max_iter
+        self.tol = tol
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> GaussianProcessCCA:
-        """Fit the GaussianProcessCCA model.
+        """Fit the GaussianProcessCCA model by coordinate descent on the EY loss.
 
         Args:
             views: List of 2 or more arrays, each (n_samples, n_features_i).
@@ -521,61 +292,37 @@ class GaussianProcessCCA(BaseModel):
         """
         views_ = self._setup_fit(views)
         k = self.latent_dimensions
-        n_views = len(views_)
-        n = views_[0].shape[0]
-        n_minus_1 = n - 1
 
-        rng = np.random.default_rng(self.random_state)
-        use_sparse = self.n_inducing is not None and self.n_inducing < n
-        encoders: list[_GpEncoder] = [
-            _SparseGpEncoder(X, k, self.n_inducing, self.random_state)  # type: ignore[arg-type]
-            if use_sparse
-            else _GpEncoder(X, k)
+        encoders = [
+            _GpEncoder(
+                X,
+                k,
+                (
+                    clone(self.kernel)
+                    if self.kernel is not None
+                    else ConstantKernel(1.0) * RBF(length_scale=np.ones(X.shape[1]))
+                ),
+                self.alpha,
+                self.n_inducing,
+                self.random_state,
+            )
             for X in views_
         ]
-        representations = []
-        for X in views_:
-            bm, _ = random_orthogonal_embedding(X, k, rng)
-            representations.append(bm)
 
-        for outer_it in range(self.max_outer_iter):
-            # Outer loop: re-select each view's kernel hyperparameters via
-            # marginal-likelihood optimisation, at the current representations.
-            for i in range(n_views):
-                grad = ey_grad_z(representations)[i]
-                _, V = ey_cross_covariance(representations)
-                diag_hess = ey_diag_hessian(
-                    representations[i],
-                    V,
-                    n_views,
-                    n_minus_1,
-                    self.hess_floor_percentile,
-                )
-                encoders[i].outer_step(representations[i], grad, diag_hess)
-                representations[i] = encoders[i].predict()
-
-            # Inner loop: fixed-kernel Newton steps, cycling through every
-            # view, until the EY loss itself stops moving (see
-            # ey_diag_hessian's docstring for why this, rather than raw
-            # per-sample values, is the right convergence signal to track).
-            prev_obj = ey_loss(representations)["objective"]
-            for _ in range(self.max_inner_iter):
-                for i in range(n_views):
-                    grad = ey_grad_z(representations)[i]
-                    _, V = ey_cross_covariance(representations)
-                    diag_hess = ey_diag_hessian(
-                        representations[i],
-                        V,
-                        n_views,
-                        n_minus_1,
-                        self.hess_floor_percentile,
-                    )
-                    encoders[i].inner_step(representations[i], grad, diag_hess)
-                    representations[i] = encoders[i].predict()
-                obj = ey_loss(representations)["objective"]
-                if abs(obj - prev_obj) < self.tol:
-                    break
-                prev_obj = obj
+        rng = np.random.default_rng(self.random_state)
+        coefficients, representations = coordinate_descent_ey(
+            bases=[enc.basis_ for enc in encoders],
+            k=k,
+            alpha=self.alpha,
+            l1_ratio=0.0,
+            max_iter=self.max_iter,
+            tol=self.tol,
+            rng=rng,
+            ridge_matrices=[enc.ridge_matrix_ for enc in encoders],
+        )
+        for enc, coef, rep in zip(encoders, coefficients, representations):
+            enc.coef_ = coef
+            enc._train_pred = rep
 
         self.encoders_: list[_GpEncoder] = encoders
         return self
@@ -589,7 +336,7 @@ class GaussianProcessCCA(BaseModel):
             views: List of arrays, each (n_samples, n_features_i), matching
                 the number of views passed to ``fit``.
             return_std: If True, also return each view's posterior standard
-                deviation, propagated through the whitening transform.
+                deviation alongside its mean.
 
         Returns:
             List of arrays, each (n_samples, latent_dimensions); or, if
