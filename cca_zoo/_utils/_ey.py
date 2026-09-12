@@ -226,15 +226,13 @@ def rescale_grads_to_target_std(
 
     The analytic EY gradient (:func:`ey_grad_z`) has magnitude $O(1/n)$
     (from its ``4 / (M (n - 1))`` prefactor), far smaller than the natural
-    scale of a per-round base learner's output — a boosted-tree leaf value,
-    or a ridge-fitted spline coefficient. Used unscaled as a functional
+    scale of a boosted-tree leaf value. Used unscaled as a functional
     gradient-boosting target, a single round would then contribute a
     negligible increment relative to the encoder's starting embedding, no
     matter the learning rate. Rescaling by one shared scalar restores a
-    well-conditioned target for that base learner, whichever form it takes
-    (:class:`~cca_zoo.tree.TreeCCA`'s trees, :class:`~cca_zoo.gam.GAMCCA`'s
-    splines). Since the same scalar is applied to every view, this changes
-    only the effective step size, not the gradient's direction or relative
+    well-conditioned target for :class:`~cca_zoo.tree.TreeCCA`'s trees.
+    Since the same scalar is applied to every view, this changes only the
+    effective step size, not the gradient's direction or relative
     cross-view magnitudes.
 
     Args:

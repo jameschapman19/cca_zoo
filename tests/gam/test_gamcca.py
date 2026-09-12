@@ -15,7 +15,6 @@ from cca_zoo.gam import GAMCCA
 
 
 def _make_model(latent_dimensions: int = 1, **kwargs: object) -> GAMCCA:
-    kwargs.setdefault("n_estimators", 10)
     return GAMCCA(latent_dimensions=latent_dimensions, **kwargs)
 
 
@@ -182,18 +181,6 @@ def test_center_false(two_views_small: list[np.ndarray]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# gauss_seidel toggle
-# ---------------------------------------------------------------------------
-
-
-def test_jacobi_variant_fit_completes(two_views_small: list[np.ndarray]) -> None:
-    """Fit completes with gauss_seidel=False (Jacobi updates)."""
-    model = _make_model(gauss_seidel=False).fit(two_views_small)
-    result = model.transform(two_views_small)
-    assert len(result) == 2
-
-
-# ---------------------------------------------------------------------------
 # encoders_ attribute
 # ---------------------------------------------------------------------------
 
@@ -265,7 +252,7 @@ def test_gamcca_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
     """GAMCCA finds substantial correlation on views with shared latent structure."""
-    model = GAMCCA(latent_dimensions=1, n_estimators=100, random_state=0)
+    model = GAMCCA(latent_dimensions=1, random_state=0)
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -278,7 +265,7 @@ def test_gamcca_finds_correlation_on_three_correlated_views() -> None:
         z @ rng.standard_normal((1, 5)) + 0.1 * rng.standard_normal((200, 5))
         for _ in range(3)
     ]
-    model = GAMCCA(latent_dimensions=1, n_estimators=150, random_state=0)
+    model = GAMCCA(latent_dimensions=1, random_state=0)
     s = model.fit(views).score(views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -294,9 +281,9 @@ def test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data() -> Non
     ``rCCA`` is expected to fail), while a per-view nonlinear encoder that
     (approximately) learns the "square" transform recovers near-perfect
     cross-view correlation. GAMCCA's B-spline basis represents a quadratic
-    almost exactly, so it should reach a given held-out correlation in far
-    fewer boosting rounds than TreeCCA's step-function tree ensembles, and
-    should out-generalise TreeCCA even at a matched round budget.
+    almost exactly and fits it via P-IRLS to convergence (no boosting-round
+    budget to match), so it should clearly beat TreeCCA at a generous but
+    fixed round count.
 
     Marked slow since it also requires TreeCCA's optional ``xgboost``
     dependency, not part of the base ``dev`` install.
@@ -314,14 +301,10 @@ def test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data() -> Non
     X1_tr, X1_te = X1[:n_train], X1[n_train:]
     X2_tr, X2_te = X2[:n_train], X2[n_train:]
 
-    n_estimators = 150
-
-    gam = GAMCCA(latent_dimensions=1, n_estimators=n_estimators, random_state=0)
+    gam = GAMCCA(latent_dimensions=1, random_state=0)
     gam_test = gam.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
 
-    tree = TreeCCA(
-        latent_dimensions=1, n_estimators=n_estimators, max_depth=5, random_state=0
-    )
+    tree = TreeCCA(latent_dimensions=1, n_estimators=150, max_depth=5, random_state=0)
     tree_test = tree.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
 
     rcca = rCCA(latent_dimensions=1, c=[0.3, 0.3])
@@ -332,7 +315,7 @@ def test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data() -> Non
     )
     assert gam_test > tree_test + 0.2, (
         f"Expected GAMCCA ({gam_test}) to clearly beat TreeCCA ({tree_test}) "
-        f"at a matched budget of {n_estimators} boosting rounds"
+        f"at a generous fixed round budget"
     )
     assert gam_test > rcca_test + 0.5, (
         f"Expected GAMCCA ({gam_test}) to clearly beat linear rCCA ({rcca_test})"

@@ -10,20 +10,26 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 
 - `GAMCCA`: nonlinear multiview CCA using a generalized additive model (one B-spline term
-  per input feature) as the per-view encoder, trained via the same Eckart-Young objective
-  as `TreeCCA` and the `*_EY` models — via alternating (Gauss-Seidel) L2Boosting rather
-  than `TreeCCA`'s tree boosting. Built entirely on scikit-learn's own
-  `SplineTransformer`/`Ridge` rather than a from-scratch spline implementation, so no new
-  dependency is required. Fitted per-feature shape functions are inspectable directly via
+  per input feature) as the per-view encoder, trained on the same Eckart-Young objective
+  as `TreeCCA` and the `*_EY` models, but fit the way GAM software such as `mgcv` fits an
+  ordinary GAM rather than by boosting: an inner P-IRLS loop takes Newton steps on the EY
+  loss (a working response built from the loss's analytic gradient and a diagonal-Hessian
+  weight, ridge-regressed onto each view's fixed B-spline basis) to convergence at fixed
+  smoothing parameters, wrapped in an outer loop that re-selects those smoothing
+  parameters via `RidgeCV`'s efficient leave-one-out cross-validation (the GCV/REML role)
+  and repeats until both levels stabilise. Unlike `TreeCCA`, which must take many small
+  shrunk boosting steps because a tree ensemble has no closed-form fit to a moving target,
+  GAMCCA has no `learning_rate` or `n_estimators` to tune — smoothing strength is chosen
+  automatically. Built entirely on scikit-learn's own `SplineTransformer`, `Ridge` and
+  `RidgeCV` rather than a from-scratch spline or Newton/GCV solver, so no new dependency
+  is required. Fitted per-feature shape functions are inspectable directly via
   `model.shape_function(view, feature, x)`. On data where the true per-feature
-  relationship is smooth, `GAMCCA` reaches a given held-out canonical correlation in far
-  fewer (and cheaper) boosting rounds than `TreeCCA`, and generalises better at a matched
-  round budget (see `tests/gam/test_gamcca.py`'s outperformance test for a worked
-  example).
-- `cca_zoo._utils._ey.random_orthogonal_embedding` and
-  `rescale_grads_to_target_std`: the random-orthogonal initial-embedding and
-  gradient-rescaling helpers previously private to `TreeCCA` are now shared EY-loss
-  utilities, used by both `TreeCCA` and the new `GAMCCA`.
+  relationship is smooth, GAMCCA reaches a higher held-out canonical correlation than
+  `TreeCCA` without any round-count tuning (see `tests/gam/test_gamcca.py`'s
+  outperformance test for a worked example).
+- `cca_zoo._utils._ey.random_orthogonal_embedding`: the random-orthogonal
+  initial-embedding helper previously private to `TreeCCA` is now a shared EY-loss
+  utility, used by both `TreeCCA` and `GAMCCA`.
 
 ### Changed
 
