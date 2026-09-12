@@ -10,29 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://jameschapman19.github.io/cca_zoo/">
+        <link rel="canonical" href="https://jameschapman19.github.io/cca_zoo/user-guide/gam/">
       
       
+        <link rel="prev" href="../tree/">
       
-        <link rel="next" href="getting-started/">
+      
+        <link rel="next" href="../gp/">
       
       
         
       
       
-      <link rel="icon" href="logos/favicon.ico">
+      <link rel="icon" href="../../logos/favicon.ico">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>CCA-Zoo</title>
+        <title>GAM Methods - CCA-Zoo</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,11 +53,11 @@
       
     
     
-      <link rel="stylesheet" href="assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cca-zoo" class="md-skip">
+        <a href="#gam-methods" class="md-skip">
           Skip to content
         </a>
       
@@ -94,9 +96,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="CCA-Zoo" class="md-header__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
+    <a href="../.." title="CCA-Zoo" class="md-header__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
       
-  <img src="logos/cca-zoo-logo.svg" alt="logo">
+  <img src="../../logos/cca-zoo-logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -113,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              GAM Methods
             
           </span>
         </div>
@@ -229,11 +231,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="." class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -252,7 +252,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="getting-started/" class="md-tabs__link">
+      <a href="../../getting-started/" class="md-tabs__link">
         
   
   
@@ -269,11 +269,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="user-guide/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
           
   
   
@@ -295,7 +297,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="api/" class="md-tabs__link">
+        <a href="../../api/" class="md-tabs__link">
           
   
   
@@ -315,7 +317,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="contributing/" class="md-tabs__link">
+      <a href="../../contributing/" class="md-tabs__link">
         
   
   
@@ -339,8 +341,6 @@
           
             
               
-                
-              
               <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
@@ -352,9 +352,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="CCA-Zoo" class="md-nav__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
+    <a href="../.." title="CCA-Zoo" class="md-nav__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
       
-  <img src="logos/cca-zoo-logo.svg" alt="logo">
+  <img src="../../logos/cca-zoo-logo.svg" alt="logo">
 
     </a>
     CCA-Zoo
@@ -378,37 +378,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Home
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -424,59 +397,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#what-is-cca" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What is CCA?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#unified-api" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Unified API
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#navigate-the-docs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Navigate the docs
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -488,7 +408,7 @@
   
   
     <li class="md-nav__item">
-      <a href="getting-started/" class="md-nav__link">
+      <a href="../../getting-started/" class="md-nav__link">
         
   
   
@@ -512,6 +432,8 @@
       
   
   
+    
+  
   
   
     
@@ -543,22 +465,23 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="user-guide/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   
@@ -576,13 +499,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -602,7 +525,7 @@
   
   
     <li class="md-nav__item">
-      <a href="user-guide/linear/" class="md-nav__link">
+      <a href="../linear/" class="md-nav__link">
         
   
   
@@ -630,7 +553,7 @@
   
   
     <li class="md-nav__item">
-      <a href="user-guide/nonparametric/" class="md-nav__link">
+      <a href="../nonparametric/" class="md-nav__link">
         
   
   
@@ -658,7 +581,7 @@
   
   
     <li class="md-nav__item">
-      <a href="user-guide/tree/" class="md-nav__link">
+      <a href="../tree/" class="md-nav__link">
         
   
   
@@ -683,10 +606,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="user-guide/gam/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GAM Methods
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -702,6 +652,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#background" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic usage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspecting-fitted-shape-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspecting fitted shape functions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key parameters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -714,7 +739,7 @@
   
   
     <li class="md-nav__item">
-      <a href="user-guide/gp/" class="md-nav__link">
+      <a href="../gp/" class="md-nav__link">
         
   
   
@@ -742,7 +767,7 @@
   
   
     <li class="md-nav__item">
-      <a href="user-guide/deep/" class="md-nav__link">
+      <a href="../deep/" class="md-nav__link">
         
   
   
@@ -770,7 +795,7 @@
   
   
     <li class="md-nav__item">
-      <a href="user-guide/probabilistic/" class="md-nav__link">
+      <a href="../probabilistic/" class="md-nav__link">
         
   
   
@@ -798,7 +823,7 @@
   
   
     <li class="md-nav__item">
-      <a href="user-guide/datasets/" class="md-nav__link">
+      <a href="../datasets/" class="md-nav__link">
         
   
   
@@ -826,7 +851,7 @@
   
   
     <li class="md-nav__item">
-      <a href="user-guide/model-selection/" class="md-nav__link">
+      <a href="../model-selection/" class="md-nav__link">
         
   
   
@@ -904,7 +929,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="api/" class="md-nav__link ">
+            <a href="../../api/" class="md-nav__link ">
               
   
   
@@ -948,7 +973,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/linear/" class="md-nav__link">
+      <a href="../../api/linear/" class="md-nav__link">
         
   
   
@@ -976,7 +1001,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/nonparametric/" class="md-nav__link">
+      <a href="../../api/nonparametric/" class="md-nav__link">
         
   
   
@@ -1004,7 +1029,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/tree/" class="md-nav__link">
+      <a href="../../api/tree/" class="md-nav__link">
         
   
   
@@ -1032,7 +1057,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/gam/" class="md-nav__link">
+      <a href="../../api/gam/" class="md-nav__link">
         
   
   
@@ -1060,7 +1085,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/gp/" class="md-nav__link">
+      <a href="../../api/gp/" class="md-nav__link">
         
   
   
@@ -1088,7 +1113,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/deep/" class="md-nav__link">
+      <a href="../../api/deep/" class="md-nav__link">
         
   
   
@@ -1116,7 +1141,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/probabilistic/" class="md-nav__link">
+      <a href="../../api/probabilistic/" class="md-nav__link">
         
   
   
@@ -1144,7 +1169,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/datasets/" class="md-nav__link">
+      <a href="../../api/datasets/" class="md-nav__link">
         
   
   
@@ -1172,7 +1197,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/model-selection/" class="md-nav__link">
+      <a href="../../api/model-selection/" class="md-nav__link">
         
   
   
@@ -1207,7 +1232,7 @@
   
   
     <li class="md-nav__item">
-      <a href="contributing/" class="md-nav__link">
+      <a href="../../contributing/" class="md-nav__link">
         
   
   
@@ -1235,9 +1260,7 @@
             
             
               
-                
-              
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" hidden>
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
@@ -1256,10 +1279,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-is-cca" class="md-nav__link">
+  <a href="#background" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What is CCA?
+        Background
       
     </span>
   </a>
@@ -1267,10 +1290,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#unified-api" class="md-nav__link">
+  <a href="#basic-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Unified API
+        Basic usage
       
     </span>
   </a>
@@ -1278,10 +1301,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#navigate-the-docs" class="md-nav__link">
+  <a href="#inspecting-fitted-shape-functions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Navigate the docs
+        Inspecting fitted shape functions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key parameters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical notes
       
     </span>
   </a>
@@ -1301,23 +1346,59 @@
               
                 
 
+
+
   
 
 
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
 
+      </a>
+    </li>
   
 
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    User Guide
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
 
               
               <article class="md-content__inner md-typeset">
                 
                   
-  
-
 
 
   
-    <a href="https://github.com/jameschapman19/cca_zoo/edit/main/docs/index.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/jameschapman19/cca_zoo/edit/main/docs/user-guide/gam.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1325,98 +1406,145 @@
   
 
 
-<p><a href="https://pypi.org/project/cca-zoo/"><img alt="PyPI" src="https://img.shields.io/pypi/v/cca-zoo" /></a>
-<a href="https://pypi.org/project/cca-zoo/"><img alt="Python 3.10+" src="https://img.shields.io/pypi/pyversions/cca-zoo" /></a>
-<a href="https://github.com/jameschapman19/cca_zoo/blob/main/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-green" /></a>
-<a href="https://github.com/jameschapman19/cca_zoo/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/jameschapman19/cca_zoo/actions/workflows/ci.yml/badge.svg" /></a></p>
-<h1 id="cca-zoo">CCA-Zoo<a class="headerlink" href="#cca-zoo" title="Permanent link">&para;</a></h1>
-<p><strong>Multiview Canonical Correlation Analysis for Python —
-scikit-learn compatible, research-grade, batteries included.</strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>cca-zoo
+<h1 id="gam-methods">GAM Methods<a class="headerlink" href="#gam-methods" title="Permanent link">&para;</a></h1>
+<p>The <code>cca_zoo.gam</code> module provides <code>GAMCCA</code>, a nonlinear multiview CCA method that uses a
+generalized additive model (GAM) — one smooth univariate B-spline per input feature — as the
+per-view encoder. It has no optional dependency: the spline basis and its penalised fit are built
+entirely from scikit-learn's own <code>SplineTransformer</code>, <code>Ridge</code> and <code>RidgeCV</code>, all already required
+by <code>cca_zoo</code>, rather than reimplemented from scratch.</p>
+<hr />
+<h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
+<p><code>GAMCCA</code> maximises the same unconstrained Eckart-Young (EY) objective used by the stochastic
+<code>*_EY</code> models in <code>cca_zoo.linear</code>, by <code>DCCA_EY</code> in <code>cca_zoo.deep</code>, and by <code>TreeCCA</code> in
+<code>cca_zoo.tree</code> (the numpy-based models share the exact same implementation, in
+<code>cca_zoo._utils._ey</code>):</p>
+<div class="arithmatex">\[
+\mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
+\]</div>
+<p>where, for embeddings <span class="arithmatex">\(Z_i = f_i(X_i)\)</span>, <span class="arithmatex">\(C\)</span> is the mean pairwise cross-covariance (including
+<span class="arithmatex">\(i = j\)</span> terms) and <span class="arithmatex">\(V\)</span> the mean auto-covariance across all views. <code>GAMCCA</code> uses a generalized
+additive model — <span class="arithmatex">\(f_i(x) = \sum_j s_j(x_j)\)</span>, one B-spline term per input feature — in place of a
+linear map (<code>CCA_EY</code>) or a boosted-tree ensemble (<code>TreeCCA</code>) as the function class for each
+<span class="arithmatex">\(f_i\)</span>.</p>
+<p>Unlike those models, which reach the EY loss's optimum by many small (stochastic-)gradient steps,
+<code>GAMCCA</code> fits it the way GAM software such as R's <code>mgcv</code> fits an ordinary GAM, applied directly to
+the EY loss instead of a per-observation likelihood:</p>
+<ol>
+<li><strong>Inner loop — P-IRLS.</strong> For the <em>current, fixed</em> smoothing parameters, repeatedly take a
+   Newton step on the EY loss for each view in turn: form a working response
+   <span class="arithmatex">\(Z_i - \nabla_i / h_i\)</span> from the analytic EY gradient <span class="arithmatex">\(\nabla_i\)</span> and a diagonal Hessian weight
+   <span class="arithmatex">\(h_i\)</span>, and ridge-regress it onto that view's fixed B-spline basis (<code>sklearn.linear_model.Ridge</code>).
+   Cycle through every view until the EY loss itself stops moving.</li>
+<li><strong>Outer loop — GCV-style smoothing-parameter search.</strong> Only once the inner loop has converged,
+   re-select each view's smoothing parameter with <code>sklearn.linear_model.RidgeCV</code>'s efficient
+   leave-one-out cross-validation (the same statistical job GCV/REML do in <code>mgcv</code>) at that
+   converged state, then re-run the inner loop with the new parameters. Repeat until the smoothing
+   parameters stabilise too.</li>
+</ol>
+<p>This is a deliberate departure from <code>TreeCCA</code>'s boosting recipe, which exists because a tree
+ensemble has no closed-form fit to a moving target and so <em>must</em> be built up from many small
+shrunk steps. A ridge-penalised spline fit has no such constraint, so <code>GAMCCA</code> has no
+<code>learning_rate</code> or <code>n_estimators</code> to tune — each view's smoothing strength is chosen
+automatically, exactly as it would be fitting any other GAM.</p>
+<p>Because each latent component decomposes exactly into one additive term per input feature, the
+fitted shape of any feature's contribution is available directly via <code>model.shape_function(...)</code>
+— the GAM analogue of <code>TreeCCA</code>'s split-gain feature importance, but an exact curve rather than a
+single importance score, and smooth by construction rather than a step function.</p>
+<p><strong>When to use:</strong> Nonlinear multiview CCA where the true per-feature relationship is expected to
+be <em>smooth</em> (rather than needing feature interactions or sharp thresholds) — a GAM's smoothness
+assumption is then a genuine inductive-bias advantage, not just a cosmetic one. On such data
+<code>GAMCCA</code> reaches a higher held-out canonical correlation than <code>TreeCCA</code>, converges without any
+round-count tuning, and is markedly cheaper per fit (a ridge solve is far cheaper than growing a
+tree ensemble). See
+<code>tests/gam/test_gamcca.py::test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data</code>
+for a worked example: view 1 is a noisy linear copy of a shared latent factor <code>z</code>; view 2 is a
+noisy linear copy of <code>z ** 2</code> (a smooth but non-monotonic transform, so no linear combination of
+either view's raw features can align with the other — <code>rCCA</code> gets essentially nothing). <code>GAMCCA</code>
+reaches a held-out canonical correlation of about 0.94, versus about 0.60 for <code>TreeCCA</code> at 150
+boosting rounds (<code>TreeCCA</code> needs 600+ rounds to approach 0.90).</p>
+<p>If cross-view structure instead depends on an <em>interaction</em> between two features of the same view
+(e.g. <span class="arithmatex">\(x_1 x_2\)</span>), a GAM's additive structure cannot represent that the way a tree's multivariate
+splits can — prefer <code>TreeCCA</code> there.</p>
+<hr />
+<h2 id="basic-usage">Basic usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.gam</span><span class="w"> </span><span class="kn">import</span> <span class="n">GAMCCA</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GAMCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">corrs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># GAMCCA also supports more than two views</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">model3</span> <span class="o">=</span> <span class="n">GAMCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
 </span></code></pre></div>
-<p><a class="md-button md-button--primary" href="getting-started/">Get Started</a>
-<a class="md-button" href="api/linear/">API Reference</a></p>
-<hr />
-<h2 id="what-is-cca">What is CCA?<a class="headerlink" href="#what-is-cca" title="Permanent link">&para;</a></h2>
-<p>Given two or more views of the same observations — brain imaging and behavioural scores,
-gene expression and phenotypic data, audio and video features — <strong>Canonical Correlation
-Analysis</strong> finds projections that maximise correlation between the projected views.</p>
-<p>CCA-Zoo extends classical CCA in several directions:</p>
-<div class="grid cards">
-<ul>
-<li>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M2 2h2v18h18v2H2zm7 8a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3m4-8a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3m5 10a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3"/></svg></span> <strong>Linear &amp; regularised</strong></p>
-<p>Classical CCA, ridge-regularised rCCA, PLS, and seven sparse/elastic-net
-variants for high-dimensional settings.</p>
-<p><a href="user-guide/linear/">Linear methods →</a></p>
-</li>
-<li>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.5 2A1.5 1.5 0 0 1 20 3.5 1.5 1.5 0 0 1 18.5 5c-.23 0-.45-.05-.65-.15l-3.69 3.7.34.45c2.19-1.26 4.76-2 7.5-2l1 .03v2.01L22 9c-2.58 0-5 .75-7 2.04A3.96 3.96 0 0 1 11.04 15C9.75 17 9 19.42 9 22l.04 1H7.03L7 22c0-2.74.74-5.31 2-7.5l-.45-.34-3.7 3.69c.1.2.15.42.15.65A1.5 1.5 0 0 1 3.5 20 1.5 1.5 0 0 1 2 18.5 1.5 1.5 0 0 1 3.5 17c.23 0 .45.05.65.15l3.69-3.7C7.31 12.78 7 11.92 7 11a4 4 0 0 1 4-4c.92 0 1.78.31 2.45.84l3.7-3.69c-.1-.2-.15-.42-.15-.65A1.5 1.5 0 0 1 18.5 2M11 9a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2"/></svg></span> <strong>Kernel &amp; nonparametric</strong></p>
-<p>KCCA, KGCCA, and KTCCA bring nonlinear relationships into reach via the
-kernel trick — no explicit feature map needed.</p>
-<p><a href="user-guide/nonparametric/">Kernel methods →</a></p>
-</li>
-<li>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 21v-3H3l5-5H5l5-5H7l5-5 5 5h-3l5 5h-3l5 5h-7v3z"/></svg></span> <strong>Gradient-boosted trees</strong></p>
-<p>TreeCCA fits nonlinear encoders as gradient-boosted-tree ensembles, with
-built-in per-component feature importance — no SHAP required.</p>
-<p><a href="user-guide/tree/">Tree methods →</a></p>
-</li>
-<li>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.33 12.91c.09 1.55-.62 3.04-1.89 3.95l.77 1.49c.23.45.26.98.06 1.45-.19.47-.58.84-1.06 1l-.79.25a1.687 1.687 0 0 1-1.86-.55L14.44 18c-.89-.15-1.73-.53-2.44-1.1-.5.15-1 .23-1.5.23-.88 0-1.76-.27-2.5-.79-.53.16-1.07.23-1.62.22-.79.01-1.57-.15-2.3-.45a4.1 4.1 0 0 1-2.43-3.61c-.08-.72.04-1.45.35-2.11-.29-.75-.32-1.57-.07-2.33C2.3 7.11 3 6.32 3.87 5.82c.58-1.69 2.21-2.82 4-2.7 1.6-1.5 4.05-1.66 5.83-.37.42-.11.86-.17 1.3-.17 1.36-.03 2.65.57 3.5 1.64 2.04.53 3.5 2.35 3.58 4.47.05 1.11-.25 2.2-.86 3.13.07.36.11.72.11 1.09m-5-1.41c.57.07 1.02.5 1.02 1.07a1 1 0 0 1-1 1h-.63c-.32.9-.88 1.69-1.62 2.29.25.09.51.14.77.21 5.13-.07 4.53-3.2 4.53-3.25a2.59 2.59 0 0 0-2.69-2.49 1 1 0 0 1-1-1 1 1 0 0 1 1-1c1.23.03 2.41.49 3.33 1.3.05-.29.08-.59.08-.89-.06-1.24-.62-2.32-2.87-2.53-1.25-2.96-4.4-1.32-4.4-.4-.03.23.21.72.25.75a1 1 0 0 1 1 1c0 .55-.45 1-1 1-.53-.02-1.03-.22-1.43-.56-.48.31-1.03.5-1.6.56-.57.05-1.04-.35-1.07-.9a.97.97 0 0 1 .88-1.1c.16-.02.94-.14.94-.77 0-.66.25-1.29.68-1.79-.92-.25-1.91.08-2.91 1.29C6.75 5 6 5.25 5.45 7.2 4.5 7.67 4 8 3.78 9c1.08-.22 2.19-.13 3.22.25.5.19.78.75.59 1.29-.19.52-.77.78-1.29.59-.73-.32-1.55-.34-2.3-.06-.32.27-.32.83-.32 1.27 0 .74.37 1.43 1 1.83.53.27 1.12.41 1.71.4q-.225-.39-.39-.81a1.038 1.038 0 0 1 1.96-.68c.4 1.14 1.42 1.92 2.62 2.05 1.37-.07 2.59-.88 3.19-2.13.23-1.38 1.34-1.5 2.56-1.5m2 7.47-.62-1.3-.71.16 1 1.25zm-4.65-8.61a1 1 0 0 0-.91-1.03c-.71-.04-1.4.2-1.93.67-.57.58-.87 1.38-.84 2.19a1 1 0 0 0 1 1c.57 0 1-.45 1-1 0-.27.07-.54.23-.76.12-.1.27-.15.43-.15.55.03 1.02-.38 1.02-.92"/></svg></span> <strong>Deep learning</strong></p>
-<p>DCCA and variants (EY, NOI, SDL, DCCAE, DVCCA, DTCCA, BarlowTwins, VICReg)
-using your own <code>nn.Module</code> encoders with PyTorch Lightning.</p>
-<p><a href="user-guide/deep/">Deep methods →</a></p>
-</li>
-<li>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.96 11.31C10.82 8.1 11.5 6 13 6s2.18 2.1 3.04 5.31C17 14.92 18.1 19 22 19v-2c-2.2 0-3-2.46-4.03-6.2C17.08 7.46 16.15 4 13 4s-4.08 3.46-4.97 6.8C7.03 14.54 6.2 17 4 17V2H2v20h20v-2H4v-1c3.9 0 5-4.08 5.96-7.69"/></svg></span> <strong>Probabilistic</strong></p>
-<p>Full Bayesian treatment of CCA via NUTS MCMC with NumPyro — posterior
-inference over latent variables and loadings.</p>
-<p><a href="user-guide/probabilistic/">Probabilistic →</a></p>
-</li>
-</ul>
-</div>
-<hr />
-<h2 id="unified-api">Unified API<a class="headerlink" href="#unified-api" title="Permanent link">&para;</a></h2>
-<p>Every model follows the same three-step scikit-learn pattern:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCA</span><span class="p">,</span> <span class="n">rCCA</span><span class="p">,</span> <span class="n">PLS</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">KCCA</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># 1. construct</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">model</span> <span class="o">=</span> <span class="n">CCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># 2. fit — views is a list of arrays, one per dataset</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># 3. use</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">corrs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>  <span class="c1"># canonical correlations, shape (2,)</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">W1</span><span class="p">,</span> <span class="n">W2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">weights</span>  <span class="c1"># weight matrices</span>
+<h2 id="inspecting-fitted-shape-functions">Inspecting fitted shape functions<a class="headerlink" href="#inspecting-fitted-shape-functions" title="Permanent link">&para;</a></h2>
+<p><code>GAMCCA</code> has no linear weight matrices, so <code>model.weights</code> raises <code>NotImplementedError</code>. Use
+<code>shape_function</code> instead to evaluate a single feature's fitted additive term directly:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GAMCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">x_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">X1</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">X1</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mi">200</span><span class="p">)</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">shape</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">shape_function</span><span class="p">(</span><span class="n">view</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">feature</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x_grid</span><span class="p">)</span>  <span class="c1"># (200, 1)</span>
 </span></code></pre></div>
-<p>Models are <code>sklearn.base.BaseEstimator</code> subclasses, so they work directly with
-<code>GridSearchCV</code>, <code>Pipeline</code>, and cross-validation utilities.</p>
+<p><code>shape</code> is that feature's contribution alone, in the units of the latent component — plot it
+against <code>x_grid</code> to see the exact fitted curve for that feature, rather than a single importance
+score. Summing every feature's <code>shape_function</code> at the training values reproduces
+<code>model.encoders_[view].predict()</code> exactly.</p>
 <hr />
-<h2 id="navigate-the-docs">Navigate the docs<a class="headerlink" href="#navigate-the-docs" title="Permanent link">&para;</a></h2>
-<div class="grid cards">
+<h2 id="key-parameters">Key parameters<a class="headerlink" href="#key-parameters" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>n_knots</code></td>
+<td>Knots per feature's B-spline term, passed straight through to <code>SplineTransformer(n_knots=...)</code>. More knots allow wigglier per-feature curves.</td>
+</tr>
+<tr>
+<td><code>alphas</code></td>
+<td>Candidate smoothing parameters searched by <code>RidgeCV</code> in the outer loop. Default is <code>numpy.logspace(-6, 3, 10)</code>.</td>
+</tr>
+<tr>
+<td><code>max_inner_iter</code></td>
+<td>Cap on P-IRLS rounds (one cycle through every view) per outer iteration. In practice the inner loop converges well before this in typical cases.</td>
+</tr>
+<tr>
+<td><code>max_outer_iter</code></td>
+<td>Cap on smoothing-parameter re-selection rounds.</td>
+</tr>
+<tr>
+<td><code>tol</code></td>
+<td>Inner-loop convergence tolerance, on the change in the EY loss between successive full passes over all views.</td>
+</tr>
+<tr>
+<td><code>hess_floor_percentile</code></td>
+<td>Percentile (0-100) of each round's raw diagonal-Hessian values used to floor them — self-calibrating damping against the Hessian's poor conditioning near the loss's own fixed point (see the class docstring for why). Default is 90.</td>
+</tr>
+<tr>
+<td><code>random_state</code></td>
+<td>Seed for the random-orthogonal initial embedding.</td>
+</tr>
+</tbody>
+</table>
+<p>Because the smoothing parameter is selected automatically, <code>GAMCCA</code> needs far less manual
+hyperparameter search than <code>TreeCCA</code>; <code>n_knots</code> and <code>hess_floor_percentile</code> are the two knobs
+worth adjusting if the defaults underperform, and both are stable across a wide range of data
+sizes and scales in practice.</p>
+<hr />
+<h2 id="practical-notes">Practical notes<a class="headerlink" href="#practical-notes" title="Permanent link">&para;</a></h2>
 <ul>
-<li>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m13.13 22.19-1.63-3.83c1.57-.58 3.04-1.36 4.4-2.27zM5.64 12.5l-3.83-1.63 6.1-2.77C7 9.46 6.22 10.93 5.64 12.5M21.61 2.39S16.66.269 11 5.93c-2.19 2.19-3.5 4.6-4.35 6.71-.28.75-.09 1.57.46 2.13l2.13 2.12c.55.56 1.37.74 2.12.46A19.1 19.1 0 0 0 18.07 13c5.66-5.66 3.54-10.61 3.54-10.61m-7.07 7.07c-.78-.78-.78-2.05 0-2.83s2.05-.78 2.83 0c.77.78.78 2.05 0 2.83s-2.05.78-2.83 0m-5.66 7.07-1.41-1.41zM6.24 22l3.64-3.64c-.34-.09-.67-.24-.97-.45L4.83 22zM2 22h1.41l4.77-4.76-1.42-1.41L2 20.59zm0-2.83 4.09-4.08c-.21-.3-.36-.62-.45-.97L2 17.76z"/></svg></span> <strong><a href="getting-started/">Getting Started</a></strong></p>
-<p>Installation, quick start examples, and core concepts.</p>
-</li>
-<li>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 21.5c-1.35-.85-3.8-1.5-5.5-1.5-1.65 0-3.35.3-4.75 1.05-.1.05-.15.05-.25.05-.25 0-.5-.25-.5-.5V6c.6-.45 1.25-.75 2-1 1.11-.35 2.33-.5 3.5-.5 1.95 0 4.05.4 5.5 1.5 1.45-1.1 3.55-1.5 5.5-1.5 1.17 0 2.39.15 3.5.5.75.25 1.4.55 2 1v14.6c0 .25-.25.5-.5.5-.1 0-.15 0-.25-.05-1.4-.75-3.1-1.05-4.75-1.05-1.7 0-4.15.65-5.5 1.5M12 8v11.5c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5V7c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5m1 3.5c1.11-.68 2.6-1 4.5-1 .91 0 1.76.09 2.5.28V9.23c-.87-.15-1.71-.23-2.5-.23q-2.655 0-4.5.84zm4.5.17c-1.71 0-3.21.26-4.5.79v1.69c1.11-.65 2.6-.99 4.5-.99 1.04 0 1.88.08 2.5.24v-1.5c-.87-.16-1.71-.23-2.5-.23m2.5 2.9c-.87-.16-1.71-.24-2.5-.24-1.83 0-3.33.27-4.5.8v1.69c1.11-.66 2.6-.99 4.5-.99 1.04 0 1.88.08 2.5.24z"/></svg></span> <strong><a href="user-guide/linear/">User Guide</a></strong></p>
-<p>In-depth explanations of each method family with usage guidance.</p>
-</li>
-<li>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.6 16.6 4.6-4.6-4.6-4.6L16 6l6 6-6 6zm-5.2 0L4.8 12l4.6-4.6L8 6l-6 6 6 6z"/></svg></span> <strong><a href="api/linear/">API Reference</a></strong></p>
-<p>Full class and method documentation auto-generated from source.</p>
-</li>
-<li>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 3a3 3 0 0 1 3 3c0 1.31-.83 2.42-2 2.83v6.34c1.17.41 2 1.52 2 2.83a3 3 0 0 1-3 3 3 3 0 0 1-3-3c0-1.31.83-2.42 2-2.83V8.83A2.99 2.99 0 0 1 3 6a3 3 0 0 1 3-3m0 2a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0 12a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m15 1a3 3 0 0 1-3 3 3 3 0 0 1-3-3c0-1.31.83-2.42 2-2.83V7h-2v3.25L10.75 6 15 1.75V5h2a2 2 0 0 1 2 2v8.17c1.17.41 2 1.52 2 2.83m-3-1a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg></span> <strong><a href="contributing/">Contributing</a></strong></p>
-<p>Development setup, coding standards, and how to contribute.</p>
-</li>
+<li><code>GAMCCA</code> supports 2 or more views.</li>
+<li><code>latent_dimensions</code> must not exceed the number of features in any view (the random-orthogonal
+  initialisation draws that many orthogonal directions in feature space).</li>
+<li>Unlike <code>KCCA</code>, <code>GAMCCA</code> does not store the training data for inference — new data is passed
+  directly through the fitted per-feature splines, so <code>transform</code> on held-out data is inexpensive.</li>
+<li>No optional dependency is required (unlike <code>cca_zoo.tree</code>, which needs <code>xgboost</code>/<code>lightgbm</code>):
+  <code>GAMCCA</code> is built entirely on <code>scikit-learn</code>'s <code>SplineTransformer</code>, <code>Ridge</code> and <code>RidgeCV</code>.</li>
 </ul>
-</div>
 
 
 
@@ -1424,13 +1552,8 @@ inference over latent variables and loadings.</p>
 
 
 
-  
-  
 
 
-
-
-  
 
 
 
@@ -1454,19 +1577,33 @@ inference over latent variables and loadings.</p>
   
     
       
-        
-      
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../tree/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Tree Methods">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Tree Methods
+              </div>
+            </div>
+          </a>
         
         
           
-          <a href="getting-started/" class="md-footer__link md-footer__link--next" aria-label="Next: Getting Started">
+          <a href="../gp/" class="md-footer__link md-footer__link--next" aria-label="Next: GP Methods">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Getting Started
+                GP Methods
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -1534,12 +1671,12 @@ inference over latent variables and loadings.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.instant", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "navigation.footer", "navigation.path", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.action.edit", "announce.dismiss"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "navigation.footer", "navigation.path", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.action.edit", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
-        <script src="javascripts/mathjax.js"></script>
+        <script src="../../javascripts/mathjax.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
