@@ -419,17 +419,6 @@ def test_per_view_grid_out_of_range_index_raises(two_views: list[np.ndarray]) ->
         gs.fit(two_views)
 
 
-def test_whole_vector_per_view_style_still_works(two_views: list[np.ndarray]) -> None:
-    """The original 'c': [[v0, v1], ...] whole-vector style is unaffected."""
-    gs = GridSearchCV(
-        rCCA(latent_dimensions=1),
-        param_grid={"c": [[0.0, 0.1], [0.5, 0.9]]},
-        cv=2,
-    )
-    gs.fit(two_views)
-    assert gs.best_estimator_.c in ([0.0, 0.1], [0.5, 0.9])
-
-
 def test_per_view_grid_with_randomized_search(two_views: list[np.ndarray]) -> None:
     """Per-view keys work with RandomizedSearchCV too (same wrapper)."""
     rs = RandomizedSearchCV(

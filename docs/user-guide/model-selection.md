@@ -39,18 +39,9 @@ z1, z2 = best_model.transform([X1, X2])
 ### Per-view parameters
 
 Many CCA models accept per-view parameters as a scalar (broadcast to all views) or an
-explicit list, e.g. `KCCA(c=[0.01, 0.1])`. There are two ways to search over this in a
-parameter grid, and they answer different questions:
-
-**A fixed set of per-view vectors** — use a list of lists when the views' values should
-move together (e.g. you already know a good ratio between them and just want to scale it):
-
-```python
-param_grid = {"c": [[0.01, 0.1], [0.1, 1.0]]}  # only these two (c0, c1) pairs are tried
-```
-
-**An independent grid per view** — use a `name__<view index>` suffix to let each view's
-value vary independently; sklearn then searches the full Cartesian product:
+explicit list, e.g. `KCCA(c=[0.01, 0.1])`. To search each view's value independently,
+suffix the parameter name with `__<view index>`; sklearn then searches the full Cartesian
+product across views:
 
 ```python
 from cca_zoo.model_selection import GridSearchCV
@@ -66,9 +57,8 @@ print(gs.best_params_)  # e.g. {"c__0": 0.1, "c__1": 0.01}
 print(gs.best_estimator_.c)  # [0.1, 0.01]
 ```
 
-An index you don't mention in the grid keeps the estimator's current value for that view
-(so `param_grid={"c__0": [...]}` alone only tunes view 0, leaving view 1 fixed), and the
-two styles compose freely in the same grid.
+An index you don't mention in the grid keeps the estimator's current value for that view,
+so `param_grid={"c__0": [...]}` alone only tunes view 0, leaving view 1 fixed.
 
 ### Accessing results
 

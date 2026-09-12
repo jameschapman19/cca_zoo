@@ -75,10 +75,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
   their Cartesian product automatically. Previously the only way to sweep a per-view
   parameter was `param_grid={"c": [[0.01, 0.1], [0.5, 0.9]]}`, a fixed list of whole
   per-view vectors that conflates "one candidate" with "one vector per view" and requires
-  the user to hand-enumerate any Cartesian product themselves; that form still works
-  unchanged; and the two compose freely in the same grid. An index not mentioned in the
-  grid keeps the estimator's current value for that view rather than requiring every view
-  to be listed.
+  the user to hand-enumerate any Cartesian product themselves; this is now the documented
+  way to tune a per-view hyperparameter in a search. An index not mentioned in the grid
+  keeps the estimator's current value for that view rather than requiring every view to be
+  listed.
 
 ### Fixed
 

@@ -65,16 +65,13 @@ class MultiviewWrapper(BaseEstimator):
 
     Per-view hyperparameters (a per-view CCA model accepts a scalar,
     broadcast to every view, or an explicit list with one value per view --
-    e.g. ``KCCA(c=[0.01, 0.1])``) can be set independently through
-    ``set_params`` using a ``name__<view index>`` suffix, e.g.
-    ``estimator__c__0``. This is mainly useful for grid/randomized search:
-    a param grid of ``{"c__0": [0.01, 0.1], "c__1": [0.1, 1.0]}`` makes
+    e.g. ``KCCA(c=[0.01, 0.1])``) can be searched independently per view
+    through ``set_params`` using a ``name__<view index>`` suffix, e.g.
+    ``estimator__c__0``. This is mainly useful for grid/randomized search: a
+    param grid of ``{"c__0": [0.01, 0.1], "c__1": [0.1, 1.0]}`` makes
     sklearn's ``ParameterGrid`` search the Cartesian product of the two
-    views' values independently, which a single ``"c": [[...], [...]]``
-    grid of whole per-view vectors cannot express. Indices left unset keep
-    the estimator's current value for that view (broadcast if it was a
-    scalar); the whole-vector form (``c=[0.01, 0.1]``) still works exactly
-    as before, and the two styles compose freely.
+    views' values. Indices left unset keep the estimator's current value for
+    that view (broadcast if it was a scalar).
     """
 
     def __init__(self, estimator: BaseEstimator, split_indices: list[int]) -> None:
