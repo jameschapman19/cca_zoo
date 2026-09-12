@@ -9,6 +9,13 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `BaseModel.inverse_transform`: reconstructs each view from *that same view's own*
+  latent score (typically `transform`'s output), via a per-view loading matrix fit by
+  least squares at training time -- an approximate round trip with `transform`, mirroring
+  `sklearn.decomposition.PCA.inverse_transform` (see #195). Distinct from `predict`, which
+  combines the *observed* views into one shared consensus score to reconstruct views you
+  don't have; `inverse_transform` never mixes information across views. Available on
+  every `BaseModel` subclass with no per-model changes needed.
 - `BaseModel.predict`: reconstructs every view from whichever views are observed (pass
   `None` for a view to predict, including one you supplied, as a diagnostic). The shared
   latent score is estimated from the observed views' own projections, then each view is

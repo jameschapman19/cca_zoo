@@ -90,6 +90,20 @@ reconstruction fitted at training time, so it stays accurate even on unwhitened,
 differently-scaled views (see `BaseModel.predict` in the [API reference](api/linear.md)
 for the full explanation of why CCA needs this and PLS doesn't).
 
+### Reconstructing a view from its own score
+
+`inverse_transform` is `predict`'s narrower sibling: it undoes `transform` for a view
+using *that view's own* score only, with no cross-view imputation —
+
+```python
+z1, z2 = model.transform([X1_test, X2_test])
+X1_approx, X2_approx = model.inverse_transform([z1, z2])
+```
+
+Use `inverse_transform` when you already have every view's scores (e.g. after denoising
+or perturbing them) and just want to map back to feature space; use `predict` when you
+have some views but not others.
+
 ---
 
 ## Quick start
