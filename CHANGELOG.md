@@ -74,8 +74,47 @@ project adheres to [Semantic Versioning](https://semver.org/).
   the number of training samples fall back to exact inference automatically. Verified to fit
   in well under a second at 4,000 training samples (where exact inference is impractical)
   while still recovering held-out correlation above 0.7 on a smooth nonlinear benchmark.
+- `cca_zoo.model_selection.RandomizedSearchCV`: a multiview adapter around
+  `sklearn.model_selection.RandomizedSearchCV`, alongside the existing `GridSearchCV`, for
+  sampling continuous hyperparameters (e.g. `c` via `scipy.stats.loguniform`) instead of only
+  searching a fixed grid.
+- `cca_zoo.model_selection.MultiviewWrapper`: the adapter `GridSearchCV`/`RandomizedSearchCV`
+  use internally to make a multiview estimator's `fit(views)` look like sklearn's
+  `fit(X)` (views horizontally stacked into one array, split back before delegating) is now
+  public, so it composes directly with any sklearn model-selection tool -
+  `HalvingGridSearchCV`, `cross_val_score`, `cross_validate`, `learning_curve`, `Pipeline`
+  - not just the two search classes cca_zoo ships.
+- Independent per-view parameter grids: `MultiviewWrapper.set_params` now understands a
+  `name__<view index>` suffix (e.g. `c__0`, `c__1`), so `param_grid={"c__0": [...], "c__1":
+  [...]}` searches the two views' values independently - sklearn's `ParameterGrid` takes
+  their Cartesian product automatically. Previously the only way to sweep a per-view
+  parameter was `param_grid={"c": [[0.01, 0.1], [0.5, 0.9]]}`, a fixed list of whole
+  per-view vectors that conflates "one candidate" with "one vector per view" and requires
+  the user to hand-enumerate any Cartesian product themselves; this is now the documented
+  way to tune a per-view hyperparameter in a search. An index not mentioned in the grid
+  keeps the estimator's current value for that view rather than requiring every view to be
+  listed.
+
+### Fixed
+
+- `GridSearchCV.cv_results_`'s `param_*` keys carried an internal `estimator__` prefix
+  (`param_estimator__c` rather than `param_c`), inconsistent with the unprefixed keys in
+  `best_params_` and with the docs' own `cv_results_` examples, which would `KeyError`.
+  `cv_results_` (both its `param_*` columns and its `params` list of dicts) is now stripped of
+  the prefix the same way `best_params_` already was.
+- `GridSearchCV` previously copied over only four hand-picked attributes from the underlying
+  `sklearn.model_selection.GridSearchCV` search (`cv_results_`, `best_score_`, `best_params_`,
+  `best_estimator_`), silently dropping the rest of sklearn's attribute surface
+  (`best_index_`, `scorer_`, `n_splits_`, `refit_time_`, `multimetric_`, ...). Every fitted
+  (trailing-underscore) attribute is now forwarded generically, so newer sklearn attributes are
+  picked up automatically instead of needing this module updated by hand.
 
 ### Changed
+
+- `GridSearchCV` and `RandomizedSearchCV` are now themselves `sklearn.base.BaseEstimator`
+  subclasses (previously plain classes), so `get_params`/`set_params`/`clone`/`repr` work on the
+  search objects too - e.g. `sklearn.base.clone(gs)` before fitting, or nesting one inside
+  another meta-estimator.
 
 - Renamed every underscored algorithm-suffix class to drop the underscore, matching sklearn's own
   class-naming convention (`RidgeCV`, `SGDRegressor`, never `Ridge_CV`), with no exceptions:
