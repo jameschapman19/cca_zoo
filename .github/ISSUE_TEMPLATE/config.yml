@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://jameschapman19.github.io/cca_zoo/
+    about: Check the docs and API reference before filing an issue.
+  - name: Existing issues
+    url: https://github.com/jameschapman19/cca_zoo/issues
+    about: Search open and closed issues to see if yours has already been reported.
