@@ -5,10 +5,10 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.linear import CCA, CCAEY, MCCA, PLS, PLSEY, StochasticCCAEY
+from cca_zoo.linear import CCA, CCAEY, MCCA, PLS, PLSEY, HuberCCA, StochasticCCAEY
 
-FULL_BATCH_MODELS = [PLSEY, CCAEY]
-ALL_GRADIENT_MODELS = [PLSEY, CCAEY, StochasticCCAEY]
+FULL_BATCH_MODELS = [PLSEY, CCAEY, HuberCCA]
+ALL_GRADIENT_MODELS = [PLSEY, CCAEY, StochasticCCAEY, HuberCCA]
 
 # Use fewer iterations for speed in tests
 _FIT_KWARGS: dict = dict(latent_dimensions=1, max_iter=50, random_state=0)

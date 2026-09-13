@@ -96,6 +96,19 @@ project adheres to [Semantic Versioning](https://semver.org/).
   way to tune a per-view hyperparameter in a search. An index not mentioned in the grid
   keeps the estimator's current value for that view rather than requiring every view to be
   listed.
+- `cca_zoo.linear.HuberCCA`: a bounded-influence variant of `CCAEY` for data with
+  high-leverage outliers. `CCAEY`'s cross- and auto-covariance statistics weight every
+  sample equally, so a handful of high-leverage points (whose contribution to a quadratic
+  statistic grows with the *square* of their magnitude) can dominate the fit; `HuberCCA`
+  reweights each mini-batch sample by a Huber-style factor of its own leverage before
+  forming those statistics -- the same bounded-influence mechanism
+  `sklearn.linear_model.HuberRegressor` uses against outliers, applied to the EY loss's own
+  statistics rather than to a regression residual. The leverage cutoff (`delta`) is a
+  multiple of the current batch's own median leverage rather than an absolute threshold, so
+  it self-calibrates across `batch_size`/`latent_dimensions` instead of needing per-config
+  retuning. Confirmed to substantially outperform `CCAEY` on held-out canonical correlation
+  when training data is contaminated by a small fraction of high-leverage points (see
+  `tests/test_huber_cca.py`'s outperformance test).
 
 ### Fixed
 
