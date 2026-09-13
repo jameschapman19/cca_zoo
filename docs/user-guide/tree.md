@@ -1,10 +1,11 @@
 # Tree Methods
 
-The `cca_zoo.tree` module provides `XGBoostCCA` and `LightGBMCCA`, nonlinear multiview CCA
-methods that use gradient-boosted trees as the per-view encoders, via
-[XGBoost](https://xgboost.readthedocs.io/) or [LightGBM](https://lightgbm.readthedocs.io/)
-respectively. Both share the same `TreeCCA` base class and fitting recipe, differing only in
-which gradient-boosting library trains the per-view encoders. Install the module with:
+The `cca_zoo.tree` module provides `XGBoostCCA`, `LightGBMCCA`, and `CatBoostCCA`, nonlinear
+multiview CCA methods that use gradient-boosted trees as the per-view encoders, via
+[XGBoost](https://xgboost.readthedocs.io/), [LightGBM](https://lightgbm.readthedocs.io/), or
+[CatBoost](https://catboost.ai/) respectively. All three share the same `TreeCCA` base class and
+fitting recipe, differing only in which gradient-boosting library trains the per-view encoders.
+Install the module with:
 
 ```bash
 pip install cca-zoo[tree]
@@ -49,8 +50,9 @@ mixed scales, non-smooth or threshold-like relationships).
 
 ## Basic usage
 
-`XGBoostCCA` and `LightGBMCCA` are separate classes rather than one class with a `backend=`
-switch, so `TreeCCA` itself cannot be instantiated directly — pick the concrete class you want:
+`XGBoostCCA`, `LightGBMCCA`, and `CatBoostCCA` are separate classes rather than one class with a
+`backend=` switch, so `TreeCCA` itself cannot be instantiated directly — pick the concrete class
+you want:
 
 ```python
 from cca_zoo.tree import XGBoostCCA
@@ -63,19 +65,28 @@ corrs = model.score([X1, X2])
 model3 = XGBoostCCA(latent_dimensions=2, n_estimators=200).fit([X1, X2, X3])
 ```
 
-Use `LightGBMCCA` to train with LightGBM instead (requires `pip install lightgbm`, included in
-the `tree` extra):
+Use `LightGBMCCA` or `CatBoostCCA` to train with LightGBM or CatBoost instead (each requires its
+own optional package — `pip install lightgbm` / `pip install catboost` — both included in the
+`tree` extra):
 
 ```python
-from cca_zoo.tree import LightGBMCCA
+from cca_zoo.tree import CatBoostCCA, LightGBMCCA
 
 model = LightGBMCCA(latent_dimensions=2).fit([X1, X2])
+model = CatBoostCCA(latent_dimensions=2).fit([X1, X2])
 ```
+
+`CatBoostCCA` has no in-place "continue this booster" call the way XGBoost/LightGBM do, so it
+reconstructs and re-continues (via CatBoost's own `init_model=`) every component's model on each
+boosting round — noticeably slower per round than `XGBoostCCA`/`LightGBMCCA` as a result. Reach
+for it when CatBoost's ordered boosting and symmetric trees are themselves the point, not as a
+faster default.
 
 ## Feature importance
 
-Neither class has linear weight matrices, so `model.weights` raises `NotImplementedError`. Use
-the fitted `boosters_` attribute instead — a `list[list[Booster]]` indexed `[view][component]`:
+None of the three classes has linear weight matrices, so `model.weights` raises
+`NotImplementedError`. Use the fitted `boosters_` attribute instead — a `list[list[Booster]]`
+indexed `[view][component]`:
 
 ```python
 model = XGBoostCCA(latent_dimensions=2).fit([X1, X2])
@@ -85,6 +96,9 @@ importance = model.boosters_[0][0].get_score(importance_type="gain")
 
 # Equivalent for LightGBMCCA
 # importance = model.boosters_[0][0].feature_importance(importance_type="gain")
+
+# Equivalent for CatBoostCCA
+# importance = model.boosters_[0][0].get_feature_importance()
 ```
 
 ---
@@ -107,10 +121,13 @@ Hyperparameters are best selected by cross-validation with `GridSearchCV` from
 
 ## Practical notes
 
-- `XGBoostCCA` and `LightGBMCCA` both support 2 or more views.
+- `XGBoostCCA`, `LightGBMCCA`, and `CatBoostCCA` all support 2 or more views.
 - `latent_dimensions` must not exceed the number of features in any view (the random-orthogonal
   initialisation draws that many orthogonal directions in feature space).
-- Unlike `KCCA`, neither class stores the training data for inference — new data is passed
-  directly through the fitted boosters, so `transform` on held-out data is inexpensive.
+- Unlike `KCCA`, none of the three classes stores the training data for inference — new data is
+  passed directly through the fitted boosters, so `transform` on held-out data is inexpensive.
+- `min_child_weight` is interpreted per backend: XGBoost's minimum sum of instance weight in a
+  child, LightGBM's/CatBoost's minimum number of samples in a leaf (`min_child_samples` /
+  `min_data_in_leaf`).
 - Reference: Chapman, J. (2026). *TreeCCA: Canonical Correlation Analysis via
   Gradient-Boosted Trees.* arXiv:2607.27027.

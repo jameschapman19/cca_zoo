@@ -25,6 +25,13 @@ try:
 except ImportError:
     _LGBM_AVAILABLE = False
 
+try:
+    import catboost as cb
+
+    _CATBOOST_AVAILABLE = True
+except ImportError:
+    _CATBOOST_AVAILABLE = False
+
 
 def _rescale_to_target_std(
     grads: list[np.ndarray], target_std: float = 0.1
@@ -140,6 +147,90 @@ class _LightGBMEncoder:
             booster.update(fobj=_fobj)
 
 
+class _CatBoostGradientObjective:
+    """Relays one round's fixed target gradient through CatBoost's loss protocol.
+
+    CatBoost's custom-loss objects implement ``calc_ders_range(approxes,
+    targets, weights)``, returning per-sample ``(der1, der2)`` -- the
+    *negative* first and second derivatives of the loss with respect to the
+    current prediction (see CatBoost's own custom-objective examples, e.g.
+    ``der1 = target - p`` for log-loss). For the fixed-target squared loss
+    used here, that is ``der1 = -gradient`` and the constant
+    ``der2 = -1.0`` (a unit Hessian, negated to match CatBoost's sign
+    convention) -- the same unit-Hessian Newton step
+    :class:`_XGBoostEncoder`/:class:`_LightGBMEncoder` take via their
+    ``(gradient, ones_like(gradient))`` objectives. ``targets`` and
+    ``weights`` are ignored; the caller supplies a dummy label vector purely
+    to satisfy CatBoost's "not all training labels are identical" check.
+    """
+
+    def __init__(self, gradient: np.ndarray) -> None:
+        self._gradient = gradient
+
+    def calc_ders_range(
+        self,
+        approxes: list[float],
+        targets: list[float],
+        weights: list[float] | None,
+    ) -> list[tuple[float, float]]:
+        return [(-float(g), -1.0) for g in self._gradient]
+
+
+class _CatBoostEncoder:
+    """Per-view ensemble of ``k`` scalar CatBoost boosters, used only during ``fit``.
+
+    Unlike XGBoost/LightGBM, CatBoost has no notion of an empty, zero-tree
+    booster to construct up front, so each component starts as ``None`` (an
+    implicit all-zero contribution, handled directly in :meth:`predict`) and
+    is replaced wholesale on every :meth:`boost` call by a freshly
+    constructed model continued from the previous one via ``init_model``.
+    """
+
+    def __init__(self, X: np.ndarray, k: int, params: dict[str, object]) -> None:
+        self._X = X
+        self._params = params
+        # CatBoost refuses to train on a label vector that is all one value;
+        # the custom objective ignores it entirely, so any two-valued vector
+        # satisfies the check without needing real labels.
+        self._y_dummy = np.resize([0.0, 1.0], len(X)).astype(np.float32)
+        self.boosters: list[Any] = [None] * k
+
+    def predict(self) -> np.ndarray:
+        """Raw (base-margin-free) prediction on the training data.
+
+        Returns:
+            Array of shape (n_samples, k).
+        """
+        n = len(self._X)
+        return np.column_stack(
+            [
+                np.zeros(n, dtype=np.float32)
+                if booster is None
+                else np.asarray(
+                    booster.predict(self._X, prediction_type="RawFormulaVal"),
+                    dtype=np.float32,
+                )
+                for booster in self.boosters
+            ]
+        )
+
+    def boost(self, gradient: np.ndarray) -> None:
+        """Add one tree to every component booster using the EY gradient.
+
+        Args:
+            gradient: EY gradient for this view, shape (n_samples, k).
+        """
+        updated = []
+        for col, booster in enumerate(self.boosters):
+            objective = _CatBoostGradientObjective(gradient[:, col])
+            new_model = cb.CatBoostRegressor(
+                iterations=1, loss_function=objective, **self._params
+            )
+            new_model.fit(self._X, self._y_dummy, init_model=booster, verbose=False)
+            updated.append(new_model)
+        self.boosters = updated
+
+
 class TreeCCA(BaseModel, ABC):
     r"""TreeCCA — nonlinear multiview CCA with gradient-boosted-tree encoders.
 
@@ -176,9 +267,10 @@ class TreeCCA(BaseModel, ABC):
     This is an abstract base class shared by every gradient-boosting
     backend: it holds all of the backend-agnostic fitting/transform logic,
     while the choice of tree library lives in a concrete subclass —
-    :class:`XGBoostCCA` (the default choice) or :class:`LightGBMCCA` (which
-    requires the optional ``lightgbm`` package). Instantiate one of those
-    two classes directly; ``TreeCCA`` itself cannot be constructed.
+    :class:`XGBoostCCA` (the default choice), :class:`LightGBMCCA`, or
+    :class:`CatBoostCCA` (the latter two requiring the optional
+    ``lightgbm``/``catboost`` packages respectively). Instantiate one of
+    those three classes directly; ``TreeCCA`` itself cannot be constructed.
 
     References:
         Chapman, J. (2026). TreeCCA: Canonical Correlation Analysis via
@@ -196,8 +288,8 @@ class TreeCCA(BaseModel, ABC):
         subsample: Row subsampling ratio per tree. Default is 0.8.
         colsample_bytree: Column subsampling ratio per tree. Default is 0.8.
         min_child_weight: Minimum sum of instance weight (XGBoostCCA) /
-            minimum number of samples (LightGBMCCA) needed in a child.
-            Default is 5.
+            minimum number of samples (LightGBMCCA, CatBoostCCA) needed in
+            a child/leaf. Default is 5.
         gauss_seidel: If True, re-predict view 1's embedding after updating
             its boosters and use the fresh values when computing view 2's
             gradient (Gauss-Seidel); if False, both gradients are computed
@@ -240,7 +332,7 @@ class TreeCCA(BaseModel, ABC):
     @abstractmethod
     def _make_encoder(
         self, X: np.ndarray, k: int, params: dict[str, object]
-    ) -> _XGBoostEncoder | _LightGBMEncoder:
+    ) -> _XGBoostEncoder | _LightGBMEncoder | _CatBoostEncoder:
         """Construct this backend's per-view encoder.
 
         Args:
@@ -467,3 +559,92 @@ class LightGBMCCA(TreeCCA):
             "model.boosters_[view][component]"
             '.feature_importance(importance_type="gain")'
         )
+
+
+class CatBoostCCA(TreeCCA):
+    r"""TreeCCA with CatBoost boosters as the per-view encoders.
+
+    See :class:`TreeCCA` for the shared Eckart-Young objective and
+    Gauss-Seidel boosting recipe; this class fixes the gradient-boosting
+    backend to `CatBoost <https://catboost.ai/>`_, which requires the
+    optional ``catboost`` package (``pip install catboost``, included in
+    the ``tree`` extra).
+
+    Unlike :class:`XGBoostCCA`/:class:`LightGBMCCA`, which continue an
+    existing booster in place, CatBoost has no in-place "add one tree"
+    call: each round, every component is replaced by a freshly constructed
+    ``CatBoostRegressor(iterations=1, ...)`` continued from the previous
+    round's model via ``init_model=``, using a custom loss object
+    (:class:`~cca_zoo.tree._treecca._CatBoostGradientObjective`) that
+    relays the EY gradient as CatBoost's expected ``(der1, der2)`` pair. As
+    a consequence, fitting is markedly slower per round than
+    :class:`XGBoostCCA`/:class:`LightGBMCCA` (CatBoost rebuilds its
+    training pool and recomputes feature-importance statistics on every
+    such call), a cost worth paying when CatBoost's ordered-boosting and
+    symmetric-tree structure are themselves the point.
+
+    Example:
+        >>> import numpy as np
+        >>> rng = np.random.default_rng(0)
+        >>> X1 = rng.standard_normal((100, 5))
+        >>> X2 = rng.standard_normal((100, 5))
+        >>> model = CatBoostCCA(latent_dimensions=2, n_estimators=10).fit([X1, X2])
+        >>> scores = model.transform([X1, X2])
+    """
+
+    def fit(self, views: list[ArrayLike], y: None = None) -> CatBoostCCA:
+        """Fit the model.
+
+        Args: as :meth:`TreeCCA.fit`.
+
+        Returns:
+            self: Fitted estimator.
+
+        Raises:
+            ValueError: If fewer than 2 views are provided.
+            ValueError: If views have inconsistent numbers of samples.
+            ImportError: If the ``catboost`` package is not installed.
+        """
+        if not _CATBOOST_AVAILABLE:
+            raise ImportError(
+                "CatBoostCCA requires the catboost package. "
+                "Install with: pip install catboost"
+            )
+        return super().fit(views, y)
+
+    def _booster_params(self) -> dict[str, object]:
+        return {
+            "depth": self.max_depth,
+            "learning_rate": self.learning_rate,
+            "subsample": self.subsample,
+            "bootstrap_type": "Bernoulli",
+            "rsm": self.colsample_bytree,
+            "min_data_in_leaf": int(self.min_child_weight),
+            "boost_from_average": False,
+            "eval_metric": "RMSE",
+            "allow_writing_files": False,
+            "verbose": False,
+            "random_seed": int(self.random_state),
+        }
+
+    def _make_encoder(
+        self, X: np.ndarray, k: int, params: dict[str, object]
+    ) -> _CatBoostEncoder:
+        return _CatBoostEncoder(X, k, params)
+
+    def _predict_boosters(self, boosters: list[Any], X: np.ndarray) -> np.ndarray:
+        n = X.shape[0]
+        return np.column_stack(
+            [
+                np.zeros(n, dtype=np.float32)
+                if booster is None
+                else np.asarray(
+                    booster.predict(X, prediction_type="RawFormulaVal"),
+                    dtype=np.float32,
+                )
+                for booster in boosters
+            ]
+        )
+
+    def _importance_example(self) -> str:
+        return "model.boosters_[view][component].get_feature_importance()"

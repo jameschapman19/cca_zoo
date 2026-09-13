@@ -11,7 +11,7 @@ import pytest
 
 xgboost = pytest.importorskip("xgboost", reason="xgboost is not installed")
 
-from cca_zoo.tree import LightGBMCCA, XGBoostCCA
+from cca_zoo.tree import CatBoostCCA, LightGBMCCA, XGBoostCCA
 from cca_zoo.tree._treecca import TreeCCA
 
 pytestmark = pytest.mark.slow
@@ -33,10 +33,11 @@ def test_treecca_base_class_not_instantiable() -> None:
         TreeCCA()
 
 
-def test_xgboostcca_and_lightgbmcca_are_treecca_subclasses() -> None:
-    """XGBoostCCA and LightGBMCCA share the TreeCCA base class."""
+def test_treecca_subclasses_share_the_base_class() -> None:
+    """XGBoostCCA, LightGBMCCA, and CatBoostCCA share the TreeCCA base class."""
     assert issubclass(XGBoostCCA, TreeCCA)
     assert issubclass(LightGBMCCA, TreeCCA)
+    assert issubclass(CatBoostCCA, TreeCCA)
 
 
 # ---------------------------------------------------------------------------
@@ -280,6 +281,59 @@ def test_lightgbm_weights_raises_not_implemented(
     """Accessing weights after fitting a LightGBMCCA raises NotImplementedError."""
     pytest.importorskip("lightgbm", reason="lightgbm is not installed")
     model = LightGBMCCA(n_estimators=5).fit(two_views_small)
+    with pytest.raises(NotImplementedError, match="boosters_"):
+        _ = model.weights
+
+
+# ---------------------------------------------------------------------------
+# CatBoostCCA
+# ---------------------------------------------------------------------------
+
+
+def test_catboost_fit_completes(two_views_small: list[np.ndarray]) -> None:
+    """Fit completes end-to-end with CatBoostCCA."""
+    pytest.importorskip("catboost", reason="catboost is not installed")
+    k = 2
+    model = CatBoostCCA(latent_dimensions=k, n_estimators=5).fit(two_views_small)
+    result = model.transform(two_views_small)
+    n = two_views_small[0].shape[0]
+    for arr in result:
+        assert arr.shape == (n, k)
+    for view_boosters in model.boosters_:
+        assert len(view_boosters) == k
+
+
+def test_catboost_missing_raises_import_error(
+    two_views_small: list[np.ndarray], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """CatBoostCCA without the catboost package installed raises ImportError."""
+    import cca_zoo.tree._treecca as treecca_module
+
+    monkeypatch.setattr(treecca_module, "_CATBOOST_AVAILABLE", False)
+    model = CatBoostCCA(n_estimators=5)
+    with pytest.raises(ImportError, match="catboost"):
+        model.fit(two_views_small)
+
+
+def test_catboost_fit_transform_consistency(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """fit_transform equals fit().transform() for CatBoostCCA."""
+    pytest.importorskip("catboost", reason="catboost is not installed")
+    m1 = CatBoostCCA(n_estimators=5)
+    m2 = CatBoostCCA(n_estimators=5)
+    result_ft = m1.fit_transform(two_views_small)
+    result_sep = m2.fit(two_views_small).transform(two_views_small)
+    for a, b in zip(result_ft, result_sep):
+        np.testing.assert_allclose(a, b, atol=1e-6)
+
+
+def test_catboost_weights_raises_not_implemented(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """Accessing weights after fitting a CatBoostCCA raises NotImplementedError."""
+    pytest.importorskip("catboost", reason="catboost is not installed")
+    model = CatBoostCCA(n_estimators=5).fit(two_views_small)
     with pytest.raises(NotImplementedError, match="boosters_"):
         _ = model.weights
 
