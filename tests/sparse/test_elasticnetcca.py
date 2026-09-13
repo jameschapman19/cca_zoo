@@ -211,9 +211,7 @@ def test_higher_alpha_increases_sparsity(
             latent_dimensions=1, alpha=alpha, l1_ratio=0.9, random_state=0
         )
         model.fit(correlated_views)
-        n_nonzero.append(
-            sum((np.abs(w) > 1e-10).sum() for w in model.weights)
-        )
+        n_nonzero.append(sum((np.abs(w) > 1e-10).sum() for w in model.weights))
     assert n_nonzero[0] >= n_nonzero[1] >= n_nonzero[2]
 
 

@@ -167,7 +167,9 @@ objective with mini-batch momentum SGD instead:
 ```python
 from cca_zoo.linear import StochasticCCAEY
 
-model = StochasticCCAEY(latent_dimensions=2, learning_rate=0.01, batch_size=128, max_iter=200)
+model = StochasticCCAEY(
+    latent_dimensions=2, learning_rate=0.01, batch_size=128, max_iter=200
+)
 model.fit([X1, X2])
 ```
 

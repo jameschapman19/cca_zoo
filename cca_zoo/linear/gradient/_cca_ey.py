@@ -222,9 +222,7 @@ class CCA_EY(CCAEY):
     pass
 
 
-@deprecated(
-    "CCAEY now supports 2 or more views directly; use CCAEY instead of MCCAEY."
-)
+@deprecated("CCAEY now supports 2 or more views directly; use CCAEY instead of MCCAEY.")
 class MCCAEY(CCAEY):
     pass
 
