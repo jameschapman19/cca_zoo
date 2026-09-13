@@ -9,9 +9,10 @@ optional dependency: it is built entirely on numpy, already required by `cca_zoo
 ## Background
 
 `ElasticNetCCA` minimises the same unconstrained Eckart-Young (EY) objective used by the
-stochastic `*_EY` models in `cca_zoo.linear`, by `DCCAEY` in `cca_zoo.deep`, by `TreeCCA` in
-`cca_zoo.tree`, and by `GAMCCA`/`GaussianProcessCCA` (all share the exact same implementation, in
-`cca_zoo._utils._ey`), with an elastic-net penalty added on the per-view weights:
+`CCAEY`/`PLSEY`/`StochasticCCAEY` models in `cca_zoo.linear`, by `DCCAEY` in `cca_zoo.deep`, by
+`TreeCCA` in `cca_zoo.tree`, and by `GAMCCA`/`GaussianProcessCCA` (all share the exact same
+implementation, in `cca_zoo._utils._ey`), with an elastic-net penalty added on the per-view
+weights:
 
 $$
 \mathcal{L}(W) = \mathcal{L}_{EY}(Z_1, \dots, Z_M)

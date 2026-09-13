@@ -15,32 +15,32 @@ from cca_zoo._utils._ey import (
     ey_cross_covariance,
     weight_gram_mean,
 )
-from cca_zoo.linear.gradient._base import BaseGradientModel
+from cca_zoo.linear.gradient._base import BaseFullBatchEYModel
 
 
-class CCAEY(BaseGradientModel):
-    r"""Eckart-Young CCA for large-scale data, ridge-blended with PLSEY.
+class CCAEY(BaseFullBatchEYModel):
+    r"""Eckart-Young CCA for 2 or more views, ridge-blended with PLSEY.
 
-    Optimises the unconstrained Eckart-Young (EY) objective by mini-batch
-    momentum gradient descent directly on the raw (centred) views, with no
-    manifold projection step and no upfront whitening: unlike classical CCA,
-    which whitens each view before finding the correlated directions, the EY
-    reformulation folds the orthonormalising pressure into the loss itself,
-    so a full-batch preprocessing pass over the data is never needed. This
+    Minimises the unconstrained Eckart-Young (EY) objective directly on the
+    raw (centred) views, with no manifold projection step and no upfront
+    whitening: unlike classical CCA, which whitens each view before finding
+    the correlated directions, the EY reformulation folds the
+    orthonormalising pressure into the loss itself, so a full-batch
+    preprocessing pass over the data covariance is never needed. This
     matches how the same underlying loss is used, unwhitened, by
     :class:`~cca_zoo.linear.gradient.PLSEY`, :class:`~cca_zoo.tree.TreeCCA`,
     and :class:`~cca_zoo.deep.DCCAEY`.
 
-    For embeddings $Z_i = X_i W_i$, let $C$ and $V$ be the mean
-    pairwise cross-covariance and mean auto-covariance across views (see
-    :func:`cca_zoo._utils._ey.ey_cross_covariance`), and
+    For embeddings $Z_i = X_i W_i$ ($i = 1, \dots, M$, $M \ge 2$), let $C$
+    and $V$ be the mean pairwise cross-covariance and mean auto-covariance
+    across views (see :func:`cca_zoo._utils._ey.ey_cross_covariance`), and
     $B = \frac{1}{M}\sum_i W_i^\top W_i$ the mean weight Gram matrix
     (see :func:`cca_zoo._utils._ey.weight_gram_mean`). ``c`` blends the
     *within-view normalisation* between the data's own auto-covariance and
     the identity (in weight space, $W_i^\top I W_i = W_i^\top W_i$) —
     exactly the canonical-ridge blend $(1-c)X^\top X + cI$ already used by
-    :class:`~cca_zoo.linear.rCCA`, translated into this unconstrained,
-    stochastic setting:
+    :class:`~cca_zoo.linear.rCCA`, translated into this unconstrained
+    setting:
 
     $$
     V_c = (1 - c) V + c B, \qquad
@@ -57,24 +57,20 @@ class CCAEY(BaseGradientModel):
     stationary point without requiring an explicit orthonormality
     constraint, unlike a plain squared-projection-distance loss.
 
+    Fit by full-batch L-BFGS-B
+    (:meth:`~cca_zoo.linear.gradient._base.BaseFullBatchEYModel._fit_lbfgsb`)
+    using the loss's exact analytic gradient. For mini-batch training on
+    datasets too large for a full-batch gradient evaluation, see
+    :class:`~cca_zoo.linear.gradient.StochasticCCAEY`.
+
     Note:
         Unlike the exact, closed-form :class:`~cca_zoo.linear.rCCA` (where
-        ``c=0`` is always numerically safe), gradient descent on the raw,
-        *unregularised* ($c=0$) objective can diverge to ``nan`` when a
-        mini-batch's samples don't outnumber the number of features by a
-        healthy margin — e.g. ``n_features`` approaching or exceeding
-        ``batch_size`` — since nothing then bounds the weights in the
-        data's near-null directions. If you see ``nan`` weights, increase
-        ``c`` (a small value like 0.1-0.3 is usually enough) or
-        ``batch_size`` rather than assuming the model doesn't apply to your
-        data. (Initial weights give exactly unit-variance, uncorrelated
-        projections on one mini-batch — see
-        :func:`cca_zoo._utils._ey.cheap_orthonormal_projection_weights` — a
-        cheap stand-in for classical CCA's full whitening step and the
-        natural match for this loss's own fixed point; empirically this
-        does *not* postpone the divergence above, since every later
-        mini-batch is an independent fresh draw, so ``c``/``batch_size``
-        remain the actual remedy.)
+        ``c=0`` is always numerically safe), optimising the raw,
+        *unregularised* ($c=0$) objective can be poorly conditioned when the
+        number of samples doesn't outnumber the number of features by a
+        healthy margin, since nothing then bounds the weights in the data's
+        near-null directions. If you see ``nan`` or diverging weights,
+        increase ``c`` (a small value like 0.1-0.3 is usually enough).
 
     References:
         Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
@@ -87,24 +83,27 @@ class CCAEY(BaseGradientModel):
         c: Ridge blend in ``[0, 1]`` between ``CCAEY`` (0) and ``PLSEY``
             (1). Default is 0 (standard, unregularised CCAEY); see the
             note above on numerical stability for high-dimensional data.
-        learning_rate: Gradient step size. Default is 1e-2.
-        max_iter: Number of gradient steps. Default is 1000.
-        batch_size: Mini-batch size. ``None`` uses the full dataset.
-        tol: Convergence tolerance. Default is 1e-6.
-        momentum: Momentum coefficient in ``[0, 1)``. Default is 0.9.
+        max_iter: Maximum number of L-BFGS-B iterations. Default is 1000.
+        tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
+            is 1e-6.
         random_state: Seed for reproducibility.
 
     Example:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((5000, 200))
-        >>> X2 = rng.standard_normal((5000, 150))
-        >>> model = CCAEY(latent_dimensions=4, batch_size=128, random_state=0)
+        >>> X1 = rng.standard_normal((1000, 20))
+        >>> X2 = rng.standard_normal((1000, 15))
+        >>> model = CCAEY(latent_dimensions=4, random_state=0)
         >>> model = model.fit([X1, X2])
+
+        More than two views are supported directly:
+
+        >>> X3 = rng.standard_normal((1000, 10))
+        >>> model = CCAEY(latent_dimensions=4, random_state=0).fit([X1, X2, X3])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
-        **BaseGradientModel._parameter_constraints,
+        **BaseFullBatchEYModel._parameter_constraints,
         "c": [Interval(Real, 0, 1, closed="both")],
     }
 
@@ -113,30 +112,24 @@ class CCAEY(BaseGradientModel):
         latent_dimensions: int = 1,
         center: bool = True,
         c: float = 0.0,
-        learning_rate: float = 1e-2,
         max_iter: int = 1000,
-        batch_size: int | None = None,
         tol: float = 1e-6,
-        momentum: float = 0.9,
         random_state: int | None = None,
     ) -> None:
         super().__init__(
             latent_dimensions=latent_dimensions,
             center=center,
-            learning_rate=learning_rate,
             max_iter=max_iter,
-            batch_size=batch_size,
             tol=tol,
-            momentum=momentum,
             random_state=random_state,
         )
         self.c = c
 
     def fit(self, views: list[ArrayLike], y: None = None) -> CCAEY:
-        """Fit CCAEY by mini-batch momentum gradient descent.
+        """Fit CCAEY by full-batch L-BFGS-B on the EY loss.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: List of 2 or more arrays, each (n_samples, n_features_i).
             y: Ignored.
 
         Returns:
@@ -148,7 +141,7 @@ class CCAEY(BaseGradientModel):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-        self.weights_ = self._gradient_descent(views_, rng)
+        self.weights_ = self._fit_lbfgsb(views_, rng)
         return self
 
     def _initial_weights(
@@ -156,16 +149,14 @@ class CCAEY(BaseGradientModel):
     ) -> list[np.ndarray]:
         """Cheap, data-informed initial weights (see class docstring note).
 
-        Overrides :meth:`BaseGradientModel._initial_weights`'s plain
+        Overrides :meth:`BaseFullBatchEYModel._initial_weights`'s plain
         weight-orthonormal default: gives exactly unit-variance,
-        uncorrelated projections on one mini-batch instead, matching this
+        uncorrelated projections on the full dataset instead, matching this
         loss's own reward term at its fixed point (see
         :func:`cca_zoo._utils._ey.cheap_orthonormal_projection_weights`).
-        Note this does not, by itself, prevent the ``c=0`` divergence risk
-        noted above — see that note for why, and the actual remedy.
         """
         return cheap_orthonormal_projection_weights(
-            views, self.latent_dimensions, self.batch_size, rng
+            views, self.latent_dimensions, None, rng
         )
 
     def _derivative(
@@ -186,7 +177,7 @@ class CCAEY(BaseGradientModel):
         gradient respectively (both matches exact).
 
         Args:
-            views: Mini-batch of view arrays.
+            views: Per-view arrays.
             representations: Current embeddings.
             weights: Current weight matrices.
 
@@ -216,7 +207,7 @@ class CCAEY(BaseGradientModel):
         representations: list[np.ndarray],
         weights: list[np.ndarray],
     ) -> float:
-        r"""Scalar $\mathcal{L}_{EY}(c)$, used for the ``tol`` convergence check."""
+        r"""Scalar $\mathcal{L}_{EY}(c)$."""
         del views
         c = self.c
         C, v_data = ey_cross_covariance(representations)
@@ -228,4 +219,18 @@ class CCAEY(BaseGradientModel):
 
 @deprecated("Renamed to CCAEY for sklearn-style naming; use CCAEY instead.")
 class CCA_EY(CCAEY):
+    pass
+
+
+@deprecated(
+    "CCAEY now supports 2 or more views directly; use CCAEY instead of MCCAEY."
+)
+class MCCAEY(CCAEY):
+    pass
+
+
+@deprecated(
+    "CCAEY now supports 2 or more views directly; use CCAEY instead of MCCA_EY."
+)
+class MCCA_EY(CCAEY):
     pass
