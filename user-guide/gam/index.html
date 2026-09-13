@@ -1487,12 +1487,13 @@ additive model — <span class="arithmatex">\(f_i(x) = \sum_j s_j(x_j)\)</span>,
 linear map (<code>CCAEY</code>) or a boosted-tree ensemble (<code>TreeCCA</code>) as the function class for each
 <span class="arithmatex">\(f_i\)</span>.</p>
 <p>Writing <span class="arithmatex">\(f_i(x) = \sum_j s_j(x_j)\)</span> as a fixed per-feature B-spline basis times a coefficient
-matrix, fitting those coefficients is a <strong>P-IRLS</strong> recipe — the same iteration structure GAM
-software such as R's <code>mgcv</code> uses, applied directly to the EY loss rather than a per-observation
-likelihood: for one latent component's coefficients at a time (every other component and view
-held fixed), a damped Newton step is solved via <code>scipy.optimize.minimize(method="trust-exact")</code>
-using the EY loss's exact gradient and Hessian in that coefficient space, cycling through every
-component and view until the penalised objective stops moving.</p>
+matrix, fitting those coefficients is conceptually a <strong>P-IRLS</strong> recipe — the same iteration
+structure GAM software such as R's <code>mgcv</code> uses, applied directly to the EY loss rather than a
+per-observation likelihood. Rather than hand-rolling that solve (or even cycling over views one
+at a time), every view's coefficients — every latent component, every view, all at once — are
+updated in a single call to <code>scipy.optimize.minimize(method="trust-krylov")</code>, a standard
+off-the-shelf trust-region Newton-CG solver, given the EY loss's exact gradient and an exact
+Hessian-vector product across the whole stacked parameter vector.</p>
 <p>Because each latent component decomposes exactly into one additive term per input feature, the
 fitted shape of any feature's contribution is available directly via <code>model.shape_function(...)</code>
 — the GAM analogue of <code>TreeCCA</code>'s split-gain feature importance, but an exact curve rather than a
@@ -1548,11 +1549,11 @@ score. Summing every feature's <code>shape_function</code> at the training value
 </tr>
 <tr>
 <td><code>max_iter</code></td>
-<td>Maximum number of full P-IRLS sweeps (one Newton solve per view and component each).</td>
+<td>Maximum number of outer Newton iterations in the single joint <code>trust-krylov</code> solve (<code>scipy.optimize.minimize</code>'s own <code>maxiter</code> option).</td>
 </tr>
 <tr>
 <td><code>tol</code></td>
-<td>Convergence tolerance on the penalised objective's change between consecutive sweeps.</td>
+<td>Gradient-norm convergence tolerance for the joint solve (<code>scipy.optimize.minimize</code>'s own <code>gtol</code> option).</td>
 </tr>
 <tr>
 <td><code>random_state</code></td>
