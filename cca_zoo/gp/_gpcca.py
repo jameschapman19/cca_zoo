@@ -26,41 +26,51 @@ from cca_zoo._utils._ey import (
 from cca_zoo._utils._validation import validate_views
 
 
-def _lbfgsb_view_objective(
+def _lbfgsb_joint_objective(
     x: np.ndarray,
-    basis: np.ndarray,
-    ridge_matrix: np.ndarray,
-    representations: list[np.ndarray],
-    view_idx: int,
+    bases: list[np.ndarray],
+    ridge_matrices: list[np.ndarray],
+    shapes: list[tuple[int, int]],
+    sizes: list[int],
     ridge: float,
-    d: int,
-    k: int,
 ) -> tuple[float, np.ndarray]:
-    r"""Penalised EY loss and its exact gradient w.r.t. one view's coefficients.
+    r"""Penalised EY loss and its exact gradient, jointly over every view.
 
-    Writing $Z_i = \text{basis}_i B_i$ (every other view fixed), this is
-    $\mathcal{L}_{EY} + \tfrac12\lambda\sum_c B_i[:,c]^\top M_i B_i[:,c]$
-    (the RKHS-norm ridge penalty, $M_i$ = ``ridge_matrix`` — see
-    :class:`_GpEncoder`) as a function of $B_i$ flattened to a vector, with
-    its exact analytic gradient
-    $\text{basis}_i^\top\nabla_{Z_i}\mathcal{L}_{EY} + \lambda M_i B_i$ —
-    the same two ingredients (:func:`~cca_zoo._utils._ey.ey_loss` and
+    Writing $Z_i = \text{bases}_i B_i$ for every view at once, this is
+    $\mathcal{L}_{EY} + \tfrac12\lambda\sum_i\sum_c B_i[:,c]^\top M_i B_i[:,c]$
+    (the RKHS-norm ridge penalty, $M_i$ = ``ridge_matrices[i]`` — see
+    :class:`_GpEncoder`) as a function of every view's coefficients $B_i$,
+    concatenated and flattened into one vector ``x``, with its exact
+    analytic gradient
+    $\text{bases}_i^\top\nabla_{Z_i}\mathcal{L}_{EY} + \lambda M_i B_i$ per
+    view — the same two ingredients
+    (:func:`~cca_zoo._utils._ey.ey_loss` and
     :func:`~cca_zoo._utils._ey.ey_grad_z`) every other EY-loss model in this
-    package already uses, just evaluated in this view's fixed coefficient
-    space rather than raw embedding space.
-
-    Mutates ``representations[view_idx]`` in place to the candidate ``x``
-    (as :func:`scipy.optimize.minimize` requires re-evaluating this at each
-    of its own trial points); the caller is responsible for resetting it to
-    the accepted optimum once ``minimize`` returns.
+    package already uses. Every view's coefficients are optimised
+    simultaneously by a single call to :func:`scipy.optimize.minimize`
+    (see :meth:`GaussianProcessCCA.fit`), rather than one view at a time
+    with every other view held fixed.
     """
-    b = x.reshape(d, k)
-    representations[view_idx] = basis @ b
+    coefficients = []
+    offset = 0
+    for shape, size in zip(shapes, sizes):
+        coefficients.append(x[offset : offset + size].reshape(shape))
+        offset += size
+
+    representations = [basis @ b for basis, b in zip(bases, coefficients)]
     loss = ey_loss(representations)["objective"]
-    penalty = 0.5 * ridge * sum(b[:, c] @ ridge_matrix @ b[:, c] for c in range(k))
-    grad_z = ey_grad_z(representations)[view_idx]
-    grad_b = basis.T @ grad_z + ridge * (ridge_matrix @ b)
-    return loss + penalty, grad_b.ravel()
+    penalty = (
+        0.5
+        * ridge
+        * sum(np.sum(b * (m @ b)) for b, m in zip(coefficients, ridge_matrices))
+    )
+    grad_z = ey_grad_z(representations)
+    grads = [
+        basis.T @ gz + ridge * (m @ b)
+        for basis, gz, m, b in zip(bases, grad_z, ridge_matrices, coefficients)
+    ]
+    grad = np.concatenate([g.ravel() for g in grads])
+    return loss + penalty, grad
 
 
 class _GpEncoder:
@@ -80,11 +90,11 @@ class _GpEncoder:
     coefficients $B_i$ — no separate recentring step is needed anywhere
     downstream.
 
-    The coefficients $B_i$ (``coef_``) are fit by L-BFGS-B on
-    :func:`_lbfgsb_view_objective` — the RKHS-norm penalty
-    $B_i^\top K_{mm} B_i$ a Gaussian process's own posterior mean actually
-    minimises, not a plain $\|B_i\|_2^2$ that would ignore the kernel's
-    geometry — not by this class, which only builds and holds the fixed
+    The coefficients $B_i$ (``coef_``) are fit jointly with every other
+    view's by L-BFGS-B on :func:`_lbfgsb_joint_objective` — the RKHS-norm
+    penalty $B_i^\top K_{mm} B_i$ a Gaussian process's own posterior mean
+    actually minimises, not a plain $\|B_i\|_2^2$ that would ignore the
+    kernel's geometry — not by this class, which only builds and holds the fixed
     basis and evaluates it once coefficients exist.
 
     Predictive uncertainty (``predict_new(..., return_std=True)``) does not
@@ -187,14 +197,16 @@ class GaussianProcessCCA(BaseModel):
     :class:`~sklearn.gaussian_process.GaussianProcessRegressor` itself uses
     internally, just pointed at $\mathcal{L}_{EY}$ (plus the RKHS-norm
     penalty $B_i^\top K_{mm} B_i$) instead of the negative log-marginal-
-    likelihood it optimises kernel hyperparameters against. One view's full
-    coefficient matrix $B_i$ is optimised at a time (every other view held
-    fixed) via :func:`_lbfgsb_view_objective`, cycling through every view in
-    turn until the (exact, un-linearised) penalised objective stops moving.
-    L-BFGS-B needs no explicit Hessian — just gradients — and optimises
-    every component of a view jointly, which is the natural choice here
-    since the RKHS penalty couples a view's components together through
-    $K_{mm}$.
+    likelihood it optimises kernel hyperparameters against. Every view's
+    coefficients $B_1, \dots, B_M$ are optimised **jointly**, in a single
+    L-BFGS-B run over all of them concatenated, via
+    :func:`_lbfgsb_joint_objective` — not one view at a time with the
+    others held fixed: $\mathcal{L}_{EY}$ already couples every view
+    together, so a block Gauss-Seidel scheme (each view solved to
+    convergence before moving to the next) needlessly repeats work and can
+    settle into a worse joint optimum than optimising every view's
+    coefficients simultaneously against the exact joint gradient.
+    L-BFGS-B needs no explicit Hessian — just gradients.
 
     A joint kernel is not restricted to a sum of univariate terms the way
     :class:`~cca_zoo.gam.GAMCCA`'s additive splines are: it can represent a
@@ -256,10 +268,10 @@ class GaussianProcessCCA(BaseModel):
             $O(n \, \text{n\_inducing}^2)$ instead of $O(n^3)$. Values at or
             above the number of training samples fall back to exact
             inference automatically.
-        max_iter: Maximum number of full sweeps (one L-BFGS-B solve per
-            view each). Default is 100.
-        tol: Convergence tolerance on the penalised objective's change
-            between consecutive sweeps. Default is 1e-6.
+        max_iter: Maximum number of L-BFGS-B iterations for the single,
+            joint solve over every view's coefficients. Default is 1000.
+        tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
+            is 1e-6.
         random_state: Seed for the initial coefficients and (if
             ``n_inducing`` is set) for selecting inducing points.
 
@@ -290,7 +302,7 @@ class GaussianProcessCCA(BaseModel):
         kernel: Kernel | None = None,
         alpha: float = 0.01,
         n_inducing: int | None = None,
-        max_iter: int = 100,
+        max_iter: int = 1000,
         tol: float = 1e-6,
         random_state: int = 0,
     ) -> None:
@@ -335,51 +347,31 @@ class GaussianProcessCCA(BaseModel):
             for X in views_
         ]
 
+        bases = [enc.basis_ for enc in encoders]
+        ridge_matrices = [enc.ridge_matrix_ for enc in encoders]
+
         rng = np.random.default_rng(self.random_state)
-        coefficients = cheap_orthonormal_projection_weights(
-            [enc.basis_ for enc in encoders], k, None, rng
+        coefficients0 = cheap_orthonormal_projection_weights(bases, k, None, rng)
+        shapes = [c.shape for c in coefficients0]
+        sizes = [c.size for c in coefficients0]
+        x0 = np.concatenate([c.ravel() for c in coefficients0])
+
+        result = minimize(
+            _lbfgsb_joint_objective,
+            x0,
+            args=(bases, ridge_matrices, shapes, sizes, self.alpha),
+            jac=True,
+            method="L-BFGS-B",
+            options={"maxiter": self.max_iter, "ftol": self.tol},
         )
-        representations = [
-            enc.basis_ @ coef for enc, coef in zip(encoders, coefficients)
-        ]
 
-        prev_obj = np.inf
-        for _ in range(self.max_iter):
-            for i, enc in enumerate(encoders):
-                d_i = enc.basis_.shape[1]
-                result = minimize(
-                    _lbfgsb_view_objective,
-                    coefficients[i].ravel(),
-                    args=(
-                        enc.basis_,
-                        enc.ridge_matrix_,
-                        representations,
-                        i,
-                        self.alpha,
-                        d_i,
-                        k,
-                    ),
-                    jac=True,
-                    method="L-BFGS-B",
-                )
-                coefficients[i] = result.x.reshape(d_i, k)
-                representations[i] = enc.basis_ @ coefficients[i]
+        coefficients = []
+        offset = 0
+        for shape, size in zip(shapes, sizes):
+            coefficients.append(result.x[offset : offset + size].reshape(shape))
+            offset += size
 
-            penalty = (
-                0.5
-                * self.alpha
-                * sum(
-                    sum(
-                        coef[:, c] @ encoders[i].ridge_matrix_ @ coef[:, c]
-                        for c in range(k)
-                    )
-                    for i, coef in enumerate(coefficients)
-                )
-            )
-            obj = ey_loss(representations)["objective"] + penalty
-            if abs(prev_obj - obj) < self.tol:
-                break
-            prev_obj = obj
+        representations = [basis @ coef for basis, coef in zip(bases, coefficients)]
 
         for enc, coef, rep in zip(encoders, coefficients, representations):
             enc.coef_ = coef

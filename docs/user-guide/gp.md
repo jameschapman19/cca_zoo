@@ -33,9 +33,12 @@ Each encoder writes $f_i(x) = k(x, Z_i)^\top B_i$ for a fixed kernel $k$ and a f
 ordinary smooth optimisation problem with an exact, cheap analytic gradient, solved directly by
 **L-BFGS-B** (`scipy.optimize.minimize`) — the same algorithm `GaussianProcessRegressor` itself
 uses internally, just pointed at the EY loss (plus an RKHS-norm ridge penalty) instead of the
-negative log-marginal-likelihood it optimises kernel hyperparameters against. One view's full
-coefficient matrix is optimised at a time, cycling through every view until the penalised
-objective stops moving. Kernel hyperparameters are fixed — pass `kernel=` explicitly, or tune it
+negative log-marginal-likelihood it optimises kernel hyperparameters against. Every view's
+coefficients are optimised **jointly**, in a single L-BFGS-B run over all of them concatenated,
+rather than one view at a time with the others held fixed: the EY loss already couples every view
+together, so solving one view to convergence before moving to the next needlessly repeats work and
+can settle into a worse joint optimum than optimising every view simultaneously against the exact
+joint gradient. Kernel hyperparameters are fixed — pass `kernel=` explicitly, or tune it
 externally (e.g. with `sklearn.model_selection.GridSearchCV`, since this is an ordinary
 `BaseEstimator`).
 
@@ -116,8 +119,8 @@ whether increasing it changes the held-out canonical correlation.
 | `kernel` | Fixed kernel used for every view. `None` (default) uses `ConstantKernel(1.0) * RBF(length_scale=np.ones(p))` for each view's own feature count `p`. |
 | `alpha` | Ridge (RKHS-norm) penalty strength, also used as the noise level for the posterior-variance calculation. |
 | `n_inducing` | Number of basis ("inducing") points (see above). `None` (default) uses every training row (exact inference). |
-| `max_iter` | Maximum number of full sweeps (one L-BFGS-B solve per view each). |
-| `tol` | Convergence tolerance on the penalised objective's change between consecutive sweeps. |
+| `max_iter` | Maximum number of L-BFGS-B iterations for the single, joint solve over every view's coefficients. |
+| `tol` | Convergence tolerance, passed to L-BFGS-B as `ftol`. |
 | `random_state` | Seed for the initial coefficients, and (if `n_inducing` is set) for selecting inducing points. |
 
 ---
