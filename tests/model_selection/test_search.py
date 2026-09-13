@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from sklearn.base import clone
+from sklearn.model_selection import cross_val_score
 
 from cca_zoo.linear import CCA, MCCA, rCCA
-from cca_zoo.model_selection import GridSearchCV
+from cca_zoo.model_selection import GridSearchCV, MultiviewWrapper, RandomizedSearchCV
 
 # ---------------------------------------------------------------------------
 # Basic fit
@@ -273,3 +275,158 @@ def test_transform_without_refit_raises(two_views: list[np.ndarray]) -> None:
     gs.fit(two_views)
     with pytest.raises(AttributeError, match="refit"):
         gs.transform(two_views)
+
+
+# ---------------------------------------------------------------------------
+# cv_results_ keys are unprefixed, consistent with best_params_
+# ---------------------------------------------------------------------------
+
+
+def test_cv_results_param_keys_unprefixed(two_views: list[np.ndarray]) -> None:
+    """cv_results_ param_* keys match best_params_ keys (no 'estimator__')."""
+    gs = GridSearchCV(
+        CCA(),
+        param_grid={"latent_dimensions": [1, 2]},
+        cv=2,
+    )
+    gs.fit(two_views)
+    assert "param_latent_dimensions" in gs.cv_results_
+    assert not any(k.startswith("param_estimator__") for k in gs.cv_results_)
+    assert all(
+        not any(key.startswith("estimator__") for key in params)
+        for params in gs.cv_results_["params"]
+    )
+
+
+# ---------------------------------------------------------------------------
+# Full sklearn GridSearchCV attribute surface is forwarded
+# ---------------------------------------------------------------------------
+
+
+def test_forwards_full_sklearn_attribute_surface(two_views: list[np.ndarray]) -> None:
+    """Attributes beyond best_*/cv_results_ (e.g. best_index_) are forwarded."""
+    gs = GridSearchCV(
+        CCA(),
+        param_grid={"latent_dimensions": [1, 2]},
+        cv=2,
+    )
+    gs.fit(two_views)
+    assert hasattr(gs, "best_index_")
+    assert hasattr(gs, "scorer_")
+    assert hasattr(gs, "n_splits_")
+    assert gs.n_splits_ == 2
+
+
+# ---------------------------------------------------------------------------
+# GridSearchCV/RandomizedSearchCV are themselves ordinary sklearn estimators
+# ---------------------------------------------------------------------------
+
+
+def test_grid_search_cv_is_clonable() -> None:
+    """GridSearchCV round-trips through sklearn's clone/get_params/set_params."""
+    gs = GridSearchCV(CCA(), param_grid={"latent_dimensions": [1, 2]}, cv=2)
+    cloned = clone(gs)
+    assert cloned.param_grid == gs.param_grid
+    assert cloned is not gs
+
+
+# ---------------------------------------------------------------------------
+# RandomizedSearchCV
+# ---------------------------------------------------------------------------
+
+
+def test_randomized_search_fit_completes(two_views: list[np.ndarray]) -> None:
+    """RandomizedSearchCV.fit completes and best_params_ is in range."""
+    rs = RandomizedSearchCV(
+        rCCA(),
+        param_distributions={"c": [0.0, 0.1, 0.5]},
+        n_iter=2,
+        cv=2,
+        random_state=0,
+    )
+    rs.fit(two_views)
+    assert rs.best_params_["c"] in [0.0, 0.1, 0.5]
+
+
+def test_randomized_search_transform(two_views: list[np.ndarray]) -> None:
+    """RandomizedSearchCV.transform delegates to best_estimator_."""
+    rs = RandomizedSearchCV(
+        CCA(),
+        param_distributions={"latent_dimensions": [1, 2]},
+        n_iter=2,
+        cv=2,
+        random_state=0,
+    )
+    rs.fit(two_views)
+    result = rs.transform(two_views)
+    assert len(result) == len(two_views)
+
+
+# ---------------------------------------------------------------------------
+# MultiviewWrapper is public and composes with arbitrary sklearn tools
+# ---------------------------------------------------------------------------
+
+
+def test_multiview_wrapper_with_cross_val_score(two_views: list[np.ndarray]) -> None:
+    """MultiviewWrapper can be used directly with sklearn's cross_val_score."""
+    split_indices = [v.shape[1] for v in two_views]
+    wrapper = MultiviewWrapper(CCA(latent_dimensions=1), split_indices=split_indices)
+    x_concat = np.hstack(two_views)
+    scores = cross_val_score(wrapper, x_concat, cv=2)
+    assert scores.shape == (2,)
+
+
+# ---------------------------------------------------------------------------
+# Independent per-view hyperparameter grids via "name__<view index>"
+# ---------------------------------------------------------------------------
+
+
+def test_per_view_grid_searches_cartesian_product(
+    two_views: list[np.ndarray],
+) -> None:
+    """'c__0'/'c__1' are searched independently, not as one paired vector."""
+    gs = GridSearchCV(
+        rCCA(latent_dimensions=1),
+        param_grid={"c__0": [0.0, 0.5], "c__1": [0.1, 0.9]},
+        cv=2,
+    )
+    gs.fit(two_views)
+    assert len(gs.cv_results_["params"]) == 4  # full 2x2 Cartesian product
+    assert set(gs.best_params_) == {"c__0", "c__1"}
+    assert gs.best_params_["c__0"] in [0.0, 0.5]
+    assert gs.best_params_["c__1"] in [0.1, 0.9]
+    assert gs.best_estimator_.c == [gs.best_params_["c__0"], gs.best_params_["c__1"]]
+
+
+def test_per_view_grid_partial_override_keeps_other_view_default(
+    two_views: list[np.ndarray],
+) -> None:
+    """Only the indices present in the grid are overridden; others keep their value."""
+    gs = GridSearchCV(
+        rCCA(latent_dimensions=1, c=0.3),
+        param_grid={"c__0": [0.0, 0.9]},
+        cv=2,
+    )
+    gs.fit(two_views)
+    assert gs.best_estimator_.c[1] == 0.3
+    assert gs.best_estimator_.c[0] in [0.0, 0.9]
+
+
+def test_per_view_grid_out_of_range_index_raises(two_views: list[np.ndarray]) -> None:
+    """An index beyond the number of views raises a clear ValueError."""
+    gs = GridSearchCV(rCCA(latent_dimensions=1), param_grid={"c__5": [0.1]}, cv=2)
+    with pytest.raises(ValueError, match="views"):
+        gs.fit(two_views)
+
+
+def test_per_view_grid_with_randomized_search(two_views: list[np.ndarray]) -> None:
+    """Per-view keys work with RandomizedSearchCV too (same wrapper)."""
+    rs = RandomizedSearchCV(
+        rCCA(latent_dimensions=1),
+        param_distributions={"c__0": [0.0, 0.5], "c__1": [0.1, 0.9]},
+        n_iter=3,
+        cv=2,
+        random_state=0,
+    )
+    rs.fit(two_views)
+    assert rs.best_estimator_.c == [rs.best_params_["c__0"], rs.best_params_["c__1"]]

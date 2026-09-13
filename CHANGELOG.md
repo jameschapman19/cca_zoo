@@ -9,6 +9,28 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `BaseModel.inverse_transform`: reconstructs each view from *that same view's own*
+  latent score (typically `transform`'s output), via a per-view loading matrix fit by
+  least squares at training time -- an approximate round trip with `transform`, mirroring
+  `sklearn.decomposition.PCA.inverse_transform` (see #195). Distinct from `predict`, which
+  combines the *observed* views into one shared consensus score to reconstruct views you
+  don't have; `inverse_transform` never mixes information across views. Available on
+  every `BaseModel` subclass with no per-model changes needed.
+- `BaseModel.predict`: reconstructs every view from whichever views are observed (pass
+  `None` for a view to predict, including one you supplied, as a diagnostic). The shared
+  latent score is estimated from the observed views' own projections, then each view is
+  reconstructed via a per-view loading matrix fit by least squares at training time —
+  deliberately not the simpler `scores @ weights.T`, which is only a correct inverse of
+  `transform` for CCA when the data happens to be pre-whitened (see #182). Available on
+  every `BaseModel` subclass with no per-model changes needed.
+- `cca_zoo.model_selection.permutation_test_significance`: permutation test for both
+  canonical-correlation significance (per latent dimension) and feature-loading
+  significance (per feature, per dimension), following the resampling-based approach used
+  in the neuroimaging CCA/PLS literature (Xia et al. 2018; McIntosh & Lobaugh 2004, see
+  #130). Since a permuted refit can recover canonical variates in an arbitrary rotated or
+  reflected order relative to the true fit, each permutation's loadings are realigned via
+  the new `cca_zoo.model_selection.procrustes_rotation` (the SVD solution to the
+  orthogonal Procrustes problem) before being compared feature-by-feature.
 - `GAMCCA`: nonlinear multiview CCA using a generalized additive model (one B-spline term
   per input feature) as the per-view encoder, trained on the same Eckart-Young objective
   as `TreeCCA` and the `*_EY` models. Fit by P-IRLS — the same iteration structure GAM
@@ -48,8 +70,47 @@ project adheres to [Semantic Versioning](https://semver.org/).
   stays exactly linear in the raw (centred) view throughout fitting, `model.weights`
   returns real sparse canonical weight vectors, unlike `TreeCCA`/`GAMCCA`/
   `GaussianProcessCCA`, where it raises `NotImplementedError`.
+- `cca_zoo.model_selection.RandomizedSearchCV`: a multiview adapter around
+  `sklearn.model_selection.RandomizedSearchCV`, alongside the existing `GridSearchCV`, for
+  sampling continuous hyperparameters (e.g. `c` via `scipy.stats.loguniform`) instead of only
+  searching a fixed grid.
+- `cca_zoo.model_selection.MultiviewWrapper`: the adapter `GridSearchCV`/`RandomizedSearchCV`
+  use internally to make a multiview estimator's `fit(views)` look like sklearn's
+  `fit(X)` (views horizontally stacked into one array, split back before delegating) is now
+  public, so it composes directly with any sklearn model-selection tool -
+  `HalvingGridSearchCV`, `cross_val_score`, `cross_validate`, `learning_curve`, `Pipeline`
+  - not just the two search classes cca_zoo ships.
+- Independent per-view parameter grids: `MultiviewWrapper.set_params` now understands a
+  `name__<view index>` suffix (e.g. `c__0`, `c__1`), so `param_grid={"c__0": [...], "c__1":
+  [...]}` searches the two views' values independently - sklearn's `ParameterGrid` takes
+  their Cartesian product automatically. Previously the only way to sweep a per-view
+  parameter was `param_grid={"c": [[0.01, 0.1], [0.5, 0.9]]}`, a fixed list of whole
+  per-view vectors that conflates "one candidate" with "one vector per view" and requires
+  the user to hand-enumerate any Cartesian product themselves; this is now the documented
+  way to tune a per-view hyperparameter in a search. An index not mentioned in the grid
+  keeps the estimator's current value for that view rather than requiring every view to be
+  listed.
+
+### Fixed
+
+- `GridSearchCV.cv_results_`'s `param_*` keys carried an internal `estimator__` prefix
+  (`param_estimator__c` rather than `param_c`), inconsistent with the unprefixed keys in
+  `best_params_` and with the docs' own `cv_results_` examples, which would `KeyError`.
+  `cv_results_` (both its `param_*` columns and its `params` list of dicts) is now stripped of
+  the prefix the same way `best_params_` already was.
+- `GridSearchCV` previously copied over only four hand-picked attributes from the underlying
+  `sklearn.model_selection.GridSearchCV` search (`cv_results_`, `best_score_`, `best_params_`,
+  `best_estimator_`), silently dropping the rest of sklearn's attribute surface
+  (`best_index_`, `scorer_`, `n_splits_`, `refit_time_`, `multimetric_`, ...). Every fitted
+  (trailing-underscore) attribute is now forwarded generically, so newer sklearn attributes are
+  picked up automatically instead of needing this module updated by hand.
 
 ### Changed
+
+- `GridSearchCV` and `RandomizedSearchCV` are now themselves `sklearn.base.BaseEstimator`
+  subclasses (previously plain classes), so `get_params`/`set_params`/`clone`/`repr` work on the
+  search objects too - e.g. `sklearn.base.clone(gs)` before fitting, or nesting one inside
+  another meta-estimator.
 
 - Renamed every underscored algorithm-suffix class to drop the underscore, matching sklearn's own
   class-naming convention (`RidgeCV`, `SGDRegressor`, never `Ridge_CV`), with no exceptions:

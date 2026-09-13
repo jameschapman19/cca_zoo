@@ -12,6 +12,8 @@ Linear CCA methods. All classes are `sklearn.base.BaseEstimator` subclasses.
       members:
         - fit
         - transform
+        - inverse_transform
+        - predict
         - fit_transform
         - score
         - pairwise_correlations

@@ -76,6 +76,34 @@ After fitting, `model.weights` is a list of weight matrices (one per view):
 W1, W2 = model.weights  # each shape (n_features_i, latent_dimensions)
 ```
 
+### Predicting a missing view
+
+`predict` reconstructs every view from whichever ones you pass — pass `None` for a view
+you want reconstructed, including one you don't have:
+
+```python
+X2_pred = model.predict([X1_test, None])[1]  # predict view 2 from view 1 alone
+```
+
+Unlike a plain `transform`-then-project-back approach, this is a proper least-squares
+reconstruction fitted at training time, so it stays accurate even on unwhitened,
+differently-scaled views (see `BaseModel.predict` in the [API reference](api/linear.md)
+for the full explanation of why CCA needs this and PLS doesn't).
+
+### Reconstructing a view from its own score
+
+`inverse_transform` is `predict`'s narrower sibling: it undoes `transform` for a view
+using *that view's own* score only, with no cross-view imputation —
+
+```python
+z1, z2 = model.transform([X1_test, X2_test])
+X1_approx, X2_approx = model.inverse_transform([z1, z2])
+```
+
+Use `inverse_transform` when you already have every view's scores (e.g. after denoising
+or perturbing them) and just want to map back to feature space; use `predict` when you
+have some views but not others.
+
 ---
 
 ## Quick start
@@ -151,6 +179,10 @@ gs = GridSearchCV(KCCA(latent_dimensions=2, kernel="rbf"), param_grid, cv=5)
 gs.fit(train_views)
 print("Best params:", gs.best_params_)
 ```
+
+`RandomizedSearchCV` and the underlying `MultiviewWrapper` adapter are also available for
+sampling distributions or plugging cca_zoo models into other sklearn model-selection tools
+directly — see [Model Selection](user-guide/model-selection.md).
 
 ---
 
