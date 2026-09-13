@@ -1467,10 +1467,12 @@
 
 
 <h1 id="tree-methods">Tree Methods<a class="headerlink" href="#tree-methods" title="Permanent link">&para;</a></h1>
-<p>The <code>cca_zoo.tree</code> module provides <code>TreeCCA</code>, a nonlinear multiview CCA method that uses
-gradient-boosted trees as the per-view encoders, via either
-<a href="https://xgboost.readthedocs.io/">XGBoost</a> (default) or
-<a href="https://lightgbm.readthedocs.io/">LightGBM</a>. Install it with:</p>
+<p>The <code>cca_zoo.tree</code> module provides <code>XGBoostCCA</code>, <code>LightGBMCCA</code>, and <code>CatBoostCCA</code>, nonlinear
+multiview CCA methods that use gradient-boosted trees as the per-view encoders, via
+<a href="https://xgboost.readthedocs.io/">XGBoost</a>, <a href="https://lightgbm.readthedocs.io/">LightGBM</a>, or
+<a href="https://catboost.ai/">CatBoost</a> respectively. All three share the same <code>TreeCCA</code> base class and
+fitting recipe, differing only in which gradient-boosting library trains the per-view encoders.
+Install the module with:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>cca-zoo<span class="o">[</span>tree<span class="o">]</span>
 </span></code></pre></div>
 <hr />
@@ -1502,29 +1504,44 @@ importance, and where a tree-based model is a natural fit for the data (e.g. tab
 mixed scales, non-smooth or threshold-like relationships).</p>
 <hr />
 <h2 id="basic-usage">Basic usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.tree</span><span class="w"> </span><span class="kn">import</span> <span class="n">TreeCCA</span>
+<p>Pick the concrete class for the gradient-boosting library you want to use; <code>TreeCCA</code> itself is an
+abstract base class and cannot be instantiated directly:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.tree</span><span class="w"> </span><span class="kn">import</span> <span class="n">XGBoostCCA</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">TreeCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_estimators</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">max_depth</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">XGBoostCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_estimators</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">max_depth</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">corrs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># TreeCCA also supports more than two views</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">model3</span> <span class="o">=</span> <span class="n">TreeCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_estimators</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># XGBoostCCA also supports more than two views</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">model3</span> <span class="o">=</span> <span class="n">XGBoostCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_estimators</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
 </span></code></pre></div>
-<p>Use <code>backend="lightgbm"</code> to train with LightGBM instead of XGBoost (requires
-<code>pip install lightgbm</code>, included in the <code>tree</code> extra):</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">model</span> <span class="o">=</span> <span class="n">TreeCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;lightgbm&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+<p>Use <code>LightGBMCCA</code> or <code>CatBoostCCA</code> to train with LightGBM or CatBoost instead (each requires its
+own optional package — <code>pip install lightgbm</code> / <code>pip install catboost</code> — both included in the
+<code>tree</code> extra):</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.tree</span><span class="w"> </span><span class="kn">import</span> <span class="n">CatBoostCCA</span><span class="p">,</span> <span class="n">LightGBMCCA</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">LightGBMCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">CatBoostCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
+<p><code>CatBoostCCA</code> has no in-place "continue this booster" call the way XGBoost/LightGBM do, so it
+reconstructs and re-continues (via CatBoost's own <code>init_model=</code>) every component's model on each
+boosting round — noticeably slower per round than <code>XGBoostCCA</code>/<code>LightGBMCCA</code> as a result. Reach
+for it when CatBoost's ordered boosting and symmetric trees are themselves the point, not as a
+faster default.</p>
 <h2 id="feature-importance">Feature importance<a class="headerlink" href="#feature-importance" title="Permanent link">&para;</a></h2>
-<p><code>TreeCCA</code> has no linear weight matrices, so <code>model.weights</code> raises <code>NotImplementedError</code>. Use the
-fitted <code>boosters_</code> attribute instead — a <code>list[list[Booster]]</code> indexed <code>[view][component]</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">model</span> <span class="o">=</span> <span class="n">TreeCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+<p>None of the three classes has linear weight matrices, so <code>model.weights</code> raises
+<code>NotImplementedError</code>. Use the fitted <code>boosters_</code> attribute instead — a <code>list[list[Booster]]</code>
+indexed <code>[view][component]</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">model</span> <span class="o">=</span> <span class="n">XGBoostCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Split-gain feature importance for view 1, canonical component 0 (xgboost backend)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Split-gain feature importance for view 1, canonical component 0</span>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">importance</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">boosters_</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_score</span><span class="p">(</span><span class="n">importance_type</span><span class="o">=</span><span class="s2">&quot;gain&quot;</span><span class="p">)</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Equivalent for backend=&quot;lightgbm&quot;</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Equivalent for LightGBMCCA</span>
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># importance = model.boosters_[0][0].feature_importance(importance_type=&quot;gain&quot;)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># Equivalent for CatBoostCCA</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="c1"># importance = model.boosters_[0][0].get_feature_importance()</span>
 </span></code></pre></div>
 <hr />
 <h2 id="key-parameters">Key parameters<a class="headerlink" href="#key-parameters" title="Permanent link">&para;</a></h2>
@@ -1536,10 +1553,6 @@ fitted <code>boosters_</code> attribute instead — a <code>list[list[Booster]]<
 </tr>
 </thead>
 <tbody>
-<tr>
-<td><code>backend</code></td>
-<td><code>"xgboost"</code> (default) or <code>"lightgbm"</code>.</td>
-</tr>
 <tr>
 <td><code>n_estimators</code></td>
 <td>Boosting rounds (trees added per booster). Higher values fit more complex relationships but risk overfitting and cost more time.</td>
@@ -1571,11 +1584,14 @@ fitted <code>boosters_</code> attribute instead — a <code>list[list[Booster]]<
 <hr />
 <h2 id="practical-notes">Practical notes<a class="headerlink" href="#practical-notes" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>TreeCCA</code> supports 2 or more views.</li>
+<li><code>XGBoostCCA</code>, <code>LightGBMCCA</code>, and <code>CatBoostCCA</code> all support 2 or more views.</li>
 <li><code>latent_dimensions</code> must not exceed the number of features in any view (the random-orthogonal
   initialisation draws that many orthogonal directions in feature space).</li>
-<li>Unlike <code>KCCA</code>, <code>TreeCCA</code> does not store the training data for inference — new data is passed
-  directly through the fitted boosters, so <code>transform</code> on held-out data is inexpensive.</li>
+<li>Unlike <code>KCCA</code>, none of the three classes stores the training data for inference — new data is
+  passed directly through the fitted boosters, so <code>transform</code> on held-out data is inexpensive.</li>
+<li><code>min_child_weight</code> is interpreted per backend: XGBoost's minimum sum of instance weight in a
+  child, LightGBM's/CatBoost's minimum number of samples in a leaf (<code>min_child_samples</code> /
+  <code>min_data_in_leaf</code>).</li>
 <li>Reference: Chapman, J. (2026). <em>TreeCCA: Canonical Correlation Analysis via
   Gradient-Boosted Trees.</em> arXiv:2607.27027.</li>
 </ul>
