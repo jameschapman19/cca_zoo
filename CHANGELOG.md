@@ -118,6 +118,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- `TreeCCA(backend="xgboost"/"lightgbm")` is replaced by two concrete classes,
+  `XGBoostCCA` and `LightGBMCCA`, each fixing one gradient-boosting backend. `TreeCCA`
+  itself becomes an abstract base class holding the shared Eckart-Young fitting/transform
+  recipe and can no longer be instantiated directly; existing code must switch to
+  `XGBoostCCA(...)` or `LightGBMCCA(...)`, dropping the `backend=` argument. This is a
+  breaking change with no deprecation shim, since `TreeCCA` shipped in `3.1.0` with a
+  string `backend=` switch rather than a class per backend, unlike every other
+  multi-variant model in the package (e.g. `SCCA` + `PMD`/`ADMM`/`IPLS`/`Span`).
 - `GridSearchCV` and `RandomizedSearchCV` are now themselves `sklearn.base.BaseEstimator`
   subclasses (previously plain classes), so `get_params`/`set_params`/`clone`/`repr` work on the
   search objects too - e.g. `sklearn.base.clone(gs)` before fitting, or nesting one inside

@@ -1,9 +1,10 @@
 # Tree Methods
 
-The `cca_zoo.tree` module provides `TreeCCA`, a nonlinear multiview CCA method that uses
-gradient-boosted trees as the per-view encoders, via either
-[XGBoost](https://xgboost.readthedocs.io/) (default) or
-[LightGBM](https://lightgbm.readthedocs.io/). Install it with:
+The `cca_zoo.tree` module provides `XGBoostCCA` and `LightGBMCCA`, nonlinear multiview CCA
+methods that use gradient-boosted trees as the per-view encoders, via
+[XGBoost](https://xgboost.readthedocs.io/) or [LightGBM](https://lightgbm.readthedocs.io/)
+respectively. Both share the same `TreeCCA` base class and fitting recipe, differing only in
+which gradient-boosting library trains the per-view encoders. Install the module with:
 
 ```bash
 pip install cca-zoo[tree]
@@ -48,36 +49,41 @@ mixed scales, non-smooth or threshold-like relationships).
 
 ## Basic usage
 
-```python
-from cca_zoo.tree import TreeCCA
+`XGBoostCCA` and `LightGBMCCA` are separate classes rather than one class with a `backend=`
+switch, so `TreeCCA` itself cannot be instantiated directly — pick the concrete class you want:
 
-model = TreeCCA(latent_dimensions=2, n_estimators=200, max_depth=5).fit([X1, X2])
+```python
+from cca_zoo.tree import XGBoostCCA
+
+model = XGBoostCCA(latent_dimensions=2, n_estimators=200, max_depth=5).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
 corrs = model.score([X1, X2])
 
-# TreeCCA also supports more than two views
-model3 = TreeCCA(latent_dimensions=2, n_estimators=200).fit([X1, X2, X3])
+# XGBoostCCA also supports more than two views
+model3 = XGBoostCCA(latent_dimensions=2, n_estimators=200).fit([X1, X2, X3])
 ```
 
-Use `backend="lightgbm"` to train with LightGBM instead of XGBoost (requires
-`pip install lightgbm`, included in the `tree` extra):
+Use `LightGBMCCA` to train with LightGBM instead (requires `pip install lightgbm`, included in
+the `tree` extra):
 
 ```python
-model = TreeCCA(latent_dimensions=2, backend="lightgbm").fit([X1, X2])
+from cca_zoo.tree import LightGBMCCA
+
+model = LightGBMCCA(latent_dimensions=2).fit([X1, X2])
 ```
 
 ## Feature importance
 
-`TreeCCA` has no linear weight matrices, so `model.weights` raises `NotImplementedError`. Use the
-fitted `boosters_` attribute instead — a `list[list[Booster]]` indexed `[view][component]`:
+Neither class has linear weight matrices, so `model.weights` raises `NotImplementedError`. Use
+the fitted `boosters_` attribute instead — a `list[list[Booster]]` indexed `[view][component]`:
 
 ```python
-model = TreeCCA(latent_dimensions=2).fit([X1, X2])
+model = XGBoostCCA(latent_dimensions=2).fit([X1, X2])
 
-# Split-gain feature importance for view 1, canonical component 0 (xgboost backend)
+# Split-gain feature importance for view 1, canonical component 0
 importance = model.boosters_[0][0].get_score(importance_type="gain")
 
-# Equivalent for backend="lightgbm"
+# Equivalent for LightGBMCCA
 # importance = model.boosters_[0][0].feature_importance(importance_type="gain")
 ```
 
@@ -87,7 +93,6 @@ importance = model.boosters_[0][0].get_score(importance_type="gain")
 
 | Parameter | Description |
 |---|---|
-| `backend` | `"xgboost"` (default) or `"lightgbm"`. |
 | `n_estimators` | Boosting rounds (trees added per booster). Higher values fit more complex relationships but risk overfitting and cost more time. |
 | `max_depth` | Maximum tree depth. |
 | `learning_rate` | Boosting shrinkage. |
@@ -102,10 +107,10 @@ Hyperparameters are best selected by cross-validation with `GridSearchCV` from
 
 ## Practical notes
 
-- `TreeCCA` supports 2 or more views.
+- `XGBoostCCA` and `LightGBMCCA` both support 2 or more views.
 - `latent_dimensions` must not exceed the number of features in any view (the random-orthogonal
   initialisation draws that many orthogonal directions in feature space).
-- Unlike `KCCA`, `TreeCCA` does not store the training data for inference — new data is passed
+- Unlike `KCCA`, neither class stores the training data for inference — new data is passed
   directly through the fitted boosters, so `transform` on held-out data is inexpensive.
 - Reference: Chapman, J. (2026). *TreeCCA: Canonical Correlation Analysis via
   Gradient-Boosted Trees.* arXiv:2607.27027.
