@@ -70,6 +70,12 @@ project adheres to [Semantic Versioning](https://semver.org/).
   stays exactly linear in the raw (centred) view throughout fitting, `model.weights`
   returns real sparse canonical weight vectors, unlike `TreeCCA`/`GAMCCA`/
   `GaussianProcessCCA`, where it raises `NotImplementedError`.
+- `StochasticCCAEY`: mini-batch momentum SGD on the same Eckart-Young loss as `CCAEY`, for
+  datasets too large for a full-batch gradient evaluation. Fit the way
+  `sklearn.linear_model.SGDRegressor` fits a linear model: each epoch, the data is shuffled
+  once and split into `batch_size` chunks (`sklearn.utils.gen_batches`), taking one momentum
+  gradient step per chunk. A self-contained numpy implementation, with no new dependency
+  required.
 - `cca_zoo.model_selection.RandomizedSearchCV`: a multiview adapter around
   `sklearn.model_selection.RandomizedSearchCV`, alongside the existing `GridSearchCV`, for
   sampling continuous hyperparameters (e.g. `c` via `scipy.stats.loguniform`) instead of only
@@ -107,6 +113,15 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- `CCAEY` now natively supports 2 or more views (previously only `MCCAEY` did, as a thin
+  subclass); `MCCAEY` and `MCCA_EY` are now deprecated aliases for `CCAEY` and emit a
+  `FutureWarning` on instantiation, since `CCAEY` provides their functionality directly.
+- `CCAEY` and `PLSEY` are now fit by full-batch L-BFGS-B (`scipy.optimize.minimize`) instead
+  of a hand-rolled mini-batch momentum gradient-descent loop, since the default (and only
+  previously well-tested) use of these classes was already full-batch and deterministic; the
+  `learning_rate`, `momentum`, and `batch_size` parameters are removed from both. For the
+  large-scale, mini-batch use case those parameters used to serve, use the new
+  `StochasticCCAEY`.
 - `GridSearchCV` and `RandomizedSearchCV` are now themselves `sklearn.base.BaseEstimator`
   subclasses (previously plain classes), so `get_params`/`set_params`/`clone`/`repr` work on the
   search objects too - e.g. `sklearn.base.clone(gs)` before fitting, or nesting one inside

@@ -1,4 +1,4 @@
-"""PLSEY — stochastic Eckart-Young PLS (c=1 special case of CCAEY)."""
+"""PLSEY — full-batch Eckart-Young PLS (c=1 special case of CCAEY)."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from cca_zoo.linear.gradient._cca_ey import CCAEY
 
 
 class PLSEY(CCAEY):
-    r"""Stochastic Eckart-Young PLS for large-scale data.
+    r"""Eckart-Young PLS for 2 or more views.
 
     This is equivalent to :class:`~cca_zoo.linear.gradient.CCAEY` with
     ``c=1``: the reward excludes the $i = j$ terms that ``CCAEY``'s
@@ -20,12 +20,15 @@ class PLSEY(CCAEY):
     drives the weights towards (approximate) orthonormality at the optimum
     on its own — no manifold projection step, and no upfront whitening.
 
-    Suitable for high-dimensional or streaming data where forming the full
-    (p x p) cross-covariance matrix is too expensive.
+    Suitable for high-dimensional data where forming the full ($p \times p$)
+    cross-covariance matrix is too expensive. Fit by full-batch L-BFGS-B
+    using the loss's exact analytic gradient; for mini-batch training on
+    datasets too large for a full-batch gradient evaluation, see
+    :class:`~cca_zoo.linear.gradient.StochasticCCAEY` (``c=1``).
 
     Initial weights have exactly orthonormal columns (unit-norm, mutually
-    orthogonal) before any gradient step, matching the shape of this loss's
-    own penalty on $B$ — unlike :class:`~cca_zoo.linear.gradient.CCAEY`'s
+    orthogonal) before any optimisation step, matching the shape of this
+    loss's own penalty on $B$ — unlike :class:`~cca_zoo.linear.gradient.CCAEY`'s
     own data-informed default, which instead orthonormalises the initial
     *projections* (see :func:`cca_zoo._utils._ey.random_orthonormal_weights`
     vs. :func:`cca_zoo._utils._ey.cheap_orthonormal_projection_weights`).
@@ -38,11 +41,9 @@ class PLSEY(CCAEY):
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
-        learning_rate: Gradient step size. Default is 1e-2.
-        max_iter: Number of gradient steps. Default is 1000.
-        batch_size: Mini-batch size. ``None`` uses the full dataset.
-        tol: Convergence tolerance on the objective change. Default is 1e-6.
-        momentum: Momentum coefficient in ``[0, 1)``. Default is 0.9.
+        max_iter: Maximum number of L-BFGS-B iterations. Default is 1000.
+        tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
+            is 1e-6.
         random_state: Seed for reproducibility.
 
     Example:
@@ -50,7 +51,7 @@ class PLSEY(CCAEY):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 500))
         >>> X2 = rng.standard_normal((200, 400))
-        >>> model = PLSEY(latent_dimensions=4, batch_size=64, random_state=0)
+        >>> model = PLSEY(latent_dimensions=4, random_state=0)
         >>> model = model.fit([X1, X2])
     """
 
@@ -58,30 +59,24 @@ class PLSEY(CCAEY):
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        learning_rate: float = 1e-2,
         max_iter: int = 1000,
-        batch_size: int | None = None,
         tol: float = 1e-6,
-        momentum: float = 0.9,
         random_state: int | None = None,
     ) -> None:
         super().__init__(
             latent_dimensions=latent_dimensions,
             center=center,
             c=1.0,
-            learning_rate=learning_rate,
             max_iter=max_iter,
-            batch_size=batch_size,
             tol=tol,
-            momentum=momentum,
             random_state=random_state,
         )
 
     def fit(self, views: list[ArrayLike], y: None = None) -> PLSEY:
-        """Fit PLSEY by mini-batch momentum gradient descent.
+        """Fit PLSEY by full-batch L-BFGS-B on the EY loss.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: List of 2 or more arrays, each (n_samples, n_features_i).
             y: Ignored.
 
         Returns:
