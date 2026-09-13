@@ -1,8 +1,9 @@
 r"""Shared machinery for the Eckart-Young (EY) unconstrained CCA objective.
 
-This is the loss used by :class:`~cca_zoo.linear.gradient.CCAEY`,
-:class:`~cca_zoo.linear.gradient.MCCAEY`, :class:`~cca_zoo.deep.DCCAEY`, and
-:class:`~cca_zoo.tree.TreeCCA`: an unconstrained (no manifold projection
+This is the loss used by :class:`~cca_zoo.linear.gradient.CCAEY` (2 or more
+views), :class:`~cca_zoo.linear.gradient.StochasticCCAEY`,
+:class:`~cca_zoo.deep.DCCAEY`, and :class:`~cca_zoo.tree.TreeCCA`: an
+unconstrained (no manifold projection
 required) stand-in for canonical correlation analysis that is a stationary
 point exactly at the canonical directions.
 

@@ -2,8 +2,8 @@
 
 This module provides classical linear multiview CCA algorithms ranging from
 the standard two-view CCA and PLS to multiset and generalised variants, as
-well as sparse/regularised iterative methods and gradient-descent methods
-suited to high-dimensional or streaming data.
+well as sparse/regularised iterative methods and EY-loss methods suited to
+high-dimensional data.
 """
 
 from ._cca import CCA
@@ -31,8 +31,9 @@ from ._pls import PLS
 from ._rcca import rCCA
 from ._tcca import TCCA
 from .gradient import CCA_EY as CCA_EY
-from .gradient import CCAEY, MCCAEY, PLSEY
+from .gradient import CCAEY, PLSEY, HuberCCA, StochasticCCAEY
 from .gradient import MCCA_EY as MCCA_EY
+from .gradient import MCCAEY as MCCAEY
 from .gradient import PLS_EY as PLS_EY
 
 __all__ = [
@@ -48,10 +49,11 @@ __all__ = [
     "GRCCA",
     # Reduced-rank regression
     "CCAR3",
-    # Gradient descent (high-dimensional / streaming)
+    # EY-loss (high-dimensional data)
     "PLSEY",
     "CCAEY",
-    "MCCAEY",
+    "StochasticCCAEY",
+    "HuberCCA",
     # Sparse / regularised ALS
     "SCCAPMD",
     "SCCAADMM",
@@ -62,8 +64,9 @@ __all__ = [
     "SAR",
     "PLSALS",
 ]
-# Deprecated underscored aliases (CCA_EY, MCCA_EY, PLS_EY, SCCA_PMD,
-# SCCA_ADMM, SCCA_IPLS, SCCA_Span, PLS_ALS) stay importable for backward
+# Deprecated aliases (CCA_EY, MCCA_EY, PLS_EY, SCCA_PMD, SCCA_ADMM,
+# SCCA_IPLS, SCCA_Span, PLS_ALS -- underscored renames -- and MCCAEY, whose
+# functionality CCAEY now provides directly) stay importable for backward
 # compatibility via the `from .gradient import ...` / `from ._iterative
 # import ...` statements above, but are intentionally left out of __all__
 # (and therefore out of the API docs) since they are being removed in a

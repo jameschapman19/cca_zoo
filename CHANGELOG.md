@@ -82,6 +82,12 @@ project adheres to [Semantic Versioning](https://semver.org/).
   stays exactly linear in the raw (centred) view throughout fitting, `model.weights`
   returns real sparse canonical weight vectors, unlike `TreeCCA`/`GAMCCA`/
   `GaussianProcessCCA`, where it raises `NotImplementedError`.
+- `StochasticCCAEY`: mini-batch momentum SGD on the same Eckart-Young loss as `CCAEY`, for
+  datasets too large for a full-batch gradient evaluation. Fit the way
+  `sklearn.linear_model.SGDRegressor` fits a linear model: each epoch, the data is shuffled
+  once and split into `batch_size` chunks (`sklearn.utils.gen_batches`), taking one momentum
+  gradient step per chunk. A self-contained numpy implementation, with no new dependency
+  required.
 - `cca_zoo.model_selection.RandomizedSearchCV`: a multiview adapter around
   `sklearn.model_selection.RandomizedSearchCV`, alongside the existing `GridSearchCV`, for
   sampling continuous hyperparameters (e.g. `c` via `scipy.stats.loguniform`) instead of only
@@ -102,6 +108,19 @@ project adheres to [Semantic Versioning](https://semver.org/).
   way to tune a per-view hyperparameter in a search. An index not mentioned in the grid
   keeps the estimator's current value for that view rather than requiring every view to be
   listed.
+- `cca_zoo.linear.HuberCCA`: a bounded-influence variant of `CCAEY` for data with
+  high-leverage outliers. `CCAEY`'s cross- and auto-covariance statistics weight every
+  sample equally, so a handful of high-leverage points (whose contribution to a quadratic
+  statistic grows with the *square* of their magnitude) can dominate the fit; `HuberCCA`
+  reweights each mini-batch sample by a Huber-style factor of its own leverage before
+  forming those statistics -- the same bounded-influence mechanism
+  `sklearn.linear_model.HuberRegressor` uses against outliers, applied to the EY loss's own
+  statistics rather than to a regression residual. The leverage cutoff (`delta`) is a
+  multiple of the current batch's own median leverage rather than an absolute threshold, so
+  it self-calibrates across `batch_size`/`latent_dimensions` instead of needing per-config
+  retuning. Confirmed to substantially outperform `CCAEY` on held-out canonical correlation
+  when training data is contaminated by a small fraction of high-leverage points (see
+  `tests/test_huber_cca.py`'s outperformance test).
 
 ### Fixed
 
@@ -127,6 +146,15 @@ project adheres to [Semantic Versioning](https://semver.org/).
   breaking change with no deprecation shim, since `TreeCCA` shipped in `3.1.0` with a
   string `backend=` switch rather than a class per backend, unlike every other
   multi-variant model in the package (e.g. `SCCA` + `PMD`/`ADMM`/`IPLS`/`Span`).
+- `CCAEY` now natively supports 2 or more views (previously only `MCCAEY` did, as a thin
+  subclass); `MCCAEY` and `MCCA_EY` are now deprecated aliases for `CCAEY` and emit a
+  `FutureWarning` on instantiation, since `CCAEY` provides their functionality directly.
+- `CCAEY` and `PLSEY` are now fit by full-batch L-BFGS-B (`scipy.optimize.minimize`) instead
+  of a hand-rolled mini-batch momentum gradient-descent loop, since the default (and only
+  previously well-tested) use of these classes was already full-batch and deterministic; the
+  `learning_rate`, `momentum`, and `batch_size` parameters are removed from both. For the
+  large-scale, mini-batch use case those parameters used to serve, use the new
+  `StochasticCCAEY`.
 - `GridSearchCV` and `RandomizedSearchCV` are now themselves `sklearn.base.BaseEstimator`
   subclasses (previously plain classes), so `get_params`/`set_params`/`clone`/`repr` work on the
   search objects too - e.g. `sklearn.base.clone(gs)` before fitting, or nesting one inside
