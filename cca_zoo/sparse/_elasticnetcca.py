@@ -38,13 +38,9 @@ class ElasticNetCCA(BaseModel):
     solved against $\mathcal{L}_{EY}$'s own (quartic, not quadratic)
     restriction — see that function's docstring for the derivation.
 
-    Because every update is the *exact* per-coordinate minimiser of the
-    *exact* (not linearised or diagonal-Hessian-approximated) EY loss, this
-    needs no post-hoc whitening/decorrelation step of the kind
-    :class:`~cca_zoo.gam.GAMCCA` and :class:`~cca_zoo.gp.GaussianProcessCCA`
-    used to require: each embedding $Z_i$ is exactly linear in $X_i$
-    throughout fitting, so it inherits :class:`~cca_zoo._base.BaseModel`'s
-    plain ``transform``/``weights`` machinery unmodified, and ``weights``
+    Each embedding $Z_i$ is exactly linear in $X_i$ throughout fitting, so
+    it inherits :class:`~cca_zoo._base.BaseModel`'s plain
+    ``transform``/``weights`` machinery unmodified, and ``weights``
     genuinely are the sparse canonical weight vectors — not a placeholder
     that raises ``NotImplementedError`` the way it does for
     :class:`~cca_zoo.tree.TreeCCA`.

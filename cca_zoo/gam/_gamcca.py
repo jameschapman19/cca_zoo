@@ -38,14 +38,11 @@ def _pirls_component_step(
     $\mathcal{L}_{EY}$'s exact (not diagonal-approximated) restriction to
     that one component's coefficient vector $b$ to a local optimum — every
     other component and view held fixed. This is ``mgcv``'s own P-IRLS
-    structure (a penalised weighted-least-squares-shaped solve per
-    (view, component) per round), delegated to
-    :func:`scipy.optimize.minimize`'s ``"trust-exact"`` solver rather than
-    hand-rolled: $\mathcal{L}_{EY}$ is not convex, so the Hessian below can
-    be indefinite away from the loss's own fixed point, and a real
-    trust-region Newton method already handles that (and the accompanying
-    step-acceptance/line-search logic) as a well-tested library primitive —
-    better than a hand-rolled eigenvalue-floor-and-backtrack scheme.
+    structure: a penalised weighted-least-squares-shaped solve per
+    (view, component) per round. $\mathcal{L}_{EY}$ is not convex, so the
+    Hessian below can be indefinite away from the loss's own fixed point;
+    :func:`scipy.optimize.minimize`'s ``"trust-exact"`` solver handles that
+    (and the accompanying step-acceptance logic) directly.
 
     Writing $Z_i = \text{bases}_i B_i$, the exact gradient and Hessian of
     the *penalised* EY loss with respect to $b = B_i[:, c]$ (bases$_i$
@@ -61,9 +58,7 @@ def _pirls_component_step(
 
     where $G_i = \text{bases}_i^\top\text{bases}_i$ and $V$ is the current
     mean auto-covariance (see :func:`~cca_zoo._utils._ey.ey_cross_covariance`).
-    The non-ridge part of $H$ is exactly rank $\le k+1$ (verified by finite
-    differences of the true, quartic-in-$b$ restricted loss: the local
-    quadratic model built from $g$ and $H$ matches it to third order).
+    The non-ridge part of $H$ has rank $\le k+1$.
 
     Args:
         bases: Fixed per-view (centred) design matrices.
@@ -126,8 +121,7 @@ class _GamEncoder:
     mean) is what makes $Z_i = \text{basis}_i B_i$ automatically zero-mean
     for *any* coefficients $B_i$, the same way centring the raw features
     already does for a plain linear encoder — no separate recentring step
-    is needed anywhere downstream, unlike the whitening/recentring
-    :class:`_GamEncoder` used to require.
+    is needed anywhere downstream.
 
     The coefficients $B_i$ (``coef_``) are fit by P-IRLS
     (:func:`_pirls_component_step`), not by this class — it only builds and
@@ -218,29 +212,11 @@ class GAMCCA(BaseModel):
     $d_i \times d_i$ linear solve, cycling through every component and view
     in turn (see :func:`_pirls_component_step` for the exact derivation).
 
-    This is a deliberate departure from an earlier version of GAMCCA (and
-    from :class:`~cca_zoo.gp.GaussianProcessCCA`'s Gauss-Newton recipe),
-    both of which reached their Newton step by working in the
-    $n$-dimensional embedding space $Z_i$ with a per-*sample* diagonal
-    approximation of $\mathcal{L}_{EY}$'s Hessian, which then needed a
-    post-hoc whitening/decorrelation retraction to compensate for the
-    curvature that diagonal approximation throws away (see
-    :func:`~cca_zoo._utils._ey.ey_diag_hessian`'s docstring). Taking the
-    Newton step directly in the encoder's own (much smaller) coefficient
-    space instead uses the *exact* Hessian there — no per-sample
-    approximation, so no compensating whitening is needed either.
     $\mathcal{L}_{EY}$ is not convex, so this Hessian is only guaranteed
-    positive semi-definite near the loss's own fixed point; each step is
-    still made well-posed (via eigenvalue flooring) and monotonically
-    improving (via backtracking line search on the true, un-linearised
-    objective) rather than trusted blindly.
-
-    The trade-off is that each view's smoothing strength (``alpha``) is now
-    a fixed hyperparameter rather than automatically re-selected each round
-    by :class:`~sklearn.linear_model.RidgeCV`'s leave-one-out
-    cross-validation — that automatic search was specific to a *global*
-    quadratic working-response problem across the whole embedding, which
-    P-IRLS-in-coefficient-space no longer forms.
+    positive semi-definite near the loss's own fixed point; ``"trust-exact"``
+    handles the indefinite case directly. Each view's smoothing strength
+    (``alpha``) is a fixed hyperparameter — there is no automatic
+    smoothing-parameter search.
 
     Because each latent component still decomposes exactly into one
     additive term per input feature, the fitted shape of any feature's
@@ -278,8 +254,8 @@ class GAMCCA(BaseModel):
             n_knots=...)``. Default is 5.
         alpha: Ridge (smoothing) penalty strength applied to every spline
             coefficient. Default is 0.1.
-        max_iter: Maximum number of full P-IRLS sweeps (one damped Newton
-            step per view and component each). Default is 100.
+        max_iter: Maximum number of full P-IRLS sweeps (one Newton solve per
+            view and component each). Default is 100.
         tol: Convergence tolerance on the penalised objective's change
             between consecutive sweeps. Default is 1e-6.
         random_state: Seed for the initial coefficients.

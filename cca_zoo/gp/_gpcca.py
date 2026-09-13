@@ -78,8 +78,7 @@ class _GpEncoder:
     :class:`~sklearn.decomposition.KernelPCA` uses) is what makes
     $Z_i = \text{basis}_i B_i$ automatically zero-mean for *any*
     coefficients $B_i$ — no separate recentring step is needed anywhere
-    downstream, unlike the whitening/recentring the old Newton-step fit
-    required.
+    downstream.
 
     The coefficients $B_i$ (``coef_``) are fit by L-BFGS-B on
     :func:`_lbfgsb_view_objective` — the RKHS-norm penalty
@@ -97,9 +96,8 @@ class _GpEncoder:
     ``optimizer=None``: only its ``predict(..., return_std=True)``'s second
     output is ever used. This computes the exact posterior standard
     deviation under the (uncentred) GP prior implied by the same kernel,
-    noise level, and inducing points as the mean fit — a standard, easily
-    verified sparse-GP variance approximation, computed independently of
-    the centred-basis construction used for the mean.
+    noise level, and inducing points as the mean fit, computed
+    independently of the centred-basis construction used for the mean.
     """
 
     def __init__(
@@ -193,40 +191,20 @@ class GaussianProcessCCA(BaseModel):
     coefficient matrix $B_i$ is optimised at a time (every other view held
     fixed) via :func:`_lbfgsb_view_objective`, cycling through every view in
     turn until the (exact, un-linearised) penalised objective stops moving.
-    Unlike :class:`~cca_zoo.gam.GAMCCA`'s P-IRLS (a damped Newton step using
-    the *exact* Hessian of a single component's coefficients), L-BFGS-B
-    needs no explicit Hessian at all — just gradients — and optimises every
-    component of a view jointly rather than one at a time, which is the
-    natural choice here since the RKHS penalty genuinely couples a view's
-    components together through $K_{mm}$ (unlike a plain ridge penalty).
+    L-BFGS-B needs no explicit Hessian — just gradients — and optimises
+    every component of a view jointly, which is the natural choice here
+    since the RKHS penalty couples a view's components together through
+    $K_{mm}$.
 
-    Unlike :class:`~cca_zoo.gam.GAMCCA`'s per-feature additive splines, a
-    joint kernel is not restricted to a sum of univariate terms: it can
-    represent a genuine *interaction* between two features of the same view
-    directly, the way a decision tree's multivariate splits can but an
-    additive GAM structurally cannot.
+    A joint kernel is not restricted to a sum of univariate terms the way
+    :class:`~cca_zoo.gam.GAMCCA`'s additive splines are: it can represent a
+    genuine *interaction* between two features of the same view directly.
 
-    This is a deliberate departure from the P-IRLS-plus-marginal-likelihood
-    recipe GaussianProcessCCA used before: that scheme reached a Newton
-    step by working in the $n$-dimensional embedding space $Z_i$ with a
-    per-sample diagonal approximation of $\mathcal{L}_{EY}$'s Hessian
-    (passed to :class:`~sklearn.gaussian_process.GaussianProcessRegressor`
-    as heteroscedastic ``alpha``), which then needed a post-hoc whitening/
-    decorrelation retraction to compensate for the curvature the diagonal
-    approximation throws away (see
-    :func:`~cca_zoo._utils._ey.ey_diag_hessian`'s docstring). Fitting
-    directly in the encoder's own (much smaller, $m$-dimensional)
-    coefficient space instead needs no such approximation or retraction:
-    coordinate descent solves the *exact* (quartic, not linearised)
-    restriction of $\mathcal{L}_{EY}$ to each coefficient. The trade-off is
-    that kernel hyperparameters (lengthscales, signal variance) are now
-    fixed — pass ``kernel`` explicitly, or tune it externally (e.g. with
+    Kernel hyperparameters (lengthscales, signal variance) are fixed —
+    pass ``kernel`` explicitly, or tune it externally (e.g. with
     :class:`~sklearn.model_selection.GridSearchCV`, since this is an
-    ordinary ``BaseEstimator``) — rather than automatically re-selected
-    each round by the GP's own marginal-likelihood optimisation; that
-    automatic search was specific to the working-response/Newton-step
-    framing and has no direct analogue once fitting minimises the true
-    quartic loss instead.
+    ordinary ``BaseEstimator``) — there is no automatic marginal-likelihood
+    search.
 
     As a Bayesian model it still comes with calibrated predictive
     uncertainty for free: :meth:`transform` can return each latent
@@ -239,14 +217,12 @@ class GaussianProcessCCA(BaseModel):
     :class:`_GpEncoder`).
 
     Note:
-        `n_inducing` no longer switches to a different, approximate
-        *algorithm* the way it used to (the old Deterministic Training
-        Conditional recipe): exact and sparse inference are now both the
-        same reduced-rank ("subset of regressors") construction, differing
-        only in how many basis points $Z_i$ are used ($n$, i.e. every
-        training row, for exact; ``n_inducing`` < $n$, chosen by
-        ``kmeans_plusplus``, for sparse) — so fitting still costs
-        $O(n m^2 + m^3)$ for $m$ basis points, linear in $n$ once $m \ll n$.
+        Exact and sparse inference are the same reduced-rank
+        ("subset of regressors") construction, differing only in how many
+        basis points $Z_i$ are used ($n$, i.e. every training row, for
+        exact; ``n_inducing`` < $n$, chosen by ``kmeans_plusplus``, for
+        sparse) — fitting costs $O(n m^2 + m^3)$ for $m$ basis points,
+        linear in $n$ once $m \ll n$.
 
     References:
         Rasmussen, C. E., & Williams, C. K. I. (2006). Gaussian Processes
@@ -280,8 +256,8 @@ class GaussianProcessCCA(BaseModel):
             $O(n \, \text{n\_inducing}^2)$ instead of $O(n^3)$. Values at or
             above the number of training samples fall back to exact
             inference automatically.
-        max_iter: Maximum number of full coordinate-descent sweeps (every
-            view, feature, and component once each). Default is 100.
+        max_iter: Maximum number of full sweeps (one L-BFGS-B solve per
+            view each). Default is 100.
         tol: Convergence tolerance on the penalised objective's change
             between consecutive sweeps. Default is 1e-6.
         random_state: Seed for the initial coefficients and (if

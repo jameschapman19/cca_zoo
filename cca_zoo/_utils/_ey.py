@@ -274,75 +274,6 @@ def ey_grad_z(representations: list[np.ndarray]) -> list[np.ndarray]:
     return [scale * (zc @ V - total) for zc in centred]
 
 
-def ey_diag_hessian(
-    Z_i: np.ndarray,
-    V: np.ndarray,
-    n_views: int,
-    n_minus_1: int,
-    floor_percentile: float,
-) -> np.ndarray:
-    r"""Diagonal (per-sample) approximation of the EY loss's Hessian.
-
-    The exact Hessian of $\mathcal{L}_{EY}$ w.r.t. one view's embedding
-    $Z_i$ (holding the other views fixed) is
-
-    $$
-    \frac{\partial^2 \mathcal{L}_{EY}}{\partial Z_i^2}
-        = \frac{4}{M(n-1)}(V-1)\,P + \frac{8}{M^2(n-1)^2}\, Z_i Z_i^\top
-    $$
-
-    where $P = I - \tfrac1n\mathbf{1}\mathbf{1}^\top$ is the centring
-    projection (needed because the EY loss re-centres every embedding
-    internally, so it is invariant to shifting $Z_i$ by a constant — the
-    true Hessian must annihilate that direction) and $V$ is the (diagonal
-    of the) mean auto-covariance. This is an $(n, n)$ matrix — using its
-    diagonal as a per-sample weight is the same simplification every
-    P-IRLS-based GAM/GLM solver already makes (treating observations as
-    independent); the ``P`` term drops out of the diagonal (its diagonal
-    entries are all $1 - 1/n$, folded into the same additive constant as
-    the $(V-1)$ term).
-
-    That diagonal is usable directly only after floor-damping it: near the
-    loss's own well-conditioned fixed point ($V \approx 1$), the $(V-1)$
-    term vanishes and the diagonal collapses to just $Z_{i,m}^2$ for each
-    sample $m$ — the diagonal slice of a rank-1 matrix, an extremely poor
-    per-sample curvature estimate for most samples (verified empirically:
-    the per-sample ratio ``gradient / raw diagonal`` swings across several
-    orders of magnitude with sign changes). Flooring at a high percentile
-    of its own values — rather than a fixed constant, which would need
-    re-tuning for every ``(n_samples, n_views)`` combination — is a
-    self-calibrating Levenberg-Marquardt-style damping: it behaves like an
-    (approximately) uniform weight for typical samples and only lets the
-    Hessian's real signal through for high-leverage outliers.
-
-    Used by both :class:`~cca_zoo.gam.GAMCCA` (as a ``Ridge``/``RidgeCV``
-    ``sample_weight``) and :class:`~cca_zoo.gp.GaussianProcessCCA` (as a
-    ``GaussianProcessRegressor`` per-sample ``alpha``, the heteroscedastic-
-    noise parameter that plays the same "how much to trust this
-    observation" role there).
-
-    Args:
-        Z_i: Current embedding for this view, shape (n_samples, k).
-        V: Current (k, k) mean auto-covariance matrix (see
-            :func:`ey_cross_covariance`).
-        n_views: Number of views, $M$.
-        n_minus_1: $n - 1$, the sample-covariance denominator.
-        floor_percentile: Percentile (0-100) of the raw diagonal used as
-            the damping floor.
-
-    Returns:
-        Array of shape (n_samples, k): positive per-sample weights, one
-        per latent component.
-    """
-    v_diag = np.diag(V)
-    a_coef = 4.0 / (n_views * n_minus_1) * (v_diag - 1.0)
-    b_coef = 8.0 / (n_views**2 * n_minus_1**2)
-    raw = a_coef[None, :] + b_coef * Z_i**2
-    floor = np.maximum(np.percentile(raw, floor_percentile, axis=0), 1e-10)
-    result: np.ndarray = np.maximum(raw, floor)
-    return result
-
-
 def _solve_quartic_coordinate(
     c4: float, c3: float, c2: float, c1: float, lasso: float
 ) -> float:
@@ -357,8 +288,7 @@ def _solve_quartic_coordinate(
     update), the EY loss's penalty term $\operatorname{tr}(VV)$ is quadratic
     in $V$, which is itself quadratic in the coordinate being updated — so
     the restriction is exactly *quartic*, not quadratic (see
-    :func:`coordinate_descent_ey`'s docstring for the derivation; verified
-    against direct evaluation of :func:`ey_loss`).
+    :func:`coordinate_descent_ey`'s docstring for the derivation).
 
     $F \to +\infty$ as $w \to \pm\infty$ (``c4`` is a perfect square, so
     non-negative), so a finite global minimiser always exists. It is found
@@ -429,16 +359,13 @@ def coordinate_descent_ey(
     quartic and cubic pieces). Each coordinate's exact minimiser is found by
     :func:`_solve_quartic_coordinate`.
 
-    Because every update is the *exact* per-coordinate minimiser of the
-    *exact* (not linearised or diagonal-Hessian-approximated) EY loss, this
-    needs no post-hoc whitening/decorrelation step: each $Z_i$ stays exactly
-    linear in a *fixed* basis throughout fitting (never a Newton-step
-    working response fit with a black-box regressor). Used by
-    :class:`~cca_zoo.sparse.ElasticNetCCA` (``bases`` = the raw centred
-    views) — the only place an L1 (lasso) penalty is wanted; where a purely
-    ridge-penalised fixed-basis fit needs a *second*-order (rather than
-    coordinate-at-a-time) solver, see :class:`~cca_zoo.gam.GAMCCA`'s P-IRLS
-    and :class:`~cca_zoo.gp.GaussianProcessCCA`'s L-BFGS-B instead.
+    Every update is the *exact* per-coordinate minimiser of the *exact*
+    (not linearised) EY loss, so $Z_i$ stays exactly linear in a *fixed*
+    basis throughout fitting. Used by :class:`~cca_zoo.sparse.ElasticNetCCA`
+    (``bases`` = the raw centred views), the only model needing an L1
+    (lasso) penalty; a purely ridge-penalised fixed-basis fit is instead
+    solved by :class:`~cca_zoo.gam.GAMCCA`'s P-IRLS or
+    :class:`~cca_zoo.gp.GaussianProcessCCA`'s L-BFGS-B.
 
     Args:
         bases: Fixed per-view design matrices, each already column-centred

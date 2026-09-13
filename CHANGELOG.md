@@ -11,54 +11,43 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 - `GAMCCA`: nonlinear multiview CCA using a generalized additive model (one B-spline term
   per input feature) as the per-view encoder, trained on the same Eckart-Young objective
-  as `TreeCCA` and the `*_EY` models, but fit the way GAM software such as `mgcv` fits an
-  ordinary GAM rather than by boosting: an inner P-IRLS loop takes Newton steps on the EY
-  loss (a working response built from the loss's analytic gradient and a diagonal-Hessian
-  weight, ridge-regressed onto each view's fixed B-spline basis) to convergence at fixed
-  smoothing parameters, wrapped in an outer loop that re-selects those smoothing
-  parameters via `RidgeCV`'s efficient leave-one-out cross-validation (the GCV/REML role)
-  and repeats until both levels stabilise. Unlike `TreeCCA`, which must take many small
-  shrunk boosting steps because a tree ensemble has no closed-form fit to a moving target,
-  GAMCCA has no `learning_rate` or `n_estimators` to tune — smoothing strength is chosen
-  automatically. Built entirely on scikit-learn's own `SplineTransformer`, `Ridge` and
-  `RidgeCV` rather than a from-scratch spline or Newton/GCV solver, so no new dependency
-  is required. Fitted per-feature shape functions are inspectable directly via
-  `model.shape_function(view, feature, x)`. On data where the true per-feature
-  relationship is smooth, GAMCCA reaches a higher held-out canonical correlation than
-  `TreeCCA` without any round-count tuning (see `tests/gam/test_gamcca.py`'s
-  outperformance test for a worked example).
+  as `TreeCCA` and the `*_EY` models. Fit by P-IRLS — the same iteration structure GAM
+  software such as `mgcv` uses — applied directly to the EY loss: for one latent
+  component's spline coefficients at a time (every other component and view held fixed),
+  a damped Newton step is solved via `scipy.optimize.minimize(method="trust-exact")`
+  using the loss's exact gradient and Hessian in that coefficient space, cycling through
+  every component and view until the penalised objective stops moving. Smoothing
+  strength (`alpha`) is a fixed hyperparameter. Fitted per-feature shape functions are
+  inspectable directly via `model.shape_function(view, feature, x)`. Built entirely on
+  scikit-learn's own `SplineTransformer`, with `scipy.optimize` doing the Newton solve,
+  so no new dependency is required.
 - `cca_zoo._utils._ey.random_orthogonal_embedding`: the random-orthogonal
   initial-embedding helper previously private to `TreeCCA` is now a shared EY-loss
-  utility, used by `TreeCCA`, `GAMCCA`, and `GPCCA`.
-- `GPCCA`: nonlinear multiview CCA using a Gaussian process with a joint (non-additive)
-  ARD-RBF kernel over each view's raw feature vector as the per-view encoder, trained on
-  the same Eckart-Young objective as `TreeCCA` and `GAMCCA`. Fit with the same inner/outer
-  recipe as `GAMCCA`'s P-IRLS/GCV loop, with `GaussianProcessRegressor` standing in for
-  `Ridge`/`RidgeCV`: an inner loop takes Newton steps on the EY loss at fixed kernel
-  hyperparameters (`optimizer=None`, with the diagonal-Hessian weight passed as the GP's
-  per-sample `alpha`), wrapped in an outer loop that re-fits the kernel hyperparameters via
-  the GP's own marginal-likelihood optimisation and repeats until both levels stabilise.
-  Unlike `GAMCCA`'s additive splines, a joint GP kernel can represent a genuine interaction
-  between two features of the same view directly. As a Bayesian model, `transform(...,
-  return_std=True)` also returns each latent component's posterior standard deviation,
-  propagated through the whitening transform. Built entirely on scikit-learn's own
-  `GaussianProcessRegressor`, `RBF` and `ConstantKernel`, so no new dependency is required.
-- `cca_zoo._utils._ey.ey_diag_hessian`: the diagonal-Hessian approximation of the EY loss
-  (previously private to `GAMCCA`) is now a shared EY-loss utility, used by both `GAMCCA`
-  (as a `Ridge`/`RidgeCV` `sample_weight`) and `GPCCA` (as a `GaussianProcessRegressor`
-  per-sample `alpha`).
-- `GPCCA(n_inducing=...)`: a sparse (Deterministic Training Conditional) approximation for
-  datasets too large for exact GP inference's `O(n^3)` cost. Conditions each encoder on
-  `n_inducing` inducing points — an actual subset of the training rows, chosen via
-  `sklearn.cluster.kmeans_plusplus`'s seeding — reducing fitting to `O(n * n_inducing^2)`.
-  Kernel hyperparameters are still selected by an exact marginal-likelihood fit on just the
-  inducing rows (cheap, since there are few of them), while the working-response fit used to
-  build each round's representation always uses every training row via the DTC posterior
-  formula, so no training signal is discarded at the point it matters most. `None` (the
-  default) keeps exact inference, unchanged from GPCCA's initial release; values at or above
-  the number of training samples fall back to exact inference automatically. Verified to fit
-  in well under a second at 4,000 training samples (where exact inference is impractical)
-  while still recovering held-out correlation above 0.7 on a smooth nonlinear benchmark.
+  utility, used by `TreeCCA`, `GAMCCA`, and `GaussianProcessCCA`.
+- `GaussianProcessCCA`: nonlinear multiview CCA using a Gaussian process with a joint
+  (non-additive) ARD-RBF kernel over each view's raw feature vector
+  as the per-view encoder, trained on the same Eckart-Young objective as `TreeCCA` and
+  `GAMCCA`. Writes each encoder as a fixed cross-kernel basis against a set of basis
+  ("inducing") points — every training row by default, or `n_inducing` of them selected
+  via `sklearn.cluster.kmeans_plusplus` for datasets too large for exact inference's
+  `O(n^3)` cost — and fits the resulting coefficients directly by L-BFGS-B
+  (`scipy.optimize.minimize`), the same algorithm `GaussianProcessRegressor` itself uses
+  internally, given the EY loss's exact analytic gradient plus an RKHS-norm ridge penalty.
+  Kernel hyperparameters are fixed (pass `kernel=` explicitly, or tune externally). Unlike
+  `GAMCCA`'s additive splines, a joint kernel can represent a genuine interaction between
+  two features of the same view directly. As a Bayesian model, `transform(...,
+  return_std=True)` also returns each latent component's posterior standard deviation.
+  Built entirely on scikit-learn's own `GaussianProcessRegressor`, `RBF`, `ConstantKernel`
+  and `KernelCenterer`, so no new dependency is required.
+- `ElasticNetCCA`: sparse linear multiview CCA, trained on the same Eckart-Young
+  objective, with an elastic-net penalty on the per-view weights. Fit by cyclic
+  coordinate descent — the same algorithm `sklearn.linear_model.ElasticNet` uses for
+  ordinary elastic net — but each coordinate's restriction to the EY loss is an exact
+  quartic (not the quadratic ordinary least squares gives), solved to its exact global
+  minimiser via `cca_zoo._utils._ey.coordinate_descent_ey`. Because every embedding
+  stays exactly linear in the raw (centred) view throughout fitting, `model.weights`
+  returns real sparse canonical weight vectors, unlike `TreeCCA`/`GAMCCA`/
+  `GaussianProcessCCA`, where it raises `NotImplementedError`.
 
 ### Changed
 
