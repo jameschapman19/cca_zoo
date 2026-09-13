@@ -10,9 +10,10 @@ from __future__ import annotations
 import numpy as np
 import pytest
 from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import Kernel
 
 from cca_zoo.gp import GaussianProcessCCA
-from cca_zoo.gp._gpcca import _GpEncoder, _SparseGpEncoder
+from cca_zoo.gp._gpcca import _GpEncoder
 
 
 def _make_model(latent_dimensions: int = 1, **kwargs: object) -> GaussianProcessCCA:
@@ -217,18 +218,21 @@ def test_encoders_attribute_shape(two_views_small: list[np.ndarray]) -> None:
         assert enc.predict().shape == (two_views_small[0].shape[0], k)
 
 
-def test_encoder_models_are_sklearn_gaussian_process_regressor(
+def test_encoder_kernel_is_sklearn_kernel(
     two_views_small: list[np.ndarray],
 ) -> None:
-    """Each fitted per-component model is an actual GaussianProcessRegressor.
+    """Each encoder's kernel is built from actual sklearn kernel objects.
 
-    Confirms the GP fit is delegated to scikit-learn rather than
-    reimplemented.
+    Confirms the kernel math (and, for predictive uncertainty, the GP
+    posterior-variance formula) is delegated to scikit-learn rather than
+    reimplemented -- fitting the coefficients themselves is now direct
+    coordinate descent on the EY loss (see the module docstring), not a
+    per-step GaussianProcessRegressor.fit() call.
     """
     model = _make_model().fit(two_views_small)
     for enc in model.encoders_:
-        for m in enc.models_:
-            assert isinstance(m, GaussianProcessRegressor)
+        assert isinstance(enc.kernel_, Kernel)
+        assert isinstance(enc._variance_model, GaussianProcessRegressor)
 
 
 # ---------------------------------------------------------------------------
@@ -264,12 +268,14 @@ def test_gpcca_finds_correlation_on_three_correlated_views() -> None:
 
 
 def test_sparse_fit_completes_and_shapes(two_views_small: list[np.ndarray]) -> None:
-    """n_inducing < n_samples switches to the sparse DTC encoder and fits."""
+    """n_inducing < n_samples selects that many basis (inducing) points and fits."""
     k = 2
     n = two_views_small[0].shape[0]
-    model = _make_model(latent_dimensions=k, n_inducing=n // 2).fit(two_views_small)
+    n_inducing = n // 2
+    model = _make_model(latent_dimensions=k, n_inducing=n_inducing).fit(two_views_small)
     for enc in model.encoders_:
-        assert isinstance(enc, _SparseGpEncoder)
+        assert isinstance(enc, _GpEncoder)
+        assert enc.inducing_.shape[0] == n_inducing
     result = model.transform(two_views_small)
     assert len(result) == 2
     for arr in result:
@@ -298,7 +304,7 @@ def test_n_inducing_at_least_n_samples_falls_back_to_exact(
     model = _make_model(n_inducing=10 * n).fit(two_views_small)
     for enc in model.encoders_:
         assert isinstance(enc, _GpEncoder)
-        assert not isinstance(enc, _SparseGpEncoder)
+        assert enc.inducing_.shape[0] == n
 
 
 def test_sparse_finds_correlation_on_correlated_views(

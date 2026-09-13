@@ -274,70 +274,194 @@ def ey_grad_z(representations: list[np.ndarray]) -> list[np.ndarray]:
     return [scale * (zc @ V - total) for zc in centred]
 
 
-def ey_diag_hessian(
-    Z_i: np.ndarray,
-    V: np.ndarray,
-    n_views: int,
-    n_minus_1: int,
-    floor_percentile: float,
-) -> np.ndarray:
-    r"""Diagonal (per-sample) approximation of the EY loss's Hessian.
+def _solve_quartic_coordinate(
+    c4: float, c3: float, c2: float, c1: float, lasso: float
+) -> float:
+    r"""Exact global minimiser of one elastic-net-penalised coordinate update.
 
-    The exact Hessian of $\mathcal{L}_{EY}$ w.r.t. one view's embedding
-    $Z_i$ (holding the other views fixed) is
+    Minimises $F(w) = c_4 w^4 + c_3 w^3 + c_2 w^2 + c_1 w + \lambda |w|$ over
+    the scalar $w$ (the ridge penalty's contribution is already folded into
+    $c_2$/$c_1$ by the caller — see :func:`coordinate_descent_ey`). Unlike
+    ordinary least-squares coordinate descent (e.g. sklearn's
+    ``ElasticNet``, where the restriction of the squared-error loss to one
+    coordinate is quadratic, giving the familiar closed-form soft-threshold
+    update), the EY loss's penalty term $\operatorname{tr}(VV)$ is quadratic
+    in $V$, which is itself quadratic in the coordinate being updated — so
+    the restriction is exactly *quartic*, not quadratic (see
+    :func:`coordinate_descent_ey`'s docstring for the derivation).
 
-    $$
-    \frac{\partial^2 \mathcal{L}_{EY}}{\partial Z_i^2}
-        = \frac{4}{M(n-1)}(V-1)\,P + \frac{8}{M^2(n-1)^2}\, Z_i Z_i^\top
-    $$
-
-    where $P = I - \tfrac1n\mathbf{1}\mathbf{1}^\top$ is the centring
-    projection (needed because the EY loss re-centres every embedding
-    internally, so it is invariant to shifting $Z_i$ by a constant — the
-    true Hessian must annihilate that direction) and $V$ is the (diagonal
-    of the) mean auto-covariance. This is an $(n, n)$ matrix — using its
-    diagonal as a per-sample weight is the same simplification every
-    P-IRLS-based GAM/GLM solver already makes (treating observations as
-    independent); the ``P`` term drops out of the diagonal (its diagonal
-    entries are all $1 - 1/n$, folded into the same additive constant as
-    the $(V-1)$ term).
-
-    That diagonal is usable directly only after floor-damping it: near the
-    loss's own well-conditioned fixed point ($V \approx 1$), the $(V-1)$
-    term vanishes and the diagonal collapses to just $Z_{i,m}^2$ for each
-    sample $m$ — the diagonal slice of a rank-1 matrix, an extremely poor
-    per-sample curvature estimate for most samples (verified empirically:
-    the per-sample ratio ``gradient / raw diagonal`` swings across several
-    orders of magnitude with sign changes). Flooring at a high percentile
-    of its own values — rather than a fixed constant, which would need
-    re-tuning for every ``(n_samples, n_views)`` combination — is a
-    self-calibrating Levenberg-Marquardt-style damping: it behaves like an
-    (approximately) uniform weight for typical samples and only lets the
-    Hessian's real signal through for high-leverage outliers.
-
-    Used by both :class:`~cca_zoo.gam.GAMCCA` (as a ``Ridge``/``RidgeCV``
-    ``sample_weight``) and :class:`~cca_zoo.gp.GaussianProcessCCA` (as a
-    ``GaussianProcessRegressor`` per-sample ``alpha``, the heteroscedastic-
-    noise parameter that plays the same "how much to trust this
-    observation" role there).
+    $F \to +\infty$ as $w \to \pm\infty$ (``c4`` is a perfect square, so
+    non-negative), so a finite global minimiser always exists. It is found
+    exactly — with no local-optimum risk, whether or not $F$ is convex — by
+    comparing $F$ at every stationary point of each smooth branch (the real
+    roots of the cubic derivative on ``w > 0`` and on ``w < 0`` separately,
+    since $|w|$'s derivative flips sign there) plus the $|w|$ kink at 0.
 
     Args:
-        Z_i: Current embedding for this view, shape (n_samples, k).
-        V: Current (k, k) mean auto-covariance matrix (see
-            :func:`ey_cross_covariance`).
-        n_views: Number of views, $M$.
-        n_minus_1: $n - 1$, the sample-covariance denominator.
-        floor_percentile: Percentile (0-100) of the raw diagonal used as
-            the damping floor.
+        c4: Coefficient of the smooth quartic term.
+        c3: Coefficient of the smooth cubic term.
+        c2: Coefficient of the smooth quadratic term.
+        c1: Coefficient of the smooth linear term.
+        lasso: L1 penalty coefficient ($\ge 0$).
 
     Returns:
-        Array of shape (n_samples, k): positive per-sample weights, one
-        per latent component.
+        The scalar $w$ exactly minimising $F$.
     """
-    v_diag = np.diag(V)
-    a_coef = 4.0 / (n_views * n_minus_1) * (v_diag - 1.0)
-    b_coef = 8.0 / (n_views**2 * n_minus_1**2)
-    raw = a_coef[None, :] + b_coef * Z_i**2
-    floor = np.maximum(np.percentile(raw, floor_percentile, axis=0), 1e-10)
-    result: np.ndarray = np.maximum(raw, floor)
-    return result
+    candidates = [0.0]
+    for sign, l1 in ((1.0, lasso), (-1.0, -lasso)):
+        roots = np.roots([4 * c4, 3 * c3, 2 * c2, c1 + l1])
+        for r in roots:
+            if abs(r.imag) < 1e-8 and sign * r.real > 0:
+                candidates.append(float(r.real))
+
+    def _f(w: float) -> float:
+        return c4 * w**4 + c3 * w**3 + c2 * w**2 + c1 * w + lasso * abs(w)
+
+    return min(candidates, key=_f)
+
+
+def coordinate_descent_ey(
+    bases: list[np.ndarray],
+    k: int,
+    alpha: float,
+    l1_ratio: float,
+    max_iter: int,
+    tol: float,
+    rng: np.random.Generator,
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    r"""Fit per-view linear-in-basis coefficients directly minimising the EY loss.
+
+    Finds $B_1, \dots, B_M$ (embeddings $Z_i = \text{bases}_i B_i$)
+    minimising
+
+    $$
+    \mathcal{L}_{EY}(Z_1, \dots, Z_M)
+        + \sum_i \left( \alpha \rho \|B_i\|_1
+        + \tfrac{1}{2}\alpha(1-\rho) \|B_i\|_2^2 \right)
+    $$
+
+    ($\rho$ = ``l1_ratio``) by **cyclic coordinate descent** — the same
+    algorithm :class:`~sklearn.linear_model.ElasticNet` itself uses for
+    ordinary (squared-error) elastic net, updating one scalar coefficient at
+    a time to its exact minimiser with every other coefficient held fixed.
+
+    This is a genuine departure from ``ElasticNet``'s own coordinate
+    descent, not a re-use of it: for ordinary least squares, the loss
+    restricted to a single coordinate is a plain quadratic, giving the
+    familiar closed-form soft-threshold update. Restricting $\mathcal{L}_{EY}$
+    to a single coordinate $w = B_i[j, c]$ instead gives an **exact
+    quartic**: the penalty term $\operatorname{tr}(VV)$ is quadratic in the
+    auto-covariance $V$, which is itself quadratic in $w$ through
+    $V[c,c] = \dots + w^2\|{\text{bases}_i[:,j]}\|^2/(M(n-1)) + \dots$, so
+    squaring it produces a $w^4$ term (the reward term
+    $-2\operatorname{tr}(C)$ and the cross terms $V[c,c']^2$, $c'\neq c$,
+    stay quadratic in $w$; only the "self" term $V[c,c]^2$ contributes the
+    quartic and cubic pieces). Each coordinate's exact minimiser is found by
+    :func:`_solve_quartic_coordinate`.
+
+    Every update is the *exact* per-coordinate minimiser of the *exact*
+    (not linearised) EY loss, so $Z_i$ stays exactly linear in a *fixed*
+    basis throughout fitting. Used by :class:`~cca_zoo.sparse.ElasticNetCCA`
+    (``bases`` = the raw centred views), the only model needing an L1
+    (lasso) penalty; a purely ridge-penalised fixed-basis fit is instead
+    solved by :class:`~cca_zoo.gam.GAMCCA`'s P-IRLS or
+    :class:`~cca_zoo.gp.GaussianProcessCCA`'s L-BFGS-B.
+
+    Args:
+        bases: Fixed per-view design matrices, each already column-centred
+            so $Z_i = \text{bases}_i B_i$ is automatically zero-mean, one
+            per view.
+        k: Number of latent dimensions.
+        alpha: Overall elastic-net penalty strength.
+        l1_ratio: Elastic-net mixing parameter in ``[0, 1]``; 0 is pure ridge.
+        max_iter: Maximum number of full coordinate-descent sweeps.
+        tol: Convergence tolerance on the penalised objective's change
+            between consecutive sweeps.
+        rng: Random generator for the initial coefficients.
+
+    Returns:
+        Tuple ``(coefficients, representations)``: ``coefficients[i]`` has
+        shape ``(bases[i].shape[1], k)``; ``representations[i] =
+        bases[i] @ coefficients[i]``, shape ``(n_samples, k)``.
+    """
+    m = len(bases)
+    n = bases[0].shape[0]
+    n_minus_1 = n - 1
+    a0 = 1.0 / (m * n_minus_1)
+    lasso = alpha * l1_ratio
+    ridge = alpha * (1.0 - l1_ratio)
+
+    coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
+    representations = [b @ c for b, c in zip(bases, coefficients)]
+    total = sum(representations)
+    col_sq_norms = [np.sum(b**2, axis=0) for b in bases]
+
+    prev_obj = np.inf
+    for _ in range(max_iter):
+        for i, (basis, coef) in enumerate(zip(bases, coefficients)):
+            zi = representations[i]
+            v_other = (
+                sum(
+                    representations[a].T @ representations[a]
+                    for a in range(m)
+                    if a != i
+                )
+                * a0
+            )
+            for j in range(basis.shape[1]):
+                a = col_sq_norms[i][j]
+                if a < 1e-12:
+                    continue
+                xj = basis[:, j]
+                for c in range(k):
+                    w0 = coef[j, c]
+                    r_c = zi[:, c] - xj * w0
+                    s0_c = total[:, c] - xj * w0
+
+                    u_c = xj @ r_c
+                    v0_cc = v_other[c, c] + (r_c @ r_c) * a0
+                    x_s0c = xj @ s0_c
+
+                    other_c = [cc for cc in range(k) if cc != c]
+                    u_other = [xj @ zi[:, cc] for cc in other_c]
+                    v1_other = [
+                        v_other[c, cc] + (r_c @ zi[:, cc]) * a0 for cc in other_c
+                    ]
+
+                    p4 = (a0 * a) ** 2
+                    p3 = 4 * a0**2 * a * u_c
+                    p2 = (
+                        4 * a0**2 * u_c**2
+                        + 2 * a0 * a * v0_cc
+                        + 2 * a0**2 * sum(uo**2 for uo in u_other)
+                    )
+                    p1 = 4 * a0 * u_c * v0_cc + 4 * a0 * sum(
+                        uo * v1 for uo, v1 in zip(u_other, v1_other)
+                    )
+                    q2 = -2 * a0 * a
+                    q1 = -4 * a0 * x_s0c
+
+                    w_new = _solve_quartic_coordinate(
+                        c4=p4,
+                        c3=p3,
+                        c2=p2 + q2 + 0.5 * ridge,
+                        c1=p1 + q1,
+                        lasso=lasso,
+                    )
+
+                    delta = w_new - w0
+                    if delta != 0.0:
+                        coef[j, c] = w_new
+                        zi[:, c] += xj * delta
+                        total[:, c] += xj * delta
+
+        penalty = sum(
+            alpha * l1_ratio * np.sum(np.abs(c)) + 0.5 * ridge * np.sum(c**2)
+            for c in coefficients
+        )
+        obj = ey_loss(representations)["objective"] + penalty
+        if abs(prev_obj - obj) < tol:
+            break
+        prev_obj = obj
+
+    return coefficients, representations

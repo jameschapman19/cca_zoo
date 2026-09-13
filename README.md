@@ -129,6 +129,12 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 |---|---|---|
 | `GPCCA` | Gaussian-process CCA (Eckart-Young objective), with predictive uncertainty | ≥2 |
 
+### `cca_zoo.sparse`
+
+| Class | Description | Views |
+|---|---|---|
+| `ElasticNetCCA` | Sparse linear CCA via coordinate descent (Eckart-Young objective) | ≥2 |
+
 ### `cca_zoo.deep` *(requires `[deep]`)*
 
 Built on PyTorch Lightning — models are trained with a standard `lightning.Trainer`, not a
