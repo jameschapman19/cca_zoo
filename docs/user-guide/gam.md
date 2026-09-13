@@ -26,12 +26,13 @@ linear map (`CCAEY`) or a boosted-tree ensemble (`TreeCCA`) as the function clas
 $f_i$.
 
 Writing $f_i(x) = \sum_j s_j(x_j)$ as a fixed per-feature B-spline basis times a coefficient
-matrix, fitting those coefficients is a **P-IRLS** recipe — the same iteration structure GAM
-software such as R's `mgcv` uses, applied directly to the EY loss rather than a per-observation
-likelihood: for one latent component's coefficients at a time (every other component and view
-held fixed), a damped Newton step is solved via `scipy.optimize.minimize(method="trust-exact")`
-using the EY loss's exact gradient and Hessian in that coefficient space, cycling through every
-component and view until the penalised objective stops moving.
+matrix, fitting those coefficients is conceptually a **P-IRLS** recipe — the same iteration
+structure GAM software such as R's `mgcv` uses, applied directly to the EY loss rather than a
+per-observation likelihood. Rather than hand-rolling that solve (or even cycling over views one
+at a time), every view's coefficients — every latent component, every view, all at once — are
+updated in a single call to `scipy.optimize.minimize(method="trust-krylov")`, a standard
+off-the-shelf trust-region Newton-CG solver, given the EY loss's exact gradient and an exact
+Hessian-vector product across the whole stacked parameter vector.
 
 Because each latent component decomposes exactly into one additive term per input feature, the
 fitted shape of any feature's contribution is available directly via `model.shape_function(...)`
@@ -88,8 +89,8 @@ score. Summing every feature's `shape_function` at the training values reproduce
 |---|---|
 | `n_knots` | Knots per feature's B-spline term, passed straight through to `SplineTransformer(n_knots=...)`. More knots allow wigglier per-feature curves. |
 | `alpha` | Ridge (smoothing) penalty strength applied to every spline coefficient. There is no automatic smoothing-parameter selection — tune this directly. |
-| `max_iter` | Maximum number of full P-IRLS sweeps (one Newton solve per view and component each). |
-| `tol` | Convergence tolerance on the penalised objective's change between consecutive sweeps. |
+| `max_iter` | Maximum number of outer Newton iterations in the single joint `trust-krylov` solve (`scipy.optimize.minimize`'s own `maxiter` option). |
+| `tol` | Gradient-norm convergence tolerance for the joint solve (`scipy.optimize.minimize`'s own `gtol` option). |
 | `random_state` | Seed for the initial coefficients. |
 
 ---
