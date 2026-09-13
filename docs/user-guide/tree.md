@@ -50,9 +50,8 @@ mixed scales, non-smooth or threshold-like relationships).
 
 ## Basic usage
 
-`XGBoostCCA`, `LightGBMCCA`, and `CatBoostCCA` are separate classes rather than one class with a
-`backend=` switch, so `TreeCCA` itself cannot be instantiated directly — pick the concrete class
-you want:
+Pick the concrete class for the gradient-boosting library you want to use; `TreeCCA` itself is an
+abstract base class and cannot be instantiated directly:
 
 ```python
 from cca_zoo.tree import XGBoostCCA
