@@ -365,12 +365,16 @@ class GaussianProcessCCA(BaseModel):
                 coefficients[i] = result.x.reshape(d_i, k)
                 representations[i] = enc.basis_ @ coefficients[i]
 
-            penalty = 0.5 * self.alpha * sum(
-                sum(
-                    coef[:, c] @ encoders[i].ridge_matrix_ @ coef[:, c]
-                    for c in range(k)
+            penalty = (
+                0.5
+                * self.alpha
+                * sum(
+                    sum(
+                        coef[:, c] @ encoders[i].ridge_matrix_ @ coef[:, c]
+                        for c in range(k)
+                    )
+                    for i, coef in enumerate(coefficients)
                 )
-                for i, coef in enumerate(coefficients)
             )
             obj = ey_loss(representations)["objective"] + penalty
             if abs(prev_obj - obj) < self.tol:
