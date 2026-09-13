@@ -1,4 +1,4 @@
-"""Tests for TreeCCA.
+"""Tests for XGBoostCCA and LightGBMCCA (the TreeCCA family).
 
 All tests are marked slow and require xgboost (an optional extra, not part
 of the base ``dev`` install).
@@ -11,14 +11,33 @@ import pytest
 
 xgboost = pytest.importorskip("xgboost", reason="xgboost is not installed")
 
-from cca_zoo.tree import TreeCCA
+from cca_zoo.tree import CatBoostCCA, LightGBMCCA, XGBoostCCA
+from cca_zoo.tree._treecca import TreeCCA
 
 pytestmark = pytest.mark.slow
 
 
-def _make_model(latent_dimensions: int = 1, **kwargs: object) -> TreeCCA:
+def _make_model(latent_dimensions: int = 1, **kwargs: object) -> XGBoostCCA:
     kwargs.setdefault("n_estimators", 5)
-    return TreeCCA(latent_dimensions=latent_dimensions, **kwargs)
+    return XGBoostCCA(latent_dimensions=latent_dimensions, **kwargs)
+
+
+# ---------------------------------------------------------------------------
+# TreeCCA itself is an abstract base, not instantiable
+# ---------------------------------------------------------------------------
+
+
+def test_treecca_base_class_not_instantiable() -> None:
+    """TreeCCA is an abstract base; only its subclasses can be constructed."""
+    with pytest.raises(TypeError):
+        TreeCCA()
+
+
+def test_treecca_subclasses_share_the_base_class() -> None:
+    """XGBoostCCA, LightGBMCCA, and CatBoostCCA share the TreeCCA base class."""
+    assert issubclass(XGBoostCCA, TreeCCA)
+    assert issubclass(LightGBMCCA, TreeCCA)
+    assert issubclass(CatBoostCCA, TreeCCA)
 
 
 # ---------------------------------------------------------------------------
@@ -117,7 +136,7 @@ def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
 
 
 # get_params/set_params roundtrip behaviour is exercised generically for
-# every model in the package (including TreeCCA) by
+# every model in the package (including XGBoostCCA and LightGBMCCA) by
 # tests/test_sklearn_compat.py.
 
 
@@ -130,7 +149,7 @@ def test_weights_not_fitted_raises() -> None:
     """Accessing weights before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
-    model = TreeCCA()
+    model = XGBoostCCA()
     with pytest.raises(NotFittedError):
         _ = model.weights
 
@@ -176,7 +195,7 @@ def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
 
 
 def test_center_false(two_views_small: list[np.ndarray]) -> None:
-    """TreeCCA works with center=False."""
+    """XGBoostCCA works with center=False."""
     model = _make_model(center=False)
     model.fit(two_views_small)
     result = model.transform(two_views_small)
@@ -212,22 +231,15 @@ def test_boosters_attribute_shape(two_views_small: list[np.ndarray]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# backend selection
+# LightGBMCCA
 # ---------------------------------------------------------------------------
 
 
-def test_invalid_backend_raises(two_views_small: list[np.ndarray]) -> None:
-    """An unrecognised backend raises ValueError."""
-    model = _make_model(backend="not-a-backend")
-    with pytest.raises(ValueError, match="backend must be"):
-        model.fit(two_views_small)
-
-
-def test_lightgbm_backend_fit_completes(two_views_small: list[np.ndarray]) -> None:
-    """Fit completes end-to-end with backend='lightgbm'."""
+def test_lightgbm_fit_completes(two_views_small: list[np.ndarray]) -> None:
+    """Fit completes end-to-end with LightGBMCCA."""
     lightgbm = pytest.importorskip("lightgbm", reason="lightgbm is not installed")
     k = 2
-    model = _make_model(latent_dimensions=k, backend="lightgbm").fit(two_views_small)
+    model = LightGBMCCA(latent_dimensions=k, n_estimators=5).fit(two_views_small)
     result = model.transform(two_views_small)
     n = two_views_small[0].shape[0]
     for arr in result:
@@ -238,29 +250,92 @@ def test_lightgbm_backend_fit_completes(two_views_small: list[np.ndarray]) -> No
             assert isinstance(booster, lightgbm.Booster)
 
 
-def test_lightgbm_backend_missing_raises_import_error(
+def test_lightgbm_missing_raises_import_error(
     two_views_small: list[np.ndarray], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """backend='lightgbm' without the lightgbm package raises ImportError."""
+    """LightGBMCCA without the lightgbm package installed raises ImportError."""
     import cca_zoo.tree._treecca as treecca_module
 
     monkeypatch.setattr(treecca_module, "_LGBM_AVAILABLE", False)
-    model = _make_model(backend="lightgbm")
+    model = LightGBMCCA(n_estimators=5)
     with pytest.raises(ImportError, match="lightgbm"):
         model.fit(two_views_small)
 
 
-def test_lightgbm_backend_fit_transform_consistency(
+def test_lightgbm_fit_transform_consistency(
     two_views_small: list[np.ndarray],
 ) -> None:
-    """fit_transform equals fit().transform() for the lightgbm backend."""
+    """fit_transform equals fit().transform() for LightGBMCCA."""
     pytest.importorskip("lightgbm", reason="lightgbm is not installed")
-    m1 = _make_model(backend="lightgbm")
-    m2 = _make_model(backend="lightgbm")
+    m1 = LightGBMCCA(n_estimators=5)
+    m2 = LightGBMCCA(n_estimators=5)
     result_ft = m1.fit_transform(two_views_small)
     result_sep = m2.fit(two_views_small).transform(two_views_small)
     for a, b in zip(result_ft, result_sep):
         np.testing.assert_allclose(a, b, atol=1e-6)
+
+
+def test_lightgbm_weights_raises_not_implemented(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """Accessing weights after fitting a LightGBMCCA raises NotImplementedError."""
+    pytest.importorskip("lightgbm", reason="lightgbm is not installed")
+    model = LightGBMCCA(n_estimators=5).fit(two_views_small)
+    with pytest.raises(NotImplementedError, match="boosters_"):
+        _ = model.weights
+
+
+# ---------------------------------------------------------------------------
+# CatBoostCCA
+# ---------------------------------------------------------------------------
+
+
+def test_catboost_fit_completes(two_views_small: list[np.ndarray]) -> None:
+    """Fit completes end-to-end with CatBoostCCA."""
+    pytest.importorskip("catboost", reason="catboost is not installed")
+    k = 2
+    model = CatBoostCCA(latent_dimensions=k, n_estimators=5).fit(two_views_small)
+    result = model.transform(two_views_small)
+    n = two_views_small[0].shape[0]
+    for arr in result:
+        assert arr.shape == (n, k)
+    for view_boosters in model.boosters_:
+        assert len(view_boosters) == k
+
+
+def test_catboost_missing_raises_import_error(
+    two_views_small: list[np.ndarray], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """CatBoostCCA without the catboost package installed raises ImportError."""
+    import cca_zoo.tree._treecca as treecca_module
+
+    monkeypatch.setattr(treecca_module, "_CATBOOST_AVAILABLE", False)
+    model = CatBoostCCA(n_estimators=5)
+    with pytest.raises(ImportError, match="catboost"):
+        model.fit(two_views_small)
+
+
+def test_catboost_fit_transform_consistency(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """fit_transform equals fit().transform() for CatBoostCCA."""
+    pytest.importorskip("catboost", reason="catboost is not installed")
+    m1 = CatBoostCCA(n_estimators=5)
+    m2 = CatBoostCCA(n_estimators=5)
+    result_ft = m1.fit_transform(two_views_small)
+    result_sep = m2.fit(two_views_small).transform(two_views_small)
+    for a, b in zip(result_ft, result_sep):
+        np.testing.assert_allclose(a, b, atol=1e-6)
+
+
+def test_catboost_weights_raises_not_implemented(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """Accessing weights after fitting a CatBoostCCA raises NotImplementedError."""
+    pytest.importorskip("catboost", reason="catboost is not installed")
+    model = CatBoostCCA(n_estimators=5).fit(two_views_small)
+    with pytest.raises(NotImplementedError, match="boosters_"):
+        _ = model.weights
 
 
 # ---------------------------------------------------------------------------
@@ -271,20 +346,24 @@ def test_lightgbm_backend_fit_transform_consistency(
 def test_treecca_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
-    """TreeCCA finds substantial correlation on views with shared latent structure."""
-    model = TreeCCA(latent_dimensions=1, n_estimators=60, max_depth=3, random_state=0)
+    """XGBoostCCA finds substantial correlation on correlated views."""
+    model = XGBoostCCA(
+        latent_dimensions=1, n_estimators=60, max_depth=3, random_state=0
+    )
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
 
 def test_treecca_finds_correlation_on_three_correlated_views() -> None:
-    """TreeCCA (multiview) finds substantial correlation on 3 correlated views."""
+    """XGBoostCCA (multiview) finds substantial correlation on 3 correlated views."""
     rng = np.random.default_rng(0)
     z = rng.standard_normal((200, 1))
     views = [
         z @ rng.standard_normal((1, 5)) + 0.1 * rng.standard_normal((200, 5))
         for _ in range(3)
     ]
-    model = TreeCCA(latent_dimensions=1, n_estimators=300, max_depth=3, random_state=0)
+    model = XGBoostCCA(
+        latent_dimensions=1, n_estimators=300, max_depth=3, random_state=0
+    )
     s = model.fit(views).score(views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"

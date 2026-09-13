@@ -363,7 +363,7 @@ def test_gpcca_outperforms_others_on_genuine_interaction() -> None:
     pytest.importorskip("xgboost", reason="xgboost is not installed")
     from cca_zoo.gam import GAMCCA
     from cca_zoo.linear import rCCA
-    from cca_zoo.tree import TreeCCA
+    from cca_zoo.tree import XGBoostCCA
 
     rng = np.random.default_rng(0)
     n_train, n_test, noise = 300, 300, 0.2
@@ -384,7 +384,9 @@ def test_gpcca_outperforms_others_on_genuine_interaction() -> None:
     gam = GAMCCA(latent_dimensions=1, random_state=0)
     gam_test = gam.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
 
-    tree = TreeCCA(latent_dimensions=1, n_estimators=150, max_depth=5, random_state=0)
+    tree = XGBoostCCA(
+        latent_dimensions=1, n_estimators=150, max_depth=5, random_state=0
+    )
     tree_test = tree.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
 
     rcca = rCCA(latent_dimensions=1, c=[0.3, 0.3])

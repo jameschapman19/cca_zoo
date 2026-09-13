@@ -9,6 +9,18 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `CatBoostCCA`: a third `TreeCCA` backend alongside `XGBoostCCA`/`LightGBMCCA`, using
+  [CatBoost](https://catboost.ai/)'s gradient-boosted trees as the per-view encoders. Since
+  CatBoost has no in-place "add one tree to this booster" call, each round every component is
+  instead replaced by a freshly constructed `CatBoostRegressor(iterations=1, ...)` continued
+  from the previous round's model via CatBoost's own `init_model=`, driven by a custom loss
+  object that relays the EY gradient as CatBoost's expected `(der1, der2)` pair (`der1 =
+  -gradient`, `der2 = -1.0`, matching the unit-Hessian Newton step `XGBoostCCA`/`LightGBMCCA`
+  already take). This makes `CatBoostCCA` markedly slower per round than the other two backends
+  (CatBoost rebuilds its training pool and recomputes feature-importance statistics on every
+  such call) -- reach for it when CatBoost's ordered boosting and symmetric trees are themselves
+  the point, not as a faster default. Requires the optional `catboost` package, now part of the
+  `tree` extra alongside `xgboost`/`lightgbm`.
 - `BaseModel.inverse_transform`: reconstructs each view from *that same view's own*
   latent score (typically `transform`'s output), via a per-view loading matrix fit by
   least squares at training time -- an approximate round trip with `transform`, mirroring
@@ -126,6 +138,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- `TreeCCA(backend="xgboost"/"lightgbm")` is replaced by two concrete classes,
+  `XGBoostCCA` and `LightGBMCCA`, each fixing one gradient-boosting backend. `TreeCCA`
+  itself becomes an abstract base class holding the shared Eckart-Young fitting/transform
+  recipe and can no longer be instantiated directly; existing code must switch to
+  `XGBoostCCA(...)` or `LightGBMCCA(...)`, dropping the `backend=` argument. This is a
+  breaking change with no deprecation shim, since `TreeCCA` shipped in `3.1.0` with a
+  string `backend=` switch rather than a class per backend, unlike every other
+  multi-variant model in the package (e.g. `SCCA` + `PMD`/`ADMM`/`IPLS`/`Span`).
 - `CCAEY` now natively supports 2 or more views (previously only `MCCAEY` did, as a thin
   subclass); `MCCAEY` and `MCCA_EY` are now deprecated aliases for `CCAEY` and emit a
   `FutureWarning` on instantiation, since `CCAEY` provides their functionality directly.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from typing import Any
 
 import numpy as np
@@ -24,6 +25,13 @@ try:
 except ImportError:
     _LGBM_AVAILABLE = False
 
+try:
+    import catboost as cb
+
+    _CATBOOST_AVAILABLE = True
+except ImportError:
+    _CATBOOST_AVAILABLE = False
+
 
 def _rescale_to_target_std(
     grads: list[np.ndarray], target_std: float = 0.1
@@ -44,33 +52,20 @@ def _rescale_to_target_std(
     ]
 
 
-class _Encoder:
-    """Per-view ensemble of ``k`` scalar boosters, used only during ``fit``.
+class _XGBoostEncoder:
+    """Per-view ensemble of ``k`` scalar XGBoost boosters, used only during ``fit``.
 
-    Dispatches to XGBoost or LightGBM depending on ``backend``. Predictions
-    are the raw sum of tree outputs (no base margin / init score); the
-    caller is responsible for adding the fixed initial embedding.
+    Predictions are the raw sum of tree outputs (no base margin / init
+    score); the caller is responsible for adding the fixed initial
+    embedding.
     """
 
-    def __init__(
-        self, backend: str, X: np.ndarray, k: int, params: dict[str, object]
-    ) -> None:
-        self.backend = backend
-        self._X = X
+    def __init__(self, X: np.ndarray, k: int, params: dict[str, object]) -> None:
         self._params = params
-        if backend == "xgboost":
-            self._dtrain = xgb.DMatrix(X)
-            self.boosters: list[Any] = [
-                xgb.train(params, self._dtrain, num_boost_round=0) for _ in range(k)
-            ]
-        else:
-            dataset = lgb.Dataset(
-                X, label=np.zeros(len(X), dtype=np.float32), params=params
-            )
-            self._dataset = dataset.construct()
-            self.boosters = [
-                lgb.Booster(params=params, train_set=self._dataset) for _ in range(k)
-            ]
+        self._dtrain = xgb.DMatrix(X)
+        self.boosters: list[xgb.Booster] = [
+            xgb.train(params, self._dtrain, num_boost_round=0) for _ in range(k)
+        ]
 
     def predict(self) -> np.ndarray:
         """Raw (base-margin-free) prediction on the training data.
@@ -78,10 +73,59 @@ class _Encoder:
         Returns:
             Array of shape (n_samples, k).
         """
-        if self.backend == "xgboost":
-            return np.column_stack(
-                [b.predict(self._dtrain, output_margin=True) for b in self.boosters]
+        return np.column_stack(
+            [b.predict(self._dtrain, output_margin=True) for b in self.boosters]
+        )
+
+    def boost(self, gradient: np.ndarray) -> None:
+        """Add one tree to every component booster using the EY gradient.
+
+        Args:
+            gradient: EY gradient for this view, shape (n_samples, k).
+        """
+        updated = []
+        for col, booster in enumerate(self.boosters):
+            g = gradient[:, col].copy()
+
+            def _objective(
+                _predt: np.ndarray, _dtrain: xgb.DMatrix, _g: np.ndarray = g
+            ) -> tuple[np.ndarray, np.ndarray]:
+                return _g, np.ones_like(_g)
+
+            updated.append(
+                xgb.train(
+                    self._params,
+                    self._dtrain,
+                    num_boost_round=1,
+                    obj=_objective,
+                    xgb_model=booster,
+                )
             )
+        self.boosters = updated
+
+
+class _LightGBMEncoder:
+    """Per-view ensemble of ``k`` scalar LightGBM boosters, used only during ``fit``.
+
+    As :class:`_XGBoostEncoder`, but backed by LightGBM's ``Booster`` API.
+    """
+
+    def __init__(self, X: np.ndarray, k: int, params: dict[str, object]) -> None:
+        self._X = X
+        dataset = lgb.Dataset(
+            X, label=np.zeros(len(X), dtype=np.float32), params=params
+        )
+        self._dataset = dataset.construct()
+        self.boosters: list[lgb.Booster] = [
+            lgb.Booster(params=params, train_set=self._dataset) for _ in range(k)
+        ]
+
+    def predict(self) -> np.ndarray:
+        """Raw (base-margin-free) prediction on the training data.
+
+        Returns:
+            Array of shape (n_samples, k).
+        """
         return np.column_stack(
             [b.predict(self._X, raw_score=True) for b in self.boosters]
         )
@@ -92,39 +136,102 @@ class _Encoder:
         Args:
             gradient: EY gradient for this view, shape (n_samples, k).
         """
-        if self.backend == "xgboost":
-            updated = []
-            for col, booster in enumerate(self.boosters):
-                g = gradient[:, col].copy()
+        for col, booster in enumerate(self.boosters):
+            g = gradient[:, col].copy()
 
-                def _objective(
-                    _predt: np.ndarray, _dtrain: xgb.DMatrix, _g: np.ndarray = g
-                ) -> tuple[np.ndarray, np.ndarray]:
-                    return _g, np.ones_like(_g)
+            def _fobj(
+                _preds: np.ndarray, _train_set: object, _g: np.ndarray = g
+            ) -> tuple[np.ndarray, np.ndarray]:
+                return _g, np.ones_like(_g)
 
-                updated.append(
-                    xgb.train(
-                        self._params,
-                        self._dtrain,
-                        num_boost_round=1,
-                        obj=_objective,
-                        xgb_model=booster,
-                    )
+            booster.update(fobj=_fobj)
+
+
+class _CatBoostGradientObjective:
+    """Relays one round's fixed target gradient through CatBoost's loss protocol.
+
+    CatBoost's custom-loss objects implement ``calc_ders_range(approxes,
+    targets, weights)``, returning per-sample ``(der1, der2)`` -- the
+    *negative* first and second derivatives of the loss with respect to the
+    current prediction (see CatBoost's own custom-objective examples, e.g.
+    ``der1 = target - p`` for log-loss). For the fixed-target squared loss
+    used here, that is ``der1 = -gradient`` and the constant
+    ``der2 = -1.0`` (a unit Hessian, negated to match CatBoost's sign
+    convention) -- the same unit-Hessian Newton step
+    :class:`_XGBoostEncoder`/:class:`_LightGBMEncoder` take via their
+    ``(gradient, ones_like(gradient))`` objectives. ``targets`` and
+    ``weights`` are ignored; the caller supplies a dummy label vector purely
+    to satisfy CatBoost's "not all training labels are identical" check.
+    """
+
+    def __init__(self, gradient: np.ndarray) -> None:
+        self._gradient = gradient
+
+    def calc_ders_range(
+        self,
+        approxes: list[float],
+        targets: list[float],
+        weights: list[float] | None,
+    ) -> list[tuple[float, float]]:
+        return [(-float(g), -1.0) for g in self._gradient]
+
+
+class _CatBoostEncoder:
+    """Per-view ensemble of ``k`` scalar CatBoost boosters, used only during ``fit``.
+
+    Unlike XGBoost/LightGBM, CatBoost has no notion of an empty, zero-tree
+    booster to construct up front, so each component starts as ``None`` (an
+    implicit all-zero contribution, handled directly in :meth:`predict`) and
+    is replaced wholesale on every :meth:`boost` call by a freshly
+    constructed model continued from the previous one via ``init_model``.
+    """
+
+    def __init__(self, X: np.ndarray, k: int, params: dict[str, object]) -> None:
+        self._X = X
+        self._params = params
+        # CatBoost refuses to train on a label vector that is all one value;
+        # the custom objective ignores it entirely, so any two-valued vector
+        # satisfies the check without needing real labels.
+        self._y_dummy = np.resize([0.0, 1.0], len(X)).astype(np.float32)
+        self.boosters: list[Any] = [None] * k
+
+    def predict(self) -> np.ndarray:
+        """Raw (base-margin-free) prediction on the training data.
+
+        Returns:
+            Array of shape (n_samples, k).
+        """
+        n = len(self._X)
+        return np.column_stack(
+            [
+                np.zeros(n, dtype=np.float32)
+                if booster is None
+                else np.asarray(
+                    booster.predict(self._X, prediction_type="RawFormulaVal"),
+                    dtype=np.float32,
                 )
-            self.boosters = updated
-        else:
-            for col, booster in enumerate(self.boosters):
-                g = gradient[:, col].copy()
+                for booster in self.boosters
+            ]
+        )
 
-                def _fobj(
-                    _preds: np.ndarray, _train_set: object, _g: np.ndarray = g
-                ) -> tuple[np.ndarray, np.ndarray]:
-                    return _g, np.ones_like(_g)
+    def boost(self, gradient: np.ndarray) -> None:
+        """Add one tree to every component booster using the EY gradient.
 
-                booster.update(fobj=_fobj)
+        Args:
+            gradient: EY gradient for this view, shape (n_samples, k).
+        """
+        updated = []
+        for col, booster in enumerate(self.boosters):
+            objective = _CatBoostGradientObjective(gradient[:, col])
+            new_model = cb.CatBoostRegressor(
+                iterations=1, loss_function=objective, **self._params
+            )
+            new_model.fit(self._X, self._y_dummy, init_model=booster, verbose=False)
+            updated.append(new_model)
+        self.boosters = updated
 
 
-class TreeCCA(BaseModel):
+class TreeCCA(BaseModel, ABC):
     r"""TreeCCA — nonlinear multiview CCA with gradient-boosted-tree encoders.
 
     Learns one nonlinear encoder $f_i$ per view (a gradient-boosted
@@ -157,6 +264,14 @@ class TreeCCA(BaseModel):
     scalar-booster) training procedure from the TreeCCA research codebase,
     generalised from two views to an arbitrary number of views.
 
+    This is an abstract base class shared by every gradient-boosting
+    backend: it holds all of the backend-agnostic fitting/transform logic,
+    while the choice of tree library lives in a concrete subclass —
+    :class:`XGBoostCCA` (the default choice), :class:`LightGBMCCA`, or
+    :class:`CatBoostCCA` (the latter two requiring the optional
+    ``lightgbm``/``catboost`` packages respectively). Instantiate one of
+    those three classes directly; ``TreeCCA`` itself cannot be constructed.
+
     References:
         Chapman, J. (2026). TreeCCA: Canonical Correlation Analysis via
         Gradient-Boosted Trees. arXiv:2607.27027.
@@ -166,39 +281,27 @@ class TreeCCA(BaseModel):
             number of features in any view. Default is 1.
         center: Whether to subtract per-view column means before fitting.
             Default is True.
-        backend: Gradient-boosting library used for the per-component
-            encoders: ``"xgboost"`` (default) or ``"lightgbm"``. The
-            ``"lightgbm"`` backend requires the optional ``lightgbm``
-            package.
         n_estimators: Number of boosting rounds (trees added per booster).
             Default is 50.
         max_depth: Maximum depth of each tree. Default is 5.
         learning_rate: Boosting learning rate. Default is 0.1.
         subsample: Row subsampling ratio per tree. Default is 0.8.
         colsample_bytree: Column subsampling ratio per tree. Default is 0.8.
-        min_child_weight: Minimum sum of instance weight (xgboost) / minimum
-            number of samples (lightgbm) needed in a child. Default is 5.
+        min_child_weight: Minimum sum of instance weight (XGBoostCCA) /
+            minimum number of samples (LightGBMCCA, CatBoostCCA) needed in
+            a child/leaf. Default is 5.
         gauss_seidel: If True, re-predict view 1's embedding after updating
             its boosters and use the fresh values when computing view 2's
             gradient (Gauss-Seidel); if False, both gradients are computed
             from the same stale embeddings (Jacobi). Default is True.
         random_state: Seed for the boosters and for drawing the
             random-orthogonal initial embedding. Default is 0.
-
-    Example:
-        >>> import numpy as np
-        >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((100, 5))
-        >>> X2 = rng.standard_normal((100, 5))
-        >>> model = TreeCCA(latent_dimensions=2, n_estimators=10).fit([X1, X2])
-        >>> scores = model.transform([X1, X2])
     """
 
     def __init__(
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        backend: str = "xgboost",
         n_estimators: int = 50,
         max_depth: int = 5,
         learning_rate: float = 0.1,
@@ -209,7 +312,6 @@ class TreeCCA(BaseModel):
         random_state: int = 0,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)
-        self.backend = backend
         self.n_estimators = n_estimators
         self.max_depth = max_depth
         self.learning_rate = learning_rate
@@ -219,40 +321,33 @@ class TreeCCA(BaseModel):
         self.gauss_seidel = gauss_seidel
         self.random_state = random_state
 
+    @abstractmethod
     def _booster_params(self) -> dict[str, object]:
-        """Build the per-backend booster parameter dictionary.
+        """Build the backend-specific booster parameter dictionary.
 
         Returns:
-            Dictionary of training parameters for the selected backend.
+            Dictionary of training parameters for this backend.
         """
-        if self.backend == "xgboost":
-            return {
-                "tree_method": "hist",
-                "base_score": 0.0,
-                "disable_default_eval_metric": True,
-                "learning_rate": self.learning_rate,
-                "max_depth": self.max_depth,
-                "subsample": self.subsample,
-                "colsample_bytree": self.colsample_bytree,
-                "min_child_weight": self.min_child_weight,
-                "seed": int(self.random_state),
-            }
-        return {
-            "objective": "regression",
-            "metric": "None",
-            "learning_rate": self.learning_rate,
-            "max_depth": self.max_depth,
-            "feature_fraction": self.colsample_bytree,
-            "bagging_fraction": self.subsample,
-            "bagging_freq": 1,
-            "min_child_samples": int(self.min_child_weight),
-            "min_data_in_bin": 1,
-            "verbose": -1,
-            "seed": int(self.random_state),
-        }
 
+    @abstractmethod
+    def _make_encoder(
+        self, X: np.ndarray, k: int, params: dict[str, object]
+    ) -> _XGBoostEncoder | _LightGBMEncoder | _CatBoostEncoder:
+        """Construct this backend's per-view encoder.
+
+        Args:
+            X: This view's training data, shape (n_samples, n_features).
+            k: Number of latent components (boosters in the encoder).
+            params: This backend's booster parameters, from
+                :meth:`_booster_params`.
+
+        Returns:
+            A fresh, zero-tree encoder for this view.
+        """
+
+    @abstractmethod
     def _predict_boosters(self, boosters: list[Any], X: np.ndarray) -> np.ndarray:
-        """Raw (base-margin-free) prediction for arbitrary (e.g. test) data.
+        """Backend-specific raw prediction for arbitrary (e.g. test) data.
 
         Args:
             boosters: One fitted booster per latent component.
@@ -261,15 +356,13 @@ class TreeCCA(BaseModel):
         Returns:
             Array of shape (n_samples, k).
         """
-        if self.backend == "xgboost":
-            dmatrix = xgb.DMatrix(X)
-            return np.column_stack(
-                [b.predict(dmatrix, output_margin=True) for b in boosters]
-            )
-        return np.column_stack([b.predict(X, raw_score=True) for b in boosters])
+
+    @abstractmethod
+    def _importance_example(self) -> str:
+        """One-line usage example for per-component feature importance."""
 
     def fit(self, views: list[ArrayLike], y: None = None) -> TreeCCA:
-        """Fit the TreeCCA model.
+        """Fit the model.
 
         Args:
             views: List of 2 or more arrays, each (n_samples, n_features_i).
@@ -281,19 +374,7 @@ class TreeCCA(BaseModel):
         Raises:
             ValueError: If fewer than 2 views are provided.
             ValueError: If views have inconsistent numbers of samples.
-            ValueError: If ``backend`` is not ``"xgboost"`` or ``"lightgbm"``.
-            ImportError: If ``backend="lightgbm"`` but lightgbm is not
-                installed.
         """
-        if self.backend not in ("xgboost", "lightgbm"):
-            raise ValueError(
-                f"backend must be 'xgboost' or 'lightgbm', got {self.backend!r}."
-            )
-        if self.backend == "lightgbm" and not _LGBM_AVAILABLE:
-            raise ImportError(
-                "backend='lightgbm' requires the lightgbm package. "
-                "Install with: pip install lightgbm"
-            )
         views_ = self._setup_fit(views)
         k = self.latent_dimensions
         n_views = len(views_)
@@ -308,7 +389,7 @@ class TreeCCA(BaseModel):
         self._projections_: list[np.ndarray] = projections
 
         params = self._booster_params()
-        encoders = [_Encoder(self.backend, X, k, params) for X in views_]
+        encoders = [self._make_encoder(X, k, params) for X in views_]
 
         for _ in range(self.n_estimators):
             representations = [
@@ -352,25 +433,218 @@ class TreeCCA(BaseModel):
 
     @property
     def weights(self) -> list[np.ndarray]:
-        """Not implemented for TreeCCA.
+        """Not implemented for TreeCCA models.
 
         Raises:
             sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
             NotImplementedError: TreeCCA encoders are boosted-tree ensembles,
-                not linear weight matrices. Use ``boosters_`` instead, e.g.
-                ``model.boosters_[view][component].get_score(importance_type="gain")``
-                (xgboost backend) or
-                ``model.boosters_[view][component].feature_importance(importance_type="gain")``
-                (lightgbm backend) for per-component feature importance.
+                not linear weight matrices. Use ``boosters_`` instead.
         """
         check_is_fitted(self)
         raise NotImplementedError(
-            "TreeCCA has no linear weight matrices; its encoders are "
-            "gradient-boosted-tree ensembles. Use the `boosters_` attribute "
-            "instead for per-component feature importance, e.g. "
-            'model.boosters_[view][component].get_score(importance_type="gain") '
-            "for the xgboost backend, or "
-            "model.boosters_[view][component]"
-            '.feature_importance(importance_type="gain") for the lightgbm '
-            "backend."
+            f"{type(self).__name__} has no linear weight matrices; its "
+            "encoders are gradient-boosted-tree ensembles. Use the "
+            "`boosters_` attribute instead for per-component feature "
+            f"importance, e.g.\n{self._importance_example()}"
         )
+
+
+class XGBoostCCA(TreeCCA):
+    r"""TreeCCA with XGBoost boosters as the per-view encoders.
+
+    See :class:`TreeCCA` for the shared Eckart-Young objective and
+    Gauss-Seidel boosting recipe; this class fixes the gradient-boosting
+    backend to `XGBoost <https://xgboost.readthedocs.io/>`_.
+
+    Example:
+        >>> import numpy as np
+        >>> rng = np.random.default_rng(0)
+        >>> X1 = rng.standard_normal((100, 5))
+        >>> X2 = rng.standard_normal((100, 5))
+        >>> model = XGBoostCCA(latent_dimensions=2, n_estimators=10).fit([X1, X2])
+        >>> scores = model.transform([X1, X2])
+    """
+
+    def _booster_params(self) -> dict[str, object]:
+        return {
+            "tree_method": "hist",
+            "base_score": 0.0,
+            "disable_default_eval_metric": True,
+            "learning_rate": self.learning_rate,
+            "max_depth": self.max_depth,
+            "subsample": self.subsample,
+            "colsample_bytree": self.colsample_bytree,
+            "min_child_weight": self.min_child_weight,
+            "seed": int(self.random_state),
+        }
+
+    def _make_encoder(
+        self, X: np.ndarray, k: int, params: dict[str, object]
+    ) -> _XGBoostEncoder:
+        return _XGBoostEncoder(X, k, params)
+
+    def _predict_boosters(self, boosters: list[Any], X: np.ndarray) -> np.ndarray:
+        dmatrix = xgb.DMatrix(X)
+        return np.column_stack(
+            [b.predict(dmatrix, output_margin=True) for b in boosters]
+        )
+
+    def _importance_example(self) -> str:
+        return 'model.boosters_[view][component].get_score(importance_type="gain")'
+
+
+class LightGBMCCA(TreeCCA):
+    r"""TreeCCA with LightGBM boosters as the per-view encoders.
+
+    See :class:`TreeCCA` for the shared Eckart-Young objective and
+    Gauss-Seidel boosting recipe; this class fixes the gradient-boosting
+    backend to `LightGBM <https://lightgbm.readthedocs.io/>`_, which
+    requires the optional ``lightgbm`` package (``pip install lightgbm``,
+    included in the ``tree`` extra).
+
+    Example:
+        >>> import numpy as np
+        >>> rng = np.random.default_rng(0)
+        >>> X1 = rng.standard_normal((100, 5))
+        >>> X2 = rng.standard_normal((100, 5))
+        >>> model = LightGBMCCA(latent_dimensions=2, n_estimators=10).fit([X1, X2])
+        >>> scores = model.transform([X1, X2])
+    """
+
+    def fit(self, views: list[ArrayLike], y: None = None) -> LightGBMCCA:
+        """Fit the model.
+
+        Args: as :meth:`TreeCCA.fit`.
+
+        Returns:
+            self: Fitted estimator.
+
+        Raises:
+            ValueError: If fewer than 2 views are provided.
+            ValueError: If views have inconsistent numbers of samples.
+            ImportError: If the ``lightgbm`` package is not installed.
+        """
+        if not _LGBM_AVAILABLE:
+            raise ImportError(
+                "LightGBMCCA requires the lightgbm package. "
+                "Install with: pip install lightgbm"
+            )
+        return super().fit(views, y)
+
+    def _booster_params(self) -> dict[str, object]:
+        return {
+            "objective": "regression",
+            "metric": "None",
+            "learning_rate": self.learning_rate,
+            "max_depth": self.max_depth,
+            "feature_fraction": self.colsample_bytree,
+            "bagging_fraction": self.subsample,
+            "bagging_freq": 1,
+            "min_child_samples": int(self.min_child_weight),
+            "min_data_in_bin": 1,
+            "verbose": -1,
+            "seed": int(self.random_state),
+        }
+
+    def _make_encoder(
+        self, X: np.ndarray, k: int, params: dict[str, object]
+    ) -> _LightGBMEncoder:
+        return _LightGBMEncoder(X, k, params)
+
+    def _predict_boosters(self, boosters: list[Any], X: np.ndarray) -> np.ndarray:
+        return np.column_stack([b.predict(X, raw_score=True) for b in boosters])
+
+    def _importance_example(self) -> str:
+        return (
+            "model.boosters_[view][component]"
+            '.feature_importance(importance_type="gain")'
+        )
+
+
+class CatBoostCCA(TreeCCA):
+    r"""TreeCCA with CatBoost boosters as the per-view encoders.
+
+    See :class:`TreeCCA` for the shared Eckart-Young objective and
+    Gauss-Seidel boosting recipe; this class fixes the gradient-boosting
+    backend to `CatBoost <https://catboost.ai/>`_, which requires the
+    optional ``catboost`` package (``pip install catboost``, included in
+    the ``tree`` extra).
+
+    Unlike :class:`XGBoostCCA`/:class:`LightGBMCCA`, which continue an
+    existing booster in place, CatBoost has no in-place "add one tree"
+    call: each round, every component is replaced by a freshly constructed
+    ``CatBoostRegressor(iterations=1, ...)`` continued from the previous
+    round's model via ``init_model=``, using a custom loss object
+    (:class:`~cca_zoo.tree._treecca._CatBoostGradientObjective`) that
+    relays the EY gradient as CatBoost's expected ``(der1, der2)`` pair. As
+    a consequence, fitting is markedly slower per round than
+    :class:`XGBoostCCA`/:class:`LightGBMCCA` (CatBoost rebuilds its
+    training pool and recomputes feature-importance statistics on every
+    such call), a cost worth paying when CatBoost's ordered-boosting and
+    symmetric-tree structure are themselves the point.
+
+    Example:
+        >>> import numpy as np
+        >>> rng = np.random.default_rng(0)
+        >>> X1 = rng.standard_normal((100, 5))
+        >>> X2 = rng.standard_normal((100, 5))
+        >>> model = CatBoostCCA(latent_dimensions=2, n_estimators=10).fit([X1, X2])
+        >>> scores = model.transform([X1, X2])
+    """
+
+    def fit(self, views: list[ArrayLike], y: None = None) -> CatBoostCCA:
+        """Fit the model.
+
+        Args: as :meth:`TreeCCA.fit`.
+
+        Returns:
+            self: Fitted estimator.
+
+        Raises:
+            ValueError: If fewer than 2 views are provided.
+            ValueError: If views have inconsistent numbers of samples.
+            ImportError: If the ``catboost`` package is not installed.
+        """
+        if not _CATBOOST_AVAILABLE:
+            raise ImportError(
+                "CatBoostCCA requires the catboost package. "
+                "Install with: pip install catboost"
+            )
+        return super().fit(views, y)
+
+    def _booster_params(self) -> dict[str, object]:
+        return {
+            "depth": self.max_depth,
+            "learning_rate": self.learning_rate,
+            "subsample": self.subsample,
+            "bootstrap_type": "Bernoulli",
+            "rsm": self.colsample_bytree,
+            "min_data_in_leaf": int(self.min_child_weight),
+            "boost_from_average": False,
+            "eval_metric": "RMSE",
+            "allow_writing_files": False,
+            "verbose": False,
+            "random_seed": int(self.random_state),
+        }
+
+    def _make_encoder(
+        self, X: np.ndarray, k: int, params: dict[str, object]
+    ) -> _CatBoostEncoder:
+        return _CatBoostEncoder(X, k, params)
+
+    def _predict_boosters(self, boosters: list[Any], X: np.ndarray) -> np.ndarray:
+        n = X.shape[0]
+        return np.column_stack(
+            [
+                np.zeros(n, dtype=np.float32)
+                if booster is None
+                else np.asarray(
+                    booster.predict(X, prediction_type="RawFormulaVal"),
+                    dtype=np.float32,
+                )
+                for booster in boosters
+            ]
+        )
+
+    def _importance_example(self) -> str:
+        return "model.boosters_[view][component].get_feature_importance()"

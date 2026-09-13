@@ -38,7 +38,7 @@ Install optional extras as needed:
 ```bash
 uv add "cca-zoo[deep]"          # DCCA variants (requires PyTorch + Lightning)
 uv add "cca-zoo[probabilistic]" # Probabilistic CCA (requires NumPyro + JAX)
-uv add "cca-zoo[tree]"          # TreeCCA (requires XGBoost, optionally LightGBM)
+uv add "cca-zoo[tree]"          # XGBoostCCA, LightGBMCCA, CatBoostCCA
 uv add "cca-zoo[all]"           # Everything above
 ```
 
@@ -113,7 +113,9 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 
 | Class | Description | Views |
 |---|---|---|
-| `TreeCCA` | Gradient-boosted-tree CCA (Eckart-Young objective) | ≥2 |
+| `XGBoostCCA` | Gradient-boosted-tree CCA via XGBoost (Eckart-Young objective) | ≥2 |
+| `LightGBMCCA` | Gradient-boosted-tree CCA via LightGBM (Eckart-Young objective) | ≥2 |
+| `CatBoostCCA` | Gradient-boosted-tree CCA via CatBoost (Eckart-Young objective) | ≥2 |
 
 ### `cca_zoo.gam`
 
