@@ -16,7 +16,7 @@
         <link rel="prev" href="../gam/">
       
       
-        <link rel="next" href="../deep/">
+        <link rel="next" href="../sparse/">
       
       
         
@@ -461,6 +461,8 @@
       
         
       
+        
+      
     
     
     
@@ -778,6 +780,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../sparse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparse Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../deep/" class="md-nav__link">
         
   
@@ -901,6 +931,8 @@
       
         
           
+        
+      
         
       
         
@@ -1104,6 +1136,34 @@
     
   
     GP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/sparse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparse
   
 
     
@@ -1431,11 +1491,12 @@
 <h1 id="gp-methods">GP Methods<a class="headerlink" href="#gp-methods" title="Permanent link">&para;</a></h1>
 <p>The <code>cca_zoo.gp</code> module provides <code>GaussianProcessCCA</code>, a nonlinear multiview CCA method that uses a
 Gaussian process with a joint (non-additive) kernel as the per-view encoder. It has no optional
-dependency: the kernel and its fit are built entirely from scikit-learn's own
-<code>GaussianProcessRegressor</code>, <code>RBF</code> and <code>ConstantKernel</code>, all already required by <code>cca_zoo</code>.</p>
+dependency: the kernel machinery is built entirely from scikit-learn's own
+<code>GaussianProcessRegressor</code>, <code>RBF</code>, <code>ConstantKernel</code> and <code>KernelCenterer</code>, with <code>scipy.optimize</code>
+doing the fit, all already required by <code>cca_zoo</code>.</p>
 <hr />
 <h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
-<p><code>GaussianProcessCCA</code> maximises the same unconstrained Eckart-Young (EY) objective used by the stochastic
+<p><code>GaussianProcessCCA</code> minimises the same unconstrained Eckart-Young (EY) objective used by the stochastic
 <code>*_EY</code> models in <code>cca_zoo.linear</code>, by <code>DCCAEY</code> in <code>cca_zoo.deep</code>, by <code>TreeCCA</code> in <code>cca_zoo.tree</code>,
 and by <code>GAMCCA</code> in <code>cca_zoo.gam</code> (all share the exact same implementation, in
 <code>cca_zoo._utils._ey</code>):</p>
@@ -1449,29 +1510,26 @@ interaction between two features of the same view — <code>GaussianProcessCCA</
 (per-feature-lengthscale) RBF kernel directly over each view's <em>raw, joint</em> feature vector: a
 genuine, non-additive function of all of that view's features at once. As a Bayesian model it
 also comes with calibrated predictive uncertainty for free.</p>
-<p><code>GaussianProcessCCA</code> is fit with the same inner/outer split as <code>GAMCCA</code>'s P-IRLS/GCV recipe, with the GP's own
-machinery in place of <code>Ridge</code>/<code>RidgeCV</code>:</p>
-<ol>
-<li><strong>Inner loop — fixed-kernel Newton steps.</strong> For the <em>current</em> kernel hyperparameters,
-   repeatedly take a Newton step on the EY loss for each view in turn: form a working response
-   <span class="arithmatex">\(Z_i - \nabla_i / h_i\)</span> from the analytic EY gradient <span class="arithmatex">\(\nabla_i\)</span> and a diagonal Hessian weight
-   <span class="arithmatex">\(h_i\)</span>, and fit it with <code>GaussianProcessRegressor</code> (<code>optimizer=None</code>, so the kernel is held
-   fixed), passing <span class="arithmatex">\(h_i\)</span> as the GP's per-sample <code>alpha</code> (heteroscedastic observation noise). Cycle
-   through every view until the EY loss itself stops moving.</li>
-<li><strong>Outer loop — marginal-likelihood kernel search.</strong> Only once the inner loop has converged,
-   re-fit each view's kernel hyperparameters (lengthscales, signal variance) at that converged
-   working response via the GP's own default log-marginal-likelihood optimisation — the direct GP
-   analogue of GCV/REML smoothing-parameter search in <code>GAMCCA</code>. Repeat until the kernel
-   hyperparameters stabilise too.</li>
-</ol>
+<p>Each encoder writes <span class="arithmatex">\(f_i(x) = k(x, Z_i)^\top B_i\)</span> for a fixed kernel <span class="arithmatex">\(k\)</span> and a fixed set of basis
+("inducing") points <span class="arithmatex">\(Z_i\)</span> — every training row by default, or <code>n_inducing</code> of them selected via
+<code>sklearn.cluster.kmeans_plusplus</code> for larger datasets. Fitting the coefficients <span class="arithmatex">\(B_i\)</span> is then an
+ordinary smooth optimisation problem with an exact, cheap analytic gradient, solved directly by
+<strong>L-BFGS-B</strong> (<code>scipy.optimize.minimize</code>) — the same algorithm <code>GaussianProcessRegressor</code> itself
+uses internally, just pointed at the EY loss (plus an RKHS-norm ridge penalty) instead of the
+negative log-marginal-likelihood it optimises kernel hyperparameters against. One view's full
+coefficient matrix is optimised at a time, cycling through every view until the penalised
+objective stops moving. Kernel hyperparameters are fixed — pass <code>kernel=</code> explicitly, or tune it
+externally (e.g. with <code>sklearn.model_selection.GridSearchCV</code>, since this is an ordinary
+<code>BaseEstimator</code>).</p>
 <p><strong>When to use:</strong> Nonlinear multiview CCA where cross-view structure depends on a genuine
 <em>interaction</em> between two or more features of the same view (e.g. <span class="arithmatex">\(x_1 x_2\)</span>), which an additive
 GAM cannot represent and which a tree ensemble can only approximate via multivariate splits (and,
 at default settings, may be starved of joint feature access — see <code>TreeCCA</code>'s <code>colsample_bytree</code>).
 A GP with a joint kernel represents such an interaction directly. When the true relationship is
 smooth and <em>additive</em>, <code>GAMCCA</code> is typically a cheaper and equally accurate choice; a GP over the
-raw feature vector scales cubically in the number of training samples (exact GP inference), so
-expect fitting to be markedly slower than <code>GAMCCA</code> or <code>TreeCCA</code> on large datasets.</p>
+raw feature vector scales cubically in the number of training samples (exact inference), so
+expect fitting to be markedly slower than <code>GAMCCA</code> or <code>TreeCCA</code> on large datasets unless
+<code>n_inducing</code> is set.</p>
 <hr />
 <h2 id="basic-usage">Basic usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.gp</span><span class="w"> </span><span class="kn">import</span> <span class="n">GaussianProcessCCA</span>
@@ -1489,34 +1547,31 @@ component's posterior standard deviation alongside its mean:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">means</span><span class="p">,</span> <span class="n">stds</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">],</span> <span class="n">return_std</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span></code></pre></div>
 <p><code>stds[i]</code> has the same shape as <code>means[i]</code> (<code>(n_samples, latent_dimensions)</code>) and is the posterior
-standard deviation of view <code>i</code>'s latent component, propagated through the whitening transform —
-larger away from the training data, smaller near it, exactly as for any other GP posterior.</p>
+standard deviation of view <code>i</code>'s latent component — larger away from the training data, smaller
+near it, exactly as for any other GP posterior. This does not depend on the fitted coefficients at
+all (a standard GP fact: posterior variance only involves the kernel, the noise level, and the
+design points), so it is computed under the (uncentred) GP prior implied by the same kernel, noise
+level, and inducing points as the mean fit.</p>
 <p><code>GaussianProcessCCA</code> has no linear weight matrices and no per-feature decomposition analogous to <code>GAMCCA</code>'s
 <code>shape_function</code> (the kernel is not additive across features), so <code>model.weights</code> raises
 <code>NotImplementedError</code>.</p>
 <hr />
 <h2 id="scaling-to-larger-datasets-the-sparse-inducing-point-approximation">Scaling to larger datasets: the sparse (inducing-point) approximation<a class="headerlink" href="#scaling-to-larger-datasets-the-sparse-inducing-point-approximation" title="Permanent link">&para;</a></h2>
-<p>Exact GP inference costs <span class="arithmatex">\(O(n^3)\)</span> per Newton step — every <code>inner_step</code>/<code>outer_step</code> call redoes a
-full Cholesky factorisation of an <span class="arithmatex">\((n, n)\)</span> matrix — which becomes impractical somewhere in the
-low thousands of samples. Setting <code>n_inducing</code> switches each encoder to the <strong>Deterministic
-Training Conditional (DTC)</strong> sparse approximation (Quiñonero-Candela &amp; Rasmussen, 2005): the GP is
-conditioned on <code>n_inducing</code> inducing points — an actual, well-spread subset of the training rows,
-selected via <code>sklearn.cluster.kmeans_plusplus</code>'s seeding — and every posterior formula becomes a
-function of the <span class="arithmatex">\((n, m)\)</span> and <span class="arithmatex">\((m, m)\)</span> inducing-covariance matrices instead of the full <span class="arithmatex">\((n, n)\)</span>
-one, costing <span class="arithmatex">\(O(n \, m^2 + m^3)\)</span> instead of <span class="arithmatex">\(O(n^3)\)</span>:</p>
+<p>Exact inference costs <span class="arithmatex">\(O(n^3)\)</span> per fit, using every training row as a basis point — impractical
+somewhere in the low thousands of samples. Setting <code>n_inducing</code> switches each encoder to a
+<strong>reduced-rank ("subset of regressors")</strong> construction (Quiñonero-Candela &amp; Rasmussen, 2005),
+using only <code>n_inducing</code> basis points — an actual, well-spread subset of the training rows,
+selected via <code>sklearn.cluster.kmeans_plusplus</code>'s seeding — reducing fitting to
+<span class="arithmatex">\(O(n \, m^2 + m^3)\)</span> for <span class="arithmatex">\(m\)</span> basis points instead of <span class="arithmatex">\(O(n^3)\)</span>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GaussianProcessCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_inducing</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="p">)</span>  <span class="c1"># X1, X2 have many samples</span>
 </span></code></pre></div>
-<p>Kernel hyperparameters are still selected by an <em>exact</em> marginal-likelihood fit — just on the
-<code>n_inducing</code> inducing rows alone, where it's cheap — while the actual working-response fit used to
-build each round's representation always uses <em>every</em> training row via the DTC formula, so no
-training signal is thrown away at the point that matters most. <code>n_inducing</code> values at or above the
-number of training samples are equivalent to (and internally fall back to) exact inference. Larger
-<code>n_inducing</code> trades speed for a closer approximation to the exact posterior; there's no universal
-default, since how many inducing points are "enough" depends on how smooth/low-rank the true
-underlying function is — start with a few hundred and check whether increasing it changes the
-held-out canonical correlation.</p>
+<p><code>n_inducing</code> values at or above the number of training samples are equivalent to (and internally
+fall back to) exact inference. Larger <code>n_inducing</code> trades speed for a closer approximation to the
+exact posterior; there's no universal default, since how many inducing points are "enough" depends
+on how smooth/low-rank the true underlying function is — start with a few hundred and check
+whether increasing it changes the held-out canonical correlation.</p>
 <hr />
 <h2 id="key-parameters">Key parameters<a class="headerlink" href="#key-parameters" title="Permanent link">&para;</a></h2>
 <table>
@@ -1528,28 +1583,28 @@ held-out canonical correlation.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>max_inner_iter</code></td>
-<td>Cap on fixed-kernel Newton rounds (one cycle through every view) per outer iteration. In practice the inner loop converges well before this in typical cases.</td>
+<td><code>kernel</code></td>
+<td>Fixed kernel used for every view. <code>None</code> (default) uses <code>ConstantKernel(1.0) * RBF(length_scale=np.ones(p))</code> for each view's own feature count <code>p</code>.</td>
 </tr>
 <tr>
-<td><code>max_outer_iter</code></td>
-<td>Cap on kernel-hyperparameter re-selection rounds.</td>
-</tr>
-<tr>
-<td><code>tol</code></td>
-<td>Inner-loop convergence tolerance, on the change in the EY loss between successive full passes over all views.</td>
-</tr>
-<tr>
-<td><code>hess_floor_percentile</code></td>
-<td>Percentile (0-100) of each round's raw diagonal-Hessian values used to floor them — self-calibrating damping against the Hessian's poor conditioning near the loss's own fixed point (see <code>GAMCCA</code>'s class docstring for why). Default is 90.</td>
+<td><code>alpha</code></td>
+<td>Ridge (RKHS-norm) penalty strength, also used as the noise level for the posterior-variance calculation.</td>
 </tr>
 <tr>
 <td><code>n_inducing</code></td>
-<td>Number of inducing points for the sparse DTC approximation (see above). <code>None</code> (default) uses exact GP inference.</td>
+<td>Number of basis ("inducing") points (see above). <code>None</code> (default) uses every training row (exact inference).</td>
+</tr>
+<tr>
+<td><code>max_iter</code></td>
+<td>Maximum number of full sweeps (one L-BFGS-B solve per view each).</td>
+</tr>
+<tr>
+<td><code>tol</code></td>
+<td>Convergence tolerance on the penalised objective's change between consecutive sweeps.</td>
 </tr>
 <tr>
 <td><code>random_state</code></td>
-<td>Seed for the random-orthogonal initial embedding, and (if <code>n_inducing</code> is set) for selecting inducing points.</td>
+<td>Seed for the initial coefficients, and (if <code>n_inducing</code> is set) for selecting inducing points.</td>
 </tr>
 </tbody>
 </table>
@@ -1557,14 +1612,13 @@ held-out canonical correlation.</p>
 <h2 id="practical-notes">Practical notes<a class="headerlink" href="#practical-notes" title="Permanent link">&para;</a></h2>
 <ul>
 <li><code>GaussianProcessCCA</code> supports 2 or more views.</li>
-<li><code>latent_dimensions</code> must not exceed the number of features in any view (the random-orthogonal
-  initialisation draws that many orthogonal directions in feature space).</li>
-<li>Exact GP inference (<code>n_inducing=None</code>) is <span class="arithmatex">\(O(n^3)\)</span> in the number of training samples; set
+<li><code>latent_dimensions</code> must not exceed the number of features in any view.</li>
+<li>Exact inference (<code>n_inducing=None</code>) is <span class="arithmatex">\(O(n^3)\)</span> in the number of training samples; set
   <code>n_inducing</code> for datasets beyond a few thousand samples, or consider <code>GAMCCA</code> (if the
   relationship is additive) or <code>TreeCCA</code> instead.</li>
 <li>No optional dependency is required (unlike <code>cca_zoo.tree</code>, which needs <code>xgboost</code>/<code>lightgbm</code>):
-  <code>GaussianProcessCCA</code> is built entirely on <code>scikit-learn</code>'s <code>GaussianProcessRegressor</code>, <code>RBF</code>, <code>ConstantKernel</code>
-  and <code>kmeans_plusplus</code>.</li>
+  <code>GaussianProcessCCA</code> is built entirely on <code>scikit-learn</code>'s <code>GaussianProcessRegressor</code>, <code>RBF</code>, <code>ConstantKernel</code>,
+  <code>KernelCenterer</code> and <code>kmeans_plusplus</code>.</li>
 </ul>
 
 
@@ -1618,13 +1672,13 @@ held-out canonical correlation.</p>
         
         
           
-          <a href="../deep/" class="md-footer__link md-footer__link--next" aria-label="Next: Deep Methods">
+          <a href="../sparse/" class="md-footer__link md-footer__link--next" aria-label="Next: Sparse Methods">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Deep Methods
+                Sparse Methods
               </div>
             </div>
             <div class="md-footer__button md-icon">

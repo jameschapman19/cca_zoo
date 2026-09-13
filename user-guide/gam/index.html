@@ -461,6 +461,8 @@
       
         
       
+        
+      
     
     
     
@@ -767,6 +769,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../sparse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparse Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../deep/" class="md-nav__link">
         
   
@@ -890,6 +920,8 @@
       
         
           
+        
+      
         
       
         
@@ -1093,6 +1125,34 @@
     
   
     GP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/sparse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparse
   
 
     
@@ -1409,12 +1469,12 @@
 <h1 id="gam-methods">GAM Methods<a class="headerlink" href="#gam-methods" title="Permanent link">&para;</a></h1>
 <p>The <code>cca_zoo.gam</code> module provides <code>GAMCCA</code>, a nonlinear multiview CCA method that uses a
 generalized additive model (GAM) — one smooth univariate B-spline per input feature — as the
-per-view encoder. It has no optional dependency: the spline basis and its penalised fit are built
-entirely from scikit-learn's own <code>SplineTransformer</code>, <code>Ridge</code> and <code>RidgeCV</code>, all already required
-by <code>cca_zoo</code>, rather than reimplemented from scratch.</p>
+per-view encoder. It has no optional dependency: the spline basis is built entirely from
+scikit-learn's own <code>SplineTransformer</code>, with <code>scipy.optimize</code> doing the Newton solve, all already
+required by <code>cca_zoo</code>, rather than reimplemented from scratch.</p>
 <hr />
 <h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
-<p><code>GAMCCA</code> maximises the same unconstrained Eckart-Young (EY) objective used by the stochastic
+<p><code>GAMCCA</code> minimises the same unconstrained Eckart-Young (EY) objective used by the stochastic
 <code>*_EY</code> models in <code>cca_zoo.linear</code>, by <code>DCCAEY</code> in <code>cca_zoo.deep</code>, and by <code>TreeCCA</code> in
 <code>cca_zoo.tree</code> (the numpy-based models share the exact same implementation, in
 <code>cca_zoo._utils._ey</code>):</p>
@@ -1426,45 +1486,23 @@ by <code>cca_zoo</code>, rather than reimplemented from scratch.</p>
 additive model — <span class="arithmatex">\(f_i(x) = \sum_j s_j(x_j)\)</span>, one B-spline term per input feature — in place of a
 linear map (<code>CCAEY</code>) or a boosted-tree ensemble (<code>TreeCCA</code>) as the function class for each
 <span class="arithmatex">\(f_i\)</span>.</p>
-<p>Unlike those models, which reach the EY loss's optimum by many small (stochastic-)gradient steps,
-<code>GAMCCA</code> fits it the way GAM software such as R's <code>mgcv</code> fits an ordinary GAM, applied directly to
-the EY loss instead of a per-observation likelihood:</p>
-<ol>
-<li><strong>Inner loop — P-IRLS.</strong> For the <em>current, fixed</em> smoothing parameters, repeatedly take a
-   Newton step on the EY loss for each view in turn: form a working response
-   <span class="arithmatex">\(Z_i - \nabla_i / h_i\)</span> from the analytic EY gradient <span class="arithmatex">\(\nabla_i\)</span> and a diagonal Hessian weight
-   <span class="arithmatex">\(h_i\)</span>, and ridge-regress it onto that view's fixed B-spline basis (<code>sklearn.linear_model.Ridge</code>).
-   Cycle through every view until the EY loss itself stops moving.</li>
-<li><strong>Outer loop — GCV-style smoothing-parameter search.</strong> Only once the inner loop has converged,
-   re-select each view's smoothing parameter with <code>sklearn.linear_model.RidgeCV</code>'s efficient
-   leave-one-out cross-validation (the same statistical job GCV/REML do in <code>mgcv</code>) at that
-   converged state, then re-run the inner loop with the new parameters. Repeat until the smoothing
-   parameters stabilise too.</li>
-</ol>
-<p>This is a deliberate departure from <code>TreeCCA</code>'s boosting recipe, which exists because a tree
-ensemble has no closed-form fit to a moving target and so <em>must</em> be built up from many small
-shrunk steps. A ridge-penalised spline fit has no such constraint, so <code>GAMCCA</code> has no
-<code>learning_rate</code> or <code>n_estimators</code> to tune — each view's smoothing strength is chosen
-automatically, exactly as it would be fitting any other GAM.</p>
+<p>Writing <span class="arithmatex">\(f_i(x) = \sum_j s_j(x_j)\)</span> as a fixed per-feature B-spline basis times a coefficient
+matrix, fitting those coefficients is a <strong>P-IRLS</strong> recipe — the same iteration structure GAM
+software such as R's <code>mgcv</code> uses, applied directly to the EY loss rather than a per-observation
+likelihood: for one latent component's coefficients at a time (every other component and view
+held fixed), a damped Newton step is solved via <code>scipy.optimize.minimize(method="trust-exact")</code>
+using the EY loss's exact gradient and Hessian in that coefficient space, cycling through every
+component and view until the penalised objective stops moving.</p>
 <p>Because each latent component decomposes exactly into one additive term per input feature, the
 fitted shape of any feature's contribution is available directly via <code>model.shape_function(...)</code>
 — the GAM analogue of <code>TreeCCA</code>'s split-gain feature importance, but an exact curve rather than a
 single importance score, and smooth by construction rather than a step function.</p>
 <p><strong>When to use:</strong> Nonlinear multiview CCA where the true per-feature relationship is expected to
 be <em>smooth</em> (rather than needing feature interactions or sharp thresholds) — a GAM's smoothness
-assumption is then a genuine inductive-bias advantage, not just a cosmetic one. On such data
-<code>GAMCCA</code> reaches a higher held-out canonical correlation than <code>TreeCCA</code>, converges without any
-round-count tuning, and is markedly cheaper per fit (a ridge solve is far cheaper than growing a
-tree ensemble). See
-<code>tests/gam/test_gamcca.py::test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data</code>
-for a worked example: view 1 is a noisy linear copy of a shared latent factor <code>z</code>; view 2 is a
-noisy linear copy of <code>z ** 2</code> (a smooth but non-monotonic transform, so no linear combination of
-either view's raw features can align with the other — <code>rCCA</code> gets essentially nothing). <code>GAMCCA</code>
-reaches a held-out canonical correlation of about 0.94, versus about 0.60 for <code>TreeCCA</code> at 150
-boosting rounds (<code>TreeCCA</code> needs 600+ rounds to approach 0.90).</p>
+assumption is then a genuine inductive-bias advantage, not just a cosmetic one.</p>
 <p>If cross-view structure instead depends on an <em>interaction</em> between two features of the same view
 (e.g. <span class="arithmatex">\(x_1 x_2\)</span>), a GAM's additive structure cannot represent that the way a tree's multivariate
-splits can — prefer <code>TreeCCA</code> there.</p>
+splits or a Gaussian process's joint kernel can — prefer <code>TreeCCA</code> or <code>GaussianProcessCCA</code> there.</p>
 <hr />
 <h2 id="basic-usage">Basic usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.gam</span><span class="w"> </span><span class="kn">import</span> <span class="n">GAMCCA</span>
@@ -1505,45 +1543,32 @@ score. Summing every feature's <code>shape_function</code> at the training value
 <td>Knots per feature's B-spline term, passed straight through to <code>SplineTransformer(n_knots=...)</code>. More knots allow wigglier per-feature curves.</td>
 </tr>
 <tr>
-<td><code>alphas</code></td>
-<td>Candidate smoothing parameters searched by <code>RidgeCV</code> in the outer loop. Default is <code>numpy.logspace(-6, 3, 10)</code>.</td>
+<td><code>alpha</code></td>
+<td>Ridge (smoothing) penalty strength applied to every spline coefficient. There is no automatic smoothing-parameter selection — tune this directly.</td>
 </tr>
 <tr>
-<td><code>max_inner_iter</code></td>
-<td>Cap on P-IRLS rounds (one cycle through every view) per outer iteration. In practice the inner loop converges well before this in typical cases.</td>
-</tr>
-<tr>
-<td><code>max_outer_iter</code></td>
-<td>Cap on smoothing-parameter re-selection rounds.</td>
+<td><code>max_iter</code></td>
+<td>Maximum number of full P-IRLS sweeps (one Newton solve per view and component each).</td>
 </tr>
 <tr>
 <td><code>tol</code></td>
-<td>Inner-loop convergence tolerance, on the change in the EY loss between successive full passes over all views.</td>
-</tr>
-<tr>
-<td><code>hess_floor_percentile</code></td>
-<td>Percentile (0-100) of each round's raw diagonal-Hessian values used to floor them — self-calibrating damping against the Hessian's poor conditioning near the loss's own fixed point (see the class docstring for why). Default is 90.</td>
+<td>Convergence tolerance on the penalised objective's change between consecutive sweeps.</td>
 </tr>
 <tr>
 <td><code>random_state</code></td>
-<td>Seed for the random-orthogonal initial embedding.</td>
+<td>Seed for the initial coefficients.</td>
 </tr>
 </tbody>
 </table>
-<p>Because the smoothing parameter is selected automatically, <code>GAMCCA</code> needs far less manual
-hyperparameter search than <code>TreeCCA</code>; <code>n_knots</code> and <code>hess_floor_percentile</code> are the two knobs
-worth adjusting if the defaults underperform, and both are stable across a wide range of data
-sizes and scales in practice.</p>
 <hr />
 <h2 id="practical-notes">Practical notes<a class="headerlink" href="#practical-notes" title="Permanent link">&para;</a></h2>
 <ul>
 <li><code>GAMCCA</code> supports 2 or more views.</li>
-<li><code>latent_dimensions</code> must not exceed the number of features in any view (the random-orthogonal
-  initialisation draws that many orthogonal directions in feature space).</li>
+<li><code>latent_dimensions</code> must not exceed the number of features in any view.</li>
 <li>Unlike <code>KCCA</code>, <code>GAMCCA</code> does not store the training data for inference — new data is passed
   directly through the fitted per-feature splines, so <code>transform</code> on held-out data is inexpensive.</li>
 <li>No optional dependency is required (unlike <code>cca_zoo.tree</code>, which needs <code>xgboost</code>/<code>lightgbm</code>):
-  <code>GAMCCA</code> is built entirely on <code>scikit-learn</code>'s <code>SplineTransformer</code>, <code>Ridge</code> and <code>RidgeCV</code>.</li>
+  <code>GAMCCA</code> is built entirely on <code>scikit-learn</code>'s <code>SplineTransformer</code> and <code>scipy.optimize</code>.</li>
 </ul>
 
 

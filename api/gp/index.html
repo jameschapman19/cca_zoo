@@ -16,7 +16,7 @@
         <link rel="prev" href="../gam/">
       
       
-        <link rel="next" href="../deep/">
+        <link rel="next" href="../sparse/">
       
       
         
@@ -459,6 +459,8 @@
       
         
       
+        
+      
     
     
     
@@ -662,6 +664,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../user-guide/sparse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparse Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../user-guide/deep/" class="md-nav__link">
         
   
@@ -787,6 +817,8 @@
       
         
           
+        
+      
         
       
         
@@ -1119,6 +1151,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../sparse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../deep/" class="md-nav__link">
         
   
@@ -1419,8 +1479,9 @@
 
 
 <h1 id="cca_zoogp">cca_zoo.gp<a class="headerlink" href="#cca_zoogp" title="Permanent link">&para;</a></h1>
-<p>Gaussian-process (GP) nonlinear CCA methods. Built entirely on scikit-learn's own
-<code>GaussianProcessRegressor</code>/<code>RBF</code>/<code>ConstantKernel</code> — no optional dependency required.</p>
+<p>Gaussian-process (GP) nonlinear CCA methods, fit by L-BFGS-B. Built entirely on scikit-learn's own
+<code>GaussianProcessRegressor</code>/<code>RBF</code>/<code>ConstantKernel</code>/<code>KernelCenterer</code> — no optional dependency
+required.</p>
 <hr />
 
 
@@ -1436,11 +1497,11 @@
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">GaussianProcessCCA</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">latent_dimensions</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">center</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">max_inner_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">max_outer_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">hess_floor_percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">90.0</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">n_inducing</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">kernel</span><span class="p">:</span> <span class="n">Kernel</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">n_inducing</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-06</span><span class="p">,</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
 </span></code></pre></div>
@@ -1452,10 +1513,9 @@
 
 
         <p>GaussianProcessCCA — nonlinear multiview CCA with Gaussian-process encoders.</p>
-<p>Learns one nonlinear encoder <span class="arithmatex">\(f_i\)</span> per view — a Gaussian process with
-an ARD (per-feature-lengthscale) RBF kernel over that view's <em>raw,
-joint</em> feature vector — that jointly maximise the Eckart-Young (EY)
-unconstrained-CCA objective:</p>
+<p>Learns one nonlinear encoder <span class="arithmatex">\(f_i\)</span> per view — a Gaussian process with a
+joint (non-additive) kernel over that view's raw feature vector — that
+jointly minimise the ridge-penalised Eckart-Young (EY) objective:</p>
 <div class="arithmatex">\[
 \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
 \]</div>
@@ -1464,66 +1524,61 @@ cross-covariance (including <span class="arithmatex">\(i = j\)</span> terms) and
 auto-covariance across all views (see :mod:<code>cca_zoo._utils._ey</code>, the
 same shared EY-loss machinery used by
 :class:<code>~cca_zoo.linear.gradient.CCAEY</code>, :class:<code>~cca_zoo.deep.DCCAEY</code>,
-:class:<code>~cca_zoo.tree.TreeCCA</code>, and :class:<code>~cca_zoo.gam.GAMCCA</code>).</p>
-<p>Unlike :class:<code>~cca_zoo.gam.GAMCCA</code>'s per-feature additive splines, a
-GP with a joint kernel is not restricted to a sum of univariate terms:
-it can represent a genuine <em>interaction</em> between two features of the
-same view (e.g. cross-view structure that only shows up through
-<span class="arithmatex">\(x_1 x_2\)</span>, not through <span class="arithmatex">\(x_1\)</span> or <span class="arithmatex">\(x_2\)</span> alone) directly and efficiently,
-the way a decision tree's multivariate splits can but an additive GAM
-structurally cannot. As a Bayesian model it also comes with calibrated
-predictive uncertainty for free: :meth:<code>transform</code> can return each
-latent component's posterior standard deviation alongside its mean.</p>
-<p>Fitting follows the same inner/outer split as
-:class:<code>~cca_zoo.gam.GAMCCA</code>'s P-IRLS/GCV recipe, with the GP's own
-machinery in place of <code>Ridge</code>/<code>RidgeCV</code>:</p>
-<ol>
-<li><strong>Inner (fixed-kernel Newton steps)</strong>: for the <em>current</em> kernel
-   hyperparameters, repeatedly form a Newton step on
-   <span class="arithmatex">\(\mathcal{L}_{EY}\)</span> for each view in turn — a working response
-   <span class="arithmatex">\(Z_i - \nabla_i / h_i\)</span> (from the analytic gradient
-   :func:<code>~cca_zoo._utils._ey.ey_grad_z</code> and a diagonal-Hessian weight,
-   see :func:<code>~cca_zoo._utils._ey.ey_diag_hessian</code>) fit with
-   :class:<code>~sklearn.gaussian_process.GaussianProcessRegressor</code>
-   (<code>optimizer=None</code>, so the kernel is held fixed), passing the
-   diagonal-Hessian weights as the GP's per-sample <code>alpha</code>
-   (heteroscedastic observation noise) — cycling through every view
-   until the EY loss itself stops moving.</li>
-<li><strong>Outer (marginal-likelihood kernel search)</strong>: only once the inner
-   loop has converged, re-fit each view's kernel hyperparameters at
-   that converged working response via the GP's own default
-   log-marginal-likelihood optimisation (the same statistical role
-   GCV/REML plays for GAMCCA), then re-run the inner loop at the new
-   kernel. Repeat until the kernel hyperparameters stabilise too.</li>
-</ol>
-<p>Everything here is built from scikit-learn's own, already-required
-<code>GaussianProcessRegressor</code>/<code>RBF</code>/<code>ConstantKernel</code>; no optional
-dependency or custom solver is needed.</p>
+:class:<code>~cca_zoo.tree.TreeCCA</code>, :class:<code>~cca_zoo.gam.GAMCCA</code>, and
+:class:<code>~cca_zoo.sparse.ElasticNetCCA</code>). Writing <span class="arithmatex">\(f_i(x) =
+k(x, Z_i)^\top B_i\)</span> for a fixed kernel <span class="arithmatex">\(k\)</span> and fixed basis points <span class="arithmatex">\(Z_i\)</span>
+(:class:<code>_GpEncoder</code>; every training row, or <code>n_inducing</code> of them
+selected via :func:<code>sklearn.cluster.kmeans_plusplus</code>) turns fitting
+<span class="arithmatex">\(B_i\)</span> into an ordinary smooth optimisation problem with an exact,
+cheap analytic gradient — fit directly by <strong>L-BFGS-B</strong>
+(:func:<code>scipy.optimize.minimize</code>), the same algorithm
+:class:<code>~sklearn.gaussian_process.GaussianProcessRegressor</code> itself uses
+internally, just pointed at <span class="arithmatex">\(\mathcal{L}_{EY}\)</span> (plus the RKHS-norm
+penalty <span class="arithmatex">\(B_i^\top K_{mm} B_i\)</span>) instead of the negative log-marginal-
+likelihood it optimises kernel hyperparameters against. One view's full
+coefficient matrix <span class="arithmatex">\(B_i\)</span> is optimised at a time (every other view held
+fixed) via :func:<code>_lbfgsb_view_objective</code>, cycling through every view in
+turn until the (exact, un-linearised) penalised objective stops moving.
+L-BFGS-B needs no explicit Hessian — just gradients — and optimises
+every component of a view jointly, which is the natural choice here
+since the RKHS penalty couples a view's components together through
+<span class="arithmatex">\(K_{mm}\)</span>.</p>
+<p>A joint kernel is not restricted to a sum of univariate terms the way
+:class:<code>~cca_zoo.gam.GAMCCA</code>'s additive splines are: it can represent a
+genuine <em>interaction</em> between two features of the same view directly.</p>
+<p>Kernel hyperparameters (lengthscales, signal variance) are fixed —
+pass <code>kernel</code> explicitly, or tune it externally (e.g. with
+:class:<code>~sklearn.model_selection.GridSearchCV</code>, since this is an
+ordinary <code>BaseEstimator</code>) — there is no automatic marginal-likelihood
+search.</p>
+<p>As a Bayesian model it still comes with calibrated predictive
+uncertainty for free: :meth:<code>transform</code> can return each latent
+component's posterior standard deviation alongside its mean. This does
+not depend on the fitted coefficients at all — a standard GP fact, since
+posterior variance only involves the kernel, the noise level, and the
+design points — so it is computed directly by an actual
+:class:<code>~sklearn.gaussian_process.GaussianProcessRegressor</code> fit with a
+placeholder target purely to reuse its variance formula (see
+:class:<code>_GpEncoder</code>).</p>
 
 
 <details class="note" open>
   <summary>Note</summary>
-  <p>As with :class:<code>~cca_zoo.gam.GAMCCA</code>, the diagonal-Hessian weight
-is only a per-sample approximation of the loss's true (dense,
-rank-1-coupled) Hessian — see
-:func:<code>~cca_zoo._utils._ey.ey_diag_hessian</code>'s docstring for the
-full derivation and why it needs floor-damping. It is used here in
-exactly the role a GP's heteroscedastic <code>alpha</code> already exists
-to play (how much to trust each observation), so no further
-adaptation is needed beyond what :class:<code>~cca_zoo.gam.GAMCCA</code>
-already requires.</p>
-<p>A GP over the raw feature vector scales cubically in the number of
-training samples (exact GP inference); for very large datasets
-expect fitting to be markedly slower than
-:class:<code>~cca_zoo.gam.GAMCCA</code> or :class:<code>~cca_zoo.tree.TreeCCA</code>
-unless <code>n_inducing</code> is set (see below), which trades some
-approximation error for linear-in-<code>n_samples</code> scaling.</p>
+  <p>Exact and sparse inference are the same reduced-rank
+("subset of regressors") construction, differing only in how many
+basis points <span class="arithmatex">\(Z_i\)</span> are used (<span class="arithmatex">\(n\)</span>, i.e. every training row, for
+exact; <code>n_inducing</code> &lt; <span class="arithmatex">\(n\)</span>, chosen by <code>kmeans_plusplus</code>, for
+sparse) — fitting costs <span class="arithmatex">\(O(n m^2 + m^3)\)</span> for <span class="arithmatex">\(m\)</span> basis points,
+linear in <span class="arithmatex">\(n\)</span> once <span class="arithmatex">\(m \ll n\)</span>.</p>
 </details>
 
 <details class="references" open>
   <summary>References</summary>
   <p>Rasmussen, C. E., &amp; Williams, C. K. I. (2006). Gaussian Processes
 for Machine Learning. MIT Press.</p>
+<p>Quiñonero-Candela, J., &amp; Rasmussen, C. E. (2005). A Unifying View
+of Sparse Approximate Gaussian Process Regression. Journal of
+Machine Learning Research, 6, 1939-1959.</p>
 <p>Chapman, J., Wells, L., &amp; Lawry Aguila, A. (2024). Unconstrained
 Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
 arXiv:2310.01012.</p>
@@ -1576,71 +1631,40 @@ Default is True.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>max_inner_iter</code>
+                <code>kernel</code>
             </td>
             <td>
-                  <code><span title="int">int</span></code>
+                  <code><span title="sklearn.gaussian_process.kernels.Kernel">Kernel</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Maximum fixed-kernel Newton rounds (cycling once
-through every view per round) per outer iteration. Default is 15.</p>
+                <p>Fixed kernel used for every view. <code>None</code> (the default)
+uses <code>ConstantKernel(1.0) * RBF(length_scale=np.ones(p))</code> for
+each view's own feature count <code>p</code>. If given explicitly, the
+same kernel (cloned per view) is used for every view, so its
+hyperparameters (e.g. an ARD <code>length_scale</code> array) must be
+compatible with every view's feature count.</p>
               </div>
             </td>
             <td>
-                  <code>15</code>
+                  <code>None</code>
             </td>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>max_outer_iter</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Maximum kernel-hyperparameter re-selection rounds.
-Default is 4.</p>
-              </div>
-            </td>
-            <td>
-                  <code>4</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>tol</code>
+                <code>alpha</code>
             </td>
             <td>
                   <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Inner-loop convergence tolerance, on the change in the EY loss
-between successive full passes over all views. Default is 1e-3.</p>
+                <p>Ridge (RKHS-norm) penalty strength, also used as the noise
+level for the posterior-variance calculation. Default is 0.01.</p>
               </div>
             </td>
             <td>
-                  <code>0.001</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>hess_floor_percentile</code>
-            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Percentile (0-100) of each round's raw
-diagonal-Hessian values used to floor them (see
-:func:<code>~cca_zoo._utils._ey.ey_diag_hessian</code>). Default is 90.0.</p>
-              </div>
-            </td>
-            <td>
-                  <code>90.0</code>
+                  <code>0.01</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -1652,19 +1676,51 @@ diagonal-Hessian values used to floor them (see
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Number of inducing points for the sparse (Deterministic
-Training Conditional) approximation described above. <code>None</code>
-(the default) uses exact GP inference — appropriate for
-datasets up to a few thousand samples. For larger datasets,
-set this to a few hundred inducing points to make fitting
-scale as <span class="arithmatex">\(O(n \, \text{n\_inducing}^2)\)</span> instead of <span class="arithmatex">\(O(n^3)\)</span>;
-larger values trade speed for a closer approximation to the
-exact posterior. Values at or above the number of training
-samples fall back to exact inference automatically.</p>
+                <p>Number of basis ("inducing") points. <code>None</code> (the
+default) uses every training row (exact inference, appropriate
+up to a few thousand samples). For larger datasets, set this to
+a few hundred to make fitting scale as
+<span class="arithmatex">\(O(n \, \text{n\_inducing}^2)\)</span> instead of <span class="arithmatex">\(O(n^3)\)</span>. Values at or
+above the number of training samples fall back to exact
+inference automatically.</p>
               </div>
             </td>
             <td>
                   <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_iter</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum number of full sweeps (one L-BFGS-B solve per
+view each). Default is 100.</p>
+              </div>
+            </td>
+            <td>
+                  <code>100</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>tol</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Convergence tolerance on the penalised objective's change
+between consecutive sweeps. Default is 1e-6.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1e-06</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -1676,9 +1732,8 @@ samples fall back to exact inference automatically.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Seed for drawing the random-orthogonal initial
-embedding, and (if <code>n_inducing</code> is set) for selecting
-inducing points. Default is 0.</p>
+                <p>Seed for the initial coefficients and (if
+<code>n_inducing</code> is set) for selecting inducing points.</p>
               </div>
             </td>
             <td>
@@ -1716,41 +1771,41 @@ means, stds = model.transform([X1, X2], return_std=True)</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>cca_zoo/gp/_gpcca.py</code></summary>
-                    <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-489">489</a></span>
-<span class="normal"><a href="#__codelineno-0-490">490</a></span>
-<span class="normal"><a href="#__codelineno-0-491">491</a></span>
-<span class="normal"><a href="#__codelineno-0-492">492</a></span>
-<span class="normal"><a href="#__codelineno-0-493">493</a></span>
-<span class="normal"><a href="#__codelineno-0-494">494</a></span>
-<span class="normal"><a href="#__codelineno-0-495">495</a></span>
-<span class="normal"><a href="#__codelineno-0-496">496</a></span>
-<span class="normal"><a href="#__codelineno-0-497">497</a></span>
-<span class="normal"><a href="#__codelineno-0-498">498</a></span>
-<span class="normal"><a href="#__codelineno-0-499">499</a></span>
-<span class="normal"><a href="#__codelineno-0-500">500</a></span>
-<span class="normal"><a href="#__codelineno-0-501">501</a></span>
-<span class="normal"><a href="#__codelineno-0-502">502</a></span>
-<span class="normal"><a href="#__codelineno-0-503">503</a></span>
-<span class="normal"><a href="#__codelineno-0-504">504</a></span>
-<span class="normal"><a href="#__codelineno-0-505">505</a></span>
-<span class="normal"><a href="#__codelineno-0-506">506</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-489"><a id="__codelineno-0-489" name="__codelineno-0-489"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-</span><span id="__span-0-490"><a id="__codelineno-0-490" name="__codelineno-0-490"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-491"><a id="__codelineno-0-491" name="__codelineno-0-491"></a>    <span class="n">latent_dimensions</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-</span><span id="__span-0-492"><a id="__codelineno-0-492" name="__codelineno-0-492"></a>    <span class="n">center</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-493"><a id="__codelineno-0-493" name="__codelineno-0-493"></a>    <span class="n">max_inner_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
-</span><span id="__span-0-494"><a id="__codelineno-0-494" name="__codelineno-0-494"></a>    <span class="n">max_outer_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
-</span><span id="__span-0-495"><a id="__codelineno-0-495" name="__codelineno-0-495"></a>    <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span>
-</span><span id="__span-0-496"><a id="__codelineno-0-496" name="__codelineno-0-496"></a>    <span class="n">hess_floor_percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">90.0</span><span class="p">,</span>
-</span><span id="__span-0-497"><a id="__codelineno-0-497" name="__codelineno-0-497"></a>    <span class="n">n_inducing</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-498"><a id="__codelineno-0-498" name="__codelineno-0-498"></a>    <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
-</span><span id="__span-0-499"><a id="__codelineno-0-499" name="__codelineno-0-499"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-500"><a id="__codelineno-0-500" name="__codelineno-0-500"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="n">latent_dimensions</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="n">center</span><span class="p">)</span>
-</span><span id="__span-0-501"><a id="__codelineno-0-501" name="__codelineno-0-501"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">max_inner_iter</span> <span class="o">=</span> <span class="n">max_inner_iter</span>
-</span><span id="__span-0-502"><a id="__codelineno-0-502" name="__codelineno-0-502"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">max_outer_iter</span> <span class="o">=</span> <span class="n">max_outer_iter</span>
-</span><span id="__span-0-503"><a id="__codelineno-0-503" name="__codelineno-0-503"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">=</span> <span class="n">tol</span>
-</span><span id="__span-0-504"><a id="__codelineno-0-504" name="__codelineno-0-504"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">hess_floor_percentile</span> <span class="o">=</span> <span class="n">hess_floor_percentile</span>
-</span><span id="__span-0-505"><a id="__codelineno-0-505" name="__codelineno-0-505"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">n_inducing</span> <span class="o">=</span> <span class="n">n_inducing</span>
-</span><span id="__span-0-506"><a id="__codelineno-0-506" name="__codelineno-0-506"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">random_state</span>
+                    <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-286">286</a></span>
+<span class="normal"><a href="#__codelineno-0-287">287</a></span>
+<span class="normal"><a href="#__codelineno-0-288">288</a></span>
+<span class="normal"><a href="#__codelineno-0-289">289</a></span>
+<span class="normal"><a href="#__codelineno-0-290">290</a></span>
+<span class="normal"><a href="#__codelineno-0-291">291</a></span>
+<span class="normal"><a href="#__codelineno-0-292">292</a></span>
+<span class="normal"><a href="#__codelineno-0-293">293</a></span>
+<span class="normal"><a href="#__codelineno-0-294">294</a></span>
+<span class="normal"><a href="#__codelineno-0-295">295</a></span>
+<span class="normal"><a href="#__codelineno-0-296">296</a></span>
+<span class="normal"><a href="#__codelineno-0-297">297</a></span>
+<span class="normal"><a href="#__codelineno-0-298">298</a></span>
+<span class="normal"><a href="#__codelineno-0-299">299</a></span>
+<span class="normal"><a href="#__codelineno-0-300">300</a></span>
+<span class="normal"><a href="#__codelineno-0-301">301</a></span>
+<span class="normal"><a href="#__codelineno-0-302">302</a></span>
+<span class="normal"><a href="#__codelineno-0-303">303</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-286"><a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span id="__span-0-287"><a id="__codelineno-0-287" name="__codelineno-0-287"></a>    <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-288"><a id="__codelineno-0-288" name="__codelineno-0-288"></a>    <span class="n">latent_dimensions</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-0-289"><a id="__codelineno-0-289" name="__codelineno-0-289"></a>    <span class="n">center</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-290"><a id="__codelineno-0-290" name="__codelineno-0-290"></a>    <span class="n">kernel</span><span class="p">:</span> <span class="n">Kernel</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-291"><a id="__codelineno-0-291" name="__codelineno-0-291"></a>    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+</span><span id="__span-0-292"><a id="__codelineno-0-292" name="__codelineno-0-292"></a>    <span class="n">n_inducing</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-293"><a id="__codelineno-0-293" name="__codelineno-0-293"></a>    <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+</span><span id="__span-0-294"><a id="__codelineno-0-294" name="__codelineno-0-294"></a>    <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="p">,</span>
+</span><span id="__span-0-295"><a id="__codelineno-0-295" name="__codelineno-0-295"></a>    <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-0-296"><a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-297"><a id="__codelineno-0-297" name="__codelineno-0-297"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="n">latent_dimensions</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="n">center</span><span class="p">)</span>
+</span><span id="__span-0-298"><a id="__codelineno-0-298" name="__codelineno-0-298"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span>
+</span><span id="__span-0-299"><a id="__codelineno-0-299" name="__codelineno-0-299"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+</span><span id="__span-0-300"><a id="__codelineno-0-300" name="__codelineno-0-300"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">n_inducing</span> <span class="o">=</span> <span class="n">n_inducing</span>
+</span><span id="__span-0-301"><a id="__codelineno-0-301" name="__codelineno-0-301"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+</span><span id="__span-0-302"><a id="__codelineno-0-302" name="__codelineno-0-302"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">=</span> <span class="n">tol</span>
+</span><span id="__span-0-303"><a id="__codelineno-0-303" name="__codelineno-0-303"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">random_state</span>
 </span></code></pre></div></td></tr></table></div>
                   </details>
 
@@ -1843,7 +1898,7 @@ not additive across features).</p>
 
     <div class="doc doc-contents ">
 
-        <p>Fit the GaussianProcessCCA model.</p>
+        <p>Fit the GaussianProcessCCA model by L-BFGS-B on the EY loss.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1951,153 +2006,167 @@ not additive across features).</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>cca_zoo/gp/_gpcca.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-508">508</a></span>
-<span class="normal"><a href="#__codelineno-0-509">509</a></span>
-<span class="normal"><a href="#__codelineno-0-510">510</a></span>
-<span class="normal"><a href="#__codelineno-0-511">511</a></span>
-<span class="normal"><a href="#__codelineno-0-512">512</a></span>
-<span class="normal"><a href="#__codelineno-0-513">513</a></span>
-<span class="normal"><a href="#__codelineno-0-514">514</a></span>
-<span class="normal"><a href="#__codelineno-0-515">515</a></span>
-<span class="normal"><a href="#__codelineno-0-516">516</a></span>
-<span class="normal"><a href="#__codelineno-0-517">517</a></span>
-<span class="normal"><a href="#__codelineno-0-518">518</a></span>
-<span class="normal"><a href="#__codelineno-0-519">519</a></span>
-<span class="normal"><a href="#__codelineno-0-520">520</a></span>
-<span class="normal"><a href="#__codelineno-0-521">521</a></span>
-<span class="normal"><a href="#__codelineno-0-522">522</a></span>
-<span class="normal"><a href="#__codelineno-0-523">523</a></span>
-<span class="normal"><a href="#__codelineno-0-524">524</a></span>
-<span class="normal"><a href="#__codelineno-0-525">525</a></span>
-<span class="normal"><a href="#__codelineno-0-526">526</a></span>
-<span class="normal"><a href="#__codelineno-0-527">527</a></span>
-<span class="normal"><a href="#__codelineno-0-528">528</a></span>
-<span class="normal"><a href="#__codelineno-0-529">529</a></span>
-<span class="normal"><a href="#__codelineno-0-530">530</a></span>
-<span class="normal"><a href="#__codelineno-0-531">531</a></span>
-<span class="normal"><a href="#__codelineno-0-532">532</a></span>
-<span class="normal"><a href="#__codelineno-0-533">533</a></span>
-<span class="normal"><a href="#__codelineno-0-534">534</a></span>
-<span class="normal"><a href="#__codelineno-0-535">535</a></span>
-<span class="normal"><a href="#__codelineno-0-536">536</a></span>
-<span class="normal"><a href="#__codelineno-0-537">537</a></span>
-<span class="normal"><a href="#__codelineno-0-538">538</a></span>
-<span class="normal"><a href="#__codelineno-0-539">539</a></span>
-<span class="normal"><a href="#__codelineno-0-540">540</a></span>
-<span class="normal"><a href="#__codelineno-0-541">541</a></span>
-<span class="normal"><a href="#__codelineno-0-542">542</a></span>
-<span class="normal"><a href="#__codelineno-0-543">543</a></span>
-<span class="normal"><a href="#__codelineno-0-544">544</a></span>
-<span class="normal"><a href="#__codelineno-0-545">545</a></span>
-<span class="normal"><a href="#__codelineno-0-546">546</a></span>
-<span class="normal"><a href="#__codelineno-0-547">547</a></span>
-<span class="normal"><a href="#__codelineno-0-548">548</a></span>
-<span class="normal"><a href="#__codelineno-0-549">549</a></span>
-<span class="normal"><a href="#__codelineno-0-550">550</a></span>
-<span class="normal"><a href="#__codelineno-0-551">551</a></span>
-<span class="normal"><a href="#__codelineno-0-552">552</a></span>
-<span class="normal"><a href="#__codelineno-0-553">553</a></span>
-<span class="normal"><a href="#__codelineno-0-554">554</a></span>
-<span class="normal"><a href="#__codelineno-0-555">555</a></span>
-<span class="normal"><a href="#__codelineno-0-556">556</a></span>
-<span class="normal"><a href="#__codelineno-0-557">557</a></span>
-<span class="normal"><a href="#__codelineno-0-558">558</a></span>
-<span class="normal"><a href="#__codelineno-0-559">559</a></span>
-<span class="normal"><a href="#__codelineno-0-560">560</a></span>
-<span class="normal"><a href="#__codelineno-0-561">561</a></span>
-<span class="normal"><a href="#__codelineno-0-562">562</a></span>
-<span class="normal"><a href="#__codelineno-0-563">563</a></span>
-<span class="normal"><a href="#__codelineno-0-564">564</a></span>
-<span class="normal"><a href="#__codelineno-0-565">565</a></span>
-<span class="normal"><a href="#__codelineno-0-566">566</a></span>
-<span class="normal"><a href="#__codelineno-0-567">567</a></span>
-<span class="normal"><a href="#__codelineno-0-568">568</a></span>
-<span class="normal"><a href="#__codelineno-0-569">569</a></span>
-<span class="normal"><a href="#__codelineno-0-570">570</a></span>
-<span class="normal"><a href="#__codelineno-0-571">571</a></span>
-<span class="normal"><a href="#__codelineno-0-572">572</a></span>
-<span class="normal"><a href="#__codelineno-0-573">573</a></span>
-<span class="normal"><a href="#__codelineno-0-574">574</a></span>
-<span class="normal"><a href="#__codelineno-0-575">575</a></span>
-<span class="normal"><a href="#__codelineno-0-576">576</a></span>
-<span class="normal"><a href="#__codelineno-0-577">577</a></span>
-<span class="normal"><a href="#__codelineno-0-578">578</a></span>
-<span class="normal"><a href="#__codelineno-0-579">579</a></span>
-<span class="normal"><a href="#__codelineno-0-580">580</a></span>
-<span class="normal"><a href="#__codelineno-0-581">581</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-508"><a id="__codelineno-0-508" name="__codelineno-0-508"></a><span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">views</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ArrayLike</span><span class="p">],</span> <span class="n">y</span><span class="p">:</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GaussianProcessCCA</span><span class="p">:</span>
-</span><span id="__span-0-509"><a id="__codelineno-0-509" name="__codelineno-0-509"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Fit the GaussianProcessCCA model.</span>
-</span><span id="__span-0-510"><a id="__codelineno-0-510" name="__codelineno-0-510"></a>
-</span><span id="__span-0-511"><a id="__codelineno-0-511" name="__codelineno-0-511"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-512"><a id="__codelineno-0-512" name="__codelineno-0-512"></a><span class="sd">        views: List of 2 or more arrays, each (n_samples, n_features_i).</span>
-</span><span id="__span-0-513"><a id="__codelineno-0-513" name="__codelineno-0-513"></a><span class="sd">        y: Ignored.</span>
-</span><span id="__span-0-514"><a id="__codelineno-0-514" name="__codelineno-0-514"></a>
-</span><span id="__span-0-515"><a id="__codelineno-0-515" name="__codelineno-0-515"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-516"><a id="__codelineno-0-516" name="__codelineno-0-516"></a><span class="sd">        self: Fitted estimator.</span>
-</span><span id="__span-0-517"><a id="__codelineno-0-517" name="__codelineno-0-517"></a>
-</span><span id="__span-0-518"><a id="__codelineno-0-518" name="__codelineno-0-518"></a><span class="sd">    Raises:</span>
-</span><span id="__span-0-519"><a id="__codelineno-0-519" name="__codelineno-0-519"></a><span class="sd">        ValueError: If fewer than 2 views are provided.</span>
-</span><span id="__span-0-520"><a id="__codelineno-0-520" name="__codelineno-0-520"></a><span class="sd">        ValueError: If views have inconsistent numbers of samples.</span>
-</span><span id="__span-0-521"><a id="__codelineno-0-521" name="__codelineno-0-521"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-522"><a id="__codelineno-0-522" name="__codelineno-0-522"></a>    <span class="n">views_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_fit</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
-</span><span id="__span-0-523"><a id="__codelineno-0-523" name="__codelineno-0-523"></a>    <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_dimensions</span>
-</span><span id="__span-0-524"><a id="__codelineno-0-524" name="__codelineno-0-524"></a>    <span class="n">n_views</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">views_</span><span class="p">)</span>
-</span><span id="__span-0-525"><a id="__codelineno-0-525" name="__codelineno-0-525"></a>    <span class="n">n</span> <span class="o">=</span> <span class="n">views_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-</span><span id="__span-0-526"><a id="__codelineno-0-526" name="__codelineno-0-526"></a>    <span class="n">n_minus_1</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span>
-</span><span id="__span-0-527"><a id="__codelineno-0-527" name="__codelineno-0-527"></a>
-</span><span id="__span-0-528"><a id="__codelineno-0-528" name="__codelineno-0-528"></a>    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
-</span><span id="__span-0-529"><a id="__codelineno-0-529" name="__codelineno-0-529"></a>    <span class="n">use_sparse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_inducing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_inducing</span> <span class="o">&lt;</span> <span class="n">n</span>
-</span><span id="__span-0-530"><a id="__codelineno-0-530" name="__codelineno-0-530"></a>    <span class="n">encoders</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">_GpEncoder</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a>        <span class="n">_SparseGpEncoder</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_inducing</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
-</span><span id="__span-0-532"><a id="__codelineno-0-532" name="__codelineno-0-532"></a>        <span class="k">if</span> <span class="n">use_sparse</span>
-</span><span id="__span-0-533"><a id="__codelineno-0-533" name="__codelineno-0-533"></a>        <span class="k">else</span> <span class="n">_GpEncoder</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
-</span><span id="__span-0-534"><a id="__codelineno-0-534" name="__codelineno-0-534"></a>        <span class="k">for</span> <span class="n">X</span> <span class="ow">in</span> <span class="n">views_</span>
-</span><span id="__span-0-535"><a id="__codelineno-0-535" name="__codelineno-0-535"></a>    <span class="p">]</span>
-</span><span id="__span-0-536"><a id="__codelineno-0-536" name="__codelineno-0-536"></a>    <span class="n">representations</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-0-537"><a id="__codelineno-0-537" name="__codelineno-0-537"></a>    <span class="k">for</span> <span class="n">X</span> <span class="ow">in</span> <span class="n">views_</span><span class="p">:</span>
-</span><span id="__span-0-538"><a id="__codelineno-0-538" name="__codelineno-0-538"></a>        <span class="n">bm</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">random_orthogonal_embedding</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span>
-</span><span id="__span-0-539"><a id="__codelineno-0-539" name="__codelineno-0-539"></a>        <span class="n">representations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bm</span><span class="p">)</span>
-</span><span id="__span-0-540"><a id="__codelineno-0-540" name="__codelineno-0-540"></a>
-</span><span id="__span-0-541"><a id="__codelineno-0-541" name="__codelineno-0-541"></a>    <span class="k">for</span> <span class="n">outer_it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_outer_iter</span><span class="p">):</span>
-</span><span id="__span-0-542"><a id="__codelineno-0-542" name="__codelineno-0-542"></a>        <span class="c1"># Outer loop: re-select each view&#39;s kernel hyperparameters via</span>
-</span><span id="__span-0-543"><a id="__codelineno-0-543" name="__codelineno-0-543"></a>        <span class="c1"># marginal-likelihood optimisation, at the current representations.</span>
-</span><span id="__span-0-544"><a id="__codelineno-0-544" name="__codelineno-0-544"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_views</span><span class="p">):</span>
-</span><span id="__span-0-545"><a id="__codelineno-0-545" name="__codelineno-0-545"></a>            <span class="n">grad</span> <span class="o">=</span> <span class="n">ey_grad_z</span><span class="p">(</span><span class="n">representations</span><span class="p">)[</span><span class="n">i</span><span class="p">]</span>
-</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a>            <span class="n">_</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">ey_cross_covariance</span><span class="p">(</span><span class="n">representations</span><span class="p">)</span>
-</span><span id="__span-0-547"><a id="__codelineno-0-547" name="__codelineno-0-547"></a>            <span class="n">diag_hess</span> <span class="o">=</span> <span class="n">ey_diag_hessian</span><span class="p">(</span>
-</span><span id="__span-0-548"><a id="__codelineno-0-548" name="__codelineno-0-548"></a>                <span class="n">representations</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-</span><span id="__span-0-549"><a id="__codelineno-0-549" name="__codelineno-0-549"></a>                <span class="n">V</span><span class="p">,</span>
-</span><span id="__span-0-550"><a id="__codelineno-0-550" name="__codelineno-0-550"></a>                <span class="n">n_views</span><span class="p">,</span>
-</span><span id="__span-0-551"><a id="__codelineno-0-551" name="__codelineno-0-551"></a>                <span class="n">n_minus_1</span><span class="p">,</span>
-</span><span id="__span-0-552"><a id="__codelineno-0-552" name="__codelineno-0-552"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">hess_floor_percentile</span><span class="p">,</span>
-</span><span id="__span-0-553"><a id="__codelineno-0-553" name="__codelineno-0-553"></a>            <span class="p">)</span>
-</span><span id="__span-0-554"><a id="__codelineno-0-554" name="__codelineno-0-554"></a>            <span class="n">encoders</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">outer_step</span><span class="p">(</span><span class="n">representations</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">grad</span><span class="p">,</span> <span class="n">diag_hess</span><span class="p">)</span>
-</span><span id="__span-0-555"><a id="__codelineno-0-555" name="__codelineno-0-555"></a>            <span class="n">representations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">encoders</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">predict</span><span class="p">()</span>
-</span><span id="__span-0-556"><a id="__codelineno-0-556" name="__codelineno-0-556"></a>
-</span><span id="__span-0-557"><a id="__codelineno-0-557" name="__codelineno-0-557"></a>        <span class="c1"># Inner loop: fixed-kernel Newton steps, cycling through every</span>
-</span><span id="__span-0-558"><a id="__codelineno-0-558" name="__codelineno-0-558"></a>        <span class="c1"># view, until the EY loss itself stops moving (see</span>
-</span><span id="__span-0-559"><a id="__codelineno-0-559" name="__codelineno-0-559"></a>        <span class="c1"># ey_diag_hessian&#39;s docstring for why this, rather than raw</span>
-</span><span id="__span-0-560"><a id="__codelineno-0-560" name="__codelineno-0-560"></a>        <span class="c1"># per-sample values, is the right convergence signal to track).</span>
-</span><span id="__span-0-561"><a id="__codelineno-0-561" name="__codelineno-0-561"></a>        <span class="n">prev_obj</span> <span class="o">=</span> <span class="n">ey_loss</span><span class="p">(</span><span class="n">representations</span><span class="p">)[</span><span class="s2">&quot;objective&quot;</span><span class="p">]</span>
-</span><span id="__span-0-562"><a id="__codelineno-0-562" name="__codelineno-0-562"></a>        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_inner_iter</span><span class="p">):</span>
-</span><span id="__span-0-563"><a id="__codelineno-0-563" name="__codelineno-0-563"></a>            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_views</span><span class="p">):</span>
-</span><span id="__span-0-564"><a id="__codelineno-0-564" name="__codelineno-0-564"></a>                <span class="n">grad</span> <span class="o">=</span> <span class="n">ey_grad_z</span><span class="p">(</span><span class="n">representations</span><span class="p">)[</span><span class="n">i</span><span class="p">]</span>
-</span><span id="__span-0-565"><a id="__codelineno-0-565" name="__codelineno-0-565"></a>                <span class="n">_</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">ey_cross_covariance</span><span class="p">(</span><span class="n">representations</span><span class="p">)</span>
-</span><span id="__span-0-566"><a id="__codelineno-0-566" name="__codelineno-0-566"></a>                <span class="n">diag_hess</span> <span class="o">=</span> <span class="n">ey_diag_hessian</span><span class="p">(</span>
-</span><span id="__span-0-567"><a id="__codelineno-0-567" name="__codelineno-0-567"></a>                    <span class="n">representations</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-</span><span id="__span-0-568"><a id="__codelineno-0-568" name="__codelineno-0-568"></a>                    <span class="n">V</span><span class="p">,</span>
-</span><span id="__span-0-569"><a id="__codelineno-0-569" name="__codelineno-0-569"></a>                    <span class="n">n_views</span><span class="p">,</span>
-</span><span id="__span-0-570"><a id="__codelineno-0-570" name="__codelineno-0-570"></a>                    <span class="n">n_minus_1</span><span class="p">,</span>
-</span><span id="__span-0-571"><a id="__codelineno-0-571" name="__codelineno-0-571"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">hess_floor_percentile</span><span class="p">,</span>
-</span><span id="__span-0-572"><a id="__codelineno-0-572" name="__codelineno-0-572"></a>                <span class="p">)</span>
-</span><span id="__span-0-573"><a id="__codelineno-0-573" name="__codelineno-0-573"></a>                <span class="n">encoders</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">inner_step</span><span class="p">(</span><span class="n">representations</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">grad</span><span class="p">,</span> <span class="n">diag_hess</span><span class="p">)</span>
-</span><span id="__span-0-574"><a id="__codelineno-0-574" name="__codelineno-0-574"></a>                <span class="n">representations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">encoders</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">predict</span><span class="p">()</span>
-</span><span id="__span-0-575"><a id="__codelineno-0-575" name="__codelineno-0-575"></a>            <span class="n">obj</span> <span class="o">=</span> <span class="n">ey_loss</span><span class="p">(</span><span class="n">representations</span><span class="p">)[</span><span class="s2">&quot;objective&quot;</span><span class="p">]</span>
-</span><span id="__span-0-576"><a id="__codelineno-0-576" name="__codelineno-0-576"></a>            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">obj</span> <span class="o">-</span> <span class="n">prev_obj</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">:</span>
-</span><span id="__span-0-577"><a id="__codelineno-0-577" name="__codelineno-0-577"></a>                <span class="k">break</span>
-</span><span id="__span-0-578"><a id="__codelineno-0-578" name="__codelineno-0-578"></a>            <span class="n">prev_obj</span> <span class="o">=</span> <span class="n">obj</span>
-</span><span id="__span-0-579"><a id="__codelineno-0-579" name="__codelineno-0-579"></a>
-</span><span id="__span-0-580"><a id="__codelineno-0-580" name="__codelineno-0-580"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">encoders_</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">_GpEncoder</span><span class="p">]</span> <span class="o">=</span> <span class="n">encoders</span>
-</span><span id="__span-0-581"><a id="__codelineno-0-581" name="__codelineno-0-581"></a>    <span class="k">return</span> <span class="bp">self</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-305">305</a></span>
+<span class="normal"><a href="#__codelineno-0-306">306</a></span>
+<span class="normal"><a href="#__codelineno-0-307">307</a></span>
+<span class="normal"><a href="#__codelineno-0-308">308</a></span>
+<span class="normal"><a href="#__codelineno-0-309">309</a></span>
+<span class="normal"><a href="#__codelineno-0-310">310</a></span>
+<span class="normal"><a href="#__codelineno-0-311">311</a></span>
+<span class="normal"><a href="#__codelineno-0-312">312</a></span>
+<span class="normal"><a href="#__codelineno-0-313">313</a></span>
+<span class="normal"><a href="#__codelineno-0-314">314</a></span>
+<span class="normal"><a href="#__codelineno-0-315">315</a></span>
+<span class="normal"><a href="#__codelineno-0-316">316</a></span>
+<span class="normal"><a href="#__codelineno-0-317">317</a></span>
+<span class="normal"><a href="#__codelineno-0-318">318</a></span>
+<span class="normal"><a href="#__codelineno-0-319">319</a></span>
+<span class="normal"><a href="#__codelineno-0-320">320</a></span>
+<span class="normal"><a href="#__codelineno-0-321">321</a></span>
+<span class="normal"><a href="#__codelineno-0-322">322</a></span>
+<span class="normal"><a href="#__codelineno-0-323">323</a></span>
+<span class="normal"><a href="#__codelineno-0-324">324</a></span>
+<span class="normal"><a href="#__codelineno-0-325">325</a></span>
+<span class="normal"><a href="#__codelineno-0-326">326</a></span>
+<span class="normal"><a href="#__codelineno-0-327">327</a></span>
+<span class="normal"><a href="#__codelineno-0-328">328</a></span>
+<span class="normal"><a href="#__codelineno-0-329">329</a></span>
+<span class="normal"><a href="#__codelineno-0-330">330</a></span>
+<span class="normal"><a href="#__codelineno-0-331">331</a></span>
+<span class="normal"><a href="#__codelineno-0-332">332</a></span>
+<span class="normal"><a href="#__codelineno-0-333">333</a></span>
+<span class="normal"><a href="#__codelineno-0-334">334</a></span>
+<span class="normal"><a href="#__codelineno-0-335">335</a></span>
+<span class="normal"><a href="#__codelineno-0-336">336</a></span>
+<span class="normal"><a href="#__codelineno-0-337">337</a></span>
+<span class="normal"><a href="#__codelineno-0-338">338</a></span>
+<span class="normal"><a href="#__codelineno-0-339">339</a></span>
+<span class="normal"><a href="#__codelineno-0-340">340</a></span>
+<span class="normal"><a href="#__codelineno-0-341">341</a></span>
+<span class="normal"><a href="#__codelineno-0-342">342</a></span>
+<span class="normal"><a href="#__codelineno-0-343">343</a></span>
+<span class="normal"><a href="#__codelineno-0-344">344</a></span>
+<span class="normal"><a href="#__codelineno-0-345">345</a></span>
+<span class="normal"><a href="#__codelineno-0-346">346</a></span>
+<span class="normal"><a href="#__codelineno-0-347">347</a></span>
+<span class="normal"><a href="#__codelineno-0-348">348</a></span>
+<span class="normal"><a href="#__codelineno-0-349">349</a></span>
+<span class="normal"><a href="#__codelineno-0-350">350</a></span>
+<span class="normal"><a href="#__codelineno-0-351">351</a></span>
+<span class="normal"><a href="#__codelineno-0-352">352</a></span>
+<span class="normal"><a href="#__codelineno-0-353">353</a></span>
+<span class="normal"><a href="#__codelineno-0-354">354</a></span>
+<span class="normal"><a href="#__codelineno-0-355">355</a></span>
+<span class="normal"><a href="#__codelineno-0-356">356</a></span>
+<span class="normal"><a href="#__codelineno-0-357">357</a></span>
+<span class="normal"><a href="#__codelineno-0-358">358</a></span>
+<span class="normal"><a href="#__codelineno-0-359">359</a></span>
+<span class="normal"><a href="#__codelineno-0-360">360</a></span>
+<span class="normal"><a href="#__codelineno-0-361">361</a></span>
+<span class="normal"><a href="#__codelineno-0-362">362</a></span>
+<span class="normal"><a href="#__codelineno-0-363">363</a></span>
+<span class="normal"><a href="#__codelineno-0-364">364</a></span>
+<span class="normal"><a href="#__codelineno-0-365">365</a></span>
+<span class="normal"><a href="#__codelineno-0-366">366</a></span>
+<span class="normal"><a href="#__codelineno-0-367">367</a></span>
+<span class="normal"><a href="#__codelineno-0-368">368</a></span>
+<span class="normal"><a href="#__codelineno-0-369">369</a></span>
+<span class="normal"><a href="#__codelineno-0-370">370</a></span>
+<span class="normal"><a href="#__codelineno-0-371">371</a></span>
+<span class="normal"><a href="#__codelineno-0-372">372</a></span>
+<span class="normal"><a href="#__codelineno-0-373">373</a></span>
+<span class="normal"><a href="#__codelineno-0-374">374</a></span>
+<span class="normal"><a href="#__codelineno-0-375">375</a></span>
+<span class="normal"><a href="#__codelineno-0-376">376</a></span>
+<span class="normal"><a href="#__codelineno-0-377">377</a></span>
+<span class="normal"><a href="#__codelineno-0-378">378</a></span>
+<span class="normal"><a href="#__codelineno-0-379">379</a></span>
+<span class="normal"><a href="#__codelineno-0-380">380</a></span>
+<span class="normal"><a href="#__codelineno-0-381">381</a></span>
+<span class="normal"><a href="#__codelineno-0-382">382</a></span>
+<span class="normal"><a href="#__codelineno-0-383">383</a></span>
+<span class="normal"><a href="#__codelineno-0-384">384</a></span>
+<span class="normal"><a href="#__codelineno-0-385">385</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-305"><a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">views</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ArrayLike</span><span class="p">],</span> <span class="n">y</span><span class="p">:</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GaussianProcessCCA</span><span class="p">:</span>
+</span><span id="__span-0-306"><a id="__codelineno-0-306" name="__codelineno-0-306"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Fit the GaussianProcessCCA model by L-BFGS-B on the EY loss.</span>
+</span><span id="__span-0-307"><a id="__codelineno-0-307" name="__codelineno-0-307"></a>
+</span><span id="__span-0-308"><a id="__codelineno-0-308" name="__codelineno-0-308"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-309"><a id="__codelineno-0-309" name="__codelineno-0-309"></a><span class="sd">        views: List of 2 or more arrays, each (n_samples, n_features_i).</span>
+</span><span id="__span-0-310"><a id="__codelineno-0-310" name="__codelineno-0-310"></a><span class="sd">        y: Ignored.</span>
+</span><span id="__span-0-311"><a id="__codelineno-0-311" name="__codelineno-0-311"></a>
+</span><span id="__span-0-312"><a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-313"><a id="__codelineno-0-313" name="__codelineno-0-313"></a><span class="sd">        self: Fitted estimator.</span>
+</span><span id="__span-0-314"><a id="__codelineno-0-314" name="__codelineno-0-314"></a>
+</span><span id="__span-0-315"><a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-316"><a id="__codelineno-0-316" name="__codelineno-0-316"></a><span class="sd">        ValueError: If fewer than 2 views are provided.</span>
+</span><span id="__span-0-317"><a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">        ValueError: If views have inconsistent numbers of samples.</span>
+</span><span id="__span-0-318"><a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-319"><a id="__codelineno-0-319" name="__codelineno-0-319"></a>    <span class="n">views_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_fit</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
+</span><span id="__span-0-320"><a id="__codelineno-0-320" name="__codelineno-0-320"></a>    <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_dimensions</span>
+</span><span id="__span-0-321"><a id="__codelineno-0-321" name="__codelineno-0-321"></a>
+</span><span id="__span-0-322"><a id="__codelineno-0-322" name="__codelineno-0-322"></a>    <span class="n">encoders</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-0-323"><a id="__codelineno-0-323" name="__codelineno-0-323"></a>        <span class="n">_GpEncoder</span><span class="p">(</span>
+</span><span id="__span-0-324"><a id="__codelineno-0-324" name="__codelineno-0-324"></a>            <span class="n">X</span><span class="p">,</span>
+</span><span id="__span-0-325"><a id="__codelineno-0-325" name="__codelineno-0-325"></a>            <span class="n">k</span><span class="p">,</span>
+</span><span id="__span-0-326"><a id="__codelineno-0-326" name="__codelineno-0-326"></a>            <span class="p">(</span>
+</span><span id="__span-0-327"><a id="__codelineno-0-327" name="__codelineno-0-327"></a>                <span class="n">clone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">)</span>
+</span><span id="__span-0-328"><a id="__codelineno-0-328" name="__codelineno-0-328"></a>                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span id="__span-0-329"><a id="__codelineno-0-329" name="__codelineno-0-329"></a>                <span class="k">else</span> <span class="n">ConstantKernel</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">RBF</span><span class="p">(</span><span class="n">length_scale</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+</span><span id="__span-0-330"><a id="__codelineno-0-330" name="__codelineno-0-330"></a>            <span class="p">),</span>
+</span><span id="__span-0-331"><a id="__codelineno-0-331" name="__codelineno-0-331"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span>
+</span><span id="__span-0-332"><a id="__codelineno-0-332" name="__codelineno-0-332"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">n_inducing</span><span class="p">,</span>
+</span><span id="__span-0-333"><a id="__codelineno-0-333" name="__codelineno-0-333"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">,</span>
+</span><span id="__span-0-334"><a id="__codelineno-0-334" name="__codelineno-0-334"></a>        <span class="p">)</span>
+</span><span id="__span-0-335"><a id="__codelineno-0-335" name="__codelineno-0-335"></a>        <span class="k">for</span> <span class="n">X</span> <span class="ow">in</span> <span class="n">views_</span>
+</span><span id="__span-0-336"><a id="__codelineno-0-336" name="__codelineno-0-336"></a>    <span class="p">]</span>
+</span><span id="__span-0-337"><a id="__codelineno-0-337" name="__codelineno-0-337"></a>
+</span><span id="__span-0-338"><a id="__codelineno-0-338" name="__codelineno-0-338"></a>    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+</span><span id="__span-0-339"><a id="__codelineno-0-339" name="__codelineno-0-339"></a>    <span class="n">coefficients</span> <span class="o">=</span> <span class="n">cheap_orthonormal_projection_weights</span><span class="p">(</span>
+</span><span id="__span-0-340"><a id="__codelineno-0-340" name="__codelineno-0-340"></a>        <span class="p">[</span><span class="n">enc</span><span class="o">.</span><span class="n">basis_</span> <span class="k">for</span> <span class="n">enc</span> <span class="ow">in</span> <span class="n">encoders</span><span class="p">],</span> <span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">rng</span>
+</span><span id="__span-0-341"><a id="__codelineno-0-341" name="__codelineno-0-341"></a>    <span class="p">)</span>
+</span><span id="__span-0-342"><a id="__codelineno-0-342" name="__codelineno-0-342"></a>    <span class="n">representations</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-0-343"><a id="__codelineno-0-343" name="__codelineno-0-343"></a>        <span class="n">enc</span><span class="o">.</span><span class="n">basis_</span> <span class="o">@</span> <span class="n">coef</span> <span class="k">for</span> <span class="n">enc</span><span class="p">,</span> <span class="n">coef</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">encoders</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">)</span>
+</span><span id="__span-0-344"><a id="__codelineno-0-344" name="__codelineno-0-344"></a>    <span class="p">]</span>
+</span><span id="__span-0-345"><a id="__codelineno-0-345" name="__codelineno-0-345"></a>
+</span><span id="__span-0-346"><a id="__codelineno-0-346" name="__codelineno-0-346"></a>    <span class="n">prev_obj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+</span><span id="__span-0-347"><a id="__codelineno-0-347" name="__codelineno-0-347"></a>    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">):</span>
+</span><span id="__span-0-348"><a id="__codelineno-0-348" name="__codelineno-0-348"></a>        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">enc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">encoders</span><span class="p">):</span>
+</span><span id="__span-0-349"><a id="__codelineno-0-349" name="__codelineno-0-349"></a>            <span class="n">d_i</span> <span class="o">=</span> <span class="n">enc</span><span class="o">.</span><span class="n">basis_</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</span><span id="__span-0-350"><a id="__codelineno-0-350" name="__codelineno-0-350"></a>            <span class="n">result</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
+</span><span id="__span-0-351"><a id="__codelineno-0-351" name="__codelineno-0-351"></a>                <span class="n">_lbfgsb_view_objective</span><span class="p">,</span>
+</span><span id="__span-0-352"><a id="__codelineno-0-352" name="__codelineno-0-352"></a>                <span class="n">coefficients</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+</span><span id="__span-0-353"><a id="__codelineno-0-353" name="__codelineno-0-353"></a>                <span class="n">args</span><span class="o">=</span><span class="p">(</span>
+</span><span id="__span-0-354"><a id="__codelineno-0-354" name="__codelineno-0-354"></a>                    <span class="n">enc</span><span class="o">.</span><span class="n">basis_</span><span class="p">,</span>
+</span><span id="__span-0-355"><a id="__codelineno-0-355" name="__codelineno-0-355"></a>                    <span class="n">enc</span><span class="o">.</span><span class="n">ridge_matrix_</span><span class="p">,</span>
+</span><span id="__span-0-356"><a id="__codelineno-0-356" name="__codelineno-0-356"></a>                    <span class="n">representations</span><span class="p">,</span>
+</span><span id="__span-0-357"><a id="__codelineno-0-357" name="__codelineno-0-357"></a>                    <span class="n">i</span><span class="p">,</span>
+</span><span id="__span-0-358"><a id="__codelineno-0-358" name="__codelineno-0-358"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span>
+</span><span id="__span-0-359"><a id="__codelineno-0-359" name="__codelineno-0-359"></a>                    <span class="n">d_i</span><span class="p">,</span>
+</span><span id="__span-0-360"><a id="__codelineno-0-360" name="__codelineno-0-360"></a>                    <span class="n">k</span><span class="p">,</span>
+</span><span id="__span-0-361"><a id="__codelineno-0-361" name="__codelineno-0-361"></a>                <span class="p">),</span>
+</span><span id="__span-0-362"><a id="__codelineno-0-362" name="__codelineno-0-362"></a>                <span class="n">jac</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-363"><a id="__codelineno-0-363" name="__codelineno-0-363"></a>                <span class="n">method</span><span class="o">=</span><span class="s2">&quot;L-BFGS-B&quot;</span><span class="p">,</span>
+</span><span id="__span-0-364"><a id="__codelineno-0-364" name="__codelineno-0-364"></a>            <span class="p">)</span>
+</span><span id="__span-0-365"><a id="__codelineno-0-365" name="__codelineno-0-365"></a>            <span class="n">coefficients</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">d_i</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+</span><span id="__span-0-366"><a id="__codelineno-0-366" name="__codelineno-0-366"></a>            <span class="n">representations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">enc</span><span class="o">.</span><span class="n">basis_</span> <span class="o">@</span> <span class="n">coefficients</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+</span><span id="__span-0-367"><a id="__codelineno-0-367" name="__codelineno-0-367"></a>
+</span><span id="__span-0-368"><a id="__codelineno-0-368" name="__codelineno-0-368"></a>        <span class="n">penalty</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">(</span>
+</span><span id="__span-0-369"><a id="__codelineno-0-369" name="__codelineno-0-369"></a>            <span class="nb">sum</span><span class="p">(</span>
+</span><span id="__span-0-370"><a id="__codelineno-0-370" name="__codelineno-0-370"></a>                <span class="n">coef</span><span class="p">[:,</span> <span class="n">c</span><span class="p">]</span> <span class="o">@</span> <span class="n">encoders</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">ridge_matrix_</span> <span class="o">@</span> <span class="n">coef</span><span class="p">[:,</span> <span class="n">c</span><span class="p">]</span>
+</span><span id="__span-0-371"><a id="__codelineno-0-371" name="__codelineno-0-371"></a>                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+</span><span id="__span-0-372"><a id="__codelineno-0-372" name="__codelineno-0-372"></a>            <span class="p">)</span>
+</span><span id="__span-0-373"><a id="__codelineno-0-373" name="__codelineno-0-373"></a>            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">coef</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)</span>
+</span><span id="__span-0-374"><a id="__codelineno-0-374" name="__codelineno-0-374"></a>        <span class="p">)</span>
+</span><span id="__span-0-375"><a id="__codelineno-0-375" name="__codelineno-0-375"></a>        <span class="n">obj</span> <span class="o">=</span> <span class="n">ey_loss</span><span class="p">(</span><span class="n">representations</span><span class="p">)[</span><span class="s2">&quot;objective&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">penalty</span>
+</span><span id="__span-0-376"><a id="__codelineno-0-376" name="__codelineno-0-376"></a>        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">prev_obj</span> <span class="o">-</span> <span class="n">obj</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">:</span>
+</span><span id="__span-0-377"><a id="__codelineno-0-377" name="__codelineno-0-377"></a>            <span class="k">break</span>
+</span><span id="__span-0-378"><a id="__codelineno-0-378" name="__codelineno-0-378"></a>        <span class="n">prev_obj</span> <span class="o">=</span> <span class="n">obj</span>
+</span><span id="__span-0-379"><a id="__codelineno-0-379" name="__codelineno-0-379"></a>
+</span><span id="__span-0-380"><a id="__codelineno-0-380" name="__codelineno-0-380"></a>    <span class="k">for</span> <span class="n">enc</span><span class="p">,</span> <span class="n">coef</span><span class="p">,</span> <span class="n">rep</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">encoders</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">representations</span><span class="p">):</span>
+</span><span id="__span-0-381"><a id="__codelineno-0-381" name="__codelineno-0-381"></a>        <span class="n">enc</span><span class="o">.</span><span class="n">coef_</span> <span class="o">=</span> <span class="n">coef</span>
+</span><span id="__span-0-382"><a id="__codelineno-0-382" name="__codelineno-0-382"></a>        <span class="n">enc</span><span class="o">.</span><span class="n">_train_pred</span> <span class="o">=</span> <span class="n">rep</span>
+</span><span id="__span-0-383"><a id="__codelineno-0-383" name="__codelineno-0-383"></a>
+</span><span id="__span-0-384"><a id="__codelineno-0-384" name="__codelineno-0-384"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">encoders_</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">_GpEncoder</span><span class="p">]</span> <span class="o">=</span> <span class="n">encoders</span>
+</span><span id="__span-0-385"><a id="__codelineno-0-385" name="__codelineno-0-385"></a>    <span class="k">return</span> <span class="bp">self</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2163,7 +2232,7 @@ the number of views passed to <code>fit</code>.</p>
             <td>
               <div class="doc-md-description">
                 <p>If True, also return each view's posterior standard
-deviation, propagated through the whitening transform.</p>
+deviation alongside its mean.</p>
               </div>
             </td>
             <td>
@@ -2252,69 +2321,69 @@ deviation, propagated through the whitening transform.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>cca_zoo/gp/_gpcca.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-583">583</a></span>
-<span class="normal"><a href="#__codelineno-0-584">584</a></span>
-<span class="normal"><a href="#__codelineno-0-585">585</a></span>
-<span class="normal"><a href="#__codelineno-0-586">586</a></span>
-<span class="normal"><a href="#__codelineno-0-587">587</a></span>
-<span class="normal"><a href="#__codelineno-0-588">588</a></span>
-<span class="normal"><a href="#__codelineno-0-589">589</a></span>
-<span class="normal"><a href="#__codelineno-0-590">590</a></span>
-<span class="normal"><a href="#__codelineno-0-591">591</a></span>
-<span class="normal"><a href="#__codelineno-0-592">592</a></span>
-<span class="normal"><a href="#__codelineno-0-593">593</a></span>
-<span class="normal"><a href="#__codelineno-0-594">594</a></span>
-<span class="normal"><a href="#__codelineno-0-595">595</a></span>
-<span class="normal"><a href="#__codelineno-0-596">596</a></span>
-<span class="normal"><a href="#__codelineno-0-597">597</a></span>
-<span class="normal"><a href="#__codelineno-0-598">598</a></span>
-<span class="normal"><a href="#__codelineno-0-599">599</a></span>
-<span class="normal"><a href="#__codelineno-0-600">600</a></span>
-<span class="normal"><a href="#__codelineno-0-601">601</a></span>
-<span class="normal"><a href="#__codelineno-0-602">602</a></span>
-<span class="normal"><a href="#__codelineno-0-603">603</a></span>
-<span class="normal"><a href="#__codelineno-0-604">604</a></span>
-<span class="normal"><a href="#__codelineno-0-605">605</a></span>
-<span class="normal"><a href="#__codelineno-0-606">606</a></span>
-<span class="normal"><a href="#__codelineno-0-607">607</a></span>
-<span class="normal"><a href="#__codelineno-0-608">608</a></span>
-<span class="normal"><a href="#__codelineno-0-609">609</a></span>
-<span class="normal"><a href="#__codelineno-0-610">610</a></span>
-<span class="normal"><a href="#__codelineno-0-611">611</a></span>
-<span class="normal"><a href="#__codelineno-0-612">612</a></span>
-<span class="normal"><a href="#__codelineno-0-613">613</a></span>
-<span class="normal"><a href="#__codelineno-0-614">614</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-583"><a id="__codelineno-0-583" name="__codelineno-0-583"></a><span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span>  <span class="c1"># type: ignore[override]</span>
-</span><span id="__span-0-584"><a id="__codelineno-0-584" name="__codelineno-0-584"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">views</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ArrayLike</span><span class="p">],</span> <span class="n">return_std</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span id="__span-0-585"><a id="__codelineno-0-585" name="__codelineno-0-585"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
-</span><span id="__span-0-586"><a id="__codelineno-0-586" name="__codelineno-0-586"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Project views into the latent space using the fitted encoders.</span>
-</span><span id="__span-0-587"><a id="__codelineno-0-587" name="__codelineno-0-587"></a>
-</span><span id="__span-0-588"><a id="__codelineno-0-588" name="__codelineno-0-588"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-589"><a id="__codelineno-0-589" name="__codelineno-0-589"></a><span class="sd">        views: List of arrays, each (n_samples, n_features_i), matching</span>
-</span><span id="__span-0-590"><a id="__codelineno-0-590" name="__codelineno-0-590"></a><span class="sd">            the number of views passed to ``fit``.</span>
-</span><span id="__span-0-591"><a id="__codelineno-0-591" name="__codelineno-0-591"></a><span class="sd">        return_std: If True, also return each view&#39;s posterior standard</span>
-</span><span id="__span-0-592"><a id="__codelineno-0-592" name="__codelineno-0-592"></a><span class="sd">            deviation, propagated through the whitening transform.</span>
-</span><span id="__span-0-593"><a id="__codelineno-0-593" name="__codelineno-0-593"></a>
-</span><span id="__span-0-594"><a id="__codelineno-0-594" name="__codelineno-0-594"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-595"><a id="__codelineno-0-595" name="__codelineno-0-595"></a><span class="sd">        List of arrays, each (n_samples, latent_dimensions); or, if</span>
-</span><span id="__span-0-596"><a id="__codelineno-0-596" name="__codelineno-0-596"></a><span class="sd">        ``return_std`` is True, a tuple ``(means, stds)`` of two such</span>
-</span><span id="__span-0-597"><a id="__codelineno-0-597" name="__codelineno-0-597"></a><span class="sd">        lists.</span>
-</span><span id="__span-0-598"><a id="__codelineno-0-598" name="__codelineno-0-598"></a>
-</span><span id="__span-0-599"><a id="__codelineno-0-599" name="__codelineno-0-599"></a><span class="sd">    Raises:</span>
-</span><span id="__span-0-600"><a id="__codelineno-0-600" name="__codelineno-0-600"></a><span class="sd">        sklearn.exceptions.NotFittedError: If ``fit`` has not been called.</span>
-</span><span id="__span-0-601"><a id="__codelineno-0-601" name="__codelineno-0-601"></a><span class="sd">        ValueError: If fewer than 2 views are provided.</span>
-</span><span id="__span-0-602"><a id="__codelineno-0-602" name="__codelineno-0-602"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-603"><a id="__codelineno-0-603" name="__codelineno-0-603"></a>    <span class="n">check_is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-</span><span id="__span-0-604"><a id="__codelineno-0-604" name="__codelineno-0-604"></a>    <span class="n">validated</span> <span class="o">=</span> <span class="n">validate_views</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
-</span><span id="__span-0-605"><a id="__codelineno-0-605" name="__codelineno-0-605"></a>    <span class="n">centred</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="o">-</span> <span class="n">m</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">validated</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">means_</span><span class="p">)]</span>
-</span><span id="__span-0-606"><a id="__codelineno-0-606" name="__codelineno-0-606"></a>    <span class="k">if</span> <span class="n">return_std</span><span class="p">:</span>
-</span><span id="__span-0-607"><a id="__codelineno-0-607" name="__codelineno-0-607"></a>        <span class="n">means</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-0-608"><a id="__codelineno-0-608" name="__codelineno-0-608"></a>        <span class="n">stds</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-0-609"><a id="__codelineno-0-609" name="__codelineno-0-609"></a>        <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">enc</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">centred</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders_</span><span class="p">):</span>
-</span><span id="__span-0-610"><a id="__codelineno-0-610" name="__codelineno-0-610"></a>            <span class="n">mean</span><span class="p">,</span> <span class="n">std</span> <span class="o">=</span> <span class="n">enc</span><span class="o">.</span><span class="n">predict_new</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">return_std</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-0-611"><a id="__codelineno-0-611" name="__codelineno-0-611"></a>            <span class="n">means</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean</span><span class="p">)</span>
-</span><span id="__span-0-612"><a id="__codelineno-0-612" name="__codelineno-0-612"></a>            <span class="n">stds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
-</span><span id="__span-0-613"><a id="__codelineno-0-613" name="__codelineno-0-613"></a>        <span class="k">return</span> <span class="n">means</span><span class="p">,</span> <span class="n">stds</span>
-</span><span id="__span-0-614"><a id="__codelineno-0-614" name="__codelineno-0-614"></a>    <span class="k">return</span> <span class="p">[</span><span class="n">enc</span><span class="o">.</span><span class="n">predict_new</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">enc</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">centred</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders_</span><span class="p">)]</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-387">387</a></span>
+<span class="normal"><a href="#__codelineno-0-388">388</a></span>
+<span class="normal"><a href="#__codelineno-0-389">389</a></span>
+<span class="normal"><a href="#__codelineno-0-390">390</a></span>
+<span class="normal"><a href="#__codelineno-0-391">391</a></span>
+<span class="normal"><a href="#__codelineno-0-392">392</a></span>
+<span class="normal"><a href="#__codelineno-0-393">393</a></span>
+<span class="normal"><a href="#__codelineno-0-394">394</a></span>
+<span class="normal"><a href="#__codelineno-0-395">395</a></span>
+<span class="normal"><a href="#__codelineno-0-396">396</a></span>
+<span class="normal"><a href="#__codelineno-0-397">397</a></span>
+<span class="normal"><a href="#__codelineno-0-398">398</a></span>
+<span class="normal"><a href="#__codelineno-0-399">399</a></span>
+<span class="normal"><a href="#__codelineno-0-400">400</a></span>
+<span class="normal"><a href="#__codelineno-0-401">401</a></span>
+<span class="normal"><a href="#__codelineno-0-402">402</a></span>
+<span class="normal"><a href="#__codelineno-0-403">403</a></span>
+<span class="normal"><a href="#__codelineno-0-404">404</a></span>
+<span class="normal"><a href="#__codelineno-0-405">405</a></span>
+<span class="normal"><a href="#__codelineno-0-406">406</a></span>
+<span class="normal"><a href="#__codelineno-0-407">407</a></span>
+<span class="normal"><a href="#__codelineno-0-408">408</a></span>
+<span class="normal"><a href="#__codelineno-0-409">409</a></span>
+<span class="normal"><a href="#__codelineno-0-410">410</a></span>
+<span class="normal"><a href="#__codelineno-0-411">411</a></span>
+<span class="normal"><a href="#__codelineno-0-412">412</a></span>
+<span class="normal"><a href="#__codelineno-0-413">413</a></span>
+<span class="normal"><a href="#__codelineno-0-414">414</a></span>
+<span class="normal"><a href="#__codelineno-0-415">415</a></span>
+<span class="normal"><a href="#__codelineno-0-416">416</a></span>
+<span class="normal"><a href="#__codelineno-0-417">417</a></span>
+<span class="normal"><a href="#__codelineno-0-418">418</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-387"><a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span>  <span class="c1"># type: ignore[override]</span>
+</span><span id="__span-0-388"><a id="__codelineno-0-388" name="__codelineno-0-388"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">views</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ArrayLike</span><span class="p">],</span> <span class="n">return_std</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-0-389"><a id="__codelineno-0-389" name="__codelineno-0-389"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
+</span><span id="__span-0-390"><a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Project views into the latent space using the fitted encoders.</span>
+</span><span id="__span-0-391"><a id="__codelineno-0-391" name="__codelineno-0-391"></a>
+</span><span id="__span-0-392"><a id="__codelineno-0-392" name="__codelineno-0-392"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-393"><a id="__codelineno-0-393" name="__codelineno-0-393"></a><span class="sd">        views: List of arrays, each (n_samples, n_features_i), matching</span>
+</span><span id="__span-0-394"><a id="__codelineno-0-394" name="__codelineno-0-394"></a><span class="sd">            the number of views passed to ``fit``.</span>
+</span><span id="__span-0-395"><a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="sd">        return_std: If True, also return each view&#39;s posterior standard</span>
+</span><span id="__span-0-396"><a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="sd">            deviation alongside its mean.</span>
+</span><span id="__span-0-397"><a id="__codelineno-0-397" name="__codelineno-0-397"></a>
+</span><span id="__span-0-398"><a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-399"><a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">        List of arrays, each (n_samples, latent_dimensions); or, if</span>
+</span><span id="__span-0-400"><a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="sd">        ``return_std`` is True, a tuple ``(means, stds)`` of two such</span>
+</span><span id="__span-0-401"><a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="sd">        lists.</span>
+</span><span id="__span-0-402"><a id="__codelineno-0-402" name="__codelineno-0-402"></a>
+</span><span id="__span-0-403"><a id="__codelineno-0-403" name="__codelineno-0-403"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-404"><a id="__codelineno-0-404" name="__codelineno-0-404"></a><span class="sd">        sklearn.exceptions.NotFittedError: If ``fit`` has not been called.</span>
+</span><span id="__span-0-405"><a id="__codelineno-0-405" name="__codelineno-0-405"></a><span class="sd">        ValueError: If fewer than 2 views are provided.</span>
+</span><span id="__span-0-406"><a id="__codelineno-0-406" name="__codelineno-0-406"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-407"><a id="__codelineno-0-407" name="__codelineno-0-407"></a>    <span class="n">check_is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</span><span id="__span-0-408"><a id="__codelineno-0-408" name="__codelineno-0-408"></a>    <span class="n">validated</span> <span class="o">=</span> <span class="n">validate_views</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
+</span><span id="__span-0-409"><a id="__codelineno-0-409" name="__codelineno-0-409"></a>    <span class="n">centred</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="o">-</span> <span class="n">m</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">validated</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">means_</span><span class="p">)]</span>
+</span><span id="__span-0-410"><a id="__codelineno-0-410" name="__codelineno-0-410"></a>    <span class="k">if</span> <span class="n">return_std</span><span class="p">:</span>
+</span><span id="__span-0-411"><a id="__codelineno-0-411" name="__codelineno-0-411"></a>        <span class="n">means</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-0-412"><a id="__codelineno-0-412" name="__codelineno-0-412"></a>        <span class="n">stds</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-0-413"><a id="__codelineno-0-413" name="__codelineno-0-413"></a>        <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">enc</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">centred</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders_</span><span class="p">):</span>
+</span><span id="__span-0-414"><a id="__codelineno-0-414" name="__codelineno-0-414"></a>            <span class="n">mean</span><span class="p">,</span> <span class="n">std</span> <span class="o">=</span> <span class="n">enc</span><span class="o">.</span><span class="n">predict_new</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">return_std</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-0-415"><a id="__codelineno-0-415" name="__codelineno-0-415"></a>            <span class="n">means</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean</span><span class="p">)</span>
+</span><span id="__span-0-416"><a id="__codelineno-0-416" name="__codelineno-0-416"></a>            <span class="n">stds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
+</span><span id="__span-0-417"><a id="__codelineno-0-417" name="__codelineno-0-417"></a>        <span class="k">return</span> <span class="n">means</span><span class="p">,</span> <span class="n">stds</span>
+</span><span id="__span-0-418"><a id="__codelineno-0-418" name="__codelineno-0-418"></a>    <span class="k">return</span> <span class="p">[</span><span class="n">enc</span><span class="o">.</span><span class="n">predict_new</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">enc</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">centred</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders_</span><span class="p">)]</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2380,13 +2449,13 @@ deviation, propagated through the whitening transform.</p>
         
         
           
-          <a href="../deep/" class="md-footer__link md-footer__link--next" aria-label="Next: Deep">
+          <a href="../sparse/" class="md-footer__link md-footer__link--next" aria-label="Next: Sparse">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Deep
+                Sparse
               </div>
             </div>
             <div class="md-footer__button md-icon">

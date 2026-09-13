@@ -10,31 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://jameschapman19.github.io/cca_zoo/user-guide/">
+        <link rel="canonical" href="https://jameschapman19.github.io/cca_zoo/user-guide/sparse/">
       
       
-        <link rel="prev" href="../getting-started/">
+        <link rel="prev" href="../gp/">
       
       
-        <link rel="next" href="linear/">
+        <link rel="next" href="../deep/">
       
       
         
       
       
-      <link rel="icon" href="../logos/favicon.ico">
+      <link rel="icon" href="../../logos/favicon.ico">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>User Guide - CCA-Zoo</title>
+        <title>Sparse Methods - CCA-Zoo</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,11 +53,11 @@
       
     
     
-      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#user-guide" class="md-skip">
+        <a href="#sparse-methods" class="md-skip">
           Skip to content
         </a>
       
@@ -96,9 +96,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="CCA-Zoo" class="md-header__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
+    <a href="../.." title="CCA-Zoo" class="md-header__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
       
-  <img src="../logos/cca-zoo-logo.svg" alt="logo">
+  <img src="../../logos/cca-zoo-logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -115,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              User Guide
+              Sparse Methods
             
           </span>
         </div>
@@ -233,7 +233,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -252,7 +252,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../getting-started/" class="md-tabs__link">
+      <a href="../../getting-started/" class="md-tabs__link">
         
   
   
@@ -275,7 +275,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../" class="md-tabs__link">
           
   
   
@@ -297,7 +297,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../api/" class="md-tabs__link">
+        <a href="../../api/" class="md-tabs__link">
           
   
   
@@ -317,7 +317,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../contributing/" class="md-tabs__link">
+      <a href="../../contributing/" class="md-tabs__link">
         
   
   
@@ -352,9 +352,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="CCA-Zoo" class="md-nav__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
+    <a href="../.." title="CCA-Zoo" class="md-nav__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
       
-  <img src="../logos/cca-zoo-logo.svg" alt="logo">
+  <img src="../../logos/cca-zoo-logo.svg" alt="logo">
 
     </a>
     CCA-Zoo
@@ -381,7 +381,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -408,7 +408,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/" class="md-nav__link">
+      <a href="../../getting-started/" class="md-nav__link">
         
   
   
@@ -483,7 +483,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="./" class="md-nav__link md-nav__link--active">
+            <a href="../" class="md-nav__link ">
               
   
   
@@ -501,7 +501,7 @@
             </a>
             
               
-              <label class="md-nav__link md-nav__link--active" for="__nav_3" id="__nav_3_label" tabindex="">
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
@@ -527,7 +527,7 @@
   
   
     <li class="md-nav__item">
-      <a href="linear/" class="md-nav__link">
+      <a href="../linear/" class="md-nav__link">
         
   
   
@@ -555,7 +555,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nonparametric/" class="md-nav__link">
+      <a href="../nonparametric/" class="md-nav__link">
         
   
   
@@ -583,7 +583,7 @@
   
   
     <li class="md-nav__item">
-      <a href="tree/" class="md-nav__link">
+      <a href="../tree/" class="md-nav__link">
         
   
   
@@ -611,7 +611,7 @@
   
   
     <li class="md-nav__item">
-      <a href="gam/" class="md-nav__link">
+      <a href="../gam/" class="md-nav__link">
         
   
   
@@ -639,7 +639,7 @@
   
   
     <li class="md-nav__item">
-      <a href="gp/" class="md-nav__link">
+      <a href="../gp/" class="md-nav__link">
         
   
   
@@ -664,10 +664,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="sparse/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparse Methods
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -683,6 +710,70 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#background" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic usage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key parameters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -695,7 +786,7 @@
   
   
     <li class="md-nav__item">
-      <a href="deep/" class="md-nav__link">
+      <a href="../deep/" class="md-nav__link">
         
   
   
@@ -723,7 +814,7 @@
   
   
     <li class="md-nav__item">
-      <a href="probabilistic/" class="md-nav__link">
+      <a href="../probabilistic/" class="md-nav__link">
         
   
   
@@ -751,7 +842,7 @@
   
   
     <li class="md-nav__item">
-      <a href="datasets/" class="md-nav__link">
+      <a href="../datasets/" class="md-nav__link">
         
   
   
@@ -779,7 +870,7 @@
   
   
     <li class="md-nav__item">
-      <a href="model-selection/" class="md-nav__link">
+      <a href="../model-selection/" class="md-nav__link">
         
   
   
@@ -859,7 +950,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../api/" class="md-nav__link ">
+            <a href="../../api/" class="md-nav__link ">
               
   
   
@@ -903,7 +994,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/linear/" class="md-nav__link">
+      <a href="../../api/linear/" class="md-nav__link">
         
   
   
@@ -931,7 +1022,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/nonparametric/" class="md-nav__link">
+      <a href="../../api/nonparametric/" class="md-nav__link">
         
   
   
@@ -959,7 +1050,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/tree/" class="md-nav__link">
+      <a href="../../api/tree/" class="md-nav__link">
         
   
   
@@ -987,7 +1078,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/gam/" class="md-nav__link">
+      <a href="../../api/gam/" class="md-nav__link">
         
   
   
@@ -1015,7 +1106,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/gp/" class="md-nav__link">
+      <a href="../../api/gp/" class="md-nav__link">
         
   
   
@@ -1043,7 +1134,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/sparse/" class="md-nav__link">
+      <a href="../../api/sparse/" class="md-nav__link">
         
   
   
@@ -1071,7 +1162,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/deep/" class="md-nav__link">
+      <a href="../../api/deep/" class="md-nav__link">
         
   
   
@@ -1099,7 +1190,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/probabilistic/" class="md-nav__link">
+      <a href="../../api/probabilistic/" class="md-nav__link">
         
   
   
@@ -1127,7 +1218,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/datasets/" class="md-nav__link">
+      <a href="../../api/datasets/" class="md-nav__link">
         
   
   
@@ -1155,7 +1246,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/model-selection/" class="md-nav__link">
+      <a href="../../api/model-selection/" class="md-nav__link">
         
   
   
@@ -1190,7 +1281,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../contributing/" class="md-nav__link">
+      <a href="../../contributing/" class="md-nav__link">
         
   
   
@@ -1230,6 +1321,58 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#background" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic usage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key parameters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1253,7 +1396,7 @@
   
   
     <li class="md-path__item">
-      <a href=".." class="md-path__link">
+      <a href="../.." class="md-path__link">
         
   <span class="md-ellipsis">
     Home
@@ -1271,7 +1414,7 @@
     
     
       <li class="md-path__item">
-        <a href="./" class="md-path__link">
+        <a href="../" class="md-path__link">
           
   <span class="md-ellipsis">
     User Guide
@@ -1293,7 +1436,7 @@
 
 
   
-    <a href="https://github.com/jameschapman19/cca_zoo/edit/main/docs/user-guide/index.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/jameschapman19/cca_zoo/edit/main/docs/user-guide/sparse.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1301,50 +1444,100 @@
   
 
 
-<h1 id="user-guide">User Guide<a class="headerlink" href="#user-guide" title="Permanent link">&para;</a></h1>
-<p>This guide explains each family of methods available in CCA-Zoo, their mathematical basis, and when to use them.</p>
+<h1 id="sparse-methods">Sparse Methods<a class="headerlink" href="#sparse-methods" title="Permanent link">&para;</a></h1>
+<p>The <code>cca_zoo.sparse</code> module provides <code>ElasticNetCCA</code>, a sparse linear multiview CCA method that
+learns per-view canonical weight vectors under an elastic-net (L1 + L2) penalty. It has no
+optional dependency: it is built entirely on numpy, already required by <code>cca_zoo</code>.</p>
+<hr />
+<h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
+<p><code>ElasticNetCCA</code> minimises the same unconstrained Eckart-Young (EY) objective used by the
+stochastic <code>*_EY</code> models in <code>cca_zoo.linear</code>, by <code>DCCAEY</code> in <code>cca_zoo.deep</code>, by <code>TreeCCA</code> in
+<code>cca_zoo.tree</code>, and by <code>GAMCCA</code>/<code>GaussianProcessCCA</code> (all share the exact same implementation, in
+<code>cca_zoo._utils._ey</code>), with an elastic-net penalty added on the per-view weights:</p>
+<div class="arithmatex">\[
+\mathcal{L}(W) = \mathcal{L}_{EY}(Z_1, \dots, Z_M)
+    + \sum_i \left( \alpha \, \rho \, \|W_i\|_1 + \tfrac{1}{2} \alpha (1-\rho) \|W_i\|_F^2 \right)
+\]</div>
+<p>where <span class="arithmatex">\(Z_i = X_i W_i\)</span> and <span class="arithmatex">\(\rho\)</span> is <code>l1_ratio</code>. <code>ElasticNetCCA</code> uses a plain linear map for each
+<span class="arithmatex">\(f_i\)</span>, like <code>CCAEY</code>, but reaches its optimum by <strong>cyclic coordinate descent</strong> instead of gradient
+descent — the same algorithm <code>sklearn.linear_model.ElasticNet</code> uses for ordinary (squared-error)
+elastic net, updating one scalar weight at a time to its exact minimiser with every other weight
+held fixed.</p>
+<p>This is a genuine departure from <code>ElasticNet</code>'s own coordinate descent, not a re-use of it: for
+ordinary least squares, the loss restricted to a single coordinate is a plain quadratic, giving
+the familiar closed-form soft-threshold update. Restricting <span class="arithmatex">\(\mathcal{L}_{EY}\)</span> to a single
+coordinate instead gives an <strong>exact quartic</strong> (not quadratic), which each update solves to its
+exact global minimiser directly — no line search, no step size, and no local-optimum risk from
+linearising the loss.</p>
+<p>Because every embedding stays exactly linear in the raw (centred) view throughout fitting,
+<code>model.weights</code> returns real per-view canonical weight matrices, unlike <code>TreeCCA</code>, <code>GAMCCA</code>, and
+<code>GaussianProcessCCA</code>, where it raises <code>NotImplementedError</code>.</p>
+<p><strong>When to use:</strong> Multiview CCA where the true relationship is linear but only a subset of
+features in each view actually drive the shared structure — <code>l1_ratio &gt; 0</code> drives irrelevant
+features' weights to exactly zero, giving feature selection alongside the fitted canonical
+directions. When every feature is expected to contribute, plain <code>CCAEY</code>/<code>rCCA</code> need less
+hyperparameter tuning (no <code>alpha</code>/<code>l1_ratio</code> to select).</p>
+<hr />
+<h2 id="basic-usage">Basic usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElasticNetCCA</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ElasticNetCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">corrs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># ElasticNetCCA also supports more than two views</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">model3</span> <span class="o">=</span> <span class="n">ElasticNetCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
+</span></code></pre></div>
+<p><code>l1_ratio=0</code> is pure ridge (no sparsity); <code>l1_ratio=1</code> is pure lasso. Increasing <code>alpha</code> shrinks
+more weights to exactly zero:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ElasticNetCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">nonzero_features</span> <span class="o">=</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></code></pre></div>
+<hr />
+<h2 id="key-parameters">Key parameters<a class="headerlink" href="#key-parameters" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Section</th>
-<th>When to use</th>
+<th>Parameter</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="linear/">Linear Methods</a></td>
-<td>Fast, interpretable, exact solutions for moderate-dimensional data</td>
+<td><code>alpha</code></td>
+<td>Overall elastic-net penalty strength.</td>
 </tr>
 <tr>
-<td><a href="nonparametric/">Nonparametric Methods</a></td>
-<td>Nonlinear relationships via kernel functions</td>
+<td><code>l1_ratio</code></td>
+<td>Elastic-net mixing parameter in <code>[0, 1]</code>; 0 is pure ridge, 1 is pure lasso.</td>
 </tr>
 <tr>
-<td><a href="tree/">Tree Methods</a></td>
-<td>Nonlinear relationships with built-in, split-gain feature importance</td>
+<td><code>max_iter</code></td>
+<td>Maximum number of full coordinate-descent sweeps (every view, feature, and component once each).</td>
 </tr>
 <tr>
-<td><a href="gam/">GAM Methods</a></td>
-<td>Smooth nonlinear (additive) relationships with per-feature shape functions</td>
+<td><code>tol</code></td>
+<td>Convergence tolerance on the penalised objective's change between consecutive sweeps.</td>
 </tr>
 <tr>
-<td><a href="deep/">Deep Methods</a></td>
-<td>Very high-dimensional data with complex structure (images, text)</td>
-</tr>
-<tr>
-<td><a href="probabilistic/">Probabilistic CCA</a></td>
-<td>Uncertainty quantification; Bayesian treatment</td>
-</tr>
-<tr>
-<td><a href="datasets/">Datasets</a></td>
-<td>Simulating and loading multiview datasets</td>
-</tr>
-<tr>
-<td><a href="model-selection/">Model Selection</a></td>
-<td>Cross-validated hyperparameter search</td>
+<td><code>random_state</code></td>
+<td>Seed for the initial weights.</td>
 </tr>
 </tbody>
 </table>
+<p>Hyperparameters are best selected by cross-validation with <code>GridSearchCV</code> from
+<code>cca_zoo.model_selection</code>, as for other models.</p>
+<hr />
+<h2 id="practical-notes">Practical notes<a class="headerlink" href="#practical-notes" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>ElasticNetCCA</code> supports 2 or more views.</li>
+<li><code>latent_dimensions</code> must not exceed the number of features in any view.</li>
+<li>Like every EY-loss model, <span class="arithmatex">\(\mathcal{L}_{EY}\)</span> is not convex in <span class="arithmatex">\(W\)</span> jointly, so coordinate
+  descent is only guaranteed to reach a stationary point, and different <code>random_state</code>
+  initialisations can land on different ones — the same caveat that already applies to
+  <code>CCAEY</code>'s gradient descent.</li>
+<li>No optional dependency is required: <code>ElasticNetCCA</code> is built entirely on numpy.</li>
+</ul>
 
 
 
@@ -1380,7 +1573,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../getting-started/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Getting Started">
+          <a href="../gp/" class="md-footer__link md-footer__link--prev" aria-label="Previous: GP Methods">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1390,20 +1583,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Getting Started
+                GP Methods
               </div>
             </div>
           </a>
         
         
           
-          <a href="linear/" class="md-footer__link md-footer__link--next" aria-label="Next: Linear Methods">
+          <a href="../deep/" class="md-footer__link md-footer__link--next" aria-label="Next: Deep Methods">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Linear Methods
+                Deep Methods
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -1471,12 +1664,12 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "navigation.footer", "navigation.path", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.action.edit", "announce.dismiss"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "navigation.footer", "navigation.path", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.action.edit", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
-        <script src="../javascripts/mathjax.js"></script>
+        <script src="../../javascripts/mathjax.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
