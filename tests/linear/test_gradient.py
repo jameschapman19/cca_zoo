@@ -5,10 +5,10 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.linear import CCA, CCAEY, MCCA, MCCAEY, PLS, PLSEY
+from cca_zoo.linear import CCA, CCAEY, MCCA, MCCAEY, PLS, PLSEY, SupportVectorCCA
 
-GRADIENT_MODELS_TWO_VIEW = [PLSEY, CCAEY]
-GRADIENT_MODELS_MULTI_VIEW = [MCCAEY]
+GRADIENT_MODELS_TWO_VIEW = [PLSEY, CCAEY, SupportVectorCCA]
+GRADIENT_MODELS_MULTI_VIEW = [MCCAEY, SupportVectorCCA]
 ALL_GRADIENT_MODELS = GRADIENT_MODELS_TWO_VIEW + GRADIENT_MODELS_MULTI_VIEW
 
 # Use fewer iterations for speed in tests

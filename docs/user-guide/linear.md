@@ -148,6 +148,7 @@ mini-batches.
 | `PLSEY` | Eckart-Young PLS objective, stochastic updates |
 | `CCAEY` | Eckart-Young CCA, stochastic updates, ridge-blended with `PLSEY` via `c` |
 | `MCCAEY` | Multiview EY-CCA for ≥2 views |
+| `SupportVectorCCA` | Bounded-influence (outlier-robust) EY-CCA |
 
 `CCAEY`'s `c` parameter (default `0`) blends its loss towards `PLSEY`'s (`c=1`) — in fact
 `PLSEY` is implemented as `CCAEY` with `c` fixed at `1`. Gradient descent on the raw,
@@ -159,6 +160,26 @@ usually enough) or `batch_size`.
 from cca_zoo.linear import CCAEY
 
 model = CCAEY(latent_dimensions=2, learning_rate=0.01, batch_size=128, max_iter=200)
+model.fit([X1, X2])
+```
+
+### SupportVectorCCA — bounded-influence EY-CCA
+
+`CCAEY`'s cross- and auto-covariance statistics weight every sample equally, so a handful of
+high-leverage points (their contribution grows with the *square* of their magnitude) can hijack
+the fit. `SupportVectorCCA` caps each mini-batch sample's contribution by a Huber-style factor of
+its own leverage — the same bounded-influence mechanism that makes support vector machines robust
+to outliers, applied to the EY loss's own statistics rather than to a hinge/epsilon-insensitive
+dual. It has no ridge-blend `c` of its own, so the same `nan`-on-small-batches caveat above
+applies; increase `batch_size` if you hit it. The `delta` parameter sets the cutoff as a multiple
+of each batch's own median sample leverage (self-calibrating, so it doesn't need re-tuning per
+`batch_size`/`latent_dimensions`); values below 1 downweight the majority of every batch and are
+not recommended.
+
+```python
+from cca_zoo.linear import SupportVectorCCA
+
+model = SupportVectorCCA(latent_dimensions=2, delta=4.0, batch_size=128, max_iter=200)
 model.fit([X1, X2])
 ```
 
