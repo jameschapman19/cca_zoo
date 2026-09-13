@@ -4,69 +4,69 @@
     "rCCA": 0.14308946363491404,
     "GAMCCA": 0.8195661363966855,
     "TreeCCA": 0.06184535220857734,
-    "GaussianProcessCCA": 0.8941792688744562
+    "GaussianProcessCCA": 0.8929689350011607
   },
   {
     "seed": 1,
     "rCCA": 0.026451577878414456,
     "GAMCCA": 0.8185988368161219,
     "TreeCCA": -0.1176014999162377,
-    "GaussianProcessCCA": 0.8661522352559796
+    "GaussianProcessCCA": 0.8670024695682947
   },
   {
     "seed": 2,
     "rCCA": -0.05168259778313311,
     "GAMCCA": 0.8444413802584032,
     "TreeCCA": 0.012438301914125427,
-    "GaussianProcessCCA": 0.9084322313077531
+    "GaussianProcessCCA": 0.9078686886305689
   },
   {
     "seed": 3,
     "rCCA": -0.03595333718068572,
     "GAMCCA": 0.814370289850139,
     "TreeCCA": -0.04393276216058639,
-    "GaussianProcessCCA": 0.9070893821220689
+    "GaussianProcessCCA": 0.9071579159512572
   },
   {
     "seed": 4,
     "rCCA": -0.04439958609034411,
     "GAMCCA": 0.8461193450936628,
     "TreeCCA": 0.04840252134737666,
-    "GaussianProcessCCA": 0.9200804524352237
+    "GaussianProcessCCA": 0.9200637482302074
   },
   {
     "seed": 5,
     "rCCA": 0.04104697334768859,
     "GAMCCA": 0.8230602835188447,
     "TreeCCA": 0.028060149604504092,
-    "GaussianProcessCCA": 0.8734869018649107
+    "GaussianProcessCCA": 0.8723117227070853
   },
   {
     "seed": 6,
     "rCCA": -0.08449502446292945,
     "GAMCCA": 0.81792349081738,
     "TreeCCA": -0.08955712947078487,
-    "GaussianProcessCCA": 0.8744298545071003
+    "GaussianProcessCCA": 0.8741745409803561
   },
   {
     "seed": 7,
     "rCCA": 0.19164466377981926,
     "GAMCCA": 0.8274873995446199,
     "TreeCCA": 0.22201324308730996,
-    "GaussianProcessCCA": 0.8617464630717181
+    "GaussianProcessCCA": 0.8623540178865965
   },
   {
     "seed": 8,
     "rCCA": -0.14626153832273947,
     "GAMCCA": 0.8129711742907673,
     "TreeCCA": -0.2475791902229887,
-    "GaussianProcessCCA": 0.8911386920518134
+    "GaussianProcessCCA": 0.8909764542684814
   },
   {
     "seed": 9,
     "rCCA": 0.009234583623661141,
     "GAMCCA": 0.8269780553245711,
     "TreeCCA": 0.09892385521893687,
-    "GaussianProcessCCA": 0.8947430487891135
+    "GaussianProcessCCA": 0.8924731017774765
   }
 ]
