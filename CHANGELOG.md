@@ -45,15 +45,16 @@ project adheres to [Semantic Versioning](https://semver.org/).
   orthogonal Procrustes problem) before being compared feature-by-feature.
 - `GAMCCA`: nonlinear multiview CCA using a generalized additive model (one B-spline term
   per input feature) as the per-view encoder, trained on the same Eckart-Young objective
-  as `TreeCCA` and the `*_EY` models. Fit by P-IRLS — the same iteration structure GAM
-  software such as `mgcv` uses — applied directly to the EY loss: for one latent
-  component's spline coefficients at a time (every other component and view held fixed),
-  a damped Newton step is solved via `scipy.optimize.minimize(method="trust-exact")`
-  using the loss's exact gradient and Hessian in that coefficient space, cycling through
-  every component and view until the penalised objective stops moving. Smoothing
+  as `TreeCCA` and the `*_EY` models. Conceptually a P-IRLS fit — the same iteration
+  structure GAM software such as `mgcv` uses — applied directly to the EY loss, but
+  rather than hand-rolling that solve, every view's spline coefficients (every latent
+  component, every view, all at once — no per-component or per-view cycling) are updated
+  in a single call to `scipy.optimize.minimize(method="trust-krylov")`, a standard
+  off-the-shelf trust-region Newton-CG solver, given the loss's exact gradient and an
+  exact Hessian-vector product across the whole stacked parameter vector. Smoothing
   strength (`alpha`) is a fixed hyperparameter. Fitted per-feature shape functions are
   inspectable directly via `model.shape_function(view, feature, x)`. Built entirely on
-  scikit-learn's own `SplineTransformer`, with `scipy.optimize` doing the Newton solve,
+  scikit-learn's own `SplineTransformer`, with `scipy.optimize` doing the Newton-CG solve,
   so no new dependency is required.
 - `cca_zoo._utils._ey.random_orthogonal_embedding`: the random-orthogonal
   initial-embedding helper previously private to `TreeCCA` is now a shared EY-loss

@@ -22,93 +22,141 @@ from cca_zoo._utils._ey import (
 from cca_zoo._utils._validation import validate_views
 
 
-def _pirls_component_step(
+def _flatten(mats: list[np.ndarray]) -> np.ndarray:
+    """Concatenate per-view coefficient matrices into one parameter vector."""
+    return np.concatenate([mat.ravel() for mat in mats])
+
+
+def _unflatten(x: np.ndarray, dims: list[int], k: int) -> list[np.ndarray]:
+    """Inverse of :func:`_flatten`: split a flat vector into per-view blocks."""
+    mats = []
+    offset = 0
+    for d in dims:
+        size = d * k
+        mats.append(x[offset : offset + size].reshape(d, k))
+        offset += size
+    return mats
+
+
+def _gamcca_joint_obj_grad(
+    x: np.ndarray,
     bases: list[np.ndarray],
     grams: list[np.ndarray],
-    coefficients: list[np.ndarray],
-    representations: list[np.ndarray],
-    view_idx: int,
-    component: int,
+    cross: list[list[np.ndarray]],
     ridge: float,
-) -> None:
-    r"""P-IRLS update of a single component's coefficients via trust-region Newton.
+    dims: list[int],
+    k: int,
+) -> tuple[float, np.ndarray]:
+    r"""Penalised EY loss and gradient w.r.t. *every* view's coefficients at once.
 
-    Updates ``coefficients[view_idx][:, component]`` in place (and the
-    matching column of ``representations[view_idx]``), solving
-    $\mathcal{L}_{EY}$'s exact (not diagonal-approximated) restriction to
-    that one component's coefficient vector $b$ to a local optimum — every
-    other component and view held fixed. This is ``mgcv``'s own P-IRLS
-    structure: a penalised weighted-least-squares-shaped solve per
-    (view, component) per round. $\mathcal{L}_{EY}$ is not convex, so the
-    Hessian below can be indefinite away from the loss's own fixed point;
-    :func:`scipy.optimize.minimize`'s ``"trust-exact"`` solver handles that
-    (and the accompanying step-acceptance logic) directly.
-
-    Writing $Z_i = \text{bases}_i B_i$, the exact gradient and Hessian of
-    the *penalised* EY loss with respect to $b = B_i[:, c]$ (bases$_i$
-    already column-centred, other columns/views fixed) are:
-
-    $$
-    g = \text{bases}_i^\top \nabla_{Z_i}\mathcal{L}_{EY}[:, c] + \lambda b,
-    \qquad
-    H = \frac{4}{M(n-1)}(V_{cc}-1) G_i
-      + \frac{4}{M^2(n-1)^2}\left((G_iB_i)(G_iB_i)^\top + (G_ib)(G_ib)^\top\right)
-      + \lambda I
-    $$
-
-    where $G_i = \text{bases}_i^\top\text{bases}_i$ and $V$ is the current
-    mean auto-covariance (see :func:`~cca_zoo._utils._ey.ey_cross_covariance`).
-    The non-ridge part of $H$ has rank $\le k+1$.
+    Writing $Z_i = \text{bases}_i B_i$ for every view $i$, this is
+    $\mathcal{L}_{EY}(Z_1, \dots, Z_M) + \tfrac12\lambda\sum_i\lVert B_i\rVert_F^2$
+    as a function of $B_1, \dots, B_M$ flattened and concatenated into one
+    vector, with its exact analytic gradient
+    $\text{bases}_i^\top\nabla_{Z_i}\mathcal{L}_{EY} + \lambda B_i$ per block
+    — the same two ingredients (:func:`~cca_zoo._utils._ey.ey_loss` and
+    :func:`~cca_zoo._utils._ey.ey_grad_z`) every other EY-loss model in this
+    package already uses. ``grams`` and ``cross`` are unused here; they are
+    accepted only so this function shares a call signature with
+    :func:`_gamcca_joint_hessp`, which :func:`scipy.optimize.minimize` calls
+    with the same ``args``.
 
     Args:
-        bases: Fixed per-view (centred) design matrices.
-        grams: Precomputed ``bases[i].T @ bases[i]`` per view.
-        coefficients: Current per-view coefficient matrices, updated in
-            place.
-        representations: Current per-view embeddings
-            (``bases[i] @ coefficients[i]``), updated in place.
-        view_idx: Which view's component to update.
-        component: Which latent component to update.
+        x: Candidate coefficients for every view, flattened and concatenated.
+        bases: Fixed per-view (centred) B-spline design matrices.
+        grams: ``bases[i].T @ bases[i]`` per view; unused (see above).
+        cross: ``cross[i][a] = bases[i].T @ bases[a]`` for every pair; unused.
         ridge: Ridge penalty strength.
+        dims: Number of basis columns per view (``bases[i].shape[1]``).
+        k: Number of latent components.
+
+    Returns:
+        Tuple ``(loss, grad)`` with ``grad`` flattened the same way as ``x``.
     """
+    coefs = _unflatten(x, dims, k)
+    reps = [basis @ b for basis, b in zip(bases, coefs)]
+    loss = ey_loss(reps)["objective"] + 0.5 * ridge * sum(
+        float(np.sum(b**2)) for b in coefs
+    )
+    grad_z = ey_grad_z(reps)
+    grads = [basis.T @ gz + ridge * b for basis, gz, b in zip(bases, grad_z, coefs)]
+    return loss, _flatten(grads)
+
+
+def _gamcca_joint_hessp(
+    x: np.ndarray,
+    p: np.ndarray,
+    bases: list[np.ndarray],
+    grams: list[np.ndarray],
+    cross: list[list[np.ndarray]],
+    ridge: float,
+    dims: list[int],
+    k: int,
+) -> np.ndarray:
+    r"""Exact Hessian-vector product of the penalised EY loss over *every* view at once.
+
+    Returns the exact action of the full joint Hessian — every view, every
+    latent component, all updated together, no view held fixed — on a
+    direction $P_1, \dots, P_M$, without ever forming the
+    $\left(\sum_i d_i k\right) \times \left(\sum_i d_i k\right)$ Hessian
+    matrix itself. This differentiates the already-exact embedding gradient
+    (:func:`~cca_zoo._utils._ey.ey_grad_z`) once more, jointly in every
+    view's direction $\text{bases}_i P_i$ simultaneously, and pulls each
+    block of the result back through $\text{bases}_i^\top$. Writing
+    $G_i = \text{bases}_i^\top\text{bases}_i$,
+    $K_{ia} = \text{bases}_i^\top\text{bases}_a$ (``cross[i][a]``), and $V$
+    for the current mean auto-covariance:
+
+    $$
+    dV = \frac{1}{M(n-1)}\sum_a\left(P_a^\top G_a B_a + B_a^\top G_a P_a\right),
+    \qquad
+    Hp_i = \frac{4}{M(n-1)}\left[G_i P_i V + (G_i B_i)\,dV
+        - \sum_a K_{ia} P_a\right] + \lambda P_i.
+    $$
+
+    The $-\sum_a K_{ia}P_a$ term is what a single-view-at-a-time Hessian
+    would miss: it captures how perturbing *any* view's coefficients changes
+    every other view's gradient through their shared $S = \sum_a Z_a$, which
+    is exactly what makes this a genuinely joint (not merely block-diagonal)
+    Hessian-vector product. Verified against finite differences of
+    :func:`~cca_zoo._utils._ey.ey_grad_z` for $M = 2, 3, 4$ views with
+    unequal per-view dimensions and $k = 1, 2, 3$.
+
+    Args:
+        x: Point at which the Hessian is evaluated (every view's current
+            coefficients, flattened and concatenated the same way as ``p``).
+        p: Direction, flattened and concatenated the same way as ``x``.
+        bases: Fixed per-view (centred) B-spline design matrices.
+        grams: ``bases[i].T @ bases[i]`` per view, precomputed once.
+        cross: ``cross[i][a] = bases[i].T @ bases[a]`` for every pair,
+            precomputed once.
+        ridge: Ridge penalty strength.
+        dims: Number of basis columns per view (``bases[i].shape[1]``).
+        k: Number of latent components.
+
+    Returns:
+        $\{Hp_i\}$, flattened and concatenated the same way as ``x``.
+    """
+    coefs = _unflatten(x, dims, k)
+    directions = _unflatten(p, dims, k)
     m = len(bases)
     n_minus_1 = bases[0].shape[0] - 1
-    basis = bases[view_idx]
-    gram = grams[view_idx]
-    coef = coefficients[view_idx]
-    b0 = coef[:, component].copy()
+    reps = [basis @ b for basis, b in zip(bases, coefs)]
+    _, v = ey_cross_covariance(reps)
+    dv = sum(
+        pi.T @ (grams[i] @ coefs[i]) + coefs[i].T @ (grams[i] @ pi)
+        for i, pi in enumerate(directions)
+    ) / (m * n_minus_1)
+    scale = 4.0 / (m * n_minus_1)
 
-    def _set(b: np.ndarray) -> None:
-        coef[:, component] = b
-        representations[view_idx][:, component] = basis @ b
-
-    def _fun(b: np.ndarray) -> float:
-        _set(b)
-        obj: float = ey_loss(representations)["objective"] + 0.5 * ridge * (b @ b)
-        return obj
-
-    def _grad(b: np.ndarray) -> np.ndarray:
-        _set(b)
-        grad_all = ey_grad_z(representations)
-        grad: np.ndarray = basis.T @ grad_all[view_idx][:, component] + ridge * b
-        return grad
-
-    def _hess(b: np.ndarray) -> np.ndarray:
-        _set(b)
-        _, v = ey_cross_covariance(representations)
-        alpha_v = (4.0 / (m * n_minus_1)) * (v[component, component] - 1.0)
-        beta = 4.0 / (m**2 * n_minus_1**2)
-        gb_all = gram @ coef
-        u_c = gb_all[:, component]
-        hess: np.ndarray = (
-            alpha_v * gram
-            + beta * (gb_all @ gb_all.T + np.outer(u_c, u_c))
-            + ridge * np.eye(len(b))
-        )
-        return hess
-
-    result = minimize(_fun, b0, jac=_grad, hess=_hess, method="trust-exact")
-    _set(result.x)
+    hessian_vector_products = []
+    for i in range(m):
+        term1 = grams[i] @ directions[i] @ v
+        term2 = (grams[i] @ coefs[i]) @ dv
+        term3 = sum(cross[i][a] @ directions[a] for a in range(m))
+        hp_i = scale * (term1 + term2 - term3) + ridge * directions[i]
+        hessian_vector_products.append(hp_i)
+    return _flatten(hessian_vector_products)
 
 
 class _GamEncoder:
@@ -123,8 +171,9 @@ class _GamEncoder:
     already does for a plain linear encoder — no separate recentring step
     is needed anywhere downstream.
 
-    The coefficients $B_i$ (``coef_``) are fit by P-IRLS
-    (:func:`_pirls_component_step`), not by this class — it only builds and
+    The coefficients $B_i$ (``coef_``) are fit, jointly across every view, by
+    a single trust-region Newton-CG solve (:func:`_gamcca_joint_obj_grad`,
+    :func:`_gamcca_joint_hessp`), not by this class — it only builds and
     holds the fixed basis, and evaluates it (``predict``, ``predict_new``,
     ``feature_term``) once coefficients exist.
     """
@@ -202,21 +251,26 @@ class GAMCCA(BaseModel):
     :class:`~cca_zoo.tree.TreeCCA`, and :class:`~cca_zoo.sparse.ElasticNetCCA`).
     Writing $f_i(x) = \sum_j s_{ij}(x_{ij})$ as $\text{basis}_i(x) B_i$ for
     a fixed per-feature B-spline basis (:class:`_GamEncoder`, built by
-    :class:`~sklearn.preprocessing.SplineTransformer`) turns fitting $B_i$
-    into a **P-IRLS** recipe — the same iteration structure ``mgcv`` itself
-    uses to fit a GAM, applied directly to the EY loss rather than a
-    per-observation likelihood: for one latent component's coefficient
-    vector $b = B_i[:, c]$ at a time (every other component and view held
-    fixed), take a damped Newton step using $\mathcal{L}_{EY}$'s *exact*
-    gradient and Hessian restricted to $b$ — a single penalised, ridge-shaped
-    $d_i \times d_i$ linear solve, cycling through every component and view
-    in turn (see :func:`_pirls_component_step` for the exact derivation).
-
+    :class:`~sklearn.preprocessing.SplineTransformer`), fitting $B_1, \dots,
+    B_M$ is conceptually a **P-IRLS** problem — the same repeated-penalised-
+    quadratic-solve structure ``mgcv`` itself uses to fit a GAM, applied
+    directly to the EY loss rather than a per-observation likelihood — but
+    rather than hand-rolling that solve (or even cycling over views
+    Gauss-Seidel-style), every view's coefficients are updated *jointly, in
+    a single call*: $\mathcal{L}_{EY}$'s own exact gradient
+    (:func:`~cca_zoo._utils._ey.ey_grad_z`) and exact Hessian-vector product
+    across the *entire* stacked parameter vector $(B_1, \dots, B_M)$
+    (:func:`_gamcca_joint_hessp`) are handed straight to
+    :func:`scipy.optimize.minimize`'s ``"trust-krylov"`` solver — a
+    standard, off-the-shelf trust-region Newton-CG method — which performs
+    all of its own outer Newton and inner Krylov iterations internally.
     $\mathcal{L}_{EY}$ is not convex, so this Hessian is only guaranteed
-    positive semi-definite near the loss's own fixed point; ``"trust-exact"``
-    handles the indefinite case directly. Each view's smoothing strength
-    (``alpha``) is a fixed hyperparameter — there is no automatic
-    smoothing-parameter search.
+    positive semi-definite near the loss's own fixed point;
+    ``"trust-krylov"`` handles the indefinite case directly, and works from
+    the Hessian-vector product alone, never forming or inverting the
+    $\left(\sum_i d_i k\right) \times \left(\sum_i d_i k\right)$ Hessian
+    matrix explicitly. Each view's smoothing strength (``alpha``) is a fixed
+    hyperparameter — there is no automatic smoothing-parameter search.
 
     Because each latent component still decomposes exactly into one
     additive term per input feature, the fitted shape of any feature's
@@ -254,10 +308,12 @@ class GAMCCA(BaseModel):
             n_knots=...)``. Default is 5.
         alpha: Ridge (smoothing) penalty strength applied to every spline
             coefficient. Default is 0.1.
-        max_iter: Maximum number of full P-IRLS sweeps (one Newton solve per
-            view and component each). Default is 100.
-        tol: Convergence tolerance on the penalised objective's change
-            between consecutive sweeps. Default is 1e-6.
+        max_iter: Maximum number of outer Newton iterations in the single
+            joint ``"trust-krylov"`` solve (``scipy.optimize.minimize``'s own
+            ``maxiter`` option). Default is 100.
+        tol: Gradient-norm convergence tolerance for the joint solve
+            (``scipy.optimize.minimize``'s own ``gtol`` option). Default is
+            1e-6.
         random_state: Seed for the initial coefficients.
 
     Example:
@@ -295,7 +351,7 @@ class GAMCCA(BaseModel):
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> GAMCCA:
-        """Fit the GAMCCA model by P-IRLS on the EY loss.
+        """Fit the GAMCCA model by one joint trust-region Newton-CG solve.
 
         Args:
             views: List of 2 or more arrays, each (n_samples, n_features_i).
@@ -313,30 +369,25 @@ class GAMCCA(BaseModel):
         m = len(views_)
         encoders = [_GamEncoder(X, k, self.n_knots) for X in views_]
         bases = [enc.basis_ for enc in encoders]
+        dims = [basis.shape[1] for basis in bases]
         grams = [basis.T @ basis for basis in bases]
+        cross = [[bases[i].T @ bases[a] for a in range(m)] for i in range(m)]
 
         rng = np.random.default_rng(self.random_state)
         coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
-        representations = [b @ c for b, c in zip(bases, coefficients)]
+        x0 = _flatten(coefficients)
 
-        prev_obj = np.inf
-        for _ in range(self.max_iter):
-            for view_idx in range(m):
-                for component in range(k):
-                    _pirls_component_step(
-                        bases,
-                        grams,
-                        coefficients,
-                        representations,
-                        view_idx,
-                        component,
-                        self.alpha,
-                    )
-            penalty = 0.5 * self.alpha * sum(np.sum(c**2) for c in coefficients)
-            obj = ey_loss(representations)["objective"] + penalty
-            if abs(prev_obj - obj) < self.tol:
-                break
-            prev_obj = obj
+        result = minimize(
+            _gamcca_joint_obj_grad,
+            x0,
+            args=(bases, grams, cross, self.alpha, dims, k),
+            jac=True,
+            hessp=_gamcca_joint_hessp,
+            method="trust-krylov",
+            options={"maxiter": self.max_iter, "gtol": self.tol},
+        )
+        coefficients = _unflatten(result.x, dims, k)
+        representations = [basis @ coef for basis, coef in zip(bases, coefficients)]
 
         for enc, coef, rep in zip(encoders, coefficients, representations):
             enc.coef_ = coef

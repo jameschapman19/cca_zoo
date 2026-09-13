@@ -365,8 +365,8 @@ def coordinate_descent_ey(
     basis throughout fitting. Used by :class:`~cca_zoo.sparse.ElasticNetCCA`
     (``bases`` = the raw centred views), the only model needing an L1
     (lasso) penalty; a purely ridge-penalised fixed-basis fit is instead
-    solved by :class:`~cca_zoo.gam.GAMCCA`'s P-IRLS or
-    :class:`~cca_zoo.gp.GaussianProcessCCA`'s L-BFGS-B.
+    solved by :class:`~cca_zoo.gam.GAMCCA`'s joint trust-region Newton-CG
+    solve or :class:`~cca_zoo.gp.GaussianProcessCCA`'s L-BFGS-B.
 
     Args:
         bases: Fixed per-view design matrices, each already column-centred
