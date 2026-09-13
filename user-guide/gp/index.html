@@ -1516,9 +1516,12 @@ also comes with calibrated predictive uncertainty for free.</p>
 ordinary smooth optimisation problem with an exact, cheap analytic gradient, solved directly by
 <strong>L-BFGS-B</strong> (<code>scipy.optimize.minimize</code>) — the same algorithm <code>GaussianProcessRegressor</code> itself
 uses internally, just pointed at the EY loss (plus an RKHS-norm ridge penalty) instead of the
-negative log-marginal-likelihood it optimises kernel hyperparameters against. One view's full
-coefficient matrix is optimised at a time, cycling through every view until the penalised
-objective stops moving. Kernel hyperparameters are fixed — pass <code>kernel=</code> explicitly, or tune it
+negative log-marginal-likelihood it optimises kernel hyperparameters against. Every view's
+coefficients are optimised <strong>jointly</strong>, in a single L-BFGS-B run over all of them concatenated,
+rather than one view at a time with the others held fixed: the EY loss already couples every view
+together, so solving one view to convergence before moving to the next needlessly repeats work and
+can settle into a worse joint optimum than optimising every view simultaneously against the exact
+joint gradient. Kernel hyperparameters are fixed — pass <code>kernel=</code> explicitly, or tune it
 externally (e.g. with <code>sklearn.model_selection.GridSearchCV</code>, since this is an ordinary
 <code>BaseEstimator</code>).</p>
 <p><strong>When to use:</strong> Nonlinear multiview CCA where cross-view structure depends on a genuine
@@ -1596,11 +1599,11 @@ whether increasing it changes the held-out canonical correlation.</p>
 </tr>
 <tr>
 <td><code>max_iter</code></td>
-<td>Maximum number of full sweeps (one L-BFGS-B solve per view each).</td>
+<td>Maximum number of L-BFGS-B iterations for the single, joint solve over every view's coefficients.</td>
 </tr>
 <tr>
 <td><code>tol</code></td>
-<td>Convergence tolerance on the penalised objective's change between consecutive sweeps.</td>
+<td>Convergence tolerance, passed to L-BFGS-B as <code>ftol</code>.</td>
 </tr>
 <tr>
 <td><code>random_state</code></td>
