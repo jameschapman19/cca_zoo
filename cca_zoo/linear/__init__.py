@@ -31,7 +31,7 @@ from ._pls import PLS
 from ._rcca import rCCA
 from ._tcca import TCCA
 from .gradient import CCA_EY as CCA_EY
-from .gradient import CCAEY, MCCAEY, PLSEY, HuberCCA, SupportVectorCCA
+from .gradient import CCAEY, MCCAEY, PLSEY, HuberCCA
 from .gradient import MCCA_EY as MCCA_EY
 from .gradient import PLS_EY as PLS_EY
 
@@ -53,7 +53,6 @@ __all__ = [
     "CCAEY",
     "MCCAEY",
     "HuberCCA",
-    "SupportVectorCCA",
     # Sparse / regularised ALS
     "SCCAPMD",
     "SCCAADMM",

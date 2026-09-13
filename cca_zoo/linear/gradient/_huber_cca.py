@@ -33,9 +33,8 @@ def _huber_sample_weight(representations: list[np.ndarray], delta: float) -> np.
     Samples within the cutoff keep weight 1; samples beyond it are
     downweighted in inverse proportion to their leverage, capping (never
     zeroing) their contribution -- like :class:`~sklearn.linear_model.HuberRegressor`,
-    a *smooth* downweighting, not the exact zeroing a hinge loss gives
-    points already meeting its target (see
-    :class:`~cca_zoo.linear.gradient.SupportVectorCCA` for that mechanism).
+    a *smooth* downweighting, not the exact zeroing a hinge or
+    epsilon-insensitive loss would give points already meeting its target.
 
     Args:
         representations: List of M arrays, each of shape (n_samples, k).
@@ -118,18 +117,6 @@ class HuberCCA(BaseGradientModel):
     weight 1, samples beyond it are downweighted so their contribution is
     capped rather than unbounded -- every sample still contributes something,
     just never an unbounded amount.
-
-    Note:
-        This is the smooth, dense-reweighting sibling of
-        :class:`~cca_zoo.linear.gradient.SupportVectorCCA`: ``HuberCCA``
-        downweights high-leverage points continuously (like
-        :class:`~sklearn.linear_model.HuberRegressor`), while
-        ``SupportVectorCCA`` caps EY's own reward term with a one-sided
-        hinge, giving points already "good enough" *exactly* zero
-        contribution to that term's gradient (like
-        :class:`~sklearn.svm.SVC`'s margin) -- bounded-but-dense influence
-        versus exact (if partial -- see that class's docstring) sparsity,
-        the same distinction as in scikit-learn.
 
     Note:
         Like plain ``CCAEY`` at its unregularised ``c=0`` (this estimator

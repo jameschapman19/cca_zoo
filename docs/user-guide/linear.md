@@ -149,7 +149,6 @@ mini-batches.
 | `CCAEY` | Eckart-Young CCA, stochastic updates, ridge-blended with `PLSEY` via `c` |
 | `MCCAEY` | Multiview EY-CCA for ≥2 views |
 | `HuberCCA` | Bounded-influence (Huber-style) EY-CCA |
-| `SupportVectorCCA` | Hinge-capped-reward (SVM-style) EY-CCA |
 
 `CCAEY`'s `c` parameter (default `0`) blends its loss towards `PLSEY`'s (`c=1`) — in fact
 `PLSEY` is implemented as `CCAEY` with `c` fixed at `1`. Gradient descent on the raw,
@@ -181,35 +180,6 @@ below 1 downweight the majority of every batch and are not recommended.
 from cca_zoo.linear import HuberCCA
 
 model = HuberCCA(latent_dimensions=2, delta=4.0, batch_size=128, max_iter=200)
-model.fit([X1, X2])
-```
-
-### SupportVectorCCA — hinge-capped-reward EY-CCA
-
-The EY loss's reward term, `tr(C)`, decomposes exactly as a sum of per-sample terms
-`R[n] = ||sum_i Z_i_centred[n,:]||**2` — the same per-sample cross-view sum already computed as
-`total` inside the shared EY gradient — and rewards larger `R[n]` without limit. `SupportVectorCCA`
-caps that reward per sample at a self-calibrated target `tau` (a multiple, `tau_mult`, of the
-batch's own mean `R`); algebraically this is a one-sided hinge (`min(r, tau) = tau - max(tau - r,
-0)`), so samples already meeting the target contribute *exactly* zero to the reward's gradient —
-genuine support-vector sparsity in that term. The penalty term `tr(VV)` — EY's own regulariser —
-is left completely untouched, the same way `sklearn.svm.SVC`/`SVR` only ever modify a loss's *fit*
-term, never its `||w||**2` regulariser. A one-sided hinge (`SVC`'s margin), not `SVR`'s symmetric
-epsilon-insensitive tube, since matched-sample alignment has no natural "too much" direction to
-also penalise. Because `tr(C)` has an exact rewrite in terms of `(n,n)` cross-Gram matrices, this
-loss is already kernel-native — substituting `Z_i = K_i @ alpha_i` needs no further reformulation
-(not yet implemented; this is the primal estimator). It has the same `nan`-on-small-batches caveat
-as `HuberCCA` (the untouched penalty term's own conditioning, not the capped reward, is at fault).
-
-One honest caveat: unlike a real SVM's `||w||**2` (not data-dependent at all), `tr(VV)` is built
-from every sample's embedding, so a capped sample still contributes through the penalty — this
-estimator's sparsity is real but partial, not the full inertness a non-support point has in a
-real SVM's dual.
-
-```python
-from cca_zoo.linear import SupportVectorCCA
-
-model = SupportVectorCCA(latent_dimensions=2, tau_mult=1.0, batch_size=128, max_iter=200)
 model.fit([X1, X2])
 ```
 
