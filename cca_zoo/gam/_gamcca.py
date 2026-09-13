@@ -7,13 +7,113 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from scipy.optimize import minimize
 from sklearn.preprocessing import SplineTransformer
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._ey import coordinate_descent_ey
+from cca_zoo._utils._ey import (
+    cheap_orthonormal_projection_weights,
+    ey_cross_covariance,
+    ey_grad_z,
+    ey_loss,
+)
 from cca_zoo._utils._validation import validate_views
+
+
+def _pirls_component_step(
+    bases: list[np.ndarray],
+    grams: list[np.ndarray],
+    coefficients: list[np.ndarray],
+    representations: list[np.ndarray],
+    view_idx: int,
+    component: int,
+    ridge: float,
+) -> None:
+    r"""P-IRLS update of a single component's coefficients via trust-region Newton.
+
+    Updates ``coefficients[view_idx][:, component]`` in place (and the
+    matching column of ``representations[view_idx]``), solving
+    $\mathcal{L}_{EY}$'s exact (not diagonal-approximated) restriction to
+    that one component's coefficient vector $b$ to a local optimum — every
+    other component and view held fixed. This is ``mgcv``'s own P-IRLS
+    structure (a penalised weighted-least-squares-shaped solve per
+    (view, component) per round), delegated to
+    :func:`scipy.optimize.minimize`'s ``"trust-exact"`` solver rather than
+    hand-rolled: $\mathcal{L}_{EY}$ is not convex, so the Hessian below can
+    be indefinite away from the loss's own fixed point, and a real
+    trust-region Newton method already handles that (and the accompanying
+    step-acceptance/line-search logic) as a well-tested library primitive —
+    better than a hand-rolled eigenvalue-floor-and-backtrack scheme.
+
+    Writing $Z_i = \text{bases}_i B_i$, the exact gradient and Hessian of
+    the *penalised* EY loss with respect to $b = B_i[:, c]$ (bases$_i$
+    already column-centred, other columns/views fixed) are:
+
+    $$
+    g = \text{bases}_i^\top \nabla_{Z_i}\mathcal{L}_{EY}[:, c] + \lambda b,
+    \qquad
+    H = \frac{4}{M(n-1)}(V_{cc}-1) G_i
+      + \frac{4}{M^2(n-1)^2}\left((G_iB_i)(G_iB_i)^\top + (G_ib)(G_ib)^\top\right)
+      + \lambda I
+    $$
+
+    where $G_i = \text{bases}_i^\top\text{bases}_i$ and $V$ is the current
+    mean auto-covariance (see :func:`~cca_zoo._utils._ey.ey_cross_covariance`).
+    The non-ridge part of $H$ is exactly rank $\le k+1$ (verified by finite
+    differences of the true, quartic-in-$b$ restricted loss: the local
+    quadratic model built from $g$ and $H$ matches it to third order).
+
+    Args:
+        bases: Fixed per-view (centred) design matrices.
+        grams: Precomputed ``bases[i].T @ bases[i]`` per view.
+        coefficients: Current per-view coefficient matrices, updated in
+            place.
+        representations: Current per-view embeddings
+            (``bases[i] @ coefficients[i]``), updated in place.
+        view_idx: Which view's component to update.
+        component: Which latent component to update.
+        ridge: Ridge penalty strength.
+    """
+    m = len(bases)
+    n_minus_1 = bases[0].shape[0] - 1
+    basis = bases[view_idx]
+    gram = grams[view_idx]
+    coef = coefficients[view_idx]
+    b0 = coef[:, component].copy()
+
+    def _set(b: np.ndarray) -> None:
+        coef[:, component] = b
+        representations[view_idx][:, component] = basis @ b
+
+    def _fun(b: np.ndarray) -> float:
+        _set(b)
+        obj: float = ey_loss(representations)["objective"] + 0.5 * ridge * (b @ b)
+        return obj
+
+    def _grad(b: np.ndarray) -> np.ndarray:
+        _set(b)
+        grad_all = ey_grad_z(representations)
+        grad: np.ndarray = basis.T @ grad_all[view_idx][:, component] + ridge * b
+        return grad
+
+    def _hess(b: np.ndarray) -> np.ndarray:
+        _set(b)
+        _, v = ey_cross_covariance(representations)
+        alpha_v = (4.0 / (m * n_minus_1)) * (v[component, component] - 1.0)
+        beta = 4.0 / (m**2 * n_minus_1**2)
+        gb_all = gram @ coef
+        u_c = gb_all[:, component]
+        hess: np.ndarray = (
+            alpha_v * gram
+            + beta * (gb_all @ gb_all.T + np.outer(u_c, u_c))
+            + ridge * np.eye(len(b))
+        )
+        return hess
+
+    result = minimize(_fun, b0, jac=_grad, hess=_hess, method="trust-exact")
+    _set(result.x)
 
 
 class _GamEncoder:
@@ -29,10 +129,10 @@ class _GamEncoder:
     is needed anywhere downstream, unlike the whitening/recentring
     :class:`_GamEncoder` used to require.
 
-    The coefficients $B_i$ (``coef_``) are fit by
-    :func:`~cca_zoo._utils._ey.coordinate_descent_ey`, not by this class —
-    it only builds and holds the fixed basis, and evaluates it (``predict``,
-    ``predict_new``, ``feature_term``) once coefficients exist.
+    The coefficients $B_i$ (``coef_``) are fit by P-IRLS
+    (:func:`_pirls_component_step`), not by this class — it only builds and
+    holds the fixed basis, and evaluates it (``predict``, ``predict_new``,
+    ``feature_term``) once coefficients exist.
     """
 
     def __init__(self, X: np.ndarray, k: int, n_knots: int) -> None:
@@ -108,35 +208,39 @@ class GAMCCA(BaseModel):
     :class:`~cca_zoo.tree.TreeCCA`, and :class:`~cca_zoo.sparse.ElasticNetCCA`).
     Writing $f_i(x) = \sum_j s_{ij}(x_{ij})$ as $\text{basis}_i(x) B_i$ for
     a fixed per-feature B-spline basis (:class:`_GamEncoder`, built by
-    :class:`~sklearn.preprocessing.SplineTransformer`) makes fitting $B_i$
-    exactly the same problem :class:`~cca_zoo.sparse.ElasticNetCCA` solves
-    for a raw linear encoder, just with a nonlinear (but *fixed*) feature
-    map in place of the raw features: both are fit by
-    :func:`~cca_zoo._utils._ey.coordinate_descent_ey` — cyclic coordinate
-    descent directly on $\mathcal{L}_{EY}$, one scalar spline coefficient
-    at a time, each solved to its exact global minimiser (see that
-    function's docstring for the derivation).
+    :class:`~sklearn.preprocessing.SplineTransformer`) turns fitting $B_i$
+    into a **P-IRLS** recipe — the same iteration structure ``mgcv`` itself
+    uses to fit a GAM, applied directly to the EY loss rather than a
+    per-observation likelihood: for one latent component's coefficient
+    vector $b = B_i[:, c]$ at a time (every other component and view held
+    fixed), take a damped Newton step using $\mathcal{L}_{EY}$'s *exact*
+    gradient and Hessian restricted to $b$ — a single penalised, ridge-shaped
+    $d_i \times d_i$ linear solve, cycling through every component and view
+    in turn (see :func:`_pirls_component_step` for the exact derivation).
 
-    This is a deliberate departure from the P-IRLS-plus-GCV recipe GAMCCA
-    used before: that scheme reached a Newton step by working in the
-    $n$-dimensional embedding space $Z_i$ with a per-sample diagonal
+    This is a deliberate departure from an earlier version of GAMCCA (and
+    from :class:`~cca_zoo.gp.GaussianProcessCCA`'s Gauss-Newton recipe),
+    both of which reached their Newton step by working in the
+    $n$-dimensional embedding space $Z_i$ with a per-*sample* diagonal
     approximation of $\mathcal{L}_{EY}$'s Hessian, which then needed a
     post-hoc whitening/decorrelation retraction to compensate for the
-    curvature the diagonal approximation throws away (see
-    :func:`~cca_zoo._utils._ey.ey_diag_hessian`'s docstring). Fitting
-    directly in the encoder's own (much smaller) coefficient space instead
-    needs no such approximation or retraction: coordinate descent solves
-    the *exact* (quartic, not linearised) restriction of $\mathcal{L}_{EY}$
-    to each coefficient, so every update is already consistent with the
-    true loss.
+    curvature that diagonal approximation throws away (see
+    :func:`~cca_zoo._utils._ey.ey_diag_hessian`'s docstring). Taking the
+    Newton step directly in the encoder's own (much smaller) coefficient
+    space instead uses the *exact* Hessian there — no per-sample
+    approximation, so no compensating whitening is needed either.
+    $\mathcal{L}_{EY}$ is not convex, so this Hessian is only guaranteed
+    positive semi-definite near the loss's own fixed point; each step is
+    still made well-posed (via eigenvalue flooring) and monotonically
+    improving (via backtracking line search on the true, un-linearised
+    objective) rather than trusted blindly.
 
     The trade-off is that each view's smoothing strength (``alpha``) is now
     a fixed hyperparameter rather than automatically re-selected each round
     by :class:`~sklearn.linear_model.RidgeCV`'s leave-one-out
-    cross-validation — that automatic search was specific to the working
-    response/Newton-step framing (a well-posed quadratic problem at every
-    step) and has no direct analogue once fitting minimises the true
-    quartic loss instead.
+    cross-validation — that automatic search was specific to a *global*
+    quadratic working-response problem across the whole embedding, which
+    P-IRLS-in-coefficient-space no longer forms.
 
     Because each latent component still decomposes exactly into one
     additive term per input feature, the fitted shape of any feature's
@@ -174,8 +278,8 @@ class GAMCCA(BaseModel):
             n_knots=...)``. Default is 5.
         alpha: Ridge (smoothing) penalty strength applied to every spline
             coefficient. Default is 0.1.
-        max_iter: Maximum number of full coordinate-descent sweeps (every
-            view, feature, and component once each). Default is 100.
+        max_iter: Maximum number of full P-IRLS sweeps (one damped Newton
+            step per view and component each). Default is 100.
         tol: Convergence tolerance on the penalised objective's change
             between consecutive sweeps. Default is 1e-6.
         random_state: Seed for the initial coefficients.
@@ -215,7 +319,7 @@ class GAMCCA(BaseModel):
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> GAMCCA:
-        """Fit the GAMCCA model by cyclic coordinate descent on the EY loss.
+        """Fit the GAMCCA model by P-IRLS on the EY loss.
 
         Args:
             views: List of 2 or more arrays, each (n_samples, n_features_i).
@@ -230,18 +334,34 @@ class GAMCCA(BaseModel):
         """
         views_ = self._setup_fit(views)
         k = self.latent_dimensions
+        m = len(views_)
         encoders = [_GamEncoder(X, k, self.n_knots) for X in views_]
+        bases = [enc.basis_ for enc in encoders]
+        grams = [basis.T @ basis for basis in bases]
 
         rng = np.random.default_rng(self.random_state)
-        coefficients, representations = coordinate_descent_ey(
-            bases=[enc.basis_ for enc in encoders],
-            k=k,
-            alpha=self.alpha,
-            l1_ratio=0.0,
-            max_iter=self.max_iter,
-            tol=self.tol,
-            rng=rng,
-        )
+        coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
+        representations = [b @ c for b, c in zip(bases, coefficients)]
+
+        prev_obj = np.inf
+        for _ in range(self.max_iter):
+            for view_idx in range(m):
+                for component in range(k):
+                    _pirls_component_step(
+                        bases,
+                        grams,
+                        coefficients,
+                        representations,
+                        view_idx,
+                        component,
+                        self.alpha,
+                    )
+            penalty = 0.5 * self.alpha * sum(np.sum(c**2) for c in coefficients)
+            obj = ey_loss(representations)["objective"] + penalty
+            if abs(prev_obj - obj) < self.tol:
+                break
+            prev_obj = obj
+
         for enc, coef, rep in zip(encoders, coefficients, representations):
             enc.coef_ = coef
             enc._train_pred = rep

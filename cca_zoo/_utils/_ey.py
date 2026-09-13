@@ -343,7 +343,9 @@ def ey_diag_hessian(
     return result
 
 
-def _solve_quartic_coordinate(c4: float, c3: float, c2: float, c1: float, lasso: float) -> float:
+def _solve_quartic_coordinate(
+    c4: float, c3: float, c2: float, c1: float, lasso: float
+) -> float:
     r"""Exact global minimiser of one elastic-net-penalised coordinate update.
 
     Minimises $F(w) = c_4 w^4 + c_3 w^3 + c_2 w^2 + c_1 w + \lambda |w|$ over
@@ -366,7 +368,9 @@ def _solve_quartic_coordinate(c4: float, c3: float, c2: float, c1: float, lasso:
     since $|w|$'s derivative flips sign there) plus the $|w|$ kink at 0.
 
     Args:
-        c4, c3, c2: Coefficients of the smooth quartic/cubic/quadratic terms.
+        c4: Coefficient of the smooth quartic term.
+        c3: Coefficient of the smooth cubic term.
+        c2: Coefficient of the smooth quadratic term.
         c1: Coefficient of the smooth linear term.
         lasso: L1 penalty coefficient ($\ge 0$).
 
@@ -394,7 +398,6 @@ def coordinate_descent_ey(
     max_iter: int,
     tol: float,
     rng: np.random.Generator,
-    ridge_matrices: list[np.ndarray | None] | None = None,
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
     r"""Fit per-view linear-in-basis coefficients directly minimising the EY loss.
 
@@ -404,14 +407,13 @@ def coordinate_descent_ey(
     $$
     \mathcal{L}_{EY}(Z_1, \dots, Z_M)
         + \sum_i \left( \alpha \rho \|B_i\|_1
-        + \tfrac{1}{2}\alpha(1-\rho) \sum_c B_i[:,c]^\top M_i B_i[:,c] \right)
+        + \tfrac{1}{2}\alpha(1-\rho) \|B_i\|_2^2 \right)
     $$
 
-    ($\rho$ = ``l1_ratio``, $M_i$ = ``ridge_matrices[i]``, identity if
-    ``None``) by **cyclic coordinate descent** — the same algorithm
-    :class:`~sklearn.linear_model.ElasticNet` itself uses for ordinary
-    (squared-error) elastic net, updating one scalar coefficient at a time
-    to its exact minimiser with every other coefficient held fixed.
+    ($\rho$ = ``l1_ratio``) by **cyclic coordinate descent** — the same
+    algorithm :class:`~sklearn.linear_model.ElasticNet` itself uses for
+    ordinary (squared-error) elastic net, updating one scalar coefficient at
+    a time to its exact minimiser with every other coefficient held fixed.
 
     This is a genuine departure from ``ElasticNet``'s own coordinate
     descent, not a re-use of it: for ordinary least squares, the loss
@@ -433,14 +435,10 @@ def coordinate_descent_ey(
     linear in a *fixed* basis throughout fitting (never a Newton-step
     working response fit with a black-box regressor). Used by
     :class:`~cca_zoo.sparse.ElasticNetCCA` (``bases`` = the raw centred
-    views, ``ridge_matrices=None``), :class:`~cca_zoo.gam.GAMCCA`
-    (``bases`` = each view's centred spline basis, ``ridge_matrices=None``),
-    and :class:`~cca_zoo.gp.GaussianProcessCCA` (``bases`` = each view's
-    centred cross-kernel against its inducing points, ``ridge_matrices`` =
-    the centred inducing-point kernel matrix, giving the RKHS-norm
-    $B_i[:,c]^\top M_i B_i[:,c]$ penalty a Gaussian process's own posterior
-    mean actually minimises, rather than a plain $\|B_i\|_2^2$ that would
-    ignore the kernel's geometry).
+    views) — the only place an L1 (lasso) penalty is wanted; where a purely
+    ridge-penalised fixed-basis fit needs a *second*-order (rather than
+    coordinate-at-a-time) solver, see :class:`~cca_zoo.gam.GAMCCA`'s P-IRLS
+    and :class:`~cca_zoo.gp.GaussianProcessCCA`'s L-BFGS-B instead.
 
     Args:
         bases: Fixed per-view design matrices, each already column-centred
@@ -453,11 +451,6 @@ def coordinate_descent_ey(
         tol: Convergence tolerance on the penalised objective's change
             between consecutive sweeps.
         rng: Random generator for the initial coefficients.
-        ridge_matrices: Per-view coupling matrix for the ridge term, each
-            ``(bases[i].shape[1], bases[i].shape[1])`` and symmetric PSD, or
-            ``None`` for a plain (identity, i.e. $\|B_i\|_2^2$) ridge
-            penalty on that view. ``None`` (the default) uses a plain ridge
-            penalty for every view.
 
     Returns:
         Tuple ``(coefficients, representations)``: ``coefficients[i]`` has
@@ -470,31 +463,15 @@ def coordinate_descent_ey(
     a0 = 1.0 / (m * n_minus_1)
     lasso = alpha * l1_ratio
     ridge = alpha * (1.0 - l1_ratio)
-    if ridge_matrices is None:
-        ridge_matrices = [None] * m
 
     coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
     representations = [b @ c for b, c in zip(bases, coefficients)]
     total = sum(representations)
     col_sq_norms = [np.sum(b**2, axis=0) for b in bases]
-    diag_m = [
-        np.diag(rm) if rm is not None else np.ones(basis.shape[1])
-        for rm, basis in zip(ridge_matrices, bases)
-    ]
-    # mb[i] = ridge_matrices[i] @ coefficients[i]; for a plain (identity)
-    # ridge penalty this always equals coefficients[i] itself, so no extra
-    # state is kept for those views (mb[i] stays None; see the "cross_jc"
-    # branch below).
-    mb: list[np.ndarray | None] = [
-        rm @ coef if rm is not None else None
-        for rm, coef in zip(ridge_matrices, coefficients)
-    ]
 
     prev_obj = np.inf
     for _ in range(max_iter):
-        for i, (basis, coef, rm) in enumerate(
-            zip(bases, coefficients, ridge_matrices)
-        ):
+        for i, (basis, coef) in enumerate(zip(bases, coefficients)):
             zi = representations[i]
             v_other = (
                 sum(
@@ -509,7 +486,6 @@ def coordinate_descent_ey(
                 if a < 1e-12:
                     continue
                 xj = basis[:, j]
-                m_jj = diag_m[i][j]
                 for c in range(k):
                     w0 = coef[j, c]
                     r_c = zi[:, c] - xj * w0
@@ -538,13 +514,11 @@ def coordinate_descent_ey(
                     q2 = -2 * a0 * a
                     q1 = -4 * a0 * x_s0c
 
-                    cross_jc = 0.0 if mb[i] is None else mb[i][j, c] - m_jj * w0
-
                     w_new = _solve_quartic_coordinate(
                         c4=p4,
                         c3=p3,
-                        c2=p2 + q2 + 0.5 * ridge * m_jj,
-                        c1=p1 + q1 + ridge * cross_jc,
+                        c2=p2 + q2 + 0.5 * ridge,
+                        c1=p1 + q1,
                         lasso=lasso,
                     )
 
@@ -553,18 +527,11 @@ def coordinate_descent_ey(
                         coef[j, c] = w_new
                         zi[:, c] += xj * delta
                         total[:, c] += xj * delta
-                        if rm is not None:
-                            mb[i][:, c] += rm[:, j] * delta
 
-        penalty = 0.0
-        for coef, rm in zip(coefficients, ridge_matrices):
-            penalty += alpha * l1_ratio * np.sum(np.abs(coef))
-            if rm is None:
-                penalty += 0.5 * alpha * (1.0 - l1_ratio) * np.sum(coef**2)
-            else:
-                penalty += 0.5 * alpha * (1.0 - l1_ratio) * sum(
-                    coef[:, c] @ rm @ coef[:, c] for c in range(k)
-                )
+        penalty = sum(
+            alpha * l1_ratio * np.sum(np.abs(c)) + 0.5 * ridge * np.sum(c**2)
+            for c in coefficients
+        )
         obj = ey_loss(representations)["objective"] + penalty
         if abs(prev_obj - obj) < tol:
             break

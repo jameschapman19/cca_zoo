@@ -7,6 +7,7 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from scipy.optimize import minimize
 from sklearn.base import clone
 from sklearn.cluster import kmeans_plusplus
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -17,8 +18,49 @@ from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._ey import coordinate_descent_ey
+from cca_zoo._utils._ey import (
+    cheap_orthonormal_projection_weights,
+    ey_grad_z,
+    ey_loss,
+)
 from cca_zoo._utils._validation import validate_views
+
+
+def _lbfgsb_view_objective(
+    x: np.ndarray,
+    basis: np.ndarray,
+    ridge_matrix: np.ndarray,
+    representations: list[np.ndarray],
+    view_idx: int,
+    ridge: float,
+    d: int,
+    k: int,
+) -> tuple[float, np.ndarray]:
+    r"""Penalised EY loss and its exact gradient w.r.t. one view's coefficients.
+
+    Writing $Z_i = \text{basis}_i B_i$ (every other view fixed), this is
+    $\mathcal{L}_{EY} + \tfrac12\lambda\sum_c B_i[:,c]^\top M_i B_i[:,c]$
+    (the RKHS-norm ridge penalty, $M_i$ = ``ridge_matrix`` — see
+    :class:`_GpEncoder`) as a function of $B_i$ flattened to a vector, with
+    its exact analytic gradient
+    $\text{basis}_i^\top\nabla_{Z_i}\mathcal{L}_{EY} + \lambda M_i B_i$ —
+    the same two ingredients (:func:`~cca_zoo._utils._ey.ey_loss` and
+    :func:`~cca_zoo._utils._ey.ey_grad_z`) every other EY-loss model in this
+    package already uses, just evaluated in this view's fixed coefficient
+    space rather than raw embedding space.
+
+    Mutates ``representations[view_idx]`` in place to the candidate ``x``
+    (as :func:`scipy.optimize.minimize` requires re-evaluating this at each
+    of its own trial points); the caller is responsible for resetting it to
+    the accepted optimum once ``minimize`` returns.
+    """
+    b = x.reshape(d, k)
+    representations[view_idx] = basis @ b
+    loss = ey_loss(representations)["objective"]
+    penalty = 0.5 * ridge * sum(b[:, c] @ ridge_matrix @ b[:, c] for c in range(k))
+    grad_z = ey_grad_z(representations)[view_idx]
+    grad_b = basis.T @ grad_z + ridge * (ridge_matrix @ b)
+    return loss + penalty, grad_b.ravel()
 
 
 class _GpEncoder:
@@ -39,13 +81,12 @@ class _GpEncoder:
     downstream, unlike the whitening/recentring the old Newton-step fit
     required.
 
-    The coefficients $B_i$ (``coef_``) are fit by
-    :func:`~cca_zoo._utils._ey.coordinate_descent_ey` with
-    ``ridge_matrices`` set to the centred inducing-point Gram matrix — the
-    RKHS-norm penalty $B_i^\top K_{mm} B_i$ a Gaussian process's own
-    posterior mean actually minimises, not a plain $\|B_i\|_2^2$ that would
-    ignore the kernel's geometry — not by this class, which only builds and
-    holds the fixed basis and evaluates it once coefficients exist.
+    The coefficients $B_i$ (``coef_``) are fit by L-BFGS-B on
+    :func:`_lbfgsb_view_objective` — the RKHS-norm penalty
+    $B_i^\top K_{mm} B_i$ a Gaussian process's own posterior mean actually
+    minimises, not a plain $\|B_i\|_2^2$ that would ignore the kernel's
+    geometry — not by this class, which only builds and holds the fixed
+    basis and evaluates it once coefficients exist.
 
     Predictive uncertainty (``predict_new(..., return_std=True)``) does not
     depend on $B_i$ at all — a standard GP/kernel-ridge fact, since the
@@ -142,13 +183,22 @@ class GaussianProcessCCA(BaseModel):
     k(x, Z_i)^\top B_i$ for a fixed kernel $k$ and fixed basis points $Z_i$
     (:class:`_GpEncoder`; every training row, or ``n_inducing`` of them
     selected via :func:`sklearn.cluster.kmeans_plusplus`) turns fitting
-    $B_i$ into exactly the same problem
-    :class:`~cca_zoo.gam.GAMCCA` solves for its spline coefficients, with an
-    RKHS-norm penalty $B_i^\top K_{mm} B_i$ in place of a plain ridge:
-    both are fit by :func:`~cca_zoo._utils._ey.coordinate_descent_ey` —
-    cyclic coordinate descent directly on $\mathcal{L}_{EY}$, one scalar
-    coefficient at a time, each solved to its exact global minimiser (see
-    that function's docstring for the derivation).
+    $B_i$ into an ordinary smooth optimisation problem with an exact,
+    cheap analytic gradient — fit directly by **L-BFGS-B**
+    (:func:`scipy.optimize.minimize`), the same algorithm
+    :class:`~sklearn.gaussian_process.GaussianProcessRegressor` itself uses
+    internally, just pointed at $\mathcal{L}_{EY}$ (plus the RKHS-norm
+    penalty $B_i^\top K_{mm} B_i$) instead of the negative log-marginal-
+    likelihood it optimises kernel hyperparameters against. One view's full
+    coefficient matrix $B_i$ is optimised at a time (every other view held
+    fixed) via :func:`_lbfgsb_view_objective`, cycling through every view in
+    turn until the (exact, un-linearised) penalised objective stops moving.
+    Unlike :class:`~cca_zoo.gam.GAMCCA`'s P-IRLS (a damped Newton step using
+    the *exact* Hessian of a single component's coefficients), L-BFGS-B
+    needs no explicit Hessian at all — just gradients — and optimises every
+    component of a view jointly rather than one at a time, which is the
+    natural choice here since the RKHS penalty genuinely couples a view's
+    components together through $K_{mm}$ (unlike a plain ridge penalty).
 
     Unlike :class:`~cca_zoo.gam.GAMCCA`'s per-feature additive splines, a
     joint kernel is not restricted to a sum of univariate terms: it can
@@ -277,7 +327,7 @@ class GaussianProcessCCA(BaseModel):
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> GaussianProcessCCA:
-        """Fit the GaussianProcessCCA model by coordinate descent on the EY loss.
+        """Fit the GaussianProcessCCA model by L-BFGS-B on the EY loss.
 
         Args:
             views: List of 2 or more arrays, each (n_samples, n_features_i).
@@ -310,16 +360,47 @@ class GaussianProcessCCA(BaseModel):
         ]
 
         rng = np.random.default_rng(self.random_state)
-        coefficients, representations = coordinate_descent_ey(
-            bases=[enc.basis_ for enc in encoders],
-            k=k,
-            alpha=self.alpha,
-            l1_ratio=0.0,
-            max_iter=self.max_iter,
-            tol=self.tol,
-            rng=rng,
-            ridge_matrices=[enc.ridge_matrix_ for enc in encoders],
+        coefficients = cheap_orthonormal_projection_weights(
+            [enc.basis_ for enc in encoders], k, None, rng
         )
+        representations = [
+            enc.basis_ @ coef for enc, coef in zip(encoders, coefficients)
+        ]
+
+        prev_obj = np.inf
+        for _ in range(self.max_iter):
+            for i, enc in enumerate(encoders):
+                d_i = enc.basis_.shape[1]
+                result = minimize(
+                    _lbfgsb_view_objective,
+                    coefficients[i].ravel(),
+                    args=(
+                        enc.basis_,
+                        enc.ridge_matrix_,
+                        representations,
+                        i,
+                        self.alpha,
+                        d_i,
+                        k,
+                    ),
+                    jac=True,
+                    method="L-BFGS-B",
+                )
+                coefficients[i] = result.x.reshape(d_i, k)
+                representations[i] = enc.basis_ @ coefficients[i]
+
+            penalty = 0.5 * self.alpha * sum(
+                sum(
+                    coef[:, c] @ encoders[i].ridge_matrix_ @ coef[:, c]
+                    for c in range(k)
+                )
+                for i, coef in enumerate(coefficients)
+            )
+            obj = ey_loss(representations)["objective"] + penalty
+            if abs(prev_obj - obj) < self.tol:
+                break
+            prev_obj = obj
+
         for enc, coef, rep in zip(encoders, coefficients, representations):
             enc.coef_ = coef
             enc._train_pred = rep
