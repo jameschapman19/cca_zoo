@@ -1,4 +1,4 @@
-"""Tests for cca_zoo.linear.gradient._svcca (bounded-influence EY loss)."""
+"""Tests for cca_zoo.linear.gradient._huber_cca (bounded-influence EY loss)."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 
 from cca_zoo._utils._ey import ey_grad_z, ey_loss
-from cca_zoo.linear import CCAEY, SupportVectorCCA
-from cca_zoo.linear.gradient._svcca import _huber_sample_weight, _weighted_ey
+from cca_zoo.linear import CCAEY, HuberCCA
+from cca_zoo.linear.gradient._huber_cca import _huber_sample_weight, _weighted_ey
 
 
 def _numerical_grad_z(
@@ -74,7 +74,7 @@ def test_huber_sample_weight_keeps_at_least_half_the_batch_at_one() -> None:
     assert (weight >= 1.0 - 1e-9).sum() >= 20
 
 
-def test_robust_to_high_leverage_outliers_unlike_ccaey() -> None:
+def test_huber_cca_robust_to_high_leverage_outliers_unlike_ccaey() -> None:
     """A few spurious high-leverage training points wreck CCAEY but not this.
 
     Two views share a real latent factor (true achievable correlation is
@@ -111,12 +111,12 @@ def test_robust_to_high_leverage_outliers_unlike_ccaey() -> None:
     x_train[idx] = np.outer(s, u1) * 9.0
     y_train[idx] = np.outer(s, u2) * 9.0
 
-    def held_out_corr(model: CCAEY | SupportVectorCCA) -> float:
+    def held_out_corr(model: CCAEY | HuberCCA) -> float:
         z1, z2 = model.transform([x_test, y_test])
         return abs(np.corrcoef(z1[:, 0], z2[:, 0])[0, 1])
 
     kwargs = dict(latent_dimensions=1, max_iter=1500, random_state=0)
     ccaey_corr = held_out_corr(CCAEY(**kwargs).fit([x_train, y_train]))
-    svcca_corr = held_out_corr(SupportVectorCCA(**kwargs).fit([x_train, y_train]))
+    huber_corr = held_out_corr(HuberCCA(**kwargs).fit([x_train, y_train]))
 
-    assert svcca_corr > ccaey_corr + 0.2
+    assert huber_corr > ccaey_corr + 0.2

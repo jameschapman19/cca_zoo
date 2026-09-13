@@ -1,4 +1,4 @@
-"""SupportVectorCCA -- bounded-influence Eckart-Young CCA."""
+"""HuberCCA -- bounded-influence Eckart-Young CCA."""
 
 from __future__ import annotations
 
@@ -32,9 +32,10 @@ def _huber_sample_weight(representations: list[np.ndarray], delta: float) -> np.
 
     Samples within the cutoff keep weight 1; samples beyond it are
     downweighted in inverse proportion to their leverage, capping (never
-    zeroing) their contribution -- the smooth, Huber-style relaxation of the
-    hard cutoff a hinge/epsilon-insensitive dual would give exactly and
-    sparsely.
+    zeroing) their contribution -- like :class:`~sklearn.linear_model.HuberRegressor`,
+    a *smooth* downweighting, not the exact zeroing an epsilon-insensitive
+    loss gives points already within its tube (see
+    :class:`~cca_zoo.linear.gradient.SupportVectorCCA` for that mechanism).
 
     Args:
         representations: List of M arrays, each of shape (n_samples, k).
@@ -98,35 +99,35 @@ def _weighted_ey(
     return objective, grad_z
 
 
-class SupportVectorCCA(BaseGradientModel):
-    r"""Support Vector CCA: bounded-influence Eckart-Young CCA.
+class HuberCCA(BaseGradientModel):
+    r"""Huber CCA: bounded-influence Eckart-Young CCA.
 
     Standard :class:`~cca_zoo.linear.gradient.CCAEY` weights every sample
     equally, so its cross- and auto-covariance estimates (and hence its
     gradient) can be dominated by a handful of high-leverage points -- their
     contribution to a quadratic statistic grows with the *square* of their
-    magnitude, unbounded. This is the same weakness a squared-error loss has
-    relative to a support vector machine's hinge/epsilon-insensitive loss,
-    whose flat region gives every sample's contribution a hard cap.
+    magnitude, unbounded. This is the same weakness ordinary least squares
+    has relative to :class:`~sklearn.linear_model.HuberRegressor`: quadratic
+    loss growth lets outliers dominate, so Huber loss caps it to linear
+    growth instead.
 
-    ``SupportVectorCCA`` reweights each mini-batch sample by a Huber-style
-    factor of its own leverage (see :func:`_huber_sample_weight`) before
-    forming the EY cross- and auto-covariance statistics (see
-    :func:`_weighted_ey`): samples within ``delta`` times the batch's own
-    median leverage keep weight 1, samples beyond it are downweighted so
-    their contribution is capped rather than unbounded. This is a smooth,
-    primal relaxation of the hinge/epsilon-insensitive mechanism -- it caps
-    influence rather than zeroing it outright, unlike the exact dual
-    formulation's sparsity.
+    ``HuberCCA`` reweights each mini-batch sample by a Huber-style factor of
+    its own leverage (see :func:`_huber_sample_weight`) before forming the
+    EY cross- and auto-covariance statistics (see :func:`_weighted_ey`):
+    samples within ``delta`` times the batch's own median leverage keep
+    weight 1, samples beyond it are downweighted so their contribution is
+    capped rather than unbounded -- every sample still contributes something,
+    just never an unbounded amount.
 
     Note:
-        This bounded-influence weighting, not a hinge loss or a dual/kernel
-        formulation, is what "support vector" refers to here: the shared
-        mechanism (capping a per-sample contribution that would otherwise
-        grow without bound) that makes support vector machines robust to
-        outliers. A kernelised, exactly-sparse dual formulation (genuine
-        "support vectors" with zero-valued dual coefficients) is a natural
-        extension of this estimator, not yet implemented.
+        This is the smooth, dense-reweighting sibling of
+        :class:`~cca_zoo.linear.gradient.SupportVectorCCA`: ``HuberCCA``
+        downweights high-leverage points continuously (like
+        :class:`~sklearn.linear_model.HuberRegressor`), while
+        ``SupportVectorCCA`` gives points already "good enough" *exactly*
+        zero gradient via an epsilon-insensitive tube (like
+        :class:`~sklearn.svm.SVR`) -- bounded-but-dense influence versus
+        exact sparsity, the same distinction as in scikit-learn.
 
     Note:
         Like plain ``CCAEY`` at its unregularised ``c=0`` (this estimator
@@ -156,9 +157,7 @@ class SupportVectorCCA(BaseGradientModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((5000, 200))
         >>> X2 = rng.standard_normal((5000, 150))
-        >>> model = SupportVectorCCA(
-        ...     latent_dimensions=4, batch_size=128, random_state=0
-        ... )
+        >>> model = HuberCCA(latent_dimensions=4, batch_size=128, random_state=0)
         >>> model = model.fit([X1, X2])
     """
 
@@ -191,8 +190,8 @@ class SupportVectorCCA(BaseGradientModel):
         )
         self.delta = delta
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> SupportVectorCCA:
-        """Fit SupportVectorCCA by mini-batch momentum gradient descent.
+    def fit(self, views: list[ArrayLike], y: None = None) -> HuberCCA:
+        """Fit HuberCCA by mini-batch momentum gradient descent.
 
         Args:
             views: List of arrays, each (n_samples, n_features_i).

@@ -9,17 +9,19 @@ Classes:
     PLSEY: Eckart-Young PLS.
     CCAEY: Eckart-Young CCA (whitened).
     MCCAEY: Multiview extension of CCAEY (>=2 views).
-    SupportVectorCCA: Bounded-influence (robust) extension of CCAEY.
+    HuberCCA: Bounded-influence (Huber-style) extension of CCAEY.
+    SupportVectorCCA: Epsilon-insensitive (SVR-style) extension of CCAEY.
 """
 
 from cca_zoo.linear.gradient._cca_ey import CCA_EY as CCA_EY
 from cca_zoo.linear.gradient._cca_ey import CCAEY
+from cca_zoo.linear.gradient._huber_cca import HuberCCA
 from cca_zoo.linear.gradient._mcca_ey import MCCA_EY as MCCA_EY
 from cca_zoo.linear.gradient._mcca_ey import MCCAEY
 from cca_zoo.linear.gradient._pls_ey import PLS_EY as PLS_EY
 from cca_zoo.linear.gradient._pls_ey import PLSEY
-from cca_zoo.linear.gradient._svcca import SupportVectorCCA
+from cca_zoo.linear.gradient._svr_cca import SupportVectorCCA
 
-__all__ = ["PLSEY", "CCAEY", "MCCAEY", "SupportVectorCCA"]
+__all__ = ["PLSEY", "CCAEY", "MCCAEY", "HuberCCA", "SupportVectorCCA"]
 # Deprecated aliases PLS_EY, CCA_EY, MCCA_EY stay importable for backward
 # compatibility but are intentionally left out of __all__/docs.

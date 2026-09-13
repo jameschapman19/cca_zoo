@@ -148,7 +148,8 @@ mini-batches.
 | `PLSEY` | Eckart-Young PLS objective, stochastic updates |
 | `CCAEY` | Eckart-Young CCA, stochastic updates, ridge-blended with `PLSEY` via `c` |
 | `MCCAEY` | Multiview EY-CCA for ≥2 views |
-| `SupportVectorCCA` | Bounded-influence (outlier-robust) EY-CCA |
+| `HuberCCA` | Bounded-influence (Huber-style) EY-CCA |
+| `SupportVectorCCA` | Epsilon-insensitive (SVR-style) EY-CCA |
 
 `CCAEY`'s `c` parameter (default `0`) blends its loss towards `PLSEY`'s (`c=1`) — in fact
 `PLSEY` is implemented as `CCAEY` with `c` fixed at `1`. Gradient descent on the raw,
@@ -163,23 +164,44 @@ model = CCAEY(latent_dimensions=2, learning_rate=0.01, batch_size=128, max_iter=
 model.fit([X1, X2])
 ```
 
-### SupportVectorCCA — bounded-influence EY-CCA
+### HuberCCA — bounded-influence EY-CCA
 
 `CCAEY`'s cross- and auto-covariance statistics weight every sample equally, so a handful of
 high-leverage points (their contribution grows with the *square* of their magnitude) can hijack
-the fit. `SupportVectorCCA` caps each mini-batch sample's contribution by a Huber-style factor of
-its own leverage — the same bounded-influence mechanism that makes support vector machines robust
-to outliers, applied to the EY loss's own statistics rather than to a hinge/epsilon-insensitive
-dual. It has no ridge-blend `c` of its own, so the same `nan`-on-small-batches caveat above
-applies; increase `batch_size` if you hit it. The `delta` parameter sets the cutoff as a multiple
-of each batch's own median sample leverage (self-calibrating, so it doesn't need re-tuning per
-`batch_size`/`latent_dimensions`); values below 1 downweight the majority of every batch and are
-not recommended.
+the fit. `HuberCCA` caps each mini-batch sample's contribution by a Huber-style factor of its own
+leverage — the same bounded-influence mechanism `sklearn.linear_model.HuberRegressor` uses against
+outliers, applied to the EY loss's own statistics. Every sample still contributes *something*
+(smooth downweighting, never exactly zero). It has no ridge-blend `c` of its own, so the same
+`nan`-on-small-batches caveat above applies; increase `batch_size` if you hit it. The `delta`
+parameter sets the cutoff as a multiple of each batch's own median sample leverage
+(self-calibrating, so it doesn't need re-tuning per `batch_size`/`latent_dimensions`); values
+below 1 downweight the majority of every batch and are not recommended.
+
+```python
+from cca_zoo.linear import HuberCCA
+
+model = HuberCCA(latent_dimensions=2, delta=4.0, batch_size=128, max_iter=200)
+model.fit([X1, X2])
+```
+
+### SupportVectorCCA — epsilon-insensitive EY-CCA
+
+Where `HuberCCA` downweights every high-leverage sample smoothly, `SupportVectorCCA` borrows
+`sklearn.svm.SVR`'s epsilon-insensitive loss directly: each view's embedding is standardised and
+compared against the cross-view consensus (the average of all views' standardised embeddings),
+and any sample-component already within `epsilon` of that consensus gets *exactly* zero gradient
+— genuine sparsity, not just a small contribution. Only the samples the current fit doesn't
+already explain within tolerance keep pushing the weights. This is a primal, unkernelised
+estimator (the counterpart to `sklearn.svm.LinearSVR`, not the kernelised `SVR`); it has the same
+`nan`-on-small-batches caveat as `HuberCCA`. `epsilon` is in standardised (unit-variance) units,
+so `SVR`'s own default of `0.1` is a reasonable starting point here too — a looser `epsilon`
+converges faster but to a less sharply optimal direction, since training stops the moment every
+sample is within tolerance.
 
 ```python
 from cca_zoo.linear import SupportVectorCCA
 
-model = SupportVectorCCA(latent_dimensions=2, delta=4.0, batch_size=128, max_iter=200)
+model = SupportVectorCCA(latent_dimensions=2, epsilon=0.1, batch_size=128, max_iter=200)
 model.fit([X1, X2])
 ```
 
