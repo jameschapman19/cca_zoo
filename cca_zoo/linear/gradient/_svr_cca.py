@@ -1,4 +1,4 @@
-"""SupportVectorCCA -- epsilon-insensitive Eckart-Young CCA."""
+"""SupportVectorCCA -- hinge-capped-reward Eckart-Young CCA."""
 
 from __future__ import annotations
 
@@ -12,41 +12,67 @@ from sklearn.utils._param_validation import Interval
 from cca_zoo.linear.gradient._base import BaseGradientModel
 
 
-def _epsilon_insensitive_ey(
+def _hinge_ey(
     representations: list[np.ndarray],
     means: list[np.ndarray],
-    stds: list[np.ndarray],
-    epsilon: float,
+    tau: float,
 ) -> tuple[float, list[np.ndarray]]:
-    r"""Epsilon-insensitive multiview consensus loss and its gradient w.r.t. ``Z_i``.
+    r"""EY loss with its reward capped per sample, and its gradient w.r.t. ``Z_i``.
 
-    Each view is standardised (per component, using the *fixed* ``means``/
-    ``stds`` supplied by the caller -- not differentiated through, the same
-    stop-gradient convention :func:`cca_zoo.linear.gradient._huber_cca._weighted_ey`
-    gives its sample weights) so all views are on comparable footing, then
-    compared against the cross-view consensus (the mean of all M
-    standardised views) via scikit-learn SVR's own epsilon-insensitive loss:
+    The plain EY loss (see :mod:`cca_zoo._utils._ey`) is
+    $\mathcal{L}_{EY} = -2\operatorname{tr}(C) + \operatorname{tr}(VV)$, and
+    $\operatorname{tr}(C)$ decomposes exactly as a sum of per-sample terms:
 
     $$
-    S_i = \frac{Z_i - \mu_i}{\sigma_i}, \qquad
-    \bar{S} = \frac{1}{M}\sum_i S_i, \qquad
-    R_i = S_i - \bar{S}
-    $$
-    $$
-    \mathcal{L} = \frac{1}{nM}\sum_i \sum_{n,k} \max(|R_i[n,k]| - \varepsilon, 0)
+    \operatorname{tr}(C) = \frac{1}{M(n-1)}\sum_n R[n], \qquad
+    R[n] = \Big\|\sum_i \tilde Z_i[n,:]\Big\|^2
     $$
 
-    A sample-component already within ``epsilon`` of the cross-view
-    consensus sits in the loss's flat zone and gets *exactly* zero gradient
-    -- unlike :func:`~cca_zoo.linear.gradient._huber_cca._weighted_ey`'s smooth
-    downweighting, this is the genuine sparsity mechanism scikit-learn's
-    :class:`~sklearn.svm.SVR` gives points already inside its epsilon-tube.
+    ($\tilde Z_i$ centred, $R[n]$ the same per-sample cross-view sum already
+    computed as ``total`` inside :func:`cca_zoo._utils._ey.ey_grad_z`). This
+    is EY's own reward, unbounded and linear in $R[n]$: more matched-sample
+    alignment is always rewarded, with nothing to stop it growing arbitrarily
+    on its own (only the *separate* penalty term keeps the overall objective
+    well-behaved). Capping it at a per-sample target ``tau`` --
+    $-2\operatorname{tr}(C) \to -\frac{2}{M(n-1)}\sum_n\min(R[n],\tau)$ --
+    turns that unbounded linear credit into scikit-learn SVM's own hinge
+    shape (up to an additive constant, since
+    $\min(r,\tau)=\tau-\max(\tau-r,0)$): samples already at or above the
+    target contribute *exactly* zero to the reward's gradient, the rest keep
+    pushing as before. Chosen over an SVR-style symmetric tube because this
+    quantity has no natural "too much" direction to also penalise -- more
+    correlation is never bad, so a one-sided margin is the right shape, not a
+    two-sided tube (see :class:`SupportVectorCCA`'s docstring).
+
+    That zeroing is specific to the reward, not the full gradient below: the
+    penalty term $\operatorname{tr}(VV)$ still contributes $z_kV$ for every
+    sample regardless of capping, since (unlike scikit-learn SVM's $\|w\|^2$,
+    which involves no data at all) $V$ is itself built from every sample's
+    embedding. A capped sample stops being pulled towards the current
+    consensus direction, but still helps anchor the fit's overall scale --
+    it is not literally inert the way a non-support point in a real SVM's
+    dual is.
+
+    The penalty $\operatorname{tr}(VV)$ -- EY's own regularisation, already
+    doing the job scikit-learn SVM's $\|w\|^2$ term does -- is left
+    completely untouched, exactly as scikit-learn SVR/SVM only ever modify
+    the *fit* term of ridge regression, never its regulariser.
+
+    ``means`` and ``tau`` must both be genuinely fixed (not recomputed from
+    a perturbed ``representations`` when verifying this gradient): unlike
+    the plain EY loss, whose per-sample derivative is linear in the centred
+    residual (so the correction from differentiating through the mean
+    exactly cancels via translation invariance -- summing to zero is a
+    property of a *linear* derivative), this loss's derivative is a
+    (nonlinear) step function of $R[n]$, which has no such cancellation
+    guarantee. Both are supplied externally and held fixed here, the same
+    stop-gradient convention already used for ``HuberCCA``'s sample weights
+    and this module's own ``tau`` self-calibration below.
 
     Args:
         representations: List of M arrays, each of shape (n_samples, k).
-        means: Fixed per-view, per-component means, each of shape (k,).
-        stds: Fixed per-view, per-component standard deviations, each (k,).
-        epsilon: Tolerance below which a residual contributes nothing.
+        means: Fixed per-view means, each of shape (k,).
+        tau: Fixed per-sample reward cap.
 
     Returns:
         Tuple ``(objective, grad_z)``: scalar objective value, and a list of
@@ -54,64 +80,111 @@ def _epsilon_insensitive_ey(
     """
     m = len(representations)
     n = representations[0].shape[0]
-    standardised = [(z - mu) / s for z, mu, s in zip(representations, means, stds)]
-    consensus = sum(standardised) / m
-    residual = [s - consensus for s in standardised]
-    subgrad = [np.sign(r) * (np.abs(r) > epsilon) for r in residual]
-    mean_subgrad = sum(subgrad) / m
+    centred = [z - mu for z, mu in zip(representations, means)]
+    total = sum(centred)
+    R = (total**2).sum(axis=1)
+    active = (R < tau).astype(float)
+
+    k = centred[0].shape[1]
+    V = np.zeros((k, k))
+    for zi in centred:
+        V += zi.T @ zi / (n - 1)
+    V /= m
 
     objective = float(
-        sum(np.maximum(np.abs(r) - epsilon, 0.0).sum() for r in residual) / (n * m)
+        np.trace(V @ V) - (2.0 / (m * (n - 1))) * np.minimum(R, tau).sum()
     )
-    grad_z = [(g - mean_subgrad) / (n * m) / s for g, s in zip(subgrad, stds)]
+    scale = 4.0 / (m * (n - 1))
+    grad_z = [scale * (zc @ V - active[:, None] * total) for zc in centred]
     return objective, grad_z
 
 
+def _self_calibrated_tau(
+    representations: list[np.ndarray], means: list[np.ndarray], tau_mult: float
+) -> float:
+    r"""Per-batch reward cap, as a multiple of the batch's own mean ``R``.
+
+    A fixed absolute cap would need re-tuning for every
+    ``(n_views, latent_dimensions, batch_size)`` combination -- the same
+    lesson already applied to ``HuberCCA``'s leverage cutoff and
+    :func:`cca_zoo._utils._ey.ey_diag_hessian`'s percentile floor. Scaling by
+    the batch's own mean ``R`` makes ``tau_mult`` a self-calibrating,
+    portable knob instead: ``tau_mult=1`` caps roughly the better-than-
+    average half of the batch every step, regardless of scale.
+
+    Args:
+        representations: List of M arrays, each of shape (n_samples, k).
+        means: Fixed per-view means, each of shape (k,).
+        tau_mult: Cap as a multiple of the batch's mean ``R``.
+
+    Returns:
+        The scalar cap ``tau``.
+    """
+    total = sum(z - mu for z, mu in zip(representations, means))
+    R = (total**2).sum(axis=1)
+    return float(tau_mult * R.mean())
+
+
 class SupportVectorCCA(BaseGradientModel):
-    r"""Support Vector CCA: epsilon-insensitive Eckart-Young CCA.
+    r"""Support Vector CCA: hinge-capped-reward Eckart-Young CCA.
 
-    Where :class:`~cca_zoo.linear.gradient.HuberCCA` downweights every
-    high-leverage sample smoothly (bounded but never zero), this estimator
-    borrows scikit-learn :class:`~sklearn.svm.SVR`'s epsilon-insensitive loss
-    directly: each view's embedding is standardised and compared against the
-    cross-view consensus (the average of all views' standardised
-    embeddings), and any sample-component already within ``epsilon`` of that
-    consensus gets *exactly* zero gradient (see
-    :func:`_epsilon_insensitive_ey`). Only the samples the current fit
-    doesn't already explain within tolerance keep pushing the weights --
-    the genuine "only a subset of the data matters" sparsity a support
-    vector machine gives you, applied to the EY loss's own multiview
-    consensus rather than to a single regression target.
-
-    Note:
-        This is a **primal**, unkernelised estimator -- the counterpart to
-        scikit-learn's :class:`~sklearn.svm.LinearSVR`, not its kernelised
-        :class:`~sklearn.svm.SVR`. A kernelised dual formulation (embeddings
-        as ``K_i @ alpha_i``, genuine "support vectors" as training points
-        with nonzero dual coefficients) is a natural extension of this
-        estimator, not yet implemented.
+    The EY loss's reward term rewards matched-sample cross-view alignment
+    without limit -- see :func:`_hinge_ey` for the exact per-sample
+    decomposition of $\operatorname{tr}(C)$ this relies on. This estimator
+    caps that reward per sample at a self-calibrated target ``tau`` (see
+    :func:`_self_calibrated_tau`), which is algebraically a one-sided hinge:
+    samples whose current cross-view alignment already meets the target
+    contribute *exactly* zero to the reward's gradient -- genuine
+    support-vector sparsity in that term, not a smooth downweighting like
+    :class:`~cca_zoo.linear.gradient.HuberCCA`. The penalty term
+    $\operatorname{tr}(VV)$ -- EY's own regulariser -- is left untouched, the
+    same way scikit-learn's :class:`~sklearn.svm.SVR`/:class:`~sklearn.svm.SVC`
+    only ever modify a regression/classification loss's *fit* term, never
+    its $\|w\|^2$ regulariser. Unlike a real SVM's $\|w\|^2$, though,
+    $V$ is itself built from every sample, so a capped sample still
+    contributes through the penalty -- see :func:`_hinge_ey`'s docstring for
+    why this estimator's sparsity is real but partial, not full inertness.
 
     Note:
-        Once every sample-component is within the epsilon-tube the gradient
-        is exactly zero and training stops -- by design, not a bug: like
-        ``SVR``, this estimator seeks *a* fit within tolerance, not the
-        single best-fitting direction, so a looser ``epsilon`` can converge
-        to a less sharply optimal direction than :class:`CCAEY` would.
-        ``epsilon`` is in standardised (unit-variance) units, so scikit-learn
-        ``SVR``'s default of ``0.1`` is a reasonable starting point here too.
+        This uses a one-sided hinge (like :class:`~sklearn.svm.SVC`'s margin),
+        not :class:`~sklearn.svm.SVR`'s symmetric epsilon-insensitive tube,
+        because matched-sample alignment has no natural "too much" direction
+        to also penalise -- unlike a regression residual, more correlation is
+        never bad, so only a floor makes sense, not a two-sided band.
 
     Note:
-        Like plain ``CCAEY`` at its unregularised ``c=0``, gradient descent
-        on this objective can be unstable when a mini-batch's samples don't
-        outnumber the number of features by a healthy margin. If you see
-        ``nan`` weights, increase ``batch_size``.
+        Because $\operatorname{tr}(C)$'s exact rewrite is in terms of the
+        $(n,n)$ cross-Gram matrices $Z_i\tilde Z_j^\top$ (their diagonal, to
+        be precise -- see :func:`_hinge_ey`), this loss is already expressed
+        in fully kernel-native terms: substituting $Z_i = K_i\alpha_i$ for a
+        data kernel matrix $K_i$ needs no further reformulation. Not yet
+        implemented here (this is the primal, unkernelised estimator).
+
+    Note:
+        Once every sample meets the target the gradient is exactly zero and
+        training stops -- by design, not a bug: this estimator seeks a
+        direction that is "good enough" for (a self-calibrated notion of)
+        most samples, not the single sharpest-correlation direction
+        :class:`CCAEY` would keep refining towards.
+
+    Note:
+        Like plain ``CCAEY`` at its unregularised ``c=0`` (the penalty here
+        is identical, untouched), gradient descent on this objective can
+        diverge to ``nan`` when a mini-batch's samples don't outnumber the
+        number of features by a healthy margin -- capping the reward does
+        not fix this, since it is the *penalty* term's own conditioning at
+        fault, not the reward. If you see ``nan`` weights, increase
+        ``batch_size``.
 
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
-        epsilon: Tolerance (in standardised units) below which a
-            sample-component's deviation from the cross-view consensus is
-            ignored entirely. Default is 0.1.
+        tau_mult: Reward cap as a multiple of the current batch's own mean
+            per-sample reward (self-calibrating; see
+            :func:`_self_calibrated_tau`). Smaller values cap more
+            aggressively (more samples become non-support, more sparsity,
+            less refinement); larger values approach plain ``CCAEY``.
+            Default is 1.0.
         learning_rate: Gradient step size. Default is 1e-2.
         max_iter: Number of gradient steps. Default is 1000.
         batch_size: Mini-batch size. ``None`` uses the full dataset.
@@ -132,14 +205,14 @@ class SupportVectorCCA(BaseGradientModel):
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseGradientModel._parameter_constraints,
-        "epsilon": [Interval(Real, 0, None, closed="left")],
+        "tau_mult": [Interval(Real, 0, None, closed="neither")],
     }
 
     def __init__(
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        epsilon: float = 0.1,
+        tau_mult: float = 1.0,
         learning_rate: float = 1e-2,
         max_iter: int = 1000,
         batch_size: int | None = None,
@@ -157,7 +230,7 @@ class SupportVectorCCA(BaseGradientModel):
             momentum=momentum,
             random_state=random_state,
         )
-        self.epsilon = epsilon
+        self.tau_mult = tau_mult
 
     def fit(self, views: list[ArrayLike], y: None = None) -> SupportVectorCCA:
         """Fit SupportVectorCCA by mini-batch momentum gradient descent.
@@ -180,10 +253,10 @@ class SupportVectorCCA(BaseGradientModel):
 
     def _batch_stats(
         self, representations: list[np.ndarray]
-    ) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    ) -> tuple[list[np.ndarray], float]:
         means = [z.mean(axis=0) for z in representations]
-        stds = [z.std(axis=0) + 1e-9 for z in representations]
-        return means, stds
+        tau = _self_calibrated_tau(representations, means, self.tau_mult)
+        return means, tau
 
     def _derivative(
         self,
@@ -191,18 +264,16 @@ class SupportVectorCCA(BaseGradientModel):
         representations: list[np.ndarray],
         weights: list[np.ndarray],
     ) -> list[np.ndarray]:
-        r"""Analytic gradient of the epsilon-insensitive EY loss w.r.t. each $W_k$.
+        r"""Analytic gradient of the hinge-capped EY loss w.r.t. each $W_k$.
 
-        Chain rule through $Z_k = X_k W_k$: the loss is translation-invariant
-        in each $Z_k$ (built entirely from centred, standardised
-        quantities), so -- exactly as for :func:`cca_zoo._utils._ey.ey_grad_z`
-        -- the weight-space gradient is the plain centred view contracted
-        with the (fixed-statistics) gradient w.r.t. $Z_k$ from
-        :func:`_epsilon_insensitive_ey`.
+        Chain rule through $Z_k = X_k W_k$: identical in structure to
+        :func:`cca_zoo._utils._ey.ey_grad_z`'s own weight-space contraction
+        -- the plain centred view against the (fixed-statistics) gradient
+        w.r.t. $Z_k$ from :func:`_hinge_ey`.
         """
         del weights
-        means, stds = self._batch_stats(representations)
-        _, grad_z = _epsilon_insensitive_ey(representations, means, stds, self.epsilon)
+        means, tau = self._batch_stats(representations)
+        _, grad_z = _hinge_ey(representations, means, tau)
         grads = []
         for view, gz in zip(views, grad_z):
             view_c = view - view.mean(axis=0)
@@ -215,10 +286,8 @@ class SupportVectorCCA(BaseGradientModel):
         representations: list[np.ndarray],
         weights: list[np.ndarray],
     ) -> float:
-        r"""Scalar epsilon-insensitive EY loss, used for the ``tol`` check."""
+        r"""Scalar hinge-capped EY loss, used for the ``tol`` check."""
         del views, weights
-        means, stds = self._batch_stats(representations)
-        objective, _ = _epsilon_insensitive_ey(
-            representations, means, stds, self.epsilon
-        )
+        means, tau = self._batch_stats(representations)
+        objective, _ = _hinge_ey(representations, means, tau)
         return objective
