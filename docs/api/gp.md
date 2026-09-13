@@ -1,7 +1,8 @@
 # cca_zoo.gp
 
-Gaussian-process (GP) nonlinear CCA methods. Built entirely on scikit-learn's own
-`GaussianProcessRegressor`/`RBF`/`ConstantKernel` — no optional dependency required.
+Gaussian-process (GP) nonlinear CCA methods, fit by L-BFGS-B. Built entirely on scikit-learn's own
+`GaussianProcessRegressor`/`RBF`/`ConstantKernel`/`KernelCenterer` — no optional dependency
+required.
 
 ---
 
