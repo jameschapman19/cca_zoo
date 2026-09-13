@@ -111,7 +111,7 @@ def test_weights_not_fitted_raises() -> None:
 def test_weights_shapes_and_matches_transform(
     two_views_small: list[np.ndarray],
 ) -> None:
-    """weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
+    """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
     weights = model.weights
