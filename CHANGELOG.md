@@ -64,9 +64,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
   `GAMCCA`. Writes each encoder as a fixed cross-kernel basis against a set of basis
   ("inducing") points — every training row by default, or `n_inducing` of them selected
   via `sklearn.cluster.kmeans_plusplus` for datasets too large for exact inference's
-  `O(n^3)` cost — and fits the resulting coefficients directly by L-BFGS-B
-  (`scipy.optimize.minimize`), the same algorithm `GaussianProcessRegressor` itself uses
-  internally, given the EY loss's exact analytic gradient plus an RKHS-norm ridge penalty.
+  `O(n^3)` cost — and fits the resulting coefficients jointly across every view in a single
+  L-BFGS-B run (`scipy.optimize.minimize`), the same algorithm `GaussianProcessRegressor`
+  itself uses internally, given the EY loss's exact analytic gradient plus an RKHS-norm
+  ridge penalty.
   Kernel hyperparameters are fixed (pass `kernel=` explicitly, or tune externally). Unlike
   `GAMCCA`'s additive splines, a joint kernel can represent a genuine interaction between
   two features of the same view directly. As a Bayesian model, `transform(...,
