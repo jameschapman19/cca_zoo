@@ -1,4 +1,5 @@
-"""Render fig1_interaction.pdf and fig2_scaling.pdf from the experiment JSON.
+"""Render fig1_interaction.pdf, fig2_scaling.pdf and fig3_uncertainty.pdf
+from the experiment JSON.
 
 Sized to sit comfortably in a two-column-ish arxiv figure slot (~6.5in wide).
 Palette follows the dataviz-skill categorical guidance: a small set of
@@ -103,7 +104,47 @@ def fig2() -> None:
     plt.close(fig)
 
 
+def fig3() -> None:
+    with open(f"{OUT}/results_uncertainty.json") as f:
+        d = json.load(f)
+
+    x_grid = np.array(d["x_grid"])
+    mean = np.array(d["mean"])
+    std = np.array(d["std"])
+    x_train = np.array(d["x_train"])
+    train_proj = np.array(d["train_proj"])
+    sample_paths = np.array(d["sample_paths"])
+
+    color = COLORS["GaussianProcessCCA"]
+    fig, ax = plt.subplots(figsize=(6.0, 3.4))
+
+    ax.fill_between(
+        x_grid, mean - 1.96 * std, mean + 1.96 * std,
+        color=color, alpha=0.18, linewidth=0, label="95% credible band",
+    )
+    for i in range(sample_paths.shape[1]):
+        ax.plot(
+            x_grid, sample_paths[:, i], color=color, alpha=0.35, linewidth=0.8,
+            label="posterior samples" if i == 0 else None,
+        )
+    ax.plot(x_grid, mean, color=color, linewidth=1.8, label="posterior mean")
+    ax.scatter(
+        x_train, train_proj, color="#333333", s=18, zorder=5,
+        label="training points",
+    )
+
+    ax.set_xlabel("view 1 input $x$")
+    ax.set_ylabel("encoder output $f_1(x)$")
+    ax.set_xlim(x_grid.min(), x_grid.max())
+    ax.legend(frameon=False, fontsize=8, loc="upper left", ncol=2)
+    ax.set_title("Predictive uncertainty: view 1's fitted encoder")
+    fig.tight_layout()
+    fig.savefig(f"{OUT}/fig3_uncertainty.pdf")
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     fig1()
     fig2()
+    fig3()
     print("figures written")
