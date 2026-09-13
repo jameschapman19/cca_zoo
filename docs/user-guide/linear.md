@@ -133,33 +133,44 @@ model = TCCA(latent_dimensions=2, c=0.01, random_state=0).fit([X1, X2, X3])
 
 ---
 
-## Gradient-descent methods
+## EY-loss methods
 
-These methods replace the full eigendecomposition with mini-batch momentum gradient descent on
-the unconstrained Eckart-Young (EY) objective (see [`cca_zoo.tree`](tree.md) and
-[`cca_zoo.deep`](deep.md) for the same objective applied to tree and neural-network encoders),
-making them practical for very high-dimensional or streaming data. No manifold projection step
-and no upfront whitening pass over the full dataset are needed: the EY loss's quadratic penalty
-term drives the weights towards the canonical directions on its own, directly from raw
-mini-batches.
+These methods replace the full eigendecomposition with the unconstrained Eckart-Young (EY)
+objective (see [`cca_zoo.tree`](tree.md) and [`cca_zoo.deep`](deep.md) for the same objective
+applied to tree and neural-network encoders), making them practical for very high-dimensional
+data. No manifold projection step and no upfront whitening pass over the full dataset are
+needed: the EY loss's quadratic penalty term drives the weights towards the canonical
+directions on its own.
 
 | Class | Description |
 |---|---|
-| `PLSEY` | Eckart-Young PLS objective, stochastic updates |
-| `CCAEY` | Eckart-Young CCA, stochastic updates, ridge-blended with `PLSEY` via `c` |
-| `MCCAEY` | Multiview EY-CCA for ≥2 views |
-| `HuberCCA` | Bounded-influence (Huber-style) EY-CCA |
+| `PLSEY` | Eckart-Young PLS objective, full-batch L-BFGS-B |
+| `CCAEY` | Eckart-Young CCA for 2 or more views, full-batch L-BFGS-B, ridge-blended with `PLSEY` via `c` |
+| `StochasticCCAEY` | Same objective as `CCAEY`, fit by mini-batch momentum SGD for datasets too large for full-batch gradients |
+| `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, full-batch L-BFGS-B |
 
 `CCAEY`'s `c` parameter (default `0`) blends its loss towards `PLSEY`'s (`c=1`) — in fact
-`PLSEY` is implemented as `CCAEY` with `c` fixed at `1`. Gradient descent on the raw,
-unregularised (`c=0`) objective can diverge when a mini-batch's samples don't outnumber the
+`PLSEY` is implemented as `CCAEY` with `c` fixed at `1`. Optimising the raw, unregularised
+(`c=0`) objective can be poorly conditioned when the number of samples doesn't outnumber the
 number of features by a healthy margin; if you see `nan` weights, increase `c` (0.1-0.3 is
-usually enough) or `batch_size`.
+usually enough).
 
 ```python
 from cca_zoo.linear import CCAEY
 
-model = CCAEY(latent_dimensions=2, learning_rate=0.01, batch_size=128, max_iter=200)
+model = CCAEY(latent_dimensions=2, max_iter=200)
+model.fit([X1, X2])
+```
+
+For datasets too large to fit comfortably in memory, use `StochasticCCAEY`, which fits the same
+objective with mini-batch momentum SGD instead:
+
+```python
+from cca_zoo.linear import StochasticCCAEY
+
+model = StochasticCCAEY(
+    latent_dimensions=2, learning_rate=0.01, batch_size=128, max_iter=200
+)
 model.fit([X1, X2])
 ```
 
@@ -167,19 +178,20 @@ model.fit([X1, X2])
 
 `CCAEY`'s cross- and auto-covariance statistics weight every sample equally, so a handful of
 high-leverage points (their contribution grows with the *square* of their magnitude) can hijack
-the fit. `HuberCCA` caps each mini-batch sample's contribution by a Huber-style factor of its own
-leverage — the same bounded-influence mechanism `sklearn.linear_model.HuberRegressor` uses against
-outliers, applied to the EY loss's own statistics. Every sample still contributes *something*
-(smooth downweighting, never exactly zero). It has no ridge-blend `c` of its own, so the same
-`nan`-on-small-batches caveat above applies; increase `batch_size` if you hit it. The `delta`
-parameter sets the cutoff as a multiple of each batch's own median sample leverage
-(self-calibrating, so it doesn't need re-tuning per `batch_size`/`latent_dimensions`); values
-below 1 downweight the majority of every batch and are not recommended.
+the fit. `HuberCCA` reweights each sample by a Huber-style factor of its own leverage before
+forming those statistics — the same bounded-influence mechanism
+`sklearn.linear_model.HuberRegressor` uses against outliers, applied to the EY loss's own
+statistics. Every sample still contributes *something* (smooth downweighting, never exactly
+zero). Fit by the same full-batch L-BFGS-B as `CCAEY`, so it shares that class's `nan`-on
+ill-conditioned-data caveat above; it has no ridge-blend `c` of its own. The `delta` parameter
+sets the cutoff as a multiple of the dataset's own median sample leverage (self-calibrating, so
+it doesn't need re-tuning per `latent_dimensions`); values below 1 downweight the majority of the
+data and are not recommended.
 
 ```python
 from cca_zoo.linear import HuberCCA
 
-model = HuberCCA(latent_dimensions=2, delta=4.0, batch_size=128, max_iter=200)
+model = HuberCCA(latent_dimensions=2, delta=4.0, max_iter=200)
 model.fit([X1, X2])
 ```
 
@@ -315,5 +327,6 @@ model = PLSALS(latent_dimensions=2, random_state=0).fit([X1, X2])
 | Three or more views | `MCCA` or `GCCA` |
 | Higher-order cross-view structure | `TCCA` |
 | Sparse weights needed | `SCCAPMD` or `SCCAIPLS` |
-| Very large $p$ / streaming data | `CCAEY`, `PLSEY` |
+| Very large $p$ | `CCAEY`, `PLSEY` |
+| Dataset too large for full-batch gradients | `StochasticCCAEY` |
 | Nonlinear relationships | See [Nonparametric Methods](nonparametric.md) |

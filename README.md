@@ -89,9 +89,9 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `PartialCCA` | CCA adjusted for confounding variables (Rao 1969) | ≥2 |
 | `GRCCA` | Group-regularised CCA (Tuzhilina, Tozzi & Hastie 2021) | ≥2 |
 | `CCAR3` | CCA via reduced-rank regression, row-sparse in high dimensions (Donnat & Tuzhilina 2024) | 2 |
-| `CCA_EY` | Stochastic Eckart-Young CCA (unconstrained gradient descent) | 2 |
-| `PLS_EY` | Stochastic Eckart-Young PLS (unconstrained gradient descent) | 2 |
-| `MCCA_EY` | Multiview Eckart-Young CCA (unconstrained gradient descent) | ≥2 |
+| `CCAEY` | Eckart-Young CCA, full-batch L-BFGS-B (2 or more views) | ≥2 |
+| `PLSEY` | Eckart-Young PLS, full-batch L-BFGS-B | ≥2 |
+| `StochasticCCAEY` | `CCAEY`, fit by mini-batch momentum SGD | ≥2 |
 | `SCCA_PMD` | Sparse CCA via PMD (Witten 2009) | ≥2 |
 | `SCCA_ADMM` | Sparse CCA via ADMM (Suo 2017) | ≥2 |
 | `SCCA_IPLS` | Sparse CCA via iterative PLS (Mai & Zhang 2019) | ≥2 |
@@ -126,6 +126,12 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | Class | Description | Views |
 |---|---|---|
 | `GPCCA` | Gaussian-process CCA (Eckart-Young objective), with predictive uncertainty | ≥2 |
+
+### `cca_zoo.sparse`
+
+| Class | Description | Views |
+|---|---|---|
+| `ElasticNetCCA` | Sparse linear CCA via coordinate descent (Eckart-Young objective) | ≥2 |
 
 ### `cca_zoo.deep` *(requires `[deep]`)*
 

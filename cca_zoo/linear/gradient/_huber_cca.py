@@ -10,7 +10,7 @@ from numpy.typing import ArrayLike
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._utils._ey import cheap_orthonormal_projection_weights
-from cca_zoo.linear.gradient._base import BaseGradientModel
+from cca_zoo.linear.gradient._base import BaseFullBatchEYModel
 
 
 def _huber_sample_weight(representations: list[np.ndarray], delta: float) -> np.ndarray:
@@ -19,16 +19,14 @@ def _huber_sample_weight(representations: list[np.ndarray], delta: float) -> np.
     Each view's embedding is standardised to unit variance per component (so
     views/components with different natural scales contribute comparably),
     then a sample's leverage is its combined norm across all (view,
-    component) pairs. The cutoff is ``delta`` *times the batch's own median
-    leverage*, not an absolute Z-score radius: an absolute radius would need
-    re-tuning for every ``(n_views, latent_dimensions, batch_size)``
-    combination (a fixed radius that is generous for a large full-batch fit
-    routinely flags the *majority* of a small mini-batch as high-leverage,
-    starving the effective sample size and destabilising the fit -- the same
-    lesson already applied to :func:`cca_zoo._utils._ey.ey_diag_hessian`'s
-    percentile floor). Scaling by the batch's own median instead makes the
-    cutoff self-calibrating and guarantees at least half the batch keeps
-    weight 1 whenever ``delta >= 1``.
+    component) pairs. The cutoff is ``delta`` *times the dataset's own
+    median leverage*, not an absolute Z-score radius: an absolute radius
+    would need re-tuning for every ``(n_views, latent_dimensions)``
+    combination -- the same lesson already applied to
+    :func:`cca_zoo._utils._ey.ey_diag_hessian`'s percentile floor. Scaling
+    by the dataset's own median instead makes the cutoff self-calibrating
+    and guarantees at least half the data keeps weight 1 whenever
+    ``delta >= 1``.
 
     Samples within the cutoff keep weight 1; samples beyond it are
     downweighted in inverse proportion to their leverage, capping (never
@@ -38,7 +36,7 @@ def _huber_sample_weight(representations: list[np.ndarray], delta: float) -> np.
 
     Args:
         representations: List of M arrays, each of shape (n_samples, k).
-        delta: Cutoff as a multiple of the batch's median leverage.
+        delta: Cutoff as a multiple of the dataset's median leverage.
 
     Returns:
         Array of shape (n_samples,), values in ``(0, 1]``.
@@ -98,7 +96,7 @@ def _weighted_ey(
     return objective, grad_z
 
 
-class HuberCCA(BaseGradientModel):
+class HuberCCA(BaseFullBatchEYModel):
     r"""Huber CCA: bounded-influence Eckart-Young CCA.
 
     Standard :class:`~cca_zoo.linear.gradient.CCAEY` weights every sample
@@ -110,48 +108,51 @@ class HuberCCA(BaseGradientModel):
     loss growth lets outliers dominate, so Huber loss caps it to linear
     growth instead.
 
-    ``HuberCCA`` reweights each mini-batch sample by a Huber-style factor of
-    its own leverage (see :func:`_huber_sample_weight`) before forming the
-    EY cross- and auto-covariance statistics (see :func:`_weighted_ey`):
-    samples within ``delta`` times the batch's own median leverage keep
+    ``HuberCCA`` reweights each sample by a Huber-style factor of its own
+    leverage (see :func:`_huber_sample_weight`) before forming the EY
+    cross- and auto-covariance statistics (see :func:`_weighted_ey`):
+    samples within ``delta`` times the dataset's own median leverage keep
     weight 1, samples beyond it are downweighted so their contribution is
     capped rather than unbounded -- every sample still contributes something,
-    just never an unbounded amount.
+    just never an unbounded amount. Fit by full-batch L-BFGS-B
+    (:meth:`~cca_zoo.linear.gradient._base.BaseFullBatchEYModel._fit_lbfgsb`),
+    exactly as :class:`~cca_zoo.linear.gradient.CCAEY`; the leverage weight
+    is recomputed from the current representations at every evaluation,
+    the same stop-gradient (IRLS-style) treatment described in
+    :func:`_weighted_ey`.
 
     Note:
         Like plain ``CCAEY`` at its unregularised ``c=0`` (this estimator
-        has no ridge-blend ``c`` of its own), gradient descent on this
-        objective can diverge to ``nan`` when a mini-batch's samples don't
-        outnumber the number of features by a healthy margin. If you see
-        ``nan`` weights, increase ``batch_size`` rather than assuming the
-        model doesn't apply to your data.
+        has no ridge-blend ``c`` of its own), optimising this objective can
+        be poorly conditioned when the number of samples doesn't outnumber
+        the number of features by a healthy margin. If you see ``nan`` or
+        diverging weights, this is the same caveat ``CCAEY`` documents, not
+        specific to the Huber reweighting.
 
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
-        delta: Huber cutoff, as a multiple of the current batch's median
-            sample leverage; samples beyond it are downweighted. Values
-            below 1 downweight the majority of every batch and are not
-            recommended. Smaller values are more robust but discard more of
-            the data's genuine signal. Default is 4.0.
-        learning_rate: Gradient step size. Default is 1e-2.
-        max_iter: Number of gradient steps. Default is 1000.
-        batch_size: Mini-batch size. ``None`` uses the full dataset.
-        tol: Convergence tolerance. Default is 1e-6.
-        momentum: Momentum coefficient in ``[0, 1)``. Default is 0.9.
+        delta: Huber cutoff, as a multiple of the dataset's median sample
+            leverage; samples beyond it are downweighted. Values below 1
+            downweight the majority of the data and are not recommended.
+            Smaller values are more robust but discard more of the data's
+            genuine signal. Default is 4.0.
+        max_iter: Maximum number of L-BFGS-B iterations. Default is 1000.
+        tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
+            is 1e-6.
         random_state: Seed for reproducibility.
 
     Example:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((5000, 200))
-        >>> X2 = rng.standard_normal((5000, 150))
-        >>> model = HuberCCA(latent_dimensions=4, batch_size=128, random_state=0)
+        >>> X1 = rng.standard_normal((1000, 20))
+        >>> X2 = rng.standard_normal((1000, 15))
+        >>> model = HuberCCA(latent_dimensions=4, random_state=0)
         >>> model = model.fit([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
-        **BaseGradientModel._parameter_constraints,
+        **BaseFullBatchEYModel._parameter_constraints,
         "delta": [Interval(Real, 0, None, closed="neither")],
     }
 
@@ -160,27 +161,21 @@ class HuberCCA(BaseGradientModel):
         latent_dimensions: int = 1,
         center: bool = True,
         delta: float = 4.0,
-        learning_rate: float = 1e-2,
         max_iter: int = 1000,
-        batch_size: int | None = None,
         tol: float = 1e-6,
-        momentum: float = 0.9,
         random_state: int | None = None,
     ) -> None:
         super().__init__(
             latent_dimensions=latent_dimensions,
             center=center,
-            learning_rate=learning_rate,
             max_iter=max_iter,
-            batch_size=batch_size,
             tol=tol,
-            momentum=momentum,
             random_state=random_state,
         )
         self.delta = delta
 
     def fit(self, views: list[ArrayLike], y: None = None) -> HuberCCA:
-        """Fit HuberCCA by mini-batch momentum gradient descent.
+        """Fit HuberCCA by full-batch L-BFGS-B on the Huber-weighted EY loss.
 
         Args:
             views: List of arrays, each (n_samples, n_features_i).
@@ -195,7 +190,7 @@ class HuberCCA(BaseGradientModel):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-        self.weights_ = self._gradient_descent(views_, rng)
+        self.weights_ = self._fit_lbfgsb(views_, rng)
         return self
 
     def _initial_weights(
@@ -203,13 +198,13 @@ class HuberCCA(BaseGradientModel):
     ) -> list[np.ndarray]:
         """Cheap, data-informed initial weights (see :class:`CCAEY`'s note).
 
-        Gives exactly unit-variance, uncorrelated projections on one
-        mini-batch -- the natural starting point for this loss too, since
+        Gives exactly unit-variance, uncorrelated projections on the full
+        dataset -- the natural starting point for this loss too, since
         clean, well-conditioned data has uniform sample weight everywhere
         (see :func:`_huber_sample_weight`).
         """
         return cheap_orthonormal_projection_weights(
-            views, self.latent_dimensions, self.batch_size, rng
+            views, self.latent_dimensions, None, rng
         )
 
     def _derivative(

@@ -1,15 +1,14 @@
-"""Tests for gradient-descent CCA variants: PLSEY, CCAEY, MCCAEY."""
+"""Tests for EY-loss CCA variants: PLSEY, CCAEY, StochasticCCAEY."""
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from cca_zoo.linear import CCA, CCAEY, MCCA, MCCAEY, PLS, PLSEY, HuberCCA
+from cca_zoo.linear import CCA, CCAEY, MCCA, PLS, PLSEY, HuberCCA, StochasticCCAEY
 
-GRADIENT_MODELS_TWO_VIEW = [PLSEY, CCAEY, HuberCCA]
-GRADIENT_MODELS_MULTI_VIEW = [MCCAEY, HuberCCA]
-ALL_GRADIENT_MODELS = GRADIENT_MODELS_TWO_VIEW + GRADIENT_MODELS_MULTI_VIEW
+FULL_BATCH_MODELS = [PLSEY, CCAEY, HuberCCA]
+ALL_GRADIENT_MODELS = [PLSEY, CCAEY, StochasticCCAEY, HuberCCA]
 
 # Use fewer iterations for speed in tests
 _FIT_KWARGS: dict = dict(latent_dimensions=1, max_iter=50, random_state=0)
@@ -17,7 +16,7 @@ _FIT_KWARGS: dict = dict(latent_dimensions=1, max_iter=50, random_state=0)
 
 @pytest.fixture
 def three_correlated_views() -> list[np.ndarray]:
-    """Three views sharing a latent structure, for MCCAEY correctness checks."""
+    """Three views sharing a latent structure, for multiview correctness checks."""
     rng = np.random.default_rng(0)
     z = rng.standard_normal((300, 2))
     x1 = z @ rng.standard_normal((2, 10)) + 0.1 * rng.standard_normal((300, 10))
@@ -31,29 +30,20 @@ def three_correlated_views() -> list[np.ndarray]:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_TWO_VIEW)
+@pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
 def test_two_view_fit_completes(ModelClass: type, two_views: list[np.ndarray]) -> None:
     """Fit completes on two-view data without error."""
     model = ModelClass(**_FIT_KWARGS)
     fitted = model.fit(two_views)
     assert fitted is model
-
-
-@pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
-def test_two_view_fit_completes_all(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
-    """All gradient models fit on two-view data."""
-    model = ModelClass(**_FIT_KWARGS)
-    model.fit(two_views)
     assert hasattr(model, "weights_")
 
 
-@pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_MULTI_VIEW)
+@pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
 def test_three_view_fit_completes(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
-    """MCCAEY fits on three-view data."""
+    """CCAEY (and its subclasses) fit directly on three-view data."""
     model = ModelClass(**_FIT_KWARGS)
     fitted = model.fit(three_views)
     assert fitted is model
@@ -64,7 +54,7 @@ def test_three_view_fit_completes(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_TWO_VIEW)
+@pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
 def test_transform_shapes_two_view(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
@@ -77,11 +67,11 @@ def test_transform_shapes_two_view(
         assert arr.shape == (view.shape[0], k)
 
 
-@pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_MULTI_VIEW)
+@pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
 def test_transform_shapes_multi_view(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
-    """MCCAEY transform returns correct shapes for three views."""
+    """Transform returns correct shapes for three views."""
     k = 2
     model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(
         three_views
@@ -97,7 +87,7 @@ def test_transform_shapes_multi_view(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_TWO_VIEW)
+@pytest.mark.parametrize("ModelClass", FULL_BATCH_MODELS)
 def test_fit_transform_consistency(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
@@ -114,7 +104,7 @@ def test_fit_transform_consistency(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_TWO_VIEW)
+@pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
 def test_score_shape(ModelClass: type, two_views: list[np.ndarray]) -> None:
     """Score returns array of shape (latent_dimensions,)."""
     k = 2
@@ -123,7 +113,7 @@ def test_score_shape(ModelClass: type, two_views: list[np.ndarray]) -> None:
     assert s.shape == (k,)
 
 
-@pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_MULTI_VIEW)
+@pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
 def test_score_shape_multi_view(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
@@ -145,7 +135,7 @@ def test_score_shape_multi_view(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_TWO_VIEW)
+@pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
 def test_weights_shapes_two_view(ModelClass: type, two_views: list[np.ndarray]) -> None:
     """Weights shapes are (n_features_i, latent_dimensions) per view."""
     k = 2
@@ -161,7 +151,7 @@ def test_weights_shapes_two_view(ModelClass: type, two_views: list[np.ndarray]) 
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_TWO_VIEW)
+@pytest.mark.parametrize("ModelClass", FULL_BATCH_MODELS)
 def test_get_factor_loadings_shapes(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
@@ -175,25 +165,26 @@ def test_get_factor_loadings_shapes(
 
 
 # ---------------------------------------------------------------------------
-# Mini-batch training
+# StochasticCCAEY-specific: mini-batch training
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_TWO_VIEW)
-def test_mini_batch_training(ModelClass: type, two_views: list[np.ndarray]) -> None:
-    """Models train without error with batch_size=16."""
-    model = ModelClass(latent_dimensions=1, max_iter=20, batch_size=16, random_state=0)
+def test_mini_batch_training(two_views: list[np.ndarray]) -> None:
+    """StochasticCCAEY trains without error with batch_size < n_samples."""
+    model = StochasticCCAEY(
+        latent_dimensions=1, max_iter=20, batch_size=16, random_state=0
+    )
     model.fit(two_views)
     result = model.transform(two_views)
     assert len(result) == 2
     for arr, view in zip(result, two_views):
         assert arr.shape == (view.shape[0], 1)
+    assert all(np.all(np.isfinite(w)) for w in model.weights_)
 
 
-@pytest.mark.parametrize("ModelClass", GRADIENT_MODELS_TWO_VIEW)
-def test_full_batch_training(ModelClass: type, two_views: list[np.ndarray]) -> None:
-    """Models train without error with batch_size=None (full batch)."""
-    model = ModelClass(
+def test_full_batch_training(two_views: list[np.ndarray]) -> None:
+    """StochasticCCAEY trains without error with batch_size=None (full batch)."""
+    model = StochasticCCAEY(
         latent_dimensions=1, max_iter=20, batch_size=None, random_state=0
     )
     model.fit(two_views)
@@ -233,34 +224,19 @@ def test_different_seeds_give_different_results(
 
 
 # ---------------------------------------------------------------------------
-# No upfront whitening (regression: CCAEY used to whiten the full dataset
-# with a full-batch SVD before any gradient step, defeating the entire
-# point of a mini-batch/streaming stochastic method; MCCAEY inherited the
-# same bug via CCAEY.fit(). PLSEY, TreeCCA, and DCCAEY all apply the same
-# shared EY loss directly to raw embeddings with no such step, and the
-# family's own docs describe it as needing no full-batch preprocessing.)
-#
-# CCAEY keeps a ``c`` ridge parameter that continuously blends its loss
-# towards PLSEY's (see cca_zoo._utils._ey.weight_gram_mean); PLSEY is
-# implemented as a thin CCAEY subclass with ``c`` fixed at 1, mirroring how
-# CCA/PLS are thin rCCA subclasses with ``c`` fixed at 0/1.
+# CCAEY's `c` ridge parameter continuously blends its loss towards PLSEY's
+# (see cca_zoo._utils._ey.weight_gram_mean); PLSEY is implemented as a thin
+# CCAEY subclass with `c` fixed at 1, mirroring how CCA/PLS are thin rCCA
+# subclasses with `c` fixed at 0/1. StochasticCCAEY inherits the same `c`
+# from CCAEY, fit by mini-batch momentum SGD instead of full-batch L-BFGS-B.
 # ---------------------------------------------------------------------------
-
-
-def test_cca_ey_module_does_not_reference_svd_whiten() -> None:
-    """CCAEY's source no longer calls the full-batch whitening routine."""
-    import inspect
-
-    from cca_zoo.linear.gradient import _cca_ey
-
-    source = inspect.getsource(_cca_ey)
-    assert "svd_whiten" not in source
 
 
 def test_cca_ey_accepts_c_pls_ey_does_not() -> None:
     """C blends CCAEY towards PLSEY; PLSEY fixes it at 1, unexposed."""
     assert CCAEY().get_params()["c"] == 0.0
     assert "c" not in PLSEY().get_params()
+    assert StochasticCCAEY().get_params()["c"] == 0.0
 
 
 def test_pls_ey_loss_matches_cca_ey_at_c_equal_one(
@@ -268,9 +244,9 @@ def test_pls_ey_loss_matches_cca_ey_at_c_equal_one(
 ) -> None:
     """PLSEY's derivative/objective are exactly CCAEY's own formula at c=1.
 
-    PLSEY no longer fits identical weights to CCAEY(c=1) given the same
-    seed, since the two now deliberately use different initial-weights
-    strategies (see cca_zoo._utils._ey.random_orthonormal_weights vs.
+    PLSEY does not fit identical weights to CCAEY(c=1) given the same seed,
+    since the two deliberately use different initial-weights strategies
+    (see cca_zoo._utils._ey.random_orthonormal_weights vs.
     cheap_orthonormal_projection_weights) -- this checks the invariant that
     actually matters instead: the shared loss/gradient formula itself.
     """
@@ -328,9 +304,8 @@ def test_center_false(ModelClass: type, two_views: list[np.ndarray]) -> None:
 #
 # The EY-loss gradient computed here (see cca_zoo._utils._ey) is verified
 # against finite-difference gradients; these tests additionally check that
-# converged gradient descent recovers the same canonical correlations as the
-# exact eigendecomposition solutions, which the pre-fix implementation did
-# not (it optimised a different, unrelated objective).
+# a converged fit recovers the same canonical correlations as the exact
+# eigendecomposition solutions.
 # ---------------------------------------------------------------------------
 
 
@@ -339,11 +314,11 @@ def test_cca_ey_matches_cca(correlated_views: list[np.ndarray]) -> None:
     k = 2
     s_cca = CCA(latent_dimensions=k).fit(correlated_views).score(correlated_views)
     s_ey = (
-        CCAEY(latent_dimensions=k, max_iter=1000, random_state=0)
+        CCAEY(latent_dimensions=k, random_state=0)
         .fit(correlated_views)
         .score(correlated_views)
     )
-    # Gradient descent does not guarantee components are returned in
+    # L-BFGS-B does not guarantee components are returned in
     # descending-correlation order, unlike the exact eigendecomposition.
     np.testing.assert_allclose(
         sorted(s_ey, reverse=True), sorted(s_cca, reverse=True), atol=0.05
@@ -355,7 +330,7 @@ def test_pls_ey_matches_pls(correlated_views: list[np.ndarray]) -> None:
     k = 2
     s_pls = PLS(latent_dimensions=k).fit(correlated_views).score(correlated_views)
     s_ey = (
-        PLSEY(latent_dimensions=k, max_iter=1000, random_state=0)
+        PLSEY(latent_dimensions=k, random_state=0)
         .fit(correlated_views)
         .score(correlated_views)
     )
@@ -364,8 +339,10 @@ def test_pls_ey_matches_pls(correlated_views: list[np.ndarray]) -> None:
     )
 
 
-def test_mcca_ey_matches_mcca(three_correlated_views: list[np.ndarray]) -> None:
-    """Converged MCCAEY recovers the same correlations as exact MCCA."""
+def test_cca_ey_matches_mcca_for_three_views(
+    three_correlated_views: list[np.ndarray],
+) -> None:
+    """CCAEY, given 3 views directly, recovers the same correlations as exact MCCA."""
     k = 2
     s_mcca = (
         MCCA(latent_dimensions=k)
@@ -373,7 +350,7 @@ def test_mcca_ey_matches_mcca(three_correlated_views: list[np.ndarray]) -> None:
         .score(three_correlated_views)
     )
     s_ey = (
-        MCCAEY(latent_dimensions=k, max_iter=1000, random_state=0)
+        CCAEY(latent_dimensions=k, random_state=0)
         .fit(three_correlated_views)
         .score(three_correlated_views)
     )
@@ -382,11 +359,11 @@ def test_mcca_ey_matches_mcca(three_correlated_views: list[np.ndarray]) -> None:
     )
 
 
-@pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
+@pytest.mark.parametrize("ModelClass", [PLSEY, CCAEY])
 def test_gradient_models_find_high_correlation(
     ModelClass: type, correlated_views: list[np.ndarray]
 ) -> None:
-    """All gradient models find substantial correlation on correlated views."""
+    """Full-batch EY models find substantial correlation on correlated views."""
     s = (
         ModelClass(latent_dimensions=1, max_iter=500, random_state=0)
         .fit(correlated_views)
@@ -395,13 +372,27 @@ def test_gradient_models_find_high_correlation(
     assert np.all(s > 0.8), f"{ModelClass.__name__} got low correlation: {s}"
 
 
+def test_stochastic_cca_ey_finds_high_correlation(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """StochasticCCAEY finds substantial correlation on correlated views."""
+    s = (
+        StochasticCCAEY(latent_dimensions=1, max_iter=500, random_state=0)
+        .fit(correlated_views)
+        .score(correlated_views)
+    )
+    assert np.all(s > 0.8), f"StochasticCCAEY got low correlation: {s}"
+
+
 # ---------------------------------------------------------------------------
 # Initial weights: PLSEY gets plain orthonormal weights (matching its own
-# weight-space penalty); CCAEY (and MCCAEY, which inherits it) gets a
-# cheap, data-informed init giving exactly unit-variance, uncorrelated
-# projections on the first mini-batch instead (a cheap stand-in for
-# classical CCA's full whitening step, and a direct counter to the
-# near-null-direction divergence risk noted in CCAEY's own docstring).
+# weight-space penalty); CCAEY gets a cheap, data-informed init giving
+# exactly unit-variance, uncorrelated projections on the full dataset
+# instead (a cheap stand-in for classical CCA's full whitening step, and a
+# direct counter to the near-null-direction divergence risk noted in
+# CCAEY's own docstring). StochasticCCAEY inherits CCAEY's initialiser but
+# projects on one mini-batch instead of the full dataset, since a
+# full-batch pass is exactly what it exists to avoid.
 # ---------------------------------------------------------------------------
 
 
@@ -420,14 +411,30 @@ def test_cca_ey_initial_weights_give_orthonormal_projections(
 ) -> None:
     """CCAEY's initial weights give unit-variance, uncorrelated projections.
 
-    Unlike PLSEY's plain weight-orthonormal init, CCAEY's own initial
-    *weights* are not themselves orthonormal in general -- what's
-    orthonormal is the projection onto the mini-batch used to build them.
+    On the full dataset. Unlike PLSEY's plain weight-orthonormal init,
+    CCAEY's own initial *weights* are not themselves orthonormal in
+    general -- what's orthonormal is the projection.
+    """
+    k = 2
+    rng = np.random.default_rng(0)
+    model = CCAEY(latent_dimensions=k, random_state=0)
+    weights = model._initial_weights(two_views, rng)
+    for view, w in zip(two_views, weights):
+        z = view @ w
+        np.testing.assert_allclose(z.T @ z, np.eye(k), atol=1e-8)
+
+
+def test_stochastic_cca_ey_initial_weights_give_orthonormal_projections(
+    two_views: list[np.ndarray],
+) -> None:
+    """StochasticCCAEY's initial weights give orthonormal projections.
+
+    On one mini-batch, rather than the full dataset.
     """
     k = 2
     bs = 16
     rng = np.random.default_rng(0)
-    model = CCAEY(latent_dimensions=k, batch_size=bs, random_state=0)
+    model = StochasticCCAEY(latent_dimensions=k, batch_size=bs, random_state=0)
     weights = model._initial_weights(two_views, rng)
     # Re-derive, with a fresh rng in the same state, exactly which rows the
     # initialiser sampled, so the projection can be checked on that batch.
@@ -451,18 +458,20 @@ def test_cca_ey_initial_weights_differ_from_pls_ey(
     assert any(not np.allclose(a, b) for a, b in zip(w_pls, w_cca))
 
 
-def test_mcca_ey_initial_weights_give_orthonormal_projections(
+# ---------------------------------------------------------------------------
+# MCCAEY is deprecated: CCAEY now supports 2 or more views directly.
+# ---------------------------------------------------------------------------
+
+
+def test_mccaey_deprecated_alias_still_works(
     three_correlated_views: list[np.ndarray],
 ) -> None:
-    """MCCAEY inherits CCAEY's data-informed initialiser unchanged."""
-    k = 2
-    bs = 32
-    rng = np.random.default_rng(0)
-    model = MCCAEY(latent_dimensions=k, batch_size=bs, random_state=0)
-    weights = model._initial_weights(three_correlated_views, rng)
-    rng2 = np.random.default_rng(0)
-    n = three_correlated_views[0].shape[0]
-    idx = rng2.choice(n, bs, replace=False)
-    for view, w in zip(three_correlated_views, weights):
-        z = view[idx] @ w
-        np.testing.assert_allclose(z.T @ z, np.eye(k), atol=1e-8)
+    """MCCAEY still works (as a thin CCAEY subclass) but warns FutureWarning."""
+    from cca_zoo.linear import MCCAEY
+
+    with pytest.warns(FutureWarning):
+        model = MCCAEY(latent_dimensions=1, random_state=0)
+    model.fit(three_correlated_views)
+    assert isinstance(model, CCAEY)
+    result = model.transform(three_correlated_views)
+    assert len(result) == 3
