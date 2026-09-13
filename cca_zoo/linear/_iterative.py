@@ -22,6 +22,7 @@ from typing import cast
 
 import numpy as np
 from numpy.typing import ArrayLike
+from scipy.linalg import cho_factor, cho_solve
 from sklearn.linear_model import ElasticNet, Lasso, Ridge, lasso_path
 from sklearn.utils import deprecated
 
@@ -421,10 +422,8 @@ class SCCAADMM(_BaseIterative):
 
     $$
     \begin{aligned}
-    \mathbf{w}_i &\leftarrow \mathbf{w}_i - \gamma_i \Bigl(
-        X_i^\top X_i \mathbf{w}_i - X_i^\top \bar{\mathbf{s}}_{\neg i}
-        + \mu (\mathbf{w}_i - \mathbf{z}_i + \mathbf{u}_i)
-    \Bigr) \\
+    \mathbf{w}_i &\leftarrow \bigl(X_i^\top X_i + \mu I\bigr)^{-1}
+        \Bigl(X_i^\top \bar{\mathbf{s}}_{\neg i} + \mu(\mathbf{z}_i - \mathbf{u}_i)\Bigr) \\
     \mathbf{z}_i &\leftarrow \Pi_{\|\cdot\|_2 \le 1}\Bigl(
         \mathcal{S}_{\tau_i / \mu}(\mathbf{w}_i + \mathbf{u}_i)
     \Bigr) \\
@@ -435,8 +434,11 @@ class SCCAADMM(_BaseIterative):
     where $\bar{\mathbf{s}}_{\neg i}$ is the summed projected score
     from all other views, $\mathcal{S}_\lambda$ is the elementwise
     soft-threshold operator, $\Pi_{\|\cdot\|_2 \le 1}$ projects onto
-    the unit ball, $\mathbf{u}_i$ is the scaled dual variable, and
-    $\gamma_i = \bigl(\|X_i^\top X_i\| / n + \mu\bigr)^{-1}$.
+    the unit ball, and $\mathbf{u}_i$ is the scaled dual variable. The
+    $\mathbf{w}_i$-update is the exact minimiser of its (quadratic)
+    subproblem, solved via a Cholesky factorisation of
+    $X_i^\top X_i + \mu I$ computed once per latent dimension and
+    reused across outer iterations.
 
     References:
         Suo, X., Mineiro, P., & Anandkumar, A. (2017). Sparse canonical
@@ -445,7 +447,13 @@ class SCCAADMM(_BaseIterative):
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
-        tau: L1 regularisation weight(s). Default is 0.1.
+        tau: L1 regularisation weight(s). Default is 0.01. The soft-threshold
+            applied each iteration is ``tau / mu``, so this is on the same
+            raw scale as the entries of ``w``, not the ``tau * sqrt(p)``
+            scale :class:`SCCAPMD` uses -- values much above ``0.01`` on
+            typically-scaled (unit-variance-ish, tens-to-hundreds of
+            samples) data drive every weight to zero once the ADMM
+            subproblem is solved exactly.
         mu: ADMM penalty parameter (step size). Default is 1.0.
         max_iter: Maximum outer iterations. Default is 500.
         tol: Convergence tolerance. Default is 1e-6.
@@ -463,7 +471,7 @@ class SCCAADMM(_BaseIterative):
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        tau: float | list[float] = 0.1,
+        tau: float | list[float] = 0.01,
         mu: float = 1.0,
         max_iter: int = 500,
         tol: float = 1e-6,
@@ -492,20 +500,23 @@ class SCCAADMM(_BaseIterative):
             w: Weight vectors (updated in-place).
             d: Current latent dimension index.
         """
-        tau_ = perview_parameter("tau", self.tau, 0.1, len(views))
-        n = views[0].shape[0]
+        tau_ = perview_parameter("tau", self.tau, 0.01, len(views))
         z = [wi.copy() for wi in w]
         eta = [np.zeros_like(wi) for wi in w]
+        # X_i^T X_i + mu*I is fixed for the whole ADMM run (views and mu
+        # don't change across outer iterations), so factorise it once.
+        factors = [
+            cho_factor(views[i].T @ views[i] + self.mu * np.eye(views[i].shape[1]))
+            for i in range(len(views))
+        ]
         for _iter in range(self.max_iter):
             w_prev = [wi.copy() for wi in w]
-            # Compute gradient targets
             targets = [_target_score(views, w, i) for i in range(len(views))]
             for i in range(len(views)):
-                XtX = views[i].T @ views[i]
                 Xtarget = views[i].T @ targets[i]
-                # w-update: proximal gradient
-                gradient = XtX @ w[i] - Xtarget + self.mu * (w[i] - z[i] + eta[i])
-                w[i] = w[i] - (gradient / (np.linalg.norm(XtX) / n + self.mu))
+                # w-update: exact solve of the quadratic subproblem
+                rhs = Xtarget + self.mu * (z[i] - eta[i])
+                w[i] = cho_solve(factors[i], rhs)
                 # z-update: soft thresholding
                 z[i] = soft_threshold(w[i] + eta[i], tau_[i] / self.mu)
                 # Project z to unit ball if needed
