@@ -363,6 +363,63 @@ def test_cca_ey_matches_mcca_for_three_views(
     np.testing.assert_allclose(s_ey, sorted(s_mcca, reverse=True), atol=0.05)
 
 
+def test_cca_ey_ordered_matches_cca(
+    separated_correlation_views: list[np.ndarray],
+) -> None:
+    """CCAEY(ordered=True) matches exact CCA's descending correlations directly.
+
+    Unlike the default (rotate-after-the-fact) fit, sequential
+    (one-component-at-a-time) fitting needs no post-fit rotation: each
+    component is already optimised in its final, correctly-ordered slot,
+    so ``s_ey`` should already equal ``sorted(s_cca, reverse=True)``
+    without either side needing re-sorting.
+    """
+    k = 3
+    s_cca = (
+        CCA(latent_dimensions=k)
+        .fit(separated_correlation_views)
+        .score(separated_correlation_views)
+    )
+    s_ey = (
+        CCAEY(latent_dimensions=k, ordered=True, random_state=0)
+        .fit(separated_correlation_views)
+        .score(separated_correlation_views)
+    )
+    np.testing.assert_allclose(s_ey, sorted(s_cca, reverse=True), atol=0.02)
+    assert np.all(np.diff(s_ey) <= 1e-9), f"CCAEY(ordered=True) not ordered: {s_ey}"
+
+
+def test_cca_ey_ordered_skips_post_fit_rotation(
+    monkeypatch: pytest.MonkeyPatch, two_views: list[np.ndarray]
+) -> None:
+    """``ordered=True`` never calls ``order_components``: no rotation step at all.
+
+    The sequential fit finds each component already in its final position,
+    so (unlike the default path) nothing should try to rotate the result
+    afterwards.
+    """
+    import cca_zoo.linear.gradient._cca_ey as cca_ey_module
+
+    def _fail(*args: object, **kwargs: object) -> None:
+        raise AssertionError("order_components should not be called when ordered=True")
+
+    monkeypatch.setattr(cca_ey_module, "order_components", _fail)
+    model = CCAEY(latent_dimensions=2, ordered=True, max_iter=20, random_state=0)
+    fitted = model.fit(two_views)
+    assert fitted is model
+
+
+@pytest.mark.parametrize("ModelClass", [CCAEY, PLSEY])
+def test_ordered_fit_completes_on_three_views(
+    ModelClass: type, three_views: list[np.ndarray]
+) -> None:
+    """CCAEY/PLSEY(ordered=True) fit directly on 3+ views without error."""
+    model = ModelClass(**_FIT_KWARGS, ordered=True)
+    fitted = model.fit(three_views)
+    assert fitted is model
+    assert hasattr(model, "weights_")
+
+
 @pytest.mark.parametrize("ModelClass", [PLSEY, CCAEY])
 def test_gradient_models_find_high_correlation(
     ModelClass: type, correlated_views: list[np.ndarray]
@@ -392,17 +449,24 @@ def test_stochastic_cca_ey_finds_high_correlation(
 def separated_correlation_views() -> list[np.ndarray]:
     """Two views with 3 latent components at clearly distinct strengths.
 
-    Per-component noise decays geometrically, so the 3 true canonical
-    correlations are well separated (unlike ``correlated_views``, whose 2
-    components are close enough to risk order-flipping ties) -- exactly
-    what an ordering test needs to be non-flaky.
+    Each shared latent column gets its own, differently-scaled noise added
+    *directly* to that same column in both views (not routed through an
+    extra random mixing matrix, which would only add an independent,
+    equal-strength nuisance subspace to each view and leave every
+    canonical correlation near 1 regardless of ``noise_scale`` -- a
+    mistake an earlier version of this fixture made). This way each of the
+    3 true canonical correlations is controlled directly and comes out
+    clearly separated (confirmed against exact ``CCA``: ~0.99/0.49/0.09),
+    unlike ``correlated_views``, whose components are close enough to risk
+    order-flipping ties -- exactly what an ordering test needs to be
+    non-flaky.
     """
     rng = np.random.default_rng(0)
     n = 500
     z = rng.standard_normal((n, 3))
-    noise_scale = np.array([0.05, 0.4, 1.2])
-    x1 = z @ rng.standard_normal((3, 12)) + noise_scale * rng.standard_normal((n, 3)) @ rng.standard_normal((3, 12))
-    x2 = z @ rng.standard_normal((3, 9)) + noise_scale * rng.standard_normal((n, 3)) @ rng.standard_normal((3, 9))
+    noise_scale = np.array([0.1, 1.0, 3.0])
+    x1 = z + noise_scale * rng.standard_normal((n, 3))
+    x2 = z + noise_scale * rng.standard_normal((n, 3))
     return [x1, x2]
 
 

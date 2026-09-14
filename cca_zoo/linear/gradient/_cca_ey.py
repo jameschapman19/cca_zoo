@@ -7,6 +7,7 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from scipy.optimize import minimize
 from sklearn.utils import deprecated
 from sklearn.utils._param_validation import Interval
 
@@ -67,11 +68,28 @@ class CCAEY(BaseFullBatchEYModel):
     The loss is invariant to rotating every view's fitted embedding by a
     common orthogonal matrix, so the raw L-BFGS-B solution recovers the
     right canonical *subspace* but not individually ordered, canonically
-    meaningful components. After fitting, weights are rotated into
-    descending-correlation order by a cheap post-hoc
+    meaningful components. By default (``ordered=False``), weights are
+    rotated into descending-correlation order by a cheap post-hoc
     :func:`~cca_zoo._utils._ey.order_components` step (a small $k \times k$
-    eigendecomposition), matching the convention of exact
-    eigendecomposition-based solvers like :class:`~cca_zoo.linear.MCCA`.
+    eigendecomposition) after the joint fit, matching the convention of
+    exact eigendecomposition-based solvers like :class:`~cca_zoo.linear.MCCA`.
+
+    ``ordered=True`` instead fits one component at a time
+    (:meth:`_fit_lbfgsb_sequential`): component $d$ is optimised by
+    L-BFGS-B with every earlier component held fixed, using the exact same
+    :meth:`_objective`/:meth:`_derivative` as the joint fit (just
+    restricted to the one free column) -- no new gradient math, and no
+    rotation step, since each component is already found in its final,
+    correctly-ordered position. Component 1 sees no competition
+    (identical to a plain ``latent_dimensions=1`` fit); component 2 is
+    optimised against a fixed component 1; and so on. This costs
+    ``latent_dimensions`` separate L-BFGS-B solves instead of one, so it
+    is slower than the default for large ``latent_dimensions``. See
+    :class:`~cca_zoo.linear.gradient.StochasticCCAEY`'s own ``ordered``
+    for the analogous idea adapted to its mini-batch SGD solver -- that
+    version masks the joint gradient (a Sanger's-rule/Generalized-Hebbian
+    construction) rather than fitting components one at a time, since its
+    solver has no line search to break.
 
     Note:
         Unlike the exact, closed-form :class:`~cca_zoo.linear.rCCA` (where
@@ -96,6 +114,10 @@ class CCAEY(BaseFullBatchEYModel):
         max_iter: Maximum number of L-BFGS-B iterations. Default is 1000.
         tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
             is 1e-6.
+        ordered: If True, fit one component at a time (each earlier
+            component held fixed) instead of jointly fitting all
+            components and rotating afterwards. No post-fit rotation is
+            applied when this is True. Default is False.
         random_state: Seed for reproducibility.
 
     Example:
@@ -115,6 +137,7 @@ class CCAEY(BaseFullBatchEYModel):
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseFullBatchEYModel._parameter_constraints,
         "c": [Interval(Real, 0, 1, closed="both")],
+        "ordered": ["boolean"],
     }
 
     def __init__(
@@ -124,6 +147,7 @@ class CCAEY(BaseFullBatchEYModel):
         c: float = 0.0,
         max_iter: int = 1000,
         tol: float = 1e-6,
+        ordered: bool = False,
         random_state: int | None = None,
     ) -> None:
         super().__init__(
@@ -134,6 +158,7 @@ class CCAEY(BaseFullBatchEYModel):
             random_state=random_state,
         )
         self.c = c
+        self.ordered = ordered
 
     def fit(self, views: list[ArrayLike], y: None = None) -> CCAEY:
         """Fit CCAEY by full-batch L-BFGS-B on the EY loss.
@@ -151,10 +176,25 @@ class CCAEY(BaseFullBatchEYModel):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-        self.weights_ = self._fit_lbfgsb(views_, rng)
-        representations = [v @ w for v, w in zip(views_, self.weights_)]
-        self.weights_ = order_components(self.weights_, representations, self.c)
+        if self.ordered:
+            self.weights_ = self._fit_lbfgsb_sequential(views_, rng)
+        else:
+            self.weights_ = self._fit_lbfgsb(views_, rng)
+            representations = [v @ w for v, w in zip(views_, self.weights_)]
+            self.weights_ = order_components(self.weights_, representations, self.c)
         return self
+
+    def _initial_weights_k(
+        self, views: list[np.ndarray], k: int, rng: np.random.Generator
+    ) -> list[np.ndarray]:
+        """:meth:`_initial_weights`, generalised to an explicit column count.
+
+        :meth:`_initial_weights` (the ``k = self.latent_dimensions`` case
+        :meth:`~cca_zoo.linear.gradient._base.BaseFullBatchEYModel._fit_lbfgsb`
+        actually calls) delegates here. Also used, one column at a time
+        (``k=1``), by :meth:`_fit_lbfgsb_sequential`'s per-component fit.
+        """
+        return cheap_orthonormal_projection_weights(views, k, None, rng)
 
     def _initial_weights(
         self, views: list[np.ndarray], rng: np.random.Generator
@@ -167,9 +207,81 @@ class CCAEY(BaseFullBatchEYModel):
         loss's own reward term at its fixed point (see
         :func:`cca_zoo._utils._ey.cheap_orthonormal_projection_weights`).
         """
-        return cheap_orthonormal_projection_weights(
-            views, self.latent_dimensions, None, rng
-        )
+        return self._initial_weights_k(views, self.latent_dimensions, rng)
+
+    def _fit_lbfgsb_sequential(
+        self, views: list[np.ndarray], rng: np.random.Generator
+    ) -> list[np.ndarray]:
+        r"""Fit one component at a time via L-BFGS-B, each already-found column fixed.
+
+        ``ordered=True``'s alternative to :meth:`_fit_lbfgsb` +
+        :func:`~cca_zoo._utils._ey.order_components`: instead of jointly
+        optimising all ``latent_dimensions`` columns at once (which
+        recovers the right subspace but an arbitrary rotation within it)
+        and rotating afterwards, each component is optimised on its own,
+        with every earlier component held fixed as a constant. At stage
+        $d$, :meth:`_objective`/:meth:`_derivative` (unchanged -- exactly
+        the same loss and analytic gradient as the joint fit) are
+        evaluated on the full ``[already-found columns, new column]``
+        weight matrix, but only the new column's gradient block is passed
+        to L-BFGS-B as the free variable -- an ordinary partial derivative
+        at fixed values of the other variables, needing no new gradient
+        math. Because each stage's ``(objective, gradient)`` pair
+        genuinely is a consistent restriction of the full EY loss to its
+        free variables, this stays fully compatible with L-BFGS-B's line
+        search.
+
+        Component 1 sees no competition at all (identical to a plain
+        ``latent_dimensions=1`` fit), so it converges to the single
+        strongest canonical direction; component 2 is optimised with
+        component 1 held fixed, and so on -- exact descending-correlation
+        order by construction, with no post-fit rotation needed or
+        applied.
+
+        Args:
+            views: List of arrays to fit on.
+            rng: Random generator used for initialisation.
+
+        Returns:
+            List of fitted weight matrices, one per view, each with
+            ``latent_dimensions`` columns, in descending-correlation order.
+        """
+        fixed: list[np.ndarray] = [np.empty((v.shape[1], 0)) for v in views]
+        for _ in range(self.latent_dimensions):
+            new0 = self._initial_weights_k(views, 1, rng)
+            shapes = [w.shape for w in new0]
+            sizes = [w.size for w in new0]
+
+            def _unflatten(x: np.ndarray) -> list[np.ndarray]:
+                arrays = []
+                offset = 0
+                for shape, size in zip(shapes, sizes):
+                    arrays.append(x[offset : offset + size].reshape(shape))
+                    offset += size
+                return arrays
+
+            def _fun(x: np.ndarray) -> tuple[float, np.ndarray]:
+                new_col = _unflatten(x)
+                weights = [
+                    np.concatenate([f, c], axis=1) for f, c in zip(fixed, new_col)
+                ]
+                representations = [v @ w for v, w in zip(views, weights)]
+                obj = self._objective(views, representations, weights)
+                grads = self._derivative(views, representations, weights)
+                free_grad = np.concatenate([g[:, -1:].ravel() for g in grads])
+                return obj, free_grad
+
+            x0 = np.concatenate([w.ravel() for w in new0])
+            result = minimize(
+                _fun,
+                x0,
+                jac=True,
+                method="L-BFGS-B",
+                options={"maxiter": self.max_iter, "ftol": self.tol},
+            )
+            new_col = _unflatten(result.x)
+            fixed = [np.concatenate([f, c], axis=1) for f, c in zip(fixed, new_col)]
+        return fixed
 
     def _penalty_matrix(self, v_blend: np.ndarray) -> np.ndarray:
         r"""Cross-component matrix used by the gradient's decorrelation penalty.
