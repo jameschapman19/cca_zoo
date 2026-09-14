@@ -276,7 +276,7 @@ def ey_grad_z(representations: list[np.ndarray]) -> list[np.ndarray]:
 
 
 def _solve_quartic_coordinate(
-    c4: float, c3: float, c2: float, c1: float, lasso: float
+    c4: float, c3: float, c2: float, c1: float, lasso: float, positive: bool = False
 ) -> float:
     r"""Exact global minimiser of one elastic-net-penalised coordinate update.
 
@@ -304,12 +304,18 @@ def _solve_quartic_coordinate(
         c2: Coefficient of the smooth quadratic term.
         c1: Coefficient of the smooth linear term.
         lasso: L1 penalty coefficient ($\ge 0$).
+        positive: If True, restrict the search to $w \ge 0$ (sklearn's
+            ``positive=True`` constraint on ``Lasso``/``ElasticNet``) by
+            dropping the $w < 0$ branch entirely — $|w|$ on that branch is
+            just $w$, so no other change is needed.
 
     Returns:
-        The scalar $w$ exactly minimising $F$.
+        The scalar $w$ exactly minimising $F$ (subject to $w \ge 0$ if
+        ``positive``).
     """
     candidates = [0.0]
-    for sign, l1 in ((1.0, lasso), (-1.0, -lasso)):
+    branches = ((1.0, lasso),) if positive else ((1.0, lasso), (-1.0, -lasso))
+    for sign, l1 in branches:
         roots = np.roots([4 * c4, 3 * c3, 2 * c2, c1 + l1])
         for r in roots:
             if abs(r.imag) < 1e-8 and sign * r.real > 0:
@@ -321,6 +327,75 @@ def _solve_quartic_coordinate(
     return min(candidates, key=_f)
 
 
+def _ey_coordinate_smooth_quartic(
+    xj: np.ndarray,
+    a: float,
+    a0: float,
+    zi: np.ndarray,
+    total: np.ndarray,
+    v_other: np.ndarray,
+    coef_row: np.ndarray,
+    c: int,
+    k: int,
+) -> tuple[float, float, float, float]:
+    r"""Quartic coefficients of the *unpenalised* EY loss restricted to one coordinate.
+
+    Shared derivation used by both :func:`coordinate_descent_ey` (which adds
+    the ridge penalty to ``c2`` and hands the result to
+    :func:`_solve_quartic_coordinate` for an exact scalar solve) and
+    :func:`group_coordinate_descent_ey` (which instead evaluates the
+    quartic's derivative at the current point to get one entry of a row's
+    gradient — see that function's docstring for why a whole-row update
+    can't reuse the same closed-form scalar solve). Isolated here purely so
+    the two call sites can't silently drift apart.
+
+    Args:
+        xj: The basis column for this coordinate's feature, shape (n,).
+        a: $\|x_j\|^2$, precomputed by the caller.
+        a0: The shared prefactor $1 / (M (n-1))$.
+        zi: This view's current embedding, shape (n, k) — read-only here.
+        total: $\sum_i Z_i$, shape (n, k) — read-only here.
+        v_other: Mean auto-covariance contribution from every *other* view
+            plus this view's residual-so-far, shape (k, k).
+        coef_row: This feature's current coefficient row across components,
+            shape (k,) — only ``coef_row[c]`` (the coordinate's own current
+            value) is used, to reconstruct the residual excluding it.
+        c: Index of the component (column) being restricted to.
+        k: Number of latent dimensions.
+
+    Returns:
+        Tuple ``(p4, p3, smooth_c2, smooth_c1)``: the quartic, cubic,
+        quadratic and linear coefficients of the unpenalised restriction
+        $c_4 w^4 + c_3 w^3 + \text{smooth\_c2} \, w^2 + \text{smooth\_c1} \, w$.
+    """
+    w0 = coef_row[c]
+    r_c = zi[:, c] - xj * w0
+    s0_c = total[:, c] - xj * w0
+
+    u_c = xj @ r_c
+    v0_cc = v_other[c, c] + (r_c @ r_c) * a0
+    x_s0c = xj @ s0_c
+
+    other_c = [cc for cc in range(k) if cc != c]
+    u_other = [xj @ zi[:, cc] for cc in other_c]
+    v1_other = [v_other[c, cc] + (r_c @ zi[:, cc]) * a0 for cc in other_c]
+
+    p4 = (a0 * a) ** 2
+    p3 = 4 * a0**2 * a * u_c
+    p2 = (
+        4 * a0**2 * u_c**2
+        + 2 * a0 * a * v0_cc
+        + 2 * a0**2 * sum(uo**2 for uo in u_other)
+    )
+    p1 = 4 * a0 * u_c * v0_cc + 4 * a0 * sum(
+        uo * v1 for uo, v1 in zip(u_other, v1_other)
+    )
+    q2 = -2 * a0 * a
+    q1 = -4 * a0 * x_s0c
+
+    return p4, p3, p2 + q2, p1 + q1
+
+
 def coordinate_descent_ey(
     bases: list[np.ndarray],
     k: int,
@@ -329,6 +404,7 @@ def coordinate_descent_ey(
     max_iter: int,
     tol: float,
     rng: np.random.Generator,
+    positive: bool = False,
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
     r"""Fit per-view linear-in-basis coefficients directly minimising the EY loss.
 
@@ -379,6 +455,9 @@ def coordinate_descent_ey(
         tol: Convergence tolerance on the penalised objective's change
             between consecutive sweeps.
         rng: Random generator for the initial coefficients.
+        positive: If True, constrain every coefficient to be non-negative
+            (sklearn's ``Lasso``/``ElasticNet`` ``positive=True``) — see
+            :func:`_solve_quartic_coordinate`.
 
     Returns:
         Tuple ``(coefficients, representations)``: ``coefficients[i]`` has
@@ -416,38 +495,17 @@ def coordinate_descent_ey(
                 xj = basis[:, j]
                 for c in range(k):
                     w0 = coef[j, c]
-                    r_c = zi[:, c] - xj * w0
-                    s0_c = total[:, c] - xj * w0
-
-                    u_c = xj @ r_c
-                    v0_cc = v_other[c, c] + (r_c @ r_c) * a0
-                    x_s0c = xj @ s0_c
-
-                    other_c = [cc for cc in range(k) if cc != c]
-                    u_other = [xj @ zi[:, cc] for cc in other_c]
-                    v1_other = [
-                        v_other[c, cc] + (r_c @ zi[:, cc]) * a0 for cc in other_c
-                    ]
-
-                    p4 = (a0 * a) ** 2
-                    p3 = 4 * a0**2 * a * u_c
-                    p2 = (
-                        4 * a0**2 * u_c**2
-                        + 2 * a0 * a * v0_cc
-                        + 2 * a0**2 * sum(uo**2 for uo in u_other)
+                    p4, p3, smooth_c2, smooth_c1 = _ey_coordinate_smooth_quartic(
+                        xj, a, a0, zi, total, v_other, coef[j, :], c, k
                     )
-                    p1 = 4 * a0 * u_c * v0_cc + 4 * a0 * sum(
-                        uo * v1 for uo, v1 in zip(u_other, v1_other)
-                    )
-                    q2 = -2 * a0 * a
-                    q1 = -4 * a0 * x_s0c
 
                     w_new = _solve_quartic_coordinate(
                         c4=p4,
                         c3=p3,
-                        c2=p2 + q2 + 0.5 * ridge,
-                        c1=p1 + q1,
+                        c2=smooth_c2 + 0.5 * ridge,
+                        c1=smooth_c1,
                         lasso=lasso,
+                        positive=positive,
                     )
 
                     delta = w_new - w0
@@ -461,6 +519,368 @@ def coordinate_descent_ey(
             for c in coefficients
         )
         obj = ey_loss(representations)["objective"] + penalty
+        if abs(prev_obj - obj) < tol:
+            break
+        prev_obj = obj
+
+    return coefficients, representations
+
+
+def _group_penalty(
+    coefficients: list[np.ndarray], alpha: float, l1_ratio: float
+) -> float:
+    r"""Row-group elastic-net penalty on a list of per-view coefficient matrices.
+
+    $$
+    \sum_i \left( \alpha \rho \|B_i\|_{2,1}
+        + \tfrac{1}{2} \alpha (1-\rho) \|B_i\|_F^2 \right)
+    $$
+
+    $\|B_i\|_{2,1} = \sum_j \|B_i[j, :]\|_2$ is the sum, over features, of
+    each feature's coefficient-row Euclidean norm — the row-group analogue
+    of $\|B_i\|_1$'s per-scalar absolute value, used by
+    :func:`group_coordinate_descent_ey`.
+    """
+    lasso = alpha * l1_ratio
+    ridge = alpha * (1.0 - l1_ratio)
+    return float(
+        sum(
+            lasso * np.sum(np.linalg.norm(c, axis=1)) + 0.5 * ridge * np.sum(c**2)
+            for c in coefficients
+        )
+    )
+
+
+def _group_prox(u: np.ndarray, lasso: float, denom: float) -> np.ndarray:
+    r"""Proximal operator of $\lambda \|\cdot\|_2$ at $u$, scaled by ``denom``.
+
+    Exact minimiser of $\tfrac{\text{denom}}{2} \|w - u\|_2^2 + \lambda \|w\|_2$
+    over the vector $w$: the classic group-lasso block soft-threshold,
+    shrinking $u$'s *length* towards zero while keeping its direction.
+
+    Args:
+        u: Point to shrink, shape (k,).
+        lasso: L1-analogue (group) penalty coefficient ($\ge 0$).
+        denom: The quadratic term's coefficient ($> 0$).
+
+    Returns:
+        The shrunk vector, shape (k,) — exactly ``0`` once
+        ``lasso >= denom * ||u||``.
+    """
+    norm_u = float(np.linalg.norm(u))
+    if norm_u < 1e-15:
+        return np.zeros_like(u)
+    shrink = max(0.0, 1.0 - lasso / (denom * norm_u))
+    return shrink * u
+
+
+def group_coordinate_descent_ey(
+    bases: list[np.ndarray],
+    k: int,
+    alpha: float,
+    l1_ratio: float,
+    max_iter: int,
+    tol: float,
+    rng: np.random.Generator,
+    max_backtrack: int = 40,
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    r"""Fit per-view linear-in-basis coefficients with a row-group elastic-net penalty.
+
+    Same setting as :func:`coordinate_descent_ey` — embeddings
+    $Z_i = \text{bases}_i B_i$ minimising the EY loss plus a penalty on
+    $B_i$ — but with sklearn's :class:`~sklearn.linear_model.MultiTaskLasso`
+    / :class:`~sklearn.linear_model.MultiTaskElasticNet` penalty in place of
+    plain elastic net:
+
+    $$
+    \mathcal{L}_{EY}(Z_1, \dots, Z_M) + \sum_i \left(
+        \alpha \rho \|B_i\|_{2,1} + \tfrac{1}{2}\alpha(1-\rho) \|B_i\|_F^2
+    \right)
+    $$
+
+    where $\|B_i\|_{2,1} = \sum_j \|B_i[j,:]\|_2$ sums each *feature's*
+    coefficient-row norm over all $k$ components (see :func:`_group_penalty`).
+    Unlike the per-scalar lasso in :func:`coordinate_descent_ey`, this
+    penalty is zero only when an entire row is zero, so a feature is either
+    active in every latent dimension or in none — the natural sparsity
+    pattern once a model has more than one component, instead of a feature
+    surviving in component 1 but dropping out of component 2 for no
+    principled reason.
+
+    This is *not* a re-use of :func:`coordinate_descent_ey`'s exact
+    per-scalar quartic solve, and can't be: sklearn's own multi-task solver
+    gets a closed-form block update only because ordinary least squares is
+    quadratic and *separable* across tasks (columns) for a fixed row — no
+    cross terms between components. The EY loss's $\operatorname{tr}(VV)$
+    penalty has no such luck: $V[c, c']$ for $c \neq c'$ is bilinear in a
+    row's two entries $w_c, w_{c'}$, so a whole row's restriction is a
+    genuinely coupled multivariate quartic with no closed-form joint
+    minimiser for general $k$. Instead each row is updated by one step of
+    **proximal gradient (ISTA) with backtracking line search**: the row's
+    exact gradient at the current point is read off from
+    :func:`_ey_coordinate_smooth_quartic`'s linear coefficient (the same
+    quantity :func:`coordinate_descent_ey` evaluates the quartic at, here
+    evaluated *only* at the current point rather than solved exactly), a
+    trial step is taken by the row-group analogue of soft-thresholding
+    (:func:`_group_prox`) at a quadratic majoriser with curvature ``L``,
+    and ``L`` is doubled until the *exact* penalised objective (evaluated
+    directly, not the majoriser) does not increase — a standard ISTA
+    guarantee that terminates in $O(\log(1/\epsilon))$ doublings since
+    ``L -> infinity`` collapses the step to zero. Every accepted row update
+    is therefore a genuine decrease of the true objective, giving the same
+    monotonic-descent guarantee as :func:`coordinate_descent_ey`, just
+    without that function's additional guarantee of exactness within a step.
+
+    Args:
+        bases: Fixed per-view design matrices, each already column-centred,
+            one per view.
+        k: Number of latent dimensions.
+        alpha: Overall penalty strength.
+        l1_ratio: Mixing parameter in ``[0, 1]``; 0 is pure (Frobenius)
+            ridge, 1 is pure row-group lasso.
+        max_iter: Maximum number of full coordinate-descent sweeps.
+        tol: Convergence tolerance on the penalised objective's change
+            between consecutive sweeps.
+        rng: Random generator for the initial coefficients.
+        max_backtrack: Maximum line-search doublings of ``L`` per row
+            before giving up and leaving that row at its previous value for
+            this sweep (mathematically this only happens at
+            float-precision-level step sizes, never as a genuine failure to
+            improve).
+
+    Returns:
+        Tuple ``(coefficients, representations)``, same shapes as
+        :func:`coordinate_descent_ey`.
+    """
+    m = len(bases)
+    n = bases[0].shape[0]
+    a0 = 1.0 / (m * (n - 1))
+    lasso = alpha * l1_ratio
+    ridge = alpha * (1.0 - l1_ratio)
+
+    coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
+    representations = [b @ c for b, c in zip(bases, coefficients)]
+    total = sum(representations)
+    col_sq_norms = [np.sum(b**2, axis=0) for b in bases]
+
+    cur_obj = ey_loss(representations)["objective"] + _group_penalty(
+        coefficients, alpha, l1_ratio
+    )
+    prev_obj = np.inf
+    for _ in range(max_iter):
+        for i, (basis, coef) in enumerate(zip(bases, coefficients)):
+            zi = representations[i]
+            v_other = (
+                sum(
+                    representations[a].T @ representations[a]
+                    for a in range(m)
+                    if a != i
+                )
+                * a0
+            )
+            for j in range(basis.shape[1]):
+                a = col_sq_norms[i][j]
+                if a < 1e-12:
+                    continue
+                xj = basis[:, j]
+                w0_row = coef[j, :].copy()
+
+                grads = np.empty(k)
+                for c in range(k):
+                    p4, p3, smooth_c2, smooth_c1 = _ey_coordinate_smooth_quartic(
+                        xj, a, a0, zi, total, v_other, w0_row, c, k
+                    )
+                    w0c = w0_row[c]
+                    grads[c] = (
+                        4 * p4 * w0c**3
+                        + 3 * p3 * w0c**2
+                        + 2 * smooth_c2 * w0c
+                        + smooth_c1
+                    )
+
+                lipschitz = max(a0 * a, 1e-6)
+                for _try in range(max_backtrack):
+                    denom = lipschitz + ridge
+                    u = (lipschitz * w0_row - grads) / denom
+                    w_new_row = _group_prox(u, lasso, denom)
+                    delta = w_new_row - w0_row
+                    if np.any(delta != 0.0):
+                        for c in range(k):
+                            zi[:, c] += xj * delta[c]
+                            total[:, c] += xj * delta[c]
+                        coef[j, :] = w_new_row
+
+                    trial_obj = ey_loss(representations)["objective"] + _group_penalty(
+                        coefficients, alpha, l1_ratio
+                    )
+                    if trial_obj <= cur_obj + 1e-12:
+                        cur_obj = trial_obj
+                        break
+
+                    if np.any(delta != 0.0):
+                        for c in range(k):
+                            zi[:, c] -= xj * delta[c]
+                            total[:, c] -= xj * delta[c]
+                        coef[j, :] = w0_row
+                    lipschitz *= 2.0
+
+        if abs(prev_obj - cur_obj) < tol:
+            break
+        prev_obj = cur_obj
+
+    return coefficients, representations
+
+
+def omp_coordinate_descent_ey(
+    bases: list[np.ndarray],
+    k: int,
+    n_nonzero_coefs: list[int],
+    max_iter: int,
+    tol: float,
+    rng: np.random.Generator,
+    refit_sweeps: int = 20,
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    r"""Fit per-view linear-in-basis coefficients by greedy forward selection (EY loss).
+
+    The EY-loss analogue of sklearn's
+    :class:`~sklearn.linear_model.OrthogonalMatchingPursuit`: instead of a
+    continuous penalty trading off sparsity against fit
+    (:func:`coordinate_descent_ey`, :func:`group_coordinate_descent_ey`),
+    each view's active feature set is grown one feature at a time up to a
+    fixed budget ``n_nonzero_coefs[i]``, and the active coefficients are
+    re-solved to their exact joint optimum after every addition — the same
+    two-phase structure (`select`, then `least-squares refit on the active
+    set`) as classical OMP, with "least squares" replaced by the EY loss's
+    own exact per-coordinate quartic solve
+    (:func:`_ey_coordinate_smooth_quartic` /
+    :func:`_solve_quartic_coordinate`, ``lasso=0``).
+
+    Feature selection reuses OMP's own criterion: classical OMP picks the
+    column most correlated with the current residual, i.e. the column
+    whose inclusion gives the largest-magnitude gradient of the squared-error
+    loss at zero. Here that is the EY loss's own
+    per-coordinate linear coefficient (:func:`_ey_coordinate_smooth_quartic`'s
+    ``smooth_c1`` return value *is* $\partial\mathcal{L}_{EY}/\partial w$ at
+    $w=0$, since the quartic's higher-order terms vanish there), generalised
+    from a scalar to a $k$-vector (one entry per latent dimension) and
+    ranked by Euclidean norm.
+
+    One EY-specific wrinkle with no OLS counterpart: the EY loss's
+    zero-embedding point is degenerate — $Z_i \equiv 0$ for *every* view
+    simultaneously is already a stationary point (see
+    :func:`ey_grad_z`), so growing every view's support from a literal
+    empty start would leave the very first choice, for the very first
+    view, with nothing to score candidates against. This is resolved by
+    warm-starting *every* view with a small dense fit
+    (:func:`cheap_orthonormal_projection_weights`) before any view's
+    support is touched, then regrowing each view's support from scratch,
+    one view at a time, against the *other* views' (still meaningfully
+    nonzero) current embeddings — after which every view has been visited
+    at least once, so later rounds bootstrap off genuinely sparse fits
+    rather than the initial dense one.
+
+    Args:
+        bases: Fixed per-view design matrices, each already column-centred,
+            one per view.
+        k: Number of latent dimensions.
+        n_nonzero_coefs: Target number of active features for each view
+            (already resolved/validated by the caller — see
+            :class:`~cca_zoo.sparse.OrthogonalMatchingPursuitCCA`).
+        max_iter: Maximum number of outer rounds cycling through every view
+            and regrowing its support from scratch.
+        tol: Convergence tolerance on the (unpenalised) EY objective's
+            change between consecutive outer rounds, and between
+            consecutive refit sweeps after each single feature addition.
+        rng: Random generator for the initial dense warm start.
+        refit_sweeps: Maximum coordinate-descent sweeps used to re-solve
+            the active coefficients after each feature addition.
+
+    Returns:
+        Tuple ``(coefficients, representations)``, same shapes as
+        :func:`coordinate_descent_ey`. Every row outside a view's active
+        set is exactly zero.
+    """
+    m = len(bases)
+    n = bases[0].shape[0]
+    a0 = 1.0 / (m * (n - 1))
+    n_features = [b.shape[1] for b in bases]
+    col_sq_norms = [np.sum(b**2, axis=0) for b in bases]
+
+    coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
+    representations = [b @ c for b, c in zip(bases, coefficients)]
+    total = sum(representations)
+
+    prev_obj = np.inf
+    for _ in range(max_iter):
+        for i, basis in enumerate(bases):
+            target = min(n_nonzero_coefs[i], n_features[i])
+            zi = representations[i]
+            total -= zi
+            zi = np.zeros_like(zi)
+            coef = np.zeros_like(coefficients[i])
+            representations[i] = zi
+            coefficients[i] = coef
+
+            v_other = (
+                sum(
+                    representations[a].T @ representations[a]
+                    for a in range(m)
+                    if a != i
+                )
+                * a0
+            )
+
+            active: list[int] = []
+            inactive = [j for j in range(n_features[i]) if col_sq_norms[i][j] >= 1e-12]
+            zero_row = np.zeros(k)
+            for _step in range(target):
+                if not inactive:
+                    break
+                best_j, best_score = inactive[0], -1.0
+                for j in inactive:
+                    a = col_sq_norms[i][j]
+                    xj = basis[:, j]
+                    score = float(
+                        np.linalg.norm(
+                            [
+                                _ey_coordinate_smooth_quartic(
+                                    xj, a, a0, zi, total, v_other, zero_row, c, k
+                                )[3]
+                                for c in range(k)
+                            ]
+                        )
+                    )
+                    if score > best_score:
+                        best_score, best_j = score, j
+                active.append(best_j)
+                inactive.remove(best_j)
+
+                refit_prev = np.inf
+                for _ in range(refit_sweeps):
+                    for j in active:
+                        a = col_sq_norms[i][j]
+                        xj = basis[:, j]
+                        for c in range(k):
+                            w0 = coef[j, c]
+                            p4, p3, smooth_c2, smooth_c1 = (
+                                _ey_coordinate_smooth_quartic(
+                                    xj, a, a0, zi, total, v_other, coef[j, :], c, k
+                                )
+                            )
+                            w_new = _solve_quartic_coordinate(
+                                c4=p4, c3=p3, c2=smooth_c2, c1=smooth_c1, lasso=0.0
+                            )
+                            delta = w_new - w0
+                            if delta != 0.0:
+                                coef[j, c] = w_new
+                                zi[:, c] += xj * delta
+                                total[:, c] += xj * delta
+                    refit_obj = ey_loss(representations)["objective"]
+                    if abs(refit_prev - refit_obj) < tol:
+                        break
+                    refit_prev = refit_obj
+
+        obj = ey_loss(representations)["objective"]
         if abs(prev_obj - obj) < tol:
             break
         prev_obj = obj

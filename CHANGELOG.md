@@ -83,7 +83,33 @@ project adheres to [Semantic Versioning](https://semver.org/).
   minimiser via `cca_zoo._utils._ey.coordinate_descent_ey`. Because every embedding
   stays exactly linear in the raw (centred) view throughout fitting, `model.weights`
   returns real sparse canonical weight vectors, unlike `TreeCCA`/`GAMCCA`/
-  `GaussianProcessCCA`, where it raises `NotImplementedError`.
+  `GaussianProcessCCA`, where it raises `NotImplementedError`. Also gained a
+  `positive` option, constraining every weight to be non-negative, mirroring
+  `sklearn.linear_model.Lasso`/`ElasticNet`'s own `positive=True`.
+- `MultiTaskElasticNetCCA`: `ElasticNetCCA` with sklearn's
+  `MultiTaskLasso`/`MultiTaskElasticNet` row-group penalty
+  ($\sum_j \|W_i[j,:]\|_2$) in place of a plain per-scalar penalty, so a feature is
+  either active in every latent dimension or in none, instead of surviving in one
+  component and dropping out of another for no principled reason. Since a whole
+  row's coefficients are coupled through the EY loss's auto-covariance cross terms
+  (unlike ordinary least squares, where a multi-task row is separable across
+  tasks), there is no closed-form joint minimiser the way there is for
+  `ElasticNetCCA`'s single scalar; each row is instead updated by one step of
+  proximal gradient (ISTA) with backtracking line search, accepted only once
+  verified to decrease the exact penalised objective, in the new
+  `cca_zoo._utils._ey.group_coordinate_descent_ey`.
+- `OrthogonalMatchingPursuitCCA`: the EY-loss analogue of
+  `sklearn.linear_model.OrthogonalMatchingPursuit` — a fixed per-view sparsity
+  budget (`n_nonzero_coefs`) reached by greedy forward selection instead of a
+  continuous penalty strength. Features are added one at a time by the same
+  residual-correlation criterion classical OMP uses (generalised from a scalar
+  to a per-latent-dimension vector, ranked by norm), with the active
+  coefficients re-solved to their exact joint (unpenalised) optimum after every
+  addition via `ElasticNetCCA`'s own exact quartic coordinate solve. Since the
+  EY loss's all-zero embedding is itself a degenerate stationary point (unlike
+  ordinary least squares), every view is first warm-started with a small dense
+  fit before any view's support is grown from scratch — see
+  `cca_zoo._utils._ey.omp_coordinate_descent_ey`'s docstring.
 - `StochasticCCAEY`: mini-batch momentum SGD on the same Eckart-Young loss as `CCAEY`, for
   datasets too large for a full-batch gradient evaluation. Fit the way
   `sklearn.linear_model.SGDRegressor` fits a linear model: each epoch, the data is shuffled

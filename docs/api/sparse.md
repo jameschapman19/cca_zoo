@@ -6,3 +6,11 @@ dependency required.
 ---
 
 ::: cca_zoo.sparse.ElasticNetCCA
+
+---
+
+::: cca_zoo.sparse.MultiTaskElasticNetCCA
+
+---
+
+::: cca_zoo.sparse.OrthogonalMatchingPursuitCCA

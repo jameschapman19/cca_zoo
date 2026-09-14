@@ -134,6 +134,8 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | Class | Description | Views |
 |---|---|---|
 | `ElasticNetCCA` | Sparse linear CCA via coordinate descent (Eckart-Young objective) | ≥2 |
+| `MultiTaskElasticNetCCA` | `ElasticNetCCA` with row-group sparsity shared across latent dimensions | ≥2 |
+| `OrthogonalMatchingPursuitCCA` | Fixed-cardinality sparse linear CCA via greedy selection (Eckart-Young objective) | ≥2 |
 
 ### `cca_zoo.deep` *(requires `[deep]`)*
 
