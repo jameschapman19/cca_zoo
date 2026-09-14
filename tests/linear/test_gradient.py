@@ -320,7 +320,7 @@ def test_center_false(ModelClass: type, two_views: list[np.ndarray]) -> None:
 
 
 def test_cca_ey_matches_cca(correlated_views: list[np.ndarray]) -> None:
-    """Converged CCAEY recovers the same, descending-ordered correlations as exact CCA."""
+    """Converged CCAEY recovers the same, descending-ordered correlations as CCA."""
     k = 2
     s_cca = CCA(latent_dimensions=k).fit(correlated_views).score(correlated_views)
     s_ey = (
@@ -334,7 +334,7 @@ def test_cca_ey_matches_cca(correlated_views: list[np.ndarray]) -> None:
 
 
 def test_pls_ey_matches_pls(correlated_views: list[np.ndarray]) -> None:
-    """Converged PLSEY recovers the same, descending-ordered correlations as exact PLS."""
+    """Converged PLSEY recovers the same, descending-ordered correlations as PLS."""
     k = 2
     s_pls = PLS(latent_dimensions=k).fit(correlated_views).score(correlated_views)
     s_ey = (
@@ -514,9 +514,7 @@ def test_stochastic_cca_ey_ordered_orders_before_post_fit_rotation(
     raw_weights = model._fit_sgd(views_, rng)
     reps = [(v @ w) for v, w in zip(views_, raw_weights)]
     reps = [r - r.mean(axis=0) for r in reps]
-    s = np.array(
-        [np.corrcoef(reps[0][:, d], reps[1][:, d])[0, 1] for d in range(3)]
-    )
+    s = np.array([np.corrcoef(reps[0][:, d], reps[1][:, d])[0, 1] for d in range(3)])
     assert np.all(np.diff(s) <= 1e-2), f"raw (pre-rotation) fit not ordered: {s}"
 
 
