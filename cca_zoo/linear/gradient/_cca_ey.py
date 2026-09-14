@@ -171,6 +171,35 @@ class CCAEY(BaseFullBatchEYModel):
             views, self.latent_dimensions, None, rng
         )
 
+    def _penalty_matrix(self, v_blend: np.ndarray) -> np.ndarray:
+        r"""Cross-component matrix used by the gradient's decorrelation penalty.
+
+        Identity hook: returns ``v_blend`` unchanged, so every component's
+        penalty gradient sees every other component symmetrically -- the
+        loss is then invariant to jointly rotating every view's embedding
+        by any common orthogonal matrix (see
+        :func:`~cca_zoo._utils._ey.order_components`), so a converged fit
+        recovers the right subspace but not individually ordered
+        components.
+
+        Overridden by :class:`~cca_zoo.linear.gradient.StochasticCCAEY`
+        (``ordered=True``) to mask ``v_blend`` to its upper triangle
+        instead, so component $d$'s penalty only sees components $\le d$.
+        That one-line change is a generalised-eigenproblem analogue of
+        Sanger's rule (the Generalized Hebbian Algorithm): breaking the
+        symmetry this way forces the *training dynamics themselves* to
+        converge directly to ordered, individually meaningful components,
+        rather than fixing up an arbitrary rotation after the fact.
+
+        Args:
+            v_blend: The blended penalty matrix ``(1 - c) * v_data + c * b``
+                computed by :meth:`_derivative`.
+
+        Returns:
+            The (possibly masked) matrix to use in the penalty gradient.
+        """
+        return v_blend
+
     def _derivative(
         self,
         views: list[np.ndarray],
@@ -188,6 +217,10 @@ class CCAEY(BaseFullBatchEYModel):
         against the unregularised ``CCAEY`` gradient and ``PLSEY``'s own
         gradient respectively (both matches exact).
 
+        Every use of the blended penalty matrix ``v_blend`` is routed
+        through :meth:`_penalty_matrix`, a no-op hook by default (see its
+        own docstring for the ordered-training variant it enables).
+
         Args:
             views: Per-view arrays.
             representations: Current embeddings.
@@ -204,12 +237,13 @@ class CCAEY(BaseFullBatchEYModel):
         _, v_data = ey_cross_covariance(representations)
         b = weight_gram_mean(weights)
         v_blend = (1 - c) * v_data + c * b
+        penalty = self._penalty_matrix(v_blend)
         scale = 4.0 / (m * (n - 1))
         grads = []
         for k, (view, zk) in enumerate(zip(views, centred_reps)):
             view_c = view - view.mean(axis=0)
-            z_term = scale * (c * zk + (1 - c) * (zk @ v_blend) - total)
-            grad = view_c.T @ z_term + (4.0 * c / m) * (weights[k] @ v_blend)
+            z_term = scale * (c * zk + (1 - c) * (zk @ penalty) - total)
+            grad = view_c.T @ z_term + (4.0 * c / m) * (weights[k] @ penalty)
             grads.append(grad)
         return grads
 

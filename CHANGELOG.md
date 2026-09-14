@@ -9,6 +9,22 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `StochasticCCAEY(ordered=True)`: resolves the EY loss's rotational-symmetry ambiguity
+  (see the `Fixed` entry below) *during training* instead of via a post-fit rotation. A
+  new `CCAEY._penalty_matrix` hook (identity by default) is overridden to mask the
+  blended penalty matrix to its upper triangle, so component `d`'s decorrelation
+  pressure only sees components `<= d`, never `> d` -- a generalised-eigenproblem
+  analogue of Sanger's rule (the Generalized Hebbian Algorithm): component 1 feels no
+  competition and converges like plain power iteration to the single strongest
+  direction, component 2 is deflated against component 1 only, and so on, so ordering
+  falls out of the training dynamics themselves. The masked gradient no longer
+  corresponds to the gradient of any single symmetric scalar loss, so it can only be
+  paired with a solver that doesn't need that consistency for a line search -- plain
+  momentum SGD (`StochasticCCAEY`'s own solver), not `CCAEY`'s L-BFGS-B, which is why
+  this is `StochasticCCAEY`-only. Confirmed empirically: fitting with `ordered=True`
+  and inspecting weights *before* the post-fit rotation already gives descending
+  correlations across random seeds, where `ordered=False` gives an arbitrary order (see
+  `test_stochastic_cca_ey_ordered_orders_before_post_fit_rotation`).
 - `CatBoostCCA`: a third `TreeCCA` backend alongside `XGBoostCCA`/`LightGBMCCA`, using
   [CatBoost](https://catboost.ai/)'s gradient-boosted trees as the per-view encoders. Since
   CatBoost has no in-place "add one tree to this booster" call, each round every component is

@@ -49,6 +49,16 @@ def test_three_view_fit_completes(
     assert fitted is model
 
 
+def test_stochastic_cca_ey_ordered_fit_completes(
+    three_views: list[np.ndarray],
+) -> None:
+    """StochasticCCAEY(ordered=True) fits on 2+ views without error."""
+    model = StochasticCCAEY(ordered=True, **_FIT_KWARGS)
+    fitted = model.fit(three_views)
+    assert fitted is model
+    assert hasattr(model, "weights_")
+
+
 # ---------------------------------------------------------------------------
 # transform output shapes
 # ---------------------------------------------------------------------------
@@ -416,6 +426,34 @@ def test_ey_models_return_descending_correlation_order(
         .score(separated_correlation_views)
     )
     assert np.all(np.diff(s) <= 1e-9), f"{ModelClass.__name__} not ordered: {s}"
+
+
+def test_stochastic_cca_ey_ordered_orders_before_post_fit_rotation(
+    separated_correlation_views: list[np.ndarray],
+) -> None:
+    """``ordered=True``'s masked penalty yields descending scores pre-rotation.
+
+    Every ``StochasticCCAEY``/``CCAEY`` fit is rotated into order after the
+    fact (see the previous test), so that alone can't show whether
+    ``ordered=True`` actually changes the *training dynamics*. This bypasses
+    ``fit``'s post-hoc ``order_components`` call and checks the raw output of
+    ``_fit_sgd`` directly: ``_penalty_matrix``'s upper-triangular mask (see
+    ``StochasticCCAEY``'s docstring) should already leave component ``d``
+    with no competition from components ``> d``, so training converges
+    straight to descending order on its own.
+    """
+    model = StochasticCCAEY(
+        latent_dimensions=3, ordered=True, max_iter=500, random_state=0
+    )
+    views_ = model._setup_fit(separated_correlation_views)
+    rng = np.random.default_rng(model.random_state)
+    raw_weights = model._fit_sgd(views_, rng)
+    reps = [(v @ w) for v, w in zip(views_, raw_weights)]
+    reps = [r - r.mean(axis=0) for r in reps]
+    s = np.array(
+        [np.corrcoef(reps[0][:, d], reps[1][:, d])[0, 1] for d in range(3)]
+    )
+    assert np.all(np.diff(s) <= 1e-2), f"raw (pre-rotation) fit not ordered: {s}"
 
 
 # ---------------------------------------------------------------------------

@@ -29,7 +29,24 @@ class StochasticCCAEY(CCAEY):
 
     As with :class:`~cca_zoo.linear.gradient.CCAEY`, the fitted weights are
     rotated into descending-correlation order after training (see
-    :func:`~cca_zoo._utils._ey.order_components`).
+    :func:`~cca_zoo._utils._ey.order_components`) -- a cheap post-hoc fix
+    for the rotational symmetry the plain EY loss has no reason to resolve
+    on its own. Passing ``ordered=True`` instead resolves that symmetry
+    during training itself: :meth:`_penalty_matrix` is overridden to mask
+    the blended penalty matrix to its upper triangle, so component $d$'s
+    decorrelation pressure only sees components $\le d$, never $> d$. This
+    is a generalised-eigenproblem analogue of Sanger's rule (the
+    Generalized Hebbian Algorithm): component 1 feels no competition and
+    converges like plain power iteration to the single strongest
+    direction; component 2 is deflated against component 1 only; and so
+    on -- ordering falls out of the training dynamics rather than a
+    post-fit rotation. The masked gradient no longer corresponds to the
+    gradient of any single symmetric scalar loss, so it cannot be handed
+    to a line-search method like L-BFGS-B (:class:`CCAEY`'s solver) --
+    plain momentum SGD, with no line search, is exactly what tolerates
+    that mismatch. The post-fit :func:`~cca_zoo._utils._ey.order_components`
+    call still runs afterwards regardless (a near no-op once ``ordered``
+    training has converged, and a safety net if it hasn't fully).
 
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
@@ -46,6 +63,10 @@ class StochasticCCAEY(CCAEY):
             Default is 1000.
         tol: Convergence tolerance on the full-dataset objective's change
             between consecutive epochs. Default is 1e-6.
+        ordered: If True, mask the penalty gradient to upper-triangular
+            (Sanger's-rule-style) so training itself converges directly to
+            ordered components, instead of relying on the post-fit
+            rotation alone. Default is False.
         random_state: Seed for reproducibility.
 
     Example:
@@ -62,6 +83,7 @@ class StochasticCCAEY(CCAEY):
         "learning_rate": [Interval(Real, 0, None, closed="neither")],
         "momentum": [Interval(Real, 0, 1, closed="left")],
         "batch_size": [None, Interval(Integral, 1, None, closed="left")],
+        "ordered": ["boolean"],
     }
 
     def __init__(
@@ -74,6 +96,7 @@ class StochasticCCAEY(CCAEY):
         batch_size: int | None = None,
         max_iter: int = 1000,
         tol: float = 1e-6,
+        ordered: bool = False,
         random_state: int | None = None,
     ) -> None:
         super().__init__(
@@ -87,6 +110,17 @@ class StochasticCCAEY(CCAEY):
         self.learning_rate = learning_rate
         self.momentum = momentum
         self.batch_size = batch_size
+        self.ordered = ordered
+
+    def _penalty_matrix(self, v_blend: np.ndarray) -> np.ndarray:
+        r"""Upper-triangular mask when ``ordered=True``; identity otherwise.
+
+        See :meth:`~cca_zoo.linear.gradient.CCAEY._penalty_matrix` for the
+        default identity hook this overrides, and this class's own
+        docstring for why masking here breaks CCAEY's rotational symmetry
+        directly in the training dynamics.
+        """
+        return np.triu(v_blend) if self.ordered else v_blend
 
     def fit(self, views: list[ArrayLike], y: None = None) -> StochasticCCAEY:
         """Fit by mini-batch momentum SGD on the EY loss.
