@@ -126,6 +126,18 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- `CCAEY`/`StochasticCCAEY` (and `PLSEY`, which fits via `CCAEY`'s own `fit`) no longer
+  return components in an arbitrary rotation of the correct canonical subspace. The EY loss
+  is invariant to replacing every view's fitted embedding with a common orthogonal rotation
+  of itself, so L-BFGS-B/SGD had no reason to land on the one rotation that makes component
+  `d` individually the canonical direction with the `d`-th largest correlation, the way an
+  exact eigendecomposition-based solver (e.g. `MCCA`) gets for free -- fitting the same model
+  twice, or comparing against `CCA`/`MCCA`, could disagree component-for-component even
+  though both found the same subspace. A cheap post-fit step, the new
+  `cca_zoo._utils._ey.order_components`, now rotates every fit into descending-correlation
+  order by solving one small `k x k` generalised eigenproblem on the already-converged fit's
+  own reward/blend matrices -- no change to the fitted subspace or the loss value, only to
+  which column is which.
 - `GridSearchCV.cv_results_`'s `param_*` keys carried an internal `estimator__` prefix
   (`param_estimator__c` rather than `param_c`), inconsistent with the unprefixed keys in
   `best_params_` and with the docs' own `cv_results_` examples, which would `KeyError`.

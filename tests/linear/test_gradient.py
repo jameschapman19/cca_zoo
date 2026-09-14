@@ -310,7 +310,7 @@ def test_center_false(ModelClass: type, two_views: list[np.ndarray]) -> None:
 
 
 def test_cca_ey_matches_cca(correlated_views: list[np.ndarray]) -> None:
-    """Converged CCAEY recovers the same correlations as exact CCA."""
+    """Converged CCAEY recovers the same, descending-ordered correlations as exact CCA."""
     k = 2
     s_cca = CCA(latent_dimensions=k).fit(correlated_views).score(correlated_views)
     s_ey = (
@@ -318,15 +318,13 @@ def test_cca_ey_matches_cca(correlated_views: list[np.ndarray]) -> None:
         .fit(correlated_views)
         .score(correlated_views)
     )
-    # L-BFGS-B does not guarantee components are returned in
-    # descending-correlation order, unlike the exact eigendecomposition.
-    np.testing.assert_allclose(
-        sorted(s_ey, reverse=True), sorted(s_cca, reverse=True), atol=0.05
-    )
+    # order_components() rotates the fit into descending-correlation order,
+    # matching the exact eigendecomposition's convention component-for-component.
+    np.testing.assert_allclose(s_ey, sorted(s_cca, reverse=True), atol=0.05)
 
 
 def test_pls_ey_matches_pls(correlated_views: list[np.ndarray]) -> None:
-    """Converged PLSEY recovers the same correlations as exact PLS."""
+    """Converged PLSEY recovers the same, descending-ordered correlations as exact PLS."""
     k = 2
     s_pls = PLS(latent_dimensions=k).fit(correlated_views).score(correlated_views)
     s_ey = (
@@ -334,9 +332,7 @@ def test_pls_ey_matches_pls(correlated_views: list[np.ndarray]) -> None:
         .fit(correlated_views)
         .score(correlated_views)
     )
-    np.testing.assert_allclose(
-        sorted(s_ey, reverse=True), sorted(s_pls, reverse=True), atol=0.05
-    )
+    np.testing.assert_allclose(s_ey, sorted(s_pls, reverse=True), atol=0.05)
 
 
 def test_cca_ey_matches_mcca_for_three_views(
@@ -354,9 +350,7 @@ def test_cca_ey_matches_mcca_for_three_views(
         .fit(three_correlated_views)
         .score(three_correlated_views)
     )
-    np.testing.assert_allclose(
-        sorted(s_ey, reverse=True), sorted(s_mcca, reverse=True), atol=0.05
-    )
+    np.testing.assert_allclose(s_ey, sorted(s_mcca, reverse=True), atol=0.05)
 
 
 @pytest.mark.parametrize("ModelClass", [PLSEY, CCAEY])
@@ -382,6 +376,46 @@ def test_stochastic_cca_ey_finds_high_correlation(
         .score(correlated_views)
     )
     assert np.all(s > 0.8), f"StochasticCCAEY got low correlation: {s}"
+
+
+@pytest.fixture
+def separated_correlation_views() -> list[np.ndarray]:
+    """Two views with 3 latent components at clearly distinct strengths.
+
+    Per-component noise decays geometrically, so the 3 true canonical
+    correlations are well separated (unlike ``correlated_views``, whose 2
+    components are close enough to risk order-flipping ties) -- exactly
+    what an ordering test needs to be non-flaky.
+    """
+    rng = np.random.default_rng(0)
+    n = 500
+    z = rng.standard_normal((n, 3))
+    noise_scale = np.array([0.05, 0.4, 1.2])
+    x1 = z @ rng.standard_normal((3, 12)) + noise_scale * rng.standard_normal((n, 3)) @ rng.standard_normal((3, 12))
+    x2 = z @ rng.standard_normal((3, 9)) + noise_scale * rng.standard_normal((n, 3)) @ rng.standard_normal((3, 9))
+    return [x1, x2]
+
+
+@pytest.mark.parametrize("ModelClass", [CCAEY, StochasticCCAEY])
+def test_ey_models_return_descending_correlation_order(
+    ModelClass: type, separated_correlation_views: list[np.ndarray]
+) -> None:
+    """order_components() leaves fitted components in descending-correlation order.
+
+    Without the post-fit rotation, L-BFGS-B/SGD lands on an arbitrary
+    rotation within the correct subspace, so this would only hold by luck.
+    ``PLSEY`` is excluded here: like exact :class:`~cca_zoo.linear.PLS`
+    (see ``test_pls_ey_matches_pls``'s own ``sorted()`` comparison), PLS
+    components are ordered by captured *covariance*, not the Pearson
+    *correlation* ``score()`` reports, so the two orderings need not agree
+    when component variances differ.
+    """
+    s = (
+        ModelClass(latent_dimensions=3, max_iter=500, random_state=0)
+        .fit(separated_correlation_views)
+        .score(separated_correlation_views)
+    )
+    assert np.all(np.diff(s) <= 1e-9), f"{ModelClass.__name__} not ordered: {s}"
 
 
 # ---------------------------------------------------------------------------

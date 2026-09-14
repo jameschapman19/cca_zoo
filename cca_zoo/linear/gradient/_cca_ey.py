@@ -13,6 +13,7 @@ from sklearn.utils._param_validation import Interval
 from cca_zoo._utils._ey import (
     cheap_orthonormal_projection_weights,
     ey_cross_covariance,
+    order_components,
     weight_gram_mean,
 )
 from cca_zoo.linear.gradient._base import BaseFullBatchEYModel
@@ -62,6 +63,15 @@ class CCAEY(BaseFullBatchEYModel):
     using the loss's exact analytic gradient. For mini-batch training on
     datasets too large for a full-batch gradient evaluation, see
     :class:`~cca_zoo.linear.gradient.StochasticCCAEY`.
+
+    The loss is invariant to rotating every view's fitted embedding by a
+    common orthogonal matrix, so the raw L-BFGS-B solution recovers the
+    right canonical *subspace* but not individually ordered, canonically
+    meaningful components. After fitting, weights are rotated into
+    descending-correlation order by a cheap post-hoc
+    :func:`~cca_zoo._utils._ey.order_components` step (a small $k \times k$
+    eigendecomposition), matching the convention of exact
+    eigendecomposition-based solvers like :class:`~cca_zoo.linear.MCCA`.
 
     Note:
         Unlike the exact, closed-form :class:`~cca_zoo.linear.rCCA` (where
@@ -142,6 +152,8 @@ class CCAEY(BaseFullBatchEYModel):
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
         self.weights_ = self._fit_lbfgsb(views_, rng)
+        representations = [v @ w for v, w in zip(views_, self.weights_)]
+        self.weights_ = order_components(self.weights_, representations, self.c)
         return self
 
     def _initial_weights(

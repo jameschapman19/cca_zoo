@@ -10,7 +10,7 @@ from numpy.typing import ArrayLike
 from sklearn.utils import gen_batches
 from sklearn.utils._param_validation import Interval
 
-from cca_zoo._utils._ey import cheap_orthonormal_projection_weights
+from cca_zoo._utils._ey import cheap_orthonormal_projection_weights, order_components
 from cca_zoo.linear.gradient._cca_ey import CCAEY
 
 
@@ -26,6 +26,10 @@ class StochasticCCAEY(CCAEY):
     per chunk. Use this instead of :class:`~cca_zoo.linear.gradient.CCAEY`
     when the full dataset does not fit comfortably in memory or a full-batch
     gradient evaluation is too slow to repeat every iteration.
+
+    As with :class:`~cca_zoo.linear.gradient.CCAEY`, the fitted weights are
+    rotated into descending-correlation order after training (see
+    :func:`~cca_zoo._utils._ey.order_components`).
 
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
@@ -101,6 +105,8 @@ class StochasticCCAEY(CCAEY):
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
         self.weights_ = self._fit_sgd(views_, rng)
+        representations = [v @ w for v, w in zip(views_, self.weights_)]
+        self.weights_ = order_components(self.weights_, representations, self.c)
         return self
 
     def _initial_weights(
