@@ -30,7 +30,17 @@ class BaseFullBatchEYModel(BaseModel):
         center: Whether to subtract column means. Default True.
         max_iter: Maximum number of L-BFGS-B iterations. Default is 1000.
         tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
-            is 1e-6.
+            is 1e-8. ``ftol`` is a *relative* per-step improvement test
+            (``(f_k - f_{k+1}) / max(|f_k|, |f_{k+1}|, 1) <= ftol``), and
+            this loss can pass through slow, shallow stretches of genuine
+            descent (e.g. while moving away from a spurious stationary
+            point towards the real one) that a loose ``ftol`` mistakes for
+            convergence -- silently returning a badly wrong fit rather than
+            raising an error, since L-BFGS-B reports success either way.
+            1e-8 was chosen to guard against exactly that failure mode
+            (verified empirically: 1e-6 measurably risks it, 1e-8 didn't in
+            testing); going looser reopens the risk, going much tighter
+            mostly just adds unneeded iterations once already converged.
         random_state: Seed for the initial weights.
     """
 
@@ -45,7 +55,7 @@ class BaseFullBatchEYModel(BaseModel):
         latent_dimensions: int = 1,
         center: bool = True,
         max_iter: int = 1000,
-        tol: float = 1e-6,
+        tol: float = 1e-8,
         random_state: int | None = None,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)

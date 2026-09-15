@@ -38,6 +38,7 @@ _MODULE_NAMES = [
     "cca_zoo.gam",
     "cca_zoo.gp",
     "cca_zoo.probabilistic",
+    "cca_zoo.sparse",
 ]
 
 

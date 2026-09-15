@@ -9,6 +9,47 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `TrimmedCCA`: robust multiview CCA via concentration steps, in the style of Rousseeuw's
+  Least Trimmed Squares / Minimum Covariance Determinant. `RANSACCCA`'s random-subset
+  search is a good strategy while contamination stays well below its own odds of ever
+  drawing a clean-enough candidate, but that degrades near the ~50% breakdown point,
+  where a random `min_samples`-sized draw becomes close to a coin flip on being usably
+  clean however many trials are tried. `TrimmedCCA` instead starts from a large random
+  subset of `h_frac * n` rows and alternates a *select* step (rank every sample by its
+  own contribution to `CCAEY`'s exact loss for the current weights, solved via a
+  Lagrangian relaxation of the loss's own additive structure, and keep the best `h`) with
+  a *refit* step (re-minimise `CCAEY`'s exact loss on just those rows, warm-started via
+  L-BFGS-B) -- the classical C-step argument, applied to CCAEY's real objective rather
+  than a proxy score, so each step is provably non-increasing in the actual loss. On a
+  sign-flip contamination benchmark near 47% contamination, with `h_frac` set close to
+  the true clean fraction, `TrimmedCCA` holds at oracle-level held-out correlation
+  (~0.72) while `RANSACCCA` degrades to ~0.36-0.48 even with its best-tuned
+  `min_samples` and extra trials (see `tests/test_trimmed_cca.py`). `h_frac` is a prior
+  on the contamination rate rather than something learned from the data -- like
+  `sklearn.covariance.MinCovDet`'s `support_fraction`. Supports any number of views (2
+  or more) -- the underlying algebra (mean pairwise cross-covariance and mean
+  auto-covariance are already additive over samples, for any number of views) doesn't
+  depend on it -- but only `latent_dimensions=1`: past one latent dimension, `CCAEY`'s
+  penalty term becomes a genuine matrix-valued quadratic form (rank up to `k(k+1)/2`
+  instead of the rank-1 "square of one linear functional" the single-multiplier
+  bisection relies on), which would need a different (and considerably heavier)
+  optimiser to solve with the same guarantee. Away from the breakdown regime, or when
+  more than one latent dimension is needed, `RANSACCCA` matches or beats it directly.
+- `RANSACCCA`: the multiview-CCA analogue of `sklearn.linear_model.RANSACRegressor`,
+  robust to a different contamination pattern than `HuberCCA`'s. `HuberCCA` downweights
+  samples by their *leverage* (combined magnitude across views); that leaves untouched a
+  subset of rows whose cross-view *relationship* is wrong (mismatched, corrupted, or drawn
+  from an unrelated pattern) while remaining completely ordinary in magnitude within each
+  view on its own -- nothing about such a row's norm flags it as unusual, so leverage-based
+  reweighting can't see it, and in practice can even make the fit slightly worse. `RANSACCCA`
+  instead repeatedly fits a fast closed-form `MCCA` on a random subset of rows, scores each
+  candidate by how much of the *full* dataset agrees with it (each sample's own standardised
+  cross-view product, the per-sample contribution to the EY reward term's cross-covariance
+  trace -- positive for genuine agreement, at or below zero otherwise, which is why
+  `residual_threshold` defaults to exactly 0 rather than anything estimated from the data),
+  and refits on the best-supported candidate's consensus set. Demonstrated on synthetic data
+  with a fraction of rows sign-flipped between views (ordinary magnitude in both views, so
+  invisible to `HuberCCA`) in `tests/test_ransac_cca.py`.
 - `CatBoostCCA`: a third `TreeCCA` backend alongside `XGBoostCCA`/`LightGBMCCA`, using
   [CatBoost](https://catboost.ai/)'s gradient-boosted trees as the per-view encoders. Since
   CatBoost has no in-place "add one tree to this booster" call, each round every component is
@@ -83,7 +124,33 @@ project adheres to [Semantic Versioning](https://semver.org/).
   minimiser via `cca_zoo._utils._ey.coordinate_descent_ey`. Because every embedding
   stays exactly linear in the raw (centred) view throughout fitting, `model.weights`
   returns real sparse canonical weight vectors, unlike `TreeCCA`/`GAMCCA`/
-  `GaussianProcessCCA`, where it raises `NotImplementedError`.
+  `GaussianProcessCCA`, where it raises `NotImplementedError`. Also gained a
+  `positive` option, constraining every weight to be non-negative, mirroring
+  `sklearn.linear_model.Lasso`/`ElasticNet`'s own `positive=True`.
+- `MultiTaskElasticNetCCA`: `ElasticNetCCA` with sklearn's
+  `MultiTaskLasso`/`MultiTaskElasticNet` row-group penalty
+  ($\sum_j \|W_i[j,:]\|_2$) in place of a plain per-scalar penalty, so a feature is
+  either active in every latent dimension or in none, instead of surviving in one
+  component and dropping out of another for no principled reason. Since a whole
+  row's coefficients are coupled through the EY loss's auto-covariance cross terms
+  (unlike ordinary least squares, where a multi-task row is separable across
+  tasks), there is no closed-form joint minimiser the way there is for
+  `ElasticNetCCA`'s single scalar; each row is instead updated by one step of
+  proximal gradient (ISTA) with backtracking line search, accepted only once
+  verified to decrease the exact penalised objective, in the new
+  `cca_zoo._utils._ey.group_coordinate_descent_ey`.
+- `OrthogonalMatchingPursuitCCA`: the EY-loss analogue of
+  `sklearn.linear_model.OrthogonalMatchingPursuit` — a fixed per-view sparsity
+  budget (`n_nonzero_coefs`) reached by greedy forward selection instead of a
+  continuous penalty strength. Features are added one at a time by the same
+  residual-correlation criterion classical OMP uses (generalised from a scalar
+  to a per-latent-dimension vector, ranked by norm), with the active
+  coefficients re-solved to their exact joint (unpenalised) optimum after every
+  addition via `ElasticNetCCA`'s own exact quartic coordinate solve. Since the
+  EY loss's all-zero embedding is itself a degenerate stationary point (unlike
+  ordinary least squares), every view is first warm-started with a small dense
+  fit before any view's support is grown from scratch — see
+  `cca_zoo._utils._ey.omp_coordinate_descent_ey`'s docstring.
 - `StochasticCCAEY`: mini-batch momentum SGD on the same Eckart-Young loss as `CCAEY`, for
   datasets too large for a full-batch gradient evaluation. Fit the way
   `sklearn.linear_model.SGDRegressor` fits a linear model: each epoch, the data is shuffled
@@ -126,6 +193,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- `CCAEY`, `PLSEY`, `HuberCCA`, and their shared base `BaseFullBatchEYModel` defaulted
+  `tol=1e-6`, passed straight through to L-BFGS-B as `ftol`. `ftol` is a *relative*
+  per-step improvement test, and this loss can pass through slow, shallow stretches of
+  genuine descent (e.g. while moving away from a spurious stationary point towards the
+  real one) that a loose `ftol` mistakes for convergence -- L-BFGS-B reports success
+  either way, so the fit silently stops early rather than raising an error, returning a
+  badly wrong result with a suspiciously *low* held-out correlation rather than a visible
+  failure. The default is now `tol=1e-8`, which removed the failure in repeated testing on
+  a stress-test construction (0/20 failures at `1e-8` vs. a measurable failure rate at
+  `1e-6`) without needing any change to initialisation or multi-start. `GPCCA` uses the
+  same `ftol` mechanism but showed no evidence of the same failure mode in testing and is
+  left unchanged; `GAMCCA` uses `trust-krylov`'s `gtol` (a gradient-norm criterion, not
+  `ftol`) and `StochasticCCAEY` checks its own absolute per-epoch objective change, both
+  structurally different and also left unchanged pending separate verification.
 - `GridSearchCV.cv_results_`'s `param_*` keys carried an internal `estimator__` prefix
   (`param_estimator__c` rather than `param_c`), inconsistent with the unprefixed keys in
   `best_params_` and with the docs' own `cv_results_` examples, which would `KeyError`.

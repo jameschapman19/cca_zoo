@@ -197,6 +197,67 @@ model.fit([X1, X2])
 
 ---
 
+## Robust methods
+
+`HuberCCA` above guards against high-*leverage* contamination: points whose combined magnitude
+across views dominates the covariance statistics simply by being large. That leaves a different
+failure mode untouched — a subset of rows whose cross-view *relationship* is wrong (mismatched,
+corrupted, or drawn from an unrelated pattern) while remaining completely ordinary in magnitude
+within each view. Nothing about such a row's norm flags it as unusual, so leverage-based
+reweighting can't see it, and in practice can even make things slightly worse.
+
+`RANSACCCA` is the multiview-CCA analogue of `sklearn.linear_model.RANSACRegressor`: it repeatedly
+fits a fast closed-form `MCCA` on a random subset of rows, scores each candidate by how much of
+the *full* dataset actually agrees with it, and keeps the best-supported candidate's consensus set
+for a final refit. Since it measures agreement with a candidate direction rather than raw
+magnitude, it catches exactly the contamination `HuberCCA` can't:
+
+```python
+from cca_zoo.linear import RANSACCCA
+
+model = RANSACCCA(latent_dimensions=2, min_samples=0.25, random_state=0)
+model.fit([X1, X2])
+inliers = model.inlier_mask_  # boolean array over the training rows
+```
+
+`min_samples` (a fraction or an absolute count) trades off two things: smaller subsets are more
+likely to be drawn free of contamination, but need `c` (a small ridge, default `0.1`) to stay
+numerically well-posed. `residual_threshold` defaults to `0` — the natural zero point of the
+per-sample agreement score under no real relationship — rather than anything estimated from the
+data. Like `MCCA`, this isn't convex, and the random subset draws add their own instability on top:
+when the "wrong" relationship is supported by close to half the data, different `random_state`
+seeds can land on different consensus sets — see the class's own tests for a worked example of
+where this helps and where the problem becomes too ambiguous for any method to resolve reliably.
+
+`RANSACCCA`'s random-subset search is exactly where it struggles too: near the ~50% contamination
+breakdown point, a random `min_samples`-sized draw becomes close to a coin flip on being usably
+clean, however many trials are tried. `TrimmedCCA` takes a different approach borrowed from
+Rousseeuw's Least Trimmed Squares / Minimum Covariance Determinant: rather than gambling on a lucky
+small draw, it starts from a large random subset of `h_frac * n` rows and alternates *concentration
+steps* — rank every row by its own contribution to `CCAEY`'s exact loss and keep the best `h`, then
+re-fit on exactly those rows — each step provably non-increasing in the real loss. With `h_frac` set
+close to the true clean fraction, this holds up where `RANSACCCA`'s search degrades:
+
+```python
+from cca_zoo.linear import TrimmedCCA
+
+model = TrimmedCCA(h_frac=0.55, n_starts=40, random_state=0)
+model.fit([X1, X2])
+inliers = model.inlier_mask_  # boolean array over the training rows
+```
+
+`h_frac` is a prior on the contamination rate, not something fit from the data — set it too high and
+good rows get discarded for nothing; set it too low and contaminated rows get forced into every fit
+once true contamination exceeds `1 - h_frac`. `TrimmedCCA` supports any number of views (2 or more)
+but only `latent_dimensions=1`: the selection rule's closed-form derivation relies on `CCAEY`'s
+penalty being the square of a *single* linear functional of the selection, which holds for any
+number of views but not past one latent dimension — with `k > 1` the same penalty becomes a genuine
+matrix-valued quadratic form (rank up to `k(k+1)/2`) that the same single-multiplier bisection can't
+solve. Away from the ~50% breakdown regime, or when more than one latent dimension is needed,
+`RANSACCCA` matches or beats it directly.
+
+---
+
 ## Sparse / iterative methods
 
 All sparse methods in `cca_zoo.linear` use an **Alternating Least Squares (ALS)** loop with
@@ -329,4 +390,7 @@ model = PLSALS(latent_dimensions=2, random_state=0).fit([X1, X2])
 | Sparse weights needed | `SCCAPMD` or `SCCAIPLS` |
 | Very large $p$ | `CCAEY`, `PLSEY` |
 | Dataset too large for full-batch gradients | `StochasticCCAEY` |
+| A few high-magnitude outlier samples | `HuberCCA` |
+| A subset of rows with a wrong (mismatched/corrupted) relationship | `RANSACCCA` |
+| Heavy contamination (near ~50%), with a known contamination-rate prior | `TrimmedCCA` |
 | Nonlinear relationships | See [Nonparametric Methods](nonparametric.md) |

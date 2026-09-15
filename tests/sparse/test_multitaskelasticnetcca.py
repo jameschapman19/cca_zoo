@@ -1,15 +1,15 @@
-"""Tests for ElasticNetCCA."""
+"""Tests for MultiTaskElasticNetCCA."""
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from cca_zoo.sparse import ElasticNetCCA
+from cca_zoo.sparse import MultiTaskElasticNetCCA
 
 
-def _make_model(latent_dimensions: int = 1, **kwargs: object) -> ElasticNetCCA:
-    return ElasticNetCCA(latent_dimensions=latent_dimensions, **kwargs)
+def _make_model(latent_dimensions: int = 2, **kwargs: object) -> MultiTaskElasticNetCCA:
+    return MultiTaskElasticNetCCA(latent_dimensions=latent_dimensions, **kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -32,7 +32,7 @@ def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# transform output shapes
+# transform output shapes / weights
 # ---------------------------------------------------------------------------
 
 
@@ -47,15 +47,29 @@ def test_transform_shapes_training_data(two_views_small: list[np.ndarray]) -> No
         assert arr.shape == (n, k)
 
 
-def test_transform_on_test_data(two_views_small: list[np.ndarray]) -> None:
-    """Transform returns correct shapes for new (unseen) test samples."""
-    rng = np.random.default_rng(99)
-    test_views = [rng.standard_normal((10, 5)), rng.standard_normal((10, 5))]
-    k = 1
+def test_weights_shapes_and_matches_transform(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
+    k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    result = model.transform(test_views)
-    for arr in result:
-        assert arr.shape == (10, k)
+    weights = model.weights
+    assert len(weights) == 2
+    for w, v in zip(weights, two_views_small):
+        assert w.shape == (v.shape[1], k)
+
+    transformed = model.transform(two_views_small)
+    for v, w, t, mean in zip(two_views_small, weights, transformed, model.means_):
+        np.testing.assert_allclose((v - mean) @ w, t, atol=1e-8)
+
+
+def test_weights_not_fitted_raises() -> None:
+    """Accessing weights before fitting raises NotFittedError."""
+    from sklearn.exceptions import NotFittedError
+
+    model = MultiTaskElasticNetCCA()
+    with pytest.raises(NotFittedError):
+        _ = model.weights
 
 
 # ---------------------------------------------------------------------------
@@ -74,7 +88,7 @@ def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# score shape and range
+# score
 # ---------------------------------------------------------------------------
 
 
@@ -95,65 +109,12 @@ def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# weights is a real, linear weight matrix (unlike GAMCCA/GaussianProcessCCA/TreeCCA)
-# ---------------------------------------------------------------------------
-
-
-def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
-    from sklearn.exceptions import NotFittedError
-
-    model = ElasticNetCCA()
-    with pytest.raises(NotFittedError):
-        _ = model.weights
-
-
-def test_weights_shapes_and_matches_transform(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
-    k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
-    weights = model.weights
-    assert len(weights) == 2
-    for w, v in zip(weights, two_views_small):
-        assert w.shape == (v.shape[1], k)
-
-    transformed = model.transform(two_views_small)
-    for v, w, t, mean in zip(two_views_small, weights, transformed, model.means_):
-        np.testing.assert_allclose((v - mean) @ w, t, atol=1e-8)
-
-
-# ---------------------------------------------------------------------------
-# get_factor_loadings / pairwise_correlations shapes
-# ---------------------------------------------------------------------------
-
-
-def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
-    """get_factor_loadings returns (n_features_i, k) arrays."""
-    k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
-    loadings = model.get_factor_loadings(two_views_small)
-    assert len(loadings) == 2
-    for loading, view in zip(loadings, two_views_small):
-        assert loading.shape == (view.shape[1], k)
-
-
-def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
-    """pairwise_correlations returns (n_views, n_views, k)."""
-    k = 1
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
-    corrs = model.pairwise_correlations(two_views_small)
-    assert corrs.shape == (2, 2, k)
-
-
-# ---------------------------------------------------------------------------
 # center=False
 # ---------------------------------------------------------------------------
 
 
 def test_center_false(two_views_small: list[np.ndarray]) -> None:
-    """ElasticNetCCA works with center=False."""
+    """MultiTaskElasticNetCCA works with center=False."""
     model = _make_model(center=False)
     model.fit(two_views_small)
     result = model.transform(two_views_small)
@@ -165,11 +126,11 @@ def test_center_false(two_views_small: list[np.ndarray]) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_elasticnetcca_finds_correlation_on_correlated_views(
+def test_multitask_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
-    """ElasticNetCCA finds substantial correlation on correlated views."""
-    model = ElasticNetCCA(latent_dimensions=1, alpha=0.01, random_state=0)
+    """MultiTaskElasticNetCCA finds substantial correlation on correlated views."""
+    model = MultiTaskElasticNetCCA(latent_dimensions=1, alpha=0.01, random_state=0)
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -177,13 +138,13 @@ def test_elasticnetcca_finds_correlation_on_correlated_views(
 def test_objective_decreases_monotonically(
     correlated_views: list[np.ndarray],
 ) -> None:
-    """Every coordinate-descent sweep strictly lowers the penalised EY objective."""
-    from cca_zoo._utils._ey import ey_loss
+    """Every coordinate-descent sweep does not increase the penalised EY objective."""
+    from cca_zoo._utils._ey import _group_penalty, ey_loss
 
     objs = []
-    for n_iter in range(1, 11):
-        model = ElasticNetCCA(
-            latent_dimensions=1,
+    for n_iter in range(1, 8):
+        model = MultiTaskElasticNetCCA(
+            latent_dimensions=2,
             alpha=0.1,
             l1_ratio=0.5,
             max_iter=n_iter,
@@ -192,31 +153,45 @@ def test_objective_decreases_monotonically(
         )
         model.fit(correlated_views)
         reps = model.transform(correlated_views)
-        penalty = sum(
-            model.alpha * model.l1_ratio * np.sum(np.abs(w))
-            + 0.5 * model.alpha * (1 - model.l1_ratio) * np.sum(w**2)
-            for w in model.weights
-        )
+        penalty = _group_penalty(model.weights, model.alpha, model.l1_ratio)
         objs.append(ey_loss(reps)["objective"] + penalty)
-    assert np.all(np.diff(objs) <= 1e-9), objs
+    assert np.all(np.diff(objs) <= 1e-8), objs
+
+
+def test_row_sparsity_is_joint_across_components(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """A feature's row is either active in every component or in none."""
+    model = MultiTaskElasticNetCCA(
+        latent_dimensions=2, alpha=0.3, l1_ratio=0.9, random_state=0
+    )
+    model.fit(correlated_views)
+    for w in model.weights:
+        active_per_component = np.abs(w) > 1e-10  # (p, k) boolean
+        # For every row, either all components are active or none are.
+        row_any = active_per_component.any(axis=1)
+        row_all = active_per_component.all(axis=1)
+        np.testing.assert_array_equal(row_any, row_all)
 
 
 def test_higher_alpha_increases_sparsity(
     correlated_views: list[np.ndarray],
 ) -> None:
-    """Increasing alpha (with l1_ratio > 0) should not decrease sparsity."""
-    n_nonzero = []
+    """Increasing alpha (with l1_ratio > 0) should not decrease row sparsity."""
+    n_active_rows = []
     for alpha in [0.001, 0.1, 1.0]:
-        model = ElasticNetCCA(
-            latent_dimensions=1, alpha=alpha, l1_ratio=0.9, random_state=0
+        model = MultiTaskElasticNetCCA(
+            latent_dimensions=2, alpha=alpha, l1_ratio=0.9, random_state=0
         )
         model.fit(correlated_views)
-        n_nonzero.append(sum((np.abs(w) > 1e-10).sum() for w in model.weights))
-    assert n_nonzero[0] >= n_nonzero[1] >= n_nonzero[2]
+        n_active_rows.append(
+            sum(int(np.sum(np.linalg.norm(w, axis=1) > 1e-10)) for w in model.weights)
+        )
+    assert n_active_rows[0] >= n_active_rows[1] >= n_active_rows[2]
 
 
 # ---------------------------------------------------------------------------
-# sklearn compatibility spot-checks (full suite covered by test_sklearn_compat.py)
+# sklearn compatibility spot-checks
 # ---------------------------------------------------------------------------
 
 
@@ -224,7 +199,9 @@ def test_clone_and_get_params_roundtrip() -> None:
     """clone()/get_params() round-trip correctly (sklearn BaseEstimator contract)."""
     from sklearn.base import clone
 
-    model = ElasticNetCCA(latent_dimensions=2, alpha=0.3, l1_ratio=0.4, random_state=0)
+    model = MultiTaskElasticNetCCA(
+        latent_dimensions=2, alpha=0.3, l1_ratio=0.4, random_state=0
+    )
     cloned = clone(model)
     assert cloned.get_params() == model.get_params()
 
@@ -234,21 +211,4 @@ def test_invalid_l1_ratio_raises() -> None:
     from sklearn.utils._param_validation import InvalidParameterError
 
     with pytest.raises(InvalidParameterError):
-        ElasticNetCCA(l1_ratio=1.5)._validate_params()
-
-
-# ---------------------------------------------------------------------------
-# positive constraint
-# ---------------------------------------------------------------------------
-
-
-def test_positive_constraint_yields_nonnegative_weights(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """positive=True yields weights with no negative entries."""
-    model = ElasticNetCCA(
-        latent_dimensions=2, alpha=0.05, l1_ratio=0.5, positive=True, random_state=0
-    )
-    model.fit(correlated_views)
-    for w in model.weights:
-        assert np.all(w >= -1e-10)
+        MultiTaskElasticNetCCA(l1_ratio=1.5)._validate_params()

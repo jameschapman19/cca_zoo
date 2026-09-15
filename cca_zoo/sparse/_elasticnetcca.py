@@ -65,6 +65,10 @@ class ElasticNetCCA(BaseModel):
         tol: Convergence tolerance on the penalised objective's change
             between consecutive sweeps. Default is 1e-6.
         random_state: Seed for the initial weights.
+        positive: If True, constrain every weight to be non-negative
+            (mirrors :class:`~sklearn.linear_model.Lasso` and
+            :class:`~sklearn.linear_model.ElasticNet`'s ``positive=True``).
+            Default is False.
 
     Example:
         >>> import numpy as np
@@ -81,6 +85,7 @@ class ElasticNetCCA(BaseModel):
         "l1_ratio": [Interval(Real, 0, 1, closed="both")],
         "max_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
+        "positive": ["boolean"],
     }
 
     def __init__(
@@ -92,6 +97,7 @@ class ElasticNetCCA(BaseModel):
         max_iter: int = 100,
         tol: float = 1e-6,
         random_state: int | None = None,
+        positive: bool = False,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)
         self.alpha = alpha
@@ -99,6 +105,7 @@ class ElasticNetCCA(BaseModel):
         self.max_iter = max_iter
         self.tol = tol
         self.random_state = random_state
+        self.positive = positive
 
     def fit(self, views: list[ArrayLike], y: None = None) -> ElasticNetCCA:
         """Fit ElasticNetCCA by cyclic coordinate descent on the EY loss.
@@ -124,6 +131,7 @@ class ElasticNetCCA(BaseModel):
             max_iter=self.max_iter,
             tol=self.tol,
             rng=rng,
+            positive=self.positive,
         )
         self.weights_: list[np.ndarray] = weights
         return self
