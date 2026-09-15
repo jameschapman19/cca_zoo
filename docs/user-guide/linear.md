@@ -197,6 +197,40 @@ model.fit([X1, X2])
 
 ---
 
+## Robust methods
+
+`HuberCCA` above guards against high-*leverage* contamination: points whose combined magnitude
+across views dominates the covariance statistics simply by being large. That leaves a different
+failure mode untouched — a subset of rows whose cross-view *relationship* is wrong (mismatched,
+corrupted, or drawn from an unrelated pattern) while remaining completely ordinary in magnitude
+within each view. Nothing about such a row's norm flags it as unusual, so leverage-based
+reweighting can't see it, and in practice can even make things slightly worse.
+
+`RANSACCCA` is the multiview-CCA analogue of `sklearn.linear_model.RANSACRegressor`: it repeatedly
+fits a fast closed-form `MCCA` on a random subset of rows, scores each candidate by how much of
+the *full* dataset actually agrees with it, and keeps the best-supported candidate's consensus set
+for a final refit. Since it measures agreement with a candidate direction rather than raw
+magnitude, it catches exactly the contamination `HuberCCA` can't:
+
+```python
+from cca_zoo.linear import RANSACCCA
+
+model = RANSACCCA(latent_dimensions=2, min_samples=0.25, random_state=0)
+model.fit([X1, X2])
+inliers = model.inlier_mask_  # boolean array over the training rows
+```
+
+`min_samples` (a fraction or an absolute count) trades off two things: smaller subsets are more
+likely to be drawn free of contamination, but need `c` (a small ridge, default `0.1`) to stay
+numerically well-posed. `residual_threshold` defaults to `0` — the natural zero point of the
+per-sample agreement score under no real relationship — rather than anything estimated from the
+data. Like `MCCA`, this isn't convex, and the random subset draws add their own instability on top:
+when the "wrong" relationship is supported by close to half the data, different `random_state`
+seeds can land on different consensus sets — see the class's own tests for a worked example of
+where this helps and where the problem becomes too ambiguous for any method to resolve reliably.
+
+---
+
 ## Sparse / iterative methods
 
 All sparse methods in `cca_zoo.linear` use an **Alternating Least Squares (ALS)** loop with
@@ -329,4 +363,6 @@ model = PLSALS(latent_dimensions=2, random_state=0).fit([X1, X2])
 | Sparse weights needed | `SCCAPMD` or `SCCAIPLS` |
 | Very large $p$ | `CCAEY`, `PLSEY` |
 | Dataset too large for full-batch gradients | `StochasticCCAEY` |
+| A few high-magnitude outlier samples | `HuberCCA` |
+| A subset of rows with a wrong (mismatched/corrupted) relationship | `RANSACCCA` |
 | Nonlinear relationships | See [Nonparametric Methods](nonparametric.md) |

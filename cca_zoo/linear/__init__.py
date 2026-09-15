@@ -28,6 +28,7 @@ from ._iterative import SCCA_Span as SCCA_Span
 from ._mcca import MCCA
 from ._partialcca import PartialCCA
 from ._pls import PLS
+from ._ransac_cca import RANSACCCA
 from ._rcca import rCCA
 from ._tcca import TCCA
 from .gradient import CCA_EY as CCA_EY
@@ -49,6 +50,8 @@ __all__ = [
     "GRCCA",
     # Reduced-rank regression
     "CCAR3",
+    # Robust to contaminated training data
+    "RANSACCCA",
     # EY-loss (high-dimensional data)
     "PLSEY",
     "CCAEY",

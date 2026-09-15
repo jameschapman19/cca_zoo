@@ -9,6 +9,21 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `RANSACCCA`: the multiview-CCA analogue of `sklearn.linear_model.RANSACRegressor`,
+  robust to a different contamination pattern than `HuberCCA`'s. `HuberCCA` downweights
+  samples by their *leverage* (combined magnitude across views); that leaves untouched a
+  subset of rows whose cross-view *relationship* is wrong (mismatched, corrupted, or drawn
+  from an unrelated pattern) while remaining completely ordinary in magnitude within each
+  view on its own -- nothing about such a row's norm flags it as unusual, so leverage-based
+  reweighting can't see it, and in practice can even make the fit slightly worse. `RANSACCCA`
+  instead repeatedly fits a fast closed-form `MCCA` on a random subset of rows, scores each
+  candidate by how much of the *full* dataset agrees with it (each sample's own standardised
+  cross-view product, the per-sample contribution to the EY reward term's cross-covariance
+  trace -- positive for genuine agreement, at or below zero otherwise, which is why
+  `residual_threshold` defaults to exactly 0 rather than anything estimated from the data),
+  and refits on the best-supported candidate's consensus set. Demonstrated on synthetic data
+  with a fraction of rows sign-flipped between views (ordinary magnitude in both views, so
+  invisible to `HuberCCA`) in `tests/test_ransac_cca.py`.
 - `CatBoostCCA`: a third `TreeCCA` backend alongside `XGBoostCCA`/`LightGBMCCA`, using
   [CatBoost](https://catboost.ai/)'s gradient-boosted trees as the per-view encoders. Since
   CatBoost has no in-place "add one tree to this booster" call, each round every component is
