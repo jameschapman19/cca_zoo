@@ -17,11 +17,11 @@ from cca_zoo.linear.gradient import CCAEY
 
 
 def _per_sample_terms(
-    z1: np.ndarray, z2: np.ndarray, b: float, c: float, h: int
+    zs: list[np.ndarray], b: float, c: float, h: int
 ) -> tuple[np.ndarray, np.ndarray, float]:
     r"""Per-sample decomposition of CCAEY(c)'s loss, restricted to a size-h subset.
 
-    For fixed weights (so fixed projections ``z1``, ``z2`` and weight-Gram
+    For fixed weights (so fixed per-view projections ``zs`` and weight-Gram
     scalar ``b``), the loss restricted to a kept subset $S$ of size $h$
     decomposes as
 
@@ -31,14 +31,24 @@ def _per_sample_terms(
     $$
 
     -- every term additive over $S$ except the squared sum, the same
-    algebraic shape as a knapsack relaxation (see :func:`_select`).
-    Derived by expanding CCAEY's mean pairwise cross-covariance and mean
-    auto-covariance as per-sample sums over the $h - 1$ denominator.
+    algebraic shape as a knapsack relaxation (see :func:`_select`). Holds
+    for any number of views $M$ (verified against a from-scratch
+    ``M``-view evaluation of ``CCAEY``'s real ``_objective``): with
+    $T(s) = \sum_i z_i(s)$ and $e(s) = \frac{1}{M} \sum_i z_i(s)^2$,
+    CCAEY's mean pairwise cross-covariance and mean auto-covariance are
+    themselves already additive over samples ($C = \frac{1}{M(h-1)}
+    \sum_s T(s)^2$, $V = \frac{1}{h-1} \sum_s e(s)$), and only $V$'s own
+    square in the penalty term produces the "square of a sum" structure
+    below. This does *not* generalise past $k=1$ latent dimension: with
+    $k > 1$, $V$ is a $k \times k$ matrix and $\operatorname{tr}(VV)$
+    becomes a genuine quadratic form over the selection (rank up to
+    $k(k+1)/2$, not the rank-1 "square of one linear functional" this
+    relies on), which is why :class:`TrimmedCCA` doesn't support
+    ``latent_dimensions > 1``.
 
     Args:
-        z1: First view's projection, shape (n,).
-        z2: Second view's projection, shape (n,).
-        b: Weight-Gram scalar (mean of $w_1^\top w_1$, $w_2^\top w_2$).
+        zs: Per-view projections, each of shape (n,) (one per view).
+        b: Weight-Gram scalar (``weight_gram_mean``'s single entry).
         c: Ridge blend in ``[0, 1]``, matching ``CCAEY``'s own ``c``.
         h: Subset size the loss will be restricted to.
 
@@ -46,8 +56,10 @@ def _per_sample_terms(
         Tuple ``(sigma, e, k_coef)``: ``sigma`` and ``e`` are arrays of
         shape (n,), ``k_coef`` is the scalar $K$.
     """
-    e = 0.5 * (z1**2 + z2**2)
-    r = 0.5 * (z1 + z2) ** 2
+    m = len(zs)
+    total = sum(zs)
+    e = sum(z**2 for z in zs) / m
+    r = total**2 / m
     rho = -2 * r + 2 * c * e
     sigma = rho / (h - 1) + 2 * c * (1 - c) * b * e / (h - 1)
     k_coef = (1 - c) ** 2 / (h - 1) ** 2
@@ -55,7 +67,7 @@ def _per_sample_terms(
 
 
 def _select(
-    z1: np.ndarray, z2: np.ndarray, b: float, c: float, h: int, n_bisect: int = 60
+    zs: list[np.ndarray], b: float, c: float, h: int, n_bisect: int = 60
 ) -> np.ndarray:
     r"""The h samples minimising CCAEY(c)'s loss, for the current weights.
 
@@ -70,11 +82,12 @@ def _select(
     exact in the large majority of trials, with a small bounded gap from
     a ranking tie in the rest, closed operationally by the caller's own
     safeguard (never accept a selection that doesn't actually improve the
-    objective).
+    objective). Entirely in terms of ``sigma``/``e``/``k_coef`` from
+    :func:`_per_sample_terms`, so this doesn't change with the number of
+    views.
 
     Args:
-        z1: First view's projection, shape (n,).
-        z2: Second view's projection, shape (n,).
+        zs: Per-view projections, each of shape (n,).
         b: Weight-Gram scalar.
         c: Ridge blend in ``[0, 1]``.
         h: Number of samples to keep.
@@ -83,7 +96,7 @@ def _select(
     Returns:
         Sorted integer array of the ``h`` kept sample indices.
     """
-    sigma, e, k_coef = _per_sample_terms(z1, z2, b, c, h)
+    sigma, e, k_coef = _per_sample_terms(zs, b, c, h)
 
     def h_of(mu: float) -> tuple[float, np.ndarray]:
         subset = np.argsort(sigma + mu * e)[:h]
@@ -113,20 +126,18 @@ def _select(
 
 def _refit(
     model: CCAEY,
-    x1: np.ndarray,
-    x2: np.ndarray,
-    w1: np.ndarray,
-    w2: np.ndarray,
+    xs: list[np.ndarray],
+    weights: list[np.ndarray],
     tol: float,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Re-minimise CCAEY(c)'s exact loss on (x1, x2), warm-started at (w1, w2).
+) -> list[np.ndarray]:
+    """Re-minimise CCAEY(c)'s exact loss on xs, warm-started at weights.
 
     Monotone by construction: L-BFGS-B's line search never accepts a step
     that increases the objective, and it starts exactly at the incoming
     weights' own value.
     """
-    shapes = [w1.shape, w2.shape]
-    sizes = [w1.size, w2.size]
+    shapes = [w.shape for w in weights]
+    sizes = [w.size for w in weights]
 
     def unflatten(x: np.ndarray) -> list[np.ndarray]:
         out = []
@@ -137,25 +148,24 @@ def _refit(
         return out
 
     def fun(x: np.ndarray) -> tuple[float, np.ndarray]:
-        weights = unflatten(x)
-        representations = [x1 @ weights[0], x2 @ weights[1]]
-        obj = model._objective([x1, x2], representations, weights)
-        grads = model._derivative([x1, x2], representations, weights)
+        ws = unflatten(x)
+        representations = [xv @ w for xv, w in zip(xs, ws)]
+        obj = model._objective(xs, representations, ws)
+        grads = model._derivative(xs, representations, ws)
         grad = np.concatenate([g.ravel() for g in grads])
         return obj, grad
 
-    x0 = np.concatenate([w1.ravel(), w2.ravel()])
+    x0 = np.concatenate([w.ravel() for w in weights])
     result = minimize(fun, x0, jac=True, method="L-BFGS-B", options={"ftol": tol})
-    w1_new, w2_new = unflatten(result.x)
-    return w1_new, w2_new
+    return unflatten(result.x)
 
 
 def _objective_value(
-    model: CCAEY, x1: np.ndarray, x2: np.ndarray, w1: np.ndarray, w2: np.ndarray
+    model: CCAEY, xs: list[np.ndarray], weights: list[np.ndarray]
 ) -> float:
-    """CCAEY(c)'s exact loss at (w1, w2) on (x1, x2)."""
-    representations = [x1 @ w1, x2 @ w2]
-    return model._objective([x1, x2], representations, [w1, w2])
+    """CCAEY(c)'s exact loss at weights on xs."""
+    representations = [xv @ w for xv, w in zip(xs, weights)]
+    return model._objective(xs, representations, weights)
 
 
 class TrimmedCCA(BaseModel):
@@ -203,18 +213,24 @@ class TrimmedCCA(BaseModel):
         since that would need labels for which rows are contaminated --
         exactly what's unknown.
 
-        ``TrimmedCCA`` currently supports exactly 2 views and
-        ``latent_dimensions=1``: the selection rule's closed-form
-        derivation is specific to that case. ``RANSACCCA`` (via
-        :class:`~cca_zoo.linear.MCCA`) supports any number of views and
-        latent dimensions directly, and matches or beats ``TrimmedCCA``
-        away from the ~50% breakdown regime -- reach for ``TrimmedCCA``
-        specifically when contamination is expected to be heavy and
-        ``h_frac`` can be set close to the true clean fraction.
+        ``TrimmedCCA`` supports any number of views (2 or more) but only
+        ``latent_dimensions=1``. The selection rule's closed-form
+        derivation (see :func:`_per_sample_terms`) relies on CCAEY's
+        penalty term being the *square of a single linear functional* of
+        the selection -- true regardless of the number of views, but not
+        past one latent dimension: with $k > 1$ latent dimensions the
+        same penalty becomes a genuine matrix-valued quadratic form (rank
+        up to $k(k+1)/2$), which the same single-multiplier bisection
+        cannot solve. ``RANSACCCA`` (via :class:`~cca_zoo.linear.MCCA`)
+        supports any number of latent dimensions directly, and matches or
+        beats ``TrimmedCCA`` away from the ~50% breakdown regime -- reach
+        for ``TrimmedCCA`` specifically when contamination is expected to
+        be heavy and ``h_frac`` can be set close to the true clean
+        fraction.
 
     Args:
         latent_dimensions: Must be 1 (the only value currently
-            supported).
+            supported; see the ``Note`` above).
         center: Whether to subtract column means. Default True.
         c: Ridge blend in ``[0, 1]``, same semantics as
             :class:`~cca_zoo.linear.gradient.CCAEY`'s own ``c``. Default
@@ -244,6 +260,11 @@ class TrimmedCCA(BaseModel):
         >>> X2 = rng.standard_normal((200, 6))
         >>> model = TrimmedCCA(h_frac=0.7, random_state=0).fit([X1, X2])
         >>> inliers = model.inlier_mask_  # boolean array over the training rows
+
+        More than two views are supported directly:
+
+        >>> X3 = rng.standard_normal((200, 5))
+        >>> model = TrimmedCCA(h_frac=0.7, random_state=0).fit([X1, X2, X3])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -278,27 +299,23 @@ class TrimmedCCA(BaseModel):
         """Fit TrimmedCCA by concentration steps on CCAEY's exact loss.
 
         Args:
-            views: List of exactly 2 arrays, each (n_samples, n_features_i).
+            views: List of 2 or more arrays, each (n_samples, n_features_i).
             y: Ignored.
 
         Returns:
             self: Fitted estimator.
 
         Raises:
-            ValueError: If the number of views isn't exactly 2, or
-                ``latent_dimensions`` isn't 1 (see the class's ``Note``).
+            ValueError: If fewer than 2 views are provided.
+            ValueError: If ``latent_dimensions`` isn't 1 (see the class's
+                ``Note``).
         """
         views_ = self._setup_fit(views)
-        if self.n_views_ != 2:
-            raise ValueError(
-                f"TrimmedCCA currently supports exactly 2 views, got {self.n_views_}."
-            )
         if self.latent_dimensions != 1:
             raise ValueError(
                 "TrimmedCCA currently supports only latent_dimensions=1, "
                 f"got {self.latent_dimensions}."
             )
-        x1, x2 = views_
         n = self.n_samples_
         h = max(2, int(round(self.h_frac * n)))
         rng = np.random.default_rng(self.random_state)
@@ -307,44 +324,40 @@ class TrimmedCCA(BaseModel):
         # living here -- .fit() is never called on it, only these two.
         model = CCAEY(latent_dimensions=1, c=self.c)
 
-        best_w1: np.ndarray | None = None
-        best_w2: np.ndarray | None = None
+        best_weights: list[np.ndarray] | None = None
         best_mask: np.ndarray | None = None
         best_obj = np.inf
         for _ in range(self.n_starts):
-            w1 = rng.standard_normal((x1.shape[1], 1))
-            w1 /= np.linalg.norm(w1)
-            w2 = rng.standard_normal((x2.shape[1], 1))
-            w2 /= np.linalg.norm(w2)
+            weights = []
+            for xv in views_:
+                w = rng.standard_normal((xv.shape[1], 1))
+                w /= np.linalg.norm(w)
+                weights.append(w)
 
             kept = np.sort(rng.choice(n, h, replace=False))
-            w1, w2 = _refit(model, x1[kept], x2[kept], w1, w2, self.tol)
-            cur_obj = _objective_value(model, x1[kept], x2[kept], w1, w2)
+            xs_kept = [xv[kept] for xv in views_]
+            weights = _refit(model, xs_kept, weights, self.tol)
+            cur_obj = _objective_value(model, xs_kept, weights)
 
             for _ in range(self.max_iter):
-                z1 = (x1 @ w1).ravel()
-                z2 = (x2 @ w2).ravel()
-                b = weight_gram_mean([w1, w2])[0, 0]
-                new_kept = _select(z1, z2, b, self.c, h)
+                zs = [(xv @ w).ravel() for xv, w in zip(views_, weights)]
+                b = weight_gram_mean(weights)[0, 0]
+                new_kept = _select(zs, b, self.c, h)
                 if np.array_equal(new_kept, kept):
                     break
-                w1_new, w2_new = _refit(
-                    model, x1[new_kept], x2[new_kept], w1, w2, self.tol
-                )
-                new_obj = _objective_value(
-                    model, x1[new_kept], x2[new_kept], w1_new, w2_new
-                )
+                xs_new = [xv[new_kept] for xv in views_]
+                new_weights = _refit(model, xs_new, weights, self.tol)
+                new_obj = _objective_value(model, xs_new, new_weights)
                 if new_obj > cur_obj + 1e-10:
                     break
-                kept, w1, w2, cur_obj = new_kept, w1_new, w2_new, new_obj
+                kept, weights, cur_obj = new_kept, new_weights, new_obj
 
             if cur_obj < best_obj:
-                best_obj, best_w1, best_w2, best_mask = cur_obj, w1, w2, kept
+                best_obj, best_weights, best_mask = cur_obj, weights, kept
 
-        assert best_w1 is not None
-        assert best_w2 is not None
+        assert best_weights is not None
         assert best_mask is not None
-        self.weights_: list[np.ndarray] = [best_w1, best_w2]
+        self.weights_: list[np.ndarray] = best_weights
         self.inlier_mask_: np.ndarray = np.zeros(n, dtype=bool)
         self.inlier_mask_[best_mask] = True
         return self

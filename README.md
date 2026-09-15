@@ -94,7 +94,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `StochasticCCAEY` | `CCAEY`, fit by mini-batch momentum SGD | ≥2 |
 | `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, robust to high-leverage outliers | ≥2 |
 | `RANSACCCA` | Robust CCA via random sample consensus, robust to mismatched/corrupted rows | ≥2 |
-| `TrimmedCCA` | Robust CCA via LTS/MCD-style concentration steps, holds up near ~50% contamination | 2 |
+| `TrimmedCCA` | Robust CCA via LTS/MCD-style concentration steps, holds up near ~50% contamination | ≥2 |
 | `SCCA_PMD` | Sparse CCA via PMD (Witten 2009) | ≥2 |
 | `SCCA_ADMM` | Sparse CCA via ADMM (Suo 2017) | ≥2 |
 | `SCCA_IPLS` | Sparse CCA via iterative PLS (Mai & Zhang 2019) | ≥2 |

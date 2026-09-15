@@ -26,10 +26,15 @@ project adheres to [Semantic Versioning](https://semver.org/).
   (~0.72) while `RANSACCCA` degrades to ~0.36-0.48 even with its best-tuned
   `min_samples` and extra trials (see `tests/test_trimmed_cca.py`). `h_frac` is a prior
   on the contamination rate rather than something learned from the data -- like
-  `sklearn.covariance.MinCovDet`'s `support_fraction` -- and the current implementation
-  supports exactly 2 views and `latent_dimensions=1`; away from the breakdown regime
-  `RANSACCCA` matches or beats it directly and handles any number of views and latent
-  dimensions.
+  `sklearn.covariance.MinCovDet`'s `support_fraction`. Supports any number of views (2
+  or more) -- the underlying algebra (mean pairwise cross-covariance and mean
+  auto-covariance are already additive over samples, for any number of views) doesn't
+  depend on it -- but only `latent_dimensions=1`: past one latent dimension, `CCAEY`'s
+  penalty term becomes a genuine matrix-valued quadratic form (rank up to `k(k+1)/2`
+  instead of the rank-1 "square of one linear functional" the single-multiplier
+  bisection relies on), which would need a different (and considerably heavier)
+  optimiser to solve with the same guarantee. Away from the breakdown regime, or when
+  more than one latent dimension is needed, `RANSACCCA` matches or beats it directly.
 - `RANSACCCA`: the multiview-CCA analogue of `sklearn.linear_model.RANSACRegressor`,
   robust to a different contamination pattern than `HuberCCA`'s. `HuberCCA` downweights
   samples by their *leverage* (combined magnitude across views); that leaves untouched a

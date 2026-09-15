@@ -248,9 +248,13 @@ inliers = model.inlier_mask_  # boolean array over the training rows
 
 `h_frac` is a prior on the contamination rate, not something fit from the data — set it too high and
 good rows get discarded for nothing; set it too low and contaminated rows get forced into every fit
-once true contamination exceeds `1 - h_frac`. `TrimmedCCA` currently only supports exactly 2 views
-and `latent_dimensions=1`; away from the ~50% breakdown regime `RANSACCCA` matches or beats it
-directly and handles any number of views.
+once true contamination exceeds `1 - h_frac`. `TrimmedCCA` supports any number of views (2 or more)
+but only `latent_dimensions=1`: the selection rule's closed-form derivation relies on `CCAEY`'s
+penalty being the square of a *single* linear functional of the selection, which holds for any
+number of views but not past one latent dimension — with `k > 1` the same penalty becomes a genuine
+matrix-valued quadratic form (rank up to `k(k+1)/2`) that the same single-multiplier bisection can't
+solve. Away from the ~50% breakdown regime, or when more than one latent dimension is needed,
+`RANSACCCA` matches or beats it directly.
 
 ---
 

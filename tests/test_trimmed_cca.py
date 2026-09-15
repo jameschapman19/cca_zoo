@@ -18,14 +18,12 @@ def _make_model(**kwargs: object) -> TrimmedCCA:
 # ---------------------------------------------------------------------------
 
 
-def _brute_force_select(
-    z1: np.ndarray, z2: np.ndarray, b: float, c: float, h: int
-) -> float:
+def _brute_force_select(zs: list[np.ndarray], b: float, c: float, h: int) -> float:
     """Best (lowest) objective over every size-h subset, for small n only."""
     from itertools import combinations
 
-    n = z1.shape[0]
-    sigma, e, k_coef = _per_sample_terms(z1, z2, b, c, h)
+    n = zs[0].shape[0]
+    sigma, e, k_coef = _per_sample_terms(zs, b, c, h)
     best = np.inf
     for subset in combinations(range(n), h):
         idx = np.array(subset)
@@ -34,7 +32,8 @@ def _brute_force_select(
     return best
 
 
-def test_select_usually_matches_brute_force_objective() -> None:
+@pytest.mark.parametrize("m", [2, 3, 4], ids=["2-view", "3-view", "4-view"])
+def test_select_usually_matches_brute_force_objective(m: int) -> None:
     """_select's chosen subset is exact in the large majority of trials.
 
     The Lagrangian relaxation solves ``h(mu) = 2*K*sum_{s in S(mu)} e(s) -
@@ -49,19 +48,20 @@ def test_select_usually_matches_brute_force_objective() -> None:
     objective) is the thing that keeps the overall algorithm monotone,
     not any per-call guarantee from ``_select`` in isolation -- see
     ``test_trimmed_cca_beats_ransac_near_breakdown_point`` for that
-    safeguard holding up end to end.
+    safeguard holding up end to end. Parametrized over the number of
+    views ``m`` since the underlying algebra (and hence this guarantee)
+    doesn't depend on it -- only on ``latent_dimensions == 1``.
     """
     rng = np.random.default_rng(0)
     n, h = 9, 5
     gaps = []
     for _ in range(60):
-        z1 = rng.standard_normal(n)
-        z2 = rng.standard_normal(n)
+        zs = [rng.standard_normal(n) for _ in range(m)]
         b, c = 0.3, 0.1
-        chosen = _select(z1, z2, b, c, h)
-        sigma, e, k_coef = _per_sample_terms(z1, z2, b, c, h)
+        chosen = _select(zs, b, c, h)
+        sigma, e, k_coef = _per_sample_terms(zs, b, c, h)
         chosen_val = sigma[chosen].sum() + k_coef * e[chosen].sum() ** 2
-        brute_val = _brute_force_select(z1, z2, b, c, h)
+        brute_val = _brute_force_select(zs, b, c, h)
         gaps.append(chosen_val - brute_val)
 
     gaps_arr = np.array(gaps)
@@ -73,9 +73,8 @@ def test_select_usually_matches_brute_force_objective() -> None:
 def test_select_returns_h_sorted_indices() -> None:
     """_select returns exactly h sorted, unique indices."""
     rng = np.random.default_rng(1)
-    z1 = rng.standard_normal(20)
-    z2 = rng.standard_normal(20)
-    chosen = _select(z1, z2, b=0.2, c=0.1, h=12)
+    zs = [rng.standard_normal(20), rng.standard_normal(20)]
+    chosen = _select(zs, b=0.2, c=0.1, h=12)
     assert chosen.shape == (12,)
     assert len(set(chosen.tolist())) == 12
     assert np.array_equal(chosen, np.sort(chosen))
@@ -93,10 +92,18 @@ def test_two_view_fit_completes(two_views_small: list[np.ndarray]) -> None:
     assert fitted is model
 
 
-def test_three_views_raises(three_views_small: list[np.ndarray]) -> None:
-    """More than 2 views is rejected explicitly, not silently mishandled."""
-    with pytest.raises(ValueError, match="exactly 2 views"):
-        _make_model().fit(three_views_small)
+def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
+    """Fit completes on three-view data without error."""
+    model = _make_model()
+    fitted = model.fit(three_views_small)
+    assert fitted is model
+    assert len(fitted.weights_) == 3
+
+
+def test_single_view_raises(two_views_small: list[np.ndarray]) -> None:
+    """Fewer than 2 views is rejected (by the shared validate_views check)."""
+    with pytest.raises(ValueError, match="At least 2 views"):
+        _make_model().fit([two_views_small[0]])
 
 
 def test_latent_dimensions_above_one_raises(two_views_small: list[np.ndarray]) -> None:
@@ -199,6 +206,64 @@ def _held_out_corr(
 ) -> float:
     z1, z2 = model.transform([x_test, y_test])
     return abs(np.corrcoef(z1[:, 0], z2[:, 0])[0, 1])
+
+
+def _make_sign_flip_contaminated_data_multiview(
+    seed: int, n_train: int, n_test: int, ps: list[int], contam_frac: float
+) -> tuple[list[np.ndarray], list[np.ndarray], np.ndarray]:
+    """M views sharing one latent factor; view 1 sign-flipped for bad rows.
+
+    Generalises :func:`_make_sign_flip_contaminated_data` to any number of
+    views: only the second view's sign is flipped for contaminated rows,
+    so two of the ``M`` pairwise relationships break while the rest stay
+    intact -- enough to hurt plain (non-robust) MCCA while still leaving
+    something for a robust method to find.
+    """
+    rng = np.random.default_rng(seed)
+    ws = [rng.standard_normal(p) for p in ps]
+    ws = [w / np.linalg.norm(w) for w in ws]
+
+    def group(n: int, sign: float) -> list[np.ndarray]:
+        t = rng.standard_normal(n)
+        out = []
+        for i, (p, w) in enumerate(zip(ps, ws)):
+            s = sign if i == 1 else 1.0
+            out.append(np.outer(s * t, w) + 0.6 * rng.standard_normal((n, p)))
+        return out
+
+    test_views = group(n_test, sign=1.0)
+    n_bad = int(round(contam_frac * n_train))
+    n_good = n_train - n_bad
+    good_views = group(n_good, sign=1.0)
+    bad_views = group(n_bad, sign=-1.0)
+    train_views = [np.vstack([g, b]) for g, b in zip(good_views, bad_views)]
+    perm = rng.permutation(n_train)
+    train_views = [v[perm] for v in train_views]
+    return train_views, test_views, np.arange(n_train)[perm] >= n_good
+
+
+def test_trimmed_cca_multiview_beats_plain_mcca() -> None:
+    """With 3 views and 35% contamination, TrimmedCCA clearly beats plain MCCA.
+
+    Regression coverage for the multiview generalisation: not just that
+    ``fit`` completes on more than 2 views (see
+    ``test_three_view_fit_completes``), but that the concentration-step
+    algorithm actually recovers the real signal better than a non-robust
+    baseline when more than 2 views are involved.
+    """
+    train_views, test_views, _ = _make_sign_flip_contaminated_data_multiview(
+        seed=0, n_train=300, n_test=200, ps=[8, 6, 5], contam_frac=0.40
+    )
+
+    mcca_model = MCCA(latent_dimensions=1, c=0.1).fit(train_views)
+    trimmed_model = TrimmedCCA(
+        c=0.1, h_frac=0.63, n_starts=15, max_iter=30, random_state=0
+    ).fit(train_views)
+
+    mcca_corrs = mcca_model.average_pairwise_correlations(test_views)
+    trimmed_corrs = trimmed_model.average_pairwise_correlations(test_views)
+
+    assert trimmed_corrs[0] > abs(mcca_corrs[0]) + 0.08
 
 
 def test_trimmed_cca_beats_ransac_near_breakdown_point() -> None:
