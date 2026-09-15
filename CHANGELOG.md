@@ -167,6 +167,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- `CCAEY`, `PLSEY`, `HuberCCA`, and their shared base `BaseFullBatchEYModel` defaulted
+  `tol=1e-6`, passed straight through to L-BFGS-B as `ftol`. `ftol` is a *relative*
+  per-step improvement test, and this loss can pass through slow, shallow stretches of
+  genuine descent (e.g. while moving away from a spurious stationary point towards the
+  real one) that a loose `ftol` mistakes for convergence -- L-BFGS-B reports success
+  either way, so the fit silently stops early rather than raising an error, returning a
+  badly wrong result with a suspiciously *low* held-out correlation rather than a visible
+  failure. The default is now `tol=1e-8`, which removed the failure in repeated testing on
+  a stress-test construction (0/20 failures at `1e-8` vs. a measurable failure rate at
+  `1e-6`) without needing any change to initialisation or multi-start. `GPCCA` uses the
+  same `ftol` mechanism but showed no evidence of the same failure mode in testing and is
+  left unchanged; `GAMCCA` uses `trust-krylov`'s `gtol` (a gradient-norm criterion, not
+  `ftol`) and `StochasticCCAEY` checks its own absolute per-epoch objective change, both
+  structurally different and also left unchanged pending separate verification.
 - `GridSearchCV.cv_results_`'s `param_*` keys carried an internal `estimator__` prefix
   (`param_estimator__c` rather than `param_c`), inconsistent with the unprefixed keys in
   `best_params_` and with the docs' own `cv_results_` examples, which would `KeyError`.

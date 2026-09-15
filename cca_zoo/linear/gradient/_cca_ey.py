@@ -85,7 +85,12 @@ class CCAEY(BaseFullBatchEYModel):
             note above on numerical stability for high-dimensional data.
         max_iter: Maximum number of L-BFGS-B iterations. Default is 1000.
         tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
-            is 1e-6.
+            is 1e-8 -- a loose ``ftol`` (e.g. 1e-6) can mistake a slow,
+            shallow stretch of genuine descent for convergence and return
+            silently, so if you see a suspiciously *low* held-out
+            correlation rather than ``nan``/diverging weights, premature
+            convergence is a more likely cause than the numerical issue
+            described above.
         random_state: Seed for reproducibility.
 
     Example:
@@ -113,7 +118,7 @@ class CCAEY(BaseFullBatchEYModel):
         center: bool = True,
         c: float = 0.0,
         max_iter: int = 1000,
-        tol: float = 1e-6,
+        tol: float = 1e-8,
         random_state: int | None = None,
     ) -> None:
         super().__init__(

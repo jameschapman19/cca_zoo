@@ -43,7 +43,8 @@ class PLSEY(CCAEY):
         center: Whether to subtract column means. Default True.
         max_iter: Maximum number of L-BFGS-B iterations. Default is 1000.
         tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
-            is 1e-6.
+            is 1e-8 (see :class:`~cca_zoo.linear.gradient.CCAEY`'s docstring
+            for why a loose ``ftol`` risks silent premature convergence).
         random_state: Seed for reproducibility.
 
     Example:
@@ -60,7 +61,7 @@ class PLSEY(CCAEY):
         latent_dimensions: int = 1,
         center: bool = True,
         max_iter: int = 1000,
-        tol: float = 1e-6,
+        tol: float = 1e-8,
         random_state: int | None = None,
     ) -> None:
         super().__init__(
