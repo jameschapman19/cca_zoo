@@ -9,6 +9,45 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `CCAEY(ordered=True)` (also on `PLSEY`, which shares `CCAEY.fit`): fits one component
+  at a time instead of jointly fitting all `latent_dimensions` columns at once, giving
+  exact descending-correlation order with nothing applied after the fact. The EY loss is
+  invariant to replacing every view's fitted embedding with a common orthogonal rotation
+  of itself, so a plain joint fit has no reason to land on the one rotation that makes
+  component `d` individually the canonical direction with the `d`-th largest correlation
+  the way an exact eigendecomposition-based solver (e.g. `MCCA`) gets for free --
+  `ordered=True`'s new `_fit_lbfgsb_sequential` sidesteps that ambiguity at the source:
+  component `d` is optimised by its own L-BFGS-B call with every earlier component held
+  fixed as a constant, reusing `_objective`/`_derivative` completely unchanged (just
+  restricted, via ordinary partial differentiation, to the one free column) -- no new
+  gradient math, and each stage's `(objective, gradient)` pair stays fully consistent, so
+  it works with L-BFGS-B's line search. Component 1 sees no competition (identical to a
+  plain `latent_dimensions=1` fit); component 2 is optimised against a fixed component 1;
+  and so on. Verified against exact `CCA` on data with clearly separated true canonical
+  correlations: `CCAEY(ordered=True)`'s output matches `CCA`'s sorted output directly,
+  component for component, with no re-sorting needed on either side. Costs
+  `latent_dimensions` separate L-BFGS-B solves instead of one, so it is slower than the
+  default for large `latent_dimensions`, and, being greedy, can (on harder problems)
+  converge to a slightly lower total captured correlation than the joint fit, since an
+  early component locked in by one stage can't be nudged by pressure from later ones.
+  Default remains `ordered=False`: components come back in whatever rotation the joint
+  L-BFGS-B fit lands on, with no ordering guarantee and no rotation or reordering ever
+  applied after the fact -- deliberately so, since a cheap post-hoc rotation would give
+  ordered components "for free" without changing the subspace or loss value, but only by
+  re-deriving them from a fit whose own optimisation never targeted that ordering; pass
+  `ordered=True` for components that are actually *found* in order instead.
+- `StochasticCCAEY(ordered=True)`: the same idea adapted to `StochasticCCAEY`'s
+  mini-batch momentum SGD solver, which (unlike `CCAEY`'s L-BFGS-B) has no line search
+  to break. A new `CCAEY._penalty_matrix` hook (identity by default) is overridden to
+  mask the blended penalty matrix to its upper triangle, so component `d`'s
+  decorrelation pressure only sees components `<= d`, never `> d` -- a
+  generalised-eigenproblem analogue of Sanger's rule (the Generalized Hebbian
+  Algorithm). The masked gradient no longer corresponds to the gradient of any single
+  symmetric scalar loss, which is exactly why it needs a solver without a line search,
+  unlike `CCAEY`'s own per-component L-BFGS-B approach above. Confirmed empirically:
+  fitting with `ordered=True` gives descending correlations directly across random
+  seeds, where `ordered=False` (still the default, and still never rotated or
+  reordered after the fact) gives an arbitrary order.
 - `CatBoostCCA`: a third `TreeCCA` backend alongside `XGBoostCCA`/`LightGBMCCA`, using
   [CatBoost](https://catboost.ai/)'s gradient-boosted trees as the per-view encoders. Since
   CatBoost has no in-place "add one tree to this booster" call, each round every component is

@@ -27,6 +27,25 @@ class StochasticCCAEY(CCAEY):
     when the full dataset does not fit comfortably in memory or a full-batch
     gradient evaluation is too slow to repeat every iteration.
 
+    As with :class:`~cca_zoo.linear.gradient.CCAEY`, no rotation or
+    reordering is ever applied after the underlying solve. By default
+    (``ordered=False``) components come back in whatever rotation the
+    training dynamics happen to land on -- the EY loss has no reason to
+    prefer descending-correlation order on its own. ``ordered=True``
+    instead resolves that symmetry *during* training: :meth:`_penalty_matrix`
+    is overridden to mask the blended penalty matrix to its upper
+    triangle, so component $d$'s decorrelation pressure only sees
+    components $\le d$, never $> d$. This is a generalised-eigenproblem
+    analogue of Sanger's rule (the Generalized Hebbian Algorithm):
+    component 1 feels no competition and converges like plain power
+    iteration to the single strongest direction; component 2 is deflated
+    against component 1 only; and so on -- ordering falls out of the
+    training dynamics themselves, with nothing applied after the fact.
+    The masked gradient no longer corresponds to the gradient of any
+    single symmetric scalar loss, so it cannot be handed to a line-search
+    method like L-BFGS-B (:class:`CCAEY`'s solver) -- plain momentum SGD,
+    with no line search, is exactly what tolerates that mismatch.
+
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
@@ -42,6 +61,11 @@ class StochasticCCAEY(CCAEY):
             Default is 1000.
         tol: Convergence tolerance on the full-dataset objective's change
             between consecutive epochs. Default is 1e-6.
+        ordered: If True, mask the penalty gradient to upper-triangular
+            (Sanger's-rule-style) so training itself converges directly to
+            descending-correlation-ordered components. If False (default),
+            components come back in whatever rotation training lands on --
+            faster per step, but with no ordering guarantee at all.
         random_state: Seed for reproducibility.
 
     Example:
@@ -58,6 +82,7 @@ class StochasticCCAEY(CCAEY):
         "learning_rate": [Interval(Real, 0, None, closed="neither")],
         "momentum": [Interval(Real, 0, 1, closed="left")],
         "batch_size": [None, Interval(Integral, 1, None, closed="left")],
+        "ordered": ["boolean"],
     }
 
     def __init__(
@@ -70,6 +95,7 @@ class StochasticCCAEY(CCAEY):
         batch_size: int | None = None,
         max_iter: int = 1000,
         tol: float = 1e-6,
+        ordered: bool = False,
         random_state: int | None = None,
     ) -> None:
         super().__init__(
@@ -83,9 +109,26 @@ class StochasticCCAEY(CCAEY):
         self.learning_rate = learning_rate
         self.momentum = momentum
         self.batch_size = batch_size
+        self.ordered = ordered
+
+    def _penalty_matrix(self, v_blend: np.ndarray) -> np.ndarray:
+        r"""Upper-triangular mask when ``ordered=True``; identity otherwise.
+
+        See :meth:`~cca_zoo.linear.gradient.CCAEY._penalty_matrix` for the
+        default identity hook this overrides, and this class's own
+        docstring for why masking here breaks CCAEY's rotational symmetry
+        directly in the training dynamics.
+        """
+        return np.triu(v_blend) if self.ordered else v_blend
 
     def fit(self, views: list[ArrayLike], y: None = None) -> StochasticCCAEY:
         """Fit by mini-batch momentum SGD on the EY loss.
+
+        No rotation or reordering is ever applied after training: with
+        ``ordered=False`` (default) components come back in whatever
+        rotation the training dynamics land on; with ``ordered=True`` the
+        masked gradient (:meth:`_penalty_matrix`) makes training itself
+        converge to descending-correlation order. See the class docstring.
 
         Args:
             views: List of 2 or more arrays, each (n_samples, n_features_i).

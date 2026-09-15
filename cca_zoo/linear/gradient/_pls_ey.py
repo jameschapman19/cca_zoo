@@ -44,6 +44,12 @@ class PLSEY(CCAEY):
         max_iter: Maximum number of L-BFGS-B iterations. Default is 1000.
         tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
             is 1e-6.
+        ordered: If True, fit one component at a time instead of jointly
+            fitting all components, giving exact descending-correlation
+            order with nothing applied after the fact; see
+            :class:`~cca_zoo.linear.gradient.CCAEY`'s own ``ordered`` for
+            the mechanism and its cost/quality tradeoffs. Default is False
+            (no ordering guarantee).
         random_state: Seed for reproducibility.
 
     Example:
@@ -61,6 +67,7 @@ class PLSEY(CCAEY):
         center: bool = True,
         max_iter: int = 1000,
         tol: float = 1e-6,
+        ordered: bool = False,
         random_state: int | None = None,
     ) -> None:
         super().__init__(
@@ -69,6 +76,7 @@ class PLSEY(CCAEY):
             c=1.0,
             max_iter=max_iter,
             tol=tol,
+            ordered=ordered,
             random_state=random_state,
         )
 
@@ -88,16 +96,20 @@ class PLSEY(CCAEY):
         """
         return super().fit(views, y)
 
-    def _initial_weights(
-        self, views: list[np.ndarray], rng: np.random.Generator
+    def _initial_weights_k(
+        self, views: list[np.ndarray], k: int, rng: np.random.Generator
     ) -> list[np.ndarray]:
         """Plain orthonormal-weight initial weights (see class docstring).
 
-        Overrides :class:`~cca_zoo.linear.gradient.CCAEY`'s data-informed
-        default, since this loss's own penalty targets weight-space
-        orthonormality rather than projection-space decorrelation.
+        Overrides :meth:`~cca_zoo.linear.gradient.CCAEY._initial_weights_k`'s
+        data-informed default, since this loss's own penalty targets
+        weight-space orthonormality rather than projection-space
+        decorrelation. Generalised to an explicit column count ``k`` so it
+        composes with :meth:`~cca_zoo.linear.gradient.CCAEY._fit_lbfgsb_sequential`'s
+        one-component-at-a-time ``ordered=True`` fit, as well as the plain
+        joint fit's ``k = latent_dimensions``.
         """
-        return random_orthonormal_weights(views, self.latent_dimensions, rng)
+        return random_orthonormal_weights(views, k, rng)
 
 
 @deprecated("Renamed to PLSEY for sklearn-style naming; use PLSEY instead.")
