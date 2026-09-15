@@ -31,6 +31,7 @@ from ._pls import PLS
 from ._ransac_cca import RANSACCCA
 from ._rcca import rCCA
 from ._tcca import TCCA
+from ._trimmed_cca import TrimmedCCA
 from .gradient import CCA_EY as CCA_EY
 from .gradient import CCAEY, PLSEY, HuberCCA, StochasticCCAEY
 from .gradient import MCCA_EY as MCCA_EY
@@ -52,6 +53,7 @@ __all__ = [
     "CCAR3",
     # Robust to contaminated training data
     "RANSACCCA",
+    "TrimmedCCA",
     # EY-loss (high-dimensional data)
     "PLSEY",
     "CCAEY",

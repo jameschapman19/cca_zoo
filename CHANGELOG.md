@@ -9,6 +9,27 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `TrimmedCCA`: robust multiview CCA via concentration steps, in the style of Rousseeuw's
+  Least Trimmed Squares / Minimum Covariance Determinant. `RANSACCCA`'s random-subset
+  search is a good strategy while contamination stays well below its own odds of ever
+  drawing a clean-enough candidate, but that degrades near the ~50% breakdown point,
+  where a random `min_samples`-sized draw becomes close to a coin flip on being usably
+  clean however many trials are tried. `TrimmedCCA` instead starts from a large random
+  subset of `h_frac * n` rows and alternates a *select* step (rank every sample by its
+  own contribution to `CCAEY`'s exact loss for the current weights, solved via a
+  Lagrangian relaxation of the loss's own additive structure, and keep the best `h`) with
+  a *refit* step (re-minimise `CCAEY`'s exact loss on just those rows, warm-started via
+  L-BFGS-B) -- the classical C-step argument, applied to CCAEY's real objective rather
+  than a proxy score, so each step is provably non-increasing in the actual loss. On a
+  sign-flip contamination benchmark near 47% contamination, with `h_frac` set close to
+  the true clean fraction, `TrimmedCCA` holds at oracle-level held-out correlation
+  (~0.72) while `RANSACCCA` degrades to ~0.36-0.48 even with its best-tuned
+  `min_samples` and extra trials (see `tests/test_trimmed_cca.py`). `h_frac` is a prior
+  on the contamination rate rather than something learned from the data -- like
+  `sklearn.covariance.MinCovDet`'s `support_fraction` -- and the current implementation
+  supports exactly 2 views and `latent_dimensions=1`; away from the breakdown regime
+  `RANSACCCA` matches or beats it directly and handles any number of views and latent
+  dimensions.
 - `RANSACCCA`: the multiview-CCA analogue of `sklearn.linear_model.RANSACRegressor`,
   robust to a different contamination pattern than `HuberCCA`'s. `HuberCCA` downweights
   samples by their *leverage* (combined magnitude across views); that leaves untouched a

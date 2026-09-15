@@ -73,6 +73,10 @@ Linear CCA methods. All classes are `sklearn.base.BaseEstimator` subclasses.
 
 ---
 
+::: cca_zoo.linear.TrimmedCCA
+
+---
+
 ## EY-loss methods
 
 ::: cca_zoo.linear.PLSEY

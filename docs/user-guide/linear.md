@@ -229,6 +229,29 @@ when the "wrong" relationship is supported by close to half the data, different 
 seeds can land on different consensus sets — see the class's own tests for a worked example of
 where this helps and where the problem becomes too ambiguous for any method to resolve reliably.
 
+`RANSACCCA`'s random-subset search is exactly where it struggles too: near the ~50% contamination
+breakdown point, a random `min_samples`-sized draw becomes close to a coin flip on being usably
+clean, however many trials are tried. `TrimmedCCA` takes a different approach borrowed from
+Rousseeuw's Least Trimmed Squares / Minimum Covariance Determinant: rather than gambling on a lucky
+small draw, it starts from a large random subset of `h_frac * n` rows and alternates *concentration
+steps* — rank every row by its own contribution to `CCAEY`'s exact loss and keep the best `h`, then
+re-fit on exactly those rows — each step provably non-increasing in the real loss. With `h_frac` set
+close to the true clean fraction, this holds up where `RANSACCCA`'s search degrades:
+
+```python
+from cca_zoo.linear import TrimmedCCA
+
+model = TrimmedCCA(h_frac=0.55, n_starts=40, random_state=0)
+model.fit([X1, X2])
+inliers = model.inlier_mask_  # boolean array over the training rows
+```
+
+`h_frac` is a prior on the contamination rate, not something fit from the data — set it too high and
+good rows get discarded for nothing; set it too low and contaminated rows get forced into every fit
+once true contamination exceeds `1 - h_frac`. `TrimmedCCA` currently only supports exactly 2 views
+and `latent_dimensions=1`; away from the ~50% breakdown regime `RANSACCCA` matches or beats it
+directly and handles any number of views.
+
 ---
 
 ## Sparse / iterative methods
@@ -365,4 +388,5 @@ model = PLSALS(latent_dimensions=2, random_state=0).fit([X1, X2])
 | Dataset too large for full-batch gradients | `StochasticCCAEY` |
 | A few high-magnitude outlier samples | `HuberCCA` |
 | A subset of rows with a wrong (mismatched/corrupted) relationship | `RANSACCCA` |
+| Heavy contamination (near ~50%), with a known contamination-rate prior | `TrimmedCCA` |
 | Nonlinear relationships | See [Nonparametric Methods](nonparametric.md) |
