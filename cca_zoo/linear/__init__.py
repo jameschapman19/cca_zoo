@@ -9,6 +9,7 @@ high-dimensional data.
 from ._cca import CCA
 from ._ccar3 import CCAR3
 from ._gcca import GCCA
+from ._graphical_lasso_cca import GraphicalLassoCCA
 from ._grcca import GRCCA
 from ._iterative import PLS_ALS as PLS_ALS
 from ._iterative import (
@@ -51,6 +52,8 @@ __all__ = [
     "GRCCA",
     # Reduced-rank regression
     "CCAR3",
+    # Sparse-precision within-view covariance
+    "GraphicalLassoCCA",
     # Robust to contaminated training data
     "RANSACCCA",
     "TrimmedCCA",

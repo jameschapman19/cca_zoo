@@ -89,6 +89,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `PartialCCA` | CCA adjusted for confounding variables (Rao 1969) | ≥2 |
 | `GRCCA` | Group-regularised CCA (Tuzhilina, Tozzi & Hastie 2021) | ≥2 |
 | `CCAR3` | CCA via reduced-rank regression, row-sparse in high dimensions (Donnat & Tuzhilina 2024) | 2 |
+| `GraphicalLassoCCA` | MCCA with an L1-penalised sparse-precision within-view covariance (Friedman, Hastie & Tibshirani 2008) | ≥2 |
 | `CCAEY` | Eckart-Young CCA, full-batch L-BFGS-B (2 or more views) | ≥2 |
 | `PLSEY` | Eckart-Young PLS, full-batch L-BFGS-B | ≥2 |
 | `StochasticCCAEY` | `CCAEY`, fit by mini-batch momentum SGD | ≥2 |

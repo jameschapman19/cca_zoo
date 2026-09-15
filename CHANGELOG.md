@@ -9,6 +9,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `GraphicalLassoCCA`: `MCCA` with each view's within-view covariance block replaced by
+  `sklearn.covariance.GraphicalLasso`'s (or, with `alpha=None`, `GraphicalLassoCV`'s)
+  L1-penalised sparse-precision estimate's implied covariance -- every other within-view
+  regularisation already here (`MCCA`'s own ridge `c`, `CCAR3`'s Ledoit-Wolf shrinkage,
+  `TrimmedCCA`'s concentration steps) regularises the covariance directly; this instead
+  penalises the *inverse* covariance's off-diagonal entries (each view's own partial
+  correlations / conditional independence structure), which is the more natural
+  regulariser once a view's feature count approaches or exceeds its sample count -- the
+  same high-dimensional regime where `MCCA`'s own docs point to `pca=True` instead. The
+  between-view block is untouched (a plain sample cross-covariance, as in `MCCA`); only
+  the within-view block each view contributes to the generalised eigenproblem changes.
+  Solves directly in each view's original feature space, since the sparse precision
+  structure -- inspectable afterwards via `model.precision_` -- is normally the point,
+  not a rank-truncated approximation of it.
 - `TrimmedCCA`: robust multiview CCA via concentration steps, in the style of Rousseeuw's
   Least Trimmed Squares / Minimum Covariance Determinant. `RANSACCCA`'s random-subset
   search is a good strategy while contamination stays well below its own odds of ever
