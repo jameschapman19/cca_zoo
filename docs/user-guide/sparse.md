@@ -62,7 +62,9 @@ dimensions are not independent "tasks" fit separately but different views of the
 ```python
 from cca_zoo.sparse import MultiTaskElasticNetCCA
 
-model = MultiTaskElasticNetCCA(latent_dimensions=2, alpha=0.1, l1_ratio=0.5).fit([X1, X2])
+model = MultiTaskElasticNetCCA(latent_dimensions=2, alpha=0.1, l1_ratio=0.5).fit(
+    [X1, X2]
+)
 active_features = (model.weights[0] != 0).any(axis=1)  # same mask for every component
 ```
 
@@ -87,9 +89,9 @@ joint (unpenalised) optimum after every addition.
 ```python
 from cca_zoo.sparse import OrthogonalMatchingPursuitCCA
 
-model = OrthogonalMatchingPursuitCCA(
-    latent_dimensions=2, n_nonzero_coefs=5
-).fit([X1, X2])
+model = OrthogonalMatchingPursuitCCA(latent_dimensions=2, n_nonzero_coefs=5).fit(
+    [X1, X2]
+)
 active_features = (model.weights[0] != 0).any(axis=1)
 assert active_features.sum() == 5
 ```

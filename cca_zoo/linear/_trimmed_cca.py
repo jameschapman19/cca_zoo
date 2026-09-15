@@ -57,8 +57,8 @@ def _per_sample_terms(
         shape (n,), ``k_coef`` is the scalar $K$.
     """
     m = len(zs)
-    total = sum(zs)
-    e = sum(z**2 for z in zs) / m
+    total: np.ndarray = np.sum(zs, axis=0)
+    e: np.ndarray = np.sum([z**2 for z in zs], axis=0) / m
     r = total**2 / m
     rho = -2 * r + 2 * c * e
     sigma = rho / (h - 1) + 2 * c * (1 - c) * b * e / (h - 1)

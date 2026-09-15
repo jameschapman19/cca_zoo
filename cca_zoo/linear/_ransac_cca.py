@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from itertools import combinations
 from numbers import Integral, Real
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -46,7 +46,8 @@ def _cross_view_agreement(representations: list[np.ndarray]) -> np.ndarray:
         (z - z.mean(axis=0)) / (z.std(axis=0) + 1e-12) for z in representations
     ]
     pairs = list(combinations(range(len(standardised)), 2))
-    total = sum(standardised[i] * standardised[j] for i, j in pairs)
+    products = [standardised[i] * standardised[j] for i, j in pairs]
+    total: np.ndarray = np.sum(products, axis=0)
     result: np.ndarray = total.sum(axis=1) / len(pairs)
     return result
 
@@ -194,7 +195,9 @@ class RANSACCCA(BaseModel):
             candidate = MCCA(latent_dimensions=k, c=self.c).fit(
                 [v[idx] for v in views_]
             )
-            agreement = _cross_view_agreement(candidate.transform(views_))
+            agreement = _cross_view_agreement(
+                candidate.transform(cast("list[ArrayLike]", views_))
+            )
             score = float(np.clip(agreement, 0.0, None).sum())
             if score > best_score:
                 best_score = score
