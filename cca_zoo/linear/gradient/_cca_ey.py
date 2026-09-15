@@ -14,7 +14,6 @@ from sklearn.utils._param_validation import Interval
 from cca_zoo._utils._ey import (
     cheap_orthonormal_projection_weights,
     ey_cross_covariance,
-    order_components,
     weight_gram_mean,
 )
 from cca_zoo.linear.gradient._base import BaseFullBatchEYModel
@@ -68,23 +67,32 @@ class CCAEY(BaseFullBatchEYModel):
     The loss is invariant to rotating every view's fitted embedding by a
     common orthogonal matrix, so the raw L-BFGS-B solution recovers the
     right canonical *subspace* but not individually ordered, canonically
-    meaningful components. By default (``ordered=False``), weights are
-    rotated into descending-correlation order by a cheap post-hoc
-    :func:`~cca_zoo._utils._ey.order_components` step (a small $k \times k$
-    eigendecomposition) after the joint fit, matching the convention of
-    exact eigendecomposition-based solvers like :class:`~cca_zoo.linear.MCCA`.
+    meaningful components -- by default (``ordered=False``), ``CCAEY``
+    makes no attempt to fix this: components come back in whatever
+    rotation the joint L-BFGS-B solve happened to land on, not
+    necessarily matching :class:`~cca_zoo.linear.MCCA`'s
+    descending-correlation convention. This is deliberate: a cheap post-hoc
+    rotation would give ordered components "for free" without changing the
+    subspace or the loss value, but only by re-deriving them from a fit
+    whose own optimisation never targeted that ordering -- pass
+    ``ordered=True`` instead if you want components that are actually
+    *found* in order, with nothing applied after the fact.
 
-    ``ordered=True`` instead fits one component at a time
+    ``ordered=True`` fits one component at a time
     (:meth:`_fit_lbfgsb_sequential`): component $d$ is optimised by
     L-BFGS-B with every earlier component held fixed, using the exact same
     :meth:`_objective`/:meth:`_derivative` as the joint fit (just
-    restricted to the one free column) -- no new gradient math, and no
-    rotation step, since each component is already found in its final,
-    correctly-ordered position. Component 1 sees no competition
-    (identical to a plain ``latent_dimensions=1`` fit); component 2 is
-    optimised against a fixed component 1; and so on. This costs
-    ``latent_dimensions`` separate L-BFGS-B solves instead of one, so it
-    is slower than the default for large ``latent_dimensions``. See
+    restricted to the one free column) -- no new gradient math. Component
+    1 sees no competition (identical to a plain ``latent_dimensions=1``
+    fit); component 2 is optimised against a fixed component 1; and so on,
+    giving exact descending-correlation order with nothing applied after
+    the fact. This costs ``latent_dimensions`` separate L-BFGS-B solves
+    instead of one, so it is slower than ``ordered=False`` for large
+    ``latent_dimensions`` -- and, being greedy (each component is locked
+    in before the next is found), can converge to a slightly lower total
+    captured correlation than the joint fit on harder problems, since nothing
+    lets an early component be nudged by pressure from later ones the way
+    joint optimisation allows. See
     :class:`~cca_zoo.linear.gradient.StochasticCCAEY`'s own ``ordered``
     for the analogous idea adapted to its mini-batch SGD solver -- that
     version masks the joint gradient (a Sanger's-rule/Generalized-Hebbian
@@ -115,9 +123,11 @@ class CCAEY(BaseFullBatchEYModel):
         tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
             is 1e-6.
         ordered: If True, fit one component at a time (each earlier
-            component held fixed) instead of jointly fitting all
-            components and rotating afterwards. No post-fit rotation is
-            applied when this is True. Default is False.
+            component held fixed), giving exact descending-correlation
+            order with no rotation applied after the fact. If False
+            (default), components come back in whatever rotation the
+            joint L-BFGS-B fit lands on -- faster, but with no ordering
+            guarantee at all.
         random_state: Seed for reproducibility.
 
     Example:
@@ -163,6 +173,12 @@ class CCAEY(BaseFullBatchEYModel):
     def fit(self, views: list[ArrayLike], y: None = None) -> CCAEY:
         """Fit CCAEY by full-batch L-BFGS-B on the EY loss.
 
+        No rotation or reordering is ever applied after the underlying
+        solve: with ``ordered=False`` (default) components come back in
+        whatever rotation the joint fit lands on; with ``ordered=True``
+        they are *found* in descending-correlation order by
+        :meth:`_fit_lbfgsb_sequential` instead. See the class docstring.
+
         Args:
             views: List of 2 or more arrays, each (n_samples, n_features_i).
             y: Ignored.
@@ -180,8 +196,6 @@ class CCAEY(BaseFullBatchEYModel):
             self.weights_ = self._fit_lbfgsb_sequential(views_, rng)
         else:
             self.weights_ = self._fit_lbfgsb(views_, rng)
-            representations = [v @ w for v, w in zip(views_, self.weights_)]
-            self.weights_ = order_components(self.weights_, representations, self.c)
         return self
 
     def _initial_weights_k(
@@ -214,12 +228,12 @@ class CCAEY(BaseFullBatchEYModel):
     ) -> list[np.ndarray]:
         r"""Fit one component at a time via L-BFGS-B, each already-found column fixed.
 
-        ``ordered=True``'s alternative to :meth:`_fit_lbfgsb` +
-        :func:`~cca_zoo._utils._ey.order_components`: instead of jointly
-        optimising all ``latent_dimensions`` columns at once (which
-        recovers the right subspace but an arbitrary rotation within it)
-        and rotating afterwards, each component is optimised on its own,
-        with every earlier component held fixed as a constant. At stage
+        ``ordered=True``'s alternative to :meth:`_fit_lbfgsb`: instead of
+        jointly optimising all ``latent_dimensions`` columns at once
+        (which recovers the right subspace but leaves it in whatever
+        rotation the joint solve happened to land on), each component is
+        optimised on its own, with every earlier component held fixed as
+        a constant. At stage
         $d$, :meth:`_objective`/:meth:`_derivative` (unchanged -- exactly
         the same loss and analytic gradient as the joint fit) are
         evaluated on the full ``[already-found columns, new column]``
@@ -235,8 +249,7 @@ class CCAEY(BaseFullBatchEYModel):
         ``latent_dimensions=1`` fit), so it converges to the single
         strongest canonical direction; component 2 is optimised with
         component 1 held fixed, and so on -- exact descending-correlation
-        order by construction, with no post-fit rotation needed or
-        applied.
+        order by construction, with nothing applied after the fact.
 
         Args:
             views: List of arrays to fit on.
@@ -289,10 +302,8 @@ class CCAEY(BaseFullBatchEYModel):
         Identity hook: returns ``v_blend`` unchanged, so every component's
         penalty gradient sees every other component symmetrically -- the
         loss is then invariant to jointly rotating every view's embedding
-        by any common orthogonal matrix (see
-        :func:`~cca_zoo._utils._ey.order_components`), so a converged fit
-        recovers the right subspace but not individually ordered
-        components.
+        by any common orthogonal matrix, so a converged fit recovers the
+        right subspace but not individually ordered components.
 
         Overridden by :class:`~cca_zoo.linear.gradient.StochasticCCAEY`
         (``ordered=True``) to mask ``v_blend`` to its upper triangle

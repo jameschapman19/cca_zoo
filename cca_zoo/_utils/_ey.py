@@ -33,8 +33,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from cca_zoo._utils._linalg import gevp
-
 
 def ey_cross_covariance(
     representations: list[np.ndarray],
@@ -96,60 +94,6 @@ def weight_gram_mean(weights: list[np.ndarray]) -> np.ndarray:
     """
     total: np.ndarray = sum(w.T @ w for w in weights) / len(weights)
     return total
-
-
-def order_components(
-    weights: list[np.ndarray],
-    representations: list[np.ndarray],
-    c: float = 0.0,
-) -> list[np.ndarray]:
-    r"""Rotate a converged EY-style fit into descending-correlation order.
-
-    The EY loss (see module docstring) is invariant to replacing every
-    embedding $Z_i$ with $Z_i R$ (equivalently every $W_i$ with $W_i R$) for
-    any common orthogonal $R$: $C$, $V$ and $B$ (see
-    :func:`ey_cross_covariance` / :func:`weight_gram_mean`) all transform as
-    $R^\top(\cdot) R$, which leaves every trace term in the loss unchanged.
-    A converged gradient-based fit (L-BFGS-B or SGD) therefore recovers the
-    right *subspace* but an arbitrary rotation within it — nothing in the
-    loss favours the one rotation that makes column $d$ individually the
-    canonical direction with the $d$-th largest correlation, the way an
-    exact eigendecomposition-based solver (e.g.
-    :class:`~cca_zoo.linear.MCCA`) gets ordered components for free.
-
-    This finds that rotation directly, by solving the small $k \times k$
-    generalised eigenproblem $(C - cV) v = \lambda V_c v$
-    (:func:`cca_zoo._utils._linalg.gevp`) on the *already-converged* fit's
-    own $C$ / $V$ / $V_c$ — the same reward-vs-blend pairing
-    :class:`~cca_zoo.linear.gradient.CCAEY`'s own ``_objective`` optimises
-    (see its ``reward``/``v_blend``), so this diagonalises exactly the
-    matrix whose trace the loss already rewards, not an unrelated one: at
-    ``c=0`` the reward is plain $C$ and $V_c = V$; at ``c=1`` (``PLSEY``)
-    the reward drops $V$'s diagonal ($i = j$) contribution entirely and
-    $V_c = B$ (see :func:`weight_gram_mean`). At the optimum $V_c$ is
-    (approximately) the identity restricted to the fitted subspace, so this
-    reduces to diagonalising the reward matrix there — exactly recovering
-    descending canonical correlations on the diagonal, as for the two-view
-    closed form. Costs one $k \times k$ eigendecomposition; leaves the
-    fitted subspace, and hence the loss value, unchanged.
-
-    Args:
-        weights: Per-view weight matrices, each $(p_i, k)$, from a
-            converged fit.
-        representations: The corresponding embeddings
-            ``[v @ w for v, w in zip(views, weights)]``.
-        c: The same ridge blend the weights were fit with (see
-            :class:`~cca_zoo.linear.gradient.CCAEY`'s ``c``); 0 for plain
-            CCAEY, 1 for PLSEY.
-
-    Returns:
-        Rotated weight matrices, same shapes as ``weights``.
-    """
-    C, v_data = ey_cross_covariance(representations)
-    reward = C if c == 0 else C - c * v_data
-    v_blend = v_data if c == 0 else (1 - c) * v_data + c * weight_gram_mean(weights)
-    _, r = gevp(reward, v_blend, reward.shape[0])
-    return [w @ r for w in weights]
 
 
 def random_orthonormal_weights(

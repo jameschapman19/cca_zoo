@@ -10,7 +10,7 @@ from numpy.typing import ArrayLike
 from sklearn.utils import gen_batches
 from sklearn.utils._param_validation import Interval
 
-from cca_zoo._utils._ey import cheap_orthonormal_projection_weights, order_components
+from cca_zoo._utils._ey import cheap_orthonormal_projection_weights
 from cca_zoo.linear.gradient._cca_ey import CCAEY
 
 
@@ -27,26 +27,24 @@ class StochasticCCAEY(CCAEY):
     when the full dataset does not fit comfortably in memory or a full-batch
     gradient evaluation is too slow to repeat every iteration.
 
-    As with :class:`~cca_zoo.linear.gradient.CCAEY`, the fitted weights are
-    rotated into descending-correlation order after training (see
-    :func:`~cca_zoo._utils._ey.order_components`) -- a cheap post-hoc fix
-    for the rotational symmetry the plain EY loss has no reason to resolve
-    on its own. Passing ``ordered=True`` instead resolves that symmetry
-    during training itself: :meth:`_penalty_matrix` is overridden to mask
-    the blended penalty matrix to its upper triangle, so component $d$'s
-    decorrelation pressure only sees components $\le d$, never $> d$. This
-    is a generalised-eigenproblem analogue of Sanger's rule (the
-    Generalized Hebbian Algorithm): component 1 feels no competition and
-    converges like plain power iteration to the single strongest
-    direction; component 2 is deflated against component 1 only; and so
-    on -- ordering falls out of the training dynamics rather than a
-    post-fit rotation. The masked gradient no longer corresponds to the
-    gradient of any single symmetric scalar loss, so it cannot be handed
-    to a line-search method like L-BFGS-B (:class:`CCAEY`'s solver) --
-    plain momentum SGD, with no line search, is exactly what tolerates
-    that mismatch. The post-fit :func:`~cca_zoo._utils._ey.order_components`
-    call still runs afterwards regardless (a near no-op once ``ordered``
-    training has converged, and a safety net if it hasn't fully).
+    As with :class:`~cca_zoo.linear.gradient.CCAEY`, no rotation or
+    reordering is ever applied after the underlying solve. By default
+    (``ordered=False``) components come back in whatever rotation the
+    training dynamics happen to land on -- the EY loss has no reason to
+    prefer descending-correlation order on its own. ``ordered=True``
+    instead resolves that symmetry *during* training: :meth:`_penalty_matrix`
+    is overridden to mask the blended penalty matrix to its upper
+    triangle, so component $d$'s decorrelation pressure only sees
+    components $\le d$, never $> d$. This is a generalised-eigenproblem
+    analogue of Sanger's rule (the Generalized Hebbian Algorithm):
+    component 1 feels no competition and converges like plain power
+    iteration to the single strongest direction; component 2 is deflated
+    against component 1 only; and so on -- ordering falls out of the
+    training dynamics themselves, with nothing applied after the fact.
+    The masked gradient no longer corresponds to the gradient of any
+    single symmetric scalar loss, so it cannot be handed to a line-search
+    method like L-BFGS-B (:class:`CCAEY`'s solver) -- plain momentum SGD,
+    with no line search, is exactly what tolerates that mismatch.
 
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
@@ -65,8 +63,9 @@ class StochasticCCAEY(CCAEY):
             between consecutive epochs. Default is 1e-6.
         ordered: If True, mask the penalty gradient to upper-triangular
             (Sanger's-rule-style) so training itself converges directly to
-            ordered components, instead of relying on the post-fit
-            rotation alone. Default is False.
+            descending-correlation-ordered components. If False (default),
+            components come back in whatever rotation training lands on --
+            faster per step, but with no ordering guarantee at all.
         random_state: Seed for reproducibility.
 
     Example:
@@ -125,6 +124,12 @@ class StochasticCCAEY(CCAEY):
     def fit(self, views: list[ArrayLike], y: None = None) -> StochasticCCAEY:
         """Fit by mini-batch momentum SGD on the EY loss.
 
+        No rotation or reordering is ever applied after training: with
+        ``ordered=False`` (default) components come back in whatever
+        rotation the training dynamics land on; with ``ordered=True`` the
+        masked gradient (:meth:`_penalty_matrix`) makes training itself
+        converge to descending-correlation order. See the class docstring.
+
         Args:
             views: List of 2 or more arrays, each (n_samples, n_features_i).
             y: Ignored.
@@ -139,8 +144,6 @@ class StochasticCCAEY(CCAEY):
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
         self.weights_ = self._fit_sgd(views_, rng)
-        representations = [v @ w for v, w in zip(views_, self.weights_)]
-        self.weights_ = order_components(self.weights_, representations, self.c)
         return self
 
     def _initial_weights(

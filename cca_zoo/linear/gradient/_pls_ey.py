@@ -45,9 +45,11 @@ class PLSEY(CCAEY):
         tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
             is 1e-6.
         ordered: If True, fit one component at a time instead of jointly
-            fitting all components and rotating afterwards; see
+            fitting all components, giving exact descending-correlation
+            order with nothing applied after the fact; see
             :class:`~cca_zoo.linear.gradient.CCAEY`'s own ``ordered`` for
-            the mechanism. Default is False.
+            the mechanism and its cost/quality tradeoffs. Default is False
+            (no ordering guarantee).
         random_state: Seed for reproducibility.
 
     Example:

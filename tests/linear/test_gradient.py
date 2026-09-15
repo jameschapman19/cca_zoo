@@ -320,7 +320,15 @@ def test_center_false(ModelClass: type, two_views: list[np.ndarray]) -> None:
 
 
 def test_cca_ey_matches_cca(correlated_views: list[np.ndarray]) -> None:
-    """Converged CCAEY recovers the same, descending-ordered correlations as CCA."""
+    """Converged CCAEY recovers the same correlations as exact CCA.
+
+    Default ``ordered=False`` applies no rotation or reordering, so
+    L-BFGS-B is not guaranteed to return components in
+    descending-correlation order the way the exact eigendecomposition
+    does -- both sides are sorted before comparing. See
+    ``test_cca_ey_ordered_matches_cca`` for the ``ordered=True`` variant,
+    which needs no such re-sorting.
+    """
     k = 2
     s_cca = CCA(latent_dimensions=k).fit(correlated_views).score(correlated_views)
     s_ey = (
@@ -328,13 +336,13 @@ def test_cca_ey_matches_cca(correlated_views: list[np.ndarray]) -> None:
         .fit(correlated_views)
         .score(correlated_views)
     )
-    # order_components() rotates the fit into descending-correlation order,
-    # matching the exact eigendecomposition's convention component-for-component.
-    np.testing.assert_allclose(s_ey, sorted(s_cca, reverse=True), atol=0.05)
+    np.testing.assert_allclose(
+        sorted(s_ey, reverse=True), sorted(s_cca, reverse=True), atol=0.05
+    )
 
 
 def test_pls_ey_matches_pls(correlated_views: list[np.ndarray]) -> None:
-    """Converged PLSEY recovers the same, descending-ordered correlations as PLS."""
+    """Converged PLSEY recovers the same correlations as exact PLS (unordered)."""
     k = 2
     s_pls = PLS(latent_dimensions=k).fit(correlated_views).score(correlated_views)
     s_ey = (
@@ -342,7 +350,9 @@ def test_pls_ey_matches_pls(correlated_views: list[np.ndarray]) -> None:
         .fit(correlated_views)
         .score(correlated_views)
     )
-    np.testing.assert_allclose(s_ey, sorted(s_pls, reverse=True), atol=0.05)
+    np.testing.assert_allclose(
+        sorted(s_ey, reverse=True), sorted(s_pls, reverse=True), atol=0.05
+    )
 
 
 def test_cca_ey_matches_mcca_for_three_views(
@@ -360,7 +370,9 @@ def test_cca_ey_matches_mcca_for_three_views(
         .fit(three_correlated_views)
         .score(three_correlated_views)
     )
-    np.testing.assert_allclose(s_ey, sorted(s_mcca, reverse=True), atol=0.05)
+    np.testing.assert_allclose(
+        sorted(s_ey, reverse=True), sorted(s_mcca, reverse=True), atol=0.05
+    )
 
 
 def test_cca_ey_ordered_matches_cca(
@@ -368,11 +380,11 @@ def test_cca_ey_ordered_matches_cca(
 ) -> None:
     """CCAEY(ordered=True) matches exact CCA's descending correlations directly.
 
-    Unlike the default (rotate-after-the-fact) fit, sequential
-    (one-component-at-a-time) fitting needs no post-fit rotation: each
-    component is already optimised in its final, correctly-ordered slot,
-    so ``s_ey`` should already equal ``sorted(s_cca, reverse=True)``
-    without either side needing re-sorting.
+    Unlike default ``ordered=False`` (which applies no rotation at all,
+    see ``test_cca_ey_matches_cca``), sequential (one-component-at-a-time)
+    fitting needs none either: each component is already optimised in its
+    final, correctly-ordered slot, so ``s_ey`` should already equal
+    ``sorted(s_cca, reverse=True)`` without either side needing re-sorting.
     """
     k = 3
     s_cca = (
@@ -387,26 +399,6 @@ def test_cca_ey_ordered_matches_cca(
     )
     np.testing.assert_allclose(s_ey, sorted(s_cca, reverse=True), atol=0.02)
     assert np.all(np.diff(s_ey) <= 1e-9), f"CCAEY(ordered=True) not ordered: {s_ey}"
-
-
-def test_cca_ey_ordered_skips_post_fit_rotation(
-    monkeypatch: pytest.MonkeyPatch, two_views: list[np.ndarray]
-) -> None:
-    """``ordered=True`` never calls ``order_components``: no rotation step at all.
-
-    The sequential fit finds each component already in its final position,
-    so (unlike the default path) nothing should try to rotate the result
-    afterwards.
-    """
-    import cca_zoo.linear.gradient._cca_ey as cca_ey_module
-
-    def _fail(*args: object, **kwargs: object) -> None:
-        raise AssertionError("order_components should not be called when ordered=True")
-
-    monkeypatch.setattr(cca_ey_module, "order_components", _fail)
-    model = CCAEY(latent_dimensions=2, ordered=True, max_iter=20, random_state=0)
-    fitted = model.fit(two_views)
-    assert fitted is model
 
 
 @pytest.mark.parametrize("ModelClass", [CCAEY, PLSEY])
@@ -471,51 +463,60 @@ def separated_correlation_views() -> list[np.ndarray]:
 
 
 @pytest.mark.parametrize("ModelClass", [CCAEY, StochasticCCAEY])
-def test_ey_models_return_descending_correlation_order(
+def test_ordered_true_returns_descending_correlation_order(
     ModelClass: type, separated_correlation_views: list[np.ndarray]
 ) -> None:
-    """order_components() leaves fitted components in descending-correlation order.
+    """``ordered=True`` returns components in descending-correlation order.
 
-    Without the post-fit rotation, L-BFGS-B/SGD lands on an arbitrary
-    rotation within the correct subspace, so this would only hold by luck.
-    ``PLSEY`` is excluded here: like exact :class:`~cca_zoo.linear.PLS`
-    (see ``test_pls_ey_matches_pls``'s own ``sorted()`` comparison), PLS
+    Neither class ever rotates or reorders after the fact: ``CCAEY``
+    fits one component at a time (:meth:`_fit_lbfgsb_sequential`) and
+    ``StochasticCCAEY`` masks its penalty gradient
+    (:meth:`_penalty_matrix`), so ordering has to come directly out of
+    each one's own training dynamics for this to hold. ``PLSEY`` is
+    excluded here: like exact :class:`~cca_zoo.linear.PLS` (see
+    ``test_pls_ey_matches_pls``'s own ``sorted()`` comparison), PLS
     components are ordered by captured *covariance*, not the Pearson
     *correlation* ``score()`` reports, so the two orderings need not agree
     when component variances differ.
     """
     s = (
-        ModelClass(latent_dimensions=3, max_iter=500, random_state=0)
+        ModelClass(latent_dimensions=3, ordered=True, max_iter=500, random_state=0)
         .fit(separated_correlation_views)
         .score(separated_correlation_views)
     )
-    assert np.all(np.diff(s) <= 1e-9), f"{ModelClass.__name__} not ordered: {s}"
+    assert np.all(np.diff(s) <= 1e-2), f"{ModelClass.__name__} not ordered: {s}"
 
 
-def test_stochastic_cca_ey_ordered_orders_before_post_fit_rotation(
-    separated_correlation_views: list[np.ndarray],
+@pytest.mark.parametrize("ModelClass", [CCAEY, StochasticCCAEY])
+def test_ordered_false_applies_no_post_fit_transformation(
+    ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
-    """``ordered=True``'s masked penalty yields descending scores pre-rotation.
+    """Default ``ordered=False`` returns the raw solver output, unmodified.
 
-    Every ``StochasticCCAEY``/``CCAEY`` fit is rotated into order after the
-    fact (see the previous test), so that alone can't show whether
-    ``ordered=True`` actually changes the *training dynamics*. This bypasses
-    ``fit``'s post-hoc ``order_components`` call and checks the raw output of
-    ``_fit_sgd`` directly: ``_penalty_matrix``'s upper-triangular mask (see
-    ``StochasticCCAEY``'s docstring) should already leave component ``d``
-    with no competition from components ``> d``, so training converges
-    straight to descending order on its own.
+    Regression guard against the old (removed) default behaviour, which
+    unconditionally rotated every fit into descending-correlation order
+    after the fact. Checked mechanically rather than statistically: with
+    an identically-seeded rng, ``weights_`` must equal exactly what the
+    underlying solver (``_fit_lbfgsb`` / ``_fit_sgd``) produces on its
+    own, with nothing applied afterwards -- deliberately not a claim
+    about whether that raw solve lands on the global optimum (the plain,
+    unregularised ``c=0`` joint fit can converge to a real local optimum
+    on some problems, a separate, pre-existing characteristic of L-BFGS-B
+    on this non-convex loss, documented in ``CCAEY``'s own docstring note
+    on numerical stability -- not something ``ordered`` changes).
     """
-    model = StochasticCCAEY(
-        latent_dimensions=3, ordered=True, max_iter=500, random_state=0
-    )
-    views_ = model._setup_fit(separated_correlation_views)
+    model = ModelClass(latent_dimensions=2, ordered=False, max_iter=20, random_state=0)
+    fitted_weights = model.fit(two_views).weights_
+
+    views_ = model._setup_fit(two_views)
     rng = np.random.default_rng(model.random_state)
-    raw_weights = model._fit_sgd(views_, rng)
-    reps = [(v @ w) for v, w in zip(views_, raw_weights)]
-    reps = [r - r.mean(axis=0) for r in reps]
-    s = np.array([np.corrcoef(reps[0][:, d], reps[1][:, d])[0, 1] for d in range(3)])
-    assert np.all(np.diff(s) <= 1e-2), f"raw (pre-rotation) fit not ordered: {s}"
+    raw_weights = (
+        model._fit_lbfgsb(views_, rng)
+        if ModelClass is CCAEY
+        else model._fit_sgd(views_, rng)
+    )
+    for a, b in zip(fitted_weights, raw_weights):
+        np.testing.assert_array_equal(a, b)
 
 
 # ---------------------------------------------------------------------------
