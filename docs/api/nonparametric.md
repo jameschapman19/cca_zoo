@@ -1,6 +1,6 @@
 # cca_zoo.nonparametric
 
-Kernel-based nonparametric CCA methods.
+Kernel- and graph-based nonparametric CCA methods.
 
 ---
 
@@ -13,3 +13,7 @@ Kernel-based nonparametric CCA methods.
 ---
 
 ::: cca_zoo.nonparametric.KTCCA
+
+---
+
+::: cca_zoo.nonparametric.ManifoldCCA

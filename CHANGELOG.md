@@ -9,6 +9,28 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `ManifoldCCA`: transductive multiview CCA where each view's within-view constraint is
+  a graph operator from spectral manifold learning -- the graph Laplacian (matching
+  `sklearn.manifold.SpectralEmbedding`, `method="laplacian"`) or the LLE local
+  reconstruction operator (`method="lle"`, hand-implemented -- `LocallyLinearEmbedding`
+  doesn't expose it as public API) -- in place of a covariance matrix. Solves the joint,
+  multiview generalised eigenproblem this induces directly (each view's "weight" *is*
+  its training-set embedding, since there's no feature map, only a per-view graph built
+  from that view's own local neighbourhood structure), then extends out of sample via a
+  per-view `KernelRidge` (RBF) regression from raw features onto that embedding, rather
+  than re-deriving each method's own single-view Nystrom extension for this new joint
+  eigenproblem. On two views that are different nonlinear (different angular frequency)
+  spiral embeddings of one shared 1-D coordinate -- where no linear map from one view's
+  ambient coordinates to the other's exists, but a k-NN graph on either still respects
+  the shared ordering -- `method="laplacian"` recovers substantially higher held-out
+  correlation than plain `MCCA` or `KCCA` with an RBF kernel (see
+  `tests/nonparametric/test_manifold_cca.py`). Hessian-LLE and LTSA are not implemented
+  (both need a local Hessian/tangent-space estimate per point, meaningfully more involved
+  to get right than the graph Laplacian or LLE's reconstruction weights); Isomap-flavoured
+  (geodesic) regularisation is already achievable via `KCCA` with a precomputed geodesic
+  Gram matrix, so isn't duplicated here. Like `KCCA`, `inverse_transform`/`predict` aren't
+  supported (both assume a `(n_features_i, k)` weight, not a `(n_train_samples, k)`
+  transductive embedding).
 - `GraphicalLassoCCA`: `MCCA` with each view's within-view covariance block replaced by
   `sklearn.covariance.GraphicalLasso`'s (or, with `alpha=None`, `GraphicalLassoCV`'s)
   L1-penalised sparse-precision estimate's implied covariance -- every other within-view

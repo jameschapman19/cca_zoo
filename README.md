@@ -112,6 +112,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `KCCA` | Kernel CCA |
 | `KGCCA` | Kernel Generalised CCA |
 | `KTCCA` | Kernel Tensor CCA |
+| `ManifoldCCA` | Transductive CCA over a shared graph Laplacian or LLE operator (Belkin & Niyogi 2003; Roweis & Saul 2000) |
 
 ### `cca_zoo.tree` *(requires `[tree]`)*
 

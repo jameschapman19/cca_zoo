@@ -1,7 +1,7 @@
 # Nonparametric Methods
 
-The `cca_zoo.nonparametric` module provides kernel-based CCA methods that can capture nonlinear
-relationships between views without explicitly constructing feature maps.
+The `cca_zoo.nonparametric` module provides kernel- and graph-based CCA methods that can capture
+nonlinear relationships between views without explicitly constructing feature maps.
 
 ---
 
@@ -111,6 +111,49 @@ model = KTCCA(latent_dimensions=2, kernel="rbf", gamma=0.01, c=0.1, random_state
 
 ---
 
+## ManifoldCCA — transductive manifold CCA
+
+**When to use:** Two views share a single underlying coordinate that is embedded
+*nonlinearly and differently* in each view's raw features (e.g. two different curved/spiral
+parameterisations), so no linear map and no single global kernel connects the two ambient
+spaces well, but each view's own local (k-nearest-neighbour) structure still respects the
+shared ordering.
+
+Unlike `KCCA`, which replaces the inner product with a global kernel, `ManifoldCCA` replaces the
+within-view *covariance* with a graph operator built from that view's own local neighbourhood
+structure -- the graph Laplacian ($M = D - W$, `method="laplacian"`, matching
+`sklearn.manifold.SpectralEmbedding`) or the LLE reconstruction operator ($M = (I-W)^\top(I-W)$,
+`method="lle"`). Since there's no feature map at all here, the "weight" the joint eigenproblem
+solves for *is* each view's training-set embedding directly:
+
+```python
+from cca_zoo.nonparametric import ManifoldCCA
+
+model = ManifoldCCA(method="laplacian", n_neighbors=10, latent_dimensions=1).fit([X1, X2])
+train_embedding = model.weights  # (n_train, k) per view -- the embedding itself, not a weight matrix
+```
+
+### Transform
+
+There is no feature map to apply to new data, so out-of-sample projection is not the graph
+operator's own (single-view) Nystrom extension, but a per-view `KernelRidge` (RBF) regression
+fit from each view's raw training features onto its own training embedding:
+
+```python
+z1, z2 = model.transform([X1_test, X2_test])
+```
+
+`inverse_transform`/`predict` are not supported (same limitation as `KCCA`): both assume a
+`(n_features_i, k)` weight matrix, not a `(n_train_samples, k)` transductive embedding.
+
+**Not implemented:** Hessian-LLE and LTSA (`sklearn.manifold.LocallyLinearEmbedding`'s other two
+`method` options) need a local Hessian/tangent-space estimate per point, substantially more
+involved to get right than the Laplacian or plain LLE operator. Isomap-flavoured (geodesic
+distance) regularisation is achievable today via `KCCA` with a precomputed geodesic Gram matrix
+in place of a standard kernel.
+
+---
+
 ## Hyperparameter tuning
 
 Kernel hyperparameters (`c`, `gamma`, `degree`) are best selected by cross-validation.
@@ -165,6 +208,9 @@ model = KCCA(
 
 - Kernel methods store the full $n \times n$ kernel matrices. Memory is $O(n^2)$; be cautious
   with $n > 10{,}000$.
+- `ManifoldCCA` solves a dense $(nM) \times (nM)$ generalised eigenproblem ($n$ = training
+  samples, $M$ = number of views) -- the same cost profile as the kernel methods above, intended
+  for moderate training-set sizes rather than very large $n$.
 - For large datasets, prefer the linear EY-loss methods (`CCAEY`, `PLSEY`, `StochasticCCAEY`)
   or deep methods.
 - The `c` parameter is crucial: too small → numerical instability; too large → loss of structure.
