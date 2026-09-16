@@ -298,7 +298,7 @@ Solves the same L1-constrained problem via the Alternating Direction Method of M
 ```python
 from cca_zoo.linear import SCCAADMM
 
-model = SCCAADMM(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
+model = SCCAADMM(latent_dimensions=2, tau=0.01, random_state=0).fit([X1, X2])
 ```
 
 ### SCCAIPLS

@@ -22,6 +22,7 @@ from typing import cast
 
 import numpy as np
 from numpy.typing import ArrayLike
+from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import brentq
 from sklearn.linear_model import ElasticNet, Lasso, Ridge, lasso_path
 from sklearn.utils import deprecated
@@ -429,10 +430,9 @@ class SCCAADMM(_BaseIterative):
 
     $$
     \begin{aligned}
-    \mathbf{w}_i &\leftarrow \mathbf{w}_i - \gamma_i \Bigl(
-        X_i^\top X_i \mathbf{w}_i - X_i^\top \bar{\mathbf{s}}_{\neg i}
-        + \mu (\mathbf{w}_i - \mathbf{z}_i + \mathbf{u}_i)
-    \Bigr) \\
+    \mathbf{w}_i &\leftarrow \Bigl(\tfrac2n X_i^\top X_i + \mu I\Bigr)^{-1}
+        \Bigl(\tfrac2n X_i^\top \bar{\mathbf{s}}_{\neg i}
+        + \mu (\mathbf{z}_i - \mathbf{u}_i)\Bigr) \\
     \mathbf{z}_i &\leftarrow \Pi_{\|\cdot\|_2 \le 1}\Bigl(
         \mathcal{S}_{\tau_i / \mu}(\mathbf{w}_i + \mathbf{u}_i)
     \Bigr) \\
@@ -440,11 +440,30 @@ class SCCAADMM(_BaseIterative):
     \end{aligned}
     $$
 
-    where $\bar{\mathbf{s}}_{\neg i}$ is the summed projected score
-    from all other views, $\mathcal{S}_\lambda$ is the elementwise
-    soft-threshold operator, $\Pi_{\|\cdot\|_2 \le 1}$ projects onto
-    the unit ball, $\mathbf{u}_i$ is the scaled dual variable, and
-    $\gamma_i = \bigl(\|X_i^\top X_i\| / n + \mu\bigr)^{-1}$.
+    where $\bar{\mathbf{s}}_{\neg i}$ is the summed projected score from all
+    other views, $\mathcal{S}_\lambda$ is the elementwise soft-threshold
+    operator, and $\Pi_{\|\cdot\|_2 \le 1}$ projects onto the unit ball. The
+    $\mathbf{w}_i$ update is the *exact* minimiser of its (quadratic)
+    subproblem, $\tfrac1n\|X_i\mathbf{w}_i - \bar{\mathbf{s}}_{\neg i}\|_2^2 +
+    \tfrac{\mu}{2}\|\mathbf{w}_i - \mathbf{z}_i + \mathbf{u}_i\|_2^2$ (whose
+    gradient needs the $\tfrac2n$ above, not $\tfrac1n$), solved once per
+    iteration via a Cholesky factor of $\tfrac2n X_i^\top X_i + \mu I$
+    computed once per view (it does not change across iterations) rather
+    than the single proximal-gradient step an earlier version of this class
+    took towards it. That gradient step used an un-normalised gradient
+    ($X_i^\top X_i \mathbf{w}_i - X_i^\top\bar{\mathbf{s}}_{\neg i}$, missing
+    a $\tfrac2n$ entirely) against a step size calibrated for the
+    *normalised* loss ($\gamma_i = (\|X_i^\top X_i\|/n + \mu)^{-1}$), so the
+    data term was effectively over-weighted by a factor of $n$ relative to
+    the proximal term -- harmless at very small $n$ (the class's own example
+    and its previous test coverage both used $n=50$), but this diverged to
+    ``nan`` well before ``max_iter`` at $n=200$ on perfectly ordinary data.
+    The exact solve has no step size to get wrong; a first attempt at it
+    still dropped the same factor of 2 (using $\tfrac1n$ throughout), caught
+    by comparing against a from-scratch proximal-gradient solve of the exact
+    constrained problem, which the corrected $\tfrac2n$ version matches
+    exactly where the $\tfrac1n$ version converged cleanly to a measurably
+    over-shrunk, wrong stationary point instead.
 
     References:
         Suo, X., Mineiro, P., & Anandkumar, A. (2017). Sparse canonical
@@ -453,7 +472,12 @@ class SCCAADMM(_BaseIterative):
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
-        tau: L1 regularisation weight(s). Default is 0.1.
+        tau: L1 regularisation weight(s). Default is 0.01 -- unlike
+            :class:`SCCAPMD`'s ``tau`` (a fraction of a p-dependent
+            Cauchy-Schwarz bound), this is a raw per-entry penalty
+            comparable in scale to the entries of ``w + u`` themselves, so
+            values much above this default can zero every view's weights
+            entirely on typical data.
         mu: ADMM penalty parameter (step size). Default is 1.0.
         max_iter: Maximum outer iterations. Default is 500.
         tol: Convergence tolerance. Default is 1e-6.
@@ -464,14 +488,14 @@ class SCCAADMM(_BaseIterative):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = SCCAADMM(tau=0.1, random_state=0).fit([X1, X2])
+        >>> model = SCCAADMM(tau=0.01, random_state=0).fit([X1, X2])
     """
 
     def __init__(
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        tau: float | list[float] = 0.1,
+        tau: float | list[float] = 0.01,
         mu: float = 1.0,
         max_iter: int = 500,
         tol: float = 1e-6,
@@ -500,20 +524,35 @@ class SCCAADMM(_BaseIterative):
             w: Weight vectors (updated in-place).
             d: Current latent dimension index.
         """
-        tau_ = perview_parameter("tau", self.tau, 0.1, len(views))
+        tau_ = perview_parameter("tau", self.tau, 0.01, len(views))
         n = views[0].shape[0]
         z = [wi.copy() for wi in w]
         eta = [np.zeros_like(wi) for wi in w]
+        # X_i and mu are fixed across every ADMM iteration for this latent
+        # dimension, so the w-subproblem's Cholesky factor is too -- computed
+        # once here rather than re-forming X_i^T X_i and re-solving from
+        # scratch on every iteration.
+        # The gradient of (1/n)||X w - target||^2 is (2/n) X^T(Xw - target),
+        # so both the Cholesky factor and the right-hand side below need a
+        # 2/n scaling, not 1/n -- the same factor-of-2 that CCAR3's ADMM was
+        # missing (see cca_zoo.linear._ccar3), reintroduced here independently
+        # and caught the same way: it converges cleanly to a stationary point
+        # that is measurably *not* the constrained problem's true optimum
+        # (verified against a from-scratch proximal-gradient ground truth).
+        cho_factors = [
+            cho_factor(
+                2 * views[i].T @ views[i] / n + self.mu * np.eye(views[i].shape[1])
+            )
+            for i in range(len(views))
+        ]
         for _iter in range(self.max_iter):
             w_prev = [wi.copy() for wi in w]
-            # Compute gradient targets
             targets = [_target_score(views, w, i) for i in range(len(views))]
             for i in range(len(views)):
-                XtX = views[i].T @ views[i]
                 Xtarget = views[i].T @ targets[i]
-                # w-update: proximal gradient
-                gradient = XtX @ w[i] - Xtarget + self.mu * (w[i] - z[i] + eta[i])
-                w[i] = w[i] - (gradient / (np.linalg.norm(XtX) / n + self.mu))
+                # w-update: exact minimiser of the quadratic subproblem
+                rhs = 2 * Xtarget / n + self.mu * (z[i] - eta[i])
+                w[i] = cho_solve(cho_factors[i], rhs)
                 # z-update: soft thresholding
                 z[i] = soft_threshold(w[i] + eta[i], tau_[i] / self.mu)
                 # Project z to unit ball if needed

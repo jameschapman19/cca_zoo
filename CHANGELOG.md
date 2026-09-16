@@ -265,6 +265,24 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- `SCCAADMM`'s primal `w`-update took a single proximal-gradient step per ADMM
+  iteration using an *un-normalised* gradient (`X^TXw - X^Ttarget`, no `1/n`) against a
+  step size calibrated for the *normalised* loss (`(‖X^TX‖/n + mu)^-1`), so the data
+  term was effectively over-weighted by a factor of `n` relative to the proximal term.
+  Harmless at the tiny `n=50` every existing example and test used, this diverged to
+  `nan` well before `max_iter` at `n=200` on perfectly ordinary Gaussian data. Replaced
+  with the *exact* closed-form minimiser of the same (quadratic) subproblem, solved via
+  a Cholesky factor computed once per view rather than re-forming `X^TX` from scratch
+  on every iteration -- both more correct (no step size to get wrong) and faster. A
+  first attempt at this fix itself dropped a factor of 2 (`(1/n)X^TX` instead of the
+  `(2/n)X^TX` the loss's gradient actually needs -- the same class of bug `CCAR3`'s own
+  ADMM had); caught by comparing against a from-scratch proximal-gradient solve of the
+  exact constrained problem, which only the corrected `2/n` version matches. Because the
+  fix genuinely changes the solver's numerical behaviour, `tau`'s default is lowered
+  from `0.1` to `0.01`: at the old default, the corrected (properly-weighted) solver now
+  drives every view's weights to exactly zero on typical data, where the old buggy
+  solver's under-weighted proximal term had been silently masking `0.1` as an
+  effectively much weaker penalty than the class's own convex problem says it is.
 - `CCAR3(highdim=True)` (the default) systematically over-penalised relative to what
   `lambda_` documents: its hand-rolled ADMM solver for the row-group-lasso reduced-rank
   regression subproblem had a factor of 2 missing from its B-update's linear system (the
