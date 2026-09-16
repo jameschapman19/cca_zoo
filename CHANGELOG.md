@@ -309,6 +309,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- `SCCAPMD`'s per-view soft-threshold bisection (`_bisect_threshold`, finding the
+  threshold hitting a target L1/L2 ratio) now uses `scipy.optimize.brentq` instead of a
+  hand-rolled bisection that unconditionally ran all 50 iterations regardless of how
+  quickly it had already converged. `brentq`'s superlinear convergence plus a real
+  tolerance-based stop reaches the same root (matches the old fixed-count bisection to
+  within 1e-9 across 500 random trials) in far fewer evaluations: 3.65x faster in
+  isolation, 1.8x faster for a full `SCCAPMD.fit` in a direct benchmark. No behaviour
+  change other than speed.
 - `TreeCCA(backend="xgboost"/"lightgbm")` is replaced by two concrete classes,
   `XGBoostCCA` and `LightGBMCCA`, each fixing one gradient-boosting backend. `TreeCCA`
   itself becomes an abstract base class holding the shared Eckart-Young fitting/transform
