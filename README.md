@@ -134,6 +134,12 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 |---|---|---|
 | `GPCCA` | Gaussian-process CCA (Eckart-Young objective), with predictive uncertainty | ≥2 |
 
+### `cca_zoo.isotonic`
+
+| Class | Description | Views |
+|---|---|---|
+| `IsotonicCCA` | Monotonic-additive-model CCA via boosted isotonic regression (Eckart-Young objective) | ≥2 |
+
 ### `cca_zoo.sparse`
 
 | Class | Description | Views |

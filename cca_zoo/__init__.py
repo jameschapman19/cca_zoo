@@ -14,6 +14,7 @@ __all__ = [
     "deep",
     "gam",
     "gp",
+    "isotonic",
     "linear",
     "model_selection",
     "nonparametric",

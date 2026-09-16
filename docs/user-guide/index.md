@@ -8,6 +8,7 @@ This guide explains each family of methods available in CCA-Zoo, their mathemati
 | [Nonparametric Methods](nonparametric.md) | Nonlinear relationships via kernel functions |
 | [Tree Methods](tree.md) | Nonlinear relationships with built-in, split-gain feature importance |
 | [GAM Methods](gam.md) | Smooth nonlinear (additive) relationships with per-feature shape functions |
+| [Isotonic Methods](isotonic.md) | Monotonic (additive) relationships with a provably monotonic shape per feature |
 | [Deep Methods](deep.md) | Very high-dimensional data with complex structure (images, text) |
 | [Probabilistic CCA](probabilistic.md) | Uncertainty quantification; Bayesian treatment |
 | [Datasets](datasets.md) | Simulating and loading multiview datasets |

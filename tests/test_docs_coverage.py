@@ -41,6 +41,7 @@ MODULE_DOC_PAGES = {
     "cca_zoo.nonparametric": "nonparametric.md",
     "cca_zoo.probabilistic": "probabilistic.md",
     "cca_zoo.tree": "tree.md",
+    "cca_zoo.isotonic": "isotonic.md",
     "cca_zoo.datasets": "datasets.md",
     "cca_zoo.model_selection": "model-selection.md",
 }

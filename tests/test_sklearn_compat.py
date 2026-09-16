@@ -36,6 +36,7 @@ _MODULE_NAMES = [
     "cca_zoo.nonparametric",
     "cca_zoo.tree",
     "cca_zoo.gam",
+    "cca_zoo.isotonic",
     "cca_zoo.gp",
     "cca_zoo.probabilistic",
     "cca_zoo.sparse",

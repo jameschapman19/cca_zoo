@@ -107,6 +107,7 @@ nav:
       - Nonparametric Methods: user-guide/nonparametric.md
       - Tree Methods: user-guide/tree.md
       - GAM Methods: user-guide/gam.md
+      - Isotonic Methods: user-guide/isotonic.md
       - GP Methods: user-guide/gp.md
       - Sparse Methods: user-guide/sparse.md
       - Deep Methods: user-guide/deep.md
@@ -119,6 +120,7 @@ nav:
       - Nonparametric: api/nonparametric.md
       - Tree: api/tree.md
       - GAM: api/gam.md
+      - Isotonic: api/isotonic.md
       - GP: api/gp.md
       - Sparse: api/sparse.md
       - Deep: api/deep.md

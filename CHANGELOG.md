@@ -9,6 +9,26 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `IsotonicCCA`: nonlinear multiview CCA with a monotonic additive encoder -- like `GAMCCA`,
+  $f_i(x) = \sum_j s_j(x_j)$, additive across features, but each term $s_j$ is fit via
+  `sklearn.isotonic.IsotonicRegression` (PAVA) instead of an unconstrained B-spline, so it's
+  provably monotonic. An isotonic step function has no fixed finite basis (its breakpoints
+  adapt to the data, the same way a tree's splits do), so unlike `GAMCCA`'s single joint
+  Newton-CG solve, this is fit by `TreeCCA`'s own functional-gradient-boosting recipe: each
+  round, for every view in turn, one isotonic term is fit per feature against that view's
+  current EY gradient and added to that feature's running contribution, Gauss-Seidel across
+  views. Each feature's monotonicity direction is fixed once (from its correlation with the
+  first round's descent direction) and reused for every later round -- a sum of same-direction
+  monotonic terms is itself monotonic, which is what makes the whole fit monotonic, not just
+  one round of it. Two things this needed that `TreeCCA` doesn't: each round's isotonic terms
+  are fit on a `subsample` of rows, since (unlike a depth-limited tree) an isotonic fit has no
+  built-in capacity limit and reliably overfits worse the more rounds it runs for without one;
+  and the accumulation step negates the gradient before fitting, since (unlike XGBoost/LightGBM,
+  whose Newton-step leaf values are already correctly signed by the library itself) nothing
+  here does that negation automatically -- an earlier version didn't, and its accumulated
+  prediction grew without bound each round instead of converging, caught by boosting toward a
+  fixed target and watching the residual grow instead of shrink (now a regression test at both
+  the encoder and model level, `tests/isotonic/test_isotoniccca.py`).
 - `ManifoldCCA`: transductive multiview CCA where each view's within-view constraint is
   a graph operator from spectral manifold learning -- the graph Laplacian (matching
   `sklearn.manifold.SpectralEmbedding`, `method="laplacian"`) or the LLE local
