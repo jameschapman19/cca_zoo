@@ -16,10 +16,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
   doesn't expose it as public API) -- in place of a covariance matrix. Solves the joint,
   multiview generalised eigenproblem this induces directly (each view's "weight" *is*
   its training-set embedding, since there's no feature map, only a per-view graph built
-  from that view's own local neighbourhood structure), then extends out of sample via a
-  per-view `KernelRidge` (RBF) regression from raw features onto that embedding, rather
-  than re-deriving each method's own single-view Nystrom extension for this new joint
-  eigenproblem. Two correctness properties anchor the construction: with independent
+  from that view's own local neighbourhood structure), then extends out of sample via
+  each method's own established mechanism rather than a generic auxiliary model:
+  `method="lle"` reuses `LocallyLinearEmbedding.transform`'s own barycentric-weight
+  extension (verified directly against it in the tests); `method="laplacian"` uses the
+  classical Nystrom extension (Bengio et al. 2003) of each kept eigenvector individually,
+  floored against the (otherwise unbounded) blow-up a near-1 eigenvalue causes in its own
+  `1/mu` rescaling, before the same combination the joint solve used at training time.
+  Two correctness properties anchor the construction: with independent
   views, both operators' shared (near-)null direction -- the constant vector, which
   every graph-based operator here is blind to -- is explicitly projected out before
   solving (matching `SpectralEmbedding`'s own `drop_first=True`), rather than left in to

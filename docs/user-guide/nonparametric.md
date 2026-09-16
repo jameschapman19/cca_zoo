@@ -146,9 +146,15 @@ not an unrelated construction that happens to reuse its graph.
 
 ### Transform
 
-There is no feature map to apply to new data, so out-of-sample projection is not the graph
-operator's own (single-view) Nystrom extension, but a per-view `KernelRidge` (RBF) regression
-fit from each view's raw training features onto its own training embedding:
+There is no feature map to apply to new data, so out-of-sample projection reuses each method's
+own established extension rather than a generic auxiliary model:
+
+- `method="lle"`: a new point's barycentric reconstruction weights against its `n_neighbors`
+  nearest *training* points, applied to those points' rows of the fitted embedding -- exactly
+  `LocallyLinearEmbedding.transform`'s own mechanism (verified directly against it in the tests).
+- `method="laplacian"`: the classical Nystrom extension (Bengio et al. 2003) of each kept
+  eigenvector, using the same degree-normalised affinity rule the training graph was built from,
+  then the same combination the joint solve used at training time.
 
 ```python
 z1, z2 = model.transform([X1_test, X2_test])

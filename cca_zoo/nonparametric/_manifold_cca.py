@@ -2,6 +2,7 @@ r"""ManifoldCCA — transductive multiview CCA over a shared manifold operator."
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from numbers import Integral, Real
 from typing import Any, ClassVar
 
@@ -10,8 +11,8 @@ from numpy.typing import ArrayLike
 from scipy.linalg import block_diag, null_space
 from scipy.sparse import issparse
 from scipy.sparse.csgraph import laplacian as sparse_laplacian
-from sklearn.kernel_ridge import KernelRidge
 from sklearn.manifold import SpectralEmbedding
+from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.neighbors import NearestNeighbors
 from sklearn.utils._param_validation import Interval, StrOptions
 from sklearn.utils.validation import check_is_fitted
@@ -20,6 +21,16 @@ from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import gevp
 from cca_zoo._utils._param_constraints import POSITIVE_EPS
 from cca_zoo._utils._validation import validate_views
+
+#: Floor for the Laplacian Nystrom extension's 1/mu rescaling (mu = 1 -
+#: eigenvalue), independent of the class's own (much smaller) ``eps``: that
+#: one only needs to keep _smooth_basis's B block positive-definite for the
+#: joint solve, and using it here too would let a component with eigenvalue
+#: near 1 (barely "smooth" at all -- see _LaplacianViewState) blow up its
+#: Nystrom contribution by a factor of 1e6, contaminating every other,
+#: well-behaved component once _block_ combines them. 0.05 caps that
+#: amplification at 20x instead.
+_NYSTROM_MU_FLOOR = 0.05
 
 
 def _centering_matrix(n: int) -> np.ndarray:
@@ -103,52 +114,143 @@ def _orthonormal_complement_of_ones(n: int) -> np.ndarray:
     return np.asarray(null_space(np.ones((1, n))))
 
 
-def _laplacian_operator(
+def _laplacian_affinity(
     v: np.ndarray, n_neighbors: int, affinity: str, gamma: float | None
-) -> np.ndarray:
-    r"""Graph Laplacian $L = D - W$ of a k-NN affinity graph over ``v``.
+) -> tuple[np.ndarray, float | None]:
+    r"""Training affinity matrix $W$ and resolved RBF ``gamma``.
 
     Reuses :class:`sklearn.manifold.SpectralEmbedding` purely for its own
-    (well-tested) affinity-graph construction -- the k-NN search, symmetrisation
-    and (for ``affinity="rbf"``) heat-kernel weighting -- then builds the
-    graph Laplacian directly via :func:`scipy.sparse.csgraph.laplacian`,
-    rather than using ``SpectralEmbedding``'s own single-view spectral
-    solution, since what's needed here is the raw operator to plug into a
-    *joint multiview* eigenproblem (see :class:`ManifoldCCA`), not a
-    finished single-view embedding.
+    (well-tested) affinity-graph construction -- the k-NN search,
+    symmetrisation and (for ``affinity="rbf"``) heat-kernel weighting --
+    rather than reimplementing it. Returned separately from the Laplacian
+    itself (see :func:`_normalised_laplacian`) since $W$'s row sums (the
+    degree matrix) are also exactly what :meth:`ManifoldCCA.transform`
+    needs to extend a fitted eigenvector to a new point (the classical
+    Nystrom formula, e.g. Bengio et al. 2003) -- information the
+    normalised Laplacian $I - D^{-1/2}WD^{-1/2}$ alone no longer carries
+    separately.
     """
     se = SpectralEmbedding(
         n_components=1, n_neighbors=n_neighbors, affinity=affinity, gamma=gamma
     ).fit(v)
     W = se.affinity_matrix_
+    W = np.asarray(W.toarray() if issparse(W) else W)
+    resolved_gamma = getattr(se, "gamma_", gamma)
+    return W, resolved_gamma
+
+
+def _normalised_laplacian(W: np.ndarray) -> np.ndarray:
+    r"""The normalised graph Laplacian $L = I - D^{-1/2}WD^{-1/2}$ of affinity $W$."""
     L = sparse_laplacian(W, normed=True)
     return np.asarray(L.toarray() if issparse(L) else L)
+
+
+def _laplacian_operator(
+    v: np.ndarray, n_neighbors: int, affinity: str, gamma: float | None
+) -> np.ndarray:
+    r"""Graph Laplacian $L = I - D^{-1/2}WD^{-1/2}$ of a k-NN graph over ``v``."""
+    W, _ = _laplacian_affinity(v, n_neighbors, affinity, gamma)
+    return _normalised_laplacian(W)
+
+
+def _laplacian_new_point_affinity(
+    v_new: np.ndarray,
+    v_train: np.ndarray,
+    affinity: str,
+    gamma: float | None,
+    n_neighbors: int,
+    nn: NearestNeighbors | None,
+) -> np.ndarray:
+    r"""New-to-training affinity, built by the same rule as the training graph.
+
+    For ``affinity="rbf"`` this is exact -- the identical dense RBF kernel
+    evaluation :func:`_laplacian_affinity` used for training, just off the
+    diagonal block. For ``affinity="nearest_neighbors"`` it's the standard
+    Nystrom simplification (also how
+    :meth:`~sklearn.manifold.LocallyLinearEmbedding.transform` handles its
+    own out-of-sample case): a new point's *own* one-directional
+    connectivity to its ``n_neighbors`` nearest training points, rather than
+    attempting to retroactively symmetrise against training points that
+    might now also consider the new point a neighbour -- doing that
+    properly would mean rebuilding the whole training graph per query point.
+    """
+    if affinity == "rbf":
+        return np.asarray(rbf_kernel(v_new, v_train, gamma=gamma))
+    assert nn is not None
+    graph = nn.kneighbors_graph(v_new, n_neighbors=n_neighbors, mode="connectivity")
+    return np.asarray(graph.toarray() if issparse(graph) else graph)
+
+
+def _barycenter_weights(
+    query: np.ndarray, reference: np.ndarray, indices: np.ndarray, reg: float
+) -> np.ndarray:
+    r"""Barycentric (sum-to-one) reconstruction weights of each query point.
+
+    ``weights[a, :]`` reconstructs ``query[a]`` as the best linear
+    combination of ``reference[indices[a]]`` -- Roweis & Saul (2000)'s
+    original construction. Used both to build the training LLE operator
+    (``query = reference = v``, each point reconstructed from its own
+    neighbours) and, unchanged, to extend a new point at
+    :meth:`ManifoldCCA.transform` time (``query`` = new data,
+    ``reference`` = training data) -- exactly how
+    :meth:`~sklearn.manifold.LocallyLinearEmbedding.transform` reuses its
+    own training-time weight computation for new points too.
+
+    Args:
+        query: Points to reconstruct, shape (n_query, n_features).
+        reference: Points to reconstruct from, shape (n_reference, n_features).
+        indices: Neighbour indices into ``reference`` for each query point,
+            shape (n_query, n_neighbors).
+        reg: Regularisation added to each point's local reconstruction Gram
+            matrix, relative to its trace.
+
+    Returns:
+        Array of shape (n_query, n_neighbors), each row summing to 1.
+    """
+    n_query, n_neighbors = indices.shape
+    weights = np.empty((n_query, n_neighbors))
+    for i in range(n_query):
+        neighbours = reference[indices[i]] - query[i]
+        gram = neighbours @ neighbours.T
+        gram += reg * max(np.trace(gram), 1e-12) * np.eye(n_neighbors)
+        w = np.linalg.solve(gram, np.ones(n_neighbors))
+        weights[i] = w / w.sum()
+    return weights
 
 
 def _lle_operator(v: np.ndarray, n_neighbors: int, reg: float) -> np.ndarray:
     r"""LLE operator $M = (I - W)^\top (I - W)$ from local reconstruction weights.
 
     ``W[a, :]`` reconstructs point ``a`` as the best (sum-to-one) linear
-    combination of its ``n_neighbors`` nearest neighbours -- Roweis & Saul
-    (2000)'s original barycentric-weight construction, hand-implemented
-    here (rather than reused from :class:`sklearn.manifold.LocallyLinearEmbedding`,
-    which doesn't expose ``W``/``M`` as public API) so the raw operator is
-    available for the joint eigenproblem below.
+    combination of its ``n_neighbors`` nearest neighbours (see
+    :func:`_barycenter_weights`), hand-implemented here (rather than reused
+    from :class:`sklearn.manifold.LocallyLinearEmbedding`, which doesn't
+    expose ``W``/``M`` as public API) so the raw operator is available for
+    the joint eigenproblem below.
     """
     n = v.shape[0]
     nn = NearestNeighbors(n_neighbors=n_neighbors + 1).fit(v)
     indices = nn.kneighbors(v, return_distance=False)[:, 1:]
+    weights = _barycenter_weights(v, v, indices, reg)
 
     W = np.zeros((n, n))
     for i in range(n):
-        neighbours = v[indices[i]] - v[i]
-        gram = neighbours @ neighbours.T
-        gram += reg * max(np.trace(gram), 1e-12) * np.eye(n_neighbors)
-        w = np.linalg.solve(gram, np.ones(n_neighbors))
-        W[i, indices[i]] = w / w.sum()
+        W[i, indices[i]] = weights[i]
 
     I_minus_W = np.eye(n) - W
     return I_minus_W.T @ I_minus_W
+
+
+@dataclass
+class _LaplacianViewState:
+    """Per-view artifacts the Laplacian Nystrom extension needs at transform time."""
+
+    full_basis: np.ndarray
+    mu: np.ndarray
+    block: np.ndarray
+    degrees: np.ndarray
+    gamma: float | None
+    nn: NearestNeighbors | None
 
 
 class ManifoldCCA(BaseModel):
@@ -208,16 +310,33 @@ class ManifoldCCA(BaseModel):
     construction in the tests).
 
     Since $Z_i$ is only ever defined at the training points (there is no
-    feature map to apply to new data), out-of-sample projection is *not*
-    the graph operator's own Nystrom extension (which would need
-    re-deriving for the joint, multiview eigenproblem above, not just the
-    single-view one the literature covers) -- it is instead a per-view
-    :class:`~sklearn.kernel_ridge.KernelRidge` (RBF) regression fit from
-    each view's raw training features onto its own training embedding
-    $Z_i$, evaluated on new data. This is an approximation of the "true"
-    spectral extension, not a re-derivation of it -- a well-established
-    alternative in its own right for out-of-sample spectral embeddings, and
-    one that doesn't risk a subtly wrong bespoke formula.
+    feature map to apply to new data), out-of-sample projection reuses each
+    method's own established extension rather than a generic auxiliary
+    model bolted on afterward:
+
+    - ``method="lle"``: a new point's barycentric reconstruction weights
+      (see :func:`_barycenter_weights`) against its ``n_neighbors`` nearest
+      *training* points, applied directly to those training points' rows of
+      the fitted $Z_i$ -- exactly
+      :meth:`~sklearn.manifold.LocallyLinearEmbedding.transform`'s own
+      mechanism, reusing the identical weight computation training used.
+      Valid because that formula is linear in the training embedding: with
+      $Z_i = Y_i B_i$ ($Y_i$ the per-view smooth basis, $B_i$ the joint
+      solve's combination -- see :meth:`fit`), applying new-point weights to
+      $Y_i$ first and then $B_i$, or to $Z_i = Y_i B_i$ directly, are the
+      same computation.
+    - ``method="laplacian"``: the classical Nystrom extension (Bengio et
+      al. 2003) of each kept eigenvector individually -- $y_k(x) =
+      \tfrac{1}{\mu_k}\sum_j \tilde{W}(x, x_j)\, y_k(x_j)$, $\tilde W$ the
+      degree-normalised new-to-training affinity (built by the same rule as
+      the training graph, see :func:`_laplacian_new_point_affinity`) and
+      $\mu_k = 1 - \lambda_k$ -- then the *same* $B_i$ combination used at
+      training time. Unlike the LLE case, this can't collapse to a single
+      "apply weights to $Z_i$" step, since each eigenvector has its own
+      $\mu_k$ rescaling *before* $B_i$ mixes them.
+
+    Both are exact consequences of what :meth:`fit` actually solved, not a
+    separately-fit approximation of it.
 
     Note:
         Unlike :class:`~sklearn.manifold.LocallyLinearEmbedding`,
@@ -287,9 +406,6 @@ class ManifoldCCA(BaseModel):
             against plain unregularised ``MCCA`` at the same nominal
             dimensionality). Default ``None``: ``max(4 * latent_dimensions,
             10)``, clipped to ``n_samples - 1``.
-        extrapolator_alpha: Ridge strength for the per-view
-            :class:`~sklearn.kernel_ridge.KernelRidge` out-of-sample
-            extension. Default 1.0.
         eps: Floor applied to each kept operator eigenvalue (see
             :func:`_smooth_basis`) to ensure positive definiteness. Default
             1e-6.
@@ -311,7 +427,6 @@ class ManifoldCCA(BaseModel):
         "gamma": [Interval(Real, 0, None, closed="neither"), None],
         "lle_reg": [Interval(Real, 0, None, closed="left")],
         "n_operator_components": [Interval(Integral, 1, None, closed="left"), None],
-        "extrapolator_alpha": [Interval(Real, 0, None, closed="neither")],
         "eps": POSITIVE_EPS,
     }
 
@@ -325,7 +440,6 @@ class ManifoldCCA(BaseModel):
         gamma: float | None = None,
         lle_reg: float = 1e-3,
         n_operator_components: int | None = None,
-        extrapolator_alpha: float = 1.0,
         eps: float = 1e-6,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)
@@ -335,13 +449,7 @@ class ManifoldCCA(BaseModel):
         self.gamma = gamma
         self.lle_reg = lle_reg
         self.n_operator_components = n_operator_components
-        self.extrapolator_alpha = extrapolator_alpha
         self.eps = eps
-
-    def _operator(self, v: np.ndarray) -> np.ndarray:
-        if self.method == "laplacian":
-            return _laplacian_operator(v, self.n_neighbors, self.affinity, self.gamma)
-        return _lle_operator(v, self.n_neighbors, self.lle_reg)
 
     def _resolve_n_operator_components(self, n: int) -> int:
         if self.n_operator_components is not None:
@@ -375,11 +483,33 @@ class ManifoldCCA(BaseModel):
 
         k_op = self._resolve_n_operator_components(n)
         bases = []
+        full_bases = []
         eigenvalue_blocks = []
+        laplacian_degrees: list[np.ndarray] = []
+        laplacian_gamma: list[float | None] = []
+        laplacian_nn: list[NearestNeighbors | None] = []
+        lle_nn: list[NearestNeighbors] = []
         for v in views_:
-            reduced_operator = P.T @ self._operator(v) @ P
+            if self.method == "laplacian":
+                W, resolved_gamma = _laplacian_affinity(
+                    v, self.n_neighbors, self.affinity, self.gamma
+                )
+                operator = _normalised_laplacian(W)
+                laplacian_degrees.append(W.sum(axis=1))
+                laplacian_gamma.append(resolved_gamma)
+                laplacian_nn.append(
+                    NearestNeighbors(n_neighbors=self.n_neighbors).fit(v)
+                    if self.affinity == "nearest_neighbors"
+                    else None
+                )
+            else:
+                operator = _lle_operator(v, self.n_neighbors, self.lle_reg)
+                lle_nn.append(NearestNeighbors(n_neighbors=self.n_neighbors + 1).fit(v))
+
+            reduced_operator = P.T @ operator @ P
             basis, eigenvalues = _smooth_basis(reduced_operator, k_op, self.eps)
             bases.append(basis)
+            full_bases.append(P @ basis)
             eigenvalue_blocks.append(eigenvalues)
 
         B = np.asarray(block_diag(*[np.diag(ev) for ev in eigenvalue_blocks])) / m
@@ -392,20 +522,37 @@ class ManifoldCCA(BaseModel):
         A /= m
 
         _, eigvecs = gevp(A, B, self.latent_dimensions)
-        embedding = [
-            P @ (basis @ block)
-            for basis, block in zip(bases, np.split(eigvecs, m, axis=0))
-        ]
+        blocks = list(np.split(eigvecs, m, axis=0))
+        embedding = [fb @ blk for fb, blk in zip(full_bases, blocks)]
         self.weights_: list[np.ndarray] = embedding
 
-        self._extrapolators_: list[KernelRidge] = [
-            KernelRidge(kernel="rbf", alpha=self.extrapolator_alpha).fit(v, z)
-            for v, z in zip(views_, embedding)
-        ]
+        if self.method == "laplacian":
+            self._laplacian_state_: list[_LaplacianViewState] | None = [
+                _LaplacianViewState(
+                    full_basis=full_bases[i],
+                    mu=np.maximum(1.0 - eigenvalue_blocks[i], _NYSTROM_MU_FLOOR),
+                    block=blocks[i],
+                    degrees=laplacian_degrees[i],
+                    gamma=laplacian_gamma[i],
+                    nn=laplacian_nn[i],
+                )
+                for i in range(m)
+            ]
+            self._lle_state_: list[NearestNeighbors] | None = None
+        else:
+            self._laplacian_state_ = None
+            self._lle_state_ = lle_nn
         return self
 
     def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Project new views via each view's fitted out-of-sample extension.
+        """Project new views via each method's own out-of-sample extension.
+
+        ``method="lle"`` reuses :func:`_barycenter_weights` against each new
+        point's nearest training points (exactly
+        :meth:`~sklearn.manifold.LocallyLinearEmbedding.transform`'s own
+        mechanism); ``method="laplacian"`` uses the classical Nystrom
+        extension of each kept eigenvector (Bengio et al. 2003) followed by
+        the same combination :meth:`fit` used. See the class docstring.
 
         Args:
             views: List of arrays, each of shape (n_samples, n_features_i).
@@ -419,6 +566,35 @@ class ManifoldCCA(BaseModel):
         check_is_fitted(self)
         validated = validate_views(views)
         centred = [v - m for v, m in zip(validated, self.means_)]
-        return [
-            reg.predict(v) for reg, v in zip(self._extrapolators_, centred)
-        ]
+
+        if self.method == "lle":
+            assert self._lle_state_ is not None
+            result = []
+            for v_new, v_train, nn, z in zip(
+                centred, self._views_fit_, self._lle_state_, self.weights_
+            ):
+                indices = nn.kneighbors(
+                    v_new, n_neighbors=self.n_neighbors, return_distance=False
+                )
+                weights = _barycenter_weights(v_new, v_train, indices, self.lle_reg)
+                result.append(np.einsum("qn,qnk->qk", weights, z[indices]))
+            return result
+
+        assert self._laplacian_state_ is not None
+        result = []
+        for v_new, v_train, state in zip(
+            centred, self._views_fit_, self._laplacian_state_
+        ):
+            W_new = _laplacian_new_point_affinity(
+                v_new,
+                v_train,
+                self.affinity,
+                state.gamma,
+                self.n_neighbors,
+                state.nn,
+            )
+            degrees_new = np.maximum(W_new.sum(axis=1), 1e-12)
+            K_tilde = W_new / np.sqrt(np.outer(degrees_new, state.degrees))
+            extended = (K_tilde @ state.full_basis) / state.mu
+            result.append(extended @ state.block)
+        return result

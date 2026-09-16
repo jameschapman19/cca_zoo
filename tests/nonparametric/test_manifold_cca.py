@@ -9,7 +9,9 @@ from scipy.linalg import eigh
 from cca_zoo.linear import MCCA
 from cca_zoo.nonparametric import ManifoldCCA
 from cca_zoo.nonparametric._manifold_cca import (
+    _barycenter_weights,
     _centering_matrix,
+    _laplacian_new_point_affinity,
     _laplacian_operator,
     _lle_operator,
     _orthonormal_complement_of_ones,
@@ -80,6 +82,62 @@ def test_complement_of_ones_is_orthonormal_and_orthogonal_to_ones() -> None:
     np.testing.assert_allclose(np.ones(n) @ P, 0, atol=1e-10)
 
 
+def test_barycenter_weights_sum_to_one(two_views_small: list[np.ndarray]) -> None:
+    """Every query point's reconstruction weights sum to 1."""
+    v = two_views_small[0]
+    from sklearn.neighbors import NearestNeighbors
+
+    indices = NearestNeighbors(n_neighbors=4).fit(v).kneighbors(v)[1]
+    weights = _barycenter_weights(v, v, indices, reg=1e-3)
+    np.testing.assert_allclose(weights.sum(axis=1), 1.0, atol=1e-8)
+
+
+def test_barycenter_weights_reconstruct_the_query_point() -> None:
+    """Weights sum to 1 and approximately reconstruct each query from its neighbours."""
+    rng = np.random.default_rng(0)
+    reference = rng.standard_normal((15, 4))
+    query = rng.standard_normal((5, 4))
+    indices = np.argsort(
+        np.linalg.norm(reference[None, :, :] - query[:, None, :], axis=-1), axis=1
+    )[:, :4]
+    weights = _barycenter_weights(query, reference, indices, reg=1e-3)
+    np.testing.assert_allclose(weights.sum(axis=1), 1.0, atol=1e-8)
+    reconstructed = np.einsum("qn,qnd->qd", weights, reference[indices])
+    # Not an exact interpolant (that's what reg trades away for stability), but
+    # should land far closer to the query than a same-neighbourhood random guess.
+    reconstruction_error = np.linalg.norm(reconstructed - query, axis=1)
+    neighbour_spread = np.linalg.norm(
+        reference[indices] - query[:, None, :], axis=-1
+    ).mean(axis=1)
+    assert np.all(reconstruction_error < neighbour_spread)
+
+
+def test_laplacian_new_point_affinity_rbf_matches_rbf_kernel() -> None:
+    """affinity='rbf' new-point affinity is exactly sklearn's own rbf_kernel."""
+    from sklearn.metrics.pairwise import rbf_kernel
+
+    rng = np.random.default_rng(0)
+    v_train = rng.standard_normal((20, 4))
+    v_new = rng.standard_normal((5, 4))
+    got = _laplacian_new_point_affinity(v_new, v_train, "rbf", 0.3, 8, None)
+    np.testing.assert_allclose(got, rbf_kernel(v_new, v_train, gamma=0.3))
+
+
+def test_laplacian_new_point_affinity_nearest_neighbors_is_binary() -> None:
+    """affinity='nearest_neighbors' new-point affinity is a 0/1 connectivity row."""
+    from sklearn.neighbors import NearestNeighbors
+
+    rng = np.random.default_rng(0)
+    v_train = rng.standard_normal((20, 4))
+    v_new = rng.standard_normal((5, 4))
+    nn = NearestNeighbors(n_neighbors=6).fit(v_train)
+    got = _laplacian_new_point_affinity(
+        v_new, v_train, "nearest_neighbors", None, 6, nn
+    )
+    assert set(np.unique(got)) <= {0.0, 1.0}
+    np.testing.assert_allclose(got.sum(axis=1), 6.0)
+
+
 # ---------------------------------------------------------------------------
 # fit / transform completes, shapes
 # ---------------------------------------------------------------------------
@@ -125,20 +183,23 @@ def test_transform_shapes_on_new_data(
         assert t.shape == (test_views[0].shape[0], k)
 
 
+@pytest.mark.parametrize("method", ["laplacian", "lle"])
 def test_transform_on_training_data_matches_weights_reasonably(
-    two_views_small: list[np.ndarray],
+    method: str, two_views_small: list[np.ndarray]
 ) -> None:
     """Transform on the training data roughly recovers the fitted embedding.
 
-    Not an exact match -- the KernelRidge extrapolator is a smoothed fit of
-    the training embedding, not an interpolant -- but it should correlate
-    strongly with it dimension-by-dimension.
+    Not an exact match -- neither out-of-sample extension is a strict
+    interpolant at a training point (the Laplacian Nystrom formula and
+    LLE's barycentric weights both treat every query point, training or
+    not, via its own local neighbourhood only) -- but it should correlate
+    strongly with the training embedding dimension-by-dimension.
     """
-    model = _make_model(extrapolator_alpha=1e-3).fit(two_views_small)
+    model = _make_model(method=method).fit(two_views_small)
     transformed = model.transform(two_views_small)
     for w, t in zip(model.weights, transformed):
         corr = np.corrcoef(w[:, 0], t[:, 0])[0, 1]
-        assert abs(corr) > 0.9
+        assert abs(corr) > 0.8
 
 
 def test_weights_not_fitted_raises() -> None:
@@ -230,6 +291,64 @@ def test_duplicate_view_reduces_to_plain_spectral_embedding() -> None:
         )
 
 
+def test_lle_transform_matches_locally_linear_embedding_on_duplicate_views() -> None:
+    """Gold-standard check: LLE transform on duplicated views matches sklearn's own.
+
+    Extends the duplicate-view sanity check to *transform*: since both
+    views are the same data, ManifoldCCA's LLE out-of-sample extension for
+    either view should behave like
+    :class:`~sklearn.manifold.LocallyLinearEmbedding` fit and transformed on
+    that one view directly -- the same neighbours, the same barycentric
+    weights, the same linear application to the training embedding.
+    """
+    from sklearn.manifold import LocallyLinearEmbedding
+
+    rng = np.random.default_rng(0)
+    n_train = 100
+    x_train = rng.standard_normal((n_train, 6))
+    x_new = rng.standard_normal((10, 6))
+
+    model = ManifoldCCA(method="lle", n_neighbors=10, latent_dimensions=3).fit(
+        [x_train, x_train.copy()]
+    )
+    z1_new, z2_new = model.transform([x_new, x_new.copy()])
+
+    lle = LocallyLinearEmbedding(n_neighbors=10, n_components=3).fit(
+        x_train - x_train.mean(0)
+    )
+    lle_new = lle.transform(x_new - x_train.mean(0))
+
+    for z_new in (z1_new, z2_new):
+        Q1, _ = np.linalg.qr(z_new)
+        Q2, _ = np.linalg.qr(lle_new)
+        principal_cosines = np.linalg.svd(Q1.T @ Q2, compute_uv=False)
+        assert np.all(principal_cosines > 1 - 1e-2), (
+            "ManifoldCCA(method='lle') transform on duplicated views should "
+            f"match LocallyLinearEmbedding.transform; got {principal_cosines}"
+        )
+
+
+def test_laplacian_transform_stable_on_small_noisy_data() -> None:
+    """Regression test: a near-1 kept eigenvalue must not blow up the extension.
+
+    On a small (n=30), unstructured dataset, some of the default
+    ``n_operator_components=10`` kept Laplacian eigenvalues sit right next
+    to 1 (mu = 1 - eigenvalue near 0), which without a floor on mu makes
+    the Nystrom extension's 1/mu rescaling explode -- caught by comparing
+    the transformed scale against the training embedding's own scale.
+    """
+    rng = np.random.default_rng(0)
+    x1 = rng.standard_normal((30, 5))
+    x2 = rng.standard_normal((30, 5))
+
+    model = ManifoldCCA(method="laplacian", n_neighbors=8).fit([x1, x2])
+    transformed = model.transform([x1, x2])
+    for w, t in zip(model.weights, transformed):
+        assert t[:, 0].std() < 10 * w[:, 0].std(), (
+            "transformed scale blew up relative to the training embedding"
+        )
+
+
 def _spiral_views(
     t: np.ndarray, rng: np.random.Generator, noise: float = 0.03
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -268,9 +387,11 @@ def test_laplacian_beats_linear_mcca_on_a_shared_nonlinear_spiral() -> None:
     linear_corr = MCCA(latent_dimensions=1, c=0.1, pca=False).fit(
         [x1_tr, x2_tr]
     ).score([x1_te, x2_te])[0]
-    manifold_corr = ManifoldCCA(
-        method="laplacian", n_neighbors=10, latent_dimensions=1, extrapolator_alpha=0.1
-    ).fit([x1_tr, x2_tr]).score([x1_te, x2_te])[0]
+    manifold_corr = (
+        ManifoldCCA(method="laplacian", n_neighbors=10, latent_dimensions=1)
+        .fit([x1_tr, x2_tr])
+        .score([x1_te, x2_te])[0]
+    )
 
     assert manifold_corr > linear_corr + 0.3, (
         f"expected laplacian ({manifold_corr:.2f}) to clearly beat "
