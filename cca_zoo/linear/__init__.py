@@ -8,6 +8,7 @@ high-dimensional data.
 
 from ._cca import CCA
 from ._ccar3 import CCAR3
+from ._ecca import ECCA
 from ._gcca import GCCA
 from ._graphical_lasso_cca import GraphicalLassoCCA
 from ._grcca import GRCCA
@@ -52,6 +53,7 @@ __all__ = [
     "GRCCA",
     # Reduced-rank regression
     "CCAR3",
+    "ECCA",
     # Sparse-precision within-view covariance
     "GraphicalLassoCCA",
     # Robust to contaminated training data

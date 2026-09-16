@@ -67,6 +67,10 @@ Linear CCA methods. All classes are `sklearn.base.BaseEstimator` subclasses.
 
 ---
 
+::: cca_zoo.linear.ECCA
+
+---
+
 ## Sparse-precision covariance methods
 
 ::: cca_zoo.linear.GraphicalLassoCCA

@@ -9,6 +9,24 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `ECCA`: reduced-rank-regression CCA with an entrywise L1 penalty, the companion to
+  `CCAR3`'s row-group-lasso penalty -- a feature can now contribute to one canonical
+  component while being dropped from another, rather than being all-or-nothing across
+  every component the way `CCAR3`'s row-group penalty forces. A NumPy port of the
+  `ccar3` R package's `ecca()`. Because an entrywise penalty places no coupling between
+  a coefficient row's entries, the underlying convex problem separates exactly into one
+  independent Lasso regression per response column, so it's fit by a bank of
+  `sklearn.linear_model.Lasso` fits rather than the R package's single matrix-free ADMM
+  over the whole coefficient matrix (needed there for large-`p`-and-`q` memory
+  efficiency, unnecessary here since sklearn's own coordinate descent already handles
+  `p > n` natively per column) -- verified to reach the same optimum as an independent
+  proximal-gradient (ISTA) solve of the joint objective to high precision. Unlike
+  `CCAR3`, deliberately does *not* Ledoit-Wolf whiten `Y` before fitting -- the R
+  reference's own `ecca()` ignores its `Sy` argument entirely, regressing directly
+  against raw (centred) `Y` -- verified against the R reference directly (installed R,
+  sourced `ecca()`'s ADMM): matching support size and canonical correlations at nearby
+  `lambda_`. Shares `CCAR3`'s postprocessing machinery, now factored into
+  `cca_zoo.linear._rrr_common` along with `CCAR3`'s own Y-whitening helper.
 - `ManifoldCCA`: transductive multiview CCA where each view's within-view constraint is
   a graph operator from spectral manifold learning -- the graph Laplacian (matching
   `sklearn.manifold.SpectralEmbedding`, `method="laplacian"`) or the LLE local

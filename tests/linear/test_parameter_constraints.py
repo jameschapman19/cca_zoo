@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 from sklearn.utils._param_validation import InvalidParameterError
 
-from cca_zoo.linear import CCA, CCAR3, GCCA, GRCCA, MCCA, TCCA, PartialCCA, rCCA
+from cca_zoo.linear import CCA, CCAR3, ECCA, GCCA, GRCCA, MCCA, TCCA, PartialCCA, rCCA
 
 # ---------------------------------------------------------------------------
 # Base parameters (latent_dimensions, center), shared by every model
@@ -107,6 +107,23 @@ def test_ccar3_invalid_params_rejected(
         CCAR3(**kwargs).fit(two_views)  # type: ignore[arg-type]
 
 
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"lambda_": -1.0},
+        {"max_iter": 0},
+        {"tol": 0.0},
+        {"eps": 0.0},
+    ],
+)
+def test_ecca_invalid_params_rejected(
+    kwargs: dict[str, object], two_views: list[np.ndarray]
+) -> None:
+    """Each of ECCA's declared constraints rejects an out-of-range value."""
+    with pytest.raises(InvalidParameterError):
+        ECCA(**kwargs).fit(two_views)  # type: ignore[arg-type]
+
+
 # ---------------------------------------------------------------------------
 # Valid values still work (regression guard against overly strict constraints)
 # ---------------------------------------------------------------------------
@@ -117,3 +134,4 @@ def test_valid_parameters_still_fit(two_views: list[np.ndarray]) -> None:
     rCCA(c=0.5).fit(two_views)
     MCCA(c=[0.1, 0.9], pca=False, eps=1e-8).fit(two_views)
     CCAR3(lambda_=0.1, highdim=False, max_iter=100, tol=1e-3).fit(two_views)
+    ECCA(lambda_=0.1, max_iter=100, tol=1e-3).fit(two_views)
