@@ -265,24 +265,30 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- `SCCAADMM`'s primal `w`-update took a single proximal-gradient step per ADMM
-  iteration using an *un-normalised* gradient (`X^TXw - X^Ttarget`, no `1/n`) against a
-  step size calibrated for the *normalised* loss (`(‖X^TX‖/n + mu)^-1`), so the data
-  term was effectively over-weighted by a factor of `n` relative to the proximal term.
-  Harmless at the tiny `n=50` every existing example and test used, this diverged to
-  `nan` well before `max_iter` at `n=200` on perfectly ordinary Gaussian data. Replaced
-  with the *exact* closed-form minimiser of the same (quadratic) subproblem, solved via
-  a Cholesky factor computed once per view rather than re-forming `X^TX` from scratch
-  on every iteration -- both more correct (no step size to get wrong) and faster. A
-  first attempt at this fix itself dropped a factor of 2 (`(1/n)X^TX` instead of the
-  `(2/n)X^TX` the loss's gradient actually needs -- the same class of bug `CCAR3`'s own
-  ADMM had); caught by comparing against a from-scratch proximal-gradient solve of the
-  exact constrained problem, which only the corrected `2/n` version matches. Because the
-  fix genuinely changes the solver's numerical behaviour, `tau`'s default is lowered
-  from `0.1` to `0.01`: at the old default, the corrected (properly-weighted) solver now
-  drives every view's weights to exactly zero on typical data, where the old buggy
-  solver's under-weighted proximal term had been silently masking `0.1` as an
-  effectively much weaker penalty than the class's own convex problem says it is.
+- `SCCAADMM` solved the wrong problem entirely: a reduced-rank-regression-style loss
+  `||Xw - target||^2` with the unit-ball constraint on the weight vector `w` itself.
+  Reading the actual paper (Suo, Mineiro & Anandkumar 2017, Section 2.2) shows the real
+  objective is *linear* in `w` (a covariance to maximise, `w^T X^T target - tau*||w||_1`),
+  constrained on the *score* `||Xw||_2 <= 1`, not on `w` -- these coincide only when `X`
+  is orthonormal. An intermediate step in this same investigation "fixed" a step-size
+  scaling bug in the old (wrong) regression-style objective's primal update, which had
+  been causing `nan` divergence at ordinary sample sizes -- a real bug, correctly fixed
+  in isolation, but fixing consistency *within* the wrong objective, not the right one.
+  Re-implemented following the paper's own linearised-ADMM derivation: since the
+  constraint couples `w` to `Xw` through a linear map (not the identity), an ordinary
+  ADMM split would need to invert `X^TX` every step, so the augmented Lagrangian's
+  quadratic penalty is linearised instead, turning the `w`-update into a single
+  proximal-gradient step that is closed-form here (the linear-plus-L1 objective's
+  proximal operator is a shifted soft-threshold). Verified directly against first-order
+  KKT optimality conditions of the exact constrained problem (no off-the-shelf solver
+  handles this reliably -- scipy's `trust-constr` gets stuck at the L1 kink at the
+  origin regardless of starting point): the dual variable recovered from any two active
+  coordinates agrees to within numerical tolerance, and every zeroed coordinate's
+  subgradient residual falls inside `[-tau, tau]`. Adds an `admm_iter` parameter for the
+  new inner (per-view, per-outer-iteration) linearised-ADMM loop's iteration cap,
+  separate from `max_iter` (the outer across-view loop, matching this module's shared
+  convention). `tau`'s default reverts to `0.1` (briefly lowered to `0.01` for the
+  interim, wrong-objective fix, no longer needed now the objective itself is correct).
 - `CCAR3(highdim=True)` (the default) systematically over-penalised relative to what
   `lambda_` documents: its hand-rolled ADMM solver for the row-group-lasso reduced-rank
   regression subproblem had a factor of 2 missing from its B-update's linear system (the
@@ -327,6 +333,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- `cca_zoo.linear.ElasticCCA` is renamed `WaijenborgCCA`, after the paper's own author
+  (Waaijenborg 2008), to disambiguate it from `cca_zoo.sparse.ElasticNetCCA` -- a
+  different algorithm entirely (an elastic-net penalty on the actual Eckart-Young CCA
+  loss, not this class's alternating-regression heuristic), not just a different
+  implementation of the same one. `ElasticCCA` stays importable as a deprecated alias.
 - `SCCAPMD`'s per-view soft-threshold bisection (`_bisect_threshold`, finding the
   threshold hitting a target L1/L2 ratio) now uses `scipy.optimize.brentq` instead of a
   hand-rolled bisection that unconditionally ran all 50 iterations regardless of how

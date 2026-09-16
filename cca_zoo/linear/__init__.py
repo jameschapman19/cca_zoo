@@ -19,13 +19,14 @@ from ._iterative import (
     SCCAADMM,
     SCCAIPLS,
     SCCAPMD,
-    ElasticCCA,
     ParkhomenkoCCA,
     SCCASpan,
+    WaijenborgCCA,
 )
 from ._iterative import SCCA_ADMM as SCCA_ADMM
 from ._iterative import SCCA_IPLS as SCCA_IPLS
 from ._iterative import SCCA_PMD as SCCA_PMD
+from ._iterative import ElasticCCA as ElasticCCA
 from ._iterative import SCCA_Span as SCCA_Span
 from ._mcca import MCCA
 from ._partialcca import PartialCCA
@@ -69,15 +70,17 @@ __all__ = [
     "SCCAADMM",
     "SCCAIPLS",
     "SCCASpan",
-    "ElasticCCA",
+    "WaijenborgCCA",
     "ParkhomenkoCCA",
     "SAR",
     "PLSALS",
 ]
 # Deprecated aliases (CCA_EY, MCCA_EY, PLS_EY, SCCA_PMD, SCCA_ADMM,
-# SCCA_IPLS, SCCA_Span, PLS_ALS -- underscored renames -- and MCCAEY, whose
-# functionality CCAEY now provides directly) stay importable for backward
-# compatibility via the `from .gradient import ...` / `from ._iterative
-# import ...` statements above, but are intentionally left out of __all__
-# (and therefore out of the API docs) since they are being removed in a
-# future release.
+# SCCA_IPLS, SCCA_Span, PLS_ALS -- underscored renames --, ElasticCCA
+# (renamed WaijenborgCCA to disambiguate from cca_zoo.sparse.ElasticNetCCA,
+# a different algorithm entirely, not just a different name), and MCCAEY,
+# whose functionality CCAEY now provides directly) stay importable for
+# backward compatibility via the `from .gradient import ...` / `from
+# ._iterative import ...` statements above, but are intentionally left out
+# of __all__ (and therefore out of the API docs) since they are being
+# removed in a future release.

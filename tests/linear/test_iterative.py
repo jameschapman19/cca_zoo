@@ -1,6 +1,6 @@
 """Tests for ALS-based sparse/regularised CCA variants.
 
-Covers PLSALS, SCCAPMD, SCCAADMM, SCCAIPLS, SCCASpan, ElasticCCA,
+Covers PLSALS, SCCAPMD, SCCAADMM, SCCAIPLS, SCCASpan, WaijenborgCCA,
 ParkhomenkoCCA, SAR.
 """
 
@@ -15,9 +15,9 @@ from cca_zoo.linear import (
     SCCAADMM,
     SCCAIPLS,
     SCCAPMD,
-    ElasticCCA,
     ParkhomenkoCCA,
     SCCASpan,
+    WaijenborgCCA,
 )
 
 ALL_ITERATIVE_MODELS = [
@@ -26,7 +26,7 @@ ALL_ITERATIVE_MODELS = [
     SCCAADMM,
     SCCAIPLS,
     SCCASpan,
-    ElasticCCA,
+    WaijenborgCCA,
     ParkhomenkoCCA,
     SAR,
 ]
@@ -338,76 +338,68 @@ def test_scca_admm_stable_at_a_realistic_sample_size() -> None:
         assert np.all(np.isfinite(w))
 
 
-def test_scca_admm_w_update_matches_an_independent_ground_truth() -> None:
-    """SCCAADMM's closed-form w-update matches an independent proximal-gradient solve.
+def test_scca_admm_block_satisfies_kkt_conditions() -> None:
+    """SCCAADMM's inner linearised-ADMM block solve reaches a genuine KKT point.
 
-    For a single view with a *fixed* target (i.e. one ADMM sub-problem in
-    isolation, decoupled from the outer multiview alternation), the
-    penalised, ball-constrained problem this class solves has a unique
-    optimum. Pins the fitted result against a from-scratch proximal
-    -gradient solve of that exact problem, independent of both the
-    production code and scipy's `cho_solve`. This is also a regression
-    test for a second bug caught only by this comparison: a first attempt
-    at the closed-form w-update used `(1/n) X^T X` instead of the `(2/n)
-    X^T X` the loss `(1/n)||Xw - target||^2`'s gradient actually needs; it
-    still converged cleanly, just to a measurably over-shrunk, wrong
-    stationary point.
+    Regression test for two successive wrong objectives: the class originally
+    (and, after a first "fix", still) solved a reduced-rank-regression-style
+    loss `||Xw - target||^2` with the ball constraint on `w` itself. Reading
+    the actual paper (Suo, Mineiro & Anandkumar 2017, Section 2.2) showed the
+    real problem is linear-plus-L1 in `w`, constrained on the *score* `Xw`,
+    not `w`:
+
+        maximize_w  w^T X^T target - tau*||w||_1  s.t. ||Xw||_2 <= 1
+
+    No off-the-shelf solver reliably handles this (scipy's `trust-constr`
+    gets stuck at the L1 kink at the origin regardless of starting point, and
+    a from-scratch subgradient method needs its own ball-constraint
+    projection), so this test verifies the KKT conditions directly instead:
+    at a constrained optimum, the dual variable recovered from any two active
+    (nonzero) coordinates must agree, and every zeroed coordinate's
+    subgradient residual must lie in [-tau, tau].
     """
-    from cca_zoo._utils._linalg import soft_threshold
-
-    rng = np.random.default_rng(0)
-    n, p = 200, 60
+    rng = np.random.default_rng(1)
+    n, p = 60, 15
     X = rng.standard_normal((n, p))
-    true_w = np.zeros(p)
-    true_w[:8] = rng.standard_normal(8)
-    target = X @ true_w + 0.3 * rng.standard_normal(n)
-    target = target / np.linalg.norm(target)
+    other_score = rng.standard_normal(n) * 0.5
 
-    tau, mu = 0.02, 1.0
-    XtX = X.T @ X
-    Xtarget = X.T @ target
+    tau = 0.2
+    model = SCCAADMM(
+        latent_dimensions=1,
+        tau=tau,
+        mu=1.0,
+        max_iter=1,
+        admm_iter=20_000,
+        tol=1e-14,
+        random_state=0,
+    )
+    # A second, single-column "view" equal to other_score itself (weight
+    # fixed at 1) makes `_fit_single`'s internal `s_other` for view 0 exactly
+    # `other_score`, unnormalised -- with max_iter=1, view 0's block is
+    # solved once against this fixed target before view 1 is ever touched.
+    w = [np.zeros(p), np.array([1.0])]
+    views = [X, other_score.reshape(-1, 1)]
+    model._fit_single(views, w, 0)
+    w_fit = w[0]
 
-    def project_ball(z: np.ndarray) -> np.ndarray:
-        nz = np.linalg.norm(z)
-        return z / nz if nz > 1.0 else z
+    Xw = X @ w_fit
+    nrm = np.linalg.norm(Xw)
+    assert nrm > 0.99, "constraint should be active for this tau"
+    active = np.abs(w_fit) > 1e-6
+    c = X.T @ other_score
+    grad_term = X.T @ Xw / nrm
 
-    def objective(w: np.ndarray) -> float:
-        resid = X @ w - target
-        return float((resid**2).sum() / n + tau * np.abs(w).sum())
+    lambdas = (c[active] - tau * np.sign(w_fit[active])) / grad_term[active]
+    assert lambdas.min() > 0, "recovered dual variable must be non-negative"
+    np.testing.assert_allclose(lambdas, lambdas.mean(), rtol=1e-3)
 
-    # Independent ground truth: plain proximal gradient (ISTA) on the exact
-    # same constrained problem, run to convergence.
-    lipschitz = 2 * np.linalg.eigvalsh(XtX).max() / n
-    step = 1.0 / lipschitz
-    w = np.zeros(p)
-    for _ in range(200_000):
-        grad = (2.0 / n) * (XtX @ w - Xtarget)
-        candidate = project_ball(soft_threshold(w - step * grad, tau * step))
-        if np.linalg.norm(candidate - w) < 1e-14:
-            w = candidate
-            break
-        w = candidate
-    w_true = w
-
-    # The production ADMM update, run against this same fixed target (no
-    # outer multiview alternation) for many iterations.
-    from scipy.linalg import cho_factor, cho_solve
-
-    A = cho_factor(2 * XtX / n + mu * np.eye(p))
-    w2 = np.zeros(p)
-    z = w2.copy()
-    eta = np.zeros(p)
-    for _ in range(2000):
-        w2 = cho_solve(A, 2 * Xtarget / n + mu * (z - eta))
-        z = project_ball(soft_threshold(w2 + eta, tau / mu))
-        eta = eta + w2 - z
-
-    np.testing.assert_allclose(objective(z), objective(w_true), rtol=1e-3)
+    zero_resid = c[~active] - lambdas.mean() * grad_term[~active]
+    assert np.all(np.abs(zero_resid) <= tau + 1e-3)
 
 
-def test_elastic_cca_with_lasso(two_views: list[np.ndarray]) -> None:
-    """ElasticCCA with l1_ratio=1 (lasso) produces some sparse weights."""
-    model = ElasticCCA(
+def test_waijenborg_cca_with_lasso(two_views: list[np.ndarray]) -> None:
+    """WaijenborgCCA with l1_ratio=1 (lasso) produces some sparse weights."""
+    model = WaijenborgCCA(
         latent_dimensions=1, alpha=0.1, l1_ratio=1.0, max_iter=200, random_state=0
     ).fit(two_views)
     assert hasattr(model, "weights_")

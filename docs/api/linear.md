@@ -127,7 +127,7 @@ Linear CCA methods. All classes are `sklearn.base.BaseEstimator` subclasses.
 
 ---
 
-::: cca_zoo.linear.ElasticCCA
+::: cca_zoo.linear.WaijenborgCCA
 
 ---
 

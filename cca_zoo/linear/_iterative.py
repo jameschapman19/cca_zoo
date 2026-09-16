@@ -9,7 +9,7 @@ Classes:
     SCCAADMM: Sparse CCA via ADMM (Suo 2017).
     SCCAIPLS: Iterative PLS with lasso penalty (Mai & Zhang 2019).
     SCCASpan: hard-thresholding ALS inspired by SpanCCA (Asteris 2016).
-    ElasticCCA: Elastic net regularised CCA (Waaijenborg 2008).
+    WaijenborgCCA: Elastic net regularised CCA (Waaijenborg 2008).
     ParkhomenkoCCA: Sparse CCA via soft-thresholding (Parkhomenko 2009).
     SAR: Sparse Alternating Regression, BIC-selected (Wilms & Croux 2015).
 """
@@ -22,7 +22,6 @@ from typing import cast
 
 import numpy as np
 from numpy.typing import ArrayLike
-from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import brentq
 from sklearn.linear_model import ElasticNet, Lasso, Ridge, lasso_path
 from sklearn.utils import deprecated
@@ -422,48 +421,73 @@ class SCCAPMD(_BaseIterative):
 
 
 class SCCAADMM(_BaseIterative):
-    r"""Sparse CCA via Alternating Direction Method of Multipliers.
+    r"""Sparse CCA via linearised Alternating Direction Method of Multipliers.
 
-    Solves the sparse CCA problem using ADMM to enforce both the L1 sparsity
-    constraint on weight vectors and the unit-norm constraint on the projected
-    scores simultaneously. For view $i$, each outer iteration performs:
+    Suo, Mineiro & Anandkumar (2017) pose two-view sparse CCA as, for view
+    $i$ fixed at the other views' current weights (i.e. $\bar{\mathbf{s}}_{\neg
+    i}$, the summed score of every other view),
+
+    $$
+    \max_{\mathbf{w}_i}\ \mathbf{w}_i^\top X_i^\top \bar{\mathbf{s}}_{\neg i}
+        - \tau_i \|\mathbf{w}_i\|_1
+        \quad\text{subject to } \|X_i \mathbf{w}_i\|_2 \le 1.
+    $$
+
+    This is a genuinely different problem from a reduced-rank-regression-style
+    method like :class:`~cca_zoo.linear.CCAR3`: the objective is *linear* in
+    $\mathbf{w}_i$ (a covariance to maximise, not a residual to shrink), and
+    the norm constraint bounds the *score* $X_i\mathbf{w}_i$, not the weight
+    vector itself -- these coincide only when $X_i$ is orthonormal. Because
+    the constraint couples $\mathbf{w}_i$ to $X_i\mathbf{w}_i$ through a
+    linear map rather than the identity, an ordinary ADMM split would need to
+    invert $X_i^\top X_i$ every step; instead, introducing $\mathbf{z}_i =
+    X_i\mathbf{w}_i$ and *linearising* the augmented Lagrangian's quadratic
+    penalty term around the current iterate turns the $\mathbf{w}_i$-update
+    into a single proximal-gradient step, which is closed-form here since the
+    linear-plus-L1 objective's proximal operator is itself just a shifted
+    soft-threshold:
 
     $$
     \begin{aligned}
-    \mathbf{w}_i &\leftarrow \Bigl(\tfrac2n X_i^\top X_i + \mu I\Bigr)^{-1}
-        \Bigl(\tfrac2n X_i^\top \bar{\mathbf{s}}_{\neg i}
-        + \mu (\mathbf{z}_i - \mathbf{u}_i)\Bigr) \\
-    \mathbf{z}_i &\leftarrow \Pi_{\|\cdot\|_2 \le 1}\Bigl(
-        \mathcal{S}_{\tau_i / \mu}(\mathbf{w}_i + \mathbf{u}_i)
+    \mathbf{w}_i &\leftarrow \mathcal{S}_{\eta_i \tau_i}\Bigl(
+        \mathbf{w}_i - \eta_i \mu X_i^\top(X_i\mathbf{w}_i - \mathbf{z}_i +
+        \boldsymbol{\xi}_i) + \eta_i X_i^\top \bar{\mathbf{s}}_{\neg i}
     \Bigr) \\
-    \mathbf{u}_i &\leftarrow \mathbf{u}_i + \mathbf{w}_i - \mathbf{z}_i
+    \mathbf{z}_i &\leftarrow \Pi_{\|\cdot\|_2 \le 1}\bigl(
+        X_i \mathbf{w}_i + \boldsymbol{\xi}_i
+    \bigr) \\
+    \boldsymbol{\xi}_i &\leftarrow \boldsymbol{\xi}_i + X_i\mathbf{w}_i -
+        \mathbf{z}_i
     \end{aligned}
     $$
 
-    where $\bar{\mathbf{s}}_{\neg i}$ is the summed projected score from all
-    other views, $\mathcal{S}_\lambda$ is the elementwise soft-threshold
-    operator, and $\Pi_{\|\cdot\|_2 \le 1}$ projects onto the unit ball. The
-    $\mathbf{w}_i$ update is the *exact* minimiser of its (quadratic)
-    subproblem, $\tfrac1n\|X_i\mathbf{w}_i - \bar{\mathbf{s}}_{\neg i}\|_2^2 +
-    \tfrac{\mu}{2}\|\mathbf{w}_i - \mathbf{z}_i + \mathbf{u}_i\|_2^2$ (whose
-    gradient needs the $\tfrac2n$ above, not $\tfrac1n$), solved once per
-    iteration via a Cholesky factor of $\tfrac2n X_i^\top X_i + \mu I$
-    computed once per view (it does not change across iterations) rather
-    than the single proximal-gradient step an earlier version of this class
-    took towards it. That gradient step used an un-normalised gradient
-    ($X_i^\top X_i \mathbf{w}_i - X_i^\top\bar{\mathbf{s}}_{\neg i}$, missing
-    a $\tfrac2n$ entirely) against a step size calibrated for the
-    *normalised* loss ($\gamma_i = (\|X_i^\top X_i\|/n + \mu)^{-1}$), so the
-    data term was effectively over-weighted by a factor of $n$ relative to
-    the proximal term -- harmless at very small $n$ (the class's own example
-    and its previous test coverage both used $n=50$), but this diverged to
-    ``nan`` well before ``max_iter`` at $n=200$ on perfectly ordinary data.
-    The exact solve has no step size to get wrong; a first attempt at it
-    still dropped the same factor of 2 (using $\tfrac1n$ throughout), caught
-    by comparing against a from-scratch proximal-gradient solve of the exact
-    constrained problem, which the corrected $\tfrac2n$ version matches
-    exactly where the $\tfrac1n$ version converged cleanly to a measurably
-    over-shrunk, wrong stationary point instead.
+    where $\mathcal{S}_\lambda$ is the elementwise soft-threshold operator,
+    $\Pi_{\|\cdot\|_2 \le 1}$ projects onto the unit ball, $\mu$ is the ADMM
+    penalty parameter, and $\eta_i = 1/(\mu \|X_i\|_{\mathrm{op}}^2)$ is the
+    linearisation step size (the standard stability choice, satisfying $\eta_i
+    \mu \|X_i\|_{\mathrm{op}}^2 \le 1$ with equality). Verified against
+    first-order KKT optimality conditions of the exact constrained problem
+    (the dual variable recovered from the active constraint agrees across
+    every nonzero coordinate to machine precision, and every zeroed
+    coordinate's subgradient residual falls inside $[-\tau_i, \tau_i]$).
+
+    An earlier version of this class solved a different problem entirely: a
+    reduced-rank-regression-style loss $\|X_i\mathbf{w}_i -
+    \bar{\mathbf{s}}_{\neg i}\|_2^2$ with the ball constraint on
+    $\mathbf{w}_i$ directly, rather than the paper's linear covariance
+    objective with the constraint on $X_i\mathbf{w}_i$. That mismatch was not
+    caught by comparing internal consistency alone (a previous fix corrected
+    a scaling bug *within* that wrong objective and still didn't match this
+    paper); only reading the paper's own Section 2.2 -- including its
+    derivation of why linearisation is needed for the $Xu=z$ constraint in
+    particular -- surfaced it.
+
+    Multiple canonical vectors are extracted by this module's shared
+    deflation convention (see the module docstring), not the paper's own
+    Section 2.3 (which instead augments $X_i$ with $U^\top X_i^\top X_i$ rows
+    to embed a whitened-orthogonality constraint directly into the linear
+    map) -- the same kind of documented departure :class:`SAR` already makes
+    from its own two-view paper's higher-order extension.
 
     References:
         Suo, X., Mineiro, P., & Anandkumar, A. (2017). Sparse canonical
@@ -472,15 +496,13 @@ class SCCAADMM(_BaseIterative):
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
-        tau: L1 regularisation weight(s). Default is 0.01 -- unlike
-            :class:`SCCAPMD`'s ``tau`` (a fraction of a p-dependent
-            Cauchy-Schwarz bound), this is a raw per-entry penalty
-            comparable in scale to the entries of ``w + u`` themselves, so
-            values much above this default can zero every view's weights
-            entirely on typical data.
-        mu: ADMM penalty parameter (step size). Default is 1.0.
-        max_iter: Maximum outer iterations. Default is 500.
-        tol: Convergence tolerance. Default is 1e-6.
+        tau: L1 regularisation weight(s). Default is 0.1.
+        mu: ADMM penalty parameter. Default is 1.0.
+        max_iter: Maximum outer (across-view) iterations. Default is 500.
+        admm_iter: Maximum linearised-ADMM iterations per view, per outer
+            iteration. Default is 50.
+        tol: Convergence tolerance, for both the outer loop and each view's
+            inner ADMM loop. Default is 1e-6.
         random_state: Seed for reproducibility.
 
     Example:
@@ -488,16 +510,17 @@ class SCCAADMM(_BaseIterative):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = SCCAADMM(tau=0.01, random_state=0).fit([X1, X2])
+        >>> model = SCCAADMM(tau=0.1, random_state=0).fit([X1, X2])
     """
 
     def __init__(
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        tau: float | list[float] = 0.01,
+        tau: float | list[float] = 0.1,
         mu: float = 1.0,
         max_iter: int = 500,
+        admm_iter: int = 50,
         tol: float = 1e-6,
         random_state: int | None = None,
     ) -> None:
@@ -510,6 +533,7 @@ class SCCAADMM(_BaseIterative):
         )
         self.tau = tau
         self.mu = mu
+        self.admm_iter = admm_iter
 
     def _fit_single(
         self,
@@ -517,54 +541,48 @@ class SCCAADMM(_BaseIterative):
         w: list[np.ndarray],
         d: int,
     ) -> None:
-        """Run the ADMM loop for a single latent dimension.
+        """Run the outer (across-view) loop, each step an inner linearised-ADMM solve.
 
         Args:
             views: Deflated view arrays.
             w: Weight vectors (updated in-place).
             d: Current latent dimension index.
         """
-        tau_ = perview_parameter("tau", self.tau, 0.01, len(views))
-        n = views[0].shape[0]
-        z = [wi.copy() for wi in w]
-        eta = [np.zeros_like(wi) for wi in w]
-        # X_i and mu are fixed across every ADMM iteration for this latent
-        # dimension, so the w-subproblem's Cholesky factor is too -- computed
-        # once here rather than re-forming X_i^T X_i and re-solving from
-        # scratch on every iteration.
-        # The gradient of (1/n)||X w - target||^2 is (2/n) X^T(Xw - target),
-        # so both the Cholesky factor and the right-hand side below need a
-        # 2/n scaling, not 1/n -- the same factor-of-2 that CCAR3's ADMM was
-        # missing (see cca_zoo.linear._ccar3), reintroduced here independently
-        # and caught the same way: it converges cleanly to a stationary point
-        # that is measurably *not* the constrained problem's true optimum
-        # (verified against a from-scratch proximal-gradient ground truth).
-        cho_factors = [
-            cho_factor(
-                2 * views[i].T @ views[i] / n + self.mu * np.eye(views[i].shape[1])
-            )
-            for i in range(len(views))
+        tau_ = perview_parameter("tau", self.tau, 0.1, len(views))
+        n_views = len(views)
+        # eta_i = 1/(mu * ||X_i||_op^2) is fixed for this latent dimension
+        # (X_i doesn't change across iterations), computed once per view.
+        etas = [
+            1.0 / (self.mu * np.linalg.norm(X, ord=2) ** 2) for X in views
         ]
+        # z_i, xi_i (score-space ADMM state) persist across outer iterations,
+        # matching the paper's Algorithm 1 (they are initialised once, not
+        # reset every time a view's block is revisited).
+        z = [views[i] @ w[i] for i in range(n_views)]
+        xi = [np.zeros(views[i].shape[0]) for i in range(n_views)]
         for _iter in range(self.max_iter):
             w_prev = [wi.copy() for wi in w]
-            targets = [_target_score(views, w, i) for i in range(len(views))]
-            for i in range(len(views)):
-                Xtarget = views[i].T @ targets[i]
-                # w-update: exact minimiser of the quadratic subproblem
-                rhs = 2 * Xtarget / n + self.mu * (z[i] - eta[i])
-                w[i] = cho_solve(cho_factors[i], rhs)
-                # z-update: soft thresholding
-                z[i] = soft_threshold(w[i] + eta[i], tau_[i] / self.mu)
-                # Project z to unit ball if needed
-                z_norm = np.linalg.norm(z[i])
-                if z_norm > 1.0:
-                    z[i] /= z_norm
-                # dual update
-                eta[i] = eta[i] + w[i] - z[i]
-            # copy z to w and check convergence
-            for i in range(len(views)):
-                w[i] = z[i].copy()
-            delta = max(np.linalg.norm(w[i] - w_prev[i]) for i in range(len(views)))
+            for i in range(n_views):
+                s_other = sum(
+                    views[j] @ w[j] for j in range(n_views) if j != i
+                )
+                c_i = views[i].T @ s_other
+                for _ in range(self.admm_iter):
+                    w_before = w[i]
+                    Xw = views[i] @ w[i]
+                    grad_lin = self.mu * views[i].T @ (Xw - z[i] + xi[i])
+                    a = w[i] - etas[i] * grad_lin + etas[i] * c_i
+                    w[i] = soft_threshold(a, etas[i] * tau_[i])
+                    Xw = views[i] @ w[i]
+                    z_new = Xw + xi[i]
+                    z_norm = np.linalg.norm(z_new)
+                    if z_norm > 1.0:
+                        z_new = z_new / z_norm
+                    z[i] = z_new
+                    xi[i] = xi[i] + Xw - z[i]
+                    if np.linalg.norm(w[i] - w_before) < self.tol:
+                        break
+            delta = max(np.linalg.norm(w[i] - w_prev[i]) for i in range(n_views))
             if delta < self.tol:
                 logger.debug("ADMM dim %d converged at iter %d", d, _iter)
                 break
@@ -807,12 +825,27 @@ class SCCASpan(_BaseIterative):
 
 
 # ---------------------------------------------------------------------------
-# ElasticCCA — Elastic net CCA (Waaijenborg 2008)
+# WaijenborgCCA — Elastic net CCA (Waaijenborg 2008)
 # ---------------------------------------------------------------------------
 
 
-class ElasticCCA(_BaseIterative):
-    r"""Elastic net regularised CCA.
+class WaijenborgCCA(_BaseIterative):
+    r"""Elastic net regularised CCA (Waaijenborg 2008).
+
+    Named after the paper's own author rather than the generic "elastic net
+    CCA" it used to be called, to disambiguate it from
+    :class:`~cca_zoo.sparse.ElasticNetCCA`: that class optimises the actual
+    Eckart-Young CCA loss with an elastic-net penalty (and cannot delegate to
+    :class:`~sklearn.linear_model.ElasticNet`, since the EY loss's
+    per-coordinate restriction is an exact quartic, not a quadratic --
+    see :func:`~cca_zoo._utils._ey.coordinate_descent_ey`), whereas this
+    class alternates between plain elastic-net *regression* sub-problems
+    (regressing each view's score against the sum of all other views'
+    scores) and genuinely does delegate to sklearn's
+    :class:`~sklearn.linear_model.ElasticNet`/:class:`~sklearn.linear_model.Lasso`/
+    :class:`~sklearn.linear_model.Ridge` via :func:`_make_regressors` -- a
+    different algorithm entirely, not just a different implementation of the
+    same one.
 
     Alternates between elastic net regression sub-problems, regressing each
     view's score against the sum of all other views' scores:
@@ -848,7 +881,7 @@ class ElasticCCA(_BaseIterative):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = ElasticCCA(alpha=0.1, l1_ratio=0.5, random_state=0).fit([X1, X2])
+        >>> model = WaijenborgCCA(alpha=0.1, l1_ratio=0.5, random_state=0).fit([X1, X2])
     """
 
     def __init__(
@@ -1093,7 +1126,7 @@ class SAR(_BaseIterative):
     multiview generalisation (each view regressed against the summed
     score of every *other* view, via the same :func:`_target_score`
     helper :class:`SCCASpan`, :class:`ParkhomenkoCCA`, and
-    :class:`ElasticCCA` use) is this implementation's own extension,
+    :class:`WaijenborgCCA` use) is this implementation's own extension,
     not something the two-view paper itself considers.
 
     Because a lasso fit does not commute with deflation the way an
@@ -1308,4 +1341,12 @@ class SCCA_IPLS(SCCAIPLS):
 
 @deprecated("Renamed to SCCASpan for sklearn-style naming; use SCCASpan instead.")
 class SCCA_Span(SCCASpan):
+    pass
+
+
+@deprecated(
+    "Renamed to WaijenborgCCA to disambiguate from cca_zoo.sparse.ElasticNetCCA "
+    "(the elastic-net-penalised Eckart-Young CCA loss); use WaijenborgCCA instead."
+)
+class ElasticCCA(WaijenborgCCA):
     pass

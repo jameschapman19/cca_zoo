@@ -267,7 +267,7 @@ Gram-Schmidt deflation to extract multiple canonical directions.
     - **SCCAPMD** — fast, interpretable L1 bound; good default for sparse CCA
     - **SCCAADMM** — more principled L1 penalty via ADMM
     - **SCCAIPLS** — elastic net penalty; handles both L1 and L2 regularisation
-    - **ElasticCCA** — elastic net applied to the multiview sum-of-scores target
+    - **WaijenborgCCA** — elastic net applied to the multiview sum-of-scores target
     - **ParkhomenkoCCA** — simple fixed soft-threshold; fast but less adaptive
     - **SCCASpan** — hard threshold (top-k entries); useful when sparsity level is known
     - **SAR** — penalty strength chosen automatically by BIC; no sparsity hyperparameter to tune
@@ -292,13 +292,24 @@ model = SCCAPMD(latent_dimensions=2, tau=0.5, random_state=0).fit([X1, X2])
 
 ### SCCAADMM
 
-Solves the same L1-constrained problem via the Alternating Direction Method of Multipliers
-(Suo 2017). Often more precise than PMD for tight sparsity budgets.
+Maximises the cross-view covariance directly, subject to an L1 penalty on each weight
+vector and a unit-ball constraint on each view's *score* (Suo, Mineiro & Anandkumar
+2017):
+
+$$
+\max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
+    - \tau_1\|\mathbf{w}_1\|_1 - \tau_2\|\mathbf{w}_2\|_1
+\quad \text{s.t.} \quad \|X_i\mathbf{w}_i\|_2 \leq 1
+$$
+
+solved via a linearised Alternating Direction Method of Multipliers, needed because the
+constraint couples $\mathbf{w}_i$ to $X_i\mathbf{w}_i$ through a linear map rather than
+the identity.
 
 ```python
 from cca_zoo.linear import SCCAADMM
 
-model = SCCAADMM(latent_dimensions=2, tau=0.01, random_state=0).fit([X1, X2])
+model = SCCAADMM(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
 ```
 
 ### SCCAIPLS
@@ -314,15 +325,18 @@ model = SCCAIPLS(latent_dimensions=2, alpha=0.01, l1_ratio=1.0, random_state=0).
 )
 ```
 
-### ElasticCCA
+### WaijenborgCCA
 
 Elastic net CCA (Waaijenborg 2008). Each weight vector is estimated by regressing
-the sum-of-all-other-view scores against the current view via elastic net.
+the sum-of-all-other-view scores against the current view via elastic net. Named after
+the paper's author to disambiguate it from `cca_zoo.sparse.ElasticNetCCA` (a different
+algorithm: an elastic-net penalty on the actual Eckart-Young CCA loss, not an
+alternating-regression heuristic).
 
 ```python
-from cca_zoo.linear import ElasticCCA
+from cca_zoo.linear import WaijenborgCCA
 
-model = ElasticCCA(latent_dimensions=2, alpha=0.01, l1_ratio=0.5, random_state=0).fit(
+model = WaijenborgCCA(latent_dimensions=2, alpha=0.01, l1_ratio=0.5, random_state=0).fit(
     [X1, X2]
 )
 ```
@@ -354,7 +368,7 @@ model = SCCASpan(latent_dimensions=2, span=10, random_state=0).fit([X1, X2])
 ### SAR
 
 Sparse Alternating Regression (Wilms & Croux 2015): the same alternating-regression
-structure as ElasticCCA, but the lasso penalty at each step is picked automatically
+structure as WaijenborgCCA, but the lasso penalty at each step is picked automatically
 by BIC rather than left as a hyperparameter, so there is no `alpha`/`tau`/`span` to
 tune. Latent dimensions beyond the first need an extra re-expression step a lasso fit
 requires and an OLS-based one does not (see the class docstring for why).
