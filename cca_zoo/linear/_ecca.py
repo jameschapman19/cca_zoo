@@ -34,7 +34,10 @@ def _entrywise_sparse_rrr(
     whole ``B`` at once, needed there for its own memory-efficiency goals;
     since the entrywise penalty makes the columns independent regardless of
     solver, a bank of per-column Lasso fits reaches the same optimum with
-    no ADMM machinery at all.
+    no ADMM machinery at all -- 0.10s vs. 59.0s for R's ``ecca()`` at the
+    same n=300, p=300, q=100 problem in a direct benchmark (R's ADMM never
+    converges early there at that ``lambda_``, running its full 20,000
+    -iteration budget; sklearn's per-column coordinate descent does).
 
     At ``lambda_ == 0`` this instead solves the unpenalised least-squares
     problem directly (``Lasso(alpha=0)`` is mathematically the same
