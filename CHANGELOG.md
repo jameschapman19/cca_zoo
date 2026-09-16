@@ -19,7 +19,21 @@ project adheres to [Semantic Versioning](https://semver.org/).
   from that view's own local neighbourhood structure), then extends out of sample via a
   per-view `KernelRidge` (RBF) regression from raw features onto that embedding, rather
   than re-deriving each method's own single-view Nystrom extension for this new joint
-  eigenproblem. On two views that are different nonlinear (different angular frequency)
+  eigenproblem. Two correctness properties anchor the construction: with independent
+  views, both operators' shared (near-)null direction -- the constant vector, which
+  every graph-based operator here is blind to -- is explicitly projected out before
+  solving (matching `SpectralEmbedding`'s own `drop_first=True`), rather than left in to
+  produce a spurious, numerically unstable top component; and each view is restricted to
+  its own `n_operator_components` smallest-eigenvalue directions before the joint solve
+  (the same truncation every spectral method already does, and effectively this class's
+  regularisation strength -- the untruncated limit hands each view as many free
+  directions as training points, which, like *any* unregularised multivariate CCA at
+  that dimensionality-to-sample-size ratio, fabricates spurious cross-view correlation
+  from pure noise). With that in place, `ManifoldCCA` on two duplicated views reduces
+  *exactly* (verified to within numerical precision) to plain single-view spectral
+  embedding of that one view -- the concrete check that this is the natural multiview
+  generalisation of `SpectralEmbedding`, not merely a construction that happens to reuse
+  its graph. On two views that are different nonlinear (different angular frequency)
   spiral embeddings of one shared 1-D coordinate -- where no linear map from one view's
   ambient coordinates to the other's exists, but a k-NN graph on either still respects
   the shared ordering -- `method="laplacian"` recovers substantially higher held-out

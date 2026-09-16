@@ -7,7 +7,7 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
-from scipy.linalg import block_diag
+from scipy.linalg import block_diag, null_space
 from scipy.sparse import issparse
 from scipy.sparse.csgraph import laplacian as sparse_laplacian
 from sklearn.kernel_ridge import KernelRidge
@@ -35,12 +35,72 @@ def _centering_matrix(n: int) -> np.ndarray:
     return (np.eye(n) - np.ones((n, n)) / n) / (n - 1)
 
 
-def _floor_min_eig(M: np.ndarray, eps: float) -> np.ndarray:
-    """Add a multiple of the identity so ``M``'s smallest eigenvalue is >= eps."""
-    min_eig = np.linalg.eigvalsh(M).min()
-    if min_eig < eps:
-        M = M + (eps - min_eig) * np.eye(M.shape[0])
-    return M
+def _smooth_basis(
+    operator: np.ndarray, n_components: int, eps: float
+) -> tuple[np.ndarray, np.ndarray]:
+    r"""The ``n_components`` eigenvectors of ``operator`` with the smallest eigenvalues.
+
+    Every method :class:`ManifoldCCA` is built on --
+    :class:`~sklearn.manifold.SpectralEmbedding`,
+    :class:`~sklearn.manifold.LocallyLinearEmbedding` -- keeps only a
+    handful of components, never all $n-1$: on genuine low-dimensional
+    manifold data there's a spectral *gap* between a few small
+    ("smooth"/"structure") eigenvalues and a bulk of larger ("noise")
+    ones, and truncating to the small side is where the denoising
+    actually happens. Solving the *full* untruncated operator (as an
+    earlier version of this module did) hands each view $n-1$ genuine
+    degrees of freedom to search for a matching direction against the
+    other view -- with a reward that (see :func:`_centering_matrix`)
+    doesn't know anything about either view's actual content, that much
+    freedom is enough to fabricate spurious cross-view correlation out of
+    pure noise, the classic small-$n$-large-effective-dimension CCA
+    failure mode every ridge-regularised method elsewhere in this library
+    exists to avoid -- except a ridge blend toward the identity doesn't
+    fix it here, since the identity is already full rank. A hard
+    truncation is what's actually needed, matching every other spectral
+    method's own convention.
+
+    Args:
+        operator: Symmetric operator, shape (n-1, n-1) (already projected
+            onto the constant vector's orthogonal complement).
+        n_components: Number of smallest-eigenvalue eigenvectors to keep.
+        eps: Floor applied to each kept eigenvalue individually.
+
+    Returns:
+        Tuple ``(basis, eigenvalues)``: ``basis`` has shape
+        ``(n-1, n_components)`` with orthonormal columns; ``eigenvalues``
+        has shape ``(n_components,)``.
+    """
+    eigenvalues, eigenvectors = np.linalg.eigh(operator)
+    k = min(n_components, operator.shape[0])
+    basis = eigenvectors[:, :k]
+    floored = np.maximum(eigenvalues[:k], eps)
+    return basis, floored
+
+
+def _orthonormal_complement_of_ones(n: int) -> np.ndarray:
+    r"""An (n, n-1) orthonormal basis of the constant vector's orthogonal complement.
+
+    Every operator :class:`ManifoldCCA` plugs in as a within-view
+    constraint -- the graph Laplacian, the LLE reconstruction operator --
+    has the constant vector $\mathbf{1}$ in its exact (Laplacian) or
+    near-exact (LLE) null space: a uniform shift carries zero graph
+    energy under either. :func:`_centering_matrix` (the shared
+    between-view reward) also annihilates $\mathbf{1}$ exactly. Left in,
+    $\mathbf{1}$ is therefore a near-simultaneous null direction of
+    *both* sides of the generalised eigenproblem -- the classical source
+    of spurious blow-up in a generalised ``eigh(A, B)`` solve (that
+    direction's "eigenvalue" is a 0/0 ratio, and floating-point noise in
+    the numerator and denominator can amplify it into something that
+    dwarfs every genuine eigenvalue, silently stealing the requested
+    top-``k`` slots with numerical junk rather than real structure).
+    Projecting the whole problem onto this complement before solving
+    (see :meth:`ManifoldCCA.fit`) removes the shared degeneracy outright,
+    matching :class:`~sklearn.manifold.SpectralEmbedding`'s own
+    ``drop_first=True`` default -- :class:`~sklearn.manifold.LocallyLinearEmbedding`
+    never returns the trivial constant solution either.
+    """
+    return np.asarray(null_space(np.ones((1, n))))
 
 
 def _laplacian_operator(
@@ -130,6 +190,23 @@ class ManifoldCCA(BaseModel):
     solver *is* $Z_i$ directly -- see :func:`_centering_matrix`) and its
     within-view block $M_i$ instead of a covariance.
 
+    Solved after projecting both sides onto $\mathbf{1}^\perp$ (see
+    :func:`_orthonormal_complement_of_ones`): every $M_i$ has the constant
+    vector in its (near-)null space, as does the reward, so leaving it in
+    would put a spurious, numerically unstable 0/0-type direction at the
+    top of the spectrum -- the same reason
+    :class:`~sklearn.manifold.SpectralEmbedding` always discards its own
+    trivial constant solution. One consequence worth checking directly: if
+    two views are given *identical* data, $A$ (via the shared reward)
+    restricted to $\mathbf{1}^\perp$ is proportional to the identity, so
+    the joint problem's solution for that view is exactly the ordinary
+    Rayleigh-quotient minimiser of $M_i$ alone -- i.e. it reduces exactly
+    to plain single-view spectral embedding of that view, which is the
+    right sanity check for "is this actually the natural multiview
+    generalisation" (verified directly against
+    :class:`~sklearn.manifold.SpectralEmbedding`'s own affinity
+    construction in the tests).
+
     Since $Z_i$ is only ever defined at the training points (there is no
     feature map to apply to new data), out-of-sample projection is *not*
     the graph operator's own Nystrom extension (which would need
@@ -193,11 +270,29 @@ class ManifoldCCA(BaseModel):
             ``1 / n_features`` default).
         lle_reg: Regularisation added to each point's local reconstruction
             Gram matrix, used only when ``method="lle"``. Default 1e-3.
+        n_operator_components: Number of each view's own smallest-eigenvalue
+            operator components kept before the joint eigenproblem is
+            solved (see :func:`_smooth_basis`) -- effectively this class's
+            regularisation strength, the same role ``c`` plays elsewhere
+            in this library, just the opposite direction: smaller keeps
+            fewer, "smoother" candidate directions per view (more
+            regularised, more denoised, but liable to discard real
+            structure if set too small); the untruncated limit
+            (``n_operator_components = n_samples - 1``) hands each view as
+            many free directions as there are training points, which --
+            like *any* unregularised multivariate CCA at that
+            dimensionality-to-sample-size ratio -- fabricates spurious
+            cross-view correlation out of pure noise (see
+            ``tests/nonparametric/test_manifold_cca.py``'s comparison
+            against plain unregularised ``MCCA`` at the same nominal
+            dimensionality). Default ``None``: ``max(4 * latent_dimensions,
+            10)``, clipped to ``n_samples - 1``.
         extrapolator_alpha: Ridge strength for the per-view
             :class:`~sklearn.kernel_ridge.KernelRidge` out-of-sample
             extension. Default 1.0.
-        eps: Small constant added to each $M_i$'s eigenvalues to ensure
-            positive definiteness. Default 1e-6.
+        eps: Floor applied to each kept operator eigenvalue (see
+            :func:`_smooth_basis`) to ensure positive definiteness. Default
+            1e-6.
 
     Example:
         >>> import numpy as np
@@ -215,6 +310,7 @@ class ManifoldCCA(BaseModel):
         "affinity": [StrOptions({"nearest_neighbors", "rbf"})],
         "gamma": [Interval(Real, 0, None, closed="neither"), None],
         "lle_reg": [Interval(Real, 0, None, closed="left")],
+        "n_operator_components": [Interval(Integral, 1, None, closed="left"), None],
         "extrapolator_alpha": [Interval(Real, 0, None, closed="neither")],
         "eps": POSITIVE_EPS,
     }
@@ -228,6 +324,7 @@ class ManifoldCCA(BaseModel):
         affinity: str = "nearest_neighbors",
         gamma: float | None = None,
         lle_reg: float = 1e-3,
+        n_operator_components: int | None = None,
         extrapolator_alpha: float = 1.0,
         eps: float = 1e-6,
     ) -> None:
@@ -237,6 +334,7 @@ class ManifoldCCA(BaseModel):
         self.affinity = affinity
         self.gamma = gamma
         self.lle_reg = lle_reg
+        self.n_operator_components = n_operator_components
         self.extrapolator_alpha = extrapolator_alpha
         self.eps = eps
 
@@ -244,6 +342,11 @@ class ManifoldCCA(BaseModel):
         if self.method == "laplacian":
             return _laplacian_operator(v, self.n_neighbors, self.affinity, self.gamma)
         return _lle_operator(v, self.n_neighbors, self.lle_reg)
+
+    def _resolve_n_operator_components(self, n: int) -> int:
+        if self.n_operator_components is not None:
+            return min(self.n_operator_components, n - 1)
+        return min(max(4 * self.latent_dimensions, 10), n - 1)
 
     def fit(self, views: list[ArrayLike], y: None = None) -> ManifoldCCA:
         """Fit ManifoldCCA by a joint generalised eigenproblem over per-view graphs.
@@ -263,12 +366,36 @@ class ManifoldCCA(BaseModel):
         n = self.n_samples_
         m = self.n_views_
 
-        operators = [_floor_min_eig(self._operator(v), self.eps) for v in views_]
-        B = np.asarray(block_diag(*operators)) / m
-        A = np.kron(np.ones((m, m)) - np.eye(m), _centering_matrix(n)) / m
+        # Project onto the constant vector's orthogonal complement first --
+        # see _orthonormal_complement_of_ones -- so the shared (near-)null
+        # direction every operator and the reward both have never enters
+        # the solve at all, rather than being merely floored.
+        P = _orthonormal_complement_of_ones(n)
+        C_reduced = P.T @ _centering_matrix(n) @ P
+
+        k_op = self._resolve_n_operator_components(n)
+        bases = []
+        eigenvalue_blocks = []
+        for v in views_:
+            reduced_operator = P.T @ self._operator(v) @ P
+            basis, eigenvalues = _smooth_basis(reduced_operator, k_op, self.eps)
+            bases.append(basis)
+            eigenvalue_blocks.append(eigenvalues)
+
+        B = np.asarray(block_diag(*[np.diag(ev) for ev in eigenvalue_blocks])) / m
+        A = np.zeros((k_op * m, k_op * m))
+        for i in range(m):
+            for j in range(m):
+                if i != j:
+                    block = bases[i].T @ C_reduced @ bases[j]
+                    A[i * k_op : (i + 1) * k_op, j * k_op : (j + 1) * k_op] = block
+        A /= m
 
         _, eigvecs = gevp(A, B, self.latent_dimensions)
-        embedding = list(np.split(eigvecs, m, axis=0))
+        embedding = [
+            P @ (basis @ block)
+            for basis, block in zip(bases, np.split(eigvecs, m, axis=0))
+        ]
         self.weights_: list[np.ndarray] = embedding
 
         self._extrapolators_: list[KernelRidge] = [

@@ -121,10 +121,10 @@ shared ordering.
 
 Unlike `KCCA`, which replaces the inner product with a global kernel, `ManifoldCCA` replaces the
 within-view *covariance* with a graph operator built from that view's own local neighbourhood
-structure -- the graph Laplacian ($M = D - W$, `method="laplacian"`, matching
-`sklearn.manifold.SpectralEmbedding`) or the LLE reconstruction operator ($M = (I-W)^\top(I-W)$,
-`method="lle"`). Since there's no feature map at all here, the "weight" the joint eigenproblem
-solves for *is* each view's training-set embedding directly:
+structure -- the normalised graph Laplacian ($M = I - D^{-1/2}WD^{-1/2}$, `method="laplacian"`,
+matching `sklearn.manifold.SpectralEmbedding`) or the LLE reconstruction operator
+($M = (I-W)^\top(I-W)$, `method="lle"`). Since there's no feature map at all here, the "weight"
+the joint eigenproblem solves for *is* each view's training-set embedding directly:
 
 ```python
 from cca_zoo.nonparametric import ManifoldCCA
@@ -132,6 +132,17 @@ from cca_zoo.nonparametric import ManifoldCCA
 model = ManifoldCCA(method="laplacian", n_neighbors=10, latent_dimensions=1).fit([X1, X2])
 train_embedding = model.weights  # (n_train, k) per view -- the embedding itself, not a weight matrix
 ```
+
+Before solving, every view's operator is truncated to its own `n_operator_components`
+smallest-eigenvalue directions (default `max(4 * latent_dimensions, 10)`) -- the same truncation
+every spectral method already applies, and effectively this class's regularisation strength.
+Set too large (approaching `n_samples - 1`), the joint eigenproblem hands each view as many free
+directions as training points and, like any unregularised multivariate CCA at that
+dimensionality-to-sample-size ratio, starts fabricating cross-view correlation out of pure noise;
+set too small, it can discard real manifold structure. On two identical views, with this in
+place, `ManifoldCCA` reduces *exactly* to plain single-view spectral embedding of that view --
+the concrete check that this is the natural multiview generalisation of `SpectralEmbedding`,
+not an unrelated construction that happens to reuse its graph.
 
 ### Transform
 
