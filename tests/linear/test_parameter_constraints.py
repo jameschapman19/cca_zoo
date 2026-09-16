@@ -94,7 +94,6 @@ def test_tcca_invalid_random_state_rejected(three_views: list[np.ndarray]) -> No
         {"lambda_": -1.0},
         {"highdim": "nope"},
         {"ledoit_wolf": "nope"},
-        {"rho": 0.0},
         {"max_iter": 0},
         {"tol": 0.0},
         {"eps": 0.0},
@@ -117,4 +116,4 @@ def test_valid_parameters_still_fit(two_views: list[np.ndarray]) -> None:
     """Documented-valid parameter values are accepted, not false-positives."""
     rCCA(c=0.5).fit(two_views)
     MCCA(c=[0.1, 0.9], pca=False, eps=1e-8).fit(two_views)
-    CCAR3(lambda_=0.1, highdim=False, rho=2.0, max_iter=100, tol=1e-3).fit(two_views)
+    CCAR3(lambda_=0.1, highdim=False, max_iter=100, tol=1e-3).fit(two_views)

@@ -247,6 +247,22 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- `CCAR3(highdim=True)` (the default) systematically over-penalised relative to what
+  `lambda_` documents: its hand-rolled ADMM solver for the row-group-lasso reduced-rank
+  regression subproblem had a factor of 2 missing from its B-update's linear system (the
+  gradient of the documented loss `(1/n)||Y-XB||^2` is `(2/n) X^T(XB-Y)`, but the code's
+  coefficient matrix and right-hand side both used the `1/n`-scaled versions), silently
+  doubling the effective penalty strength. It converged cleanly and passed every existing
+  (qualitative) sparsity test, so the bug only surfaced by comparing its objective value
+  against an independently-implemented solver: it landed on a different, worse-objective
+  stationary point on every problem tested, not merely an under-converged one (raising
+  `max_iter`/tightening `tol` made no difference). Fixed by replacing the ADMM solver with
+  `sklearn.linear_model.MultiTaskLasso` -- the row-group-lasso subproblem CCAR3 poses is
+  exactly `MultiTaskLasso`'s own objective, so this is correct by construction (its
+  coordinate descent provably reaches the global optimum of this convex problem) rather
+  than a solver that needs independently verifying, and is substantially faster in
+  practice. The `rho` (ADMM step-size) parameter is removed, having no equivalent in
+  coordinate descent; `max_iter`/`tol` now pass straight through to `MultiTaskLasso`.
 - `CCAEY`, `PLSEY`, `HuberCCA`, and their shared base `BaseFullBatchEYModel` defaulted
   `tol=1e-6`, passed straight through to L-BFGS-B as `ftol`. `ftol` is a *relative*
   per-step improvement test, and this loss can pass through slow, shallow stretches of
