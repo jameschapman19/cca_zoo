@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://jameschapman19.github.io/cca_zoo/user-guide/gp/">
+        <link rel="canonical" href="https://jameschapman19.github.io/cca_zoo/user-guide/stochastic/">
       
       
-        <link rel="prev" href="../gam/">
+        <link rel="prev" href="../sparse/">
       
       
-        <link rel="next" href="../sparse/">
+        <link rel="next" href="../deep/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>GP Methods - CCA-Zoo</title>
+        <title>Stochastic Methods - CCA-Zoo</title>
       
     
     
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#gp-methods" class="md-skip">
+        <a href="#stochastic-methods" class="md-skip">
           Skip to content
         </a>
       
@@ -115,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              GP Methods
+              Stochastic Methods
             
           </span>
         </div>
@@ -638,37 +638,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    GP Methods
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../gp/" class="md-nav__link">
         
   
   
@@ -684,92 +657,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#background" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Background
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#basic-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Basic usage
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#predictive-uncertainty" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Predictive uncertainty
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#scaling-to-larger-datasets-the-sparse-inducing-point-approximation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scaling to larger datasets: the sparse (inducing-point) approximation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key parameters
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#practical-notes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Practical notes
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -807,10 +694,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../stochastic/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stochastic Methods
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -826,6 +740,37 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#stochasticccaey" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StochasticCCAEY
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1410,65 +1355,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#background" class="md-nav__link">
+  <a href="#stochasticccaey" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Background
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#basic-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Basic usage
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#predictive-uncertainty" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Predictive uncertainty
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#scaling-to-larger-datasets-the-sparse-inducing-point-approximation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scaling to larger datasets: the sparse (inducing-point) approximation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key parameters
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#practical-notes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Practical notes
+        StochasticCCAEY
       
     </span>
   </a>
@@ -1540,7 +1430,7 @@
 
 
   
-    <a href="https://github.com/jameschapman19/cca_zoo/edit/main/docs/user-guide/gp.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/jameschapman19/cca_zoo/edit/main/docs/user-guide/stochastic.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1548,141 +1438,29 @@
   
 
 
-<h1 id="gp-methods">GP Methods<a class="headerlink" href="#gp-methods" title="Permanent link">&para;</a></h1>
-<p>The <code>cca_zoo.gp</code> module provides <code>GaussianProcessCCA</code>, a nonlinear multiview CCA method that uses a
-Gaussian process with a joint (non-additive) kernel as the per-view encoder. It has no optional
-dependency: the kernel machinery is built entirely from scikit-learn's own
-<code>GaussianProcessRegressor</code>, <code>RBF</code>, <code>ConstantKernel</code> and <code>KernelCenterer</code>, with <code>scipy.optimize</code>
-doing the fit, all already required by <code>cca_zoo</code>.</p>
+<h1 id="stochastic-methods">Stochastic Methods<a class="headerlink" href="#stochastic-methods" title="Permanent link">&para;</a></h1>
+<p>The <code>cca_zoo.stochastic</code> module provides mini-batch CCA methods, for datasets too large to fit a
+full-batch gradient step in memory.</p>
 <hr />
-<h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
-<p><code>GaussianProcessCCA</code> minimises the same unconstrained Eckart-Young (EY) objective used by the stochastic
-<code>*_EY</code> models in <code>cca_zoo.linear</code>, by <code>DCCAEY</code> in <code>cca_zoo.deep</code>, by <code>TreeCCA</code> in <code>cca_zoo.tree</code>,
-and by <code>GAMCCA</code> in <code>cca_zoo.gam</code> (all share the exact same implementation, in
-<code>cca_zoo._utils._ey</code>):</p>
-<div class="arithmatex">\[
-\mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
-\]</div>
-<p>where, for embeddings <span class="arithmatex">\(Z_i = f_i(X_i)\)</span>, <span class="arithmatex">\(C\)</span> is the mean pairwise cross-covariance (including
-<span class="arithmatex">\(i = j\)</span> terms) and <span class="arithmatex">\(V\)</span> the mean auto-covariance across all views. Where <code>GAMCCA</code> sums one
-univariate B-spline term per input feature — additive, and so structurally unable to represent an
-interaction between two features of the same view — <code>GaussianProcessCCA</code> fits a Gaussian process with an ARD
-(per-feature-lengthscale) RBF kernel directly over each view's <em>raw, joint</em> feature vector: a
-genuine, non-additive function of all of that view's features at once. As a Bayesian model it
-also comes with calibrated predictive uncertainty for free.</p>
-<p>Each encoder writes <span class="arithmatex">\(f_i(x) = k(x, Z_i)^\top B_i\)</span> for a fixed kernel <span class="arithmatex">\(k\)</span> and a fixed set of basis
-("inducing") points <span class="arithmatex">\(Z_i\)</span> — every training row by default, or <code>n_inducing</code> of them selected via
-<code>sklearn.cluster.kmeans_plusplus</code> for larger datasets. Fitting the coefficients <span class="arithmatex">\(B_i\)</span> is then an
-ordinary smooth optimisation problem with an exact, cheap analytic gradient, solved directly by
-<strong>L-BFGS-B</strong> (<code>scipy.optimize.minimize</code>) — the same algorithm <code>GaussianProcessRegressor</code> itself
-uses internally, just pointed at the EY loss (plus an RKHS-norm ridge penalty) instead of the
-negative log-marginal-likelihood it optimises kernel hyperparameters against. Every view's
-coefficients are optimised <strong>jointly</strong>, in a single L-BFGS-B run over all of them concatenated,
-rather than one view at a time with the others held fixed: the EY loss already couples every view
-together, so solving one view to convergence before moving to the next needlessly repeats work and
-can settle into a worse joint optimum than optimising every view simultaneously against the exact
-joint gradient. Kernel hyperparameters are fixed — pass <code>kernel=</code> explicitly, or tune it
-externally (e.g. with <code>sklearn.model_selection.GridSearchCV</code>, since this is an ordinary
-<code>BaseEstimator</code>).</p>
-<p><strong>When to use:</strong> Nonlinear multiview CCA where cross-view structure depends on a genuine
-<em>interaction</em> between two or more features of the same view (e.g. <span class="arithmatex">\(x_1 x_2\)</span>), which an additive
-GAM cannot represent and which a tree ensemble can only approximate via multivariate splits (and,
-at default settings, may be starved of joint feature access — see <code>TreeCCA</code>'s <code>colsample_bytree</code>).
-A GP with a joint kernel represents such an interaction directly. When the true relationship is
-smooth and <em>additive</em>, <code>GAMCCA</code> is typically a cheaper and equally accurate choice; a GP over the
-raw feature vector scales cubically in the number of training samples (exact inference), so
-expect fitting to be markedly slower than <code>GAMCCA</code> or <code>TreeCCA</code> on large datasets unless
-<code>n_inducing</code> is set.</p>
-<hr />
-<h2 id="basic-usage">Basic usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.gp</span><span class="w"> </span><span class="kn">import</span> <span class="n">GaussianProcessCCA</span>
+<h2 id="stochasticccaey">StochasticCCAEY<a class="headerlink" href="#stochasticccaey" title="Permanent link">&para;</a></h2>
+<p><code>StochasticCCAEY</code> fits the same unconstrained Eckart-Young (EY) objective as
+<a href="../linear/#ey-loss-methods"><code>cca_zoo.linear.CCAEY</code></a> — see that page's Background section for the
+objective itself — by mini-batch momentum SGD instead of full-batch L-BFGS-B:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.stochastic</span><span class="w"> </span><span class="kn">import</span> <span class="n">StochasticCCAEY</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GaussianProcessCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">corrs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># GaussianProcessCCA also supports more than two views</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">model3</span> <span class="o">=</span> <span class="n">GaussianProcessCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">StochasticCCAEY</span><span class="p">(</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
-<h2 id="predictive-uncertainty">Predictive uncertainty<a class="headerlink" href="#predictive-uncertainty" title="Permanent link">&para;</a></h2>
-<p>Because each per-component encoder is a Gaussian process, <code>transform</code> can return each latent
-component's posterior standard deviation alongside its mean:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">means</span><span class="p">,</span> <span class="n">stds</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">],</span> <span class="n">return_std</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></code></pre></div>
-<p><code>stds[i]</code> has the same shape as <code>means[i]</code> (<code>(n_samples, latent_dimensions)</code>) and is the posterior
-standard deviation of view <code>i</code>'s latent component — larger away from the training data, smaller
-near it, exactly as for any other GP posterior. This does not depend on the fitted coefficients at
-all (a standard GP fact: posterior variance only involves the kernel, the noise level, and the
-design points), so it is computed under the (uncentred) GP prior implied by the same kernel, noise
-level, and inducing points as the mean fit.</p>
-<p><code>GaussianProcessCCA</code> has no linear weight matrices and no per-feature decomposition analogous to <code>GAMCCA</code>'s
-<code>shape_function</code> (the kernel is not additive across features), so <code>model.weights</code> raises
-<code>NotImplementedError</code>.</p>
-<hr />
-<h2 id="scaling-to-larger-datasets-the-sparse-inducing-point-approximation">Scaling to larger datasets: the sparse (inducing-point) approximation<a class="headerlink" href="#scaling-to-larger-datasets-the-sparse-inducing-point-approximation" title="Permanent link">&para;</a></h2>
-<p>Exact inference costs <span class="arithmatex">\(O(n^3)\)</span> per fit, using every training row as a basis point — impractical
-somewhere in the low thousands of samples. Setting <code>n_inducing</code> switches each encoder to a
-<strong>reduced-rank ("subset of regressors")</strong> construction (Quiñonero-Candela &amp; Rasmussen, 2005),
-using only <code>n_inducing</code> basis points — an actual, well-spread subset of the training rows,
-selected via <code>sklearn.cluster.kmeans_plusplus</code>'s seeding — reducing fitting to
-<span class="arithmatex">\(O(n \, m^2 + m^3)\)</span> for <span class="arithmatex">\(m\)</span> basis points instead of <span class="arithmatex">\(O(n^3)\)</span>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GaussianProcessCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_inducing</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="p">)</span>  <span class="c1"># X1, X2 have many samples</span>
-</span></code></pre></div>
-<p><code>n_inducing</code> values at or above the number of training samples are equivalent to (and internally
-fall back to) exact inference. Larger <code>n_inducing</code> trades speed for a closer approximation to the
-exact posterior; there's no universal default, since how many inducing points are "enough" depends
-on how smooth/low-rank the true underlying function is — start with a few hundred and check
-whether increasing it changes the held-out canonical correlation.</p>
-<hr />
-<h2 id="key-parameters">Key parameters<a class="headerlink" href="#key-parameters" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Parameter</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>kernel</code></td>
-<td>Fixed kernel used for every view. <code>None</code> (default) uses <code>ConstantKernel(1.0) * RBF(length_scale=np.ones(p))</code> for each view's own feature count <code>p</code>.</td>
-</tr>
-<tr>
-<td><code>alpha</code></td>
-<td>Ridge (RKHS-norm) penalty strength, also used as the noise level for the posterior-variance calculation.</td>
-</tr>
-<tr>
-<td><code>n_inducing</code></td>
-<td>Number of basis ("inducing") points (see above). <code>None</code> (default) uses every training row (exact inference).</td>
-</tr>
-<tr>
-<td><code>max_iter</code></td>
-<td>Maximum number of L-BFGS-B iterations for the single, joint solve over every view's coefficients.</td>
-</tr>
-<tr>
-<td><code>tol</code></td>
-<td>Convergence tolerance, passed to L-BFGS-B as <code>ftol</code>.</td>
-</tr>
-<tr>
-<td><code>random_state</code></td>
-<td>Seed for the initial coefficients, and (if <code>n_inducing</code> is set) for selecting inducing points.</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<h2 id="practical-notes">Practical notes<a class="headerlink" href="#practical-notes" title="Permanent link">&para;</a></h2>
-<ul>
-<li><code>GaussianProcessCCA</code> supports 2 or more views.</li>
-<li><code>latent_dimensions</code> must not exceed the number of features in any view.</li>
-<li>Exact inference (<code>n_inducing=None</code>) is <span class="arithmatex">\(O(n^3)\)</span> in the number of training samples; set
-  <code>n_inducing</code> for datasets beyond a few thousand samples, or consider <code>GAMCCA</code> (if the
-  relationship is additive) or <code>TreeCCA</code> instead.</li>
-<li>No optional dependency is required (unlike <code>cca_zoo.tree</code>, which needs <code>xgboost</code>/<code>lightgbm</code>):
-  <code>GaussianProcessCCA</code> is built entirely on <code>scikit-learn</code>'s <code>GaussianProcessRegressor</code>, <code>RBF</code>, <code>ConstantKernel</code>,
-  <code>KernelCenterer</code> and <code>kmeans_plusplus</code>.</li>
-</ul>
+<p><strong>When to use:</strong> the dataset doesn't fit comfortably in memory for a full-batch gradient step, or
+is naturally streamed/out-of-core. Otherwise, <code>CCAEY</code> is simpler to tune (no <code>learning_rate</code> or
+<code>batch_size</code>) and converges more predictably.</p>
+<p><code>batch_size</code> trades off gradient-estimate noise against per-step cost; <code>learning_rate</code> and the
+momentum term interact with it the same way they do for any mini-batch SGD method — too large a
+learning rate for a given batch size can diverge, too small converges slowly. <code>random_state</code>
+controls both the initial weights and the batch sampling order, so it must be fixed for
+reproducible fits.</p>
 
 
 
@@ -1718,7 +1496,7 @@ whether increasing it changes the held-out canonical correlation.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../gam/" class="md-footer__link md-footer__link--prev" aria-label="Previous: GAM Methods">
+          <a href="../sparse/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Sparse Methods">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1728,20 +1506,20 @@ whether increasing it changes the held-out canonical correlation.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                GAM Methods
+                Sparse Methods
               </div>
             </div>
           </a>
         
         
           
-          <a href="../sparse/" class="md-footer__link md-footer__link--next" aria-label="Next: Sparse Methods">
+          <a href="../deep/" class="md-footer__link md-footer__link--next" aria-label="Next: Deep Methods">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Sparse Methods
+                Deep Methods
               </div>
             </div>
             <div class="md-footer__button md-icon">
