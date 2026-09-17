@@ -78,108 +78,108 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 
 ### `cca_zoo.linear`
 
-| Class | Description | Views |
-|---|---|---|
-| `CCA` | Standard CCA (Hotelling 1936) | 2 |
-| `rCCA` | Regularised CCA / canonical ridge | 2 |
-| `PLS` | Partial Least Squares | 2 |
-| `MCCA` | Multiset CCA — pairwise sum objective | ≥2 |
-| `GCCA` | Generalised CCA — shared latent projection | ≥2 |
-| `TCCA` | Tensor CCA — higher-order cross-moment | ≥2 |
-| `PartialCCA` | CCA adjusted for confounding variables (Rao 1969) | ≥2 |
-| `GRCCA` | Group-regularised CCA (Tuzhilina, Tozzi & Hastie 2021) | ≥2 |
-| `CCAR3` | CCA via reduced-rank regression, row-sparse in high dimensions (Donnat & Tuzhilina 2024) | 2 |
-| `ECCA` | CCA via reduced-rank regression, entrywise-sparse (ccar3 package's `ecca`) | 2 |
-| `GraphicalLassoCCA` | MCCA with an L1-penalised sparse-precision within-view covariance (Friedman, Hastie & Tibshirani 2008) | ≥2 |
-| `CCAEY` | Eckart-Young CCA, full-batch L-BFGS-B (2 or more views) | ≥2 |
-| `PLSEY` | Eckart-Young PLS, full-batch L-BFGS-B | ≥2 |
-| `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, robust to high-leverage outliers | ≥2 |
-| `RANSACCCA` | Robust CCA via random sample consensus, robust to mismatched/corrupted rows | ≥2 |
-| `TrimmedCCA` | Robust CCA via LTS/MCD-style concentration steps, holds up near ~50% contamination | ≥2 |
+| Class | Description | Citation | Views |
+|---|---|---|---|
+| `CCA` | Standard CCA | Hotelling (1936) | 2 |
+| `rCCA` | Regularised CCA / canonical ridge | Vinod (1976) | 2 |
+| `PLS` | Partial Least Squares | Wold (1975) | 2 |
+| `MCCA` | Multiset CCA — pairwise sum objective | Kettenring (1971) | ≥2 |
+| `GCCA` | Generalised CCA — shared latent projection | Tenenhaus & Tenenhaus (2011) | ≥2 |
+| `TCCA` | Tensor CCA — higher-order cross-moment | Kim, Wong & Cipolla (2007) | ≥2 |
+| `PartialCCA` | CCA adjusted for confounding variables | Rao (1969) | ≥2 |
+| `GRCCA` | Group-regularised CCA | Tuzhilina, Tozzi & Hastie (2021) | ≥2 |
+| `CCAR3` | CCA via reduced-rank regression, row-sparse in high dimensions | Donnat & Tuzhilina (2024) | 2 |
+| `ECCA` | CCA via reduced-rank regression, entrywise-sparse (ccar3 package's `ecca`) | Donnat & Tuzhilina (2024) | 2 |
+| `GraphicalLassoCCA` | MCCA with an L1-penalised sparse-precision within-view covariance | Friedman, Hastie & Tibshirani (2008) | ≥2 |
+| `CCAEY` | Eckart-Young CCA, full-batch L-BFGS-B (2 or more views) | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
+| `PLSEY` | Eckart-Young PLS, full-batch L-BFGS-B | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
+| `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, robust to high-leverage outliers | — | ≥2 |
+| `RANSACCCA` | Robust CCA via random sample consensus, robust to mismatched/corrupted rows | — | ≥2 |
+| `TrimmedCCA` | Robust CCA via LTS/MCD-style concentration steps, holds up near ~50% contamination | Rousseeuw & Van Driessen (1999) | ≥2 |
 
 ### `cca_zoo.nonparametric`
 
-| Class | Description |
-|---|---|
-| `KCCA` | Kernel CCA |
-| `KGCCA` | Kernel Generalised CCA |
-| `KTCCA` | Kernel Tensor CCA |
-| `ManifoldCCA` | Transductive CCA over a shared graph Laplacian or LLE operator (Belkin & Niyogi 2003; Roweis & Saul 2000) |
+| Class | Description | Citation |
+|---|---|---|
+| `KCCA` | Kernel CCA | Hardoon, Szedmak & Shawe-Taylor (2004) |
+| `KGCCA` | Kernel Generalised CCA | Tenenhaus, Philippe & Frouin (2015) |
+| `KTCCA` | Kernel Tensor CCA | Kim, Wong & Cipolla (2007) |
+| `ManifoldCCA` | Transductive CCA over a shared graph Laplacian or LLE operator | Belkin & Niyogi (2003); Roweis & Saul (2000) |
 
 ### `cca_zoo.tree` *(requires `[tree]`)*
 
-| Class | Description | Views |
-|---|---|---|
-| `XGBoostCCA` | Gradient-boosted-tree CCA via XGBoost (Eckart-Young objective) | ≥2 |
-| `LightGBMCCA` | Gradient-boosted-tree CCA via LightGBM (Eckart-Young objective) | ≥2 |
-| `CatBoostCCA` | Gradient-boosted-tree CCA via CatBoost (Eckart-Young objective) | ≥2 |
+| Class | Description | Citation | Views |
+|---|---|---|---|
+| `XGBoostCCA` | Gradient-boosted-tree CCA via XGBoost (Eckart-Young objective) | Chapman (2026) | ≥2 |
+| `LightGBMCCA` | Gradient-boosted-tree CCA via LightGBM (Eckart-Young objective) | Chapman (2026) | ≥2 |
+| `CatBoostCCA` | Gradient-boosted-tree CCA via CatBoost (Eckart-Young objective) | Chapman (2026) | ≥2 |
 
 ### `cca_zoo.gam`
 
-| Class | Description | Views |
-|---|---|---|
-| `GAMCCA` | Generalized-additive-model CCA (Eckart-Young objective) | ≥2 |
+| Class | Description | Citation | Views |
+|---|---|---|---|
+| `GAMCCA` | Generalized-additive-model CCA (Eckart-Young objective) | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
 
 ### `cca_zoo.gp`
 
-| Class | Description | Views |
-|---|---|---|
-| `GPCCA` | Gaussian-process CCA (Eckart-Young objective), with predictive uncertainty | ≥2 |
+| Class | Description | Citation | Views |
+|---|---|---|---|
+| `GPCCA` | Gaussian-process CCA (Eckart-Young objective), with predictive uncertainty | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
 
 ### `cca_zoo.sparse`
 
-| Class | Description | Views |
-|---|---|---|
-| `ElasticNetCCA` | Sparse linear CCA via coordinate descent (Eckart-Young objective) | ≥2 |
-| `MultiTaskElasticNetCCA` | `ElasticNetCCA` with row-group sparsity shared across latent dimensions | ≥2 |
-| `OrthogonalMatchingPursuitCCA` | Fixed-cardinality sparse linear CCA via greedy selection (Eckart-Young objective) | ≥2 |
-| `SCCAPMD` | Sparse CCA via PMD (Witten 2009) | ≥2 |
-| `SCCAADMM` | Sparse CCA via ADMM (Suo 2017) | ≥2 |
-| `SCCAIPLS` | Sparse CCA via iterative PLS (Mai & Zhang 2019) | ≥2 |
-| `SCCASpan` | Hard-threshold ALS inspired by SpanCCA (Asteris 2016) | ≥2 |
-| `WaijenborgCCA` | Elastic net regularised CCA (Waaijenborg 2008) | ≥2 |
-| `ParkhomenkoCCA` | Soft-threshold sparse CCA (Parkhomenko 2009) | ≥2 |
-| `SAR` | Sparse alternating regression, BIC-selected penalty (Wilms & Croux 2015) | ≥2 |
+| Class | Description | Citation | Views |
+|---|---|---|---|
+| `ElasticNetCCA` | Sparse linear CCA via coordinate descent (Eckart-Young objective) | — | ≥2 |
+| `MultiTaskElasticNetCCA` | `ElasticNetCCA` with row-group sparsity shared across latent dimensions | — | ≥2 |
+| `OrthogonalMatchingPursuitCCA` | Fixed-cardinality sparse linear CCA via greedy selection (Eckart-Young objective) | — | ≥2 |
+| `SCCAPMD` | Sparse CCA via PMD | Witten, Tibshirani & Hastie (2009) | ≥2 |
+| `SCCAADMM` | Sparse CCA via ADMM | Suo, Mineiro & Anandkumar (2017) | ≥2 |
+| `SCCAIPLS` | Sparse CCA via iterative PLS | Mai & Zhang (2019) | ≥2 |
+| `SCCASpan` | Hard-threshold ALS inspired by SpanCCA | Asteris, Kyrillidis, Koyejo & Poldrack (2016) | ≥2 |
+| `WaijenborgCCA` | Elastic net regularised CCA | Waaijenborg, de Witt Hamer & Zwinderman (2008) | ≥2 |
+| `ParkhomenkoCCA` | Soft-threshold sparse CCA | Parkhomenko, Tritchler & Beyene (2009) | ≥2 |
+| `SAR` | Sparse alternating regression, BIC-selected penalty | Wilms & Croux (2015) | ≥2 |
 
 ### `cca_zoo.stochastic`
 
-| Class | Description | Views |
-|---|---|---|
-| `StochasticCCAEY` | `CCAEY`, fit by mini-batch momentum SGD | ≥2 |
+| Class | Description | Citation | Views |
+|---|---|---|---|
+| `StochasticCCAEY` | `CCAEY`, fit by mini-batch momentum SGD | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
 
 ### `cca_zoo.deep` *(requires `[deep]`)*
 
 Built on PyTorch Lightning — models are trained with a standard `lightning.Trainer`, not a
 `fit()` wrapper. See the [deep learning guide](https://jameschapman19.github.io/cca_zoo/user-guide/deep/).
 
-| Class | Reference |
-|---|---|
-| `DCCA` | Andrew et al. 2013 — pluggable objective |
-| `DCCA_EY` | Eigengame / Eckart-Young objective |
-| `DCCA_NOI` | Wang et al. 2015 — non-linear orthogonal iterations |
-| `DCCA_SDL` | Chang et al. 2018 — stochastic decorrelation loss |
-| `DCCAE` | Wang et al. 2015 — with autoencoder reconstruction |
-| `DVCCA` | Wang et al. 2016 — variational |
-| `DTCCA` | Wong et al. 2021 — deep tensor CCA |
-| `DMCCA` | Deep multiset CCA — pairwise-sum objective, ≥2 views |
-| `DGCCA` | Benton et al. 2019 — deep generalised CCA, ≥2 views |
-| `SplitAE` | Split autoencoder baseline |
-| `BarlowTwins` | Zbontar et al. 2021 |
-| `VICReg` | Bardes et al. 2022 |
+| Class | Description | Citation |
+|---|---|---|
+| `DCCA` | Deep CCA, pluggable objective | Andrew et al. (2013) |
+| `DCCA_EY` | Deep CCA via Eigengame / Eckart-Young objective | Chapman, Wells & Lawry Aguila (2024) |
+| `DCCA_NOI` | Deep CCA via non-linear orthogonal iterations | Wang et al. (2015) |
+| `DCCA_SDL` | Deep CCA via stochastic decorrelation loss | Chang, Xiang & Hospedales (2018) |
+| `DCCAE` | Deep CCA with autoencoder reconstruction | Wang et al. (2015) |
+| `DVCCA` | Deep variational CCA | Wang et al. (2016) |
+| `DTCCA` | Deep tensor CCA | Wong et al. (2021) |
+| `DMCCA` | Deep multiset CCA — pairwise-sum objective, ≥2 views | Kettenring (1971) |
+| `DGCCA` | Deep generalised CCA, ≥2 views | Benton et al. (2019) |
+| `SplitAE` | Split autoencoder baseline | — |
+| `BarlowTwins` | Self-supervised learning via redundancy reduction | Zbontar et al. (2021) |
+| `VICReg` | Variance-Invariance-Covariance Regularization | Bardes, Ponce & LeCun (2022) |
 
 ### `cca_zoo.probabilistic`
 
-| Class | Reference |
-|---|---|
-| `GFA` | Klami, Virtanen & Kaski 2013 — Group Factor Analysis, per-view ARD; no extra dependencies |
-| `ProbabilisticCCA` *(requires `[probabilistic]`)* | Bach & Jordan 2005 — MCMC via NumPyro |
-| `VariationalBayesCCA` *(requires `[probabilistic]`)* | Wang 2007 — variational inference + ARD via NumPyro |
+| Class | Description | Citation |
+|---|---|---|
+| `GFA` | Group Factor Analysis, per-view ARD; no extra dependencies | Klami, Virtanen & Kaski (2013) |
+| `ProbabilisticCCA` *(requires `[probabilistic]`)* | MCMC via NumPyro | Bach & Jordan (2005) |
+| `VariationalBayesCCA` *(requires `[probabilistic]`)* | Variational inference + ARD via NumPyro | Wang (2007) |
 
 ### `cca_zoo.model_selection`
 
-| Class | Description |
-|---|---|
-| `GridSearchCV` | Cross-validated hyperparameter search for multiview models |
+| Class | Description | Citation |
+|---|---|---|
+| `GridSearchCV` | Cross-validated hyperparameter search for multiview models | — |
 
 ---
 
