@@ -8,7 +8,18 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.linear import CCA, CCAR3, GCCA, GRCCA, MCCA, PLS, TCCA, PartialCCA, rCCA
+from cca_zoo.linear import (
+    CCA,
+    CCAR3,
+    ECCA,
+    GCCA,
+    GRCCA,
+    MCCA,
+    PLS,
+    TCCA,
+    PartialCCA,
+    rCCA,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -600,7 +611,7 @@ def test_ccar3_rejects_three_views(three_views: list[np.ndarray]) -> None:
 def test_ccar3_highdim_zero_penalty_matches_lowdim(
     correlated_views: list[np.ndarray],
 ) -> None:
-    """With lambda_=0, the ADMM solver converges to the closed-form B."""
+    """With lambda_=0, the highdim solver converges to the closed-form B."""
     k = 2
     s_lowdim = (
         CCAR3(latent_dimensions=k, highdim=False, ledoit_wolf=False)
@@ -621,12 +632,68 @@ def test_ccar3_highdim_zero_penalty_matches_lowdim(
     np.testing.assert_allclose(s_highdim, s_lowdim, atol=1e-4)
 
 
+def test_ccar3_row_sparse_rrr_reaches_the_true_optimum() -> None:
+    """`_row_sparse_rrr` matches an independently-derived global optimum.
+
+    Regression test for a real bug: an earlier hand-rolled ADMM solver for
+    this same (convex) row-group-lasso problem had its B-update's linear
+    system missing a factor of 2 on the smooth term's gradient (it solved
+    `(X^T X / n + rho I) B = ...` where the true gradient of `(1/n)||Y -
+    XB||^2` needs `(2/n) X^T X`), which silently doubled the effective
+    penalty relative to what `lambda_` documents. It converged smoothly and
+    passed every existing (qualitative) sparsity test, so only comparing
+    its objective value against an independently-implemented solver
+    exposed it: it landed on a different, worse-objective stationary point
+    on every tested problem. `_row_sparse_rrr` now delegates to
+    `sklearn.linear_model.MultiTaskLasso`, whose coordinate descent is
+    correct by construction for this convex problem; this test pins that
+    down against a from-scratch proximal-gradient (ISTA) solve of the exact
+    same objective, independent of both `_row_sparse_rrr` and sklearn.
+    """
+    from cca_zoo.linear._ccar3 import _row_sparse_rrr
+
+    rng = np.random.default_rng(0)
+    n, p, q = 150, 200, 5
+    X = rng.standard_normal((n, p))
+    true_B = np.zeros((p, q))
+    true_B[:10] = rng.standard_normal((10, q))
+    Y = X @ true_B + 0.3 * rng.standard_normal((n, q))
+    X = X - X.mean(0)
+    Y = Y - Y.mean(0)
+    lambda_ = 0.1
+
+    def objective(B: np.ndarray) -> float:
+        resid = Y - X @ B
+        return float((resid**2).sum() / n + lambda_ * np.linalg.norm(B, axis=1).sum())
+
+    # From-scratch ISTA: proximal gradient descent on the smooth term with a
+    # fixed step size (1 / Lipschitz constant of its gradient), followed by
+    # a group soft-threshold -- textbook, independent of the code under test.
+    L = 2 * np.linalg.eigvalsh(X.T @ X).max() / n
+    step = 1.0 / L
+    B = np.zeros((p, q))
+    for _ in range(20_000):
+        grad = (2.0 / n) * X.T @ (X @ B - Y)
+        candidate = B - step * grad
+        row_norms = np.linalg.norm(candidate, axis=1)
+        shrink = np.maximum(0.0, 1.0 - (lambda_ * step) / np.maximum(row_norms, 1e-30))
+        B_next = candidate * shrink[:, None]
+        if np.linalg.norm(B_next - B) < 1e-14:
+            B = B_next
+            break
+        B = B_next
+
+    B_fit = _row_sparse_rrr(X, Y, lambda_=lambda_, max_iter=10_000, tol=1e-10)
+
+    np.testing.assert_allclose(objective(B_fit), objective(B), rtol=1e-6)
+
+
 def test_ccar3_sparsity_zeroes_rows(two_views: list[np.ndarray]) -> None:
     """A moderate lambda_ drives some rows of the X weights to zero, not all."""
     model = CCAR3(
         latent_dimensions=2,
         highdim=True,
-        lambda_=0.3,
+        lambda_=0.5,
         ledoit_wolf=False,
         tol=1e-8,
     ).fit(two_views)
@@ -636,17 +703,12 @@ def test_ccar3_sparsity_zeroes_rows(two_views: list[np.ndarray]) -> None:
 
 
 def test_ccar3_sparsity_at_default_tol(correlated_views: list[np.ndarray]) -> None:
-    """Regression test for the ADMM solver's returned variable.
+    """A moderate `lambda_` gives exact row-sparsity at the library's default `tol`.
 
-    The solver must return the row-thresholded variable (Z), not the smooth
-    working variable (B), or `lambda_` has no effect on sparsity at the
-    default `tol=1e-4` -- B only converges *towards* Z within `tol` in an
-    aggregate Frobenius sense, so individual rows of B stay generically
-    nonzero (just small) well past that tolerance, while Z has exact zero
-    rows by construction of the group soft-threshold applied to it. Uses the
-    library's default `tol` deliberately, unlike test_ccar3_sparsity_zeroes_rows
-    above (tol=1e-8): that tighter tolerance can mask this bug by converging
-    B close enough to Z anyway.
+    Uses the default `tol=1e-4` deliberately, unlike test_ccar3_sparsity_zeroes_rows
+    above (`tol=1e-8`): MultiTaskLasso's coordinate descent gives exact zero
+    rows by construction of its group soft-threshold step, not just small
+    ones, at any tolerance loose enough to still terminate promptly.
     """
     dense = CCAR3(latent_dimensions=2, lambda_=0.0, ledoit_wolf=False).fit(
         correlated_views
@@ -667,5 +729,117 @@ def test_ccar3_score_shape(two_views: list[np.ndarray]) -> None:
     """CCAR3's score returns an array of shape (latent_dimensions,)."""
     k = 2
     model = CCAR3(latent_dimensions=k).fit(two_views)
+    s = model.score(two_views)
+    assert s.shape == (k,)
+
+
+# ---------------------------------------------------------------------------
+# ECCA
+# ---------------------------------------------------------------------------
+
+
+def test_ecca_fit_transform(two_views: list[np.ndarray]) -> None:
+    """ECCA fits and transforms."""
+    k = 2
+    model = ECCA(latent_dimensions=k).fit(two_views)
+    result = model.transform(two_views)
+    assert len(result) == 2
+    for arr, view in zip(result, two_views):
+        assert arr.shape == (view.shape[0], k)
+
+
+def test_ecca_rejects_three_views(three_views: list[np.ndarray]) -> None:
+    """ECCA raises ValueError when given 3 views."""
+    with pytest.raises(ValueError):
+        ECCA(latent_dimensions=1).fit(three_views)
+
+
+def test_ecca_postprocessing_gives_unit_variance_variates(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """ECCA's canonical variates have unit sample variance in every component.
+
+    This is the invariant `_postprocess_rrr_fit`'s whitening step is meant
+    to guarantee, checked independently of CCAR3: unlike CCAR3, ECCA does
+    not pre-whiten Y (the R reference's ecca() explicitly ignores its Sy
+    argument -- see the class docstring), so it can't be cross-checked
+    against CCAR3's closed form the way a whitened method could be; this
+    checks the property the postprocessing step itself promises instead.
+    """
+    k = 2
+    X, Y = correlated_views
+    model = ECCA(latent_dimensions=k, lambda_=0.0).fit([X, Y])
+    Xz, Yz = model.transform([X, Y])
+    np.testing.assert_allclose(Xz.var(axis=0, ddof=0), np.ones(k), atol=1e-2)
+    np.testing.assert_allclose(Yz.var(axis=0, ddof=0), np.ones(k), atol=1e-2)
+
+
+def test_ecca_entrywise_sparse_rrr_reaches_the_true_optimum() -> None:
+    """`_entrywise_sparse_rrr` matches an independently-derived global optimum.
+
+    Since the entrywise L1 penalty places no coupling between a row's
+    entries, the problem separates exactly into one Lasso regression per
+    column of `Y_tilde`. This pins that decomposition down against a
+    from-scratch proximal-gradient (ISTA) solve of the joint objective,
+    independent of both `_entrywise_sparse_rrr` and sklearn.
+    """
+    from cca_zoo.linear._ecca import _entrywise_sparse_rrr
+
+    rng = np.random.default_rng(0)
+    n, p, q = 150, 200, 5
+    X = rng.standard_normal((n, p))
+    true_B = np.zeros((p, q))
+    true_B[:10] = rng.standard_normal((10, q))
+    Y = X @ true_B + 0.3 * rng.standard_normal((n, q))
+    X = X - X.mean(0)
+    Y = Y - Y.mean(0)
+    lambda_ = 0.1
+
+    def objective(B: np.ndarray) -> float:
+        resid = Y - X @ B
+        return float((resid**2).sum() / n + lambda_ * np.abs(B).sum())
+
+    L = 2 * np.linalg.eigvalsh(X.T @ X).max() / n
+    step = 1.0 / L
+    B = np.zeros((p, q))
+    for _ in range(20_000):
+        grad = (2.0 / n) * X.T @ (X @ B - Y)
+        cand = B - step * grad
+        B_next = np.sign(cand) * np.maximum(np.abs(cand) - lambda_ * step, 0.0)
+        if np.linalg.norm(B_next - B) < 1e-14:
+            B = B_next
+            break
+        B = B_next
+
+    B_fit = _entrywise_sparse_rrr(X, Y, lambda_=lambda_, max_iter=10_000, tol=1e-10)
+
+    np.testing.assert_allclose(objective(B_fit), objective(B), rtol=1e-6)
+
+
+def test_ecca_sparsity_zeroes_entries_not_whole_rows(
+    two_views: list[np.ndarray],
+) -> None:
+    """A moderate lambda_ zeroes individual entries, not necessarily whole rows.
+
+    The defining difference from CCAR3's row-group penalty: an entrywise
+    penalty can keep a feature for one component while dropping it from
+    another, so some rows should have a mix of zero and nonzero entries.
+    """
+    model = ECCA(latent_dimensions=2, lambda_=0.5, tol=1e-8).fit(two_views)
+    W = model.weights_[0]
+    assert np.any(W == 0.0), "a moderate lambda_ should zero some entries"
+    assert np.any(W != 0.0), "and leave others nonzero"
+    row_has_zero = np.any(W == 0.0, axis=1)
+    row_has_nonzero = np.any(W != 0.0, axis=1)
+    assert np.any(row_has_zero & row_has_nonzero), (
+        "entrywise sparsity should split at least one row between a zero "
+        "and a nonzero entry, unlike CCAR3's row-group penalty"
+    )
+
+
+def test_ecca_score_shape(two_views: list[np.ndarray]) -> None:
+    """ECCA's score returns an array of shape (latent_dimensions,)."""
+    k = 2
+    model = ECCA(latent_dimensions=k).fit(two_views)
     s = model.score(two_views)
     assert s.shape == (k,)

@@ -1,6 +1,6 @@
 """Tests for ALS-based sparse/regularised CCA variants.
 
-Covers PLSALS, SCCAPMD, SCCAADMM, SCCAIPLS, SCCASpan, ElasticCCA,
+Covers PMDCCA, ADMMCCA, IPLSCCA, SpanCCA, WaijenborgCCA,
 ParkhomenkoCCA, SAR.
 """
 
@@ -9,24 +9,22 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.linear import (
-    PLSALS,
+from cca_zoo.sparse import (
+    ADMMCCA,
+    IPLSCCA,
+    PMDCCA,
     SAR,
-    SCCAADMM,
-    SCCAIPLS,
-    SCCAPMD,
-    ElasticCCA,
     ParkhomenkoCCA,
-    SCCASpan,
+    SpanCCA,
+    WaijenborgCCA,
 )
 
 ALL_ITERATIVE_MODELS = [
-    PLSALS,
-    SCCAPMD,
-    SCCAADMM,
-    SCCAIPLS,
-    SCCASpan,
-    ElasticCCA,
+    PMDCCA,
+    ADMMCCA,
+    IPLSCCA,
+    SpanCCA,
+    WaijenborgCCA,
     ParkhomenkoCCA,
     SAR,
 ]
@@ -178,9 +176,9 @@ def test_get_factor_loadings_shapes(
 # ---------------------------------------------------------------------------
 
 
-def test_scca_pmd_achieves_sparsity(two_views: list[np.ndarray]) -> None:
-    """SCCAPMD with small tau produces sparse weights (some zeros)."""
-    model = SCCAPMD(latent_dimensions=1, tau=0.3, max_iter=200, random_state=0).fit(
+def test_pmd_achieves_sparsity(two_views: list[np.ndarray]) -> None:
+    """PMDCCA with small tau produces sparse weights (some zeros)."""
+    model = PMDCCA(latent_dimensions=1, tau=0.3, max_iter=200, random_state=0).fit(
         two_views
     )
     for w in model.weights:
@@ -188,8 +186,8 @@ def test_scca_pmd_achieves_sparsity(two_views: list[np.ndarray]) -> None:
         assert n_zeros > 0, f"Expected some zero weights, got {n_zeros}"
 
 
-def test_scca_pmd_invariant_to_input_scale(two_views: list[np.ndarray]) -> None:
-    """SCCAPMD's fitted weights (up to sign) must not depend on input scale.
+def test_pmd_invariant_to_input_scale(two_views: list[np.ndarray]) -> None:
+    """PMDCCA's fitted weights (up to sign) must not depend on input scale.
 
     tau is the only sparsity control.
 
@@ -202,10 +200,10 @@ def test_scca_pmd_invariant_to_input_scale(two_views: list[np.ndarray]) -> None:
     "no constraint") still producing near-total sparsity.
     """
     scaled_views = [v * 37.0 for v in two_views]
-    model_a = SCCAPMD(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
+    model_a = PMDCCA(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
         two_views
     )
-    model_b = SCCAPMD(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
+    model_b = PMDCCA(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
         scaled_views
     )
     for w_a, w_b in zip(model_a.weights, model_b.weights):
@@ -214,7 +212,53 @@ def test_scca_pmd_invariant_to_input_scale(two_views: list[np.ndarray]) -> None:
         np.testing.assert_allclose(w_a, sign * w_b, atol=1e-6)
 
 
-def test_scca_pmd_tau_controls_sparsity_monotonically(
+def test_bisect_threshold_matches_a_from_scratch_bisection() -> None:
+    """`_bisect_threshold`'s brentq solve matches an independent fixed bisection.
+
+    `_bisect_threshold` used to run a hand-rolled, unconditional 50-iteration
+    bisection with no early stop; replaced with `scipy.optimize.brentq` for
+    the same monotonic root-find (3.65x faster across 500 random trials in a
+    direct benchmark, 1.8x faster end-to-end in `PMDCCA.fit`). Pins the
+    result against a from-scratch fixed-count bisection, independent of the
+    function under test, across a range of vector sizes and scales.
+    """
+    from cca_zoo._utils._linalg import soft_threshold
+    from cca_zoo.sparse._iterative import _bisect_threshold
+
+    def reference_bisection(x: np.ndarray, l1_bound: float) -> np.ndarray:
+        norm_x = np.linalg.norm(x)
+        if norm_x <= 1e-12:
+            return np.zeros_like(x)
+        unit_x = x / norm_x
+        if np.linalg.norm(unit_x, 1) <= l1_bound:
+            return np.asarray(unit_x)
+        lo, hi = 0.0, np.abs(x).max()
+        for _ in range(200):
+            mid = (lo + hi) / 2.0
+            thresholded = soft_threshold(x, mid)
+            norm_t = np.linalg.norm(thresholded)
+            ratio = np.linalg.norm(thresholded, 1) / norm_t if norm_t > 1e-12 else 0.0
+            if ratio > l1_bound:
+                lo = mid
+            else:
+                hi = mid
+        result = soft_threshold(x, (lo + hi) / 2.0)
+        norm = np.linalg.norm(result)
+        if norm > 1e-12:
+            result /= norm
+        return result
+
+    rng = np.random.default_rng(0)
+    for _ in range(50):
+        p = rng.integers(5, 100)
+        x = rng.standard_normal(p) * rng.choice([1.0, 10.0, 100.0])
+        l1_bound = rng.uniform(1.0, np.sqrt(p))
+        got = _bisect_threshold(x, l1_bound)
+        want = reference_bisection(x, l1_bound)
+        np.testing.assert_allclose(got, want, atol=1e-6)
+
+
+def test_pmd_tau_controls_sparsity_monotonically(
     two_views: list[np.ndarray],
 ) -> None:
     """Increasing tau must not decrease the number of selected features.
@@ -226,7 +270,7 @@ def test_scca_pmd_tau_controls_sparsity_monotonically(
     taus = [0.3, 0.5, 0.7, 1.0]
     nnz_by_tau = []
     for tau in taus:
-        model = SCCAPMD(latent_dimensions=1, tau=tau, max_iter=200, random_state=0).fit(
+        model = PMDCCA(latent_dimensions=1, tau=tau, max_iter=200, random_state=0).fit(
             two_views
         )
         nnz_by_tau.append(sum(int(np.sum(np.abs(w) > 1e-10)) for w in model.weights))
@@ -248,11 +292,11 @@ def test_parkhomenko_achieves_sparsity(two_views: list[np.ndarray]) -> None:
         assert n_zeros > 0, f"Expected some zero weights, got {n_zeros}"
 
 
-def test_scca_span_achieves_sparsity(two_views: list[np.ndarray]) -> None:
-    """SCCASpan with span < n_features produces sparse weights."""
+def test_span_achieves_sparsity(two_views: list[np.ndarray]) -> None:
+    """SpanCCA with span < n_features produces sparse weights."""
     n_features = two_views[0].shape[1]
     span = n_features // 2
-    model = SCCASpan(latent_dimensions=1, span=span, max_iter=200, random_state=0).fit(
+    model = SpanCCA(latent_dimensions=1, span=span, max_iter=200, random_state=0).fit(
         two_views
     )
     # First view should have at most 'span' nonzero entries per dimension
@@ -261,9 +305,9 @@ def test_scca_span_achieves_sparsity(two_views: list[np.ndarray]) -> None:
     assert n_nonzero <= span, f"Expected <= {span} nonzero, got {n_nonzero}"
 
 
-def test_scca_admm_achieves_sparsity(two_views: list[np.ndarray]) -> None:
-    """SCCAADMM with positive tau produces some sparse weights."""
-    model = SCCAADMM(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
+def test_admm_achieves_sparsity(two_views: list[np.ndarray]) -> None:
+    """ADMMCCA with positive tau produces some sparse weights."""
+    model = ADMMCCA(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
         two_views
     )
     assert hasattr(model, "weights_")
@@ -271,17 +315,97 @@ def test_scca_admm_achieves_sparsity(two_views: list[np.ndarray]) -> None:
         assert w.shape[0] > 0
 
 
-def test_elastic_cca_with_lasso(two_views: list[np.ndarray]) -> None:
-    """ElasticCCA with l1_ratio=1 (lasso) produces some sparse weights."""
-    model = ElasticCCA(
+def test_admm_stable_at_a_realistic_sample_size() -> None:
+    """ADMMCCA's weights stay finite at n=200, not just the tiny n=50 examples.
+
+    Regression test: an earlier version of the w-update took a single
+    proximal-gradient step per ADMM iteration with an un-normalised gradient
+    against a step size calibrated for the normalised loss, which diverged
+    to `nan` by iteration 200 at n=200 on perfectly ordinary Gaussian data
+    (found by direct benchmark) -- undetected before because every existing
+    test used n=50, small enough that the mismatch alone didn't blow up.
+    """
+    rng = np.random.default_rng(0)
+    n, p, q = 200, 60, 50
+    X1 = rng.standard_normal((n, p))
+    X2 = rng.standard_normal((n, q))
+    model = ADMMCCA(
+        latent_dimensions=2, tau=0.3, mu=1.0, max_iter=500, random_state=0
+    ).fit([X1, X2])
+    for w in model.weights_:
+        assert np.all(np.isfinite(w))
+
+
+def test_admm_block_satisfies_kkt_conditions() -> None:
+    """ADMMCCA's inner linearised-ADMM block solve reaches a genuine KKT point.
+
+    Regression test for two successive wrong objectives: the class originally
+    (and, after a first "fix", still) solved a reduced-rank-regression-style
+    loss `||Xw - target||^2` with the ball constraint on `w` itself. Reading
+    the actual paper (Suo, Mineiro & Anandkumar 2017, Section 2.2) showed the
+    real problem is linear-plus-L1 in `w`, constrained on the *score* `Xw`,
+    not `w`:
+
+        maximize_w  w^T X^T target - tau*||w||_1  s.t. ||Xw||_2 <= 1
+
+    No off-the-shelf solver reliably handles this (scipy's `trust-constr`
+    gets stuck at the L1 kink at the origin regardless of starting point, and
+    a from-scratch subgradient method needs its own ball-constraint
+    projection), so this test verifies the KKT conditions directly instead:
+    at a constrained optimum, the dual variable recovered from any two active
+    (nonzero) coordinates must agree, and every zeroed coordinate's
+    subgradient residual must lie in [-tau, tau].
+    """
+    rng = np.random.default_rng(1)
+    n, p = 60, 15
+    X = rng.standard_normal((n, p))
+    other_score = rng.standard_normal(n) * 0.5
+
+    tau = 0.2
+    model = ADMMCCA(
+        latent_dimensions=1,
+        tau=tau,
+        mu=1.0,
+        max_iter=1,
+        admm_iter=20_000,
+        tol=1e-14,
+        random_state=0,
+    )
+    # A second, single-column "view" equal to other_score itself (weight
+    # fixed at 1) makes `_fit_single`'s internal `s_other` for view 0 exactly
+    # `other_score`, unnormalised -- with max_iter=1, view 0's block is
+    # solved once against this fixed target before view 1 is ever touched.
+    w = [np.zeros(p), np.array([1.0])]
+    views = [X, other_score.reshape(-1, 1)]
+    model._fit_single(views, w, 0)
+    w_fit = w[0]
+
+    Xw = X @ w_fit
+    nrm = np.linalg.norm(Xw)
+    assert nrm > 0.99, "constraint should be active for this tau"
+    active = np.abs(w_fit) > 1e-6
+    c = X.T @ other_score
+    grad_term = X.T @ Xw / nrm
+
+    lambdas = (c[active] - tau * np.sign(w_fit[active])) / grad_term[active]
+    assert lambdas.min() > 0, "recovered dual variable must be non-negative"
+    np.testing.assert_allclose(lambdas, lambdas.mean(), rtol=1e-3)
+
+    zero_resid = c[~active] - lambdas.mean() * grad_term[~active]
+    assert np.all(np.abs(zero_resid) <= tau + 1e-3)
+
+
+def test_waijenborg_cca_with_lasso(two_views: list[np.ndarray]) -> None:
+    """WaijenborgCCA with l1_ratio=1 (lasso) produces some sparse weights."""
+    model = WaijenborgCCA(
         latent_dimensions=1, alpha=0.1, l1_ratio=1.0, max_iter=200, random_state=0
     ).fit(two_views)
     assert hasattr(model, "weights_")
 
 
-def test_scca_ipls_with_lasso(two_views: list[np.ndarray]) -> None:
-    """SCCAIPLS with alpha > 0 runs without error."""
-    model = SCCAIPLS(
+def test_ipls_with_lasso(two_views: list[np.ndarray]) -> None:
+    """IPLSCCA with alpha > 0 runs without error."""
+    model = IPLSCCA(
         latent_dimensions=1, alpha=0.1, l1_ratio=1.0, max_iter=100, random_state=0
     ).fit(two_views)
     assert hasattr(model, "weights_")
@@ -408,20 +532,6 @@ def test_pairwise_correlations_shape(
 # ---------------------------------------------------------------------------
 # Correctness / optimality
 # ---------------------------------------------------------------------------
-
-
-def test_pls_als_matches_pls(correlated_views: list[np.ndarray]) -> None:
-    """PLSALS (converged) recovers the same correlations as exact PLS."""
-    from cca_zoo.linear import PLS
-
-    k = 2
-    s_pls = PLS(latent_dimensions=k).fit(correlated_views).score(correlated_views)
-    s_als = (
-        PLSALS(latent_dimensions=k, max_iter=1000, random_state=0)
-        .fit(correlated_views)
-        .score(correlated_views)
-    )
-    np.testing.assert_allclose(s_als, s_pls, atol=0.05)
 
 
 def test_iterative_models_find_high_correlation(

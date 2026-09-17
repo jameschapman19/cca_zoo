@@ -18,5 +18,7 @@ __all__ = [
     "model_selection",
     "nonparametric",
     "probabilistic",
+    "sparse",
+    "stochastic",
     "tree",
 ]

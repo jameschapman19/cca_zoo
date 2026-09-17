@@ -9,6 +9,78 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `ECCA`: reduced-rank-regression CCA with an entrywise L1 penalty, the companion to
+  `CCAR3`'s row-group-lasso penalty -- a feature can now contribute to one canonical
+  component while being dropped from another, rather than being all-or-nothing across
+  every component the way `CCAR3`'s row-group penalty forces. A NumPy port of the
+  `ccar3` R package's `ecca()`. Because an entrywise penalty places no coupling between
+  a coefficient row's entries, the underlying convex problem separates exactly into one
+  independent Lasso regression per response column, so it's fit by a bank of
+  `sklearn.linear_model.Lasso` fits rather than the R package's single matrix-free ADMM
+  over the whole coefficient matrix (needed there for large-`p`-and-`q` memory
+  efficiency, unnecessary here since sklearn's own coordinate descent already handles
+  `p > n` natively per column) -- verified to reach the same optimum as an independent
+  proximal-gradient (ISTA) solve of the joint objective to high precision. Unlike
+  `CCAR3`, deliberately does *not* Ledoit-Wolf whiten `Y` before fitting -- the R
+  reference's own `ecca()` ignores its `Sy` argument entirely, regressing directly
+  against raw (centred) `Y` -- verified against the R reference directly (installed R,
+  sourced `ecca()`'s ADMM): matching support size and canonical correlations at nearby
+  `lambda_`. Shares `CCAR3`'s postprocessing machinery, now factored into
+  `cca_zoo.linear._rrr_common` along with `CCAR3`'s own Y-whitening helper.
+- `ManifoldCCA`: transductive multiview CCA where each view's within-view constraint is
+  a graph operator from spectral manifold learning -- the graph Laplacian (matching
+  `sklearn.manifold.SpectralEmbedding`, `method="laplacian"`) or the LLE local
+  reconstruction operator (`method="lle"`, hand-implemented -- `LocallyLinearEmbedding`
+  doesn't expose it as public API) -- in place of a covariance matrix. Solves the joint,
+  multiview generalised eigenproblem this induces directly (each view's "weight" *is*
+  its training-set embedding, since there's no feature map, only a per-view graph built
+  from that view's own local neighbourhood structure), then extends out of sample via
+  each method's own established mechanism rather than a generic auxiliary model:
+  `method="lle"` reuses `LocallyLinearEmbedding.transform`'s own barycentric-weight
+  extension (verified directly against it in the tests); `method="laplacian"` uses the
+  classical Nystrom extension (Bengio et al. 2003) of each kept eigenvector individually,
+  floored against the (otherwise unbounded) blow-up a near-1 eigenvalue causes in its own
+  `1/mu` rescaling, before the same combination the joint solve used at training time.
+  Two correctness properties anchor the construction: with independent
+  views, both operators' shared (near-)null direction -- the constant vector, which
+  every graph-based operator here is blind to -- is explicitly projected out before
+  solving (matching `SpectralEmbedding`'s own `drop_first=True`), rather than left in to
+  produce a spurious, numerically unstable top component; and each view is restricted to
+  its own `n_operator_components` smallest-eigenvalue directions before the joint solve
+  (the same truncation every spectral method already does, and effectively this class's
+  regularisation strength -- the untruncated limit hands each view as many free
+  directions as training points, which, like *any* unregularised multivariate CCA at
+  that dimensionality-to-sample-size ratio, fabricates spurious cross-view correlation
+  from pure noise). With that in place, `ManifoldCCA` on two duplicated views reduces
+  *exactly* (verified to within numerical precision) to plain single-view spectral
+  embedding of that one view -- the concrete check that this is the natural multiview
+  generalisation of `SpectralEmbedding`, not merely a construction that happens to reuse
+  its graph. On two views that are different nonlinear (different angular frequency)
+  spiral embeddings of one shared 1-D coordinate -- where no linear map from one view's
+  ambient coordinates to the other's exists, but a k-NN graph on either still respects
+  the shared ordering -- `method="laplacian"` recovers substantially higher held-out
+  correlation than plain `MCCA` or `KCCA` with an RBF kernel (see
+  `tests/nonparametric/test_manifold_cca.py`). Hessian-LLE and LTSA are not implemented
+  (both need a local Hessian/tangent-space estimate per point, meaningfully more involved
+  to get right than the graph Laplacian or LLE's reconstruction weights); Isomap-flavoured
+  (geodesic) regularisation is already achievable via `KCCA` with a precomputed geodesic
+  Gram matrix, so isn't duplicated here. Like `KCCA`, `inverse_transform`/`predict` aren't
+  supported (both assume a `(n_features_i, k)` weight, not a `(n_train_samples, k)`
+  transductive embedding).
+- `GraphicalLassoCCA`: `MCCA` with each view's within-view covariance block replaced by
+  `sklearn.covariance.GraphicalLasso`'s (or, with `alpha=None`, `GraphicalLassoCV`'s)
+  L1-penalised sparse-precision estimate's implied covariance -- every other within-view
+  regularisation already here (`MCCA`'s own ridge `c`, `CCAR3`'s Ledoit-Wolf shrinkage,
+  `TrimmedCCA`'s concentration steps) regularises the covariance directly; this instead
+  penalises the *inverse* covariance's off-diagonal entries (each view's own partial
+  correlations / conditional independence structure), which is the more natural
+  regulariser once a view's feature count approaches or exceeds its sample count -- the
+  same high-dimensional regime where `MCCA`'s own docs point to `pca=True` instead. The
+  between-view block is untouched (a plain sample cross-covariance, as in `MCCA`); only
+  the within-view block each view contributes to the generalised eigenproblem changes.
+  Solves directly in each view's original feature space, since the sparse precision
+  structure -- inspectable afterwards via `model.precision_` -- is normally the point,
+  not a rank-truncated approximation of it.
 - `TrimmedCCA`: robust multiview CCA via concentration steps, in the style of Rousseeuw's
   Least Trimmed Squares / Minimum Covariance Determinant. `RANSACCCA`'s random-subset
   search is a good strategy while contamination stays well below its own odds of ever
@@ -193,6 +265,46 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- `SCCAADMM` solved the wrong problem entirely: a reduced-rank-regression-style loss
+  `||Xw - target||^2` with the unit-ball constraint on the weight vector `w` itself.
+  Reading the actual paper (Suo, Mineiro & Anandkumar 2017, Section 2.2) shows the real
+  objective is *linear* in `w` (a covariance to maximise, `w^T X^T target - tau*||w||_1`),
+  constrained on the *score* `||Xw||_2 <= 1`, not on `w` -- these coincide only when `X`
+  is orthonormal. An intermediate step in this same investigation "fixed" a step-size
+  scaling bug in the old (wrong) regression-style objective's primal update, which had
+  been causing `nan` divergence at ordinary sample sizes -- a real bug, correctly fixed
+  in isolation, but fixing consistency *within* the wrong objective, not the right one.
+  Re-implemented following the paper's own linearised-ADMM derivation: since the
+  constraint couples `w` to `Xw` through a linear map (not the identity), an ordinary
+  ADMM split would need to invert `X^TX` every step, so the augmented Lagrangian's
+  quadratic penalty is linearised instead, turning the `w`-update into a single
+  proximal-gradient step that is closed-form here (the linear-plus-L1 objective's
+  proximal operator is a shifted soft-threshold). Verified directly against first-order
+  KKT optimality conditions of the exact constrained problem (no off-the-shelf solver
+  handles this reliably -- scipy's `trust-constr` gets stuck at the L1 kink at the
+  origin regardless of starting point): the dual variable recovered from any two active
+  coordinates agrees to within numerical tolerance, and every zeroed coordinate's
+  subgradient residual falls inside `[-tau, tau]`. Adds an `admm_iter` parameter for the
+  new inner (per-view, per-outer-iteration) linearised-ADMM loop's iteration cap,
+  separate from `max_iter` (the outer across-view loop, matching this module's shared
+  convention). `tau`'s default reverts to `0.1` (briefly lowered to `0.01` for the
+  interim, wrong-objective fix, no longer needed now the objective itself is correct).
+- `CCAR3(highdim=True)` (the default) systematically over-penalised relative to what
+  `lambda_` documents: its hand-rolled ADMM solver for the row-group-lasso reduced-rank
+  regression subproblem had a factor of 2 missing from its B-update's linear system (the
+  gradient of the documented loss `(1/n)||Y-XB||^2` is `(2/n) X^T(XB-Y)`, but the code's
+  coefficient matrix and right-hand side both used the `1/n`-scaled versions), silently
+  doubling the effective penalty strength. It converged cleanly and passed every existing
+  (qualitative) sparsity test, so the bug only surfaced by comparing its objective value
+  against an independently-implemented solver: it landed on a different, worse-objective
+  stationary point on every problem tested, not merely an under-converged one (raising
+  `max_iter`/tightening `tol` made no difference). Fixed by replacing the ADMM solver with
+  `sklearn.linear_model.MultiTaskLasso` -- the row-group-lasso subproblem CCAR3 poses is
+  exactly `MultiTaskLasso`'s own objective, so this is correct by construction (its
+  coordinate descent provably reaches the global optimum of this convex problem) rather
+  than a solver that needs independently verifying, and is substantially faster in
+  practice. The `rho` (ADMM step-size) parameter is removed, having no equivalent in
+  coordinate descent; `max_iter`/`tol` now pass straight through to `MultiTaskLasso`.
 - `CCAEY`, `PLSEY`, `HuberCCA`, and their shared base `BaseFullBatchEYModel` defaulted
   `tol=1e-6`, passed straight through to L-BFGS-B as `ftol`. `ftol` is a *relative*
   per-step improvement test, and this loss can pass through slow, shallow stretches of
@@ -221,6 +333,44 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- `SCCAPMD`, `SCCAADMM`, `SCCAIPLS`, `SCCASpan`, `WaijenborgCCA`, `ParkhomenkoCCA`, and `SAR`
+  move from `cca_zoo.linear` to `cca_zoo.sparse`, alongside the existing EY-loss sparse methods
+  (`ElasticNetCCA`, `MultiTaskElasticNetCCA`, `OrthogonalMatchingPursuitCCA`) -- all ten are
+  sparse/regularised CCA methods, and belong together regardless of which of the two mechanism
+  families (ALS vs. EY-loss coordinate descent) each uses. The old `cca_zoo.linear` import paths
+  still work but now emit a `FutureWarning` (via `sklearn.utils.deprecated`) and will be removed
+  in a future release; import them from `cca_zoo.sparse` instead.
+- `SCCAPMD`, `SCCAADMM`, `SCCAIPLS`, and `SCCASpan` (now living in `cca_zoo.sparse`, see above)
+  are further renamed to `PMDCCA`, `ADMMCCA`, `IPLSCCA`, and `SpanCCA`: the `SCCA` ("Sparse CCA")
+  prefix is redundant now that these classes are namespaced under `cca_zoo.sparse` itself, and
+  bare `PMD`/`ADMM`/`IPLS`/`Span` aren't self-describing as CCA methods on their own, so each
+  keeps a `CCA` suffix instead, matching the `<Algorithm/Author>CCA` pattern the rest of the
+  module already follows (`ElasticNetCCA`, `WaijenborgCCA`, `ParkhomenkoCCA`). `SpanCCA` now
+  shares its literal name with the algorithm it's inspired by (Asteris et al. 2016's own
+  "SpanCCA") but remains the same ALS heuristic it always was, not a reimplementation of that
+  paper's own low-rank sampling algorithm -- see the class docstring. The old `SCCAPMD`/
+  `SCCAADMM`/`SCCAIPLS`/`SCCASpan` names stay importable from `cca_zoo.sparse` (and from
+  `cca_zoo.linear`, via the cross-module aliases above) as deprecated aliases.
+- `StochasticCCAEY` moves from `cca_zoo.linear` (via `cca_zoo.linear.gradient`) to a new
+  `cca_zoo.stochastic` module. Mini-batch fitting is a genuinely different operational regime
+  (streaming or out-of-core data) from every other class in `cca_zoo.linear`, which all assume
+  the full dataset fits in memory for a single `fit` call, so it gets its own top-level module
+  rather than staying folded in among the full-batch EY-loss classes. The old
+  `cca_zoo.linear.StochasticCCAEY` import path still works but now emits a `FutureWarning` and
+  will be removed in a future release; import it from `cca_zoo.stochastic` instead.
+- `cca_zoo.linear.ElasticCCA` is renamed `WaijenborgCCA`, after the paper's own author
+  (Waaijenborg 2008), to disambiguate it from `cca_zoo.sparse.ElasticNetCCA` -- a
+  different algorithm entirely (an elastic-net penalty on the actual Eckart-Young CCA
+  loss, not this class's alternating-regression heuristic), not just a different
+  implementation of the same one. `ElasticCCA` stays importable as a deprecated alias.
+- `SCCAPMD`'s per-view soft-threshold bisection (`_bisect_threshold`, finding the
+  threshold hitting a target L1/L2 ratio) now uses `scipy.optimize.brentq` instead of a
+  hand-rolled bisection that unconditionally ran all 50 iterations regardless of how
+  quickly it had already converged. `brentq`'s superlinear convergence plus a real
+  tolerance-based stop reaches the same root (matches the old fixed-count bisection to
+  within 1e-9 across 500 random trials) in far fewer evaluations: 3.65x faster in
+  isolation, 1.8x faster for a full `SCCAPMD.fit` in a direct benchmark. No behaviour
+  change other than speed.
 - `TreeCCA(backend="xgboost"/"lightgbm")` is replaced by two concrete classes,
   `XGBoostCCA` and `LightGBMCCA`, each fixing one gradient-boosting backend. `TreeCCA`
   itself becomes an abstract base class holding the shared Eckart-Young fitting/transform
@@ -303,6 +453,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
 - `CITATION.cff`'s `version`/`date-released` fields were stale at `3.0.0` (never updated across
   the `3.1.0` or `3.2.0` releases) — bumped to match. These fields can't be derived automatically
   (Zenodo metadata, not a build artifact), so they stay a manual step in the release checklist.
+
+### Removed
+
+- `PLSALS`, the ALS/power-iteration variant of `PLS`, is dropped outright with no deprecated
+  alias -- unlike every other class touched by this release's `cca_zoo.sparse`/
+  `cca_zoo.stochastic` moves. It had no sparsity, no ridge regularisation, and no behaviour
+  its closed-form `PLS` counterpart doesn't already cover exactly, so there was nothing left
+  for it to alias.
 
 ## [3.2.0] - 2026-08-04
 

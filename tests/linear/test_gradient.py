@@ -5,7 +5,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.linear import CCA, CCAEY, MCCA, PLS, PLSEY, HuberCCA, StochasticCCAEY
+from cca_zoo.linear import CCA, CCAEY, MCCA, PLS, PLSEY, HuberCCA
+from cca_zoo.stochastic import StochasticCCAEY
 
 FULL_BATCH_MODELS = [PLSEY, CCAEY, HuberCCA]
 ALL_GRADIENT_MODELS = [PLSEY, CCAEY, StochasticCCAEY, HuberCCA]

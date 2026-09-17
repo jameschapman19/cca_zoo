@@ -1,6 +1,8 @@
 # cca_zoo.linear
 
 Linear CCA methods. All classes are `sklearn.base.BaseEstimator` subclasses.
+Sparse/regularised iterative methods live in [`cca_zoo.sparse`](sparse.md);
+mini-batch methods live in [`cca_zoo.stochastic`](stochastic.md).
 
 ---
 
@@ -67,6 +69,16 @@ Linear CCA methods. All classes are `sklearn.base.BaseEstimator` subclasses.
 
 ---
 
+::: cca_zoo.linear.ECCA
+
+---
+
+## Sparse-precision covariance methods
+
+::: cca_zoo.linear.GraphicalLassoCCA
+
+---
+
 ## Robust methods
 
 ::: cca_zoo.linear.RANSACCCA
@@ -87,42 +99,4 @@ Linear CCA methods. All classes are `sklearn.base.BaseEstimator` subclasses.
 
 ---
 
-::: cca_zoo.linear.StochasticCCAEY
-
----
-
 ::: cca_zoo.linear.HuberCCA
-
----
-
-## Sparse / iterative methods
-
-::: cca_zoo.linear.PLSALS
-
----
-
-::: cca_zoo.linear.SCCAPMD
-
----
-
-::: cca_zoo.linear.SCCAADMM
-
----
-
-::: cca_zoo.linear.SCCAIPLS
-
----
-
-::: cca_zoo.linear.SCCASpan
-
----
-
-::: cca_zoo.linear.ElasticCCA
-
----
-
-::: cca_zoo.linear.ParkhomenkoCCA
-
----
-
-::: cca_zoo.linear.SAR
