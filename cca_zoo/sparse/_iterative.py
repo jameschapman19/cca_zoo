@@ -4,7 +4,6 @@ All classes in this module use an Alternating Least Squares (ALS) loop with
 optional deflation to extract multiple canonical directions.
 
 Classes:
-    PLSALS: ALS variant of PLS (simple power iteration).
     SCCAPMD: Sparse CCA via Penalized Matrix Decomposition (Witten 2009).
     SCCAADMM: Sparse CCA via ADMM (Suo 2017).
     SCCAIPLS: Iterative PLS with lasso penalty (Mai & Zhang 2019).
@@ -159,71 +158,6 @@ def _target_score(
     if norm > 1e-12:
         target = target / norm
     return target
-
-
-# ---------------------------------------------------------------------------
-# PLSALS — ALS variant of PLS
-# ---------------------------------------------------------------------------
-
-
-class PLSALS(_BaseIterative):
-    r"""Alternating Least Squares variant of Partial Least Squares.
-
-    Maximises the sum of cross-view covariances using simple power-iteration
-    updates, without regularisation:
-
-    $$
-    \mathbf{w}_i \leftarrow
-        \frac{X_i^\top \bar{\mathbf{s}}_{\neg i}}
-             {\|X_i^\top \bar{\mathbf{s}}_{\neg i}\|_2}
-    $$
-
-    where $\bar{\mathbf{s}}_{\neg i}$ is the normalised sum of
-    projected scores from all views except $i$. This is the
-    multiset generalisation of the NIPALS alternating power iteration.
-
-    References:
-        Wold, H. (1975). Soft modelling by latent variables: the nonlinear
-        iterative partial least squares (NIPALS) approach. *Perspectives in
-        Probability and Statistics*, 117-142.
-
-    Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default True.
-        max_iter: Maximum ALS iterations per dimension. Default is 500.
-        tol: Convergence tolerance. Default is 1e-6.
-        random_state: Seed for reproducibility.
-
-    Example:
-        >>> import numpy as np
-        >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((50, 10))
-        >>> X2 = rng.standard_normal((50, 8))
-        >>> model = PLSALS(latent_dimensions=2, random_state=0).fit([X1, X2])
-    """
-
-    def _update_weight(
-        self,
-        views: list[np.ndarray],
-        weights: list[np.ndarray],
-        i: int,
-    ) -> np.ndarray:
-        """Update weight for view i via unnormalised power step.
-
-        Args:
-            views: Current view arrays.
-            weights: Current weight vectors.
-            i: View index to update.
-
-        Returns:
-            Normalised weight vector for view i.
-        """
-        target = _target_score(views, weights, i)
-        new_w: np.ndarray = np.asarray(views[i].T @ target)
-        norm = np.linalg.norm(new_w)
-        if norm > 1e-12:
-            new_w /= norm
-        return new_w
 
 
 # ---------------------------------------------------------------------------
@@ -1317,11 +1251,6 @@ def _make_regressors(
 # ---------------------------------------------------------------------------
 # Deprecated underscored aliases (removed in a future release)
 # ---------------------------------------------------------------------------
-
-
-@deprecated("Renamed to PLSALS for sklearn-style naming; use PLSALS instead.")
-class PLS_ALS(PLSALS):
-    pass
 
 
 @deprecated("Renamed to SCCAPMD for sklearn-style naming; use SCCAPMD instead.")

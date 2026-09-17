@@ -333,6 +333,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- `SCCAPMD`, `SCCAADMM`, `SCCAIPLS`, `SCCASpan`, `WaijenborgCCA`, `ParkhomenkoCCA`, and `SAR`
+  move from `cca_zoo.linear` to `cca_zoo.sparse`, alongside the existing EY-loss sparse methods
+  (`ElasticNetCCA`, `MultiTaskElasticNetCCA`, `OrthogonalMatchingPursuitCCA`) -- all ten are
+  sparse/regularised CCA methods, and belong together regardless of which of the two mechanism
+  families (ALS vs. EY-loss coordinate descent) each uses. The old `cca_zoo.linear` import paths
+  still work but now emit a `FutureWarning` (via `sklearn.utils.deprecated`) and will be removed
+  in a future release; import them from `cca_zoo.sparse` instead.
+- `StochasticCCAEY` moves from `cca_zoo.linear` (via `cca_zoo.linear.gradient`) to a new
+  `cca_zoo.stochastic` module. Mini-batch fitting is a genuinely different operational regime
+  (streaming or out-of-core data) from every other class in `cca_zoo.linear`, which all assume
+  the full dataset fits in memory for a single `fit` call, so it gets its own top-level module
+  rather than staying folded in among the full-batch EY-loss classes. The old
+  `cca_zoo.linear.StochasticCCAEY` import path still works but now emits a `FutureWarning` and
+  will be removed in a future release; import it from `cca_zoo.stochastic` instead.
 - `cca_zoo.linear.ElasticCCA` is renamed `WaijenborgCCA`, after the paper's own author
   (Waaijenborg 2008), to disambiguate it from `cca_zoo.sparse.ElasticNetCCA` -- a
   different algorithm entirely (an elastic-net penalty on the actual Eckart-Young CCA
@@ -428,6 +442,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
 - `CITATION.cff`'s `version`/`date-released` fields were stale at `3.0.0` (never updated across
   the `3.1.0` or `3.2.0` releases) — bumped to match. These fields can't be derived automatically
   (Zenodo metadata, not a build artifact), so they stay a manual step in the release checklist.
+
+### Removed
+
+- `PLSALS`, the ALS/power-iteration variant of `PLS`, is dropped outright with no deprecated
+  alias -- unlike every other class touched by this release's `cca_zoo.sparse`/
+  `cca_zoo.stochastic` moves. It had no sparsity, no ridge regularisation, and no behaviour
+  its closed-form `PLS` counterpart doesn't already cover exactly, so there was nothing left
+  for it to alias.
 
 ## [3.2.0] - 2026-08-04
 

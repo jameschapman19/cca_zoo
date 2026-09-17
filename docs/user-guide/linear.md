@@ -146,8 +146,11 @@ directions on its own.
 |---|---|
 | `PLSEY` | Eckart-Young PLS objective, full-batch L-BFGS-B |
 | `CCAEY` | Eckart-Young CCA for 2 or more views, full-batch L-BFGS-B, ridge-blended with `PLSEY` via `c` |
-| `StochasticCCAEY` | Same objective as `CCAEY`, fit by mini-batch momentum SGD for datasets too large for full-batch gradients |
 | `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, full-batch L-BFGS-B |
+
+For datasets too large to fit comfortably in memory, see
+[`cca_zoo.stochastic.StochasticCCAEY`](stochastic.md), which fits the same
+objective as `CCAEY` with mini-batch momentum SGD instead.
 
 `CCAEY`'s `c` parameter (default `0`) blends its loss towards `PLSEY`'s (`c=1`) — in fact
 `PLSEY` is implemented as `CCAEY` with `c` fixed at `1`. Optimising the raw, unregularised
@@ -159,18 +162,6 @@ usually enough).
 from cca_zoo.linear import CCAEY
 
 model = CCAEY(latent_dimensions=2, max_iter=200)
-model.fit([X1, X2])
-```
-
-For datasets too large to fit comfortably in memory, use `StochasticCCAEY`, which fits the same
-objective with mini-batch momentum SGD instead:
-
-```python
-from cca_zoo.linear import StochasticCCAEY
-
-model = StochasticCCAEY(
-    latent_dimensions=2, learning_rate=0.01, batch_size=128, max_iter=200
-)
 model.fit([X1, X2])
 ```
 
@@ -258,140 +249,6 @@ solve. Away from the ~50% breakdown regime, or when more than one latent dimensi
 
 ---
 
-## Sparse / iterative methods
-
-All sparse methods in `cca_zoo.linear` use an **Alternating Least Squares (ALS)** loop with
-Gram-Schmidt deflation to extract multiple canonical directions.
-
-!!! tip "Choosing a sparse method"
-    - **SCCAPMD** — fast, interpretable L1 bound; good default for sparse CCA
-    - **SCCAADMM** — more principled L1 penalty via ADMM
-    - **SCCAIPLS** — elastic net penalty; handles both L1 and L2 regularisation
-    - **WaijenborgCCA** — elastic net applied to the multiview sum-of-scores target
-    - **ParkhomenkoCCA** — simple fixed soft-threshold; fast but less adaptive
-    - **SCCASpan** — hard threshold (top-k entries); useful when sparsity level is known
-    - **SAR** — penalty strength chosen automatically by BIC; no sparsity hyperparameter to tune
-    - **PLSALS** — no sparsity; ALS version of PLS (useful as a baseline)
-
-### SCCAPMD
-
-Imposes L1 constraints via bisection-based soft-thresholding (Witten 2009):
-
-$$
-\max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
-\quad \text{s.t.} \quad \|\mathbf{w}_i\|_1 \leq \tau_i\sqrt{p_i},\; \|\mathbf{w}_i\|_2 = 1
-$$
-
-`tau=1` (default) gives no sparsity; smaller values give sparser solutions.
-
-```python
-from cca_zoo.linear import SCCAPMD
-
-model = SCCAPMD(latent_dimensions=2, tau=0.5, random_state=0).fit([X1, X2])
-```
-
-### SCCAADMM
-
-Maximises the cross-view covariance directly, subject to an L1 penalty on each weight
-vector and a unit-ball constraint on each view's *score* (Suo, Mineiro & Anandkumar
-2017):
-
-$$
-\max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
-    - \tau_1\|\mathbf{w}_1\|_1 - \tau_2\|\mathbf{w}_2\|_1
-\quad \text{s.t.} \quad \|X_i\mathbf{w}_i\|_2 \leq 1
-$$
-
-solved via a linearised Alternating Direction Method of Multipliers, needed because the
-constraint couples $\mathbf{w}_i$ to $X_i\mathbf{w}_i$ through a linear map rather than
-the identity.
-
-```python
-from cca_zoo.linear import SCCAADMM
-
-model = SCCAADMM(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
-```
-
-### SCCAIPLS
-
-Uses an elastic net regression (sklearn) at each ALS step (Mai & Zhang 2019).
-`alpha` controls overall regularisation; `l1_ratio=1` gives Lasso, `l1_ratio=0` gives Ridge.
-
-```python
-from cca_zoo.linear import SCCAIPLS
-
-model = SCCAIPLS(latent_dimensions=2, alpha=0.01, l1_ratio=1.0, random_state=0).fit(
-    [X1, X2]
-)
-```
-
-### WaijenborgCCA
-
-Elastic net CCA (Waaijenborg 2008). Each weight vector is estimated by regressing
-the sum-of-all-other-view scores against the current view via elastic net. Named after
-the paper's author to disambiguate it from `cca_zoo.sparse.ElasticNetCCA` (a different
-algorithm: an elastic-net penalty on the actual Eckart-Young CCA loss, not an
-alternating-regression heuristic).
-
-```python
-from cca_zoo.linear import WaijenborgCCA
-
-model = WaijenborgCCA(latent_dimensions=2, alpha=0.01, l1_ratio=0.5, random_state=0).fit(
-    [X1, X2]
-)
-```
-
-### ParkhomenkoCCA
-
-Fixed soft-threshold applied after each power step (Parkhomenko 2009). Simpler than PMD
-but `tau` is a fixed threshold, not an L1 bound.
-
-```python
-from cca_zoo.linear import ParkhomenkoCCA
-
-model = ParkhomenkoCCA(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
-```
-
-### SCCASpan
-
-Hard-thresholding retaining only the top `span` entries, an ALS heuristic
-inspired by SpanCCA (Asteris 2016) rather than a reimplementation of its
-own randomized low-rank sampling algorithm. Useful when the number of
-active features is known in advance.
-
-```python
-from cca_zoo.linear import SCCASpan
-
-model = SCCASpan(latent_dimensions=2, span=10, random_state=0).fit([X1, X2])
-```
-
-### SAR
-
-Sparse Alternating Regression (Wilms & Croux 2015): the same alternating-regression
-structure as WaijenborgCCA, but the lasso penalty at each step is picked automatically
-by BIC rather than left as a hyperparameter, so there is no `alpha`/`tau`/`span` to
-tune. Latent dimensions beyond the first need an extra re-expression step a lasso fit
-requires and an OLS-based one does not (see the class docstring for why).
-
-```python
-from cca_zoo.linear import SAR
-
-model = SAR(latent_dimensions=2, random_state=0).fit([X1, X2])
-```
-
-### PLSALS
-
-Standard ALS/power-iteration variant of PLS without regularisation. Useful as a baseline or
-when data are already low-dimensional.
-
-```python
-from cca_zoo.linear import PLSALS
-
-model = PLSALS(latent_dimensions=2, random_state=0).fit([X1, X2])
-```
-
----
-
 ## Choosing a method
 
 | Scenario | Recommended |
@@ -401,9 +258,9 @@ model = PLSALS(latent_dimensions=2, random_state=0).fit([X1, X2])
 | Maximise covariance, not correlation | `PLS` |
 | Three or more views | `MCCA` or `GCCA` |
 | Higher-order cross-view structure | `TCCA` |
-| Sparse weights needed | `SCCAPMD` or `SCCAIPLS` |
+| Sparse weights needed | [`cca_zoo.sparse.SCCAPMD`](sparse.md) or [`SCCAIPLS`](sparse.md) |
 | Very large $p$ | `CCAEY`, `PLSEY` |
-| Dataset too large for full-batch gradients | `StochasticCCAEY` |
+| Dataset too large for full-batch gradients | [`cca_zoo.stochastic.StochasticCCAEY`](stochastic.md) |
 | A few high-magnitude outlier samples | `HuberCCA` |
 | A subset of rows with a wrong (mismatched/corrupted) relationship | `RANSACCCA` |
 | Heavy contamination (near ~50%), with a known contamination-rate prior | `TrimmedCCA` |

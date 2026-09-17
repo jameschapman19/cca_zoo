@@ -1,20 +1,24 @@
 # Sparse Methods
 
-The `cca_zoo.sparse` module provides three sparse linear multiview CCA methods, each the EY-loss
-analogue of a scikit-learn regularised linear regressor: `ElasticNetCCA` (elastic net),
+The `cca_zoo.sparse` module provides sparse/regularised linear multiview CCA methods, from two
+mechanism families. Three are EY-loss coordinate descent, each the EY-loss analogue of a
+scikit-learn regularised linear regressor: `ElasticNetCCA` (elastic net),
 `MultiTaskElasticNetCCA` (multi-task elastic net — row-group sparsity across latent dimensions),
-and `OrthogonalMatchingPursuitCCA` (greedy fixed-cardinality selection). None has an optional
-dependency: all are built entirely on numpy, already required by `cca_zoo`.
+and `OrthogonalMatchingPursuitCCA` (greedy fixed-cardinality selection). The remaining seven —
+`SCCAPMD`, `SCCAADMM`, `SCCAIPLS`, `WaijenborgCCA`, `ParkhomenkoCCA`, `SCCASpan`, `SAR` — are
+Alternating Least Squares (ALS) methods, each a from-the-literature sparse CCA algorithm with its
+own penalty and fitting loop; see [below](#alternating-least-squares-methods). None has an
+optional dependency: all are built entirely on numpy, already required by `cca_zoo`.
 
 ---
 
 ## Background
 
 `ElasticNetCCA` minimises the same unconstrained Eckart-Young (EY) objective used by the
-`CCAEY`/`PLSEY`/`StochasticCCAEY` models in `cca_zoo.linear`, by `DCCAEY` in `cca_zoo.deep`, by
-`TreeCCA` in `cca_zoo.tree`, and by `GAMCCA`/`GaussianProcessCCA` (all share the exact same
-implementation, in `cca_zoo._utils._ey`), with an elastic-net penalty added on the per-view
-weights:
+`CCAEY`/`PLSEY` models in `cca_zoo.linear` and `StochasticCCAEY` in `cca_zoo.stochastic`, by
+`DCCAEY` in `cca_zoo.deep`, by `TreeCCA` in `cca_zoo.tree`, and by
+`GAMCCA`/`GaussianProcessCCA` (all share the exact same implementation, in
+`cca_zoo._utils._ey`), with an elastic-net penalty added on the per-view weights:
 
 $$
 \mathcal{L}(W) = \mathcal{L}_{EY}(Z_1, \dots, Z_M)
@@ -151,3 +155,125 @@ Hyperparameters are best selected by cross-validation with `GridSearchCV` from
   guaranteed to reach a stationary point, and different `random_state` initialisations can land
   on different ones — the same caveat that already applies to `CCAEY`'s gradient descent.
 - No optional dependency is required: all three are built entirely on numpy.
+
+---
+
+## Alternating Least Squares methods
+
+These seven methods use an **Alternating Least Squares (ALS)** loop with Gram-Schmidt deflation
+to extract multiple canonical directions, rather than EY-loss coordinate descent.
+
+!!! tip "Choosing an ALS method"
+    - **SCCAPMD** — fast, interpretable L1 bound; good default for sparse CCA
+    - **SCCAADMM** — more principled L1 penalty via ADMM
+    - **SCCAIPLS** — elastic net penalty; handles both L1 and L2 regularisation
+    - **WaijenborgCCA** — elastic net applied to the multiview sum-of-scores target
+    - **ParkhomenkoCCA** — simple fixed soft-threshold; fast but less adaptive
+    - **SCCASpan** — hard threshold (top-k entries); useful when sparsity level is known
+    - **SAR** — penalty strength chosen automatically by BIC; no sparsity hyperparameter to tune
+
+### SCCAPMD
+
+Imposes L1 constraints via bisection-based soft-thresholding (Witten 2009):
+
+$$
+\max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
+\quad \text{s.t.} \quad \|\mathbf{w}_i\|_1 \leq \tau_i\sqrt{p_i},\; \|\mathbf{w}_i\|_2 = 1
+$$
+
+`tau=1` (default) gives no sparsity; smaller values give sparser solutions.
+
+```python
+from cca_zoo.sparse import SCCAPMD
+
+model = SCCAPMD(latent_dimensions=2, tau=0.5, random_state=0).fit([X1, X2])
+```
+
+### SCCAADMM
+
+Maximises the cross-view covariance directly, subject to an L1 penalty on each weight
+vector and a unit-ball constraint on each view's *score* (Suo, Mineiro & Anandkumar
+2017):
+
+$$
+\max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
+    - \tau_1\|\mathbf{w}_1\|_1 - \tau_2\|\mathbf{w}_2\|_1
+\quad \text{s.t.} \quad \|X_i\mathbf{w}_i\|_2 \leq 1
+$$
+
+solved via a linearised Alternating Direction Method of Multipliers, needed because the
+constraint couples $\mathbf{w}_i$ to $X_i\mathbf{w}_i$ through a linear map rather than
+the identity.
+
+```python
+from cca_zoo.sparse import SCCAADMM
+
+model = SCCAADMM(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
+```
+
+### SCCAIPLS
+
+Uses an elastic net regression (sklearn) at each ALS step (Mai & Zhang 2019).
+`alpha` controls overall regularisation; `l1_ratio=1` gives Lasso, `l1_ratio=0` gives Ridge.
+
+```python
+from cca_zoo.sparse import SCCAIPLS
+
+model = SCCAIPLS(latent_dimensions=2, alpha=0.01, l1_ratio=1.0, random_state=0).fit(
+    [X1, X2]
+)
+```
+
+### WaijenborgCCA
+
+Elastic net CCA (Waaijenborg 2008). Each weight vector is estimated by regressing
+the sum-of-all-other-view scores against the current view via elastic net. Named after
+the paper's author to disambiguate it from `ElasticNetCCA` above (a different algorithm: an
+elastic-net penalty on the actual Eckart-Young CCA loss, not an alternating-regression
+heuristic).
+
+```python
+from cca_zoo.sparse import WaijenborgCCA
+
+model = WaijenborgCCA(latent_dimensions=2, alpha=0.01, l1_ratio=0.5, random_state=0).fit(
+    [X1, X2]
+)
+```
+
+### ParkhomenkoCCA
+
+Fixed soft-threshold applied after each power step (Parkhomenko 2009). Simpler than PMD
+but `tau` is a fixed threshold, not an L1 bound.
+
+```python
+from cca_zoo.sparse import ParkhomenkoCCA
+
+model = ParkhomenkoCCA(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
+```
+
+### SCCASpan
+
+Hard-thresholding retaining only the top `span` entries, an ALS heuristic
+inspired by SpanCCA (Asteris 2016) rather than a reimplementation of its
+own randomized low-rank sampling algorithm. Useful when the number of
+active features is known in advance.
+
+```python
+from cca_zoo.sparse import SCCASpan
+
+model = SCCASpan(latent_dimensions=2, span=10, random_state=0).fit([X1, X2])
+```
+
+### SAR
+
+Sparse Alternating Regression (Wilms & Croux 2015): the same alternating-regression
+structure as WaijenborgCCA, but the lasso penalty at each step is picked automatically
+by BIC rather than left as a hyperparameter, so there is no `alpha`/`tau`/`span` to
+tune. Latent dimensions beyond the first need an extra re-expression step a lasso fit
+requires and an OLS-based one does not (see the class docstring for why).
+
+```python
+from cca_zoo.sparse import SAR
+
+model = SAR(latent_dimensions=2, random_state=0).fit([X1, X2])
+```

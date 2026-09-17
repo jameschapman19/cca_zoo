@@ -93,18 +93,9 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `GraphicalLassoCCA` | MCCA with an L1-penalised sparse-precision within-view covariance (Friedman, Hastie & Tibshirani 2008) | ≥2 |
 | `CCAEY` | Eckart-Young CCA, full-batch L-BFGS-B (2 or more views) | ≥2 |
 | `PLSEY` | Eckart-Young PLS, full-batch L-BFGS-B | ≥2 |
-| `StochasticCCAEY` | `CCAEY`, fit by mini-batch momentum SGD | ≥2 |
 | `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, robust to high-leverage outliers | ≥2 |
 | `RANSACCCA` | Robust CCA via random sample consensus, robust to mismatched/corrupted rows | ≥2 |
 | `TrimmedCCA` | Robust CCA via LTS/MCD-style concentration steps, holds up near ~50% contamination | ≥2 |
-| `SCCA_PMD` | Sparse CCA via PMD (Witten 2009) | ≥2 |
-| `SCCA_ADMM` | Sparse CCA via ADMM (Suo 2017) | ≥2 |
-| `SCCA_IPLS` | Sparse CCA via iterative PLS (Mai & Zhang 2019) | ≥2 |
-| `SCCA_Span` | Hard-threshold ALS inspired by SpanCCA (Asteris 2016) | ≥2 |
-| `WaijenborgCCA` | Elastic net regularised CCA (Waaijenborg 2008) | ≥2 |
-| `ParkhomenkoCCA` | Soft-threshold sparse CCA (Parkhomenko 2009) | ≥2 |
-| `SAR` | Sparse alternating regression, BIC-selected penalty (Wilms & Croux 2015) | ≥2 |
-| `PLS_ALS` | ALS variant of PLS (power iteration) | ≥2 |
 
 ### `cca_zoo.nonparametric`
 
@@ -142,6 +133,19 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `ElasticNetCCA` | Sparse linear CCA via coordinate descent (Eckart-Young objective) | ≥2 |
 | `MultiTaskElasticNetCCA` | `ElasticNetCCA` with row-group sparsity shared across latent dimensions | ≥2 |
 | `OrthogonalMatchingPursuitCCA` | Fixed-cardinality sparse linear CCA via greedy selection (Eckart-Young objective) | ≥2 |
+| `SCCAPMD` | Sparse CCA via PMD (Witten 2009) | ≥2 |
+| `SCCAADMM` | Sparse CCA via ADMM (Suo 2017) | ≥2 |
+| `SCCAIPLS` | Sparse CCA via iterative PLS (Mai & Zhang 2019) | ≥2 |
+| `SCCASpan` | Hard-threshold ALS inspired by SpanCCA (Asteris 2016) | ≥2 |
+| `WaijenborgCCA` | Elastic net regularised CCA (Waaijenborg 2008) | ≥2 |
+| `ParkhomenkoCCA` | Soft-threshold sparse CCA (Parkhomenko 2009) | ≥2 |
+| `SAR` | Sparse alternating regression, BIC-selected penalty (Wilms & Croux 2015) | ≥2 |
+
+### `cca_zoo.stochastic`
+
+| Class | Description | Views |
+|---|---|---|
+| `StochasticCCAEY` | `CCAEY`, fit by mini-batch momentum SGD | ≥2 |
 
 ### `cca_zoo.deep` *(requires `[deep]`)*
 

@@ -43,6 +43,8 @@ MODULE_DOC_PAGES = {
     "cca_zoo.tree": "tree.md",
     "cca_zoo.datasets": "datasets.md",
     "cca_zoo.model_selection": "model-selection.md",
+    "cca_zoo.sparse": "sparse.md",
+    "cca_zoo.stochastic": "stochastic.md",
 }
 
 

@@ -109,6 +109,7 @@ nav:
       - GAM Methods: user-guide/gam.md
       - GP Methods: user-guide/gp.md
       - Sparse Methods: user-guide/sparse.md
+      - Stochastic Methods: user-guide/stochastic.md
       - Deep Methods: user-guide/deep.md
       - Probabilistic CCA: user-guide/probabilistic.md
       - Datasets: user-guide/datasets.md
@@ -121,6 +122,7 @@ nav:
       - GAM: api/gam.md
       - GP: api/gp.md
       - Sparse: api/sparse.md
+      - Stochastic: api/stochastic.md
       - Deep: api/deep.md
       - Probabilistic: api/probabilistic.md
       - Datasets: api/datasets.md

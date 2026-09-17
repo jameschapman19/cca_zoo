@@ -1,6 +1,6 @@
 """Tests for ALS-based sparse/regularised CCA variants.
 
-Covers PLSALS, SCCAPMD, SCCAADMM, SCCAIPLS, SCCASpan, WaijenborgCCA,
+Covers SCCAPMD, SCCAADMM, SCCAIPLS, SCCASpan, WaijenborgCCA,
 ParkhomenkoCCA, SAR.
 """
 
@@ -9,8 +9,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.linear import (
-    PLSALS,
+from cca_zoo.sparse import (
     SAR,
     SCCAADMM,
     SCCAIPLS,
@@ -21,7 +20,6 @@ from cca_zoo.linear import (
 )
 
 ALL_ITERATIVE_MODELS = [
-    PLSALS,
     SCCAPMD,
     SCCAADMM,
     SCCAIPLS,
@@ -225,7 +223,7 @@ def test_bisect_threshold_matches_a_from_scratch_bisection() -> None:
     function under test, across a range of vector sizes and scales.
     """
     from cca_zoo._utils._linalg import soft_threshold
-    from cca_zoo.linear._iterative import _bisect_threshold
+    from cca_zoo.sparse._iterative import _bisect_threshold
 
     def reference_bisection(x: np.ndarray, l1_bound: float) -> np.ndarray:
         norm_x = np.linalg.norm(x)
@@ -534,20 +532,6 @@ def test_pairwise_correlations_shape(
 # ---------------------------------------------------------------------------
 # Correctness / optimality
 # ---------------------------------------------------------------------------
-
-
-def test_pls_als_matches_pls(correlated_views: list[np.ndarray]) -> None:
-    """PLSALS (converged) recovers the same correlations as exact PLS."""
-    from cca_zoo.linear import PLS
-
-    k = 2
-    s_pls = PLS(latent_dimensions=k).fit(correlated_views).score(correlated_views)
-    s_als = (
-        PLSALS(latent_dimensions=k, max_iter=1000, random_state=0)
-        .fit(correlated_views)
-        .score(correlated_views)
-    )
-    np.testing.assert_allclose(s_als, s_pls, atol=0.05)
 
 
 def test_iterative_models_find_high_correlation(
