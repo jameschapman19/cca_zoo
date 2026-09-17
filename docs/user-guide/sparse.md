@@ -235,9 +235,9 @@ heuristic).
 ```python
 from cca_zoo.sparse import WaijenborgCCA
 
-model = WaijenborgCCA(latent_dimensions=2, alpha=0.01, l1_ratio=0.5, random_state=0).fit(
-    [X1, X2]
-)
+model = WaijenborgCCA(
+    latent_dimensions=2, alpha=0.01, l1_ratio=0.5, random_state=0
+).fit([X1, X2])
 ```
 
 ### ParkhomenkoCCA

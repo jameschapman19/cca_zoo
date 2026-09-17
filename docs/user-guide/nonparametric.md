@@ -129,8 +129,12 @@ the joint eigenproblem solves for *is* each view's training-set embedding direct
 ```python
 from cca_zoo.nonparametric import ManifoldCCA
 
-model = ManifoldCCA(method="laplacian", n_neighbors=10, latent_dimensions=1).fit([X1, X2])
-train_embedding = model.weights  # (n_train, k) per view -- the embedding itself, not a weight matrix
+model = ManifoldCCA(method="laplacian", n_neighbors=10, latent_dimensions=1).fit(
+    [X1, X2]
+)
+train_embedding = (
+    model.weights
+)  # (n_train, k) per view -- the embedding itself, not a weight matrix
 ```
 
 Before solving, every view's operator is truncated to its own `n_operator_components`
