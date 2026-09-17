@@ -258,7 +258,7 @@ solve. Away from the ~50% breakdown regime, or when more than one latent dimensi
 | Maximise covariance, not correlation | `PLS` |
 | Three or more views | `MCCA` or `GCCA` |
 | Higher-order cross-view structure | `TCCA` |
-| Sparse weights needed | [`cca_zoo.sparse.SCCAPMD`](sparse.md) or [`SCCAIPLS`](sparse.md) |
+| Sparse weights needed | [`cca_zoo.sparse.PMDCCA`](sparse.md) or [`IPLSCCA`](sparse.md) |
 | Very large $p$ | `CCAEY`, `PLSEY` |
 | Dataset too large for full-batch gradients | [`cca_zoo.stochastic.StochasticCCAEY`](stochastic.md) |
 | A few high-magnitude outlier samples | `HuberCCA` |

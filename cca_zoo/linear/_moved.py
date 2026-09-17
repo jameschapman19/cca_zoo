@@ -10,33 +10,41 @@ from __future__ import annotations
 
 from sklearn.utils import deprecated
 
+from cca_zoo.sparse import ADMMCCA as _ADMMCCA
+from cca_zoo.sparse import IPLSCCA as _IPLSCCA
+from cca_zoo.sparse import PMDCCA as _PMDCCA
 from cca_zoo.sparse import SAR as _SAR
-from cca_zoo.sparse import SCCAADMM as _SCCAADMM
-from cca_zoo.sparse import SCCAIPLS as _SCCAIPLS
-from cca_zoo.sparse import SCCAPMD as _SCCAPMD
 from cca_zoo.sparse import ParkhomenkoCCA as _ParkhomenkoCCA
-from cca_zoo.sparse import SCCASpan as _SCCASpan
+from cca_zoo.sparse import SpanCCA as _SpanCCA
 from cca_zoo.sparse import WaijenborgCCA as _WaijenborgCCA
 from cca_zoo.stochastic import StochasticCCAEY as _StochasticCCAEY
 
 
-@deprecated("Moved to cca_zoo.sparse; import SCCAPMD from there instead.")
-class SCCAPMD(_SCCAPMD):
+@deprecated(
+    "Moved to cca_zoo.sparse and renamed to PMDCCA; import PMDCCA from there instead."
+)
+class SCCAPMD(_PMDCCA):
     pass
 
 
-@deprecated("Moved to cca_zoo.sparse; import SCCAADMM from there instead.")
-class SCCAADMM(_SCCAADMM):
+@deprecated(
+    "Moved to cca_zoo.sparse and renamed to ADMMCCA; import ADMMCCA from there instead."
+)
+class SCCAADMM(_ADMMCCA):
     pass
 
 
-@deprecated("Moved to cca_zoo.sparse; import SCCAIPLS from there instead.")
-class SCCAIPLS(_SCCAIPLS):
+@deprecated(
+    "Moved to cca_zoo.sparse and renamed to IPLSCCA; import IPLSCCA from there instead."
+)
+class SCCAIPLS(_IPLSCCA):
     pass
 
 
-@deprecated("Moved to cca_zoo.sparse; import SCCASpan from there instead.")
-class SCCASpan(_SCCASpan):
+@deprecated(
+    "Moved to cca_zoo.sparse and renamed to SpanCCA; import SpanCCA from there instead."
+)
+class SCCASpan(_SpanCCA):
     pass
 
 

@@ -22,19 +22,19 @@ Squares (ALS).
 
 ## Alternating Least Squares
 
-::: cca_zoo.sparse.SCCAPMD
+::: cca_zoo.sparse.PMDCCA
 
 ---
 
-::: cca_zoo.sparse.SCCAADMM
+::: cca_zoo.sparse.ADMMCCA
 
 ---
 
-::: cca_zoo.sparse.SCCAIPLS
+::: cca_zoo.sparse.IPLSCCA
 
 ---
 
-::: cca_zoo.sparse.SCCASpan
+::: cca_zoo.sparse.SpanCCA
 
 ---
 

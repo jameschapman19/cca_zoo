@@ -1,6 +1,6 @@
 """Tests for ALS-based sparse/regularised CCA variants.
 
-Covers SCCAPMD, SCCAADMM, SCCAIPLS, SCCASpan, WaijenborgCCA,
+Covers PMDCCA, ADMMCCA, IPLSCCA, SpanCCA, WaijenborgCCA,
 ParkhomenkoCCA, SAR.
 """
 
@@ -10,20 +10,20 @@ import numpy as np
 import pytest
 
 from cca_zoo.sparse import (
+    ADMMCCA,
+    IPLSCCA,
+    PMDCCA,
     SAR,
-    SCCAADMM,
-    SCCAIPLS,
-    SCCAPMD,
     ParkhomenkoCCA,
-    SCCASpan,
+    SpanCCA,
     WaijenborgCCA,
 )
 
 ALL_ITERATIVE_MODELS = [
-    SCCAPMD,
-    SCCAADMM,
-    SCCAIPLS,
-    SCCASpan,
+    PMDCCA,
+    ADMMCCA,
+    IPLSCCA,
+    SpanCCA,
     WaijenborgCCA,
     ParkhomenkoCCA,
     SAR,
@@ -176,9 +176,9 @@ def test_get_factor_loadings_shapes(
 # ---------------------------------------------------------------------------
 
 
-def test_scca_pmd_achieves_sparsity(two_views: list[np.ndarray]) -> None:
-    """SCCAPMD with small tau produces sparse weights (some zeros)."""
-    model = SCCAPMD(latent_dimensions=1, tau=0.3, max_iter=200, random_state=0).fit(
+def test_pmd_achieves_sparsity(two_views: list[np.ndarray]) -> None:
+    """PMDCCA with small tau produces sparse weights (some zeros)."""
+    model = PMDCCA(latent_dimensions=1, tau=0.3, max_iter=200, random_state=0).fit(
         two_views
     )
     for w in model.weights:
@@ -186,8 +186,8 @@ def test_scca_pmd_achieves_sparsity(two_views: list[np.ndarray]) -> None:
         assert n_zeros > 0, f"Expected some zero weights, got {n_zeros}"
 
 
-def test_scca_pmd_invariant_to_input_scale(two_views: list[np.ndarray]) -> None:
-    """SCCAPMD's fitted weights (up to sign) must not depend on input scale.
+def test_pmd_invariant_to_input_scale(two_views: list[np.ndarray]) -> None:
+    """PMDCCA's fitted weights (up to sign) must not depend on input scale.
 
     tau is the only sparsity control.
 
@@ -200,10 +200,10 @@ def test_scca_pmd_invariant_to_input_scale(two_views: list[np.ndarray]) -> None:
     "no constraint") still producing near-total sparsity.
     """
     scaled_views = [v * 37.0 for v in two_views]
-    model_a = SCCAPMD(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
+    model_a = PMDCCA(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
         two_views
     )
-    model_b = SCCAPMD(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
+    model_b = PMDCCA(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
         scaled_views
     )
     for w_a, w_b in zip(model_a.weights, model_b.weights):
@@ -218,7 +218,7 @@ def test_bisect_threshold_matches_a_from_scratch_bisection() -> None:
     `_bisect_threshold` used to run a hand-rolled, unconditional 50-iteration
     bisection with no early stop; replaced with `scipy.optimize.brentq` for
     the same monotonic root-find (3.65x faster across 500 random trials in a
-    direct benchmark, 1.8x faster end-to-end in `SCCAPMD.fit`). Pins the
+    direct benchmark, 1.8x faster end-to-end in `PMDCCA.fit`). Pins the
     result against a from-scratch fixed-count bisection, independent of the
     function under test, across a range of vector sizes and scales.
     """
@@ -258,7 +258,7 @@ def test_bisect_threshold_matches_a_from_scratch_bisection() -> None:
         np.testing.assert_allclose(got, want, atol=1e-6)
 
 
-def test_scca_pmd_tau_controls_sparsity_monotonically(
+def test_pmd_tau_controls_sparsity_monotonically(
     two_views: list[np.ndarray],
 ) -> None:
     """Increasing tau must not decrease the number of selected features.
@@ -270,7 +270,7 @@ def test_scca_pmd_tau_controls_sparsity_monotonically(
     taus = [0.3, 0.5, 0.7, 1.0]
     nnz_by_tau = []
     for tau in taus:
-        model = SCCAPMD(latent_dimensions=1, tau=tau, max_iter=200, random_state=0).fit(
+        model = PMDCCA(latent_dimensions=1, tau=tau, max_iter=200, random_state=0).fit(
             two_views
         )
         nnz_by_tau.append(sum(int(np.sum(np.abs(w) > 1e-10)) for w in model.weights))
@@ -292,11 +292,11 @@ def test_parkhomenko_achieves_sparsity(two_views: list[np.ndarray]) -> None:
         assert n_zeros > 0, f"Expected some zero weights, got {n_zeros}"
 
 
-def test_scca_span_achieves_sparsity(two_views: list[np.ndarray]) -> None:
-    """SCCASpan with span < n_features produces sparse weights."""
+def test_span_achieves_sparsity(two_views: list[np.ndarray]) -> None:
+    """SpanCCA with span < n_features produces sparse weights."""
     n_features = two_views[0].shape[1]
     span = n_features // 2
-    model = SCCASpan(latent_dimensions=1, span=span, max_iter=200, random_state=0).fit(
+    model = SpanCCA(latent_dimensions=1, span=span, max_iter=200, random_state=0).fit(
         two_views
     )
     # First view should have at most 'span' nonzero entries per dimension
@@ -305,9 +305,9 @@ def test_scca_span_achieves_sparsity(two_views: list[np.ndarray]) -> None:
     assert n_nonzero <= span, f"Expected <= {span} nonzero, got {n_nonzero}"
 
 
-def test_scca_admm_achieves_sparsity(two_views: list[np.ndarray]) -> None:
-    """SCCAADMM with positive tau produces some sparse weights."""
-    model = SCCAADMM(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
+def test_admm_achieves_sparsity(two_views: list[np.ndarray]) -> None:
+    """ADMMCCA with positive tau produces some sparse weights."""
+    model = ADMMCCA(latent_dimensions=1, tau=0.5, max_iter=200, random_state=0).fit(
         two_views
     )
     assert hasattr(model, "weights_")
@@ -315,8 +315,8 @@ def test_scca_admm_achieves_sparsity(two_views: list[np.ndarray]) -> None:
         assert w.shape[0] > 0
 
 
-def test_scca_admm_stable_at_a_realistic_sample_size() -> None:
-    """SCCAADMM's weights stay finite at n=200, not just the tiny n=50 examples.
+def test_admm_stable_at_a_realistic_sample_size() -> None:
+    """ADMMCCA's weights stay finite at n=200, not just the tiny n=50 examples.
 
     Regression test: an earlier version of the w-update took a single
     proximal-gradient step per ADMM iteration with an un-normalised gradient
@@ -329,15 +329,15 @@ def test_scca_admm_stable_at_a_realistic_sample_size() -> None:
     n, p, q = 200, 60, 50
     X1 = rng.standard_normal((n, p))
     X2 = rng.standard_normal((n, q))
-    model = SCCAADMM(
+    model = ADMMCCA(
         latent_dimensions=2, tau=0.3, mu=1.0, max_iter=500, random_state=0
     ).fit([X1, X2])
     for w in model.weights_:
         assert np.all(np.isfinite(w))
 
 
-def test_scca_admm_block_satisfies_kkt_conditions() -> None:
-    """SCCAADMM's inner linearised-ADMM block solve reaches a genuine KKT point.
+def test_admm_block_satisfies_kkt_conditions() -> None:
+    """ADMMCCA's inner linearised-ADMM block solve reaches a genuine KKT point.
 
     Regression test for two successive wrong objectives: the class originally
     (and, after a first "fix", still) solved a reduced-rank-regression-style
@@ -362,7 +362,7 @@ def test_scca_admm_block_satisfies_kkt_conditions() -> None:
     other_score = rng.standard_normal(n) * 0.5
 
     tau = 0.2
-    model = SCCAADMM(
+    model = ADMMCCA(
         latent_dimensions=1,
         tau=tau,
         mu=1.0,
@@ -403,9 +403,9 @@ def test_waijenborg_cca_with_lasso(two_views: list[np.ndarray]) -> None:
     assert hasattr(model, "weights_")
 
 
-def test_scca_ipls_with_lasso(two_views: list[np.ndarray]) -> None:
-    """SCCAIPLS with alpha > 0 runs without error."""
-    model = SCCAIPLS(
+def test_ipls_with_lasso(two_views: list[np.ndarray]) -> None:
+    """IPLSCCA with alpha > 0 runs without error."""
+    model = IPLSCCA(
         latent_dimensions=1, alpha=0.1, l1_ratio=1.0, max_iter=100, random_state=0
     ).fit(two_views)
     assert hasattr(model, "weights_")

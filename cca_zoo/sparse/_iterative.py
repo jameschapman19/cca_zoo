@@ -4,10 +4,10 @@ All classes in this module use an Alternating Least Squares (ALS) loop with
 optional deflation to extract multiple canonical directions.
 
 Classes:
-    SCCAPMD: Sparse CCA via Penalized Matrix Decomposition (Witten 2009).
-    SCCAADMM: Sparse CCA via ADMM (Suo 2017).
-    SCCAIPLS: Iterative PLS with lasso penalty (Mai & Zhang 2019).
-    SCCASpan: hard-thresholding ALS inspired by SpanCCA (Asteris 2016).
+    PMDCCA: Sparse CCA via Penalized Matrix Decomposition (Witten 2009).
+    ADMMCCA: Sparse CCA via ADMM (Suo 2017).
+    IPLSCCA: Iterative PLS with lasso penalty (Mai & Zhang 2019).
+    SpanCCA: hard-thresholding ALS inspired by Asteris et al.'s SpanCCA (2016).
     WaijenborgCCA: Elastic net regularised CCA (Waaijenborg 2008).
     ParkhomenkoCCA: Sparse CCA via soft-thresholding (Parkhomenko 2009).
     SAR: Sparse Alternating Regression, BIC-selected (Wilms & Croux 2015).
@@ -161,14 +161,14 @@ def _target_score(
 
 
 # ---------------------------------------------------------------------------
-# SCCAPMD — Penalized Matrix Decomposition (Witten 2009)
+# PMDCCA — Penalized Matrix Decomposition (Witten 2009)
 # ---------------------------------------------------------------------------
 
 
 def _bisect_threshold(x: np.ndarray, l1_bound: float) -> np.ndarray:
     r"""Find the soft threshold hitting ``l1_bound`` L1 norm after L2-normalising.
 
-    ``l1_bound`` (``tau * sqrt(p)``, see :class:`SCCAPMD`) is only a
+    ``l1_bound`` (``tau * sqrt(p)``, see :class:`PMDCCA`) is only a
     meaningful constraint on a *unit-L2-norm* vector: ``||w||_1 <= sqrt(p)``
     for ``||w||_2 = 1`` is the Cauchy-Schwarz bound the ``tau in (0, 1]``
     parameterisation relies on. The bisection therefore has to search on
@@ -179,7 +179,7 @@ def _bisect_threshold(x: np.ndarray, l1_bound: float) -> np.ndarray:
     optimal ``delta`` by the same ``c`` and leaves the ratio unchanged),
     whereas the raw L1 norm is not. ``x`` here is an un-normalised
     power-iteration update whose scale depends on the data
-    (:meth:`SCCAPMD._update_weight` passes ``views[i].T @ target``,
+    (:meth:`PMDCCA._update_weight` passes ``views[i].T @ target``,
     typically :math:`O(\sqrt{n})` in magnitude for standardised data),
     not on ``tau``, so comparing that raw L1 norm directly against
     ``l1_bound`` made the constraint's effective strength depend on the
@@ -227,7 +227,7 @@ def _bisect_threshold(x: np.ndarray, l1_bound: float) -> np.ndarray:
     return result
 
 
-class SCCAPMD(_BaseIterative):
+class PMDCCA(_BaseIterative):
     r"""Sparse CCA via Penalized Matrix Decomposition.
 
     Maximises the cross-view covariance subject to L1 norm constraints on
@@ -264,7 +264,7 @@ class SCCAPMD(_BaseIterative):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = SCCAPMD(tau=0.5, random_state=0).fit([X1, X2])
+        >>> model = PMDCCA(tau=0.5, random_state=0).fit([X1, X2])
     """
 
     def __init__(
@@ -285,8 +285,8 @@ class SCCAPMD(_BaseIterative):
         )
         self.tau = tau
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> SCCAPMD:
-        """Fit the SCCAPMD model.
+    def fit(self, views: list[ArrayLike], y: None = None) -> PMDCCA:
+        """Fit the PMDCCA model.
 
         Args:
             views: List of arrays, each (n_samples, n_features_i).
@@ -350,11 +350,11 @@ class SCCAPMD(_BaseIterative):
 
 
 # ---------------------------------------------------------------------------
-# SCCAADMM — ADMM-based sparse CCA (Suo 2017)
+# ADMMCCA — ADMM-based sparse CCA (Suo 2017)
 # ---------------------------------------------------------------------------
 
 
-class SCCAADMM(_BaseIterative):
+class ADMMCCA(_BaseIterative):
     r"""Sparse CCA via linearised Alternating Direction Method of Multipliers.
 
     Suo, Mineiro & Anandkumar (2017) pose two-view sparse CCA as, for view
@@ -444,7 +444,7 @@ class SCCAADMM(_BaseIterative):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = SCCAADMM(tau=0.1, random_state=0).fit([X1, X2])
+        >>> model = ADMMCCA(tau=0.1, random_state=0).fit([X1, X2])
     """
 
     def __init__(
@@ -486,9 +486,7 @@ class SCCAADMM(_BaseIterative):
         n_views = len(views)
         # eta_i = 1/(mu * ||X_i||_op^2) is fixed for this latent dimension
         # (X_i doesn't change across iterations), computed once per view.
-        etas = [
-            1.0 / (self.mu * np.linalg.norm(X, ord=2) ** 2) for X in views
-        ]
+        etas = [1.0 / (self.mu * np.linalg.norm(X, ord=2) ** 2) for X in views]
         # z_i, xi_i (score-space ADMM state) persist across outer iterations,
         # matching the paper's Algorithm 1 (they are initialised once, not
         # reset every time a view's block is revisited).
@@ -497,9 +495,7 @@ class SCCAADMM(_BaseIterative):
         for _iter in range(self.max_iter):
             w_prev = [wi.copy() for wi in w]
             for i in range(n_views):
-                s_other = sum(
-                    views[j] @ w[j] for j in range(n_views) if j != i
-                )
+                s_other = sum(views[j] @ w[j] for j in range(n_views) if j != i)
                 c_i = views[i].T @ s_other
                 for _ in range(self.admm_iter):
                     w_before = w[i]
@@ -527,7 +523,7 @@ class SCCAADMM(_BaseIterative):
         weights: list[np.ndarray],
         i: int,
     ) -> np.ndarray:
-        """Not used — SCCAADMM overrides _fit_single directly.
+        """Not used — ADMMCCA overrides _fit_single directly.
 
         Args:
             views: View arrays (unused).
@@ -541,11 +537,11 @@ class SCCAADMM(_BaseIterative):
 
 
 # ---------------------------------------------------------------------------
-# SCCAIPLS — Iterative PLS (Mai & Zhang 2019)
+# IPLSCCA — Iterative PLS (Mai & Zhang 2019)
 # ---------------------------------------------------------------------------
 
 
-class SCCAIPLS(_BaseIterative):
+class IPLSCCA(_BaseIterative):
     r"""Iterative PLS with elastic net penalty on weight vectors.
 
     Alternates between penalised regression sub-problems.  For view $i$:
@@ -581,7 +577,7 @@ class SCCAIPLS(_BaseIterative):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = SCCAIPLS(alpha=0.1, random_state=0).fit([X1, X2])
+        >>> model = IPLSCCA(alpha=0.1, random_state=0).fit([X1, X2])
     """
 
     def __init__(
@@ -650,25 +646,25 @@ class SCCAIPLS(_BaseIterative):
 
 
 # ---------------------------------------------------------------------------
-# SCCASpan — hard-thresholding ALS inspired by SpanCCA (Asteris 2016)
+# SpanCCA — hard-thresholding ALS inspired by Asteris et al.'s SpanCCA (2016)
 # ---------------------------------------------------------------------------
 
 
-class SCCASpan(_BaseIterative):
-    r"""Hard-thresholding ALS for sparse CCA, inspired by SpanCCA.
+class SpanCCA(_BaseIterative):
+    r"""Hard-thresholding ALS for sparse CCA, inspired by the SpanCCA algorithm.
 
     Solves sparse CCA by an alternating least squares loop where each
     weight update retains only the ``span`` entries with the largest
     absolute values.
 
-    Note that this is an ALS-based heuristic, not a reimplementation of
-    SpanCCA's own Algorithm 1: the paper instead takes a single rank-r
-    SVD of the cross-covariance matrix up front, then draws many
-    independent random directions on the low-rank subspace, hard-
-    thresholds each one, and returns whichever independent candidate
-    scored highest -- it never alternately refines one running weight
-    vector the way this class (and every other class in this module,
-    see the module docstring) does.
+    Note that this class shares its name with the paper's own algorithm
+    (Asteris et al. 2016's "SpanCCA") but is an ALS-based heuristic, not a
+    reimplementation of it: the paper instead takes a single rank-r SVD of
+    the cross-covariance matrix up front, then draws many independent
+    random directions on the low-rank subspace, hard-thresholds each one,
+    and returns whichever independent candidate scored highest -- it never
+    alternately refines one running weight vector the way this class (and
+    every other class in this module, see the module docstring) does.
 
     References:
         Asteris, M., Kyrillidis, A., Koyejo, O., & Poldrack, R. (2016).
@@ -689,7 +685,7 @@ class SCCASpan(_BaseIterative):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = SCCASpan(span=5, random_state=0).fit([X1, X2])
+        >>> model = SpanCCA(span=5, random_state=0).fit([X1, X2])
     """
 
     def __init__(
@@ -894,7 +890,7 @@ class ParkhomenkoCCA(_BaseIterative):
     standardisation, this is implemented by standardising each view to unit
     per-feature variance once per latent dimension (on top of the existing
     mean-centring), then running the same power iteration
-    :class:`SCCAPMD`'s raw-covariance methods use on that standardised
+    :class:`PMDCCA`'s raw-covariance methods use on that standardised
     data, with a fixed soft-threshold $\tau_i$ in place of the adaptive
     bisection search:
 
@@ -1059,7 +1055,7 @@ class SAR(_BaseIterative):
     every other alternating-regression method in this module. The
     multiview generalisation (each view regressed against the summed
     score of every *other* view, via the same :func:`_target_score`
-    helper :class:`SCCASpan`, :class:`ParkhomenkoCCA`, and
+    helper :class:`SpanCCA`, :class:`ParkhomenkoCCA`, and
     :class:`WaijenborgCCA` use) is this implementation's own extension,
     not something the two-view paper itself considers.
 
@@ -1253,23 +1249,55 @@ def _make_regressors(
 # ---------------------------------------------------------------------------
 
 
-@deprecated("Renamed to SCCAPMD for sklearn-style naming; use SCCAPMD instead.")
-class SCCA_PMD(SCCAPMD):
+@deprecated("Renamed to PMDCCA; use PMDCCA instead.")
+class SCCA_PMD(PMDCCA):
     pass
 
 
-@deprecated("Renamed to SCCAADMM for sklearn-style naming; use SCCAADMM instead.")
-class SCCA_ADMM(SCCAADMM):
+@deprecated("Renamed to ADMMCCA; use ADMMCCA instead.")
+class SCCA_ADMM(ADMMCCA):
     pass
 
 
-@deprecated("Renamed to SCCAIPLS for sklearn-style naming; use SCCAIPLS instead.")
-class SCCA_IPLS(SCCAIPLS):
+@deprecated("Renamed to IPLSCCA; use IPLSCCA instead.")
+class SCCA_IPLS(IPLSCCA):
     pass
 
 
-@deprecated("Renamed to SCCASpan for sklearn-style naming; use SCCASpan instead.")
-class SCCA_Span(SCCASpan):
+@deprecated("Renamed to SpanCCA; use SpanCCA instead.")
+class SCCA_Span(SpanCCA):
+    pass
+
+
+@deprecated(
+    "Renamed to PMDCCA -- the SCCA prefix is redundant with cca_zoo.sparse's "
+    "own module name; use PMDCCA instead."
+)
+class SCCAPMD(PMDCCA):
+    pass
+
+
+@deprecated(
+    "Renamed to ADMMCCA -- the SCCA prefix is redundant with cca_zoo.sparse's "
+    "own module name; use ADMMCCA instead."
+)
+class SCCAADMM(ADMMCCA):
+    pass
+
+
+@deprecated(
+    "Renamed to IPLSCCA -- the SCCA prefix is redundant with cca_zoo.sparse's "
+    "own module name; use IPLSCCA instead."
+)
+class SCCAIPLS(IPLSCCA):
+    pass
+
+
+@deprecated(
+    "Renamed to SpanCCA -- the SCCA prefix is redundant with cca_zoo.sparse's "
+    "own module name; use SpanCCA instead."
+)
+class SCCASpan(SpanCCA):
     pass
 
 

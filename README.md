@@ -133,10 +133,10 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `ElasticNetCCA` | Sparse linear CCA via coordinate descent (Eckart-Young objective) | — | ≥2 |
 | `MultiTaskElasticNetCCA` | `ElasticNetCCA` with row-group sparsity shared across latent dimensions | — | ≥2 |
 | `OrthogonalMatchingPursuitCCA` | Fixed-cardinality sparse linear CCA via greedy selection (Eckart-Young objective) | — | ≥2 |
-| `SCCAPMD` | Sparse CCA via PMD | Witten, Tibshirani & Hastie (2009) | ≥2 |
-| `SCCAADMM` | Sparse CCA via ADMM | Suo, Mineiro & Anandkumar (2017) | ≥2 |
-| `SCCAIPLS` | Sparse CCA via iterative PLS | Mai & Zhang (2019) | ≥2 |
-| `SCCASpan` | Hard-threshold ALS inspired by SpanCCA | Asteris, Kyrillidis, Koyejo & Poldrack (2016) | ≥2 |
+| `PMDCCA` | Sparse CCA via PMD | Witten, Tibshirani & Hastie (2009) | ≥2 |
+| `ADMMCCA` | Sparse CCA via ADMM | Suo, Mineiro & Anandkumar (2017) | ≥2 |
+| `IPLSCCA` | Sparse CCA via iterative PLS | Mai & Zhang (2019) | ≥2 |
+| `SpanCCA` | Hard-threshold ALS inspired by the SpanCCA algorithm | Asteris, Kyrillidis, Koyejo & Poldrack (2016) | ≥2 |
 | `WaijenborgCCA` | Elastic net regularised CCA | Waaijenborg, de Witt Hamer & Zwinderman (2008) | ≥2 |
 | `ParkhomenkoCCA` | Soft-threshold sparse CCA | Parkhomenko, Tritchler & Beyene (2009) | ≥2 |
 | `SAR` | Sparse alternating regression, BIC-selected penalty | Wilms & Croux (2015) | ≥2 |

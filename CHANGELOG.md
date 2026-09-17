@@ -340,6 +340,17 @@ project adheres to [Semantic Versioning](https://semver.org/).
   families (ALS vs. EY-loss coordinate descent) each uses. The old `cca_zoo.linear` import paths
   still work but now emit a `FutureWarning` (via `sklearn.utils.deprecated`) and will be removed
   in a future release; import them from `cca_zoo.sparse` instead.
+- `SCCAPMD`, `SCCAADMM`, `SCCAIPLS`, and `SCCASpan` (now living in `cca_zoo.sparse`, see above)
+  are further renamed to `PMDCCA`, `ADMMCCA`, `IPLSCCA`, and `SpanCCA`: the `SCCA` ("Sparse CCA")
+  prefix is redundant now that these classes are namespaced under `cca_zoo.sparse` itself, and
+  bare `PMD`/`ADMM`/`IPLS`/`Span` aren't self-describing as CCA methods on their own, so each
+  keeps a `CCA` suffix instead, matching the `<Algorithm/Author>CCA` pattern the rest of the
+  module already follows (`ElasticNetCCA`, `WaijenborgCCA`, `ParkhomenkoCCA`). `SpanCCA` now
+  shares its literal name with the algorithm it's inspired by (Asteris et al. 2016's own
+  "SpanCCA") but remains the same ALS heuristic it always was, not a reimplementation of that
+  paper's own low-rank sampling algorithm -- see the class docstring. The old `SCCAPMD`/
+  `SCCAADMM`/`SCCAIPLS`/`SCCASpan` names stay importable from `cca_zoo.sparse` (and from
+  `cca_zoo.linear`, via the cross-module aliases above) as deprecated aliases.
 - `StochasticCCAEY` moves from `cca_zoo.linear` (via `cca_zoo.linear.gradient`) to a new
   `cca_zoo.stochastic` module. Mini-batch fitting is a genuinely different operational regime
   (streaming or out-of-core data) from every other class in `cca_zoo.linear`, which all assume

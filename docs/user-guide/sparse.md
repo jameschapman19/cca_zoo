@@ -5,7 +5,7 @@ mechanism families. Three are EY-loss coordinate descent, each the EY-loss analo
 scikit-learn regularised linear regressor: `ElasticNetCCA` (elastic net),
 `MultiTaskElasticNetCCA` (multi-task elastic net — row-group sparsity across latent dimensions),
 and `OrthogonalMatchingPursuitCCA` (greedy fixed-cardinality selection). The remaining seven —
-`SCCAPMD`, `SCCAADMM`, `SCCAIPLS`, `WaijenborgCCA`, `ParkhomenkoCCA`, `SCCASpan`, `SAR` — are
+`PMDCCA`, `ADMMCCA`, `IPLSCCA`, `WaijenborgCCA`, `ParkhomenkoCCA`, `SpanCCA`, `SAR` — are
 Alternating Least Squares (ALS) methods, each a from-the-literature sparse CCA algorithm with its
 own penalty and fitting loop; see [below](#alternating-least-squares-methods). None has an
 optional dependency: all are built entirely on numpy, already required by `cca_zoo`.
@@ -164,15 +164,15 @@ These seven methods use an **Alternating Least Squares (ALS)** loop with Gram-Sc
 to extract multiple canonical directions, rather than EY-loss coordinate descent.
 
 !!! tip "Choosing an ALS method"
-    - **SCCAPMD** — fast, interpretable L1 bound; good default for sparse CCA
-    - **SCCAADMM** — more principled L1 penalty via ADMM
-    - **SCCAIPLS** — elastic net penalty; handles both L1 and L2 regularisation
+    - **PMDCCA** — fast, interpretable L1 bound; good default for sparse CCA
+    - **ADMMCCA** — more principled L1 penalty via ADMM
+    - **IPLSCCA** — elastic net penalty; handles both L1 and L2 regularisation
     - **WaijenborgCCA** — elastic net applied to the multiview sum-of-scores target
     - **ParkhomenkoCCA** — simple fixed soft-threshold; fast but less adaptive
-    - **SCCASpan** — hard threshold (top-k entries); useful when sparsity level is known
+    - **SpanCCA** — hard threshold (top-k entries); useful when sparsity level is known
     - **SAR** — penalty strength chosen automatically by BIC; no sparsity hyperparameter to tune
 
-### SCCAPMD
+### PMDCCA
 
 Imposes L1 constraints via bisection-based soft-thresholding (Witten 2009):
 
@@ -184,12 +184,12 @@ $$
 `tau=1` (default) gives no sparsity; smaller values give sparser solutions.
 
 ```python
-from cca_zoo.sparse import SCCAPMD
+from cca_zoo.sparse import PMDCCA
 
-model = SCCAPMD(latent_dimensions=2, tau=0.5, random_state=0).fit([X1, X2])
+model = PMDCCA(latent_dimensions=2, tau=0.5, random_state=0).fit([X1, X2])
 ```
 
-### SCCAADMM
+### ADMMCCA
 
 Maximises the cross-view covariance directly, subject to an L1 penalty on each weight
 vector and a unit-ball constraint on each view's *score* (Suo, Mineiro & Anandkumar
@@ -206,20 +206,20 @@ constraint couples $\mathbf{w}_i$ to $X_i\mathbf{w}_i$ through a linear map rath
 the identity.
 
 ```python
-from cca_zoo.sparse import SCCAADMM
+from cca_zoo.sparse import ADMMCCA
 
-model = SCCAADMM(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
+model = ADMMCCA(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
 ```
 
-### SCCAIPLS
+### IPLSCCA
 
 Uses an elastic net regression (sklearn) at each ALS step (Mai & Zhang 2019).
 `alpha` controls overall regularisation; `l1_ratio=1` gives Lasso, `l1_ratio=0` gives Ridge.
 
 ```python
-from cca_zoo.sparse import SCCAIPLS
+from cca_zoo.sparse import IPLSCCA
 
-model = SCCAIPLS(latent_dimensions=2, alpha=0.01, l1_ratio=1.0, random_state=0).fit(
+model = IPLSCCA(latent_dimensions=2, alpha=0.01, l1_ratio=1.0, random_state=0).fit(
     [X1, X2]
 )
 ```
@@ -251,17 +251,18 @@ from cca_zoo.sparse import ParkhomenkoCCA
 model = ParkhomenkoCCA(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
 ```
 
-### SCCASpan
+### SpanCCA
 
 Hard-thresholding retaining only the top `span` entries, an ALS heuristic
-inspired by SpanCCA (Asteris 2016) rather than a reimplementation of its
-own randomized low-rank sampling algorithm. Useful when the number of
-active features is known in advance.
+inspired by Asteris et al.'s SpanCCA (2016) rather than a reimplementation
+of its own randomized low-rank sampling algorithm (this class shares that
+paper's algorithm name, not its method). Useful when the number of active
+features is known in advance.
 
 ```python
-from cca_zoo.sparse import SCCASpan
+from cca_zoo.sparse import SpanCCA
 
-model = SCCASpan(latent_dimensions=2, span=10, random_state=0).fit([X1, X2])
+model = SpanCCA(latent_dimensions=2, span=10, random_state=0).fit([X1, X2])
 ```
 
 ### SAR
