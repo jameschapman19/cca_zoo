@@ -144,9 +144,7 @@ def test_laplacian_new_point_affinity_nearest_neighbors_is_binary() -> None:
 
 
 @pytest.mark.parametrize("method", ["laplacian", "lle"])
-def test_two_view_fit_completes(
-    method: str, two_views_small: list[np.ndarray]
-) -> None:
+def test_two_view_fit_completes(method: str, two_views_small: list[np.ndarray]) -> None:
     """Fit completes on two-view data without error, for both operator types."""
     model = _make_model(method=method).fit(two_views_small)
     assert hasattr(model, "weights_")
@@ -384,9 +382,11 @@ def test_laplacian_beats_linear_mcca_on_a_shared_nonlinear_spiral() -> None:
     x1_tr, x2_tr = _spiral_views(t_train, rng)
     x1_te, x2_te = _spiral_views(t_test, rng)
 
-    linear_corr = MCCA(latent_dimensions=1, c=0.1, pca=False).fit(
-        [x1_tr, x2_tr]
-    ).score([x1_te, x2_te])[0]
+    linear_corr = (
+        MCCA(latent_dimensions=1, c=0.1, pca=False)
+        .fit([x1_tr, x2_tr])
+        .score([x1_te, x2_te])[0]
+    )
     manifold_corr = (
         ManifoldCCA(method="laplacian", n_neighbors=10, latent_dimensions=1)
         .fit([x1_tr, x2_tr])
@@ -408,9 +408,7 @@ def test_clone_and_get_params_roundtrip() -> None:
     """clone()/get_params() round-trip correctly (sklearn BaseEstimator contract)."""
     from sklearn.base import clone
 
-    model = ManifoldCCA(
-        latent_dimensions=2, method="lle", n_neighbors=6, lle_reg=1e-2
-    )
+    model = ManifoldCCA(latent_dimensions=2, method="lle", n_neighbors=6, lle_reg=1e-2)
     cloned = clone(model)
     assert cloned.get_params() == model.get_params()
 
