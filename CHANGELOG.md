@@ -130,8 +130,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
   correlation measure -- the *projection index* -- between the resulting scores. Follows
   the classical projection-pursuit paradigm (Huber 1985) as carried over to CCA by
   Branco, Croux, Filzmoser & Oliveira (2005) and put on firmer statistical footing by
-  Alfons, Croux & Filzmoser (2016), whose R package `ccaPP` is the reference
-  implementation these projection indices follow. Two projection indices are
+  Alfons, Croux & Filzmoser (2017), whose R package `ccaPP` (Alfons, Croux &
+  Filzmoser, 2016) is the reference implementation these projection indices follow.
+  Two projection indices are
   available: `projection_index="spearman"` (default, Spearman rank correlation --
   insensitive to an outlier's exact magnitude, only its rank) and `"mcd"` (a
   minimum-covariance-determinant-based correlation via `sklearn.covariance.MinCovDet`,

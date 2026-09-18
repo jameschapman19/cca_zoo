@@ -73,7 +73,7 @@ def spearman_projection_index(u: np.ndarray, v: np.ndarray) -> float:
     magnitude -- only its rank matters. This is ``PP-SPM`` in Branco, Croux,
     Filzmoser & Oliveira (2005), who find it the strongest of the projection
     indices they compare, with good efficiency in both the presence and
-    absence of contamination; Alfons, Croux & Filzmoser (2016, *Robust
+    absence of contamination; Alfons, Croux & Filzmoser (2017, *Robust
     maximum association estimators*) study its efficiency and breakdown
     behaviour more formally and implement it in the R package ``ccaPP``.
 
@@ -99,7 +99,7 @@ def mcd_projection_index(
     ``(u, v)`` scatter and read the correlation off its robust covariance
     estimate, rather than the ordinary (non-robust) sample covariance. This
     is ``PP-MCD`` in Branco, Croux, Filzmoser & Oliveira (2005); their own
-    conclusion, echoed by Alfons, Croux & Filzmoser (2016), is that it is a
+    conclusion, echoed by Alfons, Croux & Filzmoser (2017), is that it is a
     reasonable, faster-to-compute alternative to ``PP-SPM`` when computation
     time matters more than squeezing out the last bit of efficiency.
 
@@ -142,7 +142,7 @@ class ProjectionPursuitCCA(BaseModel):
     of Huber (1985) as carried over to CCA specifically by Branco, Croux,
     Filzmoser & Oliveira (2005) and put on firmer statistical footing
     (efficiency, breakdown point, and a wider family of projection indices)
-    by Alfons, Croux & Filzmoser (2016). Reference implementation: the R
+    by Alfons, Croux & Filzmoser (2017). Reference implementation: the R
     package `ccaPP <https://cran.r-project.org/package=ccaPP>`_ (Alfons,
     Croux & Filzmoser, 2016, *Austrian Journal of Statistics*).
 
@@ -221,9 +221,9 @@ class ProjectionPursuitCCA(BaseModel):
         Robust canonical correlations: A comparative study. Computational
         Statistics, 20(2), 203-229.
 
-        Alfons, A., Croux, C., & Filzmoser, P. (2016). Robust maximum
+        Alfons, A., Croux, C., & Filzmoser, P. (2017). Robust maximum
         association estimators. Journal of the American Statistical
-        Association, 112(517), 435-445.
+        Association, 112(517), 436-445.
 
         Alfons, A., Croux, C., & Filzmoser, P. (2016). Robust maximum
         association between data sets: The R package ccaPP. Austrian
