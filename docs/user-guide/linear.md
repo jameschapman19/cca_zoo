@@ -247,6 +247,27 @@ matrix-valued quadratic form (rank up to `k(k+1)/2`) that the same single-multip
 solve. Away from the ~50% breakdown regime, or when more than one latent dimension is needed,
 `RANSACCCA` matches or beats it directly.
 
+**Related work.** Robust CCA is a much older problem than these three estimators: Filzmoser,
+Dehon & Croux (2000) and Branco, Croux, Filzmoser & Oliveira (2005) already reweight an
+alternating-regression CCA fit by robust-distance-based weights ("Robust Alternating
+Regression"), the same bounded-influence idea `HuberCCA` applies to the EY loss's own
+statistics instead; Croux & Dehon (2002) plug the minimum covariance determinant estimator
+into the classical covariance-matrix eigenproblem, the same high-breakdown idea `TrimmedCCA`
+applies via concentration steps on the EY loss directly instead. Branco et al. (2005)'s
+comparative study also covers a projection-pursuit paradigm (maximising a robust bivariate
+correlation measure, e.g. Spearman's, directly over projection directions) not currently
+implemented in `cca-zoo`.
+
+> Filzmoser, P., Dehon, C., & Croux, C. (2000). Outlier resistant estimators for canonical
+> correlation analysis. In *COMPSTAT: Proceedings in Computational Statistics 2000* (pp.
+> 301-306). Physica-Verlag.
+>
+> Croux, C., & Dehon, C. (2002). Analyse canonique basee sur des estimateurs robustes de la
+> matrice de covariance. *Revue de Statistique Appliquee*, 50(2), 5-26.
+>
+> Branco, J. A., Croux, C., Filzmoser, P., & Oliveira, M. R. (2005). Robust canonical
+> correlations: A comparative study. *Computational Statistics*, 20(2), 203-229.
+
 ---
 
 ## Choosing a method

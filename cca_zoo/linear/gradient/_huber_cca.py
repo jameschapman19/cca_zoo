@@ -129,6 +129,30 @@ class HuberCCA(BaseFullBatchEYModel):
         diverging weights, this is the same caveat ``CCAEY`` documents, not
         specific to the Huber reweighting.
 
+        Reweighting a CCA fit by each sample's own leverage is not a new
+        idea: Filzmoser, Dehon & Croux (2000) and Branco, Croux, Filzmoser &
+        Oliveira (2005) already reweight Wold's (1966) alternating-regression
+        CCA fit by robust-distance-based weights on each side in turn
+        ("Robust Alternating Regression"), and Croux & Dehon (2002) instead
+        plug a minimum covariance determinant estimator directly into the
+        classical covariance-matrix eigenproblem. ``HuberCCA``'s difference
+        is mechanism, not the underlying bounded-influence idea: it
+        reweights the *unconstrained EY loss's own* sample statistics
+        directly (see :func:`_huber_sample_weight`, :func:`_weighted_ey`)
+        rather than an alternating regression or a general-purpose
+        covariance estimator, with a cutoff self-calibrated to the batch's
+        own median leverage rather than an MVE- or M-scale-based threshold.
+
+    References:
+        Filzmoser, P., Dehon, C., & Croux, C. (2000). Outlier resistant
+        estimators for canonical correlation analysis. In COMPSTAT:
+        Proceedings in Computational Statistics 2000 (pp. 301-306).
+        Physica-Verlag.
+
+        Branco, J. A., Croux, C., Filzmoser, P., & Oliveira, M. R. (2005).
+        Robust canonical correlations: A comparative study. Computational
+        Statistics, 20(2), 203-229.
+
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.

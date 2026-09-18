@@ -202,6 +202,17 @@ class TrimmedCCA(BaseModel):
     local optimum), keeping the lowest-loss result.
 
     Note:
+        A different classical way to get a high-breakdown robust CCA is to
+        plug the minimum covariance determinant (MCD) estimator into the
+        joint covariance matrix of both views and solve the ordinary CCA
+        eigenproblem on that robust estimate (Croux & Dehon, 2002; see also
+        the comparative study of Branco, Croux, Filzmoser & Oliveira, 2005).
+        ``TrimmedCCA`` differs from that plug-in approach: its concentration
+        steps minimise ``CCAEY``'s own loss directly on the kept subset
+        (see :func:`_select`, :func:`_refit`) rather than the covariance
+        matrix's determinant as an intermediate, general-purpose target,
+        so the trimming is targeted at what actually drives the CCA
+        objective rather than at multivariate location/scatter generally.
         ``h_frac`` is not learned from the data -- like
         :class:`sklearn.covariance.MinCovDet`'s ``support_fraction``, it
         is a prior on how much of the training data you expect is
@@ -252,6 +263,14 @@ class TrimmedCCA(BaseModel):
         Rousseeuw, P. J., & Van Driessen, K. (1999). A fast algorithm for
         the minimum covariance determinant estimator. Technometrics,
         41(3), 212-223.
+
+        Croux, C., & Dehon, C. (2002). Analyse canonique basee sur des
+        estimateurs robustes de la matrice de covariance. Revue de
+        Statistique Appliquee, 50(2), 5-26.
+
+        Branco, J. A., Croux, C., Filzmoser, P., & Oliveira, M. R. (2005).
+        Robust canonical correlations: A comparative study. Computational
+        Statistics, 20(2), 203-229.
 
     Example:
         >>> import numpy as np
