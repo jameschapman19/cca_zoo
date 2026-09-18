@@ -281,6 +281,10 @@ applies via concentration steps on the EY loss directly instead. Branco et al. (
 comparative study also covers the projection-pursuit paradigm `ProjectionPursuitCCA`
 implements here (maximising a robust bivariate correlation measure directly over
 projection directions), tracing back to Huber's original projection pursuit (1985).
+Alfons, Croux & Filzmoser (2016) put the same paradigm on firmer statistical footing
+(efficiency, breakdown point, a wider family of projection indices) and ship it as the
+R package `ccaPP`, the reference implementation `ProjectionPursuitCCA`'s `"spearman"`
+and `"mcd"` projection indices follow.
 
 > Filzmoser, P., Dehon, C., & Croux, C. (2000). Outlier resistant estimators for canonical
 > correlation analysis. In *COMPSTAT: Proceedings in Computational Statistics 2000* (pp.
@@ -293,6 +297,12 @@ projection directions), tracing back to Huber's original projection pursuit (198
 > correlations: A comparative study. *Computational Statistics*, 20(2), 203-229.
 >
 > Huber, P. J. (1985). Projection pursuit. *The Annals of Statistics*, 13(2), 435-475.
+>
+> Alfons, A., Croux, C., & Filzmoser, P. (2016). Robust maximum association estimators.
+> *Journal of the American Statistical Association*, 112(517), 435-445.
+>
+> Alfons, A., Croux, C., & Filzmoser, P. (2016). Robust maximum association between data
+> sets: The R package ccaPP. *Austrian Journal of Statistics*, 45(1), 71-79.
 
 ---
 

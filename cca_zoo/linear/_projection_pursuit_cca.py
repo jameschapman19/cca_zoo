@@ -27,9 +27,9 @@ def _angles_to_unit_vector(theta: np.ndarray, p: int) -> np.ndarray:
     Recovers a $p$-dimensional unit-norm vector from $p-1$ unconstrained
     angles, so a projection direction can be searched over with an ordinary
     unconstrained optimiser rather than one that has to respect a norm
-    constraint. Follows the recursive construction of
-    :cite:`branco2005robust` (their Section 2, worked in reverse from polar
-    to Cartesian coordinates):
+    constraint. Follows the recursive construction of Branco, Croux,
+    Filzmoser & Oliveira (2005) (their Section 2, worked in reverse from
+    polar to Cartesian coordinates):
 
     $$
     a_{(2)} = (\cos\theta_1, \sin\theta_1), \qquad
@@ -70,10 +70,12 @@ def spearman_projection_index(u: np.ndarray, v: np.ndarray) -> float:
     correlation between the *ranks* of ``u`` and ``v`` rather than their raw
     values, so it does not rely on any symmetry or moment condition the way
     Pearson correlation does, and is insensitive to any outlier's exact
-    magnitude -- only its rank matters. This is ``PP-SPM`` in
-    :cite:`branco2005robust`, who find it the strongest of the projection
+    magnitude -- only its rank matters. This is ``PP-SPM`` in Branco, Croux,
+    Filzmoser & Oliveira (2005), who find it the strongest of the projection
     indices they compare, with good efficiency in both the presence and
-    absence of contamination.
+    absence of contamination; Alfons, Croux & Filzmoser (2016, *Robust
+    maximum association estimators*) study its efficiency and breakdown
+    behaviour more formally and implement it in the R package ``ccaPP``.
 
     Args:
         u: Projected scores for one view, shape ``(n,)``.
@@ -96,10 +98,10 @@ def mcd_projection_index(
     estimator (:class:`~sklearn.covariance.MinCovDet`) to the 2-dimensional
     ``(u, v)`` scatter and read the correlation off its robust covariance
     estimate, rather than the ordinary (non-robust) sample covariance. This
-    is ``PP-MCD`` in :cite:`branco2005robust`; the same paper's own
-    conclusion is that it is a reasonable, faster-to-compute alternative to
-    ``PP-SPM`` when computation time matters more than squeezing out the
-    last bit of efficiency.
+    is ``PP-MCD`` in Branco, Croux, Filzmoser & Oliveira (2005); their own
+    conclusion, echoed by Alfons, Croux & Filzmoser (2016), is that it is a
+    reasonable, faster-to-compute alternative to ``PP-SPM`` when computation
+    time matters more than squeezing out the last bit of efficiency.
 
     Args:
         u: Projected scores for one view, shape ``(n,)``.
@@ -137,8 +139,12 @@ class ProjectionPursuitCCA(BaseModel):
     projection directions for the pair that maximises a robust bivariate
     correlation measure (the *projection index*) between the resulting
     univariate scores, following the classical projection-pursuit paradigm
-    of :cite:`huber1985projection` as carried over to CCA specifically by
-    :cite:`branco2005robust`.
+    of Huber (1985) as carried over to CCA specifically by Branco, Croux,
+    Filzmoser & Oliveira (2005) and put on firmer statistical footing
+    (efficiency, breakdown point, and a wider family of projection indices)
+    by Alfons, Croux & Filzmoser (2016). Reference implementation: the R
+    package `ccaPP <https://cran.r-project.org/package=ccaPP>`_ (Alfons,
+    Croux & Filzmoser, 2016, *Austrian Journal of Statistics*).
 
     For two views this reduces to their exact problem: find unit vectors
     $\mathbf{a}, \mathbf{b}$ maximising $\operatorname{PI}(X\mathbf{a},
@@ -214,6 +220,14 @@ class ProjectionPursuitCCA(BaseModel):
         Branco, J. A., Croux, C., Filzmoser, P., & Oliveira, M. R. (2005).
         Robust canonical correlations: A comparative study. Computational
         Statistics, 20(2), 203-229.
+
+        Alfons, A., Croux, C., & Filzmoser, P. (2016). Robust maximum
+        association estimators. Journal of the American Statistical
+        Association, 112(517), 435-445.
+
+        Alfons, A., Croux, C., & Filzmoser, P. (2016). Robust maximum
+        association between data sets: The R package ccaPP. Austrian
+        Journal of Statistics, 45(1), 71-79.
 
     Example:
         >>> import numpy as np
