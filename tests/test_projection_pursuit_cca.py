@@ -1,4 +1,4 @@
-"""Tests for cca_zoo.linear._projection_pursuit_cca (robust CCA via projection pursuit)."""
+"""Tests for cca_zoo.linear._projection_pursuit_cca (robust CCA, projection pursuit)."""
 
 from __future__ import annotations
 
@@ -138,7 +138,7 @@ def test_directions_are_unit_norm(two_views_small: list[np.ndarray]) -> None:
 def test_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
-    """On clean, uncontaminated data ProjectionPursuitCCA still finds real correlation."""
+    """On clean data ProjectionPursuitCCA still finds real correlation."""
     model = ProjectionPursuitCCA(latent_dimensions=1, n_restarts=5, random_state=0)
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
