@@ -115,9 +115,11 @@ def mcd_projection_index(
     """
     z = np.column_stack([u, v])
     try:
-        cov = MinCovDet(
-            support_fraction=support_fraction, random_state=random_state
-        ).fit(z).covariance_
+        cov = (
+            MinCovDet(support_fraction=support_fraction, random_state=random_state)
+            .fit(z)
+            .covariance_
+        )
     except ValueError:
         return 0.0
     denom = np.sqrt(cov[0, 0] * cov[1, 1])
