@@ -24,6 +24,7 @@ from ._moved import StochasticCCAEY as StochasticCCAEY
 from ._moved import WaijenborgCCA as WaijenborgCCA
 from ._partialcca import PartialCCA
 from ._pls import PLS
+from ._projection_pursuit_cca import ProjectionPursuitCCA
 from ._ransac_cca import RANSACCCA
 from ._rcca import rCCA
 from ._tcca import TCCA
@@ -53,6 +54,7 @@ __all__ = [
     # Robust to contaminated training data
     "RANSACCCA",
     "TrimmedCCA",
+    "ProjectionPursuitCCA",
     # EY-loss (high-dimensional data)
     "PLSEY",
     "CCAEY",
