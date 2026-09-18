@@ -122,6 +122,26 @@ project adheres to [Semantic Versioning](https://semver.org/).
   and refits on the best-supported candidate's consensus set. Demonstrated on synthetic data
   with a fraction of rows sign-flipped between views (ordinary magnitude in both views, so
   invisible to `HuberCCA`) in `tests/test_ransac_cca.py`.
+- `ProjectionPursuitCCA`: robust multiview CCA via projection pursuit, structurally
+  different from `HuberCCA`/`RANSACCCA`/`TrimmedCCA`'s common covariance-based
+  machinery -- it never forms a cross- or auto-covariance matrix at all, instead
+  searching directly over candidate unit-norm projection directions for the pair (or,
+  for more than two views, the tuple averaged pairwise) maximising a robust bivariate
+  correlation measure -- the *projection index* -- between the resulting scores. Follows
+  the classical projection-pursuit paradigm (Huber 1985) as carried over to CCA by
+  Branco, Croux, Filzmoser & Oliveira (2005). Two projection indices are available:
+  `projection_index="spearman"` (default, Spearman rank correlation -- insensitive to
+  an outlier's exact magnitude, only its rank) and `"mcd"` (a minimum-covariance-
+  determinant-based correlation via `sklearn.covariance.MinCovDet`, cheaper per
+  evaluation than a full robust-covariance-plugin CCA fit since it's only ever applied
+  to a 2-dimensional projected scatter). Each direction is parametrised by
+  `p_i - 1` unconstrained hyperspherical angles and found by `scipy.optimize.minimize`
+  with Powell's method (derivative-free, since a rank-correlation-based objective is
+  non-smooth) from `n_restarts` random starting points; further latent dimensions reuse
+  the same Gram-Schmidt `deflate` convention `cca_zoo.sparse`'s ALS-based methods use.
+  Unlike the other three robust estimators, has no `inlier_mask_` -- its robustness comes
+  from the projection index's own insensitivity to extreme values, not from singling out
+  individual bad rows.
 - `CatBoostCCA`: a third `TreeCCA` backend alongside `XGBoostCCA`/`LightGBMCCA`, using
   [CatBoost](https://catboost.ai/)'s gradient-boosted trees as the per-view encoders. Since
   CatBoost has no in-place "add one tree to this booster" call, each round every component is

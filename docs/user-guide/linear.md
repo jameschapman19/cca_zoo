@@ -247,16 +247,40 @@ matrix-valued quadratic form (rank up to `k(k+1)/2`) that the same single-multip
 solve. Away from the ~50% breakdown regime, or when more than one latent dimension is needed,
 `RANSACCCA` matches or beats it directly.
 
-**Related work.** Robust CCA is a much older problem than these three estimators: Filzmoser,
+`HuberCCA`, `RANSACCCA` and `TrimmedCCA` all still route through a covariance (or
+covariance-like per-sample loss) statistic of the projected views. `ProjectionPursuitCCA`
+does not: it searches *directly* over candidate unit-norm projection directions for the
+pair maximising a robust bivariate correlation measure (the *projection index*) between the
+resulting scores, never forming a covariance matrix at all.
+
+```python
+from cca_zoo.linear import ProjectionPursuitCCA
+
+model = ProjectionPursuitCCA(latent_dimensions=2, projection_index="spearman", random_state=0)
+model.fit([X1, X2])
+```
+
+Two projection indices are available: `"spearman"` (default, Spearman rank correlation —
+insensitive to an outlier's exact magnitude, only its rank) and `"mcd"` (a
+minimum-covariance-determinant-based correlation, cheaper per evaluation than a full
+robust-covariance-plugin CCA fit since it only ever fits a 2-dimensional projected
+scatter). Each direction is parametrised by unconstrained hyperspherical angles and found
+by derivative-free search (`n_restarts` random restarts of `scipy.optimize.minimize` with
+Powell's method — a rank-correlation-based objective is non-smooth, so gradient-based
+solvers don't apply). Unlike the other three estimators here, there is no `inlier_mask_`:
+its robustness comes from the projection index's own insensitivity to extreme values, not
+from singling out individual bad rows, so it has nothing analogous to report.
+
+**Related work.** Robust CCA is a much older problem than these estimators: Filzmoser,
 Dehon & Croux (2000) and Branco, Croux, Filzmoser & Oliveira (2005) already reweight an
 alternating-regression CCA fit by robust-distance-based weights ("Robust Alternating
 Regression"), the same bounded-influence idea `HuberCCA` applies to the EY loss's own
 statistics instead; Croux & Dehon (2002) plug the minimum covariance determinant estimator
 into the classical covariance-matrix eigenproblem, the same high-breakdown idea `TrimmedCCA`
 applies via concentration steps on the EY loss directly instead. Branco et al. (2005)'s
-comparative study also covers a projection-pursuit paradigm (maximising a robust bivariate
-correlation measure, e.g. Spearman's, directly over projection directions) not currently
-implemented in `cca-zoo`.
+comparative study also covers the projection-pursuit paradigm `ProjectionPursuitCCA`
+implements here (maximising a robust bivariate correlation measure directly over
+projection directions), tracing back to Huber's original projection pursuit (1985).
 
 > Filzmoser, P., Dehon, C., & Croux, C. (2000). Outlier resistant estimators for canonical
 > correlation analysis. In *COMPSTAT: Proceedings in Computational Statistics 2000* (pp.
@@ -267,6 +291,8 @@ implemented in `cca-zoo`.
 >
 > Branco, J. A., Croux, C., Filzmoser, P., & Oliveira, M. R. (2005). Robust canonical
 > correlations: A comparative study. *Computational Statistics*, 20(2), 203-229.
+>
+> Huber, P. J. (1985). Projection pursuit. *The Annals of Statistics*, 13(2), 435-475.
 
 ---
 
@@ -285,4 +311,5 @@ implemented in `cca-zoo`.
 | A few high-magnitude outlier samples | `HuberCCA` |
 | A subset of rows with a wrong (mismatched/corrupted) relationship | `RANSACCCA` |
 | Heavy contamination (near ~50%), with a known contamination-rate prior | `TrimmedCCA` |
+| Robustness without ever forming a covariance matrix | `ProjectionPursuitCCA` |
 | Nonlinear relationships | See [Nonparametric Methods](nonparametric.md) |
