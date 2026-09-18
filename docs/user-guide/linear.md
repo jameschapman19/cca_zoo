@@ -256,7 +256,9 @@ resulting scores, never forming a covariance matrix at all.
 ```python
 from cca_zoo.linear import ProjectionPursuitCCA
 
-model = ProjectionPursuitCCA(latent_dimensions=2, projection_index="spearman", random_state=0)
+model = ProjectionPursuitCCA(
+    latent_dimensions=2, projection_index="spearman", random_state=0
+)
 model.fit([X1, X2])
 ```
 
