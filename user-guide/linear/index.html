@@ -1914,6 +1914,56 @@ number of views but not past one latent dimension — with <code>k &gt; 1</code>
 matrix-valued quadratic form (rank up to <code>k(k+1)/2</code>) that the same single-multiplier bisection can't
 solve. Away from the ~50% breakdown regime, or when more than one latent dimension is needed,
 <code>RANSACCCA</code> matches or beats it directly.</p>
+<p><code>HuberCCA</code>, <code>RANSACCCA</code> and <code>TrimmedCCA</code> all still route through a covariance (or
+covariance-like per-sample loss) statistic of the projected views. <code>ProjectionPursuitCCA</code>
+does not: it searches <em>directly</em> over candidate unit-norm projection directions for the
+pair maximising a robust bivariate correlation measure (the <em>projection index</em>) between the
+resulting scores, never forming a covariance matrix at all.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProjectionPursuitCCA</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ProjectionPursuitCCA</span><span class="p">(</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">projection_index</span><span class="o">=</span><span class="s2">&quot;spearman&quot;</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="p">)</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span></code></pre></div>
+<p>Two projection indices are available: <code>"spearman"</code> (default, Spearman rank correlation —
+insensitive to an outlier's exact magnitude, only its rank) and <code>"mcd"</code> (a
+minimum-covariance-determinant-based correlation, cheaper per evaluation than a full
+robust-covariance-plugin CCA fit since it only ever fits a 2-dimensional projected
+scatter). Each direction is parametrised by unconstrained hyperspherical angles and found
+by derivative-free search (<code>n_restarts</code> random restarts of <code>scipy.optimize.minimize</code> with
+Powell's method — a rank-correlation-based objective is non-smooth, so gradient-based
+solvers don't apply). Unlike the other three estimators here, there is no <code>inlier_mask_</code>:
+its robustness comes from the projection index's own insensitivity to extreme values, not
+from singling out individual bad rows, so it has nothing analogous to report.</p>
+<p><strong>Related work.</strong> Robust CCA is a much older problem than these estimators: Filzmoser,
+Dehon &amp; Croux (2000) and Branco, Croux, Filzmoser &amp; Oliveira (2005) already reweight an
+alternating-regression CCA fit by robust-distance-based weights ("Robust Alternating
+Regression"), the same bounded-influence idea <code>HuberCCA</code> applies to the EY loss's own
+statistics instead; Croux &amp; Dehon (2002) plug the minimum covariance determinant estimator
+into the classical covariance-matrix eigenproblem, the same high-breakdown idea <code>TrimmedCCA</code>
+applies via concentration steps on the EY loss directly instead. Branco et al. (2005)'s
+comparative study also covers the projection-pursuit paradigm <code>ProjectionPursuitCCA</code>
+implements here (maximising a robust bivariate correlation measure directly over
+projection directions), tracing back to Huber's original projection pursuit (1985).
+Alfons, Croux &amp; Filzmoser (2017) put the same paradigm on firmer statistical footing
+(efficiency, breakdown point, a wider family of projection indices) and ship it as the
+R package <code>ccaPP</code> (Alfons, Croux &amp; Filzmoser, 2016), the reference implementation
+<code>ProjectionPursuitCCA</code>'s <code>"spearman"</code> and <code>"mcd"</code> projection indices follow.</p>
+<blockquote>
+<p>Filzmoser, P., Dehon, C., &amp; Croux, C. (2000). Outlier resistant estimators for canonical
+correlation analysis. In <em>COMPSTAT: Proceedings in Computational Statistics 2000</em> (pp.
+301-306). Physica-Verlag.</p>
+<p>Croux, C., &amp; Dehon, C. (2002). Analyse canonique basee sur des estimateurs robustes de la
+matrice de covariance. <em>Revue de Statistique Appliquee</em>, 50(2), 5-26.</p>
+<p>Branco, J. A., Croux, C., Filzmoser, P., &amp; Oliveira, M. R. (2005). Robust canonical
+correlations: A comparative study. <em>Computational Statistics</em>, 20(2), 203-229.</p>
+<p>Huber, P. J. (1985). Projection pursuit. <em>The Annals of Statistics</em>, 13(2), 435-475.</p>
+<p>Alfons, A., Croux, C., &amp; Filzmoser, P. (2017). Robust maximum association estimators.
+<em>Journal of the American Statistical Association</em>, 112(517), 436-445.</p>
+<p>Alfons, A., Croux, C., &amp; Filzmoser, P. (2016). Robust maximum association between data
+sets: The R package ccaPP. <em>Austrian Journal of Statistics</em>, 45(1), 71-79.</p>
+</blockquote>
 <hr />
 <h2 id="choosing-a-method">Choosing a method<a class="headerlink" href="#choosing-a-method" title="Permanent link">&para;</a></h2>
 <table>
@@ -1967,6 +2017,10 @@ solve. Away from the ~50% breakdown regime, or when more than one latent dimensi
 <tr>
 <td>Heavy contamination (near ~50%), with a known contamination-rate prior</td>
 <td><code>TrimmedCCA</code></td>
+</tr>
+<tr>
+<td>Robustness without ever forming a covariance matrix</td>
+<td><code>ProjectionPursuitCCA</code></td>
 </tr>
 <tr>
 <td>Nonlinear relationships</td>
