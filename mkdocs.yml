@@ -117,6 +117,7 @@ nav:
   - API Reference:
       - api/index.md
       - Linear: api/linear.md
+      - Metrics: api/metrics.md
       - Nonparametric: api/nonparametric.md
       - Tree: api/tree.md
       - GAM: api/gam.md

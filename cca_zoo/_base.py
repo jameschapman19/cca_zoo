@@ -14,6 +14,11 @@ from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._utils._validation import validate_views
+from cca_zoo.metrics._correlation import (
+    average_pairwise_correlations as _average_pairwise_correlations,
+)
+from cca_zoo.metrics._correlation import factor_loadings as _factor_loadings
+from cca_zoo.metrics._correlation import pairwise_correlations as _pairwise_correlations
 
 
 class BaseModel(BaseEstimator, ABC):
@@ -231,16 +236,7 @@ class BaseModel(BaseEstimator, ABC):
             d-th canonical variate of view i and view j.
         """
         transformed = self.transform(views)
-        # Stack: shape (n_views, n_samples, k)
-        T = np.stack(transformed, axis=0)
-        # Centre per view per dimension
-        T = T - T.mean(axis=1, keepdims=True)
-        # Normalise per view per dimension
-        norms = np.sqrt((T**2).sum(axis=1, keepdims=True))
-        T_norm = T / np.where(norms > 1e-12, norms, 1.0)
-        # Correlation via einsum over samples
-        corrs: np.ndarray = np.einsum("isd,jsd->ijd", T_norm, T_norm)
-        return corrs
+        return _pairwise_correlations(transformed)
 
     def average_pairwise_correlations(self, views: list[ArrayLike]) -> np.ndarray:
         """Return the mean off-diagonal pairwise correlation per dimension.
@@ -253,14 +249,7 @@ class BaseModel(BaseEstimator, ABC):
             off-diagonal pairwise correlation for each canonical dimension.
         """
         corrs = self.pairwise_correlations(views)  # (n_views, n_views, k)
-        n_views = corrs.shape[0]
-        # Sum all off-diagonal entries (exclude self-correlations on diagonal)
-        off_diag_sum: np.ndarray = corrs.sum(axis=(0, 1)) - sum(
-            corrs[i, i, :] for i in range(n_views)
-        )
-        n_pairs = n_views * (n_views - 1)
-        result: np.ndarray = off_diag_sum / n_pairs
-        return result
+        return _average_pairwise_correlations(corrs)
 
     @property
     def weights(self) -> list[np.ndarray]:
@@ -291,16 +280,7 @@ class BaseModel(BaseEstimator, ABC):
         """
         validated = validate_views(views)
         transformed = self.transform(views)
-        loadings = []
-        for v, t in zip(validated, transformed):
-            v_c = v - v.mean(axis=0)
-            t_c = t - t.mean(axis=0)
-            # Covariance between features and variates
-            cov = v_c.T @ t_c / (v.shape[0] - 1)  # (p, k)
-            std_v = np.maximum(v_c.std(axis=0, ddof=1), 1e-12)  # (p,)
-            std_t = np.maximum(t_c.std(axis=0, ddof=1), 1e-12)  # (k,)
-            loadings.append(cov / np.outer(std_v, std_t))
-        return loadings
+        return _factor_loadings(validated, transformed)
 
     def predict(self, views: list[ArrayLike | None]) -> list[np.ndarray]:
         """Reconstruct every view from whichever views are observed.

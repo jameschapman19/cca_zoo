@@ -15,6 +15,7 @@ __all__ = [
     "gam",
     "gp",
     "linear",
+    "metrics",
     "model_selection",
     "nonparametric",
     "preprocessing",

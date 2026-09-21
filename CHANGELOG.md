@@ -9,6 +9,24 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `cca_zoo.metrics`: a new module of plain functions (operating on already-computed
+  arrays, the same convention `sklearn.metrics` uses -- not on a fitted model or raw
+  views) for evaluating fitted multiview CCA models. `pairwise_correlations`,
+  `average_pairwise_correlations` and `factor_loadings` are the exact math
+  `BaseModel`'s own methods of the same name were computing inline -- extracted here
+  so it's written, and tested, exactly once, and reused by both `BaseModel` and the
+  probabilistic module's `PosteriorMeanTransformMixin` (which previously duplicated
+  all three almost verbatim, differing only in which per-view projection fed them).
+  Also adds two literature metrics that didn't exist anywhere in the package before:
+  `adequacy_coefficient` (Cramer & Nicewander, 1979 -- a.k.a. per-dimension
+  communality: the proportion of a view's own variance its canonical variates
+  capture) and `redundancy_index`/`total_redundancy` (Stewart & Love, 1968 -- the
+  proportion of one view's own variance explained *via* another view's canonical
+  variate, built compositionally from `adequacy_coefficient` and
+  `pairwise_correlations` rather than re-deriving anything). Unlike a canonical
+  correlation, redundancy is asymmetric between views and answers a different
+  question: how useful a canonical variate actually is for reconstructing a view's
+  own features, not just how correlated the views' variates are with each other.
 - `cca_zoo.model_selection.HalvingGridSearchCV`/`HalvingRandomSearchCV`: multiview
   adapters around `sklearn.model_selection.HalvingGridSearchCV`/`HalvingRandomSearchCV`,
   following the same `MultiviewWrapper` pattern as `GridSearchCV`/`RandomizedSearchCV` --

@@ -37,6 +37,7 @@ DOCS_API_DIR = Path(__file__).parent.parent / "docs" / "api"
 # model_selection is the one exception (hyphenated filename).
 MODULE_DOC_PAGES = {
     "cca_zoo.linear": "linear.md",
+    "cca_zoo.metrics": "metrics.md",
     "cca_zoo.deep": "deep.md",
     "cca_zoo.nonparametric": "nonparametric.md",
     "cca_zoo.probabilistic": "probabilistic.md",
