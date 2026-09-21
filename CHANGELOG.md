@@ -9,6 +9,15 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `cca_zoo.preprocessing.PerViewTransformer`: applies an sklearn transformer (e.g.
+  `StandardScaler`, `SimpleImputer`, `PCA`, `KernelCenterer`) independently to each view --
+  a fresh clone is fit per view, so fitted state (a scaler's mean, an imputer's fill
+  value, ...) is never shared across views -- or a list of one transformer per view for
+  heterogeneous preprocessing. Because it preserves the `list[ArrayLike]` views
+  convention on both `fit` and `transform`, it composes directly with
+  `sklearn.pipeline.Pipeline` (and, through that, `cca_zoo.model_selection.GridSearchCV`/
+  `RandomizedSearchCV`) with a cca_zoo multiview estimator as the final step: no
+  dedicated multiview `Pipeline` class was needed.
 - `ECCA`: reduced-rank-regression CCA with an entrywise L1 penalty, the companion to
   `CCAR3`'s row-group-lasso penalty -- a feature can now contribute to one canonical
   component while being dropped from another, rather than being all-or-nothing across

@@ -127,4 +127,5 @@ nav:
       - Probabilistic: api/probabilistic.md
       - Datasets: api/datasets.md
       - Model Selection: api/model-selection.md
+      - Preprocessing: api/preprocessing.md
   - Contributing: contributing.md

@@ -17,6 +17,7 @@ __all__ = [
     "linear",
     "model_selection",
     "nonparametric",
+    "preprocessing",
     "probabilistic",
     "sparse",
     "stochastic",

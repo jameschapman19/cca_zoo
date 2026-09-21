@@ -26,7 +26,7 @@ search machinery (parallelism, scoring, ``cv_results_``, multimetric support,
 from __future__ import annotations
 
 import re
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import numpy as np
 import sklearn.model_selection as skms
@@ -244,7 +244,45 @@ class _MultiviewSearchMixin:
         return float(self._inner_cv.score(x_concat, y))
 
 
-class GridSearchCV(_MultiviewSearchMixin, BaseEstimator):
+class _BaseMultiviewSearchCV(_MultiviewSearchMixin, BaseEstimator):
+    """Shared ``fit`` body for the wrapped multiview search classes.
+
+    Both :class:`GridSearchCV` and :class:`RandomizedSearchCV` do exactly
+    the same three things in ``fit``: wrap the estimator with
+    :class:`MultiviewWrapper`, hand it to the corresponding
+    ``sklearn.model_selection`` search class (``_inner_cv_cls``), and copy
+    the fitted attributes back with the ``estimator__`` prefix undone. That
+    shared plumbing lives here; each subclass's own ``fit`` only supplies
+    its search-specific constructor kwargs (``param_grid`` vs.
+    ``param_distributions``, ``n_iter``, ``random_state``, ...) and keeps
+    its own full docstring, since sklearn's own search classes likewise
+    don't share a public docstring via inheritance.
+    """
+
+    estimator: BaseEstimator
+    _inner_cv_cls: ClassVar[type[BaseEstimator]]
+
+    def _fit(
+        self,
+        views: list[ArrayLike],
+        y: None,
+        inner_cv_kwargs: dict[str, Any],
+        **fit_params: Any,
+    ) -> _BaseMultiviewSearchCV:
+        arrays = [np.asarray(v) for v in views]
+        wrapped_estimator = MultiviewWrapper(
+            estimator=self.estimator,
+            split_indices=[a.shape[1] for a in arrays],
+        )
+        self._inner_cv = self._inner_cv_cls(
+            estimator=wrapped_estimator, **inner_cv_kwargs
+        )
+        self._inner_cv.fit(np.hstack(arrays), y, **fit_params)
+        _copy_fitted_attrs(self, self._inner_cv)
+        return self
+
+
+class GridSearchCV(_BaseMultiviewSearchCV):
     """Exhaustive grid search with cross-validation for multiview CCA models.
 
     A thin multiview adapter around
@@ -286,6 +324,8 @@ class GridSearchCV(_MultiviewSearchMixin, BaseEstimator):
         ... )
         >>> gs = gs.fit([X1, X2])
     """
+
+    _inner_cv_cls = skms.GridSearchCV
 
     def __init__(
         self,
@@ -330,13 +370,7 @@ class GridSearchCV(_MultiviewSearchMixin, BaseEstimator):
         Returns:
             self: Fitted grid search object.
         """
-        arrays = [np.asarray(v) for v in views]
-        wrapped_estimator = MultiviewWrapper(
-            estimator=self.estimator,
-            split_indices=[a.shape[1] for a in arrays],
-        )
-        self._inner_cv = skms.GridSearchCV(
-            estimator=wrapped_estimator,
+        inner_cv_kwargs = dict(
             param_grid=_wrap_param_space(self.param_grid),
             cv=self.cv,
             scoring=self.scoring,
@@ -347,12 +381,10 @@ class GridSearchCV(_MultiviewSearchMixin, BaseEstimator):
             error_score=self.error_score,
             return_train_score=self.return_train_score,
         )
-        self._inner_cv.fit(np.hstack(arrays), y, **fit_params)
-        _copy_fitted_attrs(self, self._inner_cv)
-        return self
+        return cast("GridSearchCV", self._fit(views, y, inner_cv_kwargs, **fit_params))
 
 
-class RandomizedSearchCV(_MultiviewSearchMixin, BaseEstimator):
+class RandomizedSearchCV(_BaseMultiviewSearchCV):
     """Randomized search with cross-validation for multiview CCA models.
 
     Samples ``n_iter`` parameter settings from ``param_distributions``
@@ -405,6 +437,8 @@ class RandomizedSearchCV(_MultiviewSearchMixin, BaseEstimator):
         >>> rs = rs.fit([X1, X2])
     """
 
+    _inner_cv_cls = skms.RandomizedSearchCV
+
     def __init__(
         self,
         estimator: BaseEstimator,
@@ -452,13 +486,7 @@ class RandomizedSearchCV(_MultiviewSearchMixin, BaseEstimator):
         Returns:
             self: Fitted randomized search object.
         """
-        arrays = [np.asarray(v) for v in views]
-        wrapped_estimator = MultiviewWrapper(
-            estimator=self.estimator,
-            split_indices=[a.shape[1] for a in arrays],
-        )
-        self._inner_cv = skms.RandomizedSearchCV(
-            estimator=wrapped_estimator,
+        inner_cv_kwargs = dict(
             param_distributions=_wrap_param_space(self.param_distributions),
             n_iter=self.n_iter,
             cv=self.cv,
@@ -471,6 +499,6 @@ class RandomizedSearchCV(_MultiviewSearchMixin, BaseEstimator):
             error_score=self.error_score,
             return_train_score=self.return_train_score,
         )
-        self._inner_cv.fit(np.hstack(arrays), y, **fit_params)
-        _copy_fitted_attrs(self, self._inner_cv)
-        return self
+        return cast(
+            "RandomizedSearchCV", self._fit(views, y, inner_cv_kwargs, **fit_params)
+        )
