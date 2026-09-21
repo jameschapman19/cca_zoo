@@ -9,6 +9,16 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `cca_zoo.model_selection.HalvingGridSearchCV`/`HalvingRandomSearchCV`: multiview
+  adapters around `sklearn.model_selection.HalvingGridSearchCV`/`HalvingRandomSearchCV`,
+  following the same `MultiviewWrapper` pattern as `GridSearchCV`/`RandomizedSearchCV` --
+  most candidates are eliminated early on a small subset of the training samples, and
+  only the survivors are evaluated on progressively larger subsets, which is usually
+  much cheaper than an exhaustive search over a large grid. The "resource" grown between
+  rounds is a row count of the already view-concatenated training array, so the
+  successive-halving mechanics need no multiview-specific handling. Both classes now
+  share their `fit` body with `GridSearchCV`/`RandomizedSearchCV` via a new
+  `_BaseMultiviewSearchCV` base.
 - `cca_zoo.preprocessing.PerViewTransformer`: applies an sklearn transformer (e.g.
   `StandardScaler`, `SimpleImputer`, `PCA`, `KernelCenterer`) independently to each view --
   a fresh clone is fit per view, so fitted state (a scaler's mean, an imputer's fill

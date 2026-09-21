@@ -15,12 +15,12 @@ before delegating to the wrapped multiview estimator. It is a plain
 ``GridSearchCV``, ``RandomizedSearchCV``, ``HalvingGridSearchCV``,
 ``cross_val_score``, ``cross_validate``, ``learning_curve``, ``Pipeline``, etc.
 
-:class:`GridSearchCV` and :class:`RandomizedSearchCV` below are thin
-convenience wrappers that do this concatenation automatically and delegate
-the actual search to :class:`sklearn.model_selection.GridSearchCV` /
-:class:`sklearn.model_selection.RandomizedSearchCV`, so all of sklearn's
-search machinery (parallelism, scoring, ``cv_results_``, multimetric support,
-...) is reused rather than reimplemented.
+:class:`GridSearchCV`, :class:`RandomizedSearchCV`, :class:`HalvingGridSearchCV`
+and :class:`HalvingRandomSearchCV` below are thin convenience wrappers that do
+this concatenation automatically and delegate the actual search to the
+corresponding :mod:`sklearn.model_selection` class, so all of sklearn's search
+machinery (parallelism, scoring, ``cv_results_``, successive-halving resource
+allocation, multimetric support, ...) is reused rather than reimplemented.
 """
 
 from __future__ import annotations
@@ -32,6 +32,7 @@ import numpy as np
 import sklearn.model_selection as skms
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator, clone
+from sklearn.experimental import enable_halving_search_cv  # noqa: F401
 
 _PARAM_PREFIX = "estimator__"
 _VIEW_PARAM_RE = re.compile(r"^(.+)__(\d+)$")
@@ -501,4 +502,292 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
         )
         return cast(
             "RandomizedSearchCV", self._fit(views, y, inner_cv_kwargs, **fit_params)
+        )
+
+
+class HalvingGridSearchCV(_BaseMultiviewSearchCV):
+    """Successive-halving grid search with cross-validation for multiview CCA models.
+
+    Like :class:`GridSearchCV`, but candidates are evaluated on a growing
+    subset of the training samples across rounds: most candidates are
+    eliminated early on a small subset, and only the survivors are evaluated
+    on progressively larger subsets, which is usually much cheaper than an
+    exhaustive :class:`GridSearchCV` when the grid is large. A thin multiview
+    adapter around :class:`sklearn.model_selection.HalvingGridSearchCV`,
+    following the same :class:`MultiviewWrapper` pattern as
+    :class:`GridSearchCV`; the "resource" being grown across rounds is a row
+    count of the (already view-concatenated) training array, so the
+    successive-halving mechanics need no multiview-specific handling.
+
+    Args:
+        estimator: A multiview CCA estimator (e.g.
+            :class:`~cca_zoo.linear.CCA`).
+        param_grid: Dictionary or list of dictionaries with parameter
+            names as keys and lists of parameter settings as values.
+        factor: The proportion of candidates eliminated (and resources
+            multiplied by) at each round. Default is 3.
+        resource: The resource grown between rounds, forwarded to sklearn's
+            ``HalvingGridSearchCV``. Default is ``"n_samples"``.
+        max_resources: The maximum amount of resource a candidate is
+            allowed to use, forwarded to sklearn's ``HalvingGridSearchCV``.
+            Default is ``"auto"``.
+        min_resources: The minimum amount of resource a candidate is
+            allowed to use, forwarded to sklearn's ``HalvingGridSearchCV``.
+            Default is ``"exhaust"``.
+        aggressive_elimination: Whether to eliminate candidates at the same
+            rate even before there are enough resources to grow, forwarded
+            to sklearn's ``HalvingGridSearchCV``. Default is ``False``.
+        cv: Number of cross-validation folds or a cross-validation
+            splitter.  Default is 5.
+        scoring: Scoring strategy.  When ``None`` the estimator's
+            default :meth:`score` method is used.
+        refit: Whether to refit the best estimator on the full dataset.
+            Default is ``True``.
+        error_score: Value to assign to the score if fitting a candidate
+            raises an exception, forwarded to sklearn's
+            ``HalvingGridSearchCV``.
+        return_train_score: If ``True``, ``cv_results_`` also includes
+            training scores. Default is ``True``, matching sklearn's
+            ``HalvingGridSearchCV``.
+        random_state: Controls the pseudo-random subsampling of the
+            training set that determines the candidates' resources at each
+            round.
+        n_jobs: Number of jobs to run in parallel. Default is ``None``
+            (sequential).
+        verbose: Verbosity level. Default is 0.
+
+    Example:
+        >>> import numpy as np
+        >>> from cca_zoo.linear import CCA
+        >>> from cca_zoo.model_selection import HalvingGridSearchCV
+        >>> rng = np.random.default_rng(0)
+        >>> X1 = rng.standard_normal((50, 5))
+        >>> X2 = rng.standard_normal((50, 4))
+        >>> hgs = HalvingGridSearchCV(
+        ...     CCA(), param_grid={"latent_dimensions": [1, 2]}, cv=2
+        ... )
+        >>> hgs = hgs.fit([X1, X2])
+    """
+
+    _inner_cv_cls = skms.HalvingGridSearchCV
+
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        param_grid: dict[str, list[Any]] | list[dict[str, list[Any]]],
+        *,
+        factor: int | float = 3,
+        resource: str = "n_samples",
+        max_resources: int | str = "auto",
+        min_resources: int | str = "exhaust",
+        aggressive_elimination: bool = False,
+        cv: int | Any = 5,
+        scoring: str | None = None,
+        refit: bool = True,
+        error_score: float = np.nan,
+        return_train_score: bool = True,
+        random_state: int | Any = None,
+        n_jobs: int | None = None,
+        verbose: int = 0,
+    ) -> None:
+        self.estimator = estimator
+        self.param_grid = param_grid
+        self.factor = factor
+        self.resource = resource
+        self.max_resources = max_resources
+        self.min_resources = min_resources
+        self.aggressive_elimination = aggressive_elimination
+        self.cv = cv
+        self.scoring = scoring
+        self.refit = refit
+        self.error_score = error_score
+        self.return_train_score = return_train_score
+        self.random_state = random_state
+        self.n_jobs = n_jobs
+        self.verbose = verbose
+
+    def fit(
+        self,
+        views: list[ArrayLike],
+        y: None = None,
+        **fit_params: Any,
+    ) -> HalvingGridSearchCV:
+        """Run successive-halving grid search with cross-validation.
+
+        Args:
+            views: List of arrays, each of shape (n_samples, n_features_i).
+                All arrays must have the same number of rows.
+            y: Ignored.
+            **fit_params: Additional keyword arguments forwarded to the
+                estimator's ``fit`` method during each fold.
+
+        Returns:
+            self: Fitted search object.
+        """
+        inner_cv_kwargs = dict(
+            param_grid=_wrap_param_space(self.param_grid),
+            factor=self.factor,
+            resource=self.resource,
+            max_resources=self.max_resources,
+            min_resources=self.min_resources,
+            aggressive_elimination=self.aggressive_elimination,
+            cv=self.cv,
+            scoring=self.scoring,
+            refit=self.refit,
+            error_score=self.error_score,
+            return_train_score=self.return_train_score,
+            random_state=self.random_state,
+            n_jobs=self.n_jobs,
+            verbose=self.verbose,
+        )
+        return cast(
+            "HalvingGridSearchCV", self._fit(views, y, inner_cv_kwargs, **fit_params)
+        )
+
+
+class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
+    """Successive-halving randomized search with cross-validation for multiview models.
+
+    Combines :class:`RandomizedSearchCV`'s sampling of ``param_distributions``
+    with :class:`HalvingGridSearchCV`'s successive-halving elimination: most
+    sampled candidates are eliminated early on a small subset of the training
+    samples, and only the survivors are evaluated on progressively larger
+    subsets. A thin multiview adapter around
+    :class:`sklearn.model_selection.HalvingRandomSearchCV`, following the
+    same :class:`MultiviewWrapper` pattern as :class:`RandomizedSearchCV`.
+
+    Args:
+        estimator: A multiview CCA estimator (e.g.
+            :class:`~cca_zoo.linear.CCA`).
+        param_distributions: Dictionary (or list of dictionaries) with
+            parameter names as keys and either a list of values to sample
+            from, or a distribution (anything with a ``rvs`` method, e.g.
+            ``scipy.stats.loguniform``).
+        n_candidates: The number of candidate parameters to sample,
+            forwarded to sklearn's ``HalvingRandomSearchCV``. Default is
+            ``"exhaust"``.
+        factor: The proportion of candidates eliminated (and resources
+            multiplied by) at each round. Default is 3.
+        resource: The resource grown between rounds, forwarded to sklearn's
+            ``HalvingRandomSearchCV``. Default is ``"n_samples"``.
+        max_resources: The maximum amount of resource a candidate is
+            allowed to use, forwarded to sklearn's ``HalvingRandomSearchCV``.
+            Default is ``"auto"``.
+        min_resources: The minimum amount of resource a candidate is
+            allowed to use, forwarded to sklearn's ``HalvingRandomSearchCV``.
+            Default is ``"smallest"``.
+        aggressive_elimination: Whether to eliminate candidates at the same
+            rate even before there are enough resources to grow, forwarded
+            to sklearn's ``HalvingRandomSearchCV``. Default is ``False``.
+        cv: Number of cross-validation folds or a cross-validation
+            splitter.  Default is 5.
+        scoring: Scoring strategy.  When ``None`` the estimator's
+            default :meth:`score` method is used.
+        refit: Whether to refit the best estimator on the full dataset.
+            Default is ``True``.
+        error_score: Value to assign to the score if fitting a candidate
+            raises an exception, forwarded to sklearn's
+            ``HalvingRandomSearchCV``.
+        return_train_score: If ``True``, ``cv_results_`` also includes
+            training scores. Default is ``True``, matching sklearn's
+            ``HalvingRandomSearchCV``.
+        random_state: Controls both the randomness of the parameter
+            sampling and the pseudo-random subsampling of the training set.
+        n_jobs: Number of jobs to run in parallel. Default is ``None``
+            (sequential).
+        verbose: Verbosity level. Default is 0.
+
+    Example:
+        >>> import numpy as np
+        >>> from scipy.stats import loguniform
+        >>> from cca_zoo.linear import rCCA
+        >>> from cca_zoo.model_selection import HalvingRandomSearchCV
+        >>> rng = np.random.default_rng(0)
+        >>> X1 = rng.standard_normal((50, 5))
+        >>> X2 = rng.standard_normal((50, 4))
+        >>> hrs = HalvingRandomSearchCV(
+        ...     rCCA(),
+        ...     param_distributions={"c": loguniform(1e-3, 1.0)},
+        ...     cv=2,
+        ...     random_state=0,
+        ... )
+        >>> hrs = hrs.fit([X1, X2])
+    """
+
+    _inner_cv_cls = skms.HalvingRandomSearchCV
+
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        param_distributions: dict[str, Any] | list[dict[str, Any]],
+        *,
+        n_candidates: int | str = "exhaust",
+        factor: int | float = 3,
+        resource: str = "n_samples",
+        max_resources: int | str = "auto",
+        min_resources: int | str = "smallest",
+        aggressive_elimination: bool = False,
+        cv: int | Any = 5,
+        scoring: str | None = None,
+        refit: bool = True,
+        error_score: float = np.nan,
+        return_train_score: bool = True,
+        random_state: int | Any = None,
+        n_jobs: int | None = None,
+        verbose: int = 0,
+    ) -> None:
+        self.estimator = estimator
+        self.param_distributions = param_distributions
+        self.n_candidates = n_candidates
+        self.factor = factor
+        self.resource = resource
+        self.max_resources = max_resources
+        self.min_resources = min_resources
+        self.aggressive_elimination = aggressive_elimination
+        self.cv = cv
+        self.scoring = scoring
+        self.refit = refit
+        self.error_score = error_score
+        self.return_train_score = return_train_score
+        self.random_state = random_state
+        self.n_jobs = n_jobs
+        self.verbose = verbose
+
+    def fit(
+        self,
+        views: list[ArrayLike],
+        y: None = None,
+        **fit_params: Any,
+    ) -> HalvingRandomSearchCV:
+        """Run successive-halving randomized search with cross-validation.
+
+        Args:
+            views: List of arrays, each of shape (n_samples, n_features_i).
+                All arrays must have the same number of rows.
+            y: Ignored.
+            **fit_params: Additional keyword arguments forwarded to the
+                estimator's ``fit`` method during each fold.
+
+        Returns:
+            self: Fitted search object.
+        """
+        inner_cv_kwargs = dict(
+            param_distributions=_wrap_param_space(self.param_distributions),
+            n_candidates=self.n_candidates,
+            factor=self.factor,
+            resource=self.resource,
+            max_resources=self.max_resources,
+            min_resources=self.min_resources,
+            aggressive_elimination=self.aggressive_elimination,
+            cv=self.cv,
+            scoring=self.scoring,
+            refit=self.refit,
+            error_score=self.error_score,
+            return_train_score=self.return_train_score,
+            random_state=self.random_state,
+            n_jobs=self.n_jobs,
+            verbose=self.verbose,
+        )
+        return cast(
+            "HalvingRandomSearchCV", self._fit(views, y, inner_cv_kwargs, **fit_params)
         )
