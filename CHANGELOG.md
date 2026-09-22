@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-09-22
+
 ### Added
 
 - `cca_zoo.metrics`: a new module of plain functions (operating on already-computed
