@@ -8,7 +8,13 @@ from sklearn.base import clone
 from sklearn.model_selection import cross_val_score
 
 from cca_zoo.linear import CCA, MCCA, rCCA
-from cca_zoo.model_selection import GridSearchCV, MultiviewWrapper, RandomizedSearchCV
+from cca_zoo.model_selection import (
+    GridSearchCV,
+    HalvingGridSearchCV,
+    HalvingRandomSearchCV,
+    MultiviewWrapper,
+    RandomizedSearchCV,
+)
 
 # ---------------------------------------------------------------------------
 # Basic fit
@@ -430,3 +436,85 @@ def test_per_view_grid_with_randomized_search(two_views: list[np.ndarray]) -> No
     )
     rs.fit(two_views)
     assert rs.best_estimator_.c == [rs.best_params_["c__0"], rs.best_params_["c__1"]]
+
+
+# ---------------------------------------------------------------------------
+# HalvingGridSearchCV / HalvingRandomSearchCV
+# ---------------------------------------------------------------------------
+
+
+def test_halving_grid_search_fit_completes(two_views: list[np.ndarray]) -> None:
+    """HalvingGridSearchCV.fit completes and best_params_ is in the grid."""
+    hgs = HalvingGridSearchCV(
+        CCA(),
+        param_grid={"latent_dimensions": [1, 2]},
+        cv=2,
+        min_resources=20,
+    )
+    hgs.fit(two_views)
+    assert hgs.best_params_["latent_dimensions"] in [1, 2]
+
+
+def test_halving_grid_search_cv_results_no_prefix(two_views: list[np.ndarray]) -> None:
+    """cv_results_/best_params_ keys have the 'estimator__' prefix stripped."""
+    hgs = HalvingGridSearchCV(
+        CCA(),
+        param_grid={"latent_dimensions": [1, 2]},
+        cv=2,
+        min_resources=20,
+    )
+    hgs.fit(two_views)
+    assert "param_latent_dimensions" in hgs.cv_results_
+    assert not any(k.startswith("param_estimator__") for k in hgs.cv_results_)
+    assert not any(key.startswith("estimator__") for key in hgs.best_params_)
+
+
+def test_halving_grid_search_transform(two_views: list[np.ndarray]) -> None:
+    """HalvingGridSearchCV.transform delegates to best_estimator_."""
+    hgs = HalvingGridSearchCV(
+        CCA(),
+        param_grid={"latent_dimensions": [1, 2]},
+        cv=2,
+        min_resources=20,
+    )
+    hgs.fit(two_views)
+    result = hgs.transform(two_views)
+    assert len(result) == len(two_views)
+
+
+def test_halving_random_search_fit_completes(two_views: list[np.ndarray]) -> None:
+    """HalvingRandomSearchCV.fit completes and best_params_ is in range."""
+    hrs = HalvingRandomSearchCV(
+        rCCA(),
+        param_distributions={"c": [0.0, 0.1, 0.5]},
+        cv=2,
+        min_resources=20,
+        random_state=0,
+    )
+    hrs.fit(two_views)
+    assert hrs.best_params_["c"] in [0.0, 0.1, 0.5]
+
+
+def test_halving_search_cv_is_clonable() -> None:
+    """HalvingGridSearchCV/HalvingRandomSearchCV round-trip through clone."""
+    hgs = HalvingGridSearchCV(
+        CCA(), param_grid={"latent_dimensions": [1, 2]}, cv=2, min_resources=20
+    )
+    cloned = clone(hgs)
+    assert cloned.param_grid == hgs.param_grid
+    assert cloned is not hgs
+
+
+def test_halving_per_view_grid_searches_cartesian_product(
+    two_views: list[np.ndarray],
+) -> None:
+    """Per-view 'c__0'/'c__1' keys work with HalvingGridSearchCV too."""
+    hgs = HalvingGridSearchCV(
+        rCCA(latent_dimensions=1),
+        param_grid={"c__0": [0.0, 0.5], "c__1": [0.1, 0.9]},
+        cv=2,
+        min_resources=20,
+    )
+    hgs.fit(two_views)
+    assert set(hgs.best_params_) == {"c__0", "c__1"}
+    assert hgs.best_estimator_.c == [hgs.best_params_["c__0"], hgs.best_params_["c__1"]]

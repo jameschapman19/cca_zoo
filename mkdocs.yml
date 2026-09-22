@@ -117,6 +117,7 @@ nav:
   - API Reference:
       - api/index.md
       - Linear: api/linear.md
+      - Metrics: api/metrics.md
       - Nonparametric: api/nonparametric.md
       - Tree: api/tree.md
       - GAM: api/gam.md
@@ -127,4 +128,5 @@ nav:
       - Probabilistic: api/probabilistic.md
       - Datasets: api/datasets.md
       - Model Selection: api/model-selection.md
+      - Preprocessing: api/preprocessing.md
   - Contributing: contributing.md

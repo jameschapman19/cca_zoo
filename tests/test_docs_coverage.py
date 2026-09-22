@@ -37,12 +37,14 @@ DOCS_API_DIR = Path(__file__).parent.parent / "docs" / "api"
 # model_selection is the one exception (hyphenated filename).
 MODULE_DOC_PAGES = {
     "cca_zoo.linear": "linear.md",
+    "cca_zoo.metrics": "metrics.md",
     "cca_zoo.deep": "deep.md",
     "cca_zoo.nonparametric": "nonparametric.md",
     "cca_zoo.probabilistic": "probabilistic.md",
     "cca_zoo.tree": "tree.md",
     "cca_zoo.datasets": "datasets.md",
     "cca_zoo.model_selection": "model-selection.md",
+    "cca_zoo.preprocessing": "preprocessing.md",
     "cca_zoo.sparse": "sparse.md",
     "cca_zoo.stochastic": "stochastic.md",
 }

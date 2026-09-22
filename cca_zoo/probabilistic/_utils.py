@@ -249,14 +249,13 @@ class PosteriorMeanTransformMixin:
         """
         from sklearn.utils.validation import check_is_fitted
 
+        from cca_zoo.metrics._correlation import (
+            pairwise_correlations as _pairwise_correlations,
+        )
+
         check_is_fitted(self)
         per_view = self._per_view_projections(views)
-        T = np.stack(per_view, axis=0)  # (n_views, n_samples, k)
-        T = T - T.mean(axis=1, keepdims=True)
-        norms = np.sqrt((T**2).sum(axis=1, keepdims=True))
-        T_norm = T / np.where(norms > 1e-12, norms, 1.0)
-        corrs: np.ndarray = np.einsum("isd,jsd->ijd", T_norm, T_norm)
-        return corrs
+        return _pairwise_correlations(per_view)
 
     def average_pairwise_correlations(self, views: list[ArrayLike]) -> np.ndarray:
         """Return the mean off-diagonal pairwise correlation per dimension.
@@ -268,14 +267,12 @@ class PosteriorMeanTransformMixin:
             Array of shape ``(latent_dimensions,)`` with the average
             off-diagonal pairwise correlation for each canonical dimension.
         """
-        corrs = self.pairwise_correlations(views)
-        n_views = corrs.shape[0]
-        off_diag_sum: np.ndarray = corrs.sum(axis=(0, 1)) - sum(
-            corrs[i, i, :] for i in range(n_views)
+        from cca_zoo.metrics._correlation import (
+            average_pairwise_correlations as _average_pairwise_correlations,
         )
-        n_pairs = n_views * (n_views - 1)
-        result: np.ndarray = off_diag_sum / n_pairs
-        return result
+
+        corrs = self.pairwise_correlations(views)
+        return _average_pairwise_correlations(corrs)
 
     def score(self, views: list[ArrayLike], y: None = None) -> np.ndarray:
         """Return average pairwise canonical correlations for each dimension.
@@ -309,18 +306,11 @@ class PosteriorMeanTransformMixin:
             dimension.
         """
         from cca_zoo._utils._validation import validate_views
+        from cca_zoo.metrics._correlation import factor_loadings as _factor_loadings
 
         validated = validate_views(views)
         per_view = self._per_view_projections(views)
-        loadings = []
-        for v, t in zip(validated, per_view):
-            v_c = v - v.mean(axis=0)
-            t_c = t - t.mean(axis=0)
-            cov = v_c.T @ t_c / (v.shape[0] - 1)
-            std_v = np.maximum(v_c.std(axis=0, ddof=1), 1e-12)
-            std_t = np.maximum(t_c.std(axis=0, ddof=1), 1e-12)
-            loadings.append(cov / np.outer(std_v, std_t))
-        return loadings
+        return _factor_loadings(validated, per_view)
 
     def log_likelihood(self, views: list[ArrayLike]) -> float:
         """Mean per-sample log-likelihood under the fitted generative model.

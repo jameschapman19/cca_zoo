@@ -14,12 +14,16 @@ _T = TypeVar("_T")
 def validate_views(
     views: list[ArrayLike],
     min_views: int = 2,
+    ensure_all_finite: bool = True,
 ) -> list[np.ndarray]:
     """Validate and convert multiview data to a list of 2-D numpy arrays.
 
     Args:
         views: List of array-like objects, each of shape (n_samples, n_features_i).
         min_views: Minimum number of views required. Default is 2.
+        ensure_all_finite: Whether to reject NaN/inf entries. Default is
+            ``True``. Callers that handle missing data themselves (e.g. an
+            imputer) pass ``False``.
 
     Returns:
         List of validated numpy arrays, each of shape (n_samples, n_features_i).
@@ -31,7 +35,14 @@ def validate_views(
     if len(views) < min_views:
         raise ValueError(f"At least {min_views} views are required, got {len(views)}.")
     processed = [
-        check_array(v, ensure_2d=True, allow_nd=False, dtype="numeric") for v in views
+        check_array(
+            v,
+            ensure_2d=True,
+            allow_nd=False,
+            dtype="numeric",
+            ensure_all_finite=ensure_all_finite,
+        )
+        for v in views
     ]
     n_samples = processed[0].shape[0]
     if not all(v.shape[0] == n_samples for v in processed):

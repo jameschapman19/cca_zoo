@@ -83,6 +83,22 @@ def test_validate_views_custom_min_views() -> None:
     assert len(result) == 1
 
 
+def test_validate_views_rejects_nan_by_default() -> None:
+    """validate_views raises on NaN entries unless ensure_all_finite=False."""
+    x1 = np.array([[1.0, np.nan], [3.0, 4.0]])
+    x2 = np.array([[1.0, 2.0], [3.0, 4.0]])
+    with pytest.raises(ValueError, match="NaN"):
+        validate_views([x1, x2])
+
+
+def test_validate_views_allows_nan_when_not_ensuring_finite() -> None:
+    """ensure_all_finite=False lets NaN entries through, e.g. for an imputer."""
+    x1 = np.array([[1.0, np.nan], [3.0, 4.0]])
+    x2 = np.array([[1.0, 2.0], [3.0, 4.0]])
+    result = validate_views([x1, x2], ensure_all_finite=False)
+    assert np.isnan(result[0][0, 1])
+
+
 # ---------------------------------------------------------------------------
 # perview_parameter — scalar broadcast
 # ---------------------------------------------------------------------------
