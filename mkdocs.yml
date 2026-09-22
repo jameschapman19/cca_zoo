@@ -29,14 +29,14 @@ theme:
     - announce.dismiss
   palette:
     - scheme: default
-      primary: indigo
-      accent: indigo
+      primary: deep purple
+      accent: orange
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: deep purple
+      accent: orange
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
