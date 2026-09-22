@@ -410,7 +410,7 @@ class ManifoldCCA(BaseModel):
             :func:`_smooth_basis`) to ensure positive definiteness. Default
             1e-6.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((60, 8))

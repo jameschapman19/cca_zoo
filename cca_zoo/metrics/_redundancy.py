@@ -34,6 +34,21 @@ def adequacy_coefficient(loadings: Sequence[ArrayLike]) -> list[np.ndarray]:
     Returns:
         List of arrays, each of shape (latent_dimensions,): view i's own
         variance extracted by each of its canonical dimensions.
+
+    Examples:
+        >>> import numpy as np
+        >>> from cca_zoo.metrics import factor_loadings
+        >>> rng = np.random.default_rng(0)
+        >>> t1 = rng.standard_normal((20, 1))
+        >>> view1 = np.column_stack(
+        ...     [t1[:, 0] + 0.3 * rng.standard_normal(20), rng.standard_normal(20)]
+        ... )
+        >>> loadings = factor_loadings([view1], [t1])
+        >>> adequacy = adequacy_coefficient(loadings)
+        >>> adequacy[0].shape
+        (1,)
+        >>> round(float(adequacy[0][0]), 2)
+        0.48
     """
     return [np.mean(np.asarray(loading) ** 2, axis=0) for loading in loadings]
 
@@ -64,6 +79,26 @@ def redundancy_index(
         ``[i, j, d]`` is the redundancy of view i given view j's d-th
         canonical variate. The diagonal ``[i, i, d]`` equals view i's own
         adequacy coefficient, since a view's correlation with itself is 1.
+
+    Examples:
+        >>> import numpy as np
+        >>> from cca_zoo.metrics import factor_loadings, pairwise_correlations
+        >>> rng = np.random.default_rng(0)
+        >>> t1 = rng.standard_normal((20, 1))
+        >>> t2 = 0.8 * t1 + 0.2 * rng.standard_normal((20, 1))
+        >>> view1 = np.column_stack(
+        ...     [t1[:, 0] + 0.1 * rng.standard_normal(20), rng.standard_normal(20)]
+        ... )
+        >>> view2 = np.column_stack(
+        ...     [t2[:, 0] + 0.1 * rng.standard_normal(20), rng.standard_normal(20)]
+        ... )
+        >>> loadings = factor_loadings([view1, view2], [t1, t2])
+        >>> corrs = pairwise_correlations([t1, t2])
+        >>> redundancy = redundancy_index(loadings, corrs)
+        >>> redundancy.shape
+        (2, 2, 1)
+        >>> round(float(redundancy[0, 1, 0]), 2)
+        0.52
     """
     adequacy = np.stack(adequacy_coefficient(loadings), axis=0)  # (n_views, k)
     corrs = np.asarray(correlations)
@@ -82,6 +117,27 @@ def total_redundancy(redundancy: ArrayLike) -> np.ndarray:
         Array of shape (n_views, n_views): entry ``[i, j]`` is the total
         proportion of view i's variance explained by view j's canonical
         variates, summed over every retained dimension.
+
+    Examples:
+        >>> import numpy as np
+        >>> from cca_zoo.metrics import factor_loadings, pairwise_correlations
+        >>> rng = np.random.default_rng(0)
+        >>> t1 = rng.standard_normal((20, 1))
+        >>> t2 = 0.8 * t1 + 0.2 * rng.standard_normal((20, 1))
+        >>> view1 = np.column_stack(
+        ...     [t1[:, 0] + 0.1 * rng.standard_normal(20), rng.standard_normal(20)]
+        ... )
+        >>> view2 = np.column_stack(
+        ...     [t2[:, 0] + 0.1 * rng.standard_normal(20), rng.standard_normal(20)]
+        ... )
+        >>> loadings = factor_loadings([view1, view2], [t1, t2])
+        >>> corrs = pairwise_correlations([t1, t2])
+        >>> redundancy = redundancy_index(loadings, corrs)
+        >>> total = total_redundancy(redundancy)
+        >>> total.shape
+        (2, 2)
+        >>> round(float(total[0, 1]), 2)
+        0.52
     """
     result: np.ndarray = np.asarray(redundancy).sum(axis=-1)
     return result

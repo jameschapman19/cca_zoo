@@ -272,7 +272,7 @@ class TrimmedCCA(BaseModel):
         Robust canonical correlations: A comparative study. Computational
         Statistics, 20(2), 203-229.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 8))

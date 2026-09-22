@@ -44,7 +44,7 @@ class StochasticCCAEY(CCAEY):
             between consecutive epochs. Default is 1e-6.
         random_state: Seed for reproducibility.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((5000, 200))

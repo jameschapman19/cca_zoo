@@ -40,7 +40,7 @@ def procrustes_rotation(reference: np.ndarray, target: np.ndarray) -> np.ndarray
         ValueError: If ``reference`` and ``target`` don't have the same
             shape.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.model_selection import procrustes_rotation
         >>> rng = np.random.default_rng(0)
@@ -143,7 +143,7 @@ def permutation_test_significance(
         ValueError: If fewer than 2 views are provided, or
             ``n_permutations`` is not positive.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import CCA
         >>> from cca_zoo.model_selection import permutation_test_significance

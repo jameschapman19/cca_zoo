@@ -38,7 +38,7 @@ class BarlowTwins(DCCA):
         max_epochs: Maximum training epochs. Default is 100.
         eps: Unused. Present for API compatibility. Default is 1e-6.
 
-    Example:
+    Examples:
         >>> import torch
         >>> import torch.nn as nn
         >>> enc1 = nn.Linear(10, 4)

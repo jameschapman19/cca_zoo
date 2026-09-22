@@ -53,7 +53,7 @@ class DVCCA(BaseDeep):
         max_epochs: Maximum training epochs. Default is 100.
         eps: Regularisation for numerical stability. Default is 1e-6.
 
-    Example:
+    Examples:
         >>> import torch
         >>> import torch.nn as nn
         >>> # Encoders output 2 * latent_dimensions

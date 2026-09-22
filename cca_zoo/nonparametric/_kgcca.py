@@ -45,7 +45,7 @@ class KGCCA(BaseModel):
         view_weights: Per-view weights. Default is equal weights.
         eps: Regularisation floor. Default is 1e-6.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((30, 5))

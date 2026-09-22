@@ -18,7 +18,7 @@ def load_linnerud() -> tuple[np.ndarray, np.ndarray]:
         with chin-up, sit-up, and jump counts. ``physiological`` is shape
         (20, 3) with weight, waist, and pulse measurements.
 
-    Example:
+    Examples:
         >>> X1, X2 = load_linnerud()
         >>> X1.shape
         (20, 3)
@@ -42,7 +42,7 @@ def load_breast_cancer() -> tuple[np.ndarray, np.ndarray]:
     Returns:
         Tuple ``(view1, view2)`` where each array has shape (569, 15).
 
-    Example:
+    Examples:
         >>> X1, X2 = load_breast_cancer()
         >>> X1.shape
         (569, 15)

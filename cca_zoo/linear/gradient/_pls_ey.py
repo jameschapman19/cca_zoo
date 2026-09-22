@@ -47,7 +47,7 @@ class PLSEY(CCAEY):
             for why a loose ``ftol`` risks silent premature convergence).
         random_state: Seed for reproducibility.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 500))

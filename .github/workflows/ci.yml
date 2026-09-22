@@ -115,7 +115,7 @@ jobs:
         if: matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'
         run: |
           uv run pytest --doctest-modules --no-cov \
-            cca_zoo/linear cca_zoo/nonparametric cca_zoo/datasets cca_zoo/model_selection
+            cca_zoo/linear cca_zoo/nonparametric cca_zoo/datasets cca_zoo/model_selection cca_zoo/metrics
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4

@@ -40,7 +40,7 @@ class DGCCA(DCCA):
         max_epochs: Maximum training epochs. Default is 100.
         eps: Ridge regularisation for within-view whitening. Default is 1e-6.
 
-    Example:
+    Examples:
         >>> import torch.nn as nn
         >>> enc1 = nn.Linear(10, 4)
         >>> enc2 = nn.Linear(8, 4)

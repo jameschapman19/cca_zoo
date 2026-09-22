@@ -27,7 +27,7 @@ class MultiviewDataset(Dataset[dict[str, list[torch.Tensor]]]):
         views: List of array-likes, each of shape (n_samples, n_features_i).
             All must have the same number of samples.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from torch.utils.data import DataLoader
         >>> from cca_zoo.deep import MultiviewDataset

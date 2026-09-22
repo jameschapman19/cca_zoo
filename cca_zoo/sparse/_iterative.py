@@ -259,7 +259,7 @@ class PMDCCA(_BaseIterative):
         tol: Convergence tolerance. Default is 1e-6.
         random_state: Seed for reproducibility.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
@@ -439,7 +439,7 @@ class ADMMCCA(_BaseIterative):
             inner ADMM loop. Default is 1e-6.
         random_state: Seed for reproducibility.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
@@ -572,7 +572,7 @@ class IPLSCCA(_BaseIterative):
         tol: Convergence tolerance. Default is 1e-6.
         random_state: Seed for reproducibility.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
@@ -680,7 +680,7 @@ class SpanCCA(_BaseIterative):
         tol: Convergence tolerance. Default is 1e-6.
         random_state: Seed for reproducibility.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
@@ -806,7 +806,7 @@ class WaijenborgCCA(_BaseIterative):
         tol: Convergence tolerance. Default is 1e-6.
         random_state: Seed for reproducibility.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
@@ -918,7 +918,7 @@ class ParkhomenkoCCA(_BaseIterative):
         tol: Convergence tolerance. Default is 1e-6.
         random_state: Seed for reproducibility.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
@@ -1088,7 +1088,7 @@ class SAR(_BaseIterative):
             lasso path's coordinate descent. Default is 1e-6.
         random_state: Seed for reproducible random initialisation.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> latent = rng.standard_normal(50)
