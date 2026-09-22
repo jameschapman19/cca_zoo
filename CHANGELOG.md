@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-09-22
+
 ### Added
 
 - Per-view hyperparameters for every nonlinear-encoder model that was previously
@@ -26,11 +28,6 @@ project adheres to [Semantic Versioning](https://semver.org/).
   per view should expose that rather than silently forcing it to be shared. For
   `TreeCCA`, a view whose `n_estimators` budget is exhausted first simply stops
   being boosted (its embedding stays fixed) while the other views continue.
-
-## [3.3.0] - 2026-09-22
-
-### Added
-
 - `cca_zoo.metrics`: a new module of plain functions (operating on already-computed
   arrays, the same convention `sklearn.metrics` uses -- not on a fitted model or raw
   views) for evaluating fitted multiview CCA models. `pairwise_correlations`,
