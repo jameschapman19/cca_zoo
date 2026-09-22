@@ -324,6 +324,18 @@ class GridSearchCV(_BaseMultiviewSearchCV):
         ...     CCA(), param_grid={"latent_dimensions": [1, 2]}, cv=2
         ... )
         >>> gs = gs.fit([X1, X2])
+
+        A per-view estimator parameter (e.g. :class:`~cca_zoo.linear.rCCA`'s
+        ridge ``c``) can be searched independently per view with a
+        ``name__<view index>`` suffix in ``param_grid``:
+
+        >>> from cca_zoo.linear import rCCA
+        >>> gs = GridSearchCV(
+        ...     rCCA(), param_grid={"c__0": [0.0, 0.1], "c__1": [0.0, 0.5]}, cv=2
+        ... )
+        >>> gs = gs.fit([X1, X2])
+        >>> sorted(gs.best_params_.items())
+        [('c__0', 0.0), ('c__1', 0.5)]
     """
 
     _inner_cv_cls = skms.GridSearchCV
@@ -436,6 +448,23 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
         ...     random_state=0,
         ... )
         >>> rs = rs.fit([X1, X2])
+
+        Per-view distributions use the same ``name__<view index>`` suffix
+        as :class:`GridSearchCV`:
+
+        >>> rs = RandomizedSearchCV(
+        ...     rCCA(),
+        ...     param_distributions={
+        ...         "c__0": loguniform(1e-3, 1.0),
+        ...         "c__1": loguniform(1e-3, 1.0),
+        ...     },
+        ...     n_iter=5,
+        ...     cv=2,
+        ...     random_state=0,
+        ... )
+        >>> rs = rs.fit([X1, X2])
+        >>> sorted(rs.best_params_.keys())
+        ['c__0', 'c__1']
     """
 
     _inner_cv_cls = skms.RandomizedSearchCV
@@ -567,6 +596,20 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
         ...     CCA(), param_grid={"latent_dimensions": [1, 2]}, cv=2
         ... )
         >>> hgs = hgs.fit([X1, X2])
+
+        Per-view parameters use the same ``name__<view index>`` suffix as
+        :class:`GridSearchCV`:
+
+        >>> from cca_zoo.linear import rCCA
+        >>> hgs = HalvingGridSearchCV(
+        ...     rCCA(),
+        ...     param_grid={"c__0": [0.0, 0.1], "c__1": [0.0, 0.5]},
+        ...     cv=2,
+        ...     random_state=0,
+        ... )
+        >>> hgs = hgs.fit([X1, X2])
+        >>> sorted(hgs.best_params_.items())
+        [('c__0', 0.1), ('c__1', 0.0)]
     """
 
     _inner_cv_cls = skms.HalvingGridSearchCV
@@ -712,6 +755,22 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
         ...     random_state=0,
         ... )
         >>> hrs = hrs.fit([X1, X2])
+
+        Per-view distributions use the same ``name__<view index>`` suffix
+        as :class:`RandomizedSearchCV`:
+
+        >>> hrs = HalvingRandomSearchCV(
+        ...     rCCA(),
+        ...     param_distributions={
+        ...         "c__0": loguniform(1e-3, 1.0),
+        ...         "c__1": loguniform(1e-3, 1.0),
+        ...     },
+        ...     cv=2,
+        ...     random_state=0,
+        ... )
+        >>> hrs = hrs.fit([X1, X2])
+        >>> sorted(hrs.best_params_.keys())
+        ['c__0', 'c__1']
     """
 
     _inner_cv_cls = skms.HalvingRandomSearchCV
