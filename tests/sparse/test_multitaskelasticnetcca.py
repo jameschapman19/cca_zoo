@@ -153,7 +153,10 @@ def test_objective_decreases_monotonically(
         )
         model.fit(correlated_views)
         reps = model.transform(correlated_views)
-        penalty = _group_penalty(model.weights, model.alpha, model.l1_ratio)
+        n_views = len(correlated_views)
+        penalty = _group_penalty(
+            model.weights, [model.alpha] * n_views, [model.l1_ratio] * n_views
+        )
         objs.append(ey_loss(reps)["objective"] + penalty)
     assert np.all(np.diff(objs) <= 1e-8), objs
 
@@ -188,6 +191,27 @@ def test_higher_alpha_increases_sparsity(
             sum(int(np.sum(np.linalg.norm(w, axis=1) > 1e-10)) for w in model.weights)
         )
     assert n_active_rows[0] >= n_active_rows[1] >= n_active_rows[2]
+
+
+def test_per_view_alpha_list_gives_sparser_penalised_view(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """A per-view alpha list applies a stronger penalty to only one view."""
+    model = MultiTaskElasticNetCCA(
+        latent_dimensions=2, alpha=[0.001, 1.0], l1_ratio=0.9, random_state=0
+    ).fit(correlated_views)
+    n_active_rows = [
+        int(np.sum(np.linalg.norm(w, axis=1) > 1e-10)) for w in model.weights
+    ]
+    assert n_active_rows[1] < n_active_rows[0]
+
+
+def test_per_view_alpha_wrong_length_raises(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """A per-view alpha list must have one entry per view."""
+    with pytest.raises(ValueError, match="alpha"):
+        MultiTaskElasticNetCCA(alpha=[0.1, 0.2, 0.3]).fit(two_views_small)
 
 
 # ---------------------------------------------------------------------------

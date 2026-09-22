@@ -19,7 +19,7 @@ from cca_zoo._utils._ey import (
     ey_grad_z,
     ey_loss,
 )
-from cca_zoo._utils._validation import validate_views
+from cca_zoo._utils._validation import perview_parameter, validate_views
 
 
 def _flatten(mats: list[np.ndarray]) -> np.ndarray:
@@ -43,17 +43,17 @@ def _gamcca_joint_obj_grad(
     bases: list[np.ndarray],
     grams: list[np.ndarray],
     cross: list[list[np.ndarray]],
-    ridge: float,
+    ridge: list[float],
     dims: list[int],
     k: int,
 ) -> tuple[float, np.ndarray]:
     r"""Penalised EY loss and gradient w.r.t. *every* view's coefficients at once.
 
     Writing $Z_i = \text{bases}_i B_i$ for every view $i$, this is
-    $\mathcal{L}_{EY}(Z_1, \dots, Z_M) + \tfrac12\lambda\sum_i\lVert B_i\rVert_F^2$
+    $\mathcal{L}_{EY}(Z_1, \dots, Z_M) + \tfrac12\sum_i\lambda_i\lVert B_i\rVert_F^2$
     as a function of $B_1, \dots, B_M$ flattened and concatenated into one
     vector, with its exact analytic gradient
-    $\text{bases}_i^\top\nabla_{Z_i}\mathcal{L}_{EY} + \lambda B_i$ per block
+    $\text{bases}_i^\top\nabla_{Z_i}\mathcal{L}_{EY} + \lambda_i B_i$ per block
     — the same two ingredients (:func:`~cca_zoo._utils._ey.ey_loss` and
     :func:`~cca_zoo._utils._ey.ey_grad_z`) every other EY-loss model in this
     package already uses. ``grams`` and ``cross`` are unused here; they are
@@ -66,7 +66,7 @@ def _gamcca_joint_obj_grad(
         bases: Fixed per-view (centred) B-spline design matrices.
         grams: ``bases[i].T @ bases[i]`` per view; unused (see above).
         cross: ``cross[i][a] = bases[i].T @ bases[a]`` for every pair; unused.
-        ridge: Ridge penalty strength.
+        ridge: Ridge penalty strength, one per view.
         dims: Number of basis columns per view (``bases[i].shape[1]``).
         k: Number of latent components.
 
@@ -75,11 +75,13 @@ def _gamcca_joint_obj_grad(
     """
     coefs = _unflatten(x, dims, k)
     reps = [basis @ b for basis, b in zip(bases, coefs)]
-    loss = ey_loss(reps)["objective"] + 0.5 * ridge * sum(
-        float(np.sum(b**2)) for b in coefs
+    loss = ey_loss(reps)["objective"] + 0.5 * sum(
+        r * float(np.sum(b**2)) for b, r in zip(coefs, ridge)
     )
     grad_z = ey_grad_z(reps)
-    grads = [basis.T @ gz + ridge * b for basis, gz, b in zip(bases, grad_z, coefs)]
+    grads = [
+        basis.T @ gz + r * b for basis, gz, b, r in zip(bases, grad_z, coefs, ridge)
+    ]
     return loss, _flatten(grads)
 
 
@@ -89,7 +91,7 @@ def _gamcca_joint_hessp(
     bases: list[np.ndarray],
     grams: list[np.ndarray],
     cross: list[list[np.ndarray]],
-    ridge: float,
+    ridge: list[float],
     dims: list[int],
     k: int,
 ) -> np.ndarray:
@@ -130,7 +132,7 @@ def _gamcca_joint_hessp(
         grams: ``bases[i].T @ bases[i]`` per view, precomputed once.
         cross: ``cross[i][a] = bases[i].T @ bases[a]`` for every pair,
             precomputed once.
-        ridge: Ridge penalty strength.
+        ridge: Ridge penalty strength, one per view.
         dims: Number of basis columns per view (``bases[i].shape[1]``).
         k: Number of latent components.
 
@@ -154,7 +156,7 @@ def _gamcca_joint_hessp(
         term1 = grams[i] @ directions[i] @ v
         term2 = (grams[i] @ coefs[i]) @ dv
         term3 = sum(cross[i][a] @ directions[a] for a in range(m))
-        hp_i = scale * (term1 + term2 - term3) + ridge * directions[i]
+        hp_i = scale * (term1 + term2 - term3) + ridge[i] * directions[i]
         hessian_vector_products.append(hp_i)
     return _flatten(hessian_vector_products)
 
@@ -305,9 +307,11 @@ class GAMCCA(BaseModel):
             Default is True.
         n_knots: Number of knots per feature's B-spline term, passed
             straight through to ``sklearn.preprocessing.SplineTransformer(
-            n_knots=...)``. Default is 5.
-        alpha: Ridge (smoothing) penalty strength applied to every spline
-            coefficient. Default is 0.1.
+            n_knots=...)``. Either a single value applied to every view or
+            a list of per-view values. Default is 5.
+        alpha: Ridge (smoothing) penalty strength(s) applied to every
+            spline coefficient. Either a single float applied to every
+            view or a list of per-view floats. Default is 0.1.
         max_iter: Maximum number of outer Newton iterations in the single
             joint ``"trust-krylov"`` solve (``scipy.optimize.minimize``'s own
             ``maxiter`` option). Default is 100.
@@ -323,12 +327,18 @@ class GAMCCA(BaseModel):
         >>> X2 = rng.standard_normal((200, 5))
         >>> model = GAMCCA(latent_dimensions=2).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
+
+        A different number of knots and penalty per view:
+
+        >>> model = GAMCCA(latent_dimensions=2, n_knots=[5, 8], alpha=[0.1, 0.5]).fit(
+        ...     [X1, X2]
+        ... )
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "n_knots": [Interval(Integral, 2, None, closed="left")],
-        "alpha": [Interval(Real, 0, None, closed="left")],
+        "n_knots": [Interval(Integral, 2, None, closed="left"), "array-like"],
+        "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
         "max_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
     }
@@ -337,8 +347,8 @@ class GAMCCA(BaseModel):
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        n_knots: int = 5,
-        alpha: float = 0.1,
+        n_knots: int | list[int] = 5,
+        alpha: float | list[float] = 0.1,
         max_iter: int = 100,
         tol: float = 1e-6,
         random_state: int = 0,
@@ -367,7 +377,9 @@ class GAMCCA(BaseModel):
         views_ = self._setup_fit(views)
         k = self.latent_dimensions
         m = len(views_)
-        encoders = [_GamEncoder(X, k, self.n_knots) for X in views_]
+        n_knots_ = perview_parameter("n_knots", self.n_knots, 5, self.n_views_)
+        alpha_ = perview_parameter("alpha", self.alpha, 0.1, self.n_views_)
+        encoders = [_GamEncoder(X, k, nk) for X, nk in zip(views_, n_knots_)]
         bases = [enc.basis_ for enc in encoders]
         dims = [basis.shape[1] for basis in bases]
         grams = [basis.T @ basis for basis in bases]
@@ -380,7 +392,7 @@ class GAMCCA(BaseModel):
         result = minimize(
             _gamcca_joint_obj_grad,
             x0,
-            args=(bases, grams, cross, self.alpha, dims, k),
+            args=(bases, grams, cross, alpha_, dims, k),
             jac=True,
             hessp=_gamcca_joint_hessp,
             method="trust-krylov",

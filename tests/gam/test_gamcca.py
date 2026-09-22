@@ -209,6 +209,35 @@ def test_encoder_basis_is_sklearn_spline_transformer(
 
 
 # ---------------------------------------------------------------------------
+# Per-view parameters
+# ---------------------------------------------------------------------------
+
+
+def test_per_view_n_knots_list(two_views_small: list[np.ndarray]) -> None:
+    """A per-view n_knots list gives each view a different spline basis size."""
+    model = _make_model(n_knots=[5, 10]).fit(two_views_small)
+    assert model.encoders_[0].n_splines_ != model.encoders_[1].n_splines_
+
+
+def test_per_view_alpha_list_gives_smaller_penalised_view_coefficients(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """A per-view alpha list shrinks only the strongly-penalised view's coefficients."""
+    model = _make_model(alpha=[0.01, 100.0], random_state=0).fit(correlated_views)
+    norm0 = np.linalg.norm(model.encoders_[0].coef_)
+    norm1 = np.linalg.norm(model.encoders_[1].coef_)
+    assert norm1 < norm0
+
+
+def test_per_view_alpha_wrong_length_raises(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """A per-view alpha list must have one entry per view."""
+    with pytest.raises(ValueError, match="alpha"):
+        _make_model(alpha=[0.1, 0.2, 0.3]).fit(two_views_small)
+
+
+# ---------------------------------------------------------------------------
 # shape_function
 # ---------------------------------------------------------------------------
 

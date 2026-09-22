@@ -210,6 +210,59 @@ def test_weights_not_fitted_raises() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Per-view parameters
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("method", ["laplacian", "lle"])
+def test_per_view_n_neighbors_list_fits_and_transforms(
+    method: str, two_views_small: list[np.ndarray]
+) -> None:
+    """A per-view n_neighbors list still fits and extrapolates sensibly."""
+    model = _make_model(method=method, n_neighbors=[6, 12]).fit(two_views_small)
+    transformed = model.transform(two_views_small)
+    for w, t in zip(model.weights, transformed):
+        corr = np.corrcoef(w[:, 0], t[:, 0])[0, 1]
+        assert abs(corr) > 0.8
+
+
+def test_per_view_n_operator_components_list_fits_and_transforms(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """A per-view n_operator_components list (differing block sizes) still works."""
+    k = 2
+    model = _make_model(latent_dimensions=k, n_operator_components=[8, 15]).fit(
+        two_views_small
+    )
+    n = two_views_small[0].shape[0]
+    for w in model.weights:
+        assert w.shape == (n, k)
+    transformed = model.transform(two_views_small)
+    for w, t in zip(model.weights, transformed):
+        corr = np.corrcoef(w[:, 0], t[:, 0])[0, 1]
+        assert abs(corr) > 0.8
+
+
+def test_per_view_affinity_and_gamma_lists(two_views_small: list[np.ndarray]) -> None:
+    """Per-view affinity/gamma lists let each view use a different RBF setting."""
+    model = _make_model(
+        method="laplacian",
+        affinity=["rbf", "nearest_neighbors"],
+        gamma=[0.5, None],
+    ).fit(two_views_small)
+    assert model._laplacian_state_[0].gamma == pytest.approx(0.5)
+    assert model._laplacian_state_[1].gamma is None
+
+
+def test_per_view_n_neighbors_wrong_length_raises(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """A per-view n_neighbors list must have one entry per view."""
+    with pytest.raises(ValueError, match="n_neighbors"):
+        _make_model(n_neighbors=[5, 6, 7]).fit(two_views_small)
+
+
+# ---------------------------------------------------------------------------
 # Correctness
 # ---------------------------------------------------------------------------
 

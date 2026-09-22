@@ -23,7 +23,7 @@ from cca_zoo._utils._ey import (
     ey_grad_z,
     ey_loss,
 )
-from cca_zoo._utils._validation import validate_views
+from cca_zoo._utils._validation import perview_parameter, validate_views
 
 
 def _lbfgsb_joint_objective(
@@ -32,17 +32,17 @@ def _lbfgsb_joint_objective(
     ridge_matrices: list[np.ndarray],
     shapes: list[tuple[int, int]],
     sizes: list[int],
-    ridge: float,
+    ridge: list[float],
 ) -> tuple[float, np.ndarray]:
     r"""Penalised EY loss and its exact gradient, jointly over every view.
 
     Writing $Z_i = \text{bases}_i B_i$ for every view at once, this is
-    $\mathcal{L}_{EY} + \tfrac12\lambda\sum_i\sum_c B_i[:,c]^\top M_i B_i[:,c]$
-    (the RKHS-norm ridge penalty, $M_i$ = ``ridge_matrices[i]`` — see
-    :class:`_GpEncoder`) as a function of every view's coefficients $B_i$,
-    concatenated and flattened into one vector ``x``, with its exact
-    analytic gradient
-    $\text{bases}_i^\top\nabla_{Z_i}\mathcal{L}_{EY} + \lambda M_i B_i$ per
+    $\mathcal{L}_{EY} + \tfrac12\sum_i\lambda_i\sum_c B_i[:,c]^\top M_i B_i[:,c]$
+    (the RKHS-norm ridge penalty, $M_i$ = ``ridge_matrices[i]``, $\lambda_i$
+    = ``ridge[i]`` — see :class:`_GpEncoder`) as a function of every view's
+    coefficients $B_i$, concatenated and flattened into one vector ``x``,
+    with its exact analytic gradient
+    $\text{bases}_i^\top\nabla_{Z_i}\mathcal{L}_{EY} + \lambda_i M_i B_i$ per
     view — the same two ingredients
     (:func:`~cca_zoo._utils._ey.ey_loss` and
     :func:`~cca_zoo._utils._ey.ey_grad_z`) every other EY-loss model in this
@@ -59,15 +59,15 @@ def _lbfgsb_joint_objective(
 
     representations = [basis @ b for basis, b in zip(bases, coefficients)]
     loss = ey_loss(representations)["objective"]
-    penalty = (
-        0.5
-        * ridge
-        * sum(np.sum(b * (m @ b)) for b, m in zip(coefficients, ridge_matrices))
+    penalty = 0.5 * sum(
+        r * np.sum(b * (m @ b)) for b, m, r in zip(coefficients, ridge_matrices, ridge)
     )
     grad_z = ey_grad_z(representations)
     grads = [
-        basis.T @ gz + ridge * (m @ b)
-        for basis, gz, m, b in zip(bases, grad_z, ridge_matrices, coefficients)
+        basis.T @ gz + r * (m @ b)
+        for basis, gz, m, b, r in zip(
+            bases, grad_z, ridge_matrices, coefficients, ridge
+        )
     ]
     grad = np.concatenate([g.ravel() for g in grads])
     return loss + penalty, grad
@@ -253,18 +253,23 @@ class GaussianProcessCCA(BaseModel):
             number of features in any view. Default is 1.
         center: Whether to subtract per-view column means before fitting.
             Default is True.
-        kernel: Fixed kernel used for every view. ``None`` (the default)
-            uses ``ConstantKernel(1.0) * RBF(length_scale=np.ones(p))`` for
-            each view's own feature count ``p``. If given explicitly, the
-            same kernel (cloned per view) is used for every view, so its
-            hyperparameters (e.g. an ARD ``length_scale`` array) must be
-            compatible with every view's feature count.
-        alpha: Ridge (RKHS-norm) penalty strength, also used as the noise
-            level for the posterior-variance calculation. Default is 0.01.
-        n_inducing: Number of basis ("inducing") points. ``None`` (the
-            default) uses every training row (exact inference, appropriate
-            up to a few thousand samples). For larger datasets, set this to
-            a few hundred to make fitting scale as
+        kernel: Kernel(s) used for each view. Either a single kernel
+            (cloned per view -- its hyperparameters, e.g. an ARD
+            ``length_scale`` array, must then be compatible with every
+            view's feature count) or a list of one kernel per view. ``None``
+            entries (including a bare ``None``, the default) fall back to
+            ``ConstantKernel(1.0) * RBF(length_scale=np.ones(p))`` for that
+            view's own feature count ``p``.
+        alpha: Ridge (RKHS-norm) penalty strength(s), also used as the
+            noise level for the posterior-variance calculation. Either a
+            single float applied to every view or a list of per-view
+            floats. Default is 0.01.
+        n_inducing: Number of basis ("inducing") points. Either a single
+            value or a list of per-view values. ``None`` (the default,
+            either as a scalar or a per-view list entry) uses every
+            training row (exact inference, appropriate up to a few thousand
+            samples) for that view. For larger datasets, set this to a few
+            hundred to make fitting scale as
             $O(n \, \text{n\_inducing}^2)$ instead of $O(n^3)$. Values at or
             above the number of training samples fall back to exact
             inference automatically.
@@ -285,23 +290,29 @@ class GaussianProcessCCA(BaseModel):
         >>> means, stds = model.transform([X1, X2], return_std=True)
         >>> # For larger datasets, cap inference cost with inducing points:
         >>> big_model = GaussianProcessCCA(latent_dimensions=1, n_inducing=200)
+
+        A different ridge penalty per view:
+
+        >>> model = GaussianProcessCCA(latent_dimensions=1, alpha=[0.01, 0.1]).fit(
+        ...     [X1, X2]
+        ... )
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "alpha": [Interval(Real, 0, None, closed="left")],
+        "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
         "max_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
-        "n_inducing": [None, Interval(Integral, 2, None, closed="left")],
+        "n_inducing": [None, Interval(Integral, 2, None, closed="left"), "array-like"],
     }
 
     def __init__(
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        kernel: Kernel | None = None,
-        alpha: float = 0.01,
-        n_inducing: int | None = None,
+        kernel: Kernel | list[Kernel | None] | None = None,
+        alpha: float | list[float] = 0.01,
+        n_inducing: int | list[int | None] | None = None,
         max_iter: int = 1000,
         tol: float = 1e-6,
         random_state: int = 0,
@@ -331,20 +342,26 @@ class GaussianProcessCCA(BaseModel):
         views_ = self._setup_fit(views)
         k = self.latent_dimensions
 
+        kernel_ = perview_parameter("kernel", self.kernel, None, self.n_views_)
+        alpha_ = perview_parameter("alpha", self.alpha, 0.01, self.n_views_)
+        n_inducing_ = perview_parameter(
+            "n_inducing", self.n_inducing, None, self.n_views_
+        )
+
         encoders = [
             _GpEncoder(
                 X,
                 k,
                 (
-                    clone(self.kernel)
-                    if self.kernel is not None
+                    clone(kern)
+                    if kern is not None
                     else ConstantKernel(1.0) * RBF(length_scale=np.ones(X.shape[1]))
                 ),
-                self.alpha,
-                self.n_inducing,
+                a,
+                n_ind,
                 self.random_state,
             )
-            for X in views_
+            for X, kern, a, n_ind in zip(views_, kernel_, alpha_, n_inducing_)
         ]
 
         bases = [enc.basis_ for enc in encoders]
@@ -359,7 +376,7 @@ class GaussianProcessCCA(BaseModel):
         result = minimize(
             _lbfgsb_joint_objective,
             x0,
-            args=(bases, ridge_matrices, shapes, sizes, self.alpha),
+            args=(bases, ridge_matrices, shapes, sizes, alpha_),
             jac=True,
             method="L-BFGS-B",
             options={"maxiter": self.max_iter, "ftol": self.tol},
