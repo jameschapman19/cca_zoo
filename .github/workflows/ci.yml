@@ -111,11 +111,17 @@ jobs:
       # Only the modules importable without optional heavy deps (torch,
       # xgboost, numpyro/jax) — same rationale as the "not slow" filter
       # above. Runs once since doctest results don't vary by interpreter.
+      # cca_zoo/stochastic must be collected alongside cca_zoo/linear (not
+      # on its own): importing it standalone hits a circular import, since
+      # cca_zoo.linear._moved imports StochasticCCAEY back from
+      # cca_zoo.stochastic before cca_zoo.linear itself has finished
+      # initialising.
       - name: Run doctests
         if: matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'
         run: |
           uv run pytest --doctest-modules --no-cov \
-            cca_zoo/linear cca_zoo/nonparametric cca_zoo/datasets cca_zoo/model_selection cca_zoo/metrics
+            cca_zoo/linear cca_zoo/nonparametric cca_zoo/datasets cca_zoo/model_selection cca_zoo/metrics \
+            cca_zoo/gam cca_zoo/gp cca_zoo/sparse cca_zoo/stochastic cca_zoo/preprocessing
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
