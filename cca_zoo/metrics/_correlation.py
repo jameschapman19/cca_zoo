@@ -32,6 +32,17 @@ def pairwise_correlations(transformed: Sequence[ArrayLike]) -> np.ndarray:
         Array of shape (n_views, n_views, latent_dimensions) where entry
         ``[i, j, d]`` is the Pearson correlation between view i's and view
         j's d-th canonical variate.
+
+    Example:
+        >>> import numpy as np
+        >>> rng = np.random.default_rng(0)
+        >>> t1 = rng.standard_normal((20, 1))
+        >>> t2 = 0.8 * t1 + 0.2 * rng.standard_normal((20, 1))
+        >>> corrs = pairwise_correlations([t1, t2])
+        >>> corrs.shape
+        (2, 2, 1)
+        >>> round(float(corrs[0, 1, 0]), 2)
+        0.98
     """
     T = np.stack([np.asarray(t) for t in transformed], axis=0)
     T = T - T.mean(axis=1, keepdims=True)
@@ -51,6 +62,18 @@ def average_pairwise_correlations(correlations: ArrayLike) -> np.ndarray:
     Returns:
         Array of shape (latent_dimensions,) with the average off-diagonal
         pairwise correlation for each canonical dimension.
+
+    Example:
+        >>> import numpy as np
+        >>> rng = np.random.default_rng(0)
+        >>> t1 = rng.standard_normal((20, 1))
+        >>> t2 = 0.8 * t1 + 0.2 * rng.standard_normal((20, 1))
+        >>> corrs = pairwise_correlations([t1, t2])
+        >>> avg = average_pairwise_correlations(corrs)
+        >>> avg.shape
+        (1,)
+        >>> round(float(avg[0]), 2)
+        0.98
     """
     corrs = np.asarray(correlations)
     n_views = corrs.shape[0]
@@ -77,6 +100,19 @@ def factor_loadings(
         List of arrays, each of shape (n_features_i, latent_dimensions),
         where entry ``[j, d]`` is the correlation between feature j of
         view i and the d-th canonical variate of view i.
+
+    Example:
+        >>> import numpy as np
+        >>> rng = np.random.default_rng(0)
+        >>> t1 = rng.standard_normal((20, 1))
+        >>> view1 = np.column_stack(
+        ...     [t1[:, 0] + 0.3 * rng.standard_normal(20), rng.standard_normal(20)]
+        ... )
+        >>> loadings = factor_loadings([view1], [t1])
+        >>> loadings[0].shape
+        (2, 1)
+        >>> round(float(loadings[0][0, 0]), 2)
+        0.97
     """
     loadings = []
     for view, variate in zip(views, transformed):
