@@ -167,7 +167,7 @@ class BaseModel(BaseEstimator, ABC):
             ValueError: If ``scores`` has the wrong length, or an entry has
                 the wrong number of latent dimensions.
 
-        Example:
+        Examples:
             >>> import numpy as np
             >>> from cca_zoo.linear import CCA
             >>> rng = np.random.default_rng(0)
@@ -332,7 +332,7 @@ class BaseModel(BaseEstimator, ABC):
                 samples, or an observed view has the wrong number of
                 features.
 
-        Example:
+        Examples:
             >>> import numpy as np
             >>> from cca_zoo.linear import CCA
             >>> rng = np.random.default_rng(0)

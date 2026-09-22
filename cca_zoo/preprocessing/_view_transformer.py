@@ -34,7 +34,7 @@ class PerViewTransformer(BaseEstimator):
             ``[StandardScaler(), SimpleImputer()]`` when only one view has
             missing values).
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from sklearn.pipeline import Pipeline
         >>> from sklearn.preprocessing import StandardScaler

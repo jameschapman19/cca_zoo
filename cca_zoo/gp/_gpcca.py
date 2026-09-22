@@ -275,7 +275,7 @@ class GaussianProcessCCA(BaseModel):
         random_state: Seed for the initial coefficients and (if
             ``n_inducing`` is set) for selecting inducing points.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((100, 3))

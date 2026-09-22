@@ -33,7 +33,7 @@ def pairwise_correlations(transformed: Sequence[ArrayLike]) -> np.ndarray:
         ``[i, j, d]`` is the Pearson correlation between view i's and view
         j's d-th canonical variate.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> t1 = rng.standard_normal((20, 1))
@@ -63,7 +63,7 @@ def average_pairwise_correlations(correlations: ArrayLike) -> np.ndarray:
         Array of shape (latent_dimensions,) with the average off-diagonal
         pairwise correlation for each canonical dimension.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> t1 = rng.standard_normal((20, 1))
@@ -101,7 +101,7 @@ def factor_loadings(
         where entry ``[j, d]`` is the correlation between feature j of
         view i and the d-th canonical variate of view i.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> t1 = rng.standard_normal((20, 1))

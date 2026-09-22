@@ -43,7 +43,7 @@ class rCCA(BaseModel):
             is applied to both views; a list ``[c1, c2]`` applies per-view
             regularisation.  Default is 0 (standard CCA).
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))

@@ -48,7 +48,7 @@ class TCCA(BaseModel):
         eps: Regularisation floor for within-view covariance matrices.
         random_state: Seed for reproducibility (passed to PARAFAC).
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 5))

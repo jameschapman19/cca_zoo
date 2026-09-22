@@ -102,7 +102,7 @@ class DCCANOI(DCCA):
     Raises:
         ValueError: If ``rho`` is not in [0, 1].
 
-    Example:
+    Examples:
         >>> import torch
         >>> import torch.nn as nn
         >>> enc1 = nn.Linear(10, 4)

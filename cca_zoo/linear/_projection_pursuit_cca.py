@@ -229,7 +229,7 @@ class ProjectionPursuitCCA(BaseModel):
         association between data sets: The R package ccaPP. Austrian
         Journal of Statistics, 45(1), 71-79.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 6))

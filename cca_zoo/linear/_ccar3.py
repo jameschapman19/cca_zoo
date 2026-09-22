@@ -120,7 +120,7 @@ class CCAR3(BaseModel):
         eps: Small constant added to covariance matrices before inversion,
             for numerical stability. Default 1e-8.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))

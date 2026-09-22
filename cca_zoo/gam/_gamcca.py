@@ -316,7 +316,7 @@ class GAMCCA(BaseModel):
             1e-6.
         random_state: Seed for the initial coefficients.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 5))

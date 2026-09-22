@@ -46,7 +46,7 @@ class DCCA(BaseDeep):
         eps: Regularisation parameter passed to the default CCALoss when
             ``objective`` is ``None``. Default is 1e-6.
 
-    Example:
+    Examples:
         >>> import torch
         >>> import torch.nn as nn
         >>> enc1 = nn.Linear(10, 4)

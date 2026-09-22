@@ -41,7 +41,7 @@ class DMCCA(DCCA):
         eps: Ridge regularisation passed to each pairwise CCA loss.
             Default is 1e-6.
 
-    Example:
+    Examples:
         >>> import torch.nn as nn
         >>> enc1 = nn.Linear(10, 4)
         >>> enc2 = nn.Linear(8, 4)

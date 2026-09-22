@@ -456,7 +456,7 @@ class XGBoostCCA(TreeCCA):
     Gauss-Seidel boosting recipe; this class fixes the gradient-boosting
     backend to `XGBoost <https://xgboost.readthedocs.io/>`_.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((100, 5))
@@ -502,7 +502,7 @@ class LightGBMCCA(TreeCCA):
     requires the optional ``lightgbm`` package (``pip install lightgbm``,
     included in the ``tree`` extra).
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((100, 5))
@@ -583,7 +583,7 @@ class CatBoostCCA(TreeCCA):
     such call), a cost worth paying when CatBoost's ordered-boosting and
     symmetric-tree structure are themselves the point.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((100, 5))

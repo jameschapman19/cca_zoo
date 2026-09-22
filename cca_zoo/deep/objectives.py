@@ -46,7 +46,7 @@ class CCALoss(nn.Module):
         eps: Ridge regularisation added to within-view covariance
             matrices for numerical stability. Default is 1e-5.
 
-    Example:
+    Examples:
         >>> import torch
         >>> loss_fn = CCALoss(eps=1e-4)
         >>> z1 = torch.randn(32, 4)
@@ -123,7 +123,7 @@ class MCCALoss(nn.Module):
         eps: Ridge regularisation passed to each pairwise CCALoss.
             Default is 1e-5.
 
-    Example:
+    Examples:
         >>> import torch
         >>> loss_fn = MCCALoss(eps=1e-4)
         >>> views = [torch.randn(32, 4) for _ in range(3)]
@@ -178,7 +178,7 @@ class GCCALoss(nn.Module):
         eps: Ridge regularisation for within-view covariance inversion.
             Default is 1e-5.
 
-    Example:
+    Examples:
         >>> import torch
         >>> loss_fn = GCCALoss(eps=1e-4)
         >>> views = [torch.randn(32, 4) for _ in range(3)]
@@ -246,7 +246,7 @@ class TCCALoss(nn.Module):
     Args:
         eps: Ridge regularisation for whitening. Default is 1e-5.
 
-    Example:
+    Examples:
         >>> import torch
         >>> loss_fn = TCCALoss(eps=1e-4)
         >>> views = [torch.randn(32, 4) for _ in range(3)]

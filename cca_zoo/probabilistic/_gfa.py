@@ -127,7 +127,7 @@ class GFA(PosteriorMeanTransformMixin, BaseModel):
         random_state: Integer seed for reproducible initialization. Default
             is 0.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 4))

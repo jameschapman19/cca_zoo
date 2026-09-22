@@ -54,7 +54,7 @@ class MultiviewWrapper(BaseEstimator):
         split_indices: Number of features in each view, in order. Used to
             split the concatenated array back into views.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from sklearn.model_selection import cross_val_score
         >>> from cca_zoo.linear import CCA
@@ -313,7 +313,7 @@ class GridSearchCV(_BaseMultiviewSearchCV):
         return_train_score: If ``True``, ``cv_results_`` also includes
             training scores.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import CCA
         >>> from cca_zoo.model_selection import GridSearchCV
@@ -420,7 +420,7 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
         return_train_score: If ``True``, ``cv_results_`` also includes
             training scores.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from scipy.stats import loguniform
         >>> from cca_zoo.linear import rCCA
@@ -556,7 +556,7 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
             (sequential).
         verbose: Verbosity level. Default is 0.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import CCA
         >>> from cca_zoo.model_selection import HalvingGridSearchCV
@@ -697,7 +697,7 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
             (sequential).
         verbose: Verbosity level. Default is 0.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from scipy.stats import loguniform
         >>> from cca_zoo.linear import rCCA

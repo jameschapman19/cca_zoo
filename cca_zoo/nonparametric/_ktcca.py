@@ -39,7 +39,7 @@ class KTCCA(BaseModel):
         eps: Regularisation floor. Default is 1e-3.
         random_state: Seed for PARAFAC. Default is None.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((20, 5))

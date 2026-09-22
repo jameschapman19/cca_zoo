@@ -35,7 +35,7 @@ def adequacy_coefficient(loadings: Sequence[ArrayLike]) -> list[np.ndarray]:
         List of arrays, each of shape (latent_dimensions,): view i's own
         variance extracted by each of its canonical dimensions.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.metrics import factor_loadings
         >>> rng = np.random.default_rng(0)
@@ -80,7 +80,7 @@ def redundancy_index(
         canonical variate. The diagonal ``[i, i, d]`` equals view i's own
         adequacy coefficient, since a view's correlation with itself is 1.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.metrics import factor_loadings, pairwise_correlations
         >>> rng = np.random.default_rng(0)
@@ -118,7 +118,7 @@ def total_redundancy(redundancy: ArrayLike) -> np.ndarray:
         proportion of view i's variance explained by view j's canonical
         variates, summed over every retained dimension.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.metrics import factor_loadings, pairwise_correlations
         >>> rng = np.random.default_rng(0)

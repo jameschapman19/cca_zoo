@@ -32,7 +32,7 @@ class CCA(rCCA):
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default True.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
@@ -66,7 +66,7 @@ class CCA(rCCA):
             ValueError: If the number of views is not exactly 2.
             ValueError: If views have inconsistent numbers of samples.
 
-        Example:
+        Examples:
             >>> import numpy as np
             >>> rng = np.random.default_rng(0)
             >>> X1 = rng.standard_normal((50, 10))

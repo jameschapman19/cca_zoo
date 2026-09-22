@@ -63,7 +63,7 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
             Default is 1e-6.
         random_state: Seed for the initial (dense, pre-selection) weights.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 20))

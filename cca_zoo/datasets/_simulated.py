@@ -34,7 +34,7 @@ class JointData:
             means less noise.  Default is 1.0.
         random_state: Integer seed or ``None`` for reproducibility.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> data = JointData(
         ...     n_views=2, n_samples=100, latent_dimensions=2, random_state=0
@@ -138,7 +138,7 @@ class JointData:
         Returns:
             List of numpy arrays, one per view.
 
-        Example:
+        Examples:
             >>> data = JointData(n_views=2, n_samples=50, random_state=1)
             >>> views = data()
             >>> len(views)

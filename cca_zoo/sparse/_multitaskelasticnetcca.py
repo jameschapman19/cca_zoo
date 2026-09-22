@@ -70,7 +70,7 @@ class MultiTaskElasticNetCCA(BaseModel):
             between consecutive sweeps. Default is 1e-6.
         random_state: Seed for the initial weights.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 20))

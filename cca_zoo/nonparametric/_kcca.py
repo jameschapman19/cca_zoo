@@ -49,7 +49,7 @@ class KCCA(BaseModel):
         kernel_params: Extra per-view keyword arguments for the kernel.
         eps: Regularisation floor for the B matrix. Default is 1e-3.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((30, 5))

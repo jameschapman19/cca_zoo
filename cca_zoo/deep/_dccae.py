@@ -51,7 +51,7 @@ class DCCAE(BaseDeep):
     Raises:
         ValueError: If ``lam`` is not in [0, 1].
 
-    Example:
+    Examples:
         >>> import torch
         >>> import torch.nn as nn
         >>> enc1, enc2 = nn.Linear(10, 4), nn.Linear(8, 4)

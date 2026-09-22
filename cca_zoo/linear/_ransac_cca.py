@@ -110,7 +110,7 @@ class RANSACCCA(BaseModel):
             one seen so far. Default is 0.99.
         random_state: Seed for the random subset draws.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 8))

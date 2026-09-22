@@ -76,7 +76,7 @@ class VariationalBayesCCA(PosteriorMeanTransformMixin, BaseModel):
             Default is 1000.
         random_state: Integer seed for JAX PRNG. Default is 0.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 4))
