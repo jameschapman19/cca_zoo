@@ -11,6 +11,7 @@ from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import coordinate_descent_ey
+from cca_zoo._utils._validation import perview_parameter
 
 
 class ElasticNetCCA(BaseModel):
@@ -57,9 +58,12 @@ class ElasticNetCCA(BaseModel):
     Args:
         latent_dimensions: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.
-        alpha: Overall elastic-net penalty strength. Default is 1.0.
-        l1_ratio: Elastic-net mixing parameter in ``[0, 1]``; 0 is pure
-            ridge, 1 is pure lasso. Default is 0.5.
+        alpha: Overall elastic-net penalty strength(s). Either a single
+            float applied to every view or a list of per-view floats.
+            Default is 1.0.
+        l1_ratio: Elastic-net mixing parameter(s) in ``[0, 1]``; 0 is pure
+            ridge, 1 is pure lasso. Either a single float applied to every
+            view or a list of per-view floats. Default is 0.5.
         max_iter: Maximum number of full coordinate-descent sweeps (every
             view, feature, and component once each). Default is 100.
         tol: Convergence tolerance on the penalised objective's change
@@ -77,12 +81,18 @@ class ElasticNetCCA(BaseModel):
         >>> X2 = rng.standard_normal((200, 15))
         >>> model = ElasticNetCCA(latent_dimensions=2, alpha=0.1).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
+
+        A different penalty per view:
+
+        >>> model = ElasticNetCCA(latent_dimensions=2, alpha=[0.1, 0.5]).fit(
+        ...     [X1, X2]
+        ... )
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "alpha": [Interval(Real, 0, None, closed="left")],
-        "l1_ratio": [Interval(Real, 0, 1, closed="both")],
+        "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
+        "l1_ratio": [Interval(Real, 0, 1, closed="both"), "array-like"],
         "max_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
         "positive": ["boolean"],
@@ -92,8 +102,8 @@ class ElasticNetCCA(BaseModel):
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        alpha: float = 1.0,
-        l1_ratio: float = 0.5,
+        alpha: float | list[float] = 1.0,
+        l1_ratio: float | list[float] = 0.5,
         max_iter: int = 100,
         tol: float = 1e-6,
         random_state: int | None = None,
@@ -122,12 +132,14 @@ class ElasticNetCCA(BaseModel):
             ValueError: If views have inconsistent numbers of samples.
         """
         views_ = self._setup_fit(views)
+        alpha_ = perview_parameter("alpha", self.alpha, 1.0, self.n_views_)
+        l1_ratio_ = perview_parameter("l1_ratio", self.l1_ratio, 0.5, self.n_views_)
         rng = np.random.default_rng(self.random_state)
         weights, _ = coordinate_descent_ey(
             bases=views_,
             k=self.latent_dimensions,
-            alpha=self.alpha,
-            l1_ratio=self.l1_ratio,
+            alpha=alpha_,
+            l1_ratio=l1_ratio_,
             max_iter=self.max_iter,
             tol=self.tol,
             rng=rng,

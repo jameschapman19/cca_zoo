@@ -16,7 +16,7 @@ from cca_zoo._utils._ey import (
     random_orthogonal_embedding,
     rescale_grads_to_target_std,
 )
-from cca_zoo._utils._validation import validate_views
+from cca_zoo._utils._validation import perview_parameter, validate_views
 
 try:
     import lightgbm as lgb
@@ -282,14 +282,26 @@ class TreeCCA(BaseModel, ABC):
         center: Whether to subtract per-view column means before fitting.
             Default is True.
         n_estimators: Number of boosting rounds (trees added per booster).
-            Default is 50.
-        max_depth: Maximum depth of each tree. Default is 5.
-        learning_rate: Boosting learning rate. Default is 0.1.
-        subsample: Row subsampling ratio per tree. Default is 0.8.
-        colsample_bytree: Column subsampling ratio per tree. Default is 0.8.
+            Either a single value applied to every view or a list of
+            per-view values -- a view whose budget is exhausted first
+            stops being boosted (its embedding stays fixed) while the
+            others continue. Default is 50.
+        max_depth: Maximum depth of each tree. Either a single value
+            applied to every view or a list of per-view values. Default
+            is 5.
+        learning_rate: Boosting learning rate(s). Either a single float
+            applied to every view or a list of per-view floats. Default
+            is 0.1.
+        subsample: Row subsampling ratio(s) per tree. Either a single
+            float applied to every view or a list of per-view floats.
+            Default is 0.8.
+        colsample_bytree: Column subsampling ratio(s) per tree. Either a
+            single float applied to every view or a list of per-view
+            floats. Default is 0.8.
         min_child_weight: Minimum sum of instance weight (XGBoostCCA) /
             minimum number of samples (LightGBMCCA, CatBoostCCA) needed in
-            a child/leaf. Default is 5.
+            a child/leaf. Either a single value applied to every view or a
+            list of per-view values. Default is 5.
         gauss_seidel: If True, re-predict view 1's embedding after updating
             its boosters and use the fresh values when computing view 2's
             gradient (Gauss-Seidel); if False, both gradients are computed
@@ -302,12 +314,12 @@ class TreeCCA(BaseModel, ABC):
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        n_estimators: int = 50,
-        max_depth: int = 5,
-        learning_rate: float = 0.1,
-        subsample: float = 0.8,
-        colsample_bytree: float = 0.8,
-        min_child_weight: float = 5,
+        n_estimators: int | list[int] = 50,
+        max_depth: int | list[int] = 5,
+        learning_rate: float | list[float] = 0.1,
+        subsample: float | list[float] = 0.8,
+        colsample_bytree: float | list[float] = 0.8,
+        min_child_weight: float | list[float] = 5,
         gauss_seidel: bool = True,
         random_state: int = 0,
     ) -> None:
@@ -322,8 +334,22 @@ class TreeCCA(BaseModel, ABC):
         self.random_state = random_state
 
     @abstractmethod
-    def _booster_params(self) -> dict[str, object]:
-        """Build the backend-specific booster parameter dictionary.
+    def _booster_params(
+        self,
+        learning_rate: float,
+        max_depth: int,
+        subsample: float,
+        colsample_bytree: float,
+        min_child_weight: float,
+    ) -> dict[str, object]:
+        """Build the backend-specific booster parameter dictionary for one view.
+
+        Args:
+            learning_rate: This view's resolved ``learning_rate``.
+            max_depth: This view's resolved ``max_depth``.
+            subsample: This view's resolved ``subsample``.
+            colsample_bytree: This view's resolved ``colsample_bytree``.
+            min_child_weight: This view's resolved ``min_child_weight``.
 
         Returns:
             Dictionary of training parameters for this backend.
@@ -379,6 +405,21 @@ class TreeCCA(BaseModel, ABC):
         k = self.latent_dimensions
         n_views = len(views_)
 
+        n_estimators_ = perview_parameter(
+            "n_estimators", self.n_estimators, 50, n_views
+        )
+        max_depth_ = perview_parameter("max_depth", self.max_depth, 5, n_views)
+        learning_rate_ = perview_parameter(
+            "learning_rate", self.learning_rate, 0.1, n_views
+        )
+        subsample_ = perview_parameter("subsample", self.subsample, 0.8, n_views)
+        colsample_bytree_ = perview_parameter(
+            "colsample_bytree", self.colsample_bytree, 0.8, n_views
+        )
+        min_child_weight_ = perview_parameter(
+            "min_child_weight", self.min_child_weight, 5, n_views
+        )
+
         rng = np.random.default_rng(self.random_state)
         base_margins = []
         projections = []
@@ -388,16 +429,29 @@ class TreeCCA(BaseModel, ABC):
             projections.append(proj)
         self._projections_: list[np.ndarray] = projections
 
-        params = self._booster_params()
-        encoders = [self._make_encoder(X, k, params) for X in views_]
+        params_per_view = [
+            self._booster_params(
+                learning_rate_[i],
+                max_depth_[i],
+                subsample_[i],
+                colsample_bytree_[i],
+                min_child_weight_[i],
+            )
+            for i in range(n_views)
+        ]
+        encoders = [
+            self._make_encoder(X, k, p) for X, p in zip(views_, params_per_view)
+        ]
 
-        for _ in range(self.n_estimators):
+        for round_idx in range(max(n_estimators_)):
             representations = [
                 bm + enc.predict() for bm, enc in zip(base_margins, encoders)
             ]
             grads = _rescale_to_target_std(ey_grad_z(representations))
 
             for view_idx in range(n_views):
+                if round_idx >= n_estimators_[view_idx]:
+                    continue
                 encoders[view_idx].boost(grads[view_idx])
                 if self.gauss_seidel and view_idx < n_views - 1:
                     representations[view_idx] = (
@@ -463,18 +517,31 @@ class XGBoostCCA(TreeCCA):
         >>> X2 = rng.standard_normal((100, 5))
         >>> model = XGBoostCCA(latent_dimensions=2, n_estimators=10).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
+
+        A different tree depth and boosting budget per view:
+
+        >>> model = XGBoostCCA(
+        ...     latent_dimensions=2, n_estimators=[10, 20], max_depth=[3, 6]
+        ... ).fit([X1, X2])
     """
 
-    def _booster_params(self) -> dict[str, object]:
+    def _booster_params(
+        self,
+        learning_rate: float,
+        max_depth: int,
+        subsample: float,
+        colsample_bytree: float,
+        min_child_weight: float,
+    ) -> dict[str, object]:
         return {
             "tree_method": "hist",
             "base_score": 0.0,
             "disable_default_eval_metric": True,
-            "learning_rate": self.learning_rate,
-            "max_depth": self.max_depth,
-            "subsample": self.subsample,
-            "colsample_bytree": self.colsample_bytree,
-            "min_child_weight": self.min_child_weight,
+            "learning_rate": learning_rate,
+            "max_depth": max_depth,
+            "subsample": subsample,
+            "colsample_bytree": colsample_bytree,
+            "min_child_weight": min_child_weight,
             "seed": int(self.random_state),
         }
 
@@ -531,16 +598,23 @@ class LightGBMCCA(TreeCCA):
             )
         return super().fit(views, y)
 
-    def _booster_params(self) -> dict[str, object]:
+    def _booster_params(
+        self,
+        learning_rate: float,
+        max_depth: int,
+        subsample: float,
+        colsample_bytree: float,
+        min_child_weight: float,
+    ) -> dict[str, object]:
         return {
             "objective": "regression",
             "metric": "None",
-            "learning_rate": self.learning_rate,
-            "max_depth": self.max_depth,
-            "feature_fraction": self.colsample_bytree,
-            "bagging_fraction": self.subsample,
+            "learning_rate": learning_rate,
+            "max_depth": max_depth,
+            "feature_fraction": colsample_bytree,
+            "bagging_fraction": subsample,
             "bagging_freq": 1,
-            "min_child_samples": int(self.min_child_weight),
+            "min_child_samples": int(min_child_weight),
             "min_data_in_bin": 1,
             "verbose": -1,
             "seed": int(self.random_state),
@@ -612,14 +686,21 @@ class CatBoostCCA(TreeCCA):
             )
         return super().fit(views, y)
 
-    def _booster_params(self) -> dict[str, object]:
+    def _booster_params(
+        self,
+        learning_rate: float,
+        max_depth: int,
+        subsample: float,
+        colsample_bytree: float,
+        min_child_weight: float,
+    ) -> dict[str, object]:
         return {
-            "depth": self.max_depth,
-            "learning_rate": self.learning_rate,
-            "subsample": self.subsample,
+            "depth": max_depth,
+            "learning_rate": learning_rate,
+            "subsample": subsample,
             "bootstrap_type": "Bernoulli",
-            "rsm": self.colsample_bytree,
-            "min_data_in_leaf": int(self.min_child_weight),
+            "rsm": colsample_bytree,
+            "min_data_in_leaf": int(min_child_weight),
             "boost_from_average": False,
             "eval_metric": "RMSE",
             "allow_writing_files": False,

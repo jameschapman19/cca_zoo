@@ -236,6 +236,36 @@ def test_encoder_kernel_is_sklearn_kernel(
 
 
 # ---------------------------------------------------------------------------
+# Per-view parameters
+# ---------------------------------------------------------------------------
+
+
+def test_per_view_n_inducing_list(two_views_small: list[np.ndarray]) -> None:
+    """A per-view n_inducing list selects a different inducing-point count per view."""
+    n = two_views_small[0].shape[0]
+    model = _make_model(n_inducing=[n // 2, None]).fit(two_views_small)
+    assert model.encoders_[0].inducing_.shape[0] == n // 2
+    assert model.encoders_[1].inducing_.shape[0] == n
+
+
+def test_per_view_kernel_list(two_views_small: list[np.ndarray]) -> None:
+    """A per-view kernel list uses a different kernel per view."""
+    from sklearn.gaussian_process.kernels import RBF, DotProduct
+
+    model = _make_model(kernel=[DotProduct(), RBF()]).fit(two_views_small)
+    assert isinstance(model.encoders_[0].kernel_, DotProduct)
+    assert isinstance(model.encoders_[1].kernel_, RBF)
+
+
+def test_per_view_alpha_wrong_length_raises(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """A per-view alpha list must have one entry per view."""
+    with pytest.raises(ValueError, match="alpha"):
+        _make_model(alpha=[0.1, 0.2, 0.3]).fit(two_views_small)
+
+
+# ---------------------------------------------------------------------------
 # Correctness / optimality
 # ---------------------------------------------------------------------------
 

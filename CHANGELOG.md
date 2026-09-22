@@ -7,7 +7,27 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [3.3.0] - 2026-09-22
+### Added
+
+- Per-view hyperparameters for every nonlinear-encoder model that was previously
+  restricted to a single value shared across all views: `TreeCCA` (and its
+  `XGBoostCCA`/`LightGBMCCA`/`CatBoostCCA` backends -- `n_estimators`, `max_depth`,
+  `learning_rate`, `subsample`, `colsample_bytree`, `min_child_weight`),
+  `GaussianProcessCCA` (`kernel`, `alpha`, `n_inducing`), `GAMCCA` (`n_knots`,
+  `alpha`), `ManifoldCCA` (`n_neighbors`, `affinity`, `gamma`, `lle_reg`,
+  `n_operator_components` -- `method` itself stays global; see the class
+  docstring's `Note` for why), `ElasticNetCCA` (`alpha`, `l1_ratio`), and
+  `MultiTaskElasticNetCCA` (`alpha`, `l1_ratio`). Each now accepts either a single
+  value applied to every view (unchanged default behaviour) or a list with one
+  value per view, via the same `perview_parameter` scalar-or-list convention
+  already used by `MCCA`/`rCCA`/`KCCA`/`GCCA`/`TCCA`/`GraphicalLassoCCA`/etc. --
+  sharing a single value across every view is the narrower case, not the default
+  one, and every model whose math actually supports varying it independently
+  per view should expose that rather than silently forcing it to be shared. For
+  `TreeCCA`, a view whose `n_estimators` budget is exhausted first simply stops
+  being boosted (its embedding stays fixed) while the other views continue.
+
+
 
 ### Added
 

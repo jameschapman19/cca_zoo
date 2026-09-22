@@ -215,6 +215,25 @@ def test_higher_alpha_increases_sparsity(
     assert n_nonzero[0] >= n_nonzero[1] >= n_nonzero[2]
 
 
+def test_per_view_alpha_list_gives_sparser_penalised_view(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """A per-view alpha list applies a stronger penalty to only one view."""
+    model = ElasticNetCCA(
+        latent_dimensions=1, alpha=[0.001, 1.0], l1_ratio=0.9, random_state=0
+    ).fit(correlated_views)
+    n_nonzero = [int((np.abs(w) > 1e-10).sum()) for w in model.weights]
+    assert n_nonzero[1] < n_nonzero[0]
+
+
+def test_per_view_alpha_wrong_length_raises(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """A per-view alpha list must have one entry per view."""
+    with pytest.raises(ValueError, match="alpha"):
+        ElasticNetCCA(alpha=[0.1, 0.2, 0.3]).fit(two_views_small)
+
+
 # ---------------------------------------------------------------------------
 # sklearn compatibility spot-checks (full suite covered by test_sklearn_compat.py)
 # ---------------------------------------------------------------------------

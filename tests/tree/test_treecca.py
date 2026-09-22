@@ -231,6 +231,38 @@ def test_boosters_attribute_shape(two_views_small: list[np.ndarray]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Per-view parameters
+# ---------------------------------------------------------------------------
+
+
+def test_per_view_n_estimators_list(two_views_small: list[np.ndarray]) -> None:
+    """A per-view n_estimators list stops boosting the exhausted view early."""
+    model = _make_model(n_estimators=[2, 6]).fit(two_views_small)
+    assert model.boosters_[0][0].num_boosted_rounds() == 2
+    assert model.boosters_[1][0].num_boosted_rounds() == 6
+
+
+def test_per_view_max_depth_list(two_views_small: list[np.ndarray]) -> None:
+    """A per-view max_depth list gives each view's trees a different max depth.
+
+    Deeper trees have more nodes, so node count is used as a proxy: this
+    xgboost version's `trees_to_dataframe()` has no `Depth` column.
+    """
+    model = _make_model(n_estimators=20, max_depth=[1, 6]).fit(two_views_small)
+    n_nodes_shallow = len(model.boosters_[0][0].trees_to_dataframe())
+    n_nodes_deep = len(model.boosters_[1][0].trees_to_dataframe())
+    assert n_nodes_shallow < n_nodes_deep
+
+
+def test_per_view_n_estimators_wrong_length_raises(
+    two_views_small: list[np.ndarray],
+) -> None:
+    """A per-view n_estimators list must have one entry per view."""
+    with pytest.raises(ValueError, match="n_estimators"):
+        _make_model(n_estimators=[5, 6, 7]).fit(two_views_small)
+
+
+# ---------------------------------------------------------------------------
 # LightGBMCCA
 # ---------------------------------------------------------------------------
 

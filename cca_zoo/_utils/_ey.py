@@ -399,8 +399,8 @@ def _ey_coordinate_smooth_quartic(
 def coordinate_descent_ey(
     bases: list[np.ndarray],
     k: int,
-    alpha: float,
-    l1_ratio: float,
+    alpha: list[float],
+    l1_ratio: list[float],
     max_iter: int,
     tol: float,
     rng: np.random.Generator,
@@ -449,8 +449,9 @@ def coordinate_descent_ey(
             so $Z_i = \text{bases}_i B_i$ is automatically zero-mean, one
             per view.
         k: Number of latent dimensions.
-        alpha: Overall elastic-net penalty strength.
-        l1_ratio: Elastic-net mixing parameter in ``[0, 1]``; 0 is pure ridge.
+        alpha: Overall elastic-net penalty strength, one per view.
+        l1_ratio: Elastic-net mixing parameter in ``[0, 1]`` per view; 0 is
+            pure ridge.
         max_iter: Maximum number of full coordinate-descent sweeps.
         tol: Convergence tolerance on the penalised objective's change
             between consecutive sweeps.
@@ -468,8 +469,8 @@ def coordinate_descent_ey(
     n = bases[0].shape[0]
     n_minus_1 = n - 1
     a0 = 1.0 / (m * n_minus_1)
-    lasso = alpha * l1_ratio
-    ridge = alpha * (1.0 - l1_ratio)
+    lasso = [a * r for a, r in zip(alpha, l1_ratio)]
+    ridge = [a * (1.0 - r) for a, r in zip(alpha, l1_ratio)]
 
     coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
     representations = [b @ c for b, c in zip(bases, coefficients)]
@@ -502,9 +503,9 @@ def coordinate_descent_ey(
                     w_new = _solve_quartic_coordinate(
                         c4=p4,
                         c3=p3,
-                        c2=smooth_c2 + 0.5 * ridge,
+                        c2=smooth_c2 + 0.5 * ridge[i],
                         c1=smooth_c1,
-                        lasso=lasso,
+                        lasso=lasso[i],
                         positive=positive,
                     )
 
@@ -515,8 +516,8 @@ def coordinate_descent_ey(
                         total[:, c] += xj * delta
 
         penalty = sum(
-            alpha * l1_ratio * np.sum(np.abs(c)) + 0.5 * ridge * np.sum(c**2)
-            for c in coefficients
+            alpha[i] * l1_ratio[i] * np.sum(np.abs(c)) + 0.5 * ridge[i] * np.sum(c**2)
+            for i, c in enumerate(coefficients)
         )
         obj = ey_loss(representations)["objective"] + penalty
         if abs(prev_obj - obj) < tol:
@@ -527,13 +528,13 @@ def coordinate_descent_ey(
 
 
 def _group_penalty(
-    coefficients: list[np.ndarray], alpha: float, l1_ratio: float
+    coefficients: list[np.ndarray], alpha: list[float], l1_ratio: list[float]
 ) -> float:
     r"""Row-group elastic-net penalty on a list of per-view coefficient matrices.
 
     $$
-    \sum_i \left( \alpha \rho \|B_i\|_{2,1}
-        + \tfrac{1}{2} \alpha (1-\rho) \|B_i\|_F^2 \right)
+    \sum_i \left( \alpha_i \rho_i \|B_i\|_{2,1}
+        + \tfrac{1}{2} \alpha_i (1-\rho_i) \|B_i\|_F^2 \right)
     $$
 
     $\|B_i\|_{2,1} = \sum_j \|B_i[j, :]\|_2$ is the sum, over features, of
@@ -541,12 +542,11 @@ def _group_penalty(
     of $\|B_i\|_1$'s per-scalar absolute value, used by
     :func:`group_coordinate_descent_ey`.
     """
-    lasso = alpha * l1_ratio
-    ridge = alpha * (1.0 - l1_ratio)
     return float(
         sum(
-            lasso * np.sum(np.linalg.norm(c, axis=1)) + 0.5 * ridge * np.sum(c**2)
-            for c in coefficients
+            a * r * np.sum(np.linalg.norm(c, axis=1))
+            + 0.5 * a * (1.0 - r) * np.sum(c**2)
+            for c, a, r in zip(coefficients, alpha, l1_ratio)
         )
     )
 
@@ -577,8 +577,8 @@ def _group_prox(u: np.ndarray, lasso: float, denom: float) -> np.ndarray:
 def group_coordinate_descent_ey(
     bases: list[np.ndarray],
     k: int,
-    alpha: float,
-    l1_ratio: float,
+    alpha: list[float],
+    l1_ratio: list[float],
     max_iter: int,
     tol: float,
     rng: np.random.Generator,
@@ -635,8 +635,8 @@ def group_coordinate_descent_ey(
         bases: Fixed per-view design matrices, each already column-centred,
             one per view.
         k: Number of latent dimensions.
-        alpha: Overall penalty strength.
-        l1_ratio: Mixing parameter in ``[0, 1]``; 0 is pure (Frobenius)
+        alpha: Overall penalty strength, one per view.
+        l1_ratio: Mixing parameter in ``[0, 1]`` per view; 0 is pure (Frobenius)
             ridge, 1 is pure row-group lasso.
         max_iter: Maximum number of full coordinate-descent sweeps.
         tol: Convergence tolerance on the penalised objective's change
@@ -655,8 +655,8 @@ def group_coordinate_descent_ey(
     m = len(bases)
     n = bases[0].shape[0]
     a0 = 1.0 / (m * (n - 1))
-    lasso = alpha * l1_ratio
-    ridge = alpha * (1.0 - l1_ratio)
+    lasso = [a * r for a, r in zip(alpha, l1_ratio)]
+    ridge = [a * (1.0 - r) for a, r in zip(alpha, l1_ratio)]
 
     coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
     representations = [b @ c for b, c in zip(bases, coefficients)]
@@ -700,9 +700,9 @@ def group_coordinate_descent_ey(
 
                 lipschitz = max(a0 * a, 1e-6)
                 for _try in range(max_backtrack):
-                    denom = lipschitz + ridge
+                    denom = lipschitz + ridge[i]
                     u = (lipschitz * w0_row - grads) / denom
-                    w_new_row = _group_prox(u, lasso, denom)
+                    w_new_row = _group_prox(u, lasso[i], denom)
                     delta = w_new_row - w0_row
                     if np.any(delta != 0.0):
                         for c in range(k):
