@@ -27,7 +27,7 @@ project adheres to [Semantic Versioning](https://semver.org/).
   `TreeCCA`, a view whose `n_estimators` budget is exhausted first simply stops
   being boosted (its embedding stays fixed) while the other views continue.
 
-
+## [3.3.0] - 2026-09-22
 
 ### Added
 
