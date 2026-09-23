@@ -155,3 +155,4 @@ CLAUDE.md
 # PyTorch Lightning default checkpoint dir (created by running deep tests locally)
 checkpoints/
 benchmarks/canonical_boosting/.data/
+research/**/__pycache__/
