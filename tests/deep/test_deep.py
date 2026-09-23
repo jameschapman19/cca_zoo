@@ -405,3 +405,63 @@ def test_dgcca_three_view_training() -> None:
     assert len(result) == 3
     for arr in result:
         assert arr.shape == (n, latent)
+
+
+# ---------------------------------------------------------------------------
+# LeJEPA
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.slow
+def test_sigreg_small_for_gaussian_large_for_collapsed() -> None:
+    """SIGReg (scaled by N) stays O(1) for isotropic Gaussians, grows otherwise."""
+    from cca_zoo.deep._lejepa import _sigreg
+
+    torch.manual_seed(0)
+    gaussian = _sigreg(torch.randn(2048, 8), 0, 64, 17, 5.0)
+    collapsed = _sigreg(torch.zeros(2048, 8), 0, 64, 17, 5.0)
+    assert float(gaussian) < 2.0
+    assert float(collapsed) > 100 * float(gaussian)
+
+
+@pytest.mark.slow
+def test_sigreg_slices_depend_on_seed() -> None:
+    """Directions are reproducible for a seed and resampled across seeds."""
+    from cca_zoo.deep._lejepa import _sigreg
+
+    z = torch.randn(64, 4) * torch.tensor([3.0, 1.0, 0.2, 1.0])
+    assert torch.equal(_sigreg(z, 1, 8, 17, 5.0), _sigreg(z, 1, 8, 17, 5.0))
+    assert not torch.equal(_sigreg(z, 1, 8, 17, 5.0), _sigreg(z, 2, 8, 17, 5.0))
+
+
+@pytest.mark.slow
+def test_lejepa_loss_keys_and_identical_views() -> None:
+    """Identical views have zero predictive loss; objective mixes both terms."""
+    from cca_zoo.deep._lejepa import LeJEPA
+
+    model = LeJEPA(latent_dimensions=2, encoders=_make_encoders(5, 2), lambd=0.3)
+    z = torch.randn(16, 2)
+    out = model.loss([z, z.clone()])
+    assert float(out["sim_loss"]) == 0.0
+    torch.testing.assert_close(out["objective"], 0.3 * out["sigreg"])
+
+
+@pytest.mark.slow
+def test_lejepa_three_view_training() -> None:
+    """LeJEPA trains end-to-end with three views."""
+    from cca_zoo.deep._lejepa import LeJEPA
+
+    rng = np.random.default_rng(0)
+    views = [rng.standard_normal((32, 5)).astype(np.float32) for _ in range(3)]
+    loader = data.DataLoader(MultiviewDataset(views), batch_size=16)
+    model = LeJEPA(
+        latent_dimensions=2,
+        encoders=[nn.Linear(5, 2) for _ in range(3)],
+        num_slices=16,
+    )
+    trainer = lightning.pytorch.Trainer(
+        max_epochs=2, enable_progress_bar=False, logger=False
+    )
+    trainer.fit(model, loader)
+    result = model.transform(loader)
+    assert [r.shape for r in result] == [(32, 2)] * 3

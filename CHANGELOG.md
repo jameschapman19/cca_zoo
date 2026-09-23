@@ -7,6 +7,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `cca_zoo.deep.LeJEPA` (Balestriero & LeCun, 2025): every view's embedding is pulled
+  towards the across-view mean, and collapse is prevented by SIGReg -- the Epps-Pulley
+  characteristic-function statistic on random 1-D projections of each view's embedding,
+  with directions resampled every training step -- instead of stop-gradients, teacher
+  networks or covariance penalties. Supports two or more views.
+
 ## [3.3.0] - 2026-09-22
 
 ### Added

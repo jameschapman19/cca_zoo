@@ -200,6 +200,20 @@ from cca_zoo.deep import VICReg
 model = VICReg(latent_dimensions=8, encoders=[e1, e2])
 ```
 
+### LeJEPA
+
+Balestriero & LeCun 2025. Pulls every view's embedding towards the across-view mean
+and replaces the usual anti-collapse heuristics (stop-gradients, teachers, predictors)
+with SIGReg, which matches random 1-D projections of each view's embedding to a
+standard Gaussian via the Epps-Pulley characteristic-function test. Directions are
+resampled every training step. Works with two or more views.
+
+```python
+from cca_zoo.deep import LeJEPA
+
+model = LeJEPA(latent_dimensions=8, encoders=[e1, e2], lambd=0.05, num_slices=256)
+```
+
 ---
 
 ## Full training example
