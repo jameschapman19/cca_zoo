@@ -16,6 +16,8 @@ same number of components.
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegressionCV, RidgeCV
@@ -27,6 +29,7 @@ from xgboost import XGBClassifier, XGBRegressor
 from tabssl import ConditionalSSL, CopulaTransform, SpectralSSL
 
 MASK_RATE = 0.5
+warnings.filterwarnings("ignore", category=FutureWarning, module="sklearn")
 
 
 def representations(Zp: np.ndarray, Zt: np.ndarray, seed: int) -> dict:
@@ -84,6 +87,8 @@ def evaluate(
     Xp, Xt, yp, yt = train_test_split(
         X, y, test_size=0.25, random_state=seed, stratify=strat
     )
+    varying = np.ptp(Xp, axis=0) > 0
+    Xp, Xt = Xp[:, varying], Xt[:, varying]
     cop = CopulaTransform().fit(Xp)
     feats, k = representations(cop.transform(Xp), cop.transform(Xt), seed)
     rng = np.random.default_rng(seed)

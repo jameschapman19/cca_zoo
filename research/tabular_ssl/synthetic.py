@@ -53,3 +53,35 @@ def make_table(
     X = np.column_stack([_DISTORTIONS[g](raw[:, j]) for j, g in enumerate(distort)])
     y = alpha * _signal(z) + (1 - alpha) * _signal(E[:, :4])
     return X, y + 0.1 * rng.standard_normal(n)
+
+
+def make_clustered(
+    n: int,
+    n_clusters: int = 6,
+    k: int = 4,
+    d_shared: int = 24,
+    d_idio: int = 8,
+    noise: float = 0.5,
+    spread: float = 0.35,
+    seed: int = 0,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Sample ``(X, y)`` where the latent is a mixture and ``y`` is its segment.
+
+    Same measurement model as :func:`make_table`, but ``z`` is drawn around
+    one of ``n_clusters`` random centres and the label is the centre index --
+    the cluster assumption under which unlabeled rows reveal the label
+    structure.
+    """
+    structure = np.random.default_rng(1000 + seed)
+    loadings = structure.standard_normal((k, d_shared))
+    loadings /= np.linalg.norm(loadings, axis=0)
+    distort = structure.integers(len(_DISTORTIONS), size=d_shared + d_idio)
+    centres = structure.standard_normal((n_clusters, k))
+
+    rng = np.random.default_rng(seed)
+    y = rng.integers(n_clusters, size=n)
+    z = centres[y] + spread * rng.standard_normal((n, k))
+    U = z @ loadings + noise * rng.standard_normal((n, d_shared))
+    raw = np.hstack([U, rng.standard_normal((n, d_idio))])
+    X = np.column_stack([_DISTORTIONS[g](raw[:, j]) for j, g in enumerate(distort)])
+    return X, y

@@ -157,3 +157,4 @@ checkpoints/
 benchmarks/canonical_boosting/.data/
 research/**/__pycache__/
 research/**/*.log
+research/tabular_ssl/results_real/
