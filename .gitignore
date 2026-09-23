@@ -156,3 +156,4 @@ CLAUDE.md
 checkpoints/
 benchmarks/canonical_boosting/.data/
 research/**/__pycache__/
+research/**/*.log
