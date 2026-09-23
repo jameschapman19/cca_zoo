@@ -166,6 +166,7 @@ Built on PyTorch Lightning — models are trained with a standard `lightning.Tra
 | `SplitAE` | Split autoencoder baseline | — |
 | `BarlowTwins` | Self-supervised learning via redundancy reduction | Zbontar et al. (2021) |
 | `VICReg` | Variance-Invariance-Covariance Regularization | Bardes, Ponce & LeCun (2022) |
+| `LeJEPA` | Joint-embedding predictive loss with SIGReg isotropic-Gaussian regulariser, ≥2 views | Balestriero & LeCun (2025) |
 
 ### `cca_zoo.probabilistic`
 
