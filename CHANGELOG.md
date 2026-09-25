@@ -7,6 +7,25 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `MARSCCA` (in `cca_zoo.gam`): nonlinear multiview CCA using a multivariate adaptive
+  regression spline (Friedman, 1991) as the per-view encoder, trained on the same
+  Eckart-Young objective as `GAMCCA`. Where `GAMCCA` fixes a B-spline basis up front,
+  `MARSCCA` grows each view's basis greedily as classical MARS does — every forward step
+  adds the reflected hinge pair (any existing term as parent, any feature, any candidate
+  quantile knot) that absorbs the most of the current EY gradient, then refits every
+  view's coefficients jointly — so knots go only where cross-view signal needs them, and
+  `max_degree >= 2` admits within-view interactions that an additive model cannot
+  represent. There is no GCV pruning pass (GCV has no EY-loss counterpart); model size is
+  set by `max_terms` and shrunk by the ridge penalty `alpha`. Selected terms are
+  inspectable via `model.basis_functions(view)`.
+
+### Changed
+
+- The joint trust-region Newton-CG solver previously private to `GAMCCA` is now the
+  shared `cca_zoo._utils._ey.ridge_basis_ey_trust_krylov`, used by `GAMCCA` and `MARSCCA`.
+
 ## [3.3.0] - 2026-09-22
 
 ### Added

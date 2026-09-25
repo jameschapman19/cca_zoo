@@ -1,6 +1,7 @@
-# GAM Methods
+# GAM & MARS Methods
 
-The `cca_zoo.gam` module provides `GAMCCA`, a nonlinear multiview CCA method that uses a
+The `cca_zoo.gam` module provides two spline-based nonlinear multiview CCA methods: `GAMCCA` and
+`MARSCCA` (see [below](#marscca)). `GAMCCA` is a nonlinear multiview CCA method that uses a
 generalized additive model (GAM) — one smooth univariate B-spline per input feature — as the
 per-view encoder. It has no optional dependency: the spline basis is built entirely from
 scikit-learn's own `SplineTransformer`, with `scipy.optimize` doing the Newton solve, all already
@@ -103,3 +104,48 @@ score. Summing every feature's `shape_function` at the training values reproduce
   directly through the fitted per-feature splines, so `transform` on held-out data is inexpensive.
 - No optional dependency is required (unlike `cca_zoo.tree`, which needs `xgboost`/`lightgbm`):
   `GAMCCA` is built entirely on `scikit-learn`'s `SplineTransformer` and `scipy.optimize`.
+
+---
+
+## MARSCCA
+
+`MARSCCA` swaps `GAMCCA`'s fixed B-spline basis for a multivariate adaptive regression spline
+(Friedman, 1991): each view's encoder is a linear combination of basis functions, each a product
+of up to `max_degree` hinges $\max(0, \pm(x_j - t))$, and the basis is *grown* rather than fixed.
+
+Every forward step scores each candidate reflected hinge pair — any existing term (or the
+constant) as parent, any feature not already in that parent, any of `n_candidate_knots` interior
+quantile knots — by how much of the current EY gradient the pair can absorb once orthogonalised
+against the current basis. That is classical MARS's residual-sum-of-squares criterion with the
+residual replaced by the EY loss's negative gradient. The best pair is added to each view in
+turn, then every view's coefficients are refit jointly by the same trust-region Newton-CG solve
+`GAMCCA` uses. Knots therefore land only where the cross-view signal needs them.
+
+With `max_degree=1` (the default, as in R's `earth`) the encoder is additive, like `GAMCCA` but
+with adaptive knots. With `max_degree=2` a term can represent a within-view interaction such as
+$x_1 x_2$ — exactly the case the note above says `GAMCCA` cannot handle — while staying
+inspectable term by term.
+
+```python
+from cca_zoo.gam import MARSCCA
+
+model = MARSCCA(latent_dimensions=1, max_degree=2, max_terms=20).fit([X1, X2])
+terms = model.basis_functions(0)  # e.g. ['h(x1 - 0.41)', 'h(0.41 - x1)', ...]
+coefs = model.encoders_[0].coef_  # (n_terms, latent_dimensions), row m ↔ terms[m]
+```
+
+Products appear as e.g. `'h(x1 - 0.41) * h(x0 + 0.2)'`, with `h(u) = max(0, u)` and knots in the
+raw feature units.
+
+Classical MARS finishes with a backward pruning pass scored by generalised cross-validation.
+GCV is a squared-error criterion with no EY-loss counterpart, so `MARSCCA` has no pruning pass:
+`max_terms` caps model size directly and the ridge penalty `alpha` shrinks terms that turn out
+not to be needed. Tune both by cross-validation.
+
+| Parameter | Description |
+|---|---|
+| `max_terms` | Maximum basis functions per view (each forward step adds at most two). Scalar or per-view list. |
+| `max_degree` | Maximum hinge factors per basis function: 1 is additive, 2 allows pairwise interactions. Scalar or per-view list. |
+| `n_candidate_knots` | Candidate knots per feature, at interior quantiles of the training values. |
+| `alpha` | Ridge penalty on every basis coefficient. Scalar or per-view list. |
+| `max_iter`, `tol` | Iteration cap and gradient-norm tolerance for each joint refit. |

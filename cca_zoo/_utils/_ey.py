@@ -32,6 +32,7 @@ References:
 from __future__ import annotations
 
 import numpy as np
+from scipy.optimize import minimize
 
 
 def ey_cross_covariance(
@@ -886,3 +887,189 @@ def omp_coordinate_descent_ey(
         prev_obj = obj
 
     return coefficients, representations
+
+
+def _flatten(mats: list[np.ndarray]) -> np.ndarray:
+    """Concatenate per-view coefficient matrices into one parameter vector."""
+    return np.concatenate([mat.ravel() for mat in mats])
+
+
+def _unflatten(x: np.ndarray, dims: list[int], k: int) -> list[np.ndarray]:
+    """Inverse of :func:`_flatten`: split a flat vector into per-view blocks."""
+    mats = []
+    offset = 0
+    for d in dims:
+        size = d * k
+        mats.append(x[offset : offset + size].reshape(d, k))
+        offset += size
+    return mats
+
+
+def _ridge_basis_ey_obj_grad(
+    x: np.ndarray,
+    bases: list[np.ndarray],
+    grams: list[np.ndarray],
+    cross: list[list[np.ndarray]],
+    ridge: list[float],
+    dims: list[int],
+    k: int,
+) -> tuple[float, np.ndarray]:
+    r"""Penalised EY loss and gradient w.r.t. *every* view's coefficients at once.
+
+    Writing $Z_i = \text{bases}_i B_i$ for every view $i$, this is
+    $\mathcal{L}_{EY}(Z_1, \dots, Z_M) + \tfrac12\sum_i\lambda_i\lVert B_i\rVert_F^2$
+    as a function of $B_1, \dots, B_M$ flattened and concatenated into one
+    vector, with its exact analytic gradient
+    $\text{bases}_i^\top\nabla_{Z_i}\mathcal{L}_{EY} + \lambda_i B_i$ per block
+    — the same two ingredients (:func:`ey_loss` and
+    :func:`ey_grad_z`) every other EY-loss model in this
+    package already uses. ``grams`` and ``cross`` are unused here; they are
+    accepted only so this function shares a call signature with
+    :func:`_ridge_basis_ey_hessp`, which :func:`scipy.optimize.minimize` calls
+    with the same ``args``.
+
+    Args:
+        x: Candidate coefficients for every view, flattened and concatenated.
+        bases: Fixed per-view (centred) design matrices.
+        grams: ``bases[i].T @ bases[i]`` per view; unused (see above).
+        cross: ``cross[i][a] = bases[i].T @ bases[a]`` for every pair; unused.
+        ridge: Ridge penalty strength, one per view.
+        dims: Number of basis columns per view (``bases[i].shape[1]``).
+        k: Number of latent components.
+
+    Returns:
+        Tuple ``(loss, grad)`` with ``grad`` flattened the same way as ``x``.
+    """
+    coefs = _unflatten(x, dims, k)
+    reps = [basis @ b for basis, b in zip(bases, coefs)]
+    loss = ey_loss(reps)["objective"] + 0.5 * sum(
+        r * float(np.sum(b**2)) for b, r in zip(coefs, ridge)
+    )
+    grad_z = ey_grad_z(reps)
+    grads = [
+        basis.T @ gz + r * b for basis, gz, b, r in zip(bases, grad_z, coefs, ridge)
+    ]
+    return loss, _flatten(grads)
+
+
+def _ridge_basis_ey_hessp(
+    x: np.ndarray,
+    p: np.ndarray,
+    bases: list[np.ndarray],
+    grams: list[np.ndarray],
+    cross: list[list[np.ndarray]],
+    ridge: list[float],
+    dims: list[int],
+    k: int,
+) -> np.ndarray:
+    r"""Exact Hessian-vector product of the penalised EY loss over *every* view at once.
+
+    Returns the exact action of the full joint Hessian — every view, every
+    latent component, all updated together, no view held fixed — on a
+    direction $P_1, \dots, P_M$, without ever forming the
+    $\left(\sum_i d_i k\right) \times \left(\sum_i d_i k\right)$ Hessian
+    matrix itself. This differentiates the already-exact embedding gradient
+    (:func:`ey_grad_z`) once more, jointly in every
+    view's direction $\text{bases}_i P_i$ simultaneously, and pulls each
+    block of the result back through $\text{bases}_i^\top$. Writing
+    $G_i = \text{bases}_i^\top\text{bases}_i$,
+    $K_{ia} = \text{bases}_i^\top\text{bases}_a$ (``cross[i][a]``), and $V$
+    for the current mean auto-covariance:
+
+    $$
+    dV = \frac{1}{M(n-1)}\sum_a\left(P_a^\top G_a B_a + B_a^\top G_a P_a\right),
+    \qquad
+    Hp_i = \frac{4}{M(n-1)}\left[G_i P_i V + (G_i B_i)\,dV
+        - \sum_a K_{ia} P_a\right] + \lambda P_i.
+    $$
+
+    The $-\sum_a K_{ia}P_a$ term is what a single-view-at-a-time Hessian
+    would miss: it captures how perturbing *any* view's coefficients changes
+    every other view's gradient through their shared $S = \sum_a Z_a$, which
+    is exactly what makes this a genuinely joint (not merely block-diagonal)
+    Hessian-vector product. Verified against finite differences of
+    :func:`ey_grad_z` for $M = 2, 3, 4$ views with
+    unequal per-view dimensions and $k = 1, 2, 3$.
+
+    Args:
+        x: Point at which the Hessian is evaluated (every view's current
+            coefficients, flattened and concatenated the same way as ``p``).
+        p: Direction, flattened and concatenated the same way as ``x``.
+        bases: Fixed per-view (centred) design matrices.
+        grams: ``bases[i].T @ bases[i]`` per view, precomputed once.
+        cross: ``cross[i][a] = bases[i].T @ bases[a]`` for every pair,
+            precomputed once.
+        ridge: Ridge penalty strength, one per view.
+        dims: Number of basis columns per view (``bases[i].shape[1]``).
+        k: Number of latent components.
+
+    Returns:
+        $\{Hp_i\}$, flattened and concatenated the same way as ``x``.
+    """
+    coefs = _unflatten(x, dims, k)
+    directions = _unflatten(p, dims, k)
+    m = len(bases)
+    n_minus_1 = bases[0].shape[0] - 1
+    reps = [basis @ b for basis, b in zip(bases, coefs)]
+    _, v = ey_cross_covariance(reps)
+    dv = sum(
+        pi.T @ (grams[i] @ coefs[i]) + coefs[i].T @ (grams[i] @ pi)
+        for i, pi in enumerate(directions)
+    ) / (m * n_minus_1)
+    scale = 4.0 / (m * n_minus_1)
+
+    hessian_vector_products = []
+    for i in range(m):
+        term1 = grams[i] @ directions[i] @ v
+        term2 = (grams[i] @ coefs[i]) @ dv
+        term3 = sum(cross[i][a] @ directions[a] for a in range(m))
+        hp_i = scale * (term1 + term2 - term3) + ridge[i] * directions[i]
+        hessian_vector_products.append(hp_i)
+    return _flatten(hessian_vector_products)
+
+
+def ridge_basis_ey_trust_krylov(
+    bases: list[np.ndarray],
+    coefficients0: list[np.ndarray],
+    ridge: list[float],
+    max_iter: int,
+    tol: float,
+) -> list[np.ndarray]:
+    r"""Fit ridge-penalised linear-in-basis coefficients jointly on the EY loss.
+
+    Minimises $\mathcal{L}_{EY}(\text{bases}_1 B_1, \dots, \text{bases}_M B_M)
+    + \tfrac12\sum_i\lambda_i\lVert B_i\rVert_F^2$ over every view's
+    coefficients at once, in a single call to
+    :func:`scipy.optimize.minimize`'s ``"trust-krylov"`` solver given the
+    exact gradient (:func:`_ridge_basis_ey_obj_grad`) and exact joint
+    Hessian-vector product (:func:`_ridge_basis_ey_hessp`). Shared by every
+    model whose encoder is a fixed (per fit) column-centred basis times a
+    ridge-penalised coefficient matrix: :class:`~cca_zoo.gam.GAMCCA`
+    (B-splines) and :class:`~cca_zoo.gam.MARSCCA` (hinge products, refit
+    after every forward-pass addition).
+
+    Args:
+        bases: Fixed per-view column-centred design matrices.
+        coefficients0: Starting coefficients, ``coefficients0[i]`` of shape
+            ``(bases[i].shape[1], k)``.
+        ridge: Ridge penalty strength, one per view.
+        max_iter: Maximum outer Newton iterations (``maxiter``).
+        tol: Gradient-norm convergence tolerance (``gtol``).
+
+    Returns:
+        Fitted coefficients, same shapes as ``coefficients0``.
+    """
+    k = coefficients0[0].shape[1]
+    dims = [basis.shape[1] for basis in bases]
+    grams = [basis.T @ basis for basis in bases]
+    cross = [[bi.T @ ba for ba in bases] for bi in bases]
+    result = minimize(
+        _ridge_basis_ey_obj_grad,
+        _flatten(coefficients0),
+        args=(bases, grams, cross, ridge, dims, k),
+        jac=True,
+        hessp=_ridge_basis_ey_hessp,
+        method="trust-krylov",
+        options={"maxiter": max_iter, "gtol": tol},
+    )
+    return _unflatten(result.x, dims, k)
