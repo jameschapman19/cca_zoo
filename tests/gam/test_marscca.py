@@ -245,3 +245,16 @@ def test_interactions_beat_additive_models_on_product_signal() -> None:
     assert interaction > 0.9, f"Expected MARSCCA(max_degree=2) > 0.9, got {interaction}"
     assert interaction > additive + 0.05
     assert interaction > gam + 0.05
+
+
+def test_degree_three_recovers_three_way_interaction() -> None:
+    """max_degree=3 builds order-3 terms and recovers a pure a*b*c signal held out."""
+    rng = np.random.default_rng(0)
+    n = 2000
+    a, b, c = rng.standard_normal((3, n))
+    X1 = np.column_stack([a, b, c, rng.standard_normal((n, 7))])
+    X2 = np.column_stack([a * b * c + 0.3 * rng.standard_normal(n) for _ in range(5)])
+    model = MARSCCA(max_degree=3, max_terms=40).fit([X1[:1000], X2[:1000]])
+    assert max(len(term) for term in model.encoders_[0].terms_) == 3
+    score = model.score([X1[1000:], X2[1000:]])[0]
+    assert score > 0.9, f"Expected held-out correlation > 0.9, got {score}"

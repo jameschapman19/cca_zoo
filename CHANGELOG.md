@@ -21,9 +21,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
   set by `max_terms` and shrunk by the ridge penalty `alpha`. Selected terms are
   inspectable via `model.basis_functions(view)`. Candidate scoring uses Friedman's
   suffix-sum fast update, evaluated for every parent, feature and knot at once by
-  sparse block-membership matrices built once per fit, with each parent's inner
-  products against the (incrementally orthonormalised) basis cached across steps, so no
-  candidate column is ever formed.
+  sparse block-membership matrices built once per fit. Each candidate's projection onto
+  the (incrementally orthonormalised) basis is cached as three running scalars and the
+  gradient is projected off the basis once per step, so no candidate column is ever
+  formed and memory stays O(n_samples * n_features) regardless of `max_terms` or
+  `max_degree`.
 
 ### Changed
 

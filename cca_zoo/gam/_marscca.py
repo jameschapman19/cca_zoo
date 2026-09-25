@@ -29,6 +29,9 @@ _Term = tuple[_Factor, ...]
 _DEGENERATE_TOL = 1e-8
 # Relative gap below which two single-hinge scores count as tied.
 _TIE_RTOL = 1e-9
+# Basis columns processed at once when computing a new parent's projection
+# statistics, bounding that step's transient memory.
+_Q_CHUNK = 16
 
 
 def _evaluate_terms(X: np.ndarray, terms: list[_Term]) -> np.ndarray:
@@ -67,12 +70,18 @@ class _HingeScorer:
       loop, no ``(n_samples, n_features, ...)`` temporary.
     - The current basis is kept as an orthonormal ``q`` grown by
       Gram-Schmidt (applied twice, for stability), so existing columns never
-      change, and the inner products of every parent's hinges with
-      ``[1, q]`` are cached: a step computes only the new ``q`` columns
-      against existing parents, every column against new parents, and the
-      gradient (which changes every step) against every parent.
-    - The squared norms of every parent's hinges depend on nothing else,
-      so they are computed once per parent.
+      change. The score needs a candidate's products with ``q`` only through
+      $\lVert q^\top h_a\rVert^2$, $\lVert q^\top h_b\rVert^2$ and
+      $(q^\top h_a)\cdot(q^\top h_b)$ — sums over ``q``'s columns — so those
+      scalars are cached per candidate and grown as columns arrive, while
+      the gradient side uses $\langle G, h_\perp\rangle = \langle G_\perp,
+      h\rangle$ with $G_\perp$ projected off ``q`` once per step. Memory is
+      therefore linear in the number of parents, not in parents times basis
+      columns, and a step computes only the new ``q`` columns against
+      existing parents, every column against new parents (in chunks), and
+      the projected gradient against every parent.
+    - Each parent's hinge norms and sums depend on nothing else, so they
+      are computed once per parent.
 
     State grows only through :meth:`add_columns`, called with each accepted
     basis column.
@@ -101,11 +110,9 @@ class _HingeScorer:
         self.q = np.zeros((n, 0))
         self._parents = np.zeros((n, 0))
         self._allowed = np.zeros((p, 0), dtype=bool)
-        # Cached per (knot, feature, parent[, column of [1, q]]).
-        self._inner_a = np.zeros((len(rows), p, 0, 1))
-        self._inner_b = np.zeros((len(rows), p, 0, 1))
-        self._sq_a = np.zeros((len(rows), p, 0))
-        self._sq_b = np.zeros((len(rows), p, 0))
+        # Per (knot, feature, parent): ||h_a||^2, ||h_b||^2, sum h_a, sum h_b,
+        # ||q^T h_a||^2, ||q^T h_b||^2, (q^T h_a) . (q^T h_b).
+        self._stats = np.zeros((len(rows), p, 0, 7))
         self._add_parents(np.ones((n, 1)), np.ones((p, 1), dtype=bool))
 
     def _hinge_inner(
@@ -129,8 +136,22 @@ class _HingeScorer:
         )
         return inner_a, inner_a - total
 
+    def _projection_stats(self, parents: np.ndarray, q: np.ndarray) -> np.ndarray:
+        """``||q^T h_a||^2``, ``||q^T h_b||^2``, ``(q^T h_a).(q^T h_b)``, stacked last.
+
+        ``q`` is consumed in chunks of :data:`_Q_CHUNK` columns, so the
+        transient per-column products never exceed that many columns.
+        """
+        stats = np.zeros((*self.knots.shape, parents.shape[1], 3))
+        for start in range(0, q.shape[1], _Q_CHUNK):
+            qh_a, qh_b = self._hinge_inner(parents, q[:, start : start + _Q_CHUNK])
+            stats[..., 0] += np.sum(qh_a**2, axis=-1)
+            stats[..., 1] += np.sum(qh_b**2, axis=-1)
+            stats[..., 2] += np.sum(qh_a * qh_b, axis=-1)
+        return stats
+
     def _add_parents(self, parents: np.ndarray, allowed: np.ndarray) -> None:
-        """Register new parent terms, caching everything that depends only on them."""
+        """Register new parent terms, computing their per-candidate statistics."""
         X = self.X
         u2 = parents**2
         suffix = [
@@ -140,16 +161,20 @@ class _HingeScorer:
         t = self.knots[:, :, None]
         sq_a = suffix[2] - 2 * t * suffix[1] + t**2 * suffix[0]
         sq_all = (X**2).T @ u2 - 2 * t * (X.T @ u2) + t**2 * u2.sum(axis=0)
-        inner_a, inner_b = self._hinge_inner(
-            parents, np.column_stack([np.ones(X.shape[0]), self.q])
+        sum_a, sum_b = (
+            inner[..., 0]
+            for inner in self._hinge_inner(parents, np.ones((X.shape[0], 1)))
         )
-
+        stats = np.concatenate(
+            [
+                np.stack([sq_a, sq_all - sq_a, sum_a, sum_b], axis=-1),
+                self._projection_stats(parents, self.q),
+            ],
+            axis=-1,
+        )
         self._parents = np.column_stack([self._parents, parents])
         self._allowed = np.column_stack([self._allowed, allowed])
-        self._sq_a = np.concatenate([self._sq_a, sq_a], axis=2)
-        self._sq_b = np.concatenate([self._sq_b, sq_all - sq_a], axis=2)
-        self._inner_a = np.concatenate([self._inner_a, inner_a], axis=2)
-        self._inner_b = np.concatenate([self._inner_b, inner_b], axis=2)
+        self._stats = np.concatenate([self._stats, stats], axis=2)
 
     def add_columns(
         self, columns: np.ndarray, parent_allowed: list[np.ndarray | None]
@@ -169,9 +194,7 @@ class _HingeScorer:
                 col = col - basis @ (basis.T @ col)
             new_q.append(col / np.linalg.norm(col))
         new_q_arr = np.column_stack(new_q)
-        inner_a, inner_b = self._hinge_inner(self._parents, new_q_arr)
-        self._inner_a = np.concatenate([self._inner_a, inner_a], axis=3)
-        self._inner_b = np.concatenate([self._inner_b, inner_b], axis=3)
+        self._stats[..., 4:] += self._projection_stats(self._parents, new_q_arr)
         self.q = np.column_stack([self.q, new_q_arr])
 
         parent_idx = [
@@ -218,19 +241,16 @@ class _HingeScorer:
             candidate is degenerate.
         """
         n = self.X.shape[0]
-        na, nb = self._hinge_inner(self._parents, grad)
-        sum_a, qh_a = self._inner_a[..., 0], self._inner_a[..., 1:]
-        sum_b, qh_b = self._inner_b[..., 0], self._inner_b[..., 1:]
-        raw_aa = self._sq_a - sum_a**2 / n
-        raw_bb = self._sq_b - sum_b**2 / n
-        aa = raw_aa - np.sum(qh_a**2, axis=-1)
-        bb = raw_bb - np.sum(qh_b**2, axis=-1)
-        ab = -sum_a * sum_b / n - np.sum(qh_a * qh_b, axis=-1)
-        # G is not orthogonal to the current basis (the ridge keeps the refit's
-        # gradient off zero), so project it out of the hinge side explicitly.
-        qg = self.q.T @ grad
-        na = na - qh_a @ qg
-        nb = nb - qh_b @ qg
+        sq_a, sq_b, sum_a, sum_b, qq_a, qq_b, qq_ab = np.moveaxis(self._stats, -1, 0)
+        raw_aa = sq_a - sum_a**2 / n
+        raw_bb = sq_b - sum_b**2 / n
+        aa = raw_aa - qq_a
+        bb = raw_bb - qq_b
+        ab = -sum_a * sum_b / n - qq_ab
+        # <G, h_perp> = <G_perp, h>: projecting the gradient off the basis once
+        # replaces projecting every candidate. G is not already orthogonal to
+        # the basis (the ridge keeps the refit's gradient off zero).
+        na, nb = self._hinge_inner(self._parents, grad - self.q @ (self.q.T @ grad))
         na_sq, nb_sq = np.sum(na**2, axis=-1), np.sum(nb**2, axis=-1)
 
         ok_a = self._allowed & (aa > _DEGENERATE_TOL * raw_aa)
