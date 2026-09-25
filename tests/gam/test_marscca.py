@@ -7,7 +7,7 @@ import pytest
 from sklearn.exceptions import NotFittedError
 
 from cca_zoo.gam import GAMCCA, MARSCCA
-from cca_zoo.gam._marscca import _evaluate_terms
+from cca_zoo.gam._marscca import _best_hinge_pair, _evaluate_terms
 
 # get_params/set_params roundtrip behaviour is exercised generically for
 # every model in the package (including MARSCCA) by tests/test_sklearn_compat.py.
@@ -116,6 +116,45 @@ def test_basis_columns_are_not_degenerate(correlated_views: list[np.ndarray]) ->
         assert np.linalg.matrix_rank(centred) == len(enc.terms_)
 
 
+@pytest.mark.parametrize("n_basis", [0, 3])
+def test_best_hinge_pair_matches_direct_projection(n_basis: int) -> None:
+    """The suffix-sum scores equal tr(G^T P_H G) computed from explicit columns.
+
+    Uses a parent that vanishes on part of the sample and a gradient that is
+    *not* orthogonal to the current basis, the two cases where a shortcut in
+    the fast update would silently change the ranking.
+    """
+    rng = np.random.default_rng(1)
+    n, p, k = 60, 3, 2
+    X = rng.standard_normal((n, p))
+    parent = np.maximum(0.0, rng.standard_normal(n))
+    basis = rng.standard_normal((n, n_basis))
+    q = np.linalg.qr(basis - basis.mean(axis=0))[0]
+    grad = rng.standard_normal((n, k))
+    grad -= grad.mean(axis=0)
+    order = np.argsort(X, axis=0)
+    x_sorted = np.take_along_axis(X, order, axis=0)
+    rows = np.array([10, 30, 45])
+
+    def direct(j: int, t: float) -> float:
+        h = np.column_stack(
+            [parent * np.maximum(0, X[:, j] - t), parent * np.maximum(0, t - X[:, j])]
+        )
+        h -= h.mean(axis=0)
+        h -= q @ (q.T @ h)
+        return float(np.trace(grad.T @ h @ np.linalg.solve(h.T @ h, h.T @ grad)))
+
+    scores = np.array([[direct(j, x_sorted[r, j]) for j in range(p)] for r in rows])
+    best, j, knot, keep = _best_hinge_pair(
+        parent, x_sorted, order, rows, np.ones(p, dtype=bool), q, grad
+    )
+    r, j_expected = np.unravel_index(np.argmax(scores), scores.shape)
+    assert keep == (True, True)
+    assert j == j_expected
+    assert knot == x_sorted[rows[r], j]
+    np.testing.assert_allclose(best, scores.max(), rtol=1e-10)
+
+
 def test_basis_functions_strings(two_views_small: list[np.ndarray]) -> None:
     """basis_functions reports raw-unit knots, one string per term."""
     views = [v + 10.0 for v in two_views_small]
@@ -123,8 +162,11 @@ def test_basis_functions_strings(two_views_small: list[np.ndarray]) -> None:
     names = model.basis_functions(0)
     assert len(names) == len(model.encoders_[0].terms_)
     feature, knot, sign = model.encoders_[0].terms_[0][0]
-    raw = f"{knot + model.means_[0][feature]:.4g}"
-    expected = f"h(x{feature} - {raw})" if sign > 0 else f"h({raw} - x{feature})"
+    raw = knot + model.means_[0][feature]
+    assert raw > 0  # views shifted by +10, so the knot prints as "x - t"
+    expected = (
+        f"h(x{feature} - {raw:.4g})" if sign > 0 else f"h({raw:.4g} - x{feature})"
+    )
     assert names[0] == expected
 
 

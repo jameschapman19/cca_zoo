@@ -37,68 +37,130 @@ def _evaluate_terms(X: np.ndarray, terms: list[_Term]) -> np.ndarray:
     return basis
 
 
+def _suffix_sums(a: np.ndarray, rows: np.ndarray) -> np.ndarray:
+    """``a[r:].sum(axis=0)`` for every ``r`` in (ascending) ``rows``.
+
+    One pass summing the blocks between consecutive rows, then a cumulative
+    sum over just those blocks.
+    """
+    blocks = np.add.reduceat(a, rows, axis=0)
+    sums: np.ndarray = np.cumsum(blocks[::-1], axis=0)[::-1]
+    return sums
+
+
 def _best_hinge_pair(
     parent: np.ndarray,
-    x: np.ndarray,
-    knots: np.ndarray,
+    x_sorted: np.ndarray,
+    order: np.ndarray,
+    knot_rows: np.ndarray,
+    allowed: np.ndarray,
     q: np.ndarray,
     grad: np.ndarray,
-) -> tuple[float, float, tuple[bool, bool]]:
-    r"""Best knot for the reflected hinge pair ``parent * h(±(x - t))``.
+) -> tuple[float, int, float, tuple[bool, bool]]:
+    r"""Best (feature, knot) for the reflected hinge pair ``parent * h(±(x_j - t))``.
 
-    Scores every candidate knot $t$ by how much of the current EY gradient
-    $G$ the new columns can absorb once orthogonalised against the current
-    basis (orthonormal columns ``q``): $\operatorname{tr}(G^\top P_H G)$,
-    with $P_H$ the projection onto the orthogonalised pair. This is exactly
-    classical MARS's forward-pass criterion — the reduction in residual sum
-    of squares from adding the pair — with the least-squares residual
-    replaced by the EY loss's negative gradient, the same functional-
-    gradient reading :class:`~cca_zoo.tree.TreeCCA` uses to grow trees.
+    Scores every candidate feature $j$ and knot $t$ by how much of the
+    current EY gradient $G$ the new columns can absorb once orthogonalised
+    against the current basis (orthonormal, centred columns ``q``):
+    $\operatorname{tr}(G^\top P_H G)$, with $P_H$ the projection onto the
+    orthogonalised pair. This is exactly classical MARS's forward-pass
+    criterion — the reduction in residual sum of squares from adding the
+    pair — with the least-squares residual replaced by the EY loss's
+    negative gradient, the same functional-gradient reading
+    :class:`~cca_zoo.tree.TreeCCA` uses to grow trees.
+
+    No candidate column is ever formed. Every quantity the score needs is
+    an inner product of the hinge $h_t = u\,(x - t)_+$ ($u$ = ``parent``)
+    with a fixed vector $w$ (a constant, a column of ``q`` or of $G$, or
+    $h_t$ itself), and with $x$ sorted,
+
+    $$
+    \langle h_t, w\rangle = \sum_{x_i \ge t} u_i w_i x_i - t \sum_{x_i \ge t} u_i w_i,
+    $$
+
+    two suffix sums — so one cumulative sum per feature scores every knot
+    at once, Friedman's (1991, §3.9) fast update. The reflected hinge
+    $u\,(t - x)_+ = h_t - u\,(x - t)$ follows from the same sums and the
+    full-sample totals, and the two hinges have disjoint support, so their
+    raw inner product is zero.
 
     When one hinge of the pair is degenerate (identically zero on the
     training data because the parent term vanishes on that side of the
     knot, or already in the basis span), the other is scored alone, the
     same way ``earth`` drops the unused half of a pair.
 
-    Returns:
-        Tuple ``(score, knot, keep)`` for the best knot, ``keep`` flagging
-        which of the (positive, negative) hinges to add; ``score`` is
-        ``-inf`` when every candidate is degenerate.
-    """
-    diff = x[:, None] - knots[None, :]
-    hinges = [
-        parent[:, None] * np.maximum(0.0, diff),
-        parent[:, None] * np.maximum(0.0, -diff),
-    ]
-    hinges = [h - h.mean(axis=0) for h in hinges]
-    raw_sq = [np.sum(h**2, axis=0) for h in hinges]
-    ortho = [h - q @ (q.T @ h) for h in hinges]
-    aa, bb = (np.sum(h**2, axis=0) for h in ortho)
-    ab = np.sum(ortho[0] * ortho[1], axis=0)
-    na, nb = (h.T @ grad for h in ortho)
-    na_sq, nb_sq = np.sum(na**2, axis=1), np.sum(nb**2, axis=1)
+    Args:
+        parent: Raw values of the parent term (ones for the constant),
+            shape (n_samples,).
+        x_sorted: The view with each column sorted ascending, shape
+            (n_samples, n_features).
+        order: ``argsort`` of the view along axis 0 (so
+            ``X[order[:, j], j] == x_sorted[:, j]``).
+        knot_rows: Rows of ``x_sorted`` used as candidate knots.
+        allowed: Which features may be multiplied into ``parent`` (not
+            already one of its factors), shape (n_features,).
+        q: Orthonormal basis of the current centred basis columns.
+        grad: Current EY gradient for this view, shape (n_samples, k).
 
-    ok_a = aa > _DEGENERATE_TOL * raw_sq[0]
-    ok_b = bb > _DEGENERATE_TOL * raw_sq[1]
+    Returns:
+        Tuple ``(score, feature, knot, keep)`` for the best candidate,
+        ``keep`` flagging which of the (positive, negative) hinges to add;
+        ``score`` is ``-inf`` when every candidate is degenerate.
+    """
+    n = x_sorted.shape[0]
+    r = q.shape[1]
+    w = np.column_stack([np.ones(n), q, grad])[order] * parent[order][:, :, None]
+    wx = w * x_sorted[:, :, None]
+    t = x_sorted[knot_rows][:, :, None]  # (n_knots, n_features, 1)
+
+    # <h_a, w> and <h_b, w> for every knot, feature and weight column.
+    inner_a = _suffix_sums(wx, knot_rows) - t * _suffix_sums(w, knot_rows)
+    inner_b = inner_a - (wx.sum(axis=0) - t * w.sum(axis=0))
+    # ||h_a||^2 and ||h_b||^2 from suffix sums of u^2 x^m, m = 0, 1, 2.
+    u2 = parent[order] ** 2
+    moments = np.stack([u2, u2 * x_sorted, u2 * x_sorted**2], axis=-1)
+    sq_all = moments.sum(axis=0)
+    suffix = _suffix_sums(moments, knot_rows)
+    t = t[..., 0]
+    sq_a = suffix[..., 2] - 2 * t * suffix[..., 1] + t**2 * suffix[..., 0]
+    sq_b = (sq_all[..., 2] - 2 * t * sq_all[..., 1] + t**2 * sq_all[..., 0]) - sq_a
+
+    sum_a, qh_a, na = inner_a[..., 0], inner_a[..., 1 : 1 + r], inner_a[..., 1 + r :]
+    sum_b, qh_b, nb = inner_b[..., 0], inner_b[..., 1 : 1 + r], inner_b[..., 1 + r :]
+    raw_aa = sq_a - sum_a**2 / n
+    raw_bb = sq_b - sum_b**2 / n
+    aa = raw_aa - np.sum(qh_a**2, axis=-1)
+    bb = raw_bb - np.sum(qh_b**2, axis=-1)
+    ab = -sum_a * sum_b / n - np.sum(qh_a * qh_b, axis=-1)
+    # G is not orthogonal to the current basis (the ridge keeps the refit's
+    # gradient off zero), so project it out of the hinge side explicitly.
+    qg = q.T @ grad
+    na = na - qh_a @ qg
+    nb = nb - qh_b @ qg
+    na_sq, nb_sq = np.sum(na**2, axis=-1), np.sum(nb**2, axis=-1)
+
+    ok_a = allowed & (aa > _DEGENERATE_TOL * raw_aa)
+    ok_b = allowed & (bb > _DEGENERATE_TOL * raw_bb)
     det = aa * bb - ab**2
     ok_pair = ok_a & ok_b & (det > _DEGENERATE_TOL * aa * bb)
 
     with np.errstate(divide="ignore", invalid="ignore"):
-        pair = (bb * na_sq - 2 * ab * np.sum(na * nb, axis=1) + aa * nb_sq) / det
+        pair = (bb * na_sq - 2 * ab * np.sum(na * nb, axis=-1) + aa * nb_sq) / det
         single_a = na_sq / aa
         single_b = nb_sq / bb
     single_a = np.where(ok_a, single_a, -np.inf)
     single_b = np.where(ok_b, single_b, -np.inf)
     scores = np.where(ok_pair, pair, np.maximum(single_a, single_b))
-    best = int(np.argmax(scores))
-    if ok_pair[best]:
+    knot_idx, feature = np.unravel_index(np.argmax(scores), scores.shape)
+    if ok_pair[knot_idx, feature]:
         keep = (True, True)
     else:
         keep = (
-            bool(single_a[best] >= single_b[best]),
-            bool(single_b[best] > single_a[best]),
+            bool(single_a[knot_idx, feature] >= single_b[knot_idx, feature]),
+            bool(single_b[knot_idx, feature] > single_a[knot_idx, feature]),
         )
-    return float(scores[best]), float(knots[best]), keep
+    knot = float(x_sorted[knot_rows[knot_idx], feature])
+    return float(scores[knot_idx, feature]), int(feature), knot, keep
 
 
 class _MarsEncoder:
@@ -193,9 +255,12 @@ class MARSCCA(BaseModel):
             function — 1 gives an additive model, 2 allows pairwise
             interactions, and so on. Either a single value or a list of
             per-view values. Default is 1.
-        n_candidate_knots: Number of candidate knots per feature, placed at
-            interior quantiles of that feature's training values. Default
-            is 20.
+        n_candidate_knots: Number of candidate knots per feature: the
+            training values at evenly spaced interior ranks. The fast update
+            in :func:`_best_hinge_pair` makes each extra knot cheap, so a
+            few hundred cost little more than 20; every interior data point
+            (``n_samples - 2``, as in classical MARS) works too, at a few
+            times the fit time. Default is 20.
         alpha: Ridge penalty strength applied to every basis coefficient.
             Either a single float or a list of per-view floats. Default is
             0.1.
@@ -270,11 +335,15 @@ class MARSCCA(BaseModel):
         max_terms_ = perview_parameter("max_terms", self.max_terms, 20, self.n_views_)
         max_degree_ = perview_parameter("max_degree", self.max_degree, 1, self.n_views_)
         alpha_ = perview_parameter("alpha", self.alpha, 0.1, self.n_views_)
-        quantiles = np.linspace(0, 1, self.n_candidate_knots + 2)[1:-1]
-        candidate_knots = [
-            [np.unique(np.quantile(X[:, j], quantiles)) for j in range(X.shape[1])]
-            for X in views_
+        orders = [np.argsort(X, axis=0) for X in views_]
+        sorted_views = [
+            np.take_along_axis(X, order, axis=0) for X, order in zip(views_, orders)
         ]
+        knot_rows = np.unique(
+            np.linspace(0, self.n_samples_ - 1, self.n_candidate_knots + 2)[1:-1]
+            .round()
+            .astype(int)
+        )
 
         rng = np.random.default_rng(self.random_state)
         warm_start = cheap_orthonormal_projection_weights(views_, k, None, rng)
@@ -293,7 +362,9 @@ class MARSCCA(BaseModel):
                     encoders[i],
                     raw_bases[i],
                     grads[i],
-                    candidate_knots[i],
+                    sorted_views[i],
+                    orders[i],
+                    knot_rows,
                     max_degree_[i],
                     max_terms_[i],
                 )
@@ -332,7 +403,9 @@ class MARSCCA(BaseModel):
         encoder: _MarsEncoder,
         raw_basis: np.ndarray,
         grad: np.ndarray,
-        knots: list[np.ndarray],
+        x_sorted: np.ndarray,
+        order: np.ndarray,
+        knot_rows: np.ndarray,
         max_degree: int,
         max_terms: int,
     ) -> np.ndarray | None:
@@ -353,13 +426,13 @@ class MARSCCA(BaseModel):
 
         best_score, best = -np.inf, None
         for term, parent in parents:
-            used = {feature for feature, _, _ in term}
-            for j in range(X.shape[1]):
-                if j in used:
-                    continue
-                score, knot, keep = _best_hinge_pair(parent, X[:, j], knots[j], q, grad)
-                if score > best_score:
-                    best_score, best = score, (term, j, knot, keep)
+            allowed = np.ones(X.shape[1], dtype=bool)
+            allowed[[feature for feature, _, _ in term]] = False
+            score, j, knot, keep = _best_hinge_pair(
+                parent, x_sorted, order, knot_rows, allowed, q, grad
+            )
+            if score > best_score:
+                best_score, best = score, (term, j, knot, keep)
 
         if best is None:
             return None
@@ -412,9 +485,10 @@ class MARSCCA(BaseModel):
 
         def factor(feature: int, knot: float, sign: int) -> str:
             raw_knot = knot + means[feature]
-            if sign > 0:
-                return f"h(x{feature} - {raw_knot:.4g})"
-            return f"h({raw_knot:.4g} - x{feature})"
+            if sign < 0:
+                return f"h({raw_knot:.4g} - x{feature})"
+            op = "-" if raw_knot >= 0 else "+"
+            return f"h(x{feature} {op} {abs(raw_knot):.4g})"
 
         return [
             " * ".join(factor(*f) for f in term) for term in self.encoders_[view].terms_

@@ -19,7 +19,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
   `max_degree >= 2` admits within-view interactions that an additive model cannot
   represent. There is no GCV pruning pass (GCV has no EY-loss counterpart); model size is
   set by `max_terms` and shrunk by the ridge penalty `alpha`. Selected terms are
-  inspectable via `model.basis_functions(view)`.
+  inspectable via `model.basis_functions(view)`. Candidate scoring uses Friedman's
+  suffix-sum fast update, so every knot of every feature is scored without forming a
+  single candidate column.
 
 ### Changed
 
