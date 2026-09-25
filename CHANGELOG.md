@@ -20,8 +20,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
   represent. There is no GCV pruning pass (GCV has no EY-loss counterpart); model size is
   set by `max_terms` and shrunk by the ridge penalty `alpha`. Selected terms are
   inspectable via `model.basis_functions(view)`. Candidate scoring uses Friedman's
-  suffix-sum fast update, so every knot of every feature is scored without forming a
-  single candidate column.
+  suffix-sum fast update, evaluated for every parent, feature and knot at once by
+  sparse block-membership matrices built once per fit, with each parent's inner
+  products against the (incrementally orthonormalised) basis cached across steps, so no
+  candidate column is ever formed.
 
 ### Changed
 

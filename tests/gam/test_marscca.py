@@ -7,7 +7,7 @@ import pytest
 from sklearn.exceptions import NotFittedError
 
 from cca_zoo.gam import GAMCCA, MARSCCA
-from cca_zoo.gam._marscca import _best_hinge_pair, _evaluate_terms
+from cca_zoo.gam._marscca import _evaluate_terms, _HingeScorer
 
 # get_params/set_params roundtrip behaviour is exercised generically for
 # every model in the package (including MARSCCA) by tests/test_sklearn_compat.py.
@@ -117,42 +117,62 @@ def test_basis_columns_are_not_degenerate(correlated_views: list[np.ndarray]) ->
 
 
 @pytest.mark.parametrize("n_basis", [0, 3])
-def test_best_hinge_pair_matches_direct_projection(n_basis: int) -> None:
-    """The suffix-sum scores equal tr(G^T P_H G) computed from explicit columns.
+def test_hinge_scorer_matches_direct_projection(n_basis: int) -> None:
+    """Every fast-update score equals tr(G^T P_H G) from explicit columns.
 
-    Uses a parent that vanishes on part of the sample and a gradient that is
-    *not* orthogonal to the current basis, the two cases where a shortcut in
-    the fast update would silently change the ranking.
+    Grows the scorer's state in the order the forward pass does — basis
+    columns, then parents (one vanishing on part of the sample, one with a
+    disallowed feature), then more basis columns after those parents are
+    cached — and scores against a gradient that is *not* orthogonal to the
+    basis: every place where the suffix-sum algebra or the cache could
+    silently change the ranking.
     """
     rng = np.random.default_rng(1)
     n, p, k = 60, 3, 2
     X = rng.standard_normal((n, p))
-    parent = np.maximum(0.0, rng.standard_normal(n))
-    basis = rng.standard_normal((n, n_basis))
-    q = np.linalg.qr(basis - basis.mean(axis=0))[0]
+    scorer = _HingeScorer(X, n_candidate_knots=5)
+    if n_basis:
+        scorer.add_columns(rng.standard_normal((n, n_basis)), [None] * n_basis)
+    new_parents = np.column_stack(
+        [np.maximum(0.0, rng.standard_normal(n)), rng.random(n)]
+    )
+    restricted = np.array([True, False, True])
+    scorer.add_columns(new_parents, [np.ones(p, dtype=bool), restricted])
+    scorer.add_columns(rng.standard_normal((n, 1)), [None])
+
+    parents = np.column_stack([np.ones(n), new_parents])
+    allowed = np.column_stack(
+        [np.ones(p, dtype=bool), np.ones(p, dtype=bool), restricted]
+    )
+    q = scorer.q
+    np.testing.assert_allclose(q.T @ q, np.eye(q.shape[1]), atol=1e-12)
     grad = rng.standard_normal((n, k))
     grad -= grad.mean(axis=0)
-    order = np.argsort(X, axis=0)
-    x_sorted = np.take_along_axis(X, order, axis=0)
-    rows = np.array([10, 30, 45])
 
-    def direct(j: int, t: float) -> float:
+    def direct(m: int, j: int, t: float) -> float:
+        u = parents[:, m]
         h = np.column_stack(
-            [parent * np.maximum(0, X[:, j] - t), parent * np.maximum(0, t - X[:, j])]
+            [u * np.maximum(0, X[:, j] - t), u * np.maximum(0, t - X[:, j])]
         )
         h -= h.mean(axis=0)
         h -= q @ (q.T @ h)
         return float(np.trace(grad.T @ h @ np.linalg.solve(h.T @ h, h.T @ grad)))
 
-    scores = np.array([[direct(j, x_sorted[r, j]) for j in range(p)] for r in rows])
-    best, j, knot, keep = _best_hinge_pair(
-        parent, x_sorted, order, rows, np.ones(p, dtype=bool), q, grad
+    scores = np.array(
+        [
+            [
+                [direct(m, j, t) if allowed[j, m] else -np.inf for m in range(3)]
+                for j, t in enumerate(knots)
+            ]
+            for knots in scorer.knots
+        ]
     )
-    r, j_expected = np.unravel_index(np.argmax(scores), scores.shape)
+    best, parent, j, knot, keep = scorer.best_pair(grad)
+    r, j_expected, m_expected = np.unravel_index(np.argmax(scores), scores.shape)
     assert keep == (True, True)
-    assert j == j_expected
-    assert knot == x_sorted[rows[r], j]
-    np.testing.assert_allclose(best, scores.max(), rtol=1e-10)
+    assert (parent, j) == (m_expected, j_expected)
+    assert knot == scorer.knots[r, j]
+    np.testing.assert_allclose(best, scores.max(), rtol=1e-9)
 
 
 def test_basis_functions_strings(two_views_small: list[np.ndarray]) -> None:
