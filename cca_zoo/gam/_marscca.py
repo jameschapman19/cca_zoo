@@ -20,9 +20,9 @@ from cca_zoo._utils._ey import (
     cheap_orthonormal_projection_weights,
     ey_grad_z,
     ey_loss,
-    ridge_basis_ey_closed_form,
-    ridge_basis_ey_gep,
-    ridge_basis_ey_min_loss,
+    penalised_basis_ey_closed_form,
+    penalised_basis_ey_gep,
+    penalised_basis_ey_min_loss,
 )
 from cca_zoo._utils._validation import perview_parameter, validate_views
 
@@ -596,7 +596,7 @@ def _backward_path(
     Repeatedly deletes the column, from whichever view, whose removal leaves
     the lowest refit ridge-EY training loss, never a view's last column.
     The refit loss over a column set is $-\sum \mu^2$ over the $k$ largest
-    positive eigenvalues of :func:`~cca_zoo._utils._ey.ridge_basis_ey_gep`
+    positive eigenvalues of :func:`~cca_zoo._utils._ey.penalised_basis_ey_gep`
     on it. In the standard form $C = L^{-1}(A - R/4)L^{-\top}$, $B = LL^\top$,
     deleting column $c$ restricts $C$ to the complement of $L^{-1} e_c$, whose
     coordinates in $C$'s eigenbasis $U$ are row $c$ of the generalized
@@ -612,7 +612,7 @@ def _backward_path(
         (``loss[0]``) down to one column per view (``loss[-1]``), so
         ``loss[s]`` is the loss after ``s`` deletions.
     """
-    lhs, rhs, view = ridge_basis_ey_gep(*_jacobi_scaled(bases, ridge))
+    lhs, rhs, view = penalised_basis_ey_gep(*_jacobi_scaled(bases, ridge))
     active = np.ones(len(view), dtype=bool)
     removed: list[int] = []
     losses: list[float] = []
@@ -656,7 +656,9 @@ def _exact_loss(
             np.column_stack([raw, columns]) if i == view else raw
             for i, raw in enumerate(raw_bases)
         ]
-        return ridge_basis_ey_min_loss([b - b.mean(axis=0) for b in bases], k, ridge)
+        return penalised_basis_ey_min_loss(
+            [b - b.mean(axis=0) for b in bases], k, ridge
+        )
 
     return loss
 
@@ -716,7 +718,7 @@ class MARSCCA(BaseModel):
     gradient), adds the best pair to each view in turn, then refits every
     view's coefficients jointly on the enlarged bases. On a fixed basis the
     ridge-EY fit is a generalized eigenproblem
-    (:func:`~cca_zoo._utils._ey.ridge_basis_ey_gep`), so each refit is its
+    (:func:`~cca_zoo._utils._ey.penalised_basis_ey_gep`), so each refit is its
     exact global optimum in closed form, not an iterative solve. Knots are
     therefore placed only where the cross-view signal needs them, and with
     ``degree >= 2`` a term can represent a genuine within-view
@@ -935,7 +937,7 @@ class MARSCCA(BaseModel):
                     "constant; lower endspan or minspan for that view."
                 )
             bases = [raw - raw.mean(axis=0) for raw in raw_bases]
-            coefficients = ridge_basis_ey_closed_form(bases, k, alpha_)
+            coefficients = penalised_basis_ey_closed_form(bases, k, alpha_)
             representations = [b @ c for b, c in zip(bases, coefficients)]
             # earth's thresh: stop once a round's terms barely lower the loss.
             loss = ey_loss(representations)["objective"] + 0.5 * sum(
@@ -973,7 +975,7 @@ class MARSCCA(BaseModel):
             ]
             raw_bases = [raw[:, mask] for raw, mask in zip(raw_bases, keep)]
             bases = [raw - raw.mean(axis=0) for raw in raw_bases]
-            coefficients = ridge_basis_ey_closed_form(bases, k, alpha_)
+            coefficients = penalised_basis_ey_closed_form(bases, k, alpha_)
             representations = [b @ c for b, c in zip(bases, coefficients)]
         self.n_removed_: int = n_removed
 

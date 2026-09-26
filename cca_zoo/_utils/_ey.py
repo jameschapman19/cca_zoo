@@ -31,9 +31,10 @@ References:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import numpy as np
 import scipy.linalg
-from scipy.optimize import minimize
 from threadpoolctl import threadpool_limits
 
 
@@ -891,199 +892,21 @@ def omp_coordinate_descent_ey(
     return coefficients, representations
 
 
-def _flatten(mats: list[np.ndarray]) -> np.ndarray:
-    """Concatenate per-view coefficient matrices into one parameter vector."""
-    return np.concatenate([mat.ravel() for mat in mats])
+def _penalty_matrix(penalty: float | np.ndarray, size: int) -> np.ndarray:
+    """A view's penalty as a matrix: a scalar ridge, per-column ridges, or a matrix."""
+    penalty = np.asarray(penalty, dtype=float)
+    if penalty.ndim == 2:
+        return penalty
+    return np.diag(np.broadcast_to(penalty, size))
 
 
-def _unflatten(x: np.ndarray, dims: list[int], k: int) -> list[np.ndarray]:
-    """Inverse of :func:`_flatten`: split a flat vector into per-view blocks."""
-    mats = []
-    offset = 0
-    for d in dims:
-        size = d * k
-        mats.append(x[offset : offset + size].reshape(d, k))
-        offset += size
-    return mats
-
-
-def _ridge_basis_ey_obj_grad(
-    x: np.ndarray,
-    bases: list[np.ndarray],
-    grams: list[np.ndarray],
-    cross: list[list[np.ndarray]],
-    ridge: list[float],
-    dims: list[int],
-    k: int,
-) -> tuple[float, np.ndarray]:
-    r"""Penalised EY loss and gradient w.r.t. *every* view's coefficients at once.
-
-    Writing $Z_i = \text{bases}_i B_i$ for every view $i$, this is
-    $\mathcal{L}_{EY}(Z_1, \dots, Z_M) + \tfrac12\sum_i\lambda_i\lVert B_i\rVert_F^2$
-    as a function of $B_1, \dots, B_M$ flattened and concatenated into one
-    vector, with its exact analytic gradient
-    $\text{bases}_i^\top\nabla_{Z_i}\mathcal{L}_{EY} + \lambda_i B_i$ per block
-    — the same two ingredients (:func:`ey_loss` and
-    :func:`ey_grad_z`) every other EY-loss model in this
-    package already uses. ``grams`` and ``cross`` are unused here; they are
-    accepted only so this function shares a call signature with
-    :func:`_ridge_basis_ey_hessp`, which :func:`scipy.optimize.minimize` calls
-    with the same ``args``.
-
-    Args:
-        x: Candidate coefficients for every view, flattened and concatenated.
-        bases: Fixed per-view (centred) design matrices.
-        grams: ``bases[i].T @ bases[i]`` per view; unused (see above).
-        cross: ``cross[i][a] = bases[i].T @ bases[a]`` for every pair; unused.
-        ridge: Ridge penalty strength, one per view.
-        dims: Number of basis columns per view (``bases[i].shape[1]``).
-        k: Number of latent components.
-
-    Returns:
-        Tuple ``(loss, grad)`` with ``grad`` flattened the same way as ``x``.
-    """
-    coefs = _unflatten(x, dims, k)
-    reps = [basis @ b for basis, b in zip(bases, coefs)]
-    loss = ey_loss(reps)["objective"] + 0.5 * sum(
-        r * float(np.sum(b**2)) for b, r in zip(coefs, ridge)
-    )
-    grad_z = ey_grad_z(reps)
-    grads = [
-        basis.T @ gz + r * b for basis, gz, b, r in zip(bases, grad_z, coefs, ridge)
-    ]
-    return loss, _flatten(grads)
-
-
-def _ridge_basis_ey_hessp(
-    x: np.ndarray,
-    p: np.ndarray,
-    bases: list[np.ndarray],
-    grams: list[np.ndarray],
-    cross: list[list[np.ndarray]],
-    ridge: list[float],
-    dims: list[int],
-    k: int,
-) -> np.ndarray:
-    r"""Exact Hessian-vector product of the penalised EY loss over *every* view at once.
-
-    Returns the exact action of the full joint Hessian — every view, every
-    latent component, all updated together, no view held fixed — on a
-    direction $P_1, \dots, P_M$, without ever forming the
-    $\left(\sum_i d_i k\right) \times \left(\sum_i d_i k\right)$ Hessian
-    matrix itself. This differentiates the already-exact embedding gradient
-    (:func:`ey_grad_z`) once more, jointly in every
-    view's direction $\text{bases}_i P_i$ simultaneously, and pulls each
-    block of the result back through $\text{bases}_i^\top$. Writing
-    $G_i = \text{bases}_i^\top\text{bases}_i$,
-    $K_{ia} = \text{bases}_i^\top\text{bases}_a$ (``cross[i][a]``), and $V$
-    for the current mean auto-covariance:
-
-    $$
-    dV = \frac{1}{M(n-1)}\sum_a\left(P_a^\top G_a B_a + B_a^\top G_a P_a\right),
-    \qquad
-    Hp_i = \frac{4}{M(n-1)}\left[G_i P_i V + (G_i B_i)\,dV
-        - \sum_a K_{ia} P_a\right] + \lambda P_i.
-    $$
-
-    The $-\sum_a K_{ia}P_a$ term is what a single-view-at-a-time Hessian
-    would miss: it captures how perturbing *any* view's coefficients changes
-    every other view's gradient through their shared $S = \sum_a Z_a$, which
-    is exactly what makes this a genuinely joint (not merely block-diagonal)
-    Hessian-vector product. Verified against finite differences of
-    :func:`ey_grad_z` for $M = 2, 3, 4$ views with
-    unequal per-view dimensions and $k = 1, 2, 3$.
-
-    Args:
-        x: Point at which the Hessian is evaluated (every view's current
-            coefficients, flattened and concatenated the same way as ``p``).
-        p: Direction, flattened and concatenated the same way as ``x``.
-        bases: Fixed per-view (centred) design matrices.
-        grams: ``bases[i].T @ bases[i]`` per view, precomputed once.
-        cross: ``cross[i][a] = bases[i].T @ bases[a]`` for every pair,
-            precomputed once.
-        ridge: Ridge penalty strength, one per view.
-        dims: Number of basis columns per view (``bases[i].shape[1]``).
-        k: Number of latent components.
-
-    Returns:
-        $\{Hp_i\}$, flattened and concatenated the same way as ``x``.
-    """
-    coefs = _unflatten(x, dims, k)
-    directions = _unflatten(p, dims, k)
-    m = len(bases)
-    n_minus_1 = bases[0].shape[0] - 1
-    reps = [basis @ b for basis, b in zip(bases, coefs)]
-    _, v = ey_cross_covariance(reps)
-    dv = sum(
-        pi.T @ (grams[i] @ coefs[i]) + coefs[i].T @ (grams[i] @ pi)
-        for i, pi in enumerate(directions)
-    ) / (m * n_minus_1)
-    scale = 4.0 / (m * n_minus_1)
-
-    hessian_vector_products = []
-    for i in range(m):
-        term1 = grams[i] @ directions[i] @ v
-        term2 = (grams[i] @ coefs[i]) @ dv
-        term3 = sum(cross[i][a] @ directions[a] for a in range(m))
-        hp_i = scale * (term1 + term2 - term3) + ridge[i] * directions[i]
-        hessian_vector_products.append(hp_i)
-    return _flatten(hessian_vector_products)
-
-
-def ridge_basis_ey_trust_krylov(
-    bases: list[np.ndarray],
-    coefficients0: list[np.ndarray],
-    ridge: list[float],
-    max_iter: int,
-    tol: float,
-) -> list[np.ndarray]:
-    r"""Fit ridge-penalised linear-in-basis coefficients jointly on the EY loss.
-
-    Minimises $\mathcal{L}_{EY}(\text{bases}_1 B_1, \dots, \text{bases}_M B_M)
-    + \tfrac12\sum_i\lambda_i\lVert B_i\rVert_F^2$ over every view's
-    coefficients at once, in a single call to
-    :func:`scipy.optimize.minimize`'s ``"trust-krylov"`` solver given the
-    exact gradient (:func:`_ridge_basis_ey_obj_grad`) and exact joint
-    Hessian-vector product (:func:`_ridge_basis_ey_hessp`). Shared by every
-    model whose encoder is a fixed (per fit) column-centred basis times a
-    ridge-penalised coefficient matrix: :class:`~cca_zoo.gam.GAMCCA`
-    (B-splines) and :class:`~cca_zoo.gam.MARSCCA` (hinge products, refit
-    after every forward-pass addition).
-
-    Args:
-        bases: Fixed per-view column-centred design matrices.
-        coefficients0: Starting coefficients, ``coefficients0[i]`` of shape
-            ``(bases[i].shape[1], k)``.
-        ridge: Ridge penalty strength, one per view.
-        max_iter: Maximum outer Newton iterations (``maxiter``).
-        tol: Gradient-norm convergence tolerance (``gtol``).
-
-    Returns:
-        Fitted coefficients, same shapes as ``coefficients0``.
-    """
-    k = coefficients0[0].shape[1]
-    dims = [basis.shape[1] for basis in bases]
-    grams = [basis.T @ basis for basis in bases]
-    cross = [[bi.T @ ba for ba in bases] for bi in bases]
-    result = minimize(
-        _ridge_basis_ey_obj_grad,
-        _flatten(coefficients0),
-        args=(bases, grams, cross, ridge, dims, k),
-        jac=True,
-        hessp=_ridge_basis_ey_hessp,
-        method="trust-krylov",
-        options={"maxiter": max_iter, "gtol": tol},
-    )
-    return _unflatten(result.x, dims, k)
-
-
-def ridge_basis_ey_gep(
-    bases: list[np.ndarray], ridge: list[float] | list[np.ndarray]
+def penalised_basis_ey_gep(
+    bases: list[np.ndarray], penalties: Sequence[float | np.ndarray]
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    r"""The generalized eigenproblem whose solution minimises the ridge-EY loss.
+    r"""The generalized eigenproblem whose solution minimises the penalised EY loss.
 
     For fixed column-centred bases $\Phi_i$ and coefficients stacked as
-    $W = [B_1; \dots; B_M]$, the ridge-penalised EY loss is
+    $W = [B_1; \dots; B_M]$, the quadratically penalised EY loss is
 
     $$
     -2\operatorname{tr}(W^\top A W) + \operatorname{tr}\big((W^\top B W)^2\big)
@@ -1092,20 +915,23 @@ def ridge_basis_ey_gep(
 
     with $A = \Phi^\top\Phi / (M(n-1))$ over the concatenated bases (every
     cross- and auto-covariance block), $B$ its block diagonal (each view's
-    own auto-covariance), and $R = \operatorname{blockdiag}(\lambda_i I)$.
-    Its stationarity condition $(A - R/4)\,W = B W (W^\top B W)$ is solved by
+    own auto-covariance), and $R = \operatorname{blockdiag}(R_i)$ each
+    view's penalty — a ridge $\lambda_i I$ (:class:`~cca_zoo.gam.MARSCCA`)
+    or a P-spline difference penalty (:class:`~cca_zoo.gam.GAMCCA`). Its
+    stationarity condition $(A - R/4)\,W = B W (W^\top B W)$ is solved by
     the generalized eigenvectors $(A - R/4)\,U = B U \operatorname{diag}(\mu)$,
     $U^\top B U = I$, scaled as $W = U\operatorname{diag}(\sqrt{\mu})$, where
     the loss equals $-\sum \mu^2$: the global minimum over $k$ components
     takes the $k$ largest positive eigenvalues (a component whose eigenvalue
-    is not positive is zero). The fixed-basis ridge-EY fit is therefore a
-    closed-form eigenproblem, the same one ridge-regularised MCCA solves.
+    is not positive is zero). The fixed-basis penalised EY fit is therefore
+    a closed-form eigenproblem, the same one regularised MCCA solves.
 
     Args:
         bases: Column-centred per-view design matrices, each (n, d_i), with
-            full column rank (so ``B`` is positive definite).
-        ridge: Ridge penalty strength, one per view: a scalar, or one value
-            per column of that view.
+            full column rank (so ``B`` is positive definite; see
+            :func:`full_rank_reparametrisation` otherwise).
+        penalties: One per view: a scalar ridge, one ridge per column, or a
+            symmetric positive semi-definite (d_i, d_i) matrix.
 
     Returns:
         ``(A - R/4, B, view)``: the two sides of the eigenproblem over the
@@ -1117,13 +943,10 @@ def ridge_basis_ey_gep(
     view = np.repeat(np.arange(m), [basis.shape[1] for basis in bases])
     a = stacked.T @ stacked / (m * (n - 1))
     b = np.where(view[:, None] == view[None, :], a, 0.0)
-    penalty = np.concatenate(
-        [
-            np.broadcast_to(np.asarray(r), basis.shape[1])
-            for r, basis in zip(ridge, bases)
-        ]
+    penalty = scipy.linalg.block_diag(
+        *[_penalty_matrix(p, basis.shape[1]) for p, basis in zip(penalties, bases)]
     )
-    return a - np.diag(penalty) / 4, b, view
+    return a - penalty / 4, b, view
 
 
 def _jacobi_scale(bases: list[np.ndarray]) -> np.ndarray:
@@ -1133,36 +956,39 @@ def _jacobi_scale(bases: list[np.ndarray]) -> np.ndarray:
 
 
 def _jacobi_scaled(
-    bases: list[np.ndarray], ridge: list[float]
+    bases: list[np.ndarray], penalties: Sequence[float | np.ndarray]
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
-    """Bases with unit-norm columns, and the ridge that keeps the problem unchanged.
+    """Bases with unit-norm columns, and the penalties that keep the problem unchanged.
 
     Rescaling columns by ``s`` rescales their coefficients by ``1/s``, so the
-    same fit needs the per-coefficient ridge ``lambda * s**2``: returned as
-    one diagonal per view (the eigenproblem is invariant; only its
-    conditioning improves, which the Cholesky factorisation of ``B``
-    needs when column norms span orders of magnitude).
+    same fit needs the penalty ``diag(s) R diag(s)`` (the eigenproblem is
+    invariant; only its conditioning improves, which the Cholesky
+    factorisation of ``B`` needs when column norms span orders of
+    magnitude).
     """
     scale = _jacobi_scale(bases)
     split = np.cumsum([b.shape[1] for b in bases])[:-1]
     per_view = np.split(scale, split)
     return (
         [b * sv for b, sv in zip(bases, per_view)],
-        [r * sv**2 for r, sv in zip(ridge, per_view)],
+        [
+            _penalty_matrix(p, len(sv)) * np.outer(sv, sv)
+            for p, sv in zip(penalties, per_view)
+        ],
     )
 
 
-def ridge_basis_ey_closed_form(
-    bases: list[np.ndarray], k: int, ridge: list[float]
+def penalised_basis_ey_closed_form(
+    bases: list[np.ndarray], k: int, penalties: Sequence[float | np.ndarray]
 ) -> list[np.ndarray]:
-    """Globally optimal ridge-EY coefficients on fixed bases.
+    """Globally optimal penalised-EY coefficients on fixed bases.
 
-    Solves :func:`ridge_basis_ey_gep` for its ``k`` largest eigenvalues.
+    Solves :func:`penalised_basis_ey_gep` for its ``k`` largest eigenvalues.
 
     Args:
         bases: Column-centred per-view design matrices of full column rank.
         k: Number of latent dimensions.
-        ridge: Ridge penalty strength, one per view.
+        penalties: One per view, as :func:`penalised_basis_ey_gep` takes.
 
     Returns:
         Per-view coefficients, ``coefficients[i]`` of shape
@@ -1178,7 +1004,7 @@ def ridge_basis_ey_closed_form(
         exact rescoring and the backward pass in
         :class:`~cca_zoo.gam.MARSCCA`.
     """
-    lhs, rhs, view = ridge_basis_ey_gep(*_jacobi_scaled(bases, ridge))
+    lhs, rhs, view = penalised_basis_ey_gep(*_jacobi_scaled(bases, penalties))
     size = lhs.shape[0]
     top = max(size - k, 0)
     with threadpool_limits(limits=1):
@@ -1189,23 +1015,85 @@ def ridge_basis_ey_closed_form(
     return [w[view == i] for i in range(len(bases))]
 
 
-def ridge_basis_ey_min_loss(
-    bases: list[np.ndarray], k: int, ridge: list[float]
+def penalised_basis_ey_min_loss(
+    bases: list[np.ndarray], k: int, penalties: Sequence[float | np.ndarray]
 ) -> float:
-    """Minimum ridge-EY loss on fixed bases: ``-sum(mu**2)`` over the top-k eigenvalues.
+    """Minimum penalised-EY loss on fixed bases: ``-sum(mu**2)`` over the top k.
 
     Args:
         bases: Column-centred per-view design matrices of full column rank.
         k: Number of latent dimensions.
-        ridge: Ridge penalty strength, one per view.
+        penalties: One per view, as :func:`penalised_basis_ey_gep` takes.
 
     Returns:
-        The loss :func:`ridge_basis_ey_closed_form`'s coefficients attain,
-        from the eigenvalues alone.
+        The loss :func:`penalised_basis_ey_closed_form`'s coefficients
+        attain, from the eigenvalues alone.
     """
-    lhs, rhs, _ = ridge_basis_ey_gep(*_jacobi_scaled(bases, ridge))
+    lhs, rhs, _ = penalised_basis_ey_gep(*_jacobi_scaled(bases, penalties))
     size = lhs.shape[0]
     mu = scipy.linalg.eigh(
         lhs, rhs, eigvals_only=True, subset_by_index=(max(size - k, 0), size - 1)
     )
     return -float(np.sum(np.maximum(mu, 0.0) ** 2))
+
+
+def full_rank_reparametrisation(
+    basis: np.ndarray, penalty_factor: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    r"""Rewrite a rank-deficient penalised basis as an equivalent full-rank one.
+
+    With $\Phi = U S V^\top$ and penalty $R = F^\top F$, split coefficients
+    as $w = T a + N c$ with $T$ spanning $\Phi$'s row space and $N$ its null
+    space. The embedding $\Phi w = U S a$ depends on $a$ alone, so for any
+    $a$ the best $c$ minimises only the penalty, the least-squares problem
+    $\min_c \lVert F (T a + N c) \rVert$; its minimum-norm solution
+    $c^\star = -(F N)^{+} F T a$ leaves $w = L a$ with
+    $L = T - N (F N)^{+} F T$ and penalty $(F L)^\top (F L)$ — an exact,
+    equivalent problem on the full-rank basis $U S$. It is what lets a
+    P-spline basis keep splines with no data under them (the difference
+    penalty fills them in) and keep every feature's partition of unity
+    (which centring makes collinear), the identifiability ``mgcv`` resolves
+    by reparametrisation.
+
+    Three numerical choices keep :math:`L` accurate. The least-squares
+    problem is solved on the penalty's factor $F$ rather than by
+    pseudo-inverting $N^\top R N$, whose condition number is the square of
+    $F N$'s. Singular values of $\Phi$ below $\sqrt{\epsilon}$ of the largest
+    count as null: below that, a direction's data signal is rounding error,
+    and keeping it in the row space would let $L$'s null-space correction
+    leak back into $\Phi L$ (measured: a correlation of 0.78 on the reduced
+    problem fell to 0.03 after lifting with an ``eps``-level cutoff and a
+    pseudo-inverse). And the same $\sqrt{\epsilon}$ cutoff applies to $F N$,
+    relative to $\lVert F \rVert$ rather than to $F N$'s own largest singular
+    value:
+    a direction null in both $\Phi$ and $R$ — every feature's constant, for a
+    P-spline — has a singular value of rounding size there rather than
+    zero, and inverting it put coefficients of 1e13 on it, harmless to the
+    embedding but ruinous to each feature's own term.
+
+    Args:
+        basis: Column-centred design matrix, shape (n, d), any rank.
+        penalty_factor: ``F`` with penalty ``R = F.T @ F``, shape (q, d).
+
+    Returns:
+        ``(reduced_basis, reduced_penalty, lift)``: shapes (n, r), (r, r)
+        and (d, r); coefficients ``a`` fit on the reduced problem map back
+        as ``lift @ a``.
+    """
+    cutoff = np.sqrt(np.finfo(float).eps)
+    u, s, vt = np.linalg.svd(basis, full_matrices=False)
+    rank = int(np.sum(s > s[0] * cutoff))
+    row = vt[:rank].T
+    null = scipy.linalg.null_space(vt[:rank])
+    # Minimum-norm least squares, with singular values judged against the
+    # penalty's own scale: lstsq's relative rcond would keep them all when
+    # every one is rounding-sized, as when the null space is entirely
+    # directions the penalty annihilates.
+    fu, fs, fvt = np.linalg.svd(penalty_factor @ null, full_matrices=False)
+    keep = fs > cutoff * np.linalg.norm(penalty_factor, 2)
+    correction = fvt[keep].T @ (
+        (fu[:, keep].T @ (penalty_factor @ row)) / fs[keep, None]
+    )
+    lift = row - null @ correction
+    factor_lift = penalty_factor @ lift
+    return u[:, :rank] * s[:rank], factor_lift.T @ factor_lift, lift

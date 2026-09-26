@@ -1,56 +1,35 @@
 # GAM & MARS Methods
 
-The `cca_zoo.gam` module provides two spline-based nonlinear multiview CCA methods: `GAMCCA` and
-`MARSCCA` (see [below](#marscca)). `GAMCCA` is a nonlinear multiview CCA method that uses a
-generalized additive model (GAM) — one smooth univariate B-spline per input feature — as the
-per-view encoder. It has no optional dependency: the spline basis is built entirely from
-scikit-learn's own `SplineTransformer`, with `scipy.optimize` doing the Newton solve, all already
-required by `cca_zoo`, rather than reimplemented from scratch.
+The `cca_zoo.gam` module provides two spline-based nonlinear multiview CCA methods, each modelled
+on the R package its users will know: `GAMCCA` follows `mgcv`, and `MARSCCA` (see
+[below](#marscca)) follows `earth`. Both are built on scikit-learn's `SplineTransformer` and
+SciPy, with no optional dependency.
 
 ---
 
-## Background
+## GAMCCA
 
-`GAMCCA` minimises the same unconstrained Eckart-Young (EY) objective used by the stochastic
-`*_EY` models in `cca_zoo.linear`, by `DCCAEY` in `cca_zoo.deep`, and by `TreeCCA` in
-`cca_zoo.tree` (the numpy-based models share the exact same implementation, in
-`cca_zoo._utils._ey`):
+`GAMCCA` gives each view a generalized additive model — $f_i(x) = \sum_j s_{ij}(x_j)$, one smooth
+per input feature — where each smooth is `mgcv`'s P-spline, `s(x, bs="ps", k=k, m=m)`: a
+`k`-dimensional B-spline basis on evenly spaced knots with a difference penalty on neighbouring
+coefficients (Eilers and Marx, 1996). The embeddings minimise the Eckart-Young (EY) objective
+shared with `CCAEY`, `DCCAEY` and `TreeCCA`,
 
 $$
 \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
 $$
 
-where, for embeddings $Z_i = f_i(X_i)$, $C$ is the mean pairwise cross-covariance (including
-$i = j$ terms) and $V$ the mean auto-covariance across all views. `GAMCCA` uses a generalized
-additive model — $f_i(x) = \sum_j s_j(x_j)$, one B-spline term per input feature — in place of a
-linear map (`CCAEY`) or a boosted-tree ensemble (`TreeCCA`) as the function class for each
-$f_i$.
+($C$ the mean pairwise cross-covariance including $i = j$ terms, $V$ the mean auto-covariance),
+plus each view's smoothing penalty $\tfrac12\,\mathrm{sp}_i \sum_j \beta_{ij}^\top D^\top D
+\beta_{ij}$. The penalty shrinks every smooth towards a polynomial — a straight line for the
+default second-difference penalty — rather than towards zero.
 
-Writing $f_i(x) = \sum_j s_j(x_j)$ as a fixed per-feature B-spline basis times a coefficient
-matrix, fitting those coefficients is conceptually a **P-IRLS** recipe — the same iteration
-structure GAM software such as R's `mgcv` uses, applied directly to the EY loss rather than a
-per-observation likelihood. Rather than hand-rolling that solve (or even cycling over views one
-at a time), every view's coefficients — every latent component, every view, all at once — are
-updated in a single call to `scipy.optimize.minimize(method="trust-krylov")`, a standard
-off-the-shelf trust-region Newton-CG solver, given the EY loss's exact gradient and an exact
-Hessian-vector product across the whole stacked parameter vector.
-
-Because each latent component decomposes exactly into one additive term per input feature, the
-fitted shape of any feature's contribution is available directly via `model.shape_function(...)`
-— the GAM analogue of `TreeCCA`'s split-gain feature importance, but an exact curve rather than a
-single importance score, and smooth by construction rather than a step function.
-
-**When to use:** Nonlinear multiview CCA where the true per-feature relationship is expected to
-be *smooth* (rather than needing feature interactions or sharp thresholds) — a GAM's smoothness
-assumption is then a genuine inductive-bias advantage, not just a cosmetic one.
-
-If cross-view structure instead depends on an *interaction* between two features of the same view
-(e.g. $x_1 x_2$), a GAM's additive structure cannot represent that the way a tree's multivariate
-splits or a Gaussian process's joint kernel can — prefer `TreeCCA` or `GaussianProcessCCA` there.
-
----
-
-## Basic usage
+With the basis fixed, the whole fit is one generalized eigenproblem, solved in closed form at its
+global optimum: no iterations, no tolerance, no random start. It is the same solver `MARSCCA`
+uses. A P-spline basis is rank-deficient by design — splines with no data under them are kept
+for the penalty to fill in, and every feature's splines sum to a constant — so, as `mgcv`
+resolves identifiability by reparametrisation, the problem is first rewritten exactly on the
+basis's row space.
 
 ```python
 from cca_zoo.gam import GAMCCA
@@ -59,51 +38,56 @@ model = GAMCCA(latent_dimensions=2).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
 corrs = model.score([X1, X2])
 
-# GAMCCA also supports more than two views
-model3 = GAMCCA(latent_dimensions=2).fit([X1, X2, X3])
+# mgcv-style controls, per view where useful
+model = GAMCCA(k=[10, 30], m=(2, 1), sp=[0.1, 1.0]).fit([X1, X2])
 ```
 
-## Inspecting fitted shape functions
+### Choosing the smoothing parameter
 
-`GAMCCA` has no linear weight matrices, so `model.weights` raises `NotImplementedError`. Use
-`shape_function` instead to evaluate a single feature's fitted additive term directly:
+`mgcv` estimates each `sp` by GCV or REML, both likelihood or residual criteria with no EY-loss
+counterpart, so here `sp` is chosen by cross-validation. Refit with
+[`one_standard_error`](model-selection.md#preferring-simpler-models-one_standard_error), telling it
+that a larger `sp` is the simpler model, to take the smoothest fit within one standard error of
+the best:
+
+```python
+from cca_zoo.model_selection import GridSearchCV, one_standard_error
+
+gs = GridSearchCV(
+    GAMCCA(),
+    {"sp": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
+    refit=one_standard_error("sp", larger_is_simpler=True),
+).fit([X1, X2])
+```
+
+### Inspecting fitted smooths
+
+`GAMCCA` has no linear weight matrices, so `model.weights` raises `NotImplementedError`.
+`shape_function` evaluates one feature's fitted smooth — `plot.gam`'s partial effect:
 
 ```python
 import numpy as np
 
-model = GAMCCA(latent_dimensions=1).fit([X1, X2])
-
 x_grid = np.linspace(X1[:, 0].min(), X1[:, 0].max(), 200)
-shape = model.shape_function(view=0, feature=0, x=x_grid)  # (200, 1)
+shape = model.shape_function(view=0, feature=0, x=x_grid)  # (200, latent_dimensions)
 ```
 
-`shape` is that feature's contribution alone, in the units of the latent component — plot it
-against `x_grid` to see the exact fitted curve for that feature, rather than a single importance
-score. Summing every feature's `shape_function` at the training values reproduces
-`model.encoders_[view].predict()` exactly.
+Summing every feature's `shape_function` at the training values reproduces
+`model.encoders_[view].predict()`.
 
----
+### Parameters
 
-## Key parameters
+Parameters share `mgcv`'s names and meanings for `bs="ps"` smooths.
 
-| Parameter | Description |
-|---|---|
-| `n_knots` | Knots per feature's B-spline term, passed straight through to `SplineTransformer(n_knots=...)`. More knots allow wigglier per-feature curves. |
-| `alpha` | Ridge (smoothing) penalty strength applied to every spline coefficient. There is no automatic smoothing-parameter selection — tune this directly. |
-| `max_iter` | Maximum number of outer Newton iterations in the single joint `trust-krylov` solve (`scipy.optimize.minimize`'s own `maxiter` option). |
-| `tol` | Gradient-norm convergence tolerance for the joint solve (`scipy.optimize.minimize`'s own `gtol` option). |
-| `random_state` | Seed for the initial coefficients. |
+| Parameter | `mgcv` | Description |
+|---|---|---|
+| `k` | `k` | Basis dimension: B-splines per feature. Default 20 — `mgcv`'s is 10, but P-splines do best with a generous basis and the penalty in charge (held-out correlation on smooth nonlinear relationships: 0.60 at `k=20` against 0.56 at the best `k=10`). Cost grows with the cube of the total basis size, so lower it for wide views. Scalar or per-view list. |
+| `m` | `m` | `(order, penalty order)`: B-splines of degree `order + 1` and a `penalty order`-th difference penalty; a single value sets both. Default 2 (cubic, second differences), `mgcv`'s. An int or tuple, or a list of per-view values. |
+| `sp` | `sp` | Smoothing parameter; larger is smoother. Default 0.1. `mgcv` estimates it; here choose it by cross-validation (above). Scalar or per-view list. |
 
----
-
-## Practical notes
-
-- `GAMCCA` supports 2 or more views.
-- `latent_dimensions` must not exceed the number of features in any view.
-- Unlike `KCCA`, `GAMCCA` does not store the training data for inference — new data is passed
-  directly through the fitted per-feature splines, so `transform` on held-out data is inexpensive.
-- No optional dependency is required (unlike `cca_zoo.tree`, which needs `xgboost`/`lightgbm`):
-  `GAMCCA` is built entirely on `scikit-learn`'s `SplineTransformer` and `scipy.optimize`.
+**When to use:** nonlinear multiview CCA where each feature's relationship is expected to be
+smooth. A GAM is additive, so it cannot represent an interaction between two features of the
+same view (e.g. $x_1 x_2$); `MARSCCA` with `degree >= 2`, `TreeCCA` or `GaussianProcessCCA` can.
 
 ---
 

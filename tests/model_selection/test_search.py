@@ -605,3 +605,11 @@ def test_halving_search_rejects_callable_refit(
     search = search_cls(rCCA(), **kwargs, cv=2, refit=one_standard_error("c"))
     with pytest.raises(TypeError, match="never call a callable"):
         search.fit(two_views)
+
+
+def test_one_standard_error_larger_is_simpler() -> None:
+    """For a penalty, the largest eligible value is the simplest candidate."""
+    scores = np.array([[0.50, 0.53, 0.40], [0.54, 0.52, 0.41], [0.52, 0.53, 0.39]])
+    results = _cv_results("sp", [0.01, 1.0, 100.0], scores)
+    assert one_standard_error("sp")(results) == 0
+    assert one_standard_error("sp", larger_is_simpler=True)(results) == 1

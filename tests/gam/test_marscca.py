@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from sklearn.exceptions import NotFittedError
 
-from cca_zoo._utils._ey import ey_loss, ridge_basis_ey_closed_form
+from cca_zoo._utils._ey import ey_loss, penalised_basis_ey_closed_form
 from cca_zoo.gam import GAMCCA, MARSCCA
 from cca_zoo.gam._marscca import (
     _backward_path,
@@ -485,7 +485,7 @@ def test_backward_step_matches_brute_force_refits() -> None:
     ridge = [0.1, 0.3]
 
     def refit_loss(reduced: list[np.ndarray]) -> float:
-        coefs = ridge_basis_ey_closed_form(reduced, k, ridge)
+        coefs = penalised_basis_ey_closed_form(reduced, k, ridge)
         loss = ey_loss([b @ c for b, c in zip(reduced, coefs)])["objective"]
         return loss + 0.5 * sum(r * float(np.sum(c**2)) for r, c in zip(ridge, coefs))
 

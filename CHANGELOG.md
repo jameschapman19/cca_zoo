@@ -40,7 +40,7 @@ project adheres to [Semantic Versioning](https://semver.org/).
   formed and memory stays O(n_samples * n_features) regardless of `nk` or
   `degree`.
 
-- `cca_zoo.model_selection.one_standard_error(param)`: a `refit` rule for every search
+- `cca_zoo.model_selection.one_standard_error(param, larger_is_simpler=False)`: a `refit` rule for every search
   class (and sklearn's own) that refits the candidate with the smallest `param` whose mean
   CV score is within one standard error of the best, instead of the noisy maximum. The
   standard error is of each split's paired difference from the best candidate, so splits
@@ -50,15 +50,33 @@ project adheres to [Semantic Versioning](https://semver.org/).
   candidate themselves and never call a callable `refit`, so they now reject one with a
   `TypeError` instead of silently ignoring it.
 
-- `cca_zoo._utils._ey.ridge_basis_ey_gep` / `ridge_basis_ey_closed_form`: the
+- `cca_zoo._utils._ey.penalised_basis_ey_gep` / `penalised_basis_ey_closed_form`: the
   ridge-penalised EY fit on fixed bases is the generalized eigenproblem
   `(A - R/4) W = B W (WᵀBW)`, solved in closed form at its global optimum (loss
   `-Σ μ²` over the top-k eigenvalues), used by `MARSCCA` for every refit.
 
 ### Changed
 
-- The joint trust-region Newton-CG solver previously private to `GAMCCA` is now the
-  shared `cca_zoo._utils._ey.ridge_basis_ey_trust_krylov`, used by `GAMCCA` and `MARSCCA`.
+- `GAMCCA` now follows `mgcv`'s API and P-spline smooths. This is a breaking change with
+  no deprecation shim, as was `TreeCCA`'s `backend=` removal, since `GAMCCA` shipped only
+  in 3.3.0. Each feature's smooth is `s(x, bs="ps", k=k, m=m)`: `k` B-splines on evenly
+  spaced knots with Eilers and Marx's difference penalty, which shrinks towards a
+  polynomial — the default towards a straight line — rather than the ridge towards zero
+  the previous version applied despite citing P-splines. `n_knots` and `alpha` become `k`
+  (default 20; `mgcv`'s 10 averaged 0.56 against 0.60 held-out correlation on smooth
+  nonlinear benchmarks, losing most on sine relationships) and `sp` (default 0.1), and
+  `m` is new. The fit is now one closed-form generalized eigenproblem at the global
+  optimum, so `max_iter`, `tol` and `random_state` are removed. The P-spline basis's intended rank deficiency (data-free splines, each
+  feature's partition of unity) is resolved by an exact reparametrisation onto its row
+  space (`cca_zoo._utils._ey.full_rank_reparametrisation`), as `mgcv` does. Held-out
+  correlation over quadratic, sine, absolute-value and linear relationships rises from
+  0.51 to 0.60 on average. `sp` is chosen by cross-validation with
+  `one_standard_error("sp", larger_is_simpler=True)`, since `mgcv`'s GCV/REML have no
+  EY-loss counterpart.
+- `cca_zoo._utils._ey`: the ridge-only fixed-basis solver becomes
+  `penalised_basis_ey_closed_form` / `penalised_basis_ey_gep` / `penalised_basis_ey_min_loss`,
+  taking any quadratic penalty per view (a ridge or a matrix); the trust-region solver it
+  replaced is removed.
 
 ## [3.3.0] - 2026-09-22
 

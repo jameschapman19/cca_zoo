@@ -196,7 +196,9 @@ def _unwrap_cv_results(cv_results: dict[str, Any]) -> dict[str, Any]:
     return unwrapped
 
 
-def one_standard_error(param: str) -> Callable[[dict[str, Any]], int]:
+def one_standard_error(
+    param: str, larger_is_simpler: bool = False
+) -> Callable[[dict[str, Any]], int]:
     r"""``refit`` rule: the simplest candidate within one standard error of the best.
 
     The one-standard-error rule of ``rpart`` and ``glmnet``'s ``lambda.1se``,
@@ -204,7 +206,9 @@ def one_standard_error(param: str) -> Callable[[dict[str, Any]], int]:
     with ``cv_results_`` and refits the candidate whose index it returns).
     The best candidate has the highest mean test score; every candidate
     whose mean falls short of it by no more than one standard error is
-    eligible, and the one with the smallest value of ``param`` wins. Taking
+    eligible, and the simplest of them by ``param`` wins — the smallest
+    value, or the largest with ``larger_is_simpler`` (a penalty such as
+    :class:`~cca_zoo.gam.GAMCCA`'s ``sp``). Taking
     the bare maximum instead is biased towards complex models whenever
     scores are noisy, since the largest of many noisy estimates sits high.
 
@@ -221,6 +225,9 @@ def one_standard_error(param: str) -> Callable[[dict[str, Any]], int]:
             complexity, smaller being simpler (e.g. ``"nprune"``), as it
             appears in ``param_grid`` (per-view names like ``"c__0"`` work
             too).
+        larger_is_simpler: Whether larger values of ``param`` are simpler
+            (a smoothing or ridge penalty) rather than smaller ones (a
+            number of terms). Default is False.
 
     Returns:
         A callable mapping ``cv_results_`` to the index of the chosen
@@ -263,7 +270,8 @@ def one_standard_error(param: str) -> Callable[[dict[str, Any]], int]:
         )
         eligible = np.flatnonzero(diff.mean(axis=0) + se >= 0)
         values = results[f"param_{param}"]
-        return int(min(eligible, key=lambda c: values[c]))
+        simplest = max if larger_is_simpler else min
+        return int(simplest(eligible, key=lambda c: values[c]))
 
     return rule
 

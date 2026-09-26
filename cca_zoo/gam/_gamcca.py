@@ -6,6 +6,7 @@ from numbers import Integral, Real
 from typing import Any, ClassVar
 
 import numpy as np
+import scipy.linalg
 from numpy.typing import ArrayLike
 from sklearn.preprocessing import SplineTransformer
 from sklearn.utils._param_validation import Interval
@@ -13,47 +14,63 @@ from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import (
-    cheap_orthonormal_projection_weights,
-    ridge_basis_ey_trust_krylov,
+    full_rank_reparametrisation,
+    penalised_basis_ey_closed_form,
 )
 from cca_zoo._utils._validation import perview_parameter, validate_views
 
 
+def _spline_orders(m: int | tuple[int, int]) -> tuple[int, int]:
+    """``mgcv``'s ``m`` for a P-spline: (spline order, penalty order).
+
+    A single value sets both, as in ``mgcv``; the B-splines have degree
+    ``order + 1`` (``m=2``: cubic) and the penalty takes ``penalty``-th
+    order differences of neighbouring coefficients.
+    """
+    if isinstance(m, tuple):
+        return int(m[0]), int(m[1])
+    return int(m), int(m)
+
+
 class _GamEncoder:
-    r"""Per-view additive-spline encoder: a fixed, centred B-spline basis.
+    r"""Per-view additive P-spline encoder: a fixed, centred B-spline basis.
 
-    :class:`~sklearn.preprocessing.SplineTransformer` builds the per-feature
-    B-spline design matrix once (one contiguous block of columns per
-    feature) — the basis itself is fixed for the whole fit, never
-    reimplemented. Centring it here (subtracting each basis column's own
-    mean) is what makes $Z_i = \text{basis}_i B_i$ automatically zero-mean
-    for *any* coefficients $B_i$, the same way centring the raw features
-    already does for a plain linear encoder — no separate recentring step
-    is needed anywhere downstream.
-
-    The coefficients $B_i$ (``coef_``) are fit, jointly across every view, by
-    a single trust-region Newton-CG solve
-    (:func:`~cca_zoo._utils._ey.ridge_basis_ey_trust_krylov`), not by this
-    class — it only builds and holds the fixed basis, and evaluates it
-    (``predict``, ``predict_new``, ``feature_term``) once coefficients exist.
+    One smooth per feature, each ``mgcv``'s ``s(x, bs="ps", k=k, m=m)``: a
+    ``k``-dimensional B-spline basis on evenly spaced knots, built by
+    :class:`~sklearn.preprocessing.SplineTransformer`, with Eilers and
+    Marx's difference penalty on neighbouring coefficients, kept as its
+    square root (:attr:`penalty_factor_`, the stacked difference matrices,
+    unscaled by ``sp``). Every feature keeps its full partition of unity and
+    splines with no data under them are kept too — the difference penalty is
+    what fills them in; the resulting rank deficiency (which centring adds
+    one of per feature) is resolved exactly at fit time by
+    :func:`~cca_zoo._utils._ey.full_rank_reparametrisation`, as ``mgcv``
+    resolves identifiability by reparametrisation. Centring every column
+    makes $Z_i = \text{basis}_i B_i$ zero-mean for any coefficients.
     """
 
-    def __init__(self, X: np.ndarray, k: int, n_knots: int) -> None:
+    def __init__(self, X: np.ndarray, k: int, m: int | tuple[int, int]) -> None:
         self.n, self.p = X.shape
-        self.k = k
+        order, penalty_order = _spline_orders(m)
         self._spline = SplineTransformer(
-            n_knots=n_knots,
-            degree=3,
-            knots="quantile",
-            extrapolation="constant",
-            include_bias=False,
+            n_knots=k - order,
+            degree=order + 1,
+            knots="uniform",
+            extrapolation="linear",
+            include_bias=True,
         )
         raw_basis = self._spline.fit_transform(X)
         self.n_splines_: int = raw_basis.shape[1] // self.p
         self.basis_mean_: np.ndarray = raw_basis.mean(axis=0)
         self.basis_: np.ndarray = raw_basis - self.basis_mean_
-        self.coef_: np.ndarray = np.zeros((self.basis_.shape[1], k))
-        self._train_pred: np.ndarray = np.zeros((self.n, k))
+        differences = np.diff(np.eye(self.n_splines_), n=penalty_order, axis=0)
+        # The penalty's square root, F with R = F.T @ F: the difference
+        # matrix of every feature's coefficients.
+        self.penalty_factor_: np.ndarray = scipy.linalg.block_diag(
+            *([differences] * self.p)
+        )
+        self.coef_: np.ndarray = np.zeros((self.basis_.shape[1], 1))
+        self._train_pred: np.ndarray = np.zeros((self.n, 1))
 
     def predict(self) -> np.ndarray:
         """Encoder output on the training data, shape (n_samples, k)."""
@@ -95,57 +112,57 @@ class GAMCCA(BaseModel):
     r"""GAMCCA — nonlinear multiview CCA with generalized-additive-model encoders.
 
     Learns one nonlinear encoder $f_i$ per view — a generalized additive
-    model (GAM), $f_i(x) = \sum_j s_{ij}(x_{ij})$, summing one univariate
-    B-spline term per input feature — that jointly minimise the
-    elastic-net-penalised Eckart-Young (EY) objective:
+    model (GAM), $f_i(x) = \sum_j s_{ij}(x_{ij})$, one smooth per input
+    feature, each ``mgcv``'s P-spline ``s(x_j, bs="ps", k=k, m=m)`` — that
+    jointly minimise the Eckart-Young (EY) objective
 
     $$
     \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
     $$
 
-    where, for embeddings $Z_i = f_i(X_i)$, $C$ is the mean
-    pairwise cross-covariance (including $i = j$ terms) and $V$
-    the mean auto-covariance across all views (see
-    :mod:`cca_zoo._utils._ey`, the same shared EY-loss machinery used by
-    :class:`~cca_zoo.linear.gradient.CCAEY`, :class:`~cca_zoo.deep.DCCAEY`,
-    :class:`~cca_zoo.tree.TreeCCA`, and :class:`~cca_zoo.sparse.ElasticNetCCA`).
-    Writing $f_i(x) = \sum_j s_{ij}(x_{ij})$ as $\text{basis}_i(x) B_i$ for
-    a fixed per-feature B-spline basis (:class:`_GamEncoder`, built by
-    :class:`~sklearn.preprocessing.SplineTransformer`), fitting $B_1, \dots,
-    B_M$ is conceptually a **P-IRLS** problem — the same repeated-penalised-
-    quadratic-solve structure ``mgcv`` itself uses to fit a GAM, applied
-    directly to the EY loss rather than a per-observation likelihood — but
-    rather than hand-rolling that solve (or even cycling over views
-    Gauss-Seidel-style), every view's coefficients are updated *jointly, in
-    a single call*: $\mathcal{L}_{EY}$'s own exact gradient
-    (:func:`~cca_zoo._utils._ey.ey_grad_z`) and exact Hessian-vector product
-    across the *entire* stacked parameter vector $(B_1, \dots, B_M)$
-    (:func:`~cca_zoo._utils._ey._ridge_basis_ey_hessp`) are handed straight to
-    :func:`scipy.optimize.minimize`'s ``"trust-krylov"`` solver — a
-    standard, off-the-shelf trust-region Newton-CG method — which performs
-    all of its own outer Newton and inner Krylov iterations internally.
-    $\mathcal{L}_{EY}$ is not convex, so this Hessian is only guaranteed
-    positive semi-definite near the loss's own fixed point;
-    ``"trust-krylov"`` handles the indefinite case directly, and works from
-    the Hessian-vector product alone, never forming or inverting the
-    $\left(\sum_i d_i k\right) \times \left(\sum_i d_i k\right)$ Hessian
-    matrix explicitly. Each view's smoothing strength (``alpha``) is a fixed
-    hyperparameter — there is no automatic smoothing-parameter search.
+    (for embeddings $Z_i = f_i(X_i)$, $C$ the mean pairwise
+    cross-covariance including $i = j$ terms and $V$ the mean
+    auto-covariance; see :mod:`cca_zoo._utils._ey`), plus each view's
+    P-spline smoothing penalty $\tfrac12\,\mathrm{sp}_i \sum_j
+    \beta_{ij}^\top D^\top D \beta_{ij}$, $D$ the ``m[1]``-th order
+    difference matrix (Eilers and Marx, 1996): the penalty shrinks each
+    smooth towards a polynomial of degree ``m[1] - 1`` (a straight line for
+    the default ``m=2``), not towards zero.
 
-    Because each latent component still decomposes exactly into one
-    additive term per input feature, the fitted shape of any feature's
-    contribution remains available directly via ``shape_function`` — the
-    GAM analogue of :class:`~cca_zoo.tree.TreeCCA`'s split-gain feature
-    importance, but an exact curve rather than a single importance score.
+    With the basis fixed, the whole fit is a single generalized
+    eigenproblem (:func:`~cca_zoo._utils._ey.penalised_basis_ey_gep`), solved
+    in closed form at its global optimum — the same solver
+    :class:`~cca_zoo.gam.MARSCCA` refits with — after an exact
+    reparametrisation onto the basis's row space
+    (:func:`~cca_zoo._utils._ey.full_rank_reparametrisation`) that resolves
+    the P-spline basis's intended rank deficiency, as ``mgcv`` does. There
+    is no iterative solve, no convergence tolerance, and no dependence on a
+    random start.
+
+    ``mgcv`` estimates each smoothing parameter by GCV or REML; both are
+    likelihood/residual criteria with no EY-loss counterpart, so ``sp`` is
+    chosen by cross-validation instead, with
+    :func:`~cca_zoo.model_selection.one_standard_error` taking the smoothest
+    model within one standard error of the best::
+
+        GridSearchCV(
+            GAMCCA(),
+            {"sp": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
+            refit=one_standard_error("sp", larger_is_simpler=True),
+        )
+
+    Because each latent component decomposes exactly into one additive term
+    per input feature, the fitted shape of any feature's contribution is
+    available directly via :meth:`shape_function` — ``plot.gam``'s partial
+    effect curves.
 
     Note:
         A GAM's additive structure assumes each feature contributes
         independently; it cannot represent a genuine *interaction* between
-        two features of the same view (e.g. $x_1 x_2$) the way a
-        multivariate tree split or a joint kernel can. If cross-view
-        structure only shows up through such interactions, expect
-        :class:`~cca_zoo.tree.TreeCCA` or
-        :class:`~cca_zoo.gp.GaussianProcessCCA` to do better instead.
+        two features of the same view (e.g. $x_1 x_2$).
+        :class:`~cca_zoo.gam.MARSCCA` with ``degree >= 2`` can, as can
+        :class:`~cca_zoo.tree.TreeCCA` and
+        :class:`~cca_zoo.gp.GaussianProcessCCA`.
 
     References:
         Wood, S. N. (2017). Generalized Additive Models: An Introduction
@@ -163,20 +180,26 @@ class GAMCCA(BaseModel):
             number of features in any view. Default is 1.
         center: Whether to subtract per-view column means before fitting.
             Default is True.
-        n_knots: Number of knots per feature's B-spline term, passed
-            straight through to ``sklearn.preprocessing.SplineTransformer(
-            n_knots=...)``. Either a single value applied to every view or
-            a list of per-view values. Default is 5.
-        alpha: Ridge (smoothing) penalty strength(s) applied to every
-            spline coefficient. Either a single float applied to every
-            view or a list of per-view floats. Default is 0.1.
-        max_iter: Maximum number of outer Newton iterations in the single
-            joint ``"trust-krylov"`` solve (``scipy.optimize.minimize``'s own
-            ``maxiter`` option). Default is 100.
-        tol: Gradient-norm convergence tolerance for the joint solve
-            (``scipy.optimize.minimize``'s own ``gtol`` option). Default is
-            1e-6.
-        random_state: Seed for the initial coefficients.
+        k: Basis dimension of every smooth, as ``mgcv``'s ``k``: the number
+            of B-splines per feature. ``mgcv`` defaults to 10; here the
+            default is 20, following Eilers and Marx's advice to give a
+            P-spline a generous basis and let the penalty control
+            smoothness (held-out correlation on smooth nonlinear
+            relationships: 0.60 at ``k=20, sp=0.1`` against 0.56 at the best
+            ``k=10`` setting, with ``sin`` relationships gaining most).
+            Cost grows with the cube of the total basis size, so lower it for
+            wide views. Either a single value or a list of per-view values.
+            Default is 20.
+        m: Spline and penalty orders, as ``mgcv``'s ``m`` for ``bs="ps"``:
+            ``(order, penalty_order)`` gives B-splines of degree
+            ``order + 1`` and a ``penalty_order``-th difference penalty, and
+            a single value sets both. Either one such value (int or tuple)
+            or a list of per-view values. Default is 2 (cubic splines,
+            second differences), ``mgcv``'s.
+        sp: Smoothing parameter of every smooth, as ``mgcv``'s ``sp``
+            (penalty ``sp * beta' S beta``); larger is smoother, tending to
+            a polynomial of degree ``penalty_order - 1`` per feature. Either
+            a single value or a list of per-view values. Default is 0.1.
 
     Examples:
         >>> import numpy as np
@@ -186,40 +209,35 @@ class GAMCCA(BaseModel):
         >>> model = GAMCCA(latent_dimensions=2).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
 
-        A different number of knots and penalty per view:
+        A different basis size and smoothing per view:
 
-        >>> model = GAMCCA(latent_dimensions=2, n_knots=[5, 8], alpha=[0.1, 0.5]).fit(
+        >>> model = GAMCCA(latent_dimensions=2, k=[8, 12], sp=[0.1, 10.0]).fit(
         ...     [X1, X2]
         ... )
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "n_knots": [Interval(Integral, 2, None, closed="left"), "array-like"],
-        "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
-        "max_iter": [Interval(Integral, 1, None, closed="left")],
-        "tol": [Interval(Real, 0, None, closed="neither")],
+        "k": [Interval(Integral, 4, None, closed="left"), "array-like"],
+        "m": [Interval(Integral, 1, None, closed="left"), tuple, "array-like"],
+        "sp": [Interval(Real, 0, None, closed="left"), "array-like"],
     }
 
     def __init__(
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        n_knots: int | list[int] = 5,
-        alpha: float | list[float] = 0.1,
-        max_iter: int = 100,
-        tol: float = 1e-6,
-        random_state: int = 0,
+        k: int | list[int] = 20,
+        m: int | tuple[int, int] | list[int | tuple[int, int]] = 2,
+        sp: float | list[float] = 0.1,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)
-        self.n_knots = n_knots
-        self.alpha = alpha
-        self.max_iter = max_iter
-        self.tol = tol
-        self.random_state = random_state
+        self.k = k
+        self.m = m
+        self.sp = sp
 
     def fit(self, views: list[ArrayLike], y: None = None) -> GAMCCA:
-        """Fit the GAMCCA model by one joint trust-region Newton-CG solve.
+        """Fit the GAMCCA model: one closed-form penalised eigenproblem.
 
         Args:
             views: List of 2 or more arrays, each (n_samples, n_features_i).
@@ -231,27 +249,34 @@ class GAMCCA(BaseModel):
         Raises:
             ValueError: If fewer than 2 views are provided.
             ValueError: If views have inconsistent numbers of samples.
+            ValueError: If ``k`` is too small for a view's spline order.
         """
         views_ = self._setup_fit(views)
-        k = self.latent_dimensions
-        n_knots_ = perview_parameter("n_knots", self.n_knots, 5, self.n_views_)
-        alpha_ = perview_parameter("alpha", self.alpha, 0.1, self.n_views_)
-        encoders = [_GamEncoder(X, k, nk) for X, nk in zip(views_, n_knots_)]
-        bases = [enc.basis_ for enc in encoders]
-
-        rng = np.random.default_rng(self.random_state)
-        coefficients = ridge_basis_ey_trust_krylov(
-            bases,
-            cheap_orthonormal_projection_weights(bases, k, None, rng),
-            alpha_,
-            self.max_iter,
-            self.tol,
+        m_views = self.n_views_
+        k_ = perview_parameter("k", self.k, 20, m_views)
+        m_: list[int | tuple[int, int]] = perview_parameter("m", self.m, 2, m_views)
+        sp_ = perview_parameter("sp", self.sp, 0.1, m_views)
+        for i, (k, m) in enumerate(zip(k_, m_)):
+            order, penalty_order = _spline_orders(m)
+            if k < order + 2 or penalty_order >= k:
+                raise ValueError(
+                    f"k={k} is too small for m={m} in view {i}: a P-spline of "
+                    f"order {order} needs k >= {order + 2}, and the penalty "
+                    f"order must be below k."
+                )
+        encoders = [_GamEncoder(X, k, m) for X, k, m in zip(views_, k_, m_)]
+        reduced = [
+            full_rank_reparametrisation(enc.basis_, np.sqrt(sp) * enc.penalty_factor_)
+            for enc, sp in zip(encoders, sp_)
+        ]
+        coefficients = penalised_basis_ey_closed_form(
+            [basis for basis, _, _ in reduced],
+            self.latent_dimensions,
+            [penalty for _, penalty, _ in reduced],
         )
-        representations = [basis @ coef for basis, coef in zip(bases, coefficients)]
-
-        for enc, coef, rep in zip(encoders, coefficients, representations):
-            enc.coef_ = coef
-            enc._train_pred = rep
+        for enc, (_, _, lift), coef in zip(encoders, reduced, coefficients):
+            enc.coef_ = lift @ coef
+            enc._train_pred = enc.basis_ @ enc.coef_
 
         self.encoders_: list[_GamEncoder] = encoders
         return self

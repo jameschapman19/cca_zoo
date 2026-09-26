@@ -411,7 +411,7 @@ def test_gpcca_outperforms_others_on_genuine_interaction() -> None:
     gp = GaussianProcessCCA(latent_dimensions=1, random_state=0)
     gp_test = gp.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
 
-    gam = GAMCCA(latent_dimensions=1, random_state=0)
+    gam = GAMCCA(latent_dimensions=1)
     gam_test = gam.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
 
     tree = XGBoostCCA(

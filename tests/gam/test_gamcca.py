@@ -191,7 +191,7 @@ def test_encoders_attribute_shape(two_views_small: list[np.ndarray]) -> None:
     model = _make_model(latent_dimensions=k).fit(two_views_small)
     assert len(model.encoders_) == 2
     for enc in model.encoders_:
-        assert enc.k == k
+        assert enc.coef_.shape[1] == k
         assert enc.predict().shape == (two_views_small[0].shape[0], k)
 
 
@@ -213,28 +213,82 @@ def test_encoder_basis_is_sklearn_spline_transformer(
 # ---------------------------------------------------------------------------
 
 
-def test_per_view_n_knots_list(two_views_small: list[np.ndarray]) -> None:
-    """A per-view n_knots list gives each view a different spline basis size."""
-    model = _make_model(n_knots=[5, 10]).fit(two_views_small)
-    assert model.encoders_[0].n_splines_ != model.encoders_[1].n_splines_
+def test_per_view_k_list(two_views_small: list[np.ndarray]) -> None:
+    """A per-view k list gives each view its own basis dimension, as mgcv's k."""
+    model = _make_model(k=[6, 12]).fit(two_views_small)
+    assert [enc.n_splines_ for enc in model.encoders_] == [6, 12]
 
 
-def test_per_view_alpha_list_gives_smaller_penalised_view_coefficients(
-    correlated_views: list[np.ndarray],
+def test_per_view_sp_smooths_only_that_view(correlated_views: list[np.ndarray]) -> None:
+    """A large sp flattens that view's smooths to lines; the other view stays free.
+
+    The P-spline penalty acts on second differences of neighbouring
+    coefficients, so a huge sp drives them to zero (a straight line per
+    feature) rather than shrinking the coefficients themselves.
+    """
+    model = _make_model(sp=[1e-3, 1e6]).fit(correlated_views)
+    wiggle = [
+        np.linalg.norm(enc.penalty_factor_ @ enc.coef_)
+        / np.linalg.norm(enc.basis_ @ enc.coef_)
+        for enc in model.encoders_
+    ]
+    assert wiggle[1] < 1e-2 * wiggle[0]
+
+
+@pytest.mark.parametrize("name", ["k", "m", "sp"])
+def test_per_view_parameter_wrong_length_raises(
+    two_views_small: list[np.ndarray], name: str
 ) -> None:
-    """A per-view alpha list shrinks only the strongly-penalised view's coefficients."""
-    model = _make_model(alpha=[0.01, 100.0], random_state=0).fit(correlated_views)
-    norm0 = np.linalg.norm(model.encoders_[0].coef_)
-    norm1 = np.linalg.norm(model.encoders_[1].coef_)
-    assert norm1 < norm0
+    """Every per-view parameter must have one entry per view."""
+    with pytest.raises(ValueError, match=name):
+        _make_model(**{name: [8, 8, 8]}).fit(two_views_small)
 
 
-def test_per_view_alpha_wrong_length_raises(
+def test_m_tuple_sets_spline_and_penalty_order(
     two_views_small: list[np.ndarray],
 ) -> None:
-    """A per-view alpha list must have one entry per view."""
-    with pytest.raises(ValueError, match="alpha"):
-        _make_model(alpha=[0.1, 0.2, 0.3]).fit(two_views_small)
+    """m=(order, penalty order) as mgcv's: quadratic splines, first differences."""
+    model = _make_model(k=8, m=(1, 1)).fit(two_views_small)
+    enc = model.encoders_[0]
+    assert enc._spline.degree == 2
+    # First differences: one fewer row than coefficients per feature.
+    assert enc.penalty_factor_.shape == (7 * enc.p, 8 * enc.p)
+
+
+def test_k_too_small_for_m_raises(two_views_small: list[np.ndarray]) -> None:
+    """A cubic P-spline needs k >= 4; smaller k is refused with the reason."""
+    with pytest.raises(ValueError, match="too small"):
+        _make_model(k=4, m=(3, 2)).fit(two_views_small)
+
+
+def test_fit_is_deterministic(correlated_views: list[np.ndarray]) -> None:
+    """The closed-form fit has no random start: two fits agree up to sign."""
+    a = _make_model(latent_dimensions=2).fit(correlated_views)
+    b = _make_model(latent_dimensions=2).fit(correlated_views)
+    for za, zb in zip(a.transform(correlated_views), b.transform(correlated_views)):
+        np.testing.assert_allclose(np.abs(za), np.abs(zb), atol=1e-8)
+
+
+def test_data_free_splines_are_filled_in_by_the_penalty() -> None:
+    """Evenly spaced knots over a heavy-tailed feature leave splines with no data.
+
+    P-splines keep them and let the difference penalty interpolate their
+    coefficients; the fit must stay finite and smooth across the gap.
+    """
+    rng = np.random.default_rng(0)
+    n = 300
+    z = rng.standard_t(1.5, n)
+    views = [
+        np.column_stack([z, rng.standard_normal(n)]),
+        np.column_stack(
+            [np.tanh(z) + 0.1 * rng.standard_normal(n), rng.standard_normal(n)]
+        ),
+    ]
+    model = _make_model().fit(views)
+    grid = np.linspace(z.min(), z.max(), 400)
+    curve = model.shape_function(0, 0, grid)[:, 0]
+    assert np.all(np.isfinite(curve))
+    assert model.score(views)[0] > 0.8
 
 
 # ---------------------------------------------------------------------------
@@ -281,7 +335,7 @@ def test_gamcca_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
     """GAMCCA finds substantial correlation on views with shared latent structure."""
-    model = GAMCCA(latent_dimensions=1, random_state=0)
+    model = GAMCCA(latent_dimensions=1)
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -294,7 +348,7 @@ def test_gamcca_finds_correlation_on_three_correlated_views() -> None:
         z @ rng.standard_normal((1, 5)) + 0.1 * rng.standard_normal((200, 5))
         for _ in range(3)
     ]
-    model = GAMCCA(latent_dimensions=1, random_state=0)
+    model = GAMCCA(latent_dimensions=1)
     s = model.fit(views).score(views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -330,7 +384,7 @@ def test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data() -> Non
     X1_tr, X1_te = X1[:n_train], X1[n_train:]
     X2_tr, X2_te = X2[:n_train], X2[n_train:]
 
-    gam = GAMCCA(latent_dimensions=1, random_state=0)
+    gam = GAMCCA(latent_dimensions=1)
     gam_test = gam.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
 
     tree = XGBoostCCA(
