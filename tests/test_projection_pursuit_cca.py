@@ -103,7 +103,7 @@ def test_weights_shapes_and_matches_transform(
     """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    weights = model.weights
+    weights = model.weights_
     assert len(weights) == 2
     for w, v in zip(weights, two_views_small):
         assert w.shape == (v.shape[1], k)
@@ -114,18 +114,18 @@ def test_weights_shapes_and_matches_transform(
 
 
 def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
+    """Transform before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
     model = ProjectionPursuitCCA()
     with pytest.raises(NotFittedError):
-        _ = model.weights
+        model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 def test_directions_are_unit_norm(two_views_small: list[np.ndarray]) -> None:
     """Each fitted per-dimension weight vector has unit norm."""
     model = _make_model(latent_dimensions=2).fit(two_views_small)
-    for w in model.weights:
+    for w in model.weights_:
         norms = np.linalg.norm(w, axis=0)
         np.testing.assert_allclose(norms, np.ones(2), atol=1e-6)
 

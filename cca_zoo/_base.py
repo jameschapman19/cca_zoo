@@ -9,7 +9,7 @@ from typing import Any, ClassVar, cast
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
-from sklearn.utils import Tags
+from sklearn.utils import Tags, deprecated
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
@@ -247,19 +247,30 @@ class BaseModel(BaseEstimator, ABC):
         """
         return self.fit(views, y).transform(views)
 
-    def score(self, views: list[ArrayLike], y: None = None) -> np.ndarray:
-        """Return average pairwise canonical correlations for each dimension.
+    def score(self, views: list[ArrayLike], y: None = None) -> float:
+        """Mean canonical correlation: higher is better, as sklearn expects.
+
+        The average, over latent dimensions, of the mean off-diagonal
+        pairwise correlation between views' latent scores. For the
+        per-dimension values use :mod:`cca_zoo.metrics`::
+
+            average_pairwise_correlations(pairwise_correlations(model.transform(views)))
 
         Args:
             views: List of arrays, each of shape (n_samples, n_features_i).
             y: Ignored.
 
         Returns:
-            Array of shape ``(latent_dimensions,)`` with the average
-            pairwise correlation for each canonical dimension.
+            The mean canonical correlation.
         """
-        return self.average_pairwise_correlations(views)
+        per_dimension = _average_pairwise_correlations(
+            _pairwise_correlations(self.transform(views))
+        )
+        return float(np.mean(per_dimension))
 
+    @deprecated(
+        "Use cca_zoo.metrics.pairwise_correlations(model.transform(views)) instead."
+    )
     def pairwise_correlations(self, views: list[ArrayLike]) -> np.ndarray:
         """Compute the full pairwise correlation matrix per latent dimension.
 
@@ -274,6 +285,10 @@ class BaseModel(BaseEstimator, ABC):
         transformed = self.transform(views)
         return _pairwise_correlations(transformed)
 
+    @deprecated(
+        "Use cca_zoo.metrics.average_pairwise_correlations("
+        "pairwise_correlations(model.transform(views))) instead."
+    )
     def average_pairwise_correlations(self, views: list[ArrayLike]) -> np.ndarray:
         """Return the mean off-diagonal pairwise correlation per dimension.
 
@@ -284,9 +299,11 @@ class BaseModel(BaseEstimator, ABC):
             Array of shape ``(latent_dimensions,)`` with the average
             off-diagonal pairwise correlation for each canonical dimension.
         """
-        corrs = self.pairwise_correlations(views)  # (n_views, n_views, k)
-        return _average_pairwise_correlations(corrs)
+        return _average_pairwise_correlations(
+            _pairwise_correlations(self.transform(views))
+        )
 
+    @deprecated("Use the weights_ attribute instead.")
     @property
     def weights(self) -> list[np.ndarray]:
         """Weight matrices post-fit, one per view.
@@ -299,6 +316,9 @@ class BaseModel(BaseEstimator, ABC):
         check_is_fitted(self)
         return cast(list[np.ndarray], self.weights_)
 
+    @deprecated(
+        "Use cca_zoo.metrics.factor_loadings(views, model.transform(views)) instead."
+    )
     def get_factor_loadings(self, views: list[ArrayLike]) -> list[np.ndarray]:
         """Compute canonical factor loadings for each view.
 

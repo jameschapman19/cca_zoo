@@ -18,4 +18,3 @@ Cross-validated hyperparameter search and significance testing for multiview mod
 
 ::: cca_zoo.model_selection.PermutationTestResult
 
-::: cca_zoo.model_selection.procrustes_rotation

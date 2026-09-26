@@ -152,8 +152,7 @@ class MultiviewWrapper(BaseEstimator):
 
     def score(self, X: np.ndarray, y: None = None) -> float:
         """Mean canonical correlation over all latent dimensions."""
-        scores: np.ndarray = self.estimator_.score(self._split_views(X))
-        return float(scores.mean())
+        return float(self.estimator_.score(self._split_views(X)))
 
     def transform(self, X: np.ndarray) -> np.ndarray:
         """Transform and re-concatenate, so the wrapper composes with Pipeline."""

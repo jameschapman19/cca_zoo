@@ -53,7 +53,7 @@ def test_weights_shapes_and_matches_transform(
     """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    weights = model.weights
+    weights = model.weights_
     assert len(weights) == 2
     for w, v in zip(weights, two_views_small):
         assert w.shape == (v.shape[1], k)
@@ -64,12 +64,12 @@ def test_weights_shapes_and_matches_transform(
 
 
 def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
+    """Transform before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
     model = MultiTaskElasticNetCCA()
     with pytest.raises(NotFittedError):
-        _ = model.weights
+        model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 # ---------------------------------------------------------------------------
@@ -93,11 +93,11 @@ def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
 
 
 def test_score_shape(two_views_small: list[np.ndarray]) -> None:
-    """Score returns array of shape (latent_dimensions,)."""
+    """Score is one float, as sklearn expects."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
     s = model.score(two_views_small)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
@@ -155,7 +155,7 @@ def test_objective_decreases_monotonically(
         reps = model.transform(correlated_views)
         n_views = len(correlated_views)
         penalty = _group_penalty(
-            model.weights, [model.alpha] * n_views, [model.l1_ratio] * n_views
+            model.weights_, [model.alpha] * n_views, [model.l1_ratio] * n_views
         )
         objs.append(ey_loss(reps)["objective"] + penalty)
     assert np.all(np.diff(objs) <= 1e-8), objs
@@ -169,7 +169,7 @@ def test_row_sparsity_is_joint_across_components(
         latent_dimensions=2, alpha=0.3, l1_ratio=0.9, random_state=0
     )
     model.fit(correlated_views)
-    for w in model.weights:
+    for w in model.weights_:
         active_per_component = np.abs(w) > 1e-10  # (p, k) boolean
         # For every row, either all components are active or none are.
         row_any = active_per_component.any(axis=1)
@@ -188,7 +188,7 @@ def test_higher_alpha_increases_sparsity(
         )
         model.fit(correlated_views)
         n_active_rows.append(
-            sum(int(np.sum(np.linalg.norm(w, axis=1) > 1e-10)) for w in model.weights)
+            sum(int(np.sum(np.linalg.norm(w, axis=1) > 1e-10)) for w in model.weights_)
         )
     assert n_active_rows[0] >= n_active_rows[1] >= n_active_rows[2]
 
@@ -201,7 +201,7 @@ def test_per_view_alpha_list_gives_sparser_penalised_view(
         latent_dimensions=2, alpha=[0.001, 1.0], l1_ratio=0.9, random_state=0
     ).fit(correlated_views)
     n_active_rows = [
-        int(np.sum(np.linalg.norm(w, axis=1) > 1e-10)) for w in model.weights
+        int(np.sum(np.linalg.norm(w, axis=1) > 1e-10)) for w in model.weights_
     ]
     assert n_active_rows[1] < n_active_rows[0]
 

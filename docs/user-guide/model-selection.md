@@ -248,7 +248,7 @@ keeping each view's own covariance structure intact. `p_values_` compares each
 dimension's true correlation directly against its shuffled counterparts. For the
 loadings, a shuffled refit isn't guaranteed to recover components in the same order or
 sign as the true fit — permutation can rotate or reflect near-tied dimensions — so each
-permutation's loadings are first realigned to the true fit via `procrustes_rotation`
+permutation's loadings are first realigned to the true fit (`scipy.linalg.orthogonal_procrustes`)
 before being compared feature-by-feature. This follows the resampling-based significance
 testing approach used in the neuroimaging CCA/PLS literature (Xia et al. 2018; McIntosh &
 Lobaugh 2004).

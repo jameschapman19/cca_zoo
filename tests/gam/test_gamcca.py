@@ -12,6 +12,7 @@ import pytest
 from sklearn.preprocessing import SplineTransformer
 
 from cca_zoo.gam import GAMCCA
+from cca_zoo.metrics import factor_loadings, pairwise_correlations
 
 
 def _make_model(latent_dimensions: int = 1, **kwargs: object) -> GAMCCA:
@@ -98,11 +99,11 @@ def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
 
 
 def test_score_shape(two_views_small: list[np.ndarray]) -> None:
-    """Score returns array of shape (latent_dimensions,)."""
+    """Score is one float, as sklearn expects."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
     s = model.score(two_views_small)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
@@ -124,19 +125,12 @@ def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
 
 
 def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
+    """Transform before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
     model = GAMCCA()
     with pytest.raises(NotFittedError):
-        _ = model.weights
-
-
-def test_weights_raises_not_implemented(two_views_small: list[np.ndarray]) -> None:
-    """Accessing weights after fitting raises NotImplementedError."""
-    model = _make_model().fit(two_views_small)
-    with pytest.raises(NotImplementedError, match="shape_function"):
-        _ = model.weights
+        model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 # ---------------------------------------------------------------------------
@@ -148,7 +142,7 @@ def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
     """get_factor_loadings returns (n_features_i, k) arrays."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    loadings = model.get_factor_loadings(two_views_small)
+    loadings = factor_loadings(two_views_small, model.transform(two_views_small))
     assert len(loadings) == 2
     for loading, view in zip(loadings, two_views_small):
         assert loading.shape == (view.shape[1], k)
@@ -163,7 +157,7 @@ def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
     """pairwise_correlations returns (n_views, n_views, k)."""
     k = 1
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    corrs = model.pairwise_correlations(two_views_small)
+    corrs = pairwise_correlations(model.transform(two_views_small))
     assert corrs.shape == (2, 2, k)
 
 
@@ -287,7 +281,7 @@ def test_data_free_splines_are_filled_in_by_the_penalty() -> None:
     grid = np.linspace(z.min(), z.max(), 400)
     curve = model.shape_function(0, 0, grid)[:, 0]
     assert np.all(np.isfinite(curve))
-    assert model.score(views)[0] > 0.8
+    assert model.score(views) > 0.8
 
 
 # ---------------------------------------------------------------------------
@@ -384,15 +378,15 @@ def test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data() -> Non
     X2_tr, X2_te = X2[:n_train], X2[n_train:]
 
     gam = GAMCCA(latent_dimensions=1)
-    gam_test = gam.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
+    gam_test = gam.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
     tree = XGBoostCCA(
         latent_dimensions=1, n_estimators=150, max_depth=5, random_state=0
     )
-    tree_test = tree.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
+    tree_test = tree.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
     rcca = rCCA(latent_dimensions=1, c=[0.3, 0.3])
-    rcca_test = rcca.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
+    rcca_test = rcca.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
     assert gam_test > 0.9, (
         f"Expected GAMCCA to recover the relationship, got {gam_test}"

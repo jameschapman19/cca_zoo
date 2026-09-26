@@ -1,4 +1,4 @@
-"""Tests for cca_zoo.model_selection's procrustes_rotation and permutation testing."""
+"""Tests for cca_zoo.model_selection's permutation testing."""
 
 from __future__ import annotations
 
@@ -17,63 +17,19 @@ from cca_zoo.model_selection import (
 # ---------------------------------------------------------------------------
 
 
-def test_procrustes_rotation_recovers_known_rotation() -> None:
-    """procrustes_rotation exactly recovers a known orthogonal rotation."""
+def test_procrustes_rotation_is_deprecated_scipy() -> None:
+    """procrustes_rotation warns and matches scipy.linalg.orthogonal_procrustes."""
+    import scipy.linalg
+
     rng = np.random.default_rng(0)
-    reference = rng.standard_normal((30, 3))
-    true_rotation, _ = np.linalg.qr(rng.standard_normal((3, 3)))
-    target = reference @ true_rotation.T
-
-    recovered = procrustes_rotation(reference, target)
-
-    np.testing.assert_allclose(target @ recovered, reference, atol=1e-8)
-
-
-def test_procrustes_rotation_recovers_permutation_and_sign_flip() -> None:
-    """procrustes_rotation handles the discrete permutation+reflection case too."""
-    rng = np.random.default_rng(1)
-    reference = rng.standard_normal((25, 4))
-    # Column permutation [1, 0, 3, 2] with a sign flip on two columns
-    permutation = reference[:, [1, 0, 3, 2]] * np.array([1, -1, 1, -1])
-
-    recovered = procrustes_rotation(reference, permutation)
-
-    np.testing.assert_allclose(permutation @ recovered, reference, atol=1e-8)
-
-
-def test_procrustes_rotation_is_orthogonal() -> None:
-    """The returned matrix is orthogonal: R.T @ R == I."""
-    rng = np.random.default_rng(2)
     reference = rng.standard_normal((20, 3))
-    target = rng.standard_normal((20, 3))
-
-    r = procrustes_rotation(reference, target)
-
-    np.testing.assert_allclose(r.T @ r, np.eye(3), atol=1e-8)
-
-
-def test_procrustes_rotation_shape_mismatch_raises() -> None:
-    """procrustes_rotation raises ValueError on mismatched shapes."""
-    reference = np.zeros((10, 3))
-    target = np.zeros((10, 4))
-    with pytest.raises(ValueError, match="same shape"):
-        procrustes_rotation(reference, target)
-
-
-def test_procrustes_rotation_is_optimal() -> None:
-    """No other orthogonal matrix achieves a lower residual than the one returned."""
-    rng = np.random.default_rng(3)
-    reference = rng.standard_normal((15, 2))
-    target = rng.standard_normal((15, 2))
-
-    r = procrustes_rotation(reference, target)
-    best_residual = np.linalg.norm(reference - target @ r)
-
-    # Compare against a handful of random orthogonal matrices
-    for _ in range(20):
-        candidate, _ = np.linalg.qr(rng.standard_normal((2, 2)))
-        residual = np.linalg.norm(reference - target @ candidate)
-        assert best_residual <= residual + 1e-8
+    target = reference @ np.linalg.qr(rng.standard_normal((3, 3)))[0].T
+    with pytest.warns(FutureWarning, match="orthogonal_procrustes"):
+        rotation = procrustes_rotation(reference, target)
+    np.testing.assert_allclose(
+        rotation, scipy.linalg.orthogonal_procrustes(target, reference)[0]
+    )
+    np.testing.assert_allclose(target @ rotation, reference, atol=1e-10)
 
 
 # ---------------------------------------------------------------------------

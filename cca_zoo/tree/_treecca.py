@@ -8,7 +8,6 @@ from typing import Any
 import numpy as np
 import xgboost as xgb
 from numpy.typing import ArrayLike
-from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import (
@@ -467,23 +466,6 @@ class TreeCCA(BaseModel, ABC):
             view
         ] + self._predict_boosters(self.boosters_[view], centred)
         return boosted
-
-    @property
-    def weights(self) -> list[np.ndarray]:
-        """Not implemented for TreeCCA models.
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            NotImplementedError: TreeCCA encoders are boosted-tree ensembles,
-                not linear weight matrices. Use ``boosters_`` instead.
-        """
-        check_is_fitted(self)
-        raise NotImplementedError(
-            f"{type(self).__name__} has no linear weight matrices; its "
-            "encoders are gradient-boosted-tree ensembles. Use the "
-            "`boosters_` attribute instead for per-component feature "
-            f"importance, e.g.\n{self._importance_example()}"
-        )
 
 
 class XGBoostCCA(TreeCCA):

@@ -402,21 +402,3 @@ class GAMCCA(BaseModel):
         check_is_fitted(self)
         x_arr = np.asarray(x, dtype=float) - self.means_[view][feature]
         return self.encoders_[view].feature_term(feature, x_arr)
-
-    @property
-    def weights(self) -> list[np.ndarray]:
-        """Not implemented for GAMCCA.
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            NotImplementedError: GAMCCA encoders are additive splines, not
-                linear weight matrices. Use :meth:`shape_function` instead
-                to inspect a feature's fitted contribution directly.
-        """
-        check_is_fitted(self)
-        raise NotImplementedError(
-            "GAMCCA has no linear weight matrices; its encoders are "
-            "generalized additive models (one B-spline term per feature). "
-            "Use the `shape_function` method instead to inspect a fitted "
-            "feature's contribution directly."
-        )

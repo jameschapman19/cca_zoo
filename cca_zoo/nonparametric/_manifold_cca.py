@@ -2,6 +2,7 @@ r"""ManifoldCCA — transductive multiview CCA over a shared manifold operator."
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from numbers import Integral, Real
 from typing import Any, ClassVar
@@ -350,12 +351,11 @@ class ManifoldCCA(BaseModel):
         :class:`~cca_zoo.nonparametric.KCCA` with a precomputed geodesic
         Gram matrix in place of a standard kernel, so isn't duplicated here.
 
-        ``inverse_transform``/``predict`` are not supported (same as
-        :class:`~cca_zoo.nonparametric.KCCA`): both rely on
-        ``BaseModel``'s default view-loading fit, which assumes
-        ``weights_[i]`` has shape ``(n_features_i, k)``; here it is
-        ``(n_train_samples, k)`` (the training embedding itself), since
-        there is no feature-space weight vector to speak of.
+        There is no feature-space weight matrix: the fitted training
+        embedding is ``embedding_[i]``, shape ``(n_train_samples, k)``, as
+        in :class:`~sklearn.manifold.LocallyLinearEmbedding`.
+        ``inverse_transform`` and ``predict`` work through the
+        out-of-sample extension, like every model's.
 
         ``method`` itself is not a per-view parameter, unlike every other
         constructor argument: mixing ``"laplacian"`` and ``"lle"`` across
@@ -566,7 +566,7 @@ class ManifoldCCA(BaseModel):
         _, eigvecs = gevp(A, B, self.latent_dimensions)
         blocks = list(np.split(eigvecs, offsets[1:-1], axis=0))
         embedding = [fb @ blk for fb, blk in zip(full_bases, blocks)]
-        self.weights_: list[np.ndarray] = embedding
+        self.embedding_: list[np.ndarray] = embedding
         self._n_neighbors_: list[int] = n_neighbors_
         self._affinity_: list[str] = affinity_
         self._lle_reg_: list[float] = lle_reg_
@@ -610,6 +610,17 @@ class ManifoldCCA(BaseModel):
         """
         return super().transform(views)
 
+    @property
+    def weights_(self) -> list[np.ndarray]:
+        """Deprecated alias of :attr:`embedding_`."""
+        warnings.warn(
+            "ManifoldCCA.weights_ is deprecated: it holds the training "
+            "embedding, not weights. Use embedding_ instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.embedding_
+
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         v_train = self._views_fit_[view]
         n_neighbors = self._n_neighbors_[view]
@@ -622,7 +633,7 @@ class ManifoldCCA(BaseModel):
                 centred, v_train, indices, self._lle_reg_[view]
             )
             embedded: np.ndarray = np.einsum(
-                "qn,qnk->qk", weights, self.weights_[view][indices]
+                "qn,qnk->qk", weights, self.embedding_[view][indices]
             )
             return embedded
         assert self._laplacian_state_ is not None

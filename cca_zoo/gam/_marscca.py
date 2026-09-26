@@ -1113,21 +1113,3 @@ class MARSCCA(BaseModel):
         return [
             " * ".join(factor(*f) for f in term) for term in self.encoders_[view].terms_
         ]
-
-    @property
-    def weights(self) -> list[np.ndarray]:
-        """Not implemented for MARSCCA.
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            NotImplementedError: MARSCCA encoders are hinge-spline expansions,
-                not linear weight matrices. Use :meth:`basis_functions` and
-                ``encoders_[view].coef_`` instead.
-        """
-        check_is_fitted(self)
-        raise NotImplementedError(
-            "MARSCCA has no linear weight matrices; its encoders are "
-            "multivariate adaptive regression splines. Use the "
-            "`basis_functions` method (with `encoders_[view].coef_`) instead "
-            "to inspect a fitted view's terms directly."
-        )

@@ -433,26 +433,6 @@ class GaussianProcessCCA(BaseModel):
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         return cast(np.ndarray, self.encoders_[view].predict_new(centred))
 
-    @property
-    def weights(self) -> list[np.ndarray]:
-        """Not implemented for GaussianProcessCCA.
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            NotImplementedError: GaussianProcessCCA encoders are Gaussian processes over
-                the joint feature vector, not linear weight matrices, and
-                have no per-feature decomposition analogous to
-                :meth:`~cca_zoo.gam.GAMCCA.shape_function` (the kernel is
-                not additive across features).
-        """
-        check_is_fitted(self)
-        raise NotImplementedError(
-            "GaussianProcessCCA has no linear weight matrices; its encoders are "
-            "Gaussian processes with a joint (non-additive) kernel over "
-            "each view's raw features, so there is no per-feature "
-            "decomposition to expose."
-        )
-
 
 @deprecated(
     "Renamed to GaussianProcessCCA for sklearn-style naming "

@@ -13,6 +13,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from cca_zoo.metrics import factor_loadings, pairwise_correlations
+from tests._helpers import canonical_correlations
+
 numpyro = pytest.importorskip("numpyro", reason="numpyro is not installed")
 jax = pytest.importorskip("jax", reason="jax is not installed")
 
@@ -63,9 +66,7 @@ def test_score_is_finite_two_views(
     model = ModelClass(
         latent_dimensions=2, random_state=0, **_fast_kwargs(ModelClass)
     ).fit(two_views)
-    s = model.score(two_views)
-    assert s.shape == (2,)
-    assert np.all(np.isfinite(s))
+    assert np.all(np.isfinite(canonical_correlations(model, two_views)))
 
 
 @pytest.mark.slow
@@ -79,9 +80,7 @@ def test_score_is_finite_three_views(
     model = ModelClass(
         latent_dimensions=1, random_state=0, **_fast_kwargs(ModelClass)
     ).fit(three_views)
-    s = model.score(three_views)
-    assert s.shape == (1,)
-    assert np.all(np.isfinite(s))
+    assert np.isfinite(model.score(three_views))
 
 
 @pytest.mark.slow
@@ -95,7 +94,7 @@ def test_pairwise_correlations_shape(
     model = ModelClass(
         latent_dimensions=2, random_state=0, **_fast_kwargs(ModelClass)
     ).fit(three_views)
-    corrs = model.pairwise_correlations(three_views)
+    corrs = pairwise_correlations(model.transform(three_views))
     assert corrs.shape == (3, 3, 2)
     assert np.all(np.isfinite(corrs))
 
@@ -112,7 +111,7 @@ def test_get_factor_loadings_one_per_view(
     model = ModelClass(
         latent_dimensions=k, random_state=0, **_fast_kwargs(ModelClass)
     ).fit(three_views)
-    loadings = model.get_factor_loadings(three_views)
+    loadings = factor_loadings(three_views, model.transform(three_views))
     assert len(loadings) == 3
     for loading, view in zip(loadings, three_views):
         assert loading.shape == (view.shape[1], k)

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+import scipy.linalg
 from numpy.typing import ArrayLike
 
 
@@ -109,14 +110,6 @@ def marginal_log_likelihood(
     return float(np.mean(log_lik_per_sample))
 
 
-def _orthogonal_procrustes_rotation(
-    source: np.ndarray, target: np.ndarray
-) -> np.ndarray:
-    """Orthogonal ``R`` minimising ``||source @ R - target||_F`` (via SVD)."""
-    u, _, vt = np.linalg.svd(source.T @ target)
-    return u @ vt
-
-
 def align_posterior_rotation(
     w_samples: np.ndarray, n_iter: int = 3
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -157,7 +150,7 @@ def align_posterior_rotation(
     aligned = w_samples.copy()
     for _ in range(n_iter):
         for s in range(num_samples):
-            r = _orthogonal_procrustes_rotation(w_samples[s], reference)
+            r = scipy.linalg.orthogonal_procrustes(w_samples[s], reference)[0]
             rotations[s] = r
             aligned[s] = w_samples[s] @ r
         reference = aligned.mean(axis=0)

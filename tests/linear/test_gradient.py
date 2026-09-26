@@ -6,7 +6,9 @@ import numpy as np
 import pytest
 
 from cca_zoo.linear import CCA, CCAEY, MCCA, PLS, PLSEY, HuberCCA
+from cca_zoo.metrics import factor_loadings
 from cca_zoo.stochastic import StochasticCCAEY
+from tests._helpers import canonical_correlations
 
 FULL_BATCH_MODELS = [PLSEY, CCAEY, HuberCCA]
 ALL_GRADIENT_MODELS = [PLSEY, CCAEY, StochasticCCAEY, HuberCCA]
@@ -107,11 +109,11 @@ def test_fit_transform_consistency(
 
 @pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
 def test_score_shape(ModelClass: type, two_views: list[np.ndarray]) -> None:
-    """Score returns array of shape (latent_dimensions,)."""
+    """Score is one float, as sklearn expects."""
     k = 2
     model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
     s = model.score(two_views)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 @pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
@@ -124,7 +126,7 @@ def test_score_shape_multi_view(
         three_views
     )
     s = model.score(three_views)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 # get_params/set_params roundtrip behaviour is exercised generically for
@@ -141,7 +143,7 @@ def test_weights_shapes_two_view(ModelClass: type, two_views: list[np.ndarray]) 
     """Weights shapes are (n_features_i, latent_dimensions) per view."""
     k = 2
     model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
-    w = model.weights
+    w = model.weights_
     assert len(w) == len(two_views)
     for weight, view in zip(w, two_views):
         assert weight.shape == (view.shape[1], k)
@@ -159,7 +161,7 @@ def test_get_factor_loadings_shapes(
     """get_factor_loadings returns (n_features_i, k) per view."""
     k = 2
     model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
-    loadings = model.get_factor_loadings(two_views)
+    loadings = factor_loadings(two_views, model.transform(two_views))
     assert len(loadings) == len(two_views)
     for loading, view in zip(loadings, two_views):
         assert loading.shape == (view.shape[1], k)
@@ -204,8 +206,8 @@ def test_reproducibility_same_random_state(
 ) -> None:
     """Same random_state gives identical weights."""
     kwargs = dict(latent_dimensions=1, max_iter=50, random_state=123)
-    w1 = ModelClass(**kwargs).fit(two_views).weights
-    w2 = ModelClass(**kwargs).fit(two_views).weights
+    w1 = ModelClass(**kwargs).fit(two_views).weights_
+    w2 = ModelClass(**kwargs).fit(two_views).weights_
     for a, b in zip(w1, w2):
         np.testing.assert_array_equal(a, b)
 
@@ -217,8 +219,8 @@ def test_different_seeds_give_different_results(
     """Different random_state values generally give different initial weights."""
     kwargs_a = dict(latent_dimensions=1, max_iter=2, random_state=0)
     kwargs_b = dict(latent_dimensions=1, max_iter=2, random_state=999)
-    w1 = ModelClass(**kwargs_a).fit(two_views).weights
-    w2 = ModelClass(**kwargs_b).fit(two_views).weights
+    w1 = ModelClass(**kwargs_a).fit(two_views).weights_
+    w2 = ModelClass(**kwargs_b).fit(two_views).weights_
     # At least one weight matrix should differ
     any_different = any(not np.allclose(a, b) for a, b in zip(w1, w2))
     assert any_different
@@ -313,11 +315,12 @@ def test_center_false(ModelClass: type, two_views: list[np.ndarray]) -> None:
 def test_cca_ey_matches_cca(correlated_views: list[np.ndarray]) -> None:
     """Converged CCAEY recovers the same correlations as exact CCA."""
     k = 2
-    s_cca = CCA(latent_dimensions=k).fit(correlated_views).score(correlated_views)
-    s_ey = (
-        CCAEY(latent_dimensions=k, random_state=0)
-        .fit(correlated_views)
-        .score(correlated_views)
+    s_cca = canonical_correlations(
+        CCA(latent_dimensions=k).fit(correlated_views), correlated_views
+    )
+    s_ey = canonical_correlations(
+        CCAEY(latent_dimensions=k, random_state=0).fit(correlated_views),
+        correlated_views,
     )
     # L-BFGS-B does not guarantee components are returned in
     # descending-correlation order, unlike the exact eigendecomposition.
@@ -329,11 +332,12 @@ def test_cca_ey_matches_cca(correlated_views: list[np.ndarray]) -> None:
 def test_pls_ey_matches_pls(correlated_views: list[np.ndarray]) -> None:
     """Converged PLSEY recovers the same correlations as exact PLS."""
     k = 2
-    s_pls = PLS(latent_dimensions=k).fit(correlated_views).score(correlated_views)
-    s_ey = (
-        PLSEY(latent_dimensions=k, random_state=0)
-        .fit(correlated_views)
-        .score(correlated_views)
+    s_pls = canonical_correlations(
+        PLS(latent_dimensions=k).fit(correlated_views), correlated_views
+    )
+    s_ey = canonical_correlations(
+        PLSEY(latent_dimensions=k, random_state=0).fit(correlated_views),
+        correlated_views,
     )
     np.testing.assert_allclose(
         sorted(s_ey, reverse=True), sorted(s_pls, reverse=True), atol=0.05
@@ -345,15 +349,12 @@ def test_cca_ey_matches_mcca_for_three_views(
 ) -> None:
     """CCAEY, given 3 views directly, recovers the same correlations as exact MCCA."""
     k = 2
-    s_mcca = (
-        MCCA(latent_dimensions=k)
-        .fit(three_correlated_views)
-        .score(three_correlated_views)
+    s_mcca = canonical_correlations(
+        MCCA(latent_dimensions=k).fit(three_correlated_views), three_correlated_views
     )
-    s_ey = (
-        CCAEY(latent_dimensions=k, random_state=0)
-        .fit(three_correlated_views)
-        .score(three_correlated_views)
+    s_ey = canonical_correlations(
+        CCAEY(latent_dimensions=k, random_state=0).fit(three_correlated_views),
+        three_correlated_views,
     )
     np.testing.assert_allclose(
         sorted(s_ey, reverse=True), sorted(s_mcca, reverse=True), atol=0.05

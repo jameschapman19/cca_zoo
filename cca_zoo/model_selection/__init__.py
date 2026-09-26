@@ -12,7 +12,11 @@ from cca_zoo.model_selection._search import (
 from cca_zoo.model_selection._significance import (
     PermutationTestResult,
     permutation_test_significance,
-    procrustes_rotation,
+)
+
+# Deprecated: importable for backward compatibility, left out of __all__.
+from cca_zoo.model_selection._significance import (
+    procrustes_rotation as procrustes_rotation,
 )
 
 __all__ = [
@@ -23,5 +27,4 @@ __all__ = [
     "RandomizedSearchCV",
     "PermutationTestResult",
     "permutation_test_significance",
-    "procrustes_rotation",
 ]

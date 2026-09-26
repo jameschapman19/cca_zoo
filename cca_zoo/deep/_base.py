@@ -156,14 +156,14 @@ class BaseDeep(pl.LightningModule):
         ]
         return [t.numpy() for t in stacked]
 
-    def score(self, loader: torch.utils.data.DataLoader) -> np.ndarray:
-        """Return average pairwise canonical correlations after linear CCA.
+    def score(self, loader: torch.utils.data.DataLoader) -> float:
+        """Mean canonical correlation of the representations after linear CCA.
 
         Args:
             loader: DataLoader with a ``"views"`` key.
 
         Returns:
-            Array of shape ``(latent_dimensions,)``.
+            The mean canonical correlation, as for every model's ``score``.
         """
         representations = self.transform(loader)
         return (

@@ -11,6 +11,7 @@ import pytest
 
 xgboost = pytest.importorskip("xgboost", reason="xgboost is not installed")
 
+from cca_zoo.metrics import factor_loadings, pairwise_correlations
 from cca_zoo.tree import CatBoostCCA, LightGBMCCA, XGBoostCCA
 from cca_zoo.tree._treecca import TreeCCA
 
@@ -120,11 +121,11 @@ def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
 
 
 def test_score_shape(two_views_small: list[np.ndarray]) -> None:
-    """Score returns array of shape (latent_dimensions,)."""
+    """Score is one float, as sklearn expects."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
     s = model.score(two_views_small)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
@@ -146,19 +147,12 @@ def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
 
 
 def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
+    """Transform before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
     model = XGBoostCCA()
     with pytest.raises(NotFittedError):
-        _ = model.weights
-
-
-def test_weights_raises_not_implemented(two_views_small: list[np.ndarray]) -> None:
-    """Accessing weights after fitting raises NotImplementedError."""
-    model = _make_model().fit(two_views_small)
-    with pytest.raises(NotImplementedError, match="boosters_"):
-        _ = model.weights
+        model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +164,7 @@ def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
     """get_factor_loadings returns (n_features_i, k) arrays."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    loadings = model.get_factor_loadings(two_views_small)
+    loadings = factor_loadings(two_views_small, model.transform(two_views_small))
     assert len(loadings) == 2
     for loading, view in zip(loadings, two_views_small):
         assert loading.shape == (view.shape[1], k)
@@ -185,7 +179,7 @@ def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
     """pairwise_correlations returns (n_views, n_views, k)."""
     k = 1
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    corrs = model.pairwise_correlations(two_views_small)
+    corrs = pairwise_correlations(model.transform(two_views_small))
     assert corrs.shape == (2, 2, k)
 
 
@@ -307,16 +301,6 @@ def test_lightgbm_fit_transform_consistency(
         np.testing.assert_allclose(a, b, atol=1e-6)
 
 
-def test_lightgbm_weights_raises_not_implemented(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """Accessing weights after fitting a LightGBMCCA raises NotImplementedError."""
-    pytest.importorskip("lightgbm", reason="lightgbm is not installed")
-    model = LightGBMCCA(n_estimators=5).fit(two_views_small)
-    with pytest.raises(NotImplementedError, match="boosters_"):
-        _ = model.weights
-
-
 # ---------------------------------------------------------------------------
 # CatBoostCCA
 # ---------------------------------------------------------------------------
@@ -358,16 +342,6 @@ def test_catboost_fit_transform_consistency(
     result_sep = m2.fit(two_views_small).transform(two_views_small)
     for a, b in zip(result_ft, result_sep):
         np.testing.assert_allclose(a, b, atol=1e-6)
-
-
-def test_catboost_weights_raises_not_implemented(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """Accessing weights after fitting a CatBoostCCA raises NotImplementedError."""
-    pytest.importorskip("catboost", reason="catboost is not installed")
-    model = CatBoostCCA(n_estimators=5).fit(two_views_small)
-    with pytest.raises(NotImplementedError, match="boosters_"):
-        _ = model.weights
 
 
 # ---------------------------------------------------------------------------

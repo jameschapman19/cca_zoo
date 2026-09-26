@@ -111,7 +111,7 @@ with small values everywhere is shared.
     rule it out. If `n_components_` looks larger than you'd expect, raise `max_iter` (default
     10000) rather than assuming the result is final.
 
-`GFA.transform` and `GFA.weights` behave identically to the other two classes; `n_iter_` reports
+`GFA.transform` and `GFA.weights_` behave identically to the other two classes; `n_iter_` reports
 how many iterations were actually run.
 
 ---
@@ -135,7 +135,7 @@ model = ProbabilisticCCA(
 model.fit([X1, X2])
 ```
 
-After fitting, `model.weights` holds the **posterior mean** loading matrices, and
+After fitting, `model.weights_` holds the **posterior mean** loading matrices, and
 `model.posterior_samples_` holds the full set of MCMC draws.
 
 !!! note "Rotational symmetry"
@@ -209,7 +209,7 @@ model.fit([X1, X2])
 print(model.ard_relevance_)  # one score per dimension; large = pruned
 ```
 
-`model.transform` and `model.weights` behave identically to `ProbabilisticCCA`. `model.losses_`
+`model.transform` and `model.weights_` behave identically to `ProbabilisticCCA`. `model.losses_`
 holds the ELBO trace across SVI steps, useful for checking convergence.
 
 ---
@@ -247,7 +247,7 @@ mcmc_model = ProbabilisticCCA(
     random_state=42,
 )
 mcmc_model.fit(views)
-print("Posterior mean weights shape:", mcmc_model.weights[0].shape)  # (10, 2)
+print("Posterior mean weights shape:", mcmc_model.weights_[0].shape)  # (10, 2)
 
 # Fit with variational inference, requesting more dimensions than needed
 # to see ARD prune the unsupported ones

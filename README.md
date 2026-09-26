@@ -66,7 +66,7 @@ test_views = data.sample()
 
 # Fit CCA and evaluate
 model = CCA(latent_dimensions=2).fit(train_views)
-print(model.score(test_views))  # canonical correlations, shape (2,)
+print(model.score(test_views))  # mean canonical correlation
 
 # Project views into the shared latent space
 z1, z2 = model.transform(test_views)  # each shape (200, 2)

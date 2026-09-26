@@ -27,7 +27,7 @@ def test_pairwise_correlations_matches_basemodel(
     """The extracted function reproduces BaseModel.pairwise_correlations exactly."""
     model = CCA(latent_dimensions=2).fit(correlated_views)
     transformed = model.transform(correlated_views)
-    expected = model.pairwise_correlations(correlated_views)
+    expected = pairwise_correlations(model.transform(correlated_views))
     np.testing.assert_array_equal(pairwise_correlations(transformed), expected)
 
 
@@ -36,8 +36,10 @@ def test_average_pairwise_correlations_matches_basemodel(
 ) -> None:
     """The extracted function reproduces BaseModel.average_pairwise_correlations."""
     model = CCA(latent_dimensions=2).fit(correlated_views)
-    corrs = model.pairwise_correlations(correlated_views)
-    expected = model.average_pairwise_correlations(correlated_views)
+    corrs = pairwise_correlations(model.transform(correlated_views))
+    expected = average_pairwise_correlations(
+        pairwise_correlations(model.transform(correlated_views))
+    )
     np.testing.assert_array_equal(average_pairwise_correlations(corrs), expected)
 
 
@@ -47,7 +49,7 @@ def test_factor_loadings_matches_basemodel(
     """The extracted function reproduces BaseModel.get_factor_loadings exactly."""
     model = CCA(latent_dimensions=2).fit(correlated_views)
     transformed = model.transform(correlated_views)
-    expected = model.get_factor_loadings(correlated_views)
+    expected = factor_loadings(correlated_views, model.transform(correlated_views))
     actual = factor_loadings(correlated_views, transformed)
     for a, e in zip(actual, expected):
         np.testing.assert_array_equal(a, e)
@@ -85,7 +87,7 @@ def test_adequacy_coefficient_in_unit_range(
 ) -> None:
     """A mean of squared correlations lies in [0, 1]."""
     model = CCA(latent_dimensions=2).fit(correlated_views)
-    loadings = model.get_factor_loadings(correlated_views)
+    loadings = factor_loadings(correlated_views, model.transform(correlated_views))
     adequacy = adequacy_coefficient(loadings)
     for a in adequacy:
         assert a.shape == (2,)
@@ -98,8 +100,8 @@ def test_redundancy_index_diagonal_equals_adequacy(
 ) -> None:
     """redundancy[i, i] == adequacy_i, since a view's correlation with itself is 1."""
     model = CCA(latent_dimensions=2).fit(correlated_views)
-    loadings = model.get_factor_loadings(correlated_views)
-    corrs = model.pairwise_correlations(correlated_views)
+    loadings = factor_loadings(correlated_views, model.transform(correlated_views))
+    corrs = pairwise_correlations(model.transform(correlated_views))
     redundancy = redundancy_index(loadings, corrs)
     adequacy = adequacy_coefficient(loadings)
     for i, a in enumerate(adequacy):
@@ -111,8 +113,8 @@ def test_redundancy_index_bounded_by_adequacy(
 ) -> None:
     """Off-diagonal redundancy never exceeds the view's own adequacy (corr^2 <= 1)."""
     model = CCA(latent_dimensions=2).fit(correlated_views)
-    loadings = model.get_factor_loadings(correlated_views)
-    corrs = model.pairwise_correlations(correlated_views)
+    loadings = factor_loadings(correlated_views, model.transform(correlated_views))
+    corrs = pairwise_correlations(model.transform(correlated_views))
     redundancy = redundancy_index(loadings, corrs)
     adequacy = np.stack(adequacy_coefficient(loadings), axis=0)
     assert np.all(redundancy <= adequacy[:, np.newaxis, :] + 1e-10)
@@ -122,8 +124,8 @@ def test_redundancy_index_bounded_by_adequacy(
 def test_redundancy_index_shape(correlated_views: list[np.ndarray]) -> None:
     """redundancy_index has shape (n_views, n_views, latent_dimensions)."""
     model = CCA(latent_dimensions=2).fit(correlated_views)
-    loadings = model.get_factor_loadings(correlated_views)
-    corrs = model.pairwise_correlations(correlated_views)
+    loadings = factor_loadings(correlated_views, model.transform(correlated_views))
+    corrs = pairwise_correlations(model.transform(correlated_views))
     redundancy = redundancy_index(loadings, corrs)
     assert redundancy.shape == (2, 2, 2)
 
@@ -133,8 +135,8 @@ def test_total_redundancy_sums_over_dimensions(
 ) -> None:
     """total_redundancy is the sum of redundancy_index over the last axis."""
     model = CCA(latent_dimensions=2).fit(correlated_views)
-    loadings = model.get_factor_loadings(correlated_views)
-    corrs = model.pairwise_correlations(correlated_views)
+    loadings = factor_loadings(correlated_views, model.transform(correlated_views))
+    corrs = pairwise_correlations(model.transform(correlated_views))
     redundancy = redundancy_index(loadings, corrs)
     total = total_redundancy(redundancy)
     assert total.shape == (2, 2)
@@ -152,8 +154,8 @@ def test_redundancy_asymmetric_across_views() -> None:
     x1 = z @ rng.standard_normal((1, 30)) + 2.0 * rng.standard_normal((200, 30))
     x2 = z @ rng.standard_normal((1, 2)) + 0.05 * rng.standard_normal((200, 2))
     model = CCA(latent_dimensions=1).fit([x1, x2])
-    loadings = model.get_factor_loadings([x1, x2])
-    corrs = model.pairwise_correlations([x1, x2])
+    loadings = factor_loadings([x1, x2], model.transform([x1, x2]))
+    corrs = pairwise_correlations(model.transform([x1, x2]))
     redundancy = redundancy_index(loadings, corrs)
     assert not np.allclose(redundancy[0, 1, :], redundancy[1, 0, :])
 

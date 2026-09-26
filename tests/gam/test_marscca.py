@@ -53,10 +53,10 @@ def test_transform_reproduces_training_embedding(
 
 
 def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
-    """Score has shape (latent_dimensions,) with values in [-1, 1]."""
+    """Score is one float in [-1, 1]."""
     s = MARSCCA(latent_dimensions=2).fit(two_views_small).score(two_views_small)
-    assert s.shape == (2,)
-    assert np.all(np.abs(s) <= 1.0 + 1e-9)
+    assert isinstance(s, float)
+    assert abs(s) <= 1.0 + 1e-9
 
 
 def test_center_false(two_views_small: list[np.ndarray]) -> None:
@@ -368,17 +368,10 @@ def test_basis_functions_not_fitted_raises() -> None:
         MARSCCA().basis_functions(0)
 
 
-def test_weights_raises_not_implemented(two_views_small: list[np.ndarray]) -> None:
-    """Accessing weights after fitting raises NotImplementedError."""
-    model = MARSCCA().fit(two_views_small)
-    with pytest.raises(NotImplementedError, match="basis_functions"):
-        _ = model.weights
-
-
 def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
+    """Transform before fitting raises NotFittedError."""
     with pytest.raises(NotFittedError):
-        _ = MARSCCA().weights
+        MARSCCA().transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 # ---------------------------------------------------------------------------
@@ -410,9 +403,9 @@ def test_interactions_beat_additive_models_on_product_signal() -> None:
     train = [X1[:500], X2[:500]]
     test = [X1[500:], X2[500:]]
 
-    interaction = MARSCCA(degree=2).fit(train).score(test)[0]
-    additive = MARSCCA(degree=1).fit(train).score(test)[0]
-    gam = GAMCCA().fit(train).score(test)[0]
+    interaction = MARSCCA(degree=2).fit(train).score(test)
+    additive = MARSCCA(degree=1).fit(train).score(test)
+    gam = GAMCCA().fit(train).score(test)
 
     assert interaction > 0.9, f"Expected MARSCCA(degree=2) > 0.9, got {interaction}"
     assert interaction > additive + 0.05
@@ -428,7 +421,7 @@ def test_degree_three_recovers_three_way_interaction() -> None:
     X2 = np.column_stack([a * b * c + 0.3 * rng.standard_normal(n) for _ in range(5)])
     model = MARSCCA(degree=3, nk=40).fit([X1[:1000], X2[:1000]])
     assert max(len(term) for term in model.encoders_[0].terms_) == 3
-    score = model.score([X1[1000:], X2[1000:]])[0]
+    score = model.score([X1[1000:], X2[1000:]])
     assert score > 0.9, f"Expected held-out correlation > 0.9, got {score}"
 
 
