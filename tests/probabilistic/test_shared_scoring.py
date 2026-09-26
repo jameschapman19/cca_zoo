@@ -106,7 +106,7 @@ def test_pairwise_correlations_shape(
 def test_get_factor_loadings_one_per_view(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
-    """get_factor_loadings returns one array per view, not just the first."""
+    """factor_loadings returns one array per view, not just the first."""
     k = 2
     model = ModelClass(
         latent_dimensions=k, random_state=0, **_fast_kwargs(ModelClass)

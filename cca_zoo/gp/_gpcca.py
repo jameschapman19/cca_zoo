@@ -13,7 +13,6 @@ from sklearn.cluster import kmeans_plusplus
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel, Kernel
 from sklearn.preprocessing import KernelCenterer
-from sklearn.utils import deprecated
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
@@ -432,11 +431,3 @@ class GaussianProcessCCA(BaseModel):
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         return cast(np.ndarray, self.encoders_[view].predict_new(centred))
-
-
-@deprecated(
-    "Renamed to GaussianProcessCCA for sklearn-style naming "
-    "(matching GaussianProcessRegressor/Classifier); use GaussianProcessCCA instead."
-)
-class GPCCA(GaussianProcessCCA):
-    pass

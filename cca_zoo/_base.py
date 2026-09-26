@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from numbers import Integral
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
-from sklearn.utils import Tags, deprecated
+from sklearn.utils import Tags
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
@@ -17,7 +17,6 @@ from cca_zoo._utils._validation import validate_views
 from cca_zoo.metrics._correlation import (
     average_pairwise_correlations as _average_pairwise_correlations,
 )
-from cca_zoo.metrics._correlation import factor_loadings as _factor_loadings
 from cca_zoo.metrics._correlation import pairwise_correlations as _pairwise_correlations
 
 
@@ -321,76 +320,6 @@ class BaseModel(BaseEstimator, ABC):
             _pairwise_correlations(self.transform(views))
         )
         return float(np.mean(per_dimension))
-
-    @deprecated(
-        "Use cca_zoo.metrics.pairwise_correlations(model.transform(views)) instead."
-    )
-    def pairwise_correlations(self, views: list[ArrayLike]) -> np.ndarray:
-        """Compute the full pairwise correlation matrix per latent dimension.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-
-        Returns:
-            Array of shape ``(n_views, n_views, latent_dimensions)`` where
-            entry ``[i, j, d]`` is the Pearson correlation between the
-            d-th canonical variate of view i and view j.
-        """
-        transformed = self.transform(views)
-        return _pairwise_correlations(transformed)
-
-    @deprecated(
-        "Use cca_zoo.metrics.average_pairwise_correlations("
-        "pairwise_correlations(model.transform(views))) instead."
-    )
-    def average_pairwise_correlations(self, views: list[ArrayLike]) -> np.ndarray:
-        """Return the mean off-diagonal pairwise correlation per dimension.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-
-        Returns:
-            Array of shape ``(latent_dimensions,)`` with the average
-            off-diagonal pairwise correlation for each canonical dimension.
-        """
-        return _average_pairwise_correlations(
-            _pairwise_correlations(self.transform(views))
-        )
-
-    @deprecated("Use the weights_ attribute instead.")
-    @property
-    def weights(self) -> list[np.ndarray]:
-        """Weight matrices post-fit, one per view.
-
-        Shape is ``(n_features_i, latent_dimensions)`` for each view.
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-        """
-        check_is_fitted(self)
-        return cast(list[np.ndarray], self.weights_)
-
-    @deprecated(
-        "Use cca_zoo.metrics.factor_loadings(views, model.transform(views)) instead."
-    )
-    def get_factor_loadings(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Compute canonical factor loadings for each view.
-
-        A loading is the Pearson correlation between an original feature and a
-        canonical variate.  Loadings indicate which original variables drive
-        each canonical direction.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-
-        Returns:
-            List of arrays, each of shape (n_features_i, latent_dimensions),
-            where entry ``[j, d]`` is the correlation between feature j of
-            view i and the d-th canonical variate of view i.
-        """
-        validated = validate_views(views)
-        transformed = self.transform(views)
-        return _factor_loadings(validated, transformed)
 
     def predict(self, views: list[ArrayLike | None]) -> list[np.ndarray]:
         """Reconstruct every view from whichever views are observed.

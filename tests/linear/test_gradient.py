@@ -150,7 +150,7 @@ def test_weights_shapes_two_view(ModelClass: type, two_views: list[np.ndarray]) 
 
 
 # ---------------------------------------------------------------------------
-# get_factor_loadings shapes
+# factor_loadings shapes
 # ---------------------------------------------------------------------------
 
 
@@ -158,7 +158,7 @@ def test_weights_shapes_two_view(ModelClass: type, two_views: list[np.ndarray]) 
 def test_get_factor_loadings_shapes(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
-    """get_factor_loadings returns (n_features_i, k) per view."""
+    """factor_loadings returns (n_features_i, k) per view."""
     k = 2
     model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
     loadings = factor_loadings(two_views, model.transform(two_views))
@@ -458,22 +458,3 @@ def test_cca_ey_initial_weights_differ_from_pls_ey(
     w_pls = PLSEY(latent_dimensions=k)._initial_weights(two_views, rng_pls)
     w_cca = CCAEY(latent_dimensions=k)._initial_weights(two_views, rng_cca)
     assert any(not np.allclose(a, b) for a, b in zip(w_pls, w_cca))
-
-
-# ---------------------------------------------------------------------------
-# MCCAEY is deprecated: CCAEY now supports 2 or more views directly.
-# ---------------------------------------------------------------------------
-
-
-def test_mccaey_deprecated_alias_still_works(
-    three_correlated_views: list[np.ndarray],
-) -> None:
-    """MCCAEY still works (as a thin CCAEY subclass) but warns FutureWarning."""
-    from cca_zoo.linear import MCCAEY
-
-    with pytest.warns(FutureWarning):
-        model = MCCAEY(latent_dimensions=1, random_state=0)
-    model.fit(three_correlated_views)
-    assert isinstance(model, CCAEY)
-    result = model.transform(three_correlated_views)
-    assert len(result) == 3

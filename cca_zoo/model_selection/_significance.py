@@ -8,7 +8,6 @@ import numpy as np
 import scipy.linalg
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator, clone
-from sklearn.utils import deprecated
 from sklearn.utils.parallel import Parallel, delayed
 
 from cca_zoo._utils._validation import validate_views
@@ -17,23 +16,6 @@ from cca_zoo.metrics import (
     factor_loadings,
     pairwise_correlations,
 )
-
-
-@deprecated("Use scipy.linalg.orthogonal_procrustes(target, reference)[0] instead.")
-def procrustes_rotation(reference: np.ndarray, target: np.ndarray) -> np.ndarray:
-    """Orthogonal ``R`` minimising ``||reference - target @ R||``.
-
-    Deprecated: this is :func:`scipy.linalg.orthogonal_procrustes`.
-
-    Args:
-        reference: Array of shape (n, k).
-        target: Array of shape (n, k).
-
-    Returns:
-        Orthogonal matrix of shape (k, k).
-    """
-    rotation: np.ndarray = scipy.linalg.orthogonal_procrustes(target, reference)[0]
-    return rotation
 
 
 @dataclass

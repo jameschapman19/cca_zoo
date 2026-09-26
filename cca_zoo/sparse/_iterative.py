@@ -23,7 +23,6 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.optimize import brentq
 from sklearn.linear_model import ElasticNet, Lasso, Ridge, lasso_path
-from sklearn.utils import deprecated
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import deflate, soft_threshold
@@ -1255,68 +1254,3 @@ def _make_regressors(
                 )
             )
     return regressors
-
-
-# ---------------------------------------------------------------------------
-# Deprecated underscored aliases (removed in a future release)
-# ---------------------------------------------------------------------------
-
-
-@deprecated("Renamed to PMDCCA; use PMDCCA instead.")
-class SCCA_PMD(PMDCCA):
-    pass
-
-
-@deprecated("Renamed to ADMMCCA; use ADMMCCA instead.")
-class SCCA_ADMM(ADMMCCA):
-    pass
-
-
-@deprecated("Renamed to IPLSCCA; use IPLSCCA instead.")
-class SCCA_IPLS(IPLSCCA):
-    pass
-
-
-@deprecated("Renamed to SpanCCA; use SpanCCA instead.")
-class SCCA_Span(SpanCCA):
-    pass
-
-
-@deprecated(
-    "Renamed to PMDCCA -- the SCCA prefix is redundant with cca_zoo.sparse's "
-    "own module name; use PMDCCA instead."
-)
-class SCCAPMD(PMDCCA):
-    pass
-
-
-@deprecated(
-    "Renamed to ADMMCCA -- the SCCA prefix is redundant with cca_zoo.sparse's "
-    "own module name; use ADMMCCA instead."
-)
-class SCCAADMM(ADMMCCA):
-    pass
-
-
-@deprecated(
-    "Renamed to IPLSCCA -- the SCCA prefix is redundant with cca_zoo.sparse's "
-    "own module name; use IPLSCCA instead."
-)
-class SCCAIPLS(IPLSCCA):
-    pass
-
-
-@deprecated(
-    "Renamed to SpanCCA -- the SCCA prefix is redundant with cca_zoo.sparse's "
-    "own module name; use SpanCCA instead."
-)
-class SCCASpan(SpanCCA):
-    pass
-
-
-@deprecated(
-    "Renamed to WaijenborgCCA to disambiguate from cca_zoo.sparse.ElasticNetCCA "
-    "(the elastic-net-penalised Eckart-Young CCA loss); use WaijenborgCCA instead."
-)
-class ElasticCCA(WaijenborgCCA):
-    pass

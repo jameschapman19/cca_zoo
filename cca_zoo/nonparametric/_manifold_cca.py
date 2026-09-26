@@ -2,7 +2,6 @@ r"""ManifoldCCA — transductive multiview CCA over a shared manifold operator."
 
 from __future__ import annotations
 
-import warnings
 from dataclasses import dataclass
 from numbers import Integral, Real
 from typing import Any, ClassVar
@@ -609,17 +608,6 @@ class ManifoldCCA(BaseModel):
             sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
         """
         return super().transform(views)
-
-    @property
-    def weights_(self) -> list[np.ndarray]:
-        """Deprecated alias of :attr:`embedding_`."""
-        warnings.warn(
-            "ManifoldCCA.weights_ is deprecated: it holds the training "
-            "embedding, not weights. Use embedding_ instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.embedding_
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         v_train = self._views_fit_[view]

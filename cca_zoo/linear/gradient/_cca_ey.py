@@ -7,7 +7,6 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
-from sklearn.utils import deprecated
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._utils._ey import (
@@ -220,20 +219,3 @@ class CCAEY(BaseFullBatchEYModel):
         v_blend = (1 - c) * v_data + c * b
         reward = C - c * v_data
         return float(-2.0 * np.trace(reward) + np.trace(v_blend @ v_blend))
-
-
-@deprecated("Renamed to CCAEY for sklearn-style naming; use CCAEY instead.")
-class CCA_EY(CCAEY):
-    pass
-
-
-@deprecated("CCAEY now supports 2 or more views directly; use CCAEY instead of MCCAEY.")
-class MCCAEY(CCAEY):
-    pass
-
-
-@deprecated(
-    "CCAEY now supports 2 or more views directly; use CCAEY instead of MCCA_EY."
-)
-class MCCA_EY(CCAEY):
-    pass

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import torch
-from sklearn.utils import deprecated
 
 from cca_zoo.deep._dcca import DCCA
 
@@ -110,8 +109,3 @@ class DCCAEY(DCCA):
             "rewards": rewards,
             "penalties": penalties,
         }
-
-
-@deprecated("Renamed to DCCAEY for sklearn-style naming; use DCCAEY instead.")
-class DCCA_EY(DCCAEY):
-    pass

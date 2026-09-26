@@ -5,7 +5,6 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from sklearn.utils import deprecated
 
 from cca_zoo.deep._dcca import DCCA
 
@@ -120,8 +119,3 @@ class DCCASDL(DCCA):
             "l2": l2,
             "sdl": sdl,
         }
-
-
-@deprecated("Renamed to DCCASDL for sklearn-style naming; use DCCASDL instead.")
-class DCCA_SDL(DCCASDL):
-    pass

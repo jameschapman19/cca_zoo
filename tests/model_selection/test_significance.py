@@ -9,28 +9,7 @@ from cca_zoo.linear import CCA
 from cca_zoo.model_selection import (
     PermutationTestResult,
     permutation_test_significance,
-    procrustes_rotation,
 )
-
-# ---------------------------------------------------------------------------
-# procrustes_rotation
-# ---------------------------------------------------------------------------
-
-
-def test_procrustes_rotation_is_deprecated_scipy() -> None:
-    """procrustes_rotation warns and matches scipy.linalg.orthogonal_procrustes."""
-    import scipy.linalg
-
-    rng = np.random.default_rng(0)
-    reference = rng.standard_normal((20, 3))
-    target = reference @ np.linalg.qr(rng.standard_normal((3, 3)))[0].T
-    with pytest.warns(FutureWarning, match="orthogonal_procrustes"):
-        rotation = procrustes_rotation(reference, target)
-    np.testing.assert_allclose(
-        rotation, scipy.linalg.orthogonal_procrustes(target, reference)[0]
-    )
-    np.testing.assert_allclose(target @ rotation, reference, atol=1e-10)
-
 
 # ---------------------------------------------------------------------------
 # permutation_test_significance

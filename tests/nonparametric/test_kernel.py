@@ -158,7 +158,7 @@ def test_weights_shapes(ModelClass: type, two_views_small: list[np.ndarray]) -> 
 
 
 # ---------------------------------------------------------------------------
-# get_factor_loadings shapes
+# factor_loadings shapes
 # ---------------------------------------------------------------------------
 
 
@@ -166,7 +166,7 @@ def test_weights_shapes(ModelClass: type, two_views_small: list[np.ndarray]) -> 
 def test_get_factor_loadings_shapes(
     ModelClass: type, two_views_small: list[np.ndarray]
 ) -> None:
-    """get_factor_loadings returns (n_features_i, k) arrays."""
+    """factor_loadings returns (n_features_i, k) arrays."""
     k = 2
     model = _make_kernel_model(ModelClass, latent_dimensions=k).fit(two_views_small)
     loadings = factor_loadings(two_views_small, model.transform(two_views_small))

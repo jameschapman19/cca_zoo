@@ -114,7 +114,7 @@ def test_gfa_score_is_finite() -> None:
 
 
 def test_gfa_get_factor_loadings_one_per_view() -> None:
-    """get_factor_loadings returns one array per view."""
+    """factor_loadings returns one array per view."""
     views = _make_low_rank_views(n=60)
     model = GFA(latent_dimensions=2, drop_k=False, max_iter=200, random_state=0).fit(
         views

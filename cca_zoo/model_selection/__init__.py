@@ -14,11 +14,6 @@ from cca_zoo.model_selection._significance import (
     permutation_test_significance,
 )
 
-# Deprecated: importable for backward compatibility, left out of __all__.
-from cca_zoo.model_selection._significance import (
-    procrustes_rotation as procrustes_rotation,
-)
-
 __all__ = [
     "GridSearchCV",
     "HalvingGridSearchCV",

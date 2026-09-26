@@ -184,12 +184,12 @@ def test_score_is_the_mean_canonical_correlation(
 
 
 # ---------------------------------------------------------------------------
-# get_factor_loadings
+# factor_loadings
 # ---------------------------------------------------------------------------
 
 
 def test_get_factor_loadings_shapes(two_views: list[np.ndarray]) -> None:
-    """get_factor_loadings returns one array per view with shape (n_features, k)."""
+    """factor_loadings returns one array per view with shape (n_features, k)."""
     k = 2
     model = CCA(latent_dimensions=k).fit(two_views)
     loadings = factor_loadings(two_views, model.transform(two_views))
@@ -416,28 +416,3 @@ def test_metadata_set_after_fit(two_views: list[np.ndarray]) -> None:
     assert model.n_views_ == 2
     assert model.n_features_in_ == [10, 8]
     assert model.n_samples_ == 50
-
-
-def test_deprecated_duplicates_warn_and_match_their_replacements(
-    two_views: list[np.ndarray],
-) -> None:
-    """Each deprecated method warns and returns what its replacement does."""
-    model = CCA(latent_dimensions=2).fit(two_views)
-    scores = model.transform(two_views)
-    with pytest.warns(FutureWarning, match="weights_"):
-        weights = model.weights
-    for w, expected in zip(weights, model.weights_):
-        np.testing.assert_array_equal(w, expected)
-    with pytest.warns(FutureWarning, match="cca_zoo.metrics.pairwise_correlations"):
-        np.testing.assert_allclose(
-            model.pairwise_correlations(two_views), pairwise_correlations(scores)
-        )
-    with pytest.warns(FutureWarning, match="average_pairwise_correlations"):
-        np.testing.assert_allclose(
-            model.average_pairwise_correlations(two_views),
-            average_pairwise_correlations(pairwise_correlations(scores)),
-        )
-    with pytest.warns(FutureWarning, match="factor_loadings"):
-        loadings = model.get_factor_loadings(two_views)
-    for got, expected in zip(loadings, factor_loadings(two_views, scores)):
-        np.testing.assert_allclose(got, expected)

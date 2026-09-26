@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import torch
 import torch.nn as nn
-from sklearn.utils import deprecated
 
 from cca_zoo.deep._dcca import DCCA
 from cca_zoo.deep.objectives import _inv_sqrtm
@@ -163,8 +162,3 @@ class DCCANOI(DCCA):
                 if i != j:
                     total = total + self.mse(representations[i], whitened[j].detach())
         return {"objective": total}
-
-
-@deprecated("Renamed to DCCANOI for sklearn-style naming; use DCCANOI instead.")
-class DCCA_NOI(DCCANOI):
-    pass

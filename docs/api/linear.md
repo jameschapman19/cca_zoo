@@ -19,10 +19,6 @@ mini-batch methods live in [`cca_zoo.stochastic`](stochastic.md).
         - fit_transform
         - score
         - feature_importances_
-        - pairwise_correlations
-        - average_pairwise_correlations
-        - weights
-        - get_factor_loadings
 
 ---
 

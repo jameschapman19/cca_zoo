@@ -221,7 +221,7 @@ def test_weights_shape_multi_view(
 
 
 # ---------------------------------------------------------------------------
-# get_factor_loadings shapes
+# factor_loadings shapes
 # ---------------------------------------------------------------------------
 
 
@@ -229,7 +229,7 @@ def test_weights_shape_multi_view(
 def test_get_factor_loadings_shapes_two_view(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
-    """get_factor_loadings returns one (n_features_i, latent_dims) array per view."""
+    """factor_loadings returns one (n_features_i, latent_dims) array per view."""
     k = 2
     model = ModelClass(latent_dimensions=k).fit(two_views)
     loadings = factor_loadings(two_views, model.transform(two_views))

@@ -155,7 +155,7 @@ def test_weights_shapes_two_view(ModelClass: type, two_views: list[np.ndarray]) 
 
 
 # ---------------------------------------------------------------------------
-# get_factor_loadings shapes
+# factor_loadings shapes
 # ---------------------------------------------------------------------------
 
 
@@ -163,7 +163,7 @@ def test_weights_shapes_two_view(ModelClass: type, two_views: list[np.ndarray]) 
 def test_get_factor_loadings_shapes(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
-    """get_factor_loadings returns (n_features_i, k) arrays."""
+    """factor_loadings returns (n_features_i, k) arrays."""
     k = 2
     model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
     loadings = factor_loadings(two_views, model.transform(two_views))

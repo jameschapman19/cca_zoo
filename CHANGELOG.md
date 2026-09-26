@@ -5,7 +5,38 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [3.4.0] - Unreleased
+
+This release settles the public API: every model follows one scikit-learn-style contract
+(`fit`/`transform`/`predict`/`inverse_transform`/`score`/`feature_importances_`), and every
+deprecated alias accumulated through 3.x is removed rather than carried forward. Some of
+these changes break code written against 3.3; the table below gives each replacement.
+
+### Migrating from 3.3
+
+| 3.3 | 3.4 |
+|---|---|
+| `model.score(views)` → per-dimension array | `model.score(views)` → mean, a float; per dimension: `average_pairwise_correlations(pairwise_correlations(model.transform(views)))` from `cca_zoo.metrics` |
+| `model.weights` | `model.weights_` |
+| `model.pairwise_correlations(views)` | `cca_zoo.metrics.pairwise_correlations(model.transform(views))` |
+| `model.average_pairwise_correlations(views)` | `cca_zoo.metrics.average_pairwise_correlations(pairwise_correlations(model.transform(views)))` |
+| `model.get_factor_loadings(views)` | `cca_zoo.metrics.factor_loadings(views, model.transform(views))` |
+| probabilistic `model.transform(views)[0]` (joint posterior mean) | `model.posterior_mean(views)` |
+| `ManifoldCCA.weights_` | `ManifoldCCA.embedding_` |
+| `cca_zoo.model_selection.procrustes_rotation(reference, target)` | `scipy.linalg.orthogonal_procrustes(target, reference)[0]` |
+| `GAMCCA(n_knots=..., alpha=...)` | `GAMCCA(k=..., sp=...)` (see Changed) |
+| `SCCA_PMD`, `SCCAPMD` (`cca_zoo.linear` or `cca_zoo.sparse`) | `cca_zoo.sparse.PMDCCA` |
+| `SCCA_ADMM`, `SCCAADMM` | `cca_zoo.sparse.ADMMCCA` |
+| `SCCA_IPLS`, `SCCAIPLS` | `cca_zoo.sparse.IPLSCCA` |
+| `SCCA_Span`, `SCCASpan` | `cca_zoo.sparse.SpanCCA` |
+| `ElasticCCA`; `cca_zoo.linear.WaijenborgCCA` | `cca_zoo.sparse.WaijenborgCCA` |
+| `cca_zoo.linear.ParkhomenkoCCA`, `cca_zoo.linear.SAR` | `cca_zoo.sparse.ParkhomenkoCCA`, `cca_zoo.sparse.SAR` |
+| `cca_zoo.linear.StochasticCCAEY` | `cca_zoo.stochastic.StochasticCCAEY` |
+| `CCA_EY`, `MCCAEY`, `MCCA_EY` | `cca_zoo.linear.CCAEY` (2 or more views) |
+| `PLS_EY` | `cca_zoo.linear.PLSEY` |
+| `GPCCA` | `cca_zoo.gp.GaussianProcessCCA` |
+| `DCCA_EY`, `DCCA_NOI`, `DCCA_SDL` | `cca_zoo.deep.DCCAEY`, `DCCANOI`, `DCCASDL` |
+| `MARSCCA.variable_importance()` (never released) | `MARSCCA.feature_importances_` |
 
 ### Added
 
@@ -102,15 +133,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 - `ManifoldCCA`'s training embedding is `embedding_`, the name sklearn's manifold learners
   use, rather than `weights_`, which elsewhere means weight matrices.
 
-### Deprecated
+### Removed
 
-- The `weights` property: use the `weights_` attribute.
-- `pairwise_correlations`, `average_pairwise_correlations` and `get_factor_loadings` as
-  model methods: the functions of the same names in `cca_zoo.metrics` take a model's
-  `transform` output.
-- `cca_zoo.model_selection.procrustes_rotation`: it is
-  `scipy.linalg.orthogonal_procrustes`, which the permutation test now calls directly.
-- `ManifoldCCA.weights_`: use `embedding_`.
+Removed outright, with no deprecation period; the table above gives each replacement.
+
+- The `weights` property, which duplicated the `weights_` attribute.
+- The `pairwise_correlations`, `average_pairwise_correlations` and `get_factor_loadings`
+  model methods, which duplicated the `cca_zoo.metrics` functions of the same names.
+- `cca_zoo.model_selection.procrustes_rotation`, which duplicated
+  `scipy.linalg.orthogonal_procrustes`; the permutation test and the probabilistic models'
+  posterior alignment call scipy directly.
+- Every deprecated class alias from 3.x: `SCCA_PMD`, `SCCA_ADMM`, `SCCA_IPLS`,
+  `SCCA_Span`, `SCCAPMD`, `SCCAADMM`, `SCCAIPLS`, `SCCASpan`, `ElasticCCA`; the
+  `cca_zoo.linear` re-exports of the sparse and stochastic models; `CCA_EY`, `MCCAEY`,
+  `MCCA_EY`, `PLS_EY`; `GPCCA`; `DCCA_EY`, `DCCA_NOI`, `DCCA_SDL`.
 
 ### Fixed
 
