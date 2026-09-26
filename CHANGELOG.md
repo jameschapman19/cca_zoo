@@ -25,6 +25,7 @@ The table below gives each replacement.
 | `ManifoldCCA.weights_` | `ManifoldCCA.embedding_` |
 | `cca_zoo.model_selection.procrustes_rotation(reference, target)` | `scipy.linalg.orthogonal_procrustes(target, reference)[0]` |
 | `GAMCCA(n_knots=..., alpha=...)` | `GAMCCA(k=..., sp=...)` (see Changed) |
+| `XGBoostCCA`, `LightGBMCCA`, `CatBoostCCA` fits | different (and far better) fits: the boosting itself is fixed, with new defaults `n_estimators=200, max_depth=3, min_child_weight=20` (see Fixed) |
 | `SCCA_PMD`, `SCCAPMD` (`cca_zoo.linear` or `cca_zoo.sparse`) | `cca_zoo.sparse.PMDCCA` |
 | `SCCA_ADMM`, `SCCAADMM` | `cca_zoo.sparse.ADMMCCA` |
 | `SCCA_IPLS`, `SCCAIPLS` | `cca_zoo.sparse.IPLSCCA` |
@@ -150,6 +151,21 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `TreeCCA` (`XGBoostCCA`, `LightGBMCCA`, `CatBoostCCA`) barely learned at its defaults:
+  0.14 held-out correlation on a plain linear signal where linear CCA reaches 0.91. It
+  started from a unit-variance random projection and renormalised every round's gradient
+  to a fixed small size, so the boosters' learned part stayed a fraction of a random
+  embedding they could not undo. It now starts from a random embedding of standard
+  deviation 0.01 and boosts on each sample's own EY gradient, so `learning_rate` is a
+  true step size and steps shrink as the fit converges. Once the steps are the right size,
+  two tree ensembles fitted to each other overfit, so the defaults change to
+  `n_estimators=200`, `max_depth=3`, `min_child_weight=20` (from 50, 5, 5). Held-out
+  correlation on linear, sine and absolute-value relationships goes from 0.16 / 0.03 /
+  -0.01 to 0.88 / 0.72 / 0.72 (`XGBoostCCA`, n = 1000), at about 3 s per fit instead of 1.
+  `CatBoostCCA` now grows depthwise trees, the only CatBoost policy that honours the
+  minimum leaf size; it still converges more slowly than the other two backends on
+  non-monotone relationships. `LightGBMCCA` no longer fails on data too small to split at
+  that leaf size.
 - `predict` and `inverse_transform` projected with `weights_` directly, so they raised or
   returned the wrong shape for every nonlinear model (`GAMCCA`, `MARSCCA`,
   `GaussianProcessCCA`, the kernel, manifold and tree models); they now use each model's

@@ -242,7 +242,9 @@ def test_per_view_max_depth_list(two_views_small: list[np.ndarray]) -> None:
     Deeper trees have more nodes, so node count is used as a proxy: this
     xgboost version's `trees_to_dataframe()` has no `Depth` column.
     """
-    model = _make_model(n_estimators=20, max_depth=[1, 6]).fit(two_views_small)
+    model = _make_model(n_estimators=20, max_depth=[1, 6], min_child_weight=1).fit(
+        two_views_small
+    )
     n_nodes_shallow = len(model.boosters_[0][0].trees_to_dataframe())
     n_nodes_deep = len(model.boosters_[1][0].trees_to_dataframe())
     assert n_nodes_shallow < n_nodes_deep
@@ -373,3 +375,38 @@ def test_treecca_finds_correlation_on_three_correlated_views() -> None:
     )
     s = model.fit(views).score(views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
+
+
+def _held_out_pair(kind: str) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    """Train/test views sharing one latent signal in their first feature."""
+
+    def views(seed: int) -> list[np.ndarray]:
+        rng = np.random.default_rng(seed)
+        z = rng.standard_normal(1000)
+        first = z if kind == "linear" else np.sin(2 * z)
+        return [
+            np.column_stack(
+                [first + 0.3 * rng.standard_normal(1000)]
+                + [rng.standard_normal(1000) for _ in range(5)]
+            ),
+            np.column_stack(
+                [z + 0.3 * rng.standard_normal(1000)]
+                + [rng.standard_normal(1000) for _ in range(5)]
+            ),
+        ]
+
+    return views(0), views(1)
+
+
+@pytest.mark.parametrize("cls", [XGBoostCCA, LightGBMCCA], ids=["xgb", "lgbm"])
+@pytest.mark.parametrize(("kind", "floor"), [("linear", 0.8), ("sin", 0.6)])
+def test_defaults_learn_the_shared_signal(cls: type, kind: str, floor: float) -> None:
+    """At its defaults the model recovers a shared signal on held-out data.
+
+    Regression test: with a unit-variance random start and gradients
+    renormalised to a fixed small size every round, the boosters' learned
+    part stayed a fraction of a random projection they could not undo, and
+    held-out correlation on a plain linear signal was about 0.14.
+    """
+    train, test = _held_out_pair(kind)
+    assert cls(random_state=0).fit(train).score(test) > floor

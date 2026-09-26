@@ -133,10 +133,10 @@ def test_linear_importance_matches_the_permutation_definition() -> None:
         np.testing.assert_allclose(estimate, 2 * exact, rtol=0.05)
 
 
-def _signal_in_first_feature(n: int, monotone: bool) -> list[np.ndarray]:
+def _signal_in_first_feature(n: int) -> list[np.ndarray]:
     rng = np.random.default_rng(0)
     z = rng.standard_normal(n)
-    first = z if monotone else np.sin(2 * z)
+    first = np.sin(2 * z)
     return [
         np.column_stack(
             [first + 0.2 * rng.standard_normal(n)]
@@ -153,12 +153,7 @@ def _signal_in_first_feature(n: int, monotone: bool) -> list[np.ndarray]:
     "name", ["rCCA", "GAMCCA", "MARSCCA", "XGBoostCCA", "KCCA", "GaussianProcessCCA"]
 )
 def test_importance_finds_the_signal_feature(name: str) -> None:
-    """Each importance family ranks the one informative feature first.
-
-    XGBoostCCA gets a monotone signal and more samples: at its defaults it
-    does not learn the non-monotone one at all, so there would be nothing
-    for its importance to find.
-    """
+    """Each importance family ranks the one informative feature first."""
     classes = {c.__name__: c for c in _MODEL_CLASSES}
     if name not in classes:
         pytest.skip(f"{name}'s optional dependency is not installed")
@@ -167,10 +162,5 @@ def test_importance_finds_the_signal_feature(name: str) -> None:
     model = cls(latent_dimensions=1, **kwargs)
     if "random_state" in model.get_params():
         model.set_params(random_state=0)
-    views = (
-        _signal_in_first_feature(1000, monotone=True)
-        if name == "XGBoostCCA"
-        else _signal_in_first_feature(300, monotone=False)
-    )
-    importances = model.fit(views).feature_importances_
+    importances = model.fit(_signal_in_first_feature(300)).feature_importances_
     assert [int(np.argmax(imp)) for imp in importances] == [0, 0]

@@ -10,11 +10,7 @@ import xgboost as xgb
 from numpy.typing import ArrayLike
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._ey import (
-    ey_grad_z,
-    random_orthogonal_embedding,
-    rescale_grads_to_target_std,
-)
+from cca_zoo._utils._ey import ey_grad_z, random_orthogonal_embedding
 from cca_zoo._utils._validation import perview_parameter
 
 try:
@@ -32,22 +28,27 @@ except ImportError:
     _CATBOOST_AVAILABLE = False
 
 
-def _rescale_to_target_std(
-    grads: list[np.ndarray], target_std: float = 0.1
-) -> list[np.ndarray]:
-    """As :func:`cca_zoo._utils._ey.rescale_grads_to_target_std`, cast to float32.
+# Standard deviation of the random starting embedding, relative to the unit
+# scale the EY optimum has: small enough that the boosters' learned signal
+# dominates the final embedding rather than a random projection they cannot
+# undo, large enough for a non-vanishing first gradient (the EY gradient is
+# zero at an all-zero embedding).
+_START_STD = 0.01
 
-    ``float32`` is required for XGBoost/LightGBM custom objectives.
 
-    Args:
-        grads: One gradient array per view, each (n_samples, k).
-        target_std: Target standard deviation. Default is 0.1.
+def _boosting_targets(representations: list[np.ndarray]) -> list[np.ndarray]:
+    """Each sample's own EY gradient, as ``float32`` boosting targets.
 
-    Returns:
-        List of rescaled gradients, dtype ``float32``.
+    :func:`~cca_zoo._utils._ey.ey_grad_z` is the gradient of the mean loss,
+    so each sample's entry carries a ``4 / (M (n - 1))`` factor; removing it
+    leaves ``z_i V - S``, which is of the embedding's own scale and falls to
+    zero at the optimum, so ``learning_rate`` is a true step size and boosting
+    converges rather than taking fixed-size steps. ``float32`` is required by
+    the XGBoost and LightGBM custom objectives.
     """
+    m, n = len(representations), representations[0].shape[0]
     return [
-        g.astype(np.float32) for g in rescale_grads_to_target_std(grads, target_std)
+        (g * (m * (n - 1) / 4.0)).astype(np.float32) for g in ey_grad_z(representations)
     ]
 
 
@@ -248,12 +249,17 @@ class TreeCCA(BaseModel, ABC):
     :class:`~cca_zoo.linear.gradient.CCAEY` and
     :class:`~cca_zoo.deep.DCCAEY`). The encoders are fit by alternating
     (Gauss-Seidel) gradient boosting: each round, for every view in turn, one
-    tree is added to each of its ``latent_dimensions`` boosters using the
-    EY-loss gradient (rescaled to a fixed target standard deviation for
-    well-conditioned tree leaves) as a custom regression objective, and —
-    when ``gauss_seidel=True`` — the gradient is recomputed from the
-    freshest embeddings before moving to the next view. Training starts from
-    a random-orthogonal, unit-variance initial embedding per view. Because
+    tree is added to each of its ``latent_dimensions`` boosters using each
+    sample's own EY-loss gradient as a custom regression objective (so
+    ``learning_rate`` is a true step size and the steps shrink as the fit
+    converges), and — when ``gauss_seidel=True`` — the gradient is
+    recomputed from the freshest embeddings before moving to the next view.
+    The EY gradient vanishes at an all-zero embedding, so training starts
+    from a small random-orthogonal embedding per view (standard deviation
+    0.01, against the optimum's unit scale): enough to break the symmetry,
+    too small to leave a random component in the result. Two free tree
+    ensembles can also agree with each other on noise, so the defaults use
+    shallow trees (``max_depth=3``) with at least 20 samples per leaf. Because
     each latent component is a boosted-tree ensemble, per-component feature
     importance (split gain) is available directly, without a separate
     interpretability method such as SHAP.
@@ -284,10 +290,10 @@ class TreeCCA(BaseModel, ABC):
             Either a single value applied to every view or a list of
             per-view values -- a view whose budget is exhausted first
             stops being boosted (its embedding stays fixed) while the
-            others continue. Default is 50.
+            others continue. Default is 200.
         max_depth: Maximum depth of each tree. Either a single value
             applied to every view or a list of per-view values. Default
-            is 5.
+            is 3.
         learning_rate: Boosting learning rate(s). Either a single float
             applied to every view or a list of per-view floats. Default
             is 0.1.
@@ -300,7 +306,7 @@ class TreeCCA(BaseModel, ABC):
         min_child_weight: Minimum sum of instance weight (XGBoostCCA) /
             minimum number of samples (LightGBMCCA, CatBoostCCA) needed in
             a child/leaf. Either a single value applied to every view or a
-            list of per-view values. Default is 5.
+            list of per-view values. Default is 20.
         gauss_seidel: If True, re-predict view 1's embedding after updating
             its boosters and use the fresh values when computing view 2's
             gradient (Gauss-Seidel); if False, both gradients are computed
@@ -313,12 +319,12 @@ class TreeCCA(BaseModel, ABC):
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        n_estimators: int | list[int] = 50,
-        max_depth: int | list[int] = 5,
+        n_estimators: int | list[int] = 200,
+        max_depth: int | list[int] = 3,
         learning_rate: float | list[float] = 0.1,
         subsample: float | list[float] = 0.8,
         colsample_bytree: float | list[float] = 0.8,
-        min_child_weight: float | list[float] = 5,
+        min_child_weight: float | list[float] = 20,
         gauss_seidel: bool = True,
         random_state: int = 0,
     ) -> None:
@@ -416,9 +422,9 @@ class TreeCCA(BaseModel, ABC):
         n_views = len(views_)
 
         n_estimators_ = perview_parameter(
-            "n_estimators", self.n_estimators, 50, n_views
+            "n_estimators", self.n_estimators, 200, n_views
         )
-        max_depth_ = perview_parameter("max_depth", self.max_depth, 5, n_views)
+        max_depth_ = perview_parameter("max_depth", self.max_depth, 3, n_views)
         learning_rate_ = perview_parameter(
             "learning_rate", self.learning_rate, 0.1, n_views
         )
@@ -427,14 +433,14 @@ class TreeCCA(BaseModel, ABC):
             "colsample_bytree", self.colsample_bytree, 0.8, n_views
         )
         min_child_weight_ = perview_parameter(
-            "min_child_weight", self.min_child_weight, 5, n_views
+            "min_child_weight", self.min_child_weight, 20, n_views
         )
 
         rng = np.random.default_rng(self.random_state)
         base_margins = []
         projections = []
         for X in views_:
-            bm, proj = random_orthogonal_embedding(X, k, rng)
+            bm, proj = random_orthogonal_embedding(X, k, rng, std=_START_STD)
             base_margins.append(bm)
             projections.append(proj)
         self._projections_: list[np.ndarray] = projections
@@ -457,7 +463,7 @@ class TreeCCA(BaseModel, ABC):
             representations = [
                 bm + enc.predict() for bm, enc in zip(base_margins, encoders)
             ]
-            grads = _rescale_to_target_std(ey_grad_z(representations))
+            grads = _boosting_targets(representations)
 
             for view_idx in range(n_views):
                 if round_idx >= n_estimators_[view_idx]:
@@ -467,7 +473,7 @@ class TreeCCA(BaseModel, ABC):
                     representations[view_idx] = (
                         base_margins[view_idx] + encoders[view_idx].predict()
                     )
-                    grads = _rescale_to_target_std(ey_grad_z(representations))
+                    grads = _boosting_targets(representations)
 
         self.boosters_: list[list[Any]] = [enc.boosters for enc in encoders]
         return self
@@ -592,6 +598,10 @@ class LightGBMCCA(TreeCCA):
             "bagging_fraction": subsample,
             "bagging_freq": 1,
             "min_child_samples": int(min_child_weight),
+            # Keep features LightGBM would pre-filter as unsplittable at this
+            # leaf size: on small data it otherwise drops every feature and
+            # refuses to train, where the other backends fit without splits.
+            "feature_pre_filter": False,
             "min_data_in_bin": 1,
             "verbose": -1,
             "seed": int(self.random_state),
@@ -670,6 +680,10 @@ class CatBoostCCA(TreeCCA):
     ) -> dict[str, object]:
         return {
             "depth": max_depth,
+            # Depthwise is the only grow policy that honours min_data_in_leaf,
+            # which the default symmetric trees ignore; the other backends'
+            # minimum leaf size needs it to mean the same thing.
+            "grow_policy": "Depthwise",
             "learning_rate": learning_rate,
             "subsample": subsample,
             "bootstrap_type": "Bernoulli",

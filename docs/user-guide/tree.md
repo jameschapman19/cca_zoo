@@ -56,7 +56,7 @@ abstract base class and cannot be instantiated directly:
 ```python
 from cca_zoo.tree import XGBoostCCA
 
-model = XGBoostCCA(latent_dimensions=2, n_estimators=200, max_depth=5).fit([X1, X2])
+model = XGBoostCCA(latent_dimensions=2).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
 corr = model.score([X1, X2])  # mean canonical correlation
 
@@ -100,8 +100,9 @@ The boosters themselves are in `boosters_`, a `list[list[Booster]]` indexed
 
 | Parameter | Description |
 |---|---|
-| `n_estimators` | Boosting rounds (trees added per booster). Higher values fit more complex relationships but risk overfitting and cost more time. |
-| `max_depth` | Maximum tree depth. |
+| `n_estimators` | Boosting rounds (trees added per booster). Default 200; held-out correlation plateaus there on typical data, and more rounds cost time. |
+| `max_depth` | Maximum tree depth. Default 3: two tree ensembles fitted to each other overfit quickly, so shallow trees generalise best. |
+| `min_child_weight` | Minimum leaf size (see the notes below). Default 20, for the same reason. |
 | `learning_rate` | Boosting shrinkage. |
 | `subsample`, `colsample_bytree` | Row/column subsampling ratios per tree, for regularisation. |
 | `gauss_seidel` | Use freshly-updated view-1 embeddings when computing view 2's gradient each round (default `True`); set `False` for Jacobi-style stale updates. |
