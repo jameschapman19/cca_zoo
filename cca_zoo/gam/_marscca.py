@@ -40,6 +40,9 @@ _DEGENERATE_TOL = 1e-8
 # decides which is added. Scoring all of them exactly would take one
 # eigenproblem each.
 _N_RESCORE = 10
+# Most knots per feature and parent under the default minspan (see
+# _knot_spacing).
+_DEFAULT_MAX_KNOTS = 20
 # Bisection steps for the backward pass's constrained eigenvalues: each
 # halves an interlacing bracket, so 60 reach machine precision.
 _BISECTION_STEPS = 60
@@ -64,46 +67,93 @@ def _default_nk(n_features: int) -> int:
     return min(200, max(20, 2 * n_features))
 
 
-def _knot_spans(n_support: int, n_features: int) -> tuple[int, int]:
-    r"""Friedman's (1991, eqs. 43 and 45) ``minspan`` and ``endspan``, as in ``earth``.
+def _knot_spacing(
+    n_support: np.ndarray,
+    n_features: int,
+    minspan: int | None,
+    endspan: int | None,
+    interaction: bool,
+) -> tuple[np.ndarray, int]:
+    r"""Knot step and end exclusion for parents with the given support sizes.
 
-    With $\alpha = 0.05$, $p$ features and $N_m$ support points, knots are
-    at least $L = \lfloor -\log_2[-\ln(1 - \alpha) / (p N_m)] / 2.5 \rfloor$
-    points apart (so a run of positive or negative gradient can't be chased
-    by closely spaced knots) and none within $L_e = \lfloor 3 -
+    Friedman's (1991, eqs. 43 and 45) rules, as in ``earth``: with
+    $\alpha = 0.05$, $p$ features and $N_m$ support points, knots at least
+    $L = \lfloor -\log_2[-\ln(1 - \alpha) / (p N_m)] / 2.5 \rfloor$ points
+    apart (so a run of positive or negative gradient can't be chased by
+    closely spaced knots) and none within $L_e = \lfloor 3 -
     \log_2(\alpha / p) \rfloor$ points of either end (where a hinge would
-    rest on too few points to be estimated).
+    rest on too few points to be estimated), $L_e$ doubled for an
+    interaction parent (``Adjust.endspan = 2``).
+
+    ``minspan=0`` is exactly $L$, as ``minspan=0`` is in ``earth``. The
+    default, ``minspan=None``, widens it where needed to leave at most
+    :data:`_DEFAULT_MAX_KNOTS` knots per feature: the forward pass ranks
+    candidates by the EY gradient before scoring its best few exactly, and
+    with $L$'s ~n/7 knots per feature that ranking fills with near-duplicate
+    knots on noise (held-out correlation on a pure three-way interaction,
+    pruned by cross-validation: 0.61 with $L$, 0.94 with the default).
+
+    Args:
+        n_support: Support sizes, any shape.
+        n_features: Number of features in the view.
+        minspan: ``None`` (default rule), ``0`` (Friedman's), or a fixed step.
+        endspan: ``None`` (Friedman's) or a fixed end exclusion.
+        interaction: Whether the parent is not the constant.
+
+    Returns:
+        ``(step, end)``: the step per support size, and the end exclusion.
     """
     alpha = 0.05
-    minspan = int(-np.log2(-np.log(1 - alpha) / (n_features * n_support)) / 2.5)
-    endspan = int(3 - np.log2(alpha / n_features))
-    return max(minspan, 1), endspan
+    support = np.maximum(np.asarray(n_support), 1)
+    end = int(3 - np.log2(alpha / n_features)) if endspan is None else endspan
+    end *= 2 if interaction else 1
+    friedman = np.maximum(
+        (-np.log2(-np.log(1 - alpha) / (n_features * support)) / 2.5).astype(int), 1
+    )
+    if minspan == 0:
+        step = friedman
+    elif minspan is None:
+        spread = -(-np.maximum(support - 2 * end, 0) // _DEFAULT_MAX_KNOTS)
+        step = np.maximum(friedman, spread)
+    else:
+        step = np.full_like(support, minspan)
+    return step, end
 
 
 def _knot_ranks(
     n_support: int,
     n_features: int,
-    n_candidate_knots: int,
     minspan: int | None,
     endspan: int | None,
     interaction: bool,
 ) -> np.ndarray:
     """Support ranks (in one feature's sort order) that may carry a knot.
 
-    ``earth``'s rule: from ``endspan`` to ``n_support - 1 - endspan``, every
-    ``minspan``-th point, with ``endspan`` doubled for an interaction parent
-    (``Adjust.endspan = 2``); ``None`` takes :func:`_knot_spans`'s value.
-    More than ``n_candidate_knots`` are thinned to that many, evenly.
+    From ``end`` to ``n_support - 1 - end``, every ``step``-th point, with
+    both from :func:`_knot_spacing`.
     """
-    auto_min, auto_end = _knot_spans(max(n_support, 1), n_features)
-    step = auto_min if minspan is None else minspan
-    end = (auto_end if endspan is None else endspan) * (2 if interaction else 1)
-    ranks = np.arange(end, n_support - end, step)
-    if len(ranks) > n_candidate_knots:
-        ranks = ranks[
-            np.linspace(0, len(ranks) - 1, n_candidate_knots).round().astype(int)
-        ]
+    step, end = _knot_spacing(
+        np.array(n_support), n_features, minspan, endspan, interaction
+    )
+    ranks: np.ndarray = np.arange(end, n_support - end, int(step))
     return ranks
+
+
+def _max_knot_slots(
+    n_samples: int, n_features: int, minspan: int | None, endspan: int | None
+) -> int:
+    """Most knots any parent can have: :func:`_knot_ranks`'s count, maximised.
+
+    Not simply the constant parent's: Friedman's spacing shrinks with the
+    support, so a parent nonzero on slightly fewer samples can have more.
+    """
+    support = np.arange(1, n_samples + 1)
+    most = 0
+    for interaction in (False, True):
+        step, end = _knot_spacing(support, n_features, minspan, endspan, interaction)
+        count = np.maximum(-(-(support - 2 * end) // step), 0)
+        most = max(most, int(count.max()))
+    return most
 
 
 class _HingeScorer:
@@ -126,8 +176,8 @@ class _HingeScorer:
 
     - Candidate knots follow ``earth``'s rules within each parent's support
       (the samples where the parent is nonzero): none within ``endspan``
-      support points of either end, at least ``minspan`` points apart,
-      capped at ``n_candidate_knots`` per feature (:func:`_knot_spans`).
+      support points of either end, at least ``minspan`` points apart
+      (:func:`_knot_spacing`), every such point a candidate.
       Which support samples fall between consecutive knots never changes,
       so each parent's blocks are built once, as a sparse matrix of shape
       ``(n_knots * n_features, n_samples)`` with the parent's values
@@ -158,27 +208,26 @@ class _HingeScorer:
     def __init__(
         self,
         X: np.ndarray,
-        n_candidate_knots: int,
         minspan: int | None = None,
         endspan: int | None = None,
     ) -> None:
         n, p = X.shape
         self.X = X
-        self.n_candidate_knots = n_candidate_knots
         self.minspan = minspan
         self.endspan = endspan
+        self.n_slots = _max_knot_slots(n, p, minspan, endspan)
         self.q = np.zeros((n, 0))
         self._parents = np.zeros((n, 0))
         # Per (knot, feature, parent): which candidates may be scored, their
         # knot values, and each parent's block matrices (weights u, u * x).
-        self._allowed = np.zeros((n_candidate_knots, p, 0), dtype=bool)
-        self.knots = np.zeros((n_candidate_knots, p, 0))
+        self._allowed = np.zeros((self.n_slots, p, 0), dtype=bool)
+        self.knots = np.zeros((self.n_slots, p, 0))
         self._blocks: list[tuple[sparse.csr_array, sparse.csr_array]] = []
         self._stacked: tuple[sparse.csr_array, sparse.csr_array]
         # Per (knot, feature, parent): ||h_a||^2, ||h_b||^2, sum h_a, sum h_b,
         # the scale of the terms cancelling in those norms, ||q^T h_a||^2,
         # ||q^T h_b||^2, (q^T h_a) . (q^T h_b).
-        self._stats = np.zeros((n_candidate_knots, p, 0, 8))
+        self._stats = np.zeros((self.n_slots, p, 0, 8))
         self._add_parents(np.ones((n, 1)), np.ones((p, 1), dtype=bool))
 
     def _parent_blocks(
@@ -187,23 +236,16 @@ class _HingeScorer:
         """One parent's candidate knots and its u-weighted block matrices.
 
         Returns:
-            ``(knots, valid, blocks)``: knot values, shape (n_candidate_knots,
+            ``(knots, valid, blocks)``: knot values, shape (n_slots,
             n_features), padded past the parent's own knot count; which knot
-            slots are real, shape (n_candidate_knots,); and the block
+            slots are real, shape (n_slots,); and the block
             matrices with data ``u * x**power`` for power 0 and 1, then
             ``u**2 * x**power`` for power 0, 1, 2.
         """
         X = self.X
         n, p = X.shape
         support = np.flatnonzero(u != 0)
-        ranks = _knot_ranks(
-            len(support),
-            p,
-            self.n_candidate_knots,
-            self.minspan,
-            self.endspan,
-            interaction,
-        )
+        ranks = _knot_ranks(len(support), p, self.minspan, self.endspan, interaction)
         slots = len(ranks)
         xs = X[support]
         order = np.argsort(xs, axis=0)
@@ -216,14 +258,14 @@ class _HingeScorer:
         col = support[sample]
         x = xs[inside]
         weight = u[col]
-        shape = (self.n_candidate_knots * p, n)
+        shape = (self.n_slots * p, n)
         blocks = [
             sparse.csr_array((data, (row, col)), shape=shape)
             for data in (weight, weight * x, weight**2, weight**2 * x, weight**2 * x**2)
         ]
-        knots = np.zeros((self.n_candidate_knots, p))
+        knots = np.zeros((self.n_slots, p))
         knots[:slots] = np.take_along_axis(xs, order[ranks], axis=0)
-        return knots, np.arange(self.n_candidate_knots) < slots, blocks
+        return knots, np.arange(self.n_slots) < slots, blocks
 
     def _block_suffix(self, block: sparse.csr_array, w: np.ndarray) -> np.ndarray:
         """Suffix sums over the knot axis of stacked parents' blocks times ``w``.
@@ -231,7 +273,7 @@ class _HingeScorer:
         Returns shape (n_knots, n_features, n_parents, n_columns).
         """
         p = self.X.shape[1]
-        sums = (block @ w).reshape(-1, self.n_candidate_knots, p, w.shape[1])
+        sums = (block @ w).reshape(-1, self.n_slots, p, w.shape[1])
         suffix: np.ndarray = np.cumsum(sums.transpose(1, 2, 0, 3)[::-1], axis=0)[::-1]
         return suffix
 
@@ -710,7 +752,7 @@ class MARSCCA(BaseModel):
 
     Note:
         Every parameter that configures one view's basis — ``degree``,
-        ``nk``, ``alpha``, ``n_candidate_knots``, ``minspan``, ``endspan``
+        ``nk``, ``alpha``, ``minspan``, ``endspan``
         — takes a single value or a list of per-view values, as elsewhere
         in the package. ``thresh`` and ``nprune`` stay global: the forward
         pass's stopping rule compares the loss of the *joint* refit before
@@ -741,20 +783,19 @@ class MARSCCA(BaseModel):
             the default is ``earth``'s ``min(200, max(20, 2 * n_features))``
             without it. Either a single value or a list of per-view values,
             where a None entry takes that view's default. Default is None.
-        n_candidate_knots: Maximum number of candidate knots per feature and
-            parent. Knots sit at the parent's support points allowed by
-            ``minspan`` and ``endspan`` and are thinned evenly to this many;
-            raise it to consider every allowed point, as ``earth`` does.
-            Per-step cost grows linearly in it. Either a single value or a
-            list of per-view values. Default is 20.
         thresh: Forward-pass stopping threshold, as ``earth``'s: the pass
             stops once a round lowers the refit training EY loss by less than
             ``thresh`` times its magnitude (the EY analogue of an R-squared
             gain below ``thresh``). 0 always grows to ``nk``. Default
             is 0.001.
         minspan: Minimum number of the parent's support points between
-            knots. None uses Friedman's (1991) rule, as ``earth`` does by
-            default. Either a single value or a list of per-view values
+            knots; every point it allows is a candidate. ``0`` is Friedman's
+            (1991) rule, as ``minspan=0`` (the default) is in ``earth``.
+            The default here, None, widens that rule where needed to leave
+            at most 20 knots per feature, which measurably helps this
+            estimator's forward pass find interactions (see
+            :func:`_knot_spacing`); raise it to trade accuracy for speed on
+            large data. Either a single value or a list of per-view values
             (None entries allowed). Default is None.
         endspan: Number of the parent's support points at either end of a
             feature's range that may not carry a knot, doubled for
@@ -792,9 +833,8 @@ class MARSCCA(BaseModel):
         **BaseModel._parameter_constraints,
         "degree": [Interval(Integral, 1, None, closed="left"), "array-like"],
         "nk": [Interval(Integral, 1, None, closed="left"), "array-like", None],
-        "n_candidate_knots": [Interval(Integral, 1, None, closed="left"), "array-like"],
         "thresh": [Interval(Real, 0, None, closed="left")],
-        "minspan": [Interval(Integral, 1, None, closed="left"), "array-like", None],
+        "minspan": [Interval(Integral, 0, None, closed="left"), "array-like", None],
         "endspan": [Interval(Integral, 0, None, closed="left"), "array-like", None],
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
         "nprune": [Interval(Integral, 1, None, closed="left"), None],
@@ -806,7 +846,6 @@ class MARSCCA(BaseModel):
         center: bool = True,
         degree: int | list[int] = 1,
         nk: int | list[int | None] | None = None,
-        n_candidate_knots: int | list[int] = 20,
         thresh: float = 0.001,
         minspan: int | list[int | None] | None = None,
         endspan: int | list[int | None] | None = None,
@@ -817,7 +856,6 @@ class MARSCCA(BaseModel):
         super().__init__(latent_dimensions=latent_dimensions, center=center)
         self.degree = degree
         self.nk = nk
-        self.n_candidate_knots = n_candidate_knots
         self.thresh = thresh
         self.minspan = minspan
         self.endspan = endspan
@@ -848,14 +886,11 @@ class MARSCCA(BaseModel):
             _default_nk(X.shape[1]) if nk is None else nk for X, nk in zip(views_, nk_)
         ]
         alpha_ = perview_parameter("alpha", self.alpha, 0.1, m)
-        n_knots_ = perview_parameter("n_candidate_knots", self.n_candidate_knots, 20, m)
         minspan_: list[int | None] = perview_parameter("minspan", self.minspan, None, m)
         endspan_: list[int | None] = perview_parameter("endspan", self.endspan, None, m)
         scorers = [
-            _HingeScorer(X, n_knots, minspan, endspan)
-            for X, n_knots, minspan, endspan in zip(
-                views_, n_knots_, minspan_, endspan_
-            )
+            _HingeScorer(X, minspan, endspan)
+            for X, minspan, endspan in zip(views_, minspan_, endspan_)
         ]
 
         rng = np.random.default_rng(self.random_state)

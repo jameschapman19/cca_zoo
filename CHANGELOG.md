@@ -29,7 +29,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
   terms are inspectable via `model.basis_functions(view)`, and
   `model.variable_importance()` is `earth`'s `evimp` (`nsubsets` and loss criteria).
   Parameters take `earth`'s names and defaults (`degree`, `nk`, `nprune`, `thresh`,
-  `minspan`, `endspan`), so an `earth` user can read a call directly. Candidate scoring uses Friedman's
+  `minspan`, `endspan`), so an `earth` user can read a call directly. The one default
+  that differs is `minspan`: `minspan=0` is Friedman's spacing exactly, as in `earth`,
+  while the default widens it to at most 20 knots per feature, which pruned held-out
+  correlation on a pure three-way interaction favours 0.94 to 0.61. Candidate scoring uses Friedman's
   suffix-sum fast update, evaluated for every parent, feature and knot at once by
   sparse block-membership matrices built once per fit. Each candidate's projection onto
   the (incrementally orthonormalised) basis is cached as three running scalars and the

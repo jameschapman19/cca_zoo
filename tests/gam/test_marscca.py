@@ -13,6 +13,8 @@ from cca_zoo.gam._marscca import (
     _constrained_top_eigenvalues,
     _evaluate_terms,
     _HingeScorer,
+    _knot_ranks,
+    _max_knot_slots,
 )
 
 # get_params/set_params roundtrip behaviour is exercised generically for
@@ -74,24 +76,20 @@ def test_per_view_parameters_accept_none_entries(
     """Per-view lists work for every view-level parameter; None means the default.
 
     nk=[None, 6] grows view 0 to the default (20 for 10 features) and view 1
-    to 6; per-view knot rules and caps are accepted alongside.
+    to 6. minspan=[40, None] leaves view 0 a single allowed knot per feature
+    (50 samples, endspan 10), while view 1 keeps Friedman's spacing.
     """
     model = MARSCCA(
-        nk=[None, 6],
-        n_candidate_knots=[5, 20],
-        minspan=[None, 2],
-        endspan=[1, None],
-        thresh=0.0,
+        nk=[None, 6], minspan=[40, None], endspan=[None, 1], thresh=0.0
     ).fit(correlated_views)
-    assert [len(e.terms_) for e in model.encoders_] == [20, 6]
-    view0_knots = {(f, t) for term in model.encoders_[0].terms_ for f, t, _ in term}
+    assert len(model.encoders_[1].terms_) == 6
+    view0 = model.encoders_[0].terms_
+    assert 1 <= len(view0) <= 20
     for feature in range(correlated_views[0].shape[1]):
-        assert len({t for f, t in view0_knots if f == feature}) <= 5
+        assert len({t for term in view0 for f, t, _ in term if f == feature}) <= 1
 
 
-@pytest.mark.parametrize(
-    "name", ["degree", "nk", "alpha", "n_candidate_knots", "minspan", "endspan"]
-)
+@pytest.mark.parametrize("name", ["degree", "nk", "alpha", "minspan", "endspan"])
 def test_per_view_parameter_wrong_length_raises(
     two_views_small: list[np.ndarray], name: str
 ) -> None:
@@ -170,7 +168,7 @@ def test_hinge_scorer_matches_direct_projection(n_basis: int) -> None:
     rng = np.random.default_rng(1)
     n, p, k = 60, 3, 2
     X = rng.standard_normal((n, p))
-    scorer = _HingeScorer(X, n_candidate_knots=5)
+    scorer = _HingeScorer(X)
     if n_basis:
         scorer.add_columns(rng.standard_normal((n, n_basis)), [None] * n_basis)
     new_parents = np.column_stack(
@@ -225,7 +223,7 @@ def test_best_pairs_ranked_and_distinct() -> None:
     """best_pairs returns the top-n candidates, best first, all distinct."""
     rng = np.random.default_rng(0)
     X = rng.standard_normal((100, 4))
-    scorer = _HingeScorer(X, n_candidate_knots=10)
+    scorer = _HingeScorer(X)
     grad = rng.standard_normal((100, 1))
     pairs = scorer.best_pairs(grad - grad.mean(), n=8)
     scores = [p[0] for p in pairs]
@@ -245,7 +243,7 @@ def test_exact_loss_rescoring_picks_lowest_loss_candidate() -> None:
     X = rng.standard_normal((100, 4))
     grad = rng.standard_normal((100, 1))
     grad -= grad.mean()
-    ranked = _HingeScorer(X, n_candidate_knots=10).best_pairs(grad, n=5)
+    ranked = _HingeScorer(X).best_pairs(grad, n=5)
     _, _, j_want, knot_want, _ = ranked[3]
 
     def exact_loss(columns: np.ndarray) -> float:
@@ -254,7 +252,7 @@ def test_exact_loss_rescoring_picks_lowest_loss_candidate() -> None:
 
     terms: list = []
     MARSCCA._add_best_pair(
-        _HingeScorer(X, n_candidate_knots=10),
+        _HingeScorer(X),
         terms,
         [()],
         grad,
@@ -263,6 +261,41 @@ def test_exact_loss_rescoring_picks_lowest_loss_candidate() -> None:
         exact_loss=exact_loss,
     )
     assert terms[0] == ((j_want, knot_want, 1),)
+
+
+def test_default_minspan_caps_knots_and_zero_is_friedman() -> None:
+    """Default minspan caps knots at 20 per feature; minspan=0 is Friedman's rule."""
+    for n, p in [(200, 5), (3000, 10)]:
+        capped = _knot_ranks(n, p, None, None, interaction=False)
+        friedman = _knot_ranks(n, p, 0, None, interaction=False)
+        assert len(capped) <= 20
+        assert len(friedman) >= len(capped)
+        assert set(capped) <= set(range(n))
+    # Friedman's spacing for 3000 samples and 10 features: floor(18.3 / 2.5) = 7,
+    # endspan floor(3 - log2(0.005)) = 10.
+    assert np.array_equal(
+        _knot_ranks(3000, 10, 0, None, interaction=False), np.arange(10, 2990, 7)
+    )
+
+
+@pytest.mark.parametrize(
+    "spans", [(None, None), (0, None), (1, 0), (3, None), (None, 2), (0, 0)]
+)
+def test_knot_slots_cover_every_possible_parent(spans: tuple) -> None:
+    """Slots per (feature, parent) are the most knots any support size allows.
+
+    Friedman's minspan shrinks with the support, so a parent nonzero on
+    slightly fewer samples than the constant can have more knots than it;
+    sizing slots from the constant parent overflowed once.
+    """
+    minspan, endspan = spans
+    for n, p in [(57, 3), (1000, 10)]:
+        most = max(
+            len(_knot_ranks(support, p, minspan, endspan, interaction))
+            for support in range(1, n + 1)
+            for interaction in (False, True)
+        )
+        assert _max_knot_slots(n, p, minspan, endspan) == most
 
 
 def test_identically_zero_hinges_are_degenerate() -> None:
@@ -278,7 +311,7 @@ def test_identically_zero_hinges_are_degenerate() -> None:
     """
     rng = np.random.default_rng(0)
     X = rng.standard_normal((200, 3)) + 5.0
-    scorer = _HingeScorer(X, n_candidate_knots=200, minspan=1, endspan=0)
+    scorer = _HingeScorer(X, minspan=1, endspan=0)
     ok_a, ok_b, ok_pair, *_ = scorer.gram()
     lowest = scorer.knots[0, :, 0] == X.min(axis=0)
     assert lowest.all()
