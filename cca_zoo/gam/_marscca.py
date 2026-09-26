@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from numbers import Integral, Real
 from typing import Any, ClassVar
 
 import numpy as np
+import scipy.linalg
 from numpy.typing import ArrayLike
 from scipy import sparse
 from sklearn.utils._param_validation import Interval
@@ -18,6 +20,7 @@ from cca_zoo._utils._ey import (
     ey_grad_z,
     ridge_basis_ey_closed_form,
     ridge_basis_ey_gep,
+    ridge_basis_ey_min_loss,
 )
 from cca_zoo._utils._validation import perview_parameter, validate_views
 
@@ -30,6 +33,9 @@ _Term = tuple[_Factor, ...]
 # its norm is computed from), or already in the span of the current basis
 # (relative to its own norm).
 _DEGENERATE_TOL = 1e-8
+# Bisection steps for the backward pass's constrained eigenvalues: each
+# halves an interlacing bracket, so 60 reach machine precision.
+_BISECTION_STEPS = 60
 # Relative gap below which two single-hinge scores count as tied.
 _TIE_RTOL = 1e-9
 # Basis columns processed at once when computing a new parent's projection
@@ -261,10 +267,10 @@ class _HingeScorer:
         )
         return ok_a, ok_b, ok_pair, aa, bb, ab
 
-    def best_pair(
-        self, grad: np.ndarray
-    ) -> tuple[float, int, int, float, tuple[bool, bool]]:
-        r"""Best (parent, feature, knot) reflected hinge pair for the current gradient.
+    def best_pairs(
+        self, grad: np.ndarray, n: int = 1
+    ) -> list[tuple[float, int, int, float, tuple[bool, bool]]]:
+        r"""Best ``n`` (parent, feature, knot) reflected hinge pairs for the gradient.
 
         Scores every candidate by how much of the current EY gradient $G$
         the pair $u\,(x_j - t)_+$, $u\,(t - x_j)_+$ can absorb once
@@ -287,13 +293,14 @@ class _HingeScorer:
 
         Args:
             grad: Current EY gradient for this view, shape (n_samples, k).
+            n: Number of candidates to return.
 
         Returns:
-            Tuple ``(score, parent, feature, knot, keep)`` for the best
-            candidate (``parent`` indexing parents in registration order,
+            Up to ``n`` tuples ``(score, parent, feature, knot, keep)``,
+            best first (``parent`` indexing parents in registration order,
             the constant first), ``keep`` flagging which of the (positive,
-            negative) hinges to add; ``score`` is ``-inf`` when every
-            candidate is degenerate.
+            negative) hinges to add; degenerate candidates are never
+            returned, so the list is empty when every candidate is.
         """
         ok_a, ok_b, ok_pair, aa, bb, ab = self.gram()
         # <G, h_perp> = <G_perp, h>: projecting the gradient off the basis once
@@ -309,23 +316,78 @@ class _HingeScorer:
             single_a = np.where(ok_a, na_sq / aa, -np.inf)
             single_b = np.where(ok_b, nb_sq / bb, -np.inf)
         scores = np.where(ok_pair, pair, np.maximum(single_a, single_b))
-        best = np.unravel_index(np.argmax(scores), scores.shape)
-        if ok_pair[best]:
-            keep = (True, True)
-        else:
-            # Once x_j is linear in the basis, the two hinges differ by a
-            # vector in its span and tie exactly; prefer the positive one
-            # rather than let rounding decide.
-            negative = single_b[best] > single_a[best] * (1 + _TIE_RTOL)
-            keep = (not negative, negative)
-        knot_idx, feature, parent = (int(i) for i in best)
-        return (
-            float(scores[best]),
-            parent,
-            feature,
-            float(self.knots[knot_idx, feature]),
-            keep,
-        )
+        flat = scores.ravel()
+        top = np.argsort(-flat, kind="stable")[:n]
+        candidates = []
+        for best in zip(*np.unravel_index(top[np.isfinite(flat[top])], scores.shape)):
+            if ok_pair[best]:
+                keep = (True, True)
+            else:
+                # Once x_j is linear in the basis, the two hinges differ by a
+                # vector in its span and tie exactly; prefer the positive one
+                # rather than let rounding decide.
+                negative = single_b[best] > single_a[best] * (1 + _TIE_RTOL)
+                keep = (not negative, bool(negative))
+            knot_idx, feature, parent = (int(i) for i in best)
+            candidates.append(
+                (
+                    float(scores[best]),
+                    parent,
+                    feature,
+                    float(self.knots[knot_idx, feature]),
+                    keep,
+                )
+            )
+        return candidates
+
+
+def _constrained_top_eigenvalues(lam: np.ndarray, z: np.ndarray, k: int) -> np.ndarray:
+    r"""Top ``k`` eigenvalues of a symmetric matrix restricted to ``v``'s complement.
+
+    For a symmetric $C = U \operatorname{diag}(\lambda) U^\top$ and a unit
+    vector $v$ with $z = U^\top v$, Sylvester's law of inertia applied to
+    the bordered matrix $\begin{pmatrix} C - \mu I & v \\ v^\top & 0
+    \end{pmatrix}$ counts the eigenvalues of $C$ compressed to
+    $v^\perp$ that exceed $\mu$ as
+
+    $$
+    \#\{\lambda_j > \mu\} - 1 + [g(\mu) < 0], \qquad
+    g(\mu) = \sum_j \frac{z_j^2}{\lambda_j - \mu},
+    $$
+
+    exactly, including deflated directions ($z_j = 0$, where $\lambda_j$
+    itself survives). By interlacing, the $i$-th largest compressed
+    eigenvalue lies in $[\lambda_{d-i}, \lambda_{d-i+1}]$, so bisection on
+    that count within those brackets finds it to machine precision —
+    vectorised over every candidate $v$ and every $i \le k$ at once, from a
+    single eigendecomposition of $C$.
+
+    Args:
+        lam: Eigenvalues of ``C``, ascending, shape (d,).
+        z: ``U^T v`` for each candidate, unit rows, shape (n_candidates, d).
+        k: Number of top eigenvalues wanted.
+
+    Returns:
+        Shape (n_candidates, k), largest first; entries beyond the ``d - 1``
+        eigenvalues the compressed matrix has are ``-inf``.
+    """
+    d = lam.shape[0]
+    rank = np.arange(1, k + 1)
+    exists = rank <= d - 1
+    lo = np.where(exists, lam[np.maximum(d - 1 - rank, 0)], 0.0)
+    hi = np.where(exists, lam[d - rank], 0.0)
+    lo = np.broadcast_to(lo, (z.shape[0], k)).copy()
+    hi = np.broadcast_to(hi, (z.shape[0], k)).copy()
+    z2 = z[:, None, :] ** 2
+    for _ in range(_BISECTION_STEPS):
+        mid = 0.5 * (lo + hi)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            g = np.sum(z2 / (lam - mid[..., None]), axis=-1)
+        above = np.sum(lam > mid[..., None], axis=-1) - 1 + (g < 0)
+        lower = above >= rank
+        lo = np.where(lower, mid, lo)
+        hi = np.where(lower, hi, mid)
+    return np.where(exists, 0.5 * (lo + hi), -np.inf)
 
 
 def _backward_eliminate(
@@ -335,12 +397,16 @@ def _backward_eliminate(
 
     Repeatedly deletes the column, from whichever view, whose removal leaves
     the lowest refit ridge-EY training loss, never a view's last column.
-    The refit loss of deleting column $c$ is $-\sum \mu^2$ over the $k$
-    largest positive eigenvalues of :func:`~cca_zoo._utils._ey.ridge_basis_ey_gep`
-    restricted to the remaining columns, so every candidate is scored at
-    once: the candidates' reduced matrices are stacked, reduced to standard
-    form through a batched Cholesky factor of the right-hand side, and
-    handed to one batched ``eigvalsh``.
+    The refit loss over a column set is $-\sum \mu^2$ over the $k$ largest
+    positive eigenvalues of :func:`~cca_zoo._utils._ey.ridge_basis_ey_gep`
+    on it. In the standard form $C = L^{-1}(A - R/4)L^{-\top}$, $B = LL^\top$,
+    deleting column $c$ restricts $C$ to the complement of $L^{-1} e_c$, whose
+    coordinates in $C$'s eigenbasis $U$ are row $c$ of the generalized
+    eigenvectors $L^{-\top}U$ — so every candidate's eigenvalues come from
+    one generalized eigendecomposition per step
+    (:func:`_constrained_top_eigenvalues`) rather than one per candidate:
+    the eigenvalue analogue of the rank-one downdates ``earth`` uses for its
+    least-squares backward pass.
 
     Returns:
         One boolean mask per view over its columns, True for survivors.
@@ -349,17 +415,39 @@ def _backward_eliminate(
     active = np.ones(len(view), dtype=bool)
     while active.sum() > n_terms:
         idx = np.flatnonzero(active)
+        lam, vecs = scipy.linalg.eigh(lhs[np.ix_(idx, idx)], rhs[np.ix_(idx, idx)])
         counts = np.bincount(view[idx], minlength=len(bases))
         removable = np.flatnonzero(counts[view[idx]] > 1)
-        remaining = np.array([np.delete(idx, c) for c in removable])
-        rows, cols = remaining[:, :, None], remaining[:, None, :]
-        chol = np.linalg.cholesky(rhs[rows, cols])
-        half = np.linalg.solve(chol, lhs[rows, cols])
-        standard = np.linalg.solve(chol, np.swapaxes(half, 1, 2))
-        mu = np.linalg.eigvalsh(standard)[:, -k:]
+        # The generalized eigenvectors are L^-T U, so row c is U^T L^-1 e_c:
+        # the removal direction already in eigen-coordinates.
+        z = vecs[removable]
+        z /= np.linalg.norm(z, axis=1, keepdims=True)
+        mu = _constrained_top_eigenvalues(lam, z, k)
         loss = -np.sum(np.maximum(mu, 0.0) ** 2, axis=1)
         active[idx[removable[np.argmin(loss)]]] = False
     return [active[view == i] for i in range(len(bases))]
+
+
+def _exact_loss(
+    raw_bases: list[np.ndarray], view: int, k: int, ridge: list[float]
+) -> Callable[[np.ndarray], float] | None:
+    """Refit ridge-EY loss as a function of the columns ``view`` would gain.
+
+    None while any other view has no basis yet: the loss cannot then tell
+    candidates apart, which is the degenerate start the forward pass's
+    linear warm start exists for.
+    """
+    if any(raw.shape[1] == 0 for i, raw in enumerate(raw_bases) if i != view):
+        return None
+
+    def loss(columns: np.ndarray) -> float:
+        bases = [
+            np.column_stack([raw, columns]) if i == view else raw
+            for i, raw in enumerate(raw_bases)
+        ]
+        return ridge_basis_ey_min_loss([b - b.mean(axis=0) for b in bases], k, ridge)
+
+    return loss
 
 
 class _MarsEncoder:
@@ -480,6 +568,10 @@ class MARSCCA(BaseModel):
             (``n_samples - 2``, as in classical MARS) works, at roughly an
             order of magnitude more fit time than the default. Default is
             20.
+        n_rescore: Number of forward-pass candidates, ranked by how much EY
+            gradient they absorb, re-ranked by their exact refit loss — the
+            criterion classical MARS applies to every candidate. 1 uses the
+            gradient ranking alone. Default is 10.
         alpha: Ridge penalty strength applied to every basis coefficient.
             Either a single float or a list of per-view floats. Default is
             0.1.
@@ -508,6 +600,7 @@ class MARSCCA(BaseModel):
         "max_terms": [Interval(Integral, 1, None, closed="left"), "array-like"],
         "max_degree": [Interval(Integral, 1, None, closed="left"), "array-like"],
         "n_candidate_knots": [Interval(Integral, 1, None, closed="left")],
+        "n_rescore": [Interval(Integral, 1, None, closed="left")],
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
         "n_terms": [Interval(Integral, 1, None, closed="left"), None],
     }
@@ -519,6 +612,7 @@ class MARSCCA(BaseModel):
         max_terms: int | list[int] = 20,
         max_degree: int | list[int] = 1,
         n_candidate_knots: int = 20,
+        n_rescore: int = 10,
         alpha: float | list[float] = 0.1,
         n_terms: int | None = None,
         random_state: int = 0,
@@ -527,6 +621,7 @@ class MARSCCA(BaseModel):
         self.max_terms = max_terms
         self.max_degree = max_degree
         self.n_candidate_knots = n_candidate_knots
+        self.n_rescore = n_rescore
         self.alpha = alpha
         self.n_terms = n_terms
         self.random_state = random_state
@@ -573,6 +668,8 @@ class MARSCCA(BaseModel):
                     grads[i],
                     max_degree_[i],
                     max_terms_[i],
+                    self.n_rescore,
+                    _exact_loss(raw_bases, i, k, alpha_),
                 )
                 if added is None:
                     growing[i] = False
@@ -616,27 +713,39 @@ class MARSCCA(BaseModel):
         grad: np.ndarray,
         max_degree: int,
         max_terms: int,
+        n_rescore: int,
+        exact_loss: Callable[[np.ndarray], float] | None,
     ) -> np.ndarray | None:
-        """Append the best-scoring hinge pair to ``terms``.
+        """Append the best hinge pair to ``terms``.
 
-        ``parent_terms`` lists the terms ``scorer`` holds as parents, in its
-        registration order; new parents are appended to both.
+        The ``n_rescore`` candidates absorbing the most EY gradient are
+        re-ranked by ``exact_loss`` — the refit ridge-EY loss with the
+        candidate's columns added — when it is given; otherwise the gradient
+        score alone decides. ``parent_terms`` lists the terms ``scorer``
+        holds as parents, in its registration order; new parents are
+        appended to both.
 
         Returns:
             The new raw basis column(s), shape (n_samples, 1 or 2), or None
             if no candidate is non-degenerate.
         """
-        score, parent, j, knot, keep = scorer.best_pair(grad)
-        if score == -np.inf:
+        candidates = scorer.best_pairs(grad, n_rescore if exact_loss else 1)
+        if not candidates:
             return None
-        if len(terms) + sum(keep) > max_terms:
-            keep = (True, False)
-        new_terms: list[_Term] = [
-            (*parent_terms[parent], (j, knot, sign))
-            for sign, kept in zip((1, -1), keep)
-            if kept
-        ]
-        columns = _evaluate_terms(scorer.X, new_terms)
+        options = []
+        for _, parent, j, knot, keep in candidates:
+            if len(terms) + sum(keep) > max_terms:
+                keep = (True, False) if keep[0] else keep
+            new = [
+                (*parent_terms[parent], (j, knot, sign))
+                for sign, kept in zip((1, -1), keep)
+                if kept
+            ]
+            options.append((new, _evaluate_terms(scorer.X, new)))
+        if exact_loss is not None and len(options) > 1:
+            new_terms, columns = min(options, key=lambda o: exact_loss(o[1]))
+        else:
+            new_terms, columns = options[0]
 
         parent_allowed: list[np.ndarray | None] = []
         for term in new_terms:

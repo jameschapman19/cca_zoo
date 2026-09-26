@@ -1176,3 +1176,25 @@ def ridge_basis_ey_closed_form(
     w = np.zeros((size, k))
     w[:, : len(mu)] = u * np.sqrt(np.maximum(mu, 0.0))
     return [w[view == i] for i in range(len(bases))]
+
+
+def ridge_basis_ey_min_loss(
+    bases: list[np.ndarray], k: int, ridge: list[float]
+) -> float:
+    """Minimum ridge-EY loss on fixed bases: ``-sum(mu**2)`` over the top-k eigenvalues.
+
+    Args:
+        bases: Column-centred per-view design matrices of full column rank.
+        k: Number of latent dimensions.
+        ridge: Ridge penalty strength, one per view.
+
+    Returns:
+        The loss :func:`ridge_basis_ey_closed_form`'s coefficients attain,
+        from the eigenvalues alone.
+    """
+    lhs, rhs, _ = ridge_basis_ey_gep(*_jacobi_scaled(bases, ridge))
+    size = lhs.shape[0]
+    mu = scipy.linalg.eigh(
+        lhs, rhs, eigvals_only=True, subset_by_index=(max(size - k, 0), size - 1)
+    )
+    return -float(np.sum(np.maximum(mu, 0.0) ** 2))

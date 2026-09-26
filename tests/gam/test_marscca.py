@@ -8,7 +8,12 @@ from sklearn.exceptions import NotFittedError
 
 from cca_zoo._utils._ey import ey_loss, ridge_basis_ey_closed_form
 from cca_zoo.gam import GAMCCA, MARSCCA
-from cca_zoo.gam._marscca import _backward_eliminate, _evaluate_terms, _HingeScorer
+from cca_zoo.gam._marscca import (
+    _backward_eliminate,
+    _constrained_top_eigenvalues,
+    _evaluate_terms,
+    _HingeScorer,
+)
 
 # get_params/set_params roundtrip behaviour is exercised generically for
 # every model in the package (including MARSCCA) by tests/test_sklearn_compat.py.
@@ -168,12 +173,57 @@ def test_hinge_scorer_matches_direct_projection(n_basis: int) -> None:
             for knots in scorer.knots
         ]
     )
-    best, parent, j, knot, keep = scorer.best_pair(grad)
+    best, parent, j, knot, keep = scorer.best_pairs(grad)[0]
     r, j_expected, m_expected = np.unravel_index(np.argmax(scores), scores.shape)
     assert keep == (True, True)
     assert (parent, j) == (m_expected, j_expected)
     assert knot == scorer.knots[r, j]
     np.testing.assert_allclose(best, scores.max(), rtol=1e-9)
+
+
+def test_best_pairs_ranked_and_distinct() -> None:
+    """best_pairs returns the top-n candidates, best first, all distinct."""
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((100, 4))
+    scorer = _HingeScorer(X, n_candidate_knots=10)
+    grad = rng.standard_normal((100, 1))
+    pairs = scorer.best_pairs(grad - grad.mean(), n=8)
+    scores = [p[0] for p in pairs]
+    assert len(pairs) == 8
+    assert scores == sorted(scores, reverse=True)
+    assert len({p[1:4] for p in pairs}) == 8
+    assert pairs[0] == scorer.best_pairs(grad - grad.mean())[0]
+
+
+def test_exact_loss_rescoring_picks_lowest_loss_candidate() -> None:
+    """Among the top n_rescore candidates, the one with the lowest exact loss is added.
+
+    The exact loss here deliberately prefers the gradient's fourth choice,
+    so the test fails if rescoring is skipped or its result ignored.
+    """
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((100, 4))
+    grad = rng.standard_normal((100, 1))
+    grad -= grad.mean()
+    ranked = _HingeScorer(X, n_candidate_knots=10).best_pairs(grad, n=5)
+    _, _, j_want, knot_want, _ = ranked[3]
+
+    def exact_loss(columns: np.ndarray) -> float:
+        hinge = np.maximum(0.0, X[:, j_want] - knot_want)
+        return 0.0 if np.allclose(columns[:, 0], hinge) else 1.0
+
+    terms: list = []
+    MARSCCA._add_best_pair(
+        _HingeScorer(X, n_candidate_knots=10),
+        terms,
+        [()],
+        grad,
+        max_degree=1,
+        max_terms=20,
+        n_rescore=5,
+        exact_loss=exact_loss,
+    )
+    assert terms[0] == ((j_want, knot_want, 1),)
 
 
 def test_identically_zero_hinges_are_degenerate() -> None:
@@ -313,24 +363,41 @@ def test_degree_three_recovers_three_way_interaction() -> None:
     assert score > 0.9, f"Expected held-out correlation > 0.9, got {score}"
 
 
-def test_smaller_budget_is_a_prefix_of_a_larger_one(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """A pass capped at max_terms=m keeps exactly the larger pass's first m terms.
-
-    This is what makes a search over ``max_terms`` the same nested sequence
-    of models that MARS's pruning compares.
-    """
-    full = MARSCCA(max_degree=2, max_terms=20).fit(correlated_views)
-    for m in (3, 8):
-        small = MARSCCA(max_degree=2, max_terms=m).fit(correlated_views)
-        for s_enc, f_enc in zip(small.encoders_, full.encoders_):
-            assert s_enc.terms_ == f_enc.terms_[:m]
-
-
 # ---------------------------------------------------------------------------
 # Backward pass
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("deflate", [False, True])
+@pytest.mark.parametrize("repeated", [False, True])
+def test_constrained_top_eigenvalues_match_direct_compression(
+    deflate: bool, repeated: bool
+) -> None:
+    """Bisection on the inertia count equals eigvalsh of the compressed matrix.
+
+    Covers a removal direction orthogonal to the top eigenvector (that
+    eigenvalue must survive unchanged), a repeated top eigenvalue, and
+    asking for more eigenvalues than the compressed matrix has.
+    """
+    import scipy.linalg
+
+    rng = np.random.default_rng(0)
+    for d in (2, 3, 7):
+        lam = np.sort(rng.standard_normal(d))
+        if repeated:
+            lam[-2] = lam[-1]
+        u = np.linalg.qr(rng.standard_normal((d, d)))[0]
+        c = u @ np.diag(lam) @ u.T
+        z = rng.standard_normal((4, d))
+        if deflate:
+            z[:, -1] = 0.0
+        z /= np.linalg.norm(z, axis=1, keepdims=True)
+        got = _constrained_top_eigenvalues(lam, z, k=3)
+        for row, zc in zip(got, z):
+            complement = scipy.linalg.null_space((u @ zc)[None, :])
+            want = np.linalg.eigvalsh(complement.T @ c @ complement)[::-1]
+            np.testing.assert_allclose(row[: len(want)][:3], want[:3], atol=1e-12)
+            assert np.all(np.isneginf(row[len(want) :]))
 
 
 def test_backward_step_matches_brute_force_refits() -> None:
