@@ -228,8 +228,7 @@ def test_per_view_sp_smooths_only_that_view(correlated_views: list[np.ndarray]) 
     """
     model = _make_model(sp=[1e-3, 1e6]).fit(correlated_views)
     wiggle = [
-        np.linalg.norm(enc.penalty_factor_ @ enc.coef_)
-        / np.linalg.norm(enc.basis_ @ enc.coef_)
+        np.linalg.norm(enc.penalty_factor_ @ enc.coef_) / np.linalg.norm(enc.predict())
         for enc in model.encoders_
     ]
     assert wiggle[1] < 1e-2 * wiggle[0]

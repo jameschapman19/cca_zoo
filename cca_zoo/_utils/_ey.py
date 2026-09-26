@@ -32,9 +32,11 @@ References:
 from __future__ import annotations
 
 from collections.abc import Sequence
+from contextlib import AbstractContextManager, nullcontext
 
 import numpy as np
 import scipy.linalg
+from scipy.sparse.linalg import LinearOperator
 from threadpoolctl import threadpool_limits
 
 
@@ -900,9 +902,9 @@ def _penalty_matrix(penalty: float | np.ndarray, size: int) -> np.ndarray:
     return np.diag(np.broadcast_to(penalty, size))
 
 
-def penalised_basis_ey_gep(
-    bases: list[np.ndarray], penalties: Sequence[float | np.ndarray]
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def penalised_gram_ey_gep(
+    gram: np.ndarray, view: np.ndarray, penalties: Sequence[float | np.ndarray]
+) -> tuple[np.ndarray, np.ndarray]:
     r"""The generalized eigenproblem whose solution minimises the penalised EY loss.
 
     For fixed column-centred bases $\Phi_i$ and coefficients stacked as
@@ -914,9 +916,9 @@ def penalised_basis_ey_gep(
     $$
 
     with $A = \Phi^\top\Phi / (M(n-1))$ over the concatenated bases (every
-    cross- and auto-covariance block), $B$ its block diagonal (each view's
-    own auto-covariance), and $R = \operatorname{blockdiag}(R_i)$ each
-    view's penalty — a ridge $\lambda_i I$ (:class:`~cca_zoo.gam.MARSCCA`)
+    cross- and auto-covariance block — ``gram``), $B$ its block diagonal
+    (each view's own auto-covariance), and $R = \operatorname{blockdiag}(R_i)$
+    each view's penalty — a ridge $\lambda_i I$ (:class:`~cca_zoo.gam.MARSCCA`)
     or a P-spline difference penalty (:class:`~cca_zoo.gam.GAMCCA`). Its
     stationarity condition $(A - R/4)\,W = B W (W^\top B W)$ is solved by
     the generalized eigenvectors $(A - R/4)\,U = B U \operatorname{diag}(\mu)$,
@@ -927,26 +929,41 @@ def penalised_basis_ey_gep(
     a closed-form eigenproblem, the same one regularised MCCA solves.
 
     Args:
-        bases: Column-centred per-view design matrices, each (n, d_i), with
-            full column rank (so ``B`` is positive definite; see
-            :func:`full_rank_reparametrisation` otherwise).
+        gram: ``A``, shape (D, D), positive definite on each view's block
+            (see :func:`full_rank_reparametrisation` otherwise).
+        view: View index of each of the D stacked columns.
         penalties: One per view: a scalar ridge, one ridge per column, or a
-            symmetric positive semi-definite (d_i, d_i) matrix.
+            symmetric positive semi-definite matrix.
 
     Returns:
-        ``(A - R/4, B, view)``: the two sides of the eigenproblem over the
-        stacked coefficients, and the view index of each stacked column.
+        ``(A - R/4, B)``, the two sides of the eigenproblem.
     """
-    m = len(bases)
-    n = bases[0].shape[0]
-    stacked = np.hstack(bases)
-    view = np.repeat(np.arange(m), [basis.shape[1] for basis in bases])
-    a = stacked.T @ stacked / (m * (n - 1))
-    b = np.where(view[:, None] == view[None, :], a, 0.0)
+    b = np.where(view[:, None] == view[None, :], gram, 0.0)
+    sizes = np.bincount(view)
     penalty = scipy.linalg.block_diag(
-        *[_penalty_matrix(p, basis.shape[1]) for p, basis in zip(penalties, bases)]
+        *[_penalty_matrix(p, int(size)) for p, size in zip(penalties, sizes)]
     )
-    return a - penalty / 4, b, view
+    return gram - penalty / 4, b
+
+
+def penalised_basis_ey_gep(
+    bases: list[np.ndarray], penalties: Sequence[float | np.ndarray]
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """:func:`penalised_gram_ey_gep` from column-centred bases.
+
+    Returns:
+        ``(A - R/4, B, view)``, with the view index of each stacked column.
+    """
+    gram, view = _stacked_gram(bases)
+    return (*penalised_gram_ey_gep(gram, view, penalties), view)
+
+
+def _stacked_gram(bases: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
+    """``Phi' Phi / (M (n - 1))`` over the concatenated bases, and column views."""
+    stacked = np.hstack(bases)
+    view = np.repeat(np.arange(len(bases)), [basis.shape[1] for basis in bases])
+    gram: np.ndarray = stacked.T @ stacked / (len(bases) * (stacked.shape[0] - 1))
+    return gram, view
 
 
 def _jacobi_scale(bases: list[np.ndarray]) -> np.ndarray:
@@ -978,41 +995,100 @@ def _jacobi_scaled(
     )
 
 
+# Below this many unknowns an eigenproblem runs single-threaded: BLAS threads
+# cannot help and, whenever CPUs are shared (a parallel grid search, another
+# process), oversubscribe them — 80x80 generalized eigh measured 5-150 ms
+# with four threads under load against ~1 ms with one. Larger problems, such
+# as GAMCCA's (thousands of unknowns), keep their threads.
+_SINGLE_THREAD_BELOW = 256
+
+
+def _threads_for(size: int) -> AbstractContextManager[object]:
+    """One BLAS thread for a small problem, the default for a large one."""
+    return threadpool_limits(limits=1) if size < _SINGLE_THREAD_BELOW else nullcontext()
+
+
+def _jacobi(
+    lhs: np.ndarray, rhs: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """``(lhs, rhs)`` scaled by ``1/sqrt(diag(rhs))`` on both sides, and the scale.
+
+    The eigenvalues are unchanged; the Cholesky factorisation of ``rhs`` is
+    conditioned when its diagonal spans orders of magnitude.
+    """
+    scale = 1.0 / np.sqrt(np.diag(rhs))
+    outer = np.outer(scale, scale)
+    return lhs * outer, rhs * outer, scale
+
+
+def _top_eigenpairs(
+    lhs: np.ndarray, rhs: np.ndarray, k: int
+) -> tuple[np.ndarray, np.ndarray]:
+    """Top ``k`` eigenpairs of ``(lhs, rhs)``, largest first."""
+    size = lhs.shape[0]
+    lhs_s, rhs_s, scale = _jacobi(lhs, rhs)
+    with _threads_for(size):
+        mu, u = scipy.linalg.eigh(
+            lhs_s, rhs_s, subset_by_index=(max(size - k, 0), size - 1)
+        )
+    return mu[::-1], u[:, ::-1] * scale[:, None]
+
+
+def _top_eigenvalues(lhs: np.ndarray, rhs: np.ndarray, k: int) -> np.ndarray:
+    """Top ``k`` eigenvalues of ``(lhs, rhs)``, largest first."""
+    size = lhs.shape[0]
+    lhs_s, rhs_s, _ = _jacobi(lhs, rhs)
+    with _threads_for(size):
+        mu = scipy.linalg.eigh(
+            lhs_s,
+            rhs_s,
+            eigvals_only=True,
+            subset_by_index=(max(size - k, 0), size - 1),
+        )
+    result: np.ndarray = mu[::-1]
+    return result
+
+
+def penalised_gram_ey_closed_form(
+    gram: np.ndarray, view: np.ndarray, k: int, penalties: Sequence[float | np.ndarray]
+) -> list[np.ndarray]:
+    """Globally optimal penalised-EY coefficients from the stacked Gram matrix.
+
+    Solves :func:`penalised_gram_ey_gep` for its ``k`` largest eigenvalues.
+
+    Args:
+        gram: Stacked ``Phi' Phi / (M (n - 1))``, positive definite per view.
+        view: View index of each stacked column.
+        k: Number of latent dimensions.
+        penalties: One per view, as :func:`penalised_gram_ey_gep` takes.
+
+    Returns:
+        Per-view coefficients, each of shape ``(d_i, k)``; components beyond
+        the number of positive eigenvalues are zero.
+    """
+    lhs, rhs = penalised_gram_ey_gep(gram, view, penalties)
+    mu, u = _top_eigenpairs(lhs, rhs, k)
+    w = np.zeros((lhs.shape[0], k))
+    w[:, : len(mu)] = u * np.sqrt(np.maximum(mu, 0.0))
+    return [w[view == i] for i in range(int(view.max()) + 1)]
+
+
 def penalised_basis_ey_closed_form(
     bases: list[np.ndarray], k: int, penalties: Sequence[float | np.ndarray]
 ) -> list[np.ndarray]:
     """Globally optimal penalised-EY coefficients on fixed bases.
 
-    Solves :func:`penalised_basis_ey_gep` for its ``k`` largest eigenvalues.
-
     Args:
         bases: Column-centred per-view design matrices of full column rank.
         k: Number of latent dimensions.
-        penalties: One per view, as :func:`penalised_basis_ey_gep` takes.
+        penalties: One per view, as :func:`penalised_gram_ey_gep` takes.
 
     Returns:
         Per-view coefficients, ``coefficients[i]`` of shape
         ``(bases[i].shape[1], k)``; components beyond the number of positive
         eigenvalues are zero.
-
-    Note:
-        The eigenproblem is small (the total basis size), where BLAS threads
-        cannot help and, whenever CPUs are shared — a parallel grid search,
-        another process — oversubscribe them: 80x80 generalized ``eigh``
-        measured 5-150 ms with four threads under load against ~1 ms with
-        one. It therefore runs single-threaded, as do the forward pass's
-        exact rescoring and the backward pass in
-        :class:`~cca_zoo.gam.MARSCCA`.
     """
-    lhs, rhs, view = penalised_basis_ey_gep(*_jacobi_scaled(bases, penalties))
-    size = lhs.shape[0]
-    top = max(size - k, 0)
-    with threadpool_limits(limits=1):
-        mu, u = scipy.linalg.eigh(lhs, rhs, subset_by_index=(top, size - 1))
-    mu, u = mu[::-1], u[:, ::-1] * _jacobi_scale(bases)[:, None]
-    w = np.zeros((size, k))
-    w[:, : len(mu)] = u * np.sqrt(np.maximum(mu, 0.0))
-    return [w[view == i] for i in range(len(bases))]
+    return penalised_gram_ey_closed_form(*_stacked_gram(bases), k, penalties)
 
 
 def penalised_basis_ey_min_loss(
@@ -1023,77 +1099,106 @@ def penalised_basis_ey_min_loss(
     Args:
         bases: Column-centred per-view design matrices of full column rank.
         k: Number of latent dimensions.
-        penalties: One per view, as :func:`penalised_basis_ey_gep` takes.
+        penalties: One per view, as :func:`penalised_gram_ey_gep` takes.
 
     Returns:
         The loss :func:`penalised_basis_ey_closed_form`'s coefficients
         attain, from the eigenvalues alone.
     """
-    lhs, rhs, _ = penalised_basis_ey_gep(*_jacobi_scaled(bases, penalties))
-    size = lhs.shape[0]
-    mu = scipy.linalg.eigh(
-        lhs, rhs, eigvals_only=True, subset_by_index=(max(size - k, 0), size - 1)
-    )
+    gram, view = _stacked_gram(bases)
+    mu = _top_eigenvalues(*penalised_gram_ey_gep(gram, view, penalties), k)
     return -float(np.sum(np.maximum(mu, 0.0) ** 2))
 
 
+# Gram eigenvalues below this fraction of the largest count as null in
+# full_rank_reparametrisation: forming the Gram leaves rounding of order
+# d * eps * the largest eigenvalue (~1e-13 for d ~ 1000), and a direction
+# whose data signal is under ~1e-5 of the strongest (the square root of this)
+# is negligible to the embedding while numerically unreliable to fit.
+_GRAM_RANK_TOL = 1e-10
+
+# Row-space directions whose Gram eigenvalue is below this fraction of the
+# largest are projected out of the null basis once more, against the basis
+# itself (see full_rank_reparametrisation); above it eigh's contamination is
+# already below eps / 1e-4 ~ 2e-12.
+_GRAM_REFINE_BELOW = 1e-4
+
+
 def full_rank_reparametrisation(
-    basis: np.ndarray, penalty_factor: np.ndarray
+    basis: np.ndarray | LinearOperator,
+    gram: np.ndarray,
+    penalty_factor: np.ndarray,
+    penalty_norm: float,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     r"""Rewrite a rank-deficient penalised basis as an equivalent full-rank one.
 
-    With $\Phi = U S V^\top$ and penalty $R = F^\top F$, split coefficients
-    as $w = T a + N c$ with $T$ spanning $\Phi$'s row space and $N$ its null
-    space. The embedding $\Phi w = U S a$ depends on $a$ alone, so for any
-    $a$ the best $c$ minimises only the penalty, the least-squares problem
+    With the basis's Gram matrix $G = \Phi^\top\Phi = V \Lambda V^\top$ and
+    penalty $R = F^\top F$, split coefficients as $w = T a + N c$ with $T$
+    spanning $\Phi$'s row space (eigenvalues above
+    :data:`_GRAM_RANK_TOL` of the largest) and $N$ its null space. The
+    embedding $\Phi w = \Phi T a$ depends on $a$ alone, so for any $a$ the
+    best $c$ minimises only the penalty, the least-squares problem
     $\min_c \lVert F (T a + N c) \rVert$; its minimum-norm solution
     $c^\star = -(F N)^{+} F T a$ leaves $w = L a$ with
-    $L = T - N (F N)^{+} F T$ and penalty $(F L)^\top (F L)$ — an exact,
-    equivalent problem on the full-rank basis $U S$. It is what lets a
+    $L = T - N (F N)^{+} F T$ and penalty $(F L)^\top (F L)$ — an equivalent
+    full-rank problem whose Gram is $T^\top G T$ (as $\Phi N = 0$ and
+    $T^\top L = I$; taking it from $L^\top G L$ instead would reintroduce $G$'s
+    null-space block, zero in exact arithmetic but with rounding-sized
+    negative eigenvalues that $L$'s correction amplifies into a negative
+    diagonal). It is what lets a
     P-spline basis keep splines with no data under them (the difference
     penalty fills them in) and keep every feature's partition of unity
     (which centring makes collinear), the identifiability ``mgcv`` resolves
-    by reparametrisation.
+    by reparametrisation. The split comes from the $d \times d$ Gram,
+    never an SVD of the $n \times d$ basis.
 
-    Three numerical choices keep :math:`L` accurate. The least-squares
-    problem is solved on the penalty's factor $F$ rather than by
-    pseudo-inverting $N^\top R N$, whose condition number is the square of
-    $F N$'s. Singular values of $\Phi$ below $\sqrt{\epsilon}$ of the largest
-    count as null: below that, a direction's data signal is rounding error,
-    and keeping it in the row space would let $L$'s null-space correction
-    leak back into $\Phi L$ (measured: a correlation of 0.78 on the reduced
-    problem fell to 0.03 after lifting with an ``eps``-level cutoff and a
-    pseudo-inverse). And the same $\sqrt{\epsilon}$ cutoff applies to $F N$,
-    relative to $\lVert F \rVert$ rather than to $F N$'s own largest singular
-    value:
-    a direction null in both $\Phi$ and $R$ — every feature's constant, for a
-    P-spline — has a singular value of rounding size there rather than
-    zero, and inverting it put coefficients of 1e13 on it, harmless to the
-    embedding but ruinous to each feature's own term.
+    Three numerical choices keep $L$ accurate. The Gram squares the basis's
+    condition number, so eigh leaves each null vector contaminated along a
+    row-space direction $t_j$ by about $\epsilon \lambda_{\max} / \lambda_j$
+    — up to ~1e-6 at the rank cutoff, which the correction below amplifies
+    into large cancelling coefficients. One projection step against the basis
+    itself, $N \leftarrow N - T_w \Lambda_w^{-1} (\Phi T_w)^\top (\Phi N)$
+    over the weak directions $T_w$ (eigenvalues below
+    :data:`_GRAM_REFINE_BELOW` of the largest), removes it to the accuracy
+    of an SVD of $\Phi$ at the cost of a product with $|T_w| + |N|$ columns.
+    The least-squares problem is The least-squares problem is
+    solved on the penalty's factor $F$ rather than by pseudo-inverting
+    $N^\top R N$, whose condition number is the square of $F N$'s. And its
+    singular values count as zero below $\sqrt{\epsilon}\,\lVert F \rVert$,
+    measured against the penalty's own scale rather than $F N$'s: a
+    direction null in both $\Phi$ and $R$ — every feature's constant, for a
+    P-spline — has a rounding-sized singular value there rather than zero,
+    and a cutoff relative to $F N$ itself inverted it into coefficients of
+    1e13–1e15, harmless to the embedding but ruinous to each feature's own
+    term.
 
     Args:
-        basis: Column-centred design matrix, shape (n, d), any rank.
+        basis: The basis $\Phi$, shape (n, d), as anything supporting
+            ``basis @ matrix`` (e.g. a sparse
+            :class:`~scipy.sparse.linalg.LinearOperator`).
+        gram: Its Gram matrix ``basis.T @ basis``, shape (d, d).
         penalty_factor: ``F`` with penalty ``R = F.T @ F``, shape (q, d).
+        penalty_norm: ``F``'s spectral norm.
 
     Returns:
-        ``(reduced_basis, reduced_penalty, lift)``: shapes (n, r), (r, r)
-        and (d, r); coefficients ``a`` fit on the reduced problem map back
-        as ``lift @ a``.
+        ``(lift, row, reduced_penalty)``: shapes (d, r), (d, r) and (r, r).
+        The reduced problem's Gram is ``row.T @ gram @ row`` (across views,
+        ``row_i.T @ gram_ij @ row_j``), and its coefficients ``a`` map back as
+        ``lift @ a``.
     """
-    cutoff = np.sqrt(np.finfo(float).eps)
-    u, s, vt = np.linalg.svd(basis, full_matrices=False)
-    rank = int(np.sum(s > s[0] * cutoff))
-    row = vt[:rank].T
-    null = scipy.linalg.null_space(vt[:rank])
-    # Minimum-norm least squares, with singular values judged against the
-    # penalty's own scale: lstsq's relative rcond would keep them all when
-    # every one is rounding-sized, as when the null space is entirely
-    # directions the penalty annihilates.
+    eigenvalues, vectors = np.linalg.eigh(gram)
+    row_mask = eigenvalues > eigenvalues[-1] * _GRAM_RANK_TOL
+    row, null = vectors[:, row_mask], vectors[:, ~row_mask]
+    weak = row_mask & (eigenvalues < eigenvalues[-1] * _GRAM_REFINE_BELOW)
+    if null.shape[1] and weak.any():
+        weak_row = vectors[:, weak]
+        overlap = (basis @ weak_row).T @ (basis @ null)
+        null = np.linalg.qr(null - weak_row @ (overlap / eigenvalues[weak, None]))[0]
     fu, fs, fvt = np.linalg.svd(penalty_factor @ null, full_matrices=False)
-    keep = fs > cutoff * np.linalg.norm(penalty_factor, 2)
+    keep = fs > np.sqrt(np.finfo(float).eps) * penalty_norm
     correction = fvt[keep].T @ (
         (fu[:, keep].T @ (penalty_factor @ row)) / fs[keep, None]
     )
     lift = row - null @ correction
     factor_lift = penalty_factor @ lift
-    return u[:, :rank] * s[:rank], factor_lift.T @ factor_lift, lift
+    return lift, row, factor_lift.T @ factor_lift

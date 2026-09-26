@@ -8,6 +8,8 @@ from typing import Any, ClassVar
 import numpy as np
 import scipy.linalg
 from numpy.typing import ArrayLike
+from scipy import sparse
+from scipy.sparse.linalg import LinearOperator
 from sklearn.preprocessing import SplineTransformer
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
@@ -15,9 +17,23 @@ from sklearn.utils.validation import check_is_fitted
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import (
     full_rank_reparametrisation,
-    penalised_basis_ey_closed_form,
+    penalised_gram_ey_closed_form,
 )
 from cca_zoo._utils._validation import perview_parameter, validate_views
+
+# Rows of the sparse basis densified at a time to form its Gram with BLAS:
+# ~8x faster than a sparse-sparse product (whose output is dense anyway,
+# every pair of features overlapping), at a bounded 1024 x d of memory.
+_GRAM_CHUNK = 1024
+
+
+def _sparse_gram(basis: sparse.csr_array) -> np.ndarray:
+    """``basis.T @ basis`` as a dense array, by BLAS over row chunks."""
+    gram = np.zeros((basis.shape[1], basis.shape[1]))
+    for start in range(0, basis.shape[0], _GRAM_CHUNK):
+        chunk = basis[start : start + _GRAM_CHUNK].toarray()
+        gram += chunk.T @ chunk
+    return gram
 
 
 def _spline_orders(m: int | tuple[int, int]) -> tuple[int, int]:
@@ -42,11 +58,16 @@ class _GamEncoder:
     square root (:attr:`penalty_factor_`, the stacked difference matrices,
     unscaled by ``sp``). Every feature keeps its full partition of unity and
     splines with no data under them are kept too — the difference penalty is
-    what fills them in; the resulting rank deficiency (which centring adds
-    one of per feature) is resolved exactly at fit time by
-    :func:`~cca_zoo._utils._ey.full_rank_reparametrisation`, as ``mgcv``
-    resolves identifiability by reparametrisation. Centring every column
-    makes $Z_i = \text{basis}_i B_i$ zero-mean for any coefficients.
+    what fills them in. Centring makes each feature's constant coefficient
+    vector exactly unidentifiable (a partition of unity centres to zero), so
+    it is absorbed structurally, as ``mgcv`` absorbs its sum-to-zero
+    constraint: coefficients live in the orthogonal complement of each
+    block's constant (:attr:`constraint_`). Any data-dependent rank
+    deficiency left (empty spline supports, ties, duplicated features) is
+    resolved at fit time by
+    :func:`~cca_zoo._utils._ey.full_rank_reparametrisation`. Centring every column
+    makes $Z_i = \text{basis}_i B_i$ zero-mean for any coefficients; the
+    basis itself stays sparse (B-splines are local), centred only implicitly.
     """
 
     def __init__(self, X: np.ndarray, k: int, m: int | tuple[int, int]) -> None:
@@ -58,19 +79,57 @@ class _GamEncoder:
             knots="uniform",
             extrapolation="linear",
             include_bias=True,
+            sparse_output=True,
         )
-        raw_basis = self._spline.fit_transform(X)
-        self.n_splines_: int = raw_basis.shape[1] // self.p
-        self.basis_mean_: np.ndarray = raw_basis.mean(axis=0)
-        self.basis_: np.ndarray = raw_basis - self.basis_mean_
+        # B-splines are local: each row has order + 2 nonzeros per feature, so
+        # the basis is kept sparse and centred only implicitly (its mean is
+        # subtracted wherever a product with it is taken).
+        self.raw_basis_: sparse.csr_array = sparse.csr_array(
+            self._spline.fit_transform(X)
+        )
+        self.n_splines_: int = self.raw_basis_.shape[1] // self.p
+        self.basis_mean_: np.ndarray = np.asarray(self.raw_basis_.mean(axis=0)).ravel()
         differences = np.diff(np.eye(self.n_splines_), n=penalty_order, axis=0)
         # The penalty's square root, F with R = F.T @ F: the difference
         # matrix of every feature's coefficients.
         self.penalty_factor_: np.ndarray = scipy.linalg.block_diag(
             *([differences] * self.p)
         )
-        self.coef_: np.ndarray = np.zeros((self.basis_.shape[1], 1))
+        self.penalty_norm_: float = float(np.linalg.norm(differences, 2))
+        # Each block's constant is absorbed as mgcv absorbs its constraint:
+        # a Householder reflection H = I - 2uu' maps it onto the block's first
+        # axis, and H's other columns span its orthogonal complement. The
+        # difference penalty annihilates constants, so this changes neither
+        # fit nor penalty — it only removes a direction the data cannot
+        # identify.
+        reflector = np.ones(self.n_splines_)
+        reflector[0] += np.sqrt(self.n_splines_)
+        reflector /= np.linalg.norm(reflector)
+        self.reflectors_: np.ndarray = scipy.linalg.block_diag(
+            *([reflector[:, None]] * self.p)
+        )
+        self.free_: np.ndarray = (
+            np.arange(self.p * self.n_splines_) % self.n_splines_ > 0
+        )
+        self.constraint_: np.ndarray = (
+            np.eye(self.p * self.n_splines_) - 2 * self.reflectors_ @ self.reflectors_.T
+        )[:, self.free_]
+        self.coef_: np.ndarray = np.zeros((self.raw_basis_.shape[1], 1))
         self._train_pred: np.ndarray = np.zeros((self.n, 1))
+
+    def centred_product(self, coef: np.ndarray) -> np.ndarray:
+        """The centred training basis times ``coef``, without densifying it."""
+        result: np.ndarray = self.raw_basis_ @ coef - self.basis_mean_ @ coef
+        return result
+
+    def basis_operator(self, scale: float) -> LinearOperator:
+        """The centred, constrained training basis over ``scale``, unformed."""
+
+        def product(coef: np.ndarray) -> np.ndarray:
+            return self.centred_product(self.constraint_ @ coef) / scale
+
+        shape = (self.n, self.constraint_.shape[1])
+        return LinearOperator(shape, matvec=product, matmat=product)
 
     def predict(self) -> np.ndarray:
         """Encoder output on the training data, shape (n_samples, k)."""
@@ -78,8 +137,9 @@ class _GamEncoder:
 
     def predict_new(self, X: np.ndarray) -> np.ndarray:
         """Encoder output for arbitrary (e.g. test) data, shape (n, k)."""
-        basis = self._spline.transform(X) - self.basis_mean_
-        result: np.ndarray = basis @ self.coef_
+        result: np.ndarray = self._spline.transform(X) @ self.coef_ - (
+            self.basis_mean_ @ self.coef_
+        )
         return result
 
     def feature_term(self, feature_idx: int, x: np.ndarray) -> np.ndarray:
@@ -99,12 +159,12 @@ class _GamEncoder:
         """
         grid = np.zeros((len(x), self.p))
         grid[:, feature_idx] = x
-        raw_basis = self._spline.transform(grid)
+        raw_basis = sparse.csr_array(self._spline.transform(grid))
         block = slice(
             feature_idx * self.n_splines_, (feature_idx + 1) * self.n_splines_
         )
-        centred_block = raw_basis[:, block] - self.basis_mean_[block]
-        result: np.ndarray = centred_block @ self.coef_[block]
+        coef = self.coef_[block]
+        result: np.ndarray = raw_basis[:, block] @ coef - self.basis_mean_[block] @ coef
         return result
 
 
@@ -130,7 +190,7 @@ class GAMCCA(BaseModel):
     the default ``m=2``), not towards zero.
 
     With the basis fixed, the whole fit is a single generalized
-    eigenproblem (:func:`~cca_zoo._utils._ey.penalised_basis_ey_gep`), solved
+    eigenproblem (:func:`~cca_zoo._utils._ey.penalised_gram_ey_gep`), solved
     in closed form at its global optimum — the same solver
     :class:`~cca_zoo.gam.MARSCCA` refits with — after an exact
     reparametrisation onto the basis's row space
@@ -181,15 +241,11 @@ class GAMCCA(BaseModel):
         center: Whether to subtract per-view column means before fitting.
             Default is True.
         k: Basis dimension of every smooth, as ``mgcv``'s ``k``: the number
-            of B-splines per feature. ``mgcv`` defaults to 10; here the
-            default is 20, following Eilers and Marx's advice to give a
-            P-spline a generous basis and let the penalty control
-            smoothness (held-out correlation on smooth nonlinear
-            relationships: 0.60 at ``k=20, sp=0.1`` against 0.56 at the best
-            ``k=10`` setting, with ``sin`` relationships gaining most).
-            Cost grows with the cube of the total basis size, so lower it for
-            wide views. Either a single value or a list of per-view values.
-            Default is 20.
+            of B-splines per feature. Raise it when a relationship needs more
+            wiggles than ten splines allow; the penalty keeps a generous
+            basis in check. Cost grows with the cube of the total basis
+            size. Either a single value or a list of per-view values.
+            Default is 10, ``mgcv``'s.
         m: Spline and penalty orders, as ``mgcv``'s ``m`` for ``bs="ps"``:
             ``(order, penalty_order)`` gives B-splines of degree
             ``order + 1`` and a ``penalty_order``-th difference penalty, and
@@ -199,7 +255,10 @@ class GAMCCA(BaseModel):
         sp: Smoothing parameter of every smooth, as ``mgcv``'s ``sp``
             (penalty ``sp * beta' S beta``); larger is smoother, tending to
             a polynomial of degree ``penalty_order - 1`` per feature. Either
-            a single value or a list of per-view values. Default is 0.1.
+            a single value or a list of per-view values. Default is 0.01
+            (with ``k=10``, held-out correlation on smooth nonlinear
+            relationships matched or beat ``k=20, sp=0.1`` at a third of the
+            cost).
 
     Examples:
         >>> import numpy as np
@@ -227,9 +286,9 @@ class GAMCCA(BaseModel):
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        k: int | list[int] = 20,
+        k: int | list[int] = 10,
         m: int | tuple[int, int] | list[int | tuple[int, int]] = 2,
-        sp: float | list[float] = 0.1,
+        sp: float | list[float] = 0.01,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)
         self.k = k
@@ -253,9 +312,9 @@ class GAMCCA(BaseModel):
         """
         views_ = self._setup_fit(views)
         m_views = self.n_views_
-        k_ = perview_parameter("k", self.k, 20, m_views)
+        k_ = perview_parameter("k", self.k, 10, m_views)
         m_: list[int | tuple[int, int]] = perview_parameter("m", self.m, 2, m_views)
-        sp_ = perview_parameter("sp", self.sp, 0.1, m_views)
+        sp_ = perview_parameter("sp", self.sp, 0.01, m_views)
         for i, (k, m) in enumerate(zip(k_, m_)):
             order, penalty_order = _spline_orders(m)
             if k < order + 2 or penalty_order >= k:
@@ -265,18 +324,57 @@ class GAMCCA(BaseModel):
                     f"order must be below k."
                 )
         encoders = [_GamEncoder(X, k, m) for X, k, m in zip(views_, k_, m_)]
-        reduced = [
-            full_rank_reparametrisation(enc.basis_, np.sqrt(sp) * enc.penalty_factor_)
-            for enc, sp in zip(encoders, sp_)
-        ]
-        coefficients = penalised_basis_ey_closed_form(
-            [basis for basis, _, _ in reduced],
-            self.latent_dimensions,
-            [penalty for _, penalty, _ in reduced],
+        # The stacked Gram of the centred, constrained bases, from the sparse
+        # raw bases: Z'(S - 1 mu')'(S - 1 mu')Z = Z'(S'S - n mu mu')Z.
+        stacked = sparse.hstack([enc.raw_basis_ for enc in encoders]).tocsr()
+        mean = np.concatenate([enc.basis_mean_ for enc in encoders])
+        n = stacked.shape[0]
+        scale = m_views * (n - 1)
+        raw_gram = _sparse_gram(stacked) - n * np.outer(mean, mean)
+        # H G H for the block-diagonal reflection H = I - 2UU' is a rank-2p
+        # update of G, O(d^2 p) rather than two dense d^3 products.
+        reflectors = scipy.linalg.block_diag(*[enc.reflectors_ for enc in encoders])
+        gram_reflectors = raw_gram @ reflectors
+        reflected = (
+            raw_gram
+            - 2 * reflectors @ gram_reflectors.T
+            - 2 * gram_reflectors @ reflectors.T
+            + 4 * reflectors @ (reflectors.T @ gram_reflectors) @ reflectors.T
         )
-        for enc, (_, _, lift), coef in zip(encoders, reduced, coefficients):
-            enc.coef_ = lift @ coef
-            enc._train_pred = enc.basis_ @ enc.coef_
+        free = np.concatenate([enc.free_ for enc in encoders])
+        gram = reflected[np.ix_(free, free)] / scale
+        view = np.repeat(
+            np.arange(m_views), [enc.constraint_.shape[1] for enc in encoders]
+        )
+        reduced = [
+            full_rank_reparametrisation(
+                enc.basis_operator(np.sqrt(scale)),
+                gram[np.ix_(view == i, view == i)],
+                np.sqrt(sp) * enc.penalty_factor_ @ enc.constraint_,
+                np.sqrt(sp) * enc.penalty_norm_,
+            )
+            for i, (enc, sp) in enumerate(zip(encoders, sp_))
+        ]
+        rows = [row_i for _, row_i, _ in reduced]
+        reduced_gram = np.block(
+            [
+                [
+                    rows[i].T @ gram[np.ix_(view == i, view == j)] @ rows[j]
+                    for j in range(m_views)
+                ]
+                for i in range(m_views)
+            ]
+        )
+        reduced_view = np.repeat(np.arange(m_views), [r.shape[1] for r in rows])
+        coefficients = penalised_gram_ey_closed_form(
+            reduced_gram,
+            reduced_view,
+            self.latent_dimensions,
+            [penalty for _, _, penalty in reduced],
+        )
+        for enc, (lift_i, _, _), coef in zip(encoders, reduced, coefficients):
+            enc.coef_ = enc.constraint_ @ lift_i @ coef
+            enc._train_pred = enc.centred_product(enc.coef_)
 
         self.encoders_: list[_GamEncoder] = encoders
         return self

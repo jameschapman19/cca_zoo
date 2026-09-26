@@ -150,12 +150,13 @@ def test_penalised_closed_form_matches_iterative_optimum(
 
 
 def test_full_rank_reparametrisation_is_exact() -> None:
-    """The reduced problem reproduces the original's embeddings and penalties.
+    """The reduced problem is full rank and carries the original's penalty.
 
     A P-spline-like basis with an exactly collinear block (a partition of
-    unity, centred) and a column with no data: every reduced coefficient
-    lifts to original coefficients giving the same embedding, and the
-    reduced penalty is the smallest any such coefficients attain.
+    unity, centred) and a column with no data: the lifted basis has full
+    rank equal to the original's, every reduced coefficient's penalty is
+    the lifted coefficients' penalty, and no other coefficients with the
+    same embedding have a smaller one.
     """
     rng = np.random.default_rng(0)
     n, d = 100, 8
@@ -164,11 +165,14 @@ def test_full_rank_reparametrisation_is_exact() -> None:
     raw[:, :4] /= raw[:, :4].sum(axis=1, keepdims=True)  # partition of unity
     basis = raw - raw.mean(axis=0)
     factor = np.diff(np.eye(d), n=2, axis=0)
-    reduced, reduced_penalty, lift = full_rank_reparametrisation(basis, factor)
+    lift, _, reduced_penalty = full_rank_reparametrisation(
+        basis, basis.T @ basis, factor, np.linalg.norm(factor, 2)
+    )
+    reduced = basis @ lift
     assert reduced.shape[1] == np.linalg.matrix_rank(basis)
+    assert np.linalg.matrix_rank(reduced) == reduced.shape[1]
     a = rng.standard_normal(reduced.shape[1])
     w = lift @ a
-    np.testing.assert_allclose(basis @ w, reduced @ a, atol=1e-10)
     np.testing.assert_allclose(
         a @ reduced_penalty @ a, np.sum((factor @ w) ** 2), rtol=1e-10
     )
@@ -200,10 +204,11 @@ def test_reparametrisation_ignores_directions_the_penalty_annihilates() -> None:
     basis -= basis.mean(axis=0)
     first_differences = np.diff(np.eye(k), n=1, axis=0)
     factor = np.sqrt(1e-3) * np.kron(np.eye(2), first_differences)
-    reduced, _, lift = full_rank_reparametrisation(basis, factor)
-    a = rng.standard_normal(reduced.shape[1])
+    lift, _, _ = full_rank_reparametrisation(
+        basis, basis.T @ basis, factor, np.linalg.norm(factor, 2)
+    )
+    a = rng.standard_normal(lift.shape[1])
     w = lift @ a
-    np.testing.assert_allclose(basis @ w, reduced @ a, atol=1e-10)
     per_feature = [basis[:, :k] @ w[:k], basis[:, k:] @ w[k:]]
-    np.testing.assert_allclose(sum(per_feature), reduced @ a, atol=1e-8)
+    np.testing.assert_allclose(sum(per_feature), basis @ w, atol=1e-8)
     assert np.abs(w).max() < 1e3 * np.abs(a).max()

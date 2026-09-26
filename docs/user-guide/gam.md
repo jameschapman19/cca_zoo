@@ -81,9 +81,9 @@ Parameters share `mgcv`'s names and meanings for `bs="ps"` smooths.
 
 | Parameter | `mgcv` | Description |
 |---|---|---|
-| `k` | `k` | Basis dimension: B-splines per feature. Default 20 — `mgcv`'s is 10, but P-splines do best with a generous basis and the penalty in charge (held-out correlation on smooth nonlinear relationships: 0.60 at `k=20` against 0.56 at the best `k=10`). Cost grows with the cube of the total basis size, so lower it for wide views. Scalar or per-view list. |
+| `k` | `k` | Basis dimension: B-splines per feature. Default 10, `mgcv`'s; raise it when a relationship needs more wiggles, and the penalty keeps the larger basis in check. Cost grows with the cube of the total basis size. Scalar or per-view list. |
 | `m` | `m` | `(order, penalty order)`: B-splines of degree `order + 1` and a `penalty order`-th difference penalty; a single value sets both. Default 2 (cubic, second differences), `mgcv`'s. An int or tuple, or a list of per-view values. |
-| `sp` | `sp` | Smoothing parameter; larger is smoother. Default 0.1. `mgcv` estimates it; here choose it by cross-validation (above). Scalar or per-view list. |
+| `sp` | `sp` | Smoothing parameter; larger is smoother. Default 0.01. `mgcv` estimates it; here choose it by cross-validation (above). Scalar or per-view list. |
 
 **When to use:** nonlinear multiview CCA where each feature's relationship is expected to be
 smooth. A GAM is additive, so it cannot represent an interaction between two features of the

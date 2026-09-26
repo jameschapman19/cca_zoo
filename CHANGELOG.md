@@ -63,20 +63,27 @@ project adheres to [Semantic Versioning](https://semver.org/).
   spaced knots with Eilers and Marx's difference penalty, which shrinks towards a
   polynomial — the default towards a straight line — rather than the ridge towards zero
   the previous version applied despite citing P-splines. `n_knots` and `alpha` become `k`
-  (default 20; `mgcv`'s 10 averaged 0.56 against 0.60 held-out correlation on smooth
-  nonlinear benchmarks, losing most on sine relationships) and `sp` (default 0.1), and
+  (default 10, `mgcv`'s) and `sp` (default 0.01), and
   `m` is new. The fit is now one closed-form generalized eigenproblem at the global
-  optimum, so `max_iter`, `tol` and `random_state` are removed. The P-spline basis's intended rank deficiency (data-free splines, each
-  feature's partition of unity) is resolved by an exact reparametrisation onto its row
-  space (`cca_zoo._utils._ey.full_rank_reparametrisation`), as `mgcv` does. Held-out
+  optimum, so `max_iter`, `tol` and `random_state` are removed. Each feature's constant, which centring makes
+  unidentifiable, is absorbed by a Householder reflection as `mgcv` absorbs its
+  sum-to-zero constraint; any data-dependent rank deficiency left (data-free splines,
+  ties, duplicated features) is resolved by an exact reparametrisation onto the row space
+  (`cca_zoo._utils._ey.full_rank_reparametrisation`). The basis stays sparse, and
+  everything after its Gram is $d \times d$: a fit with 100 features and 5000 samples
+  takes about half a second. Held-out
   correlation over quadratic, sine, absolute-value and linear relationships rises from
-  0.51 to 0.60 on average. `sp` is chosen by cross-validation with
+  0.51 to 0.61 on average. `sp` is chosen by cross-validation with
   `one_standard_error("sp", larger_is_simpler=True)`, since `mgcv`'s GCV/REML have no
   EY-loss counterpart.
 - `cca_zoo._utils._ey`: the ridge-only fixed-basis solver becomes
   `penalised_basis_ey_closed_form` / `penalised_basis_ey_gep` / `penalised_basis_ey_min_loss`,
   taking any quadratic penalty per view (a ridge or a matrix); the trust-region solver it
-  replaced is removed.
+  replaced is removed. Each has a Gram-level counterpart (`penalised_gram_ey_gep`,
+  `penalised_gram_ey_closed_form`) for callers that form the Gram themselves, as
+  `GAMCCA` does from its sparse basis. Problems under 256 unknowns run their eigensolve
+  on one BLAS thread (`threadpoolctl`, now a dependency): at that size threads only
+  oversubscribe under load.
 
 ## [3.3.0] - 2026-09-22
 
