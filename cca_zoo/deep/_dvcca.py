@@ -98,7 +98,7 @@ class DVCCA(BaseDeep):
 
     def predict_step(self, batch: Batch, batch_idx: int) -> list[torch.Tensor]:
         """The posterior mean of a batch, as a one-element list."""
-        return self(batch["views"])
+        return self.forward(batch["views"])
 
     def on_train_end(self) -> None:
         """Nothing to fit: the posterior mean is the output."""
