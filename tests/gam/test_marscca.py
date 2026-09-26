@@ -164,20 +164,26 @@ def test_hinge_scorer_matches_direct_projection(n_basis: int) -> None:
         h -= q @ (q.T @ h)
         return float(np.trace(grad.T @ h @ np.linalg.solve(h.T @ h, h.T @ grad)))
 
+    slots = scorer.knots.shape[0]
+    usable = scorer._allowed
+    assert usable.any(axis=0)[~allowed].sum() == 0  # disallowed features never scored
     scores = np.array(
         [
             [
-                [direct(m, j, t) if allowed[j, m] else -np.inf for m in range(3)]
-                for j, t in enumerate(knots)
+                [
+                    direct(m, j, scorer.knots[r, j, m]) if usable[r, j, m] else -np.inf
+                    for m in range(3)
+                ]
+                for j in range(p)
             ]
-            for knots in scorer.knots
+            for r in range(slots)
         ]
     )
     best, parent, j, knot, keep = scorer.best_pairs(grad)[0]
     r, j_expected, m_expected = np.unravel_index(np.argmax(scores), scores.shape)
     assert keep == (True, True)
     assert (parent, j) == (m_expected, j_expected)
-    assert knot == scorer.knots[r, j]
+    assert knot == scorer.knots[r, j, parent]
     np.testing.assert_allclose(best, scores.max(), rtol=1e-9)
 
 
@@ -229,26 +235,23 @@ def test_exact_loss_rescoring_picks_lowest_loss_candidate() -> None:
 def test_identically_zero_hinges_are_degenerate() -> None:
     """A hinge that vanishes on every training sample is never a usable candidate.
 
-    With feature 1 a copy of feature 0 and parent ``h(x0)``, the reflected
-    hinge ``h(x0) * h(t - x1)`` is identically zero for every knot
-    ``t <= 0``. Its squared norm comes out of the suffix-sum expansion as
-    rounding noise rather than exactly zero; judged only against itself,
-    noise passes, and a noise-over-noise score can then win the argmax.
+    With ``endspan=0`` a knot may sit at a feature's smallest value, where
+    the reflected hinge ``h(t - x)`` is identically zero. Its squared norm
+    comes out of the suffix-sum expansion as rounding noise rather than
+    exactly zero; judged only against itself, noise passes, and a
+    noise-over-noise score can then win the argmax. (With the default
+    ``endspan``, earth's rule keeps knots away from the ends, so this
+    cannot arise.)
     """
     rng = np.random.default_rng(0)
-    n = 200
-    x = rng.standard_normal(n)
-    X = np.column_stack([x, x, rng.standard_normal(n)])
-    scorer = _HingeScorer(X, n_candidate_knots=20)
-    parent = np.maximum(0.0, x)
-    scorer.add_columns(parent[:, None], [np.array([False, True, True])])
-
+    X = rng.standard_normal((200, 3)) + 5.0
+    scorer = _HingeScorer(X, n_candidate_knots=200, minspan=1, endspan=0)
     ok_a, ok_b, ok_pair, *_ = scorer.gram()
-    zero = scorer.knots[:, 1] <= 0  # knots where h(x0) * h(t - x1) == 0
-    assert zero.any()
-    assert not ok_b[zero, 1, 1].any()
-    assert not ok_pair[zero, 1, 1].any()
-    assert ok_a[zero, 1, 1].all()
+    lowest = scorer.knots[0, :, 0] == X.min(axis=0)
+    assert lowest.all()
+    assert not ok_b[0, :, 0].any()
+    assert not ok_pair[0, :, 0].any()
+    assert ok_a[0, :, 0].all()
 
 
 def test_basis_stays_well_conditioned_with_near_duplicate_features() -> None:
@@ -477,7 +480,7 @@ def test_one_standard_error_search_prunes_pure_noise() -> None:
     full = MARSCCA(max_degree=2, max_terms=40).fit(views)
     search = GridSearchCV(
         MARSCCA(max_degree=2, max_terms=40),
-        {"n_terms": [2, 4, 8, 16, 32, 80]},
+        {"n_terms": [2, 4, 8, 20, 80]},
         cv=5,
         refit=one_standard_error("n_terms"),
     ).fit(views)

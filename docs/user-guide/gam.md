@@ -114,10 +114,12 @@ score. Summing every feature's `shape_function` at the training values reproduce
 of up to `max_degree` hinges $\max(0, \pm(x_j - t))$, and the basis is *grown* rather than fixed.
 
 Every forward step scores each candidate reflected hinge pair — any existing term (or the
-constant) as parent, any feature not already in that parent, any of `n_candidate_knots` interior
-quantile knots — by how much of the current EY gradient the pair can absorb once orthogonalised
-against the current basis. That is classical MARS's residual-sum-of-squares criterion with the
-residual replaced by the EY loss's negative gradient. The best pair is added to each view in
+constant) as parent, any feature not already in that parent, any knot `earth`'s `minspan` and
+`endspan` rules allow within the parent's support — by how much of the current EY gradient the
+pair can absorb once orthogonalised against the current basis: classical MARS's
+residual-sum-of-squares criterion with the residual replaced by the EY loss's negative gradient.
+The best `n_rescore` of those are then re-ranked by their exact loss after a refit, the
+criterion `earth` applies to every candidate. The best pair is added to each view in
 turn, then every view's coefficients are refit jointly. On a fixed basis the ridge-EY fit is a
 generalized eigenproblem — the one ridge-regularised MCCA solves — so each refit is its exact
 global optimum in closed form. Knots therefore land only where the cross-view signal needs them.
@@ -170,5 +172,7 @@ gs = GridSearchCV(
 | `max_terms` | Maximum basis functions per view in the forward pass (each step adds at most two). Scalar or per-view list. |
 | `n_terms` | Total terms, across views, kept by the backward pass (each view keeps at least one); `None` keeps the whole forward pass. The parameter to search when pruning. |
 | `max_degree` | Maximum hinge factors per basis function: 1 is additive, 2 allows pairwise interactions. Scalar or per-view list. |
-| `n_candidate_knots` | Candidate knots per feature, at interior quantiles of the training values. |
+| `n_candidate_knots` | Maximum candidate knots per feature and parent term, thinned evenly from the points `minspan`/`endspan` allow. Raise it to consider every allowed point, as `earth` does. |
+| `minspan`, `endspan` | `earth`'s knot rules within each parent's support: at least `minspan` points between knots, none within `endspan` points of either end (doubled for interaction terms). `None` uses Friedman's (1991) formulas, `earth`'s default. |
+| `n_rescore` | Forward candidates, ranked by how much EY gradient they absorb, re-ranked by their exact refit loss — `earth`'s criterion. `1` uses the gradient ranking alone. |
 | `alpha` | Ridge penalty on every basis coefficient. Scalar or per-view list. |

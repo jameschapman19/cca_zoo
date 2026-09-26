@@ -12,6 +12,7 @@ from numpy.typing import ArrayLike
 from scipy import sparse
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
+from threadpoolctl import threadpool_limits
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import (
@@ -52,6 +53,48 @@ def _evaluate_terms(X: np.ndarray, terms: list[_Term]) -> np.ndarray:
     return basis
 
 
+def _knot_spans(n_support: int, n_features: int) -> tuple[int, int]:
+    r"""Friedman's (1991, eqs. 43 and 45) ``minspan`` and ``endspan``, as in ``earth``.
+
+    With $\alpha = 0.05$, $p$ features and $N_m$ support points, knots are
+    at least $L = \lfloor -\log_2[-\ln(1 - \alpha) / (p N_m)] / 2.5 \rfloor$
+    points apart (so a run of positive or negative gradient can't be chased
+    by closely spaced knots) and none within $L_e = \lfloor 3 -
+    \log_2(\alpha / p) \rfloor$ points of either end (where a hinge would
+    rest on too few points to be estimated).
+    """
+    alpha = 0.05
+    minspan = int(-np.log2(-np.log(1 - alpha) / (n_features * n_support)) / 2.5)
+    endspan = int(3 - np.log2(alpha / n_features))
+    return max(minspan, 1), endspan
+
+
+def _knot_ranks(
+    n_support: int,
+    n_features: int,
+    n_candidate_knots: int,
+    minspan: int | None,
+    endspan: int | None,
+    interaction: bool,
+) -> np.ndarray:
+    """Support ranks (in one feature's sort order) that may carry a knot.
+
+    ``earth``'s rule: from ``endspan`` to ``n_support - 1 - endspan``, every
+    ``minspan``-th point, with ``endspan`` doubled for an interaction parent
+    (``Adjust.endspan = 2``); ``None`` takes :func:`_knot_spans`'s value.
+    More than ``n_candidate_knots`` are thinned to that many, evenly.
+    """
+    auto_min, auto_end = _knot_spans(max(n_support, 1), n_features)
+    step = auto_min if minspan is None else minspan
+    end = (auto_end if endspan is None else endspan) * (2 if interaction else 1)
+    ranks = np.arange(end, n_support - end, step)
+    if len(ranks) > n_candidate_knots:
+        ranks = ranks[
+            np.linspace(0, len(ranks) - 1, n_candidate_knots).round().astype(int)
+        ]
+    return ranks
+
+
 class _HingeScorer:
     r"""Scores every candidate hinge pair of one view without forming any.
 
@@ -70,13 +113,18 @@ class _HingeScorer:
     §3.9) fast update. Three engineering choices keep each forward step
     cheap, all exact:
 
-    - Which samples fall between consecutive candidate knots never changes
-      during a fit, so it is built once as a sparse block-membership matrix
-      of shape ``(n_knots * n_features, n_samples)`` (``n_samples *
-      n_features`` nonzeros), plus copies weighted by $x$ and $x^2$. Every
-      parent, feature and knot is then scored at once by sparse-times-dense
-      products and a cumulative sum over the short knot axis — no Python
-      loop, no ``(n_samples, n_features, ...)`` temporary.
+    - Candidate knots follow ``earth``'s rules within each parent's support
+      (the samples where the parent is nonzero): none within ``endspan``
+      support points of either end, at least ``minspan`` points apart,
+      capped at ``n_candidate_knots`` per feature (:func:`_knot_spans`).
+      Which support samples fall between consecutive knots never changes,
+      so each parent's blocks are built once, as a sparse matrix of shape
+      ``(n_knots * n_features, n_samples)`` with the parent's values
+      folded into its data (plus a copy weighted by $x$), and every
+      parent's matrix is stacked into one. Every parent, feature and knot
+      is then scored at once by one sparse-times-dense product and a
+      cumulative sum over the short knot axis — no Python loop, no
+      ``(n_samples, n_features, ...)`` temporary.
     - The current basis is kept as an orthonormal ``q`` grown by
       Gram-Schmidt (applied twice, for stability), so existing columns never
       change. The score needs a candidate's products with ``q`` only through
@@ -96,99 +144,186 @@ class _HingeScorer:
     basis column.
     """
 
-    def __init__(self, X: np.ndarray, n_candidate_knots: int) -> None:
+    def __init__(
+        self,
+        X: np.ndarray,
+        n_candidate_knots: int,
+        minspan: int | None = None,
+        endspan: int | None = None,
+    ) -> None:
         n, p = X.shape
-        rows = np.unique(
-            np.linspace(0, n - 1, n_candidate_knots + 2)[1:-1].round().astype(int)
-        )
-        order = np.argsort(X, axis=0)
-        rank = np.empty_like(order)
-        np.put_along_axis(rank, order, np.arange(n)[:, None], axis=0)
-        block = np.searchsorted(rows, rank, side="right") - 1  # -1: below all knots
-        inside = block >= 0
-        sample, feature = np.nonzero(inside)
-        row = block[inside] * p + feature
-        x = X[inside]
-
         self.X = X
-        self.knots: np.ndarray = np.take_along_axis(X, order[rows], axis=0)
-        self._blocks = [
-            sparse.csr_array((v, (row, sample)), shape=(len(rows) * p, n))
-            for v in (np.ones_like(x), x, x**2)
-        ]
+        self.n_candidate_knots = n_candidate_knots
+        self.minspan = minspan
+        self.endspan = endspan
         self.q = np.zeros((n, 0))
         self._parents = np.zeros((n, 0))
-        self._allowed = np.zeros((p, 0), dtype=bool)
+        # Per (knot, feature, parent): which candidates may be scored, their
+        # knot values, and each parent's block matrices (weights u, u * x).
+        self._allowed = np.zeros((n_candidate_knots, p, 0), dtype=bool)
+        self.knots = np.zeros((n_candidate_knots, p, 0))
+        self._blocks: list[tuple[sparse.csr_array, sparse.csr_array]] = []
+        self._stacked: tuple[sparse.csr_array, sparse.csr_array]
         # Per (knot, feature, parent): ||h_a||^2, ||h_b||^2, sum h_a, sum h_b,
         # the scale of the terms cancelling in those norms, ||q^T h_a||^2,
         # ||q^T h_b||^2, (q^T h_a) . (q^T h_b).
-        self._stats = np.zeros((len(rows), p, 0, 8))
+        self._stats = np.zeros((n_candidate_knots, p, 0, 8))
         self._add_parents(np.ones((n, 1)), np.ones((p, 1), dtype=bool))
 
+    def _parent_blocks(
+        self, u: np.ndarray, interaction: bool
+    ) -> tuple[np.ndarray, np.ndarray, list[sparse.csr_array]]:
+        """One parent's candidate knots and its u-weighted block matrices.
+
+        Returns:
+            ``(knots, valid, blocks)``: knot values, shape (n_candidate_knots,
+            n_features), padded past the parent's own knot count; which knot
+            slots are real, shape (n_candidate_knots,); and the block
+            matrices with data ``u * x**power`` for power 0 and 1, then
+            ``u**2 * x**power`` for power 0, 1, 2.
+        """
+        X = self.X
+        n, p = X.shape
+        support = np.flatnonzero(u != 0)
+        ranks = _knot_ranks(
+            len(support),
+            p,
+            self.n_candidate_knots,
+            self.minspan,
+            self.endspan,
+            interaction,
+        )
+        slots = len(ranks)
+        xs = X[support]
+        order = np.argsort(xs, axis=0)
+        rank = np.empty_like(order)
+        np.put_along_axis(rank, order, np.arange(len(support))[:, None], axis=0)
+        block = np.searchsorted(ranks, rank, side="right") - 1  # -1: below all knots
+        inside = block >= 0
+        sample, feature = np.nonzero(inside)
+        row = block[inside] * p + feature
+        col = support[sample]
+        x = xs[inside]
+        weight = u[col]
+        shape = (self.n_candidate_knots * p, n)
+        blocks = [
+            sparse.csr_array((data, (row, col)), shape=shape)
+            for data in (weight, weight * x, weight**2, weight**2 * x, weight**2 * x**2)
+        ]
+        knots = np.zeros((self.n_candidate_knots, p))
+        knots[:slots] = np.take_along_axis(xs, order[ranks], axis=0)
+        return knots, np.arange(self.n_candidate_knots) < slots, blocks
+
+    def _block_suffix(self, block: sparse.csr_array, w: np.ndarray) -> np.ndarray:
+        """Suffix sums over the knot axis of stacked parents' blocks times ``w``.
+
+        Returns shape (n_knots, n_features, n_parents, n_columns).
+        """
+        p = self.X.shape[1]
+        sums = (block @ w).reshape(-1, self.n_candidate_knots, p, w.shape[1])
+        suffix: np.ndarray = np.cumsum(sums.transpose(1, 2, 0, 3)[::-1], axis=0)[::-1]
+        return suffix
+
     def _hinge_inner(
-        self, parents: np.ndarray, w: np.ndarray
+        self,
+        blocks: tuple[sparse.csr_array, sparse.csr_array],
+        parents: np.ndarray,
+        knots: np.ndarray,
+        w: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
         """``<h_a, w>`` and ``<h_b, w>`` for every knot, feature, parent, column.
 
-        Returns two arrays of shape (n_knots, n_features, n_parents, n_columns).
+        Args:
+            blocks: Stacked u- and u*x-weighted block matrices of the parents.
+            parents: Raw values of those parents, shape (n_samples, n_parents).
+            knots: Their knot values, shape (n_knots, n_features, n_parents).
+            w: Columns to take inner products with, shape (n_samples, c).
+
+        Returns:
+            Two arrays of shape (n_knots, n_features, n_parents, c).
         """
-        n, p = self.X.shape
-        uw = (parents[:, :, None] * w[:, None, :]).reshape(n, -1)
-        shape = (-1, p, parents.shape[1], w.shape[1])
-        suffix0, suffix1 = (
-            np.cumsum((b @ uw).reshape(shape)[::-1], axis=0)[::-1]
-            for b in self._blocks[:2]
-        )
-        t = self.knots[:, :, None, None]
+        n = self.X.shape[0]
+        suffix0, suffix1 = (self._block_suffix(b, w) for b in blocks)
+        t = knots[..., None]
         inner_a = suffix1 - t * suffix0
-        total = (self.X.T @ uw).reshape(shape[1:]) - t * uw.sum(axis=0).reshape(
-            shape[2:]
+        uw = parents[:, :, None] * w[:, None, :]
+        total = (self.X.T @ uw.reshape(n, -1)).reshape(-1, *uw.shape[1:]) - t * uw.sum(
+            axis=0
         )
         return inner_a, inner_a - total
 
-    def _projection_stats(self, parents: np.ndarray, q: np.ndarray) -> np.ndarray:
+    def _projection_stats(
+        self,
+        blocks: tuple[sparse.csr_array, sparse.csr_array],
+        parents: np.ndarray,
+        knots: np.ndarray,
+        q: np.ndarray,
+    ) -> np.ndarray:
         """``||q^T h_a||^2``, ``||q^T h_b||^2``, ``(q^T h_a).(q^T h_b)``, stacked last.
 
         ``q`` is consumed in chunks of :data:`_Q_CHUNK` columns, so the
         transient per-column products never exceed that many columns.
         """
-        stats = np.zeros((*self.knots.shape, parents.shape[1], 3))
+        stats = np.zeros((*knots.shape, 3))
         for start in range(0, q.shape[1], _Q_CHUNK):
-            qh_a, qh_b = self._hinge_inner(parents, q[:, start : start + _Q_CHUNK])
+            qh_a, qh_b = self._hinge_inner(
+                blocks, parents, knots, q[:, start : start + _Q_CHUNK]
+            )
             stats[..., 0] += np.sum(qh_a**2, axis=-1)
             stats[..., 1] += np.sum(qh_b**2, axis=-1)
             stats[..., 2] += np.sum(qh_a * qh_b, axis=-1)
         return stats
 
     def _add_parents(self, parents: np.ndarray, allowed: np.ndarray) -> None:
-        """Register new parent terms, computing their per-candidate statistics."""
+        """Register new parent terms, computing their per-candidate statistics.
+
+        The first parent registered is the constant; every later one is an
+        interaction parent, whose ``endspan`` ``earth`` doubles.
+        """
         X = self.X
-        u2 = parents**2
-        suffix = [
-            np.cumsum((b @ u2).reshape(-1, X.shape[1], u2.shape[1])[::-1], axis=0)[::-1]
-            for b in self._blocks
+        first = self._parents.shape[1] == 0
+        per_parent = [self._parent_blocks(u, interaction=not first) for u in parents.T]
+        knots = np.stack([k for k, _, _ in per_parent], axis=-1)
+        valid = np.stack([v for _, v, _ in per_parent], axis=-1)
+        blocks = [
+            sparse.vstack([b[i] for _, _, b in per_parent]).tocsr() for i in range(5)
         ]
-        t = self.knots[:, :, None]
-        sq_a = suffix[2] - 2 * t * suffix[1] + t**2 * suffix[0]
-        sq_all = (X**2).T @ u2 - 2 * t * (X.T @ u2) + t**2 * u2.sum(axis=0)
+        inner = (blocks[0], blocks[1])
+
+        u2 = parents**2
+        suffix0, suffix1, suffix2 = (
+            self._block_suffix(b, np.ones((X.shape[0], 1)))[..., 0] for b in blocks[2:]
+        )
+        sq_a = suffix2 - 2 * knots * suffix1 + knots**2 * suffix0
+        sq_all = (X**2).T @ u2 - 2 * knots * (X.T @ u2) + knots**2 * u2.sum(axis=0)
         # Both norms come out of this expansion by cancellation, so rounding
         # error scales with the magnitude of its terms, not with the result:
         # a hinge that is identically zero leaves noise of order eps * scale.
-        scale = (X**2).T @ u2 + 2 * np.abs(t * (X.T @ u2)) + t**2 * u2.sum(axis=0)
+        scale = (
+            (X**2).T @ u2 + 2 * np.abs(knots * (X.T @ u2)) + knots**2 * u2.sum(axis=0)
+        )
         sum_a, sum_b = (
-            inner[..., 0]
-            for inner in self._hinge_inner(parents, np.ones((X.shape[0], 1)))
+            h[..., 0]
+            for h in self._hinge_inner(inner, parents, knots, np.ones((X.shape[0], 1)))
         )
         stats = np.concatenate(
             [
                 np.stack([sq_a, sq_all - sq_a, sum_a, sum_b, scale], axis=-1),
-                self._projection_stats(parents, self.q),
+                self._projection_stats(inner, parents, knots, self.q),
             ],
             axis=-1,
         )
         self._parents = np.column_stack([self._parents, parents])
-        self._allowed = np.column_stack([self._allowed, allowed])
+        self._allowed = np.concatenate(
+            [self._allowed, allowed[None, :, :] & valid[:, None, :]], axis=2
+        )
+        self.knots = np.concatenate([self.knots, knots], axis=2)
         self._stats = np.concatenate([self._stats, stats], axis=2)
+        self._blocks.append(inner)
+        self._stacked = (
+            sparse.vstack([b[0] for b in self._blocks]).tocsr(),
+            sparse.vstack([b[1] for b in self._blocks]).tocsr(),
+        )
 
     def add_columns(
         self, columns: np.ndarray, parent_allowed: list[np.ndarray | None]
@@ -208,7 +343,9 @@ class _HingeScorer:
                 col = col - basis @ (basis.T @ col)
             new_q.append(col / np.linalg.norm(col))
         new_q_arr = np.column_stack(new_q)
-        self._stats[..., 5:] += self._projection_stats(self._parents, new_q_arr)
+        self._stats[..., 5:] += self._projection_stats(
+            self._stacked, self._parents, self.knots, new_q_arr
+        )
         self.q = np.column_stack([self.q, new_q_arr])
 
         parent_idx = [
@@ -306,7 +443,12 @@ class _HingeScorer:
         # <G, h_perp> = <G_perp, h>: projecting the gradient off the basis once
         # replaces projecting every candidate. G is not already orthogonal to
         # the basis (the ridge keeps the refit's gradient off zero).
-        na, nb = self._hinge_inner(self._parents, grad - self.q @ (self.q.T @ grad))
+        na, nb = self._hinge_inner(
+            self._stacked,
+            self._parents,
+            self.knots,
+            grad - self.q @ (self.q.T @ grad),
+        )
         na_sq, nb_sq = np.sum(na**2, axis=-1), np.sum(nb**2, axis=-1)
 
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -334,7 +476,7 @@ class _HingeScorer:
                     float(scores[best]),
                     parent,
                     feature,
-                    float(self.knots[knot_idx, feature]),
+                    float(self.knots[knot_idx, feature, parent]),
                     keep,
                 )
             )
@@ -413,18 +555,19 @@ def _backward_eliminate(
     """
     lhs, rhs, view = ridge_basis_ey_gep(*_jacobi_scaled(bases, ridge))
     active = np.ones(len(view), dtype=bool)
-    while active.sum() > n_terms:
-        idx = np.flatnonzero(active)
-        lam, vecs = scipy.linalg.eigh(lhs[np.ix_(idx, idx)], rhs[np.ix_(idx, idx)])
-        counts = np.bincount(view[idx], minlength=len(bases))
-        removable = np.flatnonzero(counts[view[idx]] > 1)
-        # The generalized eigenvectors are L^-T U, so row c is U^T L^-1 e_c:
-        # the removal direction already in eigen-coordinates.
-        z = vecs[removable]
-        z /= np.linalg.norm(z, axis=1, keepdims=True)
-        mu = _constrained_top_eigenvalues(lam, z, k)
-        loss = -np.sum(np.maximum(mu, 0.0) ** 2, axis=1)
-        active[idx[removable[np.argmin(loss)]]] = False
+    with threadpool_limits(limits=1):
+        while active.sum() > n_terms:
+            idx = np.flatnonzero(active)
+            lam, vecs = scipy.linalg.eigh(lhs[np.ix_(idx, idx)], rhs[np.ix_(idx, idx)])
+            counts = np.bincount(view[idx], minlength=len(bases))
+            removable = np.flatnonzero(counts[view[idx]] > 1)
+            # The generalized eigenvectors are L^-T U, so row c is U^T L^-1 e_c:
+            # the removal direction already in eigen-coordinates.
+            z = vecs[removable]
+            z /= np.linalg.norm(z, axis=1, keepdims=True)
+            mu = _constrained_top_eigenvalues(lam, z, k)
+            loss = -np.sum(np.maximum(mu, 0.0) ** 2, axis=1)
+            active[idx[removable[np.argmin(loss)]]] = False
     return [active[view == i] for i in range(len(bases))]
 
 
@@ -562,12 +705,18 @@ class MARSCCA(BaseModel):
             function — 1 gives an additive model, 2 allows pairwise
             interactions, and so on. Either a single value or a list of
             per-view values. Default is 1.
-        n_candidate_knots: Number of candidate knots per feature: the
-            training values at evenly spaced interior ranks. Per-step cost
-            grows linearly in this; every interior data point
-            (``n_samples - 2``, as in classical MARS) works, at roughly an
-            order of magnitude more fit time than the default. Default is
-            20.
+        n_candidate_knots: Maximum number of candidate knots per feature and
+            parent. Knots sit at the parent's support points allowed by
+            ``minspan`` and ``endspan`` and are thinned evenly to this many;
+            raise it to consider every allowed point, as ``earth`` does.
+            Per-step cost grows linearly in it. Default is 20.
+        minspan: Minimum number of the parent's support points between
+            knots. None uses Friedman's (1991) rule, as ``earth`` does by
+            default. Default is None.
+        endspan: Number of the parent's support points at either end of a
+            feature's range that may not carry a knot, doubled for
+            interaction terms as ``earth``'s ``Adjust.endspan=2`` does. None
+            uses Friedman's rule. Default is None.
         n_rescore: Number of forward-pass candidates, ranked by how much EY
             gradient they absorb, re-ranked by their exact refit loss — the
             criterion classical MARS applies to every candidate. 1 uses the
@@ -601,6 +750,8 @@ class MARSCCA(BaseModel):
         "max_degree": [Interval(Integral, 1, None, closed="left"), "array-like"],
         "n_candidate_knots": [Interval(Integral, 1, None, closed="left")],
         "n_rescore": [Interval(Integral, 1, None, closed="left")],
+        "minspan": [Interval(Integral, 1, None, closed="left"), None],
+        "endspan": [Interval(Integral, 0, None, closed="left"), None],
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
         "n_terms": [Interval(Integral, 1, None, closed="left"), None],
     }
@@ -613,6 +764,8 @@ class MARSCCA(BaseModel):
         max_degree: int | list[int] = 1,
         n_candidate_knots: int = 20,
         n_rescore: int = 10,
+        minspan: int | None = None,
+        endspan: int | None = None,
         alpha: float | list[float] = 0.1,
         n_terms: int | None = None,
         random_state: int = 0,
@@ -622,6 +775,8 @@ class MARSCCA(BaseModel):
         self.max_degree = max_degree
         self.n_candidate_knots = n_candidate_knots
         self.n_rescore = n_rescore
+        self.minspan = minspan
+        self.endspan = endspan
         self.alpha = alpha
         self.n_terms = n_terms
         self.random_state = random_state
@@ -646,7 +801,10 @@ class MARSCCA(BaseModel):
         max_terms_ = perview_parameter("max_terms", self.max_terms, 20, m)
         max_degree_ = perview_parameter("max_degree", self.max_degree, 1, m)
         alpha_ = perview_parameter("alpha", self.alpha, 0.1, m)
-        scorers = [_HingeScorer(X, self.n_candidate_knots) for X in views_]
+        scorers = [
+            _HingeScorer(X, self.n_candidate_knots, self.minspan, self.endspan)
+            for X in views_
+        ]
 
         rng = np.random.default_rng(self.random_state)
         warm_start = cheap_orthonormal_projection_weights(views_, k, None, rng)
@@ -743,7 +901,8 @@ class MARSCCA(BaseModel):
             ]
             options.append((new, _evaluate_terms(scorer.X, new)))
         if exact_loss is not None and len(options) > 1:
-            new_terms, columns = min(options, key=lambda o: exact_loss(o[1]))
+            with threadpool_limits(limits=1):
+                new_terms, columns = min(options, key=lambda o: exact_loss(o[1]))
         else:
             new_terms, columns = options[0]
 

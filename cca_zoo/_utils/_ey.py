@@ -34,6 +34,7 @@ from __future__ import annotations
 import numpy as np
 import scipy.linalg
 from scipy.optimize import minimize
+from threadpoolctl import threadpool_limits
 
 
 def ey_cross_covariance(
@@ -1167,11 +1168,21 @@ def ridge_basis_ey_closed_form(
         Per-view coefficients, ``coefficients[i]`` of shape
         ``(bases[i].shape[1], k)``; components beyond the number of positive
         eigenvalues are zero.
+
+    Note:
+        The eigenproblem is small (the total basis size), where BLAS threads
+        cannot help and, whenever CPUs are shared — a parallel grid search,
+        another process — oversubscribe them: 80x80 generalized ``eigh``
+        measured 5-150 ms with four threads under load against ~1 ms with
+        one. It therefore runs single-threaded, as do the forward pass's
+        exact rescoring and the backward pass in
+        :class:`~cca_zoo.gam.MARSCCA`.
     """
     lhs, rhs, view = ridge_basis_ey_gep(*_jacobi_scaled(bases, ridge))
     size = lhs.shape[0]
     top = max(size - k, 0)
-    mu, u = scipy.linalg.eigh(lhs, rhs, subset_by_index=(top, size - 1))
+    with threadpool_limits(limits=1):
+        mu, u = scipy.linalg.eigh(lhs, rhs, subset_by_index=(top, size - 1))
     mu, u = mu[::-1], u[:, ::-1] * _jacobi_scale(bases)[:, None]
     w = np.zeros((size, k))
     w[:, : len(mu)] = u * np.sqrt(np.maximum(mu, 0.0))
