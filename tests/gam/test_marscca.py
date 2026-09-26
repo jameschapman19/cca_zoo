@@ -542,6 +542,19 @@ def test_backward_pass_noop_when_nprune_not_smaller(
         np.testing.assert_allclose(a.coef_, b.coef_)
 
 
+def test_too_few_samples_for_any_knot_raises_clearly() -> None:
+    """With 15 samples, Friedman's endspan leaves no knot: a clear error, not a crash.
+
+    Lowering endspan is the documented fix, and then the fit succeeds.
+    """
+    rng = np.random.default_rng(0)
+    views = [rng.standard_normal((15, 4)), rng.standard_normal((15, 3))]
+    with pytest.raises(ValueError, match="could not place a single hinge"):
+        MARSCCA().fit(views)
+    model = MARSCCA(endspan=0).fit(views)
+    assert all(len(e.terms_) >= 1 for e in model.encoders_)
+
+
 def test_nprune_below_number_of_views_raises(
     correlated_views: list[np.ndarray],
 ) -> None:

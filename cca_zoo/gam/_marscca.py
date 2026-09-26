@@ -267,13 +267,15 @@ class _HingeScorer:
         knots[:slots] = np.take_along_axis(xs, order[ranks], axis=0)
         return knots, np.arange(self.n_slots) < slots, blocks
 
-    def _block_suffix(self, block: sparse.csr_array, w: np.ndarray) -> np.ndarray:
+    def _block_suffix(
+        self, block: sparse.csr_array, w: np.ndarray, n_parents: int
+    ) -> np.ndarray:
         """Suffix sums over the knot axis of stacked parents' blocks times ``w``.
 
         Returns shape (n_knots, n_features, n_parents, n_columns).
         """
         p = self.X.shape[1]
-        sums = (block @ w).reshape(-1, self.n_slots, p, w.shape[1])
+        sums = (block @ w).reshape(n_parents, self.n_slots, p, w.shape[1])
         suffix: np.ndarray = np.cumsum(sums.transpose(1, 2, 0, 3)[::-1], axis=0)[::-1]
         return suffix
 
@@ -296,7 +298,7 @@ class _HingeScorer:
             Two arrays of shape (n_knots, n_features, n_parents, c).
         """
         n = self.X.shape[0]
-        suffix0, suffix1 = (self._block_suffix(b, w) for b in blocks)
+        suffix0, suffix1 = (self._block_suffix(b, w, parents.shape[1]) for b in blocks)
         t = knots[..., None]
         inner_a = suffix1 - t * suffix0
         uw = parents[:, :, None] * w[:, None, :]
@@ -345,7 +347,8 @@ class _HingeScorer:
 
         u2 = parents**2
         suffix0, suffix1, suffix2 = (
-            self._block_suffix(b, np.ones((X.shape[0], 1)))[..., 0] for b in blocks[2:]
+            self._block_suffix(b, np.ones((X.shape[0], 1)), parents.shape[1])[..., 0]
+            for b in blocks[2:]
         )
         sq_a = suffix2 - 2 * knots * suffix1 + knots**2 * suffix0
         sq_all = (X**2).T @ u2 - 2 * knots * (X.T @ u2) + knots**2 * u2.sum(axis=0)
@@ -922,6 +925,15 @@ class MARSCCA(BaseModel):
                 raw_bases[i] = np.column_stack([raw_bases[i], added])
                 growing[i] = len(terms[i]) < max_terms_[i]
 
+            empty = [i for i, raw in enumerate(raw_bases) if raw.shape[1] == 0]
+            if empty:
+                raise ValueError(
+                    f"MARSCCA could not place a single hinge in view(s) {empty}: "
+                    "every candidate knot is excluded or degenerate. Either the "
+                    "view has too few samples for its endspan (Friedman's rule "
+                    "keeps ~9-12 points free at each end) or its features are "
+                    "constant; lower endspan or minspan for that view."
+                )
             bases = [raw - raw.mean(axis=0) for raw in raw_bases]
             coefficients = ridge_basis_ey_closed_form(bases, k, alpha_)
             representations = [b @ c for b, c in zip(bases, coefficients)]
