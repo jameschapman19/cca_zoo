@@ -183,7 +183,10 @@ importance = model.variable_importance("loss")  # one array per view
 ```
 
 Parameters share `earth`'s names and defaults wherever `earth` has one. `earth` counts an
-intercept in `nk` and `nprune`; views here are centred, so neither counts one.
+intercept in `nk` and `nprune`; views here are centred, so neither counts one. As elsewhere in
+the package, every parameter that configures one view's basis takes a single value or a list
+with one entry per view (`None` entries take that view's default). `thresh` and `nprune` are
+global: both are judged on the joint fit across views.
 
 | Parameter | `earth` | Description |
 |---|---|---|
@@ -191,6 +194,6 @@ intercept in `nk` and `nprune`; views here are centred, so neither counts one.
 | `nk` | `nk` | Maximum terms per view in the forward pass. Default `min(200, max(20, 2 * n_features))`, `earth`'s less its intercept. Scalar or per-view list. |
 | `nprune` | `nprune` | Total terms, across views, kept by the backward pass. `None` keeps the whole forward pass, since `earth`'s default of choosing it by GCV has no EY counterpart — search it by cross-validation instead. |
 | `thresh` | `thresh` | Forward-pass stopping threshold (default 0.001): stop once a round lowers the loss by less than `thresh` times its magnitude. |
-| `minspan`, `endspan` | `minspan`, `endspan` | Knot rules within each parent's support: at least `minspan` points between knots, none within `endspan` points of either end (doubled for interaction terms, as `Adjust.endspan=2`). `None` uses Friedman's formulas, `earth`'s default. |
+| `minspan`, `endspan` | `minspan`, `endspan` | Knot rules within each parent's support: at least `minspan` points between knots, none within `endspan` points of either end (doubled for interaction terms, as `Adjust.endspan=2`). `None` uses Friedman's formulas, `earth`'s default. Scalar or per-view list. |
 | `alpha` | — | Ridge penalty on every basis coefficient (CCA needs it; the EY fit is otherwise unregularised). Scalar or per-view list. |
-| `n_candidate_knots` | — | Cap on candidate knots per feature and parent (default 20), thinned evenly from those `minspan`/`endspan` allow; `earth` considers them all, so raise it to match. |
+| `n_candidate_knots` | — | Cap on candidate knots per feature and parent (default 20), thinned evenly from those `minspan`/`endspan` allow; `earth` considers them all, so raise it to match. Scalar or per-view list. |

@@ -68,6 +68,38 @@ def test_center_false(two_views_small: list[np.ndarray]) -> None:
 # ---------------------------------------------------------------------------
 
 
+def test_per_view_parameters_accept_none_entries(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """Per-view lists work for every view-level parameter; None means the default.
+
+    nk=[None, 6] grows view 0 to the default (20 for 10 features) and view 1
+    to 6; per-view knot rules and caps are accepted alongside.
+    """
+    model = MARSCCA(
+        nk=[None, 6],
+        n_candidate_knots=[5, 20],
+        minspan=[None, 2],
+        endspan=[1, None],
+        thresh=0.0,
+    ).fit(correlated_views)
+    assert [len(e.terms_) for e in model.encoders_] == [20, 6]
+    view0_knots = {(f, t) for term in model.encoders_[0].terms_ for f, t, _ in term}
+    for feature in range(correlated_views[0].shape[1]):
+        assert len({t for f, t in view0_knots if f == feature}) <= 5
+
+
+@pytest.mark.parametrize(
+    "name", ["degree", "nk", "alpha", "n_candidate_knots", "minspan", "endspan"]
+)
+def test_per_view_parameter_wrong_length_raises(
+    two_views_small: list[np.ndarray], name: str
+) -> None:
+    """Every per-view parameter must have one entry per view."""
+    with pytest.raises(ValueError, match=name):
+        MARSCCA(**{name: [2, 2, 2]}).fit(two_views_small)
+
+
 @pytest.mark.parametrize("nk", [1, 4, 7])
 def test_nk_respected(correlated_views: list[np.ndarray], nk: int) -> None:
     """No view's basis exceeds its nk budget, odd budgets included."""
@@ -94,14 +126,6 @@ def test_thresh_stops_forward_pass_early(correlated_views: list[np.ndarray]) -> 
     stopped = MARSCCA(nk=30, thresh=1e6).fit(correlated_views)
     assert [len(e.terms_) for e in grown.encoders_] == [30, 30]
     assert [len(e.terms_) for e in stopped.encoders_] == [4, 4]
-
-
-def test_per_view_nk_wrong_length_raises(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """A per-view nk list must have one entry per view."""
-    with pytest.raises(ValueError, match="nk"):
-        MARSCCA(nk=[4, 4, 4]).fit(two_views_small)
 
 
 def test_max_degree_one_is_additive(correlated_views: list[np.ndarray]) -> None:

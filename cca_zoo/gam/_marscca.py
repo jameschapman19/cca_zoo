@@ -708,6 +708,16 @@ class MARSCCA(BaseModel):
             refit=one_standard_error("nprune"),
         )
 
+    Note:
+        Every parameter that configures one view's basis — ``degree``,
+        ``nk``, ``alpha``, ``n_candidate_knots``, ``minspan``, ``endspan``
+        — takes a single value or a list of per-view values, as elsewhere
+        in the package. ``thresh`` and ``nprune`` stay global: the forward
+        pass's stopping rule compares the loss of the *joint* refit before
+        and after a round, and the backward pass deletes terms from
+        whichever view costs the joint loss least, so neither has a
+        per-view share to set.
+
     References:
         Friedman, J. H. (1991). Multivariate Adaptive Regression Splines.
         The Annals of Statistics, 19(1), 1-67.
@@ -729,13 +739,14 @@ class MARSCCA(BaseModel):
             ``earth``'s ``nk`` (each step adds at most two). ``earth`` counts
             its intercept; views here are centred, so there is none, and
             the default is ``earth``'s ``min(200, max(20, 2 * n_features))``
-            without it. Either a single value or a list of per-view values.
-            Default is None.
+            without it. Either a single value or a list of per-view values,
+            where a None entry takes that view's default. Default is None.
         n_candidate_knots: Maximum number of candidate knots per feature and
             parent. Knots sit at the parent's support points allowed by
             ``minspan`` and ``endspan`` and are thinned evenly to this many;
             raise it to consider every allowed point, as ``earth`` does.
-            Per-step cost grows linearly in it. Default is 20.
+            Per-step cost grows linearly in it. Either a single value or a
+            list of per-view values. Default is 20.
         thresh: Forward-pass stopping threshold, as ``earth``'s: the pass
             stops once a round lowers the refit training EY loss by less than
             ``thresh`` times its magnitude (the EY analogue of an R-squared
@@ -743,11 +754,13 @@ class MARSCCA(BaseModel):
             is 0.001.
         minspan: Minimum number of the parent's support points between
             knots. None uses Friedman's (1991) rule, as ``earth`` does by
-            default. Default is None.
+            default. Either a single value or a list of per-view values
+            (None entries allowed). Default is None.
         endspan: Number of the parent's support points at either end of a
             feature's range that may not carry a knot, doubled for
             interaction terms as ``earth``'s ``Adjust.endspan=2`` does. None
-            uses Friedman's rule. Default is None.
+            uses Friedman's rule. Either a single value or a list of
+            per-view values (None entries allowed). Default is None.
         alpha: Ridge penalty strength applied to every basis coefficient.
             Either a single float or a list of per-view floats. Default is
             0.1.
@@ -779,10 +792,10 @@ class MARSCCA(BaseModel):
         **BaseModel._parameter_constraints,
         "degree": [Interval(Integral, 1, None, closed="left"), "array-like"],
         "nk": [Interval(Integral, 1, None, closed="left"), "array-like", None],
-        "n_candidate_knots": [Interval(Integral, 1, None, closed="left")],
+        "n_candidate_knots": [Interval(Integral, 1, None, closed="left"), "array-like"],
         "thresh": [Interval(Real, 0, None, closed="left")],
-        "minspan": [Interval(Integral, 1, None, closed="left"), None],
-        "endspan": [Interval(Integral, 0, None, closed="left"), None],
+        "minspan": [Interval(Integral, 1, None, closed="left"), "array-like", None],
+        "endspan": [Interval(Integral, 0, None, closed="left"), "array-like", None],
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
         "nprune": [Interval(Integral, 1, None, closed="left"), None],
     }
@@ -792,11 +805,11 @@ class MARSCCA(BaseModel):
         latent_dimensions: int = 1,
         center: bool = True,
         degree: int | list[int] = 1,
-        nk: int | list[int] | None = None,
-        n_candidate_knots: int = 20,
+        nk: int | list[int | None] | None = None,
+        n_candidate_knots: int | list[int] = 20,
         thresh: float = 0.001,
-        minspan: int | None = None,
-        endspan: int | None = None,
+        minspan: int | list[int | None] | None = None,
+        endspan: int | list[int | None] | None = None,
         alpha: float | list[float] = 0.1,
         nprune: int | None = None,
         random_state: int = 0,
@@ -830,15 +843,19 @@ class MARSCCA(BaseModel):
         k = self.latent_dimensions
         m = self.n_views_
         max_degree_ = perview_parameter("degree", self.degree, 1, m)
-        max_terms_ = (
-            [_default_nk(X.shape[1]) for X in views_]
-            if self.nk is None
-            else perview_parameter("nk", self.nk, 0, m)
-        )
+        nk_: list[int | None] = perview_parameter("nk", self.nk, None, m)
+        max_terms_ = [
+            _default_nk(X.shape[1]) if nk is None else nk for X, nk in zip(views_, nk_)
+        ]
         alpha_ = perview_parameter("alpha", self.alpha, 0.1, m)
+        n_knots_ = perview_parameter("n_candidate_knots", self.n_candidate_knots, 20, m)
+        minspan_: list[int | None] = perview_parameter("minspan", self.minspan, None, m)
+        endspan_: list[int | None] = perview_parameter("endspan", self.endspan, None, m)
         scorers = [
-            _HingeScorer(X, self.n_candidate_knots, self.minspan, self.endspan)
-            for X in views_
+            _HingeScorer(X, n_knots, minspan, endspan)
+            for X, n_knots, minspan, endspan in zip(
+                views_, n_knots_, minspan_, endspan_
+            )
         ]
 
         rng = np.random.default_rng(self.random_state)
