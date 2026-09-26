@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import itertools
+
 import torch
 import torch.nn as nn
 
-from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep._base import BaseDeep, Batch
 from cca_zoo.deep.objectives import _inv_sqrtm
 
 
 class _BatchWhiten(nn.Module):
-    """Whitening layer with a running covariance; the identity in eval mode.
+    """Whitening layer by a running covariance, updated in training mode.
 
     Args:
         num_features: Input dimension.
@@ -40,22 +42,18 @@ class _BatchWhiten(nn.Module):
         self.num_batches_tracked: torch.Tensor
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Whiten a batch of shape (batch_size, num_features)."""
-        if not self.training:
-            return x
+        """Whiten a batch of shape (batch_size, num_features) by the running covariance.
 
-        self.num_batches_tracked.add_(1)
-        factor = self.momentum
-
-        batch_cov = (x.T @ x) / x.shape[0]
-        with torch.no_grad():
-            self.running_covar.mul_(1.0 - factor).add_(batch_cov * factor)
-            w = _inv_sqrtm(self.running_covar, self.eps)
-
-        return x @ w
+        In training mode the batch first updates the running covariance.
+        """
+        if self.training:
+            with torch.no_grad():
+                self.running_covar.lerp_((x.T @ x) / x.shape[0], self.momentum)
+                self.num_batches_tracked.add_(1)
+        return x @ _inv_sqrtm(self.running_covar, self.eps)
 
 
-class DCCANOI(DCCA):
+class DCCANOI(BaseDeep):
     r"""Deep CCA by nonlinear orthogonal iterations.
 
     Regresses each view's encoding on the others' whitened encodings, held
@@ -72,7 +70,6 @@ class DCCANOI(DCCA):
         encoders: One module per view.
         rho: Running-covariance update rate in ``[0, 1]``. Default is 0.1.
         learning_rate: Adam learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
         eps: Floor on the whitening eigenvalues. Default is 1e-6.
 
     Raises:
@@ -96,7 +93,6 @@ class DCCANOI(DCCA):
         encoders: list[nn.Module],
         rho: float = 0.1,
         learning_rate: float = 1e-3,
-        max_epochs: int = 100,
         eps: float = 1e-6,
     ) -> None:
         if rho < 0.0 or rho > 1.0:
@@ -105,34 +101,27 @@ class DCCANOI(DCCA):
             n_components=n_components,
             encoders=encoders,
             learning_rate=learning_rate,
-            max_epochs=max_epochs,
-            eps=eps,
         )
+        self.eps = eps
         self.rho = rho
         self.mse = nn.MSELoss(reduction="sum")
         self.bws = nn.ModuleList(
             [_BatchWhiten(n_components, momentum=rho, eps=eps) for _ in encoders]
         )
 
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
+    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
         """The NOI loss of a batch.
 
         Args:
-            representations: One encoded tensor per view.
-            independent_representations: Unused.
+            batch: Dictionary with a ``"views"`` list of tensors.
 
         Returns:
             ``{"objective": loss}``.
         """
-        whitened = [bw(r) for r, bw in zip(representations, self.bws)]
-        total = torch.tensor(0.0, device=representations[0].device)
-        n_views = len(representations)
-        for i in range(n_views):
-            for j in range(n_views):
-                if i != j:
-                    total = total + self.mse(representations[i], whitened[j].detach())
-        return {"objective": total}
+        representations = self(batch["views"])
+        targets = [bw(z).detach() for z, bw in zip(representations, self.bws)]
+        objective = sum(
+            self.mse(representations[i], targets[j])
+            for i, j in itertools.permutations(range(len(representations)), 2)
+        )
+        return {"objective": objective}

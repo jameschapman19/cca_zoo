@@ -49,6 +49,10 @@ The table below gives each replacement.
 | `GPCCA` | `cca_zoo.gp.GaussianProcessCCA` |
 | `DCCA_EY`, `DCCA_NOI`, `DCCA_SDL` | `cca_zoo.deep.DCCAEY`, `DCCANOI`, `DCCASDL` |
 | `MARSCCA.variable_importance()` (never released) | `MARSCCA.feature_importances_` |
+| deep `model.transform(loader)` | `trainer.predict(model, loader)`, returning canonical variates per batch; `[torch.cat(z) for z in zip(*batches)]` concatenates them |
+| deep `model.score(loader)` | `cca_zoo.metrics` on the predicted arrays |
+| deep models' `max_epochs=` (never used) | the `Trainer`'s `max_epochs` |
+| custom deep `loss(representations, independent_representations)` | `loss(batch)`, encoding `batch["views"]` itself |
 
 ### Added
 
@@ -144,6 +148,22 @@ The table below gives each replacement.
   through it (the posterior mean, for the probabilistic models).
 - `ManifoldCCA`'s training embedding is `embedding_`, the name sklearn's manifold learners
   use, rather than `weights_`, which elsewhere means weight matrices.
+- **Breaking:** the deep models are Lightning-native throughout.
+  - **Prediction:** `trainer.predict` returns canonical variates. A linear CCA is fitted
+    to the training encodings when training ends (`fit_cca`) and stored as buffers, so it
+    is saved in checkpoints. The old `transform` returned raw encodings, unordered and
+    correlated within a view.
+  - **Scoring:** the old `score`, which fitted a CCA to the very data it scored, is
+    removed; use `cca_zoo.metrics` on the predictions.
+  - **Losses:** `loss(batch)` takes the whole batch, so the autoencoder models' validation
+    and test losses include reconstruction. `DVCCA` and `SplitAE` previously logged 0, and
+    `DCCAE` only its correlation term.
+  - **Hyperparameters:** they are saved (`load_from_checkpoint` takes the modules again).
+  - **Checks:** an encoder of the wrong width raises. `DCCASDL`, `BarlowTwins` and
+    `VICReg`, and `DCCA`/`DCCAE` with the default two-view loss, raise on other numbers of
+    views instead of silently using the first two.
+  - **Base classes:** `DCCAEY`, `DCCANOI`, `DCCASDL`, `BarlowTwins` and `VICReg` subclass
+    `BaseDeep` rather than carrying an unused `DCCA` loss.
 
 ### Removed
 
@@ -163,9 +183,18 @@ Removed outright, with no deprecation period; the table above gives each replace
   `DCCASDL`, `DMCCA`, `DGCCA`, `DTCCA`, `BarlowTwins`, `VICReg`), which was accepted and
   ignored; and `eps` where nothing used it (`DCCAEY`, `DCCASDL`, `BarlowTwins`, `VICReg`,
   `SplitAE`, `DVCCA`).
+- The deep models' `max_epochs`, which was stored and never read, and their `transform`
+  and `score` (see Changed).
 
 ### Fixed
 
+- `DVCCA` combined its views by adding their means and log-variances, which is not a
+  posterior. The views' Gaussian posteriors are now combined with the prior by a product
+  of experts, which with one view is the original model, and each view's encoding is its
+  own posterior mean. It previously returned a single array, so its `score` raised.
+- `DCCANOI`'s whitening layer returned unwhitened encodings in eval mode, so its
+  validation loss compared raw encodings; it now whitens by the running covariance, as
+  batch normalisation uses its running statistics.
 - `CCAR3` and `ECCA` named a constructor parameter `lambda_`; sklearn's `check_is_fitted`
   treats any trailing-underscore attribute as fitted state, so an unfitted model raised a
   confusing `AttributeError` instead of `NotFittedError`. The parameter is now `alpha`.

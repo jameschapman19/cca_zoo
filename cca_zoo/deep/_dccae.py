@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from cca_zoo.deep._base import BaseDeep
-from cca_zoo.deep.objectives import CCALoss
+from cca_zoo.deep._base import Batch
+from cca_zoo.deep._dcca import DCCA
 
 
-class DCCAE(BaseDeep):
+def _reconstruction_loss(
+    views: list[torch.Tensor], reconstructions: list[torch.Tensor]
+) -> torch.Tensor:
+    """Summed mean squared reconstruction error over views."""
+    return torch.stack([F.mse_loss(r, x) for x, r in zip(views, reconstructions)]).sum()
+
+
+class DCCAE(DCCA):
     r"""Deep CCA with per-view autoencoder reconstruction.
 
     $$
@@ -30,11 +35,11 @@ class DCCAE(BaseDeep):
         objective: Correlation loss; None uses ``CCALoss(eps)``. Default is
             None.
         learning_rate: Adam learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
         eps: Ridge of the default loss. Default is 1e-6.
 
     Raises:
-        ValueError: If ``lam`` is outside ``[0, 1]``.
+        ValueError: If ``lam`` is outside ``[0, 1]``, or ``objective`` is None
+            and there are not two encoders.
 
     References:
         Wang, W., Arora, R., Livescu, K., & Bilmes, J. (2015). On deep
@@ -58,73 +63,37 @@ class DCCAE(BaseDeep):
         lam: float = 0.5,
         objective: nn.Module | None = None,
         learning_rate: float = 1e-3,
-        max_epochs: int = 100,
         eps: float = 1e-6,
     ) -> None:
-        if lam < 0.0 or lam > 1.0:
+        if not 0.0 <= lam <= 1.0:
             raise ValueError(f"lam must be in [0, 1], got {lam}.")
         super().__init__(
             n_components=n_components,
             encoders=encoders,
+            objective=objective,
             learning_rate=learning_rate,
-            max_epochs=max_epochs,
+            eps=eps,
         )
-        self.eps = eps
         self.lam = lam
         self.decoders = nn.ModuleList(decoders)
-        self.objective: nn.Module = CCALoss(eps=eps) if objective is None else objective
 
-    def _decode(self, representations: list[torch.Tensor]) -> list[torch.Tensor]:
-        """Reconstruct each view from its own encoding."""
-        return [dec(z) for dec, z in zip(self.decoders, representations)]
-
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
-        """The correlation term alone, since reconstruction needs the inputs.
-
-        Args:
-            representations: One encoded tensor per view.
-            independent_representations: Unused.
-
-        Returns:
-            ``{"objective": correlation loss}``.
-        """
-        return {"objective": self.objective(representations)}
-
-    def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Full loss of a batch, reconstruction included.
+    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
+        """The DCCAE loss of a batch and its terms.
 
         Args:
             batch: Dictionary with a ``"views"`` list of tensors.
-            batch_idx: Unused.
 
         Returns:
-            The loss.
+            ``{"objective", "cca", "reconstruction"}``.
         """
         views = batch["views"]
         representations = self(views)
-        reconstructions = self._decode(representations)
-
-        cca_loss = self.objective(representations)
-        recon_loss = torch.stack(
-            [F.mse_loss(x, r) for x, r in zip(views, reconstructions)]
-        ).sum()
-        objective = (1.0 - self.lam) * cca_loss + self.lam * recon_loss
-
-        loss_dict = {
-            "objective": objective,
-            "cca": cca_loss,
-            "reconstruction": recon_loss,
+        cca = self.objective(representations)
+        reconstruction = _reconstruction_loss(
+            views, [dec(z) for dec, z in zip(self.decoders, representations)]
+        )
+        return {
+            "objective": (1.0 - self.lam) * cca + self.lam * reconstruction,
+            "cca": cca,
+            "reconstruction": reconstruction,
         }
-        for k, v in loss_dict.items():
-            self.log(
-                f"train/{k}",
-                v,
-                on_step=False,
-                on_epoch=True,
-                batch_size=views[0].shape[0],
-            )
-        return objective

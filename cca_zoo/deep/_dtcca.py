@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import torch
 import torch.nn as nn
 
 from cca_zoo.deep._dcca import DCCA
@@ -21,7 +20,6 @@ class DTCCA(DCCA):
         n_components: Latent dimension.
         encoders: One module per view.
         learning_rate: Adam learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
         eps: Whitening ridge. Default is 1e-6.
 
     References:
@@ -40,7 +38,6 @@ class DTCCA(DCCA):
         n_components: int,
         encoders: list[nn.Module],
         learning_rate: float = 1e-3,
-        max_epochs: int = 100,
         eps: float = 1e-6,
     ) -> None:
         super().__init__(
@@ -48,22 +45,5 @@ class DTCCA(DCCA):
             encoders=encoders,
             objective=TCCALoss(eps=eps),
             learning_rate=learning_rate,
-            max_epochs=max_epochs,
             eps=eps,
         )
-
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
-        """The tensor CCA loss of a batch.
-
-        Args:
-            representations: One encoded tensor per view.
-            independent_representations: Unused.
-
-        Returns:
-            ``{"objective": loss}``.
-        """
-        return {"objective": self.objective(representations)}

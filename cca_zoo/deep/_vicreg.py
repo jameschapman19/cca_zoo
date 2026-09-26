@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep._base import BaseDeep, Batch, _require_two_views
 
 
 def _invariance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
@@ -37,7 +37,7 @@ def _covariance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
     return penalty
 
 
-class VICReg(DCCA):
+class VICReg(BaseDeep):
     r"""Variance-invariance-covariance regularisation for two views.
 
     $$
@@ -55,7 +55,9 @@ class VICReg(DCCA):
         std_coeff: Weight of the variance term. Default is 25.0.
         cov_coeff: Weight of the covariance term. Default is 1.0.
         learning_rate: Adam learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
+
+    Raises:
+        ValueError: If there are not two encoders.
 
     References:
         Bardes, A., Ponce, J., & LeCun, Y. (2022). VICReg:
@@ -76,33 +78,27 @@ class VICReg(DCCA):
         std_coeff: float = 25.0,
         cov_coeff: float = 1.0,
         learning_rate: float = 1e-3,
-        max_epochs: int = 100,
     ) -> None:
+        _require_two_views(encoders, "VICReg")
         super().__init__(
             n_components=n_components,
             encoders=encoders,
             learning_rate=learning_rate,
-            max_epochs=max_epochs,
         )
         self.sim_coeff = sim_coeff
         self.std_coeff = std_coeff
         self.cov_coeff = cov_coeff
 
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
+    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
         """The VICReg loss of the first two views and its terms.
 
         Args:
-            representations: One tensor of shape (batch_size, n_components) per
-                view.
-            independent_representations: Unused.
+            batch: Dictionary with a ``"views"`` list of tensors.
 
         Returns:
             ``{"objective", "sim_loss", "var_loss", "cov_loss"}``.
         """
+        representations = self(batch["views"])
         z1, z2 = representations[0], representations[1]
         sim = _invariance_loss(z1, z2)
         var = _variance_loss(z1, z2)

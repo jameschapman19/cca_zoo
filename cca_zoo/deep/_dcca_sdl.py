@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep._base import BaseDeep, Batch, _require_two_views
 
 
 def _sdl_loss(view: torch.Tensor) -> torch.Tensor:
@@ -16,7 +16,7 @@ def _sdl_loss(view: torch.Tensor) -> torch.Tensor:
     return cov[mask].abs().mean()
 
 
-class DCCASDL(DCCA):
+class DCCASDL(BaseDeep):
     r"""Deep CCA with a stochastic decorrelation loss.
 
     Batch-normalised encodings are aligned by mean squared error and
@@ -32,7 +32,9 @@ class DCCASDL(DCCA):
         encoders: One module per view.
         lam: Weight of the decorrelation term. Default is 0.5.
         learning_rate: Adam learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
+
+    Raises:
+        ValueError: If there are not two encoders.
 
     References:
         Chang, X., Xiang, T., & Hospedales, T. M. (2018). Scalable and
@@ -51,13 +53,12 @@ class DCCASDL(DCCA):
         encoders: list[nn.Module],
         lam: float = 0.5,
         learning_rate: float = 1e-3,
-        max_epochs: int = 100,
     ) -> None:
+        _require_two_views(encoders, "DCCASDL")
         super().__init__(
             n_components=n_components,
             encoders=encoders,
             learning_rate=learning_rate,
-            max_epochs=max_epochs,
         )
         self.lam = lam
         self.bns = nn.ModuleList(
@@ -68,20 +69,16 @@ class DCCASDL(DCCA):
         """Batch-normalised encodings of each view."""
         return [bn(enc(v)) for enc, bn, v in zip(self.encoders, self.bns, views)]
 
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
+    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
         """The SDL loss of a batch and its terms.
 
         Args:
-            representations: One encoded tensor per view.
-            independent_representations: Unused.
+            batch: Dictionary with a ``"views"`` list of tensors.
 
         Returns:
             ``{"objective", "l2", "sdl"}``.
         """
+        representations = self(batch["views"])
         l2 = F.mse_loss(representations[0], representations[1])
         sdl = torch.stack([_sdl_loss(r) for r in representations]).sum()
         return {

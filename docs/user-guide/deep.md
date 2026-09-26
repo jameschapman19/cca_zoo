@@ -1,8 +1,8 @@
 # Deep Methods
 
-The `cca_zoo.deep` module provides CCA variants that use neural network encoders to learn
-nonlinear representations of each view. All deep models are built on
-[PyTorch Lightning](https://lightning.ai/) and require the `[deep]` extra:
+`cca_zoo.deep` trains neural encoders, one per view, with CCA-style and self-supervised
+losses. The models are [PyTorch Lightning](https://lightning.ai/) modules and need the
+`deep` extra:
 
 ```bash
 pip install cca-zoo[deep]
@@ -10,250 +10,146 @@ pip install cca-zoo[deep]
 
 ---
 
-## Design
+## Workflow
 
-Deep models in CCA-Zoo are **encoder-only**: you supply your own `nn.Module` for each view,
-and the model optimises a CCA-based objective over the encoder outputs. This keeps the models
-flexible — any architecture (MLP, CNN, Transformer) can be used.
-
-```python
-import torch.nn as nn
-from cca_zoo.deep import DCCA
-
-# Define encoders for each view
-encoder1 = nn.Sequential(nn.Linear(100, 64), nn.ReLU(), nn.Linear(64, 16))
-encoder2 = nn.Sequential(nn.Linear(80, 64), nn.ReLU(), nn.Linear(64, 16))
-
-model = DCCA(
-    n_components=8,
-    encoders=[encoder1, encoder2],
-    learning_rate=1e-3,
-)
-```
-
-All deep models are Lightning modules, trained with a standard `lightning.Trainer` —
-there is deliberately no `model.fit(...)` shortcut. This is the one training path,
-for every deep model, always.
-
-The one thing to get right is the batch shape: `training_step`/`validation_step` read
-each batch as a dict with a `"views"` key holding a list of per-view tensors — a plain
-`torch.utils.data.TensorDataset` yields *tuples*, which is a different shape and will
-raise a `TypeError`. For the common case of already having each view as a single
-in-memory array, use `MultiviewDataset`:
+A model takes one `nn.Module` per view, each mapping that view to `n_components` outputs,
+and is trained and used with a Lightning `Trainer`:
 
 ```python
 import lightning as L
+import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
-from cca_zoo.deep import MultiviewDataset
 
-loader = DataLoader(MultiviewDataset([X1, X2]), batch_size=64, shuffle=True)
+from cca_zoo.deep import DCCA, MultiviewDataset
 
-trainer = L.Trainer(max_epochs=50)
-trainer.fit(model, loader)
-```
+model = DCCA(
+    n_components=4,
+    encoders=[
+        nn.Sequential(nn.Linear(100, 64), nn.ReLU(), nn.Linear(64, 4)),
+        nn.Sequential(nn.Linear(80, 64), nn.ReLU(), nn.Linear(64, 4)),
+    ],
+)
 
-`MultiviewDataset` is a small, optional convenience — for anything more custom (lazy
-loading, augmentation, streaming, file-backed views), write your own
-`torch.utils.data.Dataset` whose `__getitem__` returns `{"views": [tensor_1, ..., tensor_n]}`
-for a single sample; that dict shape is the actual contract, not the class itself.
-
-After training, `transform` takes a DataLoader (built the same way) and returns the
-encoded representations:
-
-```python
+train_loader = DataLoader(MultiviewDataset([X1, X2]), batch_size=128, shuffle=True)
+val_loader = DataLoader(MultiviewDataset([X1_val, X2_val]), batch_size=256)
 test_loader = DataLoader(MultiviewDataset([X1_test, X2_test]), batch_size=256)
 
-z1, z2 = model.transform(test_loader)
+trainer = L.Trainer(max_epochs=50)
+trainer.fit(model, train_loader, val_loader)
+
+# Canonical variates, one array per view
+z1, z2 = (torch.cat(z).numpy() for z in zip(*trainer.predict(model, test_loader)))
+```
+
+Batches are dictionaries with a `"views"` list of tensors. `MultiviewDataset` builds them
+from in-memory arrays; any `Dataset` whose items are `{"views": [x_1, ..., x_m]}` works
+(a `TensorDataset` yields tuples and does not).
+
+Every loss term is logged under `train/`, `val/` and `test/`, so callbacks such as
+`EarlyStopping(monitor="val/objective")` and `ModelCheckpoint` work as usual.
+
+### Outputs
+
+Calling the model, `model([x1, x2])`, returns each view's raw encoding.
+`trainer.predict` returns **canonical variates**: when training ends, a linear CCA is
+fitted to the training encodings and applied to every prediction, so each view's outputs
+are uncorrelated with unit variance and ordered by canonical correlation, as `transform`
+gives for the other models. Call `model.fit_cca(loader)` to refit that projection on
+other data, or to predict from a model that was not trained with `trainer.fit`.
+
+Evaluate with `cca_zoo.metrics` on the predicted arrays:
+
+```python
+from cca_zoo.metrics import average_pairwise_correlations, pairwise_correlations
+
+average_pairwise_correlations(pairwise_correlations([z1, z2]))  # per dimension
+```
+
+### Checkpoints
+
+Hyperparameters are saved with the model; the encoders and decoders are modules, so pass
+them again when loading:
+
+```python
+model = DCCA.load_from_checkpoint(path, encoders=[make_encoder(100), make_encoder(80)])
 ```
 
 ---
 
-## Available models
+## Models
 
-### DCCA — Deep CCA
+| Model | Views | Loss |
+|---|---|---|
+| `DCCA` | 2, or any with a multiview `objective` | Deep CCA (Andrew et al., 2013); pluggable |
+| `DCCAEY` | any | Eckart-Young loss (Chapman et al., 2024); stable on small batches |
+| `DMCCA` | any | Sum of pairwise CCA losses |
+| `DGCCA` | any | Generalized CCA (Benton et al., 2019) |
+| `DTCCA` | any | Tensor CCA (Wong et al., 2021) |
+| `DCCANOI` | any | Nonlinear orthogonal iterations (Wang et al., 2015) |
+| `DCCASDL` | 2 | Alignment plus within-view soft decorrelation (Chang et al., 2018) |
+| `BarlowTwins` | 2 | Cross-correlation to the identity (Zbontar et al., 2021) |
+| `VICReg` | 2 | Variance, invariance and covariance terms (Bardes et al., 2022) |
+| `DCCAE` | 2, or any with a multiview `objective` | Deep CCA plus per-view reconstruction (Wang et al., 2015) |
+| `SplitAE` | any | Every view reconstructed from all encodings |
+| `DVCCA` | any | Variational: shared latent decoded to every view (Wang et al., 2016) |
 
-The original Deep CCA (Andrew et al. 2013). Optimises a differentiable CCA loss on
-mini-batches of encoder outputs.
+Two-view models raise on other numbers of encoders rather than ignoring views.
 
-The `objective` parameter controls which CCA loss is used:
+`DCCA` and `DCCAE` take an `objective` from `cca_zoo.deep.objectives`, or any module
+mapping a list of encodings to a scalar:
 
-```python
-from cca_zoo.deep import DCCA
-from cca_zoo.deep.objectives import CCALoss, GCCALoss
-
-model = DCCA(n_components=8, encoders=[e1, e2], objective=CCALoss(eps=1e-4))
-```
-
-Available objectives (from `cca_zoo.deep.objectives`):
-
-| Class | Description |
+| Objective | Loss |
 |---|---|
-| `CCALoss` | Negative sum of squared singular values of $\Sigma_{11}^{-1/2} \Sigma_{12} \Sigma_{22}^{-1/2}$ |
-| `MCCALoss` | Sum of pairwise `CCALoss` values |
-| `GCCALoss` | Negative sum of top-$k$ eigenvalues of $\sum_i H_i H_i^\top$ |
-| `TCCALoss` | Negative Frobenius norm of whitened cross-moment tensor |
-
-### DCCAEY — Eckart-Young objective
-
-Uses the Eckart-Young decomposition as the differentiable objective (Benton et al. 2022).
-Tends to be more stable than the original CCA loss on small batches.
+| `CCALoss` | $-\lVert \Sigma_{11}^{-1/2} \Sigma_{12} \Sigma_{22}^{-1/2} \rVert_F^2$ (two views) |
+| `MCCALoss` | Sum of pairwise `CCALoss` |
+| `GCCALoss` | Minus the top $k$ eigenvalues of $\sum_i H_i H_i^\top$ |
+| `TCCALoss` | Minus the norm of the whitened cross-moment tensor |
 
 ```python
-from cca_zoo.deep import DCCAEY
+from cca_zoo.deep.objectives import MCCALoss
 
-model = DCCAEY(n_components=8, encoders=[e1, e2])
+model = DCCA(n_components=4, encoders=[e1, e2, e3], objective=MCCALoss())
 ```
 
-### DCCANOI — Non-linear Orthogonal Iterations
-
-Wang et al. 2015. An iterative approach that alternately optimises each encoder
-while holding the others fixed.
-
-```python
-from cca_zoo.deep import DCCANOI
-
-model = DCCANOI(n_components=8, encoders=[e1, e2])
-```
-
-### DCCASDL — Stochastic Decorrelation Loss
-
-Chang et al. 2018. Adds an explicit decorrelation term that penalises off-diagonal
-cross-covariance entries.
-
-```python
-from cca_zoo.deep import DCCASDL
-
-model = DCCASDL(n_components=8, encoders=[e1, e2])
-```
-
-### DCCAE — Deep CCA with Autoencoders
-
-Wang et al. 2015. Adds a reconstruction loss to DCCA, encouraging each encoder to
-also be a good autoencoder. Requires a matching decoder per view.
+The autoencoder models also take decoders. `DCCAE` decodes each view from its own
+encoding, `SplitAE` from the concatenation of all encodings (decoder input
+`n_views * n_components`), and `DVCCA` from the shared latent. `DVCCA`'s encoders output
+`2 * n_components` values, a mean and a log-variance; the views' posteriors are combined
+by a product of experts, and each view's encoding is its posterior mean.
 
 ```python
 from cca_zoo.deep import DCCAE
 
-decoder1 = nn.Sequential(nn.Linear(16, 64), nn.ReLU(), nn.Linear(64, 100))
-decoder2 = nn.Sequential(nn.Linear(16, 64), nn.ReLU(), nn.Linear(64, 80))
-
-model = DCCAE(
-    n_components=8,
-    encoders=[e1, e2],
-    decoders=[decoder1, decoder2],
-    lam=0.01,  # reconstruction loss weight
-)
+model = DCCAE(n_components=4, encoders=[e1, e2], decoders=[d1, d2], lam=0.1)
 ```
 
-### DVCCA — Deep Variational CCA
-
-Wang et al. 2016. A variational autoencoder-based formulation where the shared
-latent variable has an explicit probabilistic prior.
-
-```python
-from cca_zoo.deep import DVCCA
-
-model = DVCCA(n_components=8, encoders=[e1, e2], decoders=[d1, d2])
-```
-
-### DTCCA — Deep Tensor CCA
-
-Wong et al. 2021. Deep extension of TCCA, capturing higher-order correlations via
-a tensor loss on the encoder outputs.
-
-```python
-from cca_zoo.deep import DTCCA
-
-model = DTCCA(n_components=8, encoders=[e1, e2, e3])
-```
-
-### SplitAE — Split Autoencoder
-
-A simple baseline that concatenates views, encodes them to a shared latent space, and
-decodes back to each view independently.
-
-```python
-from cca_zoo.deep import SplitAE
-
-model = SplitAE(n_components=8, encoders=[e1, e2], decoders=[d1, d2])
-```
-
-### BarlowTwins
-
-Zbontar et al. 2021. A self-supervised objective that encourages the cross-correlation
-matrix of the two encoded views to be close to the identity.
-
-```python
-from cca_zoo.deep import BarlowTwins
-
-model = BarlowTwins(n_components=8, encoders=[e1, e2], lam=5e-3)
-```
-
-### VICReg
-
-Bardes et al. 2022. Regularises the representations via **V**ariance, **I**nvariance,
-and **C**ovariance terms.
-
-```python
-from cca_zoo.deep import VICReg
-
-model = VICReg(n_components=8, encoders=[e1, e2])
-```
+`DCCAEY` also accepts `"independent_views"` in a batch, an independent batch whose
+encodings give an unbiased estimate of the loss's penalty term.
 
 ---
 
-## Full training example
+## Custom models
+
+Subclass `BaseDeep` and implement `loss(batch)`, returning a dictionary whose
+`"objective"` entry is minimised; every entry is logged. Override `configure_optimizers`
+to change the optimiser.
 
 ```python
-import torch.nn as nn
-import lightning as L
-from torch.utils.data import DataLoader
-
-from cca_zoo.datasets import make_joint_data
-from cca_zoo.deep import DCCA, MultiviewDataset
-
-# Simulate data
-views = make_joint_data(
-    n_samples=1000, n_features=[100, 80], n_components=4, random_state=0
-)
-
-train_loader = DataLoader(MultiviewDataset(views), batch_size=64, shuffle=True)
+from cca_zoo.deep import BaseDeep
 
 
-# Build encoders
-def make_encoder(in_features: int, latent_dim: int) -> nn.Module:
-    return nn.Sequential(
-        nn.Linear(in_features, 128),
-        nn.BatchNorm1d(128),
-        nn.ReLU(),
-        nn.Linear(128, latent_dim),
-    )
-
-
-model = DCCA(
-    n_components=4,
-    encoders=[make_encoder(100, 4), make_encoder(80, 4)],
-    learning_rate=1e-3,
-)
-
-trainer = L.Trainer(max_epochs=30, enable_progress_bar=True)
-trainer.fit(model, train_loader)
-
-# Evaluate
-test_loader = DataLoader(MultiviewDataset(views), batch_size=256)
-z1, z2 = model.transform(test_loader)
-print("Representation shape:", z1.shape)  # (1000, 4)
+class MyModel(BaseDeep):
+    def loss(self, batch):
+        z1, z2 = self(batch["views"])
+        objective = ((z1 - z2) ** 2).mean()
+        return {"objective": objective}
 ```
 
 ---
 
 ## Tips
 
-- **Batch size matters.** CCA-based losses estimate covariance from mini-batches. Use
-  `batch_size ≥ 4 * n_components` for stable estimates.
-- **Encoder output dimension ≥ `n_components`.** The model projects down inside the
-  loss; do not make encoders narrower than the requested latent space.
-- **Use `DCCAEY` for small batches.** The Eckart-Young objective is more numerically stable
-  than the original `CCALoss` when batch sizes are small.
-- **Score after training** via `model.score(loader)`, which fits a linear `MCCA` on the
-  learned representations to report their mean canonical correlation.
+- **Batch size matters.** The CCA losses estimate covariances per mini-batch; use batches
+  well above `n_components`, or `DCCAEY` when they must be small.
+- **Encoders end in exactly `n_components` outputs** (`2 * n_components` for `DVCCA`).

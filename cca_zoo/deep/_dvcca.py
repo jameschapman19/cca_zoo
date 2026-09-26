@@ -2,39 +2,41 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from cca_zoo.deep._base import BaseDeep
+from cca_zoo.deep._base import BaseDeep, Batch
+from cca_zoo.deep._dccae import _reconstruction_loss
 
 
 class DVCCA(BaseDeep):
-    r"""Deep variational CCA: a multiview variational autoencoder.
+    r"""Deep variational CCA: a shared latent variable decoded to every view.
 
-    Each encoder outputs a mean and log-variance, summed over views into
-    $q(z \mid X)$; one decoder per view reconstructs it from $z$. Training
-    minimises the negative ELBO
+    Each view's encoder gives a Gaussian posterior
+    $\mathcal{N}(\mu_i, \sigma_i^2)$; these are combined with the
+    $\mathcal{N}(0, I)$ prior by a product of experts, which with one view is
+    the original DVCCA posterior. Training minimises the negative ELBO
 
     $$
     \mathcal{L} = \sum_i \operatorname{MSE}(x_i, \text{decoder}_i(z))
-        + \mathrm{KL}(q(z \mid X) \,\|\, \mathcal{N}(0, I)).
+        + \mathrm{KL}(q(z \mid x_1, \dots, x_M) \,\|\, \mathcal{N}(0, I)).
     $$
+
+    Each view's encoding is its own posterior mean $\mu_i$.
 
     Args:
         n_components: Latent dimension.
-        encoders: One module per view mapping it to ``2 * n_components``
-            outputs, the mean then the log-variance.
+        encoders: One module per view with ``2 * n_components`` outputs, the
+            mean then the log-variance.
         decoders: One module per view mapping the latent back to that view.
         learning_rate: Adam learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
 
     References:
         Wang, W., Yan, X., Lee, H., & Livescu, K. (2016). Deep variational
         canonical correlation analysis. arXiv:1610.03454.
+
+        Wu, M., & Goodman, N. (2018). Multimodal generative models for
+        scalable weakly-supervised learning. NeurIPS.
 
     Examples:
         >>> import torch.nn as nn
@@ -52,119 +54,54 @@ class DVCCA(BaseDeep):
         encoders: list[nn.Module],
         decoders: list[nn.Module],
         learning_rate: float = 1e-3,
-        max_epochs: int = 100,
     ) -> None:
         super().__init__(
             n_components=n_components,
             encoders=encoders,
             learning_rate=learning_rate,
-            max_epochs=max_epochs,
         )
         self.decoders = nn.ModuleList(decoders)
 
-    def _encode(self, views: list[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
-        """Mean and log-variance of the shared posterior, summed over views."""
+    def _posteriors(
+        self, views: list[torch.Tensor]
+    ) -> list[tuple[torch.Tensor, torch.Tensor]]:
+        """``(mu, log_var)`` of each view's posterior."""
         k = self.n_components
-        mu_sum = torch.zeros(views[0].shape[0], k, device=views[0].device)
-        lv_sum = torch.zeros(views[0].shape[0], k, device=views[0].device)
+        posteriors = []
         for enc, v in zip(self.encoders, views):
             out = enc(v)
-            mu_sum = mu_sum + out[:, :k]
-            lv_sum = lv_sum + out[:, k:]
-        return mu_sum, lv_sum
-
-    def _reparameterise(self, mu: torch.Tensor, log_var: torch.Tensor) -> torch.Tensor:
-        """Sample the latent by the reparameterisation trick."""
-        std = torch.exp(0.5 * log_var)
-        eps = torch.randn_like(std)
-        return mu + eps * std
-
-    def _decode(self, z: torch.Tensor) -> list[torch.Tensor]:
-        """Reconstruct every view from the latent."""
-        return [dec(z) for dec in self.decoders]
+            if out.shape[1] != 2 * k:
+                raise ValueError(
+                    f"A DVCCA encoder returned {out.shape[1]} outputs; it needs "
+                    f"2 * n_components = {2 * k}."
+                )
+            posteriors.append((out[:, :k], out[:, k:]))
+        return posteriors
 
     def forward(self, views: list[torch.Tensor]) -> list[torch.Tensor]:
-        """The shared posterior mean, as a one-element list.
+        """Each view's posterior mean, shape (batch_size, n_components)."""
+        return [mu for mu, _ in self._posteriors(views)]
 
-        Args:
-            views: One tensor per view.
-
-        Returns:
-            ``[mu]``, with ``mu`` of shape (batch_size, n_components).
-        """
-        mu, _ = self._encode(views)
-        return [mu]
-
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
-        """Zero objective; the ELBO needs the inputs, so it is computed in training.
-
-        Args:
-            representations: Unused.
-            independent_representations: Unused.
-
-        Returns:
-            ``{"objective": 0}``.
-        """
-        return {"objective": torch.tensor(0.0)}
-
-    def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Negative ELBO of a batch.
+    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
+        """The negative ELBO of a batch and its terms.
 
         Args:
             batch: Dictionary with a ``"views"`` list of tensors.
-            batch_idx: Unused.
 
         Returns:
-            The loss.
+            ``{"objective", "reconstruction", "kl"}``.
         """
         views = batch["views"]
-        mu, log_var = self._encode(views)
-        z = self._reparameterise(mu, log_var)
-        reconstructions = self._decode(z)
-
-        recon_loss = torch.stack(
-            [F.mse_loss(x, r) for x, r in zip(views, reconstructions)]
-        ).sum()
-        # KL divergence: -0.5 * sum(1 + log_var - mu^2 - exp(log_var))
-        kl = -0.5 * torch.sum(1.0 + log_var - mu.pow(2) - log_var.exp())
-        n = views[0].shape[0]
-        kl = kl / n
-
-        objective = recon_loss + kl
-        loss_dict: dict[str, torch.Tensor] = {
-            "objective": objective,
-            "reconstruction": recon_loss,
+        posteriors = self._posteriors(views)
+        means = torch.stack([m for m, _ in posteriors])
+        precisions = torch.stack([torch.exp(-log_var) for _, log_var in posteriors])
+        var = 1.0 / (1.0 + precisions.sum(dim=0))
+        mu = (means * precisions).sum(dim=0) * var
+        z = mu + torch.randn_like(mu) * var.sqrt()
+        reconstruction = _reconstruction_loss(views, [dec(z) for dec in self.decoders])
+        kl = 0.5 * torch.sum(var + mu.pow(2) - 1.0 - var.log()) / mu.shape[0]
+        return {
+            "objective": reconstruction + kl,
+            "reconstruction": reconstruction,
             "kl": kl,
         }
-        for k, v in loss_dict.items():
-            self.log(
-                f"train/{k}",
-                v,
-                on_step=False,
-                on_epoch=True,
-                batch_size=views[0].shape[0],
-            )
-        return objective
-
-    @torch.no_grad()
-    def transform(self, loader: torch.utils.data.DataLoader) -> list[np.ndarray]:
-        """Posterior mean of the shared latent for every sample.
-
-        Args:
-            loader: DataLoader yielding batches with a ``"views"`` key.
-
-        Returns:
-            A one-element list holding an array of shape (n_samples, n_components).
-        """
-        self.eval()
-        all_mu: list[torch.Tensor] = []
-        for batch in loader:
-            views_dev = [v.to(self.device) for v in batch["views"]]
-            mu, _ = self._encode(views_dev)
-            all_mu.append(mu.cpu())
-        mu_all = torch.cat(all_mu, dim=0)
-        return [mu_all.numpy()]

@@ -2,27 +2,39 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Any
 
 import lightning.pytorch as pl
 import numpy as np
 import torch
 import torch.nn as nn
+from numpy.typing import ArrayLike
 
 from cca_zoo.linear._mcca import MCCA
+
+Batch = dict[str, Any]
 
 
 class BaseDeep(pl.LightningModule):
     """Base class for deep multiview models, as Lightning modules.
 
-    Subclasses implement :meth:`loss`; train with a
-    :class:`lightning.pytorch.Trainer`.
+    Train with a :class:`lightning.pytorch.Trainer`. Calling the model returns
+    each view's raw encoding. ``trainer.predict`` returns canonical variates:
+    the encodings projected by a linear CCA fitted on the training encodings
+    when training ends (:meth:`fit_cca`). Subclasses implement :meth:`loss`.
 
     Args:
         n_components: Latent dimension.
-        encoders: One module per view.
+        encoders: One module per view, each mapping it to ``n_components``
+            outputs.
         learning_rate: Adam learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
+
+    Attributes:
+        cca_weights: Linear CCA projection of each view's encoding, shape
+            (n_views, n_components, n_components).
+        cca_means: Training mean of each view's encoding, shape
+            (n_views, n_components).
     """
 
     def __init__(
@@ -30,139 +42,126 @@ class BaseDeep(pl.LightningModule):
         n_components: int,
         encoders: list[nn.Module],
         learning_rate: float = 1e-3,
-        max_epochs: int = 100,
     ) -> None:
         super().__init__()
+        self.save_hyperparameters(ignore=["encoders", "decoders", "objective"])
+        self.encoders = nn.ModuleList(encoders)
         self.n_components = n_components
         self.learning_rate = learning_rate
-        self.max_epochs = max_epochs
-        self.encoders = nn.ModuleList(encoders)
+        n_views = len(encoders)
+        self.register_buffer(
+            "cca_weights", torch.eye(n_components).repeat(n_views, 1, 1)
+        )
+        self.register_buffer("cca_means", torch.zeros(n_views, n_components))
+        self.register_buffer("cca_fitted", torch.tensor(False))
+        self.cca_weights: torch.Tensor
+        self.cca_means: torch.Tensor
+        self.cca_fitted: torch.Tensor
 
     def forward(self, views: list[torch.Tensor]) -> list[torch.Tensor]:
         """Encode each view; one tensor of shape (batch_size, n_components) per view."""
-        return [enc(v) for enc, v in zip(self.encoders, views)]
+        return [self._checked(enc(v)) for enc, v in zip(self.encoders, views)]
 
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
-        """The training loss of a batch.
+    def _checked(self, z: torch.Tensor) -> torch.Tensor:
+        """``z``, after checking its width is ``n_components``."""
+        if z.shape[1] != self.n_components:
+            raise ValueError(
+                f"An encoder returned {z.shape[1]} outputs; n_components is "
+                f"{self.n_components}."
+            )
+        return z
+
+    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
+        """The loss of a batch and its terms.
 
         Args:
-            representations: One encoded tensor per view.
-            independent_representations: A second, independent batch's
-                encodings, for losses that need one. Default is None.
+            batch: Dictionary with a ``"views"`` list of tensors, and optionally
+                ``"independent_views"`` from an independent batch.
 
         Returns:
             A dictionary whose ``"objective"`` entry is minimised.
         """
         raise NotImplementedError
 
-    def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Training loss of a batch.
-
-        Args:
-            batch: Dictionary with ``"views"`` and optionally
-                ``"independent_views"``.
-            batch_idx: Unused.
-
-        Returns:
-            The loss.
-        """
-        representations = self(batch["views"])
-        ind_repr = (
-            self(batch["independent_views"])
-            if batch.get("independent_views") is not None
-            else None
-        )
-        loss_dict = self.loss(representations, ind_repr)
-        for k, v in loss_dict.items():
+    def _logged_objective(self, batch: Batch, stage: str) -> torch.Tensor:
+        """Compute the loss, log every term under ``stage`` and return the objective."""
+        terms = self.loss(batch)
+        batch_size = batch["views"][0].shape[0]
+        for name, value in terms.items():
             self.log(
-                f"train/{k}",
-                v,
+                f"{stage}/{name}",
+                value,
                 on_step=False,
                 on_epoch=True,
-                batch_size=batch["views"][0].shape[0],
+                batch_size=batch_size,
             )
-        return loss_dict["objective"]
+        return terms["objective"]
 
-    def validation_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Validation loss of a batch.
+    def training_step(self, batch: Batch, batch_idx: int) -> torch.Tensor:
+        """Training loss of a batch."""
+        return self._logged_objective(batch, "train")
+
+    def validation_step(self, batch: Batch, batch_idx: int) -> torch.Tensor:
+        """Validation loss of a batch."""
+        return self._logged_objective(batch, "val")
+
+    def test_step(self, batch: Batch, batch_idx: int) -> torch.Tensor:
+        """Test loss of a batch."""
+        return self._logged_objective(batch, "test")
+
+    def predict_step(self, batch: Batch, batch_idx: int) -> list[torch.Tensor]:
+        """Canonical variates of a batch, one tensor per view.
+
+        Raises:
+            RuntimeError: If the linear CCA has not been fitted.
+        """
+        if not self.cca_fitted:
+            raise RuntimeError(
+                "The linear CCA is not fitted; train with trainer.fit or call "
+                "fit_cca(dataloader) first."
+            )
+        return [
+            (z - mean) @ weights
+            for z, mean, weights in zip(
+                self(batch["views"]), self.cca_means, self.cca_weights
+            )
+        ]
+
+    @torch.no_grad()
+    def fit_cca(self, dataloader: Iterable[Batch]) -> None:
+        """Fit the linear CCA that ``predict_step`` applies, on ``dataloader``.
+
+        Called on the training data when training ends.
 
         Args:
-            batch: Dictionary with ``"views"``.
-            batch_idx: Unused.
-
-        Returns:
-            The loss.
+            dataloader: Batches with a ``"views"`` key.
         """
-        representations = self(batch["views"])
-        loss_dict = self.loss(representations)
-        for k, v in loss_dict.items():
-            self.log(
-                f"val/{k}",
-                v,
-                on_step=False,
-                on_epoch=True,
-                batch_size=batch["views"][0].shape[0],
-            )
-        return loss_dict["objective"]
+        was_training = self.training
+        self.eval()
+        batches = [
+            self([v.to(self.device) for v in batch["views"]]) for batch in dataloader
+        ]
+        self.train(was_training)
+        encodings: list[ArrayLike] = [
+            torch.cat(view_batches).cpu().numpy() for view_batches in zip(*batches)
+        ]
+        cca = MCCA(n_components=self.n_components).fit(encodings)
+        self.cca_weights.copy_(torch.as_tensor(np.stack(cca.weights_)))
+        self.cca_means.copy_(torch.as_tensor(np.stack(cca.means_)))
+        self.cca_fitted.fill_(True)
+
+    def on_train_end(self) -> None:
+        """Fit the linear CCA on the training data."""
+        dataloader = self.trainer.train_dataloader
+        assert dataloader is not None
+        self.fit_cca(dataloader)
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         """Adam with ``learning_rate``."""
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
-    @torch.no_grad()
-    def transform(self, loader: torch.utils.data.DataLoader) -> list[np.ndarray]:
-        """Encode every sample of a loader.
 
-        Args:
-            loader: DataLoader yielding batches with a ``"views"`` key.
-
-        Returns:
-            One array of shape (n_samples, n_components) per view.
-        """
-        self.eval()
-        all_reprs: list[list[torch.Tensor]] = []
-        for batch in loader:
-            views_dev = [v.to(self.device) for v in batch["views"]]
-            z = self(views_dev)
-            all_reprs.append([zi.cpu() for zi in z])
-        # Concatenate batches per view
-        stacked = [
-            torch.cat([b[i] for b in all_reprs], dim=0)
-            for i in range(len(all_reprs[0]))
-        ]
-        return [t.numpy() for t in stacked]
-
-    def score(self, loader: torch.utils.data.DataLoader) -> float:
-        """Mean canonical correlation of linear CCA on the encodings.
-
-        Args:
-            loader: DataLoader yielding batches with a ``"views"`` key.
-
-        Returns:
-            The mean canonical correlation.
-        """
-        representations = self.transform(loader)
-        return (
-            MCCA(n_components=self.n_components)
-            .fit(representations)
-            .score(representations)
-        )
-
-
-def _inv_sqrtm(A: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
-    """Compute the inverse square root of a symmetric positive definite matrix.
-
-    Args:
-        A: Symmetric PD tensor of shape (n, n).
-        eps: Regularisation added to eigenvalues for stability.
-
-    Returns:
-        Tensor of shape (n, n): $A^{-1/2}$.
-    """
-    L, V = torch.linalg.eigh(A)
-    L = torch.clamp(L, min=eps)
-    return V @ torch.diag(1.0 / torch.sqrt(L)) @ V.T
+def _require_two_views(encoders: list[nn.Module], name: str) -> None:
+    """Raise unless there are exactly two encoders."""
+    if len(encoders) != 2:
+        raise ValueError(f"{name} is defined for two views, got {len(encoders)}.")

@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from cca_zoo.deep._base import BaseDeep
+from cca_zoo.deep._base import BaseDeep, Batch
+from cca_zoo.deep._dccae import _reconstruction_loss
 
 
 class SplitAE(BaseDeep):
@@ -26,7 +24,6 @@ class SplitAE(BaseDeep):
         decoders: One module per view, taking ``n_views * n_components``
             inputs.
         learning_rate: Adam learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
 
     References:
         Wang, W., Arora, R., Livescu, K., & Bilmes, J. (2015). On deep
@@ -48,59 +45,27 @@ class SplitAE(BaseDeep):
         encoders: list[nn.Module],
         decoders: list[nn.Module],
         learning_rate: float = 1e-3,
-        max_epochs: int = 100,
     ) -> None:
         super().__init__(
             n_components=n_components,
             encoders=encoders,
             learning_rate=learning_rate,
-            max_epochs=max_epochs,
         )
         self.decoders = nn.ModuleList(decoders)
 
-    def _decode(self, representations: list[torch.Tensor]) -> list[torch.Tensor]:
-        """Reconstruct every view from the concatenated encodings."""
-        z_cat = torch.cat(representations, dim=-1)
-        return [dec(z_cat) for dec in self.decoders]
-
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
-        """Zero objective; the loss needs the inputs, so it is computed in training.
-
-        Args:
-            representations: Unused.
-            independent_representations: Unused.
-
-        Returns:
-            ``{"objective": 0}``.
-        """
-        return {"objective": torch.tensor(0.0)}
-
-    def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Reconstruction loss of a batch.
+    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
+        """The reconstruction loss of a batch.
 
         Args:
             batch: Dictionary with a ``"views"`` list of tensors.
-            batch_idx: Unused.
 
         Returns:
-            The loss.
+            ``{"objective": loss}``.
         """
         views = batch["views"]
-        representations = self(views)
-        reconstructions = self._decode(representations)
-
-        recon_loss = torch.stack(
-            [F.mse_loss(x, r) for x, r in zip(views, reconstructions)]
-        ).sum()
-        self.log(
-            "train/objective",
-            recon_loss,
-            on_step=False,
-            on_epoch=True,
-            batch_size=views[0].shape[0],
-        )
-        return recon_loss
+        joint = torch.cat(self(views), dim=1)
+        return {
+            "objective": _reconstruction_loss(
+                views, [dec(joint) for dec in self.decoders]
+            )
+        }

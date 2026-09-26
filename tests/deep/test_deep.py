@@ -1,12 +1,10 @@
-"""Tests for deep CCA models.
-
-All tests are marked slow and require torch + lightning.
-These tests import directly from the deep submodules rather than from
-cca_zoo.deep, since the package __init__.py references discriminative/
-generative sub-packages that are not yet present in the v3 rewrite tree.
-"""
+"""Tests for the deep models. All are marked slow and need torch and lightning."""
 
 from __future__ import annotations
+
+import logging
+from collections.abc import Callable
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -15,392 +13,240 @@ torch = pytest.importorskip("torch")
 lightning = pytest.importorskip("lightning")
 
 import torch.nn as nn
-import torch.utils.data as data
+from torch.utils.data import DataLoader
 
-# ---------------------------------------------------------------------------
-# Import the available deep classes directly
-# ---------------------------------------------------------------------------
-from cca_zoo.deep._data import MultiviewDataset
-from cca_zoo.deep._dcca import DCCA
-from cca_zoo.deep._dgcca import DGCCA
-from cca_zoo.deep._dmcca import DMCCA
-from cca_zoo.deep.objectives import (
-    CCALoss,
-    GCCALoss,
-    MCCALoss,
-    TCCALoss,
+from cca_zoo.deep import (
+    DCCA,
+    DCCAE,
+    DCCAEY,
+    DCCANOI,
+    DCCASDL,
+    DGCCA,
+    DMCCA,
+    DTCCA,
+    DVCCA,
+    BarlowTwins,
+    BaseDeep,
+    MultiviewDataset,
+    SplitAE,
+    VICReg,
 )
+from cca_zoo.deep.objectives import CCALoss, GCCALoss, MCCALoss, TCCALoss
+from cca_zoo.metrics import pairwise_correlations
 
-# ---------------------------------------------------------------------------
-# Helper: tiny dataset and DataLoader
-# ---------------------------------------------------------------------------
+pytestmark = pytest.mark.slow
+logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)
 
-
-class _TinyViewDataset(data.Dataset):
-    """Minimal two-view dataset for testing."""
-
-    def __init__(
-        self,
-        n: int = 20,
-        p1: int = 5,
-        p2: int = 5,
-        seed: int = 0,
-    ) -> None:
-        rng = np.random.default_rng(seed)
-        self.x1 = torch.from_numpy(rng.standard_normal((n, p1)).astype(np.float32))
-        self.x2 = torch.from_numpy(rng.standard_normal((n, p2)).astype(np.float32))
-
-    def __len__(self) -> int:
-        return len(self.x1)
-
-    def __getitem__(self, idx: int) -> dict:
-        return {"views": [self.x1[idx], self.x2[idx]]}
+K = 2
+P = (6, 5)
 
 
-def _make_loader(n: int = 20, p: int = 5, batch_size: int = 20) -> data.DataLoader:
-    """Create a small DataLoader for two views."""
-    dataset = _TinyViewDataset(n=n, p1=p, p2=p)
-    return data.DataLoader(dataset, batch_size=batch_size)
+def _views(n: int = 64, seed: int = 0, n_views: int = 2) -> list[np.ndarray]:
+    """Views sharing a two-dimensional latent signal."""
+    rng = np.random.default_rng(seed)
+    z = rng.standard_normal((n, K))
+    widths = (*P, 4)[:n_views]
+    return [
+        (z @ rng.standard_normal((K, p)) + 0.3 * rng.standard_normal((n, p))).astype(
+            np.float32
+        )
+        for p in widths
+    ]
 
 
-def _make_encoders(p_in: int = 5, latent: int = 2) -> list[nn.Module]:
-    """Create two simple linear encoders."""
-    return [nn.Linear(p_in, latent), nn.Linear(p_in, latent)]
+def _loader(views: list[np.ndarray], shuffle: bool = False) -> DataLoader:
+    return DataLoader(MultiviewDataset(views), batch_size=32, shuffle=shuffle)
 
 
-# ---------------------------------------------------------------------------
-# MultiviewDataset
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.slow
-def test_multiview_dataset_batch_shape() -> None:
-    """MultiviewDataset yields {"views": [...]} batches, not tuples."""
-    rng = np.random.default_rng(0)
-    x1 = rng.standard_normal((20, 5)).astype(np.float32)
-    x2 = rng.standard_normal((20, 4)).astype(np.float32)
-    loader = data.DataLoader(MultiviewDataset([x1, x2]), batch_size=20)
-    batch = next(iter(loader))
-    assert isinstance(batch, dict)
-    assert list(batch.keys()) == ["views"]
-    assert len(batch["views"]) == 2
-    assert batch["views"][0].shape == (20, 5)
-    assert batch["views"][1].shape == (20, 4)
-
-
-@pytest.mark.slow
-def test_dcca_trains_with_multiview_dataset() -> None:
-    """DCCA trains against a real DataLoader(MultiviewDataset(...)) end to end.
-
-    Regression test: torch.utils.data.TensorDataset yields tuples, not the
-    {"views": [...]} dict shape training_step/validation_step require, so a
-    naive DataLoader(TensorDataset(...)) raises TypeError. This must keep
-    passing against the documented docs/user-guide/deep.md example.
-    """
-    rng = np.random.default_rng(0)
-    x1 = rng.standard_normal((40, 6)).astype(np.float32)
-    x2 = rng.standard_normal((40, 5)).astype(np.float32)
-    loader = data.DataLoader(MultiviewDataset([x1, x2]), batch_size=20, shuffle=True)
-
-    encoders = [nn.Linear(6, 2), nn.Linear(5, 2)]
-    model = DCCA(n_components=2, encoders=encoders, max_epochs=1)
-    trainer = lightning.pytorch.Trainer(
-        max_epochs=1, enable_progress_bar=False, logger=False
+def _trainer(max_epochs: int = 2) -> lightning.pytorch.Trainer:
+    return lightning.pytorch.Trainer(
+        max_epochs=max_epochs,
+        logger=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        enable_model_summary=False,
     )
-    trainer.fit(model, loader)
-    result = model.transform(loader)
-    assert len(result) == 2
-    for arr in result:
-        assert arr.shape == (40, 2)
 
 
-# ---------------------------------------------------------------------------
-# BaseDeep / DCCA — basic training and transform
-# ---------------------------------------------------------------------------
+def _predict(model: BaseDeep, loader: DataLoader) -> list[np.ndarray]:
+    batches = _trainer().predict(model, loader)
+    return [torch.cat(view).numpy() for view in zip(*batches)]
 
 
-@pytest.mark.slow
-def test_dcca_training_completes() -> None:
-    """DCCA trains for 2 epochs on tiny data without error."""
-    latent = 2
-    encoders = _make_encoders(5, latent)
-    model = DCCA(n_components=latent, encoders=encoders, max_epochs=2)
-    loader = _make_loader()
-    trainer = lightning.pytorch.Trainer(
-        max_epochs=2, enable_progress_bar=False, logger=False
-    )
-    trainer.fit(model, loader)
+def _encoders(width: int = K) -> list[nn.Module]:
+    return [nn.Linear(p, width) for p in P]
 
 
-@pytest.mark.slow
-def test_dcca_transform_output_shapes() -> None:
-    """DCCA transform returns arrays of shape (n_samples, n_components)."""
-    latent = 2
-    n = 20
-    p = 5
-    encoders = _make_encoders(p, latent)
-    model = DCCA(n_components=latent, encoders=encoders, max_epochs=2)
-    loader = _make_loader(n=n, p=p)
-    trainer = lightning.pytorch.Trainer(
-        max_epochs=2, enable_progress_bar=False, logger=False
-    )
-    trainer.fit(model, loader)
-    result = model.transform(loader)
-    assert len(result) == 2
-    for arr in result:
-        assert arr.shape == (n, latent)
+MODELS: dict[str, Callable[[], BaseDeep]] = {
+    "DCCA": lambda: DCCA(K, _encoders()),
+    "DCCAEY": lambda: DCCAEY(K, _encoders()),
+    "DCCANOI": lambda: DCCANOI(K, _encoders()),
+    "DCCASDL": lambda: DCCASDL(K, _encoders()),
+    "DMCCA": lambda: DMCCA(K, _encoders()),
+    "DGCCA": lambda: DGCCA(K, _encoders()),
+    "DTCCA": lambda: DTCCA(K, _encoders()),
+    "BarlowTwins": lambda: BarlowTwins(K, _encoders()),
+    "VICReg": lambda: VICReg(K, _encoders()),
+    "DCCAE": lambda: DCCAE(K, _encoders(), [nn.Linear(K, p) for p in P]),
+    "SplitAE": lambda: SplitAE(K, _encoders(), [nn.Linear(2 * K, p) for p in P]),
+    "DVCCA": lambda: DVCCA(K, _encoders(2 * K), [nn.Linear(K, p) for p in P]),
+}
 
 
-@pytest.mark.slow
-def test_dcca_score_shape() -> None:
-    """DCCA score is one float, like every model's."""
-    latent = 2
-    encoders = _make_encoders(5, latent)
-    model = DCCA(n_components=latent, encoders=encoders, max_epochs=2)
-    loader = _make_loader()
-    trainer = lightning.pytorch.Trainer(
-        max_epochs=2, enable_progress_bar=False, logger=False
-    )
-    trainer.fit(model, loader)
-    assert isinstance(model.score(loader), float)
+@pytest.mark.parametrize("name", MODELS)
+def test_predict_returns_canonical_variates(name: str) -> None:
+    """Training ends with a linear CCA, so predictions are canonical variates."""
+    model = MODELS[name]()
+    views = _views()
+    _trainer().fit(model, _loader(views, shuffle=True))
+    scores = _predict(model, _loader(views))
+    assert [s.shape for s in scores] == [(64, K), (64, K)]
+    for s in scores:
+        np.testing.assert_allclose(np.cov(s, rowvar=False), np.eye(K), atol=1e-3)
+    corrs = pairwise_correlations(scores)[0, 1]
+    assert corrs[0] >= corrs[1]
 
 
-@pytest.mark.slow
-def test_dcca_with_mcca_objective() -> None:
-    """DCCA works when given a custom MCCALoss objective."""
-    latent = 2
-    encoders = _make_encoders(5, latent)
-    model = DCCA(
-        n_components=latent,
-        encoders=encoders,
-        objective=MCCALoss(eps=1e-4),
-        max_epochs=2,
-    )
-    loader = _make_loader()
-    trainer = lightning.pytorch.Trainer(
-        max_epochs=2, enable_progress_bar=False, logger=False
-    )
-    trainer.fit(model, loader)
-    result = model.transform(loader)
-    assert len(result) == 2
+@pytest.mark.parametrize("name", MODELS)
+def test_validation_loss_is_the_training_loss(name: str) -> None:
+    """Every loss term is logged for validation, reconstruction included."""
+    model = MODELS[name]()
+    trainer = _trainer(max_epochs=1)
+    trainer.fit(model, _loader(_views()), _loader(_views(seed=1)))
+    terms = model.loss({"views": [torch.as_tensor(v) for v in _views()]})
+    logged = {k for k in trainer.callback_metrics if k.startswith("val/")}
+    assert logged == {f"val/{k}" for k in terms}
+    assert float(trainer.callback_metrics["val/objective"]) != 0.0
 
 
-@pytest.mark.slow
-def test_dcca_with_gcca_objective() -> None:
-    """DCCA works when given a custom GCCALoss objective."""
-    latent = 2
-    encoders = _make_encoders(5, latent)
-    model = DCCA(
-        n_components=latent,
-        encoders=encoders,
-        objective=GCCALoss(eps=1e-4),
-        max_epochs=2,
-    )
-    loader = _make_loader()
-    trainer = lightning.pytorch.Trainer(
-        max_epochs=2, enable_progress_bar=False, logger=False
-    )
-    trainer.fit(model, loader)
-    result = model.transform(loader)
-    assert len(result) == 2
+def test_predict_before_fitting_raises() -> None:
+    """Predicting needs the linear CCA fitted at the end of training."""
+    with pytest.raises(RuntimeError, match="fit_cca"):
+        _predict(DCCA(K, _encoders()), _loader(_views()))
 
 
-# ---------------------------------------------------------------------------
-# Objectives — unit tests
-# ---------------------------------------------------------------------------
+def test_fit_cca_enables_prediction_without_training() -> None:
+    """fit_cca fits the projection on any loader."""
+    model = DCCA(K, _encoders())
+    model.fit_cca(_loader(_views()))
+    assert _predict(model, _loader(_views()))[0].shape == (64, K)
 
 
-@pytest.mark.slow
-def test_cca_loss_scalar() -> None:
-    """CCALoss returns a scalar tensor."""
-    loss_fn = CCALoss(eps=1e-4)
-    z1 = torch.randn(16, 4)
-    z2 = torch.randn(16, 4)
-    loss = loss_fn([z1, z2])
-    assert loss.ndim == 0
+@pytest.mark.parametrize("name", ["DCCA", "DVCCA", "DCCAE"])
+def test_checkpoint_round_trip(name: str, tmp_path: Path) -> None:
+    """Hyperparameters and the fitted projection are restored from a checkpoint."""
+    model = MODELS[name]()
+    trainer = _trainer()
+    trainer.fit(model, _loader(_views()))
+    path = tmp_path / "model.ckpt"
+    trainer.save_checkpoint(path)
+    fresh = MODELS[name]()
+    modules = {"encoders": list(fresh.encoders)}
+    if hasattr(fresh, "decoders"):
+        modules["decoders"] = list(fresh.decoders)
+    restored = type(model).load_from_checkpoint(path, **modules)
+    for a, b in zip(
+        _predict(model, _loader(_views())), _predict(restored, _loader(_views()))
+    ):
+        np.testing.assert_allclose(a, b, atol=1e-6)
 
 
-@pytest.mark.slow
-def test_cca_loss_negative() -> None:
-    """CCALoss is non-positive (minimising it maximises correlation)."""
-    loss_fn = CCALoss(eps=1e-4)
-    z1 = torch.randn(16, 4)
-    z2 = torch.randn(16, 4)
-    loss = loss_fn([z1, z2])
-    assert float(loss) <= 0.0
+def test_dcca_learns_shared_signal() -> None:
+    """DCCA recovers the shared signal on held-out data."""
+    torch.manual_seed(0)
+    views = _views(n=400)
+    model = DCCA(K, _encoders(), learning_rate=1e-2)
+    _trainer(max_epochs=30).fit(model, _loader([v[:300] for v in views], shuffle=True))
+    scores = _predict(model, _loader([v[300:] for v in views]))
+    assert pairwise_correlations(scores)[0, 1].min() > 0.8
 
 
-@pytest.mark.slow
-def test_cca_loss_wrong_n_views_raises() -> None:
-    """CCALoss raises ValueError if given != 2 views."""
-    loss_fn = CCALoss()
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda e: DCCA(K, e),
+        lambda e: DCCAE(K, e, [nn.Linear(K, 4)] * 3),
+        lambda e: DCCASDL(K, e),
+        lambda e: BarlowTwins(K, e),
+        lambda e: VICReg(K, e),
+    ],
+    ids=["DCCA", "DCCAE", "DCCASDL", "BarlowTwins", "VICReg"],
+)
+def test_two_view_models_reject_more_views(make: Callable) -> None:
+    """Models defined for two views raise rather than ignore extra views."""
+    with pytest.raises(ValueError, match="two views"):
+        make([nn.Linear(4, K) for _ in range(3)])
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda e: DCCA(K, e, objective=MCCALoss()),
+        lambda e: DMCCA(K, e),
+        lambda e: DGCCA(K, e),
+        lambda e: DTCCA(K, e),
+        lambda e: DCCAEY(K, e),
+    ],
+    ids=["DCCA+MCCALoss", "DMCCA", "DGCCA", "DTCCA", "DCCAEY"],
+)
+def test_multiview_models_train_on_three_views(make: Callable) -> None:
+    """Multiview losses train on three views and predict one array per view."""
+    views = _views(n_views=3)
+    model = make([nn.Linear(v.shape[1], K) for v in views])
+    _trainer().fit(model, _loader(views))
+    assert len(_predict(model, _loader(views))) == 3
+
+
+def test_encoder_width_must_match_n_components() -> None:
+    """An encoder whose output is not n_components wide raises."""
+    model = DCCA(3, _encoders())
+    with pytest.raises(ValueError, match="n_components"):
+        model([torch.randn(4, p) for p in P])
+
+
+def test_dvcca_encoder_width_must_be_twice_n_components() -> None:
+    """DVCCA encoders output a mean and a log-variance."""
+    model = DVCCA(K, _encoders(), [nn.Linear(K, p) for p in P])
+    with pytest.raises(ValueError, match="2 \\* n_components"):
+        model([torch.randn(4, p) for p in P])
+
+
+def test_dcca_ey_uses_independent_views() -> None:
+    """An independent batch changes the penalty estimate."""
+    model = DCCAEY(K, _encoders())
+    views = [torch.as_tensor(v) for v in _views()]
+    other = [torch.as_tensor(v) for v in _views(seed=1)]
+    plain = model.loss({"views": views})
+    independent = model.loss({"views": views, "independent_views": other})
+    assert torch.equal(plain["rewards"], independent["rewards"])
+    assert not torch.equal(plain["penalties"], independent["penalties"])
+
+
+def test_dcca_noi_whitens_with_running_covariance_in_eval() -> None:
+    """In eval mode NOI's whitening uses the running covariance, unchanged."""
+    model = DCCANOI(K, _encoders())
+    z = torch.randn(32, K) * 3.0
+    model.bws[0](z)
+    running = model.bws[0].running_covar.clone()
+    model.eval()
+    out = model.bws[0](z)
+    assert torch.equal(model.bws[0].running_covar, running)
+    assert not torch.allclose(out, z)
+
+
+def test_multiview_dataset_batches() -> None:
+    """MultiviewDataset yields {"views": [...]} batches."""
+    batch = next(iter(_loader(_views())))
+    assert list(batch) == ["views"]
+    assert [v.shape for v in batch["views"]] == [(32, 6), (32, 5)]
+
+
+def test_objectives_are_scalars() -> None:
+    """Each loss returns a scalar; CCALoss is non-positive and two-view only."""
+    two = [torch.randn(16, 4) for _ in range(2)]
+    three = [torch.randn(16, 4) for _ in range(3)]
+    assert float(CCALoss(eps=1e-4)(two)) <= 0.0
+    for loss in (MCCALoss(eps=1e-4), GCCALoss(eps=1e-4), TCCALoss(eps=1e-4)):
+        assert loss(three).ndim == 0
     with pytest.raises(ValueError, match="exactly 2"):
-        loss_fn([torch.randn(8, 4), torch.randn(8, 4), torch.randn(8, 4)])
-
-
-@pytest.mark.slow
-def test_mcca_loss_scalar() -> None:
-    """MCCALoss returns a scalar tensor for 3 views."""
-    loss_fn = MCCALoss(eps=1e-4)
-    views = [torch.randn(16, 4) for _ in range(3)]
-    loss = loss_fn(views)
-    assert loss.ndim == 0
-
-
-@pytest.mark.slow
-def test_gcca_loss_scalar() -> None:
-    """GCCALoss returns a scalar tensor for 3 views."""
-    loss_fn = GCCALoss(eps=1e-4)
-    views = [torch.randn(16, 4) for _ in range(3)]
-    loss = loss_fn(views)
-    assert loss.ndim == 0
-
-
-@pytest.mark.slow
-def test_tcca_loss_scalar() -> None:
-    """TCCALoss returns a scalar tensor for 3 views."""
-    loss_fn = TCCALoss(eps=1e-4)
-    views = [torch.randn(16, 4) for _ in range(3)]
-    loss = loss_fn(views)
-    assert loss.ndim == 0
-
-
-# ---------------------------------------------------------------------------
-# BaseDeep — forward method
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.slow
-def test_base_deep_forward_output_shapes() -> None:
-    """BaseDeep forward method returns latent representations of correct shape."""
-    latent = 3
-    encoders = _make_encoders(5, latent)
-    model = DCCA(n_components=latent, encoders=encoders)
-    x1 = torch.randn(8, 5)
-    x2 = torch.randn(8, 5)
-    result = model([x1, x2])
-    assert len(result) == 2
-    for r in result:
-        assert r.shape == (8, latent)
-
-
-# ---------------------------------------------------------------------------
-# DCCA with three-view data
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.slow
-def test_dcca_three_view_training() -> None:
-    """DCCA with three encoders trains on three-view data."""
-    latent = 2
-    n, p = 20, 5
-    encoders = [nn.Linear(p, latent) for _ in range(3)]
-
-    class ThreeViewDataset(data.Dataset):
-        def __init__(self) -> None:
-            rng = np.random.default_rng(0)
-            self.views = [
-                torch.from_numpy(rng.standard_normal((n, p)).astype(np.float32))
-                for _ in range(3)
-            ]
-
-        def __len__(self) -> int:
-            return n
-
-        def __getitem__(self, idx: int) -> dict:
-            return {"views": [v[idx] for v in self.views]}
-
-    loader = data.DataLoader(ThreeViewDataset(), batch_size=n)
-    model = DCCA(
-        n_components=latent,
-        encoders=encoders,
-        objective=MCCALoss(eps=1e-4),
-        max_epochs=2,
-    )
-    trainer = lightning.pytorch.Trainer(
-        max_epochs=2, enable_progress_bar=False, logger=False
-    )
-    trainer.fit(model, loader)
-    result = model.transform(loader)
-    assert len(result) == 3
-    for arr in result:
-        assert arr.shape == (n, latent)
-
-
-# ---------------------------------------------------------------------------
-# DMCCA / DGCCA
-# ---------------------------------------------------------------------------
-
-
-def _make_three_view_loader(n: int = 20, p: int = 5) -> data.DataLoader:
-    """Create a small DataLoader for three views."""
-
-    class ThreeViewDataset(data.Dataset):
-        def __init__(self) -> None:
-            rng = np.random.default_rng(0)
-            self.views = [
-                torch.from_numpy(rng.standard_normal((n, p)).astype(np.float32))
-                for _ in range(3)
-            ]
-
-        def __len__(self) -> int:
-            return n
-
-        def __getitem__(self, idx: int) -> dict:
-            return {"views": [v[idx] for v in self.views]}
-
-    return data.DataLoader(ThreeViewDataset(), batch_size=n)
-
-
-@pytest.mark.slow
-def test_dmcca_defaults_to_mcca_loss() -> None:
-    """DMCCA uses MCCALoss regardless of the objective passed in."""
-    latent = 2
-    encoders = _make_encoders(5, latent)
-    model = DMCCA(n_components=latent, encoders=encoders, max_epochs=2)
-    assert isinstance(model.objective, MCCALoss)
-
-
-@pytest.mark.slow
-def test_dmcca_three_view_training() -> None:
-    """DMCCA trains on three-view data and transforms to the right shapes."""
-    latent = 2
-    n, p = 20, 5
-    encoders = [nn.Linear(p, latent) for _ in range(3)]
-    loader = _make_three_view_loader(n=n, p=p)
-    model = DMCCA(n_components=latent, encoders=encoders, max_epochs=2)
-    trainer = lightning.pytorch.Trainer(
-        max_epochs=2, enable_progress_bar=False, logger=False
-    )
-    trainer.fit(model, loader)
-    result = model.transform(loader)
-    assert len(result) == 3
-    for arr in result:
-        assert arr.shape == (n, latent)
-
-
-@pytest.mark.slow
-def test_dgcca_defaults_to_gcca_loss() -> None:
-    """DGCCA uses GCCALoss regardless of the objective passed in."""
-    latent = 2
-    encoders = _make_encoders(5, latent)
-    model = DGCCA(n_components=latent, encoders=encoders, max_epochs=2)
-    assert isinstance(model.objective, GCCALoss)
-
-
-@pytest.mark.slow
-def test_dgcca_three_view_training() -> None:
-    """DGCCA trains on three-view data and transforms to the right shapes."""
-    latent = 2
-    n, p = 20, 5
-    encoders = [nn.Linear(p, latent) for _ in range(3)]
-    loader = _make_three_view_loader(n=n, p=p)
-    model = DGCCA(n_components=latent, encoders=encoders, max_epochs=2)
-    trainer = lightning.pytorch.Trainer(
-        max_epochs=2, enable_progress_bar=False, logger=False
-    )
-    trainer.fit(model, loader)
-    result = model.transform(loader)
-    assert len(result) == 3
-    for arr in result:
-        assert arr.shape == (n, latent)
+        CCALoss()(three)

@@ -10,7 +10,8 @@ def _inv_sqrtm(A: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
     """Inverse square root of a symmetric matrix, eigenvalues floored at ``eps``."""
     L, V = torch.linalg.eigh(A)
     L = torch.clamp(L, min=eps)
-    return V @ torch.diag(1.0 / torch.sqrt(L)) @ V.T
+    inv_sqrt: torch.Tensor = V @ torch.diag(1.0 / torch.sqrt(L)) @ V.T
+    return inv_sqrt
 
 
 class CCALoss(nn.Module):
@@ -178,7 +179,8 @@ class GCCALoss(nn.Module):
         eigvals = torch.linalg.eigvalsh(m)
         k = representations[0].shape[1]
         top_eigvals = eigvals[-k:]
-        return -top_eigvals.sum()
+        objective: torch.Tensor = -top_eigvals.sum()
+        return objective
 
 
 class TCCALoss(nn.Module):
@@ -237,4 +239,5 @@ class TCCALoss(nn.Module):
 
         # Average over samples
         m = m.mean(dim=0)
-        return -torch.linalg.norm(m)
+        objective: torch.Tensor = -torch.linalg.norm(m)
+        return objective

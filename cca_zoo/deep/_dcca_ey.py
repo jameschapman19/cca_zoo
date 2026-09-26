@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
 
-from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep._base import BaseDeep, Batch
 
 
 def _cca_cv(
@@ -29,7 +28,7 @@ def _cca_cv(
     return c, v
 
 
-class DCCAEY(DCCA):
+class DCCAEY(BaseDeep):
     r"""Deep CCA by minimising the Eckart-Young loss.
 
     $$
@@ -44,7 +43,6 @@ class DCCAEY(DCCA):
         n_components: Latent dimension.
         encoders: One module per view.
         learning_rate: Adam learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
 
     References:
         Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
@@ -57,42 +55,22 @@ class DCCAEY(DCCA):
         >>> model = DCCAEY(n_components=4, encoders=[nn.Linear(10, 4), nn.Linear(8, 4)])
     """
 
-    def __init__(
-        self,
-        n_components: int,
-        encoders: list[nn.Module],
-        learning_rate: float = 1e-3,
-        max_epochs: int = 100,
-    ) -> None:
-        super().__init__(
-            n_components=n_components,
-            encoders=encoders,
-            learning_rate=learning_rate,
-            max_epochs=max_epochs,
-        )
-
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
+    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
         """The EY loss of a batch and its terms.
 
         Args:
-            representations: One encoded tensor per view.
-            independent_representations: Encodings of an independent batch for
-                the penalty. Default is None.
+            batch: Dictionary with a ``"views"`` list of tensors and, optionally,
+                ``"independent_views"`` from an independent batch, which
+                give an unbiased estimate of the penalty.
 
         Returns:
             ``{"objective", "rewards", "penalties"}``.
         """
-        c, v = _cca_cv(representations)
+        c, v = _cca_cv(self(batch["views"]))
+        independent = batch.get("independent_views")
+        v_ind = v if independent is None else _cca_cv(self(independent))[1]
         rewards = torch.trace(2.0 * c)
-        if independent_representations is None:
-            penalties = torch.trace(v @ v)
-        else:
-            _, v_ind = _cca_cv(independent_representations)
-            penalties = torch.trace(v @ v_ind)
+        penalties = torch.trace(v @ v_ind)
         return {
             "objective": -rewards + penalties,
             "rewards": rewards,
