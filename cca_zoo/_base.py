@@ -27,30 +27,23 @@ def _least_squares_map(scores: np.ndarray, data: np.ndarray) -> np.ndarray:
 
 
 class BaseModel(BaseEstimator, ABC):
-    """Abstract base class for all multiview CCA models.
+    """Base class for multiview CCA models.
 
-    Subclasses must implement :meth:`fit`. A linear model sets
-    ``weights_``; a nonlinear one overrides :meth:`_transform_view`, its
-    per-view encoder. Every other public method (``transform``,
-    ``inverse_transform``, ``fit_transform``, ``score``, ``predict``) is
-    built here on that one encoder, so it behaves identically for every
-    model.
-
-    This class inherits from :class:`sklearn.base.BaseEstimator` so that
-    ``get_params`` / ``set_params`` round-trip correctly and sklearn model
-    selection utilities work out of the box.
-
-    Constructor parameters are validated with sklearn's
-    ``_parameter_constraints`` mechanism (see :meth:`_setup_fit`).
-    Subclasses that add their own constructor parameters may extend
-    ``_parameter_constraints`` by merging in ``BaseModel._parameter_constraints``;
-    parameters with no declared constraint are left unvalidated, so this is
-    always safe to skip.
+    Subclasses implement :meth:`fit`. A linear model sets ``weights_``; a
+    nonlinear model overrides :meth:`_transform_view`, its per-view encoder.
+    ``transform``, ``predict``, ``inverse_transform``, ``score`` and
+    ``feature_importances_`` are built on that encoder.
 
     Args:
-        n_components: Number of latent dimensions to fit. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract per-view column means before fitting.
-            The means are stored in ``means_`` and applied in ``transform``.
+            Default is True.
+
+    Attributes:
+        means_: Per-view feature means subtracted before fitting.
+        n_features_in_: Number of features in each view.
+        n_samples_: Number of training samples.
+        n_views_: Number of views.
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -68,19 +61,14 @@ class BaseModel(BaseEstimator, ABC):
 
     @abstractmethod
     def fit(self, views: list[ArrayLike], y: None = None) -> BaseModel:
-        """Fit the model to multiview data.
+        """Fit the model.
 
         Args:
             views: List of arrays, each of shape (n_samples, n_features_i).
-                All arrays must have the same number of rows.
-            y: Ignored.  Present for scikit-learn API compatibility.
+            y: Ignored.
 
         Returns:
             self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
         """
 
     # ------------------------------------------------------------------
@@ -88,19 +76,7 @@ class BaseModel(BaseEstimator, ABC):
     # ------------------------------------------------------------------
 
     def _setup_fit(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Validate constructor parameters and views, record metadata, centre.
-
-        Args:
-            views: Raw input views.
-
-        Returns:
-            Validated (and optionally centred) list of numpy arrays.
-
-        Raises:
-            sklearn.utils._param_validation.InvalidParameterError: If a
-                constructor parameter violates its declared constraint
-                (a ``ValueError`` subclass).
-        """
+        """Validate parameters and views, record their shapes and centre them."""
         self._validate_params()
         validated = validate_views(views)
         self.n_views_: int = len(validated)
@@ -121,16 +97,13 @@ class BaseModel(BaseEstimator, ABC):
     # ------------------------------------------------------------------
 
     def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Project views into the latent space using the fitted weights.
+        """Project each view into the latent space.
 
         Args:
             views: List of arrays, each of shape (n_samples, n_features_i).
 
         Returns:
             List of arrays, each of shape (n_samples, n_components).
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
         """
         check_is_fitted(self)
         validated = validate_views(views, min_views=self.n_views_)
@@ -139,35 +112,25 @@ class BaseModel(BaseEstimator, ABC):
         ]
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
-        """One view's latent scores from its centred data, shape (n, k).
+        """Latent scores of one centred view, shape (n_samples, n_components).
 
-        The single place a model maps a view into the latent space:
-        :meth:`transform`, :meth:`predict` and :meth:`inverse_transform` all
-        go through it, so a nonlinear model overrides this alone. The
-        default is the linear projection onto ``weights_``.
+        The per-view encoder behind ``transform``, ``predict`` and
+        ``inverse_transform``; nonlinear models override it. Defaults to the
+        projection onto ``weights_``.
         """
         scores: np.ndarray = centred @ self.weights_[view]
         return scores
 
     @property
     def feature_importances_(self) -> list[np.ndarray]:
-        """Each feature's share of its view's embedding: one array per view.
+        """Each feature's share of its view's embedding, one array per view.
 
-        Non-negative and summing to 1 within each view (all zeros for a view
-        whose embedding uses no feature), like sklearn's tree models, and
-        computed on first access as theirs is. Each model family uses the
-        importance its own literature uses: a linear model's feature
-        ``j`` contributes ``Var(x_j) * sum_k w_jk**2`` to the variance of
-        its view's embedding; :class:`~cca_zoo.gam.GAMCCA` uses each
-        smooth's variance, :class:`~cca_zoo.gam.MARSCCA` ``earth``'s
-        ``evimp``, and the tree models their split gain. Models with no
-        such decomposition (kernel, Gaussian-process and manifold models)
-        use the mean squared change in the view's latent scores when the
-        feature's training values are permuted, which for a linear or
-        additive model is exactly twice its variance share.
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
+        Non-negative and summing to 1 within each view (all zeros if a view's
+        embedding uses no feature). Linear models use ``Var(x_j) * sum_k w_jk**2``;
+        GAMCCA the variance of each smooth, MARSCCA ``earth``'s ``evimp`` and
+        the tree models split gain. Other models use the mean squared change in
+        the view's scores when the feature is permuted, which equals twice the
+        variance share for a linear or additive model.
         """
         check_is_fitted(self)
         importances = []
@@ -204,16 +167,10 @@ class BaseModel(BaseEstimator, ABC):
         return importances
 
     def _shared_latent(self, observed: dict[int, np.ndarray]) -> np.ndarray:
-        """Estimate of the shared latent score from whichever views are observed.
+        """Shared latent scores estimated from the observed centred views.
 
-        The mean of the observed views' own scores; models with a joint
-        posterior over the latent (the probabilistic ones) override it.
-
-        Args:
-            observed: Centred arrays keyed by view index.
-
-        Returns:
-            Array of shape (n_samples, k).
+        The mean of their own scores; the probabilistic models use the posterior
+        mean instead.
         """
         latent: np.ndarray = np.mean(
             [self._transform_view(i, v) for i, v in observed.items()], axis=0
@@ -221,51 +178,21 @@ class BaseModel(BaseEstimator, ABC):
         return latent
 
     def inverse_transform(self, scores: list[ArrayLike]) -> list[np.ndarray]:
-        """Approximately invert ``transform``, mapping latent scores back to each view.
+        """Map each view's latent scores back to that view's feature space.
 
-        Each view is reconstructed from *that same view's own* latent
-        score only, via a per-view loading matrix: the least-squares
-        regression of that view's centred training data onto that view's
-        own training latent score. This makes
-        ``inverse_transform(transform(views))`` an approximate round trip
-        of ``views`` (exact wherever ``n_components`` and each view's
-        own encoder spans it exactly), mirroring
-        :meth:`sklearn.decomposition.PCA.inverse_transform`.
-
-        This is a different operation from :meth:`predict`: ``predict``
-        combines the *observed* views' scores into one shared consensus
-        estimate to reconstruct views you don't have, which is only
-        possible once at least one other view actually is observed.
-        ``inverse_transform`` never mixes information across views — it
-        needs a view's own score to reconstruct that same view, so it
-        cannot be used to impute a view you never transformed in the first
-        place; use :meth:`predict` for that.
+        Each view is reconstructed from its own scores by a least-squares
+        regression fitted on the training data, as in
+        :meth:`sklearn.decomposition.PCA.inverse_transform`. To reconstruct a
+        view from the other views, use :meth:`predict`.
 
         Args:
-            scores: List of length ``n_views_``, each an array of shape
-                (n_samples, n_components) — typically the output of
-                :meth:`transform`.
+            scores: One array of shape (n_samples, n_components) per view.
 
         Returns:
-            List of length ``n_views_``, each an array of shape
-            (n_samples, n_features_i): the reconstructed view.
+            List of arrays, each of shape (n_samples, n_features_i).
 
         Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            ValueError: If ``scores`` has the wrong length, or an entry has
-                the wrong number of latent dimensions.
-
-        Examples:
-            >>> import numpy as np
-            >>> from cca_zoo.linear import CCA
-            >>> rng = np.random.default_rng(0)
-            >>> X1 = rng.standard_normal((50, 10))
-            >>> X2 = rng.standard_normal((50, 8))
-            >>> model = CCA(n_components=2).fit([X1, X2])
-            >>> scores = model.transform([X1, X2])
-            >>> X1_approx, X2_approx = model.inverse_transform(scores)
-            >>> X1_approx.shape
-            (50, 10)
+            ValueError: If ``scores`` has the wrong length or width.
         """
         check_is_fitted(self)
         if len(scores) != self.n_views_:
@@ -286,10 +213,7 @@ class BaseModel(BaseEstimator, ABC):
         ]
 
     def fit_transform(self, views: list[ArrayLike], y: None = None) -> list[np.ndarray]:
-        """Fit and then transform the training data.
-
-        Equivalent to ``self.fit(views).transform(views)`` but may be more
-        efficient for some subclasses.
+        """Fit the model and transform the training views.
 
         Args:
             views: List of arrays, each of shape (n_samples, n_features_i).
@@ -301,13 +225,12 @@ class BaseModel(BaseEstimator, ABC):
         return self.fit(views, y).transform(views)
 
     def score(self, views: list[ArrayLike], y: None = None) -> float:
-        """Mean canonical correlation: higher is better, as sklearn expects.
+        """Mean canonical correlation between the views' latent scores.
 
-        The average, over latent dimensions, of the mean off-diagonal
-        pairwise correlation between views' latent scores. For the
-        per-dimension values use :mod:`cca_zoo.metrics`::
-
-            average_pairwise_correlations(pairwise_correlations(model.transform(views)))
+        The average over latent dimensions of the mean pairwise correlation.
+        Per-dimension values:
+        ``average_pairwise_correlations(pairwise_correlations(model.transform(views)))``
+        from :mod:`cca_zoo.metrics`.
 
         Args:
             views: List of arrays, each of shape (n_samples, n_features_i).
@@ -322,65 +245,31 @@ class BaseModel(BaseEstimator, ABC):
         return float(np.mean(per_dimension))
 
     def predict(self, views: list[ArrayLike | None]) -> list[np.ndarray]:
-        """Reconstruct every view from whichever views are observed.
+        """Reconstruct every view from the views that are observed.
 
-        ``transform`` maps data to the shared latent space; ``predict`` maps
-        back the other way, from the latent space to each view's original
-        feature space. Pass ``None`` for any view you want reconstructed —
-        typically one you don't have, but you can also ask for a view you
-        *did* supply, as a diagnostic (its own self-reconstruction).
-
-        The shared latent score is estimated from the observed views only:
-        the mean of their own latent scores, or, for the probabilistic
-        models, the posterior mean given them. Each requested view is then
-        reconstructed as that score against a per-view loading matrix: the
-        least-squares regression of that view's centred training data onto
-        the training data's own shared latent score. This works the same
-        for every model, linear or not, since it only needs the model's
-        encoder.
-
-        This regression-based reconstruction is deliberate rather than the
-        simpler ``score @ weights.T``: for CCA (unlike PLS), that simpler
-        formula is only a correct inverse of ``transform`` when the data
-        happens to be pre-whitened, since the true forward map needs an
-        extra view-covariance factor that isn't recovered from ``weights_``
-        alone (see the discussion on
-        https://github.com/jameschapman19/cca_zoo/issues/182). Regressing
-        on the training data sidesteps that entirely, at the cost of a
-        fitted model retaining its own (centred) training views.
-
-        See also :meth:`inverse_transform`, which reconstructs a view from
-        that same view's own score (no cross-view imputation) — the
-        appropriate choice when you already have every view's scores and
-        just want to invert ``transform``.
+        The shared latent scores are estimated from the observed views (their
+        mean, or the posterior mean for probabilistic models) and mapped to each
+        view by a least-squares regression fitted on the training data. Pass
+        ``None`` for a view to reconstruct.
 
         Args:
-            views: List of length ``n_views_``. Each entry is either an
-                array of shape (n_samples, n_features_i) or ``None`` for a
-                view to reconstruct from the others. All non-``None``
-                entries must have the same number of samples.
+            views: One entry per view: an array of shape (n_samples, n_features_i)
+                or ``None``.
 
         Returns:
-            List of length ``n_views_``: every view's reconstruction, each
-            of shape (n_samples, n_features_i) with the same ``n_samples``
-            as the observed view(s) passed in.
+            List of arrays, each of shape (n_samples, n_features_i).
 
         Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            ValueError: If ``views`` has the wrong length, every entry is
-                ``None``, the observed views have inconsistent numbers of
-                samples, or an observed view has the wrong number of
-                features.
+            ValueError: If ``views`` has the wrong length, no view is observed,
+                or the observed views have inconsistent shapes.
 
         Examples:
             >>> import numpy as np
             >>> from cca_zoo.linear import CCA
             >>> rng = np.random.default_rng(0)
-            >>> X1 = rng.standard_normal((50, 10))
-            >>> X2 = rng.standard_normal((50, 8))
+            >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
             >>> model = CCA(n_components=2).fit([X1, X2])
-            >>> X2_pred = model.predict([X1, None])[1]
-            >>> X2_pred.shape
+            >>> model.predict([X1, None])[1].shape
             (50, 8)
         """
         check_is_fitted(self)
@@ -420,19 +309,7 @@ class BaseModel(BaseEstimator, ABC):
     # ------------------------------------------------------------------
 
     def __sklearn_tags__(self) -> Tags:
-        """Return sklearn tags, corrected for this class's non-standard ``fit``.
-
-        ``BaseModel`` subclasses deliberately don't conform to sklearn's
-        standard estimator interface: ``fit``/``transform``/``score`` take a
-        *list* of per-view arrays, not a single 2-D ``X``, so sklearn's own
-        input validation and common estimator checks don't apply. This is
-        surfaced honestly via tags rather than left to silently mismatch.
-
-        Returns:
-            Tags: sklearn tags with ``no_validation`` and ``_skip_test`` set,
-            and ``input_tags.two_d_array`` cleared since a bare 2-D array is
-            not a valid input on its own.
-        """
+        """Tags marking the multiview input, which sklearn's own checks cannot build."""
         tags = super().__sklearn_tags__()
         tags.no_validation = True
         tags.input_tags.two_d_array = False

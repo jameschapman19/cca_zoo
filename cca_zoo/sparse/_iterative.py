@@ -1,17 +1,4 @@
-"""ALS-based sparse and regularised CCA variants.
-
-All classes in this module use an Alternating Least Squares (ALS) loop with
-optional deflation to extract multiple canonical directions.
-
-Classes:
-    PMDCCA: Sparse CCA via Penalized Matrix Decomposition (Witten 2009).
-    ADMMCCA: Sparse CCA via ADMM (Suo 2017).
-    IPLSCCA: Iterative PLS with lasso penalty (Mai & Zhang 2019).
-    SpanCCA: hard-thresholding ALS inspired by Asteris et al.'s SpanCCA (2016).
-    WaijenborgCCA: Elastic net regularised CCA (Waaijenborg 2008).
-    ParkhomenkoCCA: Sparse CCA via soft-thresholding (Parkhomenko 2009).
-    SAR: Sparse Alternating Regression, BIC-selected (Wilms & Croux 2015).
-"""
+"""Sparse CCA by alternating updates with deflation."""
 
 from __future__ import annotations
 
@@ -37,17 +24,20 @@ logger = logging.getLogger(__name__)
 
 
 class _BaseIterative(BaseModel):
-    """Abstract base for ALS-based iterative CCA methods with deflation.
+    """Base for sparse CCA fitted by alternating per-view updates with deflation.
 
-    Subclasses implement :meth:`_update_weight` which updates the weight
-    vector for a single view given the current scores of all other views.
+    Subclasses implement :meth:`_update_weight`, one view's update given the
+    other views' current scores.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default True.
-        max_iter: Maximum number of ALS iterations per latent dimension.
-        tol: Convergence tolerance (weight change L2 norm). Default 1e-6.
-        random_state: Seed for reproducible random initialisation.
+        center: Whether to subtract column means. Default is True.
+        max_iter: Maximum iterations per latent dimension.
+        tol: Convergence tolerance on the change in weights. Default is 1e-6.
+        random_state: Seed for the random initialisation.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
     """
 
     def __init__(
@@ -64,18 +54,14 @@ class _BaseIterative(BaseModel):
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> _BaseIterative:
-        """Fit the model by ALS with deflation for each latent dimension.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: List of arrays, each of shape (n_samples, n_features_i).
             y: Ignored.
 
         Returns:
             self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
@@ -100,13 +86,7 @@ class _BaseIterative(BaseModel):
         w: list[np.ndarray],
         d: int,
     ) -> None:
-        """Run the ALS loop for a single latent dimension in-place on w.
-
-        Args:
-            views: Deflated view arrays for the current dimension.
-            w: Weight vectors (updated in-place) for each view.
-            d: Current latent dimension index (for logging).
-        """
+        """Run the alternating updates for one latent dimension, in place on ``w``."""
         for iteration in range(self.max_iter):
             w_prev = [wi.copy() for wi in w]
             for i in range(len(views)):
@@ -124,16 +104,7 @@ class _BaseIterative(BaseModel):
         weights: list[np.ndarray],
         i: int,
     ) -> np.ndarray:
-        """Compute the updated weight vector for view i.
-
-        Args:
-            views: Current (deflated) view arrays.
-            weights: Current weight vectors for all views.
-            i: Index of the view to update.
-
-        Returns:
-            Updated normalised weight vector for view i, shape (n_features_i,).
-        """
+        """Updated unit-norm weight vector of view ``i``."""
 
 
 def _target_score(
@@ -141,16 +112,7 @@ def _target_score(
     weights: list[np.ndarray],
     i: int,
 ) -> np.ndarray:
-    """Sum of projected scores from all views except i.
-
-    Args:
-        views: View arrays.
-        weights: Weight vectors.
-        i: Index of the view to exclude.
-
-    Returns:
-        Summed score array of shape (n_samples,) or (n_samples, 1).
-    """
+    """Sum of the scores of every view except ``i``."""
     scores = [views[j] @ weights[j] for j in range(len(views)) if j != i]
     target: np.ndarray = np.asarray(sum(scores))
     norm = np.linalg.norm(target)
@@ -165,36 +127,10 @@ def _target_score(
 
 
 def _bisect_threshold(x: np.ndarray, l1_bound: float) -> np.ndarray:
-    r"""Find the soft threshold hitting ``l1_bound`` L1 norm after L2-normalising.
+    """Soft-threshold ``x`` so its L2-normalised result has L1 norm ``l1_bound``.
 
-    ``l1_bound`` (``tau * sqrt(p)``, see :class:`PMDCCA`) is only a
-    meaningful constraint on a *unit-L2-norm* vector: ``||w||_1 <= sqrt(p)``
-    for ``||w||_2 = 1`` is the Cauchy-Schwarz bound the ``tau in (0, 1]``
-    parameterisation relies on. The bisection therefore has to search on
-    the L1/L2 ratio of the thresholded vector, ``||soft_threshold(x,
-    delta)||_1 / ||soft_threshold(x, delta)||_2``, not on
-    ``||soft_threshold(x, delta)||_1`` alone: that ratio is invariant to
-    the overall scale of ``x`` (scaling ``x`` by any ``c > 0`` scales the
-    optimal ``delta`` by the same ``c`` and leaves the ratio unchanged),
-    whereas the raw L1 norm is not. ``x`` here is an un-normalised
-    power-iteration update whose scale depends on the data
-    (:meth:`PMDCCA._update_weight` passes ``views[i].T @ target``,
-    typically :math:`O(\sqrt{n})` in magnitude for standardised data),
-    not on ``tau``, so comparing that raw L1 norm directly against
-    ``l1_bound`` made the constraint's effective strength depend on the
-    data's scale rather than only on ``tau`` -- in the regime where the
-    raw update's magnitude exceeds ``l1_bound`` (the common case for
-    reasonably-sized ``n``), it made ``tau`` bind far more aggressively
-    than intended, up to and including ``tau=1`` (nominally "no sparsity
-    constraint") still producing near-maximal sparsity.
-
-    Args:
-        x: Input vector (un-normalised).
-        l1_bound: Target L1 norm of the L2-normalised result, in
-            ``(0, sqrt(len(x))]``.
-
-    Returns:
-        Soft-thresholded, L2-normalised vector.
+    The search is on the L1/L2 ratio of the thresholded vector, which is
+    invariant to the scale of ``x``, so the bound depends only on ``tau``.
     """
     norm_x = np.linalg.norm(x)
     if norm_x <= 1e-12:
@@ -227,42 +163,40 @@ def _bisect_threshold(x: np.ndarray, l1_bound: float) -> np.ndarray:
 
 
 class PMDCCA(_BaseIterative):
-    r"""Sparse CCA via Penalized Matrix Decomposition.
+    r"""Sparse CCA by penalized matrix decomposition.
 
-    Maximises the cross-view covariance subject to L1 norm constraints on
-    each weight vector:
+    Maximises cross-view covariance subject to L1 and L2 constraints on each
+    weight vector:
 
     $$
-    \begin{aligned}
-    \max_{\mathbf{w}_1, \mathbf{w}_2} \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2 \\
-    \text{subject to } \|\mathbf{w}_i\|_1 \leq \tau_i \sqrt{p_i},\quad
-        \|\mathbf{w}_i\|_2 = 1
-    \end{aligned}
+    \max_{\mathbf{w}_1, \mathbf{w}_2} \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
+    \quad\text{subject to}\quad
+    \|\mathbf{w}_i\|_1 \le \tau_i \sqrt{p_i},\ \|\mathbf{w}_i\|_2 = 1.
     $$
 
-    The update for each view uses bisection to find the soft-threshold that
-    satisfies the L1 constraint exactly.
-
-    References:
-        Witten, D. M., Tibshirani, R., & Hastie, T. (2009). A penalized
-        matrix decomposition, with applications to sparse principal
-        components and canonical correlation analysis. *Biostatistics*,
-        10(3), 515–534.
+    Each update soft-thresholds with the level found by bisection.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default True.
-        tau: L1 bound scaling factor(s) in ``(0, 1]``.  The actual L1 bound
-            is ``tau * sqrt(n_features_i)``.  Default is 1 (no sparsity).
-        max_iter: Maximum ALS iterations. Default is 500.
+        center: Whether to subtract column means. Default is True.
+        tau: L1 bound as a fraction of ``sqrt(n_features_i)``, in ``(0, 1]``;
+            1 imposes no sparsity. Per-view. Default is 1.
+        max_iter: Maximum iterations per latent dimension. Default is 500.
         tol: Convergence tolerance. Default is 1e-6.
-        random_state: Seed for reproducibility.
+        random_state: Seed for the random initialisation. Default is None.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    References:
+        Witten, D. M., Tibshirani, R., & Hastie, T. (2009). A penalized matrix
+        decomposition, with applications to sparse principal components and
+        canonical correlation analysis. Biostatistics, 10(3), 515-534.
 
     Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((50, 10))
-        >>> X2 = rng.standard_normal((50, 8))
+        >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = PMDCCA(tau=0.5, random_state=0).fit([X1, X2])
     """
 
@@ -285,17 +219,14 @@ class PMDCCA(_BaseIterative):
         self.tau = tau
 
     def fit(self, views: list[ArrayLike], y: None = None) -> PMDCCA:
-        """Fit the PMDCCA model.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: List of arrays, each of shape (n_samples, n_features_i).
             y: Ignored.
 
         Returns:
             self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
         """
         # Store processed tau for use in _update_weight
         self._tau: list[float] = []  # set in super().fit via _setup_fit
@@ -303,11 +234,7 @@ class PMDCCA(_BaseIterative):
         return self
 
     def _setup_tau(self) -> list[float]:
-        """Compute per-view L1 bounds from tau and feature dimensions.
-
-        Returns:
-            List of L1 bound values, one per view.
-        """
+        """Per-view L1 bounds ``tau * sqrt(n_features_i)``."""
         tau_ = perview_parameter("tau", self.tau, 1.0, self.n_views_)
         return [t * np.sqrt(p) for t, p in zip(tau_, self.n_features_in_)]
 
@@ -317,13 +244,7 @@ class PMDCCA(_BaseIterative):
         w: list[np.ndarray],
         d: int,
     ) -> None:
-        """Run the ALS loop; set per-view L1 bounds first.
-
-        Args:
-            views: Deflated view arrays.
-            w: Weight vectors (updated in-place).
-            d: Current latent dimension index.
-        """
+        """Set the L1 bounds, then run the alternating updates."""
         self._l1_bounds = self._setup_tau()
         super()._fit_single(views, w, d)
 
@@ -333,16 +254,7 @@ class PMDCCA(_BaseIterative):
         weights: list[np.ndarray],
         i: int,
     ) -> np.ndarray:
-        """Update weight for view i with L1 bisection.
-
-        Args:
-            views: Current view arrays.
-            weights: Current weight vectors.
-            i: View index to update.
-
-        Returns:
-            Sparse normalised weight vector for view i.
-        """
+        """Soft-thresholded power-iteration update of view ``i``."""
         target = _target_score(views, weights, i)
         raw = views[i].T @ target
         return _bisect_threshold(raw, self._l1_bounds[i])
@@ -354,95 +266,43 @@ class PMDCCA(_BaseIterative):
 
 
 class ADMMCCA(_BaseIterative):
-    r"""Sparse CCA via linearised Alternating Direction Method of Multipliers.
+    r"""Sparse CCA by linearised ADMM.
 
-    Suo, Mineiro & Anandkumar (2017) pose two-view sparse CCA as, for view
-    $i$ fixed at the other views' current weights (i.e. $\bar{\mathbf{s}}_{\neg
-    i}$, the summed score of every other view),
+    For view $i$, with the other views' summed score
+    $\bar{\mathbf{s}}_{\neg i}$ fixed, solves
 
     $$
     \max_{\mathbf{w}_i}\ \mathbf{w}_i^\top X_i^\top \bar{\mathbf{s}}_{\neg i}
         - \tau_i \|\mathbf{w}_i\|_1
-        \quad\text{subject to } \|X_i \mathbf{w}_i\|_2 \le 1.
+    \quad\text{subject to}\quad \|X_i \mathbf{w}_i\|_2 \le 1
     $$
 
-    This is a genuinely different problem from a reduced-rank-regression-style
-    method like :class:`~cca_zoo.linear.CCAR3`: the objective is *linear* in
-    $\mathbf{w}_i$ (a covariance to maximise, not a residual to shrink), and
-    the norm constraint bounds the *score* $X_i\mathbf{w}_i$, not the weight
-    vector itself -- these coincide only when $X_i$ is orthonormal. Because
-    the constraint couples $\mathbf{w}_i$ to $X_i\mathbf{w}_i$ through a
-    linear map rather than the identity, an ordinary ADMM split would need to
-    invert $X_i^\top X_i$ every step; instead, introducing $\mathbf{z}_i =
-    X_i\mathbf{w}_i$ and *linearising* the augmented Lagrangian's quadratic
-    penalty term around the current iterate turns the $\mathbf{w}_i$-update
-    into a single proximal-gradient step, which is closed-form here since the
-    linear-plus-L1 objective's proximal operator is itself just a shifted
-    soft-threshold:
-
-    $$
-    \begin{aligned}
-    \mathbf{w}_i &\leftarrow \mathcal{S}_{\eta_i \tau_i}\Bigl(
-        \mathbf{w}_i - \eta_i \mu X_i^\top(X_i\mathbf{w}_i - \mathbf{z}_i +
-        \boldsymbol{\xi}_i) + \eta_i X_i^\top \bar{\mathbf{s}}_{\neg i}
-    \Bigr) \\
-    \mathbf{z}_i &\leftarrow \Pi_{\|\cdot\|_2 \le 1}\bigl(
-        X_i \mathbf{w}_i + \boldsymbol{\xi}_i
-    \bigr) \\
-    \boldsymbol{\xi}_i &\leftarrow \boldsymbol{\xi}_i + X_i\mathbf{w}_i -
-        \mathbf{z}_i
-    \end{aligned}
-    $$
-
-    where $\mathcal{S}_\lambda$ is the elementwise soft-threshold operator,
-    $\Pi_{\|\cdot\|_2 \le 1}$ projects onto the unit ball, $\mu$ is the ADMM
-    penalty parameter, and $\eta_i = 1/(\mu \|X_i\|_{\mathrm{op}}^2)$ is the
-    linearisation step size (the standard stability choice, satisfying $\eta_i
-    \mu \|X_i\|_{\mathrm{op}}^2 \le 1$ with equality). Verified against
-    first-order KKT optimality conditions of the exact constrained problem
-    (the dual variable recovered from the active constraint agrees across
-    every nonzero coordinate to machine precision, and every zeroed
-    coordinate's subgradient residual falls inside $[-\tau_i, \tau_i]$).
-
-    An earlier version of this class solved a different problem entirely: a
-    reduced-rank-regression-style loss $\|X_i\mathbf{w}_i -
-    \bar{\mathbf{s}}_{\neg i}\|_2^2$ with the ball constraint on
-    $\mathbf{w}_i$ directly, rather than the paper's linear covariance
-    objective with the constraint on $X_i\mathbf{w}_i$. That mismatch was not
-    caught by comparing internal consistency alone (a previous fix corrected
-    a scaling bug *within* that wrong objective and still didn't match this
-    paper); only reading the paper's own Section 2.2 -- including its
-    derivation of why linearisation is needed for the $Xu=z$ constraint in
-    particular -- surfaced it.
-
-    Multiple canonical vectors are extracted by this module's shared
-    deflation convention (see the module docstring), not the paper's own
-    Section 2.3 (which instead augments $X_i$ with $U^\top X_i^\top X_i$ rows
-    to embed a whitened-orthogonality constraint directly into the linear
-    map) -- the same kind of documented departure :class:`SAR` already makes
-    from its own two-view paper's higher-order extension.
-
-    References:
-        Suo, X., Mineiro, P., & Anandkumar, A. (2017). Sparse canonical
-        correlation analysis. *arXiv:1705.10865*.
+    by linearised ADMM on the split $\mathbf{z}_i = X_i \mathbf{w}_i$, so
+    each step is a soft-threshold and a projection onto the unit ball, with
+    step size $1 / (\mu \|X_i\|_{\mathrm{op}}^2)$. Further components use
+    deflation rather than the paper's orthogonality constraint.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default True.
-        tau: L1 regularisation weight(s). Default is 0.1.
+        center: Whether to subtract column means. Default is True.
+        tau: L1 penalty. Per-view. Default is 0.1.
         mu: ADMM penalty parameter. Default is 1.0.
-        max_iter: Maximum outer (across-view) iterations. Default is 500.
-        admm_iter: Maximum linearised-ADMM iterations per view, per outer
-            iteration. Default is 50.
-        tol: Convergence tolerance, for both the outer loop and each view's
-            inner ADMM loop. Default is 1e-6.
-        random_state: Seed for reproducibility.
+        max_iter: Maximum outer iterations per latent dimension. Default is 500.
+        admm_iter: Maximum ADMM iterations per view update. Default is 50.
+        tol: Convergence tolerance of both loops. Default is 1e-6.
+        random_state: Seed for the random initialisation. Default is None.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    References:
+        Suo, X., Mineiro, P., & Anandkumar, A. (2017). Sparse canonical
+        correlation analysis. arXiv:1705.10865.
 
     Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((50, 10))
-        >>> X2 = rng.standard_normal((50, 8))
+        >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = ADMMCCA(tau=0.1, random_state=0).fit([X1, X2])
     """
 
@@ -474,13 +334,7 @@ class ADMMCCA(_BaseIterative):
         w: list[np.ndarray],
         d: int,
     ) -> None:
-        """Run the outer (across-view) loop, each step an inner linearised-ADMM solve.
-
-        Args:
-            views: Deflated view arrays.
-            w: Weight vectors (updated in-place).
-            d: Current latent dimension index.
-        """
+        """Alternate over views, each update an inner linearised-ADMM solve."""
         tau_ = perview_parameter("tau", self.tau, 0.1, len(views))
         n_views = len(views)
         # eta_i = 1/(mu * ||X_i||_op^2) is fixed for this latent dimension
@@ -522,16 +376,7 @@ class ADMMCCA(_BaseIterative):
         weights: list[np.ndarray],
         i: int,
     ) -> np.ndarray:
-        """Not used — ADMMCCA overrides _fit_single directly.
-
-        Args:
-            views: View arrays (unused).
-            weights: Weight vectors (unused).
-            i: View index (unused).
-
-        Returns:
-            Current weight for view i (unchanged).
-        """
+        """Unused: :meth:`_fit_single` performs the updates."""
         return weights[i]
 
 
@@ -541,41 +386,39 @@ class ADMMCCA(_BaseIterative):
 
 
 class IPLSCCA(_BaseIterative):
-    r"""Iterative PLS with elastic net penalty on weight vectors.
+    r"""Sparse CCA by iterative penalised least squares.
 
-    Alternates between penalised regression sub-problems.  For view $i$:
+    Each view's weights solve an elastic-net regression onto the other views'
+    summed score, then are rescaled to a unit-variance score:
 
     $$
     \hat{\mathbf{w}}_i = \arg\min_{\mathbf{w}}
         \frac{1}{2n} \|X_i \mathbf{w} - \bar{\mathbf{s}}_{\neg i}\|_2^2
-        + \alpha_i \Bigl(
-            l_1 \|\mathbf{w}\|_1
-            + \tfrac{1-l_1}{2} \|\mathbf{w}\|_2^2
-        \Bigr)
+        + \alpha_i \Bigl(r \|\mathbf{w}\|_1 + \tfrac{1-r}{2} \|\mathbf{w}\|_2^2\Bigr).
     $$
-
-    followed by a normalisation step to enforce unit variance of the score.
-
-    References:
-        Mai, Q., & Zhang, X. (2019). An iterative penalized least squares
-        approach to sparse canonical correlation analysis. *Biometrics*,
-        75(3), 734–744.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default True.
-        alpha: Elastic net penalty strength(s). Default is 0.
-        l1_ratio: Ratio of L1 to total penalty. 1 = lasso, 0 = ridge.
+        center: Whether to subtract column means. Default is True.
+        alpha: Penalty strength. Per-view. Default is 0.
+        l1_ratio: Share of the penalty that is L1 (1 is the lasso). Per-view.
             Default is 1.
-        max_iter: Maximum ALS iterations. Default is 500.
+        max_iter: Maximum iterations per latent dimension. Default is 500.
         tol: Convergence tolerance. Default is 1e-6.
-        random_state: Seed for reproducibility.
+        random_state: Seed for the random initialisation. Default is None.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    References:
+        Mai, Q., & Zhang, X. (2019). An iterative penalized least squares
+        approach to sparse canonical correlation analysis. Biometrics, 75(3),
+        734-744.
 
     Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((50, 10))
-        >>> X2 = rng.standard_normal((50, 8))
+        >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = IPLSCCA(alpha=0.1, random_state=0).fit([X1, X2])
     """
 
@@ -605,13 +448,7 @@ class IPLSCCA(_BaseIterative):
         w: list[np.ndarray],
         d: int,
     ) -> None:
-        """Initialise per-view regressors and run ALS.
-
-        Args:
-            views: Deflated view arrays.
-            w: Weight vectors (updated in-place).
-            d: Current latent dimension index.
-        """
+        """Build the per-view regressors, then run the alternating updates."""
         alpha_ = perview_parameter("alpha", self.alpha, 0.0, len(views))
         l1_ = perview_parameter("l1_ratio", self.l1_ratio, 1.0, len(views))
         self._regressors = _make_regressors(alpha_, l1_, self.tol, self.random_state)
@@ -623,16 +460,7 @@ class IPLSCCA(_BaseIterative):
         weights: list[np.ndarray],
         i: int,
     ) -> np.ndarray:
-        """Penalised regression update with score normalisation.
-
-        Args:
-            views: Current view arrays.
-            weights: Current weight vectors.
-            i: View index to update.
-
-        Returns:
-            Updated weight vector for view i.
-        """
+        """Penalised regression of view ``i`` onto the other views' score."""
         target = _target_score(views, weights, i)
         reg = self._regressors[i]
         reg.fit(views[i], target)
@@ -650,40 +478,32 @@ class IPLSCCA(_BaseIterative):
 
 
 class SpanCCA(_BaseIterative):
-    r"""Hard-thresholding ALS for sparse CCA, inspired by the SpanCCA algorithm.
+    """Sparse CCA by hard-thresholded alternating updates.
 
-    Solves sparse CCA by an alternating least squares loop where each
-    weight update retains only the ``span`` entries with the largest
-    absolute values.
-
-    Note that this class shares its name with the paper's own algorithm
-    (Asteris et al. 2016's "SpanCCA") but is an ALS-based heuristic, not a
-    reimplementation of it: the paper instead takes a single rank-r SVD of
-    the cross-covariance matrix up front, then draws many independent
-    random directions on the low-rank subspace, hard-thresholds each one,
-    and returns whichever independent candidate scored highest -- it never
-    alternately refines one running weight vector the way this class (and
-    every other class in this module, see the module docstring) does.
-
-    References:
-        Asteris, M., Kyrillidis, A., Koyejo, O., & Poldrack, R. (2016).
-        A simple and provable algorithm for sparse diagonal CCA. *ICML*,
-        *arXiv:1605.08961*.
+    Each update keeps the ``span`` largest-magnitude weights. This is an
+    alternating heuristic in the spirit of Asteris et al.'s SpanCCA, not their
+    randomised low-rank search.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default True.
-        span: Number of non-zero entries to retain per view.  Either a single
-            int or a list.  Default is None (keep all — no sparsity).
-        max_iter: Maximum ALS iterations. Default is 500.
+        center: Whether to subtract column means. Default is True.
+        span: Number of nonzero weights kept; ``None`` keeps all. Per-view.
+            Default is None.
+        max_iter: Maximum iterations per latent dimension. Default is 500.
         tol: Convergence tolerance. Default is 1e-6.
-        random_state: Seed for reproducibility.
+        random_state: Seed for the random initialisation. Default is None.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    References:
+        Asteris, M., Kyrillidis, A., Koyejo, O., & Poldrack, R. (2016). A simple
+        and provable algorithm for sparse diagonal CCA. ICML.
 
     Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((50, 10))
-        >>> X2 = rng.standard_normal((50, 8))
+        >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = SpanCCA(span=5, random_state=0).fit([X1, X2])
     """
 
@@ -711,13 +531,7 @@ class SpanCCA(_BaseIterative):
         w: list[np.ndarray],
         d: int,
     ) -> None:
-        """Set per-view span values and run ALS.
-
-        Args:
-            views: Deflated view arrays.
-            w: Weight vectors (updated in-place).
-            d: Current latent dimension index.
-        """
+        """Set the per-view spans, then run the alternating updates."""
         default_span = views[0].shape[1]
         span_raw = self.span if self.span is not None else default_span
         span_ = perview_parameter("span", span_raw, default_span, len(views))
@@ -730,16 +544,7 @@ class SpanCCA(_BaseIterative):
         weights: list[np.ndarray],
         i: int,
     ) -> np.ndarray:
-        """Hard-threshold update keeping top-span entries.
-
-        Args:
-            views: Current view arrays.
-            weights: Current weight vectors.
-            i: View index to update.
-
-        Returns:
-            Sparse normalised weight vector for view i.
-        """
+        """Update of view ``i`` keeping its ``span`` largest weights."""
         target = _target_score(views, weights, i)
         raw: np.ndarray = np.asarray(views[i].T @ target)
         # Keep only the top-span entries
@@ -759,58 +564,43 @@ class SpanCCA(_BaseIterative):
 
 
 class WaijenborgCCA(_BaseIterative):
-    r"""Elastic net regularised CCA (Waaijenborg 2008).
+    r"""Penalised CCA by alternating elastic-net regressions.
 
-    Named after the paper's own author rather than the generic "elastic net
-    CCA" it used to be called, to disambiguate it from
-    :class:`~cca_zoo.sparse.ElasticNetCCA`: that class optimises the actual
-    Eckart-Young CCA loss with an elastic-net penalty (and cannot delegate to
-    :class:`~sklearn.linear_model.ElasticNet`, since the EY loss's
-    per-coordinate restriction is an exact quartic, not a quadratic --
-    see :func:`~cca_zoo._utils._ey.coordinate_descent_ey`), whereas this
-    class alternates between plain elastic-net *regression* sub-problems
-    (regressing each view's score against the sum of all other views'
-    scores) and genuinely does delegate to sklearn's
-    :class:`~sklearn.linear_model.ElasticNet`/:class:`~sklearn.linear_model.Lasso`/
-    :class:`~sklearn.linear_model.Ridge` via :func:`_make_regressors` -- a
-    different algorithm entirely, not just a different implementation of the
-    same one.
-
-    Alternates between elastic net regression sub-problems, regressing each
-    view's score against the sum of all other views' scores:
+    Each view's weights solve an elastic-net regression onto the normalised
+    sum of all views' scores:
 
     $$
     \hat{\mathbf{w}}_i = \arg\min_{\mathbf{w}}
-        \frac{1}{2n} \|X_i \mathbf{w} - \mathbf{s}_{\text{all}}\|_2^2
-        + \alpha_i \Bigl(
-            l_1 \|\mathbf{w}\|_1
-            + \tfrac{1 - l_1}{2} \|\mathbf{w}\|_2^2
-        \Bigr)
+        \frac{1}{2n} \|X_i \mathbf{w} - \mathbf{s}\|_2^2
+        + \alpha_i \Bigl(r \|\mathbf{w}\|_1 + \tfrac{1 - r}{2} \|\mathbf{w}\|_2^2\Bigr).
     $$
 
-    where $\mathbf{s}_{\text{all}} = \sum_j X_j \mathbf{w}_j / \|\cdot\|$.
-
-    References:
-        Waaijenborg, S., de Witt Hamer, P. C. V., & Zwinderman, A. H.
-        (2008). Quantifying the association between gene expressions and
-        DNA-markers by penalized canonical correlation analysis.
-        *Statistical Applications in Genetics and Molecular Biology*, 7(1).
+    Unlike :class:`~cca_zoo.sparse.ElasticNetCCA`, which penalises the EY
+    loss itself, this alternates plain regressions.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default True.
-        alpha: Elastic net regularisation strength. Default is 0.
-        l1_ratio: L1 / total penalty ratio. Default is 0.5.
-        max_iter: Maximum ALS iterations. Default is 500.
+        center: Whether to subtract column means. Default is True.
+        alpha: Penalty strength. Per-view. Default is 0.
+        l1_ratio: Share of the penalty that is L1. Per-view. Default is 0.5.
+        max_iter: Maximum iterations per latent dimension. Default is 500.
         tol: Convergence tolerance. Default is 1e-6.
-        random_state: Seed for reproducibility.
+        random_state: Seed for the random initialisation. Default is None.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    References:
+        Waaijenborg, S., de Witt Hamer, P. C. V., & Zwinderman, A. H. (2008).
+        Quantifying the association between gene expressions and DNA-markers by
+        penalized canonical correlation analysis. Statistical Applications in
+        Genetics and Molecular Biology, 7(1).
 
     Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((50, 10))
-        >>> X2 = rng.standard_normal((50, 8))
-        >>> model = WaijenborgCCA(alpha=0.1, l1_ratio=0.5, random_state=0).fit([X1, X2])
+        >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
+        >>> model = WaijenborgCCA(alpha=0.1, random_state=0).fit([X1, X2])
     """
 
     def __init__(
@@ -839,13 +629,7 @@ class WaijenborgCCA(_BaseIterative):
         w: list[np.ndarray],
         d: int,
     ) -> None:
-        """Initialise per-view regressors and run ALS.
-
-        Args:
-            views: Deflated view arrays.
-            w: Weight vectors (updated in-place).
-            d: Current latent dimension index.
-        """
+        """Build the per-view regressors, then run the alternating updates."""
         alpha_ = perview_parameter("alpha", self.alpha, 0.0, len(views))
         l1_ = perview_parameter("l1_ratio", self.l1_ratio, 0.5, len(views))
         self._regressors = _make_regressors(alpha_, l1_, self.tol, self.random_state)
@@ -857,16 +641,7 @@ class WaijenborgCCA(_BaseIterative):
         weights: list[np.ndarray],
         i: int,
     ) -> np.ndarray:
-        """Elastic net regression against sum-of-other-views-scores target.
-
-        Args:
-            views: Current view arrays.
-            weights: Current weight vectors.
-            i: View index to update.
-
-        Returns:
-            Updated weight vector for view i.
-        """
+        """Elastic-net regression of view ``i`` onto all views' summed score."""
         target = _target_score(views, weights, i)
         reg = self._regressors[i]
         reg.fit(views[i], target)
@@ -879,49 +654,38 @@ class WaijenborgCCA(_BaseIterative):
 
 
 class ParkhomenkoCCA(_BaseIterative):
-    r"""Sparse CCA via soft-thresholding power iteration (Parkhomenko 2009).
+    r"""Sparse CCA by soft-thresholded power iteration on standardised views.
 
-    The paper's own criterion is $K = \hat\Sigma_{XX}^{-1/2} \hat\Sigma_{XY}
-    \hat\Sigma_{YY}^{-1/2}$, with $\hat\Sigma_{XX}, \hat\Sigma_{YY}$ replaced
-    by their diagonals -- the paper states directly that sparsity is only
-    guaranteed under this diagonal approximation, not the full sample
-    covariance. Since diagonal whitening of a matrix is exactly per-column
-    standardisation, this is implemented by standardising each view to unit
-    per-feature variance once per latent dimension (on top of the existing
-    mean-centring), then running the same power iteration
-    :class:`PMDCCA`'s raw-covariance methods use on that standardised
-    data, with a fixed soft-threshold $\tau_i$ in place of the adaptive
-    bisection search:
+    Uses the paper's diagonal approximation to the within-view covariances,
+    which amounts to standardising each feature, then iterates
 
     $$
-    \mathbf{w}_i \leftarrow
-        S_{\tau_i}(\tilde X_i^\top \bar{\mathbf{s}}_{\neg i})
+    \mathbf{w}_i \leftarrow S_{\tau_i}(\tilde X_i^\top \bar{\mathbf{s}}_{\neg i}),
     $$
 
-    where $S_\tau$ is the element-wise soft-threshold operator and $\tilde
-    X_i$ denotes $X_i$ with each column scaled to unit variance. The final
-    weight is converted back to the original (unstandardised) feature scale
-    before being returned.
-
-    References:
-        Parkhomenko, E., Tritchler, D., & Beyene, J. (2009). Sparse
-        canonical correlation analysis with application to genomic data
-        integration. *Statistical Applications in Genetics and Molecular
-        Biology*, 8(1).
+    with $S_\tau$ the soft-threshold and $\tilde X_i$ the standardised view.
+    Weights are returned on the original feature scale.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default True.
-        tau: Soft-threshold parameter(s). Default is 0.1.
-        max_iter: Maximum ALS iterations. Default is 500.
+        center: Whether to subtract column means. Default is True.
+        tau: Soft-threshold level. Per-view. Default is 0.1.
+        max_iter: Maximum iterations per latent dimension. Default is 500.
         tol: Convergence tolerance. Default is 1e-6.
-        random_state: Seed for reproducibility.
+        random_state: Seed for the random initialisation. Default is None.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    References:
+        Parkhomenko, E., Tritchler, D., & Beyene, J. (2009). Sparse canonical
+        correlation analysis with application to genomic data integration.
+        Statistical Applications in Genetics and Molecular Biology, 8(1).
 
     Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((50, 10))
-        >>> X2 = rng.standard_normal((50, 8))
+        >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = ParkhomenkoCCA(tau=0.1, random_state=0).fit([X1, X2])
     """
 
@@ -949,13 +713,7 @@ class ParkhomenkoCCA(_BaseIterative):
         w: list[np.ndarray],
         d: int,
     ) -> None:
-        """Set per-view tau values, run ALS on diagonally-whitened views.
-
-        Args:
-            views: Deflated view arrays.
-            w: Weight vectors (updated in-place).
-            d: Current latent dimension index.
-        """
+        """Standardise the views and set the thresholds, then run the updates."""
         self._tau_vals = perview_parameter("tau", self.tau, 0.1, len(views))
         scales = [v.std(axis=0, keepdims=True) for v in views]
         scales = [np.where(s < 1e-12, 1.0, s) for s in scales]
@@ -976,16 +734,7 @@ class ParkhomenkoCCA(_BaseIterative):
         weights: list[np.ndarray],
         i: int,
     ) -> np.ndarray:
-        """Soft-threshold update with normalisation.
-
-        Args:
-            views: Current view arrays.
-            weights: Current weight vectors.
-            i: View index to update.
-
-        Returns:
-            Sparse normalised weight vector for view i.
-        """
+        """Soft-thresholded update of view ``i``."""
         target = _target_score(views, weights, i)
         raw = views[i].T @ target
         result = soft_threshold(raw, self._tau_vals[i])
@@ -1006,28 +755,10 @@ def _sar_bic_lasso(
     n_lambda: int,
     tol: float,
 ) -> np.ndarray:
-    r"""Fit a lasso path and pick the BIC-minimising coefficient vector.
+    """Lasso coefficients at the BIC-minimising point of the lasso path.
 
-    Solves $\hat\beta_\lambda = \arg\min_\beta \|y - X\beta\|_2^2 +
-    n\lambda\|\beta\|_1$ over an automatically-generated $\lambda$ grid
-    (:func:`sklearn.linear_model.lasso_path`'s own default geometric
-    grid from $\lambda_{\max}$, the smallest value giving an all-zero
-    fit), then selects $\hat\lambda = \arg\min_\lambda \mathrm{BIC}_\lambda$
-    with $\mathrm{BIC}_\lambda = n\log(\mathrm{RSS}_\lambda/n) +
-    k_\lambda\log n$, $k_\lambda$ the number of nonzero coefficients --
-    the same criterion Wilms \& Croux (2015) use, up to the additive
-    constants in $-2\log L$ that do not depend on $\lambda$ and so do
-    not affect which $\lambda$ minimises it.
-
-    Args:
-        x: Predictor matrix, shape (n_samples, n_features).
-        y: Response vector, shape (n_samples,).
-        n_lambda: Number of grid points along the lasso path.
-        tol: Coordinate-descent convergence tolerance.
-
-    Returns:
-        Coefficient vector at the BIC-selected $\lambda$, shape
-        (n_features,).
+    BIC is ``n log(RSS / n) + k log n``, with ``k`` the number of nonzero
+    coefficients, as in Wilms and Croux (2015).
     """
     n, p = x.shape
     # SAR runs ~1000 paths per fit, so skip sklearn's per-call input
@@ -1052,53 +783,29 @@ def _sar_bic_lasso(
 
 
 class SAR(_BaseIterative):
-    r"""Sparse Alternating Regression, with BIC-selected sparsity.
+    """Sparse alternating regression with BIC-selected sparsity.
 
-    Wilms \& Croux (2015) recast CCA as the Brillinger (1975) / Izenman
-    (1975) regression problem $(\hat A, \hat B) = \arg\min_{A,B}\sum_i\|A^\top
-    \mathbf{x}_i - B^\top\mathbf{y}_i\|_2^2$, solved by alternating
-    regression (Wold 1968): with $A$ fixed, $B$ is a regression of the
-    score $XA$ on $Y$; with $B$ fixed, $A$ is a regression of $YB$ on
-    $X$. Ordinary least squares makes this exact but neither sparse nor
-    usable once a view has more features than samples, so each
-    regression step is replaced by a lasso fit (:func:`_sar_bic_lasso`)
-    with its penalty strength selected by BIC rather than left as a
-    user-set hyperparameter -- the paper's own point of departure from
-    every other alternating-regression method in this module. The
-    multiview generalisation (each view regressed against the summed
-    score of every *other* view, via the same :func:`_target_score`
-    helper :class:`SpanCCA`, :class:`ParkhomenkoCCA`, and
-    :class:`WaijenborgCCA` use) is this implementation's own extension,
-    not something the two-view paper itself considers.
-
-    Because a lasso fit does not commute with deflation the way an
-    ordinary-least-squares fit does, latent dimensions beyond the first
-    need an extra step the rest of this module's classes do not: after
-    alternating regression on the deflated views for dimension $d>0$
-    yields a direction in the *deflated* coordinate system, that
-    direction's score is regressed once more against each view's
-    *original*, undeflated data (again by BIC-selected lasso) to obtain
-    the final sparse weight vector reported for that dimension --
-    Wilms \& Croux (2015, Section 3, "Higher order canonical vector
-    pairs") introduce this re-expression step for exactly this reason.
-    The first dimension needs no such step, since the deflated and
-    original views coincide before any deflation has happened.
-
-    References:
-        Wilms, I., & Croux, C. (2015). Sparse canonical correlation
-        analysis from a predictive point of view. *Biometrical
-        Journal*, 57(5), 834-851. *arXiv:1501.01231*.
+    CCA as alternating regressions of each view's score on the other views'
+    summed score, each a lasso whose penalty is chosen by BIC. Latent
+    dimensions after the first are found on deflated views, then re-fitted
+    against the original views (Wilms and Croux, Section 3). The extension
+    beyond two views is this implementation's own.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default True.
-        n_lambda: Number of points in each BIC-selected lasso path's
-            automatically-generated $\lambda$ grid. Default is 100.
-        max_iter: Maximum ALS iterations per latent dimension. Default
-            is 500.
-        tol: Convergence tolerance, for both the ALS loop and each
-            lasso path's coordinate descent. Default is 1e-6.
-        random_state: Seed for reproducible random initialisation.
+        center: Whether to subtract column means. Default is True.
+        n_lambda: Points on each lasso path. Default is 100.
+        max_iter: Maximum iterations per latent dimension. Default is 500.
+        tol: Convergence tolerance of the alternating loop and each lasso path.
+            Default is 1e-6.
+        random_state: Seed for the random initialisation. Default is None.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    References:
+        Wilms, I., & Croux, C. (2015). Sparse canonical correlation analysis
+        from a predictive point of view. Biometrical Journal, 57(5), 834-851.
 
     Examples:
         >>> import numpy as np
@@ -1128,13 +835,10 @@ class SAR(_BaseIterative):
         self.n_lambda = n_lambda
 
     def fit(self, views: list[ArrayLike], y: None = None) -> SAR:
-        """Fit by ALS with deflation.
-
-        Dimensions past the first are re-expressed in each view's
-        original (undeflated) coordinates.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: List of arrays, each of shape (n_samples, n_features_i).
             y: Ignored.
 
         Returns:
@@ -1165,10 +869,7 @@ class SAR(_BaseIterative):
     def _reexpress(
         self, original_view: np.ndarray, deflated_score: np.ndarray
     ) -> np.ndarray:
-        """Re-fit a deflated-space direction's score against the original view.
-
-        See the class docstring for why this is needed.
-        """
+        """Re-fit a deflated direction's score against the original view."""
         coef = _sar_bic_lasso(
             original_view, deflated_score.ravel(), self.n_lambda, self.tol
         )
@@ -1183,19 +884,7 @@ class SAR(_BaseIterative):
         weights: list[np.ndarray],
         i: int,
     ) -> np.ndarray:
-        """BIC-selected lasso regression against the other views' score.
-
-        Regresses view i's own data against the summed score of every
-        other view.
-
-        Args:
-            views: Current (deflated) view arrays.
-            weights: Current weight vectors.
-            i: View index to update.
-
-        Returns:
-            Sparse normalised weight vector for view i.
-        """
+        """BIC-selected lasso of view ``i`` onto the other views' score."""
         target = _target_score(views, weights, i)
         coef = _sar_bic_lasso(views[i], target.ravel(), self.n_lambda, self.tol)
         norm = np.linalg.norm(coef)
@@ -1215,17 +904,7 @@ def _make_regressors(
     tol: float,
     random_state: int | None,
 ) -> list[Ridge | Lasso | ElasticNet]:
-    """Build per-view sklearn regressors.
-
-    Args:
-        alpha: Per-view regularisation strengths.
-        l1_ratio: Per-view L1/total penalty ratios.
-        tol: Solver tolerance.
-        random_state: Seed for reproducibility.
-
-    Returns:
-        List of fitted sklearn regressor objects (one per view).
-    """
+    """Per-view sklearn regressors: Ridge, Lasso or ElasticNet by ``l1_ratio``."""
     regressors: list[Ridge | Lasso | ElasticNet] = []
     for a, l1 in zip(alpha, l1_ratio):
         if l1 == 0.0:
