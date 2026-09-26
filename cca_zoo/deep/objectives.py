@@ -22,7 +22,7 @@ def _inv_sqrtm(A: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
 
 
 class CCALoss(nn.Module):
-    r"""Andrew 2013 deep CCA correlation loss for two views.
+    r"""Two-view deep CCA loss (Andrew et al., 2013).
 
     Computes the negative sum of squared singular values of the whitened
     cross-covariance:

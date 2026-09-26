@@ -1,4 +1,4 @@
-"""GFA — Group Factor Analysis, ported faithfully from the R package CCAGFA."""
+"""Group Factor Analysis, ported from the R package CCAGFA."""
 
 from __future__ import annotations
 
@@ -22,113 +22,55 @@ _PATIENCE = 1000
 class GFA(PosteriorMeanTransformMixin, BaseModel):
     r"""Group Factor Analysis: Bayesian CCA with per-view ARD.
 
-    Ported faithfully from the reference implementation, ``GFA()`` in the R
-    package `CCAGFA <https://github.com/cran/CCAGFA>`_ (Klami, Virtanen &
-    Kaski) — the update equations below are transliterated directly from
-    that source rather than re-derived. Fits a single shared latent
-    variable $z$, but unlike
-    :class:`~cca_zoo.probabilistic.ProbabilisticCCA` and
-    :class:`~cca_zoo.probabilistic.VariationalBayesCCA` (which tie every
-    view to the *same* ARD precision per latent dimension), GFA gives each
-    view $i$ its **own** ARD precision $\alpha_{i,k}$ per latent dimension
-    $k$:
+    A port of ``GFA()`` from the R package CCAGFA. A shared latent $z$
+    generates every view, with an ARD precision per view and dimension:
 
     $$
     \begin{aligned}
-    \alpha_{i,k} &\sim \mathrm{Gamma}(a_0, b_0) \\
-    W_i[:, k] &\sim \mathcal{N}(0,\ \alpha_{i,k}^{-1} I) \\
-    z &\sim \mathcal{N}(0, I_K) \\
-    \tau_i &\sim \mathrm{Gamma}(a_{0\tau}, b_{0\tau}) \\
-    x_i \mid z &\sim \mathcal{N}(W_i z,\ \tau_i^{-1} I)
+    \alpha_{i,k} &\sim \mathrm{Gamma}(a_0, b_0), &
+    W_i[:, k] &\sim \mathcal{N}(0, \alpha_{i,k}^{-1} I), \\
+    z &\sim \mathcal{N}(0, I), &
+    x_i \mid z &\sim \mathcal{N}(W_i z, \tau_i^{-1} I),
     \end{aligned}
     $$
 
-    "Shared" vs. "private" latent dimensions are therefore *emergent*, not a
-    fixed split of $z$ into blocks: a dimension $k$ ends up shared if
-    $\alpha_{i,k}$ stays small (loadings retained) in several views at once,
-    and private to view $i$ if $\alpha_{i,k}$ shrinks toward zero loadings
-    in every *other* view. ``view_relevance_`` (posterior mean of
-    $\alpha_{i,k}$, shape ``(n_views, n_components_)``) exposes this
-    directly.
-
-    Note also the noise model: $\tau_i$ is a single scalar precision per
-    view (homoscedastic — every feature in a view shares the same noise
-    variance), not a per-feature diagonal like the other two classes —
-    this matches the R package exactly, not an approximation.
-
-    Inference is closed-form coordinate-ascent mean-field variational Bayes
-    (conjugate throughout, so no black-box SVI is needed here unlike
-    :class:`~cca_zoo.probabilistic.VariationalBayesCCA`). ``n_components``
-    is an *upper bound*: dimensions whose posterior mean squared value
-    falls below ``1e-7`` in every view are pruned during fitting
-    (``drop_k=True``, the R package's default), so the fitted number of
-    components, ``n_components_``, can end up smaller than
-    ``n_components`` — every output array's last axis has size
-    ``n_components_``, not ``n_components``.
-
-    Note:
-        This port omits the R package's optional orthogonal-rotation step
-        (``opts$rotate``, on by default in R) that speeds convergence and
-        helps escape poor local optima; it doesn't change the fitted model
-        class, only the optimization path, and is deferred to a follow-up
-        rather than risk porting it incorrectly without a reference R
-        run to check against.
-
-        Convergence is monitored via relative change in $z$, sustained for
-        1000 consecutive iterations, rather than the R package's full
-        variational lower bound (which is guaranteed monotonically
-        non-decreasing under exact coordinate ascent — provably immune to
-        the issue below). This is a **best-effort speed heuristic, not a
-        correctness guarantee**: checking against a run with early stopping
-        disabled entirely caught this proxy dipping below tolerance for
-        700+ consecutive iterations in the middle of a slow ARD pruning
-        process (one dimension's decay temporarily dominating a
-        still-shrinking one), before rising again once that pruning
-        actually needed hundreds more iterations to finish — a patience
-        window can make this less likely but, unlike the true ELBO, can't
-        rule it out for an arbitrarily slow case. ``max_iter`` (default
-        10000) is the actual safety net: raise it if ``n_components_``
-        looks larger than expected, rather than trusting early stopping
-        alone on a hard pruning problem.
-
-    References:
-        Klami, A., Virtanen, S., & Kaski, S. (2013). "Bayesian Canonical
-        Correlation Analysis." Journal of Machine Learning Research, 14,
-        965-1003.
-        Virtanen, S., Klami, A., & Kaski, S. (2011). "Bayesian CCA via
-        Group Sparsity." ICML.
+    so a dimension is shared when $\alpha_{i,k}$ is small in several views
+    and private when small in one. Inference is closed-form coordinate-ascent
+    variational Bayes. ``n_components`` is an upper bound: dimensions with
+    vanishing loadings are pruned, leaving ``n_components_``. Convergence is
+    judged on the change in $z$ rather than the lower bound, so raise
+    ``max_iter`` if ``n_components_`` is larger than expected.
 
     Args:
-        n_components: Upper bound on the number of latent components.
+        n_components: Upper bound on the number of latent dimensions.
             Default is 1.
-        center: Whether to center each view before fitting. Default is True.
-        max_iter: Maximum number of coordinate-ascent iterations, and the
-            actual safety net for correctness (see the class-level note on
-            early stopping being best-effort). Default is 10000 (the R
-            package defaults to 1e5, using it purely as a cap around
-            ``tol``-based early stopping). Raise this if ``n_components_``
-            comes out larger than expected on a hard problem.
-        tol: Relative Frobenius-norm change in the latent variable $z$
-            between iterations. Fitting stops once this stays below ``tol``
-            for 1000 consecutive iterations with no pruning event — see the
-            class-level note for why even that isn't a full correctness
-            guarantee. This is also a *different* quantity from the R
-            package's
-            ``iter.crit`` (a relative change in the full variational lower
-            bound), so the two aren't numerically comparable; 1e-4 is
-            calibrated against this specific proxy instead of copying the R
-            default value. Default is 1e-4.
-        drop_k: Whether to prune latent dimensions with near-zero posterior
-            mean squared value across the whole run. Default is True
-            (matches the R package's ``dropK``).
-        n_posterior_samples: Number of samples drawn from the fitted
-            variational posterior to populate ``posterior_samples_``.
-            Default is 1000.
-        random_state: Seed for reproducible initialization. Default is
-            None.
+        center: Whether to centre each view. Default is True.
+        max_iter: Maximum coordinate-ascent iterations. Default is 10000.
+        tol: Tolerance on the relative change in $z$, held for 1000
+            iterations. Default is 1e-4.
+        drop_k: Whether to prune unused dimensions, as CCAGFA's ``dropK``.
+            Default is True.
+        n_posterior_samples: Draws from the fitted posterior. Default is 1000.
+        random_state: Seed for the initialisation. Default is None.
 
-    Examples:
+    Attributes:
+        weights_: Posterior mean loadings of each view, shape
+            (n_features_i, n_components_).
+        view_relevance_: Posterior mean ARD precisions, shape
+            (n_views, n_components_); large means shrunk away.
+        n_components_: Number of dimensions kept.
+        posterior_samples_: Posterior draws keyed ``W_{i}``, ``log_psi_{i}``
+            and ``alpha``.
+        n_iter_: Number of iterations run.
+
+    References:
+        Klami, A., Virtanen, S., & Kaski, S. (2013). Bayesian Canonical
+        Correlation Analysis. Journal of Machine Learning Research, 14,
+        965-1003.
+
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.probabilistic import GFA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 4))
         >>> X2 = rng.standard_normal((50, 3))
@@ -157,19 +99,14 @@ class GFA(PosteriorMeanTransformMixin, BaseModel):
     # ------------------------------------------------------------------
 
     def fit(self, views: list[ArrayLike], y: None = None) -> GFA:
-        """Run coordinate-ascent variational Bayes to fit the GFA model.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-                All arrays must have the same number of rows.
-            y: Ignored.  Present for scikit-learn API compatibility.
+            views: Arrays of shape (n_samples, n_features_i), one per view.
+            y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         validated = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
@@ -311,17 +248,10 @@ class GFA(PosteriorMeanTransformMixin, BaseModel):
         b_tau: np.ndarray,
         d: list[int],
     ) -> None:
-        r"""Draw samples from the fitted variational posterior.
+        """Draw ``posterior_samples_`` from the fitted variational posterior.
 
-        Populates ``posterior_samples_`` with the same key convention as
-        :class:`~cca_zoo.probabilistic.ProbabilisticCCA`/
-        :class:`~cca_zoo.probabilistic.VariationalBayesCCA` (``W_{i}``,
-        ``log_psi_{i}``, plus GFA-specific ``alpha``) so
-        :class:`~cca_zoo.probabilistic._utils.PosteriorMeanTransformMixin`
-        works unmodified: the homoscedastic noise $\\tau_i^{-1}$ is
-        broadcast across every feature of view $i$ to fit that per-feature
-        interface, which is exact (homoscedastic is a special case of
-        per-feature noise with every entry equal), not an approximation.
+        Each view's scalar noise is broadcast to every feature, matching the
+        ``log_psi_{i}`` convention of the other probabilistic models.
         """
         s = self.n_posterior_samples
         m_views = len(w)

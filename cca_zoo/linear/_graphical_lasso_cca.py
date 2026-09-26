@@ -1,4 +1,4 @@
-r"""GraphicalLassoCCA — MCCA with a sparse-precision within-view covariance."""
+"""MCCA with graphical-lasso within-view covariances."""
 
 from __future__ import annotations
 
@@ -21,82 +21,45 @@ from cca_zoo.linear._mcca import MCCA
 
 
 class GraphicalLassoCCA(MCCA):
-    r"""GraphicalLassoCCA -- MCCA with a sparse-precision within-view covariance.
+    """MCCA with each within-view covariance estimated by the graphical lasso.
 
-    Every within-view regularisation already in this library changes how
-    the *covariance* :math:`X_i^\top X_i` is estimated before it goes into
-    :class:`~cca_zoo.linear.MCCA`'s generalised eigenproblem -- a fixed
-    ridge blend toward the identity (``MCCA``'s own ``c``), Ledoit-Wolf
-    shrinkage (:class:`~cca_zoo.linear.CCAR3`'s ``ledoit_wolf``), or
-    concentration-step trimming (:class:`~cca_zoo.linear.TrimmedCCA`).
-    None of them touch the *inverse* covariance directly.
-    ``GraphicalLassoCCA`` does: each view's block of
-    :class:`~cca_zoo.linear.MCCA`'s within-view matrix :math:`B` is built
-    from :class:`sklearn.covariance.GraphicalLasso`'s (or, with
-    ``alpha=None``, :class:`sklearn.covariance.GraphicalLassoCV`'s)
-    L1-penalised precision estimate's implied covariance, in place of the
-    raw sample covariance -- an L1 penalty on each view's *partial*
-    correlations (conditional independence structure) rather than an L2
-    shrinkage of the covariance itself. The between-view matrix :math:`A`
-    is untouched (plain sample cross-covariance, as in ``MCCA``), so only
-    the "how confidently does this view's own covariance matrix invert"
-    side of the eigenproblem changes.
-
-    Since the point of estimating a sparse precision matrix is usually the
-    sparse structure itself, not a dimensionality-reduced approximation of
-    it, this always solves the eigenproblem directly in each view's
-    original feature space (:class:`~cca_zoo.linear.MCCA`'s
-    ``pca=True`` shortcut is not applicable here and isn't exposed).
-
-    Note:
-        :class:`sklearn.covariance.GraphicalLasso` (and its CV variant)
-        estimate a *sparse precision* matrix under a Gaussian assumption
-        and are themselves most useful in the high-dimensional
-        (:math:`p \gtrsim n`) regime a plain sample covariance can't
-        invert reliably -- exactly where ``MCCA``'s own docs recommend
-        ``pca=True`` instead. This is a different way to make that same
-        regime tractable: constrain the *inverse* covariance's structure
-        rather than truncate the covariance's rank.
+    Replaces each view's block of :class:`~cca_zoo.linear.MCCA`'s $B$ with
+    the covariance implied by :class:`~sklearn.covariance.GraphicalLasso`'s
+    sparse precision estimate, an L1 penalty on partial correlations rather
+    than shrinkage of the covariance. Solved in the original feature space.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default
-            True.
-        c: Ridge blend applied on top of the graphical-lasso covariance
-            estimate, same semantics as :class:`~cca_zoo.linear.MCCA`'s own
-            ``c`` (``(1 - c) * cov + c * I``). Default 0 -- the graphical
-            lasso's own ``alpha`` is normally regularisation enough on its
-            own.
-        alpha: Graphical-lasso L1 penalty strength(s). A scalar or per-view
-            list of non-negative floats, or ``None`` (per view) to select
-            it automatically via :class:`~sklearn.covariance.GraphicalLassoCV`
-            (slower -- a 5-fold search per view every fit -- but avoids
-            hand-tuning ``alpha``, which lives on the raw covariance scale
-            rather than a bounded ``[0, 1]`` ridge parameter and so has no
-            single sensible default across arbitrarily scaled data).
-            Default 0.01, matching :class:`~sklearn.covariance.GraphicalLasso`'s
-            own default.
-        mode: Graphical-lasso solver, ``"cd"`` (coordinate descent) or
-            ``"lars"`` -- passed straight through to
-            :class:`~sklearn.covariance.GraphicalLasso` /
-            :class:`~sklearn.covariance.GraphicalLassoCV`. Default ``"cd"``.
-        max_iter: Maximum graphical-lasso iterations. Default 100.
-        eps: Small constant added to the eigenvalues of ``B`` to ensure
-            positive definiteness. Default 1e-6.
+        center: Whether to centre each view. Default is True.
+        c: Ridge blend applied to the estimated covariance, as in MCCA.
+            Default is 0.
+        alpha: Graphical-lasso penalty; None selects it by
+            :class:`~sklearn.covariance.GraphicalLassoCV`. Per-view. Default
+            is 0.01.
+        mode: Graphical-lasso solver, ``"cd"`` or ``"lars"``. Default is
+            ``"cd"``.
+        max_iter: Maximum graphical-lasso iterations. Default is 100.
+        eps: Floor added to the eigenvalues of ``B``. Default is 1e-6.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        covariance_: Estimated covariance of each view.
+        precision_: Estimated sparse precision of each view.
 
     References:
         Friedman, J., Hastie, T., & Tibshirani, R. (2008). Sparse inverse
         covariance estimation with the graphical lasso. Biostatistics,
         9(3), 432-441.
 
-    Examples:
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.linear import GraphicalLassoCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((100, 12))
         >>> X2 = rng.standard_normal((100, 9))
         >>> model = GraphicalLassoCCA(alpha=0.1).fit([X1, X2])
-        >>> scores = model.transform([X1, X2])
-        >>> precisions = model.precision_  # sparse per-view precision matrices
+        >>> model.precision_[0].shape
+        (12, 12)
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -130,16 +93,7 @@ class GraphicalLassoCCA(MCCA):
         self.max_iter = max_iter
 
     def _build_B(self, views: list[np.ndarray], c: list[float]) -> np.ndarray:
-        """Build B from each view's graphical-lasso covariance estimate.
-
-        Args:
-            views: Centred view arrays.
-            c: Per-view ridge-blend parameters.
-
-        Returns:
-            Symmetric positive-definite matrix of shape
-            (sum_features, sum_features).
-        """
+        """Block-diagonal ``B`` from each view's graphical-lasso covariance."""
         alpha_ = perview_parameter("alpha", self.alpha, None, len(views))
         covariances = []
         precisions = []

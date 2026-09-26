@@ -1,4 +1,4 @@
-"""ECCA — CCA via entrywise-sparse reduced rank regression."""
+"""CCA by entrywise-sparse reduced rank regression."""
 
 from __future__ import annotations
 
@@ -18,31 +18,10 @@ from cca_zoo.linear._rrr_common import _postprocess_rrr_fit
 def _entrywise_sparse_rrr(
     X: np.ndarray, Y: np.ndarray, alpha: float, max_iter: int, tol: float
 ) -> np.ndarray:
-    r"""Solve min_B (1/n)||Y - XB||^2 + alpha * sum_{j,k} |B[j,k]|.
+    """Solve ``min_B ||Y - XB||^2 / n + alpha * sum |B|`` by one Lasso per column.
 
-    Unlike :func:`cca_zoo.linear._ccar3._row_sparse_rrr`'s row-group penalty,
-    an entrywise L1 penalty on ``B`` places no coupling between a row's
-    entries, so the problem separates exactly into one independent Lasso
-    regression per column of ``Y``: column $k$'s objective is
-    $\frac1n\lVert y_k - Xb_k \rVert^2 + \lambda \lVert b_k
-    \rVert_1$, exactly :class:`~sklearn.linear_model.Lasso`'s own objective
-    with sklearn's ``alpha`` half of ours (sklearn's $\frac{1}{2n}$ convention,
-    not ``cca_zoo``'s $\frac1n$ -- see ``_row_sparse_rrr``'s docstring for
-    the same factor-of-2 derivation). The reference R implementation
-    (``ecca()`` in the `ccar3 <https://github.com/jameschapman19/ccar3>`_
-    package) instead solves this with a single matrix-free ADMM over the
-    whole ``B`` at once, needed there for its own memory-efficiency goals;
-    since the entrywise penalty makes the columns independent regardless of
-    solver, a bank of per-column Lasso fits reaches the same optimum with
-    no ADMM machinery at all -- 0.10s vs. 59.0s for R's ``ecca()`` at the
-    same n=300, p=300, q=100 problem in a direct benchmark (R's ADMM never
-    converges early there at that ``alpha``, running its full 20,000
-    -iteration budget; sklearn's per-column coordinate descent does).
-
-    At ``alpha == 0`` this instead solves the unpenalised least-squares
-    problem directly (``Lasso(alpha=0)`` is mathematically the same
-    problem, but sklearn's own coordinate descent warns it "does not
-    converge well" there and recommends exactly this alternative).
+    sklearn's Lasso scales the loss by ``1 / (2n)``, so its ``alpha`` is half
+    of this one. ``alpha=0`` is solved by least squares.
     """
     if alpha == 0.0:
         B, _, _, _ = np.linalg.lstsq(X, Y, rcond=None)
@@ -59,79 +38,42 @@ def _entrywise_sparse_rrr(
 
 
 class ECCA(BaseModel):
-    r"""Canonical Correlation Analysis via entrywise-sparse Reduced Rank Regression.
+    r"""Two-view CCA by entrywise-sparse reduced rank regression.
 
-    Like :class:`~cca_zoo.linear.CCAR3`, recasts two-view CCA as a reduced
-    -rank regression of ``X`` onto ``Y``, but with an entrywise penalty on
-    the coefficient matrix $B$ instead of a row-group one, and -- unlike
-    ``CCAR3`` -- fit directly against raw (centred) $Y$, with no
-    Ledoit-Wolf pre-whitening step:
+    Regresses $Y$ on $X$ with an entrywise lasso penalty,
 
     $$
     \hat{B} = \underset{B}{\mathrm{argmin}}\ \frac{1}{n}
-        \lVert Y - X B \rVert_F^2
-        + \lambda \sum_{j,k} \lvert B_{j,k} \rvert
+        \lVert Y - X B \rVert_F^2 + \alpha \sum_{j,k} \lvert B_{jk} \rvert,
     $$
 
-    Where :class:`~cca_zoo.linear.CCAR3`'s row-group-lasso penalty zeroes
-    whole $X$ features at once (a feature is either used by every canonical
-    variate or by none), this entrywise penalty can zero individual
-    ``(feature, component)`` entries independently -- a feature can
-    contribute to component 1 while being dropped from component 2. This
-    exactly mirrors the relationship between
-    :class:`~cca_zoo.sparse.ElasticNetCCA` (entrywise) and
-    :class:`~cca_zoo.sparse.MultiTaskElasticNetCCA` (row-group) one level
-    up, but here for the reduced-rank-regression family rather than the
-    Eckart-Young-loss family. The rank-``n_components`` SVD of
-    $\hat{B}$ gives the canonical directions, whitened so the canonical
-    variates have unit variance, sign-aligned to positive correlation, and
-    sorted in descending order -- the same postprocessing ``CCAR3`` uses,
-    just with no Y-covariance un-whitening step (there's no Y-whitening to
-    undo here).
-
-    This is a NumPy port of the reference R implementation's ``ecca()``
-    function ([ccar3](https://github.com/jameschapman19/ccar3)), solved by
-    a bank of independent :class:`~sklearn.linear_model.Lasso` fits (one
-    per column of $Y$) rather than the R package's single matrix-free ADMM
-    over the whole $B$ at once -- the entrywise penalty makes the columns
-    of $B$ independent regardless of solver (see
-    :func:`_entrywise_sparse_rrr`'s docstring), so this reaches the same
-    optimum with a far simpler, already-well-tested solver. The absence of
-    Y-whitening (unlike ``CCAR3``) is deliberate, not an oversight: the R
-    reference's own ``Sy``/``LW_Sy`` machinery is present in ``cca_rrr()``
-    but explicitly *not* used by ``ecca()`` -- its `ecca_across_lambdas`
-    keeps an ``Sy`` parameter only "for compatibility" and ignores it. The
-    R package's optional block/graph ``groups`` argument (arbitrary
-    ``(x, y)`` index pairs sharing one penalty) is out of scope here; use
-    `GridSearchCV` from `cca_zoo.model_selection` to select ``alpha`` as
-    for any other estimator.
-
-    References:
-        `ccar3 <https://github.com/jameschapman19/ccar3>`_'s ``ecca()``,
-        the entrywise-sparse companion to
-        Donnat, C., & Tuzhilina, E. (2024). Canonical Correlation Analysis
-        as Reduced Rank Regression in High Dimensions. arXiv:2405.19539.
+    and takes the canonical directions from the rank-``n_components`` SVD of
+    $\hat{B}$. Unlike :class:`~cca_zoo.linear.CCAR3`'s row-group penalty, a
+    feature can be dropped from some components and kept in others. A port
+    of ``ecca()`` from the R package ccar3.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default True.
-        alpha: Entrywise lasso regularisation strength. ``0`` disables
-            the penalty. Default is 0.
-        max_iter: Maximum number of coordinate-descent iterations, passed
-            straight through to :class:`~sklearn.linear_model.Lasso`.
-            Default 10_000.
-        tol: Convergence tolerance, passed straight through to
-            :class:`~sklearn.linear_model.Lasso`. Default 1e-4.
-        eps: Small constant added to covariance matrices before inversion,
-            for numerical stability. Default 1e-8.
+        center: Whether to centre each view. Default is True.
+        alpha: Entrywise lasso strength. Default is 0.
+        max_iter: Maximum Lasso iterations. Default is 10000.
+        tol: Lasso tolerance. Default is 1e-4.
+        eps: Ridge added to covariances before inversion. Default is 1e-8.
 
-    Examples:
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    References:
+        Donnat, C., & Tuzhilina, E. (2024). Canonical Correlation Analysis
+        as Reduced Rank Regression in High Dimensions. arXiv:2405.19539.
+
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.linear import ECCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
         >>> model = ECCA(n_components=2, alpha=0.1).fit([X1, X2])
-        >>> scores = model.transform([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -158,18 +100,17 @@ class ECCA(BaseModel):
         self.eps = eps
 
     def fit(self, views: list[ArrayLike], y: None = None) -> ECCA:
-        """Fit the ECCA model.
+        """Fit the model.
 
         Args:
-            views: List of exactly two arrays, each (n_samples, n_features_i).
+            views: Two arrays of shape (n_samples, n_features_i).
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
+            self.
 
         Raises:
-            ValueError: If the number of views is not exactly 2.
-            ValueError: If views have inconsistent numbers of samples.
+            ValueError: If there are not exactly two views.
         """
         views_ = self._setup_fit(views)
         if self.n_views_ != 2:

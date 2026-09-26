@@ -1,4 +1,4 @@
-r"""MultiTaskElasticNetCCA — row-group-sparse linear CCA on the EY loss."""
+"""Row-sparse CCA by coordinate descent on the EY loss."""
 
 from __future__ import annotations
 
@@ -15,78 +15,40 @@ from cca_zoo._utils._validation import perview_parameter
 
 
 class MultiTaskElasticNetCCA(BaseModel):
-    r"""MultiTaskElasticNetCCA — row-group-sparse linear CCA, fit on the EY loss.
+    r"""Row-sparse multiview CCA with a multi-task elastic-net penalty on the EY loss.
 
-    Like :class:`~cca_zoo.sparse.ElasticNetCCA`, learns per-view linear
-    weights $W_i$ minimising an elastic-net-penalised EY loss, but with
-    sklearn's :class:`~sklearn.linear_model.MultiTaskLasso` /
-    :class:`~sklearn.linear_model.MultiTaskElasticNet` row-group penalty in
-    place of a plain per-scalar penalty:
+    As :class:`~cca_zoo.sparse.ElasticNetCCA` with
+    :class:`~sklearn.linear_model.MultiTaskElasticNet`'s penalty,
 
     $$
-    \mathcal{L}(W) = \mathcal{L}_{EY}(Z_1, \dots, Z_M)
-        + \sum_i \left( \alpha \, \rho \, \|W_i\|_{2,1}
-        + \tfrac{1}{2} \alpha (1-\rho) \|W_i\|_F^2 \right)
+    \mathcal{L}_{EY}(Z_1, \dots, Z_M)
+        + \sum_i \left( \alpha_i \rho_i \|W_i\|_{2,1}
+        + \tfrac{1}{2} \alpha_i (1-\rho_i) \|W_i\|_F^2 \right),
     $$
 
-    where $\|W_i\|_{2,1} = \sum_j \|W_i[j,:]\|_2$ sums each *feature's*
-    weight-row Euclidean norm over all ``n_components`` components.
-    Because the penalty on a row is zero only when the whole row is zero,
-    a feature is either used by every canonical variate or by none —
-    unlike :class:`~cca_zoo.sparse.ElasticNetCCA`, which can (and often
-    does) keep a feature for component 1 while dropping it from component
-    2. That joint selection is exactly what
-    :class:`~sklearn.linear_model.MultiTaskLasso` buys over plain
-    :class:`~sklearn.linear_model.Lasso` for ordinary multi-output
-    regression, and it is arguably an even more natural fit here, since a
-    CCA model's ``n_components`` are not independent "tasks" to be
-    fit separately but different views of the same underlying features.
-
-    Fit by :func:`~cca_zoo._utils._ey.group_coordinate_descent_ey` —
-    block-coordinate descent, one *row* (feature, across all components) at
-    a time, using proximal gradient (ISTA) with backtracking line search
-    rather than :class:`~cca_zoo.sparse.ElasticNetCCA`'s exact per-scalar
-    quartic solve. The two aren't interchangeable: a row's smooth EY
-    restriction couples all $k$ of its entries together (through the
-    auto-covariance's off-diagonal terms), so there is no closed form for
-    the exact row minimiser the way there is for a single scalar — see that
-    function's docstring for the full derivation. Every accepted step is
-    still a verified decrease of the exact penalised objective, so fitting
-    remains provably monotonic, just without per-step exactness.
-
-    Note:
-        Like every EY-loss model, this is not convex in $W$, so different
-        ``random_state`` initialisations can land on different stationary
-        points — see :class:`~cca_zoo.sparse.ElasticNetCCA`'s docstring.
+    so each feature is used by every component or by none. Each row is
+    updated by a proximal-gradient step with backtracking.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default is True.
-        alpha: Overall penalty strength(s). Either a single float applied
-            to every view or a list of per-view floats. Default is 1.0.
-        l1_ratio: Mixing parameter(s) in ``[0, 1]``; 0 is pure (Frobenius)
-            ridge, 1 is pure row-group lasso. Either a single float
-            applied to every view or a list of per-view floats. Default
-            is 0.5.
-        max_iter: Maximum number of full coordinate-descent sweeps.
-            Default is 100.
-        tol: Convergence tolerance on the penalised objective's change
-            between consecutive sweeps. Default is 1e-6.
-        random_state: Seed for the initial weights.
+        center: Whether to centre each view. Default is True.
+        alpha: Penalty strength. Per-view. Default is 1.0.
+        l1_ratio: Row-group share of the penalty in ``[0, 1]``. Per-view.
+            Default is 0.5.
+        max_iter: Maximum coordinate-descent sweeps. Default is 100.
+        tol: Tolerance on the change in the objective. Default is 1e-6.
+        random_state: Seed for the initial weights. Default is None.
 
-    Examples:
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.sparse import MultiTaskElasticNetCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 20))
         >>> X2 = rng.standard_normal((200, 15))
         >>> model = MultiTaskElasticNetCCA(n_components=2, alpha=0.1).fit([X1, X2])
-        >>> scores = model.transform([X1, X2])
-
-        A different penalty per view:
-
-        >>> model = MultiTaskElasticNetCCA(
-        ...     n_components=2, alpha=[0.1, 0.5]
-        ... ).fit([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -115,18 +77,14 @@ class MultiTaskElasticNetCCA(BaseModel):
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> MultiTaskElasticNetCCA:
-        """Fit MultiTaskElasticNetCCA by row-group coordinate descent on the EY loss.
+        """Fit the model.
 
         Args:
-            views: List of 2 or more arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         views_ = self._setup_fit(views)
         alpha_ = perview_parameter("alpha", self.alpha, 1.0, self.n_views_)

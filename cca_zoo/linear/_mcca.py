@@ -1,4 +1,4 @@
-"""Multiset CCA (MCCA) — generalised eigendecomposition approach."""
+"""Multiset CCA."""
 
 from __future__ import annotations
 
@@ -16,64 +16,44 @@ from cca_zoo._utils._validation import perview_parameter
 
 
 class MCCA(BaseModel):
-    r"""Multiset Canonical Correlation Analysis.
-
-    Finds linear projections of multiple (>=2) views that maximise the sum of
-    pairwise cross-view covariances subject to within-view variance constraints.
-    A ridge regularisation parameter ``c`` controls the trade-off between
-    correlation and variance explained.
-
-    The primal objective is:
+    r"""Multiset CCA: the sum of pairwise covariances under ridge constraints.
 
     $$
-    \begin{aligned}
-    \max_{\mathbf{w}} \sum_{i \neq j} \mathbf{w}_i^\top X_i^\top X_j \mathbf{w}_j \\
-    \text{subject to } \mathbf{w}_i^\top
-        \bigl((1-c_i) X_i^\top X_i + c_i I\bigr) \mathbf{w}_i = 1
-    \end{aligned}
+    \max_{w} \sum_{i \neq j} w_i^\top X_i^\top X_j w_j
+    \quad \text{subject to} \quad
+    w_i^\top \bigl((1 - c_i) X_i^\top X_i + c_i I\bigr) w_i = 1,
     $$
 
-    This is solved as a generalised eigenvalue problem:
-
-    $$
-    A \mathbf{v} = \lambda B \mathbf{v}
-    $$
-
-    where $A$ is the between-view block covariance matrix and $B$
-    is the block-diagonal regularised within-view covariance matrix.
-
-    When ``pca=True`` (default), each view is first reduced to its principal
-    components, which makes the problem numerically stable for
-    high-dimensional data and allows an efficient closed-form $B$.
-
-    References:
-        Kettenring, J. R. (1971). Canonical analysis of several sets of
-        variables. *Biometrika*, 58(3), 433–451.
-
-        Vinod, H. D. (1976). Canonical ridge and econometrics of joint
-        production. *Journal of Econometrics*, 4(2), 147–166.
+    solved as the generalized eigenproblem $A v = \lambda B v$, with $A$ the
+    between-view and $B$ the regularised within-view covariance blocks.
+    ``c=0`` is CCA and ``c=1`` is PLS.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default True.
-        c: Ridge regularisation parameter(s).  Either a single float applied
-            to all views or a list of per-view floats in ``[0, 1]``.
-            ``c=0`` gives standard CCA constraints; ``c=1`` gives sphering
-            (PLS-like).  Default is 0.
-        pca: Whether to apply full PCA whitening as a pre-processing step
-            before solving the eigenvalue problem.  Highly recommended for
-            high-dimensional data.  Default is True.
-        eps: Small constant added to the eigenvalues of B to ensure positive
-            definiteness.  Default is 1e-6.
+        center: Whether to centre each view. Default is True.
+        c: Ridge blend in ``[0, 1]``. Per-view. Default is 0.
+        pca: Whether to solve in each view's principal components, which is
+            faster and more stable for wide data. Default is True.
+        eps: Floor added to the eigenvalues of ``B``. Default is 1e-6.
 
-    Examples:
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    References:
+        Kettenring, J. R. (1971). Canonical analysis of several sets of
+        variables. Biometrika, 58(3), 433-451.
+
+        Vinod, H. D. (1976). Canonical ridge and econometrics of joint
+        production. Journal of Econometrics, 4(2), 147-166.
+
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.linear import MCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
         >>> X3 = rng.standard_normal((50, 6))
-        >>> model = MCCA(n_components=2).fit([X1, X2, X3])
-        >>> scores = model.transform([X1, X2, X3])
+        >>> model = MCCA(n_components=2, c=0.1).fit([X1, X2, X3])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -97,18 +77,14 @@ class MCCA(BaseModel):
         self.eps = eps
 
     def fit(self, views: list[ArrayLike], y: None = None) -> MCCA:
-        """Fit the MCCA model.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
@@ -139,29 +115,14 @@ class MCCA(BaseModel):
     # ------------------------------------------------------------------
 
     def _build_A(self, views: list[np.ndarray]) -> np.ndarray:
-        """Build the between-view covariance block matrix A.
-
-        Args:
-            views: Centred (and optionally PCA-projected) view arrays.
-
-        Returns:
-            Symmetric matrix of shape (sum_features, sum_features).
-        """
+        """Between-view covariance block matrix, with zero diagonal blocks."""
         all_views = np.hstack(views)
         A = np.cov(all_views, rowvar=False)
         A -= block_diag(*[np.cov(v, rowvar=False) for v in views])
         return A / len(views)
 
     def _build_B(self, views: list[np.ndarray], c: list[float]) -> np.ndarray:
-        """Build the regularised within-view covariance block matrix B.
-
-        Args:
-            views: Centred view arrays.
-            c: Per-view regularisation parameters.
-
-        Returns:
-            Symmetric positive-definite matrix of shape (sum_features, sum_features).
-        """
+        """Block-diagonal ridge-blended within-view covariance."""
         blocks = [
             (1.0 - c[i]) * np.cov(v, rowvar=False) + c[i] * np.eye(v.shape[1])
             for i, v in enumerate(views)
@@ -177,15 +138,7 @@ class MCCA(BaseModel):
         pca_models: list[PCA],
         c: list[float],
     ) -> np.ndarray:
-        """Build B using the PCA explained variances (diagonal form).
-
-        Args:
-            pca_models: Fitted PCA models for each view.
-            c: Per-view regularisation parameters.
-
-        Returns:
-            Block-diagonal matrix of shape (sum_components, sum_components).
-        """
+        """Diagonal ``B`` from the PCA explained variances."""
         blocks = [
             np.diag((1.0 - c[i]) * m.explained_variance_ + c[i])
             for i, m in enumerate(pca_models)

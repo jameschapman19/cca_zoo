@@ -1,4 +1,4 @@
-r"""ElasticNetCCA — sparse linear CCA via coordinate descent directly on the EY loss."""
+"""Sparse CCA by coordinate descent on the elastic-net-penalised EY loss."""
 
 from __future__ import annotations
 
@@ -15,78 +15,43 @@ from cca_zoo._utils._validation import perview_parameter
 
 
 class ElasticNetCCA(BaseModel):
-    r"""ElasticNetCCA — sparse linear CCA by coordinate descent on the EY loss.
+    r"""Sparse multiview CCA by coordinate descent on the elastic-net EY loss.
 
-    Learns per-view linear weights $W_i$ (embeddings $Z_i = X_i W_i$) that
-    minimise the elastic-net-penalised Eckart-Young (EY) objective:
+    Minimises, over  = X_i W_i$,
 
     $$
-    \mathcal{L}(W) = \mathcal{L}_{EY}(Z_1, \dots, Z_M)
-        + \sum_i \left( \alpha \, \rho \, \|W_i\|_1
-        + \tfrac{1}{2} \alpha (1-\rho) \|W_i\|_F^2 \right)
+    \mathcal{L}_{EY}(Z_1, \dots, Z_M)
+        + \sum_i \left( \alpha_i \rho_i \|W_i\|_1
+        + \tfrac{1}{2} \alpha_i (1-\rho_i) \|W_i\|_F^2 \right),
     $$
 
-    where $\mathcal{L}_{EY}$ is the EY loss (see
-    :mod:`cca_zoo._utils._ey`, shared with
-    :class:`~cca_zoo.linear.gradient.CCAEY`, :class:`~cca_zoo.tree.TreeCCA`,
-    :class:`~cca_zoo.gam.GAMCCA`, and :class:`~cca_zoo.gp.GaussianProcessCCA`)
-    and $\rho$ is ``l1_ratio``. This is fit by
-    :func:`~cca_zoo._utils._ey.coordinate_descent_ey` — cyclic coordinate
-    descent on the EY loss itself (``bases`` = the raw centred views, no
-    ridge coupling), the same algorithm
-    :class:`~sklearn.linear_model.ElasticNet` uses for ordinary
-    (squared-error) elastic net, but with each coordinate's exact minimiser
-    solved against $\mathcal{L}_{EY}$'s own (quartic, not quadratic)
-    restriction — see that function's docstring for the derivation.
-
-    Each embedding $Z_i$ is exactly linear in $X_i$ throughout fitting, so
-    it inherits :class:`~cca_zoo._base.BaseModel`'s plain
-    ``transform``/``weights`` machinery unmodified, and ``weights``
-    genuinely are the sparse canonical weight vectors — not a placeholder
-    that raises ``NotImplementedError`` the way it does for
-    :class:`~cca_zoo.tree.TreeCCA`.
-
-    Note:
-        Like every EY-loss model, $\mathcal{L}_{EY}$ is not convex in $W$
-        jointly (only each single coordinate's restriction is, in the
-        limited sense of being an exactly-solvable quartic), so coordinate
-        descent is only guaranteed to reach a stationary point, and
-        different ``random_state`` initialisations can land on different
-        ones — the same caveat that already applies to
-        :class:`~cca_zoo.linear.gradient.CCAEY`'s gradient descent.
+    with $\rho$ = ``l1_ratio``, by cyclic coordinate descent as in
+    :class:`~sklearn.linear_model.ElasticNet`; each coordinate's quartic
+    restriction is minimised exactly. The loss is not jointly convex, so the
+    result can depend on ``random_state``.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default is True.
-        alpha: Overall elastic-net penalty strength(s). Either a single
-            float applied to every view or a list of per-view floats.
-            Default is 1.0.
-        l1_ratio: Elastic-net mixing parameter(s) in ``[0, 1]``; 0 is pure
-            ridge, 1 is pure lasso. Either a single float applied to every
-            view or a list of per-view floats. Default is 0.5.
-        max_iter: Maximum number of full coordinate-descent sweeps (every
-            view, feature, and component once each). Default is 100.
-        tol: Convergence tolerance on the penalised objective's change
-            between consecutive sweeps. Default is 1e-6.
-        random_state: Seed for the initial weights.
-        positive: If True, constrain every weight to be non-negative
-            (mirrors :class:`~sklearn.linear_model.Lasso` and
-            :class:`~sklearn.linear_model.ElasticNet`'s ``positive=True``).
+        center: Whether to centre each view. Default is True.
+        alpha: Penalty strength. Per-view. Default is 1.0.
+        l1_ratio: L1 share of the penalty in ``[0, 1]``. Per-view. Default
+            is 0.5.
+        max_iter: Maximum coordinate-descent sweeps. Default is 100.
+        tol: Tolerance on the change in the objective. Default is 1e-6.
+        random_state: Seed for the initial weights. Default is None.
+        positive: Whether to constrain the weights to be non-negative.
             Default is False.
 
-    Examples:
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.sparse import ElasticNetCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 20))
         >>> X2 = rng.standard_normal((200, 15))
-        >>> model = ElasticNetCCA(n_components=2, alpha=0.1).fit([X1, X2])
-        >>> scores = model.transform([X1, X2])
-
-        A different penalty per view:
-
-        >>> model = ElasticNetCCA(n_components=2, alpha=[0.1, 0.5]).fit(
-        ...     [X1, X2]
-        ... )
+        >>> model = ElasticNetCCA(n_components=2, alpha=[0.1, 0.5]).fit([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -118,18 +83,14 @@ class ElasticNetCCA(BaseModel):
         self.positive = positive
 
     def fit(self, views: list[ArrayLike], y: None = None) -> ElasticNetCCA:
-        """Fit ElasticNetCCA by cyclic coordinate descent on the EY loss.
+        """Fit the model.
 
         Args:
-            views: List of 2 or more arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         views_ = self._setup_fit(views)
         alpha_ = perview_parameter("alpha", self.alpha, 1.0, self.n_views_)

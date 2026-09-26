@@ -1,4 +1,4 @@
-"""CCAEY — Eckart-Young CCA, continuously blended with PLSEY via a ridge parameter."""
+"""Eckart-Young CCA, ridge-blended with PLSEY."""
 
 from __future__ import annotations
 
@@ -18,90 +18,46 @@ from cca_zoo.linear.gradient._base import BaseFullBatchEYModel
 
 
 class CCAEY(BaseFullBatchEYModel):
-    r"""Eckart-Young CCA for 2 or more views, ridge-blended with PLSEY.
+    r"""Multiview CCA by minimising the Eckart-Young loss, with a ridge blend.
 
-    Minimises the unconstrained Eckart-Young (EY) objective directly on the
-    raw (centred) views, with no manifold projection step and no upfront
-    whitening: unlike classical CCA, which whitens each view before finding
-    the correlated directions, the EY reformulation folds the
-    orthonormalising pressure into the loss itself, so a full-batch
-    preprocessing pass over the data covariance is never needed. This
-    matches how the same underlying loss is used, unwhitened, by
-    :class:`~cca_zoo.linear.gradient.PLSEY`, :class:`~cca_zoo.tree.TreeCCA`,
-    and :class:`~cca_zoo.deep.DCCAEY`.
-
-    For embeddings $Z_i = X_i W_i$ ($i = 1, \dots, M$, $M \ge 2$), let $C$
-    and $V$ be the mean pairwise cross-covariance and mean auto-covariance
-    across views (see :func:`cca_zoo._utils._ey.ey_cross_covariance`), and
-    $B = \frac{1}{M}\sum_i W_i^\top W_i$ the mean weight Gram matrix
-    (see :func:`cca_zoo._utils._ey.weight_gram_mean`). ``c`` blends the
-    *within-view normalisation* between the data's own auto-covariance and
-    the identity (in weight space, $W_i^\top I W_i = W_i^\top W_i$) —
-    exactly the canonical-ridge blend $(1-c)X^\top X + cI$ already used by
-    :class:`~cca_zoo.linear.RidgeCCA`, translated into this unconstrained
-    setting:
+    For $Z_i = X_i W_i$, with $C$ and $V$ the mean pairwise cross-covariance
+    and mean auto-covariance (:mod:`cca_zoo._utils._ey`) and
+    $B = \frac{1}{M} \sum_i W_i^\top W_i$,
 
     $$
     V_c = (1 - c) V + c B, \qquad
-    \mathcal{L}_{EY}(c) = -2 \operatorname{tr}(C - c V) + \operatorname{tr}(V_c V_c)
+    \mathcal{L}_{EY}(c) = -2 \operatorname{tr}(C - c V) + \operatorname{tr}(V_c V_c).
     $$
 
-    ``c=0`` recovers plain (unregularised) ``CCAEY`` exactly; ``c=1``
-    recovers :class:`~cca_zoo.linear.gradient.PLSEY`'s loss exactly (its
-    reward excludes the $i=j$ terms that $\mathcal{L}_{EY}(0)$
-    includes, and its penalty is purely $\operatorname{tr}(BB)$) —
-    both endpoints, and the gradient at intermediate $c$, are verified
-    against finite differences and against ``PLSEY``'s own independently
-    verified gradient. This objective has the canonical directions as a
-    stationary point without requiring an explicit orthonormality
-    constraint, unlike a plain squared-projection-distance loss.
+    ``c`` is :class:`~cca_zoo.linear.RidgeCCA`'s blend: ``c=0`` is CCA and
+    ``c=1`` is :class:`~cca_zoo.linear.gradient.PLSEY`. The loss is minimised
+    by full-batch L-BFGS-B with its exact gradient; see
+    :class:`~cca_zoo.linear.gradient.StochasticCCAEY` for mini-batches. With
+    few samples per feature, ``c=0`` is ill-conditioned; use ``c`` of 0.1 to
+    0.3.
 
-    Fit by full-batch L-BFGS-B
-    (:meth:`~cca_zoo.linear.gradient._base.BaseFullBatchEYModel._fit_lbfgsb`)
-    using the loss's exact analytic gradient. For mini-batch training on
-    datasets too large for a full-batch gradient evaluation, see
-    :class:`~cca_zoo.linear.gradient.StochasticCCAEY`.
+    Args:
+        n_components: Number of latent dimensions. Default is 1.
+        center: Whether to centre each view. Default is True.
+        c: Ridge blend in ``[0, 1]``. Default is 0.
+        max_iter: Maximum L-BFGS-B iterations. Default is 1000.
+        tol: L-BFGS-B ``ftol``. Default is 1e-8.
+        random_state: Seed for the initial weights. Default is None.
 
-    Note:
-        Unlike the exact, closed-form :class:`~cca_zoo.linear.RidgeCCA` (where
-        ``c=0`` is always numerically safe), optimising the raw,
-        *unregularised* ($c=0$) objective can be poorly conditioned when the
-        number of samples doesn't outnumber the number of features by a
-        healthy margin, since nothing then bounds the weights in the data's
-        near-null directions. If you see ``nan`` or diverging weights,
-        increase ``c`` (a small value like 0.1-0.3 is usually enough).
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
 
     References:
         Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
         Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
         arXiv:2310.01012.
 
-    Args:
-        n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default True.
-        c: Ridge blend in ``[0, 1]`` between ``CCAEY`` (0) and ``PLSEY``
-            (1). Default is 0 (standard, unregularised CCAEY); see the
-            note above on numerical stability for high-dimensional data.
-        max_iter: Maximum number of L-BFGS-B iterations. Default is 1000.
-        tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
-            is 1e-8 -- a loose ``ftol`` (e.g. 1e-6) can mistake a slow,
-            shallow stretch of genuine descent for convergence and return
-            silently, so if you see a suspiciously *low* held-out
-            correlation rather than ``nan``/diverging weights, premature
-            convergence is a more likely cause than the numerical issue
-            described above.
-        random_state: Seed for reproducibility.
-
-    Examples:
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.linear import CCAEY
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((1000, 20))
         >>> X2 = rng.standard_normal((1000, 15))
-        >>> model = CCAEY(n_components=4, random_state=0)
-        >>> model = model.fit([X1, X2])
-
-        More than two views are supported directly:
-
         >>> X3 = rng.standard_normal((1000, 10))
         >>> model = CCAEY(n_components=4, random_state=0).fit([X1, X2, X3])
     """
@@ -130,18 +86,14 @@ class CCAEY(BaseFullBatchEYModel):
         self.c = c
 
     def fit(self, views: list[ArrayLike], y: None = None) -> CCAEY:
-        """Fit CCAEY by full-batch L-BFGS-B on the EY loss.
+        """Fit the model.
 
         Args:
-            views: List of 2 or more arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
@@ -151,14 +103,7 @@ class CCAEY(BaseFullBatchEYModel):
     def _initial_weights(
         self, views: list[np.ndarray], rng: np.random.Generator
     ) -> list[np.ndarray]:
-        """Cheap, data-informed initial weights (see class docstring note).
-
-        Overrides :meth:`BaseFullBatchEYModel._initial_weights`'s plain
-        weight-orthonormal default: gives exactly unit-variance,
-        uncorrelated projections on the full dataset instead, matching this
-        loss's own reward term at its fixed point (see
-        :func:`cca_zoo._utils._ey.cheap_orthonormal_projection_weights`).
-        """
+        """Weights giving unit-variance, uncorrelated projections on the full data."""
         return cheap_orthonormal_projection_weights(views, self.n_components, None, rng)
 
     def _derivative(
@@ -167,24 +112,9 @@ class CCAEY(BaseFullBatchEYModel):
         representations: list[np.ndarray],
         weights: list[np.ndarray],
     ) -> list[np.ndarray]:
-        r"""Analytic gradient of $\mathcal{L}_{EY}(c)$ w.r.t. each $W_k$.
+        r"""Gradient of $\mathcal{L}_{EY}(c)$ in each view's weights.
 
-        Combines the chain-rule gradient through the embeddings (as for
-        plain ``CCAEY``, scaled by ``(1 - c)`` plus a direct
-        ``c``-scaled reward correction) with a *direct* weight-space
-        gradient contribution from ``B``'s dependence on $W_k$ (as for
-        ``PLSEY``, scaled by ``c``). Verified against finite differences
-        for ``c`` in ``{0, 0.3, 0.5, 0.7, 1}``, and, at ``c=0``/``c=1``,
-        against the unregularised ``CCAEY`` gradient and ``PLSEY``'s own
-        gradient respectively (both matches exact).
-
-        Args:
-            views: Per-view arrays.
-            representations: Current embeddings.
-            weights: Current weight matrices.
-
-        Returns:
-            List of gradient matrices, one per view.
+        The chain rule through the embeddings plus the direct term from $B$.
         """
         m = len(views)
         n = views[0].shape[0]
@@ -209,7 +139,7 @@ class CCAEY(BaseFullBatchEYModel):
         representations: list[np.ndarray],
         weights: list[np.ndarray],
     ) -> float:
-        r"""Scalar $\mathcal{L}_{EY}(c)$."""
+        r"""$\mathcal{L}_{EY}(c)$."""
         del views
         c = self.c
         C, v_data = ey_cross_covariance(representations)
